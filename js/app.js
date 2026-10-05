@@ -159,8 +159,9 @@ class HoustonAtlasApp {
           const decInt = parseInt(val, 10);
           this.filterStore.setState({
             selectedDecade: val,
-            minYear: decInt,
-            maxYear: decInt + 9,
+            minYear: decInt === 1840 ? 1836 : decInt,
+            maxYear: Math.min(2026, decInt + 9),
+            stepYears: 10,
             isPlaying: false,
           });
         }
@@ -217,6 +218,69 @@ class HoustonAtlasApp {
         this.filterStore.setState({ playSpeed: Number(e.target.value) || 1 });
       });
     }
+
+    // Time-Travel Stepper (1 yr, 5 yrs, 10 yrs + Prev/Next Buttons + Arrow Keys)
+    const btnStepPrev = document.getElementById("btn-step-prev");
+    const btnStepNext = document.getElementById("btn-step-next");
+    const flashStepButton = (btn) => {
+      if (!btn) return;
+      btn.classList.add("flash-active");
+      setTimeout(() => btn.classList.remove("flash-active"), 150);
+    };
+
+    if (btnStepPrev) {
+      btnStepPrev.addEventListener("click", () => {
+        this.filterStore.stepTime(-1);
+      });
+    }
+    if (btnStepNext) {
+      btnStepNext.addEventListener("click", () => {
+        this.filterStore.stepTime(1);
+      });
+    }
+
+    document.querySelectorAll("[data-step-years]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const yrs = parseInt(btn.getAttribute("data-step-years"), 10) || 5;
+        this.filterStore.setState({ stepYears: yrs });
+      });
+    });
+
+    window.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const active = document.activeElement;
+        if (active) {
+          const tag = (active.tagName || "").toUpperCase();
+          const isTextInput =
+            (tag === "INPUT" && !["range", "checkbox", "button"].includes(active.type)) ||
+            tag === "TEXTAREA" ||
+            active.isContentEditable;
+          if (isTextInput) return;
+        }
+
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          e.stopPropagation();
+          flashStepButton(btnStepPrev);
+          this.filterStore.stepTime(-1);
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          e.stopPropagation();
+          flashStepButton(btnStepNext);
+          this.filterStore.stepTime(1);
+        } else if (
+          e.key === " " &&
+          (!active || !["BUTTON", "SELECT", "INPUT", "A"].includes((active.tagName || "").toUpperCase()))
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (btnPlay) btnPlay.click();
+        }
+      },
+      { capture: true }
+    );
 
     // Reset Filters Button
     const btnReset = document.getElementById("btn-reset-filters");
@@ -488,6 +552,23 @@ class HoustonAtlasApp {
         : `<span class="play-icon">&#9654;</span> Play Growth Time-Lapse`;
     }
 
+    // Time-Travel Stepper Buttons & Labels
+    const stepYrs = Number(state.stepYears) || 5;
+    const unitLabel = stepYrs === 1 ? "1 yr" : `${stepYrs} yrs`;
+    const prevLabelEl = document.getElementById("step-prev-label");
+    const nextLabelEl = document.getElementById("step-next-label");
+    if (prevLabelEl) prevLabelEl.textContent = `-${unitLabel}`;
+    if (nextLabelEl) nextLabelEl.textContent = `+${unitLabel}`;
+
+    document.querySelectorAll("[data-step-years]").forEach((btn) => {
+      const btnYrs = parseInt(btn.getAttribute("data-step-years"), 10);
+      btn.classList.toggle("active", btnYrs === stepYrs);
+    });
+
+    if (this.lastViewportStats && this.lastViewportStats.decadeCounts) {
+      this._renderDecadeHistogram(this.lastViewportStats.decadeCounts);
+    }
+
     // Layer Checkboxes
     const mapLayerIds = {
       "chk-layer-landmarks": state.layers.landmarks,
@@ -621,7 +702,8 @@ class HoustonAtlasApp {
           this.filterStore.setState({
             selectedDecade: clickedDec,
             minYear: dInt === 1840 ? 1836 : dInt,
-            maxYear: dInt + 9,
+            maxYear: Math.min(2026, dInt + 9),
+            stepYears: 10,
             isPlaying: false,
           });
         }
