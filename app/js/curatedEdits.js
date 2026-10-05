@@ -456,8 +456,11 @@ export async function authenticateAdminSession({
   const token = String(googleIdToken || "").trim();
   const passkey = String(adminPasskey || "").trim();
   const email = String(adminEmail || "").trim();
-  if (!token && !passkey) {
-    return { ok: false, error: "Please sign in with Google or enter the Sheet Editor Passkey." };
+  if (!token && (!email || !passkey)) {
+    return {
+      ok: false,
+      error: "Please enter both your Sheet Editor Google Account Email and the Sheet Editor Passkey.",
+    };
   }
 
   const targetUrl = String(webhookUrl || "").trim();
@@ -476,21 +479,25 @@ export async function authenticateAdminSession({
           admin_email: email,
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (!data.authorized) {
-          return {
-            ok: false,
-            error:
-              data.error ||
-              "Access denied: Google account is not listed as an Editor on the Curated Overrides Google Sheet.",
-          };
-        }
-        verifiedByWebhook = true;
-        resolvedEmail = data.email || resolvedEmail;
+      if (!res.ok) {
+        return { ok: false, error: `Verification webhook HTTP ${res.status}` };
       }
-    } catch (_err) {
-      // If webhook is not yet deployed or blocks CORS readback, credentials are still sent on every admin_approve POST
+      const data = await res.json();
+      if (!data.authorized) {
+        return {
+          ok: false,
+          error:
+            data.error ||
+            "Access denied: Google account is not listed as an Editor on the Curated Overrides Google Sheet.",
+        };
+      }
+      verifiedByWebhook = true;
+      resolvedEmail = data.email || resolvedEmail;
+    } catch (err) {
+      return {
+        ok: false,
+        error: `Could not reach Google Sheet verification service: ${err.message || err}`,
+      };
     }
   }
 
@@ -512,7 +519,7 @@ export async function authenticateAdminSession({
 /**
  * Submit an Administrator-Approved override directly (`action: "admin_approve"`).
  * The Google Apps Script verifies `google_id_token` (against `Spreadsheet.getEditors()`)
- * or `admin_passkey` server-side before writing `status = "Approved"`.
+ * or `admin_email` + `admin_passkey` server-side before writing `status = "Approved"`.
  */
 export async function submitAdminApprovedOverride(payload, webhookUrl = "") {
   const session = getAdminSession();
@@ -536,6 +543,7 @@ export async function submitAdminApprovedOverride(payload, webhookUrl = "") {
     source_citation: String(payload.source_citation || "").trim(),
     source_url: String(payload.source_url || "").trim(),
     verified_by: session.email || "Preservation Houston Archival Review",
+    admin_email: session.email || "",
     google_id_token: session.googleIdToken || "",
     admin_passkey: session.adminPasskey || "",
   };
@@ -543,16 +551,17 @@ export async function submitAdminApprovedOverride(payload, webhookUrl = "") {
   let webhookDelivered = false;
   const targetUrl = String(webhookUrl || "").trim();
   if (targetUrl) {
-    try {
-      await fetch(targetUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(record),
-      });
+    const res = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(record),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.authorized) {
+        throw new Error(data.error || "Server rejected admin approval credentials.");
+      }
       webhookDelivered = true;
-    } catch (err) {
-      console.warn("Admin webhook delivery warning:", err);
     }
   }
 
