@@ -183,9 +183,21 @@ export function parseOverridesFromSheetRows(rows) {
   return overrides;
 }
 
+export function isObsoleteRestrictedSheetUrl(url) {
+  const s = String(url || "").trim();
+  if (!s) return false;
+  // Once a Google Sheet is set to Restricted, direct /gviz/tq or /export URLs on the raw sheet ID
+  // redirect to accounts.google.com/ServiceLogin and fail CORS; only /spreadsheets/d/e/2PACX-.../pub works.
+  if (s.includes("/gviz/tq") || s.includes("1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs")) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Load baseline overrides from `public/data/curated_overrides.json` and optionally merge
- * live approved rows from a published Google Sheet CSV URL.
+ * live approved rows from a published Google Sheet CSV URL (with automatic fallback to
+ * the bound Google Apps Script `doGet` CSV endpoint).
  */
 export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   let baseConfig = {
@@ -195,7 +207,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json", { cache: "no-cache" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261005d", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -208,24 +220,49 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
     console.warn("Could not load baseline curated_overrides.json:", err);
   }
 
-  const storedCsvUrl =
+  let storedCsvUrl =
     typeof localStorage !== "undefined" ? localStorage.getItem(LS_SHEET_CSV_URL_KEY) : "";
+  if (storedCsvUrl && isObsoleteRestrictedSheetUrl(storedCsvUrl)) {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(LS_SHEET_CSV_URL_KEY);
+    }
+    storedCsvUrl = "";
+  }
+
   const storedWebhookUrl =
     typeof localStorage !== "undefined" ? localStorage.getItem(LS_WEBHOOK_URL_KEY) : "";
 
-  const activeSheetCsvUrl = normalizeGoogleSheetCsvUrl(
-    customSheetCsvUrl !== null ? customSheetCsvUrl : storedCsvUrl || baseConfig.googleSheetCsvUrl
-  );
+  const candidateCsvUrl =
+    customSheetCsvUrl !== null && !isObsoleteRestrictedSheetUrl(customSheetCsvUrl)
+      ? customSheetCsvUrl
+      : storedCsvUrl || baseConfig.googleSheetCsvUrl;
+
+  const activeSheetCsvUrl = normalizeGoogleSheetCsvUrl(candidateCsvUrl);
   const activeWebhookUrl = (storedWebhookUrl || baseConfig.submissionWebhookUrl || "").trim();
 
   const mergedOverrides = { ...baseConfig.overrides };
   let sheetSyncStatus = {
-    connected: Boolean(activeSheetCsvUrl),
+    connected: Boolean(activeSheetCsvUrl || activeWebhookUrl),
     csvUrl: activeSheetCsvUrl,
     webhookUrl: activeWebhookUrl,
     sheetRowCount: 0,
     totalOverrideCount: Object.keys(mergedOverrides).length,
     error: null,
+  };
+
+  const applyCsvText = (csvText) => {
+    const rows = parseCsvToObjects(csvText);
+    const sheetOverrides = parseOverridesFromSheetRows(rows);
+    for (const [hcadNum, ov] of Object.entries(sheetOverrides)) {
+      const existing = mergedOverrides[hcadNum] || {};
+      mergedOverrides[hcadNum] = {
+        ...existing,
+        ...ov,
+        geometry: ov.geometry || existing.geometry || null,
+      };
+    }
+    sheetSyncStatus.sheetRowCount = Object.keys(sheetOverrides).length;
+    sheetSyncStatus.totalOverrideCount = Object.keys(mergedOverrides).length;
   };
 
   if (activeSheetCsvUrl) {
@@ -235,21 +272,30 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
         throw new Error(`HTTP ${sheetRes.status}`);
       }
       const csvText = await sheetRes.text();
-      const rows = parseCsvToObjects(csvText);
-      const sheetOverrides = parseOverridesFromSheetRows(rows);
-      for (const [hcadNum, ov] of Object.entries(sheetOverrides)) {
-        const existing = mergedOverrides[hcadNum] || {};
-        mergedOverrides[hcadNum] = {
-          ...existing,
-          ...ov,
-          geometry: ov.geometry || existing.geometry || null,
-        };
-      }
-      sheetSyncStatus.sheetRowCount = Object.keys(sheetOverrides).length;
-      sheetSyncStatus.totalOverrideCount = Object.keys(mergedOverrides).length;
+      applyCsvText(csvText);
     } catch (err) {
-      sheetSyncStatus.error = err.message || String(err);
-      console.warn("Google Sheet CSV live fetch failed (using baseline overrides):", err);
+      // Automatic fallback to the bound Google Apps Script doGet CSV endpoint if configured
+      if (activeWebhookUrl) {
+        try {
+          const fallbackRes = await fetch(activeWebhookUrl, { cache: "no-store" });
+          if (fallbackRes.ok) {
+            const csvText = await fallbackRes.text();
+            applyCsvText(csvText);
+            sheetSyncStatus.error = null;
+          } else {
+            throw new Error(`Webhook HTTP ${fallbackRes.status}`);
+          }
+        } catch (fallbackErr) {
+          sheetSyncStatus.error = err.message || String(err);
+          console.warn(
+            "Google Sheet CSV live fetch and Apps Script fallback failed (using baseline overrides):",
+            fallbackErr
+          );
+        }
+      } else {
+        sheetSyncStatus.error = err.message || String(err);
+        console.warn("Google Sheet CSV live fetch failed (using baseline overrides):", err);
+      }
     }
   }
 
@@ -265,7 +311,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
 export function saveGoogleSheetEndpoints({ csvUrl, webhookUrl }) {
   if (typeof localStorage === "undefined") return;
   const normalizedCsv = normalizeGoogleSheetCsvUrl(csvUrl);
-  if (normalizedCsv) {
+  if (normalizedCsv && !isObsoleteRestrictedSheetUrl(normalizedCsv)) {
     localStorage.setItem(LS_SHEET_CSV_URL_KEY, normalizedCsv);
   } else {
     localStorage.removeItem(LS_SHEET_CSV_URL_KEY);
