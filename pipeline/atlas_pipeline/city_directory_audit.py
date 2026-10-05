@@ -142,16 +142,16 @@ def verify_address_in_ocr(ocr_text: str, house_num: int, street_stem: str) -> st
     Returns a short cleaned snippet if verified, or None if it appears to be a
     false positive (e.g., phone number or unrelated street).
     """
-    if not ocr_text:
+    if not ocr_text or house_num <= 0:
         return None
 
     normalized = re.sub(r"\s+", " ", ocr_text)
     num_str = str(house_num)
     stem_escaped = re.escape(street_stem)
 
-    # Pattern 1: Direct adjacency like "1127 Key" or "1127 N Key" or "1127 E 14th"
+    # Pattern 1: Direct adjacency like "1127 Key" or "1127 N Key" or "1127 E 14th" (allowing OCR punctuation)
     direct_pat = re.compile(
-        rf"\b[rh]?\s*{num_str}\s+(?:[NSEW]\.?\s+)?{stem_escaped}\b",
+        rf"\b[rh]?\s*{num_str}[\s.,;:-]+(?:[NSEW]\.?[\s.,;:-]+)?{stem_escaped}\b",
         re.IGNORECASE,
     )
     m_direct = direct_pat.search(normalized)
@@ -160,16 +160,18 @@ def verify_address_in_ocr(ocr_text: str, house_num: int, street_stem: str) -> st
         end = min(len(normalized), m_direct.end() + 55)
         return normalized[start:end].strip()
 
-    # Pattern 2: Street & Avenue Guide section where the street name is a section header
-    # (e.g. "KEY—" or "KEY ST" or "KEY (Norhill)") and the house number appears in that column
+    # For dummy/single-digit HCAD numbers (< 10), require direct adjacency only
+    if house_num < 10:
+        return None
+
+    # Pattern 2: Reverse Street & Avenue Guide section ("KEY ST—From ..." followed by house numbers)
     header_pat = re.compile(
-        rf"\b{stem_escaped}\s*(?:ST|AVE|AV|BLVD|DR|RD|—|--|-|\()",
+        rf"\b{stem_escaped}\s+(?:ST|AVE|AV|BLVD|DR|RD)?\s*(?:—|--|-)\s*From\b",
         re.IGNORECASE,
     )
     for m_hdr in header_pat.finditer(normalized):
-        # Look within the next 2500 characters of the street guide section for the house number
-        window = normalized[m_hdr.start() : min(len(normalized), m_hdr.end() + 2500)]
-        num_pat = re.compile(rf"\b{num_str}\s+[A-Z]", re.IGNORECASE)
+        window = normalized[m_hdr.start() : min(len(normalized), m_hdr.end() + 1200)]
+        num_pat = re.compile(rf"\b{num_str}\s+[A-Z][a-z]+", re.IGNORECASE)
         m_num = num_pat.search(window)
         if m_num:
             s_start = max(0, m_num.start() - 20)
@@ -229,9 +231,40 @@ class ContentDmCityDirectoryClient:
                 )
                 """
             )
+            self.conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS audit_results (
+                    hcad_num TEXT PRIMARY KEY,
+                    finding_json TEXT NOT NULL,
+                    audited_at REAL NOT NULL
+                )
+                """
+            )
 
     def close(self) -> None:
         self.conn.close()
+
+    def get_cached_finding(self, hcad_num: str) -> AuditFinding | None:
+        row = self.conn.execute(
+            "SELECT finding_json FROM audit_results WHERE hcad_num = ?",
+            (hcad_num,),
+        ).fetchone()
+        if not row:
+            return None
+        try:
+            d = json.loads(row[0])
+            return AuditFinding(**d)
+        except Exception:
+            return None
+
+    def save_cached_finding(self, finding: AuditFinding) -> None:
+        if not finding.hcad_num:
+            return
+        with self.conn:
+            self.conn.execute(
+                "INSERT OR REPLACE INTO audit_results(hcad_num, finding_json, audited_at) VALUES (?, ?, ?)",
+                (finding.hcad_num, json.dumps(asdict(finding)), time.time()),
+            )
 
     def _polite_sleep(self) -> None:
         now = time.monotonic()
@@ -291,25 +324,27 @@ class ContentDmCityDirectoryClient:
         return self._volume_years
 
     def search_phrase(self, phrase: str, max_records: int = 50) -> list[dict[str, Any]]:
-        """Run a full-text ContentDM search for an exact phrase or query string."""
-        query_key = f"phrase:{phrase.strip().lower()}:{max_records}"
+        """Run a full-text ContentDM search for an exact phrase (`^exact^and`)."""
+        clean_p = phrase.strip().lower()
+        exact_key = f"exact:{clean_p}:{max_records}"
+        legacy_key = f"phrase:{clean_p}:{max_records}"
         row = self.conn.execute(
-            "SELECT response_json FROM search_cache WHERE query_key = ?",
-            (query_key,),
+            "SELECT response_json FROM search_cache WHERE query_key IN (?, ?) ORDER BY query_key ASC LIMIT 1",
+            (exact_key, legacy_key),
         ).fetchone()
         if row:
             return json.loads(row[0]).get("records", [])
 
-        encoded_phrase = urllib.parse.quote(f'"{phrase.strip()}"')
+        encoded_phrase = urllib.parse.quote(phrase.strip())
         dm_path = (
-            f"dmQuery/{COLLECTION_ALIAS}/CISOSEARCHALL^{encoded_phrase}^all^and/"
+            f"dmQuery/{COLLECTION_ALIAS}/CISOSEARCHALL^{encoded_phrase}^exact^and/"
             f"title!date/nosort/{max_records}/1/0/0/0/0/json"
         )
         data = self._get_json(dm_path)
         with self.conn:
             self.conn.execute(
                 "INSERT OR REPLACE INTO search_cache(query_key, response_json, fetched_at) VALUES (?, ?, ?)",
-                (query_key, json.dumps(data), time.time()),
+                (exact_key, json.dumps(data), time.time()),
             )
         return data.get("records", [])
 
@@ -365,17 +400,66 @@ class ContentDmCityDirectoryClient:
             "transc": transc,
         }
 
-    def find_address_mentions(self, house_num: int, street_stem: str) -> list[DirectoryMention]:
-        """Search all 1866-1926 volumes for a specific street number and street stem."""
+    def find_address_mentions(
+        self,
+        house_num: int,
+        street_stem: str,
+        max_ocr_checks: int = 3,
+    ) -> list[DirectoryMention]:
+        """Search all 1866-1926 volumes for a specific street number and street stem.
+
+        Sorts candidate search records by volume year ascending (earliest directory first)
+        so we only need 1-3 `dmGetItemInfo` OCR page fetches to verify the earliest appearance,
+        avoiding redundant requests across 20+ later volumes.
+        """
         phrase = f"{house_num} {street_stem}"
         records = self.search_phrase(phrase, max_records=40)
-        mentions: list[DirectoryMention] = []
+        if not records:
+            return []
 
-        for rec in records:
+        vol_catalog = self.ensure_volume_catalog()
+
+        def _rec_sort_key(rec: dict[str, Any]) -> tuple[int, int]:
+            p_obj = int(rec.get("parentobject", -1))
+            yr = vol_catalog.get(p_obj, (9999, ""))[0]
+            return (yr if yr > 0 else 9999, int(rec.get("pointer", 0)))
+
+        sorted_records = sorted(records, key=_rec_sort_key)
+        mentions: list[DirectoryMention] = []
+        ocr_checks = 0
+
+        for rec in sorted_records:
             ptr = int(rec.get("pointer", -1))
             if ptr <= 0:
                 continue
             known_parent = int(rec.get("parentobject", -1))
+            # Check if already cached in SQLite before counting toward network OCR check budget
+            is_cached = (
+                self.conn.execute("SELECT 1 FROM item_cache WHERE pointer = ?", (ptr,)).fetchone()
+                is not None
+            )
+            if not is_cached and ocr_checks >= max_ocr_checks and mentions:
+                # We already verified the earliest mention; record subsequent volume years from catalog
+                yr, vol_title = vol_catalog.get(known_parent, (0, ""))
+                if yr > 0:
+                    mentions.append(
+                        DirectoryMention(
+                            pointer=ptr,
+                            parent_pointer=known_parent,
+                            year=yr,
+                            volume_title=vol_title,
+                            page_title=str(rec.get("title", f"Page {ptr}")),
+                            snippet=mentions[0].snippet,
+                            viewer_url=f"{CONTENTDM_BASE}/digital/collection/{COLLECTION_ALIAS}/id/{ptr}/rec/1",
+                        )
+                    )
+                continue
+
+            if not is_cached and ocr_checks >= max_ocr_checks and not mentions:
+                break
+
+            if not is_cached:
+                ocr_checks += 1
             page = self.get_page_details(ptr, known_parent=known_parent)
             snippet = verify_address_in_ocr(page["transc"], house_num, street_stem)
             if snippet and page["year"] > 0:
@@ -434,12 +518,42 @@ def audit_suspect_property(
     matched_years = sorted({m.year for m in mentions if m.year > 0})
     earliest_year = matched_years[0] if matched_years else None
 
-    # Case 1: Address appears in City Directories earlier than HCAD's year_built
-    if earliest_year is not None and (hcad_year == 0 or earliest_year < hcad_year - 1):
+    # Case 1A: Property has NO year_built in HCAD (hcad_year == 0) and is found in City Directories
+    if earliest_year is not None and hcad_year == 0:
         first_mention = mentions[0]
+        years_preview = ", ".join(str(y) for y in matched_years[:6])
         citation = (
-            f"{first_mention.volume_title} ({first_mention.page_title}): "
-            f'"{first_mention.snippet}"'
+            f'{first_mention.volume_title} ({first_mention.page_title}): '
+            f'"{first_mention.snippet}" — verified in {years_preview} directories '
+            f'(unrecorded / Year Built = 0 in HCAD)'
+        )
+        return AuditFinding(
+            hcad_num=hcad_num,
+            address=address,
+            historic_district=district,
+            original_hcad_year=0,
+            suggested_year_built=earliest_year,
+            classification="UNDATED_IN_HCAD_FOUND_IN_DIRECTORY",
+            earliest_dir_year=earliest_year,
+            matched_dir_years=matched_years,
+            neighbor_dir_years=[],
+            source_type="Houston City Directory",
+            source_citation=citation,
+            source_url=first_mention.viewer_url,
+            notes=(
+                f"Unrecorded in HCAD (Year Built = 0), but appears in {earliest_year} City Directory. "
+                f"Verified across directory years: {matched_years}."
+            ),
+        )
+
+    # Case 1B: Address appears in City Directories earlier than HCAD's year_built
+    if earliest_year is not None and earliest_year < hcad_year - 1:
+        first_mention = mentions[0]
+        years_preview = ", ".join(str(y) for y in matched_years[:6])
+        citation = (
+            f'{first_mention.volume_title} ({first_mention.page_title}): '
+            f'"{first_mention.snippet}" — verified in {years_preview} directories '
+            f'({hcad_year - earliest_year} yrs earlier than HCAD {hcad_year})'
         )
         return AuditFinding(
             hcad_num=hcad_num,
@@ -460,11 +574,11 @@ def audit_suspect_property(
             ),
         )
 
-    # Case 2: Address appears right around HCAD's year_built
+    # Case 2: Address appears right around or after HCAD's year_built
     if earliest_year is not None:
         first_mention = mentions[0]
         citation = (
-            f"{first_mention.volume_title} ({first_mention.page_title}): "
+            f'{first_mention.volume_title} ({first_mention.page_title}): '
             f'"{first_mention.snippet}"'
         )
         return AuditFinding(
@@ -557,6 +671,24 @@ def audit_suspect_property(
     )
 
 
+def is_actionable_finding(item: AuditFinding) -> bool:
+    """Return True if an audit finding represents a meaningful date addition or correction."""
+    if item.classification in {
+        "UNDATED_IN_HCAD_FOUND_IN_DIRECTORY",
+        "EARLIER_THAN_HCAD",
+        "ABSENT_THROUGH_1926_PREMATURE_HCAD_1920",
+    }:
+        return True
+    if (
+        item.classification == "CONFIRMED_IN_DIRECTORY"
+        and item.suggested_year_built
+        and item.original_hcad_year
+        and abs(item.suggested_year_built - item.original_hcad_year) >= 2
+    ):
+        return True
+    return False
+
+
 def export_findings_to_csv(findings: list[AuditFinding], output_csv: Path) -> None:
     """Write audit findings to a CSV formatted for the Preservation Houston Google Sheet."""
     output_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -581,13 +713,10 @@ def export_findings_to_csv(findings: list[AuditFinding], output_csv: Path) -> No
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for item in findings:
-            actionable = item.classification in {
-                "EARLIER_THAN_HCAD",
-                "ABSENT_THROUGH_1926_PREMATURE_HCAD_1920",
-            }
+            actionable = is_actionable_finding(item)
             writer.writerow(
                 {
-                    "status": "Candidate Review" if actionable else "Info",
+                    "status": "Pending" if actionable else "Info",
                     "hcad_num": item.hcad_num,
                     "address": item.address,
                     "year_built": item.suggested_year_built or item.original_hcad_year,
@@ -610,24 +739,143 @@ def select_suspect_candidates(
     geojson_path: Path,
     district_filter: str | None = None,
     limit: int = 25,
+    scope: str = "suspect",
+    overlays_path: Path | None = None,
 ) -> list[dict[str, Any]]:
-    """Select properties with suspect rounded-decade HCAD years (1900, 1910, 1920, 1930)."""
+    """Select properties for City Directory auditing.
+
+    Scopes:
+    - "suspect": rounded-decade HCAD years (1890, 1900, 1910, 1920, 1930)
+    - "all_target": all properties with no year_built (year_built == 0) AND all properties
+      in a City of Houston Historic District, Heritage District, or National Register (NRHP)
+      Historic District, interleaved across districts so every district gets early coverage.
+    """
     data = json.loads(geojson_path.read_text(encoding="utf-8"))
     suspect_years = {1890, 1900, 1910, 1920, 1930}
+
+    # Optionally spatially enrich features with COH / Heritage / NRHP district names from overlays.json
+    dist_polys: list[Any] = []
+    dist_names: list[str] = []
+    tree: Any = None
+    if overlays_path is None:
+        default_ov = geojson_path.parent / "overlays.json"
+        if default_ov.exists():
+            overlays_path = default_ov
+
+    if overlays_path and overlays_path.exists():
+        try:
+            from shapely.geometry import shape
+            from shapely.strtree import STRtree
+
+            ov_data = json.loads(overlays_path.read_text(encoding="utf-8"))
+            for key in ["historic_districts", "heritage_districts", "nrhp_districts"]:
+                for f in ov_data.get(key, {}).get("features", []):
+                    nm = str(f.get("properties", {}).get("name", "")).strip()
+                    if nm and nm != "Outside Historic District" and f.get("geometry"):
+                        dist_polys.append(shape(f["geometry"]))
+                        dist_names.append(nm)
+            if dist_polys:
+                tree = STRtree(dist_polys)
+        except Exception:
+            tree = None
+
+    seen_hcads: set[str] = set()
     candidates: list[dict[str, Any]] = []
 
     for feat in data.get("features", []):
-        props = feat.get("properties", {})
-        yr = int(props.get("year_built", 0) or 0)
+        props = dict(feat.get("properties", {}))
+        hcad = str(props.get("hcad_num", "")).strip()
         addr = str(props.get("address", "")).strip()
-        dist = str(props.get("historic_district", "")).strip()
-        if yr not in suspect_years or not addr or not re.match(r"^\d+\s+", addr):
+        if not hcad or hcad in seen_hcads or not addr or not re.match(r"^[1-9]\d+\s+", addr):
             continue
+        seen_hcads.add(hcad)
+
+        yr = int(props.get("year_built", 0) or 0)
+        dist = str(props.get("historic_district", "")).strip()
+        if dist == "Outside Historic District":
+            dist = ""
+
+        if not dist and tree is not None and feat.get("geometry"):
+            try:
+                from shapely.geometry import shape
+
+                pt = shape(feat["geometry"]).centroid
+                for idx in tree.query(pt, predicate="intersects"):
+                    if dist_polys[idx].contains(pt):
+                        dist = dist_names[idx]
+                        break
+            except Exception:
+                pass
+
+        props["historic_district"] = dist
+
         if district_filter and district_filter.lower() not in dist.lower():
             continue
-        candidates.append(props)
 
-    # Prioritize 1127 KEY ST first if present, then contributing structures in Historic Districts
+        if scope == "all_target":
+            if yr == 0 or bool(dist):
+                candidates.append(props)
+        else:
+            if yr in suspect_years:
+                candidates.append(props)
+
+    if scope == "all_target":
+        # Group into priority tiers and interleave across districts so every COH & NRHP
+        # historic district gets immediate representation in the Google Sheet.
+        from collections import defaultdict
+
+        tier1_by_dist: dict[str, list[dict[str, Any]]] = defaultdict(list)  # In district & year == 0
+        tier2_by_dist: dict[str, list[dict[str, Any]]] = defaultdict(list)  # In district & suspect decade
+        tier3_undated_outside: list[dict[str, Any]] = []  # Outside district & year == 0
+        tier4_other_dist: list[dict[str, Any]] = []  # Other years in district
+
+        for p in candidates:
+            yr = int(p.get("year_built", 0) or 0)
+            dist = str(p.get("historic_district", "")).strip()
+            if dist and yr == 0:
+                tier1_by_dist[dist].append(p)
+            elif dist and yr in suspect_years:
+                tier2_by_dist[dist].append(p)
+            elif yr == 0:
+                tier3_undated_outside.append(p)
+            else:
+                tier4_other_dist.append(p)
+
+        def _interleave(by_dist: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+            for lst in by_dist.values():
+                lst.sort(
+                    key=lambda x: (
+                        0 if x.get("contributing") == "Contributing" else 1,
+                        str(x.get("address", "")),
+                    )
+                )
+            ordered_dists = sorted(by_dist.keys(), key=lambda d: (-len(by_dist[d]), d))
+            out: list[dict[str, Any]] = []
+            max_len = max((len(v) for v in by_dist.values()), default=0)
+            for i in range(max_len):
+                for d in ordered_dists:
+                    if i < len(by_dist[d]):
+                        out.append(by_dist[d][i])
+            return out
+
+        interleaved_t1 = _interleave(tier1_by_dist)
+        interleaved_t2 = _interleave(tier2_by_dist)
+        combined_priority: list[dict[str, Any]] = []
+        max_t12 = max(len(interleaved_t1), len(interleaved_t2))
+        for i in range(max_t12):
+            if i < len(interleaved_t1):
+                combined_priority.append(interleaved_t1[i])
+            if i < len(interleaved_t2):
+                combined_priority.append(interleaved_t2[i])
+
+        interleaved = (
+            combined_priority
+            + sorted(tier3_undated_outside, key=lambda x: str(x.get("address", "")))
+            + sorted(tier4_other_dist, key=lambda x: str(x.get("address", "")))
+        )
+        return interleaved[:limit] if limit > 0 else interleaved
+
+    # Default "suspect" sort
     candidates.sort(
         key=lambda p: (
             0 if p.get("address") == "1127 KEY ST" else 1,
@@ -636,7 +884,106 @@ def select_suspect_candidates(
             str(p.get("address", "")),
         )
     )
-    return candidates[:limit]
+    return candidates[:limit] if limit > 0 else candidates
+
+
+def sync_findings_to_google_sheet(
+    findings: list[AuditFinding],
+    props_by_hcad: dict[str, dict[str, Any]],
+    spreadsheet_id: str,
+    gsheets_bin: str = "/google/bin/releases/gemini-agents-gsheets/gsheets",
+) -> int:
+    """Append newly discovered actionable findings to `Pending_Submissions` in Google Sheets."""
+    import subprocess
+    import tempfile
+
+    actionable = [f for f in findings if is_actionable_finding(f) and f.suggested_year_built]
+    if not actionable or not Path(gsheets_bin).exists():
+        return 0
+
+    # Read existing hcad_num values from Pending_Submissions so we never insert duplicates
+    read_cmd = [
+        gsheets_bin,
+        "readonly",
+        "read",
+        spreadsheet_id,
+        "Pending_Submissions!A1:B5000",
+        "--json",
+    ]
+    proc = subprocess.run(read_cmd, capture_output=True, text=True, check=False)
+    existing_hcads: set[str] = set()
+    current_row_count = 1
+    if proc.returncode == 0 and proc.stdout.strip():
+        try:
+            rows = json.loads(proc.stdout)
+            current_row_count = len(rows)
+            for r in rows[1:]:
+                if len(r) > 1 and r[1]:
+                    existing_hcads.add(str(r[1]).strip().zfill(13))
+        except Exception:
+            pass
+
+    new_rows: list[list[Any]] = []
+    for item in actionable:
+        hcad_padded = str(item.hcad_num).strip().zfill(13)
+        if hcad_padded in existing_hcads:
+            continue
+        existing_hcads.add(hcad_padded)
+        prop = props_by_hcad.get(item.hcad_num, {})
+        contributing = str(prop.get("contributing", "") or "Contributing").strip()
+        new_rows.append(
+            [
+                "Pending",
+                hcad_padded,
+                item.address,
+                int(item.suggested_year_built or 0),
+                int(item.original_hcad_year or 0),
+                item.historic_district or "Historic Core",
+                contributing,
+                item.source_type,
+                item.source_citation,
+                item.source_url,
+                "Houston City Directory Batch Auditor (1866-1926)",
+                "City Directory Batch Auditor",
+            ]
+        )
+
+    if not new_rows:
+        return 0
+
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
+        json.dump(
+            [{"op": "append", "range": "Pending_Submissions!A1", "data": new_rows}],
+            tmp,
+        )
+        tmp_path = tmp.name
+
+    try:
+        subprocess.run(
+            [gsheets_bin, "mutate", "batch", spreadsheet_id, "-f", tmp_path, "--value-input", "RAW"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        total_rows = current_row_count + len(new_rows)
+        subprocess.run(
+            [
+                gsheets_bin,
+                "mutate",
+                "data-validation",
+                spreadsheet_id,
+                f"Pending_Submissions!A2:A{max(500, total_rows + 50)}",
+                "--values",
+                "Approved,Pending,Rejected",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    return len(new_rows)
 
 
 def main() -> None:
@@ -647,7 +994,7 @@ def main() -> None:
         "--buildings-geojson",
         type=Path,
         default=Path(__file__).resolve().parents[2] / "app" / "public" / "data" / "buildings.geojson",
-        help="Path to buildings.geojson to select suspect rounded-decade HCAD properties from.",
+        help="Path to buildings.geojson to select properties from.",
     )
     parser.add_argument(
         "--cache-db",
@@ -674,26 +1021,49 @@ def main() -> None:
         help="Optional specific street address to audit (e.g. '1127 KEY ST').",
     )
     parser.add_argument(
+        "--scope",
+        type=str,
+        default="suspect",
+        choices=["suspect", "all_target"],
+        help="Audit scope: 'suspect' (rounded decades) or 'all_target' (all undated + COH/NRHP districts).",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=10,
-        help="Maximum number of suspect properties to audit in one polite batch run.",
+        help="Maximum number of properties to audit in one run (0 = all matching).",
     )
     parser.add_argument(
         "--delay",
         type=float,
-        default=2.0,
-        help="Polite minimum delay in seconds between live ContentDM HTTP requests (default: 2.0s).",
+        default=1.4,
+        help="Polite minimum delay in seconds between live ContentDM HTTP requests (default: 1.4s).",
+    )
+    parser.add_argument(
+        "--check-neighbors",
+        action="store_true",
+        help="Also query adjacent house numbers (+-2, +-4) when a 1920-dated house is absent.",
+    )
+    parser.add_argument(
+        "--sync-sheet-id",
+        type=str,
+        default="",
+        help="Optional Google Sheet ID to incrementally append Pending findings into Pending_Submissions.",
+    )
+    parser.add_argument(
+        "--sync-every",
+        type=int,
+        default=25,
+        help="Flush newly discovered Pending findings to CSV and Google Sheet every N audited properties.",
     )
     args = parser.parse_args()
 
     client = ContentDmCityDirectoryClient(cache_db_path=args.cache_db, min_delay_seconds=args.delay)
     try:
         vol_catalog = client.ensure_volume_catalog()
-        print(f"Loaded {len(vol_catalog)} Houston City Directory volumes (1866-1926) in SQLite cache.")
+        print(f"Loaded {len(vol_catalog)} Houston City Directory volumes (1866-1926) in SQLite cache.", flush=True)
 
         if args.address:
-            # Find matching record in buildings.geojson or synthesize one
             props_list: list[dict[str, Any]] = []
             if args.buildings_geojson.exists():
                 data = json.loads(args.buildings_geojson.read_text(encoding="utf-8"))
@@ -716,20 +1086,64 @@ def main() -> None:
                 args.buildings_geojson,
                 district_filter=args.district,
                 limit=args.limit,
+                scope=args.scope,
             )
 
-        print(f"Auditing {len(props_list)} suspect HCAD property record(s) (delay={args.delay}s)...")
+        props_by_hcad = {str(p.get("hcad_num", "")).strip(): p for p in props_list}
+        print(
+            f"Auditing {len(props_list)} HCAD property record(s) (scope={args.scope}, delay={args.delay}s)...",
+            flush=True,
+        )
         findings: list[AuditFinding] = []
+        total_synced = 0
+
         for idx, prop in enumerate(props_list, 1):
-            finding = audit_suspect_property(client, prop, check_neighbors=True)
+            hcad_num = str(prop.get("hcad_num", "")).strip()
+            cached = client.get_cached_finding(hcad_num) if not args.check_neighbors else None
+            if cached is not None:
+                # Ensure historic_district is preserved if enriched
+                if prop.get("historic_district") and not cached.historic_district:
+                    cached.historic_district = str(prop["historic_district"])
+                finding = cached
+            else:
+                finding = audit_suspect_property(client, prop, check_neighbors=args.check_neighbors)
+                client.save_cached_finding(finding)
+
             findings.append(finding)
-            print(
-                f"  [{idx}/{len(props_list)}] {finding.address} (HCAD {finding.original_hcad_year}) -> "
-                f"{finding.classification} | suggested={finding.suggested_year_built} | {finding.notes}"
-            )
+            if is_actionable_finding(finding):
+                print(
+                    f"  [{idx}/{len(props_list)}] ★ {finding.address} ({finding.historic_district or 'Core'}, "
+                    f"HCAD {finding.original_hcad_year}) -> {finding.classification} | "
+                    f"suggested={finding.suggested_year_built} | {finding.source_citation[:110]}",
+                    flush=True,
+                )
+            elif idx % 20 == 0 or idx == len(props_list):
+                print(
+                    f"  [{idx}/{len(props_list)}] Audited {finding.address} -> {finding.classification}",
+                    flush=True,
+                )
+
+            if args.sync_every > 0 and (idx % args.sync_every == 0 or idx == len(props_list)):
+                export_findings_to_csv(findings, args.output_csv)
+                if args.sync_sheet_id:
+                    added = sync_findings_to_google_sheet(
+                        findings,
+                        props_by_hcad=props_by_hcad,
+                        spreadsheet_id=args.sync_sheet_id,
+                    )
+                    if added > 0:
+                        total_synced += added
+                        print(
+                            f"  --> Synced +{added} new Pending row(s) to Google Sheet (total added this run: {total_synced})",
+                            flush=True,
+                        )
 
         export_findings_to_csv(findings, args.output_csv)
-        print(f"Exported {len(findings)} audit findings to {args.output_csv}")
+        print(
+            f"Completed audit of {len(findings)} properties ({sum(1 for f in findings if is_actionable_finding(f))} actionable). "
+            f"Exported to {args.output_csv}.",
+            flush=True,
+        )
     finally:
         client.close()
 
