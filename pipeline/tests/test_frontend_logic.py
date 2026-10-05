@@ -59,6 +59,19 @@ def test_frontend_es_modules_via_node() -> None:
       throw new Error('Hash roundtrip failed: ' + JSON.stringify(parsed));
     }
 
+    import crypto from 'node:crypto';
+    import { md5Hex, buildHcadAuthHeaders } from './js/hcadLink.js';
+
+    const sampleInput = 'FJce8LGkX3qbtTKrdnYC4EvD52uMSWNh1791214800/AccountDetails';
+    const expectedMd5 = crypto.createHash('md5').update(sampleInput).digest('hex');
+    if (md5Hex(sampleInput) !== expectedMd5) {
+      throw new Error('hcadLink md5Hex mismatch: ' + md5Hex(sampleInput));
+    }
+    const authHdrs = buildHcadAuthHeaders(1791214800);
+    if (!authHdrs.Authorization.startsWith('Basic ') || authHdrs.AuthDate !== '1791214800') {
+      throw new Error('Invalid HCAD auth headers: ' + JSON.stringify(authHdrs));
+    }
+
     console.log(JSON.stringify({ ok: true, tours: CURATED_TOURS.length, legendCount: getLegendItems('year_built').length }));
     """
     proc = subprocess.run(

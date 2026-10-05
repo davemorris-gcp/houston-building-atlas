@@ -13,6 +13,7 @@ import {
   serializeStateToHash,
 } from "./filterStore.js";
 import { AtlasMapController } from "./mapController.js";
+import { fetchHcadDeepLink } from "./hcadLink.js";
 
 class HoustonAtlasApp {
   constructor() {
@@ -693,7 +694,14 @@ class HoustonAtlasApp {
       <div class="inspector-grid">
         <div class="inspector-cell">
           <span class="cell-label">HCAD Account #</span>
-          <span class="cell-value mono">${hcadNum || "Exempt / Unlisted"}</span>
+          <span class="cell-value mono">
+            ${hcadNum || "Exempt / Unlisted"}
+            ${
+              hcadNum
+                ? `<button type="button" id="btn-copy-hcad-acct" style="margin-left:6px;padding:1px 6px;font-size:10px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:inherit;cursor:pointer;" title="Copy 13-digit HCAD Account Number">Copy</button>`
+                : ""
+            }
+          </span>
         </div>
         <div class="inspector-cell">
           <span class="cell-label">Historic District</span>
@@ -749,14 +757,25 @@ class HoustonAtlasApp {
         ${
           hcadNum
             ? `<a
-                href="https://hcad.org/property-search/real-property/"
+                href="https://search.hcad.org/"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inspector-btn primary"
                 id="btn-open-hcad"
-                title="Search HCAD Account ${hcadNum} on hcad.org"
+                data-hcad-num="${hcadNum}"
+                title="Generating direct HCAD SearchResults deep link for ${hcadNum}..."
               >
-                Verify on HCAD (${hcadNum}) &#8599;
+                Open HCAD Record (${hcadNum}) &#8599;
+              </a>
+              <a
+                href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(hcadNum)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inspector-btn secondary"
+                id="btn-open-hcad-gis"
+                title="Open parcel ${hcadNum} in HCAD GIS Parcel Viewer"
+              >
+                HCAD GIS Map &#8599;
               </a>`
             : ""
         }
@@ -767,6 +786,42 @@ class HoustonAtlasApp {
     `;
 
     drawer.classList.remove("hidden");
+
+    const btnCopyAcct = document.getElementById("btn-copy-hcad-acct");
+    if (btnCopyAcct && hcadNum) {
+      btnCopyAcct.addEventListener("click", () => {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(hcadNum);
+        }
+        btnCopyAcct.textContent = "Copied!";
+        setTimeout(() => {
+          btnCopyAcct.textContent = "Copy";
+        }, 1800);
+      });
+    }
+
+    const btnOpenHcad = document.getElementById("btn-open-hcad");
+    if (btnOpenHcad && hcadNum) {
+      // Immediately mint a fresh encrypted SearchResults deep-link token from HCAD's API
+      fetchHcadDeepLink(hcadNum)
+        .then((deepUrl) => {
+          if (deepUrl && btnOpenHcad.getAttribute("data-hcad-num") === hcadNum) {
+            btnOpenHcad.href = deepUrl;
+            btnOpenHcad.setAttribute("data-deep-ready", "true");
+            btnOpenHcad.title = `Direct HCAD Property Record deep link ready (${hcadNum})`;
+          }
+        })
+        .catch(() => {
+          // Keep fallback https://search.hcad.org/ if offline
+        });
+
+      // Also copy account number to clipboard on click as a convenient backup
+      btnOpenHcad.addEventListener("click", () => {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(hcadNum);
+        }
+      });
+    }
 
     const btnShare = document.getElementById("btn-copy-share-link");
     if (btnShare) {
