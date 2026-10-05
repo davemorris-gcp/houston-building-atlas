@@ -661,6 +661,13 @@ body {
   transform: translateY(0);
 }
 
+.stepper-nav-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  transform: none;
+  border-color: var(--border-subtle);
+}
+
 .step-size-group {
   display: inline-flex;
   align-items: center;
