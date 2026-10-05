@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005d";
+} from "./palettes.js?v=20261005e";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005d";
+} from "./filterStore.js?v=20261005e";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005d";
+} from "./curatedEdits.js?v=20261005e";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -869,6 +869,10 @@ export class AtlasMapController {
     this.map.on("moveend", () => {
       this._captureDynamicOverrideGeometries();
       this.computeViewportHistogram();
+    });
+
+    this.map.on("idle", () => {
+      this._captureDynamicOverrideGeometries();
     });
   }
 
