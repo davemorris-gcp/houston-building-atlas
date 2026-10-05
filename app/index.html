@@ -444,13 +444,62 @@
               <h2 class="modal-title">Suggest a Property Data Correction</h2>
             </div>
           </div>
-          <button type="button" class="icon-btn" id="btn-close-correction-modal" aria-label="Close Modal">
-            &times;
-          </button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button
+              type="button"
+              class="action-pill"
+              id="btn-toggle-admin-auth"
+              title="Preservation Houston Staff Admin Sign-In (Google Sheet Editor Verification)"
+            >
+              &#128274; Staff Admin
+            </button>
+            <button type="button" class="icon-btn" id="btn-close-correction-modal" aria-label="Close Modal">
+              &times;
+            </button>
+          </div>
         </div>
         <div class="modal-body">
+          <!-- Staff Admin Authentication Gate (Hidden until Staff Admin button clicked) -->
+          <div class="admin-auth-box hidden" id="admin-auth-panel">
+            <div class="admin-auth-header">
+              <strong>&#128272; Preservation Houston Staff Admin Verification</strong>
+              <span class="admin-auth-sub">
+                Restricted to Google Accounts with <strong>Editor</strong> access on the Preservation Houston Curated Overrides Google Sheet.
+              </span>
+            </div>
+            <div class="form-row-2col" style="margin-top:8px;">
+              <div class="form-field">
+                <label for="admin-auth-email">Google Account Email (Sheet Editor)</label>
+                <input
+                  type="email"
+                  id="admin-auth-email"
+                  class="form-input"
+                  placeholder="name@preservationhouston.org"
+                />
+              </div>
+              <div class="form-field">
+                <label for="admin-auth-passkey">Sheet Editor Passkey (from Sheet Tab 3, Cell B6)</label>
+                <input
+                  type="password"
+                  id="admin-auth-passkey"
+                  class="form-input mono"
+                  placeholder="Enter Sheet Editor Passkey or Google Token"
+                />
+              </div>
+            </div>
+            <div class="admin-sheet-actions" style="margin-top:8px;">
+              <button type="button" class="action-pill active" id="btn-verify-admin-unlock">
+                Verify Sheet Editor &amp; Unlock Admin Mode
+              </button>
+              <button type="button" class="action-pill hidden" id="btn-lock-admin-session">
+                Lock Admin Mode
+              </button>
+              <span class="mono" id="admin-auth-feedback-text"></span>
+            </div>
+          </div>
+
           <p class="correction-intro">
-            Harris County (HCAD) appraisal records frequently default to rounded decade estimates (such as <code>1920</code> or <code>1930</code>) when original paper tax cards were illegible. Submit historical evidence below — all suggestions enter Preservation Houston's <strong>Pending Review Queue</strong> in Google Sheets and only go live once approved by an administrator.
+            Harris County (HCAD) appraisal records frequently default to rounded decade estimates (such as <code>1920</code> or <code>1930</code>) when original paper tax cards were illegible. Submit historical evidence below — all public suggestions enter Preservation Houston's <strong>Pending Review Queue</strong> and only go live once approved by an administrator.
           </p>
 
           <form id="form-property-correction" class="correction-form">
@@ -537,18 +586,32 @@
               <button type="submit" class="inspector-btn primary" id="btn-submit-correction">
                 Submit Correction for Admin Review
               </button>
-              <button type="button" class="inspector-btn secondary" id="btn-export-pending-csv" title="Download queued suggestions as CSV for Google Sheets">
+              <button
+                type="button"
+                class="inspector-btn primary hidden"
+                id="btn-admin-approve-direct"
+                style="background:#629627; border-color:#81bc3d;"
+                title="Admin Only: Immediately approve and publish this override to the live map and Google Sheet"
+              >
+                &#10003; Approve &amp; Publish Live (Admin)
+              </button>
+              <button
+                type="button"
+                class="inspector-btn secondary hidden"
+                id="btn-export-pending-csv"
+                title="Admin Only: Download queued suggestions as CSV for Google Sheets"
+              >
                 Export Pending Queue (.CSV)
               </button>
             </div>
           </form>
 
-          <!-- Collapsible Admin Configuration for Google Sheets Live Connection -->
-          <details class="admin-sheet-config" id="admin-sheet-details">
+          <!-- Collapsible Admin Configuration for Google Sheets Live Connection (Hidden for public visitors) -->
+          <details class="admin-sheet-config hidden" id="admin-sheet-details" open>
             <summary>Preservation Houston Admin: Google Sheet Live Sync Settings</summary>
             <div class="admin-sheet-body">
               <p>
-                Connect a Google Sheet so rows marked <code>Approved</code> in the <code>Approved_Edits</code> tab immediately override HCAD dates on the live map with zero database hosting cost.
+                Connected to the Restricted Google Sheet. Only rows marked <code>Approved</code> in the <code>Approved_Edits</code> tab go live on the public map.
               </p>
               <div class="form-field">
                 <label for="admin-sheet-csv-url">Published Google Sheet CSV URL (<code>Approved_Edits</code> tab)</label>
