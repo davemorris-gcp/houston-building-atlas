@@ -342,6 +342,23 @@
     <!-- Main Interactive Map Canvas -->
     <main id="map-canvas" class="map-canvas"></main>
 
+    <!-- Bottom-Right Camera Tilt & 3D Orientation Control Dock -->
+    <div class="camera-tilt-dock" id="camera-tilt-dock" role="group" aria-label="3D Camera Tilt Controls">
+      <div class="tilt-dock-header">
+        <span class="tilt-dock-label">3D Tilt</span>
+        <span class="tilt-dock-readout mono" id="tilt-angle-readout">0&deg;</span>
+      </div>
+      <div class="tilt-preset-group" role="group" aria-label="Camera pitch angle presets">
+        <button type="button" class="tilt-preset-btn mono active" data-tilt-pitch="0" title="Flat 2D Overhead View (0°)">2D</button>
+        <button type="button" class="tilt-preset-btn mono" data-tilt-pitch="30" title="Gentle 3D Perspective (30°)">30&deg;</button>
+        <button type="button" class="tilt-preset-btn mono" data-tilt-pitch="50" title="Standard 3D Isometric Tilt (50°)">50&deg;</button>
+        <button type="button" class="tilt-preset-btn mono" data-tilt-pitch="65" title="Dramatic Low-Horizon 3D Tilt (65°)">65&deg;</button>
+      </div>
+      <div class="tilt-dock-hint" title="Hold Right-Click + Drag or Ctrl + Left-Drag on the map to freely tilt and rotate the camera">
+        Right-drag or Ctrl+drag to tilt
+      </div>
+    </div>
+
     <!-- Methodology & Data Provenance Modal -->
     <div class="modal-backdrop hidden" id="about-modal" role="dialog" aria-modal="true">
       <div class="modal-card">

@@ -30,6 +30,7 @@ class HoustonAtlasApp {
       filterStore: this.filterStore,
       onSelectFeature: (props) => this.renderInspectorDrawer(props),
       onViewportStats: (stats) => this.handleViewportStats(stats),
+      onPitchChange: (pitch) => this._syncTiltControls(pitch),
     });
   }
 
@@ -116,6 +117,16 @@ class HoustonAtlasApp {
         this.mapController.toggle3DPitch(next3D);
       });
     }
+
+    // Bottom-Right Camera Tilt Preset Buttons (2D / 30° / 50° / 65°)
+    document.querySelectorAll("[data-tilt-pitch]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const targetPitch = parseInt(btn.getAttribute("data-tilt-pitch"), 10) || 0;
+        const enable3D = targetPitch > 0;
+        this.filterStore.setState({ extrude3D: enable3D });
+        this.mapController.setCameraPitch(targetPitch, enable3D ? null : 0);
+      });
+    });
 
     // Min / Max Year Sliders
     const minSlider = document.getElementById("slider-min-year");
@@ -516,6 +527,9 @@ class HoustonAtlasApp {
       btn3d.textContent = state.extrude3D ? "3D Extrusion: ON" : "3D Extrusion: OFF";
     }
 
+    const currentPitch = this.mapController ? this.mapController.getCameraPitch() : state.extrude3D ? 50 : 0;
+    this._syncTiltControls(state.extrude3D ? Math.max(currentPitch, 30) : 0);
+
     // Sliders & Readout
     const minSlider = document.getElementById("slider-min-year");
     const maxSlider = document.getElementById("slider-max-year");
@@ -592,6 +606,29 @@ class HoustonAtlasApp {
       const el = document.getElementById(id);
       if (el) el.checked = Boolean(checked);
     }
+  }
+
+  _syncTiltControls(pitch) {
+    const roundedPitch = Math.max(0, Math.min(65, Math.round(Number(pitch) || 0)));
+    const readout = document.getElementById("tilt-angle-readout");
+    if (readout) {
+      readout.textContent = new Intl.NumberFormat(undefined, {
+        style: "unit",
+        unit: "degree",
+        unitDisplay: "narrow",
+      }).format(roundedPitch);
+    }
+    const presets = [0, 30, 50, 65];
+    let closestPreset = 0;
+    if (roundedPitch >= 5) {
+      closestPreset = presets.slice(1).reduce((prev, curr) =>
+        Math.abs(curr - roundedPitch) < Math.abs(prev - roundedPitch) ? curr : prev
+      );
+    }
+    document.querySelectorAll("[data-tilt-pitch]").forEach((btn) => {
+      const btnPitch = parseInt(btn.getAttribute("data-tilt-pitch"), 10) || 0;
+      btn.classList.toggle("active", btnPitch === closestPreset);
+    });
   }
 
   _manageTimelapseLoop(state) {

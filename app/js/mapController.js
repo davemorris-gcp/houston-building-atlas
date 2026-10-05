@@ -79,11 +79,12 @@ function canCreateWebGLContext() {
 }
 
 export class AtlasMapController {
-  constructor({ containerId, filterStore, onSelectFeature, onViewportStats }) {
+  constructor({ containerId, filterStore, onSelectFeature, onViewportStats, onPitchChange }) {
     this.containerId = containerId;
     this.filterStore = filterStore;
     this.onSelectFeature = onSelectFeature;
     this.onViewportStats = onViewportStats;
+    this.onPitchChange = onPitchChange || null;
     this.map = null;
     this.popup = null;
     this.useCanvasFallback = false;
@@ -311,6 +312,38 @@ export class AtlasMapController {
       "bottom-right"
     );
 
+    const compassBtn = this.map.getContainer().querySelector(".maplibregl-ctrl-compass");
+    if (compassBtn) {
+      const updateCompassTitle = () => {
+        const currentPitch = Math.round(this.map.getPitch());
+        const label =
+          currentPitch < 5
+            ? "Tilt map to 3D perspective (50°)"
+            : `Reset 3D tilt (${currentPitch}°) to flat 2D North`;
+        compassBtn.setAttribute("title", label);
+        compassBtn.setAttribute("aria-label", label);
+      };
+      updateCompassTitle();
+      this.map.on("pitch", updateCompassTitle);
+
+      compassBtn.addEventListener(
+        "click",
+        (e) => {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          const currentPitch = this.map.getPitch();
+          if (currentPitch < 5 && Math.abs(this.map.getBearing()) < 5) {
+            this.filterStore.setState({ extrude3D: true });
+            this.setCameraPitch(50, -12);
+          } else {
+            this.filterStore.setState({ extrude3D: false });
+            this.setCameraPitch(0, 0);
+          }
+        },
+        { capture: true }
+      );
+    }
+
     this.popup = new maplibregl.Popup({
       closeButton: false,
       closeOnClick: false,
@@ -460,6 +493,13 @@ export class AtlasMapController {
     this.buildingExtrusionLayerIds = [];
     this.highlightLayerIds = [];
 
+    // Deterministic sub-centimeter height offset per year_built prevents WebGL depth-buffer Z-fighting on touching roofs
+    const extrusionHeightExpr = [
+      "+",
+      ["to-number", ["get", "height_m"], 4.5],
+      ["*", ["%", ["to-number", ["get", "year_built"], 1900], 97], 0.0003],
+    ];
+
     if (shardFiles.length > 0) {
       for (let i = 0; i < shardFiles.length; i++) {
         const srcId = `atlas-shard-${i}`;
@@ -499,7 +539,7 @@ export class AtlasMapController {
           layout: { visibility: state.extrude3D ? "visible" : "none" },
           paint: {
             "fill-extrusion-color": colorExpr,
-            "fill-extrusion-height": ["to-number", ["get", "height_m"], 4.5],
+            "fill-extrusion-height": extrusionHeightExpr,
             "fill-extrusion-base": 0,
             "fill-extrusion-opacity": 0.9,
           },
@@ -541,7 +581,7 @@ export class AtlasMapController {
         layout: { visibility: state.extrude3D ? "visible" : "none" },
         paint: {
           "fill-extrusion-color": colorExpr,
-          "fill-extrusion-height": ["to-number", ["get", "height_m"], 4.5],
+          "fill-extrusion-height": extrusionHeightExpr,
           "fill-extrusion-base": 0,
           "fill-extrusion-opacity": 0.9,
         },
@@ -625,6 +665,25 @@ export class AtlasMapController {
         }
       }
       this.highlightAndInspectFeature(p);
+    });
+
+    this.map.on("pitch", () => {
+      if (this.onPitchChange) {
+        this.onPitchChange(Math.round(this.map.getPitch()));
+      }
+    });
+
+    this.map.on("pitchend", () => {
+      const p = Math.round(this.map.getPitch());
+      const state = this.filterStore.getState();
+      if (p >= 8 && !state.extrude3D) {
+        this.filterStore.setState({ extrude3D: true });
+      } else if (p < 3 && state.extrude3D) {
+        this.filterStore.setState({ extrude3D: false });
+      }
+      if (this.onPitchChange) {
+        this.onPitchChange(p);
+      }
     });
 
     this.map.on("moveend", () => {
@@ -1225,17 +1284,45 @@ export class AtlasMapController {
   }
 
   toggle3DPitch(enable3D) {
+    this.setCameraPitch(enable3D ? 50 : 0, enable3D ? -12 : 0);
+  }
+
+  setCameraPitch(pitch, bearing = null) {
+    const targetPitch = Math.max(0, Math.min(65, Number(pitch) || 0));
     if (this.useCanvasFallback && this.canvasState) {
-      this.canvasState.pitch = enable3D ? 52 : 0;
+      this.canvasState.pitch = targetPitch;
       this._renderCanvas2D();
+      if (this.onPitchChange) {
+        this.onPitchChange(targetPitch);
+      }
       return;
     }
     if (!this.map) return;
-    this.map.easeTo({
-      pitch: enable3D ? 52 : 0,
-      bearing: enable3D ? -12 : 0,
-      duration: 750,
-    });
+    const opts = {
+      pitch: targetPitch,
+      duration: 600,
+    };
+    if (bearing !== null) {
+      opts.bearing = bearing;
+    } else if (targetPitch === 0) {
+      opts.bearing = 0;
+    } else if (Math.abs(this.map.getBearing()) < 2) {
+      opts.bearing = -12;
+    }
+    this.map.easeTo(opts);
+    if (this.onPitchChange) {
+      this.onPitchChange(targetPitch);
+    }
+  }
+
+  getCameraPitch() {
+    if (this.useCanvasFallback && this.canvasState) {
+      return Math.round(this.canvasState.pitch || 0);
+    }
+    if (this.map) {
+      return Math.round(this.map.getPitch() || 0);
+    }
+    return 0;
   }
 
   flyToLocation({ lng, lat, zoom = 16.5, pitch = null, hcadNum = "", featureId = "" }) {

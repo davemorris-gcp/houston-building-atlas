@@ -132,3 +132,88 @@ def test_join_footprints_to_parcels_matches_observed_and_derives_missing():
     assert b2["properties"]["year_built"] == 1924
     assert b2["properties"]["address"] == "1406 HEIGHTS BLVD"
     assert b2["properties"]["footprint_source"] == "derived_parcel"
+
+
+def test_deduplicate_geojsonseq_shard_resolves_overlaps_and_compound_polygons(tmp_path):
+    import orjson
+    from atlas_pipeline.full_build import deduplicate_geojsonseq_shard
+
+    seq_file = tmp_path / "test_shard.geojsonseq"
+    features = [
+        # 1. Oversized compound polygon covering both houses below
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-95.3765, 29.7645],
+                    [-95.3755, 29.7645],
+                    [-95.3755, 29.7655],
+                    [-95.3765, 29.7655],
+                    [-95.3765, 29.7645],
+                ]],
+            },
+            "properties": {"id": "compound_block", "year_built": 1890},
+        },
+        # 2. House A (1890)
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-95.3764, 29.7646],
+                    [-95.3761, 29.7646],
+                    [-95.3761, 29.7649],
+                    [-95.3764, 29.7649],
+                    [-95.3764, 29.7646],
+                ]],
+            },
+            "properties": {"id": "house_a_1890", "year_built": 1890},
+        },
+        # 3. Duplicate overlapping polygon on House A with newer year (1950)
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-95.37638, 29.76462],
+                    [-95.37608, 29.76462],
+                    [-95.37608, 29.76492],
+                    [-95.37638, 29.76492],
+                    [-95.37638, 29.76462],
+                ]],
+            },
+            "properties": {"id": "house_a_dup_1950", "year_built": 1950},
+        },
+        # 4. House B (1920)
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-95.3759, 29.7646],
+                    [-95.3756, 29.7646],
+                    [-95.3756, 29.7649],
+                    [-95.3759, 29.7649],
+                    [-95.3759, 29.7646],
+                ]],
+            },
+            "properties": {"id": "house_b_1920", "year_built": 1920},
+        },
+    ]
+
+    with open(seq_file, "wb") as f:
+        for feat in features:
+            f.write(b"\x1e" + orjson.dumps(feat) + b"\n")
+
+    _, before_cnt, after_cnt = deduplicate_geojsonseq_shard(seq_file)
+    assert before_cnt == 4
+    assert after_cnt == 2
+
+    kept_ids = [
+        orjson.loads(line[1:])["properties"]["id"]
+        for line in seq_file.read_bytes().splitlines()
+        if line
+    ]
+    assert set(kept_ids) == {"house_a_1890", "house_b_1920"}
+

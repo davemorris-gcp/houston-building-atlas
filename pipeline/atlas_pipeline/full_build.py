@@ -11,7 +11,8 @@ import re
 import subprocess
 import time
 import zipfile
-from collections import Counter
+from collections import Counter, defaultdict
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +42,115 @@ SPLIT_LON_WEST = -95.537109375
 SPLIT_LAT = 29.76437738
 
 FIRST_COORD_RE = re.compile(r"\[\[\[(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\]")
+
+
+def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
+    """
+    Deduplicate overlapping 3D building footprint polygons within a .geojsonseq shard:
+      1. Collapse exact/near-exact centroid stacks (~1.1m) from stacked condominium/townhome parcels.
+      2. Drop oversized multi-lot compound polygons that cover >= 2 smaller constituent buildings.
+      3. Resolve remaining polygon overlaps (> 12% intersection of min area) via Shapely STRtree,
+         prioritizing dated structures (year_built >= 1836), observed footprints over synthesized
+         rectangles, older structures (Preservation Houston oldest-structure rule), and larger footprints.
+    """
+    raw_lines = seq_path.read_bytes().splitlines()
+    initial_count = len(raw_lines)
+    if initial_count == 0:
+        return (seq_path.name, 0, 0)
+
+    centroid_buckets: dict[tuple[int, int], tuple[tuple[int, int, int], dict[str, Any], list[list[float]], int, bool]] = {}
+    for line in raw_lines:
+        if line.startswith(b"\x1e"):
+            line = line[1:]
+        if not line:
+            continue
+        f = orjson.loads(line)
+        g = f.get("geometry") or {}
+        coords = g.get("coordinates")
+        if not coords or not coords[0]:
+            continue
+        ring = coords[0] if g.get("type") == "Polygon" else coords[0][0]
+        if not ring or len(ring) < 3:
+            continue
+        n_pts = max(1, len(ring) - 1)
+        cx = sum(pt[0] for pt in ring[:n_pts]) / n_pts
+        cy = sum(pt[1] for pt in ring[:n_pts]) / n_pts
+        yr = int(f["properties"].get("year_built") or 0)
+        is_syn = len(ring) == 5 and ring[0][1] == ring[1][1] and ring[1][0] == ring[2][0]
+        prio = (0 if yr >= 1836 else 1, 1 if is_syn else 0, yr if yr >= 1836 else 9999)
+        key = (round(cx, 5), round(cy, 5))
+        if key not in centroid_buckets or prio < centroid_buckets[key][0]:
+            centroid_buckets[key] = (prio, f, ring, yr, is_syn)
+
+    items = list(centroid_buckets.values())
+    n = len(items)
+    polys_arr = np.array([shapely.Polygon(it[2]) for it in items], dtype=object)
+    areas = shapely.area(polys_arr)
+    tree = shapely.STRtree(polys_arr)
+    pairs = tree.query(polys_arr, predicate="intersects")
+    mask = pairs[0] < pairs[1]
+    i_arr = pairs[0][mask]
+    j_arr = pairs[1][mask]
+
+    keep = np.ones(n, dtype=bool)
+    if len(i_arr) > 0:
+        inter_areas = shapely.area(shapely.intersection(polys_arr[i_arr], polys_arr[j_arr]))
+        min_areas = np.minimum(areas[i_arr], areas[j_arr])
+        ratio = np.where(min_areas > 0, inter_areas / min_areas, 0.0)
+        sig = ratio > 0.12
+        si = i_arr[sig]
+        sj = j_arr[sig]
+        sratio = ratio[sig]
+
+        # Drop compound/multi-lot polygons that cover >= 2 smaller buildings (< 0.55x area) with > 35% overlap
+        contained_children: dict[int, list[int]] = defaultdict(list)
+        for idx_a, idx_b, r in zip(si.tolist(), sj.tolist(), sratio.tolist()):
+            if r > 0.35:
+                if areas[idx_a] > areas[idx_b] * 1.8:
+                    contained_children[idx_a].append(idx_b)
+                elif areas[idx_b] > areas[idx_a] * 1.8:
+                    contained_children[idx_b].append(idx_a)
+
+        for parent_idx, children in contained_children.items():
+            if len(children) >= 2:
+                keep[parent_idx] = False
+
+        order = sorted(
+            range(n),
+            key=lambda idx: (
+                0 if items[idx][3] >= 1836 else 1,
+                1 if items[idx][4] else 0,
+                items[idx][3] if items[idx][3] >= 1836 else 9999,
+                -float(areas[idx]),
+            ),
+        )
+        rank = np.empty(n, dtype=np.int32)
+        for r_pos, idx in enumerate(order):
+            rank[idx] = r_pos
+
+        adj: dict[int, list[int]] = defaultdict(list)
+        for idx_a, idx_b in zip(si.tolist(), sj.tolist()):
+            if not keep[idx_a] or not keep[idx_b]:
+                continue
+            if rank[idx_a] < rank[idx_b]:
+                adj[idx_a].append(idx_b)
+            else:
+                adj[idx_b].append(idx_a)
+
+        for u in order:
+            if not keep[u]:
+                continue
+            for v in adj.get(u, ()):
+                keep[v] = False
+
+    kept_count = 0
+    with open(seq_path, "wb") as out_f:
+        for idx in range(n):
+            if keep[idx]:
+                kept_count += 1
+                out_f.write(b"\x1e" + orjson.dumps(items[idx][1]) + b"\n")
+
+    return (seq_path.name, initial_count, kept_count)
 
 
 def load_or_build_cama_lookup(cache_dir: Path) -> dict[str, tuple[int, int, int, str, str, str]]:
@@ -376,6 +486,17 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
         if is_observed:
             observed_fp_count += 1
 
+    def get_parcel_year(pcl_idx: int) -> int:
+        raw_acct = hcad_nums_arr[pcl_idx]
+        acct = str(raw_acct).strip() if raw_acct is not None else ""
+        cama = cama_lookup.get(acct)
+        yr = cama[0] if cama else normalize_year(yr_impr_arr[pcl_idx])
+        hist = hist_by_hcad.get(acct)
+        if hist and hist.get("year_built", 0) >= 1836:
+            if yr < 1836 or hist["year_built"] < yr:
+                yr = hist["year_built"]
+        return yr if yr >= 1836 else 9999
+
     def process_footprint_batch(
         geom_dicts: list[dict[str, Any]], lons: list[float], lats: list[float]
     ) -> None:
@@ -389,8 +510,13 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
         pairs = tree.query(pts_2278, predicate="within")
         pt_to_parcel: dict[int, int] = {}
         for pt_i, pcl_i in zip(pairs[0].tolist(), pairs[1].tolist()):
+            # Mark all stacked parcels (e.g. condominium/townhome units) at this location as matched
+            matched_parcel_mask[pcl_i] = True
             if pt_i not in pt_to_parcel:
                 pt_to_parcel[pt_i] = pcl_i
+            else:
+                if get_parcel_year(pcl_i) < get_parcel_year(pt_to_parcel[pt_i]):
+                    pt_to_parcel[pt_i] = pcl_i
 
         for idx_in_batch, geom_d in enumerate(geom_dicts):
             pcl_idx = pt_to_parcel.get(idx_in_batch)
@@ -420,7 +546,10 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             coords = g.get("coordinates")
             if not coords or not coords[0]:
                 continue
-            lon, lat = coords[0][0][0], coords[0][0][1]
+            ring = coords[0]
+            n_pts = max(1, len(ring) - 1)
+            lon = sum(pt[0] for pt in ring[:n_pts]) / n_pts
+            lat = sum(pt[1] for pt in ring[:n_pts]) / n_pts
             b_geoms.append(g)
             b_lons.append(float(lon))
             b_lats.append(float(lat))
@@ -530,8 +659,20 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
     for fh in quad_files.values():
         fh.close()
     print(
-        f"   Synthesized {len(syn_indices):,} additional HCAD structure footprints in {time.time() - t_syn:.1f}s. Total countywide buildings: {total_buildings:,}."
+        f"   Synthesized {len(syn_indices):,} additional HCAD structure footprints in {time.time() - t_syn:.1f}s. Raw buildings: {total_buildings:,}."
     )
+
+    # 4d. Deduplicate overlapping 3D building polygons across all 5 shards in parallel
+    print("-> Deduplicating overlapping 3D building polygons across all 5 shards in parallel...")
+    t_dedup = time.time()
+    shard_paths = [ndjson_dir / f"buildings_{q}.geojsonseq" for q in quad_names]
+    dedup_total = 0
+    with ProcessPoolExecutor(max_workers=len(shard_paths)) as pool:
+        for s_name, before_cnt, after_cnt in pool.map(deduplicate_geojsonseq_shard, shard_paths):
+            dedup_total += after_cnt
+            print(f"   {s_name}: {before_cnt:,} -> {after_cnt:,} clean non-overlapping buildings")
+    total_buildings = dedup_total
+    print(f"   Completed spatial overlap deduplication in {time.time() - t_dedup:.1f}s: {total_buildings:,} unique structures.")
 
     # 5. Compile each quadrant's GeoJSONSeq into a <85 MB PMTiles v3 archive using Tippecanoe in parallel
     tippecanoe_bin = "/tmp/tippecanoe/tippecanoe"

@@ -1,7 +1,7 @@
 {
   "version": 2,
   "mode": "full_county",
-  "total_buildings": 1672100,
+  "total_buildings": 1512020,
   "building_shards": [
     "houston_buildings_nw_w.pmtiles",
     "houston_buildings_nw_e.pmtiles",
