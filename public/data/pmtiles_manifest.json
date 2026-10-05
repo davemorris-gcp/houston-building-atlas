@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "mode": "full_county",
+  "total_buildings": 1672100,
+  "building_shards": [
+    "houston_buildings_nw_w.pmtiles",
+    "houston_buildings_nw_e.pmtiles",
+    "houston_buildings_ne.pmtiles",
+    "houston_buildings_sw.pmtiles",
+    "houston_buildings_se.pmtiles"
+  ],
+  "core_pmtiles": "houston_atlas.pmtiles"
+}
