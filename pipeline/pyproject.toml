@@ -1,0 +1,25 @@
+[project]
+name = "atlas-pipeline"
+version = "0.1.0"
+description = "Geospatial data pipeline and PMTiles generator for The Houston Building Atlas v2"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27.0",
+    "shapely>=2.0.0",
+    "pyproj>=3.6.0",
+    "pmtiles>=3.4.0",
+    "mapbox-vector-tile>=2.1.0",
+    "pyshp>=2.3.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["atlas_pipeline"]
