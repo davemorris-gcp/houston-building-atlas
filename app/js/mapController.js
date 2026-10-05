@@ -18,6 +18,7 @@ import {
 
 const BASEMAP_TILES = {
   dark_archival: {
+    maxZoom: 16,
     tiles: [
       "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
     ],
@@ -27,6 +28,7 @@ const BASEMAP_TILES = {
     attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors",
   },
   warm_parchment: {
+    maxZoom: 16,
     tiles: [
       "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
     ],
@@ -36,6 +38,7 @@ const BASEMAP_TILES = {
     attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors",
   },
   satellite: {
+    maxZoom: 18,
     tiles: [
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     ],
@@ -174,19 +177,44 @@ export class AtlasMapController {
             type: "raster",
             tiles: BASEMAP_TILES.dark_archival.tiles,
             tileSize: 256,
+            maxzoom: 16,
             attribution: BASEMAP_TILES.dark_archival.attribution,
+          },
+          "basemap-dark-labels": {
+            type: "raster",
+            tiles: BASEMAP_TILES.dark_archival.labelTiles,
+            tileSize: 256,
+            maxzoom: 16,
           },
           "basemap-light": {
             type: "raster",
             tiles: BASEMAP_TILES.warm_parchment.tiles,
             tileSize: 256,
+            maxzoom: 16,
             attribution: BASEMAP_TILES.warm_parchment.attribution,
+          },
+          "basemap-light-labels": {
+            type: "raster",
+            tiles: BASEMAP_TILES.warm_parchment.labelTiles,
+            tileSize: 256,
+            maxzoom: 16,
           },
           "basemap-satellite": {
             type: "raster",
             tiles: BASEMAP_TILES.satellite.tiles,
             tileSize: 256,
+            maxzoom: 18,
             attribution: BASEMAP_TILES.satellite.attribution,
+          },
+          "basemap-satellite-labels": {
+            type: "raster",
+            tiles: BASEMAP_TILES.satellite.labelTiles,
+            tileSize: 256,
+            maxzoom: 16,
+          },
+          "openfreemap-vector": {
+            type: "vector",
+            url: "https://tiles.openfreemap.org/planet",
           },
         },
         layers: [
@@ -210,6 +238,49 @@ export class AtlasMapController {
             id: "basemap-satellite-layer",
             type: "raster",
             source: "basemap-satellite",
+            layout: {
+              visibility: state.basemap === "satellite" ? "visible" : "none",
+            },
+          },
+          {
+            id: "vector-roads-highzoom",
+            type: "line",
+            source: "openfreemap-vector",
+            "source-layer": "transportation",
+            minzoom: 15,
+            paint: {
+              "line-color": "rgba(148, 163, 184, 0.28)",
+              "line-width": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                15,
+                1.5,
+                19,
+                8.0,
+              ],
+            },
+          },
+          {
+            id: "basemap-dark-labels-layer",
+            type: "raster",
+            source: "basemap-dark-labels",
+            layout: {
+              visibility: state.basemap === "dark_archival" ? "visible" : "none",
+            },
+          },
+          {
+            id: "basemap-light-labels-layer",
+            type: "raster",
+            source: "basemap-light-labels",
+            layout: {
+              visibility: state.basemap === "warm_parchment" ? "visible" : "none",
+            },
+          },
+          {
+            id: "basemap-satellite-labels-layer",
+            type: "raster",
+            source: "basemap-satellite-labels",
             layout: {
               visibility: state.basemap === "satellite" ? "visible" : "none",
             },
@@ -648,8 +719,10 @@ export class AtlasMapController {
     ctx.fillStyle = state.basemap === "warm_parchment" ? "#EBE6DC" : "#0D1016";
     ctx.fillRect(0, 0, width, height);
 
-    const tileZ = Math.max(10, Math.min(18, Math.floor(cs.zoom)));
-    const scaleAtTileZ = 256 * Math.pow(2, tileZ);
+    const baseKey = state.basemap || "dark_archival";
+    const baseConfig = BASEMAP_TILES[baseKey] || BASEMAP_TILES.dark_archival;
+    const maxTileZ = baseConfig.maxZoom || 16;
+    const tileZ = Math.max(10, Math.min(maxTileZ, Math.floor(cs.zoom)));
     const zoomFactor = Math.pow(2, cs.zoom - tileZ);
     const tileSizeScreen = 256 * zoomFactor;
 
@@ -660,8 +733,6 @@ export class AtlasMapController {
 
     const colsHalf = Math.ceil(width / tileSizeScreen / 2) + 1;
     const rowsHalf = Math.ceil(height / tileSizeScreen / 2) + 1;
-    const baseKey = state.basemap || "dark_archival";
-    const baseConfig = BASEMAP_TILES[baseKey] || BASEMAP_TILES.dark_archival;
     const tileTemplates = baseConfig.tiles;
     const labelTemplates = baseConfig.labelTiles || [];
 
@@ -973,12 +1044,27 @@ export class AtlasMapController {
       state.basemap === "dark_archival" ? "visible" : "none"
     );
     this.map.setLayoutProperty(
+      "basemap-dark-labels-layer",
+      "visibility",
+      state.basemap === "dark_archival" ? "visible" : "none"
+    );
+    this.map.setLayoutProperty(
       "basemap-light-layer",
       "visibility",
       state.basemap === "warm_parchment" ? "visible" : "none"
     );
     this.map.setLayoutProperty(
+      "basemap-light-labels-layer",
+      "visibility",
+      state.basemap === "warm_parchment" ? "visible" : "none"
+    );
+    this.map.setLayoutProperty(
       "basemap-satellite-layer",
+      "visibility",
+      state.basemap === "satellite" ? "visible" : "none"
+    );
+    this.map.setLayoutProperty(
+      "basemap-satellite-labels-layer",
       "visibility",
       state.basemap === "satellite" ? "visible" : "none"
     );

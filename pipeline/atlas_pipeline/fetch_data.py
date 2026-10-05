@@ -482,9 +482,40 @@ def fetch_core_parcels_and_footprints(
         cache_file=cache_dir / "osm_core_footprints.json",
         bboxes=osm_query_boxes,
     )
-    print(f"   Fetched {len(normalized_parcels):,} normalized parcels and {len(osm_footprints):,} observed OSM building footprints.")
 
-    return normalized_parcels, osm_footprints, overlays
+    # Supplement with Microsoft US Building Footprints (MSBFP2 via Esri Living Atlas)
+    # for areas like Glenbrook Valley where OpenStreetMap only mapped one side of the street.
+    ms_fp_cache = cache_dir / "msbfp2_core_footprints.json"
+    if ms_fp_cache.exists():
+        ms_footprints = json.loads(ms_fp_cache.read_text())
+    else:
+        print("-> Fetching Microsoft US Building Footprints (MSBFP2) infill...")
+        ms_footprints = []
+        msbfp_url = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/MSBFP2/FeatureServer/0/query"
+        for bbox in [
+            (-95.280, 29.660, -95.245, 29.685),  # Glenbrook Valley Historic District
+            (-95.390, 29.748, -95.370, 29.760),  # Freedmen's Town & Old Sixth Ward infill
+        ]:
+            try:
+                feats = fetch_arcgis_geojson_paginated(
+                    url=msbfp_url,
+                    bbox=bbox,
+                    page_size=2000,
+                    max_features=4000,
+                )
+                ms_footprints.extend(feats)
+            except Exception as exc:
+                print(f"  [MSBFP2 warning] {bbox}: {exc}")
+        ms_fp_cache.write_text(json.dumps(ms_footprints))
+
+    combined_footprints = osm_footprints + ms_footprints
+    print(
+        f"   Fetched {len(normalized_parcels):,} normalized parcels and "
+        f"{len(combined_footprints):,} observed building footprints "
+        f"({len(osm_footprints):,} OSM + {len(ms_footprints):,} Microsoft)."
+    )
+
+    return normalized_parcels, combined_footprints, overlays
 
 
 def download_file_stream(url: str, dest: Path) -> Path:
