@@ -16,9 +16,13 @@ import { AtlasMapController } from "./mapController.js";
 import { fetchHcadDeepLink } from "./hcadLink.js";
 import {
   applyOverrideToProperties,
+  authenticateAdminSession,
+  clearAdminSession,
   formatSuggestionsAsCsv,
+  getAdminSession,
   getLocalPendingSuggestions,
   saveGoogleSheetEndpoints,
+  submitAdminApprovedOverride,
   submitCorrectionSuggestion,
 } from "./curatedEdits.js";
 
@@ -470,12 +474,151 @@ class HoustonAtlasApp {
       btnCloseModal.addEventListener("click", () => aboutModal.classList.add("hidden"));
     }
 
-    // Suggest a Property Data Correction Modal
+    // Suggest a Property Data Correction Modal & Staff Admin Gate
     const corrModal = document.getElementById("correction-modal");
     const btnCloseCorrModal = document.getElementById("btn-close-correction-modal");
     const corrForm = document.getElementById("form-property-correction");
     const btnExportPendingCsv = document.getElementById("btn-export-pending-csv");
     const btnSaveSheetConfig = document.getElementById("btn-save-sheet-config");
+    const btnToggleAdminAuth = document.getElementById("btn-toggle-admin-auth");
+    const adminAuthPanel = document.getElementById("admin-auth-panel");
+    const btnVerifyAdminUnlock = document.getElementById("btn-verify-admin-unlock");
+    const btnLockAdminSession = document.getElementById("btn-lock-admin-session");
+    const btnAdminApproveDirect = document.getElementById("btn-admin-approve-direct");
+
+    const syncAdminUiState = () => {
+      const session = getAdminSession();
+      const isUnlocked = Boolean(session && session.authorized);
+      const adminSheetDetails = document.getElementById("admin-sheet-details");
+      const feedbackText = document.getElementById("admin-auth-feedback-text");
+
+      if (btnToggleAdminAuth) {
+        btnToggleAdminAuth.innerHTML = isUnlocked
+          ? `&#128275; Admin: ${session.email}`
+          : `&#128274; Staff Admin`;
+        btnToggleAdminAuth.classList.toggle("active", isUnlocked);
+      }
+      if (btnAdminApproveDirect) {
+        btnAdminApproveDirect.classList.toggle("hidden", !isUnlocked);
+      }
+      if (btnExportPendingCsv) {
+        btnExportPendingCsv.classList.toggle("hidden", !isUnlocked);
+      }
+      if (adminSheetDetails) {
+        adminSheetDetails.classList.toggle("hidden", !isUnlocked);
+      }
+      if (btnLockAdminSession) {
+        btnLockAdminSession.classList.toggle("hidden", !isUnlocked);
+      }
+      if (feedbackText && isUnlocked) {
+        feedbackText.textContent = `✓ Unlocked (${session.email})`;
+      }
+    };
+
+    syncAdminUiState();
+
+    if (btnToggleAdminAuth && adminAuthPanel) {
+      btnToggleAdminAuth.addEventListener("click", () => {
+        adminAuthPanel.classList.toggle("hidden");
+        syncAdminUiState();
+      });
+    }
+
+    if (btnVerifyAdminUnlock) {
+      btnVerifyAdminUnlock.addEventListener("click", async () => {
+        const emailVal = document.getElementById("admin-auth-email")?.value || "";
+        const passkeyVal = document.getElementById("admin-auth-passkey")?.value || "";
+        const feedbackText = document.getElementById("admin-auth-feedback-text");
+        const webhookUrl =
+          document.getElementById("admin-webhook-url")?.value ||
+          this.mapController?.sheetSyncStatus?.webhookUrl ||
+          "";
+
+        if (feedbackText) feedbackText.textContent = "Verifying Sheet Editor access...";
+        const isJwt = passkeyVal.split(".").length === 3 && passkeyVal.length > 80;
+        const res = await authenticateAdminSession({
+          googleIdToken: isJwt ? passkeyVal : "",
+          adminPasskey: isJwt ? "" : passkeyVal,
+          adminEmail: emailVal,
+          webhookUrl,
+        });
+
+        if (!res.ok) {
+          if (feedbackText) feedbackText.textContent = `✕ ${res.error}`;
+          return;
+        }
+        syncAdminUiState();
+      });
+    }
+
+    if (btnLockAdminSession) {
+      btnLockAdminSession.addEventListener("click", () => {
+        clearAdminSession();
+        const feedbackText = document.getElementById("admin-auth-feedback-text");
+        if (feedbackText) feedbackText.textContent = "Admin Mode locked.";
+        syncAdminUiState();
+      });
+    }
+
+    if (btnAdminApproveDirect) {
+      btnAdminApproveDirect.addEventListener("click", async () => {
+        const feedbackEl = document.getElementById("corr-submit-feedback");
+        const payload = {
+          address: document.getElementById("corr-address")?.value || "",
+          hcad_num: document.getElementById("corr-hcad-num")?.value || "",
+          current_year_built: document.getElementById("corr-current-year")?.value || "",
+          suggested_year_built: document.getElementById("corr-suggested-year")?.value || "",
+          historic_district: document.getElementById("corr-district")?.value || "",
+          source_type: document.getElementById("corr-source-type")?.value || "Houston City Directory",
+          architect: document.getElementById("corr-style-arch")?.value || "",
+          source_citation: document.getElementById("corr-citation")?.value || "",
+        };
+
+        if (!payload.suggested_year_built) {
+          if (feedbackEl) {
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built (1836–2026) before approving.</strong>`;
+            feedbackEl.classList.remove("hidden");
+          }
+          return;
+        }
+
+        const webhookUrl =
+          document.getElementById("admin-webhook-url")?.value ||
+          this.mapController?.sheetSyncStatus?.webhookUrl ||
+          "";
+
+        try {
+          btnAdminApproveDirect.disabled = true;
+          const res = await submitAdminApprovedOverride(payload, webhookUrl);
+          btnAdminApproveDirect.disabled = false;
+
+          if (res.ok && res.override && res.override.hcad_num) {
+            const hcadNum = res.override.hcad_num;
+            const existingOv = this.mapController.curatedOverrides[hcadNum] || {};
+            this.mapController.curatedOverrides[hcadNum] = {
+              ...existingOv,
+              ...res.override,
+              geometry: existingOv.geometry || null,
+            };
+            this.mapController._captureDynamicOverrideGeometries();
+            this.mapController._refreshCuratedOverridesSource();
+            this.mapController._applyCurrentFilterStateToMap();
+            this._mergeCuratedOverridesIntoSearchIndex();
+          }
+
+          if (feedbackEl) {
+            feedbackEl.innerHTML = `<strong>&#10003; Published Live (Admin Approved)!</strong> <strong>${payload.address || payload.hcad_num}</strong> is now set to <strong>Built ${payload.suggested_year_built} ✓</strong> on the live map and dispatched to the Google Sheet.`;
+            feedbackEl.classList.remove("hidden");
+          }
+        } catch (err) {
+          btnAdminApproveDirect.disabled = false;
+          if (feedbackEl) {
+            feedbackEl.innerHTML = `<strong>✕ Admin Approval Error:</strong> ${err.message || err}`;
+            feedbackEl.classList.remove("hidden");
+          }
+        }
+      });
+    }
 
     if (btnCloseCorrModal && corrModal) {
       btnCloseCorrModal.addEventListener("click", () => corrModal.classList.add("hidden"));

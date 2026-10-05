@@ -1551,10 +1551,35 @@ body {
 }
 
 .form-actions {
-  display: grid;
-  grid-template-columns: 1.6fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 2px;
+}
+
+.form-actions > .inspector-btn {
+  flex: 1 1 200px;
+}
+
+.admin-auth-box {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(149, 201, 89, 0.1);
+  border: 1px solid rgba(149, 201, 89, 0.42);
+}
+
+.admin-auth-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--ph-green-light);
+}
+
+.admin-auth-sub {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .admin-sheet-config {
@@ -1583,3 +1608,4 @@ body {
   align-items: center;
   gap: 10px;
 }
+
