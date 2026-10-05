@@ -207,7 +207,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261005d", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261005e", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -250,10 +250,12 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
     error: null,
   };
 
+  const syncedHcads = new Set();
   const applyCsvText = (csvText) => {
     const rows = parseCsvToObjects(csvText);
     const sheetOverrides = parseOverridesFromSheetRows(rows);
     for (const [hcadNum, ov] of Object.entries(sheetOverrides)) {
+      syncedHcads.add(hcadNum);
       const existing = mergedOverrides[hcadNum] || {};
       mergedOverrides[hcadNum] = {
         ...existing,
@@ -261,41 +263,46 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
         geometry: ov.geometry || existing.geometry || null,
       };
     }
-    sheetSyncStatus.sheetRowCount = Object.keys(sheetOverrides).length;
+    sheetSyncStatus.sheetRowCount = syncedHcads.size;
     sheetSyncStatus.totalOverrideCount = Object.keys(mergedOverrides).length;
   };
 
+  // Fetch both the CDN-published CSV and the real-time Apps Script doGet endpoint in parallel.
+  // Google's "Publish to the web" CSV caches for ~3-5 minutes, whereas the Apps Script doGet
+  // reads `Approved_Edits` directly with 0-second latency the moment an editor changes a row to Approved.
+  const fetchPromises = [];
   if (activeSheetCsvUrl) {
-    try {
-      const sheetRes = await fetch(activeSheetCsvUrl, { cache: "no-store" });
-      if (!sheetRes.ok) {
-        throw new Error(`HTTP ${sheetRes.status}`);
+    fetchPromises.push(
+      fetch(activeSheetCsvUrl, { cache: "no-store" }).then(async (r) => {
+        if (!r.ok) throw new Error(`CSV HTTP ${r.status}`);
+        return { source: "csv", text: await r.text() };
+      })
+    );
+  }
+  if (activeWebhookUrl) {
+    fetchPromises.push(
+      fetch(activeWebhookUrl, { cache: "no-store" }).then(async (r) => {
+        if (!r.ok) throw new Error(`Webhook HTTP ${r.status}`);
+        return { source: "webhook", text: await r.text() };
+      })
+    );
+  }
+
+  if (fetchPromises.length > 0) {
+    const settled = await Promise.allSettled(fetchPromises);
+    let anySucceeded = false;
+    let firstError = null;
+    for (const item of settled) {
+      if (item.status === "fulfilled" && item.value && item.value.text) {
+        applyCsvText(item.value.text);
+        anySucceeded = true;
+      } else if (item.status === "rejected" && !firstError) {
+        firstError = item.reason;
       }
-      const csvText = await sheetRes.text();
-      applyCsvText(csvText);
-    } catch (err) {
-      // Automatic fallback to the bound Google Apps Script doGet CSV endpoint if configured
-      if (activeWebhookUrl) {
-        try {
-          const fallbackRes = await fetch(activeWebhookUrl, { cache: "no-store" });
-          if (fallbackRes.ok) {
-            const csvText = await fallbackRes.text();
-            applyCsvText(csvText);
-            sheetSyncStatus.error = null;
-          } else {
-            throw new Error(`Webhook HTTP ${fallbackRes.status}`);
-          }
-        } catch (fallbackErr) {
-          sheetSyncStatus.error = err.message || String(err);
-          console.warn(
-            "Google Sheet CSV live fetch and Apps Script fallback failed (using baseline overrides):",
-            fallbackErr
-          );
-        }
-      } else {
-        sheetSyncStatus.error = err.message || String(err);
-        console.warn("Google Sheet CSV live fetch failed (using baseline overrides):", err);
-      }
+    }
+    if (!anySucceeded && firstError) {
+      sheetSyncStatus.error = firstError.message || String(firstError);
+      console.warn("Google Sheet live sync failed (using baseline overrides):", firstError);
     }
   }
 
