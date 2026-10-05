@@ -34,9 +34,11 @@ from atlas_pipeline.schema import (
     normalize_year,
 )
 
-# Quadrant split point right in Downtown Houston (-95.37, 29.76)
-SPLIT_LON = -95.370
-SPLIT_LAT = 29.760
+# Web Mercator Zoom 11 tile-aligned split boundaries (x=480/481, x=481/482, y=846/847)
+# so no tile at Zoom >= 11 ever straddles a shard boundary.
+SPLIT_LON_EAST = -95.361328125
+SPLIT_LON_WEST = -95.537109375
+SPLIT_LAT = 29.76437738
 
 FIRST_COORD_RE = re.compile(r"\[\[\[(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)\]")
 
@@ -294,10 +296,10 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
 
     def get_quadrant(lon: float, lat: float) -> str:
         if lat >= SPLIT_LAT:
-            if lon < SPLIT_LON:
-                return "nw_w" if lon < -95.55 else "nw_e"
+            if lon < SPLIT_LON_EAST:
+                return "nw_w" if lon < SPLIT_LON_WEST else "nw_e"
             return "ne"
-        return "sw" if lon < SPLIT_LON else "se"
+        return "sw" if lon < SPLIT_LON_EAST else "se"
 
     def build_parcel_props(p_idx: int, bld_id: int, is_observed: bool) -> dict[str, Any]:
         raw_acct = hcad_nums_arr[p_idx]
@@ -311,7 +313,6 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
         bld_area = cama[2] if cama else 0
         use_cd = cama[3] if cama else ""
         style = cama[4] if cama else ""
-        subdiv = cama[5] if cama else ""
 
         dec = compute_decade(yr)
         use_cat = classify_use_category(use_cd, "", bld_area)
@@ -324,8 +325,6 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
 
         addr_raw = addrs_arr[p_idx]
         addr = str(addr_raw).strip() if addr_raw is not None else ""
-        owner_raw = owners_arr[p_idx]
-        owner = str(owner_raw).strip() if owner_raw is not None else ""
 
         props: dict[str, Any] = {
             "id": acct or f"b{bld_id}",
@@ -335,7 +334,6 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             "use_category": use_cat,
             "stories": stories,
             "height_m": height_m,
-            "footprint_source": "observed" if is_observed else "derived",
         }
         if addr:
             props["address"] = addr
@@ -347,10 +345,6 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             props["remodel_year"] = rem_yr
         if style and style != use_cat:
             props["bld_style"] = style
-        if subdiv:
-            props["subdivision"] = subdiv
-        if owner and owner != "CURRENT OWNER":
-            props["owner"] = owner
 
         hist = hist_by_hcad.get(acct)
         if hist:
@@ -358,7 +352,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
 
         return props
 
-    def record_stats(props: dict[str, Any]) -> None:
+    def record_stats(props: dict[str, Any], is_observed: bool = True) -> None:
         nonlocal total_buildings, dated_count, observed_fp_count, earliest_year, latest_year
         total_buildings += 1
         yr = props["year_built"]
@@ -379,7 +373,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
         dist = props.get("historic_district")
         if dist:
             district_counter[dist] += 1
-        if props["footprint_source"] == "observed":
+        if is_observed:
             observed_fp_count += 1
 
     def process_footprint_batch(
@@ -404,7 +398,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
                 continue
             matched_parcel_mask[pcl_idx] = True
             props = build_parcel_props(pcl_idx, total_buildings + 1, is_observed=True)
-            record_stats(props)
+            record_stats(props, is_observed=True)
             q = get_quadrant(lons[idx_in_batch], lats[idx_in_batch])
             feat_bytes = (
                 b"\x1e"
@@ -507,7 +501,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             if not (-96.1 <= lon <= -94.8 and 29.4 <= lat <= 30.3):
                 continue
             props = build_parcel_props(p_idx, total_buildings + 1, is_observed=False)
-            record_stats(props)
+            record_stats(props, is_observed=False)
             # Create a realistic ~12m x 10m building footprint polygon around the parcel centroid
             b_area = props.get("bld_area", 1400)
             stories = max(1, int(props.get("stories", 1)))
@@ -544,7 +538,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
     if not Path(tippecanoe_bin).exists():
         tippecanoe_bin = str(Path.home() / ".local" / "bin" / "tippecanoe")
 
-    print("-> Compiling 4 quadrant PMTiles v3 archives in parallel via Tippecanoe...")
+    print("-> Compiling 5 Web Mercator tile-aligned PMTiles v3 archives in parallel via Tippecanoe...")
     t_tip = time.time()
     procs: list[tuple[str, subprocess.Popen[bytes], Path]] = []
     for q in quad_names:
@@ -563,9 +557,10 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             "15",
             "--hilbert",
             "--read-parallel",
-            "--drop-smallest-as-needed",
+            "--drop-densest-as-needed",
             "--extend-zooms-if-still-dropping",
-            "--maximum-tile-bytes=900000",
+            "--maximum-tile-bytes=2500000",
+            "--maximum-tile-features=400000",
             "--simplification=2",
             str(in_seq),
         ]
