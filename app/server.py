@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import HTTPServer, SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 BYTE_RANGE_RE = re.compile(r"bytes=(\d+)-(\d*)")
@@ -13,6 +13,8 @@ BYTE_RANGE_RE = re.compile(r"bytes=(\d+)-(\d*)")
 
 class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
     """Static HTTP handler with RFC 7233 Byte-Range (HTTP 206) support required by PMTiles."""
+
+    protocol_version = "HTTP/1.1"
 
     extensions_map = {
         **SimpleHTTPRequestHandler.extensions_map,
@@ -34,6 +36,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self) -> None:
         self.send_response(204)
+        self.send_header("Content-Length", "0")
         self.end_headers()
 
     def send_head(self):  # type: ignore[override]
@@ -61,6 +64,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
                 if start >= file_len or start > end:
                     self.send_response(416, "Requested Range Not Satisfiable")
                     self.send_header("Content-Range", f"bytes */{file_len}")
+                    self.send_header("Content-Length", "0")
                     self.end_headers()
                     f.close()
                     return None
@@ -86,17 +90,20 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
 
     def copyfile(self, source, outputfile) -> None:  # type: ignore[override]
         remaining = getattr(self, "_range_bytes_remaining", None)
-        if remaining is None:
-            super().copyfile(source, outputfile)
-            return
+        try:
+            if remaining is None:
+                super().copyfile(source, outputfile)
+                return
 
-        bufsize = 64 * 1024
-        while remaining > 0:
-            chunk = source.read(min(bufsize, remaining))
-            if not chunk:
-                break
-            outputfile.write(chunk)
-            remaining -= len(chunk)
+            bufsize = 256 * 1024
+            while remaining > 0:
+                chunk = source.read(min(bufsize, remaining))
+                if not chunk:
+                    break
+                outputfile.write(chunk)
+                remaining -= len(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
 
 def main() -> None:
@@ -112,8 +119,8 @@ def main() -> None:
     args = parser.parse_args()
 
     os.chdir(args.dir)
-    server = HTTPServer((args.host, args.port), RangeHTTPRequestHandler)
-    print(f"Serving Houston Building Atlas v2 from {args.dir} at http://{args.host}:{args.port}")
+    server = ThreadingHTTPServer((args.host, args.port), RangeHTTPRequestHandler)
+    print(f"Serving Houston Building Atlas v2 (threaded HTTP/1.1) from {args.dir} at http://{args.host}:{args.port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
