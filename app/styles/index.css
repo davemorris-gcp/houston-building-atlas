@@ -1,25 +1,34 @@
 /* ==========================================================================
    The Houston Building Atlas v2 — Preservation Houston
-   Archival Cartographic Studio Design System
+   Preservation Houston Brand Identity & Cartographic Design System
    ========================================================================== */
 
 :root {
-  --bg-obsidian: #0f1115;
-  --bg-panel: rgba(18, 21, 28, 0.92);
-  --bg-panel-elevated: rgba(27, 32, 43, 0.94);
-  --bg-card-inner: rgba(255, 255, 255, 0.04);
-  --border-subtle: rgba(255, 255, 255, 0.09);
-  --border-brass: rgba(230, 146, 56, 0.32);
+  --bg-obsidian: #15191c;
+  --bg-panel: rgba(31, 37, 42, 0.94);
+  --bg-panel-elevated: rgba(39, 46, 52, 0.96);
+  --bg-card-inner: rgba(255, 255, 255, 0.045);
+  --border-subtle: rgba(255, 255, 255, 0.11);
+  --border-brass: rgba(149, 201, 89, 0.42);
 
-  --text-cream: #f6f2eb;
-  --text-secondary: #b8b2a6;
-  --text-muted: #7e7970;
+  --text-cream: #f6f6f6;
+  --text-secondary: #c4ccd2;
+  --text-muted: #8b959e;
 
-  --accent-terracotta: #c84b31;
-  --accent-amber: #e69238;
-  --accent-gold: #ebc154;
-  --accent-teal: #2a9d8f;
-  --accent-cyan: #38bdf8;
+  /* Official Preservation Houston Brand Palette (preservationhouston.org) */
+  --ph-green-light: #a1cf68;
+  --ph-green: #95c959;
+  --ph-green-deep: #81bc3d;
+  --ph-green-forest: #629627;
+  --ph-slate: #333b42;
+  --ph-charcoal: #272727;
+  --ph-blue: #4894d5;
+
+  --accent-terracotta: #81bc3d;
+  --accent-amber: #95c959;
+  --accent-gold: #a1cf68;
+  --accent-teal: #4894d5;
+  --accent-cyan: #4894d5;
 
   --font-serif: "Fraunces", Georgia, serif;
   --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -87,7 +96,7 @@ body {
   top: 12px;
   left: 12px;
   right: 12px;
-  height: 56px;
+  height: 58px;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -96,7 +105,8 @@ body {
   padding: 0 16px;
   background: var(--bg-panel);
   backdrop-filter: blur(16px);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-brass);
+  border-top: 3px solid var(--ph-green);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
 }
@@ -108,20 +118,36 @@ body {
   flex-shrink: 0;
 }
 
-.brand-badge {
-  width: 34px;
-  height: 34px;
+.ph-brand-logo-badge {
+  height: 40px;
+  padding: 5px 12px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #8b1e24 0%, #d6642c 100%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  display: flex;
+  background: linear-gradient(135deg, #81bc3d 0%, #95c959 55%, #a1cf68 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 2px 0 0 #629627;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  color: var(--text-cream);
+  text-decoration: none;
+  transition: transform 0.14s ease, filter 0.14s ease;
+}
+
+.ph-brand-logo-badge:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.ph-logo-img {
+  height: 30px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border-subtle);
 }
 
 .brand-titles {
@@ -133,7 +159,7 @@ body {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--accent-amber);
+  color: var(--ph-green-light);
   font-weight: 600;
 }
 
@@ -214,7 +240,7 @@ body {
 }
 
 .search-result-item:hover {
-  background: rgba(230, 146, 56, 0.14);
+  background: rgba(149, 201, 89, 0.16);
 }
 
 .search-result-main {
@@ -233,7 +259,7 @@ body {
   font-size: 10.5px;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(149, 201, 89, 0.14);
   color: var(--accent-gold);
   white-space: nowrap;
 }
@@ -288,7 +314,7 @@ body {
 }
 
 .seg-btn.active {
-  background: rgba(230, 146, 56, 0.22);
+  background: rgba(149, 201, 89, 0.22);
   color: var(--accent-gold);
   font-weight: 600;
 }
@@ -311,8 +337,9 @@ body {
 }
 
 .action-pill.active {
-  background: linear-gradient(135deg, #c84b31 0%, #e69238 100%);
-  border-color: transparent;
+  background: linear-gradient(135deg, #629627 0%, #81bc3d 55%, #95c959 100%);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 0 0 #4d781d;
   color: #fff;
 }
 
@@ -400,7 +427,7 @@ body {
 }
 
 .tour-pill.active {
-  background: rgba(200, 75, 49, 0.88);
+  background: linear-gradient(135deg, rgba(98, 150, 39, 0.92) 0%, rgba(129, 188, 61, 0.92) 100%);
   border-color: var(--accent-gold);
 }
 
@@ -412,6 +439,10 @@ body {
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--accent-gold);
+}
+
+.tour-pill.active .tour-pill-era {
+  color: #ffffff;
 }
 
 .tour-narrative-banner {
@@ -470,7 +501,7 @@ body {
   padding-right: 4px;
   transition: transform 0.24s ease;
   scrollbar-width: thin;
-  scrollbar-color: rgba(230, 146, 56, 0.35) rgba(15, 17, 21, 0.4);
+  scrollbar-color: rgba(149, 201, 89, 0.38) rgba(21, 25, 28, 0.4);
 }
 
 .atlas-sidebar::-webkit-scrollbar,
@@ -481,13 +512,13 @@ body {
 
 .atlas-sidebar::-webkit-scrollbar-track,
 .inspector-body::-webkit-scrollbar-track {
-  background: rgba(15, 17, 21, 0.4);
+  background: rgba(21, 25, 28, 0.4);
   border-radius: 4px;
 }
 
 .atlas-sidebar::-webkit-scrollbar-thumb,
 .inspector-body::-webkit-scrollbar-thumb {
-  background: rgba(230, 146, 56, 0.35);
+  background: rgba(149, 201, 89, 0.38);
   border-radius: 4px;
 }
 
@@ -559,7 +590,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   color: var(--accent-gold);
-  background: rgba(235, 193, 84, 0.14);
+  background: rgba(149, 201, 89, 0.14);
   border: 1px solid var(--border-brass);
   padding: 2px 8px;
   border-radius: 6px;
@@ -576,7 +607,7 @@ body {
   height: 34px;
   border-radius: 8px;
   border: 1px solid var(--border-brass);
-  background: linear-gradient(135deg, rgba(200, 75, 49, 0.32) 0%, rgba(230, 146, 56, 0.25) 100%);
+  background: linear-gradient(135deg, rgba(98, 150, 39, 0.36) 0%, rgba(149, 201, 89, 0.26) 100%);
   color: var(--text-cream);
   font-weight: 600;
   font-size: 12.5px;
@@ -589,11 +620,11 @@ body {
 }
 
 .timelapse-play-btn:hover {
-  background: linear-gradient(135deg, rgba(200, 75, 49, 0.55) 0%, rgba(230, 146, 56, 0.42) 100%);
+  background: linear-gradient(135deg, rgba(98, 150, 39, 0.58) 0%, rgba(149, 201, 89, 0.44) 100%);
 }
 
 .timelapse-play-btn.playing {
-  background: var(--accent-terracotta);
+  background: linear-gradient(135deg, #629627 0%, #81bc3d 100%);
   color: #fff;
 }
 
@@ -614,7 +645,7 @@ body {
 
 .compact-select option,
 .full-select option {
-  background: #181c24;
+  background: #1f252a;
   color: var(--text-cream);
 }
 
@@ -635,7 +666,7 @@ body {
   padding: 0 10px;
   border-radius: 6px;
   border: 1px solid var(--border-brass);
-  background: rgba(200, 75, 49, 0.18);
+  background: rgba(129, 188, 61, 0.18);
   color: var(--text-cream);
   font-size: 11.5px;
   font-weight: 600;
@@ -649,7 +680,7 @@ body {
 }
 
 .stepper-nav-btn:hover {
-  background: rgba(200, 75, 49, 0.42);
+  background: rgba(129, 188, 61, 0.38);
   border-color: var(--accent-gold);
   transform: translateY(-1px);
 }
@@ -697,7 +728,7 @@ body {
 }
 
 .step-size-btn.active {
-  background: rgba(230, 146, 56, 0.26);
+  background: rgba(149, 201, 89, 0.24);
   color: var(--accent-gold);
   font-weight: 600;
 }
@@ -862,7 +893,7 @@ body {
 }
 
 .lens-tab.active {
-  background: rgba(230, 146, 56, 0.2);
+  background: rgba(149, 201, 89, 0.22);
   border-color: var(--accent-amber);
   color: var(--text-cream);
 }
@@ -1009,7 +1040,7 @@ body {
   flex-direction: column;
   gap: 14px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(230, 146, 56, 0.35) rgba(15, 17, 21, 0.4);
+  scrollbar-color: rgba(149, 201, 89, 0.38) rgba(21, 25, 28, 0.4);
 }
 
 .inspector-hero {
@@ -1055,9 +1086,9 @@ body {
   margin-top: 4px;
   padding: 6px 10px;
   border-radius: 7px;
-  background: rgba(42, 157, 143, 0.16);
-  border: 1px solid rgba(42, 157, 143, 0.38);
-  color: #6ee7b7;
+  background: rgba(149, 201, 89, 0.16);
+  border: 1px solid rgba(149, 201, 89, 0.42);
+  color: var(--ph-green-light);
   font-size: 12px;
   font-weight: 600;
   display: inline-flex;
@@ -1069,7 +1100,7 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #34d399;
+  background: var(--ph-green);
 }
 
 .inspector-grid {
@@ -1126,9 +1157,15 @@ body {
 }
 
 .inspector-btn.primary {
-  background: linear-gradient(135deg, #c84b31 0%, #e69238 100%);
+  background: linear-gradient(135deg, #629627 0%, #81bc3d 55%, #95c959 100%);
   color: #fff;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2px 0 0 #4d781d;
+}
+
+.inspector-btn.primary:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
 }
 
 .inspector-btn.secondary {
@@ -1141,7 +1178,7 @@ body {
    Hover Tooltip Popup
    -------------------------------------------------------------------------- */
 .atlas-hover-popup .maplibregl-popup-content {
-  background: rgba(15, 17, 22, 0.95);
+  background: rgba(25, 30, 34, 0.96);
   border: 1px solid var(--border-brass);
   border-radius: 8px;
   padding: 8px 10px;
@@ -1151,7 +1188,7 @@ body {
 }
 
 .atlas-hover-popup .maplibregl-popup-tip {
-  border-top-color: rgba(15, 17, 22, 0.95);
+  border-top-color: rgba(25, 30, 34, 0.96);
 }
 
 .tooltip-top {
@@ -1172,8 +1209,8 @@ body {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(42, 157, 143, 0.25);
-  color: #6ee7b7;
+  background: rgba(149, 201, 89, 0.25);
+  color: var(--ph-green-light);
 }
 
 .tooltip-title {
@@ -1204,8 +1241,9 @@ body {
 .modal-card {
   width: 100%;
   max-width: 620px;
-  background: #141821;
+  background: #1d2328;
   border: 1px solid var(--border-brass);
+  border-top: 3px solid var(--ph-green);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
   overflow: hidden;
@@ -1217,6 +1255,32 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.modal-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ph-key-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #81bc3d 0%, #95c959 60%, #a1cf68 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 2px 0 0 #629627;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ph-key-badge-img {
+  height: 26px;
+  width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .modal-title {
@@ -1332,7 +1396,7 @@ body {
 }
 
 .tilt-preset-btn.active {
-  background: rgba(230, 146, 56, 0.28);
+  background: rgba(149, 201, 89, 0.26);
   color: var(--accent-gold);
   font-weight: 600;
 }
@@ -1343,4 +1407,5 @@ body {
   text-align: center;
   letter-spacing: 0.01em;
 }
+
 
