@@ -135,9 +135,12 @@ def join_footprints_to_parcels(
         if best_idx is None:
             continue
 
+        fp_props = fp.get("properties") or {}
+        if not fp_props.get("osm_id") and best_idx in matched_parcel_indices:
+            continue
+
         matched_parcel_indices.add(best_idx)
         parent_props = copy.deepcopy(valid_parcels[best_idx]["properties"])
-        fp_props = fp.get("properties") or {}
 
         fp_area_sqft = fp_geom.area * SQFT_PER_DEG2_AT_HOUSTON
         stories, height_m = estimate_stories_and_height(
@@ -152,8 +155,6 @@ def join_footprints_to_parcels(
         parent_props["stories"] = stories
         parent_props["height_m"] = height_m
         parent_props["footprint_source"] = "observed"
-        if fp_props.get("name") and not parent_props.get("landmark_name"):
-            parent_props["landmark_name"] = str(fp_props["name"]).strip()
 
         joined_buildings.append({
             "type": "Feature",
