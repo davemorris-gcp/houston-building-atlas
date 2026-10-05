@@ -560,6 +560,16 @@ class HoustonAtlasApp {
     if (prevLabelEl) prevLabelEl.textContent = `-${unitLabel}`;
     if (nextLabelEl) nextLabelEl.textContent = `+${unitLabel}`;
 
+    const btnStepPrev = document.getElementById("btn-step-prev");
+    const btnStepNext = document.getElementById("btn-step-next");
+    const isWindowMode =
+      (state.selectedDecade !== "all" && state.selectedDecade !== "unknown") ||
+      state.minYear > 1836;
+    const atStart = isWindowMode ? state.minYear <= 1836 : state.maxYear <= 1836;
+    const atEnd = state.maxYear >= 2026;
+    if (btnStepPrev) btnStepPrev.disabled = atStart;
+    if (btnStepNext) btnStepNext.disabled = atEnd;
+
     document.querySelectorAll("[data-step-years]").forEach((btn) => {
       const btnYrs = parseInt(btn.getAttribute("data-step-years"), 10);
       btn.classList.toggle("active", btnYrs === stepYrs);

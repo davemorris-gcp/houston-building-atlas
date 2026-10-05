@@ -238,13 +238,8 @@ export function computeStepTimeState(state, direction) {
     };
   }
 
-  // Case 2: Cumulative growth mode (minYear === 1836)
-  let nextMax;
-  if (maxY >= 2026 && dir > 0) {
-    nextMax = Math.min(2026, 1840 + step);
-  } else {
-    nextMax = Math.max(1836, Math.min(2026, maxY + delta));
-  }
+  // Case 2: Cumulative growth mode (minYear === 1836) — clamp to [1836, 2026] without looping
+  const nextMax = Math.max(1836, Math.min(2026, maxY + delta));
 
   return {
     minYear: 1836,
