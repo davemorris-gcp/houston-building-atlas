@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "description": "Preservation Houston Curated Archival Overrides & Google Sheets Live Sync Configuration",
-  "googleSheetCsvUrl": "",
+  "googleSheetCsvUrl": "https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/gviz/tq?tqx=out:csv&sheet=Approved_Edits",
   "submissionWebhookUrl": "",
   "overrides": {
     "0621100000014": {
