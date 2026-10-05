@@ -1408,4 +1408,178 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* --------------------------------------------------------------------------
+   Preservation Houston Curated Override Banner & Data Correction Modal
+   -------------------------------------------------------------------------- */
+.ph-verified-override-card {
+  background: linear-gradient(135deg, rgba(98, 150, 39, 0.22) 0%, rgba(149, 201, 89, 0.12) 100%);
+  border: 1px solid rgba(149, 201, 89, 0.55);
+  border-left: 3.5px solid var(--ph-green);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
+.ph-verified-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ph-green-light);
+  letter-spacing: 0.02em;
+}
+
+.ph-verified-orig-year {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.28);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.ph-verified-citation {
+  font-size: 12px;
+  color: var(--text-cream);
+  line-height: 1.38;
+}
+
+.ph-verified-link {
+  font-size: 11px;
+  color: var(--ph-green-light);
+  text-decoration: underline;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.inspector-btn.suggest-edit {
+  background: rgba(149, 201, 89, 0.12);
+  border: 1px dashed rgba(149, 201, 89, 0.55);
+  color: var(--ph-green-light);
+}
+
+.inspector-btn.suggest-edit:hover {
+  background: rgba(149, 201, 89, 0.24);
+  border-style: solid;
+  color: #ffffff;
+}
+
+.correction-intro {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.correction-form {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.form-row-3col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-cream);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--ph-green);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.form-input.readonly {
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.form-input.highlight-input {
+  border-color: rgba(149, 201, 89, 0.6);
+  background: rgba(149, 201, 89, 0.09);
+  font-weight: 600;
+}
+
+.form-input option {
+  background: #1d2328;
+  color: var(--text-cream);
+}
+
+.corr-feedback {
+  padding: 9px 12px;
+  border-radius: 7px;
+  background: rgba(149, 201, 89, 0.16);
+  border: 1px solid rgba(149, 201, 89, 0.48);
+  color: var(--ph-green-light);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.form-actions {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.admin-sheet-config {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+
+.admin-sheet-config summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ph-green-light);
+  user-select: none;
+}
+
+.admin-sheet-body {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.admin-sheet-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

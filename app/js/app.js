@@ -14,6 +14,13 @@ import {
 } from "./filterStore.js";
 import { AtlasMapController } from "./mapController.js";
 import { fetchHcadDeepLink } from "./hcadLink.js";
+import {
+  applyOverrideToProperties,
+  formatSuggestionsAsCsv,
+  getLocalPendingSuggestions,
+  saveGoogleSheetEndpoints,
+  submitCorrectionSuggestion,
+} from "./curatedEdits.js";
 
 class HoustonAtlasApp {
   constructor() {
@@ -45,6 +52,8 @@ class HoustonAtlasApp {
       this._loadMetadataFiles(),
     ]);
 
+    this._mergeCuratedOverridesIntoSearchIndex();
+
     this.filterStore.subscribe((state) => {
       this._syncControlsFromState(state);
       this._renderLegend();
@@ -64,6 +73,49 @@ class HoustonAtlasApp {
       this._renderGlobalDatasetSummary();
     } catch (err) {
       console.error("Failed to load metadata files:", err);
+    }
+  }
+
+  _mergeCuratedOverridesIntoSearchIndex() {
+    const ovMap = (this.mapController && this.mapController.curatedOverrides) || {};
+    const existingByHcad = new Map();
+    for (let i = 0; i < this.searchIndex.length; i++) {
+      const item = this.searchIndex[i];
+      if (item.hcad_num) {
+        existingByHcad.set(String(item.hcad_num).trim(), i);
+      }
+    }
+
+    for (const [hcad, ov] of Object.entries(ovMap)) {
+      let lon = -95.38718;
+      let lat = 29.79175;
+      if (ov.geometry && ov.geometry.coordinates && ov.geometry.coordinates[0]?.[0]) {
+        const ring = ov.geometry.type === "Polygon" ? ov.geometry.coordinates[0] : ov.geometry.coordinates[0][0];
+        if (ring && ring.length) {
+          lon = ring[0][0];
+          lat = ring[0][1];
+        }
+      }
+      const entry = {
+        type: "building",
+        id: ov.id || `ov_${hcad}`,
+        hcad_num: hcad,
+        label: ov.landmark_name || ov.address || `HCAD ${hcad}`,
+        sublabel: `${ov.historic_district || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
+        category: `Built ${ov.year_built} ✓`,
+        year_built: ov.year_built,
+        lon,
+        lat,
+        zoom: 17.6,
+      };
+      if (existingByHcad.has(hcad)) {
+        this.searchIndex[existingByHcad.get(hcad)] = {
+          ...this.searchIndex[existingByHcad.get(hcad)],
+          ...entry,
+        };
+      } else {
+        this.searchIndex.unshift(entry);
+      }
     }
   }
 
@@ -418,6 +470,119 @@ class HoustonAtlasApp {
       btnCloseModal.addEventListener("click", () => aboutModal.classList.add("hidden"));
     }
 
+    // Suggest a Property Data Correction Modal
+    const corrModal = document.getElementById("correction-modal");
+    const btnCloseCorrModal = document.getElementById("btn-close-correction-modal");
+    const corrForm = document.getElementById("form-property-correction");
+    const btnExportPendingCsv = document.getElementById("btn-export-pending-csv");
+    const btnSaveSheetConfig = document.getElementById("btn-save-sheet-config");
+
+    if (btnCloseCorrModal && corrModal) {
+      btnCloseCorrModal.addEventListener("click", () => corrModal.classList.add("hidden"));
+    }
+
+    if (corrForm) {
+      corrForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById("btn-submit-correction");
+        const feedbackEl = document.getElementById("corr-submit-feedback");
+        if (submitBtn) submitBtn.disabled = true;
+
+        const payload = {
+          address: document.getElementById("corr-address")?.value || "",
+          hcad_num: document.getElementById("corr-hcad-num")?.value || "",
+          current_year_built: document.getElementById("corr-current-year")?.value || "",
+          suggested_year_built: document.getElementById("corr-suggested-year")?.value || "",
+          historic_district: document.getElementById("corr-district")?.value || "",
+          source_type: document.getElementById("corr-source-type")?.value || "Houston City Directory",
+          architect: document.getElementById("corr-style-arch")?.value || "",
+          source_citation: document.getElementById("corr-citation")?.value || "",
+          submitter_name: document.getElementById("corr-submitter-name")?.value || "",
+          submitter_email: document.getElementById("corr-submitter-email")?.value || "",
+        };
+
+        const webhookUrl =
+          document.getElementById("admin-webhook-url")?.value ||
+          this.mapController?.sheetSyncStatus?.webhookUrl ||
+          "";
+
+        const res = await submitCorrectionSuggestion(payload, webhookUrl);
+        if (submitBtn) submitBtn.disabled = false;
+
+        if (feedbackEl) {
+          const deliveryNote = res.webhookDelivered
+            ? "Sent directly to Preservation Houston's Google Sheet Pending Review Queue."
+            : "Queued in Pending Review Queue (use 'Export Pending Queue (.CSV)' or connect a Google Sheet webhook below).";
+          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.address || payload.hcad_num}</strong> (Built <strong>${payload.suggested_year_built}</strong>, source: <em>${payload.source_type}</em>) has been recorded with status <code>Pending</code>. ${deliveryNote} It will go live on the public map once approved by an administrator.`;
+          feedbackEl.classList.remove("hidden");
+        }
+      });
+    }
+
+    if (btnExportPendingCsv) {
+      btnExportPendingCsv.addEventListener("click", () => {
+        const pending = getLocalPendingSuggestions();
+        const csvContent = formatSuggestionsAsCsv(
+          pending.length
+            ? pending
+            : [
+                {
+                  status: "Approved",
+                  hcad_num: "0621100000014",
+                  address: "1127 KEY ST",
+                  historic_district: "Norhill Historic District",
+                  hcad_year_built: 1920,
+                  suggested_year_built: 1928,
+                  bld_style: "1920s Bungalow",
+                  architect: "",
+                  source_type: "Houston City Directory",
+                  source_citation:
+                    "1928 Houston City Directory (Morrison & Fourmy); lot unimproved through 1926 directory",
+                  source_url: "https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search",
+                  submitter_name: "Dave Morris",
+                  submitter_email: "",
+                  submitted_at: "2026-10-05",
+                },
+              ]
+        );
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "preservation_houston_property_edits.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    if (btnSaveSheetConfig) {
+      btnSaveSheetConfig.addEventListener("click", async () => {
+        const csvInput = document.getElementById("admin-sheet-csv-url");
+        const webhookInput = document.getElementById("admin-webhook-url");
+        const statusText = document.getElementById("admin-sheet-status-text");
+        const csvUrl = csvInput ? csvInput.value.trim() : "";
+        const webhookUrl = webhookInput ? webhookInput.value.trim() : "";
+
+        saveGoogleSheetEndpoints({ csvUrl, webhookUrl });
+        if (statusText) statusText.textContent = "Syncing Google Sheet...";
+
+        const syncStatus = await this.mapController.reloadCuratedOverrides(csvUrl);
+        this._mergeCuratedOverridesIntoSearchIndex();
+
+        if (statusText) {
+          if (syncStatus && syncStatus.error) {
+            statusText.textContent = `Sync error: ${syncStatus.error}`;
+          } else if (syncStatus && syncStatus.connected) {
+            statusText.textContent = `✓ Synced (${syncStatus.sheetRowCount} sheet edits, ${syncStatus.totalOverrideCount} total active)`;
+          } else {
+            statusText.textContent = `✓ Using baseline overrides (${syncStatus?.totalOverrideCount || 1} active)`;
+          }
+        }
+      });
+    }
+
     // Sidebar Collapse Toggle (for smaller screens)
     const btnToggleSidebar = document.getElementById("btn-toggle-sidebar");
     const sidebar = document.getElementById("atlas-sidebar");
@@ -426,6 +591,40 @@ class HoustonAtlasApp {
         sidebar.classList.toggle("collapsed");
       });
     }
+  }
+
+  openCorrectionModal(props) {
+    const modal = document.getElementById("correction-modal");
+    if (!modal || !props) return;
+
+    const addrEl = document.getElementById("corr-address");
+    const hcadEl = document.getElementById("corr-hcad-num");
+    const currYrEl = document.getElementById("corr-current-year");
+    const suggYrEl = document.getElementById("corr-suggested-year");
+    const distEl = document.getElementById("corr-district");
+    const styleEl = document.getElementById("corr-style-arch");
+    const citeEl = document.getElementById("corr-citation");
+    const feedbackEl = document.getElementById("corr-submit-feedback");
+
+    if (addrEl) addrEl.value = props.address || props.landmark_name || "Unknown Address";
+    if (hcadEl) hcadEl.value = props.hcad_num || "";
+    if (currYrEl) currYrEl.value = props.original_hcad_year || props.year_built || "";
+    if (suggYrEl) suggYrEl.value = props.is_curated_override ? props.year_built : "";
+    if (distEl) distEl.value = props.historic_district || "";
+    if (styleEl) styleEl.value = props.architect || props.bld_style || "";
+    if (citeEl) citeEl.value = props.source_citation || "";
+    if (feedbackEl) {
+      feedbackEl.classList.add("hidden");
+      feedbackEl.innerHTML = "";
+    }
+
+    const syncStatus = this.mapController?.sheetSyncStatus;
+    const csvInput = document.getElementById("admin-sheet-csv-url");
+    const webhookInput = document.getElementById("admin-webhook-url");
+    if (csvInput && syncStatus?.csvUrl) csvInput.value = syncStatus.csvUrl;
+    if (webhookInput && syncStatus?.webhookUrl) webhookInput.value = syncStatus.webhookUrl;
+
+    modal.classList.remove("hidden");
   }
 
   _renderTourPills() {
@@ -758,10 +957,15 @@ class HoustonAtlasApp {
     });
   }
 
-  renderInspectorDrawer(props) {
+  renderInspectorDrawer(rawProps) {
     const drawer = document.getElementById("inspector-drawer");
     const content = document.getElementById("inspector-body");
-    if (!drawer || !content || !props) return;
+    if (!drawer || !content || !rawProps) return;
+
+    const props = applyOverrideToProperties(
+      rawProps,
+      this.mapController ? this.mapController.curatedOverrides : {}
+    );
 
     const yr = Number(props.year_built) || 0;
     const currentYear = 2026;
@@ -806,10 +1010,34 @@ class HoustonAtlasApp {
 
     const hcadNum = String(props.hcad_num || "").trim();
 
+    const verifiedBannerHtml = props.is_curated_override
+      ? `<div class="ph-verified-override-card">
+          <div class="ph-verified-header">
+            <span>&#10003; Verified by ${props.verified_by || "Preservation Houston"}</span>
+            ${
+              props.original_hcad_year && props.original_hcad_year !== yr
+                ? `<span class="ph-verified-orig-year">HCAD lists ${props.original_hcad_year}</span>`
+                : ""
+            }
+          </div>
+          <div class="ph-verified-citation">
+            <strong>${props.source_type || "Archival Source"}:</strong>
+            ${props.source_citation || "Verified historical completion date overrides HCAD appraisal estimate."}
+          </div>
+          ${
+            props.source_url
+              ? `<a href="${props.source_url}" target="_blank" rel="noopener noreferrer" class="ph-verified-link">
+                  View Historical Directory / Source Archive &#8599;
+                </a>`
+              : ""
+          }
+        </div>`
+      : "";
+
     content.innerHTML = `
       <div class="inspector-hero">
         <div class="inspector-badges">
-          <span class="inspector-year-pill" style="background:${yearColor};">${yearDisplay}</span>
+          <span class="inspector-year-pill" style="background:${yearColor};">${yearDisplay}${props.is_curated_override ? " &#10003;" : ""}</span>
           <span class="inspector-age-pill">${ageText}</span>
         </div>
         <h2 class="inspector-title" id="inspector-property-title">${title}</h2>
@@ -819,6 +1047,8 @@ class HoustonAtlasApp {
           <span>${statusBadge}</span>
         </div>
       </div>
+
+      ${verifiedBannerHtml}
 
       <div class="inspector-grid">
         <div class="inspector-cell">
@@ -883,6 +1113,9 @@ class HoustonAtlasApp {
       </div>
 
       <div class="inspector-actions">
+        <button type="button" class="inspector-btn suggest-edit" id="btn-suggest-correction">
+          &#9998; Suggest a Date / Data Correction
+        </button>
         ${
           hcadNum
             ? `<a
@@ -915,6 +1148,13 @@ class HoustonAtlasApp {
     `;
 
     drawer.classList.remove("hidden");
+
+    const btnSuggestCorr = document.getElementById("btn-suggest-correction");
+    if (btnSuggestCorr) {
+      btnSuggestCorr.addEventListener("click", () => {
+        this.openCorrectionModal(props);
+      });
+    }
 
     const btnCopyAcct = document.getElementById("btn-copy-hcad-acct");
     if (btnCopyAcct && hcadNum) {

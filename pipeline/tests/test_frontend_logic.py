@@ -118,6 +118,47 @@ def test_frontend_es_modules_via_node() -> None:
       throw new Error('Expected step backward at 1836 to stop at 1836, got: ' + stepStore.getState().maxYear);
     }
 
+    // Verify curatedEdits.js (Google Sheet CSV parser, approval filter, and 1127 Key St override)
+    import {
+      parseCsvToObjects,
+      parseOverridesFromSheetRows,
+      applyOverrideToProperties,
+      formatSuggestionsAsCsv,
+    } from './js/curatedEdits.js';
+    import fs from 'node:fs';
+
+    const rawOverridesDoc = JSON.parse(fs.readFileSync('./public/data/curated_overrides.json', 'utf-8'));
+    if (!rawOverridesDoc.overrides['0621100000014']) {
+      throw new Error('Expected 1127 Key St (0621100000014) in curated_overrides.json');
+    }
+    const keyStProps = applyOverrideToProperties(
+      { id: 'bld_002168', hcad_num: '0621100000014', address: '1127 KEY ST', year_built: 1920, decade: 1920 },
+      rawOverridesDoc.overrides
+    );
+    if (
+      keyStProps.year_built !== 1928 ||
+      keyStProps.decade !== 1920 ||
+      keyStProps.original_hcad_year !== 1920 ||
+      keyStProps.is_curated_override !== true
+    ) {
+      throw new Error('1127 Key St override failed: ' + JSON.stringify(keyStProps));
+    }
+
+    const sampleCsv = [
+      'status,hcad_num,address,year_built,original_hcad_year,source_type,source_citation',
+      'Approved,0621100000014,1127 KEY ST,1928,1920,Houston City Directory,"1928 City Directory, p. 1412"',
+      'Pending,0621100000099,999 KEY ST,1915,1920,Houston City Directory,"Unapproved user submission"',
+    ].join(String.fromCharCode(10));
+    const parsedRows = parseCsvToObjects(sampleCsv);
+    const sheetMap = parseOverridesFromSheetRows(parsedRows);
+    if (!sheetMap['0621100000014'] || sheetMap['0621100000099']) {
+      throw new Error('CSV approval filter failed: ' + JSON.stringify(sheetMap));
+    }
+    const formattedCsv = formatSuggestionsAsCsv([{ status: 'Pending', hcad_num: '0621100000014', address: '1127 KEY ST', suggested_year_built: 1928 }]);
+    if (!formattedCsv.includes('0621100000014')) {
+      throw new Error('Expected formatted CSV to contain 0621100000014');
+    }
+
     console.log(JSON.stringify({ ok: true, tours: CURATED_TOURS.length, legendCount: getLegendItems('year_built').length }));
     """
     proc = subprocess.run(
