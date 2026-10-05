@@ -1,6 +1,5 @@
-.venv/
+pipeline/.venv/
+pipeline/cache/
+pipeline/.pytest_cache/
 __pycache__/
 *.pyc
-.pytest_cache/
-pipeline/cache/
-.DS_Store
