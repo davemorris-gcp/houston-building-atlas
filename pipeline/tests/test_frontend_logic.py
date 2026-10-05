@@ -72,6 +72,41 @@ def test_frontend_es_modules_via_node() -> None:
       throw new Error('Invalid HCAD auth headers: ' + JSON.stringify(authHdrs));
     }
 
+    // Verify Time-Travel Stepper (1 yr, 5 yrs, 10 yrs + decade cycling + cumulative mode)
+    const stepStore = createFilterStore();
+    // Default is 1836..2026, stepYears=5 -> stepping backward (-1) moves maxYear to 2021 and pauses playback
+    stepStore.setState({ isPlaying: true });
+    stepStore.stepTime(-1);
+    if (stepStore.getState().maxYear !== 2021 || stepStore.getState().isPlaying !== false) {
+      throw new Error('Cumulative step backward -5 yrs failed: ' + JSON.stringify(stepStore.getState()));
+    }
+    // Switch to 1 yr and step forward (+1) -> maxYear becomes 2022
+    stepStore.setState({ stepYears: 1 });
+    stepStore.stepTime(1);
+    if (stepStore.getState().maxYear !== 2022) {
+      throw new Error('Cumulative step forward +1 yr failed: ' + JSON.stringify(stepStore.getState()));
+    }
+    // Select 1920s decade with 10-year step -> stepping forward (+1) advances to 1930s (1930..1939)
+    stepStore.setState({ selectedDecade: '1920', minYear: 1920, maxYear: 1929, stepYears: 10 });
+    stepStore.stepTime(1);
+    if (
+      stepStore.getState().selectedDecade !== '1930' ||
+      stepStore.getState().minYear !== 1930 ||
+      stepStore.getState().maxYear !== 1939
+    ) {
+      throw new Error('Decade step forward +10 yrs failed: ' + JSON.stringify(stepStore.getState()));
+    }
+    // Step backward (-1) with 5-year step from 1930..1939 -> slides 10-yr window to 1925..1934
+    stepStore.setState({ stepYears: 5 });
+    stepStore.stepTime(-1);
+    if (
+      stepStore.getState().selectedDecade !== 'all' ||
+      stepStore.getState().minYear !== 1925 ||
+      stepStore.getState().maxYear !== 1934
+    ) {
+      throw new Error('Sliding window step backward -5 yrs failed: ' + JSON.stringify(stepStore.getState()));
+    }
+
     console.log(JSON.stringify({ ok: true, tours: CURATED_TOURS.length, legendCount: getLegendItems('year_built').length }));
     """
     proc = subprocess.run(

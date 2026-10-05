@@ -131,6 +131,37 @@
           </select>
         </div>
 
+        <!-- Time-Travel Stepper (1, 5, or 10 Years + Arrow Key Navigation) -->
+        <div class="time-stepper-bar" role="group" aria-label="Time-travel stepper">
+          <button
+            type="button"
+            class="stepper-nav-btn mono"
+            id="btn-step-prev"
+            title="Step backward in time (Left Arrow ←)"
+            aria-label="Step backward in time"
+          >
+            &#9664; <span id="step-prev-label">-5 yrs</span>
+          </button>
+          <div class="step-size-group" role="group" aria-label="Step interval in years">
+            <button type="button" class="step-size-btn mono" data-step-years="1" title="1-year step interval">1 yr</button>
+            <button type="button" class="step-size-btn mono active" data-step-years="5" title="5-year step interval">5 yrs</button>
+            <button type="button" class="step-size-btn mono" data-step-years="10" title="10-year (decade) step interval">10 yrs</button>
+          </div>
+          <button
+            type="button"
+            class="stepper-nav-btn mono"
+            id="btn-step-next"
+            title="Step forward in time (Right Arrow →)"
+            aria-label="Step forward in time"
+          >
+            <span id="step-next-label">+5 yrs</span> &#9654;
+          </button>
+        </div>
+        <div class="time-stepper-hint">
+          <span>Time-Travel Stepper</span>
+          <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys &middot; <kbd>Space</kbd> pause</span>
+        </div>
+
         <!-- Dual Year Range Sliders -->
         <div class="slider-group">
           <div class="slider-row">

@@ -16,6 +16,7 @@ export const DEFAULT_FILTER_STATE = {
   syncAnnexationToTime: false,
   isPlaying: false,
   playSpeed: 1, // 1 | 2 | 5
+  stepYears: 5, // 1 | 5 | 10
   layers: {
     landmarks: true,
     historicDistricts: true,
@@ -41,9 +42,10 @@ export function buildFeatureFilterExpression(state) {
   if (dec !== "all") {
     const decInt = Number(dec);
     if (!Number.isNaN(decInt) && decInt >= 1830) {
+      const lowBound = decInt === 1840 ? 1836 : decInt;
       return [
         "all",
-        [">=", ["to-number", ["get", "year_built"], 0], decInt],
+        [">=", ["to-number", ["get", "year_built"], 0], lowBound],
         ["<=", ["to-number", ["get", "year_built"], 0], decInt + 9],
       ];
     }
@@ -80,7 +82,8 @@ export function featureMatchesFilter(props, state) {
   }
   if (dec !== "all") {
     const decInt = Number(dec);
-    return yr >= decInt && yr <= decInt + 9;
+    const lowBound = decInt === 1840 ? 1836 : decInt;
+    return yr >= lowBound && yr <= decInt + 9;
   }
   if (yr < 1836) {
     return Boolean(state.showUnknownYears);
@@ -161,6 +164,98 @@ export function parseHashToState(hashString) {
 }
 
 /**
+ * Compute the partial state update when stepping backward (`direction = -1`)
+ * or forward (`direction = 1`) by `state.stepYears` (1, 5, or 10 years).
+ *
+ * - If a specific decade is active (`selectedDecade !== "all"`) and `stepYears === 10`,
+ *   cycles to the previous/next decade (`1840` .. `2020`).
+ * - If a sliding window is active (`minYear > 1836` or a decade with `stepYears` 1 or 5),
+ *   shifts both `minYear` and `maxYear` by `direction * stepYears`.
+ * - Otherwise (cumulative mode, `minYear === 1836`), pauses playback and shifts
+ *   `maxYear` by `direction * stepYears` (or starts at `1840 + step` if stepping forward from `2026`).
+ */
+export function computeStepTimeState(state, direction) {
+  const step = Number(state.stepYears) || 1;
+  const dir = direction < 0 ? -1 : 1;
+  const delta = dir * step;
+  const minY = Number(state.minYear) || 1836;
+  const maxY = Number(state.maxYear) || 2026;
+  const dec = String(state.selectedDecade || "all");
+
+  // Case 1a: Decade mode with 10-year step -> cycle between decades (1840 .. 2020)
+  if (dec !== "all" && dec !== "unknown" && step === 10) {
+    const decInt = Number(dec);
+    if (!Number.isNaN(decInt)) {
+      const nextDec = Math.max(1840, Math.min(2020, decInt + delta));
+      return {
+        minYear: nextDec === 1840 ? 1836 : nextDec,
+        maxYear: Math.min(2026, nextDec + 9),
+        selectedDecade: String(nextDec),
+        isPlaying: false,
+      };
+    }
+  }
+
+  // Case 1b: Sliding window mode (minYear > 1836 or decade mode with 1/5 yr step)
+  if ((dec !== "all" && dec !== "unknown") || minY > 1836) {
+    let curMin = minY;
+    let curMax = maxY;
+    if (dec !== "all" && dec !== "unknown") {
+      const decInt = Number(dec);
+      if (!Number.isNaN(decInt)) {
+        curMin = decInt;
+        curMax = Math.min(2026, decInt + 9);
+      }
+    }
+    const span = Math.max(0, curMax - curMin);
+    let nextMin = curMin + delta;
+    let nextMax = curMax + delta;
+
+    if (nextMin < 1836) {
+      nextMin = 1836;
+      nextMax = Math.min(2026, 1836 + span);
+    }
+    if (nextMax > 2026) {
+      nextMax = 2026;
+      nextMin = Math.max(1836, 2026 - span);
+    }
+
+    let nextDecade = "all";
+    if (
+      nextMin >= 1840 &&
+      nextMin <= 2020 &&
+      nextMin % 10 === 0 &&
+      (nextMax === nextMin + 9 || (nextMin === 2020 && nextMax === 2026))
+    ) {
+      nextDecade = String(nextMin);
+    }
+
+    return {
+      minYear: nextMin,
+      maxYear: nextMax,
+      selectedDecade: nextDecade,
+      isPlaying: false,
+    };
+  }
+
+  // Case 2: Cumulative growth mode (minYear === 1836)
+  let nextMax;
+  if (maxY >= 2026 && dir > 0) {
+    nextMax = Math.min(2026, 1840 + step);
+  } else {
+    nextMax = Math.max(1836, Math.min(2026, maxY + delta));
+  }
+
+  return {
+    minYear: 1836,
+    maxYear: nextMax,
+    selectedDecade: "all",
+    showUnknownYears: nextMax >= 2026 ? state.showUnknownYears : false,
+    isPlaying: false,
+  };
+}
+
+/**
  * Create a reactive FilterStore instance.
  */
 export function createFilterStore(initialOverrides = {}) {
@@ -204,6 +299,10 @@ export function createFilterStore(initialOverrides = {}) {
     });
   }
 
+  function stepTime(direction) {
+    setState(computeStepTimeState(state, direction));
+  }
+
   function resetFilters() {
     setState({
       minYear: 1836,
@@ -223,6 +322,7 @@ export function createFilterStore(initialOverrides = {}) {
     getState,
     setState,
     setLayerVisibility,
+    stepTime,
     resetFilters,
     subscribe,
   };
