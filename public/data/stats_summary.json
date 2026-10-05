@@ -1,5 +1,5 @@
 {
-  "total_buildings": 1672100,
+  "total_buildings": 1512020,
   "dated_buildings": 1624725,
   "observed_footprints": 1406061,
   "earliest_year": 1840,
@@ -62,7 +62,7 @@
     "Audubon Place": 3,
     "Glenbrook Valley": 2
   },
-  "pmtiles_size_bytes": 307990719,
+  "pmtiles_size_bytes": 272154052,
   "pmtiles_shards": [
     "houston_buildings_nw_w.pmtiles",
     "houston_buildings_nw_e.pmtiles",
