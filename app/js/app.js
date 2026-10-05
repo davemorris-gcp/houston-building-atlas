@@ -481,6 +481,7 @@ class HoustonAtlasApp {
     const btnExportPendingCsv = document.getElementById("btn-export-pending-csv");
     const btnSaveSheetConfig = document.getElementById("btn-save-sheet-config");
     const btnToggleAdminAuth = document.getElementById("btn-toggle-admin-auth");
+    const btnTopbarAdmin = document.getElementById("btn-topbar-admin");
     const adminAuthPanel = document.getElementById("admin-auth-panel");
     const btnVerifyAdminUnlock = document.getElementById("btn-verify-admin-unlock");
     const btnLockAdminSession = document.getElementById("btn-lock-admin-session");
@@ -497,6 +498,12 @@ class HoustonAtlasApp {
           ? `&#128275; Admin: ${session.email}`
           : `&#128274; Staff Admin`;
         btnToggleAdminAuth.classList.toggle("active", isUnlocked);
+      }
+      if (btnTopbarAdmin) {
+        btnTopbarAdmin.innerHTML = isUnlocked
+          ? `&#128275; Admin: ${session.email}`
+          : `&#128274; Staff Admin`;
+        btnTopbarAdmin.classList.toggle("active", isUnlocked);
       }
       if (btnAdminApproveDirect) {
         btnAdminApproveDirect.classList.toggle("hidden", !isUnlocked);
@@ -516,6 +523,22 @@ class HoustonAtlasApp {
     };
 
     syncAdminUiState();
+
+    if (btnTopbarAdmin && corrModal && adminAuthPanel) {
+      btnTopbarAdmin.addEventListener("click", () => {
+        const csvInput = document.getElementById("admin-sheet-csv-url");
+        const webhookInput = document.getElementById("admin-webhook-url");
+        const syncStatus = this.mapController?.sheetSyncStatus;
+        if (csvInput && syncStatus?.csvUrl) csvInput.value = syncStatus.csvUrl;
+        if (webhookInput && syncStatus?.webhookUrl) webhookInput.value = syncStatus.webhookUrl;
+
+        corrModal.classList.remove("hidden");
+        adminAuthPanel.classList.remove("hidden");
+        syncAdminUiState();
+        const emailField = document.getElementById("admin-auth-email");
+        if (emailField && !getAdminSession()) emailField.focus();
+      });
+    }
 
     if (btnToggleAdminAuth && adminAuthPanel) {
       btnToggleAdminAuth.addEventListener("click", () => {
