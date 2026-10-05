@@ -92,6 +92,11 @@ export class AtlasMapController {
     this.parcelsData = [];
     this.overlaysData = null;
     this.selectedFeatureId = null;
+    this.pmtilesManifest = null;
+    this.buildingFillLayerIds = ["buildings-fill"];
+    this.buildingLineLayerIds = ["buildings-line"];
+    this.buildingExtrusionLayerIds = ["buildings-extrusion"];
+    this.highlightLayerIds = ["selected-feature-highlight"];
     this.isReady = false;
   }
 
@@ -131,15 +136,23 @@ export class AtlasMapController {
   }
 
   async _fetchDataPayloads() {
-    const [buildingsRes, parcelsRes, overlaysRes] = await Promise.all([
+    const [buildingsRes, parcelsRes, overlaysRes, manifestRes] = await Promise.all([
       fetch("public/data/buildings.geojson"),
       fetch("public/data/parcels.geojson"),
       fetch("public/data/overlays.json"),
+      fetch("public/data/pmtiles_manifest.json").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
     const parcelsFC = await parcelsRes.json();
     const overlays = await overlaysRes.json();
+    if (manifestRes && manifestRes.ok) {
+      try {
+        this.pmtilesManifest = await manifestRes.json();
+      } catch {
+        this.pmtilesManifest = null;
+      }
+    }
 
     this.buildingsFC = buildingsFC;
     this.parcelsFC = parcelsFC;
@@ -330,6 +343,19 @@ export class AtlasMapController {
       console.warn("PMTiles source registration warning:", err);
     }
 
+    const shardFiles =
+      this.pmtilesManifest && Array.isArray(this.pmtilesManifest.building_shards)
+        ? this.pmtilesManifest.building_shards
+        : [];
+
+    for (let i = 0; i < shardFiles.length; i++) {
+      const shardUrl = new URL(`public/data/${shardFiles[i]}`, window.location.href).href;
+      this.map.addSource(`atlas-shard-${i}`, {
+        type: "vector",
+        url: `pmtiles://${shardUrl}`,
+      });
+    }
+
     this.map.addSource("buildings-src", { type: "geojson", data: this.buildingsFC });
     this.map.addSource("parcels-src", { type: "geojson", data: this.parcelsFC });
     this.map.addSource("annexations-src", {
@@ -428,40 +454,107 @@ export class AtlasMapController {
       filter: filterExpr,
       paint: { "line-color": "#94A3B8", "line-width": 0.6, "line-opacity": 0.42 },
     });
-    this.map.addLayer({
-      id: "buildings-fill",
-      type: "fill",
-      source: "buildings-src",
-      filter: filterExpr,
-      paint: { "fill-color": colorExpr, "fill-opacity": 0.9 },
-    });
-    this.map.addLayer({
-      id: "buildings-line",
-      type: "line",
-      source: "buildings-src",
-      filter: filterExpr,
-      paint: { "line-color": "rgba(15, 17, 21, 0.65)", "line-width": 0.6 },
-    });
-    this.map.addLayer({
-      id: "buildings-extrusion",
-      type: "fill-extrusion",
-      source: "buildings-src",
-      filter: filterExpr,
-      layout: { visibility: state.extrude3D ? "visible" : "none" },
-      paint: {
-        "fill-extrusion-color": colorExpr,
-        "fill-extrusion-height": ["to-number", ["get", "height_m"], 4.5],
-        "fill-extrusion-base": 0,
-        "fill-extrusion-opacity": 0.9,
-      },
-    });
-    this.map.addLayer({
-      id: "selected-feature-highlight",
-      type: "line",
-      source: "buildings-src",
-      filter: ["==", ["get", "id"], ""],
-      paint: { "line-color": "#FDE047", "line-width": 3.2 },
-    });
+
+    this.buildingFillLayerIds = [];
+    this.buildingLineLayerIds = [];
+    this.buildingExtrusionLayerIds = [];
+    this.highlightLayerIds = [];
+
+    if (shardFiles.length > 0) {
+      for (let i = 0; i < shardFiles.length; i++) {
+        const srcId = `atlas-shard-${i}`;
+        const fillId = `buildings-fill-${i}`;
+        const lineId = `buildings-line-${i}`;
+        const extId = `buildings-extrusion-${i}`;
+        const hlId = `selected-feature-highlight-${i}`;
+
+        this.buildingFillLayerIds.push(fillId);
+        this.buildingLineLayerIds.push(lineId);
+        this.buildingExtrusionLayerIds.push(extId);
+        this.highlightLayerIds.push(hlId);
+
+        this.map.addLayer({
+          id: fillId,
+          type: "fill",
+          source: srcId,
+          "source-layer": "buildings",
+          filter: filterExpr,
+          paint: { "fill-color": colorExpr, "fill-opacity": 0.9 },
+        });
+        this.map.addLayer({
+          id: lineId,
+          type: "line",
+          source: srcId,
+          "source-layer": "buildings",
+          minzoom: 14,
+          filter: filterExpr,
+          paint: { "line-color": "rgba(15, 17, 21, 0.65)", "line-width": 0.6 },
+        });
+        this.map.addLayer({
+          id: extId,
+          type: "fill-extrusion",
+          source: srcId,
+          "source-layer": "buildings",
+          filter: filterExpr,
+          layout: { visibility: state.extrude3D ? "visible" : "none" },
+          paint: {
+            "fill-extrusion-color": colorExpr,
+            "fill-extrusion-height": ["to-number", ["get", "height_m"], 4.5],
+            "fill-extrusion-base": 0,
+            "fill-extrusion-opacity": 0.9,
+          },
+        });
+        this.map.addLayer({
+          id: hlId,
+          type: "line",
+          source: srcId,
+          "source-layer": "buildings",
+          filter: ["==", ["get", "id"], ""],
+          paint: { "line-color": "#FDE047", "line-width": 3.2 },
+        });
+      }
+    } else {
+      this.buildingFillLayerIds = ["buildings-fill"];
+      this.buildingLineLayerIds = ["buildings-line"];
+      this.buildingExtrusionLayerIds = ["buildings-extrusion"];
+      this.highlightLayerIds = ["selected-feature-highlight"];
+
+      this.map.addLayer({
+        id: "buildings-fill",
+        type: "fill",
+        source: "buildings-src",
+        filter: filterExpr,
+        paint: { "fill-color": colorExpr, "fill-opacity": 0.9 },
+      });
+      this.map.addLayer({
+        id: "buildings-line",
+        type: "line",
+        source: "buildings-src",
+        filter: filterExpr,
+        paint: { "line-color": "rgba(15, 17, 21, 0.65)", "line-width": 0.6 },
+      });
+      this.map.addLayer({
+        id: "buildings-extrusion",
+        type: "fill-extrusion",
+        source: "buildings-src",
+        filter: filterExpr,
+        layout: { visibility: state.extrude3D ? "visible" : "none" },
+        paint: {
+          "fill-extrusion-color": colorExpr,
+          "fill-extrusion-height": ["to-number", ["get", "height_m"], 4.5],
+          "fill-extrusion-base": 0,
+          "fill-extrusion-opacity": 0.9,
+        },
+      });
+      this.map.addLayer({
+        id: "selected-feature-highlight",
+        type: "line",
+        source: "buildings-src",
+        filter: ["==", ["get", "id"], ""],
+        paint: { "line-color": "#FDE047", "line-width": 3.2 },
+      });
+    }
+
     this.map.addLayer({
       id: "thc-markers-circle",
       type: "circle",
@@ -492,16 +585,16 @@ export class AtlasMapController {
   }
 
   _bindMapLibreInteractions() {
-    const interactiveLayers = [
+    const getInteractiveLayers = () => [
       "landmarks-circle",
       "thc-markers-circle",
-      "buildings-extrusion",
-      "buildings-fill",
+      ...this.buildingExtrusionLayerIds,
+      ...this.buildingFillLayerIds,
       "parcels-fill",
     ];
 
     this.map.on("mousemove", (e) => {
-      const activeLayers = interactiveLayers.filter((id) => this.map.getLayer(id));
+      const activeLayers = getInteractiveLayers().filter((id) => this.map.getLayer(id));
       const features = this.map.queryRenderedFeatures(e.point, { layers: activeLayers });
       if (!features.length) {
         this.map.getCanvas().style.cursor = "";
@@ -517,7 +610,7 @@ export class AtlasMapController {
     });
 
     this.map.on("click", (e) => {
-      const activeLayers = interactiveLayers.filter((id) => this.map.getLayer(id));
+      const activeLayers = getInteractiveLayers().filter((id) => this.map.getLayer(id));
       const features = this.map.queryRenderedFeatures(e.point, { layers: activeLayers });
       if (!features.length) return;
       const top = features[0];
@@ -1073,9 +1166,9 @@ export class AtlasMapController {
     const filterExpr = buildFeatureFilterExpression(state);
 
     for (const layerId of [
-      "buildings-fill",
-      "buildings-line",
-      "buildings-extrusion",
+      ...this.buildingFillLayerIds,
+      ...this.buildingLineLayerIds,
+      ...this.buildingExtrusionLayerIds,
       "parcels-fill",
       "parcels-line",
     ]) {
@@ -1084,39 +1177,23 @@ export class AtlasMapController {
       }
     }
 
-    this.map.setPaintProperty("buildings-fill", "fill-color", colorExpr);
-    this.map.setPaintProperty("buildings-extrusion", "fill-extrusion-color", colorExpr);
-    this.map.setPaintProperty("parcels-fill", "fill-color", colorExpr);
+    for (const fillId of this.buildingFillLayerIds) {
+      if (this.map.getLayer(fillId)) {
+        this.map.setPaintProperty(fillId, "fill-color", colorExpr);
+      }
+    }
+    for (const extId of this.buildingExtrusionLayerIds) {
+      if (this.map.getLayer(extId)) {
+        this.map.setPaintProperty(extId, "fill-extrusion-color", colorExpr);
+      }
+    }
+    if (this.map.getLayer("parcels-fill")) {
+      this.map.setPaintProperty("parcels-fill", "fill-color", colorExpr);
+    }
 
     const showBuildings = state.renderMode === "buildings" || state.renderMode === "both";
     const showParcelsFill = state.renderMode === "parcels";
     const showParcelsLine = state.renderMode === "both" || state.renderMode === "parcels";
-
-    this.map.setLayoutProperty(
-      "buildings-fill",
-      "visibility",
-      showBuildings && !state.extrude3D ? "visible" : "none"
-    );
-    this.map.setLayoutProperty(
-      "buildings-line",
-      "visibility",
-      showBuildings && !state.extrude3D ? "visible" : "none"
-    );
-    this.map.setLayoutProperty(
-      "buildings-extrusion",
-      "visibility",
-      showBuildings && state.extrude3D ? "visible" : "none"
-    );
-    this.map.setLayoutProperty(
-      "parcels-fill",
-      "visibility",
-      showParcelsFill ? "visible" : "none"
-    );
-    this.map.setLayoutProperty(
-      "parcels-line",
-      "visibility",
-      showParcelsLine ? "visible" : "none"
-    );
 
     const setVis = (ids, visible) => {
       for (const id of ids) {
@@ -1125,6 +1202,12 @@ export class AtlasMapController {
         }
       }
     };
+
+    setVis(this.buildingFillLayerIds, showBuildings && !state.extrude3D);
+    setVis(this.buildingLineLayerIds, showBuildings && !state.extrude3D);
+    setVis(this.buildingExtrusionLayerIds, showBuildings && state.extrude3D);
+    setVis(["parcels-fill"], showParcelsFill);
+    setVis(["parcels-line"], showParcelsLine);
 
     setVis(["landmarks-circle"], state.layers.landmarks);
     setVis(["historic-districts-fill", "historic-districts-line"], state.layers.historicDistricts);
@@ -1190,12 +1273,12 @@ export class AtlasMapController {
     this.selectedFeatureId = props.id || "";
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
-    } else if (this.map && this.map.getLayer("selected-feature-highlight")) {
-      this.map.setFilter("selected-feature-highlight", [
-        "==",
-        ["get", "id"],
-        this.selectedFeatureId,
-      ]);
+    } else if (this.map) {
+      for (const hlId of this.highlightLayerIds) {
+        if (this.map.getLayer(hlId)) {
+          this.map.setFilter(hlId, ["==", ["get", "id"], this.selectedFeatureId]);
+        }
+      }
     }
     if (this.onSelectFeature) {
       this.onSelectFeature(props);
@@ -1206,13 +1289,17 @@ export class AtlasMapController {
     this.selectedFeatureId = null;
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
-    } else if (this.map && this.map.getLayer("selected-feature-highlight")) {
-      this.map.setFilter("selected-feature-highlight", ["==", ["get", "id"], ""]);
+    } else if (this.map) {
+      for (const hlId of this.highlightLayerIds) {
+        if (this.map.getLayer(hlId)) {
+          this.map.setFilter(hlId, ["==", ["get", "id"], ""]);
+        }
+      }
     }
   }
 
   computeViewportHistogram() {
-    if (!this.buildingsData.length || !this.onViewportStats) return;
+    if (!this.onViewportStats) return;
 
     const bounds = this.useCanvasFallback
       ? this._getCanvasBounds()
@@ -1239,41 +1326,86 @@ export class AtlasMapController {
     let contributingCount = 0;
     let landmarkCount = 0;
 
-    for (const feat of this.buildingsData) {
-      const geom = feat.geometry;
-      if (!geom || !geom.coordinates) continue;
-
-      const ring =
-        geom.type === "Polygon"
-          ? geom.coordinates[0]
-          : geom.type === "MultiPolygon" && geom.coordinates[0]
-          ? geom.coordinates[0][0]
-          : null;
-      if (!ring || !ring.length) continue;
-
-      const [lon, lat] = ring[0];
-      if (lon < west || lon > east || lat < south || lat > north) continue;
-
-      inViewportTotal += 1;
-      const p = feat.properties || {};
-      const yr = Number(p.year_built) || 0;
-      const dec = Number(p.decade) || 0;
-
-      if (yr >= 1836 && dec >= 1830 && dec <= 2020) {
-        decadeCounts[String(dec)] = (decadeCounts[String(dec)] || 0) + 1;
+    // In WebGL mode with countywide PMTiles shards, query rendered vector tile features first
+    let usedRenderedFeatures = false;
+    if (!this.useCanvasFallback && this.map) {
+      const queryLayers = [
+        ...this.buildingFillLayerIds,
+        ...this.buildingExtrusionLayerIds,
+      ].filter((id) => this.map.getLayer(id));
+      if (queryLayers.length > 0) {
+        const rendered = this.map.queryRenderedFeatures({ layers: queryLayers });
+        if (rendered.length > 0) {
+          usedRenderedFeatures = true;
+          const seenIds = new Set();
+          for (const feat of rendered) {
+            const p = feat.properties || {};
+            const key = p.id || p.hcad_num;
+            if (key) {
+              if (seenIds.has(key)) continue;
+              seenIds.add(key);
+            }
+            inViewportTotal += 1;
+            const yr = Number(p.year_built) || 0;
+            const dec = Number(p.decade) || 0;
+            if (yr >= 1836 && dec >= 1830 && dec <= 2020) {
+              decadeCounts[String(dec)] = (decadeCounts[String(dec)] || 0) + 1;
+            }
+            if (featureMatchesFilter(p, state)) {
+              matchingFilterCount += 1;
+              if (yr >= 1836 && yr < oldestInView) {
+                oldestInView = yr;
+                oldestAddress = p.landmark_name || p.address || "Historic Structure";
+              }
+              if (p.contributing === "Contributing") {
+                contributingCount += 1;
+              }
+              if (p.landmark_name || p.landmark_type) {
+                landmarkCount += 1;
+              }
+            }
+          }
+        }
       }
+    }
 
-      if (featureMatchesFilter(p, state)) {
-        matchingFilterCount += 1;
-        if (yr >= 1836 && yr < oldestInView) {
-          oldestInView = yr;
-          oldestAddress = p.landmark_name || p.address || "Historic Structure";
+    if (!usedRenderedFeatures) {
+      for (const feat of this.buildingsData) {
+        const geom = feat.geometry;
+        if (!geom || !geom.coordinates) continue;
+
+        const ring =
+          geom.type === "Polygon"
+            ? geom.coordinates[0]
+            : geom.type === "MultiPolygon" && geom.coordinates[0]
+            ? geom.coordinates[0][0]
+            : null;
+        if (!ring || !ring.length) continue;
+
+        const [lon, lat] = ring[0];
+        if (lon < west || lon > east || lat < south || lat > north) continue;
+
+        inViewportTotal += 1;
+        const p = feat.properties || {};
+        const yr = Number(p.year_built) || 0;
+        const dec = Number(p.decade) || 0;
+
+        if (yr >= 1836 && dec >= 1830 && dec <= 2020) {
+          decadeCounts[String(dec)] = (decadeCounts[String(dec)] || 0) + 1;
         }
-        if (p.contributing === "Contributing") {
-          contributingCount += 1;
-        }
-        if (p.landmark_name || p.landmark_type) {
-          landmarkCount += 1;
+
+        if (featureMatchesFilter(p, state)) {
+          matchingFilterCount += 1;
+          if (yr >= 1836 && yr < oldestInView) {
+            oldestInView = yr;
+            oldestAddress = p.landmark_name || p.address || "Historic Structure";
+          }
+          if (p.contributing === "Contributing") {
+            contributingCount += 1;
+          }
+          if (p.landmark_name || p.landmark_type) {
+            landmarkCount += 1;
+          }
         }
       }
     }

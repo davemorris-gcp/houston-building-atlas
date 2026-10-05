@@ -10,6 +10,9 @@ dependencies = [
     "pmtiles>=3.4.0",
     "mapbox-vector-tile>=2.1.0",
     "pyshp>=2.3.1",
+    "pyogrio>=0.13.0",
+    "orjson>=3.12.0",
+    "numpy>=2.4.6",
 ]
 
 [dependency-groups]
