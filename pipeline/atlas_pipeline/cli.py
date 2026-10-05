@@ -48,33 +48,33 @@ def main() -> None:
 
     if args.mode == "core":
         parcels, footprints, overlays = fetch_core_parcels_and_footprints(args.cache_dir)
+        print("-> Running spatial join (matching observed building footprints + deriving architectural footprints)...")
+        joined_buildings, valid_parcels = join_footprints_to_parcels(parcels, footprints)
+        print(
+            f"   Spatial join complete: {len(joined_buildings):,} building footprints "
+            f"and {len(valid_parcels):,} tax parcels."
+        )
+        print(f"-> Compiling PMTiles v3 MVT archive & static bundle into {args.output_dir}...")
+        stats = write_atlas_bundle(
+            output_dir=args.output_dir,
+            buildings=joined_buildings,
+            parcels=valid_parcels,
+            overlays=overlays,
+        )
     else:
-        parcels, footprints, overlays = fetch_full_hcad_parcels(args.cache_dir, limit=args.limit)
+        from atlas_pipeline.full_build import run_full_county_build
 
-    print("-> Running spatial join (matching observed building footprints + deriving architectural footprints)...")
-    joined_buildings, valid_parcels = join_footprints_to_parcels(parcels, footprints)
-    print(
-        f"   Spatial join complete: {len(joined_buildings):,} building footprints "
-        f"and {len(valid_parcels):,} tax parcels."
-    )
-
-    print(f"-> Compiling PMTiles v3 MVT archive & static bundle into {args.output_dir}...")
-    stats = write_atlas_bundle(
-        output_dir=args.output_dir,
-        buildings=joined_buildings,
-        parcels=valid_parcels,
-        overlays=overlays,
-    )
+        stats = run_full_county_build(args.cache_dir, args.output_dir)
 
     elapsed = time.time() - t0
     print("=== Pipeline Complete ===")
     print(f"   Elapsed time          : {elapsed:.1f}s")
-    print(f"   Total buildings       : {stats['total_buildings']:,} ({stats['observed_footprints']:,} observed OSM footprints)")
+    print(f"   Total buildings       : {stats['total_buildings']:,} ({stats['observed_footprints']:,} observed footprints)")
     print(f"   Dated buildings       : {stats['dated_buildings']:,} ({stats['earliest_year']}–{stats['latest_year']})")
     print(f"   Historic landmarks    : {stats['total_landmarks']:,}")
     print(f"   Historic districts    : {stats['total_historic_districts']:,}")
     print(f"   THC markers           : {stats['total_thc_markers']:,}")
-    print(f"   PMTiles archive size  : {stats['pmtiles_size_bytes'] / 1024:.1f} KB")
+    print(f"   PMTiles archive size  : {stats['pmtiles_size_bytes'] / (1024 * 1024):.1f} MB")
 
 
 if __name__ == "__main__":
