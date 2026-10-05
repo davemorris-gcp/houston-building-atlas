@@ -15,6 +15,10 @@ import {
   buildFeatureFilterExpression,
   featureMatchesFilter,
 } from "./filterStore.js";
+import {
+  applyOverrideToProperties,
+  loadCuratedOverrides,
+} from "./curatedEdits.js";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -92,6 +96,9 @@ export class AtlasMapController {
     this.buildingsData = [];
     this.parcelsData = [];
     this.overlaysData = null;
+    this.curatedOverrides = {};
+    this.sheetSyncStatus = null;
+    this.overridesFC = { type: "FeatureCollection", features: [] };
     this.selectedFeatureId = null;
     this.pmtilesManifest = null;
     this.buildingFillLayerIds = ["buildings-fill"];
@@ -137,12 +144,14 @@ export class AtlasMapController {
   }
 
   async _fetchDataPayloads() {
-    const [buildingsRes, parcelsRes, overlaysRes, manifestRes] = await Promise.all([
-      fetch("public/data/buildings.geojson"),
-      fetch("public/data/parcels.geojson"),
-      fetch("public/data/overlays.json"),
-      fetch("public/data/pmtiles_manifest.json").catch(() => null),
-    ]);
+    const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
+      await Promise.all([
+        fetch("public/data/buildings.geojson"),
+        fetch("public/data/parcels.geojson"),
+        fetch("public/data/overlays.json"),
+        fetch("public/data/pmtiles_manifest.json").catch(() => null),
+        loadCuratedOverrides(),
+      ]);
 
     const buildingsFC = await buildingsRes.json();
     const parcelsFC = await parcelsRes.json();
@@ -155,11 +164,84 @@ export class AtlasMapController {
       }
     }
 
+    this.curatedOverrides = (overridesResult && overridesResult.overrides) || {};
+    this.sheetSyncStatus = (overridesResult && overridesResult.syncStatus) || null;
+
     this.buildingsFC = buildingsFC;
     this.parcelsFC = parcelsFC;
     this.buildingsData = buildingsFC.features || [];
     this.parcelsData = parcelsFC.features || [];
     this.overlaysData = overlays;
+
+    this._applyCuratedOverridesInMemory();
+  }
+
+  _applyCuratedOverridesInMemory() {
+    const ovMap = this.curatedOverrides || {};
+    const overrideFeaturesByHcad = new Map();
+
+    for (const feat of this.buildingsData) {
+      const hcad = String(feat.properties?.hcad_num || "").trim();
+      if (hcad && ovMap[hcad]) {
+        feat.properties = applyOverrideToProperties(feat.properties, ovMap);
+        overrideFeaturesByHcad.set(hcad, {
+          type: "Feature",
+          geometry: ovMap[hcad].geometry || feat.geometry,
+          properties: { ...feat.properties },
+        });
+      }
+    }
+
+    for (const feat of this.parcelsData) {
+      const hcad = String(feat.properties?.hcad_num || "").trim();
+      if (hcad && ovMap[hcad]) {
+        feat.properties = applyOverrideToProperties(feat.properties, ovMap);
+      }
+    }
+
+    for (const [hcad, ov] of Object.entries(ovMap)) {
+      if (!overrideFeaturesByHcad.has(hcad) && ov.geometry) {
+        overrideFeaturesByHcad.set(hcad, {
+          type: "Feature",
+          geometry: ov.geometry,
+          properties: applyOverrideToProperties(
+            {
+              id: ov.id || `ov_${hcad}`,
+              hcad_num: hcad,
+              address: ov.address || "",
+              year_built: ov.year_built || 0,
+              decade: ov.decade || 0,
+              stories: 1,
+              height_m: 4.5,
+              use_category: "Residential",
+              historic_district: ov.historic_district || "",
+              contributing: ov.contributing || "Contributing",
+              footprint_source: "observed",
+            },
+            ovMap
+          ),
+        });
+      }
+    }
+
+    this.overridesFC = {
+      type: "FeatureCollection",
+      features: Array.from(overrideFeaturesByHcad.values()),
+    };
+  }
+
+  async reloadCuratedOverrides(customSheetCsvUrl = null) {
+    const res = await loadCuratedOverrides(customSheetCsvUrl);
+    this.curatedOverrides = res.overrides || {};
+    this.sheetSyncStatus = res.syncStatus || null;
+    this._applyCuratedOverridesInMemory();
+    this._captureDynamicOverrideGeometries();
+    if (this.map && this.map.getSource("curated-overrides-src")) {
+      this.map.getSource("curated-overrides-src").setData(this.overridesFC);
+    }
+    this.syncWithState(this.filterStore.getState());
+    this.computeViewportHistogram();
+    return this.sheetSyncStatus;
   }
 
   /* ========================================================================
@@ -390,6 +472,7 @@ export class AtlasMapController {
     }
 
     this.map.addSource("buildings-src", { type: "geojson", data: this.buildingsFC });
+    this.map.addSource("curated-overrides-src", { type: "geojson", data: this.overridesFC });
     this.map.addSource("parcels-src", { type: "geojson", data: this.parcelsFC });
     this.map.addSource("annexations-src", {
       type: "geojson",
@@ -419,6 +502,7 @@ export class AtlasMapController {
     const state = this.filterStore.getState();
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
     const filterExpr = buildFeatureFilterExpression(state);
+    const shardFilterExpr = this._buildShardLayerFilter(filterExpr);
 
     this.map.addLayer({
       id: "annexations-fill",
@@ -492,6 +576,7 @@ export class AtlasMapController {
     this.buildingLineLayerIds = [];
     this.buildingExtrusionLayerIds = [];
     this.highlightLayerIds = [];
+    this.shardSourceIds = [];
 
     // Deterministic sub-centimeter height offset per year_built prevents WebGL depth-buffer Z-fighting on touching roofs
     const extrusionHeightExpr = [
@@ -508,6 +593,7 @@ export class AtlasMapController {
         const extId = `buildings-extrusion-${i}`;
         const hlId = `selected-feature-highlight-${i}`;
 
+        this.shardSourceIds.push(srcId);
         this.buildingFillLayerIds.push(fillId);
         this.buildingLineLayerIds.push(lineId);
         this.buildingExtrusionLayerIds.push(extId);
@@ -518,7 +604,7 @@ export class AtlasMapController {
           type: "fill",
           source: srcId,
           "source-layer": "buildings",
-          filter: filterExpr,
+          filter: shardFilterExpr,
           paint: { "fill-color": colorExpr, "fill-opacity": 0.9 },
         });
         this.map.addLayer({
@@ -527,7 +613,7 @@ export class AtlasMapController {
           source: srcId,
           "source-layer": "buildings",
           minzoom: 14,
-          filter: filterExpr,
+          filter: shardFilterExpr,
           paint: { "line-color": "rgba(15, 17, 21, 0.65)", "line-width": 0.6 },
         });
         this.map.addLayer({
@@ -535,7 +621,7 @@ export class AtlasMapController {
           type: "fill-extrusion",
           source: srcId,
           "source-layer": "buildings",
-          filter: filterExpr,
+          filter: shardFilterExpr,
           layout: { visibility: state.extrude3D ? "visible" : "none" },
           paint: {
             "fill-extrusion-color": colorExpr,
@@ -563,21 +649,21 @@ export class AtlasMapController {
         id: "buildings-fill",
         type: "fill",
         source: "buildings-src",
-        filter: filterExpr,
+        filter: shardFilterExpr,
         paint: { "fill-color": colorExpr, "fill-opacity": 0.9 },
       });
       this.map.addLayer({
         id: "buildings-line",
         type: "line",
         source: "buildings-src",
-        filter: filterExpr,
+        filter: shardFilterExpr,
         paint: { "line-color": "rgba(15, 17, 21, 0.65)", "line-width": 0.6 },
       });
       this.map.addLayer({
         id: "buildings-extrusion",
         type: "fill-extrusion",
         source: "buildings-src",
-        filter: filterExpr,
+        filter: shardFilterExpr,
         layout: { visibility: state.extrude3D ? "visible" : "none" },
         paint: {
           "fill-extrusion-color": colorExpr,
@@ -594,6 +680,44 @@ export class AtlasMapController {
         paint: { "line-color": "#FDE047", "line-width": 3.2 },
       });
     }
+
+    // Curated Overrides Layer (renders live Google Sheet / Preservation Houston verified edits on top)
+    this.map.addLayer({
+      id: "curated-overrides-fill",
+      type: "fill",
+      source: "curated-overrides-src",
+      filter: filterExpr,
+      paint: { "fill-color": colorExpr, "fill-opacity": 0.94 },
+    });
+    this.map.addLayer({
+      id: "curated-overrides-line",
+      type: "line",
+      source: "curated-overrides-src",
+      minzoom: 14,
+      filter: filterExpr,
+      paint: { "line-color": "rgba(149, 201, 89, 0.85)", "line-width": 1.1 },
+    });
+    this.map.addLayer({
+      id: "curated-overrides-extrusion",
+      type: "fill-extrusion",
+      source: "curated-overrides-src",
+      filter: filterExpr,
+      layout: { visibility: state.extrude3D ? "visible" : "none" },
+      paint: {
+        "fill-extrusion-color": colorExpr,
+        "fill-extrusion-height": extrusionHeightExpr,
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0.94,
+      },
+    });
+    this.map.addLayer({
+      id: "curated-overrides-highlight",
+      type: "line",
+      source: "curated-overrides-src",
+      filter: ["==", ["get", "id"], ""],
+      paint: { "line-color": "#FDE047", "line-width": 3.4 },
+    });
+    this.highlightLayerIds.push("curated-overrides-highlight");
 
     this.map.addLayer({
       id: "thc-markers-circle",
@@ -624,10 +748,64 @@ export class AtlasMapController {
     });
   }
 
+  _buildShardLayerFilter(baseFilterExpr) {
+    const overriddenHcads = (this.overridesFC?.features || [])
+      .map((f) => String(f.properties?.hcad_num || "").trim())
+      .filter(Boolean);
+    if (!overriddenHcads.length) return baseFilterExpr;
+    return [
+      "all",
+      baseFilterExpr,
+      ["!", ["in", ["get", "hcad_num"], ["literal", overriddenHcads]]],
+    ];
+  }
+
+  _captureDynamicOverrideGeometries() {
+    if (!this.map || !this.shardSourceIds || !this.shardSourceIds.length) return;
+    const existingHcads = new Set(
+      (this.overridesFC?.features || []).map((f) => String(f.properties?.hcad_num || "").trim())
+    );
+    const missingHcads = Object.keys(this.curatedOverrides || {}).filter(
+      (h) => h && !existingHcads.has(h)
+    );
+    if (!missingHcads.length) return;
+
+    let added = false;
+    for (const srcId of this.shardSourceIds) {
+      try {
+        const hits = this.map.querySourceFeatures(srcId, {
+          sourceLayer: "buildings",
+          filter: ["in", ["get", "hcad_num"], ["literal", missingHcads]],
+        });
+        for (const hit of hits) {
+          const hcad = String(hit.properties?.hcad_num || "").trim();
+          if (hcad && !existingHcads.has(hcad) && hit.geometry) {
+            existingHcads.add(hcad);
+            this.overridesFC.features.push({
+              type: "Feature",
+              geometry: hit.geometry,
+              properties: applyOverrideToProperties(hit.properties, this.curatedOverrides),
+            });
+            added = true;
+          }
+        }
+      } catch (_e) {
+        // Source tile may not be loaded yet
+      }
+    }
+
+    if (added && this.map.getSource("curated-overrides-src")) {
+      this.map.getSource("curated-overrides-src").setData(this.overridesFC);
+      this.syncWithState(this.filterStore.getState());
+    }
+  }
+
   _bindMapLibreInteractions() {
     const getInteractiveLayers = () => [
       "landmarks-circle",
       "thc-markers-circle",
+      "curated-overrides-extrusion",
+      "curated-overrides-fill",
       ...this.buildingExtrusionLayerIds,
       ...this.buildingFillLayerIds,
       "parcels-fill",
@@ -642,7 +820,7 @@ export class AtlasMapController {
         return;
       }
       this.map.getCanvas().style.cursor = "pointer";
-      const p = features[0].properties || {};
+      const p = applyOverrideToProperties(features[0].properties || {}, this.curatedOverrides);
       this.popup
         .setLngLat(e.lngLat)
         .setHTML(this._buildTooltipHTML(p))
@@ -654,13 +832,15 @@ export class AtlasMapController {
       const features = this.map.queryRenderedFeatures(e.point, { layers: activeLayers });
       if (!features.length) return;
       const top = features[0];
-      const p = top.properties || {};
+      const p = applyOverrideToProperties(top.properties || {}, this.curatedOverrides);
       if (top.layer.id === "landmarks-circle" && p.hcad_num) {
         const bldMatch = this.buildingsData.find(
           (f) => f.properties && f.properties.hcad_num === p.hcad_num
         );
         if (bldMatch) {
-          this.highlightAndInspectFeature(bldMatch.properties);
+          this.highlightAndInspectFeature(
+            applyOverrideToProperties(bldMatch.properties, this.curatedOverrides)
+          );
           return;
         }
       }
@@ -687,6 +867,7 @@ export class AtlasMapController {
     });
 
     this.map.on("moveend", () => {
+      this._captureDynamicOverrideGeometries();
       this.computeViewportHistogram();
     });
   }
@@ -1157,7 +1338,7 @@ export class AtlasMapController {
     const title = p.landmark_name || p.name || p.address || "Historic Property";
     let badge = "";
     if (p.year_built && Number(p.year_built) >= 1836) {
-      badge = `Built ${p.year_built}`;
+      badge = p.is_curated_override ? `Built ${p.year_built} ✓ PH Verified` : `Built ${p.year_built}`;
     } else if (p.designation) {
       badge = p.designation;
     } else if (p.marker_num) {
@@ -1223,11 +1404,22 @@ export class AtlasMapController {
 
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
     const filterExpr = buildFeatureFilterExpression(state);
+    const shardFilterExpr = this._buildShardLayerFilter(filterExpr);
 
     for (const layerId of [
       ...this.buildingFillLayerIds,
       ...this.buildingLineLayerIds,
       ...this.buildingExtrusionLayerIds,
+    ]) {
+      if (this.map.getLayer(layerId)) {
+        this.map.setFilter(layerId, shardFilterExpr);
+      }
+    }
+
+    for (const layerId of [
+      "curated-overrides-fill",
+      "curated-overrides-line",
+      "curated-overrides-extrusion",
       "parcels-fill",
       "parcels-line",
     ]) {
@@ -1236,12 +1428,12 @@ export class AtlasMapController {
       }
     }
 
-    for (const fillId of this.buildingFillLayerIds) {
+    for (const fillId of [...this.buildingFillLayerIds, "curated-overrides-fill"]) {
       if (this.map.getLayer(fillId)) {
         this.map.setPaintProperty(fillId, "fill-color", colorExpr);
       }
     }
-    for (const extId of this.buildingExtrusionLayerIds) {
+    for (const extId of [...this.buildingExtrusionLayerIds, "curated-overrides-extrusion"]) {
       if (this.map.getLayer(extId)) {
         this.map.setPaintProperty(extId, "fill-extrusion-color", colorExpr);
       }
@@ -1262,9 +1454,18 @@ export class AtlasMapController {
       }
     };
 
-    setVis(this.buildingFillLayerIds, showBuildings && !state.extrude3D);
-    setVis(this.buildingLineLayerIds, showBuildings && !state.extrude3D);
-    setVis(this.buildingExtrusionLayerIds, showBuildings && state.extrude3D);
+    setVis(
+      [...this.buildingFillLayerIds, "curated-overrides-fill"],
+      showBuildings && !state.extrude3D
+    );
+    setVis(
+      [...this.buildingLineLayerIds, "curated-overrides-line"],
+      showBuildings && !state.extrude3D
+    );
+    setVis(
+      [...this.buildingExtrusionLayerIds, "curated-overrides-extrusion"],
+      showBuildings && state.extrude3D
+    );
     setVis(["parcels-fill"], showParcelsFill);
     setVis(["parcels-line"], showParcelsLine);
 
@@ -1345,19 +1546,27 @@ export class AtlasMapController {
     }
 
     if (featureId || hcadNum) {
-      const match = this.buildingsData.find((f) => {
-        const p = f.properties || {};
-        return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
-      });
+      const match =
+        (this.overridesFC?.features || []).find((f) => {
+          const p = f.properties || {};
+          return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
+        }) ||
+        this.buildingsData.find((f) => {
+          const p = f.properties || {};
+          return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
+        });
       if (match) {
-        this.highlightAndInspectFeature(match.properties);
+        this.highlightAndInspectFeature(
+          applyOverrideToProperties(match.properties, this.curatedOverrides)
+        );
       }
     }
   }
 
   highlightAndInspectFeature(props) {
     if (!props) return;
-    this.selectedFeatureId = props.id || "";
+    const mergedProps = applyOverrideToProperties(props, this.curatedOverrides);
+    this.selectedFeatureId = mergedProps.id || "";
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
     } else if (this.map) {
@@ -1368,7 +1577,7 @@ export class AtlasMapController {
       }
     }
     if (this.onSelectFeature) {
-      this.onSelectFeature(props);
+      this.onSelectFeature(mergedProps);
     }
   }
 
@@ -1417,6 +1626,8 @@ export class AtlasMapController {
     let usedRenderedFeatures = false;
     if (!this.useCanvasFallback && this.map) {
       const queryLayers = [
+        "curated-overrides-fill",
+        "curated-overrides-extrusion",
         ...this.buildingFillLayerIds,
         ...this.buildingExtrusionLayerIds,
       ].filter((id) => this.map.getLayer(id));
@@ -1426,8 +1637,8 @@ export class AtlasMapController {
           usedRenderedFeatures = true;
           const seenIds = new Set();
           for (const feat of rendered) {
-            const p = feat.properties || {};
-            const key = p.id || p.hcad_num;
+            const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
+            const key = p.hcad_num || p.id;
             if (key) {
               if (seenIds.has(key)) continue;
               seenIds.add(key);

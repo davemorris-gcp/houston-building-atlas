@@ -424,9 +424,158 @@
               <strong>Appraisal Date Limitations:</strong> HCAD completion dates are compiled for tax appraisal purposes and may be approximate for 19th- and early 20th-century structures.
             </li>
             <li>
-              <strong>Untaxed &amp; Exempt Properties:</strong> Vacant parcels and certain tax-exempt civic properties (schools, churches, parks, government buildings) may lack completion dates in HCAD and appear in warm pewter gray unless documented in City of Houston landmark records.
+              <strong>Preservation Houston Curated Archival Overrides:</strong> Verified completion dates from Houston City Directories, Sanborn maps, historic deeds, and City building permits override rounded HCAD tax appraisal estimates via a live Google Sheet maintained by Preservation Houston.
             </li>
           </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggest a Property Correction & Google Sheet Admin Sync Modal -->
+    <div class="modal-backdrop hidden" id="correction-modal" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">Preservation Houston • Archival Data Quality</span>
+              <h2 class="modal-title">Suggest a Property Data Correction</h2>
+            </div>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-correction-modal" aria-label="Close Modal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="correction-intro">
+            Harris County (HCAD) appraisal records frequently default to rounded decade estimates (such as <code>1920</code> or <code>1930</code>) when original paper tax cards were illegible. Submit historical evidence below — all suggestions enter Preservation Houston's <strong>Pending Review Queue</strong> in Google Sheets and only go live once approved by an administrator.
+          </p>
+
+          <form id="form-property-correction" class="correction-form">
+            <div class="form-row-2col">
+              <div class="form-field">
+                <label for="corr-address">Property Address</label>
+                <input type="text" id="corr-address" name="address" readonly class="form-input readonly" />
+              </div>
+              <div class="form-field">
+                <label for="corr-hcad-num">HCAD Account # (13-digit)</label>
+                <input type="text" id="corr-hcad-num" name="hcad_num" readonly class="form-input mono readonly" />
+              </div>
+            </div>
+
+            <div class="form-row-3col">
+              <div class="form-field">
+                <label for="corr-current-year">Current Year Listed</label>
+                <input type="number" id="corr-current-year" name="current_year_built" readonly class="form-input mono readonly" />
+              </div>
+              <div class="form-field">
+                <label for="corr-suggested-year">Corrected Year Built *</label>
+                <input
+                  type="number"
+                  id="corr-suggested-year"
+                  name="suggested_year_built"
+                  min="1836"
+                  max="2026"
+                  required
+                  placeholder="e.g. 1928"
+                  class="form-input mono highlight-input"
+                />
+              </div>
+              <div class="form-field">
+                <label for="corr-district">Historic District</label>
+                <input type="text" id="corr-district" name="historic_district" class="form-input" placeholder="e.g. Norhill Historic District" />
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-field">
+                <label for="corr-source-type">Primary Historical Evidence Source *</label>
+                <select id="corr-source-type" name="source_type" class="form-input" required>
+                  <option value="Houston City Directory">Houston City Directory (HPL Digital Archives)</option>
+                  <option value="Sanborn Fire Insurance Map">Sanborn Fire Insurance Map</option>
+                  <option value="Historic Deed / Mechanic's Lien">Historic Deed / Mechanic's Lien (Harris County Clerk)</option>
+                  <option value="City of Houston Building Permit">City of Houston Building Permit</option>
+                  <option value="Historic Newspaper / Archival Photo">Historic Newspaper / Archival Photograph</option>
+                  <option value="COH Landmark / Historic District Inventory">COH Landmark / Historic District Inventory</option>
+                  <option value="Other Primary Historical Source">Other Primary Historical Source</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="corr-style-arch">Architect / Builder / Style (Optional)</label>
+                <input type="text" id="corr-style-arch" name="architect" class="form-input" placeholder="e.g. 1920s Bungalow / John Staub" />
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="corr-citation">Historical Citation / Evidence Details *</label>
+              <textarea
+                id="corr-citation"
+                name="source_citation"
+                rows="2"
+                required
+                class="form-input"
+                placeholder="e.g. First appears in the 1928 Morrison &amp; Fourmy Houston City Directory; address absent/vacant through the 1926 directory."
+              ></textarea>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-field">
+                <label for="corr-submitter-name">Your Name (Optional)</label>
+                <input type="text" id="corr-submitter-name" name="submitter_name" class="form-input" placeholder="Homeowner / Historian" />
+              </div>
+              <div class="form-field">
+                <label for="corr-submitter-email">Your Email (Optional)</label>
+                <input type="email" id="corr-submitter-email" name="submitter_email" class="form-input" placeholder="name@example.com" />
+              </div>
+            </div>
+
+            <div id="corr-submit-feedback" class="corr-feedback hidden"></div>
+
+            <div class="form-actions">
+              <button type="submit" class="inspector-btn primary" id="btn-submit-correction">
+                Submit Correction for Admin Review
+              </button>
+              <button type="button" class="inspector-btn secondary" id="btn-export-pending-csv" title="Download queued suggestions as CSV for Google Sheets">
+                Export Pending Queue (.CSV)
+              </button>
+            </div>
+          </form>
+
+          <!-- Collapsible Admin Configuration for Google Sheets Live Connection -->
+          <details class="admin-sheet-config" id="admin-sheet-details">
+            <summary>Preservation Houston Admin: Google Sheet Live Sync Settings</summary>
+            <div class="admin-sheet-body">
+              <p>
+                Connect a Google Sheet so rows marked <code>Approved</code> in the <code>Approved_Edits</code> tab immediately override HCAD dates on the live map with zero database hosting cost.
+              </p>
+              <div class="form-field">
+                <label for="admin-sheet-csv-url">Published Google Sheet CSV URL (<code>Approved_Edits</code> tab)</label>
+                <input
+                  type="url"
+                  id="admin-sheet-csv-url"
+                  class="form-input mono"
+                  placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
+                />
+              </div>
+              <div class="form-field">
+                <label for="admin-webhook-url">Google Apps Script Moderation Webhook URL (<code>Pending_Submissions</code> tab)</label>
+                <input
+                  type="url"
+                  id="admin-webhook-url"
+                  class="form-input mono"
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                />
+              </div>
+              <div class="admin-sheet-actions">
+                <button type="button" class="action-pill active" id="btn-save-sheet-config">
+                  Save &amp; Sync Google Sheet Now
+                </button>
+                <span class="mono" id="admin-sheet-status-text"></span>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </div>

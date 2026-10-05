@@ -1,0 +1,73 @@
+{
+  "schema_version": "1.0",
+  "description": "Preservation Houston Curated Archival Overrides & Google Sheets Live Sync Configuration",
+  "googleSheetCsvUrl": "",
+  "submissionWebhookUrl": "",
+  "overrides": {
+    "0621100000014": {
+      "hcad_num": "0621100000014",
+      "id": "bld_002168",
+      "address": "1127 KEY ST",
+      "historic_district": "Norhill Historic District",
+      "contributing": "Contributing",
+      "year_built": 1928,
+      "decade": 1920,
+      "original_hcad_year": 1920,
+      "bld_style": "1920s Bungalow",
+      "architect": "",
+      "landmark_name": "",
+      "landmark_type": "",
+      "source_type": "Houston City Directory",
+      "source_citation": "1928 Houston City Directory (Morrison & Fourmy); lot unimproved through 1926 directory (HCAD defaults to 1920)",
+      "source_url": "https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search",
+      "verified_by": "Preservation Houston Archival Review",
+      "updated_at": "2026-10-05",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3871518,
+              29.791812
+            ],
+            [
+              -95.3871483,
+              29.7916439
+            ],
+            [
+              -95.3872469,
+              29.7916423
+            ],
+            [
+              -95.3872505,
+              29.7918165
+            ],
+            [
+              -95.3871983,
+              29.7918173
+            ],
+            [
+              -95.3871994,
+              29.791873
+            ],
+            [
+              -95.3871195,
+              29.7918742
+            ],
+            [
+              -95.3871182,
+              29.7918126
+            ],
+            [
+              -95.3871518,
+              29.791812
+            ]
+          ]
+        ]
+      },
+      "use_category": "Residential",
+      "preservation_status": "Historic District Contributing"
+    }
+  },
+  "updatedAt": "2026-10-05T20:08:43Z"
+}
