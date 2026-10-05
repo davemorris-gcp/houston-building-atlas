@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "description": "Preservation Houston Curated Archival Overrides & Google Sheets Live Sync Configuration",
-  "googleSheetCsvUrl": "https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/gviz/tq?tqx=out:csv&sheet=Approved_Edits",
-  "submissionWebhookUrl": "",
+  "googleSheetCsvUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6oiB-T1JH-oy8coeDD1Gqey_l9rP7Its3NWe7KerNQyBF_Mqrx1NHPLWV8yKTtgS0CTXoJySi3jcO/pub?gid=1876369840&single=true&output=csv",
+  "submissionWebhookUrl": "https://script.google.com/macros/s/AKfycbw1axAzEHZgcIKcdRUAjltDIsq505PJRalUMOfmJJa07qR-RCdsWBAwPv1gjN3sJlEbtg/exec",
   "overrides": {
     "0621100000014": {
       "hcad_num": "0621100000014",
