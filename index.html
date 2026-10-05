@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Houston Building Atlas — Preservation Houston</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%238B1E24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23F6F2EB' font-family='Georgia,serif' font-weight='bold' font-size='15'%3EPH%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+  />
+  <link rel="stylesheet" href="styles/index.css" />
+</head>
+<body>
+  <div class="atlas-shell">
+    <!-- Top Floating Header & Search Bar -->
+    <header class="atlas-topbar" id="atlas-topbar">
+      <div class="brand-cluster">
+        <button
+          type="button"
+          class="icon-btn sidebar-toggle-btn"
+          id="btn-toggle-sidebar"
+          title="Toggle Controls Sidebar"
+          aria-label="Toggle Controls Sidebar"
+        >
+          &#9776;
+        </button>
+        <div class="brand-badge">PH</div>
+        <div class="brand-titles">
+          <span class="brand-kicker">Preservation Houston</span>
+          <h1 class="brand-heading">The Houston Building Atlas</h1>
+        </div>
+      </div>
+
+      <!-- Instant Search Autocomplete -->
+      <div class="search-wrapper">
+        <span class="search-icon">&#8981;</span>
+        <input
+          type="search"
+          id="search-input"
+          class="search-input"
+          placeholder="Search address, historic landmark, district, or HCAD account #..."
+          autocomplete="off"
+        />
+        <div id="search-results" class="search-results hidden"></div>
+      </div>
+
+      <!-- Quick Action Bar: 3D Extrusion, Basemaps, Data Guide -->
+      <div class="topbar-actions">
+        <div class="segmented-group" role="group" aria-label="Basemap Style">
+          <button type="button" class="seg-btn active" id="btn-base-dark" data-basemap="dark_archival">
+            Archival Dark
+          </button>
+          <button type="button" class="seg-btn" id="btn-base-light" data-basemap="warm_parchment">
+            Parchment
+          </button>
+          <button type="button" class="seg-btn" id="btn-base-sat" data-basemap="satellite">
+            Aerial
+          </button>
+        </div>
+
+        <button type="button" class="action-pill" id="btn-toggle-3d">
+          3D Extrusion: OFF
+        </button>
+
+        <button type="button" class="action-pill subtle" id="btn-open-about-modal">
+          Methodology &amp; Data
+        </button>
+      </div>
+    </header>
+
+    <!-- Curated Historic Neighborhood Tour Bar -->
+    <nav class="tour-bar" aria-label="Curated Historic Neighborhoods">
+      <span class="tour-bar-label">Explore Historic Core:</span>
+      <div class="tour-pills" id="tour-pills"></div>
+    </nav>
+
+    <!-- Active Tour Narrative Callout Banner -->
+    <div class="tour-narrative-banner hidden" id="tour-narrative-banner">
+      <div class="tour-banner-text">
+        <strong id="tour-banner-title"></strong>
+        <span id="tour-banner-desc"></span>
+      </div>
+      <button type="button" class="tour-banner-close" id="btn-close-tour-banner" aria-label="Dismiss">&times;</button>
+    </div>
+
+    <!-- Left Archival Control & Analytics Dock -->
+    <aside class="atlas-sidebar" id="atlas-sidebar">
+      <!-- Live Viewport Telemetry Strip -->
+      <section class="panel-card metrics-strip">
+        <div class="metric-box">
+          <span class="metric-label">Structures in View</span>
+          <span class="metric-value mono" id="stat-viewport-count">—</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">Earliest in View</span>
+          <span class="metric-value mono" id="stat-viewport-oldest">—</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">Contributing</span>
+          <span class="metric-value mono" id="stat-viewport-contributing">—</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-label">Landmarks</span>
+          <span class="metric-value mono" id="stat-viewport-landmarks">—</span>
+        </div>
+      </section>
+
+      <!-- 1. Chronological Time-Lapse & Year Filter -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">Chronological Filter &amp; Time-Lapse</h2>
+          <span class="year-readout mono" id="year-range-readout">1836 – 2026</span>
+        </div>
+
+        <!-- Time-Lapse Player Row -->
+        <div class="timelapse-controls">
+          <button type="button" class="timelapse-play-btn" id="btn-timelapse-play">
+            <span class="play-icon">&#9654;</span> Play Growth Time-Lapse
+          </button>
+          <select id="select-timelapse-speed" class="compact-select mono" aria-label="Time-lapse speed">
+            <option value="1">1&times; Speed</option>
+            <option value="2">2&times; Speed</option>
+            <option value="5">5&times; Fast</option>
+          </select>
+        </div>
+
+        <!-- Dual Year Range Sliders -->
+        <div class="slider-group">
+          <div class="slider-row">
+            <label for="slider-min-year" class="slider-label">Earliest Year</label>
+            <input
+              type="range"
+              id="slider-min-year"
+              min="1836"
+              max="2026"
+              value="1836"
+              step="1"
+            />
+          </div>
+          <div class="slider-row">
+            <label for="slider-max-year" class="slider-label">Latest Year</label>
+            <input
+              type="range"
+              id="slider-max-year"
+              min="1836"
+              max="2026"
+              value="2026"
+              step="1"
+            />
+          </div>
+        </div>
+
+        <!-- Decade Dropdown + Reset -->
+        <div class="filter-subrow">
+          <select id="select-decade" class="full-select" aria-label="Filter by Construction Decade">
+            <option value="all">All Eras (1836 – Present)</option>
+            <option value="1840">1836 – 1849 (Republic &amp; Pioneer Era)</option>
+            <option value="1850">1850s Decade</option>
+            <option value="1860">1860s Decade</option>
+            <option value="1870">1870s Decade</option>
+            <option value="1880">1880s Decade</option>
+            <option value="1890">1890s (Gilded Age &amp; Heights Founding)</option>
+            <option value="1900">1900s (Spindletop Boom &amp; Streetcar Suburbs)</option>
+            <option value="1910">1910s (Ship Channel Opening)</option>
+            <option value="1920">1920s (Roaring Twenties Expansion)</option>
+            <option value="1930">1930s (Depression &amp; Art Deco)</option>
+            <option value="1940">1940s (WWII &amp; Post-War Boom)</option>
+            <option value="1950">1950s (Mid-Century Modern &amp; Ranch)</option>
+            <option value="1960">1960s (Space City Era)</option>
+            <option value="1970">1970s (Energy Boom)</option>
+            <option value="1980">1980s Decade</option>
+            <option value="1990">1990s Decade</option>
+            <option value="2000">2000s Decade</option>
+            <option value="2010">2010s Decade</option>
+            <option value="2020">2020s Decade</option>
+            <option value="unknown">Undated / Vacant / Exempt Only</option>
+          </select>
+          <button type="button" class="text-reset-btn" id="btn-reset-filters">Reset</button>
+        </div>
+
+        <!-- Interactive Live Viewport Decade Histogram -->
+        <div class="histogram-box">
+          <div class="histogram-caption">
+            <span>Structures by Decade in Current View</span>
+            <span class="caption-hint">Click bar to solo decade</span>
+          </div>
+          <div class="decade-histogram" id="decade-histogram"></div>
+        </div>
+
+        <div class="checkbox-stack compact">
+          <label class="check-row">
+            <input type="checkbox" id="chk-show-unknown" checked />
+            <span>Show undated, vacant &amp; tax-exempt properties</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" id="chk-sync-annexation" />
+            <span>Sync Houston annexation boundary to selected year</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- 2. Cartographic Color Lens & Geometry Mode -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">Cartographic Lens &amp; Geometry</h2>
+        </div>
+
+        <div class="lens-tabs" role="tablist">
+          <button type="button" class="lens-tab active" id="tab-color-year" data-color-mode="year_built">
+            Age of Structure
+          </button>
+          <button type="button" class="lens-tab" id="tab-color-status" data-color-mode="preservation_status">
+            Historic Status
+          </button>
+          <button type="button" class="lens-tab" id="tab-color-use" data-color-mode="use_category">
+            Land Use
+          </button>
+        </div>
+
+        <div class="sub-control-row" id="palette-style-row">
+          <label for="select-palette-style">Color Ramp:</label>
+          <select id="select-palette-style" class="compact-select">
+            <option value="archival">Archival Spectrum (Terracotta &#8594; Indigo)</option>
+            <option value="classic_ee">Classic Atlas v1 (Earth Engine YlOrRd)</option>
+          </select>
+        </div>
+
+        <div class="sub-control-row">
+          <span class="sub-label">Footprint Mode:</span>
+          <div class="segmented-group full-width">
+            <button type="button" class="seg-btn active" id="btn-geom-buildings" data-render-mode="buildings">
+              Buildings
+            </button>
+            <button type="button" class="seg-btn" id="btn-geom-both" data-render-mode="both">
+              Buildings + Lots
+            </button>
+            <button type="button" class="seg-btn" id="btn-geom-parcels" data-render-mode="parcels">
+              Tax Parcels
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Legend -->
+        <div class="legend-grid" id="legend-items"></div>
+      </section>
+
+      <!-- 3. Historic Preservation & Civic Overlays -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <h2 class="panel-title">Preservation &amp; Civic Overlays</h2>
+        </div>
+
+        <div class="checkbox-stack">
+          <label class="check-row">
+            <input type="checkbox" id="chk-layer-landmarks" checked />
+            <span class="swatch-dot" style="background:#E63946; border:1.5px solid #FFFBEB;"></span>
+            <span>COH Landmarks &amp; Protected Landmarks (509)</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" id="chk-layer-historic-districts" checked />
+            <span class="swatch-line" style="border-color:#38BDF8;"></span>
+            <span>City of Houston Historic Districts (22)</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" id="chk-layer-heritage-districts" checked />
+            <span class="swatch-line" style="border-color:#34D399;"></span>
+            <span>Freedmen's Town Heritage District</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" id="chk-layer-nrhp-districts" />
+            <span class="swatch-line dashed" style="border-color:#C084FC;"></span>
+            <span>National Register (NRHP) Districts</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" id="chk-layer-thc-markers" />
+            <span class="swatch-dot" style="background:#C084FC;"></span>
+            <span>Texas Historical Commission Markers (596)</span>
+          </label>
+          <label class="check-row">
+            <input type="checkbox" id="chk-layer-annexations" />
+            <span class="swatch-line dashed" style="border-color:#F59E0B;"></span>
+            <span>Houston Annexation History by Decade (1836–2020)</span>
+          </label>
+        </div>
+
+        <div class="dataset-footer">
+          <span>Active Dataset: <strong id="stat-dataset-total">14,625 structures</strong></span>
+          <span>Zero-Cost PMTiles v3 Engine</span>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Right Slide-Over Property & Landmark Inspector Drawer -->
+    <aside class="inspector-drawer hidden" id="inspector-drawer" aria-label="Property Inspector">
+      <div class="inspector-topbar">
+        <span class="inspector-kicker">Archival Property Record</span>
+        <button type="button" class="icon-btn" id="btn-close-inspector" aria-label="Close Inspector">
+          &times;
+        </button>
+      </div>
+      <div class="inspector-body" id="inspector-body"></div>
+    </aside>
+
+    <!-- Main Interactive Map Canvas -->
+    <main id="map-canvas" class="map-canvas"></main>
+
+    <!-- Methodology & Data Provenance Modal -->
+    <div class="modal-backdrop hidden" id="about-modal" role="dialog" aria-modal="true">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="brand-kicker">Preservation Houston • Technical Notes</span>
+            <h2 class="modal-title">About The Houston Building Atlas</h2>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-about-modal" aria-label="Close Modal">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>
+            <strong>The Houston Building Atlas</strong> is an interactive historical cartography project created by
+            <a href="https://www.preservationhouston.org" target="_blank" rel="noopener">Preservation Houston</a>
+            to help residents, historians, architects, and urban planners explore how Houston's neighborhoods took shape from 1836 to the present.
+          </p>
+
+          <h3>Where Does the Data Come From?</h3>
+          <ul>
+            <li>
+              <strong>Harris Central Appraisal District (HCAD):</strong> Tax parcel boundaries, earliest structure completion year (<code>Yr_Impr</code> / <code>date_erect</code>), remodel year, total building square footage, land area, and land use classification.
+            </li>
+            <li>
+              <strong>City of Houston Planning &amp; Development (Historic Preservation Office):</strong> Authoritative Historic District parcel inventories (<code>Contributing</code> vs. <code>Non-Contributing</code> status), Designated Landmarks (<code>LM</code>), Protected Landmarks (<code>PLM</code>), Heritage Districts, National Register Districts, and Decade-by-Decade Annexation Boundaries.
+            </li>
+            <li>
+              <strong>OpenStreetMap &amp; Architectural Footprint Synthesis:</strong> Observed building footprint polygons spatially joined to HCAD tax parcels, supplemented by oriented architectural footprints derived from parcel geometry and CAMA building floor area.
+            </li>
+            <li>
+              <strong>Texas Historical Commission (THC):</strong> Official state historical markers across Harris County.
+            </li>
+          </ul>
+
+          <h3>Things to Keep in Mind</h3>
+          <ul>
+            <li>
+              <strong>Oldest Structure Rule:</strong> When more than one structure exists on a property, the property is dated and color-coded based on the <em>oldest recorded structure</em> on the site, cross-referenced against City of Houston landmark records.
+            </li>
+            <li>
+              <strong>Appraisal Date Limitations:</strong> HCAD completion dates are compiled for tax appraisal purposes and may be approximate for 19th- and early 20th-century structures.
+            </li>
+            <li>
+              <strong>Untaxed &amp; Exempt Properties:</strong> Vacant parcels and certain tax-exempt civic properties (schools, churches, parks, government buildings) may lack completion dates in HCAD and appear in warm pewter gray unless documented in City of Houston landmark records.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
