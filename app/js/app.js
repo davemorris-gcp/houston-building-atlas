@@ -6,14 +6,14 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js";
+} from "./palettes.js?v=20261005d";
 import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "./filterStore.js";
-import { AtlasMapController } from "./mapController.js";
-import { fetchHcadDeepLink } from "./hcadLink.js";
+} from "./filterStore.js?v=20261005d";
+import { AtlasMapController } from "./mapController.js?v=20261005d";
+import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005d";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -24,7 +24,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js";
+} from "./curatedEdits.js?v=20261005d";
 
 class HoustonAtlasApp {
   constructor() {
@@ -542,13 +542,26 @@ class HoustonAtlasApp {
 
     if (btnToggleAdminAuth && adminAuthPanel) {
       btnToggleAdminAuth.addEventListener("click", () => {
+        const csvInput = document.getElementById("admin-sheet-csv-url");
+        const webhookInput = document.getElementById("admin-webhook-url");
+        const syncStatus = this.mapController?.sheetSyncStatus;
+        if (csvInput && syncStatus?.csvUrl) csvInput.value = syncStatus.csvUrl;
+        if (webhookInput && syncStatus?.webhookUrl) webhookInput.value = syncStatus.webhookUrl;
+
         adminAuthPanel.classList.toggle("hidden");
         syncAdminUiState();
+
+        if (!adminAuthPanel.classList.contains("hidden")) {
+          const modalBody = corrModal?.querySelector(".modal-body");
+          if (modalBody) modalBody.scrollTop = 0;
+          const emailField = document.getElementById("admin-auth-email");
+          if (emailField && !getAdminSession()) emailField.focus();
+        }
       });
     }
 
     if (btnVerifyAdminUnlock) {
-      btnVerifyAdminUnlock.addEventListener("click", async () => {
+      const triggerAdminVerify = async () => {
         const emailVal = document.getElementById("admin-auth-email")?.value || "";
         const passkeyVal = document.getElementById("admin-auth-passkey")?.value || "";
         const feedbackText = document.getElementById("admin-auth-feedback-text");
@@ -571,7 +584,21 @@ class HoustonAtlasApp {
           return;
         }
         syncAdminUiState();
-      });
+      };
+
+      btnVerifyAdminUnlock.addEventListener("click", triggerAdminVerify);
+
+      for (const inputId of ["admin-auth-email", "admin-auth-passkey"]) {
+        const inputEl = document.getElementById(inputId);
+        if (inputEl) {
+          inputEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              triggerAdminVerify();
+            }
+          });
+        }
+      }
     }
 
     if (btnLockAdminSession) {
