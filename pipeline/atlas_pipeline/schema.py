@@ -228,12 +228,25 @@ def normalize_parcel_record(
     landmark_name = (
         _clean_str(lm.get("USER_SITE_NAME"))
         or _clean_str(raw_props.get("PDLandMark"))
-        or _clean_str(hist.get("Landmark_Designation"))
     )
-    if landmark_name.lower() in ("no", "none", "0", "false"):
+    if landmark_name.lower() in (
+        "no",
+        "none",
+        "0",
+        "false",
+        "no designation",
+        "not a landmark",
+        "n/a",
+        "undesignated",
+    ):
         landmark_name = ""
 
-    raw_lm_type = _clean_str(lm.get("LandmarkDesignation") or raw_props.get("DESIG_TYPE"))
+    raw_lm_type = _clean_str(
+        lm.get("LandmarkDesignation")
+        or hist.get("Landmark_Designation")
+        or raw_props.get("Landmark_Designation")
+        or raw_props.get("DESIG_TYPE")
+    )
     if raw_lm_type in ("Protected Landmark", "PLM"):
         landmark_type = "Protected Landmark"
     elif raw_lm_type in ("Landmark", "LM") or landmark_name:

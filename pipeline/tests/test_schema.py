@@ -88,3 +88,18 @@ def test_normalize_parcel_record_merges_historic_and_landmark():
     assert norm["architect"] == "A. C. Finn"
     assert norm["bld_style"] == "Craftsman Bungalow"
     assert norm["use_category"] == "Residential"
+
+    # Verify 'No Designation' in Historic Parcels layer does not falsely mark a non-landmark
+    non_lm = normalize_parcel_record(
+        {"HCAD_NUM": "0201140000001", "Site_addr_1": "1701 HEIGHTS BLVD", "Yr_Impr": 1900},
+        historic_override={
+            "Historic_District_Name": "Houston Heights East Historic District",
+            "Building_Classification": "Contributing",
+            "Landmark_Designation": "No Designation",
+        },
+        landmark_override=None,
+    )
+    assert non_lm["landmark_name"] == ""
+    assert non_lm["landmark_type"] == ""
+    assert non_lm["contributing"] == "Contributing"
+
