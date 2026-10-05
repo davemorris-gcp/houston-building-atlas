@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Houston Building Atlas — Preservation Houston</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%238B1E24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23F6F2EB' font-family='Georgia,serif' font-weight='bold' font-size='15'%3EPH%3C/text%3E%3C/svg%3E" />
+  <title>Preservation Houston | The Houston Building Atlas</title>
+  <link rel="icon" type="image/png" sizes="128x128" href="public/assets/ph-favicon-128.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="public/assets/ph-favicon.png" />
+  <link rel="shortcut icon" href="public/assets/favicon.ico" />
+  <link rel="apple-touch-icon" href="public/assets/ph-favicon-128.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -31,9 +34,22 @@
         >
           &#9776;
         </button>
-        <div class="brand-badge">PH</div>
+        <a
+          href="https://www.preservationhouston.org"
+          target="_blank"
+          rel="noopener"
+          class="ph-brand-logo-badge"
+          title="Preservation Houston — history in progress"
+        >
+          <img
+            src="public/assets/ph-logo-white.png"
+            alt="Preservation Houston — history in progress"
+            class="ph-logo-img"
+          />
+        </a>
+        <div class="brand-divider" aria-hidden="true"></div>
         <div class="brand-titles">
-          <span class="brand-kicker">Preservation Houston</span>
+          <span class="brand-kicker">History in Progress</span>
           <h1 class="brand-heading">The Houston Building Atlas</h1>
         </div>
       </div>
@@ -363,9 +379,14 @@
     <div class="modal-backdrop hidden" id="about-modal" role="dialog" aria-modal="true">
       <div class="modal-card">
         <div class="modal-header">
-          <div>
-            <span class="brand-kicker">Preservation Houston • Technical Notes</span>
-            <h2 class="modal-title">About The Houston Building Atlas</h2>
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">Preservation Houston • Technical Notes</span>
+              <h2 class="modal-title">About The Houston Building Atlas</h2>
+            </div>
           </div>
           <button type="button" class="icon-btn" id="btn-close-about-modal" aria-label="Close Modal">
             &times;
