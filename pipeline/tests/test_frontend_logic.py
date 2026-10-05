@@ -106,6 +106,17 @@ def test_frontend_es_modules_via_node() -> None:
     ) {
       throw new Error('Sliding window step backward -5 yrs failed: ' + JSON.stringify(stepStore.getState()));
     }
+    // Verify clamping at 2026 and 1836 without looping
+    stepStore.setState({ minYear: 1836, maxYear: 2026, selectedDecade: 'all', stepYears: 10 });
+    stepStore.stepTime(1);
+    if (stepStore.getState().maxYear !== 2026) {
+      throw new Error('Expected step forward at 2026 to stop at 2026, got: ' + stepStore.getState().maxYear);
+    }
+    stepStore.setState({ minYear: 1836, maxYear: 1836, selectedDecade: 'all', stepYears: 10 });
+    stepStore.stepTime(-1);
+    if (stepStore.getState().maxYear !== 1836) {
+      throw new Error('Expected step backward at 1836 to stop at 1836, got: ' + stepStore.getState().maxYear);
+    }
 
     console.log(JSON.stringify({ ok: true, tours: CURATED_TOURS.length, legendCount: getLegendItems('year_built').length }));
     """
