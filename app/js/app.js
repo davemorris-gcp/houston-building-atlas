@@ -6,14 +6,14 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261005f";
+} from "./palettes.js?v=20261005g";
 import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "./filterStore.js?v=20261005f";
-import { AtlasMapController } from "./mapController.js?v=20261005f";
-import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005f";
+} from "./filterStore.js?v=20261005g";
+import { AtlasMapController } from "./mapController.js?v=20261005g";
+import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005g";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -24,7 +24,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261005f";
+} from "./curatedEdits.js?v=20261005g";
 
 class HoustonAtlasApp {
   constructor() {
@@ -642,18 +642,28 @@ class HoustonAtlasApp {
           const res = await submitAdminApprovedOverride(payload, webhookUrl);
           btnAdminApproveDirect.disabled = false;
 
-          if (res.ok && res.override && res.override.hcad_num) {
-            const hcadNum = res.override.hcad_num;
-            const existingOv = this.mapController.curatedOverrides[hcadNum] || {};
-            this.mapController.curatedOverrides[hcadNum] = {
+          if (res.ok && res.override && (res.overrideKey || res.override.hcad_num)) {
+            const ovKey = res.overrideKey || res.override.building_id || res.override.id || res.override.hcad_num;
+            const existingOv =
+              this.mapController.curatedOverrides[ovKey] ||
+              this.mapController.curatedOverrides[res.override.hcad_num] ||
+              {};
+            this.mapController.curatedOverrides[ovKey] = {
               ...existingOv,
               ...res.override,
-              geometry: existingOv.geometry || null,
+              geometry:
+                existingOv.geometry ||
+                this.mapController.selectedFeatureGeometry ||
+                null,
             };
-            this.mapController._captureDynamicOverrideGeometries();
             this.mapController._refreshCuratedOverridesSource();
-            this.mapController._applyCurrentFilterStateToMap();
             this._mergeCuratedOverridesIntoSearchIndex();
+            if (this.mapController.selectedFeatureProps) {
+              this.mapController.highlightAndInspectFeature(
+                this.mapController.selectedFeatureProps,
+                this.mapController.selectedFeatureGeometry
+              );
+            }
           }
 
           if (feedbackEl) {
