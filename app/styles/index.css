@@ -631,12 +631,17 @@ body {
 .compact-select,
 .full-select {
   height: 32px;
+  min-width: 0;
+  max-width: 100%;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-subtle);
   border-radius: 7px;
   color: var(--text-cream);
   padding: 0 8px;
   font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .full-select {
@@ -905,15 +910,23 @@ body {
   gap: 8px;
   font-size: 12px;
   color: var(--text-secondary);
+  min-width: 0;
+}
+
+.sub-control-row > .compact-select,
+.sub-control-row > .segmented-group {
+  flex: 1;
+  min-width: 0;
 }
 
 .sub-label {
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .legend-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 5px 10px;
   padding-top: 2px;
 }
@@ -924,6 +937,8 @@ body {
   gap: 7px;
   font-size: 11.5px;
   color: var(--text-cream);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .legend-swatch {
@@ -938,6 +953,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 /* Checkboxes & Overlays */
@@ -1606,6 +1622,438 @@ body {
 .admin-sheet-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
 }
+
+/* When sidebar is collapsed on desktop, allow Tour Bar & Narrative Banner to expand left */
+.atlas-shell.sidebar-collapsed .tour-bar,
+.atlas-shell.sidebar-collapsed .tour-narrative-banner {
+  left: 12px;
+}
+
+.sidebar-toggle-label {
+  display: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-left: 5px;
+}
+
+.mobile-sidebar-header {
+  display: none;
+}
+
+/* ==========================================================================
+   Responsive Layout: Compact Desktop & Tablet (<= 1180px)
+   ========================================================================== */
+@media (max-width: 1180px) {
+  .atlas-topbar {
+    height: auto;
+    min-height: 54px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 8px 12px;
+  }
+
+  .brand-cluster {
+    order: 1;
+    min-width: 0;
+  }
+
+  .search-wrapper {
+    order: 2;
+    flex: 1 1 240px;
+    max-width: none;
+    min-width: 180px;
+  }
+
+  .topbar-actions {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    justify-content: flex-start;
+    gap: 8px;
+    padding-bottom: 2px;
+  }
+
+  .topbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tour-bar {
+    top: var(--topbar-offset, 108px);
+  }
+
+  .tour-narrative-banner {
+    top: calc(var(--topbar-offset, 108px) + 36px);
+  }
+
+  .atlas-sidebar {
+    top: var(--topbar-offset, 108px);
+  }
+
+  .inspector-drawer {
+    top: var(--topbar-offset, 108px);
+  }
+}
+
+/* ==========================================================================
+   Responsive Layout: Mobile & Portrait Tablet (<= 900px)
+   ========================================================================== */
+@media (max-width: 900px) {
+  html,
+  body,
+  .atlas-shell {
+    height: 100dvh;
+    width: 100vw;
+    overflow: hidden;
+  }
+
+  /* 1. Multi-Row Mobile Topbar */
+  .atlas-topbar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    padding: 8px 10px;
+    gap: 6px;
+    border-radius: 12px;
+  }
+
+  .brand-cluster {
+    order: 1;
+    width: 100%;
+    min-width: 0;
+    gap: 7px;
+  }
+
+  .sidebar-toggle-btn {
+    width: auto;
+    height: 30px;
+    padding: 0 8px;
+    flex-shrink: 0;
+    border-color: var(--border-brass);
+    background: rgba(149, 201, 89, 0.14);
+  }
+
+  .sidebar-toggle-btn.active {
+    background: linear-gradient(135deg, #629627 0%, #81bc3d 100%);
+    color: #fff;
+  }
+
+  .sidebar-toggle-label {
+    display: inline;
+  }
+
+  .ph-brand-logo-badge {
+    height: 30px;
+    padding: 3px 7px;
+    flex-shrink: 0;
+  }
+
+  .ph-logo-img {
+    height: 20px;
+  }
+
+  .brand-divider {
+    display: none;
+  }
+
+  .brand-titles {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .brand-kicker {
+    font-size: 8.5px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .brand-heading {
+    font-size: 13.5px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Row 2: Full-width Search Bar */
+  .search-wrapper {
+    order: 2;
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .search-input {
+    height: 33px;
+    font-size: 12.5px;
+    padding: 0 10px 0 32px;
+  }
+
+  .search-results {
+    max-height: 50dvh;
+    z-index: 90;
+  }
+
+  /* Row 3: Wrapped Action Bar so all menu buttons remain visible on screen */
+  .topbar-actions {
+    order: 3;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    overflow-x: visible;
+  }
+
+  .seg-btn {
+    padding: 4px 7px;
+    font-size: 11px;
+  }
+
+  .action-pill {
+    height: 27px;
+    padding: 0 9px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* 2. Curated Historic Neighborhood Tour Bar (Full Width Below Topbar) */
+  .tour-bar,
+  .atlas-shell.sidebar-collapsed .tour-bar {
+    top: var(--topbar-offset, 174px);
+    left: 8px;
+    right: 8px;
+    z-index: 18;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tour-bar-label {
+    display: none;
+  }
+
+  .tour-pill {
+    padding: 4px 10px;
+    font-size: 11.5px;
+  }
+
+  .tour-narrative-banner,
+  .atlas-shell.sidebar-collapsed .tour-narrative-banner {
+    top: calc(var(--topbar-offset, 174px) + 34px);
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    padding: 8px 11px;
+    z-index: 24;
+  }
+
+  .tour-banner-text {
+    font-size: 11.5px;
+    min-width: 0;
+  }
+
+  .tour-banner-text strong {
+    font-size: 12.5px;
+  }
+
+  /* 3. Left Controls Sidebar -> Responsive Slide-Over Drawer on Mobile */
+  .atlas-sidebar {
+    top: var(--topbar-offset, 174px);
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-width: calc(100vw - 16px);
+    z-index: 45;
+    padding-right: 0;
+    background: rgba(21, 25, 28, 0.96);
+    border: 1px solid var(--border-brass);
+    border-radius: var(--radius-lg);
+    padding: 10px;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.75);
+  }
+
+  .atlas-sidebar.collapsed {
+    transform: translateX(calc(-100% - 24px));
+    pointer-events: none;
+  }
+
+  .mobile-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 8px 4px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 2px;
+    flex-shrink: 0;
+  }
+
+  .mobile-sidebar-title {
+    font-family: var(--font-serif);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ph-green-light);
+  }
+
+  /* 4. Right Property Inspector Drawer -> Mobile Bottom Sheet */
+  .inspector-drawer {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-width: calc(100vw - 16px);
+    max-height: 58dvh;
+    z-index: 48;
+    border-top: 3px solid var(--ph-green);
+  }
+
+  /* Prevent desktop right-offset push on mobile when inspector is open */
+  .inspector-drawer:not(.hidden) ~ .camera-tilt-dock {
+    right: auto;
+    left: 8px;
+    display: none;
+  }
+
+  .inspector-drawer:not(.hidden) ~ .map-canvas .maplibregl-ctrl-bottom-right {
+    right: 0;
+  }
+
+  /* Hide 3D Tilt Dock when mobile sidebar is open so it never overlaps panels */
+  .atlas-sidebar:not(.collapsed) ~ .camera-tilt-dock {
+    display: none;
+  }
+
+  /* 5. Compact Bottom-Left 3D Camera Tilt Pill on Mobile */
+  .camera-tilt-dock {
+    bottom: 24px;
+    left: 8px;
+    right: auto;
+    padding: 5px 7px;
+    z-index: 14;
+  }
+
+  .tilt-dock-hint {
+    display: none;
+  }
+
+  /* 6. Responsive Modals */
+  .modal-backdrop {
+    padding: 8px;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    max-height: calc(100dvh - 16px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .modal-brand-row {
+    min-width: 0;
+    flex: 1 1 200px;
+  }
+
+  .modal-title {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+
+  .modal-body {
+    padding: 14px;
+    max-height: calc(100dvh - 96px);
+    font-size: 13px;
+  }
+}
+
+/* ==========================================================================
+   Responsive Layout: Small Phones (<= 600px)
+   ========================================================================== */
+@media (max-width: 600px) {
+  /* 2x2 Telemetry Grid so labels never truncate */
+  .metrics-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .panel-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .time-stepper-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .time-stepper-hint {
+    display: none;
+  }
+
+  .sub-control-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+
+  .sub-control-row > .compact-select,
+  .sub-control-row > .segmented-group {
+    width: 100%;
+  }
+
+  .legend-grid {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .decade-histogram {
+    gap: 1.5px;
+    height: 60px;
+  }
+
+  .hist-bar-label {
+    font-size: 7px;
+    letter-spacing: -0.05em;
+  }
+
+  /* Hide every even decade label on ultra-narrow screens so labels never touch */
+  .hist-bar-col:nth-child(even) .hist-bar-label {
+    visibility: hidden;
+  }
+
+  .form-row-2col,
+  .form-row-3col {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .form-actions > .inspector-btn {
+    flex: 1 1 100%;
+  }
+
+  .admin-sheet-actions > .action-pill {
+    width: 100%;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
 
