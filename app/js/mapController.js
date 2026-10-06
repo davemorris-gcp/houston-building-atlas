@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005f";
+} from "./palettes.js?v=20261005g";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005f";
+} from "./filterStore.js?v=20261005g";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005f";
+} from "./curatedEdits.js?v=20261005g";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -246,6 +246,11 @@ export class AtlasMapController {
     const res = await loadCuratedOverrides(customSheetCsvUrl);
     this.curatedOverrides = res.overrides || {};
     this.sheetSyncStatus = res.syncStatus || null;
+    this._refreshCuratedOverridesSource();
+    return this.sheetSyncStatus;
+  }
+
+  _refreshCuratedOverridesSource() {
     this._applyCuratedOverridesInMemory();
     this._captureDynamicOverrideGeometries();
     if (this.map && this.map.getSource("curated-overrides-src")) {
@@ -253,7 +258,11 @@ export class AtlasMapController {
     }
     this.syncWithState(this.filterStore.getState());
     this.computeViewportHistogram();
-    return this.sheetSyncStatus;
+  }
+
+  _applyCurrentFilterStateToMap() {
+    this.syncWithState(this.filterStore.getState());
+    this.computeViewportHistogram();
   }
 
   /* ========================================================================
@@ -828,6 +837,9 @@ export class AtlasMapController {
           const hcad = String(hit.properties?.hcad_num || "").trim();
           if (hcad && !existingHcads.has(hcad) && hit.geometry) {
             existingHcads.add(hcad);
+            if (this.curatedOverrides[hcad] && !this.curatedOverrides[hcad].geometry) {
+              this.curatedOverrides[hcad].geometry = hit.geometry;
+            }
             this.overridesFC.features.push({
               type: "Feature",
               geometry: hit.geometry,
@@ -1620,6 +1632,7 @@ export class AtlasMapController {
     if (!props) return;
     const mergedProps = applyOverrideToProperties(props, this.curatedOverrides);
     this.selectedFeatureId = mergedProps.id || "";
+    this.selectedFeatureProps = mergedProps;
 
     // Resolve the single building polygon geometry so clicking one building on a
     // multi-building parcel (e.g. Rice University) never highlights all buildings on that parcel.
@@ -1632,6 +1645,7 @@ export class AtlasMapController {
         singleGeom = ovMatch.geometry;
       }
     }
+    this.selectedFeatureGeometry = singleGeom;
 
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
@@ -1665,6 +1679,8 @@ export class AtlasMapController {
 
   clearSelection() {
     this.selectedFeatureId = null;
+    this.selectedFeatureProps = null;
+    this.selectedFeatureGeometry = null;
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
     } else if (this.map) {

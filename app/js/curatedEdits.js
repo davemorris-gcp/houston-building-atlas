@@ -646,11 +646,19 @@ export async function submitAdminApprovedOverride(payload, webhookUrl = "") {
     }
   }
 
+  const rawKey = record.hcad_num;
+  const isBuildingOverride = rawKey.includes("#");
+  const cleanHcadNum = isBuildingOverride ? rawKey.split("#")[0].trim() : rawKey;
+
   return {
     ok: true,
     webhookDelivered,
+    overrideKey: rawKey,
     override: {
-      hcad_num: record.hcad_num,
+      id: rawKey,
+      building_id: isBuildingOverride ? rawKey : "",
+      hcad_num: cleanHcadNum,
+      is_building_override: isBuildingOverride,
       address: record.address,
       historic_district: record.historic_district,
       contributing: record.contributing,
