@@ -14,8 +14,8 @@ import {
    serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261006b";
-import { AtlasMapController } from "./mapController.js?v=20261006b";
-import { fetchHcadDeepLink } from "./hcadLink.js?v=20261006b";
+import { AtlasMapController } from "./mapController.js?v=20261006d";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261006d";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -1661,11 +1661,11 @@ class HoustonAtlasApp {
         </div>
         <div class="inspector-cell">
           <span class="cell-label">Building Floor Area</span>
-          <span class="cell-value mono">${bldSqft}</span>
+          <span class="cell-value mono" id="inspector-cell-bld-sqft">${bldSqft}</span>
         </div>
         <div class="inspector-cell">
           <span class="cell-label">Parcel Lot Size</span>
-          <span class="cell-value mono">${landSqft}</span>
+          <span class="cell-value mono" id="inspector-cell-lot-sqft">${landSqft}</span>
         </div>
         <div class="inspector-cell">
           <span class="cell-label">Estimated Scale</span>
@@ -1697,11 +1697,11 @@ class HoustonAtlasApp {
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Subdivision / Legal Description</span>
-          <span class="cell-value">${props.subdivision || "Not listed"}</span>
+          <span class="cell-value" id="inspector-cell-subdivision">${props.subdivision || "Not listed"}</span>
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Recorded Property Owner (HCAD)</span>
-          <span class="cell-value">${props.owner || "Public / Unlisted"}</span>
+          <span class="cell-value" id="inspector-cell-owner">${props.owner || "Public / Unlisted"}</span>
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Geometry Provenance</span>
@@ -1709,20 +1709,54 @@ class HoustonAtlasApp {
         </div>
       </div>
 
+      ${
+        hcadNum
+          ? `<div class="hcad-live-record-card" id="inspector-hcad-live-card" data-hcad-num="${hcadNum}">
+              <div class="hcad-live-header">
+                <span class="hcad-live-title">Live HCAD Appraisal Record</span>
+                <span class="hcad-live-badge" id="hcad-live-status-badge">Loading HCAD GIS…</span>
+              </div>
+              <div class="hcad-live-grid" id="hcad-live-grid">
+                <div class="hcad-live-cell">
+                  <span class="hcad-live-label">Appraised Value</span>
+                  <span class="hcad-live-val mono" id="hcad-live-appr">…</span>
+                </div>
+                <div class="hcad-live-cell">
+                  <span class="hcad-live-label">Market Value</span>
+                  <span class="hcad-live-val mono" id="hcad-live-mkt">…</span>
+                </div>
+                <div class="hcad-live-cell">
+                  <span class="hcad-live-label">Improvement Value</span>
+                  <span class="hcad-live-val mono" id="hcad-live-impr">…</span>
+                </div>
+                <div class="hcad-live-cell">
+                  <span class="hcad-live-label">Land Value</span>
+                  <span class="hcad-live-val mono" id="hcad-live-land">…</span>
+                </div>
+                <div class="hcad-live-cell full" id="hcad-live-meta-row" style="display:none;">
+                  <span class="hcad-live-label">State Class &amp; Legal Lines</span>
+                  <span class="hcad-live-val" id="hcad-live-legal"></span>
+                </div>
+              </div>
+            </div>`
+          : ""
+      }
+
       <div class="inspector-actions">
         <button type="button" class="inspector-btn suggest-edit" id="btn-suggest-correction">
           &#9998; Suggest a Date / Data Correction
         </button>
         ${
           hcadNum
-            ? `<a
+            ? `<div class="hcad-link-status-note hidden" id="hcad-link-status-note"></div>
+              <a
                 href="https://search.hcad.org/"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inspector-btn primary"
                 id="btn-open-hcad"
                 data-hcad-num="${hcadNum}"
-                title="Generating direct HCAD SearchResults deep link for ${hcadNum}..."
+                title="Open HCAD Property Search for account ${hcadNum} (also copies account # to clipboard)"
               >
                 Open HCAD Record (${hcadNum}) &#8599;
               </a>
@@ -1732,9 +1766,9 @@ class HoustonAtlasApp {
                 rel="noopener noreferrer"
                 class="inspector-btn secondary"
                 id="btn-open-hcad-gis"
-                title="Open parcel ${hcadNum} in HCAD GIS Parcel Viewer"
+                title="Direct link to parcel ${hcadNum} in HCAD Official GIS Parcel Viewer"
               >
-                HCAD GIS Map &#8599;
+                Open HCAD GIS Parcel Map (${hcadNum}) &#8599;
               </a>`
             : ""
         }
@@ -1766,25 +1800,127 @@ class HoustonAtlasApp {
       });
     }
 
+    if (hcadNum) {
+      const fmtCurrency = (val) =>
+        val != null && Number.isFinite(Number(val))
+          ? "$" + Math.round(Number(val)).toLocaleString()
+          : "N/A";
+
+      fetchHcadLiveRecord(hcadNum)
+        .then((rec) => {
+          const card = document.getElementById("inspector-hcad-live-card");
+          if (!card || card.getAttribute("data-hcad-num") !== hcadNum) return;
+          const badge = document.getElementById("hcad-live-status-badge");
+          if (!rec) {
+            if (badge) badge.textContent = "Exempt / Unindexed";
+            return;
+          }
+          if (badge) badge.textContent = "2026 Roll · Live";
+          const apprEl = document.getElementById("hcad-live-appr");
+          const mktEl = document.getElementById("hcad-live-mkt");
+          const imprEl = document.getElementById("hcad-live-impr");
+          const landEl = document.getElementById("hcad-live-land");
+          if (apprEl) apprEl.textContent = fmtCurrency(rec.appraisedVal);
+          if (mktEl) mktEl.textContent = fmtCurrency(rec.marketVal);
+          if (imprEl) imprEl.textContent = fmtCurrency(rec.imprVal);
+          if (landEl) landEl.textContent = fmtCurrency(rec.landVal);
+
+          const metaParts = [];
+          if (rec.stateClass) metaParts.push(`State Class ${rec.stateClass}`);
+          if (rec.grade) metaParts.push(`Grade ${rec.grade}`);
+          if (rec.legalDescription) metaParts.push(rec.legalDescription);
+          const metaRow = document.getElementById("hcad-live-meta-row");
+          const legalEl = document.getElementById("hcad-live-legal");
+          if (metaRow && legalEl && metaParts.length > 0) {
+            legalEl.textContent = metaParts.join(" · ");
+            metaRow.style.display = "flex";
+          }
+
+          // Enrich any missing Inspector fields with live HCAD record attributes
+          const ownerCell = document.getElementById("inspector-cell-owner");
+          if (ownerCell && rec.owner && (!props.owner || ownerCell.textContent === "Public / Unlisted")) {
+            ownerCell.textContent = rec.owner;
+          }
+          const subCell = document.getElementById("inspector-cell-subdivision");
+          if (subCell && (rec.subdivision || rec.legalDescription) && (!props.subdivision || subCell.textContent === "Not listed")) {
+            subCell.textContent = [rec.subdivision, rec.legalDescription].filter(Boolean).join(" — ");
+          }
+          const bldCell = document.getElementById("inspector-cell-bld-sqft");
+          if (bldCell && rec.bldgSqft && bldCell.textContent === "Unlisted") {
+            bldCell.textContent = `${rec.bldgSqft.toLocaleString()} sq ft`;
+          }
+          const lotCell = document.getElementById("inspector-cell-lot-sqft");
+          if (lotCell && rec.lotAreaSqft && lotCell.textContent === "Unlisted") {
+            lotCell.textContent = `${rec.lotAreaSqft.toLocaleString()} sq ft`;
+          }
+        })
+        .catch(() => {
+          const badge = document.getElementById("hcad-live-status-badge");
+          if (badge) badge.textContent = "Offline";
+        });
+    }
+
     const btnOpenHcad = document.getElementById("btn-open-hcad");
+    const statusNote = document.getElementById("hcad-link-status-note");
     if (btnOpenHcad && hcadNum) {
-      // Immediately mint a fresh encrypted SearchResults deep-link token from HCAD's API
+      // Attempt to mint a fresh encrypted SearchResults deep-link token from HCAD's API
       fetchHcadDeepLink(hcadNum)
         .then((deepUrl) => {
           if (deepUrl && btnOpenHcad.getAttribute("data-hcad-num") === hcadNum) {
             btnOpenHcad.href = deepUrl;
             btnOpenHcad.setAttribute("data-deep-ready", "true");
+            btnOpenHcad.setAttribute("data-minted-at", String(Date.now()));
             btnOpenHcad.title = `Direct HCAD Property Record deep link ready (${hcadNum})`;
+            if (statusNote) statusNote.classList.add("hidden");
           }
         })
         .catch(() => {
-          // Keep fallback https://search.hcad.org/ if offline
+          if (btnOpenHcad.getAttribute("data-hcad-num") !== hcadNum) return;
+          btnOpenHcad.setAttribute("data-deep-fallback", "true");
+          btnOpenHcad.innerHTML = `Copy # &amp; Open HCAD Search (${hcadNum}) &#8599;`;
+          btnOpenHcad.title = `Copies ${hcadNum} to your clipboard and opens search.hcad.org (HCAD's direct-link token API is temporarily offline)`;
+          if (statusNote) {
+            statusNote.innerHTML = `HCAD's direct-link token service is temporarily offline. Clicking below automatically copies <strong>${hcadNum}</strong> to your clipboard to paste into HCAD Search, or use <strong>HCAD GIS Parcel Map &#8599;</strong> for a direct link.`;
+            statusNote.classList.remove("hidden");
+          }
         });
 
-      // Also copy account number to clipboard on click as a convenient backup
-      btnOpenHcad.addEventListener("click", () => {
+      btnOpenHcad.addEventListener("click", (evt) => {
         if (navigator.clipboard) {
           navigator.clipboard.writeText(hcadNum);
+        }
+        const isDeepReady = btnOpenHcad.getAttribute("data-deep-ready") === "true";
+        const mintedAt = Number(btnOpenHcad.getAttribute("data-minted-at") || 0);
+        if (isDeepReady && Date.now() - mintedAt > 45000) {
+          // Refresh time-sensitive token in background if drawer was left open >45s
+          evt.preventDefault();
+          const newWin = window.open("about:blank", "_blank");
+          fetchHcadDeepLink(hcadNum)
+            .then((freshUrl) => {
+              const targetUrl = freshUrl || btnOpenHcad.href || "https://search.hcad.org/";
+              if (freshUrl) {
+                btnOpenHcad.href = freshUrl;
+                btnOpenHcad.setAttribute("data-minted-at", String(Date.now()));
+              }
+              if (newWin) newWin.location.href = targetUrl;
+            })
+            .catch(() => {
+              if (newWin) newWin.location.href = "https://search.hcad.org/";
+            });
+          return;
+        }
+        if (!isDeepReady) {
+          btnOpenHcad.innerHTML = `&#10003; Copied ${hcadNum} — Paste in HCAD Search &#8599;`;
+          if (statusNote) {
+            statusNote.innerHTML = `&#10003; Copied <strong>${hcadNum}</strong> to clipboard! Paste (<code>Ctrl+V</code> / <code>&#8984;V</code>) into the HCAD Account Number search box.`;
+            statusNote.classList.remove("hidden");
+            statusNote.classList.add("copied-highlight");
+          }
+          setTimeout(() => {
+            if (btnOpenHcad.getAttribute("data-hcad-num") === hcadNum) {
+              btnOpenHcad.innerHTML = `Copy # &amp; Open HCAD Search (${hcadNum}) &#8599;`;
+            }
+          }, 4000);
         }
       });
     }

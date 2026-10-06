@@ -180,6 +180,13 @@ export function md5Hex(str) {
   return (wordToHex(a) + wordToHex(b) + wordToHex(c) + wordToHex(d)).toLowerCase();
 }
 
+const HCAD_ARCGIS_PUBLIC_QUERY_URL =
+  "https://arcweb.hcad.org/server/rest/services/public/public_query/MapServer/0/query";
+const HCAD_ARCGIS_RES_GRADE_URL =
+  "https://arcweb.hcad.org/server/rest/services/public/Residential_Grade/MapServer/0/query";
+
+const liveRecordCache = new Map();
+
 /**
  * Builds the time-based Basic Authorization + AuthDate headers required by
  * https://api.hcad.org/propertysearch/ExternalAccess/AccountDetails
@@ -206,24 +213,140 @@ export async function fetchHcadDeepLink(
   const cleanAcct = String(accountNumber || "").replace(/\D/g, "").trim();
   if (!cleanAcct) return null;
 
-  const headers = buildHcadAuthHeaders();
-  const response = await fetch(HCAD_EXTERNAL_ACCESS_URL, {
-    method: "POST",
-    mode: "cors",
-    cache: "no-cache",
-    headers,
-    body: JSON.stringify({
-      TaxYear: String(taxYear),
-      Account: cleanAcct,
-    }),
-  });
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), 3500) : null;
 
-  if (!response.ok) {
-    throw new Error(`HCAD ExternalAccess returned HTTP ${response.status}`);
+  try {
+    const headers = buildHcadAuthHeaders();
+    const response = await fetch(HCAD_EXTERNAL_ACCESS_URL, {
+      method: "POST",
+      mode: "cors",
+      cache: "no-cache",
+      headers,
+      signal: controller ? controller.signal : undefined,
+      body: JSON.stringify({
+        TaxYear: String(taxYear),
+        Account: cleanAcct,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HCAD ExternalAccess returned HTTP ${response.status}`);
+    }
+    const url = (await response.text()).trim();
+    if (url.startsWith("https://search.hcad.org/SearchResults/")) {
+      return url;
+    }
+    return null;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
   }
-  const url = (await response.text()).trim();
-  if (url.startsWith("https://search.hcad.org/SearchResults/")) {
-    return url;
-  }
-  return null;
 }
+
+/**
+ * Fetches live HCAD appraisal, valuation, owner, state class, and legal description
+ * data directly from HCAD's official ArcGIS REST MapServers (CORS-enabled, no token required).
+ */
+export async function fetchHcadLiveRecord(accountNumber) {
+  const cleanAcct = String(accountNumber || "").replace(/\D/g, "").trim();
+  if (!cleanAcct) return null;
+
+  if (liveRecordCache.has(cleanAcct)) {
+    return liveRecordCache.get(cleanAcct);
+  }
+
+  const whereParam = encodeURIComponent(`HCAD_NUM='${cleanAcct}'`);
+  const publicQueryUrl = `${HCAD_ARCGIS_PUBLIC_QUERY_URL}?where=${whereParam}&outFields=*&returnGeometry=true&outSR=4326&f=geojson`;
+  const resGradeUrl = `${HCAD_ARCGIS_RES_GRADE_URL}?where=${whereParam}&outFields=*&returnGeometry=false&f=json`;
+
+  const [pubRes, gradeRes] = await Promise.allSettled([
+    fetch(publicQueryUrl, { mode: "cors" }).then((r) => (r.ok ? r.json() : null)),
+    fetch(resGradeUrl, { mode: "cors" }).then((r) => (r.ok ? r.json() : null)),
+  ]);
+
+  const pubFeature =
+    pubRes.status === "fulfilled" &&
+    pubRes.value &&
+    Array.isArray(pubRes.value.features) &&
+    pubRes.value.features[0]
+      ? pubRes.value.features[0]
+      : null;
+
+  const pubAttrs = (pubFeature && (pubFeature.properties || pubFeature.attributes)) || {};
+
+  const resAttrs =
+    gradeRes.status === "fulfilled" &&
+    gradeRes.value &&
+    Array.isArray(gradeRes.value.features) &&
+    gradeRes.value.features[0]
+      ? gradeRes.value.features[0].attributes || {}
+      : {};
+
+  if (!pubAttrs.HCAD_NUM && !resAttrs.HCAD_NUM) {
+    return null;
+  }
+
+  const geometry = (pubFeature && pubFeature.geometry) || null;
+  let centroid = null;
+  if (geometry && geometry.coordinates) {
+    const ring =
+      geometry.type === "Polygon"
+        ? geometry.coordinates[0]
+        : geometry.type === "MultiPolygon" && geometry.coordinates[0]
+        ? geometry.coordinates[0][0]
+        : null;
+    if (Array.isArray(ring) && ring.length > 0) {
+      let sumLng = 0;
+      let sumLat = 0;
+      let count = 0;
+      for (const pt of ring) {
+        if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+          sumLng += pt[0];
+          sumLat += pt[1];
+          count += 1;
+        }
+      }
+      if (count > 0) {
+        centroid = [sumLng / count, sumLat / count];
+      }
+    }
+  }
+
+  const record = {
+    hcadNum: cleanAcct,
+    owner: (pubAttrs.owner || resAttrs.CurrOwner || "").trim() || null,
+    address: (pubAttrs.address || resAttrs.LocAddr || "").trim() || null,
+    city: (pubAttrs.city || resAttrs.city || "").trim() || null,
+    zip: (pubAttrs.zip || resAttrs.zip || "").trim() || null,
+    stateClass: (pubAttrs.state_class || resAttrs.StClsCode || "").trim() || null,
+    landUseCode: (resAttrs.landuse || "").trim() || null,
+    grade: (resAttrs.Grade || "").trim() || null,
+    yearImpr: Number(resAttrs.year_impr) > 1800 ? Number(resAttrs.year_impr) : null,
+    bldgSqft: Number(resAttrs.bldg_sqft) > 0 ? Number(resAttrs.bldg_sqft) : null,
+    acreage: Number(resAttrs.acreage) > 0 ? Number(resAttrs.acreage) : null,
+    lotAreaSqft:
+      Number(pubAttrs["Shape.STArea()"]) > 0
+        ? Math.round(Number(pubAttrs["Shape.STArea()"]))
+        : null,
+    appraisedVal: pubAttrs.appr_val != null ? Number(pubAttrs.appr_val) : null,
+    marketVal: pubAttrs.mkt_val != null ? Number(pubAttrs.mkt_val) : null,
+    imprVal: pubAttrs.impr_val != null ? Number(pubAttrs.impr_val) : null,
+    landVal: pubAttrs.land_val != null ? Number(pubAttrs.land_val) : null,
+    subdivision: (pubAttrs.subdivision || resAttrs.dscr || "").trim() || null,
+    legalDescription: pubAttrs.legal_lines
+      ? String(pubAttrs.legal_lines)
+          .split("|")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .join(" · ")
+      : null,
+    geometry,
+    centroid,
+    gisParcelUrl: `https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(cleanAcct)}`,
+    searchPortalUrl: "https://search.hcad.org/",
+  };
+
+  liveRecordCache.set(cleanAcct, record);
+  return record;
+}
+
