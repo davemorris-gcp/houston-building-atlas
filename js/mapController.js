@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005n";
+} from "./palettes.js?v=20261005o";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005n";
+} from "./filterStore.js?v=20261005o";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005n";
+} from "./curatedEdits.js?v=20261005o";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -1513,7 +1513,16 @@ export class AtlasMapController {
     const title = p.landmark_name || p.name || p.era_label || p.address || "Historic Property";
     let badge = "";
     if (p.year_built && Number(p.year_built) >= 1836) {
-      badge = p.is_curated_override ? `Built ${p.year_built} ✓ PH Verified` : `Built ${p.year_built}`;
+      if (p.is_curated_override) {
+        badge = `Built ${p.year_built} ✓ PH Verified`;
+      } else if (
+        p.year_source === "subdivision_median" ||
+        p.year_source === "blockface_median"
+      ) {
+        badge = `Circa ${p.year_built} (Est.)`;
+      } else {
+        badge = `Built ${p.year_built}`;
+      }
     } else if (p.good_brick_summary) {
       badge = `★ ${p.good_brick_summary}`;
     } else if (p.designation) {
