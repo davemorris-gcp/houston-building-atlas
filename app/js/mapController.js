@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005e";
+} from "./palettes.js?v=20261005f";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005e";
+} from "./filterStore.js?v=20261005f";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005e";
+} from "./curatedEdits.js?v=20261005f";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -178,15 +178,22 @@ export class AtlasMapController {
 
   _applyCuratedOverridesInMemory() {
     const ovMap = this.curatedOverrides || {};
-    const overrideFeaturesByHcad = new Map();
+    const overrideFeaturesByKey = new Map();
 
     for (const feat of this.buildingsData) {
+      const featId = String(feat.properties?.id || "").trim();
       const hcad = String(feat.properties?.hcad_num || "").trim();
-      if (hcad && ovMap[hcad]) {
+      const matchKey =
+        featId && ovMap[featId]
+          ? featId
+          : hcad && ovMap[hcad] && !ovMap[hcad].is_building_override
+          ? hcad
+          : "";
+      if (matchKey) {
         feat.properties = applyOverrideToProperties(feat.properties, ovMap);
-        overrideFeaturesByHcad.set(hcad, {
+        overrideFeaturesByKey.set(matchKey, {
           type: "Feature",
-          geometry: ovMap[hcad].geometry || feat.geometry,
+          geometry: ovMap[matchKey].geometry || feat.geometry,
           properties: { ...feat.properties },
         });
       }
@@ -194,29 +201,34 @@ export class AtlasMapController {
 
     for (const feat of this.parcelsData) {
       const hcad = String(feat.properties?.hcad_num || "").trim();
-      if (hcad && ovMap[hcad]) {
+      if (hcad && ovMap[hcad] && !ovMap[hcad].is_building_override) {
         feat.properties = applyOverrideToProperties(feat.properties, ovMap);
       }
     }
 
-    for (const [hcad, ov] of Object.entries(ovMap)) {
-      if (!overrideFeaturesByHcad.has(hcad) && ov.geometry) {
-        overrideFeaturesByHcad.set(hcad, {
+    for (const [ovKey, ov] of Object.entries(ovMap)) {
+      if (!overrideFeaturesByKey.has(ovKey) && ov.geometry) {
+        const hcadNum = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
+        overrideFeaturesByKey.set(ovKey, {
           type: "Feature",
           geometry: ov.geometry,
           properties: applyOverrideToProperties(
             {
-              id: ov.id || `ov_${hcad}`,
-              hcad_num: hcad,
+              id: ov.id || ovKey,
+              building_id: ov.building_id || ov.id || ovKey,
+              hcad_num: hcadNum,
               address: ov.address || "",
+              landmark_name: ov.landmark_name || "",
               year_built: ov.year_built || 0,
               decade: ov.decade || 0,
-              stories: 1,
-              height_m: 4.5,
-              use_category: "Residential",
+              stories: Number(ov.stories) || 1,
+              height_m: Number(ov.height_m) || 4.5,
+              use_category: ov.use_category || "Residential",
               historic_district: ov.historic_district || "",
               contributing: ov.contributing || "Contributing",
               footprint_source: "observed",
+              is_building_override: Boolean(ov.is_building_override),
+              replace_parcel_shards: Boolean(ov.replace_parcel_shards),
             },
             ovMap
           ),
@@ -226,7 +238,7 @@ export class AtlasMapController {
 
     this.overridesFC = {
       type: "FeatureCollection",
-      features: Array.from(overrideFeaturesByHcad.values()),
+      features: Array.from(overrideFeaturesByKey.values()),
     };
   }
 
@@ -719,6 +731,19 @@ export class AtlasMapController {
     });
     this.highlightLayerIds.push("curated-overrides-highlight");
 
+    // Dedicated single-feature selection source so clicking a building on a multi-building
+    // campus parcel (e.g. Rice University) highlights ONLY the clicked building polygon.
+    this.map.addSource("selected-feature-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    this.map.addLayer({
+      id: "selected-feature-outline",
+      type: "line",
+      source: "selected-feature-src",
+      paint: { "line-color": "#FDE047", "line-width": 3.5 },
+    });
+
     this.map.addLayer({
       id: "thc-markers-circle",
       type: "circle",
@@ -749,9 +774,17 @@ export class AtlasMapController {
   }
 
   _buildShardLayerFilter(baseFilterExpr) {
-    const overriddenHcads = (this.overridesFC?.features || [])
-      .map((f) => String(f.properties?.hcad_num || "").trim())
-      .filter(Boolean);
+    const overriddenHcads = Array.from(
+      new Set(
+        (this.overridesFC?.features || [])
+          .filter(
+            (f) =>
+              !f.properties?.is_building_override || f.properties?.replace_parcel_shards
+          )
+          .map((f) => String(f.properties?.hcad_num || "").trim())
+          .filter(Boolean)
+      )
+    );
     if (!overriddenHcads.length) return baseFilterExpr;
     return [
       "all",
@@ -762,12 +795,26 @@ export class AtlasMapController {
 
   _captureDynamicOverrideGeometries() {
     if (!this.map || !this.shardSourceIds || !this.shardSourceIds.length) return;
+    const existingKeys = new Set(
+      (this.overridesFC?.features || []).map((f) =>
+        String(f.properties?.building_id || f.properties?.id || f.properties?.hcad_num || "").trim()
+      )
+    );
     const existingHcads = new Set(
-      (this.overridesFC?.features || []).map((f) => String(f.properties?.hcad_num || "").trim())
+      (this.overridesFC?.features || [])
+        .filter((f) => !f.properties?.is_building_override)
+        .map((f) => String(f.properties?.hcad_num || "").trim())
     );
-    const missingHcads = Object.keys(this.curatedOverrides || {}).filter(
-      (h) => h && !existingHcads.has(h)
-    );
+    const missingHcads = Object.entries(this.curatedOverrides || {})
+      .filter(
+        ([k, ov]) =>
+          k &&
+          !ov?.is_building_override &&
+          !ov?.geometry &&
+          !existingKeys.has(k) &&
+          !existingHcads.has(k)
+      )
+      .map(([k]) => k);
     if (!missingHcads.length) return;
 
     let added = false;
@@ -839,12 +886,13 @@ export class AtlasMapController {
         );
         if (bldMatch) {
           this.highlightAndInspectFeature(
-            applyOverrideToProperties(bldMatch.properties, this.curatedOverrides)
+            applyOverrideToProperties(bldMatch.properties, this.curatedOverrides),
+            bldMatch.geometry
           );
           return;
         }
       }
-      this.highlightAndInspectFeature(p);
+      this.highlightAndInspectFeature(p, top.geometry || null);
     });
 
     this.map.on("pitch", () => {
@@ -1561,22 +1609,52 @@ export class AtlasMapController {
         });
       if (match) {
         this.highlightAndInspectFeature(
-          applyOverrideToProperties(match.properties, this.curatedOverrides)
+          applyOverrideToProperties(match.properties, this.curatedOverrides),
+          match.geometry || null
         );
       }
     }
   }
 
-  highlightAndInspectFeature(props) {
+  highlightAndInspectFeature(props, clickedGeometry = null) {
     if (!props) return;
     const mergedProps = applyOverrideToProperties(props, this.curatedOverrides);
     this.selectedFeatureId = mergedProps.id || "";
+
+    // Resolve the single building polygon geometry so clicking one building on a
+    // multi-building parcel (e.g. Rice University) never highlights all buildings on that parcel.
+    let singleGeom = clickedGeometry || null;
+    if (!singleGeom && this.selectedFeatureId) {
+      const ovMatch = (this.overridesFC?.features || []).find(
+        (f) => f.properties && f.properties.id === this.selectedFeatureId
+      );
+      if (ovMatch && ovMatch.geometry) {
+        singleGeom = ovMatch.geometry;
+      }
+    }
+
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
     } else if (this.map) {
-      for (const hlId of this.highlightLayerIds) {
-        if (this.map.getLayer(hlId)) {
-          this.map.setFilter(hlId, ["==", ["get", "id"], this.selectedFeatureId]);
+      const selSrc = this.map.getSource("selected-feature-src");
+      if (selSrc && singleGeom) {
+        selSrc.setData({
+          type: "FeatureCollection",
+          features: [{ type: "Feature", geometry: singleGeom, properties: mergedProps }],
+        });
+        for (const hlId of this.highlightLayerIds) {
+          if (this.map.getLayer(hlId)) {
+            this.map.setFilter(hlId, ["==", ["get", "id"], ""]);
+          }
+        }
+      } else {
+        if (selSrc) {
+          selSrc.setData({ type: "FeatureCollection", features: [] });
+        }
+        for (const hlId of this.highlightLayerIds) {
+          if (this.map.getLayer(hlId)) {
+            this.map.setFilter(hlId, ["==", ["get", "id"], this.selectedFeatureId]);
+          }
         }
       }
     }
@@ -1590,6 +1668,10 @@ export class AtlasMapController {
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
     } else if (this.map) {
+      const selSrc = this.map.getSource("selected-feature-src");
+      if (selSrc) {
+        selSrc.setData({ type: "FeatureCollection", features: [] });
+      }
       for (const hlId of this.highlightLayerIds) {
         if (this.map.getLayer(hlId)) {
           this.map.setFilter(hlId, ["==", ["get", "id"], ""]);
@@ -1642,7 +1724,7 @@ export class AtlasMapController {
           const seenIds = new Set();
           for (const feat of rendered) {
             const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
-            const key = p.hcad_num || p.id;
+            const key = p.id || p.hcad_num;
             if (key) {
               if (seenIds.has(key)) continue;
               seenIds.add(key);

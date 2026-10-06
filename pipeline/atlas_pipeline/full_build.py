@@ -437,7 +437,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
         addr = str(addr_raw).strip() if addr_raw is not None else ""
 
         props: dict[str, Any] = {
-            "id": acct or f"b{bld_id}",
+            "id": f"{acct}#b{bld_id}" if acct else f"b{bld_id}",
             "hcad_num": acct,
             "year_built": yr,
             "decade": dec,
