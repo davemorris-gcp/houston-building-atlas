@@ -6,14 +6,14 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261005h";
+} from "./palettes.js?v=20261005k";
 import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "./filterStore.js?v=20261005h";
-import { AtlasMapController } from "./mapController.js?v=20261005h";
-import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005h";
+} from "./filterStore.js?v=20261005k";
+import { AtlasMapController } from "./mapController.js?v=20261005k";
+import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005k";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -24,7 +24,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261005h";
+} from "./curatedEdits.js?v=20261005k";
 
 class HoustonAtlasApp {
   constructor() {
@@ -382,6 +382,7 @@ class HoustonAtlasApp {
 
     // Overlay Layer Toggles
     const layerCheckboxes = [
+      ["chk-layer-good-brick", "goodBrickAwards"],
       ["chk-layer-landmarks", "landmarks"],
       ["chk-layer-historic-districts", "historicDistricts"],
       ["chk-layer-heritage-districts", "heritageDistricts"],
@@ -456,7 +457,9 @@ class HoustonAtlasApp {
                 featureId: chosen.id || "",
               });
               if (
-                (chosen.type === "building" || chosen.type === "landmark") &&
+                (chosen.type === "building" ||
+                  chosen.type === "landmark" ||
+                  chosen.type === "good_brick") &&
                 document.getElementById("inspector-drawer")?.classList.contains("hidden")
               ) {
                 this.renderInspectorDrawer({
@@ -1062,6 +1065,7 @@ class HoustonAtlasApp {
 
     // Layer Checkboxes
     const mapLayerIds = {
+      "chk-layer-good-brick": state.layers.goodBrickAwards,
       "chk-layer-landmarks": state.layers.landmarks,
       "chk-layer-historic-districts": state.layers.historicDistricts,
       "chk-layer-heritage-districts": state.layers.heritageDistricts,
@@ -1239,6 +1243,18 @@ class HoustonAtlasApp {
       this.mapController ? this.mapController.curatedOverrides : {}
     );
 
+    // Parse good_brick_awards if serialized as a JSON string by MapLibre GL queryRenderedFeatures
+    let goodBrickAwards = [];
+    if (Array.isArray(props.good_brick_awards)) {
+      goodBrickAwards = props.good_brick_awards;
+    } else if (typeof props.good_brick_awards === "string" && props.good_brick_awards.trim().startsWith("[")) {
+      try {
+        goodBrickAwards = JSON.parse(props.good_brick_awards);
+      } catch (_e) {
+        goodBrickAwards = [];
+      }
+    }
+
     const yr = Number(props.year_built) || 0;
     const currentYear = 2026;
     const ageText = yr >= 1836 ? `${currentYear - yr} yrs old` : "Date unrecorded in HCAD";
@@ -1256,11 +1272,13 @@ class HoustonAtlasApp {
         : props.historic_district || "Harris County, Texas";
 
     const statusBadge =
-      props.landmark_type ||
-      props.designation ||
-      (props.contributing && props.contributing !== "Outside Historic District"
-        ? `${props.contributing} Structure`
-        : "Standard Tax Parcel");
+      props.good_brick_summary && !props.landmark_type
+        ? `★ ${props.good_brick_summary}`
+        : props.landmark_type ||
+          props.designation ||
+          (props.contributing && props.contributing !== "Outside Historic District"
+            ? `${props.contributing} Structure`
+            : "Standard Tax Parcel");
 
     const bldSqft =
       Number(props.bld_area) > 0
@@ -1281,6 +1299,38 @@ class HoustonAtlasApp {
         : "Architectural Footprint (Derived from Parcel + CAMA Area)";
 
     const hcadNum = String(props.hcad_num || "").trim();
+
+    const goodBrickHtml =
+      goodBrickAwards.length > 0
+        ? `<div class="ph-good-brick-card">
+            <div class="ph-good-brick-header">
+              <span class="ph-good-brick-kicker">&#9733; Preservation Houston Good Brick Award${goodBrickAwards.length > 1 ? `s (${goodBrickAwards.length})` : ""}</span>
+              <span class="ph-good-brick-years mono">${goodBrickAwards.map((a) => a.award_year).join(", ")}</span>
+            </div>
+            <div class="ph-good-brick-list">
+              ${goodBrickAwards
+                .map(
+                  (a) => `
+                  <div class="ph-good-brick-item">
+                    <div class="ph-good-brick-item-top">
+                      <span class="ph-good-brick-year-pill mono">${a.award_year}</span>
+                      <span class="ph-good-brick-type-badge">${a.award_type || "Good Brick Award"}</span>
+                    </div>
+                    <div class="ph-good-brick-recipient">
+                      <strong>Recipient:</strong> ${a.recipient || "Property Owner"}
+                    </div>
+                    <div class="ph-good-brick-reason">
+                      <strong>Citation:</strong> ${a.reason || a.raw_description || "Recognized for excellence in historic preservation."}
+                    </div>
+                  </div>`
+                )
+                .join("")}
+            </div>
+            <a href="https://www.preservationhouston.org/awards/past" target="_blank" rel="noopener noreferrer" class="ph-good-brick-link">
+              View Preservation Houston Good Brick Awards Archive &#8599;
+            </a>
+          </div>`
+        : "";
 
     const verifiedBannerHtml = props.is_curated_override
       ? `<div class="ph-verified-override-card">
@@ -1320,6 +1370,7 @@ class HoustonAtlasApp {
         </div>
       </div>
 
+      ${goodBrickHtml}
       ${verifiedBannerHtml}
 
       <div class="inspector-grid">

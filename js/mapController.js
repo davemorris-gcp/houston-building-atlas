@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005h";
+} from "./palettes.js?v=20261005k";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005h";
+} from "./filterStore.js?v=20261005k";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005h";
+} from "./curatedEdits.js?v=20261005k";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -522,6 +522,10 @@ export class AtlasMapController {
       type: "geojson",
       data: overlays.landmarks || { type: "FeatureCollection", features: [] },
     });
+    this.map.addSource("good-brick-src", {
+      type: "geojson",
+      data: overlays.good_brick_awards || { type: "FeatureCollection", features: [] },
+    });
 
     const state = this.filterStore.getState();
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
@@ -783,6 +787,38 @@ export class AtlasMapController {
         "circle-stroke-width": 1.6,
       },
     });
+    this.map.addLayer({
+      id: "good-brick-glow",
+      type: "circle",
+      source: "good-brick-src",
+      paint: {
+        "circle-radius": [
+          "case",
+          [">", ["to-number", ["get", "good_brick_count"], 1], 1],
+          11.5,
+          9.5,
+        ],
+        "circle-color": "#F59E0B",
+        "circle-opacity": 0.28,
+        "circle-blur": 0.45,
+      },
+    });
+    this.map.addLayer({
+      id: "good-brick-circle",
+      type: "circle",
+      source: "good-brick-src",
+      paint: {
+        "circle-radius": [
+          "case",
+          [">", ["to-number", ["get", "good_brick_count"], 1], 1],
+          7.2,
+          5.8,
+        ],
+        "circle-color": "#F59E0B",
+        "circle-stroke-color": "#FEF3C7",
+        "circle-stroke-width": 1.8,
+      },
+    });
   }
 
   _buildShardLayerFilter(baseFilterExpr) {
@@ -864,6 +900,7 @@ export class AtlasMapController {
 
   _bindMapLibreInteractions() {
     const getInteractiveLayers = () => [
+      "good-brick-circle",
       "landmarks-circle",
       "thc-markers-circle",
       "curated-overrides-extrusion",
@@ -895,15 +932,34 @@ export class AtlasMapController {
       if (!features.length) return;
       const top = features[0];
       const p = applyOverrideToProperties(top.properties || {}, this.curatedOverrides);
-      if (top.layer.id === "landmarks-circle" && p.hcad_num) {
-        const bldMatch = this.buildingsData.find(
-          (f) => f.properties && f.properties.hcad_num === p.hcad_num
-        );
-        if (bldMatch) {
-          this.highlightAndInspectFeature(
-            applyOverrideToProperties(bldMatch.properties, this.curatedOverrides),
-            bldMatch.geometry
+      if (
+        (top.layer.id === "landmarks-circle" || top.layer.id === "good-brick-circle") &&
+        p.hcad_num
+      ) {
+        // Check if there is an underlying building polygon at the clicked point or in buildingsData
+        const bldHit =
+          features.find(
+            (f) =>
+              f.layer.id !== "landmarks-circle" &&
+              f.layer.id !== "good-brick-circle" &&
+              f.layer.id !== "thc-markers-circle"
+          ) ||
+          this.buildingsData.find(
+            (f) => f.properties && f.properties.hcad_num === p.hcad_num
           );
+        if (bldHit) {
+          const baseBldProps = applyOverrideToProperties(
+            bldHit.properties || {},
+            this.curatedOverrides
+          );
+          const mergedClickProps = {
+            ...baseBldProps,
+            landmark_name: p.landmark_name || baseBldProps.landmark_name || p.name || "",
+            good_brick_awards: p.good_brick_awards || baseBldProps.good_brick_awards || null,
+            good_brick_summary: p.good_brick_summary || baseBldProps.good_brick_summary || "",
+            good_brick_years: p.good_brick_years || baseBldProps.good_brick_years || "",
+          };
+          this.highlightAndInspectFeature(mergedClickProps, bldHit.geometry || null);
           return;
         }
       }
@@ -1395,6 +1451,38 @@ export class AtlasMapController {
       }
     }
 
+    // 8. Preservation Houston Good Brick Award Winners (1979–2026)
+    if (state.layers.goodBrickAwards && this.overlaysData?.good_brick_awards) {
+      for (const feat of this.overlaysData.good_brick_awards.features || []) {
+        const coords = feat.geometry?.coordinates;
+        if (!coords) continue;
+        const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
+        if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+        const multiAward = Number(feat.properties?.good_brick_count || 1) > 1;
+        const r = multiAward ? 6.8 : 5.6;
+        // Outer warm halo
+        ctx.beginPath();
+        ctx.arc(sx, sy, r + 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(245, 158, 11, 0.28)";
+        ctx.fill();
+        // Inner gold/brick badge
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = "#F59E0B";
+        ctx.fill();
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = "#FEF3C7";
+        ctx.stroke();
+        cs.renderedBBoxes.push({
+          minX: sx - 8,
+          minY: sy - 8,
+          maxX: sx + 8,
+          maxY: sy + 8,
+          props: feat.properties,
+        });
+      }
+    }
+
     ctx.restore();
   }
 
@@ -1406,6 +1494,8 @@ export class AtlasMapController {
     let badge = "";
     if (p.year_built && Number(p.year_built) >= 1836) {
       badge = p.is_curated_override ? `Built ${p.year_built} ✓ PH Verified` : `Built ${p.year_built}`;
+    } else if (p.good_brick_summary) {
+      badge = `★ ${p.good_brick_summary}`;
     } else if (p.designation) {
       badge = p.designation;
     } else if (p.marker_num) {
@@ -1416,9 +1506,15 @@ export class AtlasMapController {
     const subtitle =
       p.historic_district || p.address || p.subdivision || "Click to inspect property record";
 
+    const goodBrickPill =
+      p.good_brick_summary && badge !== `★ ${p.good_brick_summary}`
+        ? `<span class="tooltip-good-brick">&#9733; ${p.good_brick_summary}</span>`
+        : "";
+
     return `<div class="tooltip-card">
       <div class="tooltip-top">
         <span class="tooltip-badge">${badge}</span>
+        ${goodBrickPill}
         ${
           p.contributing && p.contributing !== "Outside Historic District"
             ? `<span class="tooltip-status">${p.contributing}</span>`
@@ -1536,6 +1632,7 @@ export class AtlasMapController {
     setVis(["parcels-fill"], showParcelsFill);
     setVis(["parcels-line"], showParcelsLine);
 
+    setVis(["good-brick-glow", "good-brick-circle"], state.layers.goodBrickAwards);
     setVis(["landmarks-circle"], state.layers.landmarks);
     setVis(["historic-districts-fill", "historic-districts-line"], state.layers.historicDistricts);
     setVis(["heritage-districts-fill", "heritage-districts-line"], state.layers.heritageDistricts);
@@ -1613,6 +1710,10 @@ export class AtlasMapController {
     }
 
     if (featureId || hcadNum) {
+      const gbMatch = (this.overlaysData?.good_brick_awards?.features || []).find((f) => {
+        const p = f.properties || {};
+        return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
+      });
       const match =
         (this.overridesFC?.features || []).find((f) => {
           const p = f.properties || {};
@@ -1621,12 +1722,22 @@ export class AtlasMapController {
         this.buildingsData.find((f) => {
           const p = f.properties || {};
           return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
-        });
+        }) ||
+        gbMatch;
       if (match) {
-        this.highlightAndInspectFeature(
-          applyOverrideToProperties(match.properties, this.curatedOverrides),
-          match.geometry || null
-        );
+        const mergedProps = applyOverrideToProperties(match.properties, this.curatedOverrides);
+        if (gbMatch && gbMatch.properties) {
+          mergedProps.good_brick_awards =
+            gbMatch.properties.good_brick_awards || mergedProps.good_brick_awards || null;
+          mergedProps.good_brick_summary =
+            gbMatch.properties.good_brick_summary || mergedProps.good_brick_summary || "";
+          mergedProps.good_brick_years =
+            gbMatch.properties.good_brick_years || mergedProps.good_brick_years || "";
+          if (!mergedProps.landmark_name && gbMatch.properties.landmark_name) {
+            mergedProps.landmark_name = gbMatch.properties.landmark_name;
+          }
+        }
+        this.highlightAndInspectFeature(mergedProps, match.geometry || null);
       }
     }
   }

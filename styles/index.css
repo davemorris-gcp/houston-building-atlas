@@ -1229,6 +1229,16 @@ body {
   color: var(--ph-green-light);
 }
 
+.tooltip-good-brick {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.24);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  color: #FDE68A;
+}
+
 .tooltip-title {
   font-weight: 600;
   font-size: 12.5px;
@@ -1422,6 +1432,92 @@ body {
   color: var(--text-muted);
   text-align: center;
   letter-spacing: 0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   Preservation Houston Good Brick Award Inspector Card
+   -------------------------------------------------------------------------- */
+.ph-good-brick-card {
+  background: linear-gradient(135deg, rgba(180, 83, 9, 0.26) 0%, rgba(245, 158, 11, 0.12) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  border-left: 3.5px solid #F59E0B;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ph-good-brick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #FDE68A;
+  letter-spacing: 0.02em;
+}
+
+.ph-good-brick-years {
+  font-size: 11px;
+  font-weight: 600;
+  color: #FEF3C7;
+  background: rgba(0, 0, 0, 0.32);
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.ph-good-brick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ph-good-brick-item {
+  background: rgba(15, 18, 22, 0.45);
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  border-radius: 6px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ph-good-brick-item-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ph-good-brick-year-pill {
+  background: #D97706;
+  color: #FFFBEB;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.ph-good-brick-type-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #FDE68A;
+}
+
+.ph-good-brick-recipient,
+.ph-good-brick-reason {
+  font-size: 11.5px;
+  line-height: 1.38;
+  color: var(--text-cream);
+}
+
+.ph-good-brick-link {
+  font-size: 11px;
+  color: #FDE68A;
+  text-decoration: underline;
+  align-self: flex-start;
 }
 
 /* --------------------------------------------------------------------------
