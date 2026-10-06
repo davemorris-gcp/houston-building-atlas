@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005o";
+} from "./palettes.js?v=20261005p";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005o";
+} from "./filterStore.js?v=20261005p";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005o";
+} from "./curatedEdits.js?v=20261005p";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -1727,6 +1727,86 @@ export class AtlasMapController {
     return 0;
   }
 
+  getCurrentViewport() {
+    if (this.useCanvasFallback && this.canvasState) {
+      return {
+        lat: Number(this.canvasState.lat) || 29.7662,
+        lng: Number(this.canvasState.lng) || -95.3805,
+        zoom: Number(this.canvasState.zoom) || 15.2,
+        pitch: Math.round(Number(this.canvasState.pitch) || 0),
+      };
+    }
+    if (this.map) {
+      const c = this.map.getCenter();
+      return {
+        lat: Number(c.lat) || 29.7662,
+        lng: Number(c.lng) || -95.3805,
+        zoom: Number(this.map.getZoom()) || 15.2,
+        pitch: Math.round(Number(this.map.getPitch()) || 0),
+      };
+    }
+    return {
+      lat: 29.7662,
+      lng: -95.3805,
+      zoom: 15.2,
+      pitch: 0,
+    };
+  }
+
+  selectFeatureByIdOrHcad({ hcadNum = "", featureId = "", flyTo = false }) {
+    if (!featureId && !hcadNum) return false;
+    const gbMatch = (this.overlaysData?.good_brick_awards?.features || []).find((f) => {
+      const p = f.properties || {};
+      return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
+    });
+    const match =
+      (this.overridesFC?.features || []).find((f) => {
+        const p = f.properties || {};
+        return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
+      }) ||
+      this.buildingsData.find((f) => {
+        const p = f.properties || {};
+        return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
+      }) ||
+      gbMatch;
+
+    if (!match) return false;
+
+    const mergedProps = applyOverrideToProperties(match.properties || {}, this.curatedOverrides);
+    if (gbMatch && gbMatch.properties) {
+      mergedProps.good_brick_awards =
+        gbMatch.properties.good_brick_awards || mergedProps.good_brick_awards || null;
+      mergedProps.good_brick_summary =
+        gbMatch.properties.good_brick_summary || mergedProps.good_brick_summary || "";
+      mergedProps.good_brick_years =
+        gbMatch.properties.good_brick_years || mergedProps.good_brick_years || "";
+      if (!mergedProps.landmark_name && gbMatch.properties.landmark_name) {
+        mergedProps.landmark_name = gbMatch.properties.landmark_name;
+      }
+    }
+
+    if (flyTo && match.geometry) {
+      let lng = null;
+      let lat = null;
+      if (match.geometry.type === "Point" && Array.isArray(match.geometry.coordinates)) {
+        [lng, lat] = match.geometry.coordinates;
+      } else if (match.geometry.type === "Polygon" && match.geometry.coordinates?.[0]?.[0]) {
+        [lng, lat] = match.geometry.coordinates[0][0];
+      } else if (
+        match.geometry.type === "MultiPolygon" &&
+        match.geometry.coordinates?.[0]?.[0]?.[0]
+      ) {
+        [lng, lat] = match.geometry.coordinates[0][0][0];
+      }
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        this.flyToLocation({ lng, lat, zoom: 17.2 });
+      }
+    }
+
+    this.highlightAndInspectFeature(mergedProps, match.geometry || null);
+    return true;
+  }
+
   flyToLocation({ lng, lat, zoom = 16.5, pitch = null, hcadNum = "", featureId = "" }) {
     if (this.useCanvasFallback && this.canvasState) {
       this.canvasState.lng = lng;
@@ -1747,35 +1827,7 @@ export class AtlasMapController {
     }
 
     if (featureId || hcadNum) {
-      const gbMatch = (this.overlaysData?.good_brick_awards?.features || []).find((f) => {
-        const p = f.properties || {};
-        return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
-      });
-      const match =
-        (this.overridesFC?.features || []).find((f) => {
-          const p = f.properties || {};
-          return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
-        }) ||
-        this.buildingsData.find((f) => {
-          const p = f.properties || {};
-          return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
-        }) ||
-        gbMatch;
-      if (match) {
-        const mergedProps = applyOverrideToProperties(match.properties, this.curatedOverrides);
-        if (gbMatch && gbMatch.properties) {
-          mergedProps.good_brick_awards =
-            gbMatch.properties.good_brick_awards || mergedProps.good_brick_awards || null;
-          mergedProps.good_brick_summary =
-            gbMatch.properties.good_brick_summary || mergedProps.good_brick_summary || "";
-          mergedProps.good_brick_years =
-            gbMatch.properties.good_brick_years || mergedProps.good_brick_years || "";
-          if (!mergedProps.landmark_name && gbMatch.properties.landmark_name) {
-            mergedProps.landmark_name = gbMatch.properties.landmark_name;
-          }
-        }
-        this.highlightAndInspectFeature(mergedProps, match.geometry || null);
-      }
+      this.selectFeatureByIdOrHcad({ hcadNum, featureId, flyTo: false });
     }
   }
 

@@ -113,83 +113,495 @@ function layersMatchDefault(layers) {
   return Object.keys(def).every((k) => Boolean(layers[k]) === Boolean(def[k]));
 }
 
+const LAYER_KEY_TO_SHORT = {
+  goodBrickAwards: "good_brick",
+  landmarks: "landmarks",
+  historicDistricts: "historic_districts",
+  heritageDistricts: "heritage_districts",
+  nrhpDistricts: "nrhp_districts",
+  thcMarkers: "thc_markers",
+  annexations: "annexations",
+};
+
+const SHORT_TO_LAYER_KEY = {
+  goodbrickawards: "goodBrickAwards",
+  good_brick_awards: "goodBrickAwards",
+  good_brick: "goodBrickAwards",
+  goodbrick: "goodBrickAwards",
+  awards: "goodBrickAwards",
+  gba: "goodBrickAwards",
+  landmarks: "landmarks",
+  landmark: "landmarks",
+  lm: "landmarks",
+  historicdistricts: "historicDistricts",
+  historic_districts: "historicDistricts",
+  districts: "historicDistricts",
+  hd: "historicDistricts",
+  heritagedistricts: "heritageDistricts",
+  heritage_districts: "heritageDistricts",
+  heritage: "heritageDistricts",
+  nrhpdistricts: "nrhpDistricts",
+  nrhp_districts: "nrhpDistricts",
+  nrhp: "nrhpDistricts",
+  thcmarkers: "thcMarkers",
+  thc_markers: "thcMarkers",
+  thc: "thcMarkers",
+  markers: "thcMarkers",
+  annexations: "annexations",
+  annexation: "annexations",
+  annex: "annexations",
+};
+
+const BASEMAP_TO_SHORT = {
+  dark_archival: "dark",
+  warm_parchment: "light",
+  satellite: "satellite",
+};
+
+const SHORT_TO_BASEMAP = {
+  dark_archival: "dark_archival",
+  dark: "dark_archival",
+  archival: "dark_archival",
+  warm_parchment: "warm_parchment",
+  light: "warm_parchment",
+  parchment: "warm_parchment",
+  warm: "warm_parchment",
+  satellite: "satellite",
+  sat: "satellite",
+  aerial: "satellite",
+  imagery: "satellite",
+};
+
+const SHORT_TO_RENDER_MODE = {
+  buildings: "buildings",
+  footprints: "buildings",
+  on: "buildings",
+  "1": "buildings",
+  true: "buildings",
+  both: "both",
+  "buildings+parcels": "both",
+  parcels: "parcels",
+  lots: "parcels",
+  none: "none",
+  off: "none",
+  "0": "none",
+  false: "none",
+  hidden: "none",
+};
+
+const SHORT_TO_COLOR_MODE = {
+  year_built: "year_built",
+  age: "year_built",
+  year: "year_built",
+  preservation_status: "preservation_status",
+  status: "preservation_status",
+  preservation: "preservation_status",
+  use_category: "use_category",
+  use: "use_category",
+  landuse: "use_category",
+};
+
+export const SHARE_VIEW_PRESETS = [
+  {
+    id: "good_brick_light",
+    label: "Good Brick Award Winners Only (Light Map)",
+    description: "Warm Parchment basemap with building footprints turned off and Good Brick Award winners soloed.",
+    statePatch: {
+      basemap: "warm_parchment",
+      renderMode: "none",
+      extrude3D: false,
+      minYear: 1836,
+      maxYear: 2026,
+      selectedDecade: "all",
+      layers: {
+        goodBrickAwards: true,
+        landmarks: false,
+        historicDistricts: false,
+        heritageDistricts: false,
+        nrhpDistricts: false,
+        thcMarkers: false,
+        annexations: false,
+      },
+    },
+    viewport: { lat: 29.7585, lng: -95.3785, zoom: 12.6, pitch: 0 },
+  },
+  {
+    id: "good_brick_districts_dark",
+    label: "Good Brick Winners + Historic Districts (Dark Map)",
+    description: "Archival Dark basemap showing Good Brick Award recipients in context with City Historic Districts.",
+    statePatch: {
+      basemap: "dark_archival",
+      renderMode: "none",
+      extrude3D: false,
+      minYear: 1836,
+      maxYear: 2026,
+      selectedDecade: "all",
+      layers: {
+        goodBrickAwards: true,
+        landmarks: false,
+        historicDistricts: true,
+        heritageDistricts: false,
+        nrhpDistricts: false,
+        thcMarkers: false,
+        annexations: false,
+      },
+    },
+    viewport: { lat: 29.7662, lng: -95.3805, zoom: 12.8, pitch: 0 },
+  },
+  {
+    id: "landmarks_districts_light",
+    label: "Designated Landmarks & Historic Districts (Light Map)",
+    description: "Clean Parchment map highlighting Protected Landmarks, Landmarks, and Historic Districts without footprints.",
+    statePatch: {
+      basemap: "warm_parchment",
+      renderMode: "none",
+      extrude3D: false,
+      minYear: 1836,
+      maxYear: 2026,
+      selectedDecade: "all",
+      layers: {
+        goodBrickAwards: false,
+        landmarks: true,
+        historicDistricts: true,
+        heritageDistricts: true,
+        nrhpDistricts: true,
+        thcMarkers: false,
+        annexations: false,
+      },
+    },
+    viewport: { lat: 29.7662, lng: -95.3805, zoom: 13.0, pitch: 0 },
+  },
+  {
+    id: "pre1940_buildings_only",
+    label: "Pre-1940 Historic Structures Only",
+    description: "1836–1939 structures across Houston with all overlay pins hidden for pure architectural footprint clarity.",
+    statePatch: {
+      basemap: "dark_archival",
+      renderMode: "buildings",
+      colorMode: "year_built",
+      extrude3D: false,
+      minYear: 1836,
+      maxYear: 1939,
+      selectedDecade: "all",
+      layers: {
+        goodBrickAwards: false,
+        landmarks: false,
+        historicDistricts: false,
+        heritageDistricts: false,
+        nrhpDistricts: false,
+        thcMarkers: false,
+        annexations: false,
+      },
+    },
+    viewport: { lat: 29.7662, lng: -95.3805, zoom: 13.6, pitch: 0 },
+  },
+  {
+    id: "full_atlas_default",
+    label: "Full Building Atlas (Default View)",
+    description: "All 1.51M dated building footprints + Good Brick Awards, Landmarks, and Historic Districts.",
+    statePatch: {
+      basemap: "dark_archival",
+      renderMode: "buildings",
+      colorMode: "year_built",
+      extrude3D: false,
+      minYear: 1836,
+      maxYear: 2026,
+      selectedDecade: "all",
+      layers: { ...DEFAULT_FILTER_STATE.layers },
+    },
+    viewport: { lat: 29.7662, lng: -95.3805, zoom: 15.2, pitch: 0 },
+  },
+];
+
 /**
- * Serialize map viewport & filter state into a compact URL hash string.
+ * Serialize map viewport, filter state, and optional selected feature into URL parameters.
+ * Supports both compact hash strings and clean human-readable query URLs.
  */
-export function serializeStateToHash(state, viewport = null) {
+export function serializeStateToHash(state, viewport = null, options = {}) {
+  const {
+    includeViewport = true,
+    selectedHcad = "",
+    selectedId = "",
+    selectedFeatureId = "",
+    collapseSidebar = false,
+    humanReadable = false,
+  } = options;
+  const effectiveId = selectedFeatureId || selectedId;
   const params = new URLSearchParams();
-  if (viewport) {
-    if (typeof viewport.lat === "number") params.set("lat", viewport.lat.toFixed(5));
-    if (typeof viewport.lng === "number") params.set("lng", viewport.lng.toFixed(5));
-    if (typeof viewport.zoom === "number") params.set("z", viewport.zoom.toFixed(2));
-    if (typeof viewport.pitch === "number" && viewport.pitch > 0) {
-      params.set("pitch", Math.round(viewport.pitch).toString());
+
+  if (humanReadable) {
+    params.set("base", BASEMAP_TO_SHORT[state.basemap] || state.basemap);
+    params.set("buildings", state.renderMode === "none" ? "off" : state.renderMode);
+    if (state.layers) {
+      const activeShorts = Object.keys(DEFAULT_FILTER_STATE.layers)
+        .filter((k) => state.layers[k])
+        .map((k) => LAYER_KEY_TO_SHORT[k] || k);
+      params.set("layers", activeShorts.length ? activeShorts.join(",") : "none");
+    }
+  } else {
+    if (state.basemap !== "dark_archival") {
+      params.set("base", BASEMAP_TO_SHORT[state.basemap] || state.basemap);
+    }
+    if (state.renderMode !== "buildings") {
+      params.set("buildings", state.renderMode === "none" ? "off" : state.renderMode);
+    }
+    if (state.layers && !layersMatchDefault(state.layers)) {
+      const activeShorts = Object.keys(DEFAULT_FILTER_STATE.layers)
+        .filter((k) => state.layers[k])
+        .map((k) => LAYER_KEY_TO_SHORT[k] || k);
+      params.set("layers", activeShorts.length ? activeShorts.join(",") : "none");
     }
   }
+
   if (state.colorMode !== "year_built") params.set("color", state.colorMode);
   if (state.paletteStyle !== "archival") params.set("pal", state.paletteStyle);
-  if (state.renderMode !== "buildings") params.set("geom", state.renderMode);
-  if (state.basemap !== "dark_archival") params.set("base", state.basemap);
   if (state.extrude3D) params.set("3d", "1");
   if (state.minYear !== 1836) params.set("minY", String(state.minYear));
   if (state.maxYear !== 2026) params.set("maxY", String(state.maxYear));
   if (state.selectedDecade !== "all") params.set("dec", String(state.selectedDecade));
   if (!state.showUnknownYears) params.set("unk", "0");
+  if (state.syncAnnexationToTime) params.set("syncAnnex", "1");
   if (state.singleLayerMode) params.set("1x", "1");
-  if (state.layers && !layersMatchDefault(state.layers)) {
-    const activeKeys = Object.keys(DEFAULT_FILTER_STATE.layers).filter((k) => state.layers[k]);
-    params.set("ov", activeKeys.length ? activeKeys.join(",") : "none");
+
+  if (selectedHcad) {
+    params.set("hcad", String(selectedHcad).trim());
+  } else if (effectiveId) {
+    params.set("id", String(effectiveId).trim());
   }
-  return params.toString();
+
+  if (collapseSidebar) {
+    params.set("sidebar", "0");
+  }
+
+  if (includeViewport && viewport) {
+    if (typeof viewport.lat === "number") params.set("lat", viewport.lat.toFixed(5));
+    if (typeof viewport.lng === "number") params.set("lng", viewport.lng.toFixed(5));
+    if (typeof viewport.zoom === "number") params.set("z", viewport.zoom.toFixed(2));
+    if (typeof viewport.pitch === "number" && Math.round(viewport.pitch) > 0) {
+      params.set("pitch", Math.round(viewport.pitch).toString());
+    }
+  }
+
+  // Keep comma-separated layer lists unescaped for clean, readable URLs
+  return params.toString().replace(/%2C/gi, ",");
 }
 
 /**
- * Parse URL hash parameters into partial filter state + optional viewport.
+ * Build a complete shareable URL from the current origin + pathname.
  */
-export function parseHashToState(hashString) {
-  const clean = (hashString || "").replace(/^#/, "");
-  const params = new URLSearchParams(clean);
+export function buildShareableUrl(state, viewport = null, options = {}) {
+  const baseUrl =
+    options.baseOriginPath ||
+    (typeof window !== "undefined"
+      ? `${window.location.origin}${window.location.pathname}`
+      : "https://davemorris-gcp.github.io/houston-building-atlas/");
+  const useQuery = options.useQueryParams !== false && options.useQueryString !== false;
+  const serialized = serializeStateToHash(state, viewport, {
+    includeViewport: options.includeViewport !== false,
+    selectedHcad: options.selectedHcad || "",
+    selectedFeatureId: options.selectedFeatureId || options.selectedId || "",
+    collapseSidebar: Boolean(options.collapseSidebar),
+    humanReadable: true,
+  });
+  if (!serialized) return baseUrl;
+  return useQuery ? `${baseUrl}?${serialized}` : `${baseUrl}#${serialized}`;
+}
+
+/**
+ * Parse URL query string (`window.location.search`) and/or hash (`window.location.hash`)
+ * into partial filter state + optional viewport + optional selected feature.
+ */
+export function parseHashToState(hashString = "", searchString = "") {
+  const mergedParams = new URLSearchParams();
+  const cleanSearch = (
+    searchString || (typeof window !== "undefined" ? window.location.search : "")
+  ).replace(/^\?/, "");
+  const cleanHash = (hashString || "").replace(/^#/, "");
+
+  // Apply query params first, then hash params so either (or both) work seamlessly
+  for (const rawPart of [cleanSearch, cleanHash]) {
+    if (!rawPart) continue;
+    const sp = new URLSearchParams(rawPart);
+    for (const [k, v] of sp.entries()) {
+      mergedParams.set(k, v);
+    }
+  }
+
   const patch = {};
   let viewport = null;
+  let selection = null;
+  let collapseSidebar = null;
 
-  const lat = parseFloat(params.get("lat") || "");
-  const lng = parseFloat(params.get("lng") || "");
-  const z = parseFloat(params.get("z") || "");
-  const pitch = parseFloat(params.get("pitch") || "0");
+  // Check preset first (can be overridden by explicit params)
+  if (mergedParams.has("preset")) {
+    const presetId = (mergedParams.get("preset") || "").trim().toLowerCase();
+    const foundPreset = SHARE_VIEW_PRESETS.find((p) => p.id.toLowerCase() === presetId);
+    if (foundPreset) {
+      Object.assign(patch, foundPreset.statePatch);
+      if (foundPreset.statePatch.layers) {
+        patch.layers = { ...foundPreset.statePatch.layers };
+      }
+      if (foundPreset.viewport) {
+        viewport = { ...foundPreset.viewport };
+      }
+    }
+  }
+
+  const lat = parseFloat(mergedParams.get("lat") || "");
+  const lng = parseFloat(mergedParams.get("lng") || mergedParams.get("lon") || "");
+  const z = parseFloat(mergedParams.get("z") || mergedParams.get("zoom") || "");
+  const pitch = parseFloat(
+    mergedParams.get("pitch") || mergedParams.get("tilt") || (viewport ? String(viewport.pitch || 0) : "0")
+  );
   if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
     viewport = {
       lat,
       lng,
-      zoom: !Number.isNaN(z) ? z : 15.0,
+      zoom: !Number.isNaN(z) ? z : viewport?.zoom || 15.0,
       pitch: !Number.isNaN(pitch) ? pitch : 0,
     };
   }
 
-  if (params.has("color")) patch.colorMode = params.get("color");
-  if (params.has("pal")) patch.paletteStyle = params.get("pal");
-  if (params.has("geom")) {
-    const g = params.get("geom");
+  // Color Mode
+  const rawColor = (mergedParams.get("color") || mergedParams.get("colorMode") || "").trim().toLowerCase();
+  if (rawColor && SHORT_TO_COLOR_MODE[rawColor]) {
+    patch.colorMode = SHORT_TO_COLOR_MODE[rawColor];
+  }
+
+  // Palette Style
+  const rawPal = (mergedParams.get("pal") || mergedParams.get("palette") || "").trim().toLowerCase();
+  if (rawPal) {
+    patch.paletteStyle = rawPal === "classic" ? "classic_ee" : rawPal;
+  }
+
+  // Building Footprints / Render Mode (`geom` or `buildings` or `render`)
+  const rawGeom = (
+    mergedParams.get("buildings") ??
+    mergedParams.get("geom") ??
+    mergedParams.get("render") ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  if (rawGeom && SHORT_TO_RENDER_MODE[rawGeom]) {
+    const g = SHORT_TO_RENDER_MODE[rawGeom];
     patch.renderMode = g;
     if (g !== "none") patch.lastActiveRenderMode = g;
   }
-  if (params.has("base")) patch.basemap = params.get("base");
-  if (params.get("3d") === "1") patch.extrude3D = true;
-  if (params.has("minY")) patch.minYear = Math.max(1836, Math.min(2026, parseInt(params.get("minY"), 10) || 1836));
-  if (params.has("maxY")) patch.maxYear = Math.max(1836, Math.min(2026, parseInt(params.get("maxY"), 10) || 2026));
-  if (params.has("dec")) patch.selectedDecade = params.get("dec");
-  if (params.get("unk") === "0") patch.showUnknownYears = false;
-  if (params.get("1x") === "1") patch.singleLayerMode = true;
-  if (params.has("ov")) {
-    const rawOv = params.get("ov") || "";
-    const activeSet = new Set(rawOv === "none" ? [] : rawOv.split(",").filter(Boolean));
+
+  // Basemap (`base` or `basemap` or `map`)
+  const rawBase = (
+    mergedParams.get("base") ||
+    mergedParams.get("basemap") ||
+    mergedParams.get("map") ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  if (rawBase && SHORT_TO_BASEMAP[rawBase]) {
+    patch.basemap = SHORT_TO_BASEMAP[rawBase];
+  }
+
+  // 3D Extrusion
+  if (mergedParams.has("3d")) {
+    const v3d = (mergedParams.get("3d") || "").trim().toLowerCase();
+    patch.extrude3D = v3d === "1" || v3d === "true" || v3d === "on" || v3d === "yes";
+  }
+
+  // Timeline / Decade
+  const rawMinY = mergedParams.get("minY") || mergedParams.get("minYear");
+  if (rawMinY !== null && rawMinY !== undefined && rawMinY !== "") {
+    patch.minYear = Math.max(1836, Math.min(2026, parseInt(rawMinY, 10) || 1836));
+  }
+  const rawMaxY = mergedParams.get("maxY") || mergedParams.get("maxYear");
+  if (rawMaxY !== null && rawMaxY !== undefined && rawMaxY !== "") {
+    patch.maxYear = Math.max(1836, Math.min(2026, parseInt(rawMaxY, 10) || 2026));
+  }
+  const rawDec = mergedParams.get("dec") || mergedParams.get("decade");
+  if (rawDec) {
+    patch.selectedDecade = rawDec.replace(/s$/i, "");
+  }
+  if (mergedParams.get("unk") === "0" || mergedParams.get("unk") === "false") {
+    patch.showUnknownYears = false;
+  }
+  if (mergedParams.get("syncAnnex") === "1" || mergedParams.get("syncAnnex") === "true") {
+    patch.syncAnnexationToTime = true;
+  }
+  if (mergedParams.get("1x") === "1" || mergedParams.get("singleLayer") === "1") {
+    patch.singleLayerMode = true;
+  }
+
+  // Overlay Layers (`layers` or `ov` or `overlays`)
+  const rawOv =
+    mergedParams.get("layers") ?? mergedParams.get("ov") ?? mergedParams.get("overlays") ?? null;
+  if (rawOv !== null) {
+    const cleanOv = rawOv.trim().toLowerCase();
     const parsedLayers = {};
-    for (const k of Object.keys(DEFAULT_FILTER_STATE.layers)) {
-      parsedLayers[k] = activeSet.has(k);
+    if (cleanOv === "all") {
+      for (const k of Object.keys(DEFAULT_FILTER_STATE.layers)) {
+        parsedLayers[k] = true;
+      }
+    } else if (cleanOv === "none" || cleanOv === "off" || cleanOv === "0" || cleanOv === "") {
+      for (const k of Object.keys(DEFAULT_FILTER_STATE.layers)) {
+        parsedLayers[k] = false;
+      }
+    } else {
+      const tokens = cleanOv
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      const activeCanonical = new Set();
+      for (const tok of tokens) {
+        const mapped = SHORT_TO_LAYER_KEY[tok] || SHORT_TO_LAYER_KEY[tok.replace(/[^a-z0-9_]/g, "")];
+        if (mapped) {
+          activeCanonical.add(mapped);
+        } else if (tok in DEFAULT_FILTER_STATE.layers) {
+          activeCanonical.add(tok);
+        }
+      }
+      for (const k of Object.keys(DEFAULT_FILTER_STATE.layers)) {
+        parsedLayers[k] = activeCanonical.has(k);
+      }
     }
     patch.layers = parsedLayers;
   }
 
-  return { patch, viewport };
+  // Also allow individual overlay flags like `?good_brick=1` or `?landmarks=0`
+  for (const [alias, canonicalKey] of Object.entries(SHORT_TO_LAYER_KEY)) {
+    if (mergedParams.has(alias)) {
+      const val = (mergedParams.get(alias) || "").trim().toLowerCase();
+      const enabled = val === "1" || val === "true" || val === "on" || val === "yes";
+      const disabled = val === "0" || val === "false" || val === "off" || val === "no";
+      if (enabled || disabled) {
+        if (!patch.layers) {
+          patch.layers = { ...DEFAULT_FILTER_STATE.layers };
+        }
+        patch.layers[canonicalKey] = enabled;
+      }
+    }
+  }
+
+  // Optional Selected Property (`hcad` or `id` or `selected`)
+  const selHcad = (mergedParams.get("hcad") || "").trim();
+  const selId = (mergedParams.get("id") || mergedParams.get("selected") || "").trim();
+  if (selHcad || selId) {
+    selection = { hcadNum: selHcad, featureId: selId };
+  }
+
+  // Optional Sidebar collapsed state (`sidebar=0` / `embed=1`)
+  const rawSidebar = (mergedParams.get("sidebar") || "").trim().toLowerCase();
+  if (
+    rawSidebar === "0" ||
+    rawSidebar === "off" ||
+    rawSidebar === "collapsed" ||
+    mergedParams.get("embed") === "1"
+  ) {
+    collapseSidebar = true;
+  } else if (rawSidebar === "1" || rawSidebar === "on" || rawSidebar === "open") {
+    collapseSidebar = false;
+  }
+
+  return { patch, viewport, selection, collapseSidebar };
 }
 
 /**
