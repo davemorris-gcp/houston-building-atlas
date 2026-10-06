@@ -1626,6 +1626,52 @@ class HoustonAtlasApp {
         </div>`
       : "";
 
+    const selGeom = this.mapController ? this.mapController.selectedFeatureGeometry : null;
+    let geomLng = null;
+    let geomLat = null;
+    if (selGeom && selGeom.coordinates) {
+      if (selGeom.type === "Point" && Array.isArray(selGeom.coordinates)) {
+        [geomLng, geomLat] = selGeom.coordinates;
+      } else {
+        const ring =
+          selGeom.type === "Polygon"
+            ? selGeom.coordinates[0]
+            : selGeom.type === "MultiPolygon" && selGeom.coordinates[0]
+            ? selGeom.coordinates[0][0]
+            : null;
+        if (Array.isArray(ring) && ring.length > 0) {
+          let sumLng = 0;
+          let sumLat = 0;
+          let count = 0;
+          for (const pt of ring) {
+            if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+              sumLng += pt[0];
+              sumLat += pt[1];
+              count += 1;
+            }
+          }
+          if (count > 0) {
+            geomLng = sumLng / count;
+            geomLat = sumLat / count;
+          }
+        }
+      }
+    }
+    const vpFallback = this.mapController ? this.mapController.getCurrentViewport() : null;
+    const effLat = Number.isFinite(geomLat) ? geomLat : vpFallback?.lat ?? 29.7604;
+    const effLng = Number.isFinite(geomLng) ? geomLng : vpFallback?.lng ?? -95.3698;
+    const isCampusSubBuilding = String(props.id || "").includes("#");
+    const hasStreetNum = /^\d+\s+[A-Za-z0-9]/.test(String(props.address || "").trim());
+    const initialMapsQuery =
+      Number.isFinite(geomLat) && Number.isFinite(geomLng)
+        ? `${geomLat.toFixed(6)},${geomLng.toFixed(6)}`
+        : hasStreetNum && !isCampusSubBuilding
+        ? `${String(props.address).trim()}, Houston, TX`
+        : `${effLat.toFixed(6)},${effLng.toFixed(6)}`;
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      initialMapsQuery
+    )}`;
+
     content.innerHTML = `
       <div class="inspector-hero">
         <div class="inspector-badges">
@@ -1772,6 +1818,16 @@ class HoustonAtlasApp {
               </a>`
             : ""
         }
+        <a
+          href="${googleMapsUrl}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inspector-btn secondary"
+          id="btn-open-google-maps"
+          title="Open this building location on Google Maps &amp; Street View"
+        >
+          View on Google Maps &#8599;
+        </a>
         <button type="button" class="inspector-btn secondary" id="btn-copy-share-link">
           Copy Shareable Link
         </button>
@@ -1834,6 +1890,17 @@ class HoustonAtlasApp {
           if (metaRow && legalEl && metaParts.length > 0) {
             legalEl.textContent = metaParts.join(" · ");
             metaRow.style.display = "flex";
+          }
+
+          // Refine Google Maps link if geometry wasn't initially present
+          const btnGmaps = document.getElementById("btn-open-google-maps");
+          if (btnGmaps && !Number.isFinite(geomLat) && Array.isArray(rec.centroid)) {
+            const [cLng, cLat] = rec.centroid;
+            if (Number.isFinite(cLat) && Number.isFinite(cLng)) {
+              btnGmaps.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                `${cLat.toFixed(6)},${cLng.toFixed(6)}`
+              )}`;
+            }
           }
 
           // Enrich any missing Inspector fields with live HCAD record attributes
