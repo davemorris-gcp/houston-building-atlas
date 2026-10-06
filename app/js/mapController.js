@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005p";
+} from "./palettes.js?v=20261006b";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005p";
+} from "./filterStore.js?v=20261006b";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005p";
+} from "./curatedEdits.js?v=20261006b";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -146,10 +146,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261005h"),
-        fetch("public/data/parcels.geojson"),
-        fetch("public/data/overlays.json"),
-        fetch("public/data/pmtiles_manifest.json").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261006b"),
+        fetch("public/data/parcels.geojson?v=20261006b"),
+        fetch("public/data/overlays.json?v=20261006b"),
+        fetch("public/data/pmtiles_manifest.json?v=20261006b").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -947,10 +947,16 @@ export class AtlasMapController {
       const p = applyOverrideToProperties(top.properties || {}, this.curatedOverrides);
       if (
         (top.layer.id === "landmarks-circle" || top.layer.id === "good-brick-circle") &&
-        p.hcad_num
+        (p.hcad_num || p.building_id)
       ) {
-        // Check if there is an underlying building polygon at the clicked point, in overridesFC, or in buildingsData
+        // Check if there is an exact building_id override, an underlying building polygon at the clicked point, in overridesFC, or in buildingsData
         const bldHit =
+          (p.building_id &&
+            (this.overridesFC?.features || []).find(
+              (f) =>
+                f.properties &&
+                (f.properties.building_id === p.building_id || f.properties.id === p.building_id)
+            )) ||
           features.find(
             (f) =>
               f.layer.id !== "landmarks-circle" &&
@@ -961,12 +967,14 @@ export class AtlasMapController {
               f.layer.id !== "nrhp-districts-fill" &&
               f.layer.id !== "annexations-fill"
           ) ||
-          (this.overridesFC?.features || []).find(
-            (f) => f.properties && f.properties.hcad_num === p.hcad_num
-          ) ||
-          this.buildingsData.find(
-            (f) => f.properties && f.properties.hcad_num === p.hcad_num
-          );
+          (p.hcad_num &&
+            (this.overridesFC?.features || []).find(
+              (f) => f.properties && f.properties.hcad_num === p.hcad_num
+            )) ||
+          (p.hcad_num &&
+            this.buildingsData.find(
+              (f) => f.properties && f.properties.hcad_num === p.hcad_num
+            ));
         if (bldHit) {
           const baseBldProps = applyOverrideToProperties(
             bldHit.properties || {},
@@ -1404,13 +1412,25 @@ export class AtlasMapController {
       }
     }
 
-    // 5. Building Footprints (2D or 3D Isometric Extrusion)
+    // 5. Building Footprints & Curated Overrides (2D or 3D Isometric Extrusion)
     if (showBuildings) {
-      for (const feat of this.buildingsData) {
+      const seenCanvasIds = new Set();
+      const allBuildingFeatures = [
+        ...(this.overridesFC?.features || []),
+        ...this.buildingsData,
+      ];
+      for (const feat of allBuildingFeatures) {
         const p = feat.properties || {};
+        const fid = p.id || p.building_id || "";
+        if (fid) {
+          if (seenCanvasIds.has(fid)) continue;
+          seenCanvasIds.add(fid);
+        }
         if (!featureMatchesFilter(p, state)) continue;
         const color = evaluateFeatureColor(p, state.colorMode, state.paletteStyle);
-        const isSelected = this.selectedFeatureId && p.id === this.selectedFeatureId;
+        const isSelected =
+          this.selectedFeatureId &&
+          (p.id === this.selectedFeatureId || p.building_id === this.selectedFeatureId);
         const stroke = isSelected ? "#FDE047" : "rgba(15, 17, 21, 0.72)";
         const lw = isSelected ? 2.8 : 0.75;
         const extrudeM = state.extrude3D ? Number(p.height_m) || 5.0 : 0;
@@ -1755,19 +1775,43 @@ export class AtlasMapController {
 
   selectFeatureByIdOrHcad({ hcadNum = "", featureId = "", flyTo = false }) {
     if (!featureId && !hcadNum) return false;
-    const gbMatch = (this.overlaysData?.good_brick_awards?.features || []).find((f) => {
-      const p = f.properties || {};
-      return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
-    });
+    const gbFeatures = this.overlaysData?.good_brick_awards?.features || [];
+    const gbMatch =
+      (featureId &&
+        gbFeatures.find((f) => {
+          const p = f.properties || {};
+          return p.id === featureId || p.building_id === featureId;
+        })) ||
+      (hcadNum &&
+        gbFeatures.find((f) => {
+          const p = f.properties || {};
+          return p.hcad_num === hcadNum;
+        })) ||
+      null;
+
+    const targetBuildingId = gbMatch?.properties?.building_id || featureId || "";
+    const ovFeatures = this.overridesFC?.features || [];
     const match =
-      (this.overridesFC?.features || []).find((f) => {
-        const p = f.properties || {};
-        return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
-      }) ||
-      this.buildingsData.find((f) => {
-        const p = f.properties || {};
-        return (featureId && p.id === featureId) || (hcadNum && p.hcad_num === hcadNum);
-      }) ||
+      (targetBuildingId &&
+        ovFeatures.find((f) => {
+          const p = f.properties || {};
+          return p.id === targetBuildingId || p.building_id === targetBuildingId;
+        })) ||
+      (targetBuildingId &&
+        this.buildingsData.find((f) => {
+          const p = f.properties || {};
+          return p.id === targetBuildingId || p.building_id === targetBuildingId;
+        })) ||
+      (hcadNum &&
+        ovFeatures.find((f) => {
+          const p = f.properties || {};
+          return p.hcad_num === hcadNum;
+        })) ||
+      (hcadNum &&
+        this.buildingsData.find((f) => {
+          const p = f.properties || {};
+          return p.hcad_num === hcadNum;
+        })) ||
       gbMatch;
 
     if (!match) return false;
