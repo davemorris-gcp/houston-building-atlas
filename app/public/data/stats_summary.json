@@ -69,5 +69,7 @@
     "houston_buildings_ne.pmtiles",
     "houston_buildings_sw.pmtiles",
     "houston_buildings_se.pmtiles"
-  ]
+  ],
+  "total_good_brick_awards": 359,
+  "total_good_brick_sites": 344
 }

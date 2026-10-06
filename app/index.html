@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261005j" />
+  <link rel="stylesheet" href="styles/index.css?v=20261005k" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -321,6 +321,11 @@
 
         <div class="checkbox-stack">
           <label class="check-row">
+            <input type="checkbox" id="chk-layer-good-brick" checked />
+            <span class="swatch-dot" style="background:#F59E0B; border:1.5px solid #FEF3C7; box-shadow:0 0 6px rgba(245,158,11,0.75);"></span>
+            <span>Good Brick Award Winners (359)</span>
+          </label>
+          <label class="check-row">
             <input type="checkbox" id="chk-layer-landmarks" checked />
             <span class="swatch-dot" style="background:#E63946; border:1.5px solid #FFFBEB;"></span>
             <span>COH Landmarks &amp; Protected Landmarks (509)</span>
@@ -418,6 +423,9 @@
           <ul>
             <li>
               <strong>Harris Central Appraisal District (HCAD):</strong> Tax parcel boundaries, earliest structure completion year (<code>Yr_Impr</code> / <code>date_erect</code>), remodel year, total building square footage, land area, and land use classification.
+            </li>
+            <li>
+              <strong>Preservation Houston Good Brick Awards (1979–2026):</strong> All 359 site-based Good Brick Award, Martha Peterson Award, Stewart Title Award, and Pier &amp; Beam Future Landmark Award recipients since 1979, linked to HCAD parcels with award year(s), recipient, and project citation.
             </li>
             <li>
               <strong>City of Houston Planning &amp; Development (Historic Preservation Office):</strong> Authoritative Historic District parcel inventories (<code>Contributing</code> vs. <code>Non-Contributing</code> status), Designated Landmarks (<code>LM</code>), Protected Landmarks (<code>PLM</code>), Heritage Districts, National Register Districts, and Decade-by-Decade Annexation Boundaries.
@@ -661,6 +669,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261005j"></script>
+  <script type="module" src="js/app.js?v=20261005k"></script>
 </body>
 </html>

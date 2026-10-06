@@ -215,7 +215,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261005h", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261005k", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -269,6 +269,8 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
         ...existing,
         ...ov,
         geometry: ov.geometry || existing.geometry || null,
+        good_brick_awards: existing.good_brick_awards || null,
+        good_brick_summary: existing.good_brick_summary || "",
       };
     }
     sheetSyncStatus.sheetRowCount = syncedHcads.size;
@@ -372,7 +374,9 @@ export function applyOverrideToProperties(props, overridesMap) {
     year_built: verifiedYear,
     decade: computeNormalizedDecade(verifiedYear) || props.decade || 0,
     original_hcad_year: origYear,
-    is_curated_override: true,
+    is_curated_override: Boolean(
+      ov.source_type || ov.source_citation || ov.year_built || props.is_curated_override
+    ),
     is_building_override: Boolean(ov.is_building_override),
     replace_parcel_shards: Boolean(ov.replace_parcel_shards),
     use_category: ov.use_category || props.use_category || "Residential",
@@ -385,11 +389,13 @@ export function applyOverrideToProperties(props, overridesMap) {
     architect: ov.architect || props.architect || "",
     landmark_name: ov.landmark_name || props.landmark_name || "",
     landmark_type: ov.landmark_type || props.landmark_type || "",
-    source_type: ov.source_type || "Preservation Houston Archival Record",
-    source_citation: ov.source_citation || "",
-    source_url: ov.source_url || "",
-    verified_by: ov.verified_by || "Preservation Houston",
-    override_updated_at: ov.updated_at || "",
+    source_type: ov.source_type || props.source_type || "Preservation Houston Archival Record",
+    source_citation: ov.source_citation || props.source_citation || "",
+    source_url: ov.source_url || props.source_url || "",
+    verified_by: ov.verified_by || props.verified_by || "Preservation Houston",
+    override_updated_at: ov.updated_at || props.override_updated_at || "",
+    good_brick_awards: ov.good_brick_awards || props.good_brick_awards || null,
+    good_brick_summary: ov.good_brick_summary || props.good_brick_summary || "",
   };
 }
 
