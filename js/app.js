@@ -6,14 +6,14 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261005e";
+} from "./palettes.js?v=20261005f";
 import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "./filterStore.js?v=20261005e";
-import { AtlasMapController } from "./mapController.js?v=20261005e";
-import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005e";
+} from "./filterStore.js?v=20261005f";
+import { AtlasMapController } from "./mapController.js?v=20261005f";
+import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005f";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -24,7 +24,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261005e";
+} from "./curatedEdits.js?v=20261005f";
 
 class HoustonAtlasApp {
   constructor() {
@@ -799,8 +799,16 @@ class HoustonAtlasApp {
     const citeEl = document.getElementById("corr-citation");
     const feedbackEl = document.getElementById("corr-submit-feedback");
 
-    if (addrEl) addrEl.value = props.address || props.landmark_name || "Unknown Address";
-    if (hcadEl) hcadEl.value = props.hcad_num || "";
+    if (addrEl) addrEl.value = props.landmark_name || props.address || "Unknown Address";
+    if (hcadEl) {
+      const bldKey =
+        props.building_id && String(props.building_id).includes("#")
+          ? props.building_id
+          : props.id && String(props.id).includes("#")
+          ? props.id
+          : props.hcad_num || "";
+      hcadEl.value = bldKey;
+    }
     if (currYrEl) currYrEl.value = props.original_hcad_year || props.year_built || "";
     if (suggYrEl) suggYrEl.value = props.is_curated_override ? props.year_built : "";
     if (distEl) distEl.value = props.historic_district || "";
