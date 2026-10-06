@@ -18,6 +18,7 @@ export const DEFAULT_FILTER_STATE = {
   playSpeed: 1, // 1 | 2 | 5
   stepYears: 5, // 1 | 5 | 10
   layers: {
+    goodBrickAwards: true,
     landmarks: true,
     historicDistricts: true,
     heritageDistricts: true,
