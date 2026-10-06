@@ -6,14 +6,14 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261005n";
+} from "./palettes.js?v=20261005o";
 import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "./filterStore.js?v=20261005n";
-import { AtlasMapController } from "./mapController.js?v=20261005n";
-import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005n";
+} from "./filterStore.js?v=20261005o";
+import { AtlasMapController } from "./mapController.js?v=20261005o";
+import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005o";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -24,7 +24,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261005n";
+} from "./curatedEdits.js?v=20261005o";
 
 class HoustonAtlasApp {
   constructor() {
@@ -1372,9 +1372,32 @@ class HoustonAtlasApp {
 
     const yr = Number(props.year_built) || 0;
     const currentYear = 2026;
-    const ageText = yr >= 1836 ? `${currentYear - yr} yrs old` : "Date unrecorded in HCAD";
-    const yearDisplay = yr >= 1836 ? `Built ${yr}` : "Undated / Vacant";
+    const isCircaEst =
+      props.year_source === "subdivision_median" || props.year_source === "blockface_median";
+    const ageText =
+      yr >= 1836
+        ? isCircaEst
+          ? `~${currentYear - yr} yrs old (Est.)`
+          : `${currentYear - yr} yrs old`
+        : "Date unrecorded in HCAD";
+    const yearDisplay =
+      yr >= 1836 ? (isCircaEst ? `Circa ${yr}` : `Built ${yr}`) : "Undated / Vacant";
     const yearColor = getYearColorHex(yr, this.filterStore.getState().paletteStyle);
+
+    const YEAR_SOURCE_LABELS = {
+      curated_landmark: "Preservation Houston Curated Landmark & Campus Record",
+      hcad_extra_feature: "HCAD Extra Features / Improvement Table (act_yr / eff_yr)",
+      hcad_tieback: "HCAD Multi-Parcel Tieback (parcel_tieback.txt)",
+      adjacent_owner: "Spatial Same-Owner / Same-Address Contiguous Parcel",
+      campus_contiguity: "Institutional Campus / THC Historical Marker Record",
+      hcad_permit: "HCAD Structural Building Permit Record (permits.txt)",
+      hcad_deed: "HCAD Historical Deed Record (deeds.txt)",
+      subdivision_median: "Circa Estimate — HCAD Subdivision / Street Median",
+      blockface_median: "Circa Estimate — Nearest Block-Face Structure Median",
+    };
+    const yearProvenanceLabel = props.is_curated_override
+      ? `Verified by ${props.verified_by || "Preservation Houston"} (${props.source_type || "Archival Record"})`
+      : YEAR_SOURCE_LABELS[props.year_source] || "HCAD Real Property Building Record (date_erected / yr_impr)";
 
     const title =
       props.landmark_name ||
@@ -1519,6 +1542,10 @@ class HoustonAtlasApp {
         <div class="inspector-cell">
           <span class="cell-label">Remodel Year</span>
           <span class="cell-value mono">${Number(props.remodel_year) > 1836 ? props.remodel_year : "None recorded"}</span>
+        </div>
+        <div class="inspector-cell full">
+          <span class="cell-label">Construction Date Provenance</span>
+          <span class="cell-value">${yearProvenanceLabel}</span>
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Architectural Style / Building Class</span>

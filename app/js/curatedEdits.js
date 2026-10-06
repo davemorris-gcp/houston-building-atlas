@@ -215,7 +215,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261005n", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261005o", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
