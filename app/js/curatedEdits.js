@@ -133,11 +133,16 @@ export function parseOverridesFromSheetRows(rows) {
       continue;
     }
 
-    const rawHcad = String(
-      row.hcad_num || row.hcad_account || row.account || row.acct || ""
-    ).replace(/\D/g, "");
+    const rawIdField = String(
+      row.building_id || row.hcad_num || row.hcad_account || row.account || row.acct || ""
+    ).trim();
+    const rawHcad = rawIdField.split("#")[0].replace(/\D/g, "");
     if (!rawHcad) continue;
     const hcadNum = rawHcad.length < 13 ? rawHcad.padStart(13, "0") : rawHcad;
+    const hasBuildingSuffix = rawIdField.includes("#");
+    const overrideKey = hasBuildingSuffix
+      ? `${hcadNum}#${rawIdField.split("#").slice(1).join("#")}`
+      : hcadNum;
 
     const yrRaw = Number(
       row.year_built || row.verified_year_built || row.suggested_year_built || row.corrected_year || 0
@@ -156,8 +161,11 @@ export function parseOverridesFromSheetRows(rows) {
       }
     }
 
-    overrides[hcadNum] = {
+    overrides[overrideKey] = {
+      id: overrideKey,
+      building_id: overrideKey,
       hcad_num: hcadNum,
+      is_building_override: hasBuildingSuffix,
       address: String(row.address || row.street_address || "").trim().toUpperCase(),
       historic_district: String(row.historic_district || row.district || "").trim(),
       contributing: String(row.contributing || row.contributing_status || "").trim(),
@@ -207,7 +215,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261005e", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261005f", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -333,23 +341,43 @@ export function saveGoogleSheetEndpoints({ csvUrl, webhookUrl }) {
 }
 
 /**
- * Merge curated override fields onto a feature's properties object if its `hcad_num` matches.
+ * Merge curated override fields onto a feature's properties object if its `id` (`building_id`)
+ * or `hcad_num` matches.
  */
 export function applyOverrideToProperties(props, overridesMap) {
   if (!props || !overridesMap) return props;
+  const featId = String(props.id || props.building_id || "").trim();
   const hcadNum = String(props.hcad_num || "").trim();
-  if (!hcadNum || !overridesMap[hcadNum]) return props;
 
-  const ov = overridesMap[hcadNum];
+  let ov = null;
+  if (featId && overridesMap[featId]) {
+    ov = overridesMap[featId];
+  } else if (
+    hcadNum &&
+    overridesMap[hcadNum] &&
+    !overridesMap[hcadNum].is_building_override
+  ) {
+    ov = overridesMap[hcadNum];
+  }
+  if (!ov) return props;
+
   const origYear = Number(ov.original_hcad_year) || Number(props.year_built) || 0;
   const verifiedYear = Number(ov.year_built) || Number(props.year_built) || 0;
 
   return {
     ...props,
+    id: ov.id || props.id || hcadNum,
+    building_id: ov.building_id || ov.id || props.building_id || "",
+    hcad_num: ov.hcad_num || hcadNum,
     year_built: verifiedYear,
     decade: computeNormalizedDecade(verifiedYear) || props.decade || 0,
     original_hcad_year: origYear,
     is_curated_override: true,
+    is_building_override: Boolean(ov.is_building_override),
+    replace_parcel_shards: Boolean(ov.replace_parcel_shards),
+    use_category: ov.use_category || props.use_category || "Residential",
+    stories: Number(ov.stories) || Number(props.stories) || 1,
+    height_m: Number(ov.height_m) || Number(props.height_m) || 4.5,
     address: ov.address || props.address || "",
     historic_district: ov.historic_district || props.historic_district || "",
     contributing: ov.contributing || props.contributing || "",
