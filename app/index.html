@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261005l" />
+  <link rel="stylesheet" href="styles/index.css?v=20261005m" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -296,15 +296,18 @@
 
         <div class="sub-control-row">
           <span class="sub-label">Footprint Mode:</span>
-          <div class="segmented-group full-width">
-            <button type="button" class="seg-btn active" id="btn-geom-buildings" data-render-mode="buildings">
+          <div class="segmented-group full-width" role="group" aria-label="Building and Parcel Footprint Mode">
+            <button type="button" class="seg-btn active" id="btn-geom-buildings" data-render-mode="buildings" title="Show Building Footprints">
               Buildings
             </button>
-            <button type="button" class="seg-btn" id="btn-geom-both" data-render-mode="both">
-              Buildings + Lots
+            <button type="button" class="seg-btn" id="btn-geom-both" data-render-mode="both" title="Show Building Footprints + Tax Parcel Lots">
+              Both
             </button>
-            <button type="button" class="seg-btn" id="btn-geom-parcels" data-render-mode="parcels">
-              Tax Parcels
+            <button type="button" class="seg-btn" id="btn-geom-parcels" data-render-mode="parcels" title="Show Tax Parcels Only">
+              Parcels
+            </button>
+            <button type="button" class="seg-btn seg-btn-off" id="btn-geom-none" data-render-mode="none" title="Turn off all building &amp; parcel footprints">
+              Off
             </button>
           </div>
         </div>
@@ -313,48 +316,171 @@
         <div class="legend-grid" id="legend-items"></div>
       </section>
 
-      <!-- 3. Historic Preservation & Civic Overlays -->
+      <!-- 3. Map Layers, Building Footprints & Civic Overlays -->
       <section class="panel-card">
-        <div class="panel-header">
-          <h2 class="panel-title">Preservation &amp; Civic Overlays</h2>
+        <div class="panel-header layer-panel-header">
+          <h2 class="panel-title">Map Layers &amp; Overlays</h2>
+          <div class="layer-header-actions" role="group" aria-label="Overlay Layer Selection Mode">
+            <button
+              type="button"
+              class="layer-mode-toggle"
+              id="btn-single-layer-mode"
+              title="Toggle Single-Layer Mode: when active, clicking any overlay turns on only that single layer at a time"
+            >
+              1-at-a-Time
+            </button>
+            <button
+              type="button"
+              class="layer-header-btn"
+              id="btn-overlays-all"
+              title="Turn on all preservation &amp; civic overlays"
+            >
+              All
+            </button>
+            <button
+              type="button"
+              class="layer-header-btn"
+              id="btn-overlays-none"
+              title="Turn off all preservation &amp; civic overlays"
+            >
+              None
+            </button>
+          </div>
         </div>
 
-        <div class="checkbox-stack">
-          <label class="check-row">
-            <input type="checkbox" id="chk-layer-good-brick" checked />
-            <span class="swatch-dot" style="background:#F59E0B; border:1.5px solid #FEF3C7; box-shadow:0 0 6px rgba(245,158,11,0.75);"></span>
-            <span>Good Brick Award Winners (359)</span>
+        <!-- Master Base Layer Toggle: Building Footprints (1.51M) -->
+        <div class="layer-master-card" id="master-buildings-card">
+          <label class="check-row layer-row-main" for="chk-layer-buildings">
+            <input type="checkbox" id="chk-layer-buildings" checked />
+            <span class="swatch-spectrum" aria-hidden="true"></span>
+            <span class="layer-row-text">
+              <strong>Building Footprints</strong>
+              <small id="buildings-layer-sublabel">1.51M structures &middot; Visible</small>
+            </span>
           </label>
-          <label class="check-row">
-            <input type="checkbox" id="chk-layer-landmarks" checked />
-            <span class="swatch-dot" style="background:#E63946; border:1.5px solid #FFFBEB;"></span>
-            <span>COH Landmarks &amp; Protected Landmarks (509)</span>
-          </label>
-          <label class="check-row">
-            <input type="checkbox" id="chk-layer-historic-districts" checked />
-            <span class="swatch-line" style="border-color:#38BDF8;"></span>
-            <span>City of Houston Historic Districts (22)</span>
-          </label>
-          <label class="check-row">
-            <input type="checkbox" id="chk-layer-heritage-districts" checked />
-            <span class="swatch-line" style="border-color:#34D399;"></span>
-            <span>Freedmen's Town Heritage District</span>
-          </label>
-          <label class="check-row">
-            <input type="checkbox" id="chk-layer-nrhp-districts" />
-            <span class="swatch-line dashed" style="border-color:#C084FC;"></span>
-            <span>National Register (NRHP) Districts</span>
-          </label>
-          <label class="check-row">
-            <input type="checkbox" id="chk-layer-thc-markers" />
-            <span class="swatch-dot" style="background:#C084FC;"></span>
-            <span>Texas Historical Commission Markers (596)</span>
-          </label>
-          <label class="check-row">
-            <input type="checkbox" id="chk-layer-annexations" />
-            <span class="swatch-line dashed" style="border-color:#F59E0B;"></span>
-            <span>Houston Annexation History by Decade (1836–2020)</span>
-          </label>
+          <button
+            type="button"
+            class="layer-solo-btn"
+            id="btn-solo-buildings"
+            title="Show only Building Footprints (turn off all overlay pins &amp; district boundaries)"
+          >
+            Only
+          </button>
+        </div>
+
+        <!-- Preservation & Civic Overlay Layers -->
+        <div class="checkbox-stack layer-list" id="overlay-layer-list">
+          <div class="layer-item-row" data-layer-key="goodBrickAwards">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-good-brick" checked />
+              <span class="swatch-dot" style="background:#F59E0B; border:1.5px solid #FEF3C7; box-shadow:0 0 6px rgba(245,158,11,0.75);"></span>
+              <span class="layer-name">Good Brick Award Winners (359)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="goodBrickAwards"
+              title="Show only Good Brick Award Winners (click again to restore previous layers)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="landmarks">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-landmarks" checked />
+              <span class="swatch-dot" style="background:#E63946; border:1.5px solid #FFFBEB;"></span>
+              <span class="layer-name">COH Landmarks &amp; Protected (509)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="landmarks"
+              title="Show only COH Landmarks &amp; Protected Landmarks (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="historicDistricts">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-historic-districts" checked />
+              <span class="swatch-line" style="border-color:#38BDF8;"></span>
+              <span class="layer-name">COH Historic Districts (22)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="historicDistricts"
+              title="Show only City of Houston Historic Districts (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="heritageDistricts">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-heritage-districts" checked />
+              <span class="swatch-line" style="border-color:#34D399;"></span>
+              <span class="layer-name">Freedmen's Town Heritage District</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="heritageDistricts"
+              title="Show only Freedmen's Town Heritage District (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="nrhpDistricts">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-nrhp-districts" />
+              <span class="swatch-line dashed" style="border-color:#C084FC;"></span>
+              <span class="layer-name">National Register (NRHP) Districts</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="nrhpDistricts"
+              title="Show only National Register (NRHP) Districts (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="thcMarkers">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-thc-markers" />
+              <span class="swatch-dot" style="background:#C084FC;"></span>
+              <span class="layer-name">Texas Historical Markers (596)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="thcMarkers"
+              title="Show only Texas Historical Commission Markers (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="annexations">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-annexations" />
+              <span class="swatch-line dashed" style="border-color:#F59E0B;"></span>
+              <span class="layer-name">Annexation History (1836–2020)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="annexations"
+              title="Show only Houston Annexation History by Decade (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
         </div>
 
         <div class="dataset-footer">
@@ -669,6 +795,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261005l"></script>
+  <script type="module" src="js/app.js?v=20261005m"></script>
 </body>
 </html>

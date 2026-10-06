@@ -6,14 +6,14 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261005l";
+} from "./palettes.js?v=20261005m";
 import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "./filterStore.js?v=20261005l";
-import { AtlasMapController } from "./mapController.js?v=20261005l";
-import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005l";
+} from "./filterStore.js?v=20261005m";
+import { AtlasMapController } from "./mapController.js?v=20261005m";
+import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005m";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -24,7 +24,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261005l";
+} from "./curatedEdits.js?v=20261005m";
 
 class HoustonAtlasApp {
   constructor() {
@@ -191,8 +191,13 @@ class HoustonAtlasApp {
     const btn3d = document.getElementById("btn-toggle-3d");
     if (btn3d) {
       btn3d.addEventListener("click", () => {
-        const next3D = !this.filterStore.getState().extrude3D;
-        this.filterStore.setState({ extrude3D: next3D });
+        const curState = this.filterStore.getState();
+        const next3D = !curState.extrude3D;
+        const patch = { extrude3D: next3D };
+        if (next3D && curState.renderMode === "none") {
+          patch.renderMode = curState.lastActiveRenderMode || "buildings";
+        }
+        this.filterStore.setState(patch);
         this.mapController.toggle3DPitch(next3D);
       });
     }
@@ -202,7 +207,12 @@ class HoustonAtlasApp {
       btn.addEventListener("click", () => {
         const targetPitch = parseInt(btn.getAttribute("data-tilt-pitch"), 10) || 0;
         const enable3D = targetPitch > 0;
-        this.filterStore.setState({ extrude3D: enable3D });
+        const curState = this.filterStore.getState();
+        const patch = { extrude3D: enable3D };
+        if (enable3D && curState.renderMode === "none") {
+          patch.renderMode = curState.lastActiveRenderMode || "buildings";
+        }
+        this.filterStore.setState(patch);
         this.mapController.setCameraPitch(targetPitch, enable3D ? null : 0);
       });
     });
@@ -380,7 +390,43 @@ class HoustonAtlasApp {
       });
     }
 
-    // Overlay Layer Toggles
+    // Master Building Footprints Layer Toggle & Solo Button
+    const chkBuildings = document.getElementById("chk-layer-buildings");
+    if (chkBuildings) {
+      chkBuildings.addEventListener("change", (e) => {
+        this.filterStore.toggleBuildingsLayer(e.target.checked);
+      });
+    }
+    const btnSoloBuildings = document.getElementById("btn-solo-buildings");
+    if (btnSoloBuildings) {
+      btnSoloBuildings.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.filterStore.soloBuildingsOnly();
+      });
+    }
+
+    // Single-Layer Mode (1-at-a-Time) & All / None Quick Actions
+    const btnSingleLayerMode = document.getElementById("btn-single-layer-mode");
+    if (btnSingleLayerMode) {
+      btnSingleLayerMode.addEventListener("click", () => {
+        this.filterStore.toggleSingleLayerMode();
+      });
+    }
+    const btnOverlaysAll = document.getElementById("btn-overlays-all");
+    if (btnOverlaysAll) {
+      btnOverlaysAll.addEventListener("click", () => {
+        this.filterStore.setAllOverlays(true);
+      });
+    }
+    const btnOverlaysNone = document.getElementById("btn-overlays-none");
+    if (btnOverlaysNone) {
+      btnOverlaysNone.addEventListener("click", () => {
+        this.filterStore.setAllOverlays(false);
+      });
+    }
+
+    // Overlay Layer Toggles & Per-Row Solo Buttons
     const layerCheckboxes = [
       ["chk-layer-good-brick", "goodBrickAwards"],
       ["chk-layer-landmarks", "landmarks"],
@@ -398,6 +444,17 @@ class HoustonAtlasApp {
         });
       }
     }
+
+    document.querySelectorAll("[data-solo-layer]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const layerKey = btn.getAttribute("data-solo-layer");
+        if (layerKey) {
+          this.filterStore.soloOverlayLayer(layerKey);
+        }
+      });
+    });
 
     // Search Input & Autocomplete
     const searchInput = document.getElementById("search-input");
@@ -1063,7 +1120,51 @@ class HoustonAtlasApp {
       this._renderDecadeHistogram(this.lastViewportStats.decadeCounts);
     }
 
-    // Layer Checkboxes
+    // Master Building Footprints Card & Toggle
+    const buildingsVisible = state.renderMode !== "none";
+    const chkBuildings = document.getElementById("chk-layer-buildings");
+    if (chkBuildings) {
+      chkBuildings.checked = buildingsVisible;
+    }
+    const buildingsSublabel = document.getElementById("buildings-layer-sublabel");
+    if (buildingsSublabel) {
+      if (!buildingsVisible) {
+        buildingsSublabel.textContent = "Hidden — showing overlays only";
+      } else if (state.renderMode === "both") {
+        buildingsSublabel.textContent = "1.51M structures + lots · Visible";
+      } else if (state.renderMode === "parcels") {
+        buildingsSublabel.textContent = "Tax parcels only · Visible";
+      } else {
+        buildingsSublabel.textContent = "1.51M structures · Visible";
+      }
+    }
+
+    const activeOverlayKeys = Object.entries(state.layers || {})
+      .filter(([, v]) => Boolean(v))
+      .map(([k]) => k);
+    const allOverlaysOff = activeOverlayKeys.length === 0;
+    const buildingsOnlyActive = buildingsVisible && allOverlaysOff;
+
+    const masterBuildingsCard = document.getElementById("master-buildings-card");
+    if (masterBuildingsCard) {
+      masterBuildingsCard.classList.toggle("is-hidden-layer", !buildingsVisible);
+      masterBuildingsCard.classList.toggle("is-soloed", buildingsOnlyActive);
+    }
+
+    const btnSoloBuildings = document.getElementById("btn-solo-buildings");
+    if (btnSoloBuildings) {
+      btnSoloBuildings.classList.toggle("active", buildingsOnlyActive);
+      btnSoloBuildings.textContent = buildingsOnlyActive ? "Only ✓" : "Only";
+    }
+
+    // Single-Layer Mode Toggle
+    const btnSingleLayerMode = document.getElementById("btn-single-layer-mode");
+    if (btnSingleLayerMode) {
+      btnSingleLayerMode.classList.toggle("active", Boolean(state.singleLayerMode));
+      btnSingleLayerMode.textContent = state.singleLayerMode ? "1-at-a-Time: ON" : "1-at-a-Time";
+    }
+
+    // Overlay Layer Checkboxes & Per-Row Solo State
     const mapLayerIds = {
       "chk-layer-good-brick": state.layers.goodBrickAwards,
       "chk-layer-landmarks": state.layers.landmarks,
@@ -1077,6 +1178,20 @@ class HoustonAtlasApp {
       const el = document.getElementById(id);
       if (el) el.checked = Boolean(checked);
     }
+
+    document.querySelectorAll(".layer-item-row[data-layer-key]").forEach((row) => {
+      const key = row.getAttribute("data-layer-key");
+      const isChecked = Boolean(state.layers[key]);
+      const isSoloed = isChecked && activeOverlayKeys.length === 1;
+      row.classList.toggle("is-unchecked", !isChecked);
+      row.classList.toggle("is-soloed", isSoloed);
+
+      const soloBtn = row.querySelector("[data-solo-layer]");
+      if (soloBtn) {
+        soloBtn.classList.toggle("active", isSoloed);
+        soloBtn.textContent = isSoloed ? "Soloed ✓" : "Solo";
+      }
+    });
   }
 
   _syncTiltControls(pitch) {

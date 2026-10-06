@@ -6,7 +6,8 @@
 export const DEFAULT_FILTER_STATE = {
   colorMode: "year_built", // 'year_built' | 'preservation_status' | 'use_category'
   paletteStyle: "archival", // 'archival' | 'classic_ee'
-  renderMode: "buildings", // 'buildings' | 'both' | 'parcels'
+  renderMode: "buildings", // 'buildings' | 'both' | 'parcels' | 'none'
+  lastActiveRenderMode: "buildings", // remembers 'buildings' | 'both' | 'parcels' when buildings are toggled off
   basemap: "dark_archival", // 'dark_archival' | 'warm_parchment' | 'satellite'
   extrude3D: false,
   minYear: 1836,
@@ -17,6 +18,8 @@ export const DEFAULT_FILTER_STATE = {
   isPlaying: false,
   playSpeed: 1, // 1 | 2 | 5
   stepYears: 5, // 1 | 5 | 10
+  singleLayerMode: false, // when true, clicking any overlay activates only that single overlay
+  preSoloLayers: null, // snapshot of overlay visibility before Solo was clicked
   layers: {
     goodBrickAwards: true,
     landmarks: true,
@@ -104,6 +107,12 @@ export function buildAnnexationFilterExpression(state) {
   return ["all"];
 }
 
+function layersMatchDefault(layers) {
+  if (!layers) return true;
+  const def = DEFAULT_FILTER_STATE.layers;
+  return Object.keys(def).every((k) => Boolean(layers[k]) === Boolean(def[k]));
+}
+
 /**
  * Serialize map viewport & filter state into a compact URL hash string.
  */
@@ -126,6 +135,11 @@ export function serializeStateToHash(state, viewport = null) {
   if (state.maxYear !== 2026) params.set("maxY", String(state.maxYear));
   if (state.selectedDecade !== "all") params.set("dec", String(state.selectedDecade));
   if (!state.showUnknownYears) params.set("unk", "0");
+  if (state.singleLayerMode) params.set("1x", "1");
+  if (state.layers && !layersMatchDefault(state.layers)) {
+    const activeKeys = Object.keys(DEFAULT_FILTER_STATE.layers).filter((k) => state.layers[k]);
+    params.set("ov", activeKeys.length ? activeKeys.join(",") : "none");
+  }
   return params.toString();
 }
 
@@ -153,13 +167,27 @@ export function parseHashToState(hashString) {
 
   if (params.has("color")) patch.colorMode = params.get("color");
   if (params.has("pal")) patch.paletteStyle = params.get("pal");
-  if (params.has("geom")) patch.renderMode = params.get("geom");
+  if (params.has("geom")) {
+    const g = params.get("geom");
+    patch.renderMode = g;
+    if (g !== "none") patch.lastActiveRenderMode = g;
+  }
   if (params.has("base")) patch.basemap = params.get("base");
   if (params.get("3d") === "1") patch.extrude3D = true;
   if (params.has("minY")) patch.minYear = Math.max(1836, Math.min(2026, parseInt(params.get("minY"), 10) || 1836));
   if (params.has("maxY")) patch.maxYear = Math.max(1836, Math.min(2026, parseInt(params.get("maxY"), 10) || 2026));
   if (params.has("dec")) patch.selectedDecade = params.get("dec");
   if (params.get("unk") === "0") patch.showUnknownYears = false;
+  if (params.get("1x") === "1") patch.singleLayerMode = true;
+  if (params.has("ov")) {
+    const rawOv = params.get("ov") || "";
+    const activeSet = new Set(rawOv === "none" ? [] : rawOv.split(",").filter(Boolean));
+    const parsedLayers = {};
+    for (const k of Object.keys(DEFAULT_FILTER_STATE.layers)) {
+      parsedLayers[k] = activeSet.has(k);
+    }
+    patch.layers = parsedLayers;
+  }
 
   return { patch, viewport };
 }
@@ -271,9 +299,14 @@ export function createFilterStore(initialOverrides = {}) {
 
   function setState(partial) {
     const nextLayers = partial.layers ? { ...state.layers, ...partial.layers } : state.layers;
+    const nextLastActive =
+      partial.renderMode && partial.renderMode !== "none"
+        ? partial.renderMode
+        : partial.lastActiveRenderMode || state.lastActiveRenderMode || "buildings";
     state = {
       ...state,
       ...partial,
+      lastActiveRenderMode: nextLastActive,
       layers: nextLayers,
     };
     if (state.minYear > state.maxYear) {
@@ -287,12 +320,134 @@ export function createFilterStore(initialOverrides = {}) {
   }
 
   function setLayerVisibility(layerKey, visible) {
+    if (state.singleLayerMode && visible) {
+      const nextLayers = {};
+      for (const k of Object.keys(state.layers)) {
+        nextLayers[k] = k === layerKey;
+      }
+      setState({ layers: nextLayers, preSoloLayers: null });
+      return;
+    }
     setState({
       layers: {
         ...state.layers,
         [layerKey]: Boolean(visible),
       },
+      preSoloLayers: null,
     });
+  }
+
+  function toggleBuildingsLayer(forceVisible = null) {
+    const currentlyVisible = state.renderMode !== "none";
+    const targetVisible = forceVisible !== null ? Boolean(forceVisible) : !currentlyVisible;
+    if (targetVisible) {
+      const nextMode =
+        state.lastActiveRenderMode && state.lastActiveRenderMode !== "none"
+          ? state.lastActiveRenderMode
+          : "buildings";
+      setState({ renderMode: nextMode });
+    } else {
+      const savedMode =
+        state.renderMode !== "none" ? state.renderMode : state.lastActiveRenderMode || "buildings";
+      setState({
+        renderMode: "none",
+        lastActiveRenderMode: savedMode,
+      });
+    }
+  }
+
+  function soloOverlayLayer(layerKey) {
+    const keys = Object.keys(state.layers);
+    const isCurrentlySoloed = keys.every((k) =>
+      k === layerKey ? Boolean(state.layers[k]) : !state.layers[k]
+    );
+    if (isCurrentlySoloed) {
+      const restored =
+        state.preSoloLayers && Object.values(state.preSoloLayers).some(Boolean)
+          ? { ...state.preSoloLayers }
+          : { ...DEFAULT_FILTER_STATE.layers };
+      setState({
+        layers: restored,
+        preSoloLayers: null,
+      });
+    } else {
+      const activeCount = keys.filter((k) => state.layers[k]).length;
+      const snapshot =
+        activeCount !== 1 || !state.preSoloLayers ? { ...state.layers } : state.preSoloLayers;
+      const nextLayers = {};
+      for (const k of keys) {
+        nextLayers[k] = k === layerKey;
+      }
+      setState({
+        layers: nextLayers,
+        preSoloLayers: snapshot,
+      });
+    }
+  }
+
+  function soloBuildingsOnly() {
+    const keys = Object.keys(state.layers);
+    const allOverlaysOff = keys.every((k) => !state.layers[k]);
+    const buildingsVisible = state.renderMode !== "none";
+    if (buildingsVisible && allOverlaysOff) {
+      const restored =
+        state.preSoloLayers && Object.values(state.preSoloLayers).some(Boolean)
+          ? { ...state.preSoloLayers }
+          : { ...DEFAULT_FILTER_STATE.layers };
+      setState({
+        layers: restored,
+        preSoloLayers: null,
+      });
+    } else {
+      const snapshot = !allOverlaysOff ? { ...state.layers } : state.preSoloLayers;
+      const nextLayers = {};
+      for (const k of keys) {
+        nextLayers[k] = false;
+      }
+      const nextRenderMode =
+        state.renderMode === "none"
+          ? state.lastActiveRenderMode || "buildings"
+          : state.renderMode;
+      setState({
+        renderMode: nextRenderMode,
+        layers: nextLayers,
+        preSoloLayers: snapshot,
+      });
+    }
+  }
+
+  function setAllOverlays(visible) {
+    const nextLayers = {};
+    for (const k of Object.keys(state.layers)) {
+      nextLayers[k] = Boolean(visible);
+    }
+    setState({
+      layers: nextLayers,
+      preSoloLayers: null,
+      ...(visible ? { singleLayerMode: false } : {}),
+    });
+  }
+
+  function toggleSingleLayerMode(forceMode = null) {
+    const nextSingle = forceMode !== null ? Boolean(forceMode) : !state.singleLayerMode;
+    if (nextSingle) {
+      const keys = Object.keys(state.layers);
+      const activeKeys = keys.filter((k) => state.layers[k]);
+      if (activeKeys.length > 1) {
+        const keepKey = activeKeys[0];
+        const nextLayers = {};
+        for (const k of keys) {
+          nextLayers[k] = k === keepKey;
+        }
+        setState({
+          singleLayerMode: true,
+          layers: nextLayers,
+          preSoloLayers: { ...state.layers },
+        });
+        return;
+      }
+    }
+    setState({ singleLayerMode: nextSingle });
   }
 
   function stepTime(direction) {
@@ -318,6 +473,11 @@ export function createFilterStore(initialOverrides = {}) {
     getState,
     setState,
     setLayerVisibility,
+    toggleBuildingsLayer,
+    soloOverlayLayer,
+    soloBuildingsOnly,
+    setAllOverlays,
+    toggleSingleLayerMode,
     stepTime,
     resetFilters,
     subscribe,
