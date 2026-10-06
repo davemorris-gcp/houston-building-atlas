@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005g";
+} from "./palettes.js?v=20261005h";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005g";
+} from "./filterStore.js?v=20261005h";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005g";
+} from "./curatedEdits.js?v=20261005h";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -146,7 +146,7 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson"),
+        fetch("public/data/buildings.geojson?v=20261005h"),
         fetch("public/data/parcels.geojson"),
         fetch("public/data/overlays.json"),
         fetch("public/data/pmtiles_manifest.json").catch(() => null),
@@ -208,7 +208,10 @@ export class AtlasMapController {
 
     for (const [ovKey, ov] of Object.entries(ovMap)) {
       if (!overrideFeaturesByKey.has(ovKey) && ov.geometry) {
-        const hcadNum = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
+        const rawPrefix = String(ovKey.split("#")[0] || "").trim();
+        const hcadNum = String(
+          ov.hcad_num || (/^\d+$/.test(rawPrefix) ? rawPrefix : "")
+        ).trim();
         overrideFeaturesByKey.set(ovKey, {
           type: "Feature",
           geometry: ov.geometry,
