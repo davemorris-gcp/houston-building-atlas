@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005k";
+} from "./palettes.js?v=20261005l";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005k";
+} from "./filterStore.js?v=20261005l";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005k";
+} from "./curatedEdits.js?v=20261005l";
 
 const BASEMAP_TILES = {
   dark_archival: {
