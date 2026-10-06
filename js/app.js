@@ -27,6 +27,11 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
 } from "./curatedEdits.js?v=20261006b";
+import {
+  buildStreetViewUrl,
+  loadCuratedPhotosIndex,
+  resolveBuildingPhotos,
+} from "./photoService.js?v=20261006f";
 
 class HoustonAtlasApp {
   constructor() {
@@ -43,6 +48,7 @@ class HoustonAtlasApp {
     this.lastViewportStats = null;
     this.timelapseTimer = null;
     this._suppressUrlUpdate = false;
+    this._activePhotoState = null;
 
     this.mapController = new AtlasMapController({
       containerId: "map-canvas",
@@ -68,6 +74,7 @@ class HoustonAtlasApp {
     await Promise.all([
       this.mapController.init(this.initialViewport),
       this._loadMetadataFiles(),
+      loadCuratedPhotosIndex(),
     ]);
 
     this._mergeCuratedOverridesIntoSearchIndex();
@@ -689,6 +696,26 @@ class HoustonAtlasApp {
     if (aboutModal) {
       aboutModal.addEventListener("click", (e) => {
         if (e.target === aboutModal) aboutModal.classList.add("hidden");
+      });
+    }
+
+    // Full-Screen Photograph Lightbox Modal
+    const lightboxModal = document.getElementById("photo-lightbox-modal");
+    const btnCloseLightbox = document.getElementById("btn-close-photo-lightbox");
+    const btnLightboxCompare = document.getElementById("btn-lightbox-toggle-compare");
+    if (btnCloseLightbox && lightboxModal) {
+      btnCloseLightbox.addEventListener("click", () => lightboxModal.classList.add("hidden"));
+    }
+    if (lightboxModal) {
+      lightboxModal.addEventListener("click", (e) => {
+        if (e.target === lightboxModal) lightboxModal.classList.add("hidden");
+      });
+    }
+    if (btnLightboxCompare) {
+      btnLightboxCompare.addEventListener("click", () => {
+        if (!this._activePhotoState || this._activePhotoState.photos.length < 2) return;
+        this._activePhotoState.compareMode = !this._activePhotoState.compareMode;
+        this._syncPhotoViews();
       });
     }
 
@@ -1671,6 +1698,7 @@ class HoustonAtlasApp {
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
       initialMapsQuery
     )}`;
+    const streetViewUrl = buildStreetViewUrl(effLat, effLng);
 
     content.innerHTML = `
       <div class="inspector-hero">
@@ -1683,6 +1711,29 @@ class HoustonAtlasApp {
         <div class="inspector-status-banner">
           <span class="status-dot"></span>
           <span>${statusBadge}</span>
+        </div>
+      </div>
+
+      <div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${hcadNum}">
+        <div class="inspector-photo-header">
+          <div class="inspector-photo-title-group">
+            <span class="inspector-photo-kicker">&#128247; Photographs Through History</span>
+            <span class="inspector-photo-count-badge" id="inspector-photo-badge">Searching Archives…</span>
+          </div>
+          <div class="inspector-photo-header-btns" id="inspector-photo-header-btns"></div>
+        </div>
+        <div id="inspector-photo-stage"></div>
+        <div class="photo-footer-actions">
+          <a
+            href="${streetViewUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="photo-streetview-btn"
+            id="btn-inspector-streetview"
+            title="Open Google Maps Street View Time Machine (2007–Present) for this building"
+          >
+            &#128065; Street View Time Machine (2007–Present) &#8599;
+          </a>
         </div>
       </div>
 
@@ -1836,6 +1887,16 @@ class HoustonAtlasApp {
 
     drawer.classList.remove("hidden");
 
+    this._populateInspectorPhotos({
+      props,
+      title,
+      subtitle,
+      hcadNum,
+      lat: effLat,
+      lng: effLng,
+      streetViewUrl,
+    });
+
     const btnSuggestCorr = document.getElementById("btn-suggest-correction");
     if (btnSuggestCorr) {
       btnSuggestCorr.addEventListener("click", () => {
@@ -1892,14 +1953,22 @@ class HoustonAtlasApp {
             metaRow.style.display = "flex";
           }
 
-          // Refine Google Maps link if geometry wasn't initially present
-          const btnGmaps = document.getElementById("btn-open-google-maps");
-          if (btnGmaps && !Number.isFinite(geomLat) && Array.isArray(rec.centroid)) {
+          // Refine Google Maps & Street View links if geometry wasn't initially present
+          if (!Number.isFinite(geomLat) && Array.isArray(rec.centroid)) {
             const [cLng, cLat] = rec.centroid;
             if (Number.isFinite(cLat) && Number.isFinite(cLng)) {
-              btnGmaps.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                `${cLat.toFixed(6)},${cLng.toFixed(6)}`
-              )}`;
+              const btnGmaps = document.getElementById("btn-open-google-maps");
+              if (btnGmaps) {
+                btnGmaps.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  `${cLat.toFixed(6)},${cLng.toFixed(6)}`
+                )}`;
+              }
+              const refinedSvUrl = buildStreetViewUrl(cLat, cLng);
+              const btnSv = document.getElementById("btn-inspector-streetview");
+              if (btnSv) btnSv.href = refinedSvUrl;
+              if (this._activePhotoState) {
+                this._activePhotoState.streetViewUrl = refinedSvUrl;
+              }
             }
           }
 
@@ -2014,6 +2083,360 @@ class HoustonAtlasApp {
 
     this._updateUrlHash(this.filterStore.getState());
     this._refreshShareModalContent();
+  }
+
+  async _populateInspectorPhotos({
+    props,
+    title,
+    subtitle,
+    hcadNum,
+    lat,
+    lng,
+    streetViewUrl,
+  }) {
+    const requestToken = `${hcadNum}|${props.building_id || props.id || ""}|${Date.now()}`;
+    this._latestPhotoRequestToken = requestToken;
+
+    const photos = await resolveBuildingPhotos({
+      buildingId: props.building_id || props.id || "",
+      hcadNum,
+      landmarkName: props.landmark_name || props.name || "",
+      address: props.address || "",
+      lat,
+      lng,
+    });
+
+    if (this._latestPhotoRequestToken !== requestToken) return;
+
+    this._activePhotoState = {
+      title,
+      subtitle,
+      streetViewUrl,
+      photos,
+      activeIndex: 0,
+      compareMode: false,
+      thenIndex: 0,
+      nowIndex: Math.max(0, photos.length - 1),
+      sliderPct: 50,
+    };
+
+    this._syncPhotoViews();
+  }
+
+  _syncPhotoViews() {
+    const state = this._activePhotoState;
+    if (!state) return;
+
+    const badgeEl = document.getElementById("inspector-photo-badge");
+    const headerBtnsEl = document.getElementById("inspector-photo-header-btns");
+    const inspectorStageEl = document.getElementById("inspector-photo-stage");
+
+    const photos = state.photos || [];
+    if (badgeEl) {
+      if (photos.length === 0) {
+        badgeEl.textContent = "Street View Ready";
+      } else if (photos.length === 1) {
+        badgeEl.textContent = photos[0].photo_year
+          ? `${photos[0].photo_year} Archival Photo`
+          : "1 Archival Photo";
+      } else {
+        const firstYr = photos[0].photo_year || "Historic";
+        const lastYr = photos[photos.length - 1].photo_year || "Present";
+        badgeEl.textContent = `${photos.length} Eras · ${firstYr}–${lastYr}`;
+      }
+    }
+
+    if (headerBtnsEl) {
+      if (photos.length === 0) {
+        headerBtnsEl.innerHTML = "";
+      } else {
+        headerBtnsEl.innerHTML = `
+          ${
+            photos.length >= 2
+              ? `<button type="button" class="photo-mode-btn ${
+                  state.compareMode ? "active" : ""
+                }" id="btn-inspector-toggle-compare" title="Compare earliest and latest photographs with a draggable curtain slider">
+                  &#8644; Then &amp; Now
+                </button>`
+              : ""
+          }
+          <button type="button" class="photo-mode-btn" id="btn-inspector-expand-lightbox" title="Open full-screen archival photograph viewer">
+            &#10530; Expand
+          </button>
+        `;
+        const btnCompare = document.getElementById("btn-inspector-toggle-compare");
+        if (btnCompare) {
+          btnCompare.addEventListener("click", () => {
+            state.compareMode = !state.compareMode;
+            this._syncPhotoViews();
+          });
+        }
+        const btnExpand = document.getElementById("btn-inspector-expand-lightbox");
+        if (btnExpand) {
+          btnExpand.addEventListener("click", () => {
+            this.openPhotoLightboxModal();
+          });
+        }
+      }
+    }
+
+    if (inspectorStageEl) {
+      this._renderPhotoStage(inspectorStageEl, false);
+    }
+
+    const lightboxModal = document.getElementById("photo-lightbox-modal");
+    if (lightboxModal && !lightboxModal.classList.contains("hidden")) {
+      const lightboxBody = document.getElementById("photo-lightbox-body");
+      const btnLbCompare = document.getElementById("btn-lightbox-toggle-compare");
+      if (btnLbCompare) {
+        btnLbCompare.classList.toggle("hidden", photos.length < 2);
+        btnLbCompare.classList.toggle("active", Boolean(state.compareMode));
+      }
+      if (lightboxBody) {
+        this._renderPhotoStage(lightboxBody, true);
+      }
+    }
+  }
+
+  _renderPhotoStage(containerEl, isLightbox = false) {
+    const state = this._activePhotoState;
+    if (!state || !containerEl) return;
+
+    const photos = state.photos || [];
+    if (photos.length === 0) {
+      containerEl.innerHTML = `
+        <div class="photo-empty-note">
+          No public-domain archival photograph is linked to this parcel yet. Launch <strong>Street View Time Machine</strong> below to scrub Google's 2007–2026 street-level photography, or submit a historic photo via <em>Suggest a Date / Data Correction</em>.
+        </div>
+      `;
+      return;
+    }
+
+    if (state.compareMode && photos.length >= 2) {
+      const thenIdx = Math.max(0, Math.min(photos.length - 1, state.thenIndex));
+      const nowIdx = Math.max(0, Math.min(photos.length - 1, state.nowIndex));
+      const thenPhoto = photos[thenIdx];
+      const nowPhoto = photos[nowIdx];
+      const pct = Number.isFinite(state.sliderPct) ? state.sliderPct : 50;
+
+      const optionsHtml = (selectedIdx) =>
+        photos
+          .map(
+            (p, idx) =>
+              `<option value="${idx}" ${idx === selectedIdx ? "selected" : ""}>${
+                p.era_label || p.photo_year || `Photo ${idx + 1}`
+              }</option>`
+          )
+          .join("");
+
+      containerEl.innerHTML = `
+        <div class="photo-compare-wrapper">
+          <div class="photo-compare-selectors">
+            <div class="photo-compare-select-group">
+              <span>Then (Left):</span>
+              <select class="photo-compare-select" data-compare-role="then" aria-label="Select earlier era photograph">
+                ${optionsHtml(thenIdx)}
+              </select>
+            </div>
+            <div class="photo-compare-select-group">
+              <span>Now (Right):</span>
+              <select class="photo-compare-select" data-compare-role="now" aria-label="Select later era photograph">
+                ${optionsHtml(nowIdx)}
+              </select>
+            </div>
+          </div>
+
+          <div class="photo-compare-stage">
+            <img
+              src="${isLightbox ? nowPhoto.full_url || nowPhoto.image_url : nowPhoto.image_url}"
+              alt="${nowPhoto.caption || state.title}"
+              class="photo-compare-img"
+              loading="lazy"
+            />
+            <div class="photo-compare-before-clip" style="clip-path: inset(0 ${100 - pct}% 0 0);">
+              <img
+                src="${isLightbox ? thenPhoto.full_url || thenPhoto.image_url : thenPhoto.image_url}"
+                alt="${thenPhoto.caption || state.title}"
+                class="photo-compare-img"
+                loading="lazy"
+              />
+            </div>
+            <div class="photo-compare-divider" style="left: ${pct}%;">
+              <div class="photo-compare-handle">&#8644;</div>
+            </div>
+            <span class="photo-compare-tag then">Then: ${thenPhoto.era_label || thenPhoto.photo_year || "Earlier"}</span>
+            <span class="photo-compare-tag now">Now: ${nowPhoto.era_label || nowPhoto.photo_year || "Later"}</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="${pct}"
+              class="photo-compare-range"
+              aria-label="Drag left or right to compare historical and modern photographs"
+            />
+          </div>
+
+          <div class="photo-caption-box">
+            <div class="photo-caption-text">
+              <strong>Then (${thenPhoto.photo_year || "Historic"}):</strong> ${thenPhoto.caption || ""}<br/>
+              <strong>Now (${nowPhoto.photo_year || "Modern"}):</strong> ${nowPhoto.caption || ""}
+            </div>
+            <div class="photo-meta-row">
+              <span>Drag curtain slider &#8644; to compare eras</span>
+              ${
+                !isLightbox
+                  ? `<button type="button" class="photo-mode-btn" data-action="open-lightbox">&#10530; Full Screen Comparison</button>`
+                  : ""
+              }
+            </div>
+          </div>
+        </div>
+      `;
+
+      const rangeInput = containerEl.querySelector(".photo-compare-range");
+      const beforeClip = containerEl.querySelector(".photo-compare-before-clip");
+      const divider = containerEl.querySelector(".photo-compare-divider");
+      if (rangeInput && beforeClip && divider) {
+        rangeInput.addEventListener("input", (e) => {
+          const val = Number(e.target.value);
+          state.sliderPct = val;
+          beforeClip.style.clipPath = `inset(0 ${100 - val}% 0 0)`;
+          divider.style.left = `${val}%`;
+        });
+      }
+
+      containerEl.querySelectorAll(".photo-compare-select").forEach((sel) => {
+        sel.addEventListener("change", (e) => {
+          const role = sel.getAttribute("data-compare-role");
+          const idx = parseInt(e.target.value, 10) || 0;
+          if (role === "then") state.thenIndex = idx;
+          if (role === "now") state.nowIndex = idx;
+          this._syncPhotoViews();
+        });
+      });
+
+      const btnOpenLb = containerEl.querySelector('[data-action="open-lightbox"]');
+      if (btnOpenLb) {
+        btnOpenLb.addEventListener("click", () => this.openPhotoLightboxModal());
+      }
+      return;
+    }
+
+    // Single-Photo Timeline View
+    const idx = Math.max(0, Math.min(photos.length - 1, state.activeIndex));
+    const current = photos[idx];
+    const eraPillsHtml =
+      photos.length >= 2
+        ? `<div class="photo-era-pills" role="tablist" aria-label="Historical photograph eras">
+            ${photos
+              .map(
+                (p, i) => `
+                <button
+                  type="button"
+                  class="photo-era-pill ${i === idx ? "active" : ""}"
+                  data-photo-idx="${i}"
+                  role="tab"
+                  aria-selected="${i === idx ? "true" : "false"}"
+                >
+                  ${p.era_label || p.photo_year || `Photo ${i + 1}`}
+                </button>`
+              )
+              .join("")}
+          </div>`
+        : "";
+
+    containerEl.innerHTML = `
+      ${eraPillsHtml}
+      <div class="photo-viewport">
+        <img
+          src="${isLightbox ? current.full_url || current.image_url : current.image_url}"
+          alt="${current.caption || state.title}"
+          class="photo-viewport-img"
+          data-action="${isLightbox ? "" : "open-lightbox"}"
+          loading="lazy"
+        />
+        <span class="photo-era-overlay-badge">${
+          current.era_label || (current.photo_year ? `${current.photo_year}` : "Archival Photo")
+        }</span>
+        ${
+          !isLightbox
+            ? `<button type="button" class="photo-expand-overlay-btn" data-action="open-lightbox" title="View full-size photograph">
+                &#10530; Full Screen
+              </button>`
+            : ""
+        }
+        ${
+          photos.length >= 2
+            ? `<button type="button" class="photo-nav-btn prev" data-photo-Step="-1" aria-label="Previous Era Photograph" title="Previous Era Photograph">&#8249;</button>
+               <button type="button" class="photo-nav-btn next" data-photo-Step="1" aria-label="Next Era Photograph" title="Next Era Photograph">&#8250;</button>`
+            : ""
+        }
+      </div>
+      <div class="photo-caption-box">
+        <div class="photo-caption-text">${current.caption || state.title}</div>
+        <div class="photo-meta-row">
+          <span>${current.credit || "Public Domain / Wikimedia Commons"}</span>
+          ${
+            current.source_url
+              ? `<a href="${current.source_url}" target="_blank" rel="noopener noreferrer" class="photo-source-link">
+                  Source Archive &#8599;
+                </a>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+
+    containerEl.querySelectorAll("[data-photo-idx]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.activeIndex = parseInt(btn.getAttribute("data-photo-idx"), 10) || 0;
+        this._syncPhotoViews();
+      });
+    });
+
+    containerEl.querySelectorAll("[data-photo-Step]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const delta = parseInt(btn.getAttribute("data-photo-Step"), 10) || 1;
+        state.activeIndex = (idx + delta + photos.length) % photos.length;
+        this._syncPhotoViews();
+      });
+    });
+
+    containerEl.querySelectorAll('[data-action="open-lightbox"]').forEach((el) => {
+      el.addEventListener("click", () => this.openPhotoLightboxModal());
+    });
+  }
+
+  openPhotoLightboxModal() {
+    const state = this._activePhotoState;
+    const modal = document.getElementById("photo-lightbox-modal");
+    if (!state || !modal) return;
+
+    const titleEl = document.getElementById("lightbox-modal-title");
+    const kickerEl = document.getElementById("lightbox-modal-kicker");
+    const svBtn = document.getElementById("btn-lightbox-streetview");
+    const compareBtn = document.getElementById("btn-lightbox-toggle-compare");
+    const bodyEl = document.getElementById("photo-lightbox-body");
+
+    if (titleEl) titleEl.textContent = state.title || "Photographs Through History";
+    if (kickerEl) {
+      kickerEl.textContent = state.subtitle
+        ? `Preservation Houston • ${state.subtitle}`
+        : "Preservation Houston • Archival Photograph Timeline";
+    }
+    if (svBtn && state.streetViewUrl) {
+      svBtn.href = state.streetViewUrl;
+    }
+    if (compareBtn) {
+      compareBtn.classList.toggle("hidden", (state.photos || []).length < 2);
+      compareBtn.classList.toggle("active", Boolean(state.compareMode));
+    }
+    if (bodyEl) {
+      this._renderPhotoStage(bodyEl, true);
+    }
+
+    modal.classList.remove("hidden");
   }
 
   openShareModal() {
