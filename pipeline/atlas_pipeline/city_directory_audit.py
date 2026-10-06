@@ -907,7 +907,7 @@ def sync_findings_to_google_sheet(
         "readonly",
         "read",
         spreadsheet_id,
-        "Pending_Submissions!A1:B5000",
+        "Pending_Submissions!A:B",
         "--json",
     ]
     proc = subprocess.run(read_cmd, capture_output=True, text=True, check=False)
