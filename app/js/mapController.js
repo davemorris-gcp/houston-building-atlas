@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005l";
+} from "./palettes.js?v=20261005m";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005l";
+} from "./filterStore.js?v=20261005m";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005l";
+} from "./curatedEdits.js?v=20261005m";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -899,7 +899,7 @@ export class AtlasMapController {
   }
 
   _bindMapLibreInteractions() {
-    const getInteractiveLayers = () => [
+    const getClickLayers = () => [
       "good-brick-circle",
       "landmarks-circle",
       "thc-markers-circle",
@@ -910,8 +910,21 @@ export class AtlasMapController {
       "parcels-fill",
     ];
 
+    const getHoverLayers = () => {
+      const base = [...getClickLayers()];
+      if (this.filterStore.getState().renderMode === "none") {
+        base.push(
+          "historic-districts-fill",
+          "heritage-districts-fill",
+          "nrhp-districts-fill",
+          "annexations-fill"
+        );
+      }
+      return base;
+    };
+
     this.map.on("mousemove", (e) => {
-      const activeLayers = getInteractiveLayers().filter((id) => this.map.getLayer(id));
+      const activeLayers = getHoverLayers().filter((id) => this.map.getLayer(id));
       const features = this.map.queryRenderedFeatures(e.point, { layers: activeLayers });
       if (!features.length) {
         this.map.getCanvas().style.cursor = "";
@@ -927,7 +940,7 @@ export class AtlasMapController {
     });
 
     this.map.on("click", (e) => {
-      const activeLayers = getInteractiveLayers().filter((id) => this.map.getLayer(id));
+      const activeLayers = getClickLayers().filter((id) => this.map.getLayer(id));
       const features = this.map.queryRenderedFeatures(e.point, { layers: activeLayers });
       if (!features.length) return;
       const top = features[0];
@@ -936,13 +949,20 @@ export class AtlasMapController {
         (top.layer.id === "landmarks-circle" || top.layer.id === "good-brick-circle") &&
         p.hcad_num
       ) {
-        // Check if there is an underlying building polygon at the clicked point or in buildingsData
+        // Check if there is an underlying building polygon at the clicked point, in overridesFC, or in buildingsData
         const bldHit =
           features.find(
             (f) =>
               f.layer.id !== "landmarks-circle" &&
               f.layer.id !== "good-brick-circle" &&
-              f.layer.id !== "thc-markers-circle"
+              f.layer.id !== "thc-markers-circle" &&
+              f.layer.id !== "historic-districts-fill" &&
+              f.layer.id !== "heritage-districts-fill" &&
+              f.layer.id !== "nrhp-districts-fill" &&
+              f.layer.id !== "annexations-fill"
+          ) ||
+          (this.overridesFC?.features || []).find(
+            (f) => f.properties && f.properties.hcad_num === p.hcad_num
           ) ||
           this.buildingsData.find(
             (f) => f.properties && f.properties.hcad_num === p.hcad_num
@@ -1490,7 +1510,7 @@ export class AtlasMapController {
      Unified Public Controller API
      ======================================================================== */
   _buildTooltipHTML(p) {
-    const title = p.landmark_name || p.name || p.address || "Historic Property";
+    const title = p.landmark_name || p.name || p.era_label || p.address || "Historic Property";
     let badge = "";
     if (p.year_built && Number(p.year_built) >= 1836) {
       badge = p.is_curated_override ? `Built ${p.year_built} ✓ PH Verified` : `Built ${p.year_built}`;
@@ -1500,11 +1520,19 @@ export class AtlasMapController {
       badge = p.designation;
     } else if (p.marker_num) {
       badge = `THC Marker #${p.marker_num}`;
+    } else if (p.type) {
+      badge = p.type;
+    } else if (p.era_label) {
+      badge = "Houston Annexation History";
     } else {
       badge = p.use_category || "Undated Parcel";
     }
     const subtitle =
-      p.historic_district || p.address || p.subdivision || "Click to inspect property record";
+      p.historic_district ||
+      p.address ||
+      p.subdivision ||
+      (p.era_label && p.decade ? `Annexed in the ${p.decade}s` : "") ||
+      (p.type ? "Preservation District Boundary" : "Click to inspect property record");
 
     const goodBrickPill =
       p.good_brick_summary && badge !== `★ ${p.good_brick_summary}`
