@@ -215,7 +215,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261005o", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261006b", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -348,11 +348,14 @@ export function saveGoogleSheetEndpoints({ csvUrl, webhookUrl }) {
  */
 export function applyOverrideToProperties(props, overridesMap) {
   if (!props || !overridesMap) return props;
-  const featId = String(props.id || props.building_id || "").trim();
+  const bldId = String(props.building_id || "").trim();
+  const featId = String(props.id || "").trim();
   const hcadNum = String(props.hcad_num || "").trim();
 
   let ov = null;
-  if (featId && overridesMap[featId]) {
+  if (bldId && overridesMap[bldId]) {
+    ov = overridesMap[bldId];
+  } else if (featId && overridesMap[featId]) {
     ov = overridesMap[featId];
   } else if (
     hcadNum &&
@@ -365,10 +368,11 @@ export function applyOverrideToProperties(props, overridesMap) {
 
   const origYear = Number(ov.original_hcad_year) || Number(props.year_built) || 0;
   const verifiedYear = Number(ov.year_built) || Number(props.year_built) || 0;
+  const isGbPoint = Boolean(props.is_good_brick);
 
   return {
     ...props,
-    id: ov.id || props.id || hcadNum,
+    id: isGbPoint ? props.id : ov.id || props.id || hcadNum,
     building_id: ov.building_id || ov.id || props.building_id || "",
     hcad_num: ov.hcad_num || hcadNum,
     year_built: verifiedYear,
@@ -382,20 +386,29 @@ export function applyOverrideToProperties(props, overridesMap) {
     use_category: ov.use_category || props.use_category || "Residential",
     stories: Number(ov.stories) || Number(props.stories) || 1,
     height_m: Number(ov.height_m) || Number(props.height_m) || 4.5,
-    address: ov.address || props.address || "",
+    address: (isGbPoint && props.address) || ov.address || props.address || "",
     historic_district: ov.historic_district || props.historic_district || "",
     contributing: ov.contributing || props.contributing || "",
     bld_style: ov.bld_style || props.bld_style || "",
     architect: ov.architect || props.architect || "",
-    landmark_name: ov.landmark_name || props.landmark_name || "",
+    landmark_name:
+      (isGbPoint && props.landmark_name) || ov.landmark_name || props.landmark_name || "",
     landmark_type: ov.landmark_type || props.landmark_type || "",
     source_type: ov.source_type || props.source_type || "Preservation Houston Archival Record",
     source_citation: ov.source_citation || props.source_citation || "",
     source_url: ov.source_url || props.source_url || "",
     verified_by: ov.verified_by || props.verified_by || "Preservation Houston",
     override_updated_at: ov.updated_at || props.override_updated_at || "",
-    good_brick_awards: ov.good_brick_awards || props.good_brick_awards || null,
-    good_brick_summary: ov.good_brick_summary || props.good_brick_summary || "",
+    good_brick_awards:
+      (isGbPoint && props.good_brick_awards) ||
+      ov.good_brick_awards ||
+      props.good_brick_awards ||
+      null,
+    good_brick_summary:
+      (isGbPoint && props.good_brick_summary) ||
+      ov.good_brick_summary ||
+      props.good_brick_summary ||
+      "",
   };
 }
 
