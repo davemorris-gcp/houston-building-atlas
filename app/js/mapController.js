@@ -19,6 +19,7 @@ import {
   applyOverrideToProperties,
   loadCuratedOverrides,
 } from "./curatedEdits.js?v=20261006b";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261006d";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -1791,6 +1792,30 @@ export class AtlasMapController {
 
     const targetBuildingId = gbMatch?.properties?.building_id || featureId || "";
     const ovFeatures = this.overridesFC?.features || [];
+
+    let renderedTileMatch = null;
+    if (!this.useCanvasFallback && this.map) {
+      const tileLayers = [
+        ...(this.buildingFillLayerIds || []),
+        ...(this.buildingExtrusionLayerIds || []),
+      ].filter((id) => this.map.getLayer(id));
+      if (tileLayers.length > 0) {
+        const rendered = this.map.queryRenderedFeatures({ layers: tileLayers });
+        renderedTileMatch =
+          (targetBuildingId &&
+            rendered.find((f) => {
+              const p = f.properties || {};
+              return p.id === targetBuildingId || p.building_id === targetBuildingId;
+            })) ||
+          (hcadNum &&
+            rendered.find((f) => {
+              const p = f.properties || {};
+              return p.hcad_num === hcadNum;
+            })) ||
+          null;
+      }
+    }
+
     const match =
       (targetBuildingId &&
         ovFeatures.find((f) => {
@@ -1812,9 +1837,69 @@ export class AtlasMapController {
           const p = f.properties || {};
           return p.hcad_num === hcadNum;
         })) ||
+      renderedTileMatch ||
       gbMatch;
 
-    if (!match) return false;
+    if (!match) {
+      if (hcadNum) {
+        fetchHcadLiveRecord(hcadNum)
+          .then((rec) => {
+            if (!rec) return;
+            const synthProps = applyOverrideToProperties(
+              {
+                id: `hcad_${rec.hcadNum}`,
+                hcad_num: rec.hcadNum,
+                address: rec.address || `HCAD ${rec.hcadNum}`,
+                year_built: rec.yearImpr || 0,
+                decade: rec.yearImpr ? Math.floor(rec.yearImpr / 10) * 10 : 0,
+                bld_sqft: rec.bldgSqft || 0,
+                land_sqft: rec.lotAreaSqft || 0,
+                owner: rec.owner || "",
+                subdivision: rec.subdivision || "",
+                use_category:
+                  rec.stateClass && rec.stateClass.startsWith("A")
+                    ? "Single-Family Residential"
+                    : rec.stateClass && rec.stateClass.startsWith("B")
+                    ? "Multi-Family Residential"
+                    : rec.stateClass && rec.stateClass.startsWith("F")
+                    ? "Commercial"
+                    : "Structure",
+              },
+              this.curatedOverrides
+            );
+            if (flyTo && Array.isArray(rec.centroid)) {
+              this.flyToLocation({
+                lng: rec.centroid[0],
+                lat: rec.centroid[1],
+                zoom: 17.2,
+              });
+            }
+            this.highlightAndInspectFeature(synthProps, rec.geometry || null);
+            if (!this.useCanvasFallback && this.map) {
+              this.map.once("idle", () => {
+                const tileLayers = [
+                  ...(this.buildingFillLayerIds || []),
+                  ...(this.buildingExtrusionLayerIds || []),
+                ].filter((id) => this.map.getLayer(id));
+                if (!tileLayers.length) return;
+                const renderedAfterFly = this.map.queryRenderedFeatures({ layers: tileLayers });
+                const tileBld = renderedAfterFly.find(
+                  (f) => f.properties && f.properties.hcad_num === rec.hcadNum
+                );
+                if (tileBld) {
+                  this.highlightAndInspectFeature(
+                    applyOverrideToProperties(tileBld.properties || {}, this.curatedOverrides),
+                    tileBld.geometry || rec.geometry || null
+                  );
+                }
+              });
+            }
+          })
+          .catch(() => {});
+        return true;
+      }
+      return false;
+    }
 
     const mergedProps = applyOverrideToProperties(match.properties || {}, this.curatedOverrides);
     if (gbMatch && gbMatch.properties) {
