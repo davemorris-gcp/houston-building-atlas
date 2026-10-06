@@ -51,6 +51,10 @@ class HoustonAtlasApp {
     this._renderLegend();
     this._syncControlsFromState(this.filterStore.getState());
 
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+      this._setSidebarCollapsed(true);
+    }
+
     await Promise.all([
       this.mapController.init(this.initialViewport),
       this._loadMetadataFiles(),
@@ -64,6 +68,25 @@ class HoustonAtlasApp {
       this._manageTimelapseLoop(state);
       this._updateUrlHash(state);
     });
+  }
+
+  _setSidebarCollapsed(collapsed) {
+    const sidebar = document.getElementById("atlas-sidebar");
+    const shell = document.querySelector(".atlas-shell");
+    const btnToggle = document.getElementById("btn-toggle-sidebar");
+    if (!sidebar) return;
+
+    sidebar.classList.toggle("collapsed", Boolean(collapsed));
+    if (shell) {
+      shell.classList.toggle("sidebar-collapsed", Boolean(collapsed));
+    }
+    if (btnToggle) {
+      btnToggle.classList.toggle("active", !collapsed);
+    }
+    if (!collapsed && typeof window !== "undefined" && window.innerWidth <= 900) {
+      const drawer = document.getElementById("inspector-drawer");
+      if (drawer) drawer.classList.add("hidden");
+    }
   }
 
   async _loadMetadataFiles() {
@@ -422,6 +445,9 @@ class HoustonAtlasApp {
             if (chosen) {
               searchResults.classList.add("hidden");
               searchInput.value = chosen.label;
+              if (typeof window !== "undefined" && window.innerWidth <= 900) {
+                this._setSidebarCollapsed(true);
+              }
               this.mapController.flyToLocation({
                 lng: chosen.lon,
                 lat: chosen.lat,
@@ -786,13 +812,40 @@ class HoustonAtlasApp {
       });
     }
 
-    // Sidebar Collapse Toggle (for smaller screens)
+    // Sidebar Collapse Toggle (for smaller screens & mobile drawer)
     const btnToggleSidebar = document.getElementById("btn-toggle-sidebar");
+    const btnCloseSidebarMobile = document.getElementById("btn-close-sidebar-mobile");
     const sidebar = document.getElementById("atlas-sidebar");
     if (btnToggleSidebar && sidebar) {
       btnToggleSidebar.addEventListener("click", () => {
-        sidebar.classList.toggle("collapsed");
+        const nextCollapsed = !sidebar.classList.contains("collapsed");
+        this._setSidebarCollapsed(nextCollapsed);
       });
+    }
+    if (btnCloseSidebarMobile) {
+      btnCloseSidebarMobile.addEventListener("click", () => {
+        this._setSidebarCollapsed(true);
+      });
+    }
+
+    // Dynamically track topbar bottom edge on mobile/tablet so Tour Bar & Sidebar never overlap
+    const topbarEl = document.getElementById("atlas-topbar");
+    if (topbarEl) {
+      const updateTopbarOffset = () => {
+        const rect = topbarEl.getBoundingClientRect();
+        if (rect.height > 0) {
+          document.documentElement.style.setProperty(
+            "--topbar-offset",
+            `${Math.round(rect.bottom + 6)}px`
+          );
+        }
+      };
+      updateTopbarOffset();
+      window.addEventListener("resize", updateTopbarOffset);
+      if (typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(updateTopbarOffset);
+        ro.observe(topbarEl);
+      }
     }
   }
 
@@ -855,6 +908,10 @@ class HoustonAtlasApp {
         const tourId = btn.getAttribute("data-tour-id");
         const tour = CURATED_TOURS.find((t) => t.id === tourId);
         if (!tour) return;
+
+        if (typeof window !== "undefined" && window.innerWidth <= 900) {
+          this._setSidebarCollapsed(true);
+        }
 
         container.querySelectorAll(".tour-pill").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
@@ -1172,6 +1229,10 @@ class HoustonAtlasApp {
     const drawer = document.getElementById("inspector-drawer");
     const content = document.getElementById("inspector-body");
     if (!drawer || !content || !rawProps) return;
+
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+      this._setSidebarCollapsed(true);
+    }
 
     const props = applyOverrideToProperties(
       rawProps,

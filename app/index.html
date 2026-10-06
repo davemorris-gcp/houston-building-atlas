@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261005e" />
+  <link rel="stylesheet" href="styles/index.css?v=20261005j" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -32,7 +32,7 @@
           title="Toggle Controls Sidebar"
           aria-label="Toggle Controls Sidebar"
         >
-          &#9776;
+          <span>&#9776;</span><span class="sidebar-toggle-label">Filters</span>
         </button>
         <a
           href="https://www.preservationhouston.org"
@@ -117,6 +117,12 @@
 
     <!-- Left Archival Control & Analytics Dock -->
     <aside class="atlas-sidebar" id="atlas-sidebar">
+      <div class="mobile-sidebar-header">
+        <span class="mobile-sidebar-title">Filters, Time-Lapse &amp; Overlays</span>
+        <button type="button" class="icon-btn" id="btn-close-sidebar-mobile" aria-label="Close Filters Drawer">
+          &times;
+        </button>
+      </div>
       <!-- Live Viewport Telemetry Strip -->
       <section class="panel-card metrics-strip">
         <div class="metric-box">
@@ -655,6 +661,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261005h"></script>
+  <script type="module" src="js/app.js?v=20261005j"></script>
 </body>
 </html>
