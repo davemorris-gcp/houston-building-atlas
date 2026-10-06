@@ -3375,7 +3375,54 @@
             ]
           ]
         ]
-      }
+      },
+      "good_brick_awards": [
+        {
+          "award_year": 2014,
+          "award_type": "Good Brick Award",
+          "recipient": "Trinity Episcopal Church",
+          "project_name": "Trinity Episcopal Church",
+          "reason": "For the restoration of its stained glass windows",
+          "building_year_built": 1919,
+          "architect_or_style": "",
+          "location_source": "Midtown Landmark (Trinity Episcopal Church, 1015 Holman St)",
+          "raw_citation": "Trinity Episcopal Church for the restoration of its stained glass windows"
+        },
+        {
+          "award_year": 2004,
+          "award_type": "Good Brick Award",
+          "recipient": "The Rev. William Miller and the members of Trinity Episcopal Church",
+          "project_name": "Trinity Episcopal Church",
+          "reason": "For the stewardship and restoration of Trinity Episcopal Church",
+          "building_year_built": 1919,
+          "architect_or_style": "",
+          "location_source": "Midtown Landmark (1015 Holman St)",
+          "raw_citation": "The Rev. William Miller and the members of Trinity Episcopal Church for the stewardship and restoration of Trinity Episcopal Church"
+        },
+        {
+          "award_year": 1997,
+          "award_type": "Good Brick Award",
+          "recipient": "Restoration of Trinity Episcopal Church (1919), 3415 Mian St.",
+          "project_name": "3415 Main St",
+          "reason": "Restoration of Trinity Episcopal Church (1919), 3415 Mian St.",
+          "building_year_built": 1919,
+          "architect_or_style": "",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Restoration of Trinity Episcopal Church (1919), 3415 Mian St."
+        },
+        {
+          "award_year": 1994,
+          "award_type": "Good Brick Award",
+          "recipient": "Trinity Episcopal Church",
+          "project_name": "3415 Main St",
+          "reason": "For the preservation, restoration and expansion of its campus, 3415 Main St.",
+          "building_year_built": 1919,
+          "architect_or_style": "",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Trinity Episcopal Church for the preservation, restoration and expansion of its campus, 3415 Main St."
+        }
+      ],
+      "good_brick_summary": "Good Brick Award (1994, 1997, 2004, 2014)"
     },
     "0190520010020": {
       "id": "0190520010020",
@@ -6755,7 +6802,7 @@
       "is_building_override": false,
       "replace_parcel_shards": true,
       "address": "0 WILSON",
-      "landmark_name": "",
+      "landmark_name": "Temple of Rest Mausoleum at Beth Israel Cemetery",
       "historic_district": "Outside Historic District",
       "contributing": "Outside Historic District",
       "use_category": "Civic / Institutional",
@@ -6843,7 +6890,21 @@
             ]
           ]
         ]
-      }
+      },
+      "good_brick_awards": [
+        {
+          "award_year": 2019,
+          "award_type": "Good Brick Award",
+          "recipient": "Congregation Beth Israel",
+          "project_name": "Temple of Rest Mausoleum at Beth Israel Cemetery",
+          "reason": "For the restoration of the original chandelier in the Temple of Rest Mausoleum (1935) at Beth Israel Cemetery",
+          "building_year_built": 1935,
+          "architect_or_style": "",
+          "location_source": "Beth Israel Cemetery Historic Core (1207 W Dallas St)",
+          "raw_citation": "Congregation Beth Israel for the restoration of the original chandelier in the Temple of Rest Mausoleum (1935) at Beth Israel Cemetery"
+        }
+      ],
+      "good_brick_summary": "2019 Good Brick Award"
     },
     "0052230000018": {
       "id": "0052230000018",
@@ -6971,7 +7032,7 @@
       "is_building_override": false,
       "replace_parcel_shards": true,
       "address": "800 CONGRESS",
-      "landmark_name": "",
+      "landmark_name": "Market Square Park",
       "historic_district": "Main Street/Market Square Historic District",
       "contributing": "Contributing",
       "use_category": "Civic / Institutional",
@@ -7011,7 +7072,32 @@
             ]
           ]
         ]
-      }
+      },
+      "good_brick_awards": [
+        {
+          "award_year": 2011,
+          "award_type": "Good Brick Award",
+          "recipient": "Houston Downtown Management District, Downtown Redevelopment Authority/TIRZ #3 and Houston Parks and Recreation Department",
+          "project_name": "Market Square Park",
+          "reason": "For the redevelopment of Market Square Park",
+          "building_year_built": 1900,
+          "architect_or_style": "",
+          "location_source": "Downtown Historic District (Market Square Park, 301 Milam St)",
+          "raw_citation": "Houston Downtown Management District, Downtown Redevelopment Authority/TIRZ #3 and Houston Parks and Recreation Department for the redevelopment of Market Square Park"
+        },
+        {
+          "award_year": 1996,
+          "award_type": "Good Brick Award",
+          "recipient": "Barry Moore",
+          "project_name": "Louis & Anne Friedman Clock Tower at Market Square",
+          "reason": "For the Louis and Anne Friedman Clock Tower at Market Square, appropriate new construction within a historic context",
+          "building_year_built": 1900,
+          "architect_or_style": "",
+          "location_source": "Market Square Park (301 Milam St)",
+          "raw_citation": "Barry Moore for the Louis and Anne Friedman Clock Tower at Market Square, appropriate new construction within a historic context"
+        }
+      ],
+      "good_brick_summary": "Good Brick Award (1996, 2011)"
     },
     "1423010010001": {
       "id": "1423010010001",
@@ -7067,21 +7153,7 @@
             ]
           ]
         ]
-      },
-      "good_brick_awards": [
-        {
-          "award_year": 2015,
-          "award_type": "Good Brick Award",
-          "recipient": "Pearl Hospitality",
-          "project_name": "JW Marriott Houston Downtown in the 1910 Carter Building",
-          "reason": "For the development of the JW Marriott Houston Downtown in the 1910 Carter Building, 806 Main Street downtown",
-          "building_year_built": 1910,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Pearl Hospitality for the development of the JW Marriott Houston Downtown in the 1910 Carter Building, 806 Main Street downtown"
-        }
-      ],
-      "good_brick_summary": "2015 Good Brick Award"
+      }
     },
     "1288260010010": {
       "id": "1288260010010",
@@ -112686,8 +112758,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0020040000001": {
-      "hcad_num": "0020040000001",
+    "0020040000004": {
+      "hcad_num": "0020040000004",
       "address": "1101 N SAN JACINTO ST",
       "landmark_name": "San Jacinto Warehouse",
       "historic_district": "",
@@ -112790,8 +112862,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0202330000014": {
-      "hcad_num": "0202330000014",
+    "0341880010001": {
+      "hcad_num": "0341880010001",
       "address": "2728 COLUMBIA ST",
       "landmark_name": "Lund House & Modern Print Shop",
       "historic_district": "Houston Heights South",
@@ -112951,7 +113023,7 @@
       "address": "11530 MAIN ST",
       "landmark_name": "Brochsteins Architectural Woodwork Campus",
       "historic_district": "",
-      "year_built": 1939,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -112960,7 +113032,7 @@
           "recipient": "Brochsteins",
           "project_name": "Brochsteins Architectural Woodwork Campus",
           "reason": "For 90 years of excellence in custom architectural woodwork and furniture",
-          "building_year_built": 1939,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Brochsteins Historic Main Street Facility (11530 Main St)",
           "raw_citation": "Legacy Business Award: Brochsteins for 90 years of excellence in custom architectural woodwork and furniture"
@@ -112972,8 +113044,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0201180000021": {
-      "hcad_num": "0201180000021",
+    "0201360000032": {
+      "hcad_num": "0201360000032",
       "address": "1548 HEIGHTS BLVD",
       "landmark_name": "The Church at 1548 Heights (Heights First Baptist Sanctuary)",
       "historic_district": "Houston Heights East",
@@ -113106,7 +113178,7 @@
       "hcad_num": "0130730000019",
       "address": "3816 CAROLINE ST",
       "landmark_name": "Buffalo Soldiers National Museum (Houston Light Guard Armory)",
-      "historic_district": "Outside Historic District",
+      "historic_district": "",
       "year_built": 1925,
       "architect": "Alfred C. Finn",
       "good_brick_awards": [
@@ -113264,7 +113336,7 @@
       "landmark_name": "Minchen House",
       "historic_district": "Boulevard Oaks",
       "year_built": 1931,
-      "architect": "",
+      "architect": "Joseph Finger",
       "good_brick_awards": [
         {
           "award_year": 2024,
@@ -113273,7 +113345,7 @@
           "project_name": "Minchen House",
           "reason": "For preserving the Italian Renaissance-style Minchen House (1931) in the Boulevard Oaks Historic District",
           "building_year_built": 1931,
-          "architect_or_style": "",
+          "architect_or_style": "Joseph Finger",
           "location_source": "Preservation Houston 2024 Good Brick Gallery (1753 North Blvd)",
           "raw_citation": "Ted Lee & Marc Sekula for preserving the Italian Renaissance-style Minchen House (1931) in the Boulevard Oaks Historic District"
         }
@@ -113336,13 +113408,13 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0141410000001": {
-      "hcad_num": "0141410000001",
+    "0152470000018": {
+      "hcad_num": "0152470000018",
       "address": "2403 MILAM ST",
       "landmark_name": "Houston Fire Museum (Fire Station No. 7)",
-      "historic_district": "",
+      "historic_district": "Outside Historic District",
       "year_built": 1899,
-      "architect": "",
+      "architect": "Olle J. Lorehn",
       "good_brick_awards": [
         {
           "award_year": 2024,
@@ -113351,12 +113423,23 @@
           "project_name": "Houston Fire Museum (Fire Station No. 7)",
           "reason": "For restoring historic Fire Station No. 7 (1899) in Midtown",
           "building_year_built": 1899,
-          "architect_or_style": "",
+          "architect_or_style": "Olle J. Lorehn",
           "location_source": "COH Landmark & NRHP Listing (Fire Station No. 7, 2403 Milam St)",
           "raw_citation": "The Houston Fire Museum for restoring historic Fire Station No. 7 (1899) in Midtown"
+        },
+        {
+          "award_year": 1997,
+          "award_type": "Good Brick Award",
+          "recipient": "Houston Fire Museum and Mesa Southwest Construction Corp.",
+          "project_name": "Houston Fire Museum",
+          "reason": "For the restoration of the Houston Fire Museum (1899), 2403 Milam St.",
+          "building_year_built": 1899,
+          "architect_or_style": "Olle J. Lorehn",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Houston Fire Museum and Mesa Southwest Construction Corp. for the restoration of the Houston Fire Museum (1899), 2403 Milam St."
         }
       ],
-      "good_brick_summary": "2024 Good Brick Award",
+      "good_brick_summary": "Good Brick Award (1997, 2024)",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "The Houston Fire Museum for restoring historic Fire Station No. 7 (1899) in Midtown",
       "source_url": "https://www.preservationhouston.org/awards/past",
@@ -113496,7 +113579,7 @@
       "hcad_num": "0160440000008",
       "address": "15 ALTIC ST",
       "landmark_name": "Lupe & Joe Z. Fraga House (Reiler-Fraga House)",
-      "historic_district": "Outside Historic District",
+      "historic_district": "",
       "year_built": 1925,
       "architect": "",
       "good_brick_awards": [
@@ -113518,8 +113601,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0020810000001": {
-      "hcad_num": "0020810000001",
+    "0021590000002": {
+      "hcad_num": "0021590000002",
       "address": "2410 POLK ST",
       "landmark_name": "Houston Post Building / Printhouse",
       "historic_district": "",
@@ -113782,7 +113865,7 @@
       "hcad_num": "0090480000029",
       "address": "1914 GANO ST",
       "landmark_name": "Simien Victorian Residence (1914 Gano St)",
-      "historic_district": "",
+      "historic_district": "Outside Historic District",
       "year_built": 1907,
       "architect": "Victorian",
       "good_brick_awards": [
@@ -113836,7 +113919,7 @@
       "landmark_name": "Star Engraving Co. Building",
       "historic_district": "Outside Historic District",
       "year_built": 1930,
-      "architect": "",
+      "architect": "Rezin B Steele",
       "good_brick_awards": [
         {
           "award_year": 2022,
@@ -113845,7 +113928,7 @@
           "project_name": "Star Engraving Co. Building",
           "reason": "For rehabilitating the Star Engraving Co. Building (1930) on Allen Parkway",
           "building_year_built": 1930,
-          "architect_or_style": "",
+          "architect_or_style": "Rezin B Steele",
           "location_source": "COH Protected Landmark (Star Engraving Co., 3201 Allen Pkwy)",
           "raw_citation": "Radom Capital LLC for rehabilitating the Star Engraving Co. Building (1930) on Allen Parkway"
         }
@@ -113934,12 +114017,12 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0132240000001": {
-      "hcad_num": "0132240000001",
+    "0392040000001": {
+      "hcad_num": "0392040000001",
       "address": "5500 MAIN ST",
       "landmark_name": "Glassell School of Art & Nancy and Rich Kinder Building (MFAH)",
       "historic_district": "",
-      "year_built": 1900,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -113948,7 +114031,7 @@
           "recipient": "Glassell School of Art and Nancy & Rich Kinder Building at the Museum of Fine Arts, Houston",
           "project_name": "Glassell School of Art & Nancy and Rich Kinder Building (MFAH)",
           "reason": "Glassell School of Art and Nancy & Rich Kinder Building at the Museum of Fine Arts, Houston",
-          "building_year_built": 1900,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Museum of Fine Arts, Houston Campus (5500 Main St / 5101 Montrose Blvd)",
           "raw_citation": "Pier & Beam Future Landmark Award: Glassell School of Art and Nancy & Rich Kinder Building at the Museum of Fine Arts, Houston"
@@ -114257,7 +114340,7 @@
       "hcad_num": "0090800000010",
       "address": "1813 GENTRY ST",
       "landmark_name": "Peter F. Tamborello House",
-      "historic_district": "Outside Historic District",
+      "historic_district": "",
       "year_built": 1916,
       "architect": "Folk Victorian",
       "good_brick_awards": [
@@ -114276,32 +114359,6 @@
       "good_brick_summary": "2021 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "David Powell for rehabilitating the Peter F. Tamborello House (c. 1916), a Folk Victorian house in the Near Northside",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0400030000013": {
-      "hcad_num": "0400030000013",
-      "address": "212 DALLAS ST",
-      "landmark_name": "Kellum-Noble House (Sam Houston Park)",
-      "historic_district": "Outside Historic District",
-      "year_built": 1847,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2021,
-          "award_type": "Good Brick Award",
-          "recipient": "The Heritage Society",
-          "project_name": "Kellum-Noble House (Sam Houston Park)",
-          "reason": "For the comprehensive restoration of the Kellum-Noble House (1847) in Sam Houston Park",
-          "building_year_built": 1847,
-          "architect_or_style": "",
-          "location_source": "COH Protected Landmark (Kellum-Noble House, 212 Dallas St)",
-          "raw_citation": "The Heritage Society for the comprehensive restoration of the Kellum-Noble House (1847) in Sam Houston Park"
-        }
-      ],
-      "good_brick_summary": "2021 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "The Heritage Society for the comprehensive restoration of the Kellum-Noble House (1847) in Sam Houston Park",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -114363,7 +114420,7 @@
       "landmark_name": "Quality Laundry Building",
       "historic_district": "Outside Historic District",
       "year_built": 1936,
-      "architect": "",
+      "architect": "Unknown",
       "good_brick_awards": [
         {
           "award_year": 2020,
@@ -114372,7 +114429,7 @@
           "project_name": "Quality Laundry Building",
           "reason": "For rehabilitating the Quality Laundry Building (1936) in Montrose",
           "building_year_built": 1936,
-          "architect_or_style": "",
+          "architect_or_style": "Unknown",
           "location_source": "COH Protected Landmark (Quality Laundry Building, 1110 W Gray St)",
           "raw_citation": "Pejman Jamea and Oxberry Group for rehabilitating the Quality Laundry Building (1936) in Montrose"
         }
@@ -114383,13 +114440,13 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0010620000001": {
-      "hcad_num": "0010620000001",
+    "0010550000019": {
+      "hcad_num": "0010550000019",
       "address": "1117 TEXAS AVE",
       "landmark_name": "Christ Church Cathedral Sanctuary",
       "historic_district": "Outside Historic District",
       "year_built": 1893,
-      "architect": "",
+      "architect": "Silas McBee with J. Arthur Tempest",
       "good_brick_awards": [
         {
           "award_year": 2020,
@@ -114398,9 +114455,20 @@
           "project_name": "Christ Church Cathedral Sanctuary",
           "reason": "For restoring its historic sanctuary (1893) downtown",
           "building_year_built": 1893,
-          "architect_or_style": "",
+          "architect_or_style": "Silas McBee with J. Arthur Tempest",
           "location_source": "COH Landmark & NRHP Listing (Christ Church Cathedral, 1117 Texas Ave)",
           "raw_citation": "Christ Church Cathedral for restoring its historic sanctuary (1893) downtown"
+        },
+        {
+          "award_year": 1997,
+          "award_type": "Good Brick Award",
+          "recipient": "Restoration of Christ Church Cathedral (1893), 1117 Texas Ave.",
+          "project_name": "1117 Texas Ave",
+          "reason": "Restoration of Christ Church Cathedral (1893), 1117 Texas Ave.",
+          "building_year_built": 1893,
+          "architect_or_style": "Silas McBee with J. Arthur Tempest",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Restoration of Christ Church Cathedral (1893), 1117 Texas Ave."
         },
         {
           "award_year": 1991,
@@ -114409,19 +114477,19 @@
           "project_name": "Christ Church Cathedral",
           "reason": "For its commitment to its historic location in downtown Houston",
           "building_year_built": 1893,
-          "architect_or_style": "",
+          "architect_or_style": "Silas McBee with J. Arthur Tempest",
           "location_source": "COH Landmark & NRHP Listing (1117 Texas Ave)",
           "raw_citation": "Christ Church Cathedral for its commitment to its historic location in downtown Houston"
         }
       ],
-      "good_brick_summary": "Good Brick Award (1991, 2020)",
+      "good_brick_summary": "Good Brick Award (1991, 1997, 2020)",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Christ Church Cathedral for restoring its historic sanctuary (1893) downtown",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0011050000006": {
-      "hcad_num": "0011050000006",
+    "0010720000010": {
+      "hcad_num": "0010720000010",
       "address": "1314 TEXAS ST",
       "landmark_name": "The Petroleum Building (Cambria Hotel Downtown)",
       "historic_district": "",
@@ -114706,11 +114774,11 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0010800000010": {
-      "hcad_num": "0010800000010",
+    "0010800000013": {
+      "hcad_num": "0010800000013",
       "address": "723 MAIN ST",
       "landmark_name": "Houston Bar Association Building (AC Hotel Downtown)",
-      "historic_district": "",
+      "historic_district": "Outside Historic District",
       "year_built": 1966,
       "architect": "",
       "good_brick_awards": [
@@ -114781,32 +114849,6 @@
       "good_brick_summary": "2020 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Karen & Neal Dikeman for restoring two historic houses (c. 1890 and c. 1910) in the Old Sixth Ward Historic District",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0401190000001": {
-      "hcad_num": "0401190000001",
-      "address": "1207 W DALLAS ST",
-      "landmark_name": "Temple of Rest Mausoleum at Beth Israel Cemetery",
-      "historic_district": "",
-      "year_built": 1935,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2019,
-          "award_type": "Good Brick Award",
-          "recipient": "Congregation Beth Israel",
-          "project_name": "Temple of Rest Mausoleum at Beth Israel Cemetery",
-          "reason": "For the restoration of the original chandelier in the Temple of Rest Mausoleum (1935) at Beth Israel Cemetery",
-          "building_year_built": 1935,
-          "architect_or_style": "",
-          "location_source": "Beth Israel Cemetery Historic Core (1207 W Dallas St)",
-          "raw_citation": "Congregation Beth Israel for the restoration of the original chandelier in the Temple of Rest Mausoleum (1935) at Beth Israel Cemetery"
-        }
-      ],
-      "good_brick_summary": "2019 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Congregation Beth Israel for the restoration of the original chandelier in the Temple of Rest Mausoleum (1935) at Beth Israel Cemetery",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -115018,8 +115060,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0010980000001": {
-      "hcad_num": "0010980000001",
+    "1405600010001": {
+      "hcad_num": "1405600010001",
       "address": "1121 WALKER ST",
       "landmark_name": "Melrose Building (Le Méridien Houston Downtown)",
       "historic_district": "",
@@ -115362,7 +115404,7 @@
       "landmark_name": "Fire Station No. 3",
       "historic_district": "Outside Historic District",
       "year_built": 1903,
-      "architect": "",
+      "architect": "Olle J. Lorehn",
       "good_brick_awards": [
         {
           "award_year": 2017,
@@ -115371,7 +115413,7 @@
           "project_name": "Fire Station No. 3",
           "reason": "For the rehabilitation and adaptive re-use of Fire Station No. 3 (1903) in the First Ward",
           "building_year_built": 1903,
-          "architect_or_style": "",
+          "architect_or_style": "Olle J. Lorehn",
           "location_source": "COH Landmark (Fire Station No. 3, 1919 Houston Ave)",
           "raw_citation": "David Denenburg for the rehabilitation and adaptive re-use of Fire Station No. 3 (1903) in the First Ward"
         }
@@ -115554,7 +115596,7 @@
       "address": "6311 GULF FWY",
       "landmark_name": "New Hope Housing at Brays Crossing",
       "historic_district": "",
-      "year_built": 2023,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -115563,7 +115605,7 @@
           "recipient": "New Hope Housing at Brays Crossing",
           "project_name": "New Hope Housing at Brays Crossing",
           "reason": "New Hope Housing at Brays Crossing",
-          "building_year_built": 2023,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "New Hope Housing Campus (6311 Gulf Fwy)",
           "raw_citation": "Pier & Beam Future Landmark Award: New Hope Housing at Brays Crossing"
@@ -115605,7 +115647,7 @@
       "hcad_num": "0052310000001",
       "address": "1814 WASHINGTON AVE",
       "landmark_name": "Dittman Bakery Building (B&B Butchers & Restaurant)",
-      "historic_district": "Old Sixth Ward Historic District",
+      "historic_district": "",
       "year_built": 1924,
       "architect": "",
       "good_brick_awards": [
@@ -115722,7 +115764,7 @@
       "landmark_name": "Hugo Victor Neuhaus, Jr. House",
       "historic_district": "Outside Historic District",
       "year_built": 1950,
-      "architect": "",
+      "architect": "Hugo Victor Neuhaus Jr",
       "good_brick_awards": [
         {
           "award_year": 2016,
@@ -115731,7 +115773,7 @@
           "project_name": "Hugo Victor Neuhaus, Jr. House",
           "reason": "For the restoration of the Victor Neuhaus, Jr. House (1950) in River Oaks",
           "building_year_built": 1950,
-          "architect_or_style": "",
+          "architect_or_style": "Hugo Victor Neuhaus Jr",
           "location_source": "COH Protected Landmark (Hugo Victor Neuhaus Jr. House, 2910 Lazy Lane Blvd)",
           "raw_citation": "Mo & Ric Campo for the restoration of the Victor Neuhaus, Jr. House (1950) in River Oaks"
         },
@@ -115742,7 +115784,7 @@
           "project_name": "Mary Wood & Hugo V. Neuhaus, Jr. House",
           "reason": "For their vision and personal commitment in preserving the Mary Wood & Hugo V. Neuhaus, Jr. House (1950)",
           "building_year_built": 1950,
-          "architect_or_style": "",
+          "architect_or_style": "Hugo Victor Neuhaus Jr",
           "location_source": "COH Protected Landmark (2910 Lazy Lane Blvd)",
           "raw_citation": "Stewart Title Award: Mica & Robert Mosbacher for their vision and personal commitment in preserving the Mary Wood & Hugo V. Neuhaus, Jr. House (1950)"
         }
@@ -115811,7 +115853,7 @@
       "landmark_name": "3229 Groveland Lane (1947 John Staub Residence)",
       "historic_district": "Outside Historic District",
       "year_built": 1947,
-      "architect": "",
+      "architect": "Birdsall P. Briscoe",
       "good_brick_awards": [
         {
           "award_year": 2016,
@@ -115820,7 +115862,7 @@
           "project_name": "3229 Groveland Lane (1947 John Staub Residence)",
           "reason": "For the renovation of a 1947 John Staub-designed house in River Oaks",
           "building_year_built": 1947,
-          "architect_or_style": "",
+          "architect_or_style": "Birdsall P. Briscoe",
           "location_source": "Preservation Houston 2016 Good Brick Tour (3229 Groveland Ln)",
           "raw_citation": "Jim Reeder & Eric Nevil for the renovation of a 1947 John Staub-designed house in River Oaks"
         }
@@ -115837,7 +115879,7 @@
       "landmark_name": "Henderson-Scurlock House",
       "historic_district": "Outside Historic District",
       "year_built": 1941,
-      "architect": "",
+      "architect": "Harry Payne",
       "good_brick_awards": [
         {
           "award_year": 2016,
@@ -115846,7 +115888,7 @@
           "project_name": "Henderson-Scurlock House",
           "reason": "For the renovation of the 1941 Henderson-Scurlock House in River Oaks",
           "building_year_built": 1941,
-          "architect_or_style": "",
+          "architect_or_style": "Harry Payne",
           "location_source": "COH Protected Landmark (Henderson-Scurlock House, 3663 Del Monte Dr)",
           "raw_citation": "Jane & Robert Cabes for the renovation of the 1941 Henderson-Scurlock House in River Oaks"
         }
@@ -115861,7 +115903,7 @@
       "hcad_num": "0601590560024",
       "address": "4012 WILLOWICK RD",
       "landmark_name": "Mr. & Mrs. H.M. Harrell, Jr. Residence (Harwood Taylor, 1963)",
-      "historic_district": "Outside Historic District",
+      "historic_district": "",
       "year_built": 1963,
       "architect": "",
       "good_brick_awards": [
@@ -116005,9 +116047,20 @@
           "architect_or_style": "",
           "location_source": "Houston Community College Central Campus (1300 Holman St)",
           "raw_citation": "Houston Community College for the restoration of the former San Jacinto High School (1914) in Midtown"
+        },
+        {
+          "award_year": 1987,
+          "award_type": "Good Brick Award",
+          "recipient": "Houston Community College",
+          "project_name": "Heinen Theater",
+          "reason": "For the restoration of the Temple Beth Israel (1925) as the Heinen Theater, 3517 Austin St.",
+          "building_year_built": 1925,
+          "architect_or_style": "",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Houston Community College for the restoration of the Temple Beth Israel (1925) as the Heinen Theater, 3517 Austin St."
         }
       ],
-      "good_brick_summary": "2015 Good Brick Award",
+      "good_brick_summary": "Good Brick Award (1987, 2015)",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Houston Community College for the restoration of the former San Jacinto High School (1914) in Midtown",
       "source_url": "https://www.preservationhouston.org/awards/past",
@@ -116123,7 +116176,7 @@
       "landmark_name": "Loggins-Hughes Building",
       "historic_district": "Outside Historic District",
       "year_built": 1936,
-      "architect": "",
+      "architect": "W. L. Goyen, builder",
       "good_brick_awards": [
         {
           "award_year": 2015,
@@ -116132,7 +116185,7 @@
           "project_name": "Loggins-Hughes Building",
           "reason": "For the restoration of the Loggins-Hughes Building (1936), 4216 Washington Avenue in the West End",
           "building_year_built": 1936,
-          "architect_or_style": "",
+          "architect_or_style": "W. L. Goyen, builder",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Eva Hughes and Brenda Hughes for the restoration of the Loggins-Hughes Building (1936), 4216 Washington Avenue in the West End"
         }
@@ -116169,12 +116222,12 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0830440000001": {
-      "hcad_num": "0830440000001",
+    "0770520000001": {
+      "hcad_num": "0770520000001",
       "address": "6700 MOUNT CARMEL ST",
       "landmark_name": "Cristo Rey Jesuit College Preparatory (Former Mount Carmel High School)",
       "historic_district": "",
-      "year_built": 1955,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -116183,7 +116236,7 @@
           "recipient": "Cristo Rey Jesuit College Preparatory School",
           "project_name": "Cristo Rey Jesuit College Preparatory (Former Mount Carmel High School)",
           "reason": "For the restoration of the former Mount Carmel High School, 6700 Mount Carmel Drive in Bayou Oaks",
-          "building_year_built": 1955,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Garden Villas Historic Campus (6700 Mount Carmel St)",
           "raw_citation": "Cristo Rey Jesuit College Preparatory School for the restoration of the former Mount Carmel High School, 6700 Mount Carmel Drive in Bayou Oaks"
@@ -116195,8 +116248,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0410820000001": {
-      "hcad_num": "0410820000001",
+    "0410820000005": {
+      "hcad_num": "0410820000005",
       "address": "7112 NEWCASTLE ST",
       "landmark_name": "Henshaw House at Nature Discovery Center (Russ Pitman Park)",
       "historic_district": "",
@@ -116218,6 +116271,32 @@
       "good_brick_summary": "2015 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Nature Discovery Center Houston for the restoration and adaptive reuse of the historic Henshaw House (1925), 7112 Newcastle Street in Bellaire",
+      "source_url": "https://www.preservationhouston.org/awards/past",
+      "verified_by": "Preservation Houston Good Brick Awards"
+    },
+    "0010920000004": {
+      "hcad_num": "0010920000004",
+      "address": "806 MAIN ST",
+      "landmark_name": "JW Marriott Houston Downtown in the 1910 Carter Building",
+      "historic_district": "",
+      "year_built": 1910,
+      "architect": "Sanguinet and Staats",
+      "good_brick_awards": [
+        {
+          "award_year": 2015,
+          "award_type": "Good Brick Award",
+          "recipient": "Pearl Hospitality",
+          "project_name": "JW Marriott Houston Downtown in the 1910 Carter Building",
+          "reason": "For the development of the JW Marriott Houston Downtown in the 1910 Carter Building, 806 Main Street downtown",
+          "building_year_built": 1910,
+          "architect_or_style": "Sanguinet and Staats",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Pearl Hospitality for the development of the JW Marriott Houston Downtown in the 1910 Carter Building, 806 Main Street downtown"
+        }
+      ],
+      "good_brick_summary": "2015 Good Brick Award",
+      "source_type": "Preservation Houston Good Brick Award",
+      "source_citation": "Pearl Hospitality for the development of the JW Marriott Houston Downtown in the 1910 Carter Building, 806 Main Street downtown",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -116244,65 +116323,6 @@
       "good_brick_summary": "2015 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Ellie and Christian Busker for the restoration of a 1920s bungalow at 934 Louise Street in Sunset Heights Annex",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0141530000001": {
-      "hcad_num": "0141530000001",
-      "address": "1015 HOLMAN ST",
-      "landmark_name": "Trinity Episcopal Church",
-      "historic_district": "",
-      "year_built": 1919,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2014,
-          "award_type": "Good Brick Award",
-          "recipient": "Trinity Episcopal Church",
-          "project_name": "Trinity Episcopal Church",
-          "reason": "For the restoration of its stained glass windows",
-          "building_year_built": 1919,
-          "architect_or_style": "",
-          "location_source": "Midtown Landmark (Trinity Episcopal Church, 1015 Holman St)",
-          "raw_citation": "Trinity Episcopal Church for the restoration of its stained glass windows"
-        },
-        {
-          "award_year": 2004,
-          "award_type": "Good Brick Award",
-          "recipient": "The Rev. William Miller and the members of Trinity Episcopal Church",
-          "project_name": "Trinity Episcopal Church",
-          "reason": "For the stewardship and restoration of Trinity Episcopal Church",
-          "building_year_built": 1919,
-          "architect_or_style": "",
-          "location_source": "Midtown Landmark (1015 Holman St)",
-          "raw_citation": "The Rev. William Miller and the members of Trinity Episcopal Church for the stewardship and restoration of Trinity Episcopal Church"
-        },
-        {
-          "award_year": 1997,
-          "award_type": "Good Brick Award",
-          "recipient": "Restoration of Trinity Episcopal Church (1919), 3415 Mian St.",
-          "project_name": "3415 Main St",
-          "reason": "Restoration of Trinity Episcopal Church (1919), 3415 Mian St.",
-          "building_year_built": 1919,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Restoration of Trinity Episcopal Church (1919), 3415 Mian St."
-        },
-        {
-          "award_year": 1994,
-          "award_type": "Good Brick Award",
-          "recipient": "Trinity Episcopal Church",
-          "project_name": "3415 Main St",
-          "reason": "For the preservation, restoration and expansion of its campus, 3415 Main St.",
-          "building_year_built": null,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Trinity Episcopal Church for the preservation, restoration and expansion of its campus, 3415 Main St."
-        }
-      ],
-      "good_brick_summary": "Good Brick Award (1994, 1997, 2004, 2014)",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Trinity Episcopal Church for the restoration of its stained glass windows",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -116358,8 +116378,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0011640000001": {
-      "hcad_num": "0011640000001",
+    "1286060010001": {
+      "hcad_num": "1286060010001",
       "address": "1500 MCKINNEY ST",
       "landmark_name": "Discovery Green Conservancy",
       "historic_district": "",
@@ -116384,11 +116404,11 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "1454850010001": {
-      "hcad_num": "1454850010001",
+    "0201980000013": {
+      "hcad_num": "0201980000013",
       "address": "219 W 11TH ST",
       "landmark_name": "219 W 11Th St",
-      "historic_district": "Houston Heights West Historic District",
+      "historic_district": "",
       "year_built": 1904,
       "architect": "",
       "good_brick_awards": [
@@ -116416,7 +116436,7 @@
       "landmark_name": "Cook Paint & Varnish Co. Building",
       "historic_district": "Outside Historic District",
       "year_built": 1948,
-      "architect": "",
+      "architect": "unknown",
       "good_brick_awards": [
         {
           "award_year": 2014,
@@ -116425,7 +116445,7 @@
           "project_name": "Cook Paint & Varnish Co. Building",
           "reason": "For the rehabilitation of the Cook Paint & Varnish Co. Building at 2500 Summer Street",
           "building_year_built": 1948,
-          "architect_or_style": "",
+          "architect_or_style": "unknown",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Summer Ventures, LP, for the rehabilitation of the Cook Paint & Varnish Co. Building at 2500 Summer Street"
         }
@@ -116442,7 +116462,7 @@
       "landmark_name": "3315 W 12Th St",
       "historic_district": "Outside Historic District",
       "year_built": 1965,
-      "architect": "",
+      "architect": "Unknown",
       "good_brick_awards": [
         {
           "award_year": 2014,
@@ -116451,7 +116471,7 @@
           "project_name": "3315 W 12Th St",
           "reason": "For the renovation of and symapthetic addition to 3315 West 12th Street",
           "building_year_built": 1965,
-          "architect_or_style": "",
+          "architect_or_style": "Unknown",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Diane & Ray Krueger for the renovation of and symapthetic addition to 3315 West 12th Street"
         }
@@ -116514,13 +116534,13 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0021590000001": {
-      "hcad_num": "0021590000001",
+    "0050060000015": {
+      "hcad_num": "0050060000015",
       "address": "801 ANDREWS ST",
       "landmark_name": "Bethel Park (Former Bethel Missionary Baptist Church)",
       "historic_district": "Freedmen's Town",
-      "year_built": 1979,
-      "architect": "",
+      "year_built": 1923,
+      "architect": "John Blount, James Thomas",
       "good_brick_awards": [
         {
           "award_year": 2014,
@@ -116528,8 +116548,8 @@
           "recipient": "Houston Parks and Recreation Department",
           "project_name": "Bethel Park (Former Bethel Missionary Baptist Church)",
           "reason": "For Bethel Park",
-          "building_year_built": 1979,
-          "architect_or_style": "",
+          "building_year_built": 1923,
+          "architect_or_style": "John Blount, James Thomas",
           "location_source": "COH Protected Landmark (Bethel Baptist Church Park, 801 Andrews St)",
           "raw_citation": "Stewart Title Award: Houston Parks and Recreation Department for Bethel Park"
         }
@@ -116624,7 +116644,7 @@
       "landmark_name": "1912 Larchmont Rd",
       "historic_district": "Outside Historic District",
       "year_built": 1936,
-      "architect": "",
+      "architect": "John Staub",
       "good_brick_awards": [
         {
           "award_year": 2013,
@@ -116633,7 +116653,7 @@
           "project_name": "1912 Larchmont Rd",
           "reason": "For the restoration of and sympathetic addition to 1912 Larchmont Road (1936) in River Oaks",
           "building_year_built": 1936,
-          "architect_or_style": "",
+          "architect_or_style": "John Staub",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Cynthia & Ben Guill for the restoration of and sympathetic addition to 1912 Larchmont Road (1936) in River Oaks"
         }
@@ -116650,7 +116670,7 @@
       "landmark_name": "2514 Brentwood Dr",
       "historic_district": "Outside Historic District",
       "year_built": 1934,
-      "architect": "",
+      "architect": "Russell Brown Company",
       "good_brick_awards": [
         {
           "award_year": 2013,
@@ -116659,7 +116679,7 @@
           "project_name": "2514 Brentwood Dr",
           "reason": "For the restoration of 2514 Brentwood Drive (1934) in River Oaks",
           "building_year_built": 1934,
-          "architect_or_style": "",
+          "architect_or_style": "Russell Brown Company",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Krissy & Will Hirtz for the restoration of 2514 Brentwood Drive (1934) in River Oaks"
         }
@@ -116806,7 +116826,7 @@
       "landmark_name": "Henry W. Stude House & Garage (Shadyside)",
       "historic_district": "Outside Historic District",
       "year_built": 1924,
-      "architect": "",
+      "architect": "Birdsall P. Briscoe and Sam Dixon, Jr",
       "good_brick_awards": [
         {
           "award_year": 2012,
@@ -116815,7 +116835,7 @@
           "project_name": "Henry W. Stude House & Garage (Shadyside)",
           "reason": "For the renovation of the Henry Stude Garage (1924) in Shadyside",
           "building_year_built": 1924,
-          "architect_or_style": "",
+          "architect_or_style": "Birdsall P. Briscoe and Sam Dixon, Jr",
           "location_source": "COH Landmark (Henry W. Stude House, 14 Remington Ln)",
           "raw_citation": "Carol & Daniel Price's renovation of the Henry Stude Garage (1924) in Shadyside"
         }
@@ -116884,7 +116904,7 @@
       "landmark_name": "George V. Rotan Home",
       "historic_district": "Outside Historic District",
       "year_built": 1949,
-      "architect": "",
+      "architect": "John Staub",
       "good_brick_awards": [
         {
           "award_year": 2012,
@@ -116893,7 +116913,7 @@
           "project_name": "George V. Rotan Home",
           "reason": "For the renovation of their historic house (1949) in River Oaks",
           "building_year_built": 1949,
-          "architect_or_style": "",
+          "architect_or_style": "John Staub",
           "location_source": "COH Protected Landmark (George V. Rotan Home, 2300 Pine Valley Dr)",
           "raw_citation": "Lynn & Ty Kelly's renovation of their historic house (1949) in River Oaks"
         }
@@ -116909,7 +116929,7 @@
       "address": "2525 WASHINGTON AVE",
       "landmark_name": "Historic Glenwood Cemetery",
       "historic_district": "",
-      "year_built": 1850,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -116918,7 +116938,7 @@
           "recipient": "Glenwood Cemetery, Inc.",
           "project_name": "Historic Glenwood Cemetery",
           "reason": "For stewardship of historic Glenwood Cemetery",
-          "building_year_built": 1850,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "NRHP Historic Cemetery (2525 Washington Ave)",
           "raw_citation": "Glenwood Cemetery, Inc., for stewardship of historic Glenwood Cemetery"
@@ -116962,7 +116982,7 @@
       "landmark_name": "Bratic Residence (3362 Del Monte Dr)",
       "historic_district": "Outside Historic District",
       "year_built": 1941,
-      "architect": "",
+      "architect": "Hamilton Brown",
       "good_brick_awards": [
         {
           "award_year": 2012,
@@ -116971,7 +116991,7 @@
           "project_name": "Bratic Residence (3362 Del Monte Dr)",
           "reason": "For the renovation of their historic house (1941) in River Oaks",
           "building_year_built": 1941,
-          "architect_or_style": "",
+          "architect_or_style": "Hamilton Brown",
           "location_source": "HCAD Ownership Record (Walter & Nancy Bratic, 3362 Del Monte Dr)",
           "raw_citation": "Nancy & Walter Bratic's renovation of their historic house (1941) in River Oaks"
         }
@@ -117040,7 +117060,7 @@
       "landmark_name": "Julia Ideson Building (Houston Public Library)",
       "historic_district": "",
       "year_built": 1926,
-      "architect": "",
+      "architect": "Ralph Adams Cram",
       "good_brick_awards": [
         {
           "award_year": 2012,
@@ -117049,7 +117069,7 @@
           "project_name": "Julia Ideson Building (Houston Public Library)",
           "reason": "For the restoration of the Julia Ideson Building (1926)",
           "building_year_built": 1926,
-          "architect_or_style": "",
+          "architect_or_style": "Ralph Adams Cram",
           "location_source": "COH Protected Landmark (Julia Ideson Building, 500 McKinney St)",
           "raw_citation": "Stewart Title Award: Houston Public Library's restoration of the Julia Ideson Building (1926)"
         }
@@ -117066,7 +117086,7 @@
       "landmark_name": "The African American Library at the Gregory School",
       "historic_district": "Freedmen's Town",
       "year_built": 1926,
-      "architect": "",
+      "architect": "Hedrick & Gottlieb",
       "good_brick_awards": [
         {
           "award_year": 2011,
@@ -117075,7 +117095,7 @@
           "project_name": "The African American Library at the Gregory School",
           "reason": "For The African American Library at the Gregory School (1926)",
           "building_year_built": 1926,
-          "architect_or_style": "",
+          "architect_or_style": "Hedrick & Gottlieb",
           "location_source": "COH Protected Landmark (Gregory School, 1300 Victor St)",
           "raw_citation": "Houston Public Library for The African American Library at the Gregory School (1926)"
         }
@@ -117086,8 +117106,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0010120000005": {
-      "hcad_num": "0010120000005",
+    "0010120000008": {
+      "hcad_num": "0010120000008",
       "address": "1501 COMMERCE ST",
       "landmark_name": "1910 Nabisco Bakery Building (Downtown)",
       "historic_district": "",
@@ -117118,7 +117138,7 @@
       "landmark_name": "William L. Shipp House",
       "historic_district": "Outside Historic District",
       "year_built": 1900,
-      "architect": "",
+      "architect": "none",
       "good_brick_awards": [
         {
           "award_year": 2011,
@@ -117127,7 +117147,7 @@
           "project_name": "William L. Shipp House",
           "reason": "For the renovation of their historic house (ca. 1900) in the Near Northside",
           "building_year_built": 1900,
-          "architect_or_style": "",
+          "architect_or_style": "none",
           "location_source": "COH Protected Landmark & HCAD Ownership (Ruben Obregon, 1511 Everett St)",
           "raw_citation": "Saul Obregon and Ruben Obregon for the renovation of their historic house (ca. 1900) in the Near Northside"
         }
@@ -117221,7 +117241,7 @@
       "address": "222 MALONE ST",
       "landmark_name": "The Beer Can House (John Milkovisch Folk Art Landmark)",
       "historic_district": "",
-      "year_built": 1940,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -117230,7 +117250,7 @@
           "recipient": "Orange Show Center",
           "project_name": "The Beer Can House (John Milkovisch Folk Art Landmark)",
           "reason": "For Visionary Art for the restoration of The Beer Can House",
-          "building_year_built": 1940,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Orange Show Center for Visionary Art (222 Malone St)",
           "raw_citation": "Orange Show Center for Visionary Art for the restoration of The Beer Can House"
@@ -117246,9 +117266,9 @@
       "hcad_num": "0410070350021",
       "address": "2999 S WAYSIDE DR",
       "landmark_name": "Farnsworth & Chambers (Gragg) Building — Houston Parks & Recreation HQ",
-      "historic_district": "none",
+      "historic_district": "",
       "year_built": 1957,
-      "architect": "",
+      "architect": "MacKie & Kamrath",
       "good_brick_awards": [
         {
           "award_year": 2011,
@@ -117257,7 +117277,7 @@
           "project_name": "Farnsworth & Chambers (Gragg) Building — Houston Parks & Recreation HQ",
           "reason": "For the renovation of the Farnsworth & Chambers [now Gragg] Building (1957)",
           "building_year_built": 1957,
-          "architect_or_style": "",
+          "architect_or_style": "MacKie & Kamrath",
           "location_source": "COH Protected Landmark (Farnsworth & Chambers Building, 2999 S Wayside Dr)",
           "raw_citation": "Houston Parks and Recreation Department for the renovation of the Farnsworth & Chambers [now Gragg] Building (1957)"
         }
@@ -117265,43 +117285,6 @@
       "good_brick_summary": "2011 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Houston Parks and Recreation Department for the renovation of the Farnsworth & Chambers [now Gragg] Building (1957)",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0010350000001": {
-      "hcad_num": "0010350000001",
-      "address": "301 MILAM ST",
-      "landmark_name": "Market Square Park",
-      "historic_district": "Main Street Market Square",
-      "year_built": 1984,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2011,
-          "award_type": "Good Brick Award",
-          "recipient": "Houston Downtown Management District, Downtown Redevelopment Authority/TIRZ #3 and Houston Parks and Recreation Department",
-          "project_name": "Market Square Park",
-          "reason": "For the redevelopment of Market Square Park",
-          "building_year_built": 1984,
-          "architect_or_style": "",
-          "location_source": "Downtown Historic District (Market Square Park, 301 Milam St)",
-          "raw_citation": "Houston Downtown Management District, Downtown Redevelopment Authority/TIRZ #3 and Houston Parks and Recreation Department for the redevelopment of Market Square Park"
-        },
-        {
-          "award_year": 1996,
-          "award_type": "Good Brick Award",
-          "recipient": "Barry Moore",
-          "project_name": "Louis & Anne Friedman Clock Tower at Market Square",
-          "reason": "For the Louis and Anne Friedman Clock Tower at Market Square, appropriate new construction within a historic context",
-          "building_year_built": 1984,
-          "architect_or_style": "",
-          "location_source": "Market Square Park (301 Milam St)",
-          "raw_citation": "Barry Moore for the Louis and Anne Friedman Clock Tower at Market Square, appropriate new construction within a historic context"
-        }
-      ],
-      "good_brick_summary": "Good Brick Award (1996, 2011)",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Houston Downtown Management District, Downtown Redevelopment Authority/TIRZ #3 and Houston Parks and Recreation Department for the redevelopment of Market Square Park",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -117363,7 +117346,7 @@
       "landmark_name": "National Cash Register Co. Building",
       "historic_district": "Outside Historic District",
       "year_built": 1929,
-      "architect": "",
+      "architect": "Joseph Finger",
       "good_brick_awards": [
         {
           "award_year": 2011,
@@ -117372,7 +117355,7 @@
           "project_name": "National Cash Register Co. Building",
           "reason": "Deborah Keyser & James Stafford and the adaptive reuse of the National Cash Register Co. Building (1929)",
           "building_year_built": 1929,
-          "architect_or_style": "",
+          "architect_or_style": "Joseph Finger",
           "location_source": "COH Protected Landmark & HCAD Ownership (Deborah Keyser, 515 Caroline St)",
           "raw_citation": "Deborah Keyser & James Stafford and the adaptive reuse of the National Cash Register Co. Building (1929)"
         }
@@ -117467,7 +117450,7 @@
       "landmark_name": "1801 Lubbock St",
       "historic_district": "Old Sixth Ward Historic District",
       "year_built": 1887,
-      "architect": "",
+      "architect": "unknown",
       "good_brick_awards": [
         {
           "award_year": 2010,
@@ -117476,7 +117459,7 @@
           "project_name": "1801 Lubbock St",
           "reason": "For the restoration of their historic house (1887) at 1801 Lubbock Street",
           "building_year_built": 1887,
-          "architect_or_style": "",
+          "architect_or_style": "unknown",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Ann & Salvador Guercio for the restoration of their historic house (1887) at 1801 Lubbock Street"
         }
@@ -117493,7 +117476,7 @@
       "landmark_name": "2121 Brentwood Dr",
       "historic_district": "Outside Historic District",
       "year_built": 1929,
-      "architect": "",
+      "architect": "Stayton Nunn",
       "good_brick_awards": [
         {
           "award_year": 2010,
@@ -117502,7 +117485,7 @@
           "project_name": "2121 Brentwood Dr",
           "reason": "For the renovation of their historic house (1929) at 2121 Brentwood Drive",
           "building_year_built": 1929,
-          "architect_or_style": "",
+          "architect_or_style": "Stayton Nunn",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Cathy & Paul Chapman for the renovation of their historic house (1929) at 2121 Brentwood Drive"
         }
@@ -117519,7 +117502,7 @@
       "landmark_name": "J.P. Adoue House",
       "historic_district": "Outside Historic District",
       "year_built": 1937,
-      "architect": "",
+      "architect": "Russell Brown Company",
       "good_brick_awards": [
         {
           "award_year": 2010,
@@ -117528,7 +117511,7 @@
           "project_name": "J.P. Adoue House",
           "reason": "For the restoration of the J.P. Adoue House (1937) at 2135 Looscan Lane",
           "building_year_built": 1937,
-          "architect_or_style": "",
+          "architect_or_style": "Russell Brown Company",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Jan & Ron Smulcer for the restoration of the J.P. Adoue House (1937) at 2135 Looscan Lane"
         }
@@ -117608,7 +117591,7 @@
       "landmark_name": "2947 Inwood Dr",
       "historic_district": "Outside Historic District",
       "year_built": 1931,
-      "architect": "",
+      "architect": "Katherine Mott",
       "good_brick_awards": [
         {
           "award_year": 2010,
@@ -117617,7 +117600,7 @@
           "project_name": "2947 Inwood Dr",
           "reason": "For the renovation of their historic house (1931) at 2947 Inwood Drive",
           "building_year_built": 1931,
-          "architect_or_style": "",
+          "architect_or_style": "Katherine Mott",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Nancy & Neal Manne for the renovation of their historic house (1931) at 2947 Inwood Drive"
         }
@@ -117684,9 +117667,9 @@
       "hcad_num": "0332770000001",
       "address": "5300 CAROLINE ST",
       "landmark_name": "Clayton Library",
-      "historic_district": "",
+      "historic_district": "Outside Historic District",
       "year_built": 1917,
-      "architect": "",
+      "architect": "Birdsall P. Briscoe",
       "good_brick_awards": [
         {
           "award_year": 2010,
@@ -117695,7 +117678,7 @@
           "project_name": "Clayton Library",
           "reason": "For the renovation of the Clayton Library Center for Genealogical Research in the historic Clayton House (1917) at 5300 Caroline Street",
           "building_year_built": 1917,
-          "architect_or_style": "",
+          "architect_or_style": "Birdsall P. Briscoe",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Houston Public Library for the renovation of the Clayton Library Center for Genealogical Research in the historic Clayton House (1917) at 5300 Caroline Street"
         }
@@ -117712,7 +117695,7 @@
       "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
       "historic_district": "",
       "year_built": 1940,
-      "architect": "",
+      "architect": "Joseph Finger",
       "good_brick_awards": [
         {
           "award_year": 2010,
@@ -117721,12 +117704,23 @@
           "project_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
           "reason": "For preservation of the historic Houston Municipal Air Terminal as the 1940 Air Terminal Museum",
           "building_year_built": 1940,
-          "architect_or_style": "",
+          "architect_or_style": "Joseph Finger",
           "location_source": "COH Protected Landmark & NRHP Listing (8325 Travelair St)",
           "raw_citation": "Stewart Title Award: The Houston Aeronautical Heritage Society for preservation of the historic Houston Municipal Air Terminal as the 1940 Air Terminal Museum"
+        },
+        {
+          "award_year": 1989,
+          "award_type": "Good Brick Award",
+          "recipient": "City Aviation Department",
+          "project_name": "8325 Travelair St",
+          "reason": "For preservation of the Municipal Airport Terminal (1940) at William P. Hobby Airport, 8325 Travelair St.",
+          "building_year_built": 1940,
+          "architect_or_style": "Joseph Finger",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "City Aviation Department for preservation of the Municipal Airport Terminal (1940) at William P. Hobby Airport, 8325 Travelair St."
         }
       ],
-      "good_brick_summary": "2010 Stewart Title Award",
+      "good_brick_summary": "Good Brick Award (1989, 2010)",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Stewart Title Award: The Houston Aeronautical Heritage Society for preservation of the historic Houston Municipal Air Terminal as the 1940 Air Terminal Museum",
       "source_url": "https://www.preservationhouston.org/awards/past",
@@ -117764,7 +117758,7 @@
       "landmark_name": "12923 Memorial Dr",
       "historic_district": "Outside Historic District",
       "year_built": 1956,
-      "architect": "",
+      "architect": "David W. Crockett",
       "good_brick_awards": [
         {
           "award_year": 2009,
@@ -117773,7 +117767,7 @@
           "project_name": "12923 Memorial Dr",
           "reason": "12923 Memorial Drive, a 1956 Memorial Bend home",
           "building_year_built": 1956,
-          "architect_or_style": "",
+          "architect_or_style": "David W. Crockett",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "12923 Memorial Drive, a 1956 Memorial Bend home"
         }
@@ -117824,7 +117818,7 @@
           "recipient": "John H. Reagan High School",
           "project_name": "Heights High School (John H. Reagan High School)",
           "reason": "The restoration of a historic school building",
-          "building_year_built": 1910,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "COH Landmark & NRHP Listing (413 E 13th St)",
           "raw_citation": "John H. Reagan High School, the restoration of a historic school building"
@@ -117888,12 +117882,38 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0401190000002": {
-      "hcad_num": "0401190000002",
+    "0360040000001": {
+      "hcad_num": "0360040000001",
+      "address": "900 W GRAY ST",
+      "landmark_name": "Clarence R. Wharton Dual Language Academy (1929)",
+      "historic_district": "",
+      "year_built": 0,
+      "architect": "",
+      "good_brick_awards": [
+        {
+          "award_year": 2009,
+          "award_type": "Good Brick Award",
+          "recipient": "Friends of Wharton",
+          "project_name": "Clarence R. Wharton Dual Language Academy (1929)",
+          "reason": "For its successful drive to keep Wharton Elementary School open",
+          "building_year_built": null,
+          "architect_or_style": "",
+          "location_source": "HISD Historic School Campus (900 W Gray St)",
+          "raw_citation": "Friends of Wharton for its successful drive to keep Wharton Elementary School open"
+        }
+      ],
+      "good_brick_summary": "2009 Good Brick Award",
+      "source_type": "Preservation Houston Good Brick Award",
+      "source_citation": "Friends of Wharton for its successful drive to keep Wharton Elementary School open",
+      "source_url": "https://www.preservationhouston.org/awards/past",
+      "verified_by": "Preservation Houston Good Brick Awards"
+    },
+    "0090760000002": {
+      "hcad_num": "0090760000002",
       "address": "1217 W DALLAS ST",
       "landmark_name": "Founders Memorial Park & Cemetery",
       "historic_district": "",
-      "year_built": 0,
+      "year_built": 1836,
       "architect": "",
       "good_brick_awards": [
         {
@@ -117902,7 +117922,7 @@
           "recipient": "Alexander Love Chapter, National Society of the Daughters of the American Revolution",
           "project_name": "Founders Memorial Park & Cemetery",
           "reason": "For its stewardship of Founders Memorial Park",
-          "building_year_built": null,
+          "building_year_built": 1836,
           "architect_or_style": "",
           "location_source": "Historic Founders Cemetery (1217 W Dallas St)",
           "raw_citation": "Stewart Title Award: Alexander Love Chapter, National Society of the Daughters of the American Revolution for its stewardship of Founders Memorial Park"
@@ -117971,7 +117991,7 @@
       "address": "2140 WESTHEIMER RD",
       "landmark_name": "St. Anne Catholic Church & 1929 Parish Hall",
       "historic_district": "",
-      "year_built": 1929,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -117980,7 +118000,7 @@
           "recipient": "St. Anne Catholic Church",
           "project_name": "St. Anne Catholic Church & 1929 Parish Hall",
           "reason": "For the restoration of its 1929 parish hall",
-          "building_year_built": 1929,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Montrose Landmark (2140 Westheimer Rd)",
           "raw_citation": "St. Anne Catholic Church for the restoration of its 1929 parish hall"
@@ -118006,7 +118026,7 @@
           "recipient": "Bartlett Lofts",
           "project_name": "Bartlett Lofts (Texas Staple Company Warehouse)",
           "reason": "The restoration of the Texas Staple Company warehouse",
-          "building_year_built": 1982,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "East End Warehouse Landmark (2414 Commerce St)",
           "raw_citation": "Bartlett Lofts, the restoration of the Texas Staple Company warehouse"
@@ -118023,7 +118043,7 @@
       "address": "3000 CAROLINE ST",
       "landmark_name": "13 Celsius Wine Bar (Jennings Cleaning Building)",
       "historic_district": "",
-      "year_built": 1930,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -118032,7 +118052,7 @@
           "recipient": "13 Celsius",
           "project_name": "13 Celsius Wine Bar (Jennings Cleaning Building)",
           "reason": "The restoration and adaptive reuse of the former Jennings Cleaning building in Midtown",
-          "building_year_built": 1930,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Midtown Landmark (3000 Caroline St)",
           "raw_citation": "13 Celsius, the restoration and adaptive reuse of the former Jennings Cleaning building in Midtown"
@@ -118075,7 +118095,7 @@
       "address": "5020 MONTROSE BLVD",
       "landmark_name": "The Plaza Hotel (Tradition Bank Plaza)",
       "historic_district": "",
-      "year_built": 1926,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -118084,7 +118104,7 @@
           "recipient": "Tradition Bank Plaza",
           "project_name": "The Plaza Hotel (Tradition Bank Plaza)",
           "reason": "The adaptive reuse of the former Plaza Hotel",
-          "building_year_built": 1926,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Museum District Landmark (5020 Montrose Blvd)",
           "raw_citation": "Tradition Bank Plaza, the adaptive reuse of the former Plaza Hotel"
@@ -118232,7 +118252,7 @@
       "landmark_name": "Frame House",
       "historic_district": "Outside Historic District",
       "year_built": 1960,
-      "architect": "",
+      "architect": "Harwood Taylor",
       "good_brick_awards": [
         {
           "award_year": 2007,
@@ -118241,7 +118261,7 @@
           "project_name": "Frame House",
           "reason": "For the restoration of the Frame House (1960) at 403 Westminster",
           "building_year_built": 1960,
-          "architect_or_style": "",
+          "architect_or_style": "Harwood Taylor",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Dana Harper for the restoration of the Frame House (1960) at 403 Westminster"
         }
@@ -118310,7 +118330,7 @@
       "landmark_name": "Farrar House",
       "historic_district": "Outside Historic District",
       "year_built": 1923,
-      "architect": "",
+      "architect": "Einer Stubee",
       "good_brick_awards": [
         {
           "award_year": 2007,
@@ -118319,7 +118339,7 @@
           "project_name": "Farrar House",
           "reason": "For the restoration of the Farrar House (1923) at 511 Lovett Boulevard",
           "building_year_built": 1923,
-          "architect_or_style": "",
+          "architect_or_style": "Einer Stubee",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Andrea & David Matthiesen for the restoration of the Farrar House (1923) at 511 Lovett Boulevard"
         }
@@ -118362,7 +118382,7 @@
       "landmark_name": "Elder Street Artist Lofts (1924 Jefferson Davis Hospital)",
       "historic_district": "Outside Historic District",
       "year_built": 1924,
-      "architect": "",
+      "architect": "W. W. Dowdy",
       "good_brick_awards": [
         {
           "award_year": 2006,
@@ -118371,7 +118391,7 @@
           "project_name": "Elder Street Artist Lofts (1924 Jefferson Davis Hospital)",
           "reason": "For the adaptive reuse of the former Jefferson Davis Hospital",
           "building_year_built": 1924,
-          "architect_or_style": "",
+          "architect_or_style": "W. W. Dowdy",
           "location_source": "COH Protected Landmark & NRHP Listing (1101 Elder St)",
           "raw_citation": "Avenue Community Development Corp. and Artspace Projects Inc. for the adaptive reuse of the former Jefferson Davis Hospital"
         }
@@ -118379,6 +118399,32 @@
       "good_brick_summary": "2006 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Avenue Community Development Corp. and Artspace Projects Inc. for the adaptive reuse of the former Jefferson Davis Hospital",
+      "source_url": "https://www.preservationhouston.org/awards/past",
+      "verified_by": "Preservation Houston Good Brick Awards"
+    },
+    "0010250000013": {
+      "hcad_num": "0010250000013",
+      "address": "1417 CONGRESS AVE",
+      "landmark_name": "Palace Hotel",
+      "historic_district": "Outside Historic District",
+      "year_built": 1903,
+      "architect": "",
+      "good_brick_awards": [
+        {
+          "award_year": 2006,
+          "award_type": "Good Brick Award",
+          "recipient": "Harris County, Jerry Patchen and Avi Ron",
+          "project_name": "Palace Hotel",
+          "reason": "For the restoration of 1417 Congress Ave., the former Palace Hotel",
+          "building_year_built": 1903,
+          "architect_or_style": "",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Harris County, Jerry Patchen and Avi Ron for the restoration of 1417 Congress Ave., the former Palace Hotel"
+        }
+      ],
+      "good_brick_summary": "2006 Good Brick Award",
+      "source_type": "Preservation Houston Good Brick Award",
+      "source_citation": "Harris County, Jerry Patchen and Avi Ron for the restoration of 1417 Congress Ave., the former Palace Hotel",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -118434,8 +118480,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0010360000006": {
-      "hcad_num": "0010360000006",
+    "1264630000006": {
+      "hcad_num": "1264630000006",
       "address": "420 MAIN ST",
       "landmark_name": "Byrd's Department Store Building",
       "historic_district": "Main Street Market Square",
@@ -118460,12 +118506,12 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0401290000003": {
-      "hcad_num": "0401290000003",
+    "1220280010001": {
+      "hcad_num": "1220280010001",
       "address": "4500 MEMORIAL DR",
       "landmark_name": "St. Thomas High School Main Building",
       "historic_district": "",
-      "year_built": 1992,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -118474,7 +118520,7 @@
           "recipient": "St. Thomas High School",
           "project_name": "St. Thomas High School Main Building",
           "reason": "For the restoration of the rotunda in its 1940 main building",
-          "building_year_built": 1992,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Historic Campus (4500 Memorial Dr)",
           "raw_citation": "St. Thomas High School for the restoration of the rotunda in its 1940 main building"
@@ -118541,20 +118587,9 @@
           "architect_or_style": "",
           "location_source": "Hermann Park Conservancy (McGovern Lake)",
           "raw_citation": "Friends of Hermann Park and the City of Houston Parks & Recreation Department for the restoration and renovation of McGovern Lake in Hermann Park"
-        },
-        {
-          "award_year": 1996,
-          "award_type": "Good Brick Award",
-          "recipient": "The Municipal Art Commission and Artie Lee Hinds",
-          "project_name": "Sam Houston Monument (1924, Hermann Park)",
-          "reason": "For the restoration of the Sam Houston Monument (1924) in Hermann Park",
-          "building_year_built": 1924,
-          "architect_or_style": "",
-          "location_source": "Hermann Park Entrance Circle (6001 Fannin St)",
-          "raw_citation": "The Municipal Art Commission and Artie Lee Hinds for the restoration of the Sam Houston Monument (1924) in Hermann Park"
         }
       ],
-      "good_brick_summary": "Good Brick Award (1996, 2001, 2006)",
+      "good_brick_summary": "Good Brick Award (2001, 2006)",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Stewart Title Award: Hermann Park Conservancy for the Heart of the Park",
       "source_url": "https://www.preservationhouston.org/awards/past",
@@ -118564,9 +118599,9 @@
       "hcad_num": "0010800000001",
       "address": "720 FANNIN ST",
       "landmark_name": "Texas State Hotel",
-      "historic_district": "",
+      "historic_district": "Outside Historic District",
       "year_built": 1929,
-      "architect": "",
+      "architect": "Joseph Finger",
       "good_brick_awards": [
         {
           "award_year": 2006,
@@ -118575,7 +118610,7 @@
           "project_name": "Texas State Hotel",
           "reason": "For the restoration of 720 Fannin St., the Texas State Hotel",
           "building_year_built": 1929,
-          "architect_or_style": "",
+          "architect_or_style": "Joseph Finger",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Club Quarters-Houston for the restoration of 720 Fannin St., the Texas State Hotel"
         }
@@ -118586,8 +118621,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0220360000008": {
-      "hcad_num": "0220360000008",
+    "0600720100014": {
+      "hcad_num": "0600720100014",
       "address": "807 TAFT ST",
       "landmark_name": "807 Taft St",
       "historic_district": "",
@@ -118670,7 +118705,7 @@
       "landmark_name": "Hotel Icon (1911 Union National Bank Building)",
       "historic_district": "Main Street Market Square",
       "year_built": 1911,
-      "architect": "",
+      "architect": "Mauran, Russell & Crow",
       "good_brick_awards": [
         {
           "award_year": 2005,
@@ -118679,7 +118714,7 @@
           "project_name": "Hotel Icon (1911 Union National Bank Building)",
           "reason": "For the Hotel Icon, a restoration and adaptive reuse of the 1911 Union National Bank Building",
           "building_year_built": 1911,
-          "architect_or_style": "",
+          "architect_or_style": "Mauran, Russell & Crow",
           "location_source": "COH Protected Landmark (Union National Bank Building, 220 Main St)",
           "raw_citation": "220 Venture Partners, LP and Benchmark Hospitality for the Hotel Icon, a restoration and adaptive reuse of the 1911 Union National Bank Building"
         }
@@ -118690,12 +118725,12 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0410190020001": {
-      "hcad_num": "0410190020001",
+    "0440960000117": {
+      "hcad_num": "0440960000117",
       "address": "2450 HOLCOMBE BLVD",
       "landmark_name": "TMC John P. McGovern Campus (Former Nabisco Houston Bakery)",
       "historic_district": "",
-      "year_built": 1948,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -118704,7 +118739,7 @@
           "recipient": "Texas Medical Center",
           "project_name": "TMC John P. McGovern Campus (Former Nabisco Houston Bakery)",
           "reason": "For the John P. McGovern Campus, the adaptive reuse of the former Nabisco Houston Bakery",
-          "building_year_built": 1948,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Texas Medical Center Landmark (2450 Holcombe Blvd)",
           "raw_citation": "Texas Medical Center for the John P. McGovern Campus, the adaptive reuse of the former Nabisco Houston Bakery"
@@ -118742,12 +118777,12 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0601590580001": {
-      "hcad_num": "0601590580001",
+    "0650580000010": {
+      "hcad_num": "0650580000010",
       "address": "3363 SAN FELIPE ST",
       "landmark_name": "Dominique & John de Menil House (1951 Philip Johnson)",
       "historic_district": "",
-      "year_built": 1988,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -118756,7 +118791,7 @@
           "recipient": "The Menil Foundation",
           "project_name": "Dominique & John de Menil House (1951 Philip Johnson)",
           "reason": "For the restoration of the Menil House",
-          "building_year_built": 1988,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "River Oaks Architectural Landmark (3363 San Felipe St)",
           "raw_citation": "Stewart Title Award: The Menil Foundation for the restoration of the Menil House"
@@ -118794,8 +118829,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0351560000004": {
-      "hcad_num": "0351560000004",
+    "0130270000005": {
+      "hcad_num": "0130270000005",
       "address": "4516 WALKER ST",
       "landmark_name": "\"Rosecroft\" Craftsman Residence (Eastwood)",
       "historic_district": "",
@@ -118876,7 +118911,7 @@
       "hcad_num": "1246600010020",
       "address": "1200 NANCE ST",
       "landmark_name": "1200 Nance St",
-      "historic_district": "",
+      "historic_district": "Outside Historic District",
       "year_built": 1883,
       "architect": "Victorian",
       "good_brick_awards": [
@@ -118902,9 +118937,9 @@
       "hcad_num": "1210850000002",
       "address": "1212 MAIN ST",
       "landmark_name": "The Humble Oil Building",
-      "historic_district": "Outside Historic District",
+      "historic_district": "",
       "year_built": 1921,
-      "architect": "",
+      "architect": "Clinton & Russell; Staub & Franzheim - Humble Tower Annex 1936",
       "good_brick_awards": [
         {
           "award_year": 2004,
@@ -118913,7 +118948,7 @@
           "project_name": "The Humble Oil Building",
           "reason": "For a restoration and adaptive reuse of the Humble Building",
           "building_year_built": 1921,
-          "architect_or_style": "",
+          "architect_or_style": "Clinton & Russell; Staub & Franzheim - Humble Tower Annex 1936",
           "location_source": "COH Protected Landmark & NRHP Listing (1212 Main St)",
           "raw_citation": "Housing Horizons LLC, Leddy Ventures LP and SpawGlass Construction Corp. for a restoration and adaptive reuse of the Humble Building"
         }
@@ -119002,13 +119037,13 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0220310000001": {
-      "hcad_num": "0220310000001",
+    "1240560000001": {
+      "hcad_num": "1240560000001",
       "address": "2700 ALBANY ST",
       "landmark_name": "Villa Serena (Former DePelchin Faith Home)",
       "historic_district": "",
-      "year_built": 2000,
-      "architect": "",
+      "year_built": 0,
+      "architect": "Mauran & Russell",
       "good_brick_awards": [
         {
           "award_year": 2004,
@@ -119016,8 +119051,8 @@
           "recipient": "HHN Homes LP",
           "project_name": "Villa Serena (Former DePelchin Faith Home)",
           "reason": "For Villa Serena, an adaptive reuse of the former DePelchin Faith Home",
-          "building_year_built": 2000,
-          "architect_or_style": "",
+          "building_year_built": null,
+          "architect_or_style": "Mauran & Russell",
           "location_source": "NRHP Landmark (DePelchin Faith Home, 2700 Albany St)",
           "raw_citation": "HHN Homes LP for Villa Serena, an adaptive reuse of the former DePelchin Faith Home"
         }
@@ -119060,7 +119095,7 @@
       "landmark_name": "JPMorgan Chase Building (1929 Gulf Building)",
       "historic_district": "Outside Historic District",
       "year_built": 1929,
-      "architect": "",
+      "architect": "Alfred C. Finn",
       "good_brick_awards": [
         {
           "award_year": 2004,
@@ -119069,12 +119104,23 @@
           "project_name": "JPMorgan Chase Building (1929 Gulf Building)",
           "reason": "For its stewardship of the JPMorgan Chase Building (the former Gulf Building)",
           "building_year_built": 1929,
-          "architect_or_style": "",
+          "architect_or_style": "Alfred C. Finn",
           "location_source": "COH Protected Landmark (Gulf Building, 712 Main St)",
           "raw_citation": "President's Award: JPMorgan Chase for its stewardship of the JPMorgan Chase Building (the former Gulf Building)"
+        },
+        {
+          "award_year": 1987,
+          "award_type": "Good Brick Award",
+          "recipient": "Texas Commerce Bank",
+          "project_name": "Gulf Building",
+          "reason": "For the restoration of the Gulf Building (1929), 712 Main St.",
+          "building_year_built": 1929,
+          "architect_or_style": "Alfred C. Finn",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Texas Commerce Bank for the restoration of the Gulf Building (1929), 712 Main St."
         }
       ],
-      "good_brick_summary": "2004 President's Award",
+      "good_brick_summary": "Good Brick Award (1987, 2004)",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "President's Award: JPMorgan Chase for its stewardship of the JPMorgan Chase Building (the former Gulf Building)",
       "source_url": "https://www.preservationhouston.org/awards/past",
@@ -119132,8 +119178,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "1228970000071": {
-      "hcad_num": "1228970000071",
+    "1228970000001": {
+      "hcad_num": "1228970000001",
       "address": "201 MAIN ST",
       "landmark_name": "First National Bank Building",
       "historic_district": "Main Street/Market Square Historic District",
@@ -119216,7 +119262,7 @@
       "landmark_name": "2421 Brentwood Dr",
       "historic_district": "Outside Historic District",
       "year_built": 1929,
-      "architect": "",
+      "architect": "Katharine Mott/Burns and James",
       "good_brick_awards": [
         {
           "award_year": 2003,
@@ -119225,7 +119271,7 @@
           "project_name": "2421 Brentwood Dr",
           "reason": "For the restoration and renovation of 2421 Brentwood Drive",
           "building_year_built": 1929,
-          "architect_or_style": "",
+          "architect_or_style": "Katharine Mott/Burns and James",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Bill Caudell and Randy Powers for the restoration and renovation of 2421 Brentwood Drive"
         }
@@ -119233,6 +119279,32 @@
       "good_brick_summary": "2003 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Bill Caudell and Randy Powers for the restoration and renovation of 2421 Brentwood Drive",
+      "source_url": "https://www.preservationhouston.org/awards/past",
+      "verified_by": "Preservation Houston Good Brick Awards"
+    },
+    "0901520000001": {
+      "hcad_num": "0901520000001",
+      "address": "3843 N BRAESWOOD BLVD",
+      "landmark_name": "3843 N Braeswood Blvd",
+      "historic_district": "",
+      "year_built": 1960,
+      "architect": "",
+      "good_brick_awards": [
+        {
+          "award_year": 2003,
+          "award_type": "Good Brick Award",
+          "recipient": "Gingrich Associates Architects",
+          "project_name": "3843 N Braeswood Blvd",
+          "reason": "For the renovation of 3843 N. Braeswood Blvd. (1960)",
+          "building_year_built": 1960,
+          "architect_or_style": "",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Gingrich Associates Architects for the renovation of 3843 N. Braeswood Blvd. (1960)"
+        }
+      ],
+      "good_brick_summary": "2003 Good Brick Award",
+      "source_type": "Preservation Houston Good Brick Award",
+      "source_citation": "Gingrich Associates Architects for the renovation of 3843 N. Braeswood Blvd. (1960)",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -119396,9 +119468,9 @@
       "hcad_num": "0420660000180",
       "address": "5516 ALMEDA RD",
       "landmark_name": "Third Church",
-      "historic_district": "",
+      "historic_district": "Outside Historic District",
       "year_built": 1928,
-      "architect": "",
+      "architect": "Jonas & Tabor",
       "good_brick_awards": [
         {
           "award_year": 2001,
@@ -119407,7 +119479,7 @@
           "project_name": "Third Church",
           "reason": "For the restoration and adaptive reuse of the Third Church of Christ, Scientist, building (1928), 5516 Almeda Road",
           "building_year_built": 1928,
-          "architect_or_style": "",
+          "architect_or_style": "Jonas & Tabor",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Deborah Keyser & James Stafford, Catherine & Bill Coulter and Martha McKenzie for the restoration and adaptive reuse of the Third Church of Christ, Scientist, building (1928), 5516 Almeda Road"
         }
@@ -119450,7 +119522,7 @@
       "landmark_name": "Commercial National Bank Building",
       "historic_district": "Main Street/Market Square Historic District",
       "year_built": 1904,
-      "architect": "",
+      "architect": "Green & Svarz",
       "good_brick_awards": [
         {
           "award_year": 2001,
@@ -119459,7 +119531,7 @@
           "project_name": "Commercial National Bank Building",
           "reason": "For the restoration of the Commercial National Bank Building (1904), 917 Franklin Ave.",
           "building_year_built": 1904,
-          "architect_or_style": "",
+          "architect_or_style": "Green & Svarz",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Tony Abyad & Phyllis Childress, Franci & Jim Crane, Michele & Brent Friedman, Cathy & Frank Hevrdejs, Catherine & Andrew Kaldis, and Sharon & Gary Leach for the restoration of the Commercial National Bank Building (1904), 917 Franklin Ave."
         }
@@ -119476,7 +119548,7 @@
       "landmark_name": "1218 Webster Ave",
       "historic_district": "Outside Historic District",
       "year_built": 1920,
-      "architect": "",
+      "architect": "Alfred C. Finn; Louis C. Perry",
       "good_brick_awards": [
         {
           "award_year": 2000,
@@ -119485,7 +119557,7 @@
           "project_name": "1218 Webster Ave",
           "reason": "For the restoration and adaptive reuse of the Benjamin Apartments (1920), 1218 Webster Ave.",
           "building_year_built": 1920,
-          "architect_or_style": "",
+          "architect_or_style": "Alfred C. Finn; Louis C. Perry",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Patrick Van Pelt/The Mid Continent Companies, Ltd., for the restoration and adaptive reuse of the Benjamin Apartments (1920), 1218 Webster Ave."
         }
@@ -119808,6 +119880,43 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
+    "0010190000020": {
+      "hcad_num": "0010190000020",
+      "address": "204 TRAVIS ST",
+      "landmark_name": "Hermann Lofts",
+      "historic_district": "Main Street/Market Square Historic District",
+      "year_built": 1917,
+      "architect": "",
+      "good_brick_awards": [
+        {
+          "award_year": 1998,
+          "award_type": "Stewart Title Award",
+          "recipient": "204 Travis Venture, L.P., and Doug Crosson with Gensler",
+          "project_name": "Hermann Lofts",
+          "reason": "For the Hermann Lofts in the Hermann Estate Building (1917), 204-212 Travis St.",
+          "building_year_built": 1917,
+          "architect_or_style": "",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Stewart Title Award: 204 Travis Venture, L.P., and Doug Crosson with Gensler for the Hermann Lofts in the Hermann Estate Building (1917), 204-212 Travis St."
+        },
+        {
+          "award_year": 1996,
+          "award_type": "Good Brick Award",
+          "recipient": "Foley Building LLC",
+          "project_name": "Foley Building",
+          "reason": "For the interior adaptive reuse of the Foley Building (1861, 1889), 214 Travis St.",
+          "building_year_built": 1861,
+          "architect_or_style": "1889",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Foley Building LLC for the interior adaptive reuse of the Foley Building (1861, 1889), 214 Travis St."
+        }
+      ],
+      "good_brick_summary": "Good Brick Award (1996, 1998)",
+      "source_type": "Preservation Houston Good Brick Award",
+      "source_citation": "Stewart Title Award: 204 Travis Venture, L.P., and Doug Crosson with Gensler for the Hermann Lofts in the Hermann Estate Building (1917), 204-212 Travis St.",
+      "source_url": "https://www.preservationhouston.org/awards/past",
+      "verified_by": "Preservation Houston Good Brick Awards"
+    },
     "0193050000012": {
       "hcad_num": "0193050000012",
       "address": "2619 N CALUMET DR",
@@ -119840,7 +119949,7 @@
       "landmark_name": "3237 Inwood Dr",
       "historic_district": "Outside Historic District",
       "year_built": 1925,
-      "architect": "",
+      "architect": "Birdsall Briscoe, Briscoe & Dixon",
       "good_brick_awards": [
         {
           "award_year": 1998,
@@ -119849,7 +119958,7 @@
           "project_name": "3237 Inwood Dr",
           "reason": "For the renovation of 3237 Inwood Drive (1925)",
           "building_year_built": 1925,
-          "architect_or_style": "",
+          "architect_or_style": "Birdsall Briscoe, Briscoe & Dixon",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Patricia & John Laurent with Patton W. Brooks, AIA, and Windham Builders for the renovation of 3237 Inwood Drive (1925)"
         }
@@ -119886,13 +119995,13 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0201880000001": {
-      "hcad_num": "0201880000001",
+    "0201820000029": {
+      "hcad_num": "0201820000029",
       "address": "107 W 12TH ST",
       "landmark_name": "Houston Heights Fire Station & Donovan Park Playground",
       "historic_district": "Houston Heights South",
-      "year_built": 1998,
-      "architect": "",
+      "year_built": 1914,
+      "architect": "Alonza C. Pigg",
       "good_brick_awards": [
         {
           "award_year": 1997,
@@ -119900,8 +120009,8 @@
           "recipient": "Houston Heights Association",
           "project_name": "Houston Heights Fire Station & Donovan Park Playground",
           "reason": "For the restoration of the Heights Fire Station and construction of the Heights Playground in Donavan Park",
-          "building_year_built": 1998,
-          "architect_or_style": "",
+          "building_year_built": 1914,
+          "architect_or_style": "Alonza C. Pigg",
           "location_source": "COH Landmark (Heights Fire Station, 107 W 12th St & Donovan Park)",
           "raw_citation": "Houston Heights Association for the restoration of the Heights Fire Station and construction of the Heights Playground in Donavan Park"
         }
@@ -119912,39 +120021,13 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0010550000019": {
-      "hcad_num": "0010550000019",
-      "address": "1117 TEXAS AVE",
-      "landmark_name": "1117 Texas Ave",
-      "historic_district": "Outside Historic District",
-      "year_built": 1893,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 1997,
-          "award_type": "Good Brick Award",
-          "recipient": "Restoration of Christ Church Cathedral (1893), 1117 Texas Ave.",
-          "project_name": "1117 Texas Ave",
-          "reason": "Restoration of Christ Church Cathedral (1893), 1117 Texas Ave.",
-          "building_year_built": 1893,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Restoration of Christ Church Cathedral (1893), 1117 Texas Ave."
-        }
-      ],
-      "good_brick_summary": "1997 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Restoration of Christ Church Cathedral (1893), 1117 Texas Ave.",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
     "0090780000008": {
       "hcad_num": "0090780000008",
       "address": "1314 ANDREWS ST",
       "landmark_name": "Rutherford Yates House",
       "historic_district": "Outside Historic District",
       "year_built": 1912,
-      "architect": "",
+      "architect": "unknown",
       "good_brick_awards": [
         {
           "award_year": 1997,
@@ -119953,7 +120036,7 @@
           "project_name": "Rutherford Yates House",
           "reason": "For the restoration of the Rutherford Yates House (1912), 1314 Andrews St.",
           "building_year_built": 1912,
-          "architect_or_style": "",
+          "architect_or_style": "unknown",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Catherine M. Roberts for the restoration of the Rutherford Yates House (1912), 1314 Andrews St."
         }
@@ -120068,32 +120151,6 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0152470000018": {
-      "hcad_num": "0152470000018",
-      "address": "2403 MILAM ST",
-      "landmark_name": "Houston Fire Museum",
-      "historic_district": "",
-      "year_built": 1899,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 1997,
-          "award_type": "Good Brick Award",
-          "recipient": "Houston Fire Museum and Mesa Southwest Construction Corp.",
-          "project_name": "Houston Fire Museum",
-          "reason": "For the restoration of the Houston Fire Museum (1899), 2403 Milam St.",
-          "building_year_built": 1899,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Houston Fire Museum and Mesa Southwest Construction Corp. for the restoration of the Houston Fire Museum (1899), 2403 Milam St."
-        }
-      ],
-      "good_brick_summary": "1997 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Houston Fire Museum and Mesa Southwest Construction Corp. for the restoration of the Houston Fire Museum (1899), 2403 Milam St.",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
     "0410050000001": {
       "hcad_num": "0410050000001",
       "address": "6510 LAWNDALE ST",
@@ -120126,7 +120183,7 @@
       "landmark_name": "901 Bagby St",
       "historic_district": "Outside Historic District",
       "year_built": 1939,
-      "architect": "",
+      "architect": "Joseph Finger",
       "good_brick_awards": [
         {
           "award_year": 1997,
@@ -120135,7 +120192,7 @@
           "project_name": "901 Bagby St",
           "reason": "Restoration of Houston City Hall (1939), 901 Bagby St.",
           "building_year_built": 1939,
-          "architect_or_style": "",
+          "architect_or_style": "Joseph Finger",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Restoration of Houston City Hall (1939), 901 Bagby St."
         }
@@ -120198,32 +120255,6 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0010190000020": {
-      "hcad_num": "0010190000020",
-      "address": "214 TRAVIS ST",
-      "landmark_name": "Foley Building",
-      "historic_district": "Main Street/Market Square Historic District",
-      "year_built": 1861,
-      "architect": "1889",
-      "good_brick_awards": [
-        {
-          "award_year": 1996,
-          "award_type": "Good Brick Award",
-          "recipient": "Foley Building LLC",
-          "project_name": "Foley Building",
-          "reason": "For the interior adaptive reuse of the Foley Building (1861, 1889), 214 Travis St.",
-          "building_year_built": 1861,
-          "architect_or_style": "1889",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Foley Building LLC for the interior adaptive reuse of the Foley Building (1861, 1889), 214 Travis St."
-        }
-      ],
-      "good_brick_summary": "1996 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Foley Building LLC for the interior adaptive reuse of the Foley Building (1861, 1889), 214 Travis St.",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
     "0601530340015": {
       "hcad_num": "0601530340015",
       "address": "2218 TROON RD",
@@ -120281,7 +120312,7 @@
       "address": "707 SILVER ST",
       "landmark_name": "700 Block of Silver Street Historic Buildings",
       "historic_district": "Old Sixth Ward",
-      "year_built": 1925,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -120290,7 +120321,7 @@
           "recipient": "Silver Street Properties",
           "project_name": "700 Block of Silver Street Historic Buildings",
           "reason": "For the restoration of four buildings in the 700 block of Silver Street",
-          "building_year_built": 1925,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Old Sixth Ward Historic District (700 Silver St)",
           "raw_citation": "Silver Street Properties for the restoration of four buildings in the 700 block of Silver Street"
@@ -120302,8 +120333,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0200990000004": {
-      "hcad_num": "0200990000004",
+    "1487710020001": {
+      "hcad_num": "1487710020001",
       "address": "1811 HEIGHTS BLVD",
       "landmark_name": "1811 Heights Blvd",
       "historic_district": "Houston Heights East Historic District",
@@ -120354,6 +120385,32 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
+    "0601510000005": {
+      "hcad_num": "0601510000005",
+      "address": "2940 LAZY LN",
+      "landmark_name": "2940 Lazy Ln",
+      "historic_district": "Outside Historic District",
+      "year_built": 1928,
+      "architect": "",
+      "good_brick_awards": [
+        {
+          "award_year": 1994,
+          "award_type": "Good Brick Award",
+          "recipient": "Museum of Fine Arts, Houston",
+          "project_name": "2940 Lazy Ln",
+          "reason": "For the restoration and rehabilitation of Bayou Bend (1928), 2940 Lazy Lane",
+          "building_year_built": 1928,
+          "architect_or_style": "",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Museum of Fine Arts, Houston for the restoration and rehabilitation of Bayou Bend (1928), 2940 Lazy Lane"
+        }
+      ],
+      "good_brick_summary": "1994 Good Brick Award",
+      "source_type": "Preservation Houston Good Brick Award",
+      "source_citation": "Museum of Fine Arts, Houston for the restoration and rehabilitation of Bayou Bend (1928), 2940 Lazy Lane",
+      "source_url": "https://www.preservationhouston.org/awards/past",
+      "verified_by": "Preservation Houston Good Brick Awards"
+    },
     "0372930000001": {
       "hcad_num": "0372930000001",
       "address": "604 BAYLAND AVE",
@@ -120385,7 +120442,7 @@
       "address": "711 WILLIAM ST",
       "landmark_name": "Dakota Lofts (Bering Cortes Hardware Warehouse)",
       "historic_district": "",
-      "year_built": 1910,
+      "year_built": 0,
       "architect": "",
       "good_brick_awards": [
         {
@@ -120394,7 +120451,7 @@
           "recipient": "Randall Davis",
           "project_name": "Dakota Lofts (Bering Cortes Hardware Warehouse)",
           "reason": "For his pioneering efforts in adaptive reuse of historic buildings in downtown Houston and Galveston",
-          "building_year_built": 1910,
+          "building_year_built": null,
           "architect_or_style": "",
           "location_source": "Downtown Warehouse District Adaptive Reuse (711 William St)",
           "raw_citation": "Randall Davis for his pioneering efforts in adaptive reuse of historic buildings in downtown Houston and Galveston"
@@ -120412,7 +120469,7 @@
       "landmark_name": "Brashear Building",
       "historic_district": "Main Street/Market Square Historic District",
       "year_built": 1882,
-      "architect": "",
+      "architect": "Eugene T Heiner",
       "good_brick_awards": [
         {
           "award_year": 1994,
@@ -120421,7 +120478,7 @@
           "project_name": "Brashear Building",
           "reason": "For the rehabilitation and adaptive use of the Brashear Building (1882), 910 Prairie Ave.",
           "building_year_built": 1882,
-          "architect_or_style": "",
+          "architect_or_style": "Eugene T Heiner",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "FKM Partnership Ltd. and Carter & Cooley Co. Deli for the rehabilitation and adaptive use of the Brashear Building (1882), 910 Prairie Ave."
         }
@@ -120429,6 +120486,32 @@
       "good_brick_summary": "1994 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "FKM Partnership Ltd. and Carter & Cooley Co. Deli for the rehabilitation and adaptive use of the Brashear Building (1882), 910 Prairie Ave.",
+      "source_url": "https://www.preservationhouston.org/awards/past",
+      "verified_by": "Preservation Houston Good Brick Awards"
+    },
+    "0141450000001": {
+      "hcad_num": "0141450000001",
+      "address": "1003 ISABELLA AVE",
+      "landmark_name": "1003 Isabella Ave",
+      "historic_district": "",
+      "year_built": 1929,
+      "architect": "",
+      "good_brick_awards": [
+        {
+          "award_year": 1993,
+          "award_type": "Good Brick Award",
+          "recipient": "Trudy Herolz and Robert A. Herolz Jr.",
+          "project_name": "1003 Isabella Ave",
+          "reason": "For the preservation and restoration of Isabella Court Apartments (1929), 1003-1005 Isabella Ave.",
+          "building_year_built": 1929,
+          "architect_or_style": "",
+          "location_source": "Preservation Houston Award Citation",
+          "raw_citation": "Trudy Herolz and Robert A. Herolz Jr. for the preservation and restoration of Isabella Court Apartments (1929), 1003-1005 Isabella Ave."
+        }
+      ],
+      "good_brick_summary": "1993 Good Brick Award",
+      "source_type": "Preservation Houston Good Brick Award",
+      "source_citation": "Trudy Herolz and Robert A. Herolz Jr. for the preservation and restoration of Isabella Court Apartments (1929), 1003-1005 Isabella Ave.",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -120510,8 +120593,8 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0010590000005": {
-      "hcad_num": "0010590000005",
+    "1472800010001": {
+      "hcad_num": "1472800010001",
       "address": "1014 PRAIRIE ST",
       "landmark_name": "C.G. Pillot Building (Main Street/Market Square)",
       "historic_district": "Main Street Market Square",
@@ -120568,7 +120651,7 @@
       "landmark_name": "221 E 12Th St",
       "historic_district": "Houston Heights East Historic District",
       "year_built": 1900,
-      "architect": "",
+      "architect": "Harvin C. Moore & Hermon Lloyd",
       "good_brick_awards": [
         {
           "award_year": 1992,
@@ -120577,7 +120660,7 @@
           "project_name": "221 E 12Th St",
           "reason": "For the renovation of 221 E. 12th St.",
           "building_year_built": 1900,
-          "architect_or_style": "",
+          "architect_or_style": "Harvin C. Moore & Hermon Lloyd",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Carol & Hill Adams for the renovation of 221 E. 12th St."
         }
@@ -120644,7 +120727,7 @@
       "hcad_num": "0052240000010",
       "address": "1805 LUBBOCK ST",
       "landmark_name": "1805 Lubbock St",
-      "historic_district": "",
+      "historic_district": "Old Sixth Ward Historic District",
       "year_built": 0,
       "architect": "",
       "good_brick_awards": [
@@ -120718,32 +120801,6 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0432280000011": {
-      "hcad_num": "0432280000011",
-      "address": "8325 TRAVELAIR ST",
-      "landmark_name": "8325 Travelair St",
-      "historic_district": "",
-      "year_built": 1940,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 1989,
-          "award_type": "Good Brick Award",
-          "recipient": "City Aviation Department",
-          "project_name": "8325 Travelair St",
-          "reason": "For preservation of the Municipal Airport Terminal (1940) at William P. Hobby Airport, 8325 Travelair St.",
-          "building_year_built": 1940,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "City Aviation Department for preservation of the Municipal Airport Terminal (1940) at William P. Hobby Airport, 8325 Travelair St."
-        }
-      ],
-      "good_brick_summary": "1989 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "City Aviation Department for preservation of the Municipal Airport Terminal (1940) at William P. Hobby Airport, 8325 Travelair St.",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
     "0261640000027": {
       "hcad_num": "0261640000027",
       "address": "4100 MONTROSE BLVD",
@@ -120770,55 +120827,29 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
-    "0141760000002": {
-      "hcad_num": "0141760000002",
-      "address": "3517 AUSTIN ST",
-      "landmark_name": "Heinen Theater",
-      "historic_district": "",
-      "year_built": 1925,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 1987,
-          "award_type": "Good Brick Award",
-          "recipient": "Houston Community College",
-          "project_name": "Heinen Theater",
-          "reason": "For the restoration of the Temple Beth Israel (1925) as the Heinen Theater, 3517 Austin St.",
-          "building_year_built": 1925,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Houston Community College for the restoration of the Temple Beth Israel (1925) as the Heinen Theater, 3517 Austin St."
-        }
-      ],
-      "good_brick_summary": "1987 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Houston Community College for the restoration of the Temple Beth Israel (1925) as the Heinen Theater, 3517 Austin St.",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0690740000019": {
-      "hcad_num": "0690740000019",
-      "address": "712 MAIN ST",
-      "landmark_name": "Gulf Building",
+    "0011000000001": {
+      "hcad_num": "0011000000001",
+      "address": "430 LAMAR AVE",
+      "landmark_name": "Federal Land Bank Building",
       "historic_district": "",
       "year_built": 1929,
-      "architect": "",
+      "architect": "1934, 1941",
       "good_brick_awards": [
         {
-          "award_year": 1987,
+          "award_year": 1988,
           "award_type": "Good Brick Award",
-          "recipient": "Texas Commerce Bank",
-          "project_name": "Gulf Building",
-          "reason": "For the restoration of the Gulf Building (1929), 712 Main St.",
+          "recipient": "Wortham & Van Liew",
+          "project_name": "Federal Land Bank Building",
+          "reason": "For the restoration of the Federal Land Bank Building (1929, 1934, 1941), 430 Lamar Ave.",
           "building_year_built": 1929,
-          "architect_or_style": "",
+          "architect_or_style": "1934, 1941",
           "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Texas Commerce Bank for the restoration of the Gulf Building (1929), 712 Main St."
+          "raw_citation": "Wortham & Van Liew for the restoration of the Federal Land Bank Building (1929, 1934, 1941), 430 Lamar Ave."
         }
       ],
-      "good_brick_summary": "1987 Good Brick Award",
+      "good_brick_summary": "1988 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Texas Commerce Bank for the restoration of the Gulf Building (1929), 712 Main St.",
+      "source_citation": "Wortham & Van Liew for the restoration of the Federal Land Bank Building (1929, 1934, 1941), 430 Lamar Ave.",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     },
@@ -120982,9 +121013,9 @@
       "hcad_num": "0010420000006",
       "address": "401 LOUISIANA ST",
       "landmark_name": "Hogg Building",
-      "historic_district": "none",
+      "historic_district": "Outside Historic District",
       "year_built": 1921,
-      "architect": "",
+      "architect": "Barglebaugh & Whitson",
       "good_brick_awards": [
         {
           "award_year": 1979,
@@ -120993,7 +121024,7 @@
           "project_name": "Hogg Building",
           "reason": "For restoration of the Hogg Building (1921), 401 Louisiana St.",
           "building_year_built": 1921,
-          "architect_or_style": "",
+          "architect_or_style": "Barglebaugh & Whitson",
           "location_source": "Preservation Houston Award Citation",
           "raw_citation": "Frank Glass for restoration of the Hogg Building (1921), 401 Louisiana St."
         }
@@ -121001,162 +121032,6 @@
       "good_brick_summary": "1979 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Frank Glass for restoration of the Hogg Building (1921), 401 Louisiana St.",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0360040000001": {
-      "hcad_num": "0360040000001",
-      "address": "900 W GRAY ST",
-      "landmark_name": "Clarence R. Wharton Dual Language Academy (1929)",
-      "historic_district": "",
-      "year_built": 0,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2009,
-          "award_type": "Good Brick Award",
-          "recipient": "Friends of Wharton",
-          "project_name": "Clarence R. Wharton Dual Language Academy (1929)",
-          "reason": "For its successful drive to keep Wharton Elementary School open",
-          "building_year_built": null,
-          "architect_or_style": "",
-          "location_source": "HISD Historic School Campus (900 W Gray St)",
-          "raw_citation": "Friends of Wharton for its successful drive to keep Wharton Elementary School open"
-        }
-      ],
-      "good_brick_summary": "2009 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Friends of Wharton for its successful drive to keep Wharton Elementary School open",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0010250000013": {
-      "hcad_num": "0010250000013",
-      "address": "1417 CONGRESS AVE",
-      "landmark_name": "Palace Hotel",
-      "historic_district": "",
-      "year_built": 1903,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2006,
-          "award_type": "Good Brick Award",
-          "recipient": "Harris County, Jerry Patchen and Avi Ron",
-          "project_name": "Palace Hotel",
-          "reason": "For the restoration of 1417 Congress Ave., the former Palace Hotel",
-          "building_year_built": null,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Harris County, Jerry Patchen and Avi Ron for the restoration of 1417 Congress Ave., the former Palace Hotel"
-        }
-      ],
-      "good_brick_summary": "2006 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Harris County, Jerry Patchen and Avi Ron for the restoration of 1417 Congress Ave., the former Palace Hotel",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0901520000001": {
-      "hcad_num": "0901520000001",
-      "address": "3843 N BRAESWOOD BLVD",
-      "landmark_name": "3843 N Braeswood Blvd",
-      "historic_district": "",
-      "year_built": 1960,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2003,
-          "award_type": "Good Brick Award",
-          "recipient": "Gingrich Associates Architects",
-          "project_name": "3843 N Braeswood Blvd",
-          "reason": "For the renovation of 3843 N. Braeswood Blvd. (1960)",
-          "building_year_built": 1960,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Gingrich Associates Architects for the renovation of 3843 N. Braeswood Blvd. (1960)"
-        }
-      ],
-      "good_brick_summary": "2003 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Gingrich Associates Architects for the renovation of 3843 N. Braeswood Blvd. (1960)",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0601510000005": {
-      "hcad_num": "0601510000005",
-      "address": "2940 LAZY LN",
-      "landmark_name": "2940 Lazy Ln",
-      "historic_district": "",
-      "year_built": 1928,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 1994,
-          "award_type": "Good Brick Award",
-          "recipient": "Museum of Fine Arts, Houston",
-          "project_name": "2940 Lazy Ln",
-          "reason": "For the restoration and rehabilitation of Bayou Bend (1928), 2940 Lazy Lane",
-          "building_year_built": 1928,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Museum of Fine Arts, Houston for the restoration and rehabilitation of Bayou Bend (1928), 2940 Lazy Lane"
-        }
-      ],
-      "good_brick_summary": "1994 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Museum of Fine Arts, Houston for the restoration and rehabilitation of Bayou Bend (1928), 2940 Lazy Lane",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0141450000001": {
-      "hcad_num": "0141450000001",
-      "address": "1003 ISABELLA AVE",
-      "landmark_name": "1003 Isabella Ave",
-      "historic_district": "",
-      "year_built": 1929,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 1993,
-          "award_type": "Good Brick Award",
-          "recipient": "Trudy Herolz and Robert A. Herolz Jr.",
-          "project_name": "1003 Isabella Ave",
-          "reason": "For the preservation and restoration of Isabella Court Apartments (1929), 1003-1005 Isabella Ave.",
-          "building_year_built": 1929,
-          "architect_or_style": "",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Trudy Herolz and Robert A. Herolz Jr. for the preservation and restoration of Isabella Court Apartments (1929), 1003-1005 Isabella Ave."
-        }
-      ],
-      "good_brick_summary": "1993 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Trudy Herolz and Robert A. Herolz Jr. for the preservation and restoration of Isabella Court Apartments (1929), 1003-1005 Isabella Ave.",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
-    },
-    "0011000000001": {
-      "hcad_num": "0011000000001",
-      "address": "430 LAMAR AVE",
-      "landmark_name": "Federal Land Bank Building",
-      "historic_district": "",
-      "year_built": 1929,
-      "architect": "1934, 1941",
-      "good_brick_awards": [
-        {
-          "award_year": 1988,
-          "award_type": "Good Brick Award",
-          "recipient": "Wortham & Van Liew",
-          "project_name": "Federal Land Bank Building",
-          "reason": "For the restoration of the Federal Land Bank Building (1929, 1934, 1941), 430 Lamar Ave.",
-          "building_year_built": 1929,
-          "architect_or_style": "1934, 1941",
-          "location_source": "Preservation Houston Award Citation",
-          "raw_citation": "Wortham & Van Liew for the restoration of the Federal Land Bank Building (1929, 1934, 1941), 430 Lamar Ave."
-        }
-      ],
-      "good_brick_summary": "1988 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Wortham & Van Liew for the restoration of the Federal Land Bank Building (1929, 1934, 1941), 430 Lamar Ave.",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards"
     }
