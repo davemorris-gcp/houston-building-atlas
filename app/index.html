@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261005o" />
+  <link rel="stylesheet" href="styles/index.css?v=20261005q" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -67,7 +67,7 @@
         <div id="search-results" class="search-results hidden"></div>
       </div>
 
-      <!-- Quick Action Bar: 3D Extrusion, Basemaps, Data Guide -->
+      <!-- Quick Action Bar: 3D Extrusion, Basemaps, Share View, Data Guide -->
       <div class="topbar-actions">
         <div class="segmented-group" role="group" aria-label="Basemap Style">
           <button type="button" class="seg-btn active" id="btn-base-dark" data-basemap="dark_archival">
@@ -83,6 +83,15 @@
 
         <button type="button" class="action-pill" id="btn-toggle-3d">
           3D Extrusion: OFF
+        </button>
+
+        <button
+          type="button"
+          class="action-pill share-pill"
+          id="btn-open-share-modal"
+          title="Share or embed the map with current layers, basemap, filters, and camera view"
+        >
+          &#128279; Share View
         </button>
 
         <button type="button" class="action-pill subtle" id="btn-open-about-modal">
@@ -344,6 +353,14 @@
               title="Turn off all preservation &amp; civic overlays"
             >
               None
+            </button>
+            <button
+              type="button"
+              class="layer-header-btn share-layer-btn"
+              id="btn-share-layers-quick"
+              title="Share a link to this exact layer &amp; basemap configuration"
+            >
+              &#128279; Share
             </button>
           </div>
         </div>
@@ -791,10 +808,148 @@
         </div>
       </div>
     </div>
+
+    <!-- Share Map Configuration & Curated View Presets Modal -->
+    <div class="modal-backdrop hidden" id="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
+      <div class="modal-card share-modal-card">
+        <div class="modal-header">
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">Preservation Houston • Share &amp; Embed</span>
+              <h2 class="modal-title" id="share-modal-title">Share Map Configuration</h2>
+            </div>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-share-modal" aria-label="Close Share Modal">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body share-modal-body">
+          <p class="share-intro">
+            Every layer toggle, basemap style, building footprint setting, chronological filter, and camera position is encoded directly in the URL. Copy the link below to share this exact map view, or choose a curated preset.
+          </p>
+
+          <!-- Live Active Configuration Summary Pills -->
+          <div class="share-section">
+            <div class="share-section-header">
+              <span class="share-section-label">Active Map Configuration</span>
+            </div>
+            <div class="share-summary-pills" id="share-config-summary-pills"></div>
+          </div>
+
+          <!-- Link Customization Checkboxes -->
+          <div class="share-options-grid">
+            <label class="check-row">
+              <input type="checkbox" id="chk-share-include-viewport" checked />
+              <span>Include current camera position &amp; zoom (<code>lat</code>, <code>lng</code>, <code>z</code>)</span>
+            </label>
+            <label class="check-row" id="row-share-include-selection">
+              <input type="checkbox" id="chk-share-include-selection" checked />
+              <span id="lbl-share-include-selection">Include currently selected property</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="chk-share-collapse-sidebar" />
+              <span>Open with left filters sidebar collapsed (<code>sidebar=0</code> for clean presentation view)</span>
+            </label>
+          </div>
+
+          <!-- Shareable Hyperlink Copy Box -->
+          <div class="share-section">
+            <div class="share-section-header">
+              <span class="share-section-label">Shareable Hyperlink</span>
+              <span class="share-copy-status mono" id="share-copy-feedback"></span>
+            </div>
+            <div class="share-url-row">
+              <input
+                type="text"
+                id="share-url-input"
+                class="form-input mono share-url-input"
+                readonly
+                aria-label="Shareable Map Configuration URL"
+              />
+              <button type="button" class="inspector-btn primary share-copy-btn" id="btn-copy-share-modal-url">
+                &#128279; Copy Link
+              </button>
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inspector-btn secondary share-open-btn"
+                id="btn-open-share-url-tab"
+                title="Open this shared URL in a new browser tab"
+              >
+                Open &#8599;
+              </a>
+            </div>
+          </div>
+
+          <!-- Curated One-Click View Presets -->
+          <div class="share-section">
+            <div class="share-section-header">
+              <span class="share-section-label">One-Click Curated View Presets</span>
+              <span class="share-section-hint">Click any preset to apply it to the map &amp; copy its clean URL</span>
+            </div>
+            <div class="share-presets-grid" id="share-presets-grid"></div>
+          </div>
+
+          <!-- Collapsible HTML Iframe Embed & URL Parameter Cheat Sheet -->
+          <details class="share-embed-details">
+            <summary>Embed on a Website (<code>&lt;iframe&gt;</code>) &amp; URL Parameter Guide</summary>
+            <div class="share-embed-body">
+              <div class="form-field">
+                <label for="share-embed-input">HTML Embed Code (for <code>preservationhouston.org</code> or articles)</label>
+                <div class="share-url-row">
+                  <input
+                    type="text"
+                    id="share-embed-input"
+                    class="form-input mono share-url-input"
+                    readonly
+                    aria-label="HTML iframe embed code"
+                  />
+                  <button type="button" class="inspector-btn secondary share-copy-btn" id="btn-copy-share-embed">
+                    Copy Embed
+                  </button>
+                </div>
+              </div>
+
+              <div class="share-param-guide">
+                <strong>Clean URL Parameter Examples:</strong>
+                <ul>
+                  <li>
+                    <strong>Good Brick Award Winners Only on Light Map:</strong><br />
+                    <code>?base=light&amp;buildings=off&amp;layers=good_brick</code>
+                  </li>
+                  <li>
+                    <strong>Landmarks &amp; Historic Districts on Light Map:</strong><br />
+                    <code>?base=light&amp;buildings=off&amp;layers=landmarks,historic_districts</code>
+                  </li>
+                  <li>
+                    <strong>Pre-1940 Buildings Only on Dark Map:</strong><br />
+                    <code>?base=dark&amp;buildings=buildings&amp;minY=1836&amp;maxY=1939&amp;layers=none</code>
+                  </li>
+                  <li>
+                    <strong>Supported Parameters:</strong>
+                    <code>base=light|dark|satellite</code> &middot;
+                    <code>buildings=off|buildings|both|parcels</code> &middot;
+                    <code>layers=good_brick,landmarks,historic_districts,heritage_districts,nrhp_districts,thc_markers,annexations,none,all</code> &middot;
+                    <code>minY=1836</code> &middot; <code>maxY=2026</code> &middot;
+                    <code>color=year_built|preservation_status|use_category</code> &middot;
+                    <code>3d=1</code> &middot; <code>hcad=13_DIGIT_ACCT</code> &middot; <code>sidebar=0</code>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261005o"></script>
+  <script type="module" src="js/app.js?v=20261005p"></script>
 </body>
 </html>

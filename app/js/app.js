@@ -6,14 +6,16 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261005o";
+} from "./palettes.js?v=20261005p";
 import {
+  buildShareableUrl,
   createFilterStore,
   parseHashToState,
-  serializeStateToHash,
-} from "./filterStore.js?v=20261005o";
-import { AtlasMapController } from "./mapController.js?v=20261005o";
-import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005o";
+   serializeStateToHash,
+  SHARE_VIEW_PRESETS,
+} from "./filterStore.js?v=20261005p";
+import { AtlasMapController } from "./mapController.js?v=20261005p";
+import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005p";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -24,17 +26,23 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261005o";
+} from "./curatedEdits.js?v=20261005p";
 
 class HoustonAtlasApp {
   constructor() {
-    const { patch, viewport } = parseHashToState(window.location.hash);
+    const { patch, viewport, selection, collapseSidebar } = parseHashToState(
+      window.location.hash,
+      window.location.search
+    );
     this.initialViewport = viewport;
+    this.initialSelection = selection;
+    this.initialCollapseSidebar = collapseSidebar;
     this.filterStore = createFilterStore(patch);
     this.searchIndex = [];
     this.globalStats = null;
     this.lastViewportStats = null;
     this.timelapseTimer = null;
+    this._suppressUrlUpdate = false;
 
     this.mapController = new AtlasMapController({
       containerId: "map-canvas",
@@ -51,7 +59,9 @@ class HoustonAtlasApp {
     this._renderLegend();
     this._syncControlsFromState(this.filterStore.getState());
 
-    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+    if (this.initialCollapseSidebar !== null) {
+      this._setSidebarCollapsed(this.initialCollapseSidebar);
+    } else if (typeof window !== "undefined" && window.innerWidth <= 900) {
       this._setSidebarCollapsed(true);
     }
 
@@ -62,12 +72,55 @@ class HoustonAtlasApp {
 
     this._mergeCuratedOverridesIntoSearchIndex();
 
+    if (this.initialSelection) {
+      this.mapController.selectFeatureByIdOrHcad({
+        hcadNum: this.initialSelection.hcadNum || "",
+        featureId: this.initialSelection.featureId || "",
+        flyTo: !this.initialViewport,
+      });
+    }
+
     this.filterStore.subscribe((state) => {
       this._syncControlsFromState(state);
       this._renderLegend();
       this._manageTimelapseLoop(state);
       this._updateUrlHash(state);
+      this._refreshShareModalContent();
     });
+
+    const handleUrlChange = () => {
+      const { patch, viewport, selection, collapseSidebar } = parseHashToState(
+        window.location.hash,
+        window.location.search
+      );
+      this._suppressUrlUpdate = true;
+      if (Object.keys(patch).length > 0) {
+        this.filterStore.setState(patch);
+      }
+      if (collapseSidebar !== null) {
+        this._setSidebarCollapsed(collapseSidebar);
+      }
+      if (viewport) {
+        this.mapController.flyToLocation({
+          lng: viewport.lng,
+          lat: viewport.lat,
+          zoom: viewport.zoom,
+          pitch: viewport.pitch,
+          hcadNum: selection?.hcadNum || "",
+          featureId: selection?.featureId || "",
+        });
+      } else if (selection) {
+        this.mapController.selectFeatureByIdOrHcad({
+          hcadNum: selection.hcadNum || "",
+          featureId: selection.featureId || "",
+          flyTo: true,
+        });
+      }
+      this._suppressUrlUpdate = false;
+    };
+
+    window.addEventListener("hashchange", handleUrlChange);
+    window.addEventListener("popstate", handleUrlChange);
   }
 
   _setSidebarCollapsed(collapsed) {
@@ -546,8 +599,82 @@ class HoustonAtlasApp {
         const drawer = document.getElementById("inspector-drawer");
         if (drawer) drawer.classList.add("hidden");
         this.mapController.clearSelection();
+        this._updateUrlHash(this.filterStore.getState());
+        this._refreshShareModalContent();
       });
     }
+
+    // Share Map Configuration Modal
+    const shareModal = document.getElementById("share-modal");
+    const btnOpenShareModal = document.getElementById("btn-open-share-modal");
+    const btnShareLayersQuick = document.getElementById("btn-share-layers-quick");
+    const btnCloseShareModal = document.getElementById("btn-close-share-modal");
+
+    if (btnOpenShareModal) {
+      btnOpenShareModal.addEventListener("click", () => this.openShareModal());
+    }
+    if (btnShareLayersQuick) {
+      btnShareLayersQuick.addEventListener("click", () => this.openShareModal());
+    }
+    if (btnCloseShareModal && shareModal) {
+      btnCloseShareModal.addEventListener("click", () => shareModal.classList.add("hidden"));
+    }
+    if (shareModal) {
+      shareModal.addEventListener("click", (e) => {
+        if (e.target === shareModal) shareModal.classList.add("hidden");
+      });
+    }
+
+    for (const chkId of [
+      "chk-share-include-viewport",
+      "chk-share-include-selection",
+      "chk-share-collapse-sidebar",
+    ]) {
+      const chkEl = document.getElementById(chkId);
+      if (chkEl) {
+        chkEl.addEventListener("change", () => this._refreshShareModalContent());
+      }
+    }
+
+    const btnCopyShareUrl = document.getElementById("btn-copy-share-modal-url");
+    if (btnCopyShareUrl) {
+      btnCopyShareUrl.addEventListener("click", () => {
+        const inputEl = document.getElementById("share-url-input");
+        const feedbackEl = document.getElementById("share-copy-feedback");
+        const urlToCopy = inputEl ? inputEl.value : window.location.href;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(urlToCopy);
+        }
+        if (inputEl) inputEl.select();
+        btnCopyShareUrl.textContent = "✓ Copied!";
+        if (feedbackEl) feedbackEl.textContent = "✓ Hyperlink copied to clipboard";
+        setTimeout(() => {
+          btnCopyShareUrl.innerHTML = "&#128279; Copy Link";
+          if (feedbackEl) feedbackEl.textContent = "";
+        }, 2200);
+      });
+    }
+
+    const btnCopyEmbed = document.getElementById("btn-copy-share-embed");
+    if (btnCopyEmbed) {
+      btnCopyEmbed.addEventListener("click", () => {
+        const embedEl = document.getElementById("share-embed-input");
+        const feedbackEl = document.getElementById("share-copy-feedback");
+        const code = embedEl ? embedEl.value : "";
+        if (code && navigator.clipboard) {
+          navigator.clipboard.writeText(code);
+        }
+        if (embedEl) embedEl.select();
+        btnCopyEmbed.textContent = "✓ Copied!";
+        if (feedbackEl) feedbackEl.textContent = "✓ Embed <iframe> copied to clipboard";
+        setTimeout(() => {
+          btnCopyEmbed.textContent = "Copy Embed";
+          if (feedbackEl) feedbackEl.textContent = "";
+        }, 2200);
+      });
+    }
+
+    this._renderSharePresetsGrid();
 
     // About / Methodology Modal
     const btnOpenModal = document.getElementById("btn-open-about-modal");
@@ -558,6 +685,11 @@ class HoustonAtlasApp {
     }
     if (btnCloseModal && aboutModal) {
       btnCloseModal.addEventListener("click", () => aboutModal.classList.add("hidden"));
+    }
+    if (aboutModal) {
+      aboutModal.addEventListener("click", (e) => {
+        if (e.target === aboutModal) aboutModal.classList.add("hidden");
+      });
     }
 
     // Suggest a Property Data Correction Modal & Staff Admin Gate
@@ -1660,23 +1792,229 @@ class HoustonAtlasApp {
     const btnShare = document.getElementById("btn-copy-share-link");
     if (btnShare) {
       btnShare.addEventListener("click", () => {
-        const url = window.location.href;
+        const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+        const url = buildShareableUrl(this.filterStore.getState(), vp, {
+          includeViewport: true,
+          selectedHcad: hcadNum,
+          selectedFeatureId: !hcadNum ? props.id || "" : "",
+          useQueryString: true,
+        });
         if (navigator.clipboard) {
           navigator.clipboard.writeText(url);
         }
-        btnShare.textContent = "Link Copied to Clipboard!";
+        btnShare.textContent = "✓ Link Copied to Clipboard!";
         setTimeout(() => {
           btnShare.textContent = "Copy Shareable Link";
         }, 2000);
       });
     }
+
+    this._updateUrlHash(this.filterStore.getState());
+    this._refreshShareModalContent();
+  }
+
+  openShareModal() {
+    const shareModal = document.getElementById("share-modal");
+    if (!shareModal) return;
+    this._refreshShareModalContent();
+    shareModal.classList.remove("hidden");
+  }
+
+  _renderSharePresetsGrid() {
+    const grid = document.getElementById("share-presets-grid");
+    if (!grid) return;
+
+    grid.innerHTML = SHARE_VIEW_PRESETS.map(
+      (preset) => `
+      <button
+        type="button"
+        class="share-preset-card"
+        data-preset-id="${preset.id}"
+        title="Click to apply '${preset.label}' to the map and copy its shareable URL"
+      >
+        <div class="share-preset-top">
+          <span class="share-preset-title">${preset.label}</span>
+          <span class="share-preset-badge mono" data-preset-status="${preset.id}">Apply &amp; Copy</span>
+        </div>
+        <p class="share-preset-desc">${preset.description}</p>
+      </button>`
+    ).join("");
+
+    grid.querySelectorAll("[data-preset-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const presetId = btn.getAttribute("data-preset-id");
+        const preset = SHARE_VIEW_PRESETS.find((p) => p.id === presetId);
+        if (!preset) return;
+
+        // Apply the preset configuration to the live map
+        this.filterStore.setState(preset.statePatch || preset.patch || {});
+        this._refreshShareModalContent();
+
+        // Build clean shareable URL (respecting user's viewport/sidebar checkboxes)
+        const inputEl = document.getElementById("share-url-input");
+        const feedbackEl = document.getElementById("share-copy-feedback");
+        const statusBadge = btn.querySelector("[data-preset-status]");
+        const urlToCopy = inputEl ? inputEl.value : window.location.href;
+
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(urlToCopy);
+        }
+
+        grid.querySelectorAll(".share-preset-card").forEach((c) => c.classList.remove("active"));
+        btn.classList.add("active");
+
+        if (statusBadge) statusBadge.textContent = "✓ Copied URL!";
+        if (feedbackEl) {
+          feedbackEl.textContent = `✓ Applied "${preset.label}" & copied link!`;
+        }
+        setTimeout(() => {
+          if (statusBadge) statusBadge.textContent = "Apply & Copy";
+          if (feedbackEl) feedbackEl.textContent = "";
+        }, 2500);
+      });
+    });
+  }
+
+  _refreshShareModalContent() {
+    const shareModal = document.getElementById("share-modal");
+    if (!shareModal) return;
+
+    const state = this.filterStore.getState();
+    const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+    const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
+    const selectedHcad = selProps?.hcad_num ? String(selProps.hcad_num).trim() : "";
+    const selectedFeatureId = !selectedHcad && selProps?.id ? String(selProps.id).trim() : "";
+
+    const chkViewport = document.getElementById("chk-share-include-viewport");
+    const chkSelection = document.getElementById("chk-share-include-selection");
+    const rowSelection = document.getElementById("row-share-include-selection");
+    const lblSelection = document.getElementById("lbl-share-include-selection");
+    const chkSidebar = document.getElementById("chk-share-collapse-sidebar");
+
+    const hasSelection = Boolean(selectedHcad || selectedFeatureId);
+    if (rowSelection) {
+      rowSelection.style.display = hasSelection ? "flex" : "none";
+    }
+    if (lblSelection && selProps) {
+      const propLabel = selProps.landmark_name || selProps.address || selectedHcad || selectedFeatureId;
+      lblSelection.innerHTML = `Include selected property (<strong>${propLabel}</strong>)`;
+    }
+
+    const includeViewport = chkViewport ? chkViewport.checked : true;
+    const includeSelection = hasSelection && (chkSelection ? chkSelection.checked : true);
+    const collapseSidebar = chkSidebar ? chkSidebar.checked : false;
+
+    const shareUrl = buildShareableUrl(state, vp, {
+      includeViewport,
+      selectedHcad: includeSelection ? selectedHcad : "",
+      selectedFeatureId: includeSelection ? selectedFeatureId : "",
+      collapseSidebar,
+      useQueryString: true,
+    });
+
+    const embedUrl = buildShareableUrl(state, vp, {
+      includeViewport,
+      selectedHcad: includeSelection ? selectedHcad : "",
+      selectedFeatureId: includeSelection ? selectedFeatureId : "",
+      collapseSidebar: true,
+      useQueryString: true,
+    });
+
+    const urlInput = document.getElementById("share-url-input");
+    if (urlInput) urlInput.value = shareUrl;
+
+    const openTabBtn = document.getElementById("btn-open-share-url-tab");
+    if (openTabBtn) openTabBtn.href = shareUrl;
+
+    const embedInput = document.getElementById("share-embed-input");
+    if (embedInput) {
+      embedInput.value = `<iframe src="${embedUrl}" width="100%" height="680" style="border:0;border-radius:12px;" loading="lazy" title="The Houston Building Atlas — Preservation Houston"></iframe>`;
+    }
+
+    // Render summary pills describing the active configuration
+    const pillsContainer = document.getElementById("share-config-summary-pills");
+    if (pillsContainer) {
+      const basemapLabels = {
+        dark_archival: "Basemap: Archival Dark",
+        warm_parchment: "Basemap: Light Parchment",
+        satellite: "Basemap: Aerial Satellite",
+      };
+      const geomLabels = {
+        buildings: "Footprints: Buildings ON",
+        both: "Footprints: Buildings + Parcels",
+        parcels: "Footprints: Tax Parcels Only",
+        none: "Footprints: Buildings OFF",
+      };
+      const overlayLabels = {
+        goodBrickAwards: "★ Good Brick Awards",
+        landmarks: "COH Landmarks",
+        historicDistricts: "Historic Districts",
+        heritageDistricts: "Freedmen's Town",
+        nrhpDistricts: "NRHP Districts",
+        thcMarkers: "THC Markers",
+        annexations: "Annexation History",
+      };
+
+      const pills = [
+        `<span class="share-pill-tag">${basemapLabels[state.basemap] || "Archival Dark"}</span>`,
+        `<span class="share-pill-tag ${state.renderMode === "none" ? "muted" : "accent"}">${
+          geomLabels[state.renderMode] || "Footprints: Buildings ON"
+        }</span>`,
+      ];
+
+      const activeOverlays = Object.entries(state.layers || {})
+        .filter(([, v]) => Boolean(v))
+        .map(([k]) => overlayLabels[k] || k);
+
+      if (activeOverlays.length === 0) {
+        pills.push(`<span class="share-pill-tag muted">Overlays: None</span>`);
+      } else {
+        for (const lbl of activeOverlays) {
+          pills.push(`<span class="share-pill-tag green">${lbl}</span>`);
+        }
+      }
+
+      if (state.minYear > 1836 || state.maxYear < 2026 || state.selectedDecade !== "all") {
+        pills.push(
+          `<span class="share-pill-tag">Years: ${state.minYear}–${state.maxYear}</span>`
+        );
+      }
+      if (state.extrude3D) {
+        pills.push(`<span class="share-pill-tag">3D Extrusion: ON</span>`);
+      }
+      if (includeSelection && selProps) {
+        pills.push(
+          `<span class="share-pill-tag accent">Inspecting: ${
+            selProps.landmark_name || selProps.address || selectedHcad
+          }</span>`
+        );
+      }
+
+      pillsContainer.innerHTML = pills.join("");
+    }
   }
 
   _updateUrlHash(state) {
-    const vp = this.lastViewportStats ? this.lastViewportStats.viewport : null;
-    const hash = serializeStateToHash(state, vp);
+    if (this._suppressUrlUpdate) return;
+    const vp = this.mapController
+      ? this.mapController.getCurrentViewport()
+      : this.lastViewportStats
+      ? this.lastViewportStats.viewport
+      : null;
+    const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
+    const selectedHcad = selProps?.hcad_num ? String(selProps.hcad_num).trim() : "";
+    const selectedFeatureId = !selectedHcad && selProps?.id ? String(selProps.id).trim() : "";
+
+    const hash = serializeStateToHash(state, vp, {
+      includeViewport: true,
+      selectedHcad,
+      selectedFeatureId,
+    });
+    const basePath = window.location.pathname;
     if (hash) {
-      window.history.replaceState(null, "", `#${hash}`);
+      window.history.replaceState(null, "", `${basePath}#${hash}`);
+    } else {
+      window.history.replaceState(null, "", basePath);
     }
   }
 }
