@@ -6,14 +6,14 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261005g";
+} from "./palettes.js?v=20261005h";
 import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "./filterStore.js?v=20261005g";
-import { AtlasMapController } from "./mapController.js?v=20261005g";
-import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005g";
+} from "./filterStore.js?v=20261005h";
+import { AtlasMapController } from "./mapController.js?v=20261005h";
+import { fetchHcadDeepLink } from "./hcadLink.js?v=20261005h";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -24,7 +24,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261005g";
+} from "./curatedEdits.js?v=20261005h";
 
 class HoustonAtlasApp {
   constructor() {
