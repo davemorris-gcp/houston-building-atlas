@@ -9,16 +9,16 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261005m";
+} from "./palettes.js?v=20261005n";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261005m";
+} from "./filterStore.js?v=20261005n";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261005m";
+} from "./curatedEdits.js?v=20261005n";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -798,8 +798,8 @@ export class AtlasMapController {
           11.5,
           9.5,
         ],
-        "circle-color": "#F59E0B",
-        "circle-opacity": 0.28,
+        "circle-color": "#95C959",
+        "circle-opacity": 0.32,
         "circle-blur": 0.45,
       },
     });
@@ -814,8 +814,8 @@ export class AtlasMapController {
           7.2,
           5.8,
         ],
-        "circle-color": "#F59E0B",
-        "circle-stroke-color": "#FEF3C7",
+        "circle-color": "#95C959",
+        "circle-stroke-color": "#F4F9EE",
         "circle-stroke-width": 1.8,
       },
     });
@@ -1480,18 +1480,18 @@ export class AtlasMapController {
         if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
         const multiAward = Number(feat.properties?.good_brick_count || 1) > 1;
         const r = multiAward ? 6.8 : 5.6;
-        // Outer warm halo
+        // Outer PH green halo
         ctx.beginPath();
         ctx.arc(sx, sy, r + 3.2, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(245, 158, 11, 0.28)";
+        ctx.fillStyle = "rgba(149, 201, 89, 0.32)";
         ctx.fill();
-        // Inner gold/brick badge
+        // Inner PH green badge
         ctx.beginPath();
         ctx.arc(sx, sy, r, 0, Math.PI * 2);
-        ctx.fillStyle = "#F59E0B";
+        ctx.fillStyle = "#95C959";
         ctx.fill();
         ctx.lineWidth = 1.8;
-        ctx.strokeStyle = "#FEF3C7";
+        ctx.strokeStyle = "#F4F9EE";
         ctx.stroke();
         cs.renderedBBoxes.push({
           minX: sx - 8,

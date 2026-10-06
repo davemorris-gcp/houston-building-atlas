@@ -1402,9 +1402,9 @@ body {
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 4px;
-  background: rgba(245, 158, 11, 0.24);
-  border: 1px solid rgba(251, 191, 36, 0.45);
-  color: #FDE68A;
+  background: rgba(149, 201, 89, 0.24);
+  border: 1px solid rgba(161, 207, 104, 0.48);
+  color: var(--ph-green-light);
 }
 
 .tooltip-title {
@@ -1606,9 +1606,9 @@ body {
    Preservation Houston Good Brick Award Inspector Card
    -------------------------------------------------------------------------- */
 .ph-good-brick-card {
-  background: linear-gradient(135deg, rgba(180, 83, 9, 0.26) 0%, rgba(245, 158, 11, 0.12) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.55);
-  border-left: 3.5px solid #F59E0B;
+  background: linear-gradient(135deg, rgba(98, 150, 39, 0.24) 0%, rgba(149, 201, 89, 0.12) 100%);
+  border: 1px solid rgba(149, 201, 89, 0.55);
+  border-left: 3.5px solid var(--ph-green);
   border-radius: 8px;
   padding: 10px 12px;
   display: flex;
@@ -1623,14 +1623,14 @@ body {
   gap: 8px;
   font-size: 11.5px;
   font-weight: 700;
-  color: #FDE68A;
+  color: var(--ph-green-light);
   letter-spacing: 0.02em;
 }
 
 .ph-good-brick-years {
   font-size: 11px;
   font-weight: 600;
-  color: #FEF3C7;
+  color: #F4F9EE;
   background: rgba(0, 0, 0, 0.32);
   padding: 1px 7px;
   border-radius: 4px;
@@ -1644,7 +1644,7 @@ body {
 
 .ph-good-brick-item {
   background: rgba(15, 18, 22, 0.45);
-  border: 1px solid rgba(251, 191, 36, 0.22);
+  border: 1px solid rgba(149, 201, 89, 0.24);
   border-radius: 6px;
   padding: 7px 9px;
   display: flex;
@@ -1660,8 +1660,8 @@ body {
 }
 
 .ph-good-brick-year-pill {
-  background: #D97706;
-  color: #FFFBEB;
+  background: #629627;
+  color: #F4F9EE;
   font-size: 10.5px;
   font-weight: 700;
   padding: 1px 6px;
@@ -1671,7 +1671,7 @@ body {
 .ph-good-brick-type-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #FDE68A;
+  color: var(--ph-green-light);
 }
 
 .ph-good-brick-recipient,
@@ -1683,7 +1683,7 @@ body {
 
 .ph-good-brick-link {
   font-size: 11px;
-  color: #FDE68A;
+  color: var(--ph-green-light);
   text-decoration: underline;
   align-self: flex-start;
 }
