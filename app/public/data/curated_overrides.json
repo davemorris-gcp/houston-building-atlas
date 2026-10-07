@@ -114021,59 +114021,6 @@
         ]
       }
     },
-    "0341880010001": {
-      "hcad_num": "0341880010001",
-      "address": "2728 COLUMBIA ST",
-      "landmark_name": "Lund House & Modern Print Shop",
-      "historic_district": "Houston Heights South",
-      "year_built": 1896,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2026,
-          "award_type": "Good Brick Award",
-          "recipient": "Donna and Jim Bennett",
-          "project_name": "Lund House & Modern Print Shop",
-          "reason": "For restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District",
-          "building_year_built": 1896,
-          "architect_or_style": "",
-          "location_source": "Modern Print Shop / Houston Heights South Historic District",
-          "raw_citation": "Donna and Jim Bennett for restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District"
-        }
-      ],
-      "good_brick_summary": "2026 Good Brick Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Donna and Jim Bennett for restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -95.393328,
-              29.811872
-            ],
-            [
-              -95.393333,
-              29.812135
-            ],
-            [
-              -95.393442,
-              29.812133
-            ],
-            [
-              -95.393436,
-              29.81187
-            ],
-            [
-              -95.393328,
-              29.811872
-            ]
-          ]
-        ]
-      }
-    },
     "0400480000011": {
       "hcad_num": "0400480000011",
       "address": "2911 JULIAN ST",
@@ -132997,6 +132944,237 @@
       "height_m": 96.0,
       "bld_style": "Contemporary Judicial High-Rise",
       "style": "Contemporary Judicial High-Rise"
+    },
+    "0210200000029": {
+      "building_id": "bld_000475",
+      "hcad_num": "0210200000029",
+      "address": "301 E 5TH ST",
+      "year_built": 1896,
+      "remodel_year": 2024,
+      "landmark_name": "Lund House & Modern Print Shop",
+      "landmark_type": "National Register of Historic Places (#83004470) & 2026 Good Brick Award",
+      "architect": "",
+      "bld_style": "Queen Anne Victorian Cottage",
+      "historic_district": "Houston Heights South Historic District",
+      "contributing": "Contributing",
+      "use_category": "Residential",
+      "owner": "BENNETT JIM R (Donna & Jim Bennett)",
+      "bld_area": 2520,
+      "land_area": 13350,
+      "stories": 1.5,
+      "height_m": 6.2,
+      "is_good_brick": true,
+      "good_brick_summary": "2026 Good Brick Award",
+      "good_brick_years": "2026",
+      "good_brick_count": 1,
+      "good_brick_recipient": "Donna and Jim Bennett",
+      "good_brick_reason": "For restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District",
+      "good_brick_awards": [
+        {
+          "award_year": 2026,
+          "award_type": "Good Brick Award",
+          "recipient": "Donna and Jim Bennett",
+          "project_name": "Lund House & Modern Print Shop",
+          "reason": "For restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District",
+          "building_year_built": 1896,
+          "architect_or_style": "Queen Anne Victorian Cottage (c. 1896, NRHP) & Modern Print Shop (1927)",
+          "location_source": "NRHP Listing #83004470 & HCAD Parcel 0210200000029 (301 E 5th St)",
+          "raw_citation": "Donna and Jim Bennett for restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District"
+        }
+      ],
+      "source_citation": "National Register of Historic Places (#83004470, listed June 22, 1983) & 2026 Preservation Houston Good Brick Award (Donna and Jim Bennett for restoring the c. 1896 Lund House and 1927 Modern Print Shop at 301 E. 5th St.)",
+      "verified_by": "Preservation Houston Good Brick Archive & NRHP",
+      "verified_date": "2026-10-07",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.394836,
+              29.779964
+            ],
+            [
+              -95.394965,
+              29.779963
+            ],
+            [
+              -95.394962,
+              29.779818
+            ],
+            [
+              -95.394898,
+              29.779819
+            ],
+            [
+              -95.394898,
+              29.779838
+            ],
+            [
+              -95.394834,
+              29.779839
+            ],
+            [
+              -95.394836,
+              29.779964
+            ]
+          ]
+        ]
+      }
+    },
+    "0210200000029#modern_print_shop": {
+      "building_id": "0210200000029#modern_print_shop",
+      "hcad_num": "0210200000029",
+      "address": "301 E 5TH ST (MODERN PRINT SHOP)",
+      "year_built": 1927,
+      "remodel_year": 2024,
+      "landmark_name": "Modern Print Shop (Lund House Property)",
+      "landmark_type": "2026 Good Brick Award Winner",
+      "architect": "",
+      "bld_style": "1927 Historic Neighborhood Print Shop & Workshop",
+      "historic_district": "Houston Heights South Historic District",
+      "contributing": "Contributing",
+      "use_category": "Residential",
+      "owner": "BENNETT JIM R (Donna & Jim Bennett)",
+      "bld_area": 3106,
+      "land_area": 13350,
+      "stories": 1.0,
+      "height_m": 4.2,
+      "is_good_brick": true,
+      "good_brick_summary": "2026 Good Brick Award",
+      "good_brick_years": "2026",
+      "good_brick_count": 1,
+      "good_brick_recipient": "Donna and Jim Bennett",
+      "good_brick_reason": "For restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District",
+      "good_brick_awards": [
+        {
+          "award_year": 2026,
+          "award_type": "Good Brick Award",
+          "recipient": "Donna and Jim Bennett",
+          "project_name": "Lund House & Modern Print Shop",
+          "reason": "For restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District",
+          "building_year_built": 1896,
+          "architect_or_style": "Queen Anne Victorian Cottage (c. 1896, NRHP) & Modern Print Shop (1927)",
+          "location_source": "NRHP Listing #83004470 & HCAD Parcel 0210200000029 (301 E 5th St)",
+          "raw_citation": "Donna and Jim Bennett for restoring the Lund House (c. 1896) and Modern Print Shop (1927) in the Houston Heights South Historic District"
+        }
+      ],
+      "source_citation": "2026 Preservation Houston Good Brick Award (Donna and Jim Bennett for restoring the Lund House c. 1896 and Modern Print Shop 1927 on Lots 14 & 15 Block 288, Houston Heights South Historic District)",
+      "verified_by": "Preservation Houston Good Brick Archive & HCAD CAMA (Bld 2)",
+      "verified_date": "2026-10-07",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.394971,
+              29.779983
+            ],
+            [
+              -95.394596,
+              29.779986
+            ],
+            [
+              -95.394597,
+              29.780045
+            ],
+            [
+              -95.394971,
+              29.780042
+            ],
+            [
+              -95.394971,
+              29.779983
+            ]
+          ]
+        ]
+      }
+    },
+    "0210200000029#north_wing": {
+      "building_id": "0210200000029#north_wing",
+      "hcad_num": "0210200000029",
+      "address": "510 CORTLANDT ST / 301 E 5TH ST",
+      "year_built": 1920,
+      "remodel_year": 2024,
+      "historic_district": "Houston Heights South Historic District",
+      "contributing": "Contributing",
+      "use_category": "Residential",
+      "owner": "BENNETT JIM R",
+      "stories": 1.0,
+      "height_m": 3.8,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.394672,
+              29.780079
+            ],
+            [
+              -95.394675,
+              29.780179
+            ],
+            [
+              -95.39474,
+              29.780178
+            ],
+            [
+              -95.39474,
+              29.78016
+            ],
+            [
+              -95.394992,
+              29.780156
+            ],
+            [
+              -95.39499,
+              29.780074
+            ],
+            [
+              -95.394672,
+              29.780079
+            ]
+          ]
+        ]
+      }
+    },
+    "0210200000029#north_garage": {
+      "building_id": "0210200000029#north_garage",
+      "hcad_num": "0210200000029",
+      "address": "510 CORTLANDT ST REAR",
+      "year_built": 1920,
+      "remodel_year": 2024,
+      "historic_district": "Houston Heights South Historic District",
+      "use_category": "Residential",
+      "owner": "BENNETT JIM R",
+      "stories": 1.0,
+      "height_m": 3.5,
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.394593,
+              29.780167
+            ],
+            [
+              -95.394661,
+              29.780165
+            ],
+            [
+              -95.394657,
+              29.780058
+            ],
+            [
+              -95.394589,
+              29.78006
+            ],
+            [
+              -95.394593,
+              29.780167
+            ]
+          ]
+        ]
+      }
     }
   },
   "updatedAt": "2026-10-05T20:08:43Z",

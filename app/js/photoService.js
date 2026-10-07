@@ -60,14 +60,15 @@ function stripHtml(html) {
 function extractFilenameKey(url) {
   if (!url) return '';
   try {
-    const decoded = decodeURIComponent(String(url));
+    const cleanUrl = String(url).split(/[?#]/)[0];
+    const decoded = decodeURIComponent(cleanUrl);
     const parts = decoded.split('/');
     let last = parts[parts.length - 1] || '';
-    // Strip thumbnail prefix like "960px-"
-    last = last.replace(/^\d+px-/, '');
+    // Strip thumbnail prefix like "960px-" or "lossy-page1-960px-"
+    last = last.replace(/^(?:lossy-page\d+-)?\d+px-/, '');
     return last.toLowerCase().replace(/[^a-z0-9.]+/g, '_');
   } catch {
-    return String(url).toLowerCase();
+    return String(url).split(/[?#]/)[0].toLowerCase();
   }
 }
 
@@ -564,7 +565,7 @@ export async function fetchCommonsPhotos({
   landmarkName = '',
   address = '',
   useCategory = '',
-  radiusMeters = 45,
+  radiusMeters = 60,
 }) {
   const cacheKey = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}|${normalizeKey(landmarkName)}|${normalizeAddressKey(address)}`;
   if (liveCommonsCache.has(cacheKey)) {
@@ -593,7 +594,11 @@ export async function fetchCommonsPhotos({
   };
 
   const cleanLandmark = String(landmarkName || '').trim();
-  const primaryLandmarkName = cleanLandmark.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  const primaryLandmarkName = cleanLandmark
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .split(/\s+(?:&|\/|—|--)\s+/)[0]
+    .replace(/\s+/g, ' ')
+    .trim();
   const isGenericTitle =
     !primaryLandmarkName ||
     primaryLandmarkName.length < 5 ||
@@ -626,7 +631,7 @@ export async function fetchCommonsPhotos({
 
     // 2. Coordinate GeoSearch SECOND (only when needed, and strictly filtered for architecture/landscape)
     if (candidates.length < 5 && Number.isFinite(lat) && Number.isFinite(lng)) {
-      const effectiveRadius = isGenericTitle ? Math.min(radiusMeters, 28) : Math.min(radiusMeters, 45);
+      const effectiveRadius = isGenericTitle ? Math.min(radiusMeters, 28) : Math.min(radiusMeters, 60);
       const geoParams = new URLSearchParams({
         action: 'query',
         generator: 'geosearch',

@@ -461,6 +461,20 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (2026)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Christ_Church_Cathedral_In_Houston.jpg",
     },
+    # 14. Lund House & Modern Print Shop (301 E 5th St — c. 1896 NRHP Queen Anne Cottage & 2026 Good Brick Winner)
+    {
+        "hcad_num": "0210200000029",
+        "building_id": "bld_000475",
+        "landmark_name": "Lund House & Modern Print Shop",
+        "address": "301 E 5TH ST",
+        "photo_year": 2010,
+        "era_label": "2010 NRHP Documentation",
+        "caption": "The Lund House (c. 1896) at 301 E. 5th St. in the Houston Heights South Historic District — a Queen Anne Victorian cottage listed in the National Register of Historic Places (#83004470) and restored alongside the 1927 Modern Print Shop by Donna and Jim Bennett (2026 Good Brick Award).",
+        "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Lund_House.jpg",
+        "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Lund_House.jpg/1280px-Lund_House.jpg",
+        "credit": "Ed Uthman / Wikimedia Commons (CC BY 3.0)",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Lund_House.jpg",
+    },
 ]
 
 

@@ -212,7 +212,7 @@
     },
     {
       "hcad_num": "0011490000001",
-      "building_id": "bld_003326",
+      "building_id": "0011490000001",
       "landmark_name": "Houston City Hall",
       "address": "901 BAGBY ST",
       "photo_year": 1981,
@@ -225,7 +225,7 @@
     },
     {
       "hcad_num": "0011490000001",
-      "building_id": "bld_003326",
+      "building_id": "0011490000001",
       "landmark_name": "Houston City Hall",
       "address": "901 BAGBY ST",
       "photo_year": 2022,
@@ -243,7 +243,7 @@
       "address": "550 MCKINNEY ST",
       "photo_year": 2012,
       "era_label": "2012 Restoration",
-      "caption": "The 1926 Spanish Renaissance Revival Julia Ideson Building shortly after its 2011 Good Brick Award restoration and wing completion.",
+      "caption": "The 1926 Spanish Renaissance Revival Julia Ideson Building shortly after its Good Brick Award restoration and wing completion.",
       "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Julia_Ideson_Building%2C_Houston%2C_2012.JPG",
       "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a6/Julia_Ideson_Building%2C_Houston%2C_2012.JPG/960px-Julia_Ideson_Building%2C_Houston%2C_2012.JPG",
       "credit": "Wikimedia Commons / WhisperToMe (2012)",
@@ -354,6 +354,45 @@
       "source_url": "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_Houston_Astrodome.jpg"
     },
     {
+      "hcad_num": "0432070000001",
+      "building_id": "0690030030001",
+      "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
+      "address": "8325 TRAVELAIR ST",
+      "photo_year": 1940,
+      "era_label": "c. 1940 Original Terminal",
+      "caption": "Joseph Finger's Art Deco Houston Municipal Airport Terminal (opened 1940), featuring stepped massing, curved glass block bays, and cast-stone aviation reliefs.",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d2/1940sAirTerminalMuseumHobby.JPG",
+      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/1940sAirTerminalMuseumHobby.JPG/960px-1940sAirTerminalMuseumHobby.JPG",
+      "credit": "Wikimedia Commons / Public Domain",
+      "source_url": "https://commons.wikimedia.org/wiki/File:1940sAirTerminalMuseumHobby.JPG"
+    },
+    {
+      "hcad_num": "0432070000001",
+      "building_id": "0690030030001",
+      "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
+      "address": "8325 TRAVELAIR ST",
+      "photo_year": 2014,
+      "era_label": "2014 LOC Architectural Survey",
+      "caption": "The 'Winged Mercury' Art Deco bas-relief and stepped entrance tower of the 1940 Air Terminal Museum, designed by architect Joseph Finger.",
+      "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/The_%22Winged_Mercury%22_bas-relief_atop_the_entrance_to_the_1940_Air_Terminal_Museum%2C_designed_by_architect_Joseph_Finger_%28who_also_designed_Houston%27s_City_Hall%29_and_housed_in_the_original_art-deco_LCCN2014632542.tif/lossy-page1-960px-thumbnail.tif.jpg",
+      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/The_%22Winged_Mercury%22_bas-relief_atop_the_entrance_to_the_1940_Air_Terminal_Museum%2C_designed_by_architect_Joseph_Finger_%28who_also_designed_Houston%27s_City_Hall%29_and_housed_in_the_original_art-deco_LCCN2014632542.tif/lossy-page1-960px-thumbnail.tif.jpg",
+      "credit": "Library of Congress / Carol M. Highsmith Archive (LCCN2014632542)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Winged_Mercury%22_bas-relief_atop_the_entrance_to_the_1940_Air_Terminal_Museum,_designed_by_architect_Joseph_Finger_(who_also_designed_Houston%27s_City_Hall)_and_housed_in_the_original_art-deco_LCCN2014632542.tif"
+    },
+    {
+      "hcad_num": "0432070000001",
+      "building_id": "0690030030001",
+      "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
+      "address": "8325 TRAVELAIR ST",
+      "photo_year": 2020,
+      "era_label": "2020 Restored Terminal",
+      "caption": "Restored Art Deco control tower and terminal facade at Hobby Airport (1989 & 2010 Good Brick Award winner).",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/84/1940_Air_Terminal_Museum.jpg",
+      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/1940_Air_Terminal_Museum.jpg/960px-1940_Air_Terminal_Museum.jpg",
+      "credit": "Wikimedia Commons (CC BY-SA 4.0)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:1940_Air_Terminal_Museum.jpg"
+    },
+    {
       "hcad_num": "0010380000001",
       "building_id": "osm_city_580965929#bldg_pennzoil_place",
       "landmark_name": "Pennzoil Place",
@@ -406,43 +445,17 @@
       "source_url": "https://commons.wikimedia.org/wiki/File:Christ_Church_Cathedral_In_Houston.jpg"
     },
     {
-      "hcad_num": "0432070000001",
-      "building_id": "0690030030001",
-      "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
-      "address": "8325 TRAVELAIR ST",
-      "photo_year": 1940,
-      "era_label": "c. 1940 Original Terminal",
-      "caption": "Joseph Finger's Art Deco Houston Municipal Airport Terminal (opened 1940), featuring stepped massing, curved glass block bays, and cast-stone aviation reliefs.",
-      "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d2/1940sAirTerminalMuseumHobby.JPG",
-      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/1940sAirTerminalMuseumHobby.JPG/960px-1940sAirTerminalMuseumHobby.JPG",
-      "credit": "Wikimedia Commons / Public Domain",
-      "source_url": "https://commons.wikimedia.org/wiki/File:1940sAirTerminalMuseumHobby.JPG"
-    },
-    {
-      "hcad_num": "0432070000001",
-      "building_id": "0690030030001",
-      "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
-      "address": "8325 TRAVELAIR ST",
-      "photo_year": 2014,
-      "era_label": "2014 LOC Architectural Survey",
-      "caption": "The 'Winged Mercury' Art Deco bas-relief and stepped entrance tower of the 1940 Air Terminal Museum, designed by architect Joseph Finger.",
-      "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/The_%22Winged_Mercury%22_bas-relief_atop_the_entrance_to_the_1940_Air_Terminal_Museum%2C_designed_by_architect_Joseph_Finger_%28who_also_designed_Houston%27s_City_Hall%29_and_housed_in_the_original_art-deco_LCCN2014632542.tif/lossy-page1-960px-thumbnail.tif.jpg",
-      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/40/The_%22Winged_Mercury%22_bas-relief_atop_the_entrance_to_the_1940_Air_Terminal_Museum%2C_designed_by_architect_Joseph_Finger_%28who_also_designed_Houston%27s_City_Hall%29_and_housed_in_the_original_art-deco_LCCN2014632542.tif/lossy-page1-960px-thumbnail.tif.jpg",
-      "credit": "Library of Congress / Carol M. Highsmith Archive (LCCN2014632542)",
-      "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Winged_Mercury%22_bas-relief_atop_the_entrance_to_the_1940_Air_Terminal_Museum,_designed_by_architect_Joseph_Finger_(who_also_designed_Houston%27s_City_Hall)_and_housed_in_the_original_art-deco_LCCN2014632542.tif"
-    },
-    {
-      "hcad_num": "0432070000001",
-      "building_id": "0690030030001",
-      "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
-      "address": "8325 TRAVELAIR ST",
-      "photo_year": 2020,
-      "era_label": "2020 Restored Terminal",
-      "caption": "Restored Art Deco control tower and terminal facade at Hobby Airport (1989 & 2010 Good Brick Award winner).",
-      "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/84/1940_Air_Terminal_Museum.jpg",
-      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/1940_Air_Terminal_Museum.jpg/960px-1940_Air_Terminal_Museum.jpg",
-      "credit": "Wikimedia Commons (CC BY-SA 4.0)",
-      "source_url": "https://commons.wikimedia.org/wiki/File:1940_Air_Terminal_Museum.jpg"
+      "hcad_num": "0210200000029",
+      "building_id": "bld_000475",
+      "landmark_name": "Lund House & Modern Print Shop",
+      "address": "301 E 5TH ST",
+      "photo_year": 2010,
+      "era_label": "2010 NRHP Documentation",
+      "caption": "The Lund House (c. 1896) at 301 E. 5th St. in the Houston Heights South Historic District \u2014 a Queen Anne Victorian cottage listed in the National Register of Historic Places (#83004470) and restored alongside the 1927 Modern Print Shop by Donna and Jim Bennett (2026 Good Brick Award).",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Lund_House.jpg",
+      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Lund_House.jpg/1280px-Lund_House.jpg",
+      "credit": "Ed Uthman / Wikimedia Commons (CC BY 3.0)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Lund_House.jpg"
     }
   ]
 }
