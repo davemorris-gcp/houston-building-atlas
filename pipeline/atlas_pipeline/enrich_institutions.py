@@ -2853,7 +2853,7 @@ CURATED_CITYWIDE_HCAD_OVERRIDES: dict[str, dict[str, Any]] = {
         "use_category": "Civic / Institutional",
         "citation": "University of Houston-Downtown Shea Street Building completed 2007.",
     },
-    "0012510000017": {
+    "0011490000001": {
         "landmark_name": "Houston City Hall",
         "address": "901 BAGBY ST",
         "year_built": 1939,
