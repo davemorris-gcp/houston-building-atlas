@@ -215,7 +215,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261007e", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261007f", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -383,6 +383,11 @@ export function applyOverrideToProperties(props, overridesMap) {
     ),
     is_building_override: Boolean(ov.is_building_override),
     replace_parcel_shards: Boolean(ov.replace_parcel_shards),
+    suppress_shard_hcads: Array.isArray(ov.suppress_shard_hcads)
+      ? ov.suppress_shard_hcads
+      : Array.isArray(props.suppress_shard_hcads)
+      ? props.suppress_shard_hcads
+      : [],
     use_category: ov.use_category || props.use_category || "Residential",
     stories: Number(ov.stories) || Number(props.stories) || 1,
     height_m: Number(ov.height_m) || Number(props.height_m) || 4.5,
