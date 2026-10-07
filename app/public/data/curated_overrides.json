@@ -114452,7 +114452,9 @@
       "source_type": "Preservation Houston Landmark & Institutional Inventory",
       "source_citation": "Historic Houston Municipal Airport Art Deco terminal designed by Joseph Finger (opened 1940) and West Ramp hangars.",
       "verified_by": "Preservation Houston",
-      "updated_at": "2026-10-06"
+      "updated_at": "2026-10-06",
+      "lon": -95.286294,
+      "lat": 29.647044
     },
     "0441130001004": {
       "id": "0441130001004",
@@ -126767,7 +126769,9 @@
       "source_type": "Preservation Houston Good Brick Award",
       "source_citation": "Stewart Title Award: The Houston Aeronautical Heritage Society for preservation of the historic Houston Municipal Air Terminal as the 1940 Air Terminal Museum",
       "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards"
+      "verified_by": "Preservation Houston Good Brick Awards",
+      "lon": -95.286294,
+      "lat": 29.647044
     },
     "0201970000013": {
       "hcad_num": "0201970000013",
