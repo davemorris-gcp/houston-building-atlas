@@ -1717,7 +1717,7 @@ class HoustonAtlasApp {
       <div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${hcadNum}">
         <div class="inspector-photo-header">
           <div class="inspector-photo-title-group">
-            <span class="inspector-photo-kicker">&#128247; Photographs Through History</span>
+            <span class="inspector-photo-kicker">&#128247; Archival Photographs</span>
             <span class="inspector-photo-count-badge" id="inspector-photo-badge">Searching Archives…</span>
           </div>
           <div class="inspector-photo-header-btns" id="inspector-photo-header-btns"></div>
@@ -2156,7 +2156,7 @@ class HoustonAtlasApp {
               ? `<button type="button" class="photo-mode-btn ${
                   state.compareMode ? "active" : ""
                 }" id="btn-inspector-toggle-compare" title="Compare earliest and latest photographs with a draggable curtain slider">
-                  &#8644; Then &amp; Now
+                  ${state.compareMode ? "&#10003; Then &amp; Now" : "&#8644; Then &amp; Now"}
                 </button>`
               : ""
           }
@@ -2191,6 +2191,9 @@ class HoustonAtlasApp {
       if (btnLbCompare) {
         btnLbCompare.classList.toggle("hidden", photos.length < 2);
         btnLbCompare.classList.toggle("active", Boolean(state.compareMode));
+        btnLbCompare.innerHTML = state.compareMode
+          ? "&#10003; Then &amp; Now Slider"
+          : "&#8644; Then &amp; Now Slider";
       }
       if (lightboxBody) {
         this._renderPhotoStage(lightboxBody, true);
@@ -2233,13 +2236,13 @@ class HoustonAtlasApp {
         <div class="photo-compare-wrapper">
           <div class="photo-compare-selectors">
             <div class="photo-compare-select-group">
-              <span>Then (Left):</span>
+              <span class="photo-compare-select-label">Then (Left)</span>
               <select class="photo-compare-select" data-compare-role="then" aria-label="Select earlier era photograph">
                 ${optionsHtml(thenIdx)}
               </select>
             </div>
             <div class="photo-compare-select-group">
-              <span>Now (Right):</span>
+              <span class="photo-compare-select-label">Now (Right)</span>
               <select class="photo-compare-select" data-compare-role="now" aria-label="Select later era photograph">
                 ${optionsHtml(nowIdx)}
               </select>
@@ -2285,7 +2288,7 @@ class HoustonAtlasApp {
               <span>Drag curtain slider &#8644; to compare eras</span>
               ${
                 !isLightbox
-                  ? `<button type="button" class="photo-mode-btn" data-action="open-lightbox">&#10530; Full Screen Comparison</button>`
+                  ? `<button type="button" class="photo-mode-btn" data-action="open-lightbox" style="flex:0 0 auto;">&#10530; Full Screen</button>`
                   : ""
               }
             </div>
@@ -2387,6 +2390,15 @@ class HoustonAtlasApp {
       </div>
     `;
 
+    // Auto-scroll active era pill horizontally into center of pill strip
+    const pillsStrip = containerEl.querySelector(".photo-era-pills");
+    const activePill = pillsStrip?.querySelector(".photo-era-pill.active");
+    if (pillsStrip && activePill) {
+      const targetLeft =
+        activePill.offsetLeft - pillsStrip.clientWidth / 2 + activePill.clientWidth / 2;
+      pillsStrip.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" });
+    }
+
     containerEl.querySelectorAll("[data-photo-idx]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.activeIndex = parseInt(btn.getAttribute("data-photo-idx"), 10) || 0;
@@ -2402,6 +2414,39 @@ class HoustonAtlasApp {
         this._syncPhotoViews();
       });
     });
+
+    // Touch swipe left/right on .photo-viewport to step through eras on mobile
+    const viewportEl = containerEl.querySelector(".photo-viewport");
+    if (viewportEl && photos.length >= 2) {
+      let touchStartX = null;
+      let touchStartY = null;
+      viewportEl.addEventListener(
+        "touchstart",
+        (e) => {
+          if (e.touches && e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+          }
+        },
+        { passive: true }
+      );
+      viewportEl.addEventListener(
+        "touchend",
+        (e) => {
+          if (touchStartX === null || !e.changedTouches || e.changedTouches.length === 0) return;
+          const dx = e.changedTouches[0].clientX - touchStartX;
+          const dy = e.changedTouches[0].clientY - touchStartY;
+          touchStartX = null;
+          touchStartY = null;
+          if (Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+            const delta = dx < 0 ? 1 : -1;
+            state.activeIndex = (idx + delta + photos.length) % photos.length;
+            this._syncPhotoViews();
+          }
+        },
+        { passive: true }
+      );
+    }
 
     containerEl.querySelectorAll('[data-action="open-lightbox"]').forEach((el) => {
       el.addEventListener("click", () => this.openPhotoLightboxModal());
@@ -2431,6 +2476,9 @@ class HoustonAtlasApp {
     if (compareBtn) {
       compareBtn.classList.toggle("hidden", (state.photos || []).length < 2);
       compareBtn.classList.toggle("active", Boolean(state.compareMode));
+      compareBtn.innerHTML = state.compareMode
+        ? "&#10003; Then &amp; Now Slider"
+        : "&#8644; Then &amp; Now Slider";
     }
     if (bodyEl) {
       this._renderPhotoStage(bodyEl, true);

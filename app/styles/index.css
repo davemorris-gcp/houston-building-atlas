@@ -2724,22 +2724,22 @@ body {
   padding: 11px 12px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
 
 .inspector-photo-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .inspector-photo-title-group {
   display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
   min-width: 0;
 }
 
@@ -2747,15 +2747,19 @@ body {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--ph-green-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .inspector-photo-count-badge {
+  flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: rgba(149, 201, 89, 0.16);
   border: 1px solid rgba(149, 201, 89, 0.38);
@@ -2766,13 +2770,23 @@ body {
 .inspector-photo-header-btns {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  width: 100%;
+}
+
+.inspector-photo-header-btns:empty {
+  display: none;
 }
 
 .photo-mode-btn {
-  font-size: 10.5px;
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
+  padding: 5px 8px;
   border-radius: 6px;
   border: 1px solid rgba(149, 201, 89, 0.35);
   background: rgba(255, 255, 255, 0.05);
@@ -2793,14 +2807,20 @@ body {
   color: #ffffff;
 }
 
-/* Chronological Era Pills */
+/* Chronological Era Pills (Hidden Scrollbar + Smooth Touch Scroll) */
 .photo-era-pills {
   display: flex;
   align-items: center;
   gap: 5px;
   overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: thin;
+  padding-bottom: 1px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.photo-era-pills::-webkit-scrollbar {
+  display: none;
 }
 
 .photo-era-pill {
@@ -2808,7 +2828,7 @@ body {
   font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 600;
-  padding: 3.5px 8px;
+  padding: 4px 9px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.05);
@@ -2833,7 +2853,7 @@ body {
 .photo-viewport {
   position: relative;
   width: 100%;
-  height: 215px;
+  height: 205px;
   border-radius: 8px;
   overflow: hidden;
   background: #0d100d;
@@ -2841,6 +2861,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  user-select: none;
 }
 
 .photo-viewport-img {
@@ -2859,12 +2880,16 @@ body {
   position: absolute;
   top: 8px;
   left: 8px;
+  max-width: calc(100% - 110px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 6px;
-  background: rgba(14, 18, 14, 0.84);
+  background: rgba(14, 18, 14, 0.86);
   border: 1px solid rgba(149, 201, 89, 0.5);
   color: var(--ph-green-light);
   backdrop-filter: blur(4px);
@@ -2879,7 +2904,7 @@ body {
   font-weight: 600;
   padding: 3px 7px;
   border-radius: 6px;
-  background: rgba(14, 18, 14, 0.82);
+  background: rgba(14, 18, 14, 0.84);
   border: 1px solid rgba(255, 255, 255, 0.22);
   color: #f4f9ee;
   cursor: pointer;
@@ -2895,19 +2920,20 @@ body {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
-  background: rgba(14, 18, 14, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(14, 18, 14, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #ffffff;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
+  z-index: 2;
 }
 
 .photo-nav-btn:hover {
@@ -2927,38 +2953,49 @@ body {
 .photo-compare-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .photo-compare-selectors {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  font-size: 10.5px;
-  color: var(--text-secondary);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
 }
 
 .photo-compare-select-group {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.photo-compare-select-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ph-green-light);
 }
 
 .photo-compare-select {
+  width: 100%;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: 10.5px;
-  padding: 2px 6px;
-  border-radius: 5px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(149, 201, 89, 0.35);
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.48);
+  border: 1px solid rgba(149, 201, 89, 0.38);
   color: var(--text-cream);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .photo-compare-stage {
   position: relative;
   width: 100%;
-  height: 225px;
+  height: 215px;
   border-radius: 8px;
   overflow: hidden;
   background: #0d100d;
@@ -2993,6 +3030,7 @@ body {
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.85);
   pointer-events: none;
   transform: translateX(-1px);
+  z-index: 2;
 }
 
 .photo-compare-handle {
@@ -3000,13 +3038,13 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   background: linear-gradient(135deg, #629627 0%, #81bc3d 100%);
   border: 2px solid #ffffff;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -3017,23 +3055,28 @@ body {
 .photo-compare-tag {
   position: absolute;
   bottom: 8px;
+  max-width: calc(50% - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
   padding: 2.5px 7px;
   border-radius: 5px;
-  background: rgba(12, 16, 12, 0.85);
+  background: rgba(12, 16, 12, 0.88);
   border: 1px solid rgba(149, 201, 89, 0.48);
   color: #e9f6d8;
   pointer-events: none;
+  z-index: 3;
 }
 
 .photo-compare-tag.then {
-  left: 8px;
+  left: 7px;
 }
 
 .photo-compare-tag.now {
-  right: 8px;
+  right: 7px;
 }
 
 .photo-compare-range {
@@ -3044,6 +3087,7 @@ body {
   margin: 0;
   opacity: 0;
   cursor: ew-resize;
+  touch-action: pan-y;
   z-index: 4;
 }
 
@@ -3091,7 +3135,7 @@ body {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  padding-top: 2px;
+  padding-top: 1px;
 }
 
 .photo-streetview-btn {
@@ -3133,8 +3177,37 @@ body {
 }
 
 .photo-lightbox-header {
-  flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   gap: 10px;
+}
+
+.photo-lightbox-toprow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.photo-lightbox-toprow .modal-brand-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.photo-lightbox-titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.photo-lightbox-titles .modal-title {
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.photo-lightbox-close-btn {
+  flex-shrink: 0;
 }
 
 .photo-lightbox-header-actions {
@@ -3142,6 +3215,10 @@ body {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.photo-lightbox-sv-pill {
+  text-decoration: none;
 }
 
 .photo-lightbox-body {
@@ -3152,7 +3229,7 @@ body {
 }
 
 .photo-lightbox-body .photo-viewport {
-  height: min(62vh, 560px);
+  height: min(60vh, 540px);
   background: #070907;
 }
 
@@ -3166,8 +3243,101 @@ body {
 }
 
 .photo-lightbox-body .photo-compare-stage {
-  height: min(62vh, 560px);
+  height: min(60vh, 540px);
   background: #070907;
+}
+
+/* Mobile Responsive Refinements for Photo Viewer & Lightbox (<= 900px) */
+@media (max-width: 900px) {
+  .inspector-photo-card {
+    padding: 9px 10px;
+    gap: 7px;
+    margin-bottom: 12px;
+  }
+
+  .inspector-photo-kicker {
+    font-size: 10.5px;
+  }
+
+  .inspector-photo-count-badge {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+
+  .photo-viewport {
+    height: 172px;
+  }
+
+  .photo-compare-stage {
+    height: 178px;
+  }
+
+  .photo-nav-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+  }
+
+  .photo-compare-tag {
+    font-size: 9.5px;
+    padding: 2px 6px;
+    max-width: calc(50% - 10px);
+  }
+
+  .photo-caption-box {
+    padding: 6px 8px;
+  }
+
+  .photo-caption-text {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .photo-streetview-btn {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  /* Full-Screen Lightbox on Mobile */
+  .photo-lightbox-card {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 20px);
+    margin: 10px auto;
+  }
+
+  .photo-lightbox-header {
+    padding: 12px 14px 10px;
+    gap: 8px;
+  }
+
+  .photo-lightbox-titles .modal-title {
+    font-size: 15.5px;
+  }
+
+  .photo-lightbox-header-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+
+  .photo-lightbox-header-actions .action-pill {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .photo-lightbox-body {
+    padding: 10px 14px 14px;
+    gap: 9px;
+  }
+
+  .photo-lightbox-body .photo-viewport,
+  .photo-lightbox-body .photo-compare-stage {
+    height: clamp(205px, 41dvh, 330px);
+  }
 }
 
 
