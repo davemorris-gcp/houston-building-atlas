@@ -483,6 +483,44 @@ body {
   cursor: pointer;
 }
 
+.tour-map-pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(15, 17, 21, 0.92);
+  border: 2px solid #fde047;
+  color: #fde047;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.65), 0 0 0 3px rgba(149, 201, 89, 0.28);
+  transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  z-index: 8;
+}
+
+.tour-map-pin:hover {
+  transform: scale(1.15);
+  background: #95c959;
+  border-color: #ffffff;
+  color: #0f1115;
+}
+
+.tour-map-pin.active {
+  width: 30px;
+  height: 30px;
+  background: #fde047;
+  border: 2.5px solid #0f1115;
+  color: #0f1115;
+  font-size: 13px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.75), 0 0 0 5px rgba(253, 224, 71, 0.42);
+  z-index: 12;
+}
+
 /* --------------------------------------------------------------------------
    Left Sidebar Controls & Analytics Dock
    -------------------------------------------------------------------------- */
