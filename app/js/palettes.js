@@ -84,14 +84,14 @@ export const CURATED_TOURS = [
       {
         title: "Julia Ideson Building (Houston Public Library)",
         year: 1926,
-        hcad_num: "0011480000019",
-        building_id: "bld_003251",
-        lng: -95.36995,
-        lat: 29.75938,
+        hcad_num: "0011470000001",
+        building_id: "bld_003423",
+        lng: -95.36914,
+        lat: 29.75892,
         zoom: 17.6,
         pitch: 45,
         story:
-          "Designed by Cram & Ferguson with William Ward Watkin in Spanish Renaissance Revival style (1926). Restored in a landmark 2011 Good Brick project.",
+          "Designed by Cram & Ferguson with William Ward Watkin in Spanish Renaissance Revival style (1926). Restored in a landmark 2012 Good Brick project.",
       },
       {
         title: "1910 Harris County Courthouse",

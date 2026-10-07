@@ -162,7 +162,7 @@ export async function loadCuratedPhotosIndex() {
       allPhotos: [],
     };
     try {
-      const resp = await fetch('./public/data/building_photos.json');
+      const resp = await fetch('./public/data/building_photos.json?v=20261007a');
       if (resp.ok) {
         const data = await resp.json();
         const photos = Array.isArray(data?.photos) ? data.photos : [];

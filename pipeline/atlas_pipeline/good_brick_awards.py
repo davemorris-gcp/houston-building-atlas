@@ -1193,10 +1193,13 @@ CURATED_AWARD_LOCATIONS: list[tuple[int, str, dict[str, Any]]] = [
         "location_source": "COH Landmark & NRHP Listing (1910 Harris County Courthouse, 301 Fannin St)",
     }),
     (2012, "Julia Ideson Building", {
-        "address": "500 MCKINNEY ST",
-        "hcad_num": "0011480000019",
+        "address": "550 MCKINNEY ST",
+        "hcad_num": "0011470000001",
+        "building_id": "bld_003423",
+        "lat": 29.758915,
+        "lng": -95.369137,
         "project_name": "Julia Ideson Building (Houston Public Library)",
-        "location_source": "COH Protected Landmark (Julia Ideson Building, 500 McKinney St)",
+        "location_source": "COH Protected Landmark (Julia Ideson Building, 550 McKinney St)",
     }),
     # 2011
     (2011, "Carol & Mike Linn", {
