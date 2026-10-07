@@ -101,8 +101,8 @@ SEED_PHOTOS = [
     },
     # 3. 1910 Harris County Courthouse (301 Fannin St — 2012 Good Brick Winner)
     {
-        "hcad_num": "0010300000001",
-        "building_id": "0010300000001",
+        "hcad_num": "0010310000001",
+        "building_id": "bld_003285",
         "landmark_name": "1910 Harris County Courthouse",
         "address": "301 FANNIN ST",
         "photo_year": 1910,
@@ -114,8 +114,8 @@ SEED_PHOTOS = [
         "source_url": "https://commons.wikimedia.org/wiki/File:Accepted_design_of_Harris_County_Court_House.jpeg",
     },
     {
-        "hcad_num": "0010300000001",
-        "building_id": "0010300000001",
+        "hcad_num": "0010310000001",
+        "building_id": "bld_003285",
         "landmark_name": "1910 Harris County Courthouse",
         "address": "301 FANNIN ST",
         "photo_year": 1915,
@@ -127,8 +127,8 @@ SEED_PHOTOS = [
         "source_url": "https://commons.wikimedia.org/wiki/File:Harris_County_Courthouse,_Houston,_Texas.jpg",
     },
     {
-        "hcad_num": "0010300000001",
-        "building_id": "0010300000001",
+        "hcad_num": "0010310000001",
+        "building_id": "bld_003285",
         "landmark_name": "1910 Harris County Courthouse",
         "address": "301 FANNIN ST",
         "photo_year": 2013,

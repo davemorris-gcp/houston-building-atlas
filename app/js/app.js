@@ -6,16 +6,16 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261007a";
+} from "./palettes.js?v=20261007b";
 import {
   buildShareableUrl,
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261007a";
-import { AtlasMapController } from "./mapController.js?v=20261007a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007a";
+} from "./filterStore.js?v=20261007b";
+import { AtlasMapController } from "./mapController.js?v=20261007b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,13 +26,13 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261007a";
+} from "./curatedEdits.js?v=20261007b";
 import {
   buildStreetViewUrl,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261007a";
+} from "./photoService.js?v=20261007b";
 
 class HoustonAtlasApp {
   constructor() {
@@ -156,8 +156,8 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261007a"),
-        fetch("public/data/stats_summary.json?v=20261007a"),
+        fetch("public/data/search_index.json?v=20261007b"),
+        fetch("public/data/stats_summary.json?v=20261007b"),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -178,8 +178,10 @@ class HoustonAtlasApp {
     }
 
     for (const [hcad, ov] of Object.entries(ovMap)) {
-      let lon = -95.38718;
-      let lat = 29.79175;
+      const existingIdx = existingByHcad.get(hcad);
+      const existingItem = existingIdx !== undefined ? this.searchIndex[existingIdx] : null;
+      let lon = ov.lon ?? ov.lng ?? existingItem?.lon ?? -95.38718;
+      let lat = ov.lat ?? existingItem?.lat ?? 29.79175;
       if (ov.geometry && ov.geometry.coordinates && ov.geometry.coordinates[0]?.[0]) {
         const ring = ov.geometry.type === "Polygon" ? ov.geometry.coordinates[0] : ov.geometry.coordinates[0][0];
         if (ring && ring.length) {
@@ -189,21 +191,21 @@ class HoustonAtlasApp {
       }
       const entry = {
         type: "building",
-        id: ov.id || `ov_${hcad}`,
+        id: ov.id || existingItem?.id || `ov_${hcad}`,
         hcad_num: hcad,
-        label: ov.landmark_name || ov.address || `HCAD ${hcad}`,
+        label: ov.landmark_name || ov.address || existingItem?.label || `HCAD ${hcad}`,
         sublabel: `${ov.historic_district || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
         category: `Built ${ov.year_built} ✓`,
         year_built: ov.year_built,
-        architect: ov.architect || "",
-        bld_style: ov.bld_style || "",
+        architect: ov.architect || existingItem?.architect || "",
+        bld_style: ov.bld_style || ov.style || existingItem?.bld_style || "",
         lon,
         lat,
         zoom: 17.6,
       };
-      if (existingByHcad.has(hcad)) {
-        this.searchIndex[existingByHcad.get(hcad)] = {
-          ...this.searchIndex[existingByHcad.get(hcad)],
+      if (existingIdx !== undefined) {
+        this.searchIndex[existingIdx] = {
+          ...existingItem,
           ...entry,
         };
       } else {
@@ -222,12 +224,28 @@ class HoustonAtlasApp {
       if (item.label) byLabel.set(String(item.label).trim().toLowerCase(), item);
     }
 
-    // 1. Enrich from buildingsData (architect, bld_style, historic_district, good_brick_years)
+    // 1. Enrich from buildingsData (architect, bld_style, historic_district, good_brick_years, and geometry coords)
     for (const feat of this.mapController.buildingsData || []) {
       const p = feat.properties || {};
       const hcad = String(p.hcad_num || "").trim();
+      const ring =
+        feat.geometry?.type === "Polygon"
+          ? feat.geometry.coordinates?.[0]
+          : feat.geometry?.type === "MultiPolygon"
+          ? feat.geometry.coordinates?.[0]?.[0]
+          : null;
       const target = (hcad && byHcad.get(hcad)) || (p.landmark_name && byLabel.get(String(p.landmark_name).toLowerCase()));
       if (target) {
+        if (p.id && String(target.id || "").startsWith("ov_")) target.id = p.id;
+        if (ring && ring[0] && (!target.lon || Math.abs(target.lon - -95.38718) < 0.0001)) {
+          let sumLon = 0, sumLat = 0;
+          for (const pt of ring) {
+            sumLon += pt[0];
+            sumLat += pt[1];
+          }
+          target.lon = sumLon / ring.length;
+          target.lat = sumLat / ring.length;
+        }
         if (p.architect && !target.architect) target.architect = p.architect;
         if ((p.bld_style || p.style) && !target.bld_style) target.bld_style = p.bld_style || p.style;
         if (p.good_brick_years && !target.good_brick_years) target.good_brick_years = String(p.good_brick_years);
@@ -235,12 +253,6 @@ class HoustonAtlasApp {
       } else if (p.architect || p.landmark_name || p.good_brick_years) {
         let lon = -95.3698;
         let lat = 29.7604;
-        const ring =
-          feat.geometry?.type === "Polygon"
-            ? feat.geometry.coordinates?.[0]
-            : feat.geometry?.type === "MultiPolygon"
-            ? feat.geometry.coordinates?.[0]?.[0]
-            : null;
         if (ring && ring[0]) {
           [lon, lat] = ring[0];
         }
