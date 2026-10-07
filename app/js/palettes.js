@@ -144,10 +144,10 @@ export const CURATED_TOURS = [
       {
         title: "Houston City Hall",
         year: 1939,
-        hcad_num: "0012510000017",
-        building_id: "0012510000017",
-        lng: -95.37162,
-        lat: 29.76066,
+        hcad_num: "0011490000001",
+        building_id: "bld_003326",
+        lng: -95.36938,
+        lat: 29.76018,
         zoom: 17.5,
         pitch: 48,
         story:

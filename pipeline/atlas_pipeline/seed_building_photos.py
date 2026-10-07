@@ -221,8 +221,8 @@ SEED_PHOTOS = [
     },
     # 6. Houston City Hall (901 Bagby St — 1939 Art Moderne Landmark)
     {
-        "hcad_num": "0012510000017",
-        "building_id": "0012510000017",
+        "hcad_num": "0011490000001",
+        "building_id": "0011490000001",
         "landmark_name": "Houston City Hall",
         "address": "901 BAGBY ST",
         "photo_year": 1981,
@@ -234,8 +234,8 @@ SEED_PHOTOS = [
         "source_url": "https://commons.wikimedia.org/wiki/File:Aerial_view_of_Houston_City_Hall_-_01.jpg",
     },
     {
-        "hcad_num": "0012510000017",
-        "building_id": "0012510000017",
+        "hcad_num": "0011490000001",
+        "building_id": "0011490000001",
         "landmark_name": "Houston City Hall",
         "address": "901 BAGBY ST",
         "photo_year": 2022,
