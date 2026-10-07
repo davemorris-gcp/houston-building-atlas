@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261006g" />
+  <link rel="stylesheet" href="styles/index.css?v=20261006j" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -115,13 +115,30 @@
       <div class="tour-pills" id="tour-pills"></div>
     </nav>
 
-    <!-- Active Tour Narrative Callout Banner -->
+    <!-- Active Tour Narrative & Guided Walking Tour Banner -->
     <div class="tour-narrative-banner hidden" id="tour-narrative-banner">
-      <div class="tour-banner-text">
-        <strong id="tour-banner-title"></strong>
-        <span id="tour-banner-desc"></span>
+      <div class="tour-banner-top">
+        <div class="tour-banner-text">
+          <div class="tour-banner-title-row">
+            <strong id="tour-banner-title"></strong>
+            <span class="tour-banner-step-badge hidden mono" id="tour-banner-step-badge"></span>
+          </div>
+          <span id="tour-banner-desc"></span>
+        </div>
+        <button type="button" class="tour-banner-close" id="btn-close-tour-banner" aria-label="Dismiss">&times;</button>
       </div>
-      <button type="button" class="tour-banner-close" id="btn-close-tour-banner" aria-label="Dismiss">&times;</button>
+      <div class="tour-banner-controls hidden" id="tour-banner-controls">
+        <button type="button" class="tour-step-btn" id="btn-tour-prev-stop" title="Previous Tour Stop">
+          &#9664; Prev
+        </button>
+        <div class="tour-stop-dots" id="tour-banner-stop-dots"></div>
+        <button type="button" class="tour-step-btn primary" id="btn-tour-next-stop" title="Next Guided Stop">
+          Start Tour &#9654;
+        </button>
+        <button type="button" class="tour-step-btn subtle hidden" id="btn-tour-overview" title="Return to full neighborhood overview">
+          Overview
+        </button>
+      </div>
     </div>
 
     <!-- Left Archival Control & Analytics Dock -->
@@ -498,6 +515,36 @@
               Solo
             </button>
           </div>
+
+          <div class="layer-item-row" data-layer-key="historicMap">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-historic-map" />
+              <span class="swatch-line" style="border-color:#D4A373;"></span>
+              <span class="layer-name">Historic Topo Map (USGS Quad)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="historicMap"
+              title="Show Historic USGS Topographic Quad Map overlay"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="historic-map-opacity-row hidden" id="historic-map-opacity-row">
+            <label for="slider-historic-map-opacity" class="slider-label">
+              Topo Map Opacity: <strong class="mono" id="historic-map-opacity-readout">75%</strong>
+            </label>
+            <input
+              type="range"
+              id="slider-historic-map-opacity"
+              min="15"
+              max="100"
+              step="5"
+              value="75"
+            />
+          </div>
         </div>
 
         <div class="dataset-footer">
@@ -734,6 +781,44 @@
                 placeholder="e.g. First appears in the 1928 Morrison &amp; Fourmy Houston City Directory; address absent/vacant through the 1926 directory."
               ></textarea>
             </div>
+
+            <details class="corr-photo-details" id="corr-photo-details">
+              <summary>&#128247; Contribute a Historic or Present-Day Photograph (Optional)</summary>
+              <div class="corr-photo-body">
+                <div class="form-field">
+                  <label for="corr-photo-url">Direct Image URL (Wikimedia Commons, HPL Digital Archives, Portal to Texas History, etc.)</label>
+                  <input
+                    type="url"
+                    id="corr-photo-url"
+                    name="photo_url"
+                    class="form-input mono"
+                    placeholder="https://upload.wikimedia.org/wikipedia/commons/..."
+                  />
+                </div>
+                <div class="form-row-2col">
+                  <div class="form-field">
+                    <label for="corr-photo-year">Photograph Era / Year</label>
+                    <input
+                      type="text"
+                      id="corr-photo-year"
+                      name="photo_year"
+                      class="form-input mono"
+                      placeholder="e.g. c. 1935 or 2024"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="corr-photo-caption">Photograph Caption &amp; Archive Credit</label>
+                    <input
+                      type="text"
+                      id="corr-photo-caption"
+                      name="photo_caption"
+                      class="form-input"
+                      placeholder="e.g. Postcard view looking north on Main St, HPL Archives"
+                    />
+                  </div>
+                </div>
+              </div>
+            </details>
 
             <div class="form-row-2col">
               <div class="form-field">
@@ -984,10 +1069,36 @@
         <div class="modal-body photo-lightbox-body" id="photo-lightbox-body"></div>
       </div>
     </div>
+
+    <!-- Printable Archival Property Sheet / Dossier Modal -->
+    <div class="modal-backdrop hidden" id="dossier-modal" role="dialog" aria-modal="true" aria-labelledby="dossier-modal-title">
+      <div class="modal-card dossier-modal-card">
+        <div class="modal-header dossier-modal-header no-print">
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">Preservation Houston • Archival Property Dossier</span>
+              <h2 class="modal-title" id="dossier-modal-title">Printable Property Sheet</h2>
+            </div>
+          </div>
+          <div class="dossier-header-actions">
+            <button type="button" class="action-pill active" id="btn-print-dossier-now">
+              &#128424; Print / Save PDF
+            </button>
+            <button type="button" class="icon-btn" id="btn-close-dossier-modal" aria-label="Close Property Sheet">
+              &times;
+            </button>
+          </div>
+        </div>
+        <div class="modal-body dossier-modal-body" id="dossier-modal-body"></div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261006g"></script>
+  <script type="module" src="js/app.js?v=20261006j"></script>
 </body>
 </html>
