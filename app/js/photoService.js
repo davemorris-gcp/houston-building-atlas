@@ -71,6 +71,81 @@ function extractFilenameKey(url) {
   }
 }
 
+const LS_COMMUNITY_PHOTOS_KEY = 'ph_atlas_community_photos';
+
+export function getLocalCommunityPhotos() {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LS_COMMUNITY_PHOTOS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function indexPhotoRecord(index, raw, sourceTier = 'curated') {
+  if (!raw || !raw.image_url) return;
+  const pushToMap = (map, key, item) => {
+    if (!key) return;
+    const list = map.get(key) || [];
+    if (!list.some((existing) => existing.image_url === item.image_url)) {
+      list.push(item);
+      map.set(key, list);
+    }
+  };
+
+  const item = {
+    ...raw,
+    thumb_url: raw.thumb_url || raw.image_url,
+    full_url: raw.full_url || raw.image_url,
+    photo_year: Number(raw.photo_year) || null,
+    era_label:
+      raw.era_label ||
+      (raw.photo_year ? `${raw.photo_year} Archival Photo` : 'Community Archival Photo'),
+    source_tier: raw.source_tier || sourceTier,
+  };
+  index.allPhotos.push(item);
+
+  if (raw.building_id) {
+    pushToMap(index.byBuildingId, String(raw.building_id).trim().toLowerCase(), item);
+  }
+  if (raw.hcad_num) {
+    const cleanHcad = String(raw.hcad_num).split('#')[0].replace(/\D/g, '');
+    if (cleanHcad) {
+      pushToMap(index.byHcad, cleanHcad, item);
+    }
+  }
+  if (raw.address) {
+    pushToMap(index.byAddress, normalizeAddressKey(raw.address), item);
+  }
+  if (raw.landmark_name) {
+    const normName = normalizeKey(raw.landmark_name);
+    pushToMap(index.byLandmark, normName, item);
+    const withoutThe = normName.replace(/^THE\s+/, '');
+    if (withoutThe !== normName) {
+      pushToMap(index.byLandmark, withoutThe, item);
+    }
+  }
+}
+
+/**
+ * Registers a user- or admin-contributed photograph in the active session and local storage
+ * so it appears immediately in the Archival Photographs timeline.
+ */
+export async function registerSessionPhoto(photoRecord) {
+  if (!photoRecord || !photoRecord.image_url) return null;
+  const index = await loadCuratedPhotosIndex();
+  indexPhotoRecord(index, photoRecord, 'community');
+  if (typeof localStorage !== 'undefined') {
+    const existing = getLocalCommunityPhotos().filter(
+      (p) => p.image_url !== photoRecord.image_url
+    );
+    existing.unshift(photoRecord);
+    localStorage.setItem(LS_COMMUNITY_PHOTOS_KEY, JSON.stringify(existing.slice(0, 100)));
+  }
+  return photoRecord;
+}
+
 /**
  * Loads and indexes `public/data/building_photos.json` once.
  */
@@ -88,47 +163,18 @@ export async function loadCuratedPhotosIndex() {
     };
     try {
       const resp = await fetch('./public/data/building_photos.json');
-      if (!resp.ok) return index;
-      const data = await resp.json();
-      const photos = Array.isArray(data?.photos) ? data.photos : [];
-      index.allPhotos = photos;
-
-      const pushToMap = (map, key, item) => {
-        if (!key) return;
-        const list = map.get(key) || [];
-        list.push(item);
-        map.set(key, list);
-      };
-
-      for (const raw of photos) {
-        const item = {
-          ...raw,
-          photo_year: Number(raw.photo_year) || null,
-          source_tier: 'curated',
-        };
-        if (raw.building_id) {
-          pushToMap(index.byBuildingId, String(raw.building_id).trim().toLowerCase(), item);
-        }
-        if (raw.hcad_num) {
-          const cleanHcad = String(raw.hcad_num).replace(/\D/g, '');
-          if (cleanHcad) {
-            pushToMap(index.byHcad, cleanHcad, item);
-          }
-        }
-        if (raw.address) {
-          pushToMap(index.byAddress, normalizeAddressKey(raw.address), item);
-        }
-        if (raw.landmark_name) {
-          const normName = normalizeKey(raw.landmark_name);
-          pushToMap(index.byLandmark, normName, item);
-          const withoutThe = normName.replace(/^THE\s+/, '');
-          if (withoutThe !== normName) {
-            pushToMap(index.byLandmark, withoutThe, item);
-          }
+      if (resp.ok) {
+        const data = await resp.json();
+        const photos = Array.isArray(data?.photos) ? data.photos : [];
+        for (const raw of photos) {
+          indexPhotoRecord(index, raw, 'curated');
         }
       }
     } catch (err) {
       console.warn('Could not load curated building_photos.json:', err);
+    }
+    for (const localPhoto of getLocalCommunityPhotos()) {
+      indexPhotoRecord(index, localPhoto, 'community');
     }
     curatedIndex = index;
     return index;

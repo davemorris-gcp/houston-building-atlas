@@ -9,17 +9,17 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261006b";
+} from "./palettes.js?v=20261006h";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261006b";
+} from "./filterStore.js?v=20261006h";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261006b";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261006d";
+} from "./curatedEdits.js?v=20261006h";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261006h";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -51,6 +51,13 @@ const BASEMAP_TILES = {
       "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
     ],
     attribution: "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics",
+  },
+  historic_topo: {
+    maxZoom: 15,
+    tiles: [
+      "https://services.arcgisonline.com/ArcGIS/rest/services/USA_Topo_Maps/MapServer/tile/{z}/{y}/{x}",
+    ],
+    attribution: "Historic USGS 7.5-Minute Topographic Quads &copy; USGS / National Geographic / Esri",
   },
 };
 
@@ -333,6 +340,13 @@ export class AtlasMapController {
             tileSize: 256,
             maxzoom: 16,
           },
+          "basemap-historic-topo": {
+            type: "raster",
+            tiles: BASEMAP_TILES.historic_topo.tiles,
+            tileSize: 256,
+            maxzoom: 15,
+            attribution: BASEMAP_TILES.historic_topo.attribution,
+          },
           "openfreemap-vector": {
             type: "vector",
             url: "https://tiles.openfreemap.org/planet",
@@ -361,6 +375,21 @@ export class AtlasMapController {
             source: "basemap-satellite",
             layout: {
               visibility: state.basemap === "satellite" ? "visible" : "none",
+            },
+          },
+          {
+            id: "basemap-historic-topo-layer",
+            type: "raster",
+            source: "basemap-historic-topo",
+            layout: {
+              visibility: state.layers?.historicMap ? "visible" : "none",
+            },
+            paint: {
+              "raster-opacity": Math.max(
+                0.1,
+                Math.min(1, (Number(state.historicMapOpacity) || 75) / 100)
+              ),
+              "raster-contrast": 0.08,
             },
           },
           {
@@ -1263,6 +1292,44 @@ export class AtlasMapController {
       }
     }
 
+    if (state.layers?.historicMap && BASEMAP_TILES.historic_topo) {
+      const histConfig = BASEMAP_TILES.historic_topo;
+      const histZ = Math.max(10, Math.min(histConfig.maxZoom || 15, Math.floor(cs.zoom)));
+      const histFactor = Math.pow(2, cs.zoom - histZ);
+      const histSizeScreen = 256 * histFactor;
+      const histCenterX = ((cs.lng + 180) / 360) * Math.pow(2, histZ);
+      const histCenterY =
+        (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * Math.pow(2, histZ);
+      const hCols = Math.ceil(width / histSizeScreen / 2) + 1;
+      const hRows = Math.ceil(height / histSizeScreen / 2) + 1;
+      const histTpl = histConfig.tiles[0];
+      ctx.save();
+      ctx.globalAlpha = Math.max(0.1, Math.min(1, (Number(state.historicMapOpacity) || 75) / 100));
+      for (let dx = -hCols; dx <= hCols; dx++) {
+        for (let dy = -hRows; dy <= hRows; dy++) {
+          const tx = Math.floor(histCenterX) + dx;
+          const ty = Math.floor(histCenterY) + dy;
+          const maxT = 1 << histZ;
+          if (tx < 0 || ty < 0 || tx >= maxT || ty >= maxT) continue;
+          const sx = width / 2 + (tx - histCenterX) * histSizeScreen;
+          const sy = height / 2 + (ty - histCenterY) * histSizeScreen;
+          const hCacheId = `hist_topo:${histZ}/${tx}/${ty}`;
+          let hImg = cs.tileCache.get(hCacheId);
+          if (!hImg) {
+            hImg = new Image();
+            hImg.crossOrigin = "anonymous";
+            hImg.src = histTpl.replace("{z}", histZ).replace("{x}", tx).replace("{y}", ty);
+            hImg.onload = () => this._renderCanvas2D();
+            cs.tileCache.set(hCacheId, hImg);
+          }
+          if (hImg.complete && hImg.naturalWidth > 0) {
+            ctx.drawImage(hImg, sx, sy, histSizeScreen + 0.5, histSizeScreen + 0.5);
+          }
+        }
+      }
+      ctx.restore();
+    }
+
     const bounds = this._getCanvasBounds();
     const west = bounds.getWest();
     const east = bounds.getEast();
@@ -1622,6 +1689,19 @@ export class AtlasMapController {
       "visibility",
       state.basemap === "satellite" ? "visible" : "none"
     );
+
+    if (this.map.getLayer("basemap-historic-topo-layer")) {
+      this.map.setLayoutProperty(
+        "basemap-historic-topo-layer",
+        "visibility",
+        state.layers?.historicMap ? "visible" : "none"
+      );
+      const histOpacity = Math.max(
+        0.1,
+        Math.min(1, (Number(state.historicMapOpacity) || 75) / 100)
+      );
+      this.map.setPaintProperty("basemap-historic-topo-layer", "raster-opacity", histOpacity);
+    }
 
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
     const filterExpr = buildFeatureFilterExpression(state);

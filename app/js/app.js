@@ -6,16 +6,16 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261006b";
+} from "./palettes.js?v=20261006h";
 import {
   buildShareableUrl,
   createFilterStore,
   parseHashToState,
-   serializeStateToHash,
+  serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261006b";
-import { AtlasMapController } from "./mapController.js?v=20261006d";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261006d";
+} from "./filterStore.js?v=20261006h";
+import { AtlasMapController } from "./mapController.js?v=20261006h";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261006h";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,12 +26,13 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261006b";
+} from "./curatedEdits.js?v=20261006h";
 import {
   buildStreetViewUrl,
   loadCuratedPhotosIndex,
+  registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261006f";
+} from "./photoService.js?v=20261006h";
 
 class HoustonAtlasApp {
   constructor() {
@@ -49,6 +50,8 @@ class HoustonAtlasApp {
     this.timelapseTimer = null;
     this._suppressUrlUpdate = false;
     this._activePhotoState = null;
+    this._activeTour = null;
+    this._activeTourStopIndex = -1;
 
     this.mapController = new AtlasMapController({
       containerId: "map-canvas",
@@ -78,6 +81,7 @@ class HoustonAtlasApp {
     ]);
 
     this._mergeCuratedOverridesIntoSearchIndex();
+    this._enrichSearchIndexWithOverlayMetadata();
 
     if (this.initialSelection) {
       this.mapController.selectFeatureByIdOrHcad({
@@ -191,6 +195,8 @@ class HoustonAtlasApp {
         sublabel: `${ov.historic_district || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
         category: `Built ${ov.year_built} ✓`,
         year_built: ov.year_built,
+        architect: ov.architect || "",
+        bld_style: ov.bld_style || "",
         lon,
         lat,
         zoom: 17.6,
@@ -202,6 +208,120 @@ class HoustonAtlasApp {
         };
       } else {
         this.searchIndex.unshift(entry);
+      }
+    }
+  }
+
+  _enrichSearchIndexWithOverlayMetadata() {
+    if (!this.mapController) return;
+    const byHcad = new Map();
+    const byLabel = new Map();
+    for (let i = 0; i < this.searchIndex.length; i++) {
+      const item = this.searchIndex[i];
+      if (item.hcad_num) byHcad.set(String(item.hcad_num).trim(), item);
+      if (item.label) byLabel.set(String(item.label).trim().toLowerCase(), item);
+    }
+
+    // 1. Enrich from buildingsData (architect, bld_style, historic_district, good_brick_years)
+    for (const feat of this.mapController.buildingsData || []) {
+      const p = feat.properties || {};
+      const hcad = String(p.hcad_num || "").trim();
+      const target = (hcad && byHcad.get(hcad)) || (p.landmark_name && byLabel.get(String(p.landmark_name).toLowerCase()));
+      if (target) {
+        if (p.architect && !target.architect) target.architect = p.architect;
+        if ((p.bld_style || p.style) && !target.bld_style) target.bld_style = p.bld_style || p.style;
+        if (p.good_brick_years && !target.good_brick_years) target.good_brick_years = String(p.good_brick_years);
+        if (p.historic_district && !target.historic_district) target.historic_district = p.historic_district;
+      } else if (p.architect || p.landmark_name || p.good_brick_years) {
+        let lon = -95.3698;
+        let lat = 29.7604;
+        const ring =
+          feat.geometry?.type === "Polygon"
+            ? feat.geometry.coordinates?.[0]
+            : feat.geometry?.type === "MultiPolygon"
+            ? feat.geometry.coordinates?.[0]?.[0]
+            : null;
+        if (ring && ring[0]) {
+          [lon, lat] = ring[0];
+        }
+        const newEntry = {
+          type: "building",
+          id: p.id || "",
+          hcad_num: hcad,
+          label: p.landmark_name || p.address || `HCAD ${hcad}`,
+          sublabel: [p.address, p.historic_district, p.architect ? `Arch: ${p.architect}` : ""].filter(Boolean).join(" • "),
+          category: p.year_built ? `Built ${p.year_built}` : p.use_category || "Historic Structure",
+          year_built: p.year_built || 0,
+          architect: p.architect || "",
+          bld_style: p.bld_style || p.style || "",
+          good_brick_years: p.good_brick_years ? String(p.good_brick_years) : "",
+          historic_district: p.historic_district || "",
+          lon,
+          lat,
+          zoom: 17.4,
+        };
+        this.searchIndex.push(newEntry);
+        if (hcad) byHcad.set(hcad, newEntry);
+      }
+    }
+
+    // 2. Enrich from overlaysData.landmarks & overlaysData.good_brick_awards
+    const landmarks = this.mapController.overlaysData?.landmarks?.features || [];
+    for (const feat of landmarks) {
+      const p = feat.properties || {};
+      const hcad = String(p.hcad_num || "").trim();
+      const target =
+        (hcad && byHcad.get(hcad)) ||
+        (p.name && byLabel.get(String(p.name).toLowerCase()));
+      if (target) {
+        if (p.architect && !target.architect) target.architect = p.architect;
+        if (p.style && !target.bld_style) target.bld_style = p.style;
+      } else if (feat.geometry?.coordinates) {
+        const [lon, lat] = feat.geometry.coordinates;
+        this.searchIndex.push({
+          type: "landmark",
+          id: p.id || "",
+          hcad_num: hcad,
+          label: p.name || p.address || "Houston Landmark",
+          sublabel: [p.address, p.style, p.architect ? `Arch: ${p.architect}` : ""].filter(Boolean).join(" • "),
+          category: p.designation || "Landmark",
+          year_built: p.year_built || 0,
+          architect: p.architect || "",
+          bld_style: p.style || "",
+          lon,
+          lat,
+          zoom: 17.5,
+        });
+      }
+    }
+
+    const gbAwards = this.mapController.overlaysData?.good_brick_awards?.features || [];
+    for (const feat of gbAwards) {
+      const p = feat.properties || {};
+      const hcad = String(p.hcad_num || "").trim();
+      const target =
+        (hcad && byHcad.get(hcad)) ||
+        (p.landmark_name && byLabel.get(String(p.landmark_name).toLowerCase()));
+      if (target) {
+        if (p.good_brick_years) target.good_brick_years = String(p.good_brick_years);
+        if (p.good_brick_summary && !String(target.sublabel || "").includes("Good Brick")) {
+          target.sublabel = `${target.sublabel || ""} • ★ ${p.good_brick_summary}`;
+        }
+      } else if (feat.geometry?.coordinates) {
+        const [lon, lat] = feat.geometry.coordinates;
+        this.searchIndex.push({
+          type: "good_brick",
+          id: p.building_id || p.id || "",
+          hcad_num: hcad,
+          label: p.landmark_name || p.address || "Good Brick Winner",
+          sublabel: `${p.address || ""} • ★ ${p.good_brick_summary || "Good Brick Award"}`,
+          category: `★ ${p.good_brick_years || "Good Brick"}`,
+          year_built: p.year_built || 0,
+          good_brick_years: String(p.good_brick_years || ""),
+          lon,
+          lat,
+          zoom: 17.5,
+        });
       }
     }
   }
@@ -495,6 +615,7 @@ class HoustonAtlasApp {
       ["chk-layer-nrhp-districts", "nrhpDistricts"],
       ["chk-layer-thc-markers", "thcMarkers"],
       ["chk-layer-annexations", "annexations"],
+      ["chk-layer-historic-map", "historicMap"],
     ];
     for (const [domId, layerKey] of layerCheckboxes) {
       const el = document.getElementById(domId);
@@ -503,6 +624,16 @@ class HoustonAtlasApp {
           this.filterStore.setLayerVisibility(layerKey, e.target.checked);
         });
       }
+    }
+
+    const histOpacitySlider = document.getElementById("slider-historic-map-opacity");
+    if (histOpacitySlider) {
+      histOpacitySlider.addEventListener("input", (e) => {
+        const val = Math.max(15, Math.min(100, parseInt(e.target.value, 10) || 75));
+        const readout = document.getElementById("historic-map-opacity-readout");
+        if (readout) readout.textContent = `${val}%`;
+        this.filterStore.setState({ historicMapOpacity: val });
+      });
     }
 
     document.querySelectorAll("[data-solo-layer]").forEach((btn) => {
@@ -521,81 +652,32 @@ class HoustonAtlasApp {
     const searchResults = document.getElementById("search-results");
     if (searchInput && searchResults) {
       searchInput.addEventListener("input", (e) => {
-        const q = e.target.value.trim().toLowerCase();
-        if (q.length < 2) {
-          searchResults.classList.add("hidden");
-          searchResults.innerHTML = "";
-          return;
-        }
-        const matches = this.searchIndex
-          .filter(
-            (item) =>
-              item.label.toLowerCase().includes(q) ||
-              (item.sublabel && item.sublabel.toLowerCase().includes(q)) ||
-              (item.hcad_num && item.hcad_num.toLowerCase().includes(q))
-          )
-          .slice(0, 8);
-
-        if (!matches.length) {
-          searchResults.innerHTML = `<div class="search-empty">No matching addresses, landmarks, or districts found.</div>`;
-          searchResults.classList.remove("hidden");
-          return;
-        }
-
-        searchResults.innerHTML = matches
-          .map(
-            (m, i) => `
-            <button type="button" class="search-result-item" data-idx="${i}">
-              <div class="search-result-main">
-                <span class="search-result-title">${m.label}</span>
-                <span class="search-result-cat">${m.category}</span>
-              </div>
-              <div class="search-result-sub">${m.sublabel || ""}</div>
-            </button>`
-          )
-          .join("");
-        searchResults.classList.remove("hidden");
-
-        searchResults.querySelectorAll(".search-result-item").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const idx = Number(btn.getAttribute("data-idx"));
-            const chosen = matches[idx];
-            if (chosen) {
-              searchResults.classList.add("hidden");
-              searchInput.value = chosen.label;
-              if (typeof window !== "undefined" && window.innerWidth <= 900) {
-                this._setSidebarCollapsed(true);
-              }
-              this.mapController.flyToLocation({
-                lng: chosen.lon,
-                lat: chosen.lat,
-                zoom: chosen.zoom || 17.2,
-                hcadNum: chosen.hcad_num || "",
-                featureId: chosen.id || "",
-              });
-              if (
-                (chosen.type === "building" ||
-                  chosen.type === "landmark" ||
-                  chosen.type === "good_brick") &&
-                document.getElementById("inspector-drawer")?.classList.contains("hidden")
-              ) {
-                this.renderInspectorDrawer({
-                  landmark_name: chosen.label,
-                  year_built: chosen.year_built,
-                  hcad_num: chosen.hcad_num,
-                  landmark_type: chosen.category,
-                  historic_district: chosen.sublabel,
-                });
-              }
-            }
-          });
-        });
+        this._runSearchQuery(e.target.value, "");
       });
 
       document.addEventListener("click", (e) => {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        const isFilterChip = e.target.closest && e.target.closest("[data-filter-chip]");
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target) && !isFilterChip) {
           searchResults.classList.add("hidden");
         }
+      });
+    }
+
+    // Printable Archival Property Dossier Modal
+    const dossierModal = document.getElementById("dossier-modal");
+    const btnCloseDossierModal = document.getElementById("btn-close-dossier-modal");
+    const btnPrintDossierNow = document.getElementById("btn-print-dossier-now");
+    if (btnCloseDossierModal && dossierModal) {
+      btnCloseDossierModal.addEventListener("click", () => dossierModal.classList.add("hidden"));
+    }
+    if (dossierModal) {
+      dossierModal.addEventListener("click", (e) => {
+        if (e.target === dossierModal) dossierModal.classList.add("hidden");
+      });
+    }
+    if (btnPrintDossierNow) {
+      btnPrintDossierNow.addEventListener("click", () => {
+        window.print();
       });
     }
 
@@ -867,6 +949,9 @@ class HoustonAtlasApp {
           source_type: document.getElementById("corr-source-type")?.value || "Houston City Directory",
           architect: document.getElementById("corr-style-arch")?.value || "",
           source_citation: document.getElementById("corr-citation")?.value || "",
+          photo_url: document.getElementById("corr-photo-url")?.value || "",
+          photo_year: document.getElementById("corr-photo-year")?.value || "",
+          photo_caption: document.getElementById("corr-photo-caption")?.value || "",
         };
 
         if (!payload.suggested_year_built) {
@@ -887,6 +972,19 @@ class HoustonAtlasApp {
           const res = await submitAdminApprovedOverride(payload, webhookUrl);
           btnAdminApproveDirect.disabled = false;
 
+          if (payload.photo_url) {
+            registerSessionPhoto({
+              hcad_num: payload.hcad_num,
+              building_id: payload.hcad_num,
+              landmark_name: payload.address,
+              photo_url: payload.photo_url,
+              photo_year: payload.photo_year,
+              photo_caption: payload.photo_caption || payload.source_citation,
+              credit: "Preservation Houston Verified Archival Photo",
+              source_url: payload.photo_url,
+            });
+          }
+
           if (res.ok && res.override && (res.overrideKey || res.override.hcad_num)) {
             const ovKey = res.overrideKey || res.override.building_id || res.override.id || res.override.hcad_num;
             const existingOv =
@@ -903,6 +1001,7 @@ class HoustonAtlasApp {
             };
             this.mapController._refreshCuratedOverridesSource();
             this._mergeCuratedOverridesIntoSearchIndex();
+            this._enrichSearchIndexWithOverlayMetadata();
             if (this.mapController.selectedFeatureProps) {
               this.mapController.highlightAndInspectFeature(
                 this.mapController.selectedFeatureProps,
@@ -945,6 +1044,9 @@ class HoustonAtlasApp {
           source_type: document.getElementById("corr-source-type")?.value || "Houston City Directory",
           architect: document.getElementById("corr-style-arch")?.value || "",
           source_citation: document.getElementById("corr-citation")?.value || "",
+          photo_url: document.getElementById("corr-photo-url")?.value || "",
+          photo_year: document.getElementById("corr-photo-year")?.value || "",
+          photo_caption: document.getElementById("corr-photo-caption")?.value || "",
           submitter_name: document.getElementById("corr-submitter-name")?.value || "",
           submitter_email: document.getElementById("corr-submitter-email")?.value || "",
         };
@@ -957,11 +1059,32 @@ class HoustonAtlasApp {
         const res = await submitCorrectionSuggestion(payload, webhookUrl);
         if (submitBtn) submitBtn.disabled = false;
 
+        if (payload.photo_url) {
+          registerSessionPhoto({
+            hcad_num: payload.hcad_num,
+            building_id: payload.hcad_num,
+            landmark_name: payload.address,
+            photo_url: payload.photo_url,
+            photo_year: payload.photo_year,
+            photo_caption: payload.photo_caption || payload.source_citation,
+            credit: payload.submitter_name
+              ? `Contributed by ${payload.submitter_name} (Pending PH Review)`
+              : "Community Archival Submission (Pending PH Review)",
+            source_url: payload.photo_url,
+          });
+          if (this.mapController?.selectedFeatureProps) {
+            this.renderInspectorDrawer(this.mapController.selectedFeatureProps);
+          }
+        }
+
         if (feedbackEl) {
           const deliveryNote = res.webhookDelivered
             ? "Sent directly to Preservation Houston's Google Sheet Pending Review Queue."
             : "Queued in Pending Review Queue (use 'Export Pending Queue (.CSV)' or connect a Google Sheet webhook below).";
-          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.address || payload.hcad_num}</strong> (Built <strong>${payload.suggested_year_built}</strong>, source: <em>${payload.source_type}</em>) has been recorded with status <code>Pending</code>. ${deliveryNote} It will go live on the public map once approved by an administrator.`;
+          const photoNote = payload.photo_url
+            ? " Your contributed photograph has also been added to the Archival Photographs timeline for this session and queued for moderation."
+            : "";
+          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.address || payload.hcad_num}</strong> (Built <strong>${payload.suggested_year_built}</strong>, source: <em>${payload.source_type}</em>) has been recorded with status <code>Pending</code>. ${deliveryNote}${photoNote}`;
           feedbackEl.classList.remove("hidden");
         }
       });
@@ -1018,6 +1141,7 @@ class HoustonAtlasApp {
 
         const syncStatus = await this.mapController.reloadCuratedOverrides(csvUrl);
         this._mergeCuratedOverridesIntoSearchIndex();
+        this._enrichSearchIndexWithOverlayMetadata();
 
         if (statusText) {
           if (syncStatus && syncStatus.error) {
@@ -1068,6 +1192,123 @@ class HoustonAtlasApp {
     }
   }
 
+  _runSearchQuery(rawQuery, customHeaderLabel = "") {
+    const searchInput = document.getElementById("search-input");
+    const searchResults = document.getElementById("search-results");
+    if (!searchResults) return;
+
+    const q = String(rawQuery || "").trim().toLowerCase();
+    if (q.length < 2) {
+      searchResults.classList.add("hidden");
+      searchResults.innerHTML = "";
+      return;
+    }
+
+    const matches = this.searchIndex
+      .filter((item) => {
+        const lbl = String(item.label || "").toLowerCase();
+        const sub = String(item.sublabel || "").toLowerCase();
+        const hcad = String(item.hcad_num || "").toLowerCase();
+        const arch = String(item.architect || "").toLowerCase();
+        const style = String(item.bld_style || "").toLowerCase();
+        const gbYrs = String(item.good_brick_years || "").toLowerCase();
+        const dist = String(item.historic_district || "").toLowerCase();
+        return (
+          lbl.includes(q) ||
+          sub.includes(q) ||
+          hcad.includes(q) ||
+          arch.includes(q) ||
+          style.includes(q) ||
+          gbYrs.includes(q) ||
+          dist.includes(q)
+        );
+      })
+      .slice(0, 14);
+
+    if (!matches.length) {
+      searchResults.innerHTML = `<div class="search-empty">No matching addresses, architects, styles, landmarks, or districts found for "${rawQuery}".</div>`;
+      searchResults.classList.remove("hidden");
+      return;
+    }
+
+    const headerBanner = customHeaderLabel
+      ? `<div class="search-filter-header">
+          <span>&#128269; ${customHeaderLabel} (<strong>${matches.length}</strong> shown)</span>
+          <button type="button" class="search-filter-clear" id="btn-clear-search-filter">Clear</button>
+        </div>`
+      : "";
+
+    searchResults.innerHTML =
+      headerBanner +
+      matches
+        .map(
+          (m, i) => `
+          <button type="button" class="search-result-item" data-idx="${i}">
+            <div class="search-result-main">
+              <span class="search-result-title">${m.label}</span>
+              <span class="search-result-cat">${m.category}</span>
+            </div>
+            <div class="search-result-sub">${m.sublabel || ""}</div>
+          </button>`
+        )
+        .join("");
+    searchResults.classList.remove("hidden");
+
+    const btnClear = document.getElementById("btn-clear-search-filter");
+    if (btnClear) {
+      btnClear.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (searchInput) searchInput.value = "";
+        searchResults.classList.add("hidden");
+      });
+    }
+
+    searchResults.querySelectorAll(".search-result-item").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-idx"));
+        const chosen = matches[idx];
+        if (chosen) {
+          searchResults.classList.add("hidden");
+          if (searchInput) searchInput.value = chosen.label;
+          if (typeof window !== "undefined" && window.innerWidth <= 900) {
+            this._setSidebarCollapsed(true);
+          }
+          this.mapController.flyToLocation({
+            lng: chosen.lon,
+            lat: chosen.lat,
+            zoom: chosen.zoom || 17.2,
+            hcadNum: chosen.hcad_num || "",
+            featureId: chosen.id || "",
+          });
+          if (
+            (chosen.type === "building" ||
+              chosen.type === "landmark" ||
+              chosen.type === "good_brick") &&
+            document.getElementById("inspector-drawer")?.classList.contains("hidden")
+          ) {
+            this.renderInspectorDrawer({
+              landmark_name: chosen.label,
+              year_built: chosen.year_built,
+              hcad_num: chosen.hcad_num,
+              landmark_type: chosen.category,
+              historic_district: chosen.sublabel,
+              architect: chosen.architect || "",
+              bld_style: chosen.bld_style || "",
+            });
+          }
+        }
+      });
+    });
+  }
+
+  triggerMetadataFilterSearch(query, headerLabel = "") {
+    const searchInput = document.getElementById("search-input");
+    if (searchInput) {
+      searchInput.value = query;
+    }
+    this._runSearchQuery(query, headerLabel || `Filter: ${query}`);
+  }
+
   openCorrectionModal(props) {
     const modal = document.getElementById("correction-modal");
     if (!modal || !props) return;
@@ -1079,6 +1320,10 @@ class HoustonAtlasApp {
     const distEl = document.getElementById("corr-district");
     const styleEl = document.getElementById("corr-style-arch");
     const citeEl = document.getElementById("corr-citation");
+    const photoUrlEl = document.getElementById("corr-photo-url");
+    const photoYearEl = document.getElementById("corr-photo-year");
+    const photoCapEl = document.getElementById("corr-photo-caption");
+    const photoDetailsEl = document.getElementById("corr-photo-details");
     const feedbackEl = document.getElementById("corr-submit-feedback");
 
     if (addrEl) addrEl.value = props.landmark_name || props.address || "Unknown Address";
@@ -1096,6 +1341,10 @@ class HoustonAtlasApp {
     if (distEl) distEl.value = props.historic_district || "";
     if (styleEl) styleEl.value = props.architect || props.bld_style || "";
     if (citeEl) citeEl.value = props.source_citation || "";
+    if (photoUrlEl) photoUrlEl.value = "";
+    if (photoYearEl) photoYearEl.value = "";
+    if (photoCapEl) photoCapEl.value = "";
+    if (photoDetailsEl) photoDetailsEl.open = false;
     if (feedbackEl) {
       feedbackEl.classList.add("hidden");
       feedbackEl.innerHTML = "";
@@ -1135,32 +1384,172 @@ class HoustonAtlasApp {
         container.querySelectorAll(".tour-pill").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
 
-        const banner = document.getElementById("tour-narrative-banner");
-        const bannerTitle = document.getElementById("tour-banner-title");
-        const bannerDesc = document.getElementById("tour-banner-desc");
-        if (banner && bannerTitle && bannerDesc) {
-          bannerTitle.textContent = `${tour.name} (${tour.era})`;
-          bannerDesc.textContent = tour.description;
-          banner.classList.remove("hidden");
+        if (tour.id === "good_brick_highlights" && !this.filterStore.getState().layers.goodBrickAwards) {
+          this.filterStore.setLayerVisibility("goodBrickAwards", true);
         }
 
-        this.mapController.flyToLocation({
-          lng: tour.center[0],
-          lat: tour.center[1],
-          zoom: tour.zoom,
-          pitch: this.filterStore.getState().extrude3D ? Math.max(45, tour.pitch) : 0,
-        });
+        this._activateTourOverview(tour);
       });
     });
 
+    const btnPrevStop = document.getElementById("btn-tour-prev-stop");
+    const btnNextStop = document.getElementById("btn-tour-next-stop");
+    const btnTourOverview = document.getElementById("btn-tour-overview");
     const btnCloseBanner = document.getElementById("btn-close-tour-banner");
+
+    if (btnPrevStop) {
+      btnPrevStop.addEventListener("click", () => {
+        if (!this._activeTour || !Array.isArray(this._activeTour.stops)) return;
+        const nextIdx =
+          this._activeTourStopIndex <= 0
+            ? this._activeTour.stops.length - 1
+            : this._activeTourStopIndex - 1;
+        this._activateTourStop(this._activeTour, nextIdx);
+      });
+    }
+
+    if (btnNextStop) {
+      btnNextStop.addEventListener("click", () => {
+        if (!this._activeTour || !Array.isArray(this._activeTour.stops)) return;
+        const nextIdx =
+          this._activeTourStopIndex + 1 >= this._activeTour.stops.length
+            ? 0
+            : this._activeTourStopIndex + 1;
+        this._activateTourStop(this._activeTour, nextIdx);
+      });
+    }
+
+    if (btnTourOverview) {
+      btnTourOverview.addEventListener("click", () => {
+        if (this._activeTour) {
+          this._activateTourOverview(this._activeTour);
+        }
+      });
+    }
+
     if (btnCloseBanner) {
       btnCloseBanner.addEventListener("click", () => {
         const banner = document.getElementById("tour-narrative-banner");
         if (banner) banner.classList.add("hidden");
+        this._activeTour = null;
+        this._activeTourStopIndex = -1;
         container.querySelectorAll(".tour-pill").forEach((b) => b.classList.remove("active"));
       });
     }
+  }
+
+  _activateTourOverview(tour) {
+    this._activeTour = tour;
+    this._activeTourStopIndex = -1;
+
+    const banner = document.getElementById("tour-narrative-banner");
+    const bannerTitle = document.getElementById("tour-banner-title");
+    const stepBadge = document.getElementById("tour-banner-step-badge");
+    const bannerDesc = document.getElementById("tour-banner-desc");
+    const controlsEl = document.getElementById("tour-banner-controls");
+    const dotsEl = document.getElementById("tour-banner-stop-dots");
+    const btnPrev = document.getElementById("btn-tour-prev-stop");
+    const btnNext = document.getElementById("btn-tour-next-stop");
+    const btnOverview = document.getElementById("btn-tour-overview");
+
+    const stops = Array.isArray(tour.stops) ? tour.stops : [];
+
+    if (bannerTitle) bannerTitle.textContent = `${tour.name} (${tour.era})`;
+    if (stepBadge) {
+      if (stops.length > 0) {
+        stepBadge.textContent = `${stops.length} Guided Stops`;
+        stepBadge.classList.remove("hidden");
+      } else {
+        stepBadge.classList.add("hidden");
+      }
+    }
+    if (bannerDesc) bannerDesc.textContent = tour.description;
+    if (banner) banner.classList.remove("hidden");
+
+    if (controlsEl && dotsEl) {
+      if (stops.length > 0) {
+        controlsEl.classList.remove("hidden");
+        dotsEl.innerHTML = stops
+          .map(
+            (s, i) =>
+              `<button type="button" class="tour-stop-dot mono" data-stop-idx="${i}" title="Stop ${
+                i + 1
+              }: ${s.title} (${s.year})">${i + 1}</button>`
+          )
+          .join("");
+        dotsEl.querySelectorAll(".tour-stop-dot").forEach((dotBtn) => {
+          dotBtn.addEventListener("click", () => {
+            const idx = parseInt(dotBtn.getAttribute("data-stop-idx"), 10) || 0;
+            this._activateTourStop(tour, idx);
+          });
+        });
+        if (btnPrev) btnPrev.disabled = false;
+        if (btnNext) btnNext.innerHTML = `Start Guided Tour (1/${stops.length}) &#9654;`;
+        if (btnOverview) btnOverview.classList.add("hidden");
+      } else {
+        controlsEl.classList.add("hidden");
+      }
+    }
+
+    this.mapController.flyToLocation({
+      lng: tour.center[0],
+      lat: tour.center[1],
+      zoom: tour.zoom,
+      pitch: this.filterStore.getState().extrude3D ? Math.max(45, tour.pitch) : 0,
+    });
+  }
+
+  _activateTourStop(tour, stopIdx) {
+    const stops = Array.isArray(tour?.stops) ? tour.stops : [];
+    if (!stops.length) return;
+    const idx = Math.max(0, Math.min(stops.length - 1, stopIdx));
+    const stop = stops[idx];
+    this._activeTour = tour;
+    this._activeTourStopIndex = idx;
+
+    const bannerTitle = document.getElementById("tour-banner-title");
+    const stepBadge = document.getElementById("tour-banner-step-badge");
+    const bannerDesc = document.getElementById("tour-banner-desc");
+    const dotsEl = document.getElementById("tour-banner-stop-dots");
+    const btnNext = document.getElementById("btn-tour-next-stop");
+    const btnOverview = document.getElementById("btn-tour-overview");
+
+    if (bannerTitle) bannerTitle.textContent = stop.title;
+    if (stepBadge) {
+      stepBadge.textContent = `Stop ${idx + 1} of ${stops.length} · Built ${stop.year}`;
+      stepBadge.classList.remove("hidden");
+    }
+    if (bannerDesc) bannerDesc.textContent = stop.story;
+
+    if (dotsEl) {
+      dotsEl.querySelectorAll(".tour-stop-dot").forEach((dotBtn, i) => {
+        dotBtn.classList.toggle("active", i === idx);
+      });
+    }
+
+    if (btnNext) {
+      btnNext.innerHTML =
+        idx + 1 < stops.length
+          ? `Next Stop (${idx + 2}/${stops.length}) &#9654;`
+          : `Restart Tour &#8634;`;
+    }
+    if (btnOverview) {
+      btnOverview.classList.remove("hidden");
+    }
+
+    const usePitch = stop.pitch != null ? stop.pitch : 52;
+    if (usePitch >= 25 && !this.filterStore.getState().extrude3D) {
+      this.filterStore.setState({ extrude3D: true });
+    }
+
+    this.mapController.flyToLocation({
+      lng: stop.lng,
+      lat: stop.lat,
+      zoom: stop.zoom || 17.6,
+      pitch: usePitch,
+      hcadNum: stop.hcad_num || "",
+      featureId: stop.building_id || "",
+    });
   }
 
   _renderLegend() {
@@ -1332,10 +1721,25 @@ class HoustonAtlasApp {
       "chk-layer-nrhp-districts": state.layers.nrhpDistricts,
       "chk-layer-thc-markers": state.layers.thcMarkers,
       "chk-layer-annexations": state.layers.annexations,
+      "chk-layer-historic-map": state.layers.historicMap,
     };
     for (const [id, checked] of Object.entries(mapLayerIds)) {
       const el = document.getElementById(id);
       if (el) el.checked = Boolean(checked);
+    }
+
+    const histOpacityRow = document.getElementById("historic-map-opacity-row");
+    if (histOpacityRow) {
+      histOpacityRow.classList.toggle("hidden", !state.layers.historicMap);
+    }
+    const histOpacitySlider = document.getElementById("slider-historic-map-opacity");
+    const histOpacityVal = Math.max(15, Math.min(100, Number(state.historicMapOpacity) || 75));
+    if (histOpacitySlider && Number(histOpacitySlider.value) !== histOpacityVal) {
+      histOpacitySlider.value = String(histOpacityVal);
+    }
+    const histOpacityReadout = document.getElementById("historic-map-opacity-readout");
+    if (histOpacityReadout) {
+      histOpacityReadout.textContent = `${histOpacityVal}%`;
     }
 
     document.querySelectorAll(".layer-item-row[data-layer-key]").forEach((row) => {
@@ -1610,7 +2014,13 @@ class HoustonAtlasApp {
                   (a) => `
                   <div class="ph-good-brick-item">
                     <div class="ph-good-brick-item-top">
-                      <span class="ph-good-brick-year-pill mono">${a.award_year}</span>
+                      <button
+                        type="button"
+                        class="ph-good-brick-year-pill mono inspector-filter-chip"
+                        data-filter-chip="${a.award_year}"
+                        data-filter-label="Good Brick Award Winners (${a.award_year})"
+                        title="Click to find all ${a.award_year} Good Brick Award winners"
+                      >${a.award_year} &#128269;</button>
                       <span class="ph-good-brick-type-badge">${a.award_type || "Good Brick Award"}</span>
                     </div>
                     <div class="ph-good-brick-recipient">
@@ -1700,6 +2110,29 @@ class HoustonAtlasApp {
     )}`;
     const streetViewUrl = buildStreetViewUrl(effLat, effLng);
 
+    const distVal = String(props.historic_district || "").trim();
+    const isRealDistrict =
+      distVal &&
+      distVal !== "Outside City District" &&
+      distVal !== "Outside Historic District";
+    const rawStyle = String(props.style || "").trim();
+    const rawBldStyle = String(props.bld_style || "").trim();
+    const styleVal =
+      rawStyle ||
+      (rawBldStyle.length > 2 ? rawBldStyle : "") ||
+      props.use_category ||
+      props.landuse_desc ||
+      (rawBldStyle ? `HCAD Class ${rawBldStyle}` : "Residential Structure");
+    const styleSearchTerm = rawStyle
+      ? rawStyle.split("(")[0].trim()
+      : rawBldStyle.length > 2
+      ? rawBldStyle
+      : styleVal;
+    const archRaw = String(props.architect || "").trim();
+    const archSearchTerm = archRaw
+      ? archRaw.split(/[;/(&]|,\s*(?:architect|builder|consulting)/i)[0].trim()
+      : "";
+
     content.innerHTML = `
       <div class="inspector-hero">
         <div class="inspector-badges">
@@ -1754,7 +2187,13 @@ class HoustonAtlasApp {
         </div>
         <div class="inspector-cell">
           <span class="cell-label">Historic District</span>
-          <span class="cell-value">${props.historic_district || "Outside City District"}</span>
+          <span class="cell-value">
+            ${
+              isRealDistrict
+                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${distVal}" data-filter-label="District: ${distVal}" title="Click to search all structures in ${distVal}">${distVal} &#128269;</button>`
+                : distVal || "Outside City District"
+            }
+          </span>
         </div>
         <div class="inspector-cell">
           <span class="cell-label">Building Floor Area</span>
@@ -1778,13 +2217,29 @@ class HoustonAtlasApp {
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Architectural Style / Building Class</span>
-          <span class="cell-value">${props.bld_style || props.style || props.use_category || "Residential Structure"}</span>
+          <span class="cell-value">
+            <button
+              type="button"
+              class="inspector-filter-chip"
+              data-filter-chip="${styleSearchTerm}"
+              data-filter-label="Style: ${styleVal}"
+              title="Click to find other '${styleSearchTerm}' buildings across Houston"
+            >${styleVal} &#128269;</button>
+          </span>
         </div>
         ${
-          props.architect
+          archRaw
             ? `<div class="inspector-cell full">
                 <span class="cell-label">Architect / Builder (COH Landmark Record)</span>
-                <span class="cell-value">${props.architect}</span>
+                <span class="cell-value">
+                  <button
+                    type="button"
+                    class="inspector-filter-chip"
+                    data-filter-chip="${archSearchTerm}"
+                    data-filter-label="Architect: ${archSearchTerm}"
+                    title="Click to find all Houston buildings by ${archSearchTerm}"
+                  >${archRaw} &#128269;</button>
+                </span>
               </div>`
             : ""
         }
@@ -1879,13 +2334,42 @@ class HoustonAtlasApp {
         >
           View on Google Maps &#8599;
         </a>
-        <button type="button" class="inspector-btn secondary" id="btn-copy-share-link">
-          Copy Shareable Link
-        </button>
+        <div class="inspector-action-row-2col">
+          <button type="button" class="inspector-btn secondary" id="btn-copy-share-link">
+            Copy Shareable Link
+          </button>
+          <button
+            type="button"
+            class="inspector-btn secondary"
+            id="btn-print-property-sheet"
+            title="Open a printable Preservation Houston archival property sheet / PDF dossier"
+          >
+            &#128424; Print Property Sheet
+          </button>
+        </div>
       </div>
     `;
 
     drawer.classList.remove("hidden");
+
+    content.querySelectorAll("[data-filter-chip]").forEach((chipBtn) => {
+      chipBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const chipQuery = chipBtn.getAttribute("data-filter-chip") || "";
+        const chipLabel = chipBtn.getAttribute("data-filter-label") || "";
+        if (chipQuery) {
+          this.triggerMetadataFilterSearch(chipQuery, chipLabel);
+        }
+      });
+    });
+
+    const btnPrintDossier = document.getElementById("btn-print-property-sheet");
+    if (btnPrintDossier) {
+      btnPrintDossier.addEventListener("click", () => {
+        this.openPropertyDossierModal(props);
+      });
+    }
 
     this._populateInspectorPhotos({
       props,
@@ -2074,7 +2558,7 @@ class HoustonAtlasApp {
         if (navigator.clipboard) {
           navigator.clipboard.writeText(url);
         }
-        btnShare.textContent = "✓ Link Copied to Clipboard!";
+        btnShare.textContent = "✓ Link Copied!";
         setTimeout(() => {
           btnShare.textContent = "Copy Shareable Link";
         }, 2000);
@@ -2487,6 +2971,302 @@ class HoustonAtlasApp {
     modal.classList.remove("hidden");
   }
 
+  _buildQrMatrixSvg(text = "") {
+    // Deterministic 15x15 finder-pattern archival matrix emblem encoding the shareable URL hash
+    const size = 15;
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    const isFinder = (r, c) => {
+      const inTL = r < 5 && c < 5;
+      const inTR = r < 5 && c >= size - 5;
+      const inBL = r >= size - 5 && c < 5;
+      return inTL || inTR || inBL;
+    };
+    const finderVal = (r, c) => {
+      const lr = r >= size - 5 ? r - (size - 5) : r;
+      const lc = c >= size - 5 ? c - (size - 5) : c;
+      if (lr === 0 || lr === 4 || lc === 0 || lc === 4) return 1;
+      if (lr === 2 && lc === 2) return 1;
+      return 0;
+    };
+    let rects = "";
+    let seed = Math.abs(hash) || 1234567;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        let on = 0;
+        if (isFinder(r, c)) {
+          on = finderVal(r, c);
+        } else if (r === 5 || c === 5) {
+          on = (r + c) % 2 === 0 ? 1 : 0;
+        } else {
+          seed = (seed * 1664525 + 1013904223) >>> 0;
+          on = (seed & 1) === 1 ? 1 : 0;
+        }
+        if (on) {
+          rects += `<rect x="${c * 4}" y="${r * 4}" width="4" height="4" fill="#181614"/>`;
+        }
+      }
+    }
+    return `<svg viewBox="0 0 ${size * 4} ${size * 4}" width="64" height="64" class="dossier-qr-svg" aria-hidden="true">${rects}</svg>`;
+  }
+
+  async openPropertyDossierModal(props) {
+    const modal = document.getElementById("dossier-modal");
+    const bodyEl = document.getElementById("dossier-modal-body");
+    if (!modal || !bodyEl || !props) return;
+
+    const year = Number(props.year_built) >= 1836 ? Number(props.year_built) : null;
+    const eraColor = year ? getYearColorHex(year, this.filterStore.getState().paletteStyle) : "#4d781d";
+    const eraLabel = !year
+      ? "Historic Structure"
+      : year < 1890
+      ? "Pioneer & Victorian"
+      : year < 1900
+      ? "Gilded Age"
+      : year < 1920
+      ? "Early Streetcar Era"
+      : year < 1930
+      ? "Roaring Twenties"
+      : year < 1940
+      ? "Art Deco & Depression Era"
+      : year < 1960
+      ? "Post-War Boom"
+      : year < 1980
+      ? "Space City Era"
+      : year < 2000
+      ? "Late 20th Century"
+      : "21st Century";
+    const isCurated = Boolean(
+      props.is_curated_override ||
+        props.curated_override ||
+        (props.source && String(props.source).includes("Curated"))
+    );
+    const title =
+      props.landmark_name ||
+      props.name ||
+      props.building_name ||
+      props.address ||
+      "Historic Property";
+    const address = props.address || "Houston, TX";
+    const hcadAcct = props.hcad_num ? String(props.hcad_num).trim() : "";
+    const hasRealHcad = hcadAcct && !hcadAcct.startsWith("PH-") && !hcadAcct.startsWith("DEMO-");
+
+    const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+    const shareUrl = buildShareableUrl(this.filterStore.getState(), vp, {
+      includeViewport: true,
+      selectedHcad: hcadAcct,
+      selectedFeatureId: !hcadAcct && props.id ? String(props.id) : "",
+      useQueryString: true,
+    });
+
+    let photos =
+      this._activePhotoState && Array.isArray(this._activePhotoState.photos)
+        ? this._activePhotoState.photos
+        : [];
+    if (photos.length === 0) {
+      photos =
+        (await resolveBuildingPhotos({
+          buildingId: props.building_id || props.id || "",
+          hcadNum: hcadAcct,
+          landmarkName: props.landmark_name || props.name || "",
+          address: props.address || "",
+        })) || [];
+    }
+    const primaryPhoto = photos[0] || null;
+    const secondaryPhoto = photos.length > 1 ? photos[photos.length - 1] : null;
+
+    const goodBrickAwards = Array.isArray(props.good_brick_awards)
+      ? props.good_brick_awards
+      : hcadAcct && this.goodBrickByHcad?.get(hcadAcct)
+      ? this.goodBrickByHcad.get(hcadAcct)
+      : [];
+
+    const badges = [];
+    if (goodBrickAwards.length > 0) {
+      const yrs = goodBrickAwards.map((a) => a.award_year).join(", ");
+      badges.push(`★ Preservation Houston Good Brick Award (${yrs})`);
+    } else if (props.good_brick_summary) {
+      badges.push(`★ ${props.good_brick_summary}`);
+    }
+    if (props.landmark_type || props.designation) {
+      badges.push(`${props.landmark_type || props.designation}`);
+    }
+    if (
+      props.historic_district &&
+      props.historic_district !== "Outside City District" &&
+      props.historic_district !== "Outside Historic District"
+    ) {
+      badges.push(`Historic District: ${props.historic_district}`);
+    }
+    const todayStr = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const rawStyle = String(props.style || "").trim();
+    const rawBldStyle = String(props.bld_style || "").trim();
+    const displayStyle =
+      rawStyle ||
+      (rawBldStyle.length > 2 ? rawBldStyle : "") ||
+      props.use_category ||
+      props.landuse_desc ||
+      (rawBldStyle ? `HCAD Class ${rawBldStyle}` : "Historic Structure");
+
+    const liveAppr = document.getElementById("hcad-live-appr")?.textContent || "";
+    const liveOwner = document.getElementById("inspector-cell-owner")?.textContent || props.owner || "Public / Unlisted";
+    const bldSqftText =
+      Number(props.bld_area) > 0
+        ? `${Number(props.bld_area).toLocaleString()} sq ft`
+        : document.getElementById("inspector-cell-bld-sqft")?.textContent || "—";
+
+    bodyEl.innerHTML = `
+      <article class="dossier-sheet" id="printable-dossier-sheet">
+        <header class="dossier-sheet-header">
+          <div class="dossier-brand-col">
+            <div class="dossier-org-kicker">PRESERVATION HOUSTON • THE HOUSTON BUILDING ATLAS</div>
+            <h1 class="dossier-prop-title">${title}</h1>
+            <div class="dossier-prop-address">${address}${props.city ? `, ${props.city}` : ", Houston, TX"}</div>
+          </div>
+          <div class="dossier-year-seal" style="border-color: ${eraColor}">
+            <span class="dossier-year-label">${isCurated ? "VERIFIED BUILT" : "YEAR BUILT"}</span>
+            <strong class="dossier-year-num">${year || "Undated"}</strong>
+            <span class="dossier-era-label">${eraLabel}</span>
+          </div>
+        </header>
+
+        ${
+          badges.length > 0
+            ? `<div class="dossier-badges-strip">
+                ${badges.map((b) => `<span class="dossier-badge-pill">${b}</span>`).join("")}
+              </div>`
+            : ""
+        }
+
+        ${
+          primaryPhoto
+            ? `<section class="dossier-photos-row ${secondaryPhoto ? "two-up" : "one-up"}">
+                <figure class="dossier-photo-fig">
+                  <img src="${primaryPhoto.image_url || primaryPhoto.url}" alt="${title}" loading="eager" />
+                  <figcaption>
+                    <strong>${primaryPhoto.era_label || primaryPhoto.photo_year || "Archival View"}</strong> — ${
+                      primaryPhoto.caption || title
+                    } <em>(${primaryPhoto.source_credit || primaryPhoto.credit || "Preservation Houston Archive"})</em>
+                  </figcaption>
+                </figure>
+                ${
+                  secondaryPhoto
+                    ? `<figure class="dossier-photo-fig">
+                        <img src="${secondaryPhoto.image_url || secondaryPhoto.url}" alt="${title} comparison" loading="eager" />
+                        <figcaption>
+                          <strong>${secondaryPhoto.era_label || secondaryPhoto.photo_year || "Comparison View"}</strong> — ${
+                            secondaryPhoto.caption || title
+                          } <em>(${secondaryPhoto.source_credit || secondaryPhoto.credit || "Archival / Street View"})</em>
+                        </figcaption>
+                      </figure>`
+                    : ""
+                }
+              </section>`
+            : ""
+        }
+
+        <section class="dossier-grid-section">
+          <div class="dossier-section-title">ARCHITECTURAL &amp; PARCEL RECORD</div>
+          <div class="dossier-kv-grid">
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">HCAD Account #</span>
+              <span class="dossier-v mono">${hcadAcct || "Exempt / N/A"}</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Architectural Style</span>
+              <span class="dossier-v">${displayStyle}</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Architect / Builder</span>
+              <span class="dossier-v">${props.architect || "Not Listed"}</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Historic District</span>
+              <span class="dossier-v">${
+                props.historic_district &&
+                props.historic_district !== "Outside City District" &&
+                props.historic_district !== "Outside Historic District"
+                  ? props.historic_district
+                  : "Individual Landmark / Site"
+              }</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Recorded Owner</span>
+              <span class="dossier-v">${liveOwner}</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Gross Building Area</span>
+              <span class="dossier-v mono">${bldSqftText}</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Stories / Scale</span>
+              <span class="dossier-v mono">${
+                Number(props.stories) > 0
+                  ? `${props.stories} stories${props.height_m ? ` (~${props.height_m}m)` : ""}`
+                  : "1 story"
+              }</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">${liveAppr && liveAppr !== "…" ? "2026 Appraised Value" : "Data Provenance"}</span>
+              <span class="dossier-v mono">${
+                liveAppr && liveAppr !== "…"
+                  ? liveAppr
+                  : isCurated
+                  ? "PH Curated + HCAD"
+                  : "HCAD / COH GIS"
+              }</span>
+            </div>
+          </div>
+        </section>
+
+        ${
+          goodBrickAwards.length > 0 || props.source_citation || props.notes
+            ? `<section class="dossier-notes-section">
+                <div class="dossier-section-title">HISTORICAL &amp; PRESERVATION CITATIONS</div>
+                ${goodBrickAwards
+                  .map(
+                    (a) =>
+                      `<p class="dossier-note-para"><strong>★ Good Brick Award (${a.award_year}):</strong> ${
+                        a.recipient ? `<em>${a.recipient}</em> — ` : ""
+                      }${a.reason || a.raw_description || "Recognized for excellence in historic preservation."}</p>`
+                  )
+                  .join("")}
+                ${
+                  props.source_citation
+                    ? `<p class="dossier-note-para"><strong>Archival Date Verification (${
+                        props.verified_by || "Preservation Houston"
+                      }):</strong> ${props.source_citation}</p>`
+                    : ""
+                }
+              </section>`
+            : ""
+        }
+
+        <footer class="dossier-sheet-footer">
+          <div class="dossier-footer-meta">
+            <div><strong>Generated by The Houston Building Atlas</strong> • Preservation Houston</div>
+            <div>Date Prepared: ${todayStr}${hasRealHcad ? ` • HCAD Parcel ${hcadAcct}` : ""}</div>
+            <div class="dossier-share-url mono">${shareUrl}</div>
+          </div>
+          <div class="dossier-qr-box">
+            ${this._buildQrMatrixSvg(shareUrl)}
+            <span class="dossier-qr-caption">Interactive Atlas Link</span>
+          </div>
+        </footer>
+      </article>
+    `;
+
+    modal.classList.remove("hidden");
+  }
+
   openShareModal() {
     const shareModal = document.getElementById("share-modal");
     if (!shareModal) return;
@@ -2627,6 +3407,7 @@ class HoustonAtlasApp {
         nrhpDistricts: "NRHP Districts",
         thcMarkers: "THC Markers",
         annexations: "Annexation History",
+        historicMap: "Historic Topo Map",
       };
 
       const pills = [
