@@ -2773,6 +2773,11 @@ class HoustonAtlasApp {
           </div>
 
           <div class="photo-compare-stage">
+            <div
+              class="photo-ambient-bg"
+              style="background-image: url('${isLightbox ? nowPhoto.full_url || nowPhoto.image_url : nowPhoto.image_url}');"
+              aria-hidden="true"
+            ></div>
             <img
               src="${isLightbox ? nowPhoto.full_url || nowPhoto.image_url : nowPhoto.image_url}"
               alt="${nowPhoto.caption || state.title}"
@@ -2780,6 +2785,11 @@ class HoustonAtlasApp {
               loading="lazy"
             />
             <div class="photo-compare-before-clip" style="clip-path: inset(0 ${100 - pct}% 0 0);">
+              <div
+                class="photo-ambient-bg"
+                style="background-image: url('${isLightbox ? thenPhoto.full_url || thenPhoto.image_url : thenPhoto.image_url}');"
+                aria-hidden="true"
+              ></div>
               <img
                 src="${isLightbox ? thenPhoto.full_url || thenPhoto.image_url : thenPhoto.image_url}"
                 alt="${thenPhoto.caption || state.title}"
@@ -2851,6 +2861,7 @@ class HoustonAtlasApp {
     // Single-Photo Timeline View
     const idx = Math.max(0, Math.min(photos.length - 1, state.activeIndex));
     const current = photos[idx];
+    const activePhotoUrl = isLightbox ? current.full_url || current.image_url : current.image_url;
     const eraPillsHtml =
       photos.length >= 2
         ? `<div class="photo-era-pills" role="tablist" aria-label="Historical photograph eras">
@@ -2873,12 +2884,16 @@ class HoustonAtlasApp {
 
     containerEl.innerHTML = `
       ${eraPillsHtml}
-      <div class="photo-viewport">
+      <div class="photo-viewport" data-action="${isLightbox ? "" : "open-lightbox"}">
+        <div
+          class="photo-ambient-bg"
+          style="background-image: url('${activePhotoUrl}');"
+          aria-hidden="true"
+        ></div>
         <img
-          src="${isLightbox ? current.full_url || current.image_url : current.image_url}"
+          src="${activePhotoUrl}"
           alt="${current.caption || state.title}"
           class="photo-viewport-img"
-          data-action="${isLightbox ? "" : "open-lightbox"}"
           loading="lazy"
         />
         <span class="photo-era-overlay-badge">${
@@ -3214,7 +3229,14 @@ class HoustonAtlasApp {
           primaryPhoto
             ? `<section class="dossier-photos-row ${secondaryPhoto ? "two-up" : "one-up"}">
                 <figure class="dossier-photo-fig">
-                  <img src="${primaryPhoto.image_url || primaryPhoto.url}" alt="${title}" loading="eager" />
+                  <div class="dossier-photo-stage">
+                    <div
+                      class="photo-ambient-bg"
+                      style="background-image: url('${primaryPhoto.image_url || primaryPhoto.url}');"
+                      aria-hidden="true"
+                    ></div>
+                    <img src="${primaryPhoto.image_url || primaryPhoto.url}" alt="${title}" loading="eager" />
+                  </div>
                   <figcaption>
                     <strong>${primaryPhoto.era_label || primaryPhoto.photo_year || "Archival View"}</strong> — ${
                       primaryPhoto.caption || title
@@ -3224,7 +3246,14 @@ class HoustonAtlasApp {
                 ${
                   secondaryPhoto
                     ? `<figure class="dossier-photo-fig">
-                        <img src="${secondaryPhoto.image_url || secondaryPhoto.url}" alt="${title} comparison" loading="eager" />
+                        <div class="dossier-photo-stage">
+                          <div
+                            class="photo-ambient-bg"
+                            style="background-image: url('${secondaryPhoto.image_url || secondaryPhoto.url}');"
+                            aria-hidden="true"
+                          ></div>
+                          <img src="${secondaryPhoto.image_url || secondaryPhoto.url}" alt="${title} comparison" loading="eager" />
+                        </div>
                         <figcaption>
                           <strong>${secondaryPhoto.era_label || secondaryPhoto.photo_year || "Comparison View"}</strong> — ${
                             secondaryPhoto.caption || title
