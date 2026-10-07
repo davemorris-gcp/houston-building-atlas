@@ -6,16 +6,16 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261007b";
+} from "./palettes.js?v=20261007c";
 import {
   buildShareableUrl,
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261007b";
-import { AtlasMapController } from "./mapController.js?v=20261007b";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007b";
+} from "./filterStore.js?v=20261007c";
+import { AtlasMapController } from "./mapController.js?v=20261007c";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007c";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,13 +26,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261007b";
+} from "./curatedEdits.js?v=20261007c";
 import {
   buildStreetViewUrl,
+  hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261007b";
+} from "./photoService.js?v=20261007c";
 
 class HoustonAtlasApp {
   constructor() {
@@ -156,8 +157,8 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261007b"),
-        fetch("public/data/stats_summary.json?v=20261007b"),
+        fetch("public/data/search_index.json?v=20261007c"),
+        fetch("public/data/stats_summary.json?v=20261007c"),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -2598,6 +2599,7 @@ class HoustonAtlasApp {
       hcadNum,
       landmarkName: props.landmark_name || props.name || "",
       address: props.address || "",
+      useCategory: props.use_category || "",
       lat,
       lng,
     });
@@ -2875,13 +2877,24 @@ class HoustonAtlasApp {
         <div class="photo-caption-text">${current.caption || state.title}</div>
         <div class="photo-meta-row">
           <span>${current.credit || "Public Domain / Wikimedia Commons"}</span>
-          ${
-            current.source_url
-              ? `<a href="${current.source_url}" target="_blank" rel="noopener noreferrer" class="photo-source-link">
-                  Source Archive &#8599;
-                </a>`
-              : ""
-          }
+          <span class="photo-meta-actions" style="display:inline-flex;align-items:center;gap:10px;">
+            ${
+              current.source_url
+                ? `<a href="${current.source_url}" target="_blank" rel="noopener noreferrer" class="photo-source-link">
+                    Source Archive &#8599;
+                  </a>`
+                : ""
+            }
+            <button
+              type="button"
+              class="photo-hide-btn"
+              data-action="hide-photo"
+              title="Hide this photograph if it does not depict the building or landscape"
+              style="background:transparent;border:none;color:var(--text-muted,#9aa4ad);font-size:11px;cursor:pointer;padding:2px 4px;opacity:0.75;"
+            >
+              &#10005; Hide Photo
+            </button>
+          </span>
         </div>
       </div>
     `;
@@ -2946,6 +2959,20 @@ class HoustonAtlasApp {
 
     containerEl.querySelectorAll('[data-action="open-lightbox"]').forEach((el) => {
       el.addEventListener("click", () => this.openPhotoLightboxModal());
+    });
+
+    containerEl.querySelectorAll('[data-action="hide-photo"]').forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!current?.image_url) return;
+        hideBuildingPhoto(current.image_url);
+        state.photos = (state.photos || []).filter((p) => p.image_url !== current.image_url);
+        state.activeIndex = Math.max(0, Math.min(state.activeIndex, state.photos.length - 1));
+        state.thenIndex = 0;
+        state.nowIndex = Math.max(0, state.photos.length - 1);
+        if (state.photos.length < 2) state.compareMode = false;
+        this._syncPhotoViews();
+      });
     });
   }
 
