@@ -20,6 +20,7 @@ export const DEFAULT_FILTER_STATE = {
   stepYears: 5, // 1 | 5 | 10
   singleLayerMode: false, // when true, clicking any overlay activates only that single overlay
   preSoloLayers: null, // snapshot of overlay visibility before Solo was clicked
+  historicMapOpacity: 75, // 15..100 opacity percentage for the Historic Topo Map overlay
   layers: {
     goodBrickAwards: true,
     landmarks: true,
@@ -28,6 +29,7 @@ export const DEFAULT_FILTER_STATE = {
     nrhpDistricts: false,
     thcMarkers: false,
     annexations: false,
+    historicMap: false,
   },
 };
 
@@ -121,6 +123,7 @@ const LAYER_KEY_TO_SHORT = {
   nrhpDistricts: "nrhp_districts",
   thcMarkers: "thc_markers",
   annexations: "annexations",
+  historicMap: "historic_map",
 };
 
 const SHORT_TO_LAYER_KEY = {
@@ -150,6 +153,10 @@ const SHORT_TO_LAYER_KEY = {
   annexations: "annexations",
   annexation: "annexations",
   annex: "annexations",
+  historicmap: "historicMap",
+  historic_map: "historicMap",
+  topo: "historicMap",
+  usgs: "historicMap",
 };
 
 const BASEMAP_TO_SHORT = {
@@ -362,6 +369,9 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   if (!state.showUnknownYears) params.set("unk", "0");
   if (state.syncAnnexationToTime) params.set("syncAnnex", "1");
   if (state.singleLayerMode) params.set("1x", "1");
+  if (state.layers?.historicMap && Number(state.historicMapOpacity) !== 75) {
+    params.set("histOpacity", String(Math.round(Number(state.historicMapOpacity) || 75)));
+  }
 
   if (selectedHcad) {
     params.set("hcad", String(selectedHcad).trim());
@@ -529,6 +539,10 @@ export function parseHashToState(hashString = "", searchString = "") {
   }
   if (mergedParams.get("1x") === "1" || mergedParams.get("singleLayer") === "1") {
     patch.singleLayerMode = true;
+  }
+  const rawHistOp = mergedParams.get("histOpacity") || mergedParams.get("topoOpacity");
+  if (rawHistOp !== null && rawHistOp !== undefined && rawHistOp !== "") {
+    patch.historicMapOpacity = Math.max(15, Math.min(100, parseInt(rawHistOp, 10) || 75));
   }
 
   // Overlay Layers (`layers` or `ov` or `overlays`)

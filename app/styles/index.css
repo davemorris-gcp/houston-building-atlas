@@ -3340,5 +3340,653 @@ body {
   }
 }
 
+/* ==========================================================================
+   1. Interactive Guided Tour / Story Mode Controls
+   ========================================================================== */
+.tour-narrative-banner {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 13px;
+  max-width: min(560px, calc(100vw - 776px));
+}
+
+.atlas-shell.sidebar-collapsed .tour-narrative-banner {
+  left: 16px;
+  max-width: min(620px, calc(100vw - 396px));
+}
+
+.tour-banner-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tour-banner-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.tour-banner-step-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(149, 201, 89, 0.2);
+  border: 1px solid rgba(149, 201, 89, 0.55);
+  color: var(--ph-green-light);
+}
+
+.tour-banner-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  flex-wrap: wrap;
+}
+
+.tour-step-btn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-brass);
+  background: rgba(149, 201, 89, 0.16);
+  color: var(--text-cream);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.tour-step-btn:hover {
+  background: rgba(149, 201, 89, 0.32);
+  border-color: var(--accent-gold);
+  color: #ffffff;
+}
+
+.tour-step-btn.subtle {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.tour-step-btn.subtle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-cream);
+}
+
+.tour-stop-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tour-stop-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.tour-stop-dot:hover {
+  border-color: var(--accent-gold);
+  color: var(--text-cream);
+  background: rgba(149, 201, 89, 0.2);
+}
+
+.tour-stop-dot.active {
+  background: var(--ph-green);
+  border-color: #ffffff;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(149, 201, 89, 0.35);
+}
+
+/* ==========================================================================
+   2. Historic Topo Map Swatch & Collapsible Opacity Slider
+   ========================================================================== */
+.swatch-historic-map {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #d8c39e 0%, #8c734b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  flex-shrink: 0;
+}
+
+.historic-map-opacity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 6px 28px;
+  margin-top: -2px;
+  background: rgba(216, 195, 158, 0.08);
+  border: 1px dashed rgba(216, 195, 158, 0.32);
+  border-radius: 7px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.historic-map-opacity-label {
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: #e6d5b8;
+  font-weight: 600;
+}
+
+.historic-map-opacity-slider {
+  flex: 1;
+  min-width: 60px;
+  accent-color: #d49a35;
+  cursor: pointer;
+}
+
+.historic-map-opacity-readout {
+  font-size: 10.5px;
+  color: #e6d5b8;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ==========================================================================
+   3. Clickable Architect / Style / District / Good Brick Filter Chips
+   ========================================================================== */
+.inspector-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(149, 201, 89, 0.4);
+  background: rgba(149, 201, 89, 0.11);
+  color: var(--text-cream);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  max-width: 100%;
+}
+
+.inspector-filter-chip:hover {
+  background: rgba(149, 201, 89, 0.26);
+  border-color: var(--accent-gold);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.inspector-filter-chip.gold {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(251, 191, 36, 0.14);
+  color: #fde68a;
+}
+
+.inspector-filter-chip.gold:hover {
+  background: rgba(251, 191, 36, 0.28);
+  border-color: #fbbf24;
+  color: #ffffff;
+}
+
+.chip-search-icon {
+  font-size: 10px;
+  opacity: 0.78;
+  flex-shrink: 0;
+}
+
+.search-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(149, 201, 89, 0.16);
+  border-bottom: 1px solid rgba(149, 201, 89, 0.35);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ph-green-light);
+  letter-spacing: 0.02em;
+}
+
+.search-filter-count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-cream);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+/* ==========================================================================
+   4. Side-by-Side Inspector Action Row & Crowdsource Photo Details
+   ========================================================================== */
+.inspector-action-row-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.inspector-action-row-2col .inspector-btn {
+  padding: 0 8px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.corr-photo-details {
+  border: 1px solid rgba(149, 201, 89, 0.32);
+  background: rgba(149, 201, 89, 0.06);
+  border-radius: 8px;
+  padding: 8px 11px;
+  margin-top: 2px;
+}
+
+.corr-photo-summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ph-green-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  list-style: none;
+}
+
+.corr-photo-summary::-webkit-details-marker {
+  display: none;
+}
+
+.corr-photo-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.corr-photo-fields {
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   5. Printable Archival Property Dossier Modal & @media print
+   ========================================================================== */
+.dossier-modal-card {
+  width: min(820px, 95vw);
+  max-height: 90dvh;
+}
+
+.dossier-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dossier-modal-body {
+  background: #14181b;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.dossier-sheet {
+  background: #faf6ee;
+  color: #1c1917;
+  border: 1px solid #d6cbb9;
+  border-radius: 8px;
+  padding: 26px 30px;
+  font-family: var(--font-sans);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dossier-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #292524;
+  padding-bottom: 14px;
+}
+
+.dossier-org-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #4d781d;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.dossier-prop-title {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: #1c1917;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.dossier-prop-address {
+  font-size: 13.5px;
+  color: #57534e;
+  font-weight: 500;
+}
+
+.dossier-year-seal {
+  border: 2px solid #4d781d;
+  background: #f3ede0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  text-align: center;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.dossier-year-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: #57534e;
+}
+
+.dossier-year-num {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: #1c1917;
+  line-height: 1.15;
+}
+
+.dossier-era-label {
+  font-size: 10px;
+  color: #44403c;
+  font-weight: 600;
+}
+
+.dossier-badges-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dossier-badge-pill {
+  background: #e9e2d2;
+  border: 1px solid #c7bba6;
+  color: #292524;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.dossier-photos-row {
+  display: grid;
+  gap: 12px;
+}
+
+.dossier-photos-row.two-up {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dossier-photos-row.one-up {
+  grid-template-columns: 1fr;
+}
+
+.dossier-photo-fig {
+  margin: 0;
+  background: #f0eade;
+  border: 1px solid #d6cbb9;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dossier-photo-fig img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  display: block;
+}
+
+.dossier-photo-fig figcaption {
+  padding: 7px 10px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #44403c;
+}
+
+.dossier-section-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #57534e;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #dfd6c7;
+  padding-bottom: 4px;
+}
+
+.dossier-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dossier-kv-cell {
+  background: #f3ede0;
+  border: 1px solid #dfd6c7;
+  border-radius: 6px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dossier-k {
+  font-size: 10px;
+  color: #78716c;
+  font-weight: 600;
+}
+
+.dossier-v {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1c1917;
+  word-break: break-word;
+}
+
+.dossier-notes-section {
+  background: #f3ede0;
+  border-left: 3px solid #4d781d;
+  padding: 9px 12px;
+  border-radius: 4px;
+}
+
+.dossier-note-para {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #292524;
+}
+
+.dossier-sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px solid #c7bba6;
+  padding-top: 12px;
+  font-size: 11px;
+  color: #57534e;
+}
+
+.dossier-footer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dossier-share-url {
+  font-size: 9.5px;
+  color: #78716c;
+  word-break: break-all;
+}
+
+.dossier-qr-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.dossier-qr-svg {
+  border: 2px solid #1c1917;
+  background: #ffffff;
+  padding: 3px;
+  border-radius: 4px;
+}
+
+.dossier-qr-caption {
+  font-size: 9px;
+  font-weight: 700;
+  color: #44403c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Mobile Layout Guardrails for New Features */
+@media (max-width: 900px) {
+  .tour-narrative-banner,
+  .atlas-shell.sidebar-collapsed .tour-narrative-banner {
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    padding: 7px 10px;
+    gap: 5px;
+  }
+
+  #tour-banner-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .tour-banner-controls {
+    padding-top: 4px;
+    gap: 4px;
+  }
+
+  .tour-step-btn {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 10.5px;
+  }
+
+  .tour-stop-dot {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  /* When tour banner is active on mobile, cap bottom sheet height so both never collide */
+  .tour-narrative-banner:not(.hidden) ~ .inspector-drawer {
+    max-height: 48dvh;
+  }
+
+  .dossier-sheet {
+    padding: 16px;
+  }
+
+  .dossier-sheet-header {
+    flex-direction: column;
+  }
+
+  .dossier-photos-row.two-up {
+    grid-template-columns: 1fr;
+  }
+
+  .dossier-kv-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #dossier-modal,
+  #dossier-modal * {
+    visibility: visible !important;
+  }
+  #dossier-modal {
+    position: absolute !important;
+    inset: 0 !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+  .dossier-modal-card {
+    width: 100% !important;
+    max-height: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+  .dossier-modal-card > .modal-header {
+    display: none !important;
+  }
+  .dossier-modal-body {
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+  .dossier-sheet {
+    box-shadow: none !important;
+    border: 1px solid #000000 !important;
+  }
+}
+
+
 
 
