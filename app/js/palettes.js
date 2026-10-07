@@ -96,10 +96,10 @@ export const CURATED_TOURS = [
       {
         title: "1910 Harris County Courthouse",
         year: 1910,
-        hcad_num: "0010300000001",
-        building_id: "0010300000001",
-        lng: -95.35885,
-        lat: 29.76061,
+        hcad_num: "0010310000001",
+        building_id: "bld_003285",
+        lng: -95.35973,
+        lat: 29.76109,
         zoom: 17.5,
         pitch: 45,
         story:

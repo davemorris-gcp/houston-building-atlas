@@ -344,208 +344,59 @@
       }
     },
     "0010300000001": {
-      "id": "0010300000001",
-      "hcad_num": "0010300000001",
-      "is_building_override": false,
-      "replace_parcel_shards": true,
-      "address": "301 FANNIN ST / 301 SAN JACINTO ST",
-      "landmark_name": "1910 Harris County Courthouse",
-      "use_category": "Civic / Institutional",
-      "year_built": 1910,
-      "decade": 1910,
-      "original_hcad_year": 0,
-      "bld_style": "Beaux-Arts Classicism with Texas Pink Granite Dome",
-      "architect": "Lang & Witchell",
-      "source_type": "Preservation Houston & City of Houston Historic Landmark Registry",
-      "source_citation": "National Register of Historic Places & State Antiquities Landmark; fifth Harris County Courthouse completed 1910 by Dallas architects Lang & Witchell (restored 2011).",
-      "source_url": "https://www.preservationhouston.org/",
-      "verified_by": "Preservation Houston Institutional & Civic Audit",
-      "updated_at": "2026-10-06",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -95.358889,
-              29.7608079
-            ],
-            [
-              -95.3588645,
-              29.7608388
-            ],
-            [
-              -95.3588047,
-              29.7608031
-            ],
-            [
-              -95.3587339,
-              29.7608925
-            ],
-            [
-              -95.3585795,
-              29.7608004
-            ],
-            [
-              -95.3586503,
-              29.760711
-            ],
-            [
-              -95.3585869,
-              29.7606732
-            ],
-            [
-              -95.3586113,
-              29.7606423
-            ],
-            [
-              -95.3584263,
-              29.7605319
-            ],
-            [
-              -95.358747,
-              29.7601268
-            ],
-            [
-              -95.3589458,
-              29.7602454
-            ],
-            [
-              -95.3589166,
-              29.7602823
-            ],
-            [
-              -95.3591734,
-              29.7604355
-            ],
-            [
-              -95.3592032,
-              29.760398
-            ],
-            [
-              -95.3593772,
-              29.7605018
-            ],
-            [
-              -95.359056,
-              29.7609076
-            ],
-            [
-              -95.358889,
-              29.7608079
-            ]
-          ]
-        ]
-      }
+      "address": "1200 CONGRESS ST",
+      "landmark_name": "Harris County Juvenile Justice Center (Former 1952 Courthouse)",
+      "year_built": 1952,
+      "remodel_year": 2006,
+      "stories": 9,
+      "bld_area": 338000,
+      "architect": "Finger & Rustay (1952); PGAL / Satterfield & Pontikes Construction (2006 Renovation)",
+      "style": "Mid-Century Modern / Stripped Classical",
+      "landmark_type": null,
+      "historic_district": null,
+      "good_brick_awards": [],
+      "notes": "9-story, 338,000 SF courthouse building originally constructed in 1951-1952 (designed by Finger & Rustay) and gut-renovated in 2006 by Satterfield & Pontikes Construction and PGAL into the Harris County Juvenile Justice Center, housing juvenile courtrooms, detention facilities, a charter school, and medical/dental clinics.",
+      "updated_at": "2026-10-07T09:45:00Z",
+      "id": "bld_003225",
+      "lon": -95.358902,
+      "lat": 29.760517,
+      "height_m": 38.0,
+      "bld_style": "Mid-Century Modern / Stripped Classical"
     },
     "0010310000001": {
-      "id": "0010310000001",
-      "hcad_num": "0010310000001",
-      "is_building_override": false,
-      "replace_parcel_shards": true,
-      "address": "201 CAROLINE ST / 301 FANNIN ST",
-      "landmark_name": "Harris County Civil Courthouse",
-      "use_category": "Civic / Institutional",
-      "year_built": 2006,
-      "decade": 2000,
-      "original_hcad_year": 0,
-      "bld_style": "Contemporary Civic Courthouse Tower",
-      "architect": "PGAL",
-      "source_type": "Preservation Houston & City of Houston Historic Landmark Registry",
-      "source_citation": "Harris County Civil Courthouse completed 2006.",
-      "source_url": "https://www.preservationhouston.org/",
-      "verified_by": "Preservation Houston Institutional & Civic Audit",
-      "updated_at": "2026-10-06",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -95.3597495,
-              29.7613813
-            ],
-            [
-              -95.3596586,
-              29.7613281
-            ],
-            [
-              -95.3596496,
-              29.7613397
-            ],
-            [
-              -95.3594821,
-              29.7612417
-            ],
-            [
-              -95.3594911,
-              29.7612301
-            ],
-            [
-              -95.3594116,
-              29.7611835
-            ],
-            [
-              -95.3594866,
-              29.7610869
-            ],
-            [
-              -95.3594578,
-              29.7610701
-            ],
-            [
-              -95.3596146,
-              29.7608682
-            ],
-            [
-              -95.3596434,
-              29.760885
-            ],
-            [
-              -95.3597173,
-              29.7607899
-            ],
-            [
-              -95.359798,
-              29.7608371
-            ],
-            [
-              -95.3598093,
-              29.7608226
-            ],
-            [
-              -95.3599869,
-              29.7609265
-            ],
-            [
-              -95.3599756,
-              29.7609411
-            ],
-            [
-              -95.3600552,
-              29.7609876
-            ],
-            [
-              -95.3599799,
-              29.7610845
-            ],
-            [
-              -95.3600018,
-              29.7610973
-            ],
-            [
-              -95.3598433,
-              29.7613015
-            ],
-            [
-              -95.3598214,
-              29.7612887
-            ],
-            [
-              -95.3597495,
-              29.7613813
-            ]
-          ]
-        ]
-      }
+      "address": "301 FANNIN ST",
+      "landmark_name": "1910 Harris County Courthouse",
+      "year_built": 1910,
+      "remodel_year": 2011,
+      "stories": 6,
+      "bld_area": 185000,
+      "architect": "Lang & Witchell (1910); PGAL (2011 Restoration)",
+      "style": "Beaux-Arts Classicism",
+      "landmark_type": "Protected Landmark",
+      "historic_district": "Main Street/Market Square Historic District",
+      "good_brick_awards": [
+        {
+          "award_year": 2012,
+          "year": 2012,
+          "award_type": "President's Good Brick Award",
+          "recipient": "Harris County & PGAL (Pierce Goodwin Alexander & Linville)",
+          "project_name": "1910 Harris County Courthouse (301 Fannin St)",
+          "reason": "Six-year, $65 million comprehensive historic restoration of the 1910 Beaux-Arts courthouse designed by Lang & Witchell, returning the rotunda stained-glass dome, granite staircases, and historic courtrooms to their 1910 appearance.",
+          "building_year_built": 1910,
+          "architect_or_style": "Lang & Witchell",
+          "location_source": "COH Protected Landmark & NRHP (1910 Harris County Courthouse, 301 Fannin St)",
+          "raw_citation": "President's Award: Harris County's restoration of the historic county courthouse (1910)"
+        }
+      ],
+      "notes": "Built in 1910 in pink Texas granite and brick in the Beaux-Arts style by Dallas architects Lang & Witchell (Otto H. Lang and Frank O. Witchell). Underwent a $65 million restoration (2006-2011) by PGAL and Vaughn Construction, earning Preservation Houston's 2012 President's Good Brick Award.",
+      "updated_at": "2026-10-07T09:45:00Z",
+      "id": "bld_003285",
+      "lon": -95.359733,
+      "lat": 29.761086,
+      "good_brick_years": "2012",
+      "good_brick_summary": "2012 President's Good Brick Award",
+      "height_m": 64.0,
+      "bld_style": "Beaux-Arts Classicism"
     },
     "0010110000010": {
       "id": "0010110000010",
@@ -640,62 +491,14 @@
       }
     },
     "0010480000022": {
-      "id": "0010480000022",
-      "hcad_num": "0010480000022",
-      "is_building_override": false,
-      "replace_parcel_shards": true,
-      "address": "301 FANNIN ST / 1302 PRESTON ST",
-      "landmark_name": "1952 Harris County Courthouse (Old Civil Courts Building)",
-      "use_category": "Civic / Institutional",
+      "address": "1302 PRESTON ST",
+      "landmark_name": "Harris County Annex (1302 Preston St)",
       "year_built": 1952,
-      "decade": 1950,
-      "original_hcad_year": 0,
-      "bld_style": "Mid-Century Modern Limestone Civic Tower",
-      "architect": "Finger & Rustay",
-      "source_type": "Preservation Houston & City of Houston Historic Landmark Registry",
-      "source_citation": "Designed by Joseph Finger and George Rustay; completed 1952\u20131953.",
-      "source_url": "https://www.preservationhouston.org/",
-      "verified_by": "Preservation Houston Institutional & Civic Audit",
-      "updated_at": "2026-10-06",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -95.3587129,
-              29.7597842
-            ],
-            [
-              -95.3584308,
-              29.7596152
-            ],
-            [
-              -95.3584469,
-              29.7595934
-            ],
-            [
-              -95.3585205,
-              29.7595003
-            ],
-            [
-              -95.3586421,
-              29.7595729
-            ],
-            [
-              -95.358732,
-              29.7594594
-            ],
-            [
-              -95.3588953,
-              29.7595577
-            ],
-            [
-              -95.3587129,
-              29.7597842
-            ]
-          ]
-        ]
-      }
+      "notes": "Harris County facility at 1302 Preston St.",
+      "updated_at": "2026-10-07T09:45:00Z",
+      "id": "bld_003308",
+      "lon": -95.358676,
+      "lat": 29.7597
     },
     "0010780000001": {
       "id": "0010780000001",
@@ -5165,17 +4968,18 @@
       "good_brick_awards": [
         {
           "award_year": 2012,
-          "award_type": "Stewart Title Award",
-          "recipient": "Houston Public Library",
-          "project_name": "Julia Ideson Building (Houston Public Library)",
-          "reason": "For the restoration of the Julia Ideson Building (1926)",
+          "year": 2012,
+          "award_type": "Martha Peterson Award",
+          "recipient": "City of Houston, Julia Ideson Library Preservation Partners & Gensler",
+          "project_name": "Julia Ideson Building Restoration & Expansion (550 McKinney St)",
+          "reason": "$32 million restoration of the 1926 Cram & Ferguson Spanish Renaissance landmark, reconstruction of the original archival wing, and creation of a restoring reading room and civic exhibition spaces.",
           "building_year_built": 1926,
-          "architect_or_style": "Ralph Adams Cram; William Ward Watkin",
-          "location_source": "COH Protected Landmark (Julia Ideson Building, 550 McKinney St)",
-          "raw_citation": "Stewart Title Award: Houston Public Library's restoration of the Julia Ideson Building (1926)"
+          "architect_or_style": "Cram & Ferguson; William Ward Watkin; Louis A. Glover",
+          "location_source": "COH Protected Landmark & NRHP (Julia Ideson Building, 550 McKinney St)",
+          "raw_citation": "Martha Peterson Award: City of Houston & Julia Ideson Library Preservation Partners for the restoration and expansion of the Julia Ideson Building (1926)"
         }
       ],
-      "good_brick_summary": "2012 Stewart Title Award",
+      "good_brick_summary": "2012 Martha Peterson Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award & COH Protected Landmark",
       "source_citation": "Stewart Title Award (2012): Houston Public Library's restoration of the 1926 Julia Ideson Building (Cram & Ferguson; William Ward Watkin; Louis A. Glover).",
       "source_url": "https://www.preservationhouston.org/awards/past",
@@ -5263,7 +5067,10 @@
             ]
           ]
         ]
-      }
+      },
+      "lon": -95.369137,
+      "lat": 29.758915,
+      "good_brick_years": "2012"
     },
     "1319030010001": {
       "id": "1319030010001",
@@ -125259,57 +125066,24 @@
       }
     },
     "0010320000001": {
-      "hcad_num": "0010320000001",
-      "address": "301 FANNIN ST",
-      "landmark_name": "1910 Harris County Courthouse",
-      "historic_district": "Main Street/Market Square Historic District",
-      "year_built": 1910,
-      "architect": "",
-      "good_brick_awards": [
-        {
-          "award_year": 2012,
-          "award_type": "President's Award",
-          "recipient": "Harris County",
-          "project_name": "1910 Harris County Courthouse",
-          "reason": "For the restoration of the historic county courthouse (1910)",
-          "building_year_built": 1910,
-          "architect_or_style": "",
-          "location_source": "COH Landmark & NRHP Listing (1910 Harris County Courthouse, 301 Fannin St)",
-          "raw_citation": "President's Award: Harris County's restoration of the historic county courthouse (1910)"
-        }
-      ],
-      "good_brick_summary": "2012 President's Award",
-      "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "President's Award: Harris County's restoration of the historic county courthouse (1910)",
-      "source_url": "https://www.preservationhouston.org/awards/past",
-      "verified_by": "Preservation Houston Good Brick Awards",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              -95.3608589,
-              29.761831
-            ],
-            [
-              -95.3602568,
-              29.7614723
-            ],
-            [
-              -95.3604706,
-              29.761202
-            ],
-            [
-              -95.3610726,
-              29.7615607
-            ],
-            [
-              -95.3608589,
-              29.761831
-            ]
-          ]
-        ]
-      }
+      "address": "1001 PRESTON ST",
+      "landmark_name": "Harris County Administration Building",
+      "year_built": 1975,
+      "remodel_year": 2005,
+      "stories": 9,
+      "bld_area": 251040,
+      "architect": null,
+      "style": "Late Modernism",
+      "landmark_type": null,
+      "historic_district": null,
+      "good_brick_awards": [],
+      "notes": "9-story Harris County Administration Building at 1001 Preston St (built 1975), housing County Commissioners Court and county administrative offices.",
+      "updated_at": "2026-10-07T09:45:00Z",
+      "id": "bld_003286",
+      "lon": -95.360665,
+      "lat": 29.761516,
+      "height_m": 38.0,
+      "bld_style": "Late Modernism"
     },
     "0601320000014": {
       "hcad_num": "0601320000014",
@@ -125561,7 +125335,9 @@
             ]
           ]
         ]
-      }
+      },
+      "lon": -95.369954,
+      "lat": 29.759382
     },
     "0050180000019": {
       "hcad_num": "0050180000019",
@@ -134880,6 +134656,53 @@
           ]
         ]
       }
+    },
+    "0010240000001": {
+      "address": "201 CAROLINE ST",
+      "landmark_name": "Harris County Civil Courthouse",
+      "year_built": 2006,
+      "stories": 18,
+      "bld_area": 601600,
+      "architect": "PGAL (Pierce Goodwin Alexander & Linville)",
+      "style": "Contemporary Civic Courthouse Tower",
+      "notes": "18-story Harris County Civil Courthouse opened in 2006 at 201 Caroline St.",
+      "updated_at": "2026-10-07T09:45:00Z",
+      "id": "bld_003224",
+      "lon": -95.357374,
+      "lat": 29.76078,
+      "height_m": 85.0,
+      "bld_style": "Contemporary Civic Courthouse Tower"
+    },
+    "1306320010001": {
+      "address": "1201 CONGRESS ST",
+      "landmark_name": "Harris County Jury Assembly Building (Jury Plaza)",
+      "year_built": 2010,
+      "stories": 1,
+      "bld_area": 28000,
+      "architect": "PGAL",
+      "style": "Contemporary Civic",
+      "notes": "Subterranean jury assembly facility and civic plaza completed in 2010.",
+      "updated_at": "2026-10-07T09:45:00Z",
+      "id": "bld_006247",
+      "lon": -95.358434,
+      "lat": 29.761137,
+      "height_m": 9.0,
+      "bld_style": "Contemporary Civic"
+    },
+    "0010120000010": {
+      "address": "1201 FRANKLIN ST",
+      "landmark_name": "Harris County Criminal Justice Center",
+      "year_built": 2000,
+      "stories": 21,
+      "bld_area": 838480,
+      "notes": "21-story Harris County Criminal Justice Center at 1201 Franklin St (completed 2000).",
+      "updated_at": "2026-10-07T09:45:00Z",
+      "id": "bld_003440",
+      "lon": -95.357536,
+      "lat": 29.762281,
+      "height_m": 96.0,
+      "bld_style": "Contemporary Judicial High-Rise",
+      "style": "Contemporary Judicial High-Rise"
     }
   },
   "updatedAt": "2026-10-05T20:08:43Z"
