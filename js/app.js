@@ -6,16 +6,16 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261007d";
+} from "./palettes.js?v=20261007e";
 import {
   buildShareableUrl,
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261007d";
-import { AtlasMapController } from "./mapController.js?v=20261007d";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007d";
+} from "./filterStore.js?v=20261007e";
+import { AtlasMapController } from "./mapController.js?v=20261007e";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007e";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,14 +26,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261007d";
+} from "./curatedEdits.js?v=20261007e";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261007d";
+} from "./photoService.js?v=20261007e";
 
 class HoustonAtlasApp {
   constructor() {
@@ -60,6 +60,11 @@ class HoustonAtlasApp {
       onSelectFeature: (props) => this.renderInspectorDrawer(props),
       onViewportStats: (stats) => this.handleViewportStats(stats),
       onPitchChange: (pitch) => this._syncTiltControls(pitch),
+      onSelectTourStop: (stopIdx) => {
+        if (this._activeTour) {
+          this._activateTourStop(this._activeTour, stopIdx);
+        }
+      },
     });
   }
 
@@ -157,8 +162,8 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261007d"),
-        fetch("public/data/stats_summary.json?v=20261007d"),
+        fetch("public/data/search_index.json?v=20261007e"),
+        fetch("public/data/stats_summary.json?v=20261007e"),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -1446,6 +1451,7 @@ class HoustonAtlasApp {
         if (banner) banner.classList.add("hidden");
         this._activeTour = null;
         this._activeTourStopIndex = -1;
+        this.mapController.setTourRoute(null, -1);
         container.querySelectorAll(".tour-pill").forEach((b) => b.classList.remove("active"));
       });
     }
@@ -1454,6 +1460,14 @@ class HoustonAtlasApp {
   _activateTourOverview(tour) {
     this._activeTour = tour;
     this._activeTourStopIndex = -1;
+
+    // Hide the right-hand Property Inspector drawer & clear any previously selected irrelevant property
+    const inspectorDrawer = document.getElementById("inspector-drawer");
+    if (inspectorDrawer) {
+      inspectorDrawer.classList.add("hidden");
+    }
+    this.mapController.clearSelection();
+    this.mapController.setTourRoute(tour, -1);
 
     const banner = document.getElementById("tour-narrative-banner");
     const bannerTitle = document.getElementById("tour-banner-title");
@@ -1470,7 +1484,15 @@ class HoustonAtlasApp {
     if (bannerTitle) bannerTitle.textContent = `${tour.name} (${tour.era})`;
     if (stepBadge) {
       if (stops.length > 0) {
-        stepBadge.textContent = `${stops.length} Guided Stops`;
+        const walkLabel = tour.walkMiles
+          ? ` · ${new Intl.NumberFormat(undefined, {
+              style: "unit",
+              unit: "mile",
+              unitDisplay: "short",
+              maximumFractionDigits: 1,
+            }).format(tour.walkMiles)} walk`
+          : "";
+        stepBadge.textContent = `${stops.length} Stops${walkLabel}`;
         stepBadge.classList.remove("hidden");
       } else {
         stepBadge.classList.add("hidden");
@@ -1497,7 +1519,7 @@ class HoustonAtlasApp {
           });
         });
         if (btnPrev) btnPrev.disabled = false;
-        if (btnNext) btnNext.innerHTML = `Start Guided Tour (1/${stops.length}) &#9654;`;
+        if (btnNext) btnNext.innerHTML = `Start Walking Tour (1/${stops.length}) &#9654;`;
         if (btnOverview) btnOverview.classList.add("hidden");
       } else {
         controlsEl.classList.add("hidden");
@@ -1510,6 +1532,7 @@ class HoustonAtlasApp {
       zoom: tour.zoom,
       pitch: this.filterStore.getState().extrude3D ? Math.max(45, tour.pitch) : 0,
     });
+    this._updateUrlHash(this.filterStore.getState());
   }
 
   _activateTourStop(tour, stopIdx) {
@@ -1519,6 +1542,8 @@ class HoustonAtlasApp {
     const stop = stops[idx];
     this._activeTour = tour;
     this._activeTourStopIndex = idx;
+
+    this.mapController.setTourRoute(tour, idx);
 
     const bannerTitle = document.getElementById("tour-banner-title");
     const stepBadge = document.getElementById("tour-banner-step-badge");
