@@ -9,17 +9,17 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261007d";
+} from "./palettes.js?v=20261007e";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261007d";
+} from "./filterStore.js?v=20261007e";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261007d";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007d";
+} from "./curatedEdits.js?v=20261007e";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007e";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -91,12 +91,20 @@ function canCreateWebGLContext() {
 }
 
 export class AtlasMapController {
-  constructor({ containerId, filterStore, onSelectFeature, onViewportStats, onPitchChange }) {
+  constructor({
+    containerId,
+    filterStore,
+    onSelectFeature,
+    onViewportStats,
+    onPitchChange,
+    onSelectTourStop,
+  }) {
     this.containerId = containerId;
     this.filterStore = filterStore;
     this.onSelectFeature = onSelectFeature;
     this.onViewportStats = onViewportStats;
     this.onPitchChange = onPitchChange || null;
+    this.onSelectTourStop = onSelectTourStop || null;
     this.map = null;
     this.popup = null;
     this.useCanvasFallback = false;
@@ -113,6 +121,9 @@ export class AtlasMapController {
     this.buildingLineLayerIds = ["buildings-line"];
     this.buildingExtrusionLayerIds = ["buildings-extrusion"];
     this.highlightLayerIds = ["selected-feature-highlight"];
+    this.activeTour = null;
+    this.activeTourStopIndex = -1;
+    this.tourStopMarkers = [];
     this.isReady = false;
   }
 
@@ -154,10 +165,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261007d"),
-        fetch("public/data/parcels.geojson?v=20261007d"),
-        fetch("public/data/overlays.json?v=20261007d"),
-        fetch("public/data/pmtiles_manifest.json?v=20261007d").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261007e"),
+        fetch("public/data/parcels.geojson?v=20261007e"),
+        fetch("public/data/overlays.json?v=20261007e"),
+        fetch("public/data/pmtiles_manifest.json?v=20261007e").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -849,6 +860,34 @@ export class AtlasMapController {
         "circle-stroke-width": 1.8,
       },
     });
+
+    // Guided Walking Tour Route Source & Layers
+    this.map.addSource("tour-route-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    this.map.addLayer({
+      id: "tour-route-casing",
+      type: "line",
+      source: "tour-route-src",
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "rgba(15, 17, 21, 0.88)",
+        "line-width": 5.5,
+      },
+    });
+    this.map.addLayer({
+      id: "tour-route-line",
+      type: "line",
+      source: "tour-route-src",
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "#FDE047",
+        "line-width": 2.8,
+        "line-dasharray": [2.2, 1.8],
+        "line-opacity": 0.96,
+      },
+    });
   }
 
   _buildShardLayerFilter(baseFilterExpr) {
@@ -1153,7 +1192,11 @@ export class AtlasMapController {
         const rect = canvas.getBoundingClientRect();
         const hit = this._hitTestCanvas2D(e.clientX - rect.left, e.clientY - rect.top);
         if (hit) {
-          this.highlightAndInspectFeature(hit);
+          if (hit.isTourStop && typeof this.onSelectTourStop === "function") {
+            this.onSelectTourStop(hit.stopIndex);
+          } else {
+            this.highlightAndInspectFeature(hit);
+          }
         }
       } else {
         this.computeViewportHistogram();
@@ -1591,6 +1634,75 @@ export class AtlasMapController {
       }
     }
 
+    // 9. Guided Walking Tour Route & Numbered Stop Pins
+    if (this.activeTour && Array.isArray(this.activeTour.stops) && this.activeTour.stops.length > 0) {
+      const stops = this.activeTour.stops;
+      const screenPts = stops.map((s) => this._lngLatToScreen(s.lng, s.lat, width, height));
+
+      if (screenPts.length > 1) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(screenPts[0][0], screenPts[0][1]);
+        for (let i = 1; i < screenPts.length; i++) {
+          ctx.lineTo(screenPts[i][0], screenPts[i][1]);
+        }
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 5.5;
+        ctx.strokeStyle = "rgba(15, 17, 21, 0.88)";
+        ctx.stroke();
+
+        ctx.setLineDash([7, 5]);
+        ctx.lineWidth = 2.8;
+        ctx.strokeStyle = "#FDE047";
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      for (let i = 0; i < stops.length; i++) {
+        const s = stops[i];
+        const [sx, sy] = screenPts[i];
+        if (sx < -20 || sx > width + 20 || sy < -20 || sy > height + 20) continue;
+        const isActive = i === this.activeTourStopIndex;
+        const r = isActive ? 12.5 : 10.5;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sx, sy, r + 4, 0, Math.PI * 2);
+        ctx.fillStyle = isActive ? "rgba(253, 224, 71, 0.4)" : "rgba(149, 201, 89, 0.25)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = isActive ? "#FDE047" : "#141820";
+        ctx.fill();
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = isActive ? "#0F1115" : "#FDE047";
+        ctx.stroke();
+
+        ctx.font = "700 11px Inter, system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = isActive ? "#0F1115" : "#FDE047";
+        ctx.fillText(String(i + 1), sx, sy + 0.5);
+        ctx.restore();
+
+        cs.renderedBBoxes.push({
+          minX: sx - 14,
+          minY: sy - 14,
+          maxX: sx + 14,
+          maxY: sy + 14,
+          props: {
+            isTourStop: true,
+            stopIndex: i,
+            landmark_name: `Stop ${i + 1}: ${s.title}`,
+            year_built: s.year,
+            address: s.story,
+          },
+        });
+      }
+    }
+
     ctx.restore();
   }
 
@@ -2014,6 +2126,77 @@ export class AtlasMapController {
 
     this.highlightAndInspectFeature(mergedProps, match.geometry || null);
     return true;
+  }
+
+  setTourRoute(tour = null, activeStopIndex = -1) {
+    this.activeTour = tour || null;
+    this.activeTourStopIndex = Number.isInteger(activeStopIndex) ? activeStopIndex : -1;
+
+    if (Array.isArray(this.tourStopMarkers)) {
+      for (const m of this.tourStopMarkers) {
+        try {
+          m.remove();
+        } catch {}
+      }
+      this.tourStopMarkers = [];
+    }
+
+    const stops = Array.isArray(tour?.stops) ? tour.stops : [];
+
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+      return;
+    }
+
+    if (!this.map) return;
+
+    const routeSrc = this.map.getSource("tour-route-src");
+    if (routeSrc) {
+      if (stops.length > 1) {
+        routeSrc.setData({
+          type: "FeatureCollection",
+          features: [
+            {
+              type: "Feature",
+              geometry: {
+                type: "LineString",
+                coordinates: stops.map((s) => [s.lng, s.lat]),
+              },
+              properties: { tour_id: tour.id || "" },
+            },
+          ],
+        });
+      } else {
+        routeSrc.setData({ type: "FeatureCollection", features: [] });
+      }
+    }
+
+    if (stops.length > 0 && window.maplibregl && window.maplibregl.Marker) {
+      for (let i = 0; i < stops.length; i++) {
+        const s = stops[i];
+        const isActive = i === this.activeTourStopIndex;
+        const pinBtn = document.createElement("button");
+        pinBtn.type = "button";
+        pinBtn.className = `tour-map-pin mono${isActive ? " active" : ""}`;
+        pinBtn.title = `Stop ${i + 1}: ${s.title} (${s.year})`;
+        pinBtn.setAttribute("aria-label", `Stop ${i + 1}: ${s.title}`);
+        pinBtn.innerHTML = `<span class="tour-map-pin-num">${i + 1}</span>`;
+        pinBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof this.onSelectTourStop === "function") {
+            this.onSelectTourStop(i);
+          }
+        });
+        const marker = new window.maplibregl.Marker({
+          element: pinBtn,
+          anchor: "center",
+        })
+          .setLngLat([s.lng, s.lat])
+          .addTo(this.map);
+        this.tourStopMarkers.push(marker);
+      }
+    }
   }
 
   flyToLocation({ lng, lat, zoom = 16.5, pitch = null, hcadNum = "", featureId = "" }) {
