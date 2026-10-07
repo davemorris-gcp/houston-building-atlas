@@ -9,17 +9,17 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261007c";
+} from "./palettes.js?v=20261007d";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261007c";
+} from "./filterStore.js?v=20261007d";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261007c";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007c";
+} from "./curatedEdits.js?v=20261007d";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007d";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -154,10 +154,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261007c"),
-        fetch("public/data/parcels.geojson?v=20261007c"),
-        fetch("public/data/overlays.json?v=20261007c"),
-        fetch("public/data/pmtiles_manifest.json?v=20261007c").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261007d"),
+        fetch("public/data/parcels.geojson?v=20261007d"),
+        fetch("public/data/overlays.json?v=20261007d"),
+        fetch("public/data/pmtiles_manifest.json?v=20261007d").catch(() => null),
         loadCuratedOverrides(),
       ]);
 

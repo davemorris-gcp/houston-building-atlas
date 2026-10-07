@@ -6,16 +6,16 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261007c";
+} from "./palettes.js?v=20261007d";
 import {
   buildShareableUrl,
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261007c";
-import { AtlasMapController } from "./mapController.js?v=20261007c";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007c";
+} from "./filterStore.js?v=20261007d";
+import { AtlasMapController } from "./mapController.js?v=20261007d";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007d";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,14 +26,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261007c";
+} from "./curatedEdits.js?v=20261007d";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261007c";
+} from "./photoService.js?v=20261007d";
 
 class HoustonAtlasApp {
   constructor() {
@@ -157,8 +157,8 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261007c"),
-        fetch("public/data/stats_summary.json?v=20261007c"),
+        fetch("public/data/search_index.json?v=20261007d"),
+        fetch("public/data/stats_summary.json?v=20261007d"),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
