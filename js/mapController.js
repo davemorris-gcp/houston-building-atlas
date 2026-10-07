@@ -867,25 +867,51 @@ export class AtlasMapController {
       data: { type: "FeatureCollection", features: [] },
     });
     this.map.addLayer({
+      id: "tour-connector-casing",
+      type: "line",
+      source: "tour-route-src",
+      filter: ["==", ["get", "feature_type"], "connector"],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "rgba(15, 17, 21, 0.78)",
+        "line-width": 3.6,
+      },
+    });
+    this.map.addLayer({
+      id: "tour-connector-line",
+      type: "line",
+      source: "tour-route-src",
+      filter: ["==", ["get", "feature_type"], "connector"],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "#95C959",
+        "line-width": 1.9,
+        "line-dasharray": [1.2, 1.6],
+        "line-opacity": 0.9,
+      },
+    });
+    this.map.addLayer({
       id: "tour-route-casing",
       type: "line",
       source: "tour-route-src",
+      filter: ["==", ["get", "feature_type"], "route"],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
-        "line-color": "rgba(15, 17, 21, 0.88)",
-        "line-width": 5.5,
+        "line-color": "rgba(15, 17, 21, 0.9)",
+        "line-width": 6.0,
       },
     });
     this.map.addLayer({
       id: "tour-route-line",
       type: "line",
       source: "tour-route-src",
+      filter: ["==", ["get", "feature_type"], "route"],
       layout: { "line-cap": "round", "line-join": "round" },
       paint: {
         "line-color": "#FDE047",
-        "line-width": 2.8,
+        "line-width": 3.1,
         "line-dasharray": [2.2, 1.8],
-        "line-opacity": 0.96,
+        "line-opacity": 0.98,
       },
     });
   }
@@ -1642,22 +1668,51 @@ export class AtlasMapController {
     if (this.activeTour && Array.isArray(this.activeTour.stops) && this.activeTour.stops.length > 0) {
       const stops = this.activeTour.stops;
       const screenPts = stops.map((s) => this._lngLatToScreen(s.lng, s.lat, width, height));
+      const routeCoords =
+        Array.isArray(this.activeTour.routeCoords) && this.activeTour.routeCoords.length > 1
+          ? this.activeTour.routeCoords
+          : stops.map((s) => [s.lng, s.lat]);
+      const routeScreenPts = routeCoords.map(([lng, lat]) =>
+        this._lngLatToScreen(lng, lat, width, height)
+      );
 
-      if (screenPts.length > 1) {
+      // Front-walkway connectors from street curb to building pin
+      for (let i = 0; i < stops.length; i++) {
+        const s = stops[i];
+        if (!Number.isFinite(s.street_lng) || !Number.isFinite(s.street_lat)) continue;
+        const [cx, cy] = this._lngLatToScreen(s.street_lng, s.street_lat, width, height);
+        const [bx, by] = screenPts[i];
         ctx.save();
         ctx.beginPath();
-        ctx.moveTo(screenPts[0][0], screenPts[0][1]);
-        for (let i = 1; i < screenPts.length; i++) {
-          ctx.lineTo(screenPts[i][0], screenPts[i][1]);
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(bx, by);
+        ctx.lineCap = "round";
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = "rgba(15, 17, 21, 0.78)";
+        ctx.stroke();
+
+        ctx.setLineDash([3, 4]);
+        ctx.lineWidth = 1.9;
+        ctx.strokeStyle = "#95C959";
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (routeScreenPts.length > 1) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(routeScreenPts[0][0], routeScreenPts[0][1]);
+        for (let i = 1; i < routeScreenPts.length; i++) {
+          ctx.lineTo(routeScreenPts[i][0], routeScreenPts[i][1]);
         }
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        ctx.lineWidth = 5.5;
-        ctx.strokeStyle = "rgba(15, 17, 21, 0.88)";
+        ctx.lineWidth = 6.0;
+        ctx.strokeStyle = "rgba(15, 17, 21, 0.9)";
         ctx.stroke();
 
         ctx.setLineDash([7, 5]);
-        ctx.lineWidth = 2.8;
+        ctx.lineWidth = 3.1;
         ctx.strokeStyle = "#FDE047";
         ctx.stroke();
         ctx.restore();
@@ -2157,18 +2212,46 @@ export class AtlasMapController {
     const routeSrc = this.map.getSource("tour-route-src");
     if (routeSrc) {
       if (stops.length > 1) {
-        routeSrc.setData({
-          type: "FeatureCollection",
-          features: [
-            {
+        const routeCoords =
+          Array.isArray(tour?.routeCoords) && tour.routeCoords.length > 1
+            ? tour.routeCoords
+            : stops.map((s) => [s.lng, s.lat]);
+        const features = [
+          {
+            type: "Feature",
+            geometry: {
+              type: "LineString",
+              coordinates: routeCoords,
+            },
+            properties: {
+              tour_id: tour.id || "",
+              feature_type: "route",
+            },
+          },
+        ];
+        for (let i = 0; i < stops.length; i++) {
+          const s = stops[i];
+          if (Number.isFinite(s.street_lng) && Number.isFinite(s.street_lat)) {
+            features.push({
               type: "Feature",
               geometry: {
                 type: "LineString",
-                coordinates: stops.map((s) => [s.lng, s.lat]),
+                coordinates: [
+                  [s.street_lng, s.street_lat],
+                  [s.lng, s.lat],
+                ],
               },
-              properties: { tour_id: tour.id || "" },
-            },
-          ],
+              properties: {
+                tour_id: tour.id || "",
+                stop_index: i,
+                feature_type: "connector",
+              },
+            });
+          }
+        }
+        routeSrc.setData({
+          type: "FeatureCollection",
+          features,
         });
       } else {
         routeSrc.setData({ type: "FeatureCollection", features: [] });
