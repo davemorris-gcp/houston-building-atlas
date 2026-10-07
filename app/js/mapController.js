@@ -891,17 +891,21 @@ export class AtlasMapController {
   }
 
   _buildShardLayerFilter(baseFilterExpr) {
-    const overriddenHcads = Array.from(
-      new Set(
-        (this.overridesFC?.features || [])
-          .filter(
-            (f) =>
-              !f.properties?.is_building_override || f.properties?.replace_parcel_shards
-          )
-          .map((f) => String(f.properties?.hcad_num || "").trim())
-          .filter(Boolean)
-      )
-    );
+    const hcadSet = new Set();
+    for (const f of this.overridesFC?.features || []) {
+      const p = f.properties || {};
+      if (!p.is_building_override || p.replace_parcel_shards) {
+        const primaryHcad = String(p.hcad_num || "").trim();
+        if (primaryHcad) hcadSet.add(primaryHcad);
+      }
+      if (Array.isArray(p.suppress_shard_hcads)) {
+        for (const sh of p.suppress_shard_hcads) {
+          const cleanSh = String(sh || "").trim();
+          if (cleanSh) hcadSet.add(cleanSh);
+        }
+      }
+    }
+    const overriddenHcads = Array.from(hcadSet);
     if (!overriddenHcads.length) return baseFilterExpr;
     return [
       "all",
