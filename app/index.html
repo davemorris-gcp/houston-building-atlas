@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261006f" />
+  <link rel="stylesheet" href="styles/index.css?v=20261006g" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -951,14 +951,19 @@
     <div class="modal-backdrop hidden" id="photo-lightbox-modal" role="dialog" aria-modal="true" aria-labelledby="lightbox-modal-title">
       <div class="modal-card photo-lightbox-card">
         <div class="modal-header photo-lightbox-header">
-          <div class="modal-brand-row">
-            <div class="ph-key-badge">
-              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+          <div class="photo-lightbox-toprow">
+            <div class="modal-brand-row">
+              <div class="ph-key-badge">
+                <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+              </div>
+              <div class="photo-lightbox-titles">
+                <span class="brand-kicker" id="lightbox-modal-kicker">Preservation Houston • Archival Photograph Timeline</span>
+                <h2 class="modal-title" id="lightbox-modal-title">Photographs Through History</h2>
+              </div>
             </div>
-            <div>
-              <span class="brand-kicker" id="lightbox-modal-kicker">Preservation Houston • Archival Photograph Timeline</span>
-              <h2 class="modal-title" id="lightbox-modal-title">Photographs Through History</h2>
-            </div>
+            <button type="button" class="icon-btn photo-lightbox-close-btn" id="btn-close-photo-lightbox" aria-label="Close Photograph Lightbox">
+              &times;
+            </button>
           </div>
           <div class="photo-lightbox-header-actions">
             <button type="button" class="action-pill hidden" id="btn-lightbox-toggle-compare" title="Toggle interactive 'Then &amp; Now' curtain comparison slider">
@@ -968,15 +973,12 @@
               href="#"
               target="_blank"
               rel="noopener noreferrer"
-              class="action-pill"
+              class="action-pill photo-lightbox-sv-pill"
               id="btn-lightbox-streetview"
               title="Open Google Street View Time Machine (2007–Present) for this building"
             >
-              Street View (2007–Present) &#8599;
+              &#128065; Street View (2007–Present) &#8599;
             </a>
-            <button type="button" class="icon-btn" id="btn-close-photo-lightbox" aria-label="Close Photograph Lightbox">
-              &times;
-            </button>
           </div>
         </div>
         <div class="modal-body photo-lightbox-body" id="photo-lightbox-body"></div>
@@ -986,6 +988,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261006f"></script>
+  <script type="module" src="js/app.js?v=20261006g"></script>
 </body>
 </html>
