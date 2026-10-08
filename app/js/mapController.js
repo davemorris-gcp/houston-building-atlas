@@ -19,7 +19,7 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008h";
+} from "./curatedEdits.js?v=20261008i";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 
 const BASEMAP_TILES = {
@@ -166,10 +166,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261007f"),
-        fetch("public/data/parcels.geojson?v=20261007f"),
-        fetch("public/data/overlays.json?v=20261007f"),
-        fetch("public/data/pmtiles_manifest.json?v=20261007f").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261008i"),
+        fetch("public/data/parcels.geojson?v=20261008i"),
+        fetch("public/data/overlays.json?v=20261008i"),
+        fetch("public/data/pmtiles_manifest.json?v=20261008i").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -199,6 +199,41 @@ export class AtlasMapController {
   _applyCuratedOverridesInMemory() {
     const ovMap = this.curatedOverrides || {};
     const overrideFeaturesByKey = new Map();
+
+    // Collect HCAD numbers and building IDs that are suppressed without replacement geometry
+    const suppressedHcads = new Set();
+    const suppressedIds = new Set();
+    for (const [ovKey, ov] of Object.entries(ovMap)) {
+      if (!ov) continue;
+      if (ov.suppress_only) {
+        suppressedIds.add(ovKey);
+        const hcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
+        if (hcad) suppressedHcads.add(hcad);
+      }
+      if (Array.isArray(ov.suppress_shard_hcads)) {
+        for (const sh of ov.suppress_shard_hcads) {
+          const cleanSh = String(sh || "").trim();
+          if (cleanSh && (!ovMap[cleanSh] || ovMap[cleanSh].suppress_only)) {
+            suppressedHcads.add(cleanSh);
+          }
+        }
+      }
+    }
+
+    if (suppressedHcads.size > 0 || suppressedIds.size > 0) {
+      this.buildingsData = this.buildingsData.filter((feat) => {
+        const featId = String(feat.properties?.id || "").trim();
+        const bldId = String(feat.properties?.building_id || "").trim();
+        const hcad = String(feat.properties?.hcad_num || "").trim();
+        if (featId && suppressedIds.has(featId)) return false;
+        if (bldId && suppressedIds.has(bldId)) return false;
+        if (hcad && suppressedHcads.has(hcad)) return false;
+        return true;
+      });
+      if (this.buildingsFC) {
+        this.buildingsFC.features = this.buildingsData;
+      }
+    }
 
     const putOverrideFeature = (baseKey, geom, props) => {
       if (!geom) return;
@@ -239,6 +274,7 @@ export class AtlasMapController {
           ? hcad
           : "";
       if (matchKey) {
+        if (ovMap[matchKey].suppress_only) continue;
         feat.properties = applyOverrideToProperties(feat.properties, ovMap);
         putOverrideFeature(matchKey, ovMap[matchKey].geometry || feat.geometry, feat.properties);
       }
@@ -246,13 +282,13 @@ export class AtlasMapController {
 
     for (const feat of this.parcelsData) {
       const hcad = String(feat.properties?.hcad_num || "").trim();
-      if (hcad && ovMap[hcad] && !ovMap[hcad].is_building_override) {
+      if (hcad && ovMap[hcad] && !ovMap[hcad].is_building_override && !ovMap[hcad].suppress_only) {
         feat.properties = applyOverrideToProperties(feat.properties, ovMap);
       }
     }
 
     for (const [ovKey, ov] of Object.entries(ovMap)) {
-      if (ov.keep_shard_footprints) continue;
+      if (!ov || ov.keep_shard_footprints || ov.suppress_only) continue;
       if (!overrideFeaturesByKey.has(ovKey) && ov.geometry) {
         const rawPrefix = String(ovKey.split("#")[0] || "").trim();
         const hcadNum = String(
@@ -982,6 +1018,19 @@ export class AtlasMapController {
         }
       }
     }
+    for (const [ovKey, ov] of Object.entries(this.curatedOverrides || {})) {
+      if (!ov || ov.keep_shard_footprints) continue;
+      if (ov.suppress_only || !ov.is_building_override || ov.replace_parcel_shards) {
+        const primaryHcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
+        if (primaryHcad && /^\d+$/.test(primaryHcad)) hcadSet.add(primaryHcad);
+      }
+      if (Array.isArray(ov.suppress_shard_hcads)) {
+        for (const sh of ov.suppress_shard_hcads) {
+          const cleanSh = String(sh || "").trim();
+          if (cleanSh) hcadSet.add(cleanSh);
+        }
+      }
+    }
     const overriddenHcads = Array.from(hcadSet);
     if (!overriddenHcads.length) return baseFilterExpr;
     return [
@@ -1009,6 +1058,7 @@ export class AtlasMapController {
           k &&
           !ov?.is_building_override &&
           !ov?.keep_shard_footprints &&
+          !ov?.suppress_only &&
           !ov?.geometry &&
           !existingKeys.has(k) &&
           !existingHcads.has(k)
