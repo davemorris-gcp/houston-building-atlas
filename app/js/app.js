@@ -2231,6 +2231,8 @@ class HoustonAtlasApp {
     }
 
     const hdrLow = String(customHeaderLabel || "").toLowerCase();
+    const isNameOrAliasFilter =
+      hdrLow.startsWith("name / alias:") || hdrLow.startsWith("building name:");
     const isArchitectFilter =
       hdrLow.startsWith("architect:") || hdrLow.startsWith("architect / builder:");
     const isDistrictFilter = hdrLow.startsWith("district:");
@@ -2247,6 +2249,45 @@ class HoustonAtlasApp {
       .replace(/\./g, "")
       .trim();
     const qTokens = qAddr.split(/\s+/).filter((t) => t.length >= 2);
+    const GENERIC_NAME_STOPWORDS = new Set([
+      "the",
+      "and",
+      "of",
+      "at",
+      "in",
+      "on",
+      "for",
+      "building",
+      "buildings",
+      "structure",
+      "house",
+      "home",
+      "residence",
+      "cottage",
+      "warehouse",
+      "company",
+      "co",
+      "inc",
+      "corp",
+      "center",
+      "complex",
+      "block",
+      "tower",
+      "plaza",
+      "hall",
+      "hotel",
+      "bank",
+      "church",
+      "school",
+      "lofts",
+      "apartments",
+      "houston",
+      "texas",
+      "historic",
+    ]);
+    const distinctiveNameTokens = qTokens.filter(
+      (t) => t.length >= 3 && !GENERIC_NAME_STOPWORDS.has(t)
+    );
 
     const scoreCandidate = (item, isViewportCandidate = false) => {
       const lbl = String(item.label || "").toLowerCase();
@@ -2292,7 +2333,27 @@ class HoustonAtlasApp {
 
       let score = 0;
 
-      if (isArchitectFilter) {
+      if (isNameOrAliasFilter) {
+        if (bldName === q || lbl === q) {
+          score = 130;
+        } else if (altNames.some((an) => an === q)) {
+          score = 128;
+        } else if (
+          (bldName && bldName.includes(q)) ||
+          altNames.some((an) => an.includes(q)) ||
+          (lbl && !/^\d+\s+/.test(lbl) && lbl.includes(q))
+        ) {
+          score = 110;
+        } else if (distinctiveNameTokens.length > 0 && qTokens.length >= 2) {
+          const nameHaystack = `${bldName} ${altNames.join(" ")} ${!/^\d+\s+/.test(lbl) ? lbl : ""}`;
+          if (
+            distinctiveNameTokens.every((tok) => nameHaystack.includes(tok)) &&
+            qTokens.every((tok) => nameHaystack.includes(tok))
+          ) {
+            score = 94;
+          }
+        }
+      } else if (isArchitectFilter) {
         if (arch && arch.includes(q)) {
           score = arch === q ? 120 : 105;
         }
@@ -2355,15 +2416,17 @@ class HoustonAtlasApp {
         }
       } else {
         // General free-text search across all metadata & labels
+        // Note: Do NOT check `q.includes(style)` here, or multi-word building queries like
+        // "Spaghetti Warehouse" or "Sam Houston Hotel" will match every building with style="Warehouse" or "Hotel"!
         if (style === q || bldStyle === q) {
           score = Math.max(score, 118);
         } else if (
           (style &&
             style !== "historical / architectural structure" &&
-            (style.includes(q) || (style.length > 3 && q.includes(style)))) ||
+            style.includes(q)) ||
           (bldStyle &&
             bldStyle !== "historical / architectural structure" &&
-            (bldStyle.includes(q) || (bldStyle.length > 3 && q.includes(bldStyle))))
+            bldStyle.includes(q))
         ) {
           score = Math.max(score, 96);
         } else if (activeStyleMovements.size > 0 && (style || bldStyle)) {
@@ -2454,9 +2517,17 @@ class HoustonAtlasApp {
         }
 
         // Multi-word token fallback across address + names (e.g. "1001 mckinney" or "city national mckinney")
+        // Require at least one distinctive non-stopword token if matching against names so generic words
+        // like "warehouse" or "building" alone don't pull in unrelated structures.
         if (score < 85 && qTokens.length >= 2) {
-          const combinedHaystack = `${addr} ${altAddrs.join(" ")} ${lbl} ${bldName} ${altNames.join(" ")} ${sub}`;
-          if (qTokens.every((tok) => combinedHaystack.includes(tok))) {
+          const addrHaystack = `${addr} ${altAddrs.join(" ")}`;
+          const nameHaystack = `${lbl} ${bldName} ${altNames.join(" ")}`;
+          if (qTokens.every((tok) => addrHaystack.includes(tok))) {
+            score = Math.max(score, 86);
+          } else if (
+            distinctiveNameTokens.length > 0 &&
+            qTokens.every((tok) => `${addrHaystack} ${nameHaystack}`.includes(tok))
+          ) {
             score = Math.max(score, 86);
           }
         }
@@ -2497,8 +2568,12 @@ class HoustonAtlasApp {
       : [];
     for (const cand of liveCandidates) {
       const p = cand.props || {};
-      const key = String(p.id || p.building_id || p.hcad_num || "").trim();
-      if (key && seenKeys.has(key)) continue;
+      const rawKey = String(p.id || p.building_id || p.hcad_num || "").trim();
+      const key = rawKey.replace(/#fp_\d+$/, "");
+      const hcadKey = String(p.hcad_num || "").trim();
+      if ((key && seenKeys.has(key)) || (hcadKey && !key.includes("#") && seenKeys.has(hcadKey))) {
+        continue;
+      }
 
       const nameInfo = this._resolveBuildingNameAndAliases(p);
       const yr = Number(p.year_built) || 0;
@@ -2514,7 +2589,7 @@ class HoustonAtlasApp {
         : [];
       const synthItem = {
         type: "building",
-        id: p.id || p.building_id || "",
+        id: key || p.id || p.building_id || "",
         hcad_num: String(p.hcad_num || "").trim(),
         label: nameInfo.primaryName || primaryAddr || `HCAD ${p.hcad_num}`,
         address: primaryAddr,
@@ -2573,7 +2648,8 @@ class HoustonAtlasApp {
       ? this.mapController.getCurrentViewport()
       : null;
     for (const item of this.searchIndex) {
-      const key = String(item.id || item.hcad_num || item.label || "").trim();
+      const rawKey = String(item.id || item.hcad_num || item.label || "").trim();
+      const key = rawKey.replace(/#fp_\d+$/, "");
       const hcadKey = String(item.hcad_num || "").trim();
       if ((key && seenKeys.has(key)) || (hcadKey && !key.includes("#") && seenKeys.has(hcadKey))) {
         continue;
