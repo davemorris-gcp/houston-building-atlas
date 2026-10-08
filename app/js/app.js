@@ -14,8 +14,8 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008j";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
+import { AtlasMapController } from "./mapController.js?v=20261008k";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008k";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008j";
+} from "./curatedEdits.js?v=20261008k";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -1845,6 +1845,31 @@ class HoustonAtlasApp {
     this._runSearchQuery(query, headerLabel || `Filter: ${query}`);
   }
 
+  _computeGeometryCentroid(geom) {
+    if (!geom || !geom.coordinates) return [NaN, NaN];
+    if (geom.type === "Point" && Array.isArray(geom.coordinates)) {
+      return [Number(geom.coordinates[0]), Number(geom.coordinates[1])];
+    }
+    const ring =
+      geom.type === "Polygon"
+        ? geom.coordinates[0]
+        : geom.type === "MultiPolygon" && Array.isArray(geom.coordinates[0])
+        ? geom.coordinates[0][0]
+        : null;
+    if (!Array.isArray(ring) || !ring.length) return [NaN, NaN];
+    let sumLng = 0;
+    let sumLat = 0;
+    let count = 0;
+    for (const pt of ring) {
+      if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+        sumLng += pt[0];
+        sumLat += pt[1];
+        count += 1;
+      }
+    }
+    return count > 0 ? [sumLng / count, sumLat / count] : [NaN, NaN];
+  }
+
   openCorrectionModal(props) {
     const modal = document.getElementById("correction-modal");
     if (!modal || !props) return;
@@ -1902,27 +1927,31 @@ class HoustonAtlasApp {
     }
 
     // Compute exact building centroid for Zoom-20 Satellite Roof Verification link
-    let satLat = Number(props.lat);
-    let satLng = Number(props.lng || props.lon);
-    if ((!Number.isFinite(satLat) || !Number.isFinite(satLng)) && this.mapController?.selectedFeatureGeometry) {
-      const [gLng, gLat] = this._computeGeometryCentroid(this.mapController.selectedFeatureGeometry);
-      if (Number.isFinite(gLat) && Number.isFinite(gLng)) {
-        satLat = gLat;
-        satLng = gLng;
+    try {
+      let satLat = Number(props.lat);
+      let satLng = Number(props.lng || props.lon);
+      if ((!Number.isFinite(satLat) || !Number.isFinite(satLng)) && this.mapController?.selectedFeatureGeometry) {
+        const [gLng, gLat] = this._computeGeometryCentroid(this.mapController.selectedFeatureGeometry);
+        if (Number.isFinite(gLat) && Number.isFinite(gLng)) {
+          satLat = gLat;
+          satLng = gLng;
+        }
       }
-    }
-    if ((!Number.isFinite(satLat) || !Number.isFinite(satLng)) && this.mapController?.map) {
-      const c = this.mapController.map.getCenter();
-      satLat = c.lat;
-      satLng = c.lng;
-    }
-    if (Number.isFinite(satLat) && Number.isFinite(satLng)) {
-      const satUrl = `https://www.google.com/maps/@?api=1&map_action=map&center=${satLat.toFixed(
-        6
-      )},${satLng.toFixed(6)}&zoom=20&basemap=satellite`;
-      this._activeCorrectionSatelliteUrl = satUrl;
-      if (satLinkEl) satLinkEl.href = satUrl;
-    } else {
+      if ((!Number.isFinite(satLat) || !Number.isFinite(satLng)) && this.mapController?.map) {
+        const c = this.mapController.map.getCenter();
+        satLat = c.lat;
+        satLng = c.lng;
+      }
+      if (Number.isFinite(satLat) && Number.isFinite(satLng)) {
+        const satUrl = `https://www.google.com/maps/@?api=1&map_action=map&center=${satLat.toFixed(
+          6
+        )},${satLng.toFixed(6)}&zoom=20&basemap=satellite`;
+        this._activeCorrectionSatelliteUrl = satUrl;
+        if (satLinkEl) satLinkEl.href = satUrl;
+      } else {
+        this._activeCorrectionSatelliteUrl = "";
+      }
+    } catch (_err) {
       this._activeCorrectionSatelliteUrl = "";
     }
 
@@ -3063,9 +3092,9 @@ class HoustonAtlasApp {
                 class="inspector-btn primary"
                 id="btn-open-hcad"
                 data-hcad-num="${hcadNum}"
-                title="Open HCAD Property Search for account ${hcadNum} (also copies account # to clipboard)"
+                title="Copies ${hcadNum} to your clipboard and opens HCAD Property Search"
               >
-                Open HCAD Record (${hcadNum}) &#8599;
+                Copy # &amp; Open HCAD Search (${hcadNum}) &#8599;
               </a>
               <a
                 href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(hcadNum)}"

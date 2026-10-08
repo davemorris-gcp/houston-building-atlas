@@ -277,9 +277,8 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
     sheetSyncStatus.totalOverrideCount = Object.keys(mergedOverrides).length;
   };
 
-  // Fetch both the CDN-published CSV and the real-time Apps Script doGet endpoint in parallel.
-  // Google's "Publish to the web" CSV caches for ~3-5 minutes, whereas the Apps Script doGet
-  // reads `Approved_Edits` directly with 0-second latency the moment an editor changes a row to Approved.
+  // Fetch the published Google Sheet CSV (or fall back to the Apps Script doGet endpoint if no CSV URL is set).
+  // Avoiding a redundant GET against the POST-only Apps Script webhook prevents a 404 console warning from script.googleusercontent.com.
   const fetchPromises = [];
   if (activeSheetCsvUrl) {
     fetchPromises.push(
@@ -288,8 +287,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
         return { source: "csv", text: await r.text() };
       })
     );
-  }
-  if (activeWebhookUrl) {
+  } else if (activeWebhookUrl) {
     fetchPromises.push(
       fetch(activeWebhookUrl, { cache: "no-store" }).then(async (r) => {
         if (!r.ok) throw new Error(`Webhook HTTP ${r.status}`);
