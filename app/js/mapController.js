@@ -19,8 +19,8 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008q";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008q";
+} from "./curatedEdits.js?v=20261008r";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008r";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -166,10 +166,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261008q"),
-        fetch("public/data/parcels.geojson?v=20261008q"),
-        fetch("public/data/overlays.json?v=20261008q"),
-        fetch("public/data/pmtiles_manifest.json?v=20261008q").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261008r"),
+        fetch("public/data/parcels.geojson?v=20261008r"),
+        fetch("public/data/overlays.json?v=20261008r"),
+        fetch("public/data/pmtiles_manifest.json?v=20261008r").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -2692,33 +2692,41 @@ export class AtlasMapController {
     });
   }
 
-  getRenderedBuildingCandidates(limit = 600) {
+  getRenderedBuildingCandidates(limit = 20000) {
     const out = [];
     const seenKeys = new Set();
 
-    const extractCentroid = (geom) => {
+    const extractCentroid = (feat) => {
+      if (!feat) return null;
+      if (feat._centroid) return feat._centroid;
+      const geom = feat.geometry;
       if (!geom || !geom.coordinates) return null;
+      let res = null;
       if (geom.type === "Point" && Array.isArray(geom.coordinates)) {
-        return [Number(geom.coordinates[0]), Number(geom.coordinates[1])];
-      }
-      const ring =
-        geom.type === "Polygon"
-          ? geom.coordinates[0]
-          : geom.type === "MultiPolygon" && geom.coordinates[0]
-          ? geom.coordinates[0][0]
-          : null;
-      if (!Array.isArray(ring) || !ring.length) return null;
-      let sx = 0;
-      let sy = 0;
-      let n = 0;
-      for (const pt of ring) {
-        if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
-          sx += pt[0];
-          sy += pt[1];
-          n += 1;
+        res = [Number(geom.coordinates[0]), Number(geom.coordinates[1])];
+      } else {
+        const ring =
+          geom.type === "Polygon"
+            ? geom.coordinates[0]
+            : geom.type === "MultiPolygon" && geom.coordinates[0]
+            ? geom.coordinates[0][0]
+            : null;
+        if (Array.isArray(ring) && ring.length) {
+          let sx = 0;
+          let sy = 0;
+          let n = 0;
+          for (const pt of ring) {
+            if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+              sx += pt[0];
+              sy += pt[1];
+              n += 1;
+            }
+          }
+          if (n > 0) res = [sx / n, sy / n];
         }
       }
-      return n > 0 ? [sx / n, sy / n] : null;
+      if (res) feat._centroid = res;
+      return res;
     };
 
     if (!this.useCanvasFallback && this.map) {
@@ -2740,7 +2748,7 @@ export class AtlasMapController {
             if (seenKeys.has(key)) continue;
             seenKeys.add(key);
           }
-          const pt = extractCentroid(feat.geometry);
+          const pt = extractCentroid(feat);
           if (!pt) continue;
           out.push({
             props: p,
@@ -2766,7 +2774,7 @@ export class AtlasMapController {
         if (seenKeys.has(key)) continue;
         seenKeys.add(key);
       }
-      const pt = extractCentroid(feat.geometry);
+      const pt = extractCentroid(feat);
       if (!pt) continue;
       const inVp = Boolean(
         vp &&
