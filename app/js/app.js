@@ -14,8 +14,8 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008p";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008p";
+import { AtlasMapController } from "./mapController.js?v=20261008q";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008q";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008p";
+} from "./curatedEdits.js?v=20261008q";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -162,9 +162,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261008p"),
-        fetch("public/data/stats_summary.json?v=20261008p"),
-        fetch("public/data/haif_index.json?v=20261008p").catch(() => null),
+        fetch("public/data/search_index.json?v=20261008q"),
+        fetch("public/data/stats_summary.json?v=20261008q"),
+        fetch("public/data/haif_index.json?v=20261008q").catch(() => null),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -278,6 +278,46 @@ class HoustonAtlasApp {
    *    so even countywide PMTiles vector shard buildings display their historic & modern names.
    */
   _resolveBuildingNameAndAliases(props = {}) {
+    const cleanNameStr = (raw) => {
+      if (!raw) return "";
+      let s = String(raw);
+      for (let i = 0; i < 2; i += 1) {
+        if (/%[0-9a-fA-F]{2}/.test(s)) {
+          try {
+            s = decodeURIComponent(s);
+          } catch (_e) {
+            break;
+          }
+        }
+      }
+      s = s
+        .replace(/[\u200b-\u200f\ufeff]/g, "")
+        .replace(/[\t\r\n\u00a0]+/g, " ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      if (s && /^[a-z]/.test(s)) {
+        s = s.charAt(0).toUpperCase() + s.slice(1);
+      }
+      s = s
+        .replace(/\bMcintyre([’']?s)?\b/g, "McIntyre$1")
+        .replace(/\bMcgovern\b/g, "McGovern")
+        .replace(/\bJpmorgan\b/g, "JPMorgan")
+        .replace(/\bUthealth\b/g, "UTHealth")
+        .replace(/\bMd\s+Anderson\b/g, "MD Anderson")
+        .replace(/\bSt\s+Luke([’']?s)?\b/g, (_m, p1) => (p1 ? "St. Luke's" : "St. Luke"));
+      return s;
+    };
+
+    const alnumKey = (s) =>
+      String(s || "")
+        .toLowerCase()
+        .replace(/^the\s+/, "")
+        .replace(/&/g, " and ")
+        .replace(/[’']/g, "")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
     const rawAddr = String(props.address || "").trim();
     const normAddr = this._normalizeAddressForHaifLookup(rawAddr);
     const rawId = String(props.building_id || props.id || "").trim().replace(/#fp_\d+$/, "");
@@ -286,7 +326,7 @@ class HoustonAtlasApp {
 
     const isStreetAddrOnly = (s) => {
       if (!s) return true;
-      const clean = String(s).trim();
+      const clean = cleanNameStr(s);
       if (!clean || clean.startsWith("HCAD ")) return true;
       if (normAddr && this._normalizeAddressForHaifLookup(clean) === normAddr && /^\d+\s+/.test(clean)) {
         return true;
@@ -301,7 +341,7 @@ class HoustonAtlasApp {
     let resolvedSource = String(props.name_source || "").trim();
 
     const addPrimary = (nm, src = "") => {
-      const c = String(nm || "").trim();
+      const c = cleanNameStr(nm);
       if (!c || isStreetAddrOnly(c)) return;
       candidatePrimaries.push(c);
       if (src && !resolvedSource) resolvedSource = src;
@@ -324,7 +364,7 @@ class HoustonAtlasApp {
       }
       if (Array.isArray(parsed)) {
         for (const item of parsed) {
-          const c = String(item || "").trim();
+          const c = cleanNameStr(item);
           if (c && !isStreetAddrOnly(c)) candidateAlts.push(c);
         }
       }
@@ -394,18 +434,28 @@ class HoustonAtlasApp {
     const primLow = primaryName.toLowerCase();
     const primNoThe = primLow.replace(/^the\s+/, "");
     const primStem = primNoThe.replace(/\s+(?:building|bldg\.?|house|home|residence|tower)$/i, "").trim();
-    const seenNorms = new Set([primLow, primNoThe, primStem]);
+    const primAlnum = alnumKey(primaryName);
+    const seenNorms = new Set([primLow, primNoThe, primStem, primAlnum]);
     const altNames = [];
     for (const cand of allAltCandidates) {
-      const clean = String(cand || "").trim();
+      const clean = cleanNameStr(cand);
       if (!clean || isStreetAddrOnly(clean)) continue;
       const low = clean.toLowerCase();
       const lowNoThe = low.replace(/^the\s+/, "");
       const lowStem = lowNoThe.replace(/\s+(?:building|bldg\.?|house|home|residence|tower)$/i, "").trim();
-      if (seenNorms.has(low) || seenNorms.has(lowNoThe) || (lowStem && seenNorms.has(lowStem))) continue;
+      const lowAlnum = alnumKey(clean);
+      if (
+        seenNorms.has(low) ||
+        seenNorms.has(lowNoThe) ||
+        (lowStem && seenNorms.has(lowStem)) ||
+        (lowAlnum && seenNorms.has(lowAlnum))
+      ) {
+        continue;
+      }
       seenNorms.add(low);
       seenNorms.add(lowNoThe);
       if (lowStem) seenNorms.add(lowStem);
+      if (lowAlnum) seenNorms.add(lowAlnum);
       altNames.push(clean);
     }
 

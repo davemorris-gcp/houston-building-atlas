@@ -148,7 +148,10 @@ GENERIC_NAME_STOPWORDS = {
 
 
 def clean_title_from_slug(slug: str) -> str:
-    words = slug.replace("-", " ").split()
+    decoded = urllib.request.unquote(slug or "")
+    decoded = re.sub(r"[\u200b-\u200f\ufeff]", "", decoded)
+    decoded = re.sub(r"[\t\r\n\u00a0]+", " ", decoded)
+    words = decoded.replace("-", " ").split()
     out = []
     for w in words:
         if w.lower() in {"st", "ave", "blvd", "rd", "dr", "ln", "fwy", "pkwy", "hwy", "tx"}:
@@ -156,7 +159,7 @@ def clean_title_from_slug(slug: str) -> str:
         elif w.lower() in {"n", "s", "e", "w", "ne", "nw", "se", "sw", "uh", "tsu", "isd", "ymca", "ywca"}:
             out.append(w.upper())
         else:
-            out.append(w.capitalize())
+            out.append(w[0].upper() + w[1:] if len(w) > 1 else w.upper())
     return " ".join(out)
 
 

@@ -13,13 +13,170 @@ Sources integrated:
 
 from __future__ import annotations
 
+import html
 import json
 import re
+import urllib.parse
 from collections import defaultdict
 from pathlib import Path
 
 CACHE_DIR = Path("pipeline/cache")
 DATA_DIR = Path("app/public/data")
+
+# Fused words caused by Invision Community stripping "/" from HAIF thread titles when generating URL slugs
+FUSED_SLASH_REPLACEMENTS: list[tuple[str, str]] = [
+    (r"\bApartmentsphysicians\s+Surgeons\b", "Apartments / Physicians & Surgeons"),
+    (r"\bApartmentsphysicians\b", "Apartments / Physicians"),
+    (r"\bApartmentshotel\b", "Apartments / Hotel"),
+    (r"\bStoreimperial\b", "Store / Imperial"),
+    (r"\bSupplyhugos\b", "Supply / Hugo's"),
+    (r"\bMansionbayou\s+Bendmuseum\b", "Mansion / Bayou Bend Museum"),
+    (r"\bMansionbayou\b", "Mansion / Bayou"),
+    (r"\bBendmuseum\b", "Bend Museum"),
+    (r"\bMansionclayton\b", "Mansion / Clayton"),
+    (r"\bSchoolnorthside\b", "School / Northside"),
+    (r"\bSchoollantrip\b", "School / Lantrip"),
+    (r"\bScientistthe\b", "Scientist / The"),
+    (r"\bBuildinggragg\b", "Building / Gragg"),
+    (r"\bBuildingbering\b", "Building / Bering"),
+    (r"\bBuildingschool\b", "Building / School"),
+    (r"\bBuildingtexas\b", "Building / Texas"),
+    (r"\bBuildingwestheimer\b", "Building / Westheimer"),
+    (r"\bLukesbaylor\b", "Luke's / Baylor"),
+    (r"\bCampusinnovation\b", "Campus / Innovation"),
+    (r"\bHospitaluthealth\b", "Hospital / UTHealth"),
+    (r"\bHospitalpark\b", "Hospital / Park"),
+    (r"\bTowerneurosensory\b", "Tower / Neurosensory"),
+    (r"\bTowershouston\b", "Towers / Houston"),
+    (r"\bTowerspringhill\b", "Tower / SpringHill"),
+    (r"\bTowertmc\b", "Tower / TMC"),
+    (r"\bStationantone[’']?sdroubis\b", "Station / Antone's / Droubi's"),
+    (r"\bExpressstaybridge\b", "Express / Staybridge"),
+    (r"\bAndersonmonroe\b", "Anderson / Monroe"),
+    (r"\bOfficewarehouse\b", "Office / Warehouse"),
+    (r"\bOfficemedical\b", "Office / Medical"),
+    (r"\bPickleballvolleyball\b", "Pickleball / Volleyball"),
+    (r"\bMallplazamericas\b", "Mall / PlazAmericas"),
+    (r"\bChachossmoothie\b", "Chacho's / Smoothie"),
+    (r"\bOakwillowbend\b", "Oak / Willowbend"),
+    (r"\bCompanybaylor\b", "Company / Baylor"),
+    (r"\bCompanycourtyard\b", "Company / Courtyard"),
+    (r"\bHoustonunited\b", "Houston / United"),
+    (r"\bHoustoncentral\b", "Houston / Central"),
+    (r"\bGymnasiumjeppesen\b", "Gymnasium / Jeppesen"),
+    (r"\bFieldhouserobertson\b", "Fieldhouse / Robertson"),
+    (r"\bAnnexresidence\b", "Annex / Residence"),
+    (r"\bHolidaydaysheaven\b", "Holiday / Days / Heaven"),
+    (r"\bParkwayrobinson\b", "Parkway / Robinson"),
+    (r"\bCornervalentine\b", "Corner / Valentine"),
+    (r"\bAssociationjackson\b", "Association / Jackson"),
+    (r"\bAssociationmasterson\b", "Association / Masterson"),
+    (r"\bUniversityhouston\b", "University / Houston"),
+    (r"\bCenterbriarwood\b", "Center / Briarwood"),
+    (r"\bCenterlegacy\b", "Center / Legacy"),
+    (r"\bCenternrg\b", "Center / NRG"),
+    (r"\bSanitariumthe\b", "Sanitarium / The"),
+    (r"\bSanitariumdennis\b", "Sanitarium / Dennis"),
+    (r"\bSanitariummemorial\b", "Sanitarium / Memorial"),
+    (r"\bConstructionreach\b", "Construction / Reach"),
+    (r"\bHomedepelchin\b", "Home / DePelchin"),
+    (r"\bHometable\b", "Home / Table"),
+    (r"\bHotelmotel\b", "Hotel / Motel"),
+    (r"\bHotelstellar\b", "Hotel / Stellar"),
+    (r"\bHousefox\b", "House / Fox"),
+    (r"\bInnhomewood\b", "Inn / Homewood"),
+    (r"\bStoregas\b", "Store / Gas"),
+    (r"\bBarrestaurant\b", "Bar / Restaurant"),
+]
+
+WORD_FIXES: list[tuple[str, object]] = [
+    (r"\bMcintyre([’']?s)?\b", r"McIntyre\1"),
+    (r"\bMcgovern\b", "McGovern"),
+    (r"\bMcewan\b", "McEwan"),
+    (r"\bMcdonald\b", "McDonald"),
+    (r"\bMckinney\b", "McKinney"),
+    (r"\bMcgees\b", "McGee's"),
+    (r"\bMcadams\b", "McAdams"),
+    (r"\bMd\s+Anderson\b", "MD Anderson"),
+    (r"\bJpmorgan\b", "JPMorgan"),
+    (r"\bUthealth\b", "UTHealth"),
+    (r"\bAc\s+Hotel\b", "AC Hotel"),
+    (r"\bNasa\b", "NASA"),
+    (r"\bPlainscapital\b", "PlainsCapital"),
+    (r"\bWillliam\b", "William"),
+    (r"\bAmory\b", "Armory"),
+    (r"\bAssocation\b", "Association"),
+    (r"\bCemetary\b", "Cemetery"),
+    (r"\bCafereria\b", "Cafeteria"),
+    (r"\bMadings\b", "Mading's"),
+    (r"\bAngelos\b", "Angelo's"),
+    (r"\bByrds\b", "Byrd's"),
+    (r"\bRobins\s+Nest\b", "Robin's Nest"),
+    (r"\bRosemarys\s+Place\b", "Rosemary's Place"),
+    (r"\bYoung\s+Womens\b", "Young Women's"),
+    (r"\bTexas\s+Childrens\b", "Texas Children's"),
+    (r"\bTexas\s+Womans\b", "Texas Woman's"),
+    (r"\bLumbermans\b", "Lumberman's"),
+    (r"\bLa\s+Colombe\s+Dor\b", "La Colombe d'Or"),
+    (r"\bVilla\s+D[’']\s*Este\b", "Villa d'Este"),
+    (r"\bOquinn\b", "O'Quinn"),
+    (r"\bBarnabys\b", "Barnaby's"),
+    (r"\bCurleys\b", "Curley's"),
+    (r"\bWaylands\b", "Wayland's"),
+    (r"\bWyatts\b", "Wyatt's"),
+    (r"\bSt\s+Luke([’']?s)?\b", lambda m: "St. Luke's" if m.group(1) else "St. Luke"),
+    (r"\bSt\s+Josephs\b", "St. Joseph's"),
+    (r"\bSt\s+Martins\b", "St. Martin's"),
+    (r"\bSt\s+Marys\b", "St. Mary's"),
+    (r"\bSt\s+Pius\b", "St. Pius"),
+    (r"\bSt\s+Rose\b", "St. Rose"),
+    (r"\bSt\s+Thomas\b", "St. Thomas"),
+    (r"\bSt\s+Anne\b", "St. Anne"),
+    (r"\bSt\s+Elizabeth\b", "St. Elizabeth"),
+    (r"\bSt\s+Germain\b", "St. Germain"),
+    (r"\bSt\s+Jude\b", "St. Jude"),
+    (r"\bDepelchin\b", "DePelchin"),
+    (r"\bDegeorge\b", "DeGeorge"),
+    (r"\bCenterpoint\b", "CenterPoint"),
+    (r"\bNew\s+New\s+Wing\b", "New Wing"),
+]
+
+
+def clean_name_or_title(raw: str | None) -> str:
+    """
+    Decodes URL percent-escapes (%e2%80%99 -> ’, %e2%80%8b -> stripped), HTML entities,
+    invisible zero-width characters, fused HAIF slash-slug tokens, and restores proper casing.
+    """
+    if not raw:
+        return ""
+    s = str(raw)
+    for _ in range(2):
+        if "%" in s:
+            try:
+                s = urllib.parse.unquote(s)
+            except Exception:
+                break
+    if "&" in s:
+        s = html.unescape(s)
+    s = re.sub(r"[\u200b-\u200f\ufeff]", "", s)
+    s = re.sub(r"[\t\r\n\u00a0]+", " ", s)
+    s = re.sub(r"\s{2,}", " ", s).strip()
+    if s and s[0].islower():
+        s = s[0].upper() + s[1:]
+    s = re.sub(r"\b([A-Z][a-z]+)\s+mansion\b", r"\1 Mansion", s)
+    for pat, repl in FUSED_SLASH_REPLACEMENTS:
+        s = re.sub(pat, repl, s, flags=re.I)
+    for pat, repl in WORD_FIXES:
+        s = re.sub(pat, repl, s)
+    # Strip trailing HAIF discussion topic suffixes ("Proposed 15 Story High Rise", "Conversion To Retail Garage")
+    s = re.sub(
+        r"\s+(?:Proposed\s+\d+\s+Story\s+High\s+Rise|Proposed\s+Office\s+Tower|Conversion\s+To\s+[A-Za-z\s]+)$",
+        "",
+        s,
+        flags=re.I,
+    ).strip()
+    return s
+
 
 # Neighborhoods or metadata notes in parentheses that should NOT be extracted as standalone building aliases
 NEIGHBORHOOD_OR_META_PAREN_RE = re.compile(
@@ -38,13 +195,15 @@ NEIGHBORHOOD_OR_META_PAREN_RE = re.compile(
     re.I,
 )
 
-# Generic structural/auxiliary labels that are NOT proper historical building names
+# Generic structural/auxiliary labels or forum discussion topics that are NOT proper historical building names
 GENERIC_AUXILIARY_NAME_RE = re.compile(
     r"(?:"
     r"carriage house|auxiliary structure|detached garage|garage apartment|outbuilding|"
     r"storage tank|process unit|industrial structure|petrochemical|refinery tank|"
     r"bus shelter|transit canopy|parking garage|loading dock|utility building|"
-    r"courtyard wing|west wing|east wing|north wing|south wing"
+    r"courtyard wing|west wing|east wing|north wing|south wing|"
+    r"\bacres for sale\b|\bskyscraper history\b|\buniversity history\b|\bdemo house\b|"
+    r"\bin dallas\b|\bin austin\b|\bin fort worth\b|\bin san antonio\b"
     r")",
     re.I,
 )
@@ -163,6 +322,11 @@ ICONIC_MULTI_NAME_BY_HCAD: dict[str, dict] = {
         "alts": ["1911 Federal Building", "U.S. Custom House", "Houston Armed Forces Induction Center"],
         "source": "COH Landmark Designation Report & HAIF",
     },
+    "0010020000016": {
+        "primary": "Desel-Boettcher Warehouse",
+        "alts": ["McIntyre's Restaurant", "Spaghetti Warehouse"],
+        "source": "COH Landmark Designation Report & HAIF Archive",
+    },
 }
 
 
@@ -182,10 +346,12 @@ def norm_addr(s: str | None) -> str:
 def is_valid_building_name(cand: str, addr: str = "") -> bool:
     if not cand:
         return False
-    c = cand.strip(" -:,;.\"'\t\r\n")
+    c = clean_name_or_title(cand).strip(" -:,;.\"'\t\r\n")
     if len(c) < 3 or len(c) > 95:
         return False
     if c.isdigit() or c.startswith("HCAD "):
+        return False
+    if c.lower() in {"north", "south", "east", "west", "spring", "central", "downtown", "pavilion", "mathematics", "mixed use development"}:
         return False
     if NEIGHBORHOOD_OR_META_PAREN_RE.match(c):
         return False
@@ -195,6 +361,11 @@ def is_valid_building_name(cand: str, addr: str = "") -> bool:
         return False
     if addr and norm_addr(c) == norm_addr(addr):
         return False
+    # If candidate is "House at <other address>" or "Building at <address>", only allow if it matches this building's address
+    m_at = re.match(r"^(?:the\s+)?(?:house|building|duplex|cottage|home)\s+at\s+(\d+\s+.*)$", c, re.I)
+    if m_at:
+        if not addr or norm_addr(m_at.group(1)) != norm_addr(addr):
+            return False
     return True
 
 
@@ -207,7 +378,8 @@ def split_primary_and_alts(raw_label: str, addr: str = "") -> tuple[str, list[st
     """
     if not raw_label:
         return "", []
-    s = re.sub(r"\s*-\s*DEMOLISHED\b", "", str(raw_label), flags=re.I).strip()
+    s = clean_name_or_title(raw_label)
+    s = re.sub(r"\s*-\s*DEMOLISHED\b", "", s, flags=re.I).strip()
     if GENERIC_AUXILIARY_NAME_RE.search(s):
         return s, []
 
@@ -221,6 +393,7 @@ def split_primary_and_alts(raw_label: str, addr: str = "") -> tuple[str, list[st
             inner,
             flags=re.I,
         ).strip(" -:,;.")
+        clean_inner = clean_name_or_title(clean_inner)
         if not clean_inner:
             return ""
         if NEIGHBORHOOD_OR_META_PAREN_RE.match(clean_inner):
@@ -236,13 +409,15 @@ def split_primary_and_alts(raw_label: str, addr: str = "") -> tuple[str, list[st
     s_clean = re.sub(r"\s{2,}", " ", s_clean).strip(" -:,;")
 
     if " / " in s_clean:
-        parts = [p.strip() for p in s_clean.split(" / ") if p.strip()]
+        parts = [clean_name_or_title(p).strip() for p in s_clean.split(" / ") if p.strip()]
         valid_parts = [p for p in parts if is_valid_building_name(p, addr)]
         if len(valid_parts) >= 2:
             s_clean = valid_parts[0]
             for vp in valid_parts[1:]:
                 if vp.lower() not in [a.lower() for a in alts]:
                     alts.append(vp)
+        elif len(valid_parts) == 1:
+            s_clean = valid_parts[0]
 
     # If the primary name is just "Building at 1204 Nance Street" or "411 Fannin Street" and we have a real alias, promote the alias!
     if alts and (
@@ -317,7 +492,8 @@ def extract_names_from_haif_title(title: str, addr: str = "") -> list[str]:
     """
     if not title:
         return []
-    t = re.sub(r"^Houston\s+photo:\s*", "", str(title), flags=re.I).strip()
+    t = clean_name_or_title(title)
+    t = re.sub(r"^Houston\s+photo:\s*", "", t, flags=re.I).strip()
     m = re.split(r"\s+(?:\bat\b|-)\s+\d{1,5}\b", t, maxsplit=1, flags=re.I)
     if len(m) < 2:
         return []
@@ -332,7 +508,7 @@ def extract_names_from_haif_title(title: str, addr: str = "") -> list[str]:
     parts = re.split(r"\s*(?:/|\baka\b|\bformerly\b)\s*", raw_prefix, flags=re.I)
     out: list[str] = []
     for p in parts:
-        p_clean = p.strip(" -:,;()")
+        p_clean = clean_name_or_title(p).strip(" -:,;()")
         p_clean = re.sub(r"\s+\d{2,5}\s+[A-Za-z]+\s+(?:St|Ave|Blvd|Dr|Rd)\.?$", "", p_clean, flags=re.I).strip()
         if not is_valid_building_name(p_clean, addr):
             continue
@@ -343,30 +519,48 @@ def extract_names_from_haif_title(title: str, addr: str = "") -> list[str]:
     return out
 
 
+def _alnum_key(s: str) -> str:
+    s_low = re.sub(r"^the\s+", "", (s or "").strip().lower())
+    s_low = s_low.replace("&", " and ").replace("’", "").replace("'", "")
+    return " ".join(re.sub(r"[^a-z0-9\s]", " ", s_low).split())
+
+
 def merge_unique_names(primary: str, candidates: list[str], addr: str = "") -> list[str]:
     """Returns deduplicated list of alternate names that are distinct from `primary` and `addr`."""
-    p_low = (primary or "").strip().lower()
+    p_clean = clean_name_or_title(primary)
+    p_low = p_clean.strip().lower()
     p_norm = re.sub(r"^the\s+", "", p_low)
+    p_alnum = _alnum_key(p_clean)
     addr_norm = norm_addr(addr)
     result: list[str] = []
-    seen_norms: set[str] = {p_low, p_norm}
+    seen_norms: set[str] = {p_low, p_norm, p_alnum}
     for cand in candidates:
         if not cand:
             continue
-        c = cand.strip(" -:,;.")
+        c = clean_name_or_title(cand).strip(" -:,;.")
         if not is_valid_building_name(c, addr):
             continue
         c_low = c.lower()
         c_norm = re.sub(r"^the\s+", "", c_low)
-        if c_low in seen_norms or c_norm in seen_norms:
+        c_alnum = _alnum_key(c)
+        if c_low in seen_norms or c_norm in seen_norms or (c_alnum and c_alnum in seen_norms):
             continue
-        # Also skip if one is just a trivial substring of primary (like "Harris County Courthouse" vs "1910 Harris County Courthouse")
         if addr_norm and norm_addr(c) == addr_norm:
             continue
         seen_norms.add(c_low)
         seen_norms.add(c_norm)
+        if c_alnum:
+            seen_norms.add(c_alnum)
         result.append(c)
     return result[:4]
+
+
+def _clean_haif_thread_list(threads_list: list | None) -> None:
+    if not isinstance(threads_list, list):
+        return
+    for th in threads_list:
+        if isinstance(th, dict) and th.get("title"):
+            th["title"] = clean_name_or_title(th["title"])
 
 
 def main() -> None:
@@ -384,6 +578,24 @@ def main() -> None:
     buildings_doc = json.loads(buildings_path.read_text())
     haif_doc = json.loads(haif_path.read_text())
     search_doc = json.loads(search_path.read_text())
+
+    # First: sanitize all HAIF thread titles in haif_index.json and pipeline/cache/haif_thread_details.json
+    for tid, rec in (haif_doc.get("threads") or {}).items():
+        if isinstance(rec, dict) and rec.get("t"):
+            rec["t"] = clean_name_or_title(rec["t"])
+
+    details_cache_path = CACHE_DIR / "haif_thread_details.json"
+    if details_cache_path.exists():
+        details_doc = json.loads(details_cache_path.read_text())
+        details_changed = False
+        for tid, rec in details_doc.items():
+            if isinstance(rec, dict) and rec.get("title"):
+                new_t = clean_name_or_title(rec["title"])
+                if new_t != rec["title"]:
+                    rec["title"] = new_t
+                    details_changed = True
+        if details_changed:
+            details_cache_path.write_text(json.dumps(details_doc, indent=2))
 
     pdf_text_by_url = {
         url: (rec.get("text") or "")
@@ -418,19 +630,24 @@ def main() -> None:
         source: str,
         allow_addr_index: bool = True,
     ) -> None:
-        if not is_valid_building_name(primary, addr):
-            primary = ""
-        valid_alts = [a for a in alts if is_valid_building_name(a, addr)]
+        primary_c = clean_name_or_title(primary) if primary else ""
+        if not is_valid_building_name(primary_c, addr):
+            primary_c = ""
+        valid_alts = []
+        for a in alts:
+            ac = clean_name_or_title(a)
+            if is_valid_building_name(ac, addr):
+                valid_alts.append(ac)
         if key:
             rec = by_key_names[key]
-            if primary:
-                rec["primaries"].append((priority, primary, source))
+            if primary_c:
+                rec["primaries"].append((priority, primary_c, source))
             rec["alts"].extend(valid_alts)
         na = norm_addr(addr)
         if allow_addr_index and na and addr_building_counts.get(na, 0) <= 1 and "#" not in str(key):
             arec = by_addr_names[na]
-            if primary:
-                arec["primaries"].append((priority, primary, source))
+            if primary_c:
+                arec["primaries"].append((priority, primary_c, source))
             arec["alts"].extend(valid_alts)
 
     # Priority 0: Iconic curated multi-name Houston buildings
@@ -454,6 +671,7 @@ def main() -> None:
     lm_with_alts = 0
     for feat in overlays.get("landmarks", {}).get("features", []):
         p = feat.get("properties") or {}
+        _clean_haif_thread_list(p.get("haif_threads"))
         raw_name = p.get("name") or ""
         addr = p.get("address") or ""
         hcad = str(p.get("hcad_num") or "").strip()
@@ -478,6 +696,8 @@ def main() -> None:
         if all_alts:
             p["alt_names"] = all_alts
             lm_with_alts += 1
+        else:
+            p.pop("alt_names", None)
         p["name_source"] = "COH Landmark Designation Report"
         register_name(hcad, addr, primary, all_alts, 1, "COH Landmark Designation Report")
 
@@ -485,6 +705,7 @@ def main() -> None:
     gb_with_alts = 0
     for feat in overlays.get("good_brick_awards", {}).get("features", []):
         p = feat.get("properties") or {}
+        _clean_haif_thread_list(p.get("haif_threads"))
         raw_name = p.get("landmark_name") or p.get("name") or ""
         addr = p.get("address") or ""
         hcad = str(p.get("hcad_num") or "").strip()
@@ -501,6 +722,8 @@ def main() -> None:
         if all_alts:
             p["alt_names"] = all_alts
             gb_with_alts += 1
+        else:
+            p.pop("alt_names", None)
         p["name_source"] = "Preservation Houston Good Brick Award"
         is_multi_campus = hcad_building_counts.get(hcad, 0) > 1
         if bid and "#" in bid:
@@ -512,7 +735,12 @@ def main() -> None:
     for k, ov in overrides.items():
         if not isinstance(ov, dict) or ov.get("suppress_only"):
             continue
+        _clean_haif_thread_list(ov.get("haif_threads"))
         if "#aux_" in str(k):
+            ov.pop("alt_names", None)
+            if ov.get("building_name"):
+                p_aux, _ = split_primary_and_alts(ov["building_name"], ov.get("address") or "")
+                ov["building_name"] = p_aux
             continue
         addr = ov.get("address") or ""
         raw_lm = ov.get("landmark_name") or ""
@@ -641,6 +869,7 @@ def main() -> None:
     bld_multi_name_count = 0
     for feat in buildings_doc.get("features", []):
         p = feat.get("properties") or {}
+        _clean_haif_thread_list(p.get("haif_threads"))
         fid = str(p.get("id") or p.get("building_id") or "").strip()
         if "#aux_" in fid:
             p.pop("alt_names", None)
@@ -711,8 +940,12 @@ def main() -> None:
             item.pop("alt_names", None)
             continue
         hcad = str(item.get("hcad_num") or "").strip()
-        lbl = str(item.get("label") or "").strip()
-        sub = str(item.get("sublabel") or "").strip()
+        lbl = clean_name_or_title(item.get("label") or "").strip()
+        sub = clean_name_or_title(item.get("sublabel") or "").strip()
+        if item.get("name"):
+            item["name"] = clean_name_or_title(item["name"])
+        if item.get("keywords"):
+            item["keywords"] = clean_name_or_title(item["keywords"])
         # Strip any prior "AKA: ... • " prefix so we rebuild cleanly
         sub = re.sub(r"^AKA:\s*[^•]+•\s*", "", sub).strip()
 
