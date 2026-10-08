@@ -14,7 +14,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261007f";
+import { AtlasMapController } from "./mapController.js?v=20261008g";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 import {
   applyOverrideToProperties,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261007f";
+} from "./curatedEdits.js?v=20261008g";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,

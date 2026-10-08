@@ -215,7 +215,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261007g", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261008g", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -383,6 +383,7 @@ export function applyOverrideToProperties(props, overridesMap) {
     ),
     is_building_override: Boolean(ov.is_building_override),
     replace_parcel_shards: Boolean(ov.replace_parcel_shards),
+    keep_shard_footprints: Boolean(ov.keep_shard_footprints),
     suppress_shard_hcads: Array.isArray(ov.suppress_shard_hcads)
       ? ov.suppress_shard_hcads
       : Array.isArray(props.suppress_shard_hcads)
