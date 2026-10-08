@@ -14,7 +14,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008h";
+import { AtlasMapController } from "./mapController.js?v=20261008i";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 import {
   applyOverrideToProperties,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008h";
+} from "./curatedEdits.js?v=20261008i";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -162,9 +162,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261008h"),
-        fetch("public/data/stats_summary.json?v=20261008h"),
-        fetch("public/data/haif_index.json?v=20261008h").catch(() => null),
+        fetch("public/data/search_index.json?v=20261008i"),
+        fetch("public/data/stats_summary.json?v=20261008i"),
+        fetch("public/data/haif_index.json?v=20261008i").catch(() => null),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -271,6 +271,17 @@ class HoustonAtlasApp {
 
   _mergeCuratedOverridesIntoSearchIndex() {
     const ovMap = (this.mapController && this.mapController.curatedOverrides) || {};
+    const suppressedHcads = new Set();
+    for (const [k, ov] of Object.entries(ovMap)) {
+      if (ov && ov.suppress_only) {
+        suppressedHcads.add(String(ov.hcad_num || k).trim());
+      }
+    }
+    if (suppressedHcads.size > 0) {
+      this.searchIndex = this.searchIndex.filter(
+        (item) => !item.hcad_num || !suppressedHcads.has(String(item.hcad_num).trim())
+      );
+    }
     const existingByHcad = new Map();
     for (let i = 0; i < this.searchIndex.length; i++) {
       const item = this.searchIndex[i];
@@ -280,6 +291,7 @@ class HoustonAtlasApp {
     }
 
     for (const [hcad, ov] of Object.entries(ovMap)) {
+      if (!ov || ov.suppress_only) continue;
       const existingIdx = existingByHcad.get(hcad);
       const existingItem = existingIdx !== undefined ? this.searchIndex[existingIdx] : null;
       let lon = ov.lon ?? ov.lng ?? existingItem?.lon ?? -95.38718;
