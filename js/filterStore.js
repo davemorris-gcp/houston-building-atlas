@@ -97,14 +97,56 @@ export function featureMatchesFilter(props, state) {
   return yr >= state.minYear && yr <= state.maxYear;
 }
 
+export const ANNEXATION_MILESTONE_DECADES = [
+  1836, 1840, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020,
+];
+
+/**
+ * Resolve the single cumulative annexation boundary decade for a given filter state,
+ * or null when showing all historical annexation milestone rings at once.
+ */
+export function resolveActiveAnnexationDecade(state) {
+  if (!state) return null;
+  const decStr = String(state.selectedDecade || "all");
+  const maxY = Number(state.maxYear) || 2026;
+  const hasEraFilter =
+    Boolean(state.syncAnnexationToTime) ||
+    Boolean(state.isPlaying) ||
+    (decStr !== "all" && decStr !== "unknown") ||
+    maxY < 2026;
+
+  if (!hasEraFilter) {
+    return null;
+  }
+
+  let cutoff = maxY;
+  if (decStr !== "all" && decStr !== "unknown") {
+    const decInt = Number(decStr);
+    if (!Number.isNaN(decInt) && decInt >= 1830) {
+      cutoff = decInt === 1836 ? 1836 : decInt + 9;
+    }
+  }
+
+  let matched = 1836;
+  for (const milestone of ANNEXATION_MILESTONE_DECADES) {
+    if (milestone <= cutoff) {
+      matched = milestone;
+    } else {
+      break;
+    }
+  }
+  return matched;
+}
+
 /**
  * Compile a MapLibre filter expression for the Annexation History layer.
- * When `syncAnnexationToTime` is enabled or time-lapse is playing, only show annexations up to `maxYear`.
+ * When synced to time or filtered to an era/year, render the single clean dissolved
+ * cumulative city boundary for that era rather than stacking internal historical rings.
  */
 export function buildAnnexationFilterExpression(state) {
-  if (state.syncAnnexationToTime || state.isPlaying) {
-    const cutoff = Number(state.maxYear) || 2026;
-    return ["<=", ["to-number", ["get", "decade"], 1836], cutoff];
+  const activeDecade = resolveActiveAnnexationDecade(state);
+  if (activeDecade !== null) {
+    return ["==", ["to-number", ["get", "decade"], 1836], activeDecade];
   }
   return ["all"];
 }

@@ -9,17 +9,18 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261007e";
+} from "./palettes.js?v=20261007f";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   featureMatchesFilter,
-} from "./filterStore.js?v=20261007e";
+  resolveActiveAnnexationDecade,
+} from "./filterStore.js?v=20261007f";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261007e";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007e";
+} from "./curatedEdits.js?v=20261007f";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -165,10 +166,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261007e"),
-        fetch("public/data/parcels.geojson?v=20261007e"),
-        fetch("public/data/overlays.json?v=20261007e"),
-        fetch("public/data/pmtiles_manifest.json?v=20261007e").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261007f"),
+        fetch("public/data/parcels.geojson?v=20261007f"),
+        fetch("public/data/overlays.json?v=20261007f"),
+        fetch("public/data/pmtiles_manifest.json?v=20261007f").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -1470,15 +1471,23 @@ export class AtlasMapController {
           maxX += roofOffset * 0.35;
         } else {
           ctx.beginPath();
-          for (let i = 0; i < pts.length; i++) {
-            const [x, y] = pts[i];
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
+          for (let rIdx = 0; rIdx < poly.length; rIdx++) {
+            const subRing = poly[rIdx];
+            if (!subRing || subRing.length < 3) continue;
+            const ringPts =
+              rIdx === 0
+                ? pts
+                : subRing.map(([lon, lat]) => this._lngLatToScreen(lon, lat, width, height));
+            for (let i = 0; i < ringPts.length; i++) {
+              const [x, y] = ringPts[i];
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
           }
-          ctx.closePath();
           if (fillStyle) {
             ctx.fillStyle = fillStyle;
-            ctx.fill();
+            ctx.fill("evenodd");
           }
           if (strokeStyle) {
             if (dash) ctx.setLineDash(dash);
@@ -1494,10 +1503,10 @@ export class AtlasMapController {
 
     // 2. Annexation History Overlay
     if ((state.layers.annexations || state.syncAnnexationToTime) && this.overlaysData?.annexations) {
-      const cutoff = Number(state.maxYear) || 2026;
+      const activeDecade = resolveActiveAnnexationDecade(state);
       for (const feat of this.overlaysData.annexations.features || []) {
         const dec = Number(feat.properties?.decade) || 1836;
-        if ((state.syncAnnexationToTime || state.isPlaying) && dec > cutoff) continue;
+        if (activeDecade !== null && dec !== activeDecade) continue;
         drawPolygonFeature(
           feat.geometry,
           "rgba(217, 119, 6, 0.08)",

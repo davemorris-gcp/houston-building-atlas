@@ -6,16 +6,16 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261007e";
+} from "./palettes.js?v=20261007f";
 import {
   buildShareableUrl,
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261007e";
-import { AtlasMapController } from "./mapController.js?v=20261007e";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007e";
+} from "./filterStore.js?v=20261007f";
+import { AtlasMapController } from "./mapController.js?v=20261007f";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,14 +26,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261007e";
+} from "./curatedEdits.js?v=20261007f";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261007e";
+} from "./photoService.js?v=20261007f";
 
 class HoustonAtlasApp {
   constructor() {
