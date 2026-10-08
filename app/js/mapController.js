@@ -19,8 +19,8 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008l";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008l";
+} from "./curatedEdits.js?v=20261008p";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008p";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -166,10 +166,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261008l"),
-        fetch("public/data/parcels.geojson?v=20261008l"),
-        fetch("public/data/overlays.json?v=20261008l"),
-        fetch("public/data/pmtiles_manifest.json?v=20261008l").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261008p"),
+        fetch("public/data/parcels.geojson?v=20261008p"),
+        fetch("public/data/overlays.json?v=20261008p"),
+        fetch("public/data/pmtiles_manifest.json?v=20261008p").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -2752,9 +2752,14 @@ export class AtlasMapController {
       }
     }
 
-    for (const feat of this.buildingsData || []) {
-      if (out.length >= limit * 2) break;
-      const p = feat.properties || {};
+    const vp = this.getCurrentViewport ? this.getCurrentViewport() : null;
+    const allFeatures = [
+      ...(this.overridesFC?.features || []),
+      ...(this.buildingsData || []),
+    ];
+    const nonViewportOut = [];
+    for (const feat of allFeatures) {
+      const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
       if (p.suppress_only) continue;
       const key = p.id || p.building_id || p.hcad_num || "";
       if (key) {
@@ -2763,15 +2768,31 @@ export class AtlasMapController {
       }
       const pt = extractCentroid(feat.geometry);
       if (!pt) continue;
-      out.push({
-        props: p,
-        lon: pt[0],
-        lat: pt[1],
-        inViewport: false,
-      });
+      const inVp = Boolean(
+        vp &&
+          pt[0] >= vp.west &&
+          pt[0] <= vp.east &&
+          pt[1] >= vp.south &&
+          pt[1] <= vp.north
+      );
+      if (inVp) {
+        out.push({
+          props: p,
+          lon: pt[0],
+          lat: pt[1],
+          inViewport: true,
+        });
+      } else if (nonViewportOut.length < limit) {
+        nonViewportOut.push({
+          props: p,
+          lon: pt[0],
+          lat: pt[1],
+          inViewport: false,
+        });
+      }
     }
 
-    return out;
+    return out.concat(nonViewportOut).slice(0, limit * 2);
   }
 }
 

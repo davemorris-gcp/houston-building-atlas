@@ -14,8 +14,8 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008l";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008l";
+import { AtlasMapController } from "./mapController.js?v=20261008p";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008p";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008l";
+} from "./curatedEdits.js?v=20261008p";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -162,9 +162,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261008l"),
-        fetch("public/data/stats_summary.json?v=20261008l"),
-        fetch("public/data/haif_index.json?v=20261008l").catch(() => null),
+        fetch("public/data/search_index.json?v=20261008p"),
+        fetch("public/data/stats_summary.json?v=20261008p"),
+        fetch("public/data/haif_index.json?v=20261008p").catch(() => null),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -464,6 +464,17 @@ class HoustonAtlasApp {
       "Portable/Modular Office - Average",
     ]);
 
+    const splitParenNote = (str) => {
+      const s = String(str || "").trim();
+      const m = s.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+      if (!m) return { core: s, note: "" };
+      const inside = m[2].trim();
+      if (/^hcad\b|\bstories\b|\bunits\b/i.test(inside)) {
+        return { core: s, note: "" };
+      }
+      return { core: m[1].trim(), note: inside };
+    };
+
     const rawStyle = String(props.style || "").trim();
     const rawBldStyle = String(props.bld_style || "").trim();
     const rawGrade = String(
@@ -480,12 +491,42 @@ class HoustonAtlasApp {
         ? rawBldStyle
         : "";
 
+    const chips = [];
+
     if (cleanArchStyle && !STRUCTURAL_CLASSES.has(cleanArchStyle)) {
-      const searchQ = cleanArchStyle.split("(")[0].trim();
+      const { core, note } = splitParenNote(cleanArchStyle);
+      chips.push({
+        label: core,
+        query: core,
+        note,
+        headerLabel: `Architectural Style: ${core}`,
+        isSecondary: false,
+      });
+      if (
+        cleanBldStyle &&
+        cleanBldStyle.toLowerCase() !== cleanArchStyle.toLowerCase() &&
+        cleanBldStyle.toLowerCase() !== core.toLowerCase() &&
+        cleanBldStyle.toLowerCase() !== useCat.toLowerCase()
+      ) {
+        const bSplit = splitParenNote(cleanBldStyle);
+        const isStruct =
+          STRUCTURAL_CLASSES.has(cleanBldStyle) ||
+          /steel|masonry|concrete|frame|tank|canopy|carport|mobile|utility|paving|plant/i.test(
+            cleanBldStyle
+          );
+        chips.push({
+          label: bSplit.core,
+          query: bSplit.core,
+          note: bSplit.note,
+          headerLabel: `${isStruct ? "Building Class" : "Style"}: ${bSplit.core}`,
+          isSecondary: true,
+        });
+      }
       return {
-        displayStyle: cleanArchStyle,
-        searchQuery: searchQ,
-        headerLabel: `Architectural Style: ${cleanArchStyle}`,
+        displayStyle: core,
+        searchQuery: core,
+        headerLabel: `Architectural Style: ${core}`,
+        chips,
       };
     }
 
@@ -495,32 +536,146 @@ class HoustonAtlasApp {
         /steel|masonry|concrete|frame|tank|canopy|carport|mobile|utility|paving|plant/i.test(
           cleanBldStyle
         );
-      const searchQ = cleanBldStyle.split("(")[0].trim();
+      const { core, note } = splitParenNote(cleanBldStyle);
+      const hdr = `${isStructClass ? "Building Class" : "Architectural Style"}: ${core}`;
+      chips.push({
+        label: core,
+        query: core,
+        note,
+        headerLabel: hdr,
+        isSecondary: false,
+      });
       return {
-        displayStyle: cleanBldStyle,
-        searchQuery: searchQ,
-        headerLabel: `${isStructClass ? "Building Class" : "Architectural Style"}: ${cleanBldStyle}`,
+        displayStyle: core,
+        searchQuery: core,
+        headerLabel: hdr,
+        chips,
       };
     }
 
     if (rawGrade && GRADE_LABELS[rawGrade]) {
+      const gradeLabel = GRADE_LABELS[rawGrade];
+      const hdr = `Building Class: ${gradeLabel}`;
+      chips.push({
+        label: gradeLabel,
+        query: gradeLabel,
+        note: "",
+        headerLabel: hdr,
+        isSecondary: false,
+      });
       return {
-        displayStyle: GRADE_LABELS[rawGrade],
-        searchQuery: `HCAD Grade ${rawGrade}`,
-        headerLabel: `Building Class: ${GRADE_LABELS[rawGrade]}`,
+        displayStyle: gradeLabel,
+        searchQuery: gradeLabel,
+        headerLabel: hdr,
+        chips,
       };
     }
 
     const fallbackCat = useCat || landuseDesc || "Residential";
+    const isHistNote =
+      rawStyle === "Historical / Architectural Structure" ||
+      rawBldStyle === "Historical / Architectural Structure";
+    const hdr = `Building Category: ${fallbackCat}`;
+    chips.push({
+      label: fallbackCat,
+      query: fallbackCat,
+      note: isHistNote ? "Historic / Architectural" : "",
+      headerLabel: hdr,
+      isSecondary: false,
+    });
     return {
-      displayStyle:
-        rawStyle === "Historical / Architectural Structure" ||
-        rawBldStyle === "Historical / Architectural Structure"
-          ? `${fallbackCat} (Historic / Architectural)`
-          : fallbackCat,
+      displayStyle: fallbackCat,
       searchQuery: fallbackCat,
-      headerLabel: `Building Category: ${fallbackCat}`,
+      headerLabel: hdr,
+      chips,
     };
+  }
+
+  _resolveLandUseChips(props = {}) {
+    const CRYPTIC_HCAD_LANDUSE = new Set([
+      "",
+      "Res Improved Table Value",
+      "Res Improved Table Value (Res. Use)",
+      "Res Improved Override",
+      "Res Improved Override (Res. Use)",
+      "Res. Struct. Or Conversion",
+      "Res Vacant Table Value",
+      "Res Vacant Table Value (Res. Use)",
+      "Res Vacant Override",
+      "Residential Imps Only Land",
+      "General Commercial Vacant",
+      "Vacant Exempt Land",
+      "Auxiliary Improvement",
+      "Mkt Value of NV Land",
+      "UDI Vacant Land",
+      "UDI Improved Land",
+      "Commercial Imps Only Land",
+      "Downtown ROW",
+      "Non-Usable Land in Flood Control Easement",
+      "Condo Land",
+      "Res Open Space/Retention Land",
+    ]);
+
+    const rawLandUse = String(props.landuse_desc || "").trim();
+    const broadCategory = String(props.use_category || "").trim() || "Residential";
+    const specificUse = CRYPTIC_HCAD_LANDUSE.has(rawLandUse) ? "" : rawLandUse;
+
+    if (specificUse && specificUse.toLowerCase() !== broadCategory.toLowerCase()) {
+      return [
+        {
+          label: specificUse,
+          query: specificUse,
+          headerLabel: `Land Use: ${specificUse}`,
+          title: `Click to find '${specificUse}' & related structures across Houston`,
+          isCategory: false,
+        },
+        {
+          label: broadCategory,
+          query: broadCategory,
+          headerLabel: `Land Use Category: ${broadCategory}`,
+          title: `Click to find all '${broadCategory}' structures across Houston`,
+          isCategory: true,
+        },
+      ];
+    }
+
+    const singleUse = specificUse || broadCategory;
+    return [
+      {
+        label: singleUse,
+        query: singleUse,
+        headerLabel: `Land Use: ${singleUse}`,
+        title: `Click to find '${singleUse}' structures across Houston`,
+        isCategory: false,
+      },
+    ];
+  }
+
+  _resolveArchitectChips(props = {}) {
+    const raw = String(props.architect || "").trim();
+    if (!raw || /^(?:unknown|none|n\/a|null|unrecorded|tbd)$/i.test(raw)) {
+      return [];
+    }
+    const parts = raw
+      .split(/\s*[;/]\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const chips = [];
+    for (const part of parts) {
+      const cleaned = part.replace(/,\s*(?:architects?|builders?|bldr|consulting)\b.*$/i, "").trim();
+      const m = cleaned.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+      const core = m ? m[1].trim() : cleaned;
+      const note = m ? m[2].trim() : "";
+      if (!core) continue;
+      chips.push({
+        label: core,
+        query: core,
+        note,
+        headerLabel: `Architect / Builder: ${core}`,
+      });
+    }
+    return chips;
   }
 
   _mergeCuratedOverridesIntoSearchIndex() {
@@ -1798,9 +1953,180 @@ class HoustonAtlasApp {
       return;
     }
 
-    // Parse HCAD Grade query if formatted as "hcad grade e" or "hcad class e"
-    const gradeMatch = q.match(/^hcad\s+(?:grade|class)\s+([a-ex][+-]{0,2})$/i);
+    // Parse HCAD Grade query whether formatted as "HCAD Grade E" or "Vernacular Frame / Cottage (HCAD Grade E)"
+    const gradeMatch = q.match(/hcad\s+(?:grade|class)?\s*([a-ex][+-]{0,2})(?:\b|\)|$)/i);
     const targetGrade = gradeMatch ? gradeMatch[1].toLowerCase() : "";
+
+    // Semantic Land-Use Sub-Families: clicking a specific sub-type chip (e.g. "Auditorium") ranks exact matches #1 (115)
+    // and also surfaces peer structures in the same functional family (92) so hyper-specific HCAD codes never return just 1 item.
+    const LANDUSE_SEMANTIC_FAMILIES = [
+      {
+        triggers: [
+          "auditorium",
+          "auditorium / performing arts",
+          "theater / performing arts",
+          "legitimate theater",
+          "cultural facility",
+          "night club/dinner theater",
+        ],
+        landuseMatches: [
+          "auditorium",
+          "auditorium / performing arts",
+          "theater / performing arts",
+          "legitimate theater",
+          "cultural facility",
+          "night club/dinner theater",
+        ],
+        nameKeywords: [
+          "jones hall",
+          "theater",
+          "theatre",
+          "auditorium",
+          "performing arts",
+          "center for dance",
+          "music hall",
+          "concert hall",
+          "opera",
+          "symphony",
+          "playhouse",
+        ],
+      },
+      {
+        triggers: ["religious", "church / religious"],
+        landuseMatches: ["religious", "church / religious"],
+        nameKeywords: [
+          "church",
+          "cathedral",
+          "chapel",
+          "sanctuary",
+          "synagogue",
+          "temple",
+          "parish",
+          "baptist",
+          "methodist",
+          "lutheran",
+          "episcopal",
+          "catholic",
+          "presbyterian",
+        ],
+      },
+      {
+        triggers: ["library"],
+        landuseMatches: ["library"],
+        nameKeywords: ["library", "ideson", "gregory school"],
+      },
+      {
+        triggers: ["school", "college or university", "day care center"],
+        landuseMatches: ["school", "college or university", "day care center"],
+        nameKeywords: [
+          "school",
+          "elementary",
+          "academy",
+          "college",
+          "university",
+          "hisd",
+          "campus",
+        ],
+      },
+      {
+        triggers: ["police or fire station"],
+        landuseMatches: ["police or fire station"],
+        nameKeywords: ["fire station", "police", "hook and ladder"],
+      },
+      {
+        triggers: ["miscellaneous government", "post office", "correctional"],
+        landuseMatches: ["miscellaneous government", "post office", "correctional"],
+        nameKeywords: [
+          "courthouse",
+          "city hall",
+          "municipal courts",
+          "federal building",
+          "post office",
+          "custom house",
+          "justice center",
+          "permitting center",
+          "county annex",
+          "administration building",
+        ],
+      },
+      {
+        triggers: ["hospitals", "medical office", "veterinary clinic"],
+        landuseMatches: ["hospitals", "medical office", "veterinary clinic"],
+        nameKeywords: ["hospital", "medical", "clinic", "infirmary"],
+      },
+      {
+        triggers: [
+          "hotel/motel, hi-rise 4+ stories",
+          "hotel/motel, low-rise 1 to 3 stories",
+          "extended stay hotel/motel",
+        ],
+        landuseMatches: [
+          "hotel/motel, hi-rise 4+ stories",
+          "hotel/motel, low-rise 1 to 3 stories",
+          "extended stay hotel/motel",
+        ],
+        nameKeywords: ["hotel", "motel", "inn"],
+      },
+      {
+        triggers: [
+          "office bldgs. hi-rise (5+ stories)",
+          "office bldgs. low-rise (1 to 4 stories)",
+          "office condominium",
+        ],
+        landuseMatches: [
+          "office bldgs. hi-rise (5+ stories)",
+          "office bldgs. low-rise (1 to 4 stories)",
+          "office condominium",
+        ],
+        nameKeywords: ["office", "building", "tower", "bank"],
+      },
+      {
+        triggers: ["warehouse", "warehouse-metallic", "office - warehouse", "light industrial - metallic"],
+        landuseMatches: [
+          "warehouse",
+          "warehouse-metallic",
+          "office - warehouse",
+          "light industrial - metallic",
+        ],
+        nameKeywords: ["warehouse", "storage", "industrial", "freight", "cotton"],
+      },
+    ];
+
+    const activeLanduseFamily = LANDUSE_SEMANTIC_FAMILIES.find((fam) =>
+      fam.triggers.includes(q)
+    );
+
+    // Architectural Movement Tokens for compound style chips (e.g. "Mid-Century Travertine Formalism" or "Queen Anne with Eastlake influences")
+    const STYLE_MOVEMENT_GROUPS = [
+      ["formalism", "mid-century", "mid century", "modernist", "modern", "international style", "brutalist"],
+      ["art deco", "moderne", "streamline", "zigzag", "modernistic"],
+      ["queen anne", "eastlake", "victorian", "folk victorian", "shingle", "stick"],
+      ["craftsman", "bungalow", "prairie", "praire", "arts and crafts"],
+      ["neoclassical", "classical revival", "greek revival", "beaux-arts", "beaux arts", "roman"],
+      ["colonial revival", "georgian", "federal", "dutch colonial"],
+      ["tudor", "english", "jacobethan", "norman"],
+      ["mediterranean", "spanish", "mission", "italian renaissance", "italianate"],
+      ["gothic revival", "late gothic", "romanesque", "richardsonian"],
+      ["vernacular", "l plan", "l-plan", "shotgun", "cottage"],
+    ];
+    const activeStyleMovements = new Set();
+    for (const grp of STYLE_MOVEMENT_GROUPS) {
+      if (grp.some((tok) => q.includes(tok))) {
+        for (const tok of grp) activeStyleMovements.add(tok);
+      }
+    }
+
+    const hdrLow = String(customHeaderLabel || "").toLowerCase();
+    const isArchitectFilter =
+      hdrLow.startsWith("architect:") || hdrLow.startsWith("architect / builder:");
+    const isDistrictFilter = hdrLow.startsWith("district:");
+    const isGoodBrickFilter = hdrLow.startsWith("good brick");
+    const isLandUseCategoryFilter = hdrLow.startsWith("land use category:");
+    const isLandUseSpecificFilter = hdrLow.startsWith("land use:");
+    const isStyleOrClassFilter =
+      hdrLow.startsWith("architectural style:") ||
+      hdrLow.startsWith("building class:") ||
+      hdrLow.startsWith("building category:");
 
     const scoreCandidate = (item, isViewportCandidate = false) => {
       const lbl = String(item.label || "").toLowerCase();
@@ -1841,65 +2167,163 @@ class HoustonAtlasApp {
       }
 
       let score = 0;
-      // 1. Exact style / building class / land use category / architect / district match
-      if (style === q || bldStyle === q) {
-        score = Math.max(score, 110);
-      } else if (
-        (style && style.includes(q)) ||
-        (bldStyle && bldStyle.includes(q) && bldStyle !== "historical / architectural structure")
-      ) {
-        score = Math.max(score, 95);
-      }
 
-      if (useCat === q || landuse === q || cat === q) {
-        score = Math.max(score, 100);
-      } else if ((useCat && useCat.includes(q)) || (landuse && landuse.includes(q))) {
-        score = Math.max(score, 85);
-      }
+      if (isArchitectFilter) {
+        if (arch && arch.includes(q)) {
+          score = arch === q ? 120 : 105;
+        }
+      } else if (isDistrictFilter) {
+        if (dist && dist.includes(q)) {
+          score = dist === q ? 120 : 105;
+        }
+      } else if (isGoodBrickFilter) {
+        if (gbYrs && gbYrs.split(/[,\s]+/).includes(q)) {
+          score = 120;
+        }
+      } else if (isLandUseCategoryFilter) {
+        if (useCat === q || cat === q) {
+          score = 115;
+        } else if (useCat && useCat.includes(q)) {
+          score = 95;
+        }
+      } else if (isLandUseSpecificFilter) {
+        if (landuse === q) {
+          score = 122;
+        } else if (landuse && landuse.includes(q)) {
+          score = 104;
+        } else if (useCat === q) {
+          score = 100;
+        } else if (activeLanduseFamily) {
+          if (landuse && activeLanduseFamily.landuseMatches.includes(landuse)) {
+            score = 94;
+          } else {
+            const nameText = `${lbl} ${bldName}`;
+            if (
+              activeLanduseFamily.nameKeywords.some((kw) => nameText.includes(kw)) &&
+              !nameText.includes("grocery")
+            ) {
+              score = 88;
+            }
+          }
+        }
+      } else if (isStyleOrClassFilter) {
+        if (style === q || bldStyle === q) {
+          score = 122;
+        } else if (
+          (style &&
+            style !== "historical / architectural structure" &&
+            (style.includes(q) || (style.length > 3 && q.includes(style)))) ||
+          (bldStyle &&
+            bldStyle !== "historical / architectural structure" &&
+            (bldStyle.includes(q) || (bldStyle.length > 3 && q.includes(bldStyle))))
+        ) {
+          score = 102;
+        } else if (activeStyleMovements.size > 0 && (style || bldStyle)) {
+          const combinedStyle = `${style} ${bldStyle}`;
+          for (const tok of activeStyleMovements) {
+            if (combinedStyle.includes(tok)) {
+              score = 90;
+              break;
+            }
+          }
+        } else if (useCat === q || landuse === q) {
+          score = 95;
+        }
+      } else {
+        // General free-text search across all metadata & labels
+        if (style === q || bldStyle === q) {
+          score = Math.max(score, 118);
+        } else if (
+          (style &&
+            style !== "historical / architectural structure" &&
+            (style.includes(q) || (style.length > 3 && q.includes(style)))) ||
+          (bldStyle &&
+            bldStyle !== "historical / architectural structure" &&
+            (bldStyle.includes(q) || (bldStyle.length > 3 && q.includes(bldStyle))))
+        ) {
+          score = Math.max(score, 96);
+        } else if (activeStyleMovements.size > 0 && (style || bldStyle)) {
+          const combinedStyle = `${style} ${bldStyle}`;
+          for (const tok of activeStyleMovements) {
+            if (combinedStyle.includes(tok)) {
+              score = Math.max(score, 89);
+              break;
+            }
+          }
+        }
 
-      if (arch && arch.includes(q)) {
-        score = Math.max(score, arch === q ? 115 : 98);
-      }
-      if (dist && dist.includes(q)) {
-        score = Math.max(score, dist === q ? 105 : 90);
-      }
-      if (gbYrs && gbYrs.split(/[,\s]+/).includes(q)) {
-        score = Math.max(score, 110);
-      }
-      if (lmCode && (lmCode === q || `hpo #${lmCode}` === q)) {
-        score = Math.max(score, 120);
-      }
-      if (hcad && hcad.includes(q)) {
-        score = Math.max(score, hcad === q ? 125 : 90);
-      }
+        if (useCat === q || landuse === q || cat === q) {
+          score = Math.max(score, 115);
+        } else if ((useCat && useCat.includes(q)) || (landuse && landuse.includes(q))) {
+          score = Math.max(score, 94);
+        } else if (activeLanduseFamily) {
+          if (landuse && activeLanduseFamily.landuseMatches.includes(landuse)) {
+            score = Math.max(score, 92);
+          } else {
+            const nameText = `${lbl} ${bldName}`;
+            if (
+              activeLanduseFamily.nameKeywords.some((kw) => nameText.includes(kw)) &&
+              !nameText.includes("grocery")
+            ) {
+              score = Math.max(score, 88);
+            }
+          }
+        }
 
-      // 2. Primary Building Name & Historical / Colloquial Aliases (`alt_names`) match
-      if (bldName) {
-        if (bldName === q) score = Math.max(score, 125);
-        else if (bldName.startsWith(q)) score = Math.max(score, 102);
-        else if (bldName.includes(q)) score = Math.max(score, 82);
-      }
-      for (const an of altNames) {
-        if (an === q) score = Math.max(score, 122);
-        else if (an.startsWith(q)) score = Math.max(score, 98);
-        else if (an.includes(q)) score = Math.max(score, 78);
-      }
+        if (arch && arch.includes(q)) {
+          score = Math.max(score, arch === q ? 116 : 98);
+        }
+        if (dist && dist.includes(q)) {
+          score = Math.max(score, dist === q ? 105 : 90);
+        }
+        if (gbYrs && gbYrs.split(/[,\s]+/).includes(q)) {
+          score = Math.max(score, 110);
+        }
+        if (lmCode && (lmCode === q || `hpo #${lmCode}` === q)) {
+          score = Math.max(score, 120);
+        }
+        if (hcad && hcad.includes(q)) {
+          score = Math.max(score, hcad === q ? 125 : 90);
+        }
 
-      // 3. Title / address / sublabel match (ranked lower than exact metadata match when filtering by a category like "Residential")
-      if (lbl === q) {
-        score = Math.max(score, 120);
-      } else if (lbl.startsWith(q)) {
-        score = Math.max(score, 88);
-      } else if (lbl.includes(q)) {
-        score = Math.max(score, 65);
-      } else if (sub.includes(q)) {
-        score = Math.max(score, 55);
+        // Primary Building Name & Historical / Colloquial Aliases (`alt_names`) match
+        if (bldName) {
+          if (bldName === q) score = Math.max(score, 125);
+          else if (bldName.startsWith(q)) score = Math.max(score, 102);
+          else if (bldName.includes(q) && !bldName.includes("grocery")) score = Math.max(score, 82);
+        }
+        for (const an of altNames) {
+          if (an === q) score = Math.max(score, 122);
+          else if (an.startsWith(q)) score = Math.max(score, 98);
+          else if (an.includes(q)) score = Math.max(score, 78);
+        }
+
+        // Title / address / sublabel match
+        if (lbl === q) {
+          score = Math.max(score, 120);
+        } else if (lbl.startsWith(q) && !lbl.includes("grocery")) {
+          score = Math.max(score, 88);
+        } else if (lbl.includes(q) && !lbl.includes("grocery")) {
+          score = Math.max(score, 65);
+        } else if (sub.includes(q)) {
+          score = Math.max(score, 55);
+        }
       }
 
       if (score === 0) return 0;
 
       // Boost nearby viewport buildings and notable landmarks / named structures
       if (isViewportCandidate) score += 14;
+      const selHcad = String(this.selectedProperties?.hcad_num || "").trim().toLowerCase();
+      const selId = String(
+        this.selectedProperties?.id || this.selectedProperties?.building_id || ""
+      )
+        .trim()
+        .toLowerCase();
+      const itemId = String(item.id || "").trim().toLowerCase();
+      if ((selId && itemId === selId) || (selHcad && hcad === selHcad)) {
+        score += 4;
+      }
       if (item.type === "landmark" || item.type === "good_brick" || item.landmark_code || item.good_brick_years) {
         score += 8;
       }
@@ -1920,12 +2344,17 @@ class HoustonAtlasApp {
       ? this.mapController.getRenderedBuildingCandidates(600)
       : [];
     for (const cand of liveCandidates) {
-      const p = cand.props || {};
+      const p = applyOverrideToProperties(
+        cand.props || {},
+        this.mapController?.curatedOverrides || {}
+      );
       const key = String(p.id || p.building_id || p.hcad_num || "").trim();
       if (key && seenKeys.has(key)) continue;
 
       const nameInfo = this._resolveBuildingNameAndAliases(p);
       const styleInfo = this._resolveStyleAndClassInfo(p);
+      const luChips = this._resolveLandUseChips(p);
+      const luSummary = luChips.map((c) => c.label).join(" › ");
       const yr = Number(p.year_built) || 0;
       const distClean =
         p.historic_district &&
@@ -1945,8 +2374,9 @@ class HoustonAtlasApp {
           cand.inViewport ? "📍 In Current View" : "",
           nameInfo.altNames.length > 0 ? `AKA: ${nameInfo.altNames.slice(0, 2).join(", ")}` : "",
           nameInfo.hasCustomBuildingName && p.address && p.address !== nameInfo.primaryName ? p.address : "",
-          distClean || p.use_category || "Harris County",
-          styleInfo.displayStyle,
+          distClean || luSummary || "Harris County",
+          luChips.length > 1 && distClean ? luSummary : "",
+          styleInfo.displayStyle && styleInfo.displayStyle !== luSummary ? styleInfo.displayStyle : "",
           yr >= 1836 ? `Built ${yr}` : "",
         ]
           .filter(Boolean)
@@ -1977,13 +2407,25 @@ class HoustonAtlasApp {
     }
 
     // Second: Check full citywide searchIndex
+    const vp = this.mapController?.getCurrentViewport
+      ? this.mapController.getCurrentViewport()
+      : null;
     for (const item of this.searchIndex) {
       const key = String(item.id || item.hcad_num || item.label || "").trim();
       const hcadKey = String(item.hcad_num || "").trim();
       if ((key && seenKeys.has(key)) || (hcadKey && !key.includes("#") && seenKeys.has(hcadKey))) {
         continue;
       }
-      const sc = scoreCandidate(item, false);
+      const inVp = Boolean(
+        vp &&
+          Number.isFinite(item.lon) &&
+          Number.isFinite(item.lat) &&
+          item.lon >= vp.west &&
+          item.lon <= vp.east &&
+          item.lat >= vp.south &&
+          item.lat <= vp.north
+      );
+      const sc = scoreCandidate(item, inVp);
       if (sc > 0) {
         if (key) seenKeys.add(key);
         if (hcadKey && !key.includes("#")) seenKeys.add(hcadKey);
@@ -3176,15 +3618,50 @@ class HoustonAtlasApp {
       distVal !== "Outside City District" &&
       distVal !== "Outside Historic District";
     const styleInfo = this._resolveStyleAndClassInfo(props);
-    const styleVal = styleInfo.displayStyle;
-    const styleSearchTerm = styleInfo.searchQuery;
-    const styleHeaderLabel = styleInfo.headerLabel;
-    const landUseDisplay = props.landuse_desc || props.use_category || "Residential";
-    const landUseSearchTerm = props.use_category || landUseDisplay;
-    const archRaw = String(props.architect || "").trim();
-    const archSearchTerm = archRaw
-      ? archRaw.split(/[;/(&]|,\s*(?:architect|builder|consulting)/i)[0].trim()
-      : "";
+    const styleChipsHtml = (styleInfo.chips || [])
+      .map(
+        (c) =>
+          `<button
+            type="button"
+            class="inspector-filter-chip ${c.isSecondary ? "category-chip" : ""}"
+            data-filter-chip="${c.query.replace(/"/g, "&quot;")}"
+            data-filter-label="${c.headerLabel.replace(/"/g, "&quot;")}"
+            title="Click to find '${c.label.replace(/"/g, "&quot;")}' buildings in current view & across Houston"
+          >${c.label} &#128269;</button>${
+            c.note ? `<span class="inspector-chip-note">${c.note}</span>` : ""
+          }`
+      )
+      .join('<span class="inspector-chip-sep" aria-hidden="true">·</span>');
+
+    const landUseChips = this._resolveLandUseChips(props);
+    const landUseChipsHtml = landUseChips
+      .map(
+        (c) =>
+          `<button
+            type="button"
+            class="inspector-filter-chip ${c.isCategory ? "category-chip" : ""}"
+            data-filter-chip="${c.query.replace(/"/g, "&quot;")}"
+            data-filter-label="${c.headerLabel.replace(/"/g, "&quot;")}"
+            title="${c.title.replace(/"/g, "&quot;")}"
+          >${c.label} &#128269;</button>`
+      )
+      .join('<span class="inspector-chip-sep" title="Specific Use › Broad Category" aria-hidden="true">&#8250;</span>');
+
+    const archChips = this._resolveArchitectChips(props);
+    const archChipsHtml = archChips
+      .map(
+        (c) =>
+          `<button
+            type="button"
+            class="inspector-filter-chip"
+            data-filter-chip="${c.query.replace(/"/g, "&quot;")}"
+            data-filter-label="${c.headerLabel.replace(/"/g, "&quot;")}"
+            title="Click to find all Houston buildings by '${c.label.replace(/"/g, "&quot;")}'"
+          >${c.label} &#128269;</button>${
+            c.note ? `<span class="inspector-chip-note">${c.note}</span>` : ""
+          }`
+      )
+      .join('<span class="inspector-chip-sep" aria-hidden="true">·</span>');
 
     const buildingNamesGridRowHtml =
       nameInfo.hasCustomBuildingName || nameInfo.altNames.length > 0
@@ -3311,42 +3788,24 @@ class HoustonAtlasApp {
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Architectural Style / Building Class</span>
-          <span class="cell-value">
-            <button
-              type="button"
-              class="inspector-filter-chip"
-              data-filter-chip="${styleSearchTerm}"
-              data-filter-label="${styleHeaderLabel}"
-              title="Click to find other '${styleVal}' buildings in current view & across Houston"
-            >${styleVal} &#128269;</button>
+          <span class="cell-value inspector-chip-group">
+            ${styleChipsHtml}
           </span>
         </div>
         ${
-          archRaw
+          archChips.length > 0
             ? `<div class="inspector-cell full">
                 <span class="cell-label">Architect / Builder (COH Landmark Record)</span>
-                <span class="cell-value">
-                  <button
-                    type="button"
-                    class="inspector-filter-chip"
-                    data-filter-chip="${archSearchTerm}"
-                    data-filter-label="Architect: ${archSearchTerm}"
-                    title="Click to find all Houston buildings by ${archSearchTerm}"
-                  >${archRaw} &#128269;</button>
+                <span class="cell-value inspector-chip-group">
+                  ${archChipsHtml}
                 </span>
               </div>`
             : ""
         }
         <div class="inspector-cell full">
           <span class="cell-label">Land Use Classification</span>
-          <span class="cell-value">
-            <button
-              type="button"
-              class="inspector-filter-chip"
-              data-filter-chip="${landUseSearchTerm}"
-              data-filter-label="Land Use: ${landUseDisplay}"
-              title="Click to find '${landUseSearchTerm}' buildings in current view & across Houston"
-            >${landUseDisplay} &#128269;</button>
+          <span class="cell-value inspector-chip-group">
+            ${landUseChipsHtml}
           </span>
         </div>
         <div class="inspector-cell full">
