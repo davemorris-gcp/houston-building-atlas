@@ -781,25 +781,12 @@ export class AtlasMapController {
           paint: { "line-color": "rgba(15, 17, 21, 0.65)", "line-width": 0.6 },
         });
         this.map.addLayer({
-          id: extId,
-          type: "fill-extrusion",
-          source: srcId,
-          "source-layer": "buildings",
-          filter: shardFilterExpr,
-          layout: { visibility: state.extrude3D ? "visible" : "none" },
-          paint: {
-            "fill-extrusion-color": colorExpr,
-            "fill-extrusion-height": extrusionHeightExpr,
-            "fill-extrusion-base": 0,
-            "fill-extrusion-opacity": 0.9,
-          },
-        });
-        this.map.addLayer({
           id: hlId,
           type: "line",
           source: srcId,
           "source-layer": "buildings",
           filter: ["==", ["get", "id"], ""],
+          layout: { visibility: state.extrude3D ? "none" : "visible" },
           paint: { "line-color": "#FDE047", "line-width": 3.2 },
         });
       }
@@ -824,28 +811,16 @@ export class AtlasMapController {
         paint: { "line-color": "rgba(15, 17, 21, 0.65)", "line-width": 0.6 },
       });
       this.map.addLayer({
-        id: "buildings-extrusion",
-        type: "fill-extrusion",
-        source: "buildings-src",
-        filter: shardFilterExpr,
-        layout: { visibility: state.extrude3D ? "visible" : "none" },
-        paint: {
-          "fill-extrusion-color": colorExpr,
-          "fill-extrusion-height": extrusionHeightExpr,
-          "fill-extrusion-base": 0,
-          "fill-extrusion-opacity": 0.9,
-        },
-      });
-      this.map.addLayer({
         id: "selected-feature-highlight",
         type: "line",
         source: "buildings-src",
         filter: ["==", ["get", "id"], ""],
+        layout: { visibility: state.extrude3D ? "none" : "visible" },
         paint: { "line-color": "#FDE047", "line-width": 3.2 },
       });
     }
 
-    // Curated Overrides Layer (renders live Google Sheet / Preservation Houston verified edits on top)
+    // Curated Overrides 2D Layers
     this.map.addLayer({
       id: "curated-overrides-fill",
       type: "fill",
@@ -862,6 +837,121 @@ export class AtlasMapController {
       paint: { "line-color": "rgba(149, 201, 89, 0.85)", "line-width": 1.1 },
     });
     this.map.addLayer({
+      id: "curated-overrides-highlight",
+      type: "line",
+      source: "curated-overrides-src",
+      filter: ["==", ["get", "id"], ""],
+      layout: { visibility: state.extrude3D ? "none" : "visible" },
+      paint: { "line-color": "#FDE047", "line-width": 3.4 },
+    });
+    this.highlightLayerIds.push("curated-overrides-highlight");
+
+    // Guided Walking Tour Route Source & Ground-Plane Layers (added BEFORE 3D fill-extrusion
+    // layers so street routes and building entrance connectors pass behind 3D extrusions)
+    this.map.addSource("tour-route-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    this.map.addLayer({
+      id: "tour-connector-casing",
+      type: "line",
+      source: "tour-route-src",
+      filter: ["==", ["get", "feature_type"], "connector"],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "rgba(15, 17, 21, 0.78)",
+        "line-width": 3.6,
+      },
+    });
+    this.map.addLayer({
+      id: "tour-connector-line",
+      type: "line",
+      source: "tour-route-src",
+      filter: ["==", ["get", "feature_type"], "connector"],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "#95C959",
+        "line-width": 1.9,
+        "line-dasharray": [1.2, 1.6],
+        "line-opacity": 0.9,
+      },
+    });
+    this.map.addLayer({
+      id: "tour-route-casing",
+      type: "line",
+      source: "tour-route-src",
+      filter: ["==", ["get", "feature_type"], "route"],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "rgba(15, 17, 21, 0.9)",
+        "line-width": 6.0,
+      },
+    });
+    this.map.addLayer({
+      id: "tour-route-line",
+      type: "line",
+      source: "tour-route-src",
+      filter: ["==", ["get", "feature_type"], "route"],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "#FDE047",
+        "line-width": 3.1,
+        "line-dasharray": [2.2, 1.8],
+        "line-opacity": 0.98,
+      },
+    });
+
+    // Dedicated single-feature 2D selection source so clicking a building on a multi-building
+    // campus parcel (e.g. Rice University) highlights ONLY the clicked building polygon in 2D mode.
+    this.map.addSource("selected-feature-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    this.map.addLayer({
+      id: "selected-feature-outline",
+      type: "line",
+      source: "selected-feature-src",
+      layout: { visibility: state.extrude3D ? "none" : "visible" },
+      paint: { "line-color": "#FDE047", "line-width": 3.5 },
+    });
+
+    // 3D Fill-Extrusion Layers (rendered above 2D ground lines so 3D volumes occlude ground paths)
+    if (shardFiles.length > 0) {
+      for (let i = 0; i < shardFiles.length; i++) {
+        const srcId = `atlas-shard-${i}`;
+        const extId = `buildings-extrusion-${i}`;
+        this.map.addLayer({
+          id: extId,
+          type: "fill-extrusion",
+          source: srcId,
+          "source-layer": "buildings",
+          filter: shardFilterExpr,
+          layout: { visibility: state.extrude3D ? "visible" : "none" },
+          paint: {
+            "fill-extrusion-color": colorExpr,
+            "fill-extrusion-height": extrusionHeightExpr,
+            "fill-extrusion-base": 0,
+            "fill-extrusion-opacity": 0.95,
+          },
+        });
+      }
+    } else {
+      this.map.addLayer({
+        id: "buildings-extrusion",
+        type: "fill-extrusion",
+        source: "buildings-src",
+        filter: shardFilterExpr,
+        layout: { visibility: state.extrude3D ? "visible" : "none" },
+        paint: {
+          "fill-extrusion-color": colorExpr,
+          "fill-extrusion-height": extrusionHeightExpr,
+          "fill-extrusion-base": 0,
+          "fill-extrusion-opacity": 0.95,
+        },
+      });
+    }
+
+    this.map.addLayer({
       id: "curated-overrides-extrusion",
       type: "fill-extrusion",
       source: "curated-overrides-src",
@@ -871,29 +961,31 @@ export class AtlasMapController {
         "fill-extrusion-color": colorExpr,
         "fill-extrusion-height": extrusionHeightExpr,
         "fill-extrusion-base": 0,
-        "fill-extrusion-opacity": 0.94,
+        "fill-extrusion-opacity": 0.96,
       },
     });
-    this.map.addLayer({
-      id: "curated-overrides-highlight",
-      type: "line",
-      source: "curated-overrides-src",
-      filter: ["==", ["get", "id"], ""],
-      paint: { "line-color": "#FDE047", "line-width": 3.4 },
-    });
-    this.highlightLayerIds.push("curated-overrides-highlight");
 
-    // Dedicated single-feature selection source so clicking a building on a multi-building
-    // campus parcel (e.g. Rice University) highlights ONLY the clicked building polygon.
-    this.map.addSource("selected-feature-src", {
+    // Depth-occluded 3D volumetric selection wireframe source & layer:
+    // Renders the selected building's 3D roofline collar (z = H), ground-base collar (z = 0),
+    // vertical corner edge ribs (z = 0..H), and nearby 3D occluder volumes in a single shared
+    // WebGL depth buffer so back edges and occluded corners never X-ray through 3D structures.
+    this.map.addSource("selected-feature-3d-src", {
       type: "geojson",
+      tolerance: 0,
+      maxzoom: 22,
       data: { type: "FeatureCollection", features: [] },
     });
     this.map.addLayer({
-      id: "selected-feature-outline",
-      type: "line",
-      source: "selected-feature-src",
-      paint: { "line-color": "#FDE047", "line-width": 3.5 },
+      id: "selected-feature-3d-extrusion",
+      type: "fill-extrusion",
+      source: "selected-feature-3d-src",
+      layout: { visibility: state.extrude3D ? "visible" : "none" },
+      paint: {
+        "fill-extrusion-color": ["coalesce", ["get", "wire_color"], "#FDE047"],
+        "fill-extrusion-height": ["to-number", ["get", "wire_height"], 4.5],
+        "fill-extrusion-base": ["to-number", ["get", "wire_base"], 0],
+        "fill-extrusion-opacity": 0.97,
+      },
     });
 
     this.map.addLayer({
@@ -953,60 +1045,6 @@ export class AtlasMapController {
         "circle-color": "#95C959",
         "circle-stroke-color": "#F4F9EE",
         "circle-stroke-width": 1.8,
-      },
-    });
-
-    // Guided Walking Tour Route Source & Layers
-    this.map.addSource("tour-route-src", {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-    });
-    this.map.addLayer({
-      id: "tour-connector-casing",
-      type: "line",
-      source: "tour-route-src",
-      filter: ["==", ["get", "feature_type"], "connector"],
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": "rgba(15, 17, 21, 0.78)",
-        "line-width": 3.6,
-      },
-    });
-    this.map.addLayer({
-      id: "tour-connector-line",
-      type: "line",
-      source: "tour-route-src",
-      filter: ["==", ["get", "feature_type"], "connector"],
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": "#95C959",
-        "line-width": 1.9,
-        "line-dasharray": [1.2, 1.6],
-        "line-opacity": 0.9,
-      },
-    });
-    this.map.addLayer({
-      id: "tour-route-casing",
-      type: "line",
-      source: "tour-route-src",
-      filter: ["==", ["get", "feature_type"], "route"],
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": "rgba(15, 17, 21, 0.9)",
-        "line-width": 6.0,
-      },
-    });
-    this.map.addLayer({
-      id: "tour-route-line",
-      type: "line",
-      source: "tour-route-src",
-      filter: ["==", ["get", "feature_type"], "route"],
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": "#FDE047",
-        "line-width": 3.1,
-        "line-dasharray": [2.2, 1.8],
-        "line-opacity": 0.98,
       },
     });
   }
@@ -1276,11 +1314,13 @@ export class AtlasMapController {
 
     this.map.on("moveend", () => {
       this._captureDynamicOverrideGeometries();
+      this._refreshSelectionAfterViewportChange();
       this.computeViewportHistogram();
     });
 
     this.map.on("idle", () => {
       this._captureDynamicOverrideGeometries();
+      this._refreshSelectionAfterViewportChange();
       this.computeViewportHistogram();
     });
   }
@@ -2144,6 +2184,11 @@ export class AtlasMapController {
       [...this.buildingExtrusionLayerIds, "curated-overrides-extrusion"],
       showBuildings && state.extrude3D
     );
+    setVis(
+      ["selected-feature-outline", ...(this.highlightLayerIds || [])],
+      showBuildings && !state.extrude3D
+    );
+    setVis(["selected-feature-3d-extrusion"], showBuildings && state.extrude3D);
     setVis(["parcels-fill"], showParcelsFill);
     setVis(["parcels-line"], showParcelsLine);
 
@@ -2160,6 +2205,10 @@ export class AtlasMapController {
       const annexFilter = buildAnnexationFilterExpression(state);
       this.map.setFilter("annexations-fill", annexFilter);
       this.map.setFilter("annexations-line", annexFilter);
+    }
+
+    if (this.selectedFeatureProps) {
+      this._updateSelectedFeature3DSource(state);
     }
   }
 
@@ -2532,6 +2581,424 @@ export class AtlasMapController {
     }
   }
 
+  _resolveSelectedPolygonGeometry(mergedProps, candidateGeom = null) {
+    const isPoly = (g) => g && (g.type === "Polygon" || g.type === "MultiPolygon");
+    if (isPoly(candidateGeom)) return candidateGeom;
+
+    const targetBldId = String(mergedProps?.building_id || mergedProps?.id || "").trim();
+    const targetHcad = String(mergedProps?.hcad_num || "").trim();
+
+    const searchCollection = (features) => {
+      if (!Array.isArray(features) || !features.length) return null;
+      if (targetBldId) {
+        const byId = features.find((f) => {
+          const p = f.properties || {};
+          return (p.id === targetBldId || p.building_id === targetBldId) && isPoly(f.geometry);
+        });
+        if (byId) return byId.geometry;
+      }
+      if (targetHcad) {
+        const byHcad = features.find(
+          (f) => f.properties && f.properties.hcad_num === targetHcad && isPoly(f.geometry)
+        );
+        if (byHcad) return byHcad.geometry;
+      }
+      return null;
+    };
+
+    const fromOverrides = searchCollection(this.overridesFC?.features);
+    if (fromOverrides) return fromOverrides;
+
+    const fromBuildings = searchCollection(this.buildingsData);
+    if (fromBuildings) return fromBuildings;
+
+    if (!this.useCanvasFallback && this.map) {
+      const polyLayers = [
+        "curated-overrides-extrusion",
+        "curated-overrides-fill",
+        ...(this.buildingExtrusionLayerIds || []),
+        ...(this.buildingFillLayerIds || []),
+      ].filter((id) => this.map.getLayer(id));
+      if (polyLayers.length > 0) {
+        try {
+          const rendered = this.map.queryRenderedFeatures({ layers: polyLayers });
+          const fromRendered = searchCollection(rendered);
+          if (fromRendered) return fromRendered;
+        } catch (_e) {}
+      }
+      if (targetHcad && Array.isArray(this.shardSourceIds)) {
+        for (const srcId of this.shardSourceIds) {
+          try {
+            const srcHits = this.map.querySourceFeatures(srcId, {
+              sourceLayer: "buildings",
+              filter: ["==", ["get", "hcad_num"], targetHcad],
+            });
+            const fromSrc = searchCollection(srcHits);
+            if (fromSrc) return fromSrc;
+          } catch (_e) {}
+        }
+      }
+    }
+    return null;
+  }
+
+  _build3DSelectionWireframeFeatures(geom, props, state) {
+    if (!geom || (geom.type !== "Polygon" && geom.type !== "MultiPolygon")) return [];
+
+    const baseHeight = Number(props?.height_m) || 4.5;
+    const yearTie = ((Number(props?.year_built) || 1900) % 97) * 0.0003;
+    const H = Math.max(2.5, baseHeight + yearTie);
+    const bodyColor = evaluateFeatureColor(props || {}, state.colorMode, state.paletteStyle);
+    const wireColor = "#FDE047";
+
+    const features = [
+      // 1. Selected building's own 3D body volume in the shared fill-extrusion depth pass
+      // so the building's front walls and roof occlude its own back base edges and back corners.
+      {
+        type: "Feature",
+        geometry: geom,
+        properties: {
+          wire_type: "body",
+          wire_color: bodyColor,
+          wire_base: 0,
+          wire_height: Number((H + 0.03).toFixed(3)),
+        },
+      },
+    ];
+
+    const polyCoordsList =
+      geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates || [];
+
+    const allLngs = [];
+    const allLats = [];
+
+    for (const polyRings of polyCoordsList) {
+      if (!Array.isArray(polyRings)) continue;
+      for (let ringIdx = 0; ringIdx < polyRings.length; ringIdx++) {
+        const rawRing = polyRings[ringIdx];
+        if (!Array.isArray(rawRing) || rawRing.length < 4) continue;
+
+        const refLng = Number(rawRing[0][0]);
+        const refLat = Number(rawRing[0][1]);
+        if (!Number.isFinite(refLng) || !Number.isFinite(refLat)) continue;
+
+        const metersPerDegLat = 111320.0;
+        const metersPerDegLng = 111320.0 * Math.cos((refLat * Math.PI) / 180.0);
+
+        const pts = [];
+        for (let i = 0; i < rawRing.length; i++) {
+          const lng = Number(rawRing[i][0]);
+          const lat = Number(rawRing[i][1]);
+          if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+          allLngs.push(lng);
+          allLats.push(lat);
+          const x = (lng - refLng) * metersPerDegLng;
+          const y = (lat - refLat) * metersPerDegLat;
+          if (pts.length > 0) {
+            const prev = pts[pts.length - 1];
+            if (Math.hypot(x - prev.x, y - prev.y) < 0.08) continue;
+          }
+          pts.push({ x, y, lng, lat });
+        }
+        if (pts.length > 1) {
+          const first = pts[0];
+          const last = pts[pts.length - 1];
+          if (Math.hypot(first.x - last.x, first.y - last.y) < 0.08) {
+            pts.pop();
+          }
+        }
+        const n = pts.length;
+        if (n < 3) continue;
+
+        let signedArea2 = 0;
+        for (let i = 0; i < n; i++) {
+          const p0 = pts[i];
+          const p1 = pts[(i + 1) % n];
+          signedArea2 += p0.x * p1.y - p1.x * p0.y;
+        }
+        // For exterior rings (ringIdx === 0), outward is away from polygon interior.
+        // For courtyard holes (ringIdx > 0), outward into the courtyard is toward hole center.
+        const orientSign = (signedArea2 >= 0 ? 1 : -1) * (ringIdx === 0 ? 1 : -1);
+
+        const edgeNormals = [];
+        const edgeDirs = [];
+        const edgeLens = [];
+        for (let i = 0; i < n; i++) {
+          const p0 = pts[i];
+          const p1 = pts[(i + 1) % n];
+          const dx = p1.x - p0.x;
+          const dy = p1.y - p0.y;
+          const len = Math.hypot(dx, dy) || 1e-6;
+          const ux = dx / len;
+          const uy = dy / len;
+          edgeDirs.push({ ux, uy });
+          edgeLens.push(len);
+          // For CCW ring (signedArea2 > 0), right-hand normal (+uy, -ux) points outward
+          edgeNormals.push({
+            nx: orientSign * uy,
+            ny: -orientSign * ux,
+          });
+        }
+
+        const miters = [];
+        for (let i = 0; i < n; i++) {
+          const nPrev = edgeNormals[(i - 1 + n) % n];
+          const nCurr = edgeNormals[i];
+          let mx = nPrev.nx + nCurr.nx;
+          let my = nPrev.ny + nCurr.ny;
+          const mLen = Math.hypot(mx, my);
+          if (mLen < 1e-4) {
+            miters.push({ mx: nCurr.nx, my: nCurr.ny });
+          } else {
+            mx /= mLen;
+            my /= mLen;
+            const dot = mx * nCurr.nx + my * nCurr.ny;
+            const scale = Math.min(1.85, 1.0 / Math.max(0.35, Math.abs(dot)));
+            miters.push({ mx: mx * scale, my: my * scale });
+          }
+        }
+
+        const toLngLat = (xMeters, yMeters) => [
+          Number((refLng + xMeters / metersPerDegLng).toFixed(7)),
+          Number((refLat + yMeters / metersPerDegLat).toFixed(7)),
+        ];
+
+        const roofBase = Number(Math.max(0.25, H - 0.65).toFixed(3));
+        const roofTop = Number((H + 0.36).toFixed(3));
+        const baseTop = Number(Math.min(1.15, Math.max(0.45, H * 0.06)).toFixed(3));
+
+        const roofIn = -0.35;
+        const roofOut = 0.72;
+        const baseIn = 0.06;
+        const baseOut = 0.92;
+
+        for (let i = 0; i < n; i++) {
+          const p0 = pts[i];
+          const p1 = pts[(i + 1) % n];
+          const m0 = miters[i];
+          const m1 = miters[(i + 1) % n];
+
+          // 2. 3D Roofline Collar Quad around the top of the extruded building (z = H)
+          const r0In = toLngLat(p0.x + m0.mx * roofIn, p0.y + m0.my * roofIn);
+          const r1In = toLngLat(p1.x + m1.mx * roofIn, p1.y + m1.my * roofIn);
+          const r1Out = toLngLat(p1.x + m1.mx * roofOut, p1.y + m1.my * roofOut);
+          const r0Out = toLngLat(p0.x + m0.mx * roofOut, p0.y + m0.my * roofOut);
+
+          features.push({
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [[r0In, r1In, r1Out, r0Out, r0In]],
+            },
+            properties: {
+              wire_type: "roof_collar",
+              wire_color: wireColor,
+              wire_base: roofBase,
+              wire_height: roofTop,
+            },
+          });
+
+          // 3. 3D Ground-Base Collar Quad (z = 0..baseTop, occluded behind building body)
+          if (ringIdx === 0) {
+            const b0In = toLngLat(p0.x + m0.mx * baseIn, p0.y + m0.my * baseIn);
+            const b1In = toLngLat(p1.x + m1.mx * baseIn, p1.y + m1.my * baseIn);
+            const b1Out = toLngLat(p1.x + m1.mx * baseOut, p1.y + m1.my * baseOut);
+            const b0Out = toLngLat(p0.x + m0.mx * baseOut, p0.y + m0.my * baseOut);
+
+            features.push({
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [[b0In, b1In, b1Out, b0Out, b0In]],
+              },
+              properties: {
+                wire_type: "base_collar",
+                wire_color: wireColor,
+                wire_base: 0,
+                wire_height: baseTop,
+              },
+            });
+          }
+        }
+
+        // 4. 3D Vertical Corner Edge Ribs (z = 0..H, occluded on back corners by building body)
+        if (ringIdx === 0) {
+          let lastRibPt = null;
+          const ribHalf = 0.26;
+          for (let i = 0; i < n; i++) {
+            const uPrev = edgeDirs[(i - 1 + n) % n];
+            const uCurr = edgeDirs[i];
+            const lenPrev = edgeLens[(i - 1 + n) % n];
+            const lenCurr = edgeLens[i];
+            const dot = uPrev.ux * uCurr.ux + uPrev.uy * uCurr.uy;
+            if (dot > 0.94 || (lenPrev < 1.6 && lenCurr < 1.6)) continue;
+
+            const p = pts[i];
+            if (lastRibPt && Math.hypot(p.x - lastRibPt.x, p.y - lastRibPt.y) < 2.2) {
+              continue;
+            }
+            lastRibPt = p;
+            const m = miters[i];
+            const cx = p.x + m.mx * 0.36;
+            const cy = p.y + m.my * 0.36;
+
+            const c0 = toLngLat(cx - ribHalf, cy - ribHalf);
+            const c1 = toLngLat(cx + ribHalf, cy - ribHalf);
+            const c2 = toLngLat(cx + ribHalf, cy + ribHalf);
+            const c3 = toLngLat(cx - ribHalf, cy + ribHalf);
+
+            features.push({
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: [[c0, c1, c2, c3, c0]],
+              },
+              properties: {
+                wire_type: "corner_rib",
+                wire_color: wireColor,
+                wire_base: 0,
+                wire_height: roofTop,
+              },
+            });
+          }
+        }
+      }
+    }
+
+    // 5. Nearby 3D Building Occluders in dense areas (e.g., Downtown skyscrapers in front of
+    // the selected building): include their 3D volumes in the same fill-extrusion depth buffer
+    // so taller foreground structures naturally occlude the selected building's 3D wireframe.
+    if (this.map && allLngs.length > 0) {
+      try {
+        let minScreenX = Infinity;
+        let maxScreenX = -Infinity;
+        let minScreenY = Infinity;
+        let maxScreenY = -Infinity;
+        for (let i = 0; i < allLngs.length; i++) {
+          const pt = this.map.project([allLngs[i], allLats[i]]);
+          if (pt.x < minScreenX) minScreenX = pt.x;
+          if (pt.x > maxScreenX) maxScreenX = pt.x;
+          if (pt.y < minScreenY) minScreenY = pt.y;
+          if (pt.y > maxScreenY) maxScreenY = pt.y;
+        }
+        const padX = 160;
+        const padY = 220;
+        const queryBox = [
+          [minScreenX - padX, minScreenY - padY],
+          [maxScreenX + padX, maxScreenY + padY],
+        ];
+        const extLayers = [
+          "curated-overrides-extrusion",
+          ...(this.buildingExtrusionLayerIds || []),
+        ].filter((id) => this.map.getLayer(id));
+
+        if (extLayers.length > 0) {
+          const nearby = this.map.queryRenderedFeatures(queryBox, { layers: extLayers });
+          const selId = String(props?.id || "").trim();
+          const selBldId = String(props?.building_id || "").trim();
+          const selHcad = String(props?.hcad_num || "").trim();
+          const seenKeys = new Set();
+
+          for (const nf of nearby) {
+            if (!nf.geometry || (nf.geometry.type !== "Polygon" && nf.geometry.type !== "MultiPolygon")) {
+              continue;
+            }
+            const np = applyOverrideToProperties(nf.properties || {}, this.curatedOverrides);
+            const nId = String(np.id || "").trim();
+            const nBldId = String(np.building_id || "").trim();
+            const nHcad = String(np.hcad_num || "").trim();
+
+            if (
+              (selId && (nId === selId || nBldId === selId)) ||
+              (selBldId && (nId === selBldId || nBldId === selBldId)) ||
+              (!selBldId && selHcad && nHcad === selHcad && !nBldId)
+            ) {
+              continue;
+            }
+
+            const firstCoord =
+              nf.geometry.type === "Polygon"
+                ? nf.geometry.coordinates?.[0]?.[0]
+                : nf.geometry.coordinates?.[0]?.[0]?.[0];
+            const dedupKey = firstCoord
+              ? `${nId || nHcad}:${firstCoord[0].toFixed(5)},${firstCoord[1].toFixed(5)}`
+              : `${nId || nHcad}:${seenKeys.size}`;
+            if (seenKeys.has(dedupKey)) continue;
+            seenKeys.add(dedupKey);
+
+            const nBaseH = Number(np.height_m) || 4.5;
+            const nTie = ((Number(np.year_built) || 1900) % 97) * 0.0003;
+            const nH = Math.max(2.5, nBaseH + nTie);
+            const nColor = evaluateFeatureColor(np, state.colorMode, state.paletteStyle);
+
+            features.push({
+              type: "Feature",
+              geometry: nf.geometry,
+              properties: {
+                wire_type: "occluder",
+                wire_color: nColor,
+                wire_base: 0,
+                wire_height: Number((nH + 0.02).toFixed(3)),
+              },
+            });
+            if (seenKeys.size >= 45) break;
+          }
+        }
+      } catch (_e) {}
+    }
+
+    return features;
+  }
+
+  _updateSelectedFeature3DSource(stateOverride = null) {
+    if (!this.map) return;
+    const sel3DSrc = this.map.getSource("selected-feature-3d-src");
+    if (!sel3DSrc) return;
+
+    const state = stateOverride || this.filterStore.getState();
+    if (!state.extrude3D || !this.selectedFeatureProps || !this.selectedFeatureGeometry) {
+      sel3DSrc.setData({ type: "FeatureCollection", features: [] });
+      return;
+    }
+
+    const wireFeatures = this._build3DSelectionWireframeFeatures(
+      this.selectedFeatureGeometry,
+      this.selectedFeatureProps,
+      state
+    );
+    sel3DSrc.setData({
+      type: "FeatureCollection",
+      features: wireFeatures,
+    });
+  }
+
+  _refreshSelectionAfterViewportChange() {
+    if (!this.map || !this.selectedFeatureProps) return;
+    if (!this.selectedFeatureGeometry) {
+      const resolved = this._resolveSelectedPolygonGeometry(this.selectedFeatureProps, null);
+      if (resolved) {
+        this.selectedFeatureGeometry = resolved;
+        const selSrc = this.map.getSource("selected-feature-src");
+        if (selSrc) {
+          selSrc.setData({
+            type: "FeatureCollection",
+            features: [
+              {
+                type: "Feature",
+                geometry: resolved,
+                properties: this.selectedFeatureProps,
+              },
+            ],
+          });
+        }
+      }
+    }
+    const state = this.filterStore.getState();
+    if (state.extrude3D && this.selectedFeatureGeometry) {
+      this._updateSelectedFeature3DSource(state);
+    }
+  }
+
   highlightAndInspectFeature(props, clickedGeometry = null) {
     if (!props) return;
     const mergedProps = applyOverrideToProperties(props, this.curatedOverrides);
@@ -2540,15 +3007,7 @@ export class AtlasMapController {
 
     // Resolve the single building polygon geometry so clicking one building on a
     // multi-building parcel (e.g. Rice University) never highlights all buildings on that parcel.
-    let singleGeom = clickedGeometry || null;
-    if (!singleGeom && this.selectedFeatureId) {
-      const ovMatch = (this.overridesFC?.features || []).find(
-        (f) => f.properties && f.properties.id === this.selectedFeatureId
-      );
-      if (ovMatch && ovMatch.geometry) {
-        singleGeom = ovMatch.geometry;
-      }
-    }
+    const singleGeom = this._resolveSelectedPolygonGeometry(mergedProps, clickedGeometry);
     this.selectedFeatureGeometry = singleGeom;
 
     if (this.useCanvasFallback) {
@@ -2575,6 +3034,7 @@ export class AtlasMapController {
           }
         }
       }
+      this._updateSelectedFeature3DSource();
     }
     if (this.onSelectFeature) {
       this.onSelectFeature(mergedProps);
@@ -2591,6 +3051,10 @@ export class AtlasMapController {
       const selSrc = this.map.getSource("selected-feature-src");
       if (selSrc) {
         selSrc.setData({ type: "FeatureCollection", features: [] });
+      }
+      const sel3DSrc = this.map.getSource("selected-feature-3d-src");
+      if (sel3DSrc) {
+        sel3DSrc.setData({ type: "FeatureCollection", features: [] });
       }
       for (const hlId of this.highlightLayerIds) {
         if (this.map.getLayer(hlId)) {
