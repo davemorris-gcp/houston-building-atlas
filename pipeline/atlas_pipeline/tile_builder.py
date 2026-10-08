@@ -36,7 +36,7 @@ def _tile_bounds(z: int, x: int, y: int) -> tuple[float, float, float, float]:
 def build_search_index(
     buildings: list[dict[str, Any]],
     overlays: dict[str, list[dict[str, Any]]],
-    max_entries: int = 8000,
+    max_entries: int = 25000,
 ) -> list[dict[str, Any]]:
     """Build a lightweight client-side autocomplete search index for landmarks, districts, and properties."""
     items: list[dict[str, Any]] = []
@@ -88,6 +88,7 @@ def build_search_index(
             "type": "landmark",
             "category": desig,
             "label": label,
+            "address": addr,
             "sublabel": f"{desig} • Built {props.get('year_built') or 'Unknown'}",
             "lon": round(pt.x, 6),
             "lat": round(pt.y, 6),
@@ -135,6 +136,7 @@ def build_search_index(
             "type": "building",
             "category": props.get("contributing") if dist else props.get("use_category", "Property"),
             "label": f"{lm_name} — {addr}" if lm_name and addr else (addr or lm_name),
+            "address": addr,
             "sublabel": " • ".join(sub_parts),
             "lon": round(pt.x, 6),
             "lat": round(pt.y, 6),

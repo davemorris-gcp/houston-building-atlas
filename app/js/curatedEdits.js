@@ -227,7 +227,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261008q", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261008r", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -380,6 +380,25 @@ export function applyOverrideToProperties(props, overridesMap) {
   const verifiedYear = Number(ov.year_built) || Number(props.year_built) || 0;
   const isGbPoint = Boolean(props.is_good_brick);
 
+  const primaryAddr = (isGbPoint && props.address) || ov.address || props.address || "";
+  const rawAltAddrs = [
+    ...(Array.isArray(ov.alt_addresses) ? ov.alt_addresses : []),
+    ...(Array.isArray(props.alt_addresses) ? props.alt_addresses : []),
+    ov.address || "",
+    props.address || "",
+  ];
+  const seenAddrLower = new Set(primaryAddr ? [String(primaryAddr).trim().toLowerCase()] : []);
+  const altAddresses = [];
+  for (const a of rawAltAddrs) {
+    const cleanA = String(a || "").trim();
+    if (!cleanA) continue;
+    const lowA = cleanA.toLowerCase();
+    if (!seenAddrLower.has(lowA)) {
+      seenAddrLower.add(lowA);
+      altAddresses.push(cleanA);
+    }
+  }
+
   return {
     ...props,
     id: isGbPoint ? props.id : ov.id || props.id || hcadNum,
@@ -403,7 +422,8 @@ export function applyOverrideToProperties(props, overridesMap) {
     use_category: ov.use_category || props.use_category || "Residential",
     stories: Number(ov.stories) || Number(props.stories) || 1,
     height_m: Number(ov.height_m) || Number(props.height_m) || 4.5,
-    address: (isGbPoint && props.address) || ov.address || props.address || "",
+    address: primaryAddr,
+    alt_addresses: altAddresses,
     historic_district: ov.historic_district || props.historic_district || "",
     contributing: ov.contributing || props.contributing || "",
     bld_style: ov.bld_style || props.bld_style || "",

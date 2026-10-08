@@ -14,8 +14,8 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008q";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008q";
+import { AtlasMapController } from "./mapController.js?v=20261008r";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008r";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008q";
+} from "./curatedEdits.js?v=20261008r";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -162,9 +162,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261008q"),
-        fetch("public/data/stats_summary.json?v=20261008q"),
-        fetch("public/data/haif_index.json?v=20261008q").catch(() => null),
+        fetch("public/data/search_index.json?v=20261008r"),
+        fetch("public/data/stats_summary.json?v=20261008r"),
+        fetch("public/data/haif_index.json?v=20261008r").catch(() => null),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -798,15 +798,44 @@ class HoustonAtlasApp {
       const akaSnippet =
         altNames.length > 0 ? `AKA: ${altNames.slice(0, 2).join(", ")} • ` : "";
 
+      const primaryAddr = String(existingItem?.address || ov.address || "").trim();
+      const rawAltAddrs = [
+        ...(Array.isArray(existingItem?.alt_addresses) ? existingItem.alt_addresses : []),
+        ...(Array.isArray(ov.alt_addresses) ? ov.alt_addresses : []),
+        ov.address || "",
+        existingItem?.address || "",
+      ];
+      const seenAddrLow = new Set(primaryAddr ? [primaryAddr.toLowerCase()] : []);
+      const altAddresses = [];
+      for (const a of rawAltAddrs) {
+        const cleanA = String(a || "").trim();
+        if (!cleanA) continue;
+        const lowA = cleanA.toLowerCase();
+        if (!seenAddrLow.has(lowA)) {
+          seenAddrLow.add(lowA);
+          altAddresses.push(cleanA);
+        }
+      }
+      const allDispAddrs = [primaryAddr, ...altAddresses].filter(Boolean);
+      const combinedAddrDisplay = allDispAddrs.slice(0, 2).join(" / ");
+      const addrSnippet =
+        primaryBldName && combinedAddrDisplay && combinedAddrDisplay.toLowerCase() !== primaryBldName.toLowerCase()
+          ? `${combinedAddrDisplay} • `
+          : !primaryBldName && altAddresses.length > 0
+          ? `${combinedAddrDisplay} • `
+          : "";
+
       const entry = {
         type: "building",
         id: ov.id || existingItem?.id || `ov_${hcad}`,
         hcad_num: hcad,
-        label: primaryBldName || ov.address || existingItem?.label || `HCAD ${hcad}`,
+        label: primaryBldName || primaryAddr || ov.address || existingItem?.label || `HCAD ${hcad}`,
+        address: primaryAddr || ov.address || "",
+        ...(altAddresses.length > 0 ? { alt_addresses: altAddresses } : {}),
         building_name: primaryBldName,
         alt_names: altNames,
         name_source: ov.name_source || existingItem?.name_source || "",
-        sublabel: `${akaSnippet}${ov.historic_district || existingItem?.historic_district || mergedUseCategory || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
+        sublabel: `${akaSnippet}${addrSnippet}${ov.historic_district || existingItem?.historic_district || mergedUseCategory || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
         category: `Built ${ov.year_built} ✓`,
         year_built: ov.year_built,
         architect: ov.architect || existingItem?.architect || "",
@@ -841,7 +870,7 @@ class HoustonAtlasApp {
       if (item.label) byLabel.set(String(item.label).trim().toLowerCase(), item);
     }
 
-    // 1. Enrich from buildingsData (architect, bld_style, style, use_category, landuse_desc, historic_district, good_brick_years, building_name, alt_names, and geometry coords)
+    // 1. Enrich from buildingsData (architect, bld_style, style, use_category, landuse_desc, historic_district, good_brick_years, building_name, alt_names, address, alt_addresses, and geometry coords)
     for (const feat of this.mapController.buildingsData || []) {
       const p = feat.properties || {};
       const hcad = String(p.hcad_num || "").trim();
@@ -865,6 +894,32 @@ class HoustonAtlasApp {
           }
           target.lon = sumLon / ring.length;
           target.lat = sumLat / ring.length;
+        }
+        if (p.address && !target.address) {
+          target.address = p.address;
+        } else if (
+          p.address &&
+          target.address &&
+          p.address.toLowerCase() !== target.address.toLowerCase()
+        ) {
+          const existingAlts = Array.isArray(target.alt_addresses) ? target.alt_addresses : [];
+          if (!existingAlts.some((a) => String(a).toLowerCase() === p.address.toLowerCase())) {
+            target.alt_addresses = [...existingAlts, p.address];
+          }
+        }
+        if (Array.isArray(p.alt_addresses) && p.alt_addresses.length > 0) {
+          const existingAlts = Array.isArray(target.alt_addresses) ? target.alt_addresses : [];
+          const mergedAlts = [...existingAlts];
+          for (const a of p.alt_addresses) {
+            if (
+              a &&
+              a.toLowerCase() !== String(target.address || "").toLowerCase() &&
+              !mergedAlts.some((x) => String(x).toLowerCase() === a.toLowerCase())
+            ) {
+              mergedAlts.push(a);
+            }
+          }
+          if (mergedAlts.length > 0) target.alt_addresses = mergedAlts;
         }
         if ((p.building_name || p.landmark_name) && !target.building_name) {
           target.building_name = p.building_name || p.landmark_name;
@@ -896,6 +951,7 @@ class HoustonAtlasApp {
         if (p.landmark_summary && !target.landmark_summary)
           target.landmark_summary = p.landmark_summary;
       } else if (
+        p.address ||
         p.architect ||
         p.building_name ||
         p.landmark_name ||
@@ -912,6 +968,10 @@ class HoustonAtlasApp {
           id: p.id || "",
           hcad_num: hcad,
           label: p.building_name || p.landmark_name || p.address || `HCAD ${hcad}`,
+          address: p.address || "",
+          ...(Array.isArray(p.alt_addresses) && p.alt_addresses.length
+            ? { alt_addresses: p.alt_addresses }
+            : {}),
           building_name: p.building_name || p.landmark_name || "",
           alt_names: Array.isArray(p.alt_names) ? p.alt_names : [],
           name_source: p.name_source || "",
@@ -975,6 +1035,10 @@ class HoustonAtlasApp {
           id: p.id || "",
           hcad_num: hcad,
           label: p.building_name || p.name || p.address || "Houston Landmark",
+          address: p.address || "",
+          ...(Array.isArray(p.alt_addresses) && p.alt_addresses.length
+            ? { alt_addresses: p.alt_addresses }
+            : {}),
           building_name: p.building_name || p.name || "",
           alt_names: Array.isArray(p.alt_names) ? p.alt_names : [],
           sublabel: [
@@ -2178,11 +2242,21 @@ class HoustonAtlasApp {
       hdrLow.startsWith("building class:") ||
       hdrLow.startsWith("building category:");
 
+    const qAddr = q
+      .replace(/,\s*houston.*$/i, "")
+      .replace(/\./g, "")
+      .trim();
+    const qTokens = qAddr.split(/\s+/).filter((t) => t.length >= 2);
+
     const scoreCandidate = (item, isViewportCandidate = false) => {
       const lbl = String(item.label || "").toLowerCase();
       const bldName = String(item.building_name || "").toLowerCase();
       const altNames = Array.isArray(item.alt_names)
         ? item.alt_names.map((s) => String(s).toLowerCase())
+        : [];
+      const addr = String(item.address || "").toLowerCase();
+      const altAddrs = Array.isArray(item.alt_addresses)
+        ? item.alt_addresses.map((s) => String(s).toLowerCase())
         : [];
       const sub = String(item.sublabel || "").toLowerCase();
       const hcad = String(item.hcad_num || "").toLowerCase();
@@ -2336,6 +2410,26 @@ class HoustonAtlasApp {
           score = Math.max(score, hcad === q ? 125 : 90);
         }
 
+        // Primary Street Address & Secondary / Alternate Street Addresses (`alt_addresses`) match
+        if (addr) {
+          if (addr === q || (qAddr && addr === qAddr)) {
+            score = Math.max(score, 126);
+          } else if (addr.startsWith(q) || (qAddr && addr.startsWith(qAddr))) {
+            score = Math.max(score, 116);
+          } else if (addr.includes(q) || (qAddr && addr.includes(qAddr))) {
+            score = Math.max(score, 96);
+          }
+        }
+        for (const aa of altAddrs) {
+          if (aa === q || (qAddr && aa === qAddr)) {
+            score = Math.max(score, 124);
+          } else if (aa.startsWith(q) || (qAddr && aa.startsWith(qAddr))) {
+            score = Math.max(score, 114);
+          } else if (aa.includes(q) || (qAddr && aa.includes(qAddr))) {
+            score = Math.max(score, 94);
+          }
+        }
+
         // Primary Building Name & Historical / Colloquial Aliases (`alt_names`) match
         if (bldName) {
           if (bldName === q) score = Math.max(score, 125);
@@ -2357,6 +2451,14 @@ class HoustonAtlasApp {
           score = Math.max(score, 65);
         } else if (sub.includes(q)) {
           score = Math.max(score, 55);
+        }
+
+        // Multi-word token fallback across address + names (e.g. "1001 mckinney" or "city national mckinney")
+        if (score < 85 && qTokens.length >= 2) {
+          const combinedHaystack = `${addr} ${altAddrs.join(" ")} ${lbl} ${bldName} ${altNames.join(" ")} ${sub}`;
+          if (qTokens.every((tok) => combinedHaystack.includes(tok))) {
+            score = Math.max(score, 86);
+          }
         }
       }
 
@@ -2389,22 +2491,16 @@ class HoustonAtlasApp {
     const scoredMatches = [];
     const seenKeys = new Set();
 
-    // First: Check currently rendered buildings in the active map viewport + buildings.geojson
+    // First: Check all rendered & in-memory buildings in overridesFC + buildings.geojson
     const liveCandidates = this.mapController?.getRenderedBuildingCandidates
-      ? this.mapController.getRenderedBuildingCandidates(600)
+      ? this.mapController.getRenderedBuildingCandidates(20000)
       : [];
     for (const cand of liveCandidates) {
-      const p = applyOverrideToProperties(
-        cand.props || {},
-        this.mapController?.curatedOverrides || {}
-      );
+      const p = cand.props || {};
       const key = String(p.id || p.building_id || p.hcad_num || "").trim();
       if (key && seenKeys.has(key)) continue;
 
       const nameInfo = this._resolveBuildingNameAndAliases(p);
-      const styleInfo = this._resolveStyleAndClassInfo(p);
-      const luChips = this._resolveLandUseChips(p);
-      const luSummary = luChips.map((c) => c.label).join(" › ");
       const yr = Number(p.year_built) || 0;
       const distClean =
         p.historic_district &&
@@ -2412,25 +2508,21 @@ class HoustonAtlasApp {
         p.historic_district !== "Outside Historic District"
           ? p.historic_district
           : "";
+      const primaryAddr = String(p.address || "").trim();
+      const altAddresses = Array.isArray(p.alt_addresses)
+        ? p.alt_addresses.map((a) => String(a || "").trim()).filter(Boolean)
+        : [];
       const synthItem = {
         type: "building",
         id: p.id || p.building_id || "",
         hcad_num: String(p.hcad_num || "").trim(),
-        label: nameInfo.primaryName || p.address || `HCAD ${p.hcad_num}`,
+        label: nameInfo.primaryName || primaryAddr || `HCAD ${p.hcad_num}`,
+        address: primaryAddr,
+        alt_addresses: altAddresses,
         building_name: nameInfo.hasCustomBuildingName ? nameInfo.primaryName : "",
         alt_names: nameInfo.altNames,
         name_source: nameInfo.nameSource,
-        sublabel: [
-          cand.inViewport ? "📍 In Current View" : "",
-          nameInfo.altNames.length > 0 ? `AKA: ${nameInfo.altNames.slice(0, 2).join(", ")}` : "",
-          nameInfo.hasCustomBuildingName && p.address && p.address !== nameInfo.primaryName ? p.address : "",
-          distClean || luSummary || "Harris County",
-          luChips.length > 1 && distClean ? luSummary : "",
-          styleInfo.displayStyle && styleInfo.displayStyle !== luSummary ? styleInfo.displayStyle : "",
-          yr >= 1836 ? `Built ${yr}` : "",
-        ]
-          .filter(Boolean)
-          .join(" • "),
+        sublabel: "",
         category: yr >= 1836 ? `Built ${yr}${p.is_curated_override ? " ✓" : ""}` : p.use_category || "Structure",
         year_built: yr,
         architect: p.architect || "",
@@ -2450,6 +2542,26 @@ class HoustonAtlasApp {
       };
       const sc = scoreCandidate(synthItem, cand.inViewport);
       if (sc > 0) {
+        const styleInfo = this._resolveStyleAndClassInfo(p);
+        const luChips = this._resolveLandUseChips(p);
+        const luSummary = luChips.map((c) => c.label).join(" › ");
+        const allAddrs = [primaryAddr, ...altAddresses].filter(Boolean);
+        const combinedAddrDisplay = allAddrs.slice(0, 2).join(" / ");
+        synthItem.sublabel = [
+          cand.inViewport ? "📍 In Current View" : "",
+          nameInfo.altNames.length > 0 ? `AKA: ${nameInfo.altNames.slice(0, 2).join(", ")}` : "",
+          (nameInfo.hasCustomBuildingName || altAddresses.length > 0) &&
+          combinedAddrDisplay &&
+          combinedAddrDisplay.toLowerCase() !== String(synthItem.label).toLowerCase()
+            ? combinedAddrDisplay
+            : "",
+          distClean || luSummary || "Harris County",
+          luChips.length > 1 && distClean ? luSummary : "",
+          styleInfo.displayStyle && styleInfo.displayStyle !== luSummary ? styleInfo.displayStyle : "",
+          yr >= 1836 ? `Built ${yr}` : "",
+        ]
+          .filter(Boolean)
+          .join(" • ");
         if (key) seenKeys.add(key);
         if (synthItem.hcad_num && !key.includes("#")) seenKeys.add(synthItem.hcad_num);
         scoredMatches.push({ item: synthItem, score: sc });
@@ -2559,6 +2671,8 @@ class HoustonAtlasApp {
             document.getElementById("inspector-drawer")?.classList.contains("hidden")
           ) {
             this.renderInspectorDrawer({
+              address: chosen.address || "",
+              alt_addresses: chosen.alt_addresses || [],
               building_name: chosen.building_name || chosen.label,
               landmark_name: chosen.label,
               alt_names: chosen.alt_names || [],
@@ -3343,9 +3457,16 @@ class HoustonAtlasApp {
 
     const nameInfo = this._resolveBuildingNameAndAliases(props);
     const title = nameInfo.primaryName || "Houston Historic Structure";
+    const allDrawerAddrs = [
+      props.address || "",
+      ...(Array.isArray(props.alt_addresses) ? props.alt_addresses : []),
+    ]
+      .map((a) => String(a || "").trim())
+      .filter(Boolean);
+    const combinedDrawerAddr = allDrawerAddrs.slice(0, 2).join(" / ");
     const subtitle =
-      props.address && props.address !== title
-        ? props.address
+      combinedDrawerAddr && combinedDrawerAddr.toLowerCase() !== title.toLowerCase()
+        ? combinedDrawerAddr
         : props.historic_district || "Harris County, Texas";
 
     const akaHeroHtml =

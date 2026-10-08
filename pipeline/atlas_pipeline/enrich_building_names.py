@@ -841,7 +841,112 @@ def main() -> None:
         merged_alts = merge_unique_names(best_name, other_primary_names + raw_alts, addr)
         return best_name, merged_alts, best_source
 
-    # Apply resolved `building_name`, `alt_names`, `name_source` to `curated_overrides.json`
+    def addr_core_key(addr: str) -> str:
+        s = clean_name_or_title(addr or "").upper().strip()
+        s = re.sub(r"\s*\([^)]*\)\s*", " ", s)
+        s = re.sub(r"[.,#]", " ", s)
+        s = re.sub(
+            r"\b(ST|AVE|BLVD|DR|RD|LN|CT|PL|WAY|PKWY|FWY|CIR|TRL)\s+\d+[A-Z]?\b.*$",
+            r"\1",
+            s,
+        )
+        s = re.sub(
+            r"\b(STREET|AVENUE|BOULEVARD|DRIVE|ROAD|LANE|COURT|PLACE|PARKWAY|FREEWAY)\b",
+            "",
+            s,
+        )
+        s = re.sub(r"\b(ST|AVE|BLVD|DR|RD|LN|CT|PL|WAY|PKWY|FWY|CIR|TRL)\b", "", s)
+        s = re.sub(r"\s+", " ", s).strip()
+        return s
+
+    def split_slash_addresses(raw_addr: str) -> list[str]:
+        s = clean_name_or_title(raw_addr or "").strip()
+        s = re.sub(r"\s*\([^)]*\)\s*", "", s).strip()
+        if not s or s.startswith("0 "):
+            return []
+        parts = [p.strip() for p in re.split(r"\s+/\s+", s) if p.strip()]
+        out = []
+        for p in parts:
+            if re.match(r"^\d+\s+[A-Za-z0-9]", p) and not p.startswith("0 "):
+                out.append(p)
+        return out
+
+    # Collect all distinct street addresses per HCAD parcel (and building ID) across all sources
+    hcad_raw_addrs: dict[str, list[str]] = defaultdict(list)
+    key_raw_addrs: dict[str, list[str]] = defaultdict(list)
+
+    for feat in buildings_doc.get("features", []):
+        p = feat.get("properties") or {}
+        fid = str(p.get("id") or p.get("building_id") or "").strip()
+        h = str(p.get("hcad_num") or "").strip()
+        for a in split_slash_addresses(p.get("address") or ""):
+            if fid:
+                key_raw_addrs[fid].append(a)
+            if h and hcad_building_counts.get(h, 0) <= 1:
+                hcad_raw_addrs[h].append(a)
+
+    for k, ov in overrides.items():
+        if not isinstance(ov, dict) or ov.get("suppress_only") or "#aux_" in str(k):
+            continue
+        h = str(ov.get("hcad_num") or k.split("#")[0] or "").strip()
+        for a in split_slash_addresses(ov.get("address") or ""):
+            key_raw_addrs[k].append(a)
+            if "#" not in str(k) and h and hcad_building_counts.get(h, 0) <= 1:
+                hcad_raw_addrs[h].append(a)
+
+    for coll in ("landmarks", "good_brick_awards"):
+        for feat in overlays.get(coll, {}).get("features", []):
+            p = feat.get("properties") or {}
+            h = str(p.get("hcad_num") or "").strip()
+            bid = str(p.get("building_id") or "").strip()
+            for a in split_slash_addresses(p.get("address") or ""):
+                if bid:
+                    key_raw_addrs[bid].append(a)
+                if h and "#" not in bid and hcad_building_counts.get(h, 0) <= 1:
+                    hcad_raw_addrs[h].append(a)
+
+    for key, tids in by_key_haif.items():
+        base_h = key.split("#")[0]
+        if "#" not in key and hcad_building_counts.get(base_h, 0) > 1:
+            continue
+        for tid in tids:
+            rec = threads.get(str(tid))
+            if not rec:
+                continue
+            t_str = clean_name_or_title(rec.get("t", ""))
+            m_at = re.search(
+                r"\bAt\s+(\d+\s+[A-Za-z0-9 .'-]+?\b(?:St|Ave|Blvd|Dr|Rd|Ln|Ct|Pl|Way|Pkwy|Fwy)\.?)\b",
+                t_str,
+                re.I,
+            )
+            if m_at:
+                for a in split_slash_addresses(m_at.group(1)):
+                    key_raw_addrs[key].append(a)
+                    if "#" not in key and base_h and hcad_building_counts.get(base_h, 0) <= 1:
+                        hcad_raw_addrs[base_h].append(a)
+
+    def resolve_addresses_for_entity(fid: str, hcad: str, current_addr: str) -> tuple[str, list[str]]:
+        cands = []
+        for a in split_slash_addresses(current_addr):
+            cands.append(a)
+        if fid and fid in key_raw_addrs:
+            cands.extend(key_raw_addrs[fid])
+        if "#" not in str(fid) and hcad and hcad_building_counts.get(hcad, 0) <= 1 and hcad in hcad_raw_addrs:
+            cands.extend(hcad_raw_addrs[hcad])
+        by_core: dict[str, str] = {}
+        for a in cands:
+            ck = addr_core_key(a)
+            if ck and ck not in by_core:
+                by_core[ck] = a
+        distinct = list(by_core.values())
+        if not distinct:
+            clean_cur = clean_name_or_title(current_addr or "").strip()
+            return clean_cur, []
+        primary_addr = distinct[0]
+        alt_addrs = distinct[1:]
+        return primary_addr, alt_addrs
+
+    # Apply resolved `building_name`, `alt_names`, `name_source`, and `alt_addresses` to `curated_overrides.json`
     ov_named_count = 0
     ov_multi_name_count = 0
     for k, ov in overrides.items():
@@ -849,10 +954,18 @@ def main() -> None:
             continue
         if "#aux_" in str(k):
             ov.pop("alt_names", None)
+            ov.pop("alt_addresses", None)
             continue
         hcad = str(ov.get("hcad_num") or k.split("#")[0] or "").strip()
         addr = ov.get("address") or ""
-        best_name, merged_alts, best_src = resolve_best_name_and_alts(k, hcad, addr)
+        primary_addr, alt_addrs = resolve_addresses_for_entity(k, hcad, addr)
+        if primary_addr and not addr:
+            ov["address"] = primary_addr
+        if alt_addrs:
+            ov["alt_addresses"] = alt_addrs
+        else:
+            ov.pop("alt_addresses", None)
+        best_name, merged_alts, best_src = resolve_best_name_and_alts(k, hcad, primary_addr or addr)
         if best_name:
             ov["building_name"] = best_name
             ov["landmark_name"] = best_name
@@ -864,7 +977,7 @@ def main() -> None:
         else:
             ov.pop("alt_names", None)
 
-    # Apply resolved `building_name`, `alt_names`, `name_source` to `buildings.geojson`
+    # Apply resolved `building_name`, `alt_names`, `name_source`, and `alt_addresses` to `buildings.geojson`
     bld_named_count = 0
     bld_multi_name_count = 0
     for feat in buildings_doc.get("features", []):
@@ -873,17 +986,25 @@ def main() -> None:
         fid = str(p.get("id") or p.get("building_id") or "").strip()
         if "#aux_" in fid:
             p.pop("alt_names", None)
+            p.pop("alt_addresses", None)
             continue
         hcad = str(p.get("hcad_num") or "").strip()
         addr = p.get("address") or ""
+        primary_addr, alt_addrs = resolve_addresses_for_entity(fid, hcad, addr)
+        if primary_addr and not addr:
+            p["address"] = primary_addr
+        if alt_addrs:
+            p["alt_addresses"] = alt_addrs
+        else:
+            p.pop("alt_addresses", None)
         existing_lm = p.get("landmark_name") or ""
         existing_bn = p.get("building_name") or ""
         if existing_lm or existing_bn:
-            p1, a1 = split_primary_and_alts(existing_lm or existing_bn, addr)
-            if p1 and is_valid_building_name(p1, addr):
-                register_name(fid or hcad, addr, p1, a1, 2, "Preservation Houston Curated Archive", allow_addr_index=False)
+            p1, a1 = split_primary_and_alts(existing_lm or existing_bn, primary_addr or addr)
+            if p1 and is_valid_building_name(p1, primary_addr or addr):
+                register_name(fid or hcad, primary_addr or addr, p1, a1, 2, "Preservation Houston Curated Archive", allow_addr_index=False)
 
-        best_name, merged_alts, best_src = resolve_best_name_and_alts(fid, hcad, addr)
+        best_name, merged_alts, best_src = resolve_best_name_and_alts(fid, hcad, primary_addr or addr)
         if best_name:
             p["building_name"] = best_name
             p["landmark_name"] = best_name
@@ -894,6 +1015,19 @@ def main() -> None:
             bld_multi_name_count += 1
         else:
             p.pop("alt_names", None)
+
+    # Also attach `alt_addresses` to `overlays.json` landmarks and good_brick_awards
+    for coll in ("landmarks", "good_brick_awards"):
+        for feat in overlays.get(coll, {}).get("features", []):
+            p = feat.get("properties") or {}
+            hcad = str(p.get("hcad_num") or "").strip()
+            bid = str(p.get("building_id") or "").strip()
+            addr = p.get("address") or ""
+            _, alt_addrs = resolve_addresses_for_entity(bid, hcad, addr)
+            if alt_addrs:
+                p["alt_addresses"] = alt_addrs
+            else:
+                p.pop("alt_addresses", None)
 
     # Embed compact `names_by_key` and `names_by_addr` in `haif_index.json`
     names_by_key_compact = {}
@@ -931,13 +1065,165 @@ def main() -> None:
     haif_doc["names_by_key"] = names_by_key_compact
     haif_doc["names_by_addr"] = names_by_addr_compact
 
-    # Enrich `search_index.json` with `building_name`, `alt_names`, and formatted sublabels
+    # Helper to compute centroid [lon, lat] from GeoJSON geometry
+    def _geom_centroid(geom: dict | None) -> tuple[float, float] | None:
+        if not geom or not geom.get("coordinates"):
+            return None
+        gtype = geom.get("type")
+        coords = geom.get("coordinates")
+        if gtype == "Point" and isinstance(coords, list) and len(coords) >= 2:
+            return round(float(coords[0]), 6), round(float(coords[1]), 6)
+        ring = None
+        if gtype == "Polygon" and coords:
+            ring = coords[0]
+        elif gtype == "MultiPolygon" and coords and coords[0]:
+            ring = coords[0][0]
+        if not ring:
+            return None
+        pts = [pt for pt in ring if isinstance(pt, list) and len(pt) >= 2]
+        if not pts:
+            return None
+        lon = sum(float(pt[0]) for pt in pts) / len(pts)
+        lat = sum(float(pt[1]) for pt in pts) / len(pts)
+        return round(lon, 6), round(lat, 6)
+
+    # Ensure every building in `buildings.geojson` and `curated_overrides.json` is present in `search_index.json`
+    existing_si_ids: set[str] = set()
+    existing_si_hcads: set[str] = set()
+    for item in search_doc:
+        if item.get("type") == "district":
+            continue
+        fid = str(item.get("id") or "").strip()
+        hcad = str(item.get("hcad_num") or "").strip()
+        if fid:
+            existing_si_ids.add(fid)
+        if hcad and "#" not in fid:
+            existing_si_hcads.add(hcad)
+
+    added_from_blds = 0
+    for feat in buildings_doc.get("features", []):
+        p = feat.get("properties") or {}
+        fid = str(p.get("id") or p.get("building_id") or "").strip()
+        if "#aux_" in fid or p.get("suppress_only"):
+            continue
+        hcad = str(p.get("hcad_num") or "").strip()
+        if (fid and fid in existing_si_ids) or (hcad and "#" not in fid and hcad in existing_si_hcads):
+            continue
+        pt = _geom_centroid(feat.get("geometry"))
+        if not pt:
+            continue
+        addr = str(p.get("address") or "").strip()
+        bname = str(p.get("building_name") or p.get("landmark_name") or "").strip()
+        if not addr and not bname:
+            continue
+        yr = int(p.get("year_built") or 0)
+        dist = str(p.get("historic_district") or "").strip()
+        if dist in ("Outside City District", "Outside Historic District", "None", "null"):
+            dist = ""
+        uc = str(p.get("use_category") or "Residential").strip()
+        lu = str(p.get("landuse_desc") or "").strip()
+        st = str(p.get("style") or "").strip()
+        bs = str(p.get("bld_style") or "").strip()
+        arch = str(p.get("architect") or "").strip()
+        disp_st = st or (bs if bs not in ("Residential", "Historical / Architectural Structure") else "")
+        sub_parts = [x for x in [addr if bname else "", dist or uc, disp_st, f"Built {yr}" if yr >= 1836 else ""] if x]
+        new_item: dict = {
+            "type": "building",
+            "id": fid or f"hcad_{hcad}",
+            "hcad_num": hcad,
+            "label": bname or addr,
+            "address": addr,
+            "sublabel": " • ".join(sub_parts),
+            "category": f"Built {yr}" if yr >= 1836 else (uc or "Property"),
+            "year_built": yr,
+            "use_category": uc,
+            "lon": pt[0],
+            "lat": pt[1],
+            "zoom": 17.5,
+        }
+        if lu:
+            new_item["landuse_desc"] = lu
+        if st:
+            new_item["style"] = st
+        if bs:
+            new_item["bld_style"] = bs
+        if arch:
+            new_item["architect"] = arch
+        if dist:
+            new_item["historic_district"] = dist
+        search_doc.append(new_item)
+        if fid:
+            existing_si_ids.add(fid)
+        if hcad and "#" not in fid:
+            existing_si_hcads.add(hcad)
+        added_from_blds += 1
+
+    added_from_ovs = 0
+    for k, ov in overrides.items():
+        if not isinstance(ov, dict) or ov.get("suppress_only") or "#aux_" in str(k):
+            continue
+        hcad = str(ov.get("hcad_num") or k.split("#")[0] or "").strip()
+        if k in existing_si_ids or ("#" not in str(k) and hcad and hcad in existing_si_hcads):
+            continue
+        pt = _geom_centroid(ov.get("geometry"))
+        if not pt:
+            continue
+        addr = str(ov.get("address") or "").strip()
+        bname = str(ov.get("building_name") or ov.get("landmark_name") or "").strip()
+        if not addr and not bname:
+            continue
+        yr = int(ov.get("year_built") or 0)
+        dist = str(ov.get("historic_district") or "").strip()
+        if dist in ("Outside City District", "Outside Historic District", "None", "null"):
+            dist = ""
+        uc = str(ov.get("use_category") or "Residential").strip()
+        lu = str(ov.get("landuse_desc") or "").strip()
+        st = str(ov.get("style") or "").strip()
+        bs = str(ov.get("bld_style") or "").strip()
+        arch = str(ov.get("architect") or "").strip()
+        disp_st = st or (bs if bs not in ("Residential", "Historical / Architectural Structure") else "")
+        sub_parts = [x for x in [addr if bname else "", dist or uc, disp_st, f"Built {yr}" if yr >= 1836 else ""] if x]
+        new_item = {
+            "type": "building",
+            "id": k,
+            "hcad_num": hcad,
+            "label": bname or addr,
+            "address": addr,
+            "sublabel": " • ".join(sub_parts),
+            "category": f"Built {yr}" if yr >= 1836 else (uc or "Property"),
+            "year_built": yr,
+            "use_category": uc,
+            "lon": pt[0],
+            "lat": pt[1],
+            "zoom": 17.5,
+        }
+        if lu:
+            new_item["landuse_desc"] = lu
+        if st:
+            new_item["style"] = st
+        if bs:
+            new_item["bld_style"] = bs
+        if arch:
+            new_item["architect"] = arch
+        if dist:
+            new_item["historic_district"] = dist
+        search_doc.append(new_item)
+        existing_si_ids.add(k)
+        if "#" not in str(k) and hcad:
+            existing_si_hcads.add(hcad)
+        added_from_ovs += 1
+
+    # Enrich `search_index.json` with `building_name`, `alt_names`, `address`, `alt_addresses`, and formatted sublabels
     search_named_count = 0
     search_alt_count = 0
+    search_multi_addr_count = 0
     for item in search_doc:
+        if item.get("type") == "district":
+            continue
         fid = str(item.get("id") or "").strip()
         if "#aux_" in fid:
             item.pop("alt_names", None)
+            item.pop("alt_addresses", None)
             continue
         hcad = str(item.get("hcad_num") or "").strip()
         lbl = clean_name_or_title(item.get("label") or "").strip()
@@ -951,18 +1237,50 @@ def main() -> None:
 
         lbl_no_addr = re.sub(r"\s*(?:—\s*\d+\s+.*|\(\d+\s+[^)]+\))$", "", lbl).strip()
         lbl_primary, lbl_alts = split_primary_and_alts(lbl_no_addr, "")
-        addr_cand = lbl if re.match(r"^\d+\s+", lbl) else ""
-        best_name, merged_alts, best_src = resolve_best_name_and_alts(fid, hcad, addr_cand)
-        if not best_name and lbl_primary and is_valid_building_name(lbl_primary, addr_cand):
+        addr_cand = clean_name_or_title(item.get("address") or "").strip()
+        if not addr_cand and re.match(r"^\d+\s+", lbl):
+            addr_cand = lbl
+
+        primary_addr, alt_addrs = resolve_addresses_for_entity(fid, hcad, addr_cand)
+        if primary_addr:
+            item["address"] = primary_addr
+        elif addr_cand:
+            item["address"] = addr_cand
+        if alt_addrs:
+            item["alt_addresses"] = alt_addrs
+            search_multi_addr_count += 1
+        else:
+            item.pop("alt_addresses", None)
+
+        effective_addr = primary_addr or addr_cand
+        best_name, merged_alts, best_src = resolve_best_name_and_alts(fid, hcad, effective_addr)
+        if not best_name and lbl_primary and is_valid_building_name(lbl_primary, effective_addr):
             best_name = lbl_primary
-        merged_alts = merge_unique_names(best_name or lbl_primary, merged_alts + lbl_alts, addr_cand)
+        merged_alts = merge_unique_names(best_name or lbl_primary, merged_alts + lbl_alts, effective_addr)
+
+        all_disp_addrs = [a for a in ([primary_addr] if primary_addr else []) + alt_addrs if a]
+        combined_addr_str = " / ".join(all_disp_addrs[:2]) if all_disp_addrs else effective_addr
 
         if best_name:
             item["building_name"] = best_name
             item["label"] = best_name
-            if addr_cand and addr_cand.lower() not in sub.lower():
-                sub = f"{addr_cand} • {sub}" if sub else addr_cand
+            if combined_addr_str:
+                # Replace single address in sublabel with combined address if needed, or prepend it
+                sub_parts = [p.strip() for p in sub.split("•") if p.strip()]
+                addr_cores = {addr_core_key(a) for a in all_disp_addrs if addr_core_key(a)}
+                filtered_sub_parts = [
+                    sp for sp in sub_parts if addr_core_key(sp) not in addr_cores and sp.lower() != combined_addr_str.lower()
+                ]
+                sub = " • ".join([combined_addr_str] + filtered_sub_parts)
             search_named_count += 1
+        elif alt_addrs and combined_addr_str:
+            sub_parts = [p.strip() for p in sub.split("•") if p.strip()]
+            addr_cores = {addr_core_key(a) for a in all_disp_addrs if addr_core_key(a)}
+            filtered_sub_parts = [
+                sp for sp in sub_parts if addr_core_key(sp) not in addr_cores and sp.lower() != combined_addr_str.lower()
+            ]
+            sub = " • ".join([combined_addr_str] + filtered_sub_parts)
+
         if merged_alts:
             item["alt_names"] = merged_alts
             aka_str = f"AKA: {', '.join(merged_alts[:2])}"
@@ -985,7 +1303,10 @@ def main() -> None:
     print(f"curated_overrides.json: {ov_named_count} named buildings ({ov_multi_name_count} with multiple/historical names)")
     print(f"buildings.geojson: {bld_named_count} named buildings ({bld_multi_name_count} with multiple/historical names)")
     print(f"haif_index.json runtime lookup: {len(names_by_key_compact)} named HCAD/building keys, {len(names_by_addr_compact)} named street addresses")
-    print(f"search_index.json: {search_named_count} named entries ({search_alt_count} with searchable historical/alternate names)")
+    print(
+        f"search_index.json: {len(search_doc)} total entries (+{added_from_blds} from buildings.geojson, +{added_from_ovs} from overrides); "
+        f"{search_named_count} named, {search_alt_count} with alt_names, {search_multi_addr_count} with multi-street alt_addresses"
+    )
 
 
 if __name__ == "__main__":
