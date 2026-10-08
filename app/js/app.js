@@ -256,7 +256,10 @@ class HoustonAtlasApp {
         if ((p.bld_style || p.style) && !target.bld_style) target.bld_style = p.bld_style || p.style;
         if (p.good_brick_years && !target.good_brick_years) target.good_brick_years = String(p.good_brick_years);
         if (p.historic_district && !target.historic_district) target.historic_district = p.historic_district;
-      } else if (p.architect || p.landmark_name || p.good_brick_years) {
+        if (p.landmark_code && !target.landmark_code) target.landmark_code = p.landmark_code;
+        if (p.landmark_report_url && !target.landmark_report_url) target.landmark_report_url = p.landmark_report_url;
+        if (p.landmark_summary && !target.landmark_summary) target.landmark_summary = p.landmark_summary;
+      } else if (p.architect || p.landmark_name || p.good_brick_years || p.landmark_report_url) {
         let lon = -95.3698;
         let lat = 29.7604;
         if (ring && ring[0]) {
@@ -274,6 +277,9 @@ class HoustonAtlasApp {
           bld_style: p.bld_style || p.style || "",
           good_brick_years: p.good_brick_years ? String(p.good_brick_years) : "",
           historic_district: p.historic_district || "",
+          landmark_code: p.landmark_code || "",
+          landmark_report_url: p.landmark_report_url || "",
+          landmark_summary: p.landmark_summary || "",
           lon,
           lat,
           zoom: 17.4,
@@ -288,12 +294,16 @@ class HoustonAtlasApp {
     for (const feat of landmarks) {
       const p = feat.properties || {};
       const hcad = String(p.hcad_num || "").trim();
+      const lmCode = p.plm_num || p.lm_num || "";
       const target =
         (hcad && byHcad.get(hcad)) ||
         (p.name && byLabel.get(String(p.name).toLowerCase()));
       if (target) {
         if (p.architect && !target.architect) target.architect = p.architect;
         if (p.style && !target.bld_style) target.bld_style = p.style;
+        if (lmCode && !target.landmark_code) target.landmark_code = lmCode;
+        if (p.report_pdf_url && !target.landmark_report_url) target.landmark_report_url = p.report_pdf_url;
+        if (p.pdf_summary && !target.landmark_summary) target.landmark_summary = p.pdf_summary;
       } else if (feat.geometry?.coordinates) {
         const [lon, lat] = feat.geometry.coordinates;
         this.searchIndex.push({
@@ -301,11 +311,14 @@ class HoustonAtlasApp {
           id: p.id || "",
           hcad_num: hcad,
           label: p.name || p.address || "Houston Landmark",
-          sublabel: [p.address, p.style, p.architect ? `Arch: ${p.architect}` : ""].filter(Boolean).join(" • "),
+          sublabel: [p.address, lmCode ? `HPO #${lmCode}` : "", p.style, p.architect ? `Arch: ${p.architect}` : ""].filter(Boolean).join(" • "),
           category: p.designation || "Landmark",
           year_built: p.year_built || 0,
           architect: p.architect || "",
           bld_style: p.style || "",
+          landmark_code: lmCode,
+          landmark_report_url: p.report_pdf_url || "",
+          landmark_summary: p.pdf_summary || "",
           lon,
           lat,
           zoom: 17.5,
@@ -1292,6 +1305,7 @@ class HoustonAtlasApp {
         const style = String(item.bld_style || "").toLowerCase();
         const gbYrs = String(item.good_brick_years || "").toLowerCase();
         const dist = String(item.historic_district || "").toLowerCase();
+        const lmCode = String(item.landmark_code || "").toLowerCase();
         return (
           lbl.includes(q) ||
           sub.includes(q) ||
@@ -1299,7 +1313,8 @@ class HoustonAtlasApp {
           arch.includes(q) ||
           style.includes(q) ||
           gbYrs.includes(q) ||
-          dist.includes(q)
+          dist.includes(q) ||
+          lmCode.includes(q)
         );
       })
       .slice(0, 14);
@@ -1373,6 +1388,9 @@ class HoustonAtlasApp {
               historic_district: chosen.sublabel,
               architect: chosen.architect || "",
               bld_style: chosen.bld_style || "",
+              landmark_code: chosen.landmark_code || "",
+              landmark_report_url: chosen.landmark_report_url || "",
+              landmark_summary: chosen.landmark_summary || "",
             });
           }
         }
@@ -2178,6 +2196,81 @@ class HoustonAtlasApp {
           </div>`
         : "";
 
+    // Resolve City of Houston Landmark Designation Report metadata (including runtime fallback from overlaysData.landmarks)
+    let reportPdfUrl = props.landmark_report_url || props.report_pdf_url || "";
+    let secondaryPdfUrl = props.secondary_pdf_url || "";
+    let landmarkCode = props.landmark_code || props.plm_num || props.lm_num || "";
+    let landmarkSummary = props.landmark_summary || props.pdf_summary || "";
+    if (!reportPdfUrl && this.mapController?.overlaysData?.landmarks?.features) {
+      const lmFeatures = this.mapController.overlaysData.landmarks.features;
+      const normTitle = String(title || "").trim().toLowerCase();
+      const normAddr = String(props.address || "").trim().toLowerCase();
+      for (const f of lmFeatures) {
+        const lp = f.properties || {};
+        const lHcad = String(lp.hcad_num || "").trim();
+        const lName = String(lp.name || "").trim().toLowerCase();
+        const lAddr = String(lp.address || "").trim().toLowerCase();
+        if (
+          (hcadNum && lHcad === hcadNum) ||
+          (normTitle && lName && normTitle === lName) ||
+          (normAddr && lAddr && normAddr === lAddr)
+        ) {
+          reportPdfUrl = lp.report_pdf_url || "";
+          secondaryPdfUrl = lp.secondary_pdf_url || "";
+          if (!landmarkCode) landmarkCode = lp.plm_num || lp.lm_num || "";
+          if (!landmarkSummary) landmarkSummary = lp.pdf_summary || "";
+          break;
+        }
+      }
+    }
+
+    const landmarkReportHtml =
+      reportPdfUrl || landmarkCode
+        ? `<div class="coh-landmark-report-card">
+            <div class="coh-landmark-report-header">
+              <span class="coh-landmark-report-kicker">&#127963; COH Landmark Designation Dossier</span>
+              ${
+                landmarkCode
+                  ? `<span class="coh-landmark-code-badge" title="City of Houston Historic Preservation Office File #">HPO #${landmarkCode}</span>`
+                  : ""
+              }
+            </div>
+            ${
+              landmarkSummary &&
+              (!props.is_curated_override || !String(props.source_citation || "").includes(landmarkSummary.slice(0, 40)))
+                ? `<div class="coh-landmark-report-summary">${landmarkSummary}</div>`
+                : ""
+            }
+            ${
+              reportPdfUrl
+                ? `<div class="coh-landmark-report-actions">
+                    <a
+                      href="${reportPdfUrl}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="coh-landmark-pdf-btn"
+                      title="Open the official City of Houston Archaeological & Historical Commission (HAHC) Landmark Designation Report PDF"
+                    >
+                      &#128196; Open Official Landmark Report (PDF) &#8599;
+                    </a>
+                    ${
+                      secondaryPdfUrl && secondaryPdfUrl !== reportPdfUrl
+                        ? `<a
+                            href="${secondaryPdfUrl}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="coh-landmark-pdf-btn secondary"
+                          >
+                            Supplemental HAHC Filing / Action Report (PDF) &#8599;
+                          </a>`
+                        : ""
+                    }
+                  </div>`
+                : ""
+            }
+          </div>`
+        : "";
+
     const verifiedBannerHtml = props.is_curated_override
       ? `<div class="ph-verified-override-card">
           <div class="ph-verified-header">
@@ -2193,7 +2286,7 @@ class HoustonAtlasApp {
             ${props.source_citation || "Verified historical completion date overrides HCAD appraisal estimate."}
           </div>
           ${
-            props.source_url
+            props.source_url && props.source_url !== reportPdfUrl
               ? `<a href="${props.source_url}" target="_blank" rel="noopener noreferrer" class="ph-verified-link">
                   View Historical Directory / Source Archive &#8599;
                 </a>`
@@ -2310,6 +2403,7 @@ class HoustonAtlasApp {
       </div>
 
       ${goodBrickHtml}
+      ${landmarkReportHtml}
       ${verifiedBannerHtml}
 
       <div class="inspector-grid">
