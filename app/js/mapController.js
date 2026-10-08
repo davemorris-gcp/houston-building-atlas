@@ -19,7 +19,7 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008t";
+} from "./curatedEdits.js?v=20261008x";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 
 const BASEMAP_TILES = {
@@ -124,6 +124,7 @@ export class AtlasMapController {
     this.highlightLayerIds = ["selected-feature-highlight"];
     this.activeTour = null;
     this.activeTourStopIndex = -1;
+    this.tourFocusMode = "all";
     this.tourStopMarkers = [];
     this.isReady = false;
   }
@@ -166,10 +167,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261008t"),
-        fetch("public/data/parcels.geojson?v=20261008t"),
-        fetch("public/data/overlays.json?v=20261008t"),
-        fetch("public/data/pmtiles_manifest.json?v=20261008t").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261008x"),
+        fetch("public/data/parcels.geojson?v=20261008x"),
+        fetch("public/data/overlays.json?v=20261008x"),
+        fetch("public/data/pmtiles_manifest.json?v=20261008x").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -599,7 +600,12 @@ export class AtlasMapController {
 
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
-    const pmtilesUrl = new URL("public/data/houston_atlas.pmtiles", window.location.href).href;
+    const cacheBust =
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261008x";
+    const pmtilesUrl = new URL(
+      `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
+      window.location.href
+    ).href;
     try {
       this.map.addSource("atlas-pmtiles", {
         type: "vector",
@@ -615,7 +621,10 @@ export class AtlasMapController {
         : [];
 
     for (let i = 0; i < shardFiles.length; i++) {
-      const shardUrl = new URL(`public/data/${shardFiles[i]}`, window.location.href).href;
+      const shardUrl = new URL(
+        `public/data/${shardFiles[i]}?v=${encodeURIComponent(cacheBust)}`,
+        window.location.href
+      ).href;
       this.map.addSource(`atlas-shard-${i}`, {
         type: "vector",
         url: `pmtiles://${shardUrl}`,
@@ -1002,6 +1011,45 @@ export class AtlasMapController {
     });
   }
 
+  _buildTourFocusFilterExpression(baseFilterExpr) {
+    if (!this.activeTour || !this.tourFocusMode || this.tourFocusMode === "all") {
+      return baseFilterExpr;
+    }
+    const stops = Array.isArray(this.activeTour.stops) ? this.activeTour.stops : [];
+    const tourHcads = stops
+      .map((s) => String(s.hcad_num || "").trim())
+      .filter(Boolean);
+    const tourBldIds = stops
+      .map((s) => String(s.building_id || "").trim())
+      .filter(Boolean);
+
+    const stopMatchClauses = [];
+    if (tourHcads.length > 0) {
+      stopMatchClauses.push(["in", ["get", "hcad_num"], ["literal", tourHcads]]);
+    }
+    if (tourBldIds.length > 0) {
+      stopMatchClauses.push(["in", ["get", "building_id"], ["literal", tourBldIds]]);
+      stopMatchClauses.push(["in", ["get", "id"], ["literal", tourBldIds]]);
+    }
+
+    if (this.tourFocusMode === "tour_only") {
+      if (!stopMatchClauses.length) return baseFilterExpr;
+      return ["all", baseFilterExpr, ["any", ...stopMatchClauses]];
+    }
+
+    if (this.tourFocusMode === "landmarks") {
+      const landmarkClauses = [
+        ...stopMatchClauses,
+        ["==", ["get", "is_designated_landmark"], true],
+        ["in", ["get", "landmark_type"], ["literal", ["Landmark", "Protected Landmark"]]],
+        ["!=", ["coalesce", ["get", "good_brick_summary"], ""], ""],
+      ];
+      return ["all", baseFilterExpr, ["any", ...landmarkClauses]];
+    }
+
+    return baseFilterExpr;
+  }
+
   _buildShardLayerFilter(baseFilterExpr) {
     const hcadSet = new Set();
     for (const f of this.overridesFC?.features || []) {
@@ -1020,7 +1068,9 @@ export class AtlasMapController {
     }
     for (const [ovKey, ov] of Object.entries(this.curatedOverrides || {})) {
       if (!ov || ov.keep_shard_footprints) continue;
-      if (ov.suppress_only || !ov.is_building_override || ov.replace_parcel_shards) {
+      // Only suppress a shard HCAD before dynamic geometry capture if it is an explicit suppress_only entry
+      // or already has baked-in geometry in curatedOverrides.
+      if (ov.suppress_only || (ov.geometry && (!ov.is_building_override || ov.replace_parcel_shards))) {
         const primaryHcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
         if (primaryHcad && /^\d+$/.test(primaryHcad)) hcadSet.add(primaryHcad);
       }
@@ -1231,6 +1281,7 @@ export class AtlasMapController {
 
     this.map.on("idle", () => {
       this._captureDynamicOverrideGeometries();
+      this.computeViewportHistogram();
     });
   }
 
@@ -2029,7 +2080,8 @@ export class AtlasMapController {
     }
 
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
-    const filterExpr = buildFeatureFilterExpression(state);
+    const baseFilterExpr = buildFeatureFilterExpression(state);
+    const filterExpr = this._buildTourFocusFilterExpression(baseFilterExpr);
     const shardFilterExpr = this._buildShardLayerFilter(filterExpr);
 
     for (const layerId of [
@@ -2341,9 +2393,23 @@ export class AtlasMapController {
     return true;
   }
 
+  setTourFocusMode(mode = "all") {
+    const valid = mode === "landmarks" || mode === "tour_only" ? mode : "all";
+    this.tourFocusMode = valid;
+    this.syncWithState(this.filterStore.getState());
+    this.computeViewportHistogram();
+  }
+
+  getTourFocusMode() {
+    return this.tourFocusMode || "all";
+  }
+
   setTourRoute(tour = null, activeStopIndex = -1) {
     this.activeTour = tour || null;
     this.activeTourStopIndex = Number.isInteger(activeStopIndex) ? activeStopIndex : -1;
+    if (!this.activeTour && this.tourFocusMode !== "all") {
+      this.tourFocusMode = "all";
+    }
 
     if (Array.isArray(this.tourStopMarkers)) {
       for (const m of this.tourStopMarkers) {
@@ -2362,6 +2428,8 @@ export class AtlasMapController {
     }
 
     if (!this.map) return;
+
+    this.syncWithState(this.filterStore.getState());
 
     const routeSrc = this.map.getSource("tour-route-src");
     if (routeSrc) {

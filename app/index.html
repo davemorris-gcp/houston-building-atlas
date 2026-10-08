@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261008s" />
+  <link rel="stylesheet" href="styles/index.css?v=20261008x" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -125,7 +125,13 @@
           </div>
           <span id="tour-banner-desc"></span>
         </div>
-        <button type="button" class="tour-banner-close" id="btn-close-tour-banner" aria-label="Dismiss">&times;</button>
+        <button
+          type="button"
+          class="tour-banner-close"
+          id="btn-close-tour-banner"
+          title="End tour and return to your previous map view"
+          aria-label="End tour and return to previous view"
+        >&times;</button>
       </div>
       <div class="tour-banner-controls hidden" id="tour-banner-controls">
         <button type="button" class="tour-step-btn" id="btn-tour-prev-stop" title="Previous Tour Stop">
@@ -138,6 +144,43 @@
         <button type="button" class="tour-step-btn subtle hidden" id="btn-tour-overview" title="Return to full neighborhood overview">
           Overview
         </button>
+        <button
+          type="button"
+          class="tour-step-btn subtle"
+          id="btn-tour-explore-here"
+          title="Exit guided tour and stay in this neighborhood to explore freely"
+        >
+          Explore Here
+        </button>
+      </div>
+      <div class="tour-focus-bar" id="tour-focus-mode-bar" role="group" aria-label="Buildings Shown During Tour">
+        <span class="tour-focus-label">Show Buildings:</span>
+        <div class="tour-focus-pills">
+          <button
+            type="button"
+            class="tour-focus-pill active"
+            data-tour-focus="all"
+            title="Show all neighborhood buildings alongside the walking tour"
+          >
+            All Neighborhood
+          </button>
+          <button
+            type="button"
+            class="tour-focus-pill"
+            data-tour-focus="landmarks"
+            title="Show only Tour Stops, Designated Landmarks, and Good Brick Award recipients"
+          >
+            Tour + Landmarks
+          </button>
+          <button
+            type="button"
+            class="tour-focus-pill"
+            data-tour-focus="tour_only"
+            title="Isolate only the buildings featured as stops on this walking tour"
+          >
+            Tour Stops Only
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1150,6 +1193,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261008u"></script>
+  <script type="module" src="js/app.js?v=20261008x"></script>
 </body>
 </html>
