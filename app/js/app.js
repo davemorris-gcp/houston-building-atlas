@@ -14,7 +14,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008i";
+import { AtlasMapController } from "./mapController.js?v=20261008j";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 import {
   applyOverrideToProperties,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008i";
+} from "./curatedEdits.js?v=20261008j";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -162,9 +162,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261008i"),
-        fetch("public/data/stats_summary.json?v=20261008i"),
-        fetch("public/data/haif_index.json?v=20261008i").catch(() => null),
+        fetch("public/data/search_index.json?v=20261008j"),
+        fetch("public/data/stats_summary.json?v=20261008j"),
+        fetch("public/data/haif_index.json?v=20261008j").catch(() => null),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -269,6 +269,112 @@ class HoustonAtlasApp {
     return out.slice(0, 4);
   }
 
+  _resolveStyleAndClassInfo(props = {}) {
+    const GENERIC_STYLES = new Set([
+      "",
+      "Historical / Architectural Structure",
+      "Houston Historic Structure",
+      "Historic Structure",
+      "Structure",
+      "None",
+      "null",
+    ]);
+    const GRADE_LABELS = {
+      "A++": "Luxury Custom Residential (HCAD Grade A++)",
+      "A+": "High-Grade Custom Residential (HCAD Grade A+)",
+      A: "High-Grade Residential (HCAD Grade A)",
+      "A-": "Upper-Grade Residential (HCAD Grade A-)",
+      "B+": "Good-Grade Residential (HCAD Grade B+)",
+      B: "Good-Grade Residential (HCAD Grade B)",
+      "B-": "Above-Average Residential (HCAD Grade B-)",
+      "C+": "Average Residential (HCAD Grade C+)",
+      C: "Standard Residential (HCAD Grade C)",
+      "C-": "Standard Economy Residential (HCAD Grade C-)",
+      "D+": "Economy Residential (HCAD Grade D+)",
+      D: "Economy Residential (HCAD Grade D)",
+      "D-": "Basic Frame Residential (HCAD Grade D-)",
+      "E+": "Vernacular Frame Cottage (HCAD Grade E+)",
+      E: "Vernacular Frame / Cottage (HCAD Grade E)",
+      "E-": "Minimal Frame Structure (HCAD Grade E-)",
+      X: "Tax-Exempt / Institutional Class (HCAD X)",
+    };
+    const STRUCTURAL_CLASSES = new Set([
+      "Wood or Light Steel",
+      "Masonry Bearing",
+      "Open Steel Skeleton",
+      "Reinforced Concrete",
+      "Fireproofed Steel",
+      "Mobile Home/Manufactured Housing",
+      "Storage Tank",
+      "Petrochemical Complex",
+      "Educational Campus Structure",
+      "Frame Utility Shed",
+      "Carport - Residential",
+      "Canopy - Residential",
+      "Frame Detached Garage",
+      "Utility Building - Metal",
+      "Portable/Modular Office - Average",
+    ]);
+
+    const rawStyle = String(props.style || "").trim();
+    const rawBldStyle = String(props.bld_style || "").trim();
+    const rawGrade = String(
+      props.hcad_grade ||
+        (GRADE_LABELS[rawBldStyle] ? rawBldStyle : GRADE_LABELS[rawStyle] ? rawStyle : "")
+    ).trim();
+    const useCat = String(props.use_category || "").trim();
+    const landuseDesc = String(props.landuse_desc || "").trim();
+
+    const cleanArchStyle =
+      rawStyle && !GENERIC_STYLES.has(rawStyle) && !GRADE_LABELS[rawStyle] ? rawStyle : "";
+    const cleanBldStyle =
+      rawBldStyle && !GENERIC_STYLES.has(rawBldStyle) && !GRADE_LABELS[rawBldStyle]
+        ? rawBldStyle
+        : "";
+
+    if (cleanArchStyle && !STRUCTURAL_CLASSES.has(cleanArchStyle)) {
+      const searchQ = cleanArchStyle.split("(")[0].trim();
+      return {
+        displayStyle: cleanArchStyle,
+        searchQuery: searchQ,
+        headerLabel: `Architectural Style: ${cleanArchStyle}`,
+      };
+    }
+
+    if (cleanBldStyle) {
+      const isStructClass =
+        STRUCTURAL_CLASSES.has(cleanBldStyle) ||
+        /steel|masonry|concrete|frame|tank|canopy|carport|mobile|utility|paving|plant/i.test(
+          cleanBldStyle
+        );
+      const searchQ = cleanBldStyle.split("(")[0].trim();
+      return {
+        displayStyle: cleanBldStyle,
+        searchQuery: searchQ,
+        headerLabel: `${isStructClass ? "Building Class" : "Architectural Style"}: ${cleanBldStyle}`,
+      };
+    }
+
+    if (rawGrade && GRADE_LABELS[rawGrade]) {
+      return {
+        displayStyle: GRADE_LABELS[rawGrade],
+        searchQuery: `HCAD Grade ${rawGrade}`,
+        headerLabel: `Building Class: ${GRADE_LABELS[rawGrade]}`,
+      };
+    }
+
+    const fallbackCat = useCat || landuseDesc || "Residential";
+    return {
+      displayStyle:
+        rawStyle === "Historical / Architectural Structure" ||
+        rawBldStyle === "Historical / Architectural Structure"
+          ? `${fallbackCat} (Historic / Architectural)`
+          : fallbackCat,
+      searchQuery: fallbackCat,
+      headerLabel: `Building Category: ${fallbackCat}`,
+    };
+  }
+
   _mergeCuratedOverridesIntoSearchIndex() {
     const ovMap = (this.mapController && this.mapController.curatedOverrides) || {};
     const suppressedHcads = new Set();
@@ -297,22 +403,51 @@ class HoustonAtlasApp {
       let lon = ov.lon ?? ov.lng ?? existingItem?.lon ?? -95.38718;
       let lat = ov.lat ?? existingItem?.lat ?? 29.79175;
       if (ov.geometry && ov.geometry.coordinates && ov.geometry.coordinates[0]?.[0]) {
-        const ring = ov.geometry.type === "Polygon" ? ov.geometry.coordinates[0] : ov.geometry.coordinates[0][0];
+        const ring =
+          ov.geometry.type === "Polygon"
+            ? ov.geometry.coordinates[0]
+            : ov.geometry.coordinates[0][0];
         if (ring && ring.length) {
           lon = ring[0][0];
           lat = ring[0][1];
         }
       }
+      const ovStyle = String(ov.style || ov.bld_style || "").trim();
+      const preserveExistingStyle =
+        !ovStyle || ovStyle === "Historical / Architectural Structure";
+      const mergedBldStyle = preserveExistingStyle
+        ? existingItem?.bld_style || existingItem?.style || ovStyle
+        : ovStyle;
+      const mergedUseCategory =
+        ov.use_category ||
+        existingItem?.use_category ||
+        (existingItem?.category &&
+        [
+          "Residential",
+          "Civic / Institutional",
+          "Commercial",
+          "Multi-Family",
+          "Industrial",
+          "Vacant / Exempt",
+        ].includes(existingItem.category)
+          ? existingItem.category
+          : "Residential");
+
       const entry = {
         type: "building",
         id: ov.id || existingItem?.id || `ov_${hcad}`,
         hcad_num: hcad,
         label: ov.landmark_name || ov.address || existingItem?.label || `HCAD ${hcad}`,
-        sublabel: `${ov.historic_district || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
+        sublabel: `${ov.historic_district || existingItem?.historic_district || mergedUseCategory || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
         category: `Built ${ov.year_built} ✓`,
         year_built: ov.year_built,
         architect: ov.architect || existingItem?.architect || "",
-        bld_style: ov.bld_style || ov.style || existingItem?.bld_style || "",
+        style: ov.style || existingItem?.style || "",
+        bld_style: mergedBldStyle,
+        hcad_grade: ov.hcad_grade || existingItem?.hcad_grade || "",
+        use_category: mergedUseCategory,
+        landuse_desc: ov.landuse_desc || existingItem?.landuse_desc || "",
+        historic_district: ov.historic_district || existingItem?.historic_district || "",
         lon,
         lat,
         zoom: 17.6,
@@ -338,7 +473,7 @@ class HoustonAtlasApp {
       if (item.label) byLabel.set(String(item.label).trim().toLowerCase(), item);
     }
 
-    // 1. Enrich from buildingsData (architect, bld_style, historic_district, good_brick_years, and geometry coords)
+    // 1. Enrich from buildingsData (architect, bld_style, style, use_category, landuse_desc, historic_district, good_brick_years, and geometry coords)
     for (const feat of this.mapController.buildingsData || []) {
       const p = feat.properties || {};
       const hcad = String(p.hcad_num || "").trim();
@@ -348,11 +483,14 @@ class HoustonAtlasApp {
           : feat.geometry?.type === "MultiPolygon"
           ? feat.geometry.coordinates?.[0]?.[0]
           : null;
-      const target = (hcad && byHcad.get(hcad)) || (p.landmark_name && byLabel.get(String(p.landmark_name).toLowerCase()));
+      const target =
+        (hcad && byHcad.get(hcad)) ||
+        (p.landmark_name && byLabel.get(String(p.landmark_name).toLowerCase()));
       if (target) {
         if (p.id && String(target.id || "").startsWith("ov_")) target.id = p.id;
         if (ring && ring[0] && (!target.lon || Math.abs(target.lon - -95.38718) < 0.0001)) {
-          let sumLon = 0, sumLat = 0;
+          let sumLon = 0,
+            sumLat = 0;
           for (const pt of ring) {
             sumLon += pt[0];
             sumLat += pt[1];
@@ -361,13 +499,33 @@ class HoustonAtlasApp {
           target.lat = sumLat / ring.length;
         }
         if (p.architect && !target.architect) target.architect = p.architect;
-        if ((p.bld_style || p.style) && !target.bld_style) target.bld_style = p.bld_style || p.style;
-        if (p.good_brick_years && !target.good_brick_years) target.good_brick_years = String(p.good_brick_years);
-        if (p.historic_district && !target.historic_district) target.historic_district = p.historic_district;
+        if (p.style && (!target.style || target.style === "Historical / Architectural Structure")) {
+          target.style = p.style;
+        }
+        if (
+          (p.bld_style || p.style) &&
+          (!target.bld_style || target.bld_style === "Historical / Architectural Structure")
+        ) {
+          target.bld_style = p.bld_style || p.style;
+        }
+        if (p.hcad_grade && !target.hcad_grade) target.hcad_grade = p.hcad_grade;
+        if (p.use_category && !target.use_category) target.use_category = p.use_category;
+        if (p.landuse_desc && !target.landuse_desc) target.landuse_desc = p.landuse_desc;
+        if (p.good_brick_years && !target.good_brick_years)
+          target.good_brick_years = String(p.good_brick_years);
+        if (p.historic_district && !target.historic_district)
+          target.historic_district = p.historic_district;
         if (p.landmark_code && !target.landmark_code) target.landmark_code = p.landmark_code;
-        if (p.landmark_report_url && !target.landmark_report_url) target.landmark_report_url = p.landmark_report_url;
-        if (p.landmark_summary && !target.landmark_summary) target.landmark_summary = p.landmark_summary;
-      } else if (p.architect || p.landmark_name || p.good_brick_years || p.landmark_report_url) {
+        if (p.landmark_report_url && !target.landmark_report_url)
+          target.landmark_report_url = p.landmark_report_url;
+        if (p.landmark_summary && !target.landmark_summary)
+          target.landmark_summary = p.landmark_summary;
+      } else if (
+        p.architect ||
+        p.landmark_name ||
+        p.good_brick_years ||
+        p.landmark_report_url
+      ) {
         let lon = -95.3698;
         let lat = 29.7604;
         if (ring && ring[0]) {
@@ -378,11 +536,17 @@ class HoustonAtlasApp {
           id: p.id || "",
           hcad_num: hcad,
           label: p.landmark_name || p.address || `HCAD ${hcad}`,
-          sublabel: [p.address, p.historic_district, p.architect ? `Arch: ${p.architect}` : ""].filter(Boolean).join(" • "),
+          sublabel: [p.address, p.historic_district, p.architect ? `Arch: ${p.architect}` : ""]
+            .filter(Boolean)
+            .join(" • "),
           category: p.year_built ? `Built ${p.year_built}` : p.use_category || "Historic Structure",
           year_built: p.year_built || 0,
           architect: p.architect || "",
+          style: p.style || "",
           bld_style: p.bld_style || p.style || "",
+          hcad_grade: p.hcad_grade || "",
+          use_category: p.use_category || "Residential",
+          landuse_desc: p.landuse_desc || "",
           good_brick_years: p.good_brick_years ? String(p.good_brick_years) : "",
           historic_district: p.historic_district || "",
           landmark_code: p.landmark_code || "",
@@ -1404,28 +1568,181 @@ class HoustonAtlasApp {
       return;
     }
 
-    const matches = this.searchIndex
-      .filter((item) => {
-        const lbl = String(item.label || "").toLowerCase();
-        const sub = String(item.sublabel || "").toLowerCase();
-        const hcad = String(item.hcad_num || "").toLowerCase();
-        const arch = String(item.architect || "").toLowerCase();
-        const style = String(item.bld_style || "").toLowerCase();
-        const gbYrs = String(item.good_brick_years || "").toLowerCase();
-        const dist = String(item.historic_district || "").toLowerCase();
-        const lmCode = String(item.landmark_code || "").toLowerCase();
-        return (
-          lbl.includes(q) ||
-          sub.includes(q) ||
-          hcad.includes(q) ||
-          arch.includes(q) ||
-          style.includes(q) ||
-          gbYrs.includes(q) ||
-          dist.includes(q) ||
-          lmCode.includes(q)
-        );
-      })
-      .slice(0, 14);
+    // Parse HCAD Grade query if formatted as "hcad grade e" or "hcad class e"
+    const gradeMatch = q.match(/^hcad\s+(?:grade|class)\s+([a-ex][+-]{0,2})$/i);
+    const targetGrade = gradeMatch ? gradeMatch[1].toLowerCase() : "";
+
+    const scoreCandidate = (item, isViewportCandidate = false) => {
+      const lbl = String(item.label || "").toLowerCase();
+      const sub = String(item.sublabel || "").toLowerCase();
+      const hcad = String(item.hcad_num || "").toLowerCase();
+      const arch = String(item.architect || "").toLowerCase();
+      const style = String(item.style || "").toLowerCase();
+      const bldStyle = String(item.bld_style || "").toLowerCase();
+      const useCat = String(item.use_category || "").toLowerCase();
+      const landuse = String(item.landuse_desc || "").toLowerCase();
+      const cat = String(item.category || "").toLowerCase();
+      const grade = String(item.hcad_grade || "").toLowerCase();
+      const gbYrs = String(item.good_brick_years || "").toLowerCase();
+      const dist = String(item.historic_district || "").toLowerCase();
+      const lmCode = String(item.landmark_code || "").toLowerCase();
+
+      if (targetGrade) {
+        const hasSpecificStyleOrClass =
+          (style && style !== targetGrade && style !== "historical / architectural structure") ||
+          (bldStyle &&
+            bldStyle !== targetGrade &&
+            bldStyle !== "historical / architectural structure" &&
+            bldStyle !== "residential");
+        if (
+          !hasSpecificStyleOrClass &&
+          (grade === targetGrade || bldStyle === targetGrade || style === targetGrade)
+        ) {
+          return (
+            (isViewportCandidate ? 120 : 100) +
+            (item.landmark_code || item.good_brick_years ? 15 : 0)
+          );
+        }
+        return 0;
+      }
+
+      let score = 0;
+      // 1. Exact style / building class / land use category / architect / district match
+      if (style === q || bldStyle === q) {
+        score = Math.max(score, 110);
+      } else if (
+        (style && style.includes(q)) ||
+        (bldStyle && bldStyle.includes(q) && bldStyle !== "historical / architectural structure")
+      ) {
+        score = Math.max(score, 95);
+      }
+
+      if (useCat === q || landuse === q || cat === q) {
+        score = Math.max(score, 100);
+      } else if ((useCat && useCat.includes(q)) || (landuse && landuse.includes(q))) {
+        score = Math.max(score, 85);
+      }
+
+      if (arch && arch.includes(q)) {
+        score = Math.max(score, arch === q ? 115 : 98);
+      }
+      if (dist && dist.includes(q)) {
+        score = Math.max(score, dist === q ? 105 : 90);
+      }
+      if (gbYrs && gbYrs.split(/[,\s]+/).includes(q)) {
+        score = Math.max(score, 110);
+      }
+      if (lmCode && (lmCode === q || `hpo #${lmCode}` === q)) {
+        score = Math.max(score, 120);
+      }
+      if (hcad && hcad.includes(q)) {
+        score = Math.max(score, hcad === q ? 125 : 90);
+      }
+
+      // 2. Title / address / sublabel match (ranked lower than exact metadata match when filtering by a category like "Residential")
+      if (lbl === q) {
+        score = Math.max(score, 120);
+      } else if (lbl.startsWith(q)) {
+        score = Math.max(score, 88);
+      } else if (lbl.includes(q)) {
+        score = Math.max(score, 65);
+      } else if (sub.includes(q)) {
+        score = Math.max(score, 55);
+      }
+
+      if (score === 0) return 0;
+
+      // Boost nearby viewport buildings and notable landmarks / named structures
+      if (isViewportCandidate) score += 14;
+      if (item.type === "landmark" || item.type === "good_brick" || item.landmark_code || item.good_brick_years) {
+        score += 8;
+      }
+      const hasCustomName =
+        item.label &&
+        !/^\d+\s+/.test(String(item.label).trim()) &&
+        !String(item.label).startsWith("HCAD ");
+      if (hasCustomName) score += 5;
+
+      return score;
+    };
+
+    const scoredMatches = [];
+    const seenKeys = new Set();
+
+    // First: Check currently rendered buildings in the active map viewport + buildings.geojson
+    const liveCandidates = this.mapController?.getRenderedBuildingCandidates
+      ? this.mapController.getRenderedBuildingCandidates(600)
+      : [];
+    for (const cand of liveCandidates) {
+      const p = cand.props || {};
+      const key = String(p.id || p.building_id || p.hcad_num || "").trim();
+      if (key && seenKeys.has(key)) continue;
+
+      const styleInfo = this._resolveStyleAndClassInfo(p);
+      const yr = Number(p.year_built) || 0;
+      const distClean =
+        p.historic_district &&
+        p.historic_district !== "Outside City District" &&
+        p.historic_district !== "Outside Historic District"
+          ? p.historic_district
+          : "";
+      const synthItem = {
+        type: "building",
+        id: p.id || p.building_id || "",
+        hcad_num: String(p.hcad_num || "").trim(),
+        label: p.landmark_name || p.address || `HCAD ${p.hcad_num}`,
+        sublabel: [
+          cand.inViewport ? "📍 In Current View" : "",
+          p.landmark_name && p.address && p.address !== p.landmark_name ? p.address : "",
+          distClean || p.use_category || "Harris County",
+          styleInfo.displayStyle,
+          yr >= 1836 ? `Built ${yr}` : "",
+        ]
+          .filter(Boolean)
+          .join(" • "),
+        category: yr >= 1836 ? `Built ${yr}${p.is_curated_override ? " ✓" : ""}` : p.use_category || "Structure",
+        year_built: yr,
+        architect: p.architect || "",
+        style: p.style || "",
+        bld_style: p.bld_style || p.style || "",
+        hcad_grade: p.hcad_grade || "",
+        use_category: p.use_category || "",
+        landuse_desc: p.landuse_desc || "",
+        good_brick_years: p.good_brick_years ? String(p.good_brick_years) : "",
+        historic_district: distClean,
+        landmark_code: p.landmark_code || "",
+        landmark_report_url: p.landmark_report_url || "",
+        landmark_summary: p.landmark_summary || "",
+        lon: cand.lon,
+        lat: cand.lat,
+        zoom: 17.5,
+      };
+      const sc = scoreCandidate(synthItem, cand.inViewport);
+      if (sc > 0) {
+        if (key) seenKeys.add(key);
+        if (synthItem.hcad_num && !key.includes("#")) seenKeys.add(synthItem.hcad_num);
+        scoredMatches.push({ item: synthItem, score: sc });
+      }
+    }
+
+    // Second: Check full citywide searchIndex
+    for (const item of this.searchIndex) {
+      const key = String(item.id || item.hcad_num || item.label || "").trim();
+      const hcadKey = String(item.hcad_num || "").trim();
+      if ((key && seenKeys.has(key)) || (hcadKey && !key.includes("#") && seenKeys.has(hcadKey))) {
+        continue;
+      }
+      const sc = scoreCandidate(item, false);
+      if (sc > 0) {
+        if (key) seenKeys.add(key);
+        if (hcadKey && !key.includes("#")) seenKeys.add(hcadKey);
+        scoredMatches.push({ item, score: sc });
+      }
+    }
+
+    scoredMatches.sort((a, b) => b.score - a.score);
+    const totalMatchCount = scoredMatches.length;
+    const matches = scoredMatches.slice(0, 25).map((m) => m.item);
 
     if (!matches.length) {
       searchResults.innerHTML = `<div class="search-empty">No matching addresses, architects, styles, landmarks, or districts found for "${rawQuery}".</div>`;
@@ -1433,9 +1750,19 @@ class HoustonAtlasApp {
       return;
     }
 
+    const countSummary =
+      totalMatchCount > matches.length
+        ? `<strong>${matches.length}</strong> of <strong>${totalMatchCount.toLocaleString()}</strong> shown`
+        : `<strong>${matches.length}</strong> shown`;
+
     const headerBanner = customHeaderLabel
       ? `<div class="search-filter-header">
-          <span>&#128269; ${customHeaderLabel} (<strong>${matches.length}</strong> shown)</span>
+          <span>&#128269; ${customHeaderLabel} (${countSummary})</span>
+          <button type="button" class="search-filter-clear" id="btn-clear-search-filter">Clear</button>
+        </div>`
+      : totalMatchCount > matches.length
+      ? `<div class="search-filter-header">
+          <span>&#128269; Matching Structures (${countSummary})</span>
           <button type="button" class="search-filter-clear" id="btn-clear-search-filter">Clear</button>
         </div>`
       : "";
@@ -1493,9 +1820,13 @@ class HoustonAtlasApp {
               year_built: chosen.year_built,
               hcad_num: chosen.hcad_num,
               landmark_type: chosen.category,
-              historic_district: chosen.sublabel,
+              historic_district: chosen.historic_district || chosen.sublabel,
               architect: chosen.architect || "",
+              style: chosen.style || "",
               bld_style: chosen.bld_style || "",
+              hcad_grade: chosen.hcad_grade || "",
+              use_category: chosen.use_category || "",
+              landuse_desc: chosen.landuse_desc || "",
               landmark_code: chosen.landmark_code || "",
               landmark_report_url: chosen.landmark_report_url || "",
               landmark_summary: chosen.landmark_summary || "",
@@ -2536,19 +2867,12 @@ class HoustonAtlasApp {
       distVal &&
       distVal !== "Outside City District" &&
       distVal !== "Outside Historic District";
-    const rawStyle = String(props.style || "").trim();
-    const rawBldStyle = String(props.bld_style || "").trim();
-    const styleVal =
-      rawStyle ||
-      (rawBldStyle.length > 2 ? rawBldStyle : "") ||
-      props.use_category ||
-      props.landuse_desc ||
-      (rawBldStyle ? `HCAD Class ${rawBldStyle}` : "Residential Structure");
-    const styleSearchTerm = rawStyle
-      ? rawStyle.split("(")[0].trim()
-      : rawBldStyle.length > 2
-      ? rawBldStyle
-      : styleVal;
+    const styleInfo = this._resolveStyleAndClassInfo(props);
+    const styleVal = styleInfo.displayStyle;
+    const styleSearchTerm = styleInfo.searchQuery;
+    const styleHeaderLabel = styleInfo.headerLabel;
+    const landUseDisplay = props.landuse_desc || props.use_category || "Residential";
+    const landUseSearchTerm = props.use_category || landUseDisplay;
     const archRaw = String(props.architect || "").trim();
     const archSearchTerm = archRaw
       ? archRaw.split(/[;/(&]|,\s*(?:architect|builder|consulting)/i)[0].trim()
@@ -2645,8 +2969,8 @@ class HoustonAtlasApp {
               type="button"
               class="inspector-filter-chip"
               data-filter-chip="${styleSearchTerm}"
-              data-filter-label="Style: ${styleVal}"
-              title="Click to find other '${styleSearchTerm}' buildings across Houston"
+              data-filter-label="${styleHeaderLabel}"
+              title="Click to find other '${styleVal}' buildings in current view & across Houston"
             >${styleVal} &#128269;</button>
           </span>
         </div>
@@ -2668,7 +2992,15 @@ class HoustonAtlasApp {
         }
         <div class="inspector-cell full">
           <span class="cell-label">Land Use Classification</span>
-          <span class="cell-value">${props.landuse_desc || props.use_category || "Residential"}</span>
+          <span class="cell-value">
+            <button
+              type="button"
+              class="inspector-filter-chip"
+              data-filter-chip="${landUseSearchTerm}"
+              data-filter-label="Land Use: ${landUseDisplay}"
+              title="Click to find '${landUseSearchTerm}' buildings in current view & across Houston"
+            >${landUseDisplay} &#128269;</button>
+          </span>
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Subdivision / Legal Description</span>
@@ -3571,14 +3903,7 @@ class HoustonAtlasApp {
       day: "numeric",
     });
 
-    const rawStyle = String(props.style || "").trim();
-    const rawBldStyle = String(props.bld_style || "").trim();
-    const displayStyle =
-      rawStyle ||
-      (rawBldStyle.length > 2 ? rawBldStyle : "") ||
-      props.use_category ||
-      props.landuse_desc ||
-      (rawBldStyle ? `HCAD Class ${rawBldStyle}` : "Historic Structure");
+    const displayStyle = this._resolveStyleAndClassInfo(props).displayStyle;
 
     const liveAppr = document.getElementById("hcad-live-appr")?.textContent || "";
     const liveOwner = document.getElementById("inspector-cell-owner")?.textContent || props.owner || "Public / Unlisted";
