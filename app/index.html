@@ -653,8 +653,8 @@
               <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
             </div>
             <div>
-              <span class="brand-kicker">Preservation Houston • Archival Data Quality</span>
-              <h2 class="modal-title">Suggest a Property Data Correction</h2>
+              <span class="brand-kicker">Preservation Houston • Archival &amp; Spatial Data Quality</span>
+              <h2 class="modal-title">Suggest a Property Data or Shape Correction</h2>
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
@@ -712,7 +712,7 @@
           </div>
 
           <p class="correction-intro">
-            Harris County (HCAD) appraisal records frequently default to rounded decade estimates (such as <code>1920</code> or <code>1930</code>) when original paper tax cards were illegible. Submit historical evidence below — all public suggestions enter Preservation Houston's <strong>Pending Review Queue</strong> and only go live once approved by an administrator.
+            Submit historical evidence for a <strong>construction date / architect correction</strong>, or flag a <strong>building footprint shape / orientation error</strong> where our polygon doesn't match the roof on satellite imagery. All public submissions enter Preservation Houston's <strong>Pending Review Queue</strong>.
           </p>
 
           <form id="form-property-correction" class="correction-form">
@@ -722,25 +722,24 @@
                 <input type="text" id="corr-address" name="address" placeholder="e.g. 1127 KEY ST" class="form-input" />
               </div>
               <div class="form-field">
-                <label for="corr-hcad-num">HCAD Account # (13-digit)</label>
+                <label for="corr-hcad-num">HCAD Account # / Building ID</label>
                 <input type="text" id="corr-hcad-num" name="hcad_num" placeholder="e.g. 0621100000014" class="form-input mono" />
               </div>
             </div>
 
             <div class="form-row-3col">
               <div class="form-field">
-                <label for="corr-current-year">Current HCAD Year</label>
+                <label for="corr-current-year">Current Year Shown</label>
                 <input type="number" id="corr-current-year" name="current_year_built" placeholder="e.g. 1920" class="form-input mono" />
               </div>
               <div class="form-field">
-                <label for="corr-suggested-year">Corrected Year Built *</label>
+                <label for="corr-suggested-year" id="lbl-corr-suggested-year">Corrected Year Built <span class="opt-hint">(if changing year)</span></label>
                 <input
                   type="number"
                   id="corr-suggested-year"
                   name="suggested_year_built"
                   min="1836"
                   max="2026"
-                  required
                   placeholder="e.g. 1928"
                   class="form-input mono highlight-input"
                 />
@@ -751,16 +750,58 @@
               </div>
             </div>
 
+            <!-- Building Footprint Shape / Orientation Issue Section -->
+            <div class="corr-footprint-box" id="corr-footprint-box">
+              <div class="corr-footprint-header">
+                <label for="corr-footprint-issue" class="corr-footprint-title">
+                  &#128208; Building Footprint Shape or Orientation Issue <span class="opt-hint">(Optional)</span>
+                </label>
+                <a
+                  href="https://www.google.com/maps"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="corr-sat-link"
+                  id="corr-satellite-check-link"
+                  title="Open this building roof at Zoom 20 in Google Maps Satellite View"
+                >
+                  Inspect Roof in Satellite View &#8599;
+                </a>
+              </div>
+              <select id="corr-footprint-issue" name="footprint_issue" class="form-input">
+                <option value="">No footprint issue (Date / Historical metadata correction only)</option>
+                <option value="Wrong building shape / Generic box">Wrong building shape / Generic rectangular box</option>
+                <option value="Wrong orientation / Rotated angle">Wrong orientation / Rotated angle</option>
+                <option value="Missing main building (only garage/outbuilding shown)">Missing main building (only garage / outbuilding shown)</option>
+                <option value="Merged with adjacent building(s)">Merged with adjacent building(s)</option>
+                <option value="Overlapping / conflicting polygons">Overlapping / conflicting polygons</option>
+                <option value="Shifted / offset from satellite roof">Shifted / offset from satellite roof</option>
+                <option value="Building demolished or replaced">Building demolished or replaced</option>
+                <option value="Other footprint / geometry issue">Other footprint / geometry issue</option>
+              </select>
+              <div class="form-field corr-footprint-notes-wrap hidden" id="corr-footprint-notes-wrap">
+                <label for="corr-footprint-notes">Describe the Shape or Orientation Error *</label>
+                <textarea
+                  id="corr-footprint-notes"
+                  name="footprint_notes"
+                  rows="2"
+                  class="form-input"
+                  placeholder="Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street')."
+                ></textarea>
+              </div>
+            </div>
+
             <div class="form-row-2col">
               <div class="form-field">
-                <label for="corr-source-type">Primary Historical Evidence Source *</label>
-                <select id="corr-source-type" name="source_type" class="form-input" required>
+                <label for="corr-source-type">Primary Historical / Verification Source</label>
+                <select id="corr-source-type" name="source_type" class="form-input">
                   <option value="Houston City Directory">Houston City Directory (HPL Digital Archives)</option>
                   <option value="Sanborn Fire Insurance Map">Sanborn Fire Insurance Map</option>
+                  <option value="Aerial / Satellite Imagery">Aerial / Satellite Imagery (Roof Footprint Verification)</option>
                   <option value="Historic Deed / Mechanic's Lien">Historic Deed / Mechanic's Lien (Harris County Clerk)</option>
                   <option value="City of Houston Building Permit">City of Houston Building Permit</option>
                   <option value="Historic Newspaper / Archival Photo">Historic Newspaper / Archival Photograph</option>
                   <option value="COH Landmark / Historic District Inventory">COH Landmark / Historic District Inventory</option>
+                  <option value="On-Site Visual Inspection">On-Site / Street View Visual Inspection</option>
                   <option value="Other Primary Historical Source">Other Primary Historical Source</option>
                 </select>
               </div>
@@ -771,14 +812,13 @@
             </div>
 
             <div class="form-field">
-              <label for="corr-citation">Historical Citation / Evidence Details *</label>
+              <label for="corr-citation" id="lbl-corr-citation">Historical Citation / Evidence or Additional Notes</label>
               <textarea
                 id="corr-citation"
                 name="source_citation"
                 rows="2"
-                required
                 class="form-input"
-                placeholder="e.g. First appears in the 1928 Morrison &amp; Fourmy Houston City Directory; address absent/vacant through the 1926 directory."
+                placeholder="e.g. First appears in the 1928 Morrison &amp; Fourmy Houston City Directory; or describe additional details about the property."
               ></textarea>
             </div>
 
