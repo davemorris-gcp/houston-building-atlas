@@ -19,7 +19,7 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261007f";
+} from "./curatedEdits.js?v=20261008g";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 
 const BASEMAP_TILES = {
@@ -200,6 +200,35 @@ export class AtlasMapController {
     const ovMap = this.curatedOverrides || {};
     const overrideFeaturesByKey = new Map();
 
+    const putOverrideFeature = (baseKey, geom, props) => {
+      if (!geom) return;
+      if (geom.type === "MultiPolygon" && Array.isArray(geom.coordinates)) {
+        for (let idx = 0; idx < geom.coordinates.length; idx++) {
+          const polyCoords = geom.coordinates[idx];
+          if (!Array.isArray(polyCoords) || !polyCoords.length) continue;
+          const subKey = idx === 0 ? baseKey : `${baseKey}#fp_${idx}`;
+          overrideFeaturesByKey.set(subKey, {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: polyCoords,
+            },
+            properties: {
+              ...props,
+              id: subKey,
+              building_id: idx === 0 ? props.building_id || baseKey : subKey,
+            },
+          });
+        }
+      } else {
+        overrideFeaturesByKey.set(baseKey, {
+          type: "Feature",
+          geometry: geom,
+          properties: { ...props },
+        });
+      }
+    };
+
     for (const feat of this.buildingsData) {
       const featId = String(feat.properties?.id || "").trim();
       const hcad = String(feat.properties?.hcad_num || "").trim();
@@ -211,11 +240,7 @@ export class AtlasMapController {
           : "";
       if (matchKey) {
         feat.properties = applyOverrideToProperties(feat.properties, ovMap);
-        overrideFeaturesByKey.set(matchKey, {
-          type: "Feature",
-          geometry: ovMap[matchKey].geometry || feat.geometry,
-          properties: { ...feat.properties },
-        });
+        putOverrideFeature(matchKey, ovMap[matchKey].geometry || feat.geometry, feat.properties);
       }
     }
 
@@ -227,35 +252,59 @@ export class AtlasMapController {
     }
 
     for (const [ovKey, ov] of Object.entries(ovMap)) {
+      if (ov.keep_shard_footprints) continue;
       if (!overrideFeaturesByKey.has(ovKey) && ov.geometry) {
         const rawPrefix = String(ovKey.split("#")[0] || "").trim();
         const hcadNum = String(
           ov.hcad_num || (/^\d+$/.test(rawPrefix) ? rawPrefix : "")
         ).trim();
-        overrideFeaturesByKey.set(ovKey, {
-          type: "Feature",
-          geometry: ov.geometry,
-          properties: applyOverrideToProperties(
-            {
-              id: ov.id || ovKey,
-              building_id: ov.building_id || ov.id || ovKey,
-              hcad_num: hcadNum,
-              address: ov.address || "",
-              landmark_name: ov.landmark_name || "",
-              year_built: ov.year_built || 0,
-              decade: ov.decade || 0,
-              stories: Number(ov.stories) || 1,
-              height_m: Number(ov.height_m) || 4.5,
-              use_category: ov.use_category || "Residential",
-              historic_district: ov.historic_district || "",
-              contributing: ov.contributing || "Contributing",
-              footprint_source: "observed",
-              is_building_override: Boolean(ov.is_building_override),
-              replace_parcel_shards: Boolean(ov.replace_parcel_shards),
-            },
-            ovMap
-          ),
-        });
+        const baseProps = applyOverrideToProperties(
+          {
+            id: ov.id || ovKey,
+            building_id: ov.building_id || ov.id || ovKey,
+            hcad_num: hcadNum,
+            address: ov.address || "",
+            landmark_name: ov.landmark_name || "",
+            year_built: ov.year_built || 0,
+            decade: ov.decade || 0,
+            stories: Number(ov.stories) || 1,
+            height_m: Number(ov.height_m) || 4.5,
+            use_category: ov.use_category || "Residential",
+            historic_district: ov.historic_district || "",
+            contributing: ov.contributing || "Contributing",
+            footprint_source: "observed",
+            is_building_override: Boolean(ov.is_building_override),
+            replace_parcel_shards: Boolean(ov.replace_parcel_shards),
+            keep_shard_footprints: Boolean(ov.keep_shard_footprints),
+          },
+          ovMap
+        );
+
+        if (ov.geometry.type === "MultiPolygon" && Array.isArray(ov.geometry.coordinates)) {
+          for (let idx = 0; idx < ov.geometry.coordinates.length; idx++) {
+            const polyCoords = ov.geometry.coordinates[idx];
+            if (!Array.isArray(polyCoords) || !polyCoords.length) continue;
+            const subKey = idx === 0 ? ovKey : `${ovKey}#fp_${idx}`;
+            overrideFeaturesByKey.set(subKey, {
+              type: "Feature",
+              geometry: {
+                type: "Polygon",
+                coordinates: polyCoords,
+              },
+              properties: {
+                ...baseProps,
+                id: subKey,
+                building_id: idx === 0 ? baseProps.building_id : subKey,
+              },
+            });
+          }
+        } else {
+          overrideFeaturesByKey.set(ovKey, {
+            type: "Feature",
+            geometry: ov.geometry,
+            properties: baseProps,
+          });
+        }
       }
     }
 
@@ -921,6 +970,7 @@ export class AtlasMapController {
     const hcadSet = new Set();
     for (const f of this.overridesFC?.features || []) {
       const p = f.properties || {};
+      if (p.keep_shard_footprints) continue;
       if (!p.is_building_override || p.replace_parcel_shards) {
         const primaryHcad = String(p.hcad_num || "").trim();
         if (primaryHcad) hcadSet.add(primaryHcad);
@@ -958,6 +1008,7 @@ export class AtlasMapController {
         ([k, ov]) =>
           k &&
           !ov?.is_building_override &&
+          !ov?.keep_shard_footprints &&
           !ov?.geometry &&
           !existingKeys.has(k) &&
           !existingHcads.has(k)
@@ -966,6 +1017,7 @@ export class AtlasMapController {
     if (!missingHcads.length) return;
 
     let added = false;
+    const seenHitCoords = new Set();
     for (const srcId of this.shardSourceIds) {
       try {
         const hits = this.map.querySourceFeatures(srcId, {
@@ -974,7 +1026,16 @@ export class AtlasMapController {
         });
         for (const hit of hits) {
           const hcad = String(hit.properties?.hcad_num || "").trim();
-          if (hcad && !existingHcads.has(hcad) && hit.geometry) {
+          if (hcad && hit.geometry) {
+            const firstPt =
+              hit.geometry.type === "Polygon"
+                ? hit.geometry.coordinates?.[0]?.[0]
+                : hit.geometry.coordinates?.[0]?.[0]?.[0];
+            const dedupKey = firstPt
+              ? `${hcad}:${firstPt[0].toFixed(6)},${firstPt[1].toFixed(6)}`
+              : `${hcad}:${this.overridesFC.features.length}`;
+            if (seenHitCoords.has(dedupKey)) continue;
+            seenHitCoords.add(dedupKey);
             existingHcads.add(hcad);
             if (this.curatedOverrides[hcad] && !this.curatedOverrides[hcad].geometry) {
               this.curatedOverrides[hcad].geometry = hit.geometry;
@@ -2431,7 +2492,16 @@ export class AtlasMapController {
           const seenIds = new Set();
           for (const feat of rendered) {
             const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
-            const key = p.id || p.hcad_num;
+            const firstPt =
+              feat.geometry?.type === "Polygon"
+                ? feat.geometry.coordinates?.[0]?.[0]
+                : feat.geometry?.coordinates?.[0]?.[0]?.[0];
+            const coordSig =
+              Array.isArray(firstPt) && firstPt.length >= 2
+                ? `${Number(firstPt[0]).toFixed(5)},${Number(firstPt[1]).toFixed(5)}`
+                : "";
+            const baseKey = p.id || p.hcad_num || "";
+            const key = coordSig ? `${baseKey}:${coordSig}` : baseKey;
             if (key) {
               if (seenIds.has(key)) continue;
               seenIds.add(key);
@@ -2461,7 +2531,12 @@ export class AtlasMapController {
     }
 
     if (!usedRenderedFeatures) {
-      for (const feat of this.buildingsData) {
+      const seenFallbackIds = new Set();
+      const allFallbackFeatures = [
+        ...(this.overridesFC?.features || []),
+        ...this.buildingsData,
+      ];
+      for (const feat of allFallbackFeatures) {
         const geom = feat.geometry;
         if (!geom || !geom.coordinates) continue;
 
@@ -2476,8 +2551,14 @@ export class AtlasMapController {
         const [lon, lat] = ring[0];
         if (lon < west || lon > east || lat < south || lat > north) continue;
 
-        inViewportTotal += 1;
         const p = feat.properties || {};
+        const fid = p.id || p.building_id || "";
+        if (fid) {
+          if (seenFallbackIds.has(fid)) continue;
+          seenFallbackIds.add(fid);
+        }
+
+        inViewportTotal += 1;
         const yr = Number(p.year_built) || 0;
         const dec = Number(p.decade) || 0;
 
