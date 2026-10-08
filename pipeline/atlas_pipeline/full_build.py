@@ -618,36 +618,45 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
                 syn_indices.append(p_idx)
 
     if syn_indices:
-        syn_geoms_2278 = parcel_geoms_2278[syn_indices]
+        from atlas_pipeline.fix_polygon_orientations import (
+            batch_transform_polys_2278_to_rings_4326,
+            build_oriented_footprint_2278,
+        )
+
+        syn_geoms_2278 = shapely.force_2d(parcel_geoms_2278[syn_indices])
+        syn_mrrs_2278 = shapely.oriented_envelope(syn_geoms_2278)
         centroids_2278 = shapely.centroid(syn_geoms_2278)
         cx_2278 = shapely.get_x(centroids_2278)
         cy_2278 = shapely.get_y(centroids_2278)
         clons, clats = transformer_to_4326.transform(cx_2278, cy_2278)
 
+        valid_syn_items: list[tuple[int, float, float, dict[str, Any]]] = []
+        oriented_polys_2278: list[Any] = []
         for i, p_idx in enumerate(syn_indices):
             lon = float(clons[i])
             lat = float(clats[i])
             if not (-96.1 <= lon <= -94.8 and 29.4 <= lat <= 30.3):
                 continue
+            pcl_g = syn_geoms_2278[i]
+            if pcl_g.geom_type == "MultiPolygon":
+                pcl_g = max(pcl_g.geoms, key=lambda g: g.area)
+            if pcl_g.geom_type != "Polygon" or pcl_g.is_empty:
+                continue
             props = build_parcel_props(p_idx, total_buildings + 1, is_observed=False)
             record_stats(props, is_observed=False)
-            # Create a realistic ~12m x 10m building footprint polygon around the parcel centroid
-            b_area = props.get("bld_area", 1400)
-            stories = max(1, int(props.get("stories", 1)))
-            fp_sqft = max(600, min(15000, b_area / stories))
-            half_side_deg = math.sqrt(fp_sqft) * 0.0000014
-            dx = half_side_deg * 1.15
-            dy = half_side_deg * 0.90
-            poly_geom = {
-                "type": "Polygon",
-                "coordinates": [[
-                    [round(lon - dx, 6), round(lat - dy, 6)],
-                    [round(lon + dx, 6), round(lat - dy, 6)],
-                    [round(lon + dx, 6), round(lat + dy, 6)],
-                    [round(lon - dx, 6), round(lat + dy, 6)],
-                    [round(lon - dx, 6), round(lat - dy, 6)],
-                ]],
-            }
+            b_area = float(props.get("bld_area") or 1400.0)
+            stories = max(1, int(props.get("stories") or 1))
+            oriented_p = build_oriented_footprint_2278(pcl_g, syn_mrrs_2278[i], b_area, stories)
+            if oriented_p is None or oriented_p.is_empty:
+                continue
+            valid_syn_items.append((p_idx, lon, lat, props))
+            oriented_polys_2278.append(oriented_p)
+
+        oriented_rings_4326 = batch_transform_polys_2278_to_rings_4326(
+            oriented_polys_2278, transformer_to_4326
+        )
+        for (p_idx, lon, lat, props), ring_4326 in zip(valid_syn_items, oriented_rings_4326):
+            poly_geom = {"type": "Polygon", "coordinates": [ring_4326]}
             q = get_quadrant(lon, lat)
             feat_bytes = (
                 b"\x1e"
@@ -659,7 +668,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
     for fh in quad_files.values():
         fh.close()
     print(
-        f"   Synthesized {len(syn_indices):,} additional HCAD structure footprints in {time.time() - t_syn:.1f}s. Raw buildings: {total_buildings:,}."
+        f"   Synthesized {len(syn_indices):,} additional parcel-oriented HCAD structure footprints in {time.time() - t_syn:.1f}s. Raw buildings: {total_buildings:,}."
     )
 
     # 4d. Deduplicate overlapping 3D building polygons across all 5 shards in parallel
