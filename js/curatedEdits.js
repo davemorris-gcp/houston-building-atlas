@@ -399,6 +399,8 @@ export function applyOverrideToProperties(props, overridesMap) {
     architect: ov.architect || props.architect || "",
     landmark_name:
       (isGbPoint && props.landmark_name) || ov.landmark_name || props.landmark_name || "",
+    building_name:
+      ov.building_name || props.building_name || "",
     landmark_type: ov.landmark_type || props.landmark_type || "",
     source_type: ov.source_type || props.source_type || "Preservation Houston Archival Record",
     source_citation: ov.source_citation || props.source_citation || "",
@@ -431,6 +433,10 @@ export function applyOverrideToProperties(props, overridesMap) {
       props.landmark_summary ||
       props.pdf_summary ||
       "",
+    haif_threads:
+      ov.haif_threads ||
+      props.haif_threads ||
+      null,
   };
 }
 

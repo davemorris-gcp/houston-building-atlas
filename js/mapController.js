@@ -19,7 +19,7 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008g";
+} from "./curatedEdits.js?v=20261008h";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 
 const BASEMAP_TILES = {
