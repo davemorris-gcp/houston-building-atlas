@@ -102,17 +102,48 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
         sj = j_arr[sig]
         sratio = ratio[sig]
 
-        # Drop compound/multi-lot polygons that cover >= 2 smaller buildings (< 0.55x area) with > 35% overlap
+        # Drop compound/multi-lot polygons that cover >= 2 smaller buildings (< 0.55x area) with > 35% overlap,
+        # UNLESS the smaller buildings cover < 55% of the parent footprint and leave a large uncovered wing/block (>= 110 m2)
         contained_children: dict[int, list[int]] = defaultdict(list)
-        for idx_a, idx_b, r in zip(si.tolist(), sj.tolist(), sratio.tolist()):
+        child_inter_sum: dict[int, float] = defaultdict(float)
+        for idx_a, idx_b, r, ia in zip(si.tolist(), sj.tolist(), sratio.tolist(), inter_areas[sig].tolist()):
             if r > 0.35:
                 if areas[idx_a] > areas[idx_b] * 1.8:
                     contained_children[idx_a].append(idx_b)
+                    child_inter_sum[idx_a] += ia
                 elif areas[idx_b] > areas[idx_a] * 1.8:
                     contained_children[idx_b].append(idx_a)
+                    child_inter_sum[idx_b] += ia
 
+        min_wing_deg2 = 110.0 / (111320.0 * 96486.0)
+        carved_parents: set[int] = set()
         for parent_idx, children in contained_children.items():
             if len(children) >= 2:
+                p_area = float(areas[parent_idx])
+                c_cov = child_inter_sum[parent_idx] / p_area if p_area > 0 else 1.0
+                if c_cov < 0.55 and (p_area - child_inter_sum[parent_idx]) >= min_wing_deg2 and not items[parent_idx][4]:
+                    try:
+                        c_union = shapely.unary_union([polys_arr[c] for c in children]).buffer(0.000018)
+                        rem = polys_arr[parent_idx].difference(c_union)
+                        parts = [rem] if rem.geom_type == "Polygon" else (
+                            [p for p in rem.geoms if p.geom_type == "Polygon"] if hasattr(rem, "geoms") else []
+                        )
+                        valid_parts = [
+                            p for p in parts
+                            if p.area >= min_wing_deg2
+                            and not p.buffer(-0.000038).is_empty
+                            and (p.buffer(-0.000038).area / p.area) >= 0.35
+                        ]
+                        if valid_parts:
+                            best_p = max(valid_parts, key=lambda p: p.area)
+                            new_ring = [[round(float(x), 7), round(float(y), 7)] for x, y in best_p.exterior.coords]
+                            items[parent_idx][1]["geometry"]["coordinates"] = [new_ring]
+                            polys_arr[parent_idx] = best_p
+                            areas[parent_idx] = best_p.area
+                            carved_parents.add(parent_idx)
+                            continue
+                    except Exception:
+                        pass
                 keep[parent_idx] = False
 
         order = sorted(
@@ -128,19 +159,53 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
         for r_pos, idx in enumerate(order):
             rank[idx] = r_pos
 
-        adj: dict[int, list[int]] = defaultdict(list)
-        for idx_a, idx_b in zip(si.tolist(), sj.tolist()):
+        adj: dict[int, list[tuple[int, float]]] = defaultdict(list)
+        for idx_a, idx_b, ia in zip(si.tolist(), sj.tolist(), inter_areas[sig].tolist()):
             if not keep[idx_a] or not keep[idx_b]:
                 continue
+            if (idx_a in carved_parents and idx_b in contained_children.get(idx_a, ())) or (
+                idx_b in carved_parents and idx_a in contained_children.get(idx_b, ())
+            ):
+                continue
             if rank[idx_a] < rank[idx_b]:
-                adj[idx_a].append(idx_b)
+                adj[idx_a].append((idx_b, ia))
             else:
-                adj[idx_b].append(idx_a)
+                adj[idx_b].append((idx_a, ia))
 
         for u in order:
             if not keep[u]:
                 continue
-            for v in adj.get(u, ()):
+            for v, ia in adj.get(u, ()):
+                if not keep[v]:
+                    continue
+                v_area = float(areas[v])
+                u_area = float(areas[u])
+                if (
+                    not items[v][4]
+                    and v_area > u_area * 1.8
+                    and (ia / v_area) < 0.45
+                    and (v_area - ia) >= min_wing_deg2
+                ):
+                    try:
+                        rem = polys_arr[v].difference(polys_arr[u].buffer(0.000018))
+                        parts = [rem] if rem.geom_type == "Polygon" else (
+                            [p for p in rem.geoms if p.geom_type == "Polygon"] if hasattr(rem, "geoms") else []
+                        )
+                        valid_parts = [
+                            p for p in parts
+                            if p.area >= min_wing_deg2
+                            and not p.buffer(-0.000038).is_empty
+                            and (p.buffer(-0.000038).area / p.area) >= 0.35
+                        ]
+                        if valid_parts:
+                            best_p = max(valid_parts, key=lambda p: p.area)
+                            new_ring = [[round(float(x), 7), round(float(y), 7)] for x, y in best_p.exterior.coords]
+                            items[v][1]["geometry"]["coordinates"] = [new_ring]
+                            polys_arr[v] = best_p
+                            areas[v] = best_p.area
+                            continue
+                    except Exception:
+                        pass
                 keep[v] = False
 
     kept_count = 0

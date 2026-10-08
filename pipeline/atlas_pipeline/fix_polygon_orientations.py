@@ -463,6 +463,7 @@ def run_fix_polygon_orientations() -> None:
     sel_geoms = shapely.force_2d(shapely.from_wkb(sel_wkb))
 
     hcad_to_parcel_2278: dict[str, Polygon] = {}
+    hcad_all_polys_2278: dict[str, list[Polygon]] = defaultdict(list)
     for h, g in zip(selected_hcads, sel_geoms.tolist()):
         if g is None or g.is_empty:
             continue
@@ -470,13 +471,20 @@ def run_fix_polygon_orientations() -> None:
             polys = [p for p in g.geoms if p.geom_type == "Polygon" and not p.is_empty]
             if not polys:
                 continue
+            hcad_all_polys_2278[h].extend(polys)
             poly = max(polys, key=lambda p: p.area)
         elif g.geom_type == "Polygon":
+            hcad_all_polys_2278[h].append(g)
             poly = g
         else:
             continue
         if h not in hcad_to_parcel_2278 or poly.area > hcad_to_parcel_2278[h].area:
             hcad_to_parcel_2278[h] = poly
+
+    hcad_to_full_geom_2278: dict[str, Any] = {
+        h: polys[0] if len(polys) == 1 else shapely.unary_union(polys)
+        for h, polys in hcad_all_polys_2278.items()
+    }
 
     unique_hcads_list = list(hcad_to_parcel_2278.keys())
     unique_polys_arr = np.array([hcad_to_parcel_2278[h] for h in unique_hcads_list], dtype=object)
@@ -559,6 +567,7 @@ def run_fix_polygon_orientations() -> None:
         seq_path = aligned_dir / f"buildings_{q}.geojsonseq"
         q_list: list[tuple[dict[str, Any], list[list[float]], bool, str]] = []
         observed_hcads_in_shard: set[str] = set()
+        observed_count_by_hcad: dict[str, int] = defaultdict(int)
 
         with open(seq_path, "rb") as f:
             raw_lines = f.read().splitlines()
@@ -581,8 +590,9 @@ def run_fix_polygon_orientations() -> None:
             )
             if not is_syn and hcad:
                 observed_hcads_in_shard.add(hcad)
+                observed_count_by_hcad[hcad] += 1
 
-        # Second pass: repair synthesized boxes and party-wall ring[0] misattributions
+        # Second pass: repair synthesized boxes and single-footprint party-wall ring[0] misattributions
         for raw_line in raw_lines:
             line = raw_line[1:] if raw_line.startswith(b"\x1e") else raw_line
             if not line:
@@ -617,20 +627,23 @@ def run_fix_polygon_orientations() -> None:
                     else:
                         total_syn_replaced_oriented += 1
             else:
-                # Non-synthesized footprint in historic core: check if its centroid is > 10 ft outside its assigned parcel
+                # Non-synthesized footprint in historic core: only replace if this HCAD is a single-polygon,
+                # single-footprint parcel whose sole footprint centroid is > 10 ft outside the full parcel union
                 lon0, lat0 = float(ring[0][0]), float(ring[0][1])
                 if (
                     -95.43 <= lon0 <= -95.30
                     and 29.70 <= lat0 <= 29.82
-                    and hcad in hcad_to_parcel_2278
+                    and hcad in hcad_to_full_geom_2278
+                    and len(hcad_all_polys_2278.get(hcad, ())) == 1
+                    and observed_count_by_hcad.get(hcad, 0) == 1
                     and repaired_tier.get(hcad) == "osm_observed"
                 ):
                     n_pts = max(1, len(ring) - 1)
                     clon = sum(pt[0] for pt in ring[:n_pts]) / n_pts
                     clat = sum(pt[1] for pt in ring[:n_pts]) / n_pts
                     cx, cy = transformer_to_2278.transform(clon, clat)
-                    pcl_poly = hcad_to_parcel_2278[hcad]
-                    if shapely.distance(Point(cx, cy), pcl_poly) > 10.0:
+                    pcl_full = hcad_to_full_geom_2278[hcad]
+                    if shapely.distance(Point(cx, cy), pcl_full) > 10.0:
                         new_ring = repaired_ring_by_hcad.get(hcad)
                         if new_ring:
                             g["coordinates"] = [new_ring]

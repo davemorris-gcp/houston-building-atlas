@@ -19,7 +19,7 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008x";
+} from "./curatedEdits.js?v=20261008z";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 
 const BASEMAP_TILES = {
@@ -167,10 +167,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261008x"),
-        fetch("public/data/parcels.geojson?v=20261008x"),
-        fetch("public/data/overlays.json?v=20261008x"),
-        fetch("public/data/pmtiles_manifest.json?v=20261008x").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261008z"),
+        fetch("public/data/parcels.geojson?v=20261008z"),
+        fetch("public/data/overlays.json?v=20261008z"),
+        fetch("public/data/pmtiles_manifest.json?v=20261008z").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -601,7 +601,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261008x";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261008z";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href

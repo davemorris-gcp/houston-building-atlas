@@ -14,7 +14,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008y";
+import { AtlasMapController } from "./mapController.js?v=20261008z";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008x";
+} from "./curatedEdits.js?v=20261008z";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -167,9 +167,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261008r"),
-        fetch("public/data/stats_summary.json?v=20261008r"),
-        fetch("public/data/haif_index.json?v=20261008r").catch(() => null),
+        fetch("public/data/search_index.json?v=20261008z"),
+        fetch("public/data/stats_summary.json?v=20261008z"),
+        fetch("public/data/haif_index.json?v=20261008z").catch(() => null),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
