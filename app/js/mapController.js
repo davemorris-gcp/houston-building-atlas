@@ -19,8 +19,8 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008p";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008p";
+} from "./curatedEdits.js?v=20261008q";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008q";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -166,10 +166,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261008p"),
-        fetch("public/data/parcels.geojson?v=20261008p"),
-        fetch("public/data/overlays.json?v=20261008p"),
-        fetch("public/data/pmtiles_manifest.json?v=20261008p").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261008q"),
+        fetch("public/data/parcels.geojson?v=20261008q"),
+        fetch("public/data/overlays.json?v=20261008q"),
+        fetch("public/data/pmtiles_manifest.json?v=20261008q").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
