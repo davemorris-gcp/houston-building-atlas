@@ -19,8 +19,8 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008j";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
+} from "./curatedEdits.js?v=20261008k";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008k";
 
 const BASEMAP_TILES = {
   dark_archival: {

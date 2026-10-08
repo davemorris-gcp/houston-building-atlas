@@ -208,39 +208,14 @@ export function buildHcadAuthHeaders(nowSec = Math.round(Date.now() / 1000)) {
  */
 export async function fetchHcadDeepLink(
   accountNumber,
-  taxYear = String(new Date().getFullYear())
+  _taxYear = String(new Date().getFullYear())
 ) {
   const cleanAcct = String(accountNumber || "").replace(/\D/g, "").trim();
   if (!cleanAcct) return null;
-
-  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-  const timeoutId = controller ? setTimeout(() => controller.abort(), 3500) : null;
-
-  try {
-    const headers = buildHcadAuthHeaders();
-    const response = await fetch(HCAD_EXTERNAL_ACCESS_URL, {
-      method: "POST",
-      mode: "cors",
-      cache: "no-cache",
-      headers,
-      signal: controller ? controller.signal : undefined,
-      body: JSON.stringify({
-        TaxYear: String(taxYear),
-        Account: cleanAcct,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HCAD ExternalAccess returned HTTP ${response.status}`);
-    }
-    const url = (await response.text()).trim();
-    if (url.startsWith("https://search.hcad.org/SearchResults/")) {
-      return url;
-    }
-    return null;
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
+  // Note: HCAD's ExternalAccess/AccountDetails token endpoint now rejects external
+  // browser origins with HTTP 401. Returning null avoids logging a 401 console error
+  // on every building click while preserving one-click clipboard copy + HCAD GIS deep link.
+  return null;
 }
 
 /**
