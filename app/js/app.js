@@ -14,7 +14,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008g";
+import { AtlasMapController } from "./mapController.js?v=20261008h";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 import {
   applyOverrideToProperties,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008g";
+} from "./curatedEdits.js?v=20261008h";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -161,16 +161,112 @@ class HoustonAtlasApp {
 
   async _loadMetadataFiles() {
     try {
-      const [searchRes, statsRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261007e"),
-        fetch("public/data/stats_summary.json?v=20261007e"),
+      const [searchRes, statsRes, haifRes] = await Promise.all([
+        fetch("public/data/search_index.json?v=20261008h"),
+        fetch("public/data/stats_summary.json?v=20261008h"),
+        fetch("public/data/haif_index.json?v=20261008h").catch(() => null),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
+      if (haifRes && haifRes.ok) {
+        this.haifIndex = await haifRes.json();
+      } else {
+        this.haifIndex = null;
+      }
       this._renderGlobalDatasetSummary();
     } catch (err) {
       console.error("Failed to load metadata files:", err);
     }
+  }
+
+  _normalizeAddressForHaifLookup(addr) {
+    if (!addr) return "";
+    let s = String(addr)
+      .toUpperCase()
+      .replace(/[^A-Z0-9\s]/g, " ")
+      .replace(/\b(?:STE|SUITE|APT|UNIT|BLDG|FL|FLOOR)\b.*$/, "");
+    const parts = s.trim().split(/\s+/);
+    if (!parts.length || !/^\d+$/.test(parts[0])) return "";
+    const stripTail = new Set([
+      "HOUSTON", "TX", "TEXAS", "BAYTOWN", "PASADENA", "BELLAIRE",
+      "ST", "STREET", "AVE", "AVENUE", "BLVD", "BOULEVARD", "RD", "ROAD",
+      "DR", "DRIVE", "LN", "LANE", "WAY", "PKWY", "PARKWAY", "FWY", "FREEWAY",
+      "HWY", "HIGHWAY", "CT", "COURT", "PL", "PLACE", "CIR", "CIRCLE",
+      "SQ", "SQUARE", "TER", "TERRACE", "TRL", "TRAIL", "LOOP",
+      "N", "S", "E", "W", "NORTH", "SOUTH", "EAST", "WEST"
+    ]);
+    while (parts.length > 2 && (/^\d+$/.test(parts[parts.length - 1]) || stripTail.has(parts[parts.length - 1]))) {
+      parts.pop();
+    }
+    const dirMap = { NORTH: "N", SOUTH: "S", EAST: "E", WEST: "W" };
+    if (parts.length >= 3 && dirMap[parts[1]]) {
+      parts[1] = dirMap[parts[1]];
+    }
+    return parts.join(" ");
+  }
+
+  _resolveHaifThreads(props) {
+    const out = [];
+    const seenTids = new Set();
+    const pushThread = (t) => {
+      if (!t) return;
+      const tid = Number(t.tid || 0);
+      const key = tid || t.url || t.title;
+      if (!key || seenTids.has(key)) return;
+      seenTids.add(key);
+      out.push({
+        tid,
+        title: t.title || t.t || "HAIF Architectural Discussion",
+        subforum: t.subforum || t.f || "Architecture & Development",
+        url: t.url || t.u || "",
+        wb_url: t.wb_url || t.w || "",
+        date: t.date || t.d || "",
+        excerpt: t.excerpt || t.e || "",
+        is_demo: Boolean(t.is_demo || t.m),
+      });
+    };
+
+    let rawThreads = props.haif_threads;
+    if (typeof rawThreads === "string" && rawThreads.trim().startsWith("[")) {
+      try {
+        rawThreads = JSON.parse(rawThreads);
+      } catch (_e) {
+        rawThreads = null;
+      }
+    }
+    if (Array.isArray(rawThreads)) {
+      for (const t of rawThreads) pushThread(t);
+    }
+
+    if (this.haifIndex && this.haifIndex.threads) {
+      const threadsDict = this.haifIndex.threads;
+      const byKey = this.haifIndex.by_key || {};
+      const byAddr = this.haifIndex.by_addr || {};
+      const rawId = String(props.id || "").trim();
+      const baseId = rawId.replace(/#fp_\d+$/, "");
+      const hcad = String(props.hcad_num || "").trim();
+      const candidateTids = [
+        ...(byKey[rawId] || []),
+        ...(byKey[baseId] || []),
+        ...(byKey[hcad] || []),
+      ];
+      const normA = this._normalizeAddressForHaifLookup(props.address);
+      if (normA) {
+        if (byAddr[normA]) candidateTids.push(...byAddr[normA]);
+        const parts = normA.split(" ");
+        if (parts.length >= 3 && ["N", "S", "E", "W", "NE", "NW", "SE", "SW"].includes(parts[1])) {
+          const noDir = `${parts[0]} ${parts.slice(2).join(" ")}`;
+          if (byAddr[noDir]) candidateTids.push(...byAddr[noDir]);
+        }
+      }
+      for (const tid of candidateTids) {
+        const rec = threadsDict[String(tid)];
+        if (rec) {
+          pushThread({ tid, ...rec });
+        }
+      }
+    }
+    return out.slice(0, 4);
   }
 
   _mergeCuratedOverridesIntoSearchIndex() {
@@ -2295,6 +2391,87 @@ class HoustonAtlasApp {
         </div>`
       : "";
 
+    const haifThreads = this._resolveHaifThreads(props);
+    const haifSearchTerm =
+      (props.address && String(props.address).trim()) ||
+      (title && title !== "Houston Structure" ? title : "");
+    const haifGoogleSearchUrl = haifSearchTerm
+      ? `https://www.google.com/search?q=${encodeURIComponent(
+          `site:houstonarchitecture.com "${haifSearchTerm}"`
+        )}`
+      : "https://www.houstonarchitecture.com/";
+
+    const haifForumHtml =
+      haifThreads.length > 0
+        ? `<div class="haif-forum-card">
+            <div class="haif-forum-header">
+              <span class="haif-forum-kicker">&#128172; Houston Architecture Forum (HAIF)</span>
+              <span class="haif-forum-count-badge">${haifThreads.length} ${
+                haifThreads.length === 1 ? "Thread" : "Threads"
+              }</span>
+            </div>
+            <div class="haif-thread-list">
+              ${haifThreads
+                .map(
+                  (th) => `<div class="haif-thread-item">
+                    <div class="haif-thread-top">
+                      <span class="haif-subforum-pill">${th.subforum || "Architecture"}</span>
+                      ${
+                        th.is_demo
+                          ? `<span class="haif-demo-pill" title="HAIF thread discusses demolition or redevelopment at this site">&#9888; Demo / Redev</span>`
+                          : ""
+                      }
+                      ${th.date ? `<span class="haif-thread-date">${th.date}</span>` : ""}
+                    </div>
+                    <div class="haif-thread-title">${th.title}</div>
+                    ${
+                      th.excerpt
+                        ? `<div class="haif-thread-excerpt">${th.excerpt}</div>`
+                        : ""
+                    }
+                    <div class="haif-thread-actions">
+                      <a
+                        href="${th.url}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="haif-thread-btn primary"
+                        title="Open discussion thread on Houston Architecture Info Forum (houstonarchitecture.com)"
+                      >
+                        Open HAIF Thread &#8599;
+                      </a>
+                      ${
+                        th.wb_url
+                          ? `<a
+                              href="${th.wb_url}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              class="haif-thread-btn archive"
+                              title="Open archived snapshot on Internet Archive Wayback Machine"
+                            >
+                              Archive Snapshot &#8599;
+                            </a>`
+                          : ""
+                      }
+                    </div>
+                  </div>`
+                )
+                .join("")}
+            </div>
+          </div>`
+        : haifSearchTerm
+        ? `<div class="haif-forum-compact-bar">
+            <a
+              href="${haifGoogleSearchUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="haif-compact-search-link"
+              title="Search Houston Architecture Info Forum (houstonarchitecture.com) for discussions & photos of ${haifSearchTerm}"
+            >
+              &#128172; Search &ldquo;${haifSearchTerm}&rdquo; on Houston Architecture Forum (HAIF) &#8599;
+            </a>
+          </div>`
+        : "";
+
     const selGeom = this.mapController ? this.mapController.selectedFeatureGeometry : null;
     let geomLng = null;
     let geomLat = null;
@@ -2405,6 +2582,7 @@ class HoustonAtlasApp {
       ${goodBrickHtml}
       ${landmarkReportHtml}
       ${verifiedBannerHtml}
+      ${haifForumHtml}
 
       <div class="inspector-grid">
         <div class="inspector-cell">
