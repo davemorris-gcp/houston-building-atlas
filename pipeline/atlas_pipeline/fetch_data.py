@@ -328,7 +328,27 @@ def fetch_all_overlays(cache_dir: Path) -> dict[str, list[dict[str, Any]]]:
     if annexations_cache.exists():
         annexations = json.loads(annexations_cache.read_text())
     else:
+        from shapely.geometry import MultiPolygon
+        from shapely.ops import unary_union
+
+        def _clean_annex_geom(geom: Any, allow_enclaves: bool = True) -> Any:
+            polys = [geom] if geom.geom_type == "Polygon" else list(geom.geoms)
+            cleaned = []
+            for p in polys:
+                if p.area < 0.000008:
+                    continue
+                if not allow_enclaves:
+                    cleaned.append(Polygon(p.exterior))
+                else:
+                    holes = [r for r in p.interiors if Polygon(r).area >= 0.00004]
+                    cleaned.append(Polygon(p.exterior, holes))
+            if not cleaned:
+                return geom
+            cleaned.sort(key=lambda g: g.area, reverse=True)
+            return cleaned[0] if len(cleaned) == 1 else MultiPolygon(cleaned)
+
         annexations = []
+        accum_geoms: list[Any] = []
         for layer_id, decade_num, label in ANNEXATION_LAYERS:
             layer_url = f"{COH_ANNEXATION_BASE_URL}/{layer_id}/query"
             try:
@@ -338,16 +358,38 @@ def fetch_all_overlays(cache_dir: Path) -> dict[str, list[dict[str, Any]]]:
                     out_fields="OBJECTID",
                     page_size=500,
                 )
-                for feat in raw_annex:
-                    raw_geom = feat.get("geometry")
-                    if not raw_geom:
-                        continue
-                    simplified = shape(raw_geom).simplify(0.00025, preserve_topology=True)
-                    if simplified.is_empty:
-                        continue
+                if decade_num == 1840:
+                    # Pure 4-corner 1840 3-mile square centered on the Courthouse
+                    # (excluding the repealed Jan 1839 tilted John Austin Two-League Survey polygon OBJECTID 21)
+                    sq_1840 = Polygon([
+                        [-95.33526412048433, 29.740787446263386],
+                        [-95.33666633290052, 29.784696421986673],
+                        [-95.3843687888074, 29.784341260569768],
+                        [-95.38396635017122, 29.739676200929484],
+                        [-95.33526412048433, 29.740787446263386],
+                    ])
+                    accum_geoms = [sq_1840]
+                    dissolved = sq_1840
+                elif decade_num == 1836:
+                    g1836 = Polygon(shape(raw_annex[0]["geometry"]).buffer(0).exterior).simplify(
+                        0.00012, preserve_topology=True
+                    )
+                    accum_geoms = [g1836]
+                    dissolved = g1836
+                else:
+                    for feat in raw_annex:
+                        raw_geom = feat.get("geometry")
+                        if raw_geom:
+                            accum_geoms.append(shape(raw_geom).buffer(0))
+                    dissolved = unary_union(accum_geoms).buffer(0.00012).buffer(-0.00012)
+                    dissolved = _clean_annex_geom(
+                        dissolved, allow_enclaves=(decade_num >= 1940)
+                    ).simplify(0.00022, preserve_topology=True)
+
+                if not dissolved.is_empty:
                     annexations.append({
                         "type": "Feature",
-                        "geometry": mapping(simplified),
+                        "geometry": mapping(dissolved),
                         "properties": {
                             "decade": decade_num,
                             "era_label": label,
