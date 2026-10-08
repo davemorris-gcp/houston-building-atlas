@@ -19,8 +19,8 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008k";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008k";
+} from "./curatedEdits.js?v=20261008l";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008l";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -166,10 +166,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261008i"),
-        fetch("public/data/parcels.geojson?v=20261008i"),
-        fetch("public/data/overlays.json?v=20261008i"),
-        fetch("public/data/pmtiles_manifest.json?v=20261008i").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261008l"),
+        fetch("public/data/parcels.geojson?v=20261008l"),
+        fetch("public/data/overlays.json?v=20261008l"),
+        fetch("public/data/pmtiles_manifest.json?v=20261008l").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -1889,7 +1889,39 @@ export class AtlasMapController {
      Unified Public Controller API
      ======================================================================== */
   _buildTooltipHTML(p) {
-    const title = p.landmark_name || p.name || p.era_label || p.address || "Historic Property";
+    const title =
+      p.building_name ||
+      p.landmark_name ||
+      p.name ||
+      p.era_label ||
+      p.address ||
+      "Historic Property";
+    let altList = [];
+    if (Array.isArray(p.alt_names)) {
+      altList = p.alt_names.map((s) => String(s || "").trim()).filter(Boolean);
+    } else if (typeof p.alt_names === "string" && p.alt_names.trim()) {
+      const rawAlt = p.alt_names.trim();
+      if (rawAlt.startsWith("[")) {
+        try {
+          const parsed = JSON.parse(rawAlt);
+          if (Array.isArray(parsed)) {
+            altList = parsed.map((s) => String(s || "").trim()).filter(Boolean);
+          }
+        } catch (_e) {
+          altList = [];
+        }
+      } else {
+        altList = rawAlt
+          .split(/\s*\|\s*|\s*;\s*/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+    }
+    const akaHtml =
+      altList.length > 0
+        ? `<div class="tooltip-aka">AKA: ${altList.slice(0, 2).join(", ")}</div>`
+        : "";
+
     let badge = "";
     if (p.year_built && Number(p.year_built) >= 1836) {
       if (p.is_curated_override) {
@@ -1916,6 +1948,7 @@ export class AtlasMapController {
       badge = p.use_category || "Undated Parcel";
     }
     const subtitle =
+      (p.address && p.address !== title ? `${p.address}${p.historic_district && p.historic_district !== "Outside City District" && p.historic_district !== "Outside Historic District" ? ` • ${p.historic_district}` : ""}` : "") ||
       p.historic_district ||
       p.address ||
       p.subdivision ||
@@ -1938,6 +1971,7 @@ export class AtlasMapController {
         }
       </div>
       <div class="tooltip-title">${title}</div>
+      ${akaHtml}
       <div class="tooltip-sub">${subtitle}</div>
     </div>`;
   }

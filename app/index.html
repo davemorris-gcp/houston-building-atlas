@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261008h" />
+  <link rel="stylesheet" href="styles/index.css?v=20261008l" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -727,6 +727,17 @@
               </div>
             </div>
 
+            <div class="form-field">
+              <label for="corr-building-name">Building Name &amp; Historical / Colloquial Aliases <span class="opt-hint">(Optional — separate multiple names with <code>/</code> or <code>;</code>)</span></label>
+              <input
+                type="text"
+                id="corr-building-name"
+                name="building_name"
+                class="form-input"
+                placeholder="e.g. Cheek-Neal Coffee Building / Sampson Street Lofts / Maxwell House Plant"
+              />
+            </div>
+
             <div class="form-row-3col">
               <div class="form-field">
                 <label for="corr-current-year">Current Year Shown</label>
@@ -1139,6 +1150,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261008k"></script>
+  <script type="module" src="js/app.js?v=20261008l"></script>
 </body>
 </html>

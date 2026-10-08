@@ -4380,3 +4380,114 @@ body {
   border-color: rgba(56, 189, 248, 0.55);
   color: #ffffff;
 }
+
+/* ==========================================================================
+   Building Names & Historical / Colloquial Aliases (AKA Pills & Dossier)
+   ========================================================================== */
+.inspector-aka-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 4px 0 6px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: rgba(253, 224, 71, 0.08);
+  border: 1px solid rgba(253, 224, 71, 0.28);
+}
+
+.inspector-aka-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fde68a;
+}
+
+.inspector-aka-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.inspector-alias-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  background: rgba(253, 224, 71, 0.14);
+  border: 1px solid rgba(253, 224, 71, 0.42);
+  color: #fef08a;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.12s ease;
+}
+
+.inspector-alias-chip:hover {
+  background: rgba(253, 224, 71, 0.26);
+  border-color: rgba(253, 224, 71, 0.78);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.inspector-alias-chip.small {
+  font-size: 11px;
+  padding: 2px 7px;
+}
+
+.inspector-name-dossier {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inspector-primary-name-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inspector-name-source-pill {
+  display: inline-block;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(149, 201, 89, 0.15);
+  border: 1px solid rgba(149, 201, 89, 0.42);
+  color: var(--ph-green-light);
+}
+
+.inspector-alt-names-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 11.5px;
+}
+
+.inspector-alt-prefix {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tooltip-aka {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fde68a;
+  margin-top: 1px;
+  margin-bottom: 2px;
+  line-height: 1.3;
+}
+
+.dossier-prop-aka {
+  font-size: 12px;
+  color: #5c5449;
+  margin-top: 2px;
+  margin-bottom: 3px;
+}
+
