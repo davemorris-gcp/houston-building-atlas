@@ -161,6 +161,16 @@ export function parseOverridesFromSheetRows(rows) {
       }
     }
 
+    const rawAltNames = String(
+      row.alt_names || row.alternate_names || row.aka || row.historical_names || ""
+    ).trim();
+    const parsedAltNames = rawAltNames
+      ? rawAltNames
+          .split(/[;|]/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+
     overrides[overrideKey] = {
       id: overrideKey,
       building_id: overrideKey,
@@ -174,7 +184,9 @@ export function parseOverridesFromSheetRows(rows) {
       original_hcad_year: origYrRaw >= 1830 ? Math.round(origYrRaw) : 0,
       bld_style: String(row.bld_style || row.style || "").trim(),
       architect: String(row.architect || row.builder || "").trim(),
-      landmark_name: String(row.landmark_name || row.historic_name || "").trim(),
+      landmark_name: String(row.landmark_name || row.historic_name || row.building_name || "").trim(),
+      building_name: String(row.building_name || row.landmark_name || row.historic_name || "").trim(),
+      ...(parsedAltNames.length ? { alt_names: parsedAltNames } : {}),
       landmark_type: String(row.landmark_type || "").trim(),
       source_type: String(
         row.source_type || row.evidence_source || "Preservation Houston Archival Record"
@@ -215,7 +227,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261008i", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261008l", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -399,7 +411,14 @@ export function applyOverrideToProperties(props, overridesMap) {
     landmark_name:
       (isGbPoint && props.landmark_name) || ov.landmark_name || props.landmark_name || "",
     building_name:
-      ov.building_name || props.building_name || "",
+      ov.building_name || props.building_name || ov.landmark_name || props.landmark_name || "",
+    alt_names: Array.isArray(ov.alt_names) && ov.alt_names.length
+      ? ov.alt_names
+      : Array.isArray(props.alt_names)
+      ? props.alt_names
+      : [],
+    name_source:
+      ov.name_source || props.name_source || "",
     landmark_type: ov.landmark_type || props.landmark_type || "",
     source_type: ov.source_type || props.source_type || "Preservation Houston Archival Record",
     source_citation: ov.source_citation || props.source_citation || "",
@@ -447,6 +466,7 @@ export function applyOverrideToProperties(props, overridesMap) {
 export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
   const footprintIssue = String(payload.footprint_issue || "").trim();
   const footprintNotes = String(payload.footprint_notes || "").trim();
+  const suggestedBldName = String(payload.building_name || "").trim();
   const rawCitation = String(payload.source_citation || "").trim();
   const rawSourceType = String(payload.source_type || "Houston City Directory").trim();
   const satelliteUrl = String(payload.satellite_url || "").trim();
@@ -454,7 +474,7 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
   const currentYr = Number(payload.current_year_built) || 0;
   const suggestedYr = Number(payload.suggested_year_built) || currentYr || 0;
 
-  // Format source_type & source_citation so Footprint/Shape reports stand out clearly in the Google Sheet Pending_Submissions tab
+  // Format source_type & source_citation so Footprint/Shape reports and Building Name suggestions stand out clearly
   const effectiveSourceType = footprintIssue
     ? rawCitation && Number(payload.suggested_year_built) && Number(payload.suggested_year_built) !== currentYr
       ? `${rawSourceType} + Footprint Issue (${footprintIssue})`
@@ -462,6 +482,9 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
     : rawSourceType;
 
   const citationParts = [];
+  if (suggestedBldName) {
+    citationParts.push(`[BUILDING NAME / HISTORICAL ALIAS]: ${suggestedBldName}`);
+  }
   if (footprintIssue || footprintNotes) {
     citationParts.push(
       `[FOOTPRINT / SHAPE ISSUE — ${footprintIssue || "Geometry Error"}]: ${
@@ -478,6 +501,7 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
     submitted_at: new Date().toISOString().slice(0, 19).replace("T", " "),
     hcad_num: String(payload.hcad_num || "").trim(),
     address: String(payload.address || "").trim(),
+    building_name: suggestedBldName,
     historic_district: String(payload.historic_district || "").trim(),
     hcad_year_built: currentYr,
     suggested_year_built: suggestedYr,

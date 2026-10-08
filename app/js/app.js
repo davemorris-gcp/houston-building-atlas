@@ -14,8 +14,8 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008k";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008k";
+import { AtlasMapController } from "./mapController.js?v=20261008l";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008l";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -26,7 +26,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008k";
+} from "./curatedEdits.js?v=20261008l";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -162,9 +162,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261008j"),
-        fetch("public/data/stats_summary.json?v=20261008j"),
-        fetch("public/data/haif_index.json?v=20261008j").catch(() => null),
+        fetch("public/data/search_index.json?v=20261008l"),
+        fetch("public/data/stats_summary.json?v=20261008l"),
+        fetch("public/data/haif_index.json?v=20261008l").catch(() => null),
       ]);
       this.searchIndex = await searchRes.json();
       this.globalStats = await statsRes.json();
@@ -267,6 +267,154 @@ class HoustonAtlasApp {
       }
     }
     return out.slice(0, 4);
+  }
+
+  /**
+   * Resolves the authoritative Primary Building Name (`primaryName`), Historical / Colloquial
+   * Alternate Names (`altNames`), and Name Provenance (`nameSource`) across:
+   * 1. Feature properties (`building_name`, `landmark_name`, `alt_names`, `name_source`)
+   * 2. City of Houston Landmark & Good Brick Award overlay features (`overlaysData`)
+   * 3. Runtime HAIF & Landmark Name index (`haifIndex.names_by_key` & `haifIndex.names_by_addr`)
+   *    so even countywide PMTiles vector shard buildings display their historic & modern names.
+   */
+  _resolveBuildingNameAndAliases(props = {}) {
+    const rawAddr = String(props.address || "").trim();
+    const normAddr = this._normalizeAddressForHaifLookup(rawAddr);
+    const rawId = String(props.building_id || props.id || "").trim().replace(/#fp_\d+$/, "");
+    const hcad = String(props.hcad_num || "").trim();
+    const isSubBuilding = rawId.includes("#");
+
+    const isStreetAddrOnly = (s) => {
+      if (!s) return true;
+      const clean = String(s).trim();
+      if (!clean || clean.startsWith("HCAD ")) return true;
+      if (normAddr && this._normalizeAddressForHaifLookup(clean) === normAddr && /^\d+\s+/.test(clean)) {
+        return true;
+      }
+      return /^\d{1,5}(?:\s*-\s*\d{1,5})?\s+(?:[NSEW]\.?\s+)?[A-Za-z0-9\.\s]+\b(?:Street|St|Avenue|Ave|Boulevard|Blvd|Drive|Dr|Road|Rd|Lane|Ln|Court|Ct|Place|Pl|Circle|Cir|Parkway|Pkwy|Freeway|Fwy|Highway|Hwy|Loop|Way)\.?$/i.test(
+        clean
+      );
+    };
+
+    const candidatePrimaries = [];
+    const candidateAlts = [];
+    let resolvedSource = String(props.name_source || "").trim();
+
+    const addPrimary = (nm, src = "") => {
+      const c = String(nm || "").trim();
+      if (!c || isStreetAddrOnly(c)) return;
+      candidatePrimaries.push(c);
+      if (src && !resolvedSource) resolvedSource = src;
+    };
+
+    const addAltList = (arr) => {
+      if (!arr) return;
+      let parsed = arr;
+      if (typeof parsed === "string") {
+        const t = parsed.trim();
+        if (t.startsWith("[")) {
+          try {
+            parsed = JSON.parse(t);
+          } catch (_e) {
+            parsed = t.split(/[;|]/);
+          }
+        } else {
+          parsed = t.split(/[;|]/);
+        }
+      }
+      if (Array.isArray(parsed)) {
+        for (const item of parsed) {
+          const c = String(item || "").trim();
+          if (c && !isStreetAddrOnly(c)) candidateAlts.push(c);
+        }
+      }
+    };
+
+    // 1. Direct feature properties
+    addPrimary(props.building_name, props.name_source || "");
+    addPrimary(props.landmark_name, props.name_source || "");
+    addPrimary(props.name, props.name_source || "");
+    addAltList(props.alt_names);
+
+    // 2. Runtime lookup in overlaysData.landmarks & good_brick_awards
+    if (!isSubBuilding && this.mapController?.overlaysData) {
+      const lmFeatures = this.mapController.overlaysData.landmarks?.features || [];
+      for (const f of lmFeatures) {
+        const lp = f.properties || {};
+        const lHcad = String(lp.hcad_num || "").trim();
+        const lNormAddr = this._normalizeAddressForHaifLookup(lp.address);
+        if ((hcad && lHcad === hcad) || (normAddr && lNormAddr && normAddr === lNormAddr)) {
+          addPrimary(lp.building_name || lp.name, lp.name_source || "COH Landmark Designation Report");
+          addAltList(lp.alt_names);
+          break;
+        }
+      }
+      const gbFeatures = this.mapController.overlaysData.good_brick_awards?.features || [];
+      for (const f of gbFeatures) {
+        const gp = f.properties || {};
+        const gHcad = String(gp.hcad_num || "").trim();
+        const gNormAddr = this._normalizeAddressForHaifLookup(gp.address);
+        if ((hcad && gHcad === hcad) || (normAddr && gNormAddr && normAddr === gNormAddr)) {
+          addPrimary(gp.building_name || gp.landmark_name || gp.name, gp.name_source || "Preservation Houston Good Brick Award");
+          addAltList(gp.alt_names);
+          break;
+        }
+      }
+    }
+
+    // 3. Runtime lookup in haifIndex.names_by_key & haifIndex.names_by_addr (covers 4,795 HCAD parcels & 5,073 addresses in PMTiles shards!)
+    if (this.haifIndex) {
+      const namesByKey = this.haifIndex.names_by_key || {};
+      const namesByAddr = this.haifIndex.names_by_addr || {};
+      const keyHit =
+        (rawId && namesByKey[rawId]) ||
+        (!isSubBuilding && hcad && namesByKey[hcad]) ||
+        (!isSubBuilding && normAddr && namesByAddr[normAddr]);
+      if (keyHit) {
+        addPrimary(keyHit.n, keyHit.s || "Houston Architecture Forum (HAIF)");
+        addAltList(keyHit.a);
+      }
+    }
+
+    const primaryName = candidatePrimaries[0] || rawAddr || "Houston Historic Structure";
+    const hasCustomBuildingName = Boolean(candidatePrimaries.length > 0);
+    if (!resolvedSource && hasCustomBuildingName) {
+      resolvedSource =
+        props.landmark_report_url || props.landmark_code
+          ? "COH Landmark Designation Report"
+          : props.good_brick_awards || props.good_brick_summary
+          ? "Preservation Houston Good Brick Award"
+          : props.is_curated_override
+          ? "Preservation Houston Curated Archive"
+          : "Archival & Community Inventory";
+    }
+
+    // Deduplicate alternate names (including any secondary primary candidates that differ from primaryName)
+    const allAltCandidates = [...candidatePrimaries.slice(1), ...candidateAlts];
+    const primLow = primaryName.toLowerCase();
+    const primNoThe = primLow.replace(/^the\s+/, "");
+    const primStem = primNoThe.replace(/\s+(?:building|bldg\.?|house|home|residence|tower)$/i, "").trim();
+    const seenNorms = new Set([primLow, primNoThe, primStem]);
+    const altNames = [];
+    for (const cand of allAltCandidates) {
+      const clean = String(cand || "").trim();
+      if (!clean || isStreetAddrOnly(clean)) continue;
+      const low = clean.toLowerCase();
+      const lowNoThe = low.replace(/^the\s+/, "");
+      const lowStem = lowNoThe.replace(/\s+(?:building|bldg\.?|house|home|residence|tower)$/i, "").trim();
+      if (seenNorms.has(low) || seenNorms.has(lowNoThe) || (lowStem && seenNorms.has(lowStem))) continue;
+      seenNorms.add(low);
+      seenNorms.add(lowNoThe);
+      if (lowStem) seenNorms.add(lowStem);
+      altNames.push(clean);
+    }
+
+    return {
+      primaryName,
+      altNames: altNames.slice(0, 5),
+      nameSource: resolvedSource,
+      hasCustomBuildingName,
+    };
   }
 
   _resolveStyleAndClassInfo(props = {}) {
@@ -433,12 +581,27 @@ class HoustonAtlasApp {
           ? existingItem.category
           : "Residential");
 
+      const primaryBldName =
+        ov.building_name || ov.landmark_name || existingItem?.building_name || "";
+      const rawAlt = ov.alt_names || existingItem?.alt_names || [];
+      const altNames = Array.isArray(rawAlt)
+        ? rawAlt.map((s) => String(s).trim()).filter(Boolean)
+        : String(rawAlt)
+            .split(/\s*\|\s*|\s*;\s*/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+      const akaSnippet =
+        altNames.length > 0 ? `AKA: ${altNames.slice(0, 2).join(", ")} • ` : "";
+
       const entry = {
         type: "building",
         id: ov.id || existingItem?.id || `ov_${hcad}`,
         hcad_num: hcad,
-        label: ov.landmark_name || ov.address || existingItem?.label || `HCAD ${hcad}`,
-        sublabel: `${ov.historic_district || existingItem?.historic_district || mergedUseCategory || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
+        label: primaryBldName || ov.address || existingItem?.label || `HCAD ${hcad}`,
+        building_name: primaryBldName,
+        alt_names: altNames,
+        name_source: ov.name_source || existingItem?.name_source || "",
+        sublabel: `${akaSnippet}${ov.historic_district || existingItem?.historic_district || mergedUseCategory || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
         category: `Built ${ov.year_built} ✓`,
         year_built: ov.year_built,
         architect: ov.architect || existingItem?.architect || "",
@@ -473,7 +636,7 @@ class HoustonAtlasApp {
       if (item.label) byLabel.set(String(item.label).trim().toLowerCase(), item);
     }
 
-    // 1. Enrich from buildingsData (architect, bld_style, style, use_category, landuse_desc, historic_district, good_brick_years, and geometry coords)
+    // 1. Enrich from buildingsData (architect, bld_style, style, use_category, landuse_desc, historic_district, good_brick_years, building_name, alt_names, and geometry coords)
     for (const feat of this.mapController.buildingsData || []) {
       const p = feat.properties || {};
       const hcad = String(p.hcad_num || "").trim();
@@ -498,6 +661,13 @@ class HoustonAtlasApp {
           target.lon = sumLon / ring.length;
           target.lat = sumLat / ring.length;
         }
+        if ((p.building_name || p.landmark_name) && !target.building_name) {
+          target.building_name = p.building_name || p.landmark_name;
+        }
+        if (Array.isArray(p.alt_names) && p.alt_names.length > 0 && (!target.alt_names || !target.alt_names.length)) {
+          target.alt_names = p.alt_names;
+        }
+        if (p.name_source && !target.name_source) target.name_source = p.name_source;
         if (p.architect && !target.architect) target.architect = p.architect;
         if (p.style && (!target.style || target.style === "Historical / Architectural Structure")) {
           target.style = p.style;
@@ -522,6 +692,7 @@ class HoustonAtlasApp {
           target.landmark_summary = p.landmark_summary;
       } else if (
         p.architect ||
+        p.building_name ||
         p.landmark_name ||
         p.good_brick_years ||
         p.landmark_report_url
@@ -535,8 +706,18 @@ class HoustonAtlasApp {
           type: "building",
           id: p.id || "",
           hcad_num: hcad,
-          label: p.landmark_name || p.address || `HCAD ${hcad}`,
-          sublabel: [p.address, p.historic_district, p.architect ? `Arch: ${p.architect}` : ""]
+          label: p.building_name || p.landmark_name || p.address || `HCAD ${hcad}`,
+          building_name: p.building_name || p.landmark_name || "",
+          alt_names: Array.isArray(p.alt_names) ? p.alt_names : [],
+          name_source: p.name_source || "",
+          sublabel: [
+            Array.isArray(p.alt_names) && p.alt_names.length
+              ? `AKA: ${p.alt_names.slice(0, 2).join(", ")}`
+              : "",
+            p.address,
+            p.historic_district,
+            p.architect ? `Arch: ${p.architect}` : "",
+          ]
             .filter(Boolean)
             .join(" • "),
           category: p.year_built ? `Built ${p.year_built}` : p.use_category || "Historic Structure",
@@ -571,6 +752,12 @@ class HoustonAtlasApp {
         (hcad && byHcad.get(hcad)) ||
         (p.name && byLabel.get(String(p.name).toLowerCase()));
       if (target) {
+        if ((p.building_name || p.name) && !target.building_name) {
+          target.building_name = p.building_name || p.name;
+        }
+        if (Array.isArray(p.alt_names) && p.alt_names.length > 0 && (!target.alt_names || !target.alt_names.length)) {
+          target.alt_names = p.alt_names;
+        }
         if (p.architect && !target.architect) target.architect = p.architect;
         if (p.style && !target.bld_style) target.bld_style = p.style;
         if (lmCode && !target.landmark_code) target.landmark_code = lmCode;
@@ -582,8 +769,20 @@ class HoustonAtlasApp {
           type: "landmark",
           id: p.id || "",
           hcad_num: hcad,
-          label: p.name || p.address || "Houston Landmark",
-          sublabel: [p.address, lmCode ? `HPO #${lmCode}` : "", p.style, p.architect ? `Arch: ${p.architect}` : ""].filter(Boolean).join(" • "),
+          label: p.building_name || p.name || p.address || "Houston Landmark",
+          building_name: p.building_name || p.name || "",
+          alt_names: Array.isArray(p.alt_names) ? p.alt_names : [],
+          sublabel: [
+            Array.isArray(p.alt_names) && p.alt_names.length
+              ? `AKA: ${p.alt_names.slice(0, 2).join(", ")}`
+              : "",
+            p.address,
+            lmCode ? `HPO #${lmCode}` : "",
+            p.style,
+            p.architect ? `Arch: ${p.architect}` : "",
+          ]
+            .filter(Boolean)
+            .join(" • "),
           category: p.designation || "Landmark",
           year_built: p.year_built || 0,
           architect: p.architect || "",
@@ -606,6 +805,12 @@ class HoustonAtlasApp {
         (hcad && byHcad.get(hcad)) ||
         (p.landmark_name && byLabel.get(String(p.landmark_name).toLowerCase()));
       if (target) {
+        if ((p.building_name || p.landmark_name) && !target.building_name) {
+          target.building_name = p.building_name || p.landmark_name;
+        }
+        if (Array.isArray(p.alt_names) && p.alt_names.length > 0 && (!target.alt_names || !target.alt_names.length)) {
+          target.alt_names = p.alt_names;
+        }
         if (p.good_brick_years) target.good_brick_years = String(p.good_brick_years);
         if (p.good_brick_summary && !String(target.sublabel || "").includes("Good Brick")) {
           target.sublabel = `${target.sublabel || ""} • ★ ${p.good_brick_summary}`;
@@ -616,8 +821,18 @@ class HoustonAtlasApp {
           type: "good_brick",
           id: p.building_id || p.id || "",
           hcad_num: hcad,
-          label: p.landmark_name || p.address || "Good Brick Winner",
-          sublabel: `${p.address || ""} • ★ ${p.good_brick_summary || "Good Brick Award"}`,
+          label: p.building_name || p.landmark_name || p.address || "Good Brick Winner",
+          building_name: p.building_name || p.landmark_name || "",
+          alt_names: Array.isArray(p.alt_names) ? p.alt_names : [],
+          sublabel: [
+            Array.isArray(p.alt_names) && p.alt_names.length
+              ? `AKA: ${p.alt_names.slice(0, 2).join(", ")}`
+              : "",
+            p.address || "",
+            `★ ${p.good_brick_summary || "Good Brick Award"}`,
+          ]
+            .filter(Boolean)
+            .join(" • "),
           category: `★ ${p.good_brick_years || "Good Brick"}`,
           year_built: p.year_built || 0,
           good_brick_years: String(p.good_brick_years || ""),
@@ -1364,8 +1579,22 @@ class HoustonAtlasApp {
         const submitBtn = document.getElementById("btn-submit-correction");
         const feedbackEl = document.getElementById("corr-submit-feedback");
 
+        const rawBldNameField = String(document.getElementById("corr-building-name")?.value || "").trim();
+        let parsedPrimaryBldName = "";
+        let parsedAltNames = [];
+        if (rawBldNameField) {
+          const nameParts = rawBldNameField
+            .split(/\s*\|\s*|\s*;\s*/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          parsedPrimaryBldName = nameParts[0] || "";
+          parsedAltNames = nameParts.slice(1);
+        }
+
         const payload = {
           address: document.getElementById("corr-address")?.value || "",
+          building_name: parsedPrimaryBldName,
+          alt_names: parsedAltNames,
           hcad_num: document.getElementById("corr-hcad-num")?.value || "",
           current_year_built: document.getElementById("corr-current-year")?.value || "",
           suggested_year_built: document.getElementById("corr-suggested-year")?.value || "",
@@ -1384,15 +1613,16 @@ class HoustonAtlasApp {
         };
 
         const hasYearChange = Boolean(String(payload.suggested_year_built).trim());
+        const hasNameUpdate = Boolean(parsedPrimaryBldName);
         const hasFootprintReport = Boolean(
           String(payload.footprint_issue).trim() || String(payload.footprint_notes).trim()
         );
         const hasCitation = Boolean(String(payload.source_citation).trim());
         const hasPhoto = Boolean(String(payload.photo_url).trim());
 
-        if (!hasYearChange && !hasFootprintReport && !hasCitation && !hasPhoto) {
+        if (!hasYearChange && !hasNameUpdate && !hasFootprintReport && !hasCitation && !hasPhoto) {
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built, select a Building Footprint Shape / Orientation Issue, or provide historical notes before submitting.</strong>`;
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built, Building Name / Alias, select a Building Footprint Shape / Orientation Issue, or provide historical notes before submitting.</strong>`;
             feedbackEl.classList.remove("hidden");
           }
           return;
@@ -1421,7 +1651,7 @@ class HoustonAtlasApp {
           registerSessionPhoto({
             hcad_num: payload.hcad_num,
             building_id: payload.hcad_num,
-            landmark_name: payload.address,
+            landmark_name: payload.building_name || payload.address,
             photo_url: payload.photo_url,
             photo_year: payload.photo_year,
             photo_caption: payload.photo_caption || payload.source_citation,
@@ -1448,7 +1678,7 @@ class HoustonAtlasApp {
             ? `Footprint Shape / Orientation Report (<em>${payload.footprint_issue || "Geometry Issue"}</em>)`
             : `Built <strong>${payload.suggested_year_built || payload.current_year_built || "Updated"}</strong>, source: <em>${payload.source_type}</em>`;
 
-          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.address || payload.hcad_num}</strong> (${summaryDesc}) has been recorded with status <code>Pending</code>. ${deliveryNote}${photoNote}`;
+          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.building_name || payload.address || payload.hcad_num}</strong> (${summaryDesc}) has been recorded with status <code>Pending</code>. ${deliveryNote}${photoNote}`;
           feedbackEl.classList.remove("hidden");
         }
       });
@@ -1574,6 +1804,10 @@ class HoustonAtlasApp {
 
     const scoreCandidate = (item, isViewportCandidate = false) => {
       const lbl = String(item.label || "").toLowerCase();
+      const bldName = String(item.building_name || "").toLowerCase();
+      const altNames = Array.isArray(item.alt_names)
+        ? item.alt_names.map((s) => String(s).toLowerCase())
+        : [];
       const sub = String(item.sublabel || "").toLowerCase();
       const hcad = String(item.hcad_num || "").toLowerCase();
       const arch = String(item.architect || "").toLowerCase();
@@ -1639,7 +1873,19 @@ class HoustonAtlasApp {
         score = Math.max(score, hcad === q ? 125 : 90);
       }
 
-      // 2. Title / address / sublabel match (ranked lower than exact metadata match when filtering by a category like "Residential")
+      // 2. Primary Building Name & Historical / Colloquial Aliases (`alt_names`) match
+      if (bldName) {
+        if (bldName === q) score = Math.max(score, 125);
+        else if (bldName.startsWith(q)) score = Math.max(score, 102);
+        else if (bldName.includes(q)) score = Math.max(score, 82);
+      }
+      for (const an of altNames) {
+        if (an === q) score = Math.max(score, 122);
+        else if (an.startsWith(q)) score = Math.max(score, 98);
+        else if (an.includes(q)) score = Math.max(score, 78);
+      }
+
+      // 3. Title / address / sublabel match (ranked lower than exact metadata match when filtering by a category like "Residential")
       if (lbl === q) {
         score = Math.max(score, 120);
       } else if (lbl.startsWith(q)) {
@@ -1678,6 +1924,7 @@ class HoustonAtlasApp {
       const key = String(p.id || p.building_id || p.hcad_num || "").trim();
       if (key && seenKeys.has(key)) continue;
 
+      const nameInfo = this._resolveBuildingNameAndAliases(p);
       const styleInfo = this._resolveStyleAndClassInfo(p);
       const yr = Number(p.year_built) || 0;
       const distClean =
@@ -1690,10 +1937,14 @@ class HoustonAtlasApp {
         type: "building",
         id: p.id || p.building_id || "",
         hcad_num: String(p.hcad_num || "").trim(),
-        label: p.landmark_name || p.address || `HCAD ${p.hcad_num}`,
+        label: nameInfo.primaryName || p.address || `HCAD ${p.hcad_num}`,
+        building_name: nameInfo.hasCustomBuildingName ? nameInfo.primaryName : "",
+        alt_names: nameInfo.altNames,
+        name_source: nameInfo.nameSource,
         sublabel: [
           cand.inViewport ? "📍 In Current View" : "",
-          p.landmark_name && p.address && p.address !== p.landmark_name ? p.address : "",
+          nameInfo.altNames.length > 0 ? `AKA: ${nameInfo.altNames.slice(0, 2).join(", ")}` : "",
+          nameInfo.hasCustomBuildingName && p.address && p.address !== nameInfo.primaryName ? p.address : "",
           distClean || p.use_category || "Harris County",
           styleInfo.displayStyle,
           yr >= 1836 ? `Built ${yr}` : "",
@@ -1816,7 +2067,10 @@ class HoustonAtlasApp {
             document.getElementById("inspector-drawer")?.classList.contains("hidden")
           ) {
             this.renderInspectorDrawer({
+              building_name: chosen.building_name || chosen.label,
               landmark_name: chosen.label,
+              alt_names: chosen.alt_names || [],
+              name_source: chosen.name_source || "",
               year_built: chosen.year_built,
               hcad_num: chosen.hcad_num,
               landmark_type: chosen.category,
@@ -1875,6 +2129,7 @@ class HoustonAtlasApp {
     if (!modal || !props) return;
 
     const addrEl = document.getElementById("corr-address");
+    const bldNameEl = document.getElementById("corr-building-name");
     const hcadEl = document.getElementById("corr-hcad-num");
     const currYrEl = document.getElementById("corr-current-year");
     const suggYrEl = document.getElementById("corr-suggested-year");
@@ -1894,7 +2149,14 @@ class HoustonAtlasApp {
     const satLinkEl = document.getElementById("corr-satellite-check-link");
     const sourceTypeEl = document.getElementById("corr-source-type");
 
-    if (addrEl) addrEl.value = props.landmark_name || props.address || "Unknown Address";
+    const nameInfo = this._resolveBuildingNameAndAliases(props);
+    if (addrEl) addrEl.value = props.address || nameInfo.primaryName || "Unknown Address";
+    if (bldNameEl) {
+      const allNames = nameInfo.hasCustomBuildingName
+        ? [nameInfo.primaryName, ...nameInfo.altNames]
+        : [...nameInfo.altNames];
+      bldNameEl.value = allNames.join(" | ");
+    }
     if (hcadEl) {
       const bldKey =
         props.building_id && String(props.building_id).includes("#")
@@ -2587,15 +2849,32 @@ class HoustonAtlasApp {
       ? `Verified by ${props.verified_by || "Preservation Houston"} (${props.source_type || "Archival Record"})`
       : YEAR_SOURCE_LABELS[props.year_source] || "HCAD Real Property Building Record (date_erected / yr_impr)";
 
-    const title =
-      props.landmark_name ||
-      props.name ||
-      props.address ||
-      "Houston Historic Structure";
+    const nameInfo = this._resolveBuildingNameAndAliases(props);
+    const title = nameInfo.primaryName || "Houston Historic Structure";
     const subtitle =
       props.address && props.address !== title
         ? props.address
         : props.historic_district || "Harris County, Texas";
+
+    const akaHeroHtml =
+      nameInfo.altNames.length > 0
+        ? `<div class="inspector-aka-bar" id="inspector-aka-bar">
+            <span class="inspector-aka-label">Also Known As / Historical Names:</span>
+            <div class="inspector-aka-chips">
+              ${nameInfo.altNames
+                .map(
+                  (alias) => `<button
+                    type="button"
+                    class="inspector-alias-chip inspector-filter-chip"
+                    data-filter-chip="${alias.replace(/"/g, "&quot;")}"
+                    data-filter-label="Name / Alias: ${alias.replace(/"/g, "&quot;")}"
+                    title="Click to search '${alias.replace(/"/g, "&quot;")}' across the Atlas"
+                  >${alias}</button>`
+                )
+                .join("")}
+            </div>
+          </div>`
+        : "";
 
     const statusBadge =
       props.good_brick_summary && !props.landmark_type
@@ -2907,6 +3186,43 @@ class HoustonAtlasApp {
       ? archRaw.split(/[;/(&]|,\s*(?:architect|builder|consulting)/i)[0].trim()
       : "";
 
+    const buildingNamesGridRowHtml =
+      nameInfo.hasCustomBuildingName || nameInfo.altNames.length > 0
+        ? `<div class="inspector-cell full">
+            <span class="cell-label">Building Name &amp; Historical Aliases</span>
+            <span class="cell-value">
+              <div class="inspector-name-dossier">
+                <div class="inspector-primary-name-line">
+                  <strong>${title}</strong>
+                  ${
+                    nameInfo.nameSource
+                      ? `<span class="inspector-name-source-pill">${nameInfo.nameSource}</span>`
+                      : ""
+                  }
+                </div>
+                ${
+                  nameInfo.altNames.length > 0
+                    ? `<div class="inspector-alt-names-line">
+                        <span class="inspector-alt-prefix">Also known as:</span>
+                        ${nameInfo.altNames
+                          .map(
+                            (alias) => `<button
+                              type="button"
+                              class="inspector-alias-chip small inspector-filter-chip"
+                              data-filter-chip="${alias.replace(/"/g, "&quot;")}"
+                              data-filter-label="Name / Alias: ${alias.replace(/"/g, "&quot;")}"
+                              title="Click to search '${alias.replace(/"/g, "&quot;")}'"
+                            >${alias} &#128269;</button>`
+                          )
+                          .join(" ")}
+                      </div>`
+                    : ""
+                }
+              </div>
+            </span>
+          </div>`
+        : "";
+
     content.innerHTML = `
       <div class="inspector-hero">
         <div class="inspector-badges">
@@ -2914,6 +3230,7 @@ class HoustonAtlasApp {
           <span class="inspector-age-pill">${ageText}</span>
         </div>
         <h2 class="inspector-title" id="inspector-property-title">${title}</h2>
+        ${akaHeroHtml}
         <p class="inspector-subtitle">${subtitle}</p>
         <div class="inspector-status-banner">
           <span class="status-dot"></span>
@@ -2950,6 +3267,7 @@ class HoustonAtlasApp {
       ${haifForumHtml}
 
       <div class="inspector-grid">
+        ${buildingNamesGridRowHtml}
         <div class="inspector-cell">
           <span class="cell-label">HCAD Account #</span>
           <span class="cell-value mono">
@@ -3869,12 +4187,8 @@ class HoustonAtlasApp {
         props.curated_override ||
         (props.source && String(props.source).includes("Curated"))
     );
-    const title =
-      props.landmark_name ||
-      props.name ||
-      props.building_name ||
-      props.address ||
-      "Historic Property";
+    const nameInfo = this._resolveBuildingNameAndAliases(props);
+    const title = nameInfo.primaryName || "Historic Property";
     const address = props.address || "Houston, TX";
     const hcadAcct = props.hcad_num ? String(props.hcad_num).trim() : "";
     const hasRealHcad = hcadAcct && !hcadAcct.startsWith("PH-") && !hcadAcct.startsWith("DEMO-");
@@ -3896,7 +4210,7 @@ class HoustonAtlasApp {
         (await resolveBuildingPhotos({
           buildingId: props.building_id || props.id || "",
           hcadNum: hcadAcct,
-          landmarkName: props.landmark_name || props.name || "",
+          landmarkName: title,
           address: props.address || "",
         })) || [];
     }
@@ -3947,6 +4261,11 @@ class HoustonAtlasApp {
           <div class="dossier-brand-col">
             <div class="dossier-org-kicker">PRESERVATION HOUSTON • THE HOUSTON BUILDING ATLAS</div>
             <h1 class="dossier-prop-title">${title}</h1>
+            ${
+              nameInfo.altNames.length > 0
+                ? `<div class="dossier-prop-aka"><strong>Also Known As:</strong> ${nameInfo.altNames.join(" • ")}</div>`
+                : ""
+            }
             <div class="dossier-prop-address">${address}${props.city ? `, ${props.city}` : ", Houston, TX"}</div>
           </div>
           <div class="dossier-year-seal" style="border-color: ${eraColor}">
