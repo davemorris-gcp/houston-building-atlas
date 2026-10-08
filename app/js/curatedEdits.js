@@ -423,19 +423,49 @@ export function applyOverrideToProperties(props, overridesMap) {
  * to the configured Google Sheet Apps Script webhook and stores a local copy.
  */
 export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
+  const footprintIssue = String(payload.footprint_issue || "").trim();
+  const footprintNotes = String(payload.footprint_notes || "").trim();
+  const rawCitation = String(payload.source_citation || "").trim();
+  const rawSourceType = String(payload.source_type || "Houston City Directory").trim();
+  const satelliteUrl = String(payload.satellite_url || "").trim();
+
+  const currentYr = Number(payload.current_year_built) || 0;
+  const suggestedYr = Number(payload.suggested_year_built) || currentYr || 0;
+
+  // Format source_type & source_citation so Footprint/Shape reports stand out clearly in the Google Sheet Pending_Submissions tab
+  const effectiveSourceType = footprintIssue
+    ? rawCitation && Number(payload.suggested_year_built) && Number(payload.suggested_year_built) !== currentYr
+      ? `${rawSourceType} + Footprint Issue (${footprintIssue})`
+      : `Footprint Issue: ${footprintIssue}`
+    : rawSourceType;
+
+  const citationParts = [];
+  if (footprintIssue || footprintNotes) {
+    citationParts.push(
+      `[FOOTPRINT / SHAPE ISSUE — ${footprintIssue || "Geometry Error"}]: ${
+        footprintNotes || "Flagged for building footprint review."
+      }`
+    );
+  }
+  if (rawCitation) {
+    citationParts.push(rawCitation);
+  }
+
   const record = {
     status: "Pending",
     submitted_at: new Date().toISOString().slice(0, 19).replace("T", " "),
     hcad_num: String(payload.hcad_num || "").trim(),
     address: String(payload.address || "").trim(),
     historic_district: String(payload.historic_district || "").trim(),
-    hcad_year_built: Number(payload.current_year_built) || 0,
-    suggested_year_built: Number(payload.suggested_year_built) || 0,
+    hcad_year_built: currentYr,
+    suggested_year_built: suggestedYr,
     bld_style: String(payload.bld_style || "").trim(),
     architect: String(payload.architect || "").trim(),
-    source_type: String(payload.source_type || "Houston City Directory").trim(),
-    source_citation: String(payload.source_citation || "").trim(),
-    source_url: String(payload.source_url || "").trim(),
+    source_type: effectiveSourceType,
+    source_citation: citationParts.join(" | "),
+    source_url: String(payload.source_url || satelliteUrl || "").trim(),
+    footprint_issue: footprintIssue,
+    footprint_notes: footprintNotes,
     photo_url: String(payload.photo_url || "").trim(),
     photo_year: payload.photo_year ? Number(payload.photo_year) || String(payload.photo_year).trim() : "",
     photo_caption: String(payload.photo_caption || "").trim(),
@@ -503,6 +533,8 @@ export function formatSuggestionsAsCsv(records) {
     "source_type",
     "source_citation",
     "source_url",
+    "footprint_issue",
+    "footprint_notes",
     "photo_url",
     "photo_year",
     "photo_caption",

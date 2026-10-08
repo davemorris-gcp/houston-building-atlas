@@ -1046,12 +1046,38 @@ class HoustonAtlasApp {
       btnCloseCorrModal.addEventListener("click", () => corrModal.classList.add("hidden"));
     }
 
+    const footprintSelectEl = document.getElementById("corr-footprint-issue");
+    const footprintNotesWrapEl = document.getElementById("corr-footprint-notes-wrap");
+    const footprintNotesEl = document.getElementById("corr-footprint-notes");
+    const footprintBoxEl = document.getElementById("corr-footprint-box");
+    if (footprintSelectEl) {
+      footprintSelectEl.addEventListener("change", () => {
+        const hasIssue = Boolean(footprintSelectEl.value);
+        if (footprintNotesWrapEl) {
+          footprintNotesWrapEl.classList.toggle("hidden", !hasIssue);
+        }
+        if (footprintBoxEl) {
+          footprintBoxEl.classList.toggle("active", hasIssue);
+        }
+        if (footprintNotesEl) {
+          footprintNotesEl.required = hasIssue;
+          if (hasIssue) {
+            setTimeout(() => footprintNotesEl.focus(), 40);
+          }
+        }
+        const sourceTypeEl = document.getElementById("corr-source-type");
+        const suggYrEl = document.getElementById("corr-suggested-year");
+        if (hasIssue && sourceTypeEl && (!suggYrEl || !suggYrEl.value)) {
+          sourceTypeEl.value = "Aerial / Satellite Imagery";
+        }
+      });
+    }
+
     if (corrForm) {
       corrForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const submitBtn = document.getElementById("btn-submit-correction");
         const feedbackEl = document.getElementById("corr-submit-feedback");
-        if (submitBtn) submitBtn.disabled = true;
 
         const payload = {
           address: document.getElementById("corr-address")?.value || "",
@@ -1062,12 +1088,41 @@ class HoustonAtlasApp {
           source_type: document.getElementById("corr-source-type")?.value || "Houston City Directory",
           architect: document.getElementById("corr-style-arch")?.value || "",
           source_citation: document.getElementById("corr-citation")?.value || "",
+          footprint_issue: document.getElementById("corr-footprint-issue")?.value || "",
+          footprint_notes: document.getElementById("corr-footprint-notes")?.value || "",
+          satellite_url: this._activeCorrectionSatelliteUrl || "",
           photo_url: document.getElementById("corr-photo-url")?.value || "",
           photo_year: document.getElementById("corr-photo-year")?.value || "",
           photo_caption: document.getElementById("corr-photo-caption")?.value || "",
           submitter_name: document.getElementById("corr-submitter-name")?.value || "",
           submitter_email: document.getElementById("corr-submitter-email")?.value || "",
         };
+
+        const hasYearChange = Boolean(String(payload.suggested_year_built).trim());
+        const hasFootprintReport = Boolean(
+          String(payload.footprint_issue).trim() || String(payload.footprint_notes).trim()
+        );
+        const hasCitation = Boolean(String(payload.source_citation).trim());
+        const hasPhoto = Boolean(String(payload.photo_url).trim());
+
+        if (!hasYearChange && !hasFootprintReport && !hasCitation && !hasPhoto) {
+          if (feedbackEl) {
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built, select a Building Footprint Shape / Orientation Issue, or provide historical notes before submitting.</strong>`;
+            feedbackEl.classList.remove("hidden");
+          }
+          return;
+        }
+
+        if (hasFootprintReport && !String(payload.footprint_notes).trim() && !hasCitation) {
+          if (feedbackEl) {
+            feedbackEl.innerHTML = `<strong>Please briefly describe the building shape or orientation error as you see it so our moderators know what to fix.</strong>`;
+            feedbackEl.classList.remove("hidden");
+          }
+          if (footprintNotesEl) footprintNotesEl.focus();
+          return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
 
         const webhookUrl =
           document.getElementById("admin-webhook-url")?.value ||
@@ -1102,7 +1157,13 @@ class HoustonAtlasApp {
           const photoNote = payload.photo_url
             ? " Your contributed photograph has also been added to the Archival Photographs timeline for this session and queued for moderation."
             : "";
-          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.address || payload.hcad_num}</strong> (Built <strong>${payload.suggested_year_built}</strong>, source: <em>${payload.source_type}</em>) has been recorded with status <code>Pending</code>. ${deliveryNote}${photoNote}`;
+          const summaryDesc = hasFootprintReport && hasYearChange
+            ? `Year Built <strong>${payload.suggested_year_built}</strong> + Footprint Report (<em>${payload.footprint_issue || "Shape/Orientation"}</em>)`
+            : hasFootprintReport
+            ? `Footprint Shape / Orientation Report (<em>${payload.footprint_issue || "Geometry Issue"}</em>)`
+            : `Built <strong>${payload.suggested_year_built || payload.current_year_built || "Updated"}</strong>, source: <em>${payload.source_type}</em>`;
+
+          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.address || payload.hcad_num}</strong> (${summaryDesc}) has been recorded with status <code>Pending</code>. ${deliveryNote}${photoNote}`;
           feedbackEl.classList.remove("hidden");
         }
       });
@@ -1344,6 +1405,13 @@ class HoustonAtlasApp {
     const photoDetailsEl = document.getElementById("corr-photo-details");
     const feedbackEl = document.getElementById("corr-submit-feedback");
 
+    const footprintSelectEl = document.getElementById("corr-footprint-issue");
+    const footprintNotesWrapEl = document.getElementById("corr-footprint-notes-wrap");
+    const footprintNotesEl = document.getElementById("corr-footprint-notes");
+    const footprintBoxEl = document.getElementById("corr-footprint-box");
+    const satLinkEl = document.getElementById("corr-satellite-check-link");
+    const sourceTypeEl = document.getElementById("corr-source-type");
+
     if (addrEl) addrEl.value = props.landmark_name || props.address || "Unknown Address";
     if (hcadEl) {
       const bldKey =
@@ -1359,6 +1427,14 @@ class HoustonAtlasApp {
     if (distEl) distEl.value = props.historic_district || "";
     if (styleEl) styleEl.value = props.architect || props.bld_style || "";
     if (citeEl) citeEl.value = props.source_citation || "";
+    if (sourceTypeEl) sourceTypeEl.value = "Houston City Directory";
+    if (footprintSelectEl) footprintSelectEl.value = "";
+    if (footprintNotesEl) {
+      footprintNotesEl.value = "";
+      footprintNotesEl.required = false;
+    }
+    if (footprintNotesWrapEl) footprintNotesWrapEl.classList.add("hidden");
+    if (footprintBoxEl) footprintBoxEl.classList.remove("active");
     if (photoUrlEl) photoUrlEl.value = "";
     if (photoYearEl) photoYearEl.value = "";
     if (photoCapEl) photoCapEl.value = "";
@@ -1366,6 +1442,31 @@ class HoustonAtlasApp {
     if (feedbackEl) {
       feedbackEl.classList.add("hidden");
       feedbackEl.innerHTML = "";
+    }
+
+    // Compute exact building centroid for Zoom-20 Satellite Roof Verification link
+    let satLat = Number(props.lat);
+    let satLng = Number(props.lng || props.lon);
+    if ((!Number.isFinite(satLat) || !Number.isFinite(satLng)) && this.mapController?.selectedFeatureGeometry) {
+      const [gLng, gLat] = this._computeGeometryCentroid(this.mapController.selectedFeatureGeometry);
+      if (Number.isFinite(gLat) && Number.isFinite(gLng)) {
+        satLat = gLat;
+        satLng = gLng;
+      }
+    }
+    if ((!Number.isFinite(satLat) || !Number.isFinite(satLng)) && this.mapController?.map) {
+      const c = this.mapController.map.getCenter();
+      satLat = c.lat;
+      satLng = c.lng;
+    }
+    if (Number.isFinite(satLat) && Number.isFinite(satLng)) {
+      const satUrl = `https://www.google.com/maps/@?api=1&map_action=map&center=${satLat.toFixed(
+        6
+      )},${satLng.toFixed(6)}&zoom=20&basemap=satellite`;
+      this._activeCorrectionSatelliteUrl = satUrl;
+      if (satLinkEl) satLinkEl.href = satUrl;
+    } else {
+      this._activeCorrectionSatelliteUrl = "";
     }
 
     const syncStatus = this.mapController?.sheetSyncStatus;
@@ -2334,7 +2435,7 @@ class HoustonAtlasApp {
 
       <div class="inspector-actions">
         <button type="button" class="inspector-btn suggest-edit" id="btn-suggest-correction">
-          &#9998; Suggest a Date / Data Correction
+          &#9998; Suggest a Date / Shape / Data Correction
         </button>
         ${
           hcadNum
