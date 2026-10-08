@@ -19,7 +19,7 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008i";
+} from "./curatedEdits.js?v=20261008j";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261007f";
 
 const BASEMAP_TILES = {
@@ -2657,4 +2657,87 @@ export class AtlasMapController {
       viewport: vp,
     });
   }
+
+  getRenderedBuildingCandidates(limit = 600) {
+    const out = [];
+    const seenKeys = new Set();
+
+    const extractCentroid = (geom) => {
+      if (!geom || !geom.coordinates) return null;
+      if (geom.type === "Point" && Array.isArray(geom.coordinates)) {
+        return [Number(geom.coordinates[0]), Number(geom.coordinates[1])];
+      }
+      const ring =
+        geom.type === "Polygon"
+          ? geom.coordinates[0]
+          : geom.type === "MultiPolygon" && geom.coordinates[0]
+          ? geom.coordinates[0][0]
+          : null;
+      if (!Array.isArray(ring) || !ring.length) return null;
+      let sx = 0;
+      let sy = 0;
+      let n = 0;
+      for (const pt of ring) {
+        if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+          sx += pt[0];
+          sy += pt[1];
+          n += 1;
+        }
+      }
+      return n > 0 ? [sx / n, sy / n] : null;
+    };
+
+    if (!this.useCanvasFallback && this.map) {
+      const queryLayers = [
+        "curated-overrides-fill",
+        "curated-overrides-extrusion",
+        ...(this.buildingFillLayerIds || []),
+        ...(this.buildingExtrusionLayerIds || []),
+      ].filter((id) => this.map.getLayer(id));
+
+      if (queryLayers.length > 0) {
+        const rendered = this.map.queryRenderedFeatures({ layers: queryLayers });
+        for (const feat of rendered) {
+          if (out.length >= limit) break;
+          const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
+          if (p.suppress_only) continue;
+          const key = p.id || p.building_id || p.hcad_num || "";
+          if (key) {
+            if (seenKeys.has(key)) continue;
+            seenKeys.add(key);
+          }
+          const pt = extractCentroid(feat.geometry);
+          if (!pt) continue;
+          out.push({
+            props: p,
+            lon: pt[0],
+            lat: pt[1],
+            inViewport: true,
+          });
+        }
+      }
+    }
+
+    for (const feat of this.buildingsData || []) {
+      if (out.length >= limit * 2) break;
+      const p = feat.properties || {};
+      if (p.suppress_only) continue;
+      const key = p.id || p.building_id || p.hcad_num || "";
+      if (key) {
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+      }
+      const pt = extractCentroid(feat.geometry);
+      if (!pt) continue;
+      out.push({
+        props: p,
+        lon: pt[0],
+        lat: pt[1],
+        inViewport: false,
+      });
+    }
+
+    return out;
+  }
 }
+
