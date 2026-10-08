@@ -414,6 +414,22 @@ export function applyOverrideToProperties(props, overridesMap) {
       ov.good_brick_summary ||
       props.good_brick_summary ||
       "",
+    landmark_report_url:
+      ov.landmark_report_url ||
+      props.landmark_report_url ||
+      props.report_pdf_url ||
+      "",
+    landmark_code:
+      ov.landmark_code ||
+      props.landmark_code ||
+      props.plm_num ||
+      props.lm_num ||
+      "",
+    landmark_summary:
+      ov.landmark_summary ||
+      props.landmark_summary ||
+      props.pdf_summary ||
+      "",
   };
 }
 
