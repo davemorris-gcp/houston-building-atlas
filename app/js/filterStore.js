@@ -111,15 +111,14 @@ export const HISTORIC_WARD_ERAS = [1839, 1866, 1896, 1903, 1920];
 
 /**
  * Resolve the active Historic Ward boundary era (1839, 1866, 1896, 1903, or 1920).
- * When `syncAnnexationToTime` or time-lapse playback is active, steps through the
- * historical ward charters in lockstep with the timeline.
+ * When time-lapse playback (`isPlaying`) is active, steps through the
+ * historical ward charters in lockstep with the timeline; otherwise uses `state.wardEra`.
  */
 export function resolveActiveWardEra(state) {
   if (!state) return 1920;
   const decStr = String(state.selectedDecade || "all");
   const maxY = Number(state.maxYear) || 2026;
-  const syncActive = Boolean(state.syncAnnexationToTime) || Boolean(state.isPlaying);
-  if (syncActive) {
+  if (Boolean(state.isPlaying)) {
     let cutoff = maxY;
     if (decStr !== "all" && decStr !== "unknown") {
       const decInt = Number(decStr);
@@ -475,7 +474,8 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   if (state.maxYear !== 2026) params.set("maxY", String(state.maxYear));
   if (state.selectedDecade !== "all") params.set("dec", String(state.selectedDecade));
   if (!state.showUnknownYears) params.set("unk", "0");
-  if (state.syncAnnexationToTime) params.set("syncAnnex", "1");
+  if (state.layers?.annexations || state.syncAnnexationToTime) params.set("syncAnnex", "1");
+  if (state.showAnnexationSpokes === false) params.set("spokes", "0");
   if (state.singleLayerMode) params.set("1x", "1");
   if (state.layers?.historicMap && Number(state.historicMapOpacity) !== 75) {
     params.set("histOpacity", String(Math.round(Number(state.historicMapOpacity) || 75)));
@@ -647,6 +647,13 @@ export function parseHashToState(hashString = "", searchString = "") {
   }
   if (mergedParams.get("syncAnnex") === "1" || mergedParams.get("syncAnnex") === "true") {
     patch.syncAnnexationToTime = true;
+  } else if (mergedParams.get("syncAnnex") === "0" || mergedParams.get("syncAnnex") === "false") {
+    patch.syncAnnexationToTime = false;
+  }
+  if (mergedParams.get("spokes") === "0" || mergedParams.get("spokes") === "false") {
+    patch.showAnnexationSpokes = false;
+  } else if (mergedParams.get("spokes") === "1" || mergedParams.get("spokes") === "true") {
+    patch.showAnnexationSpokes = true;
   }
   if (mergedParams.get("1x") === "1" || mergedParams.get("singleLayer") === "1") {
     patch.singleLayerMode = true;
@@ -711,6 +718,19 @@ export function parseHashToState(hashString = "", searchString = "") {
         patch.layers[canonicalKey] = enabled;
       }
     }
+  }
+
+  // Keep syncAnnexationToTime and layers.annexations in lockstep when parsed from URL
+  if (typeof patch.syncAnnexationToTime === "boolean") {
+    if (!patch.layers) {
+      patch.layers = { ...DEFAULT_FILTER_STATE.layers };
+    }
+    if (patch.syncAnnexationToTime) {
+      patch.layers.annexations = true;
+    }
+  }
+  if (patch.layers && typeof patch.layers.annexations === "boolean") {
+    patch.syncAnnexationToTime = patch.layers.annexations;
   }
 
   // Optional Selected Property (`hcad` or `id` or `selected`)
@@ -827,13 +847,30 @@ export function computeStepTimeState(state, direction) {
  * Create a reactive FilterStore instance.
  */
 export function createFilterStore(initialOverrides = {}) {
+  const initialLayers = {
+    ...DEFAULT_FILTER_STATE.layers,
+    ...(initialOverrides.layers || {}),
+  };
+  let initialSyncAnnex = Boolean(initialLayers.annexations);
+  if (typeof initialOverrides.syncAnnexationToTime === "boolean") {
+    if (
+      initialOverrides.layers &&
+      typeof initialOverrides.layers.annexations === "boolean"
+    ) {
+      initialSyncAnnex = initialOverrides.layers.annexations;
+    } else {
+      initialSyncAnnex = initialOverrides.syncAnnexationToTime;
+      initialLayers.annexations = initialOverrides.syncAnnexationToTime;
+    }
+  } else {
+    initialSyncAnnex = Boolean(initialLayers.annexations);
+  }
+
   let state = {
     ...DEFAULT_FILTER_STATE,
     ...initialOverrides,
-    layers: {
-      ...DEFAULT_FILTER_STATE.layers,
-      ...(initialOverrides.layers || {}),
-    },
+    syncAnnexationToTime: initialSyncAnnex,
+    layers: initialLayers,
   };
   const listeners = new Set();
 
@@ -842,7 +879,18 @@ export function createFilterStore(initialOverrides = {}) {
   }
 
   function setState(partial) {
-    const nextLayers = partial.layers ? { ...state.layers, ...partial.layers } : state.layers;
+    let nextLayers = partial.layers ? { ...state.layers, ...partial.layers } : { ...state.layers };
+    let nextSyncAnnex = state.syncAnnexationToTime;
+
+    if (partial.layers && typeof partial.layers.annexations === "boolean") {
+      nextSyncAnnex = partial.layers.annexations;
+    } else if (typeof partial.syncAnnexationToTime === "boolean") {
+      nextSyncAnnex = partial.syncAnnexationToTime;
+      nextLayers.annexations = partial.syncAnnexationToTime;
+    } else {
+      nextSyncAnnex = Boolean(nextLayers.annexations);
+    }
+
     const nextLastActive =
       partial.renderMode && partial.renderMode !== "none"
         ? partial.renderMode
@@ -850,6 +898,7 @@ export function createFilterStore(initialOverrides = {}) {
     state = {
       ...state,
       ...partial,
+      syncAnnexationToTime: nextSyncAnnex,
       lastActiveRenderMode: nextLastActive,
       layers: nextLayers,
     };
