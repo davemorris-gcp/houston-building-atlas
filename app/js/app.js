@@ -192,7 +192,7 @@ class HoustonAtlasApp {
         fetch("public/data/search_index.json?v=20261009k"),
         fetch("public/data/stats_summary.json?v=20261009k"),
         fetch("public/data/haif_index.json?v=20261009k").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261009k").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261009q").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
