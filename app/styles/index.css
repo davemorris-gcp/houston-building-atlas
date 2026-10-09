@@ -5476,4 +5476,428 @@ body {
   gap: 8px;
 }
 
+/* ==========================================================================
+   Polygon Isolation Mode & Vector SVG / T-Shirt / Coaster Export Studio
+   ========================================================================== */
+.action-pill.export-studio-pill {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.16), rgba(149, 201, 89, 0.18));
+  border-color: rgba(251, 191, 36, 0.55);
+  color: #FEF3C7;
+  font-weight: 600;
+}
 
+.action-pill.export-studio-pill:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.28), rgba(149, 201, 89, 0.3));
+  border-color: #FBBF24;
+  color: #ffffff;
+}
+
+.isolation-active-banner {
+  position: absolute;
+  top: 114px;
+  left: 396px;
+  right: 420px;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(15, 20, 24, 0.94);
+  border: 1.5px solid rgba(251, 191, 36, 0.65);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(251, 191, 36, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.atlas-shell.sidebar-collapsed .isolation-active-banner {
+  left: 16px;
+}
+
+.inspector-drawer.hidden ~ .isolation-active-banner {
+  right: 16px;
+}
+
+.isolation-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
+.isolation-banner-badge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  color: #FDE68A;
+}
+
+.isolation-banner-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #F8FAFC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.isolation-banner-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.isolation-mode-pills {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.iso-mode-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.iso-mode-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.iso-mode-btn.active {
+  background: rgba(251, 191, 36, 0.24);
+  color: #FEF3C7;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.5);
+}
+
+.iso-action-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(149, 201, 89, 0.45);
+  background: rgba(149, 201, 89, 0.16);
+  color: #E9F6D8;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.iso-action-btn:hover {
+  background: rgba(149, 201, 89, 0.3);
+  color: #ffffff;
+}
+
+.iso-action-btn.clear {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(239, 68, 68, 0.15);
+  color: #FCA5A5;
+}
+
+.iso-action-btn.clear:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+}
+
+/* Inspector Isolation & Print/Merch Card */
+.inspector-isolation-card {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(28, 25, 16, 0.92), rgba(16, 22, 20, 0.95));
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inspector-isolation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inspector-isolation-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #FDE68A;
+}
+
+.inspector-isolation-desc {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.inspector-isolation-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.inspector-iso-pill {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 5.5px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-cream);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.14s ease;
+}
+
+.inspector-iso-pill:hover {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(251, 191, 36, 0.14);
+}
+
+.inspector-iso-pill.active {
+  background: rgba(251, 191, 36, 0.25);
+  border-color: #FBBF24;
+  color: #FEF3C7;
+}
+
+.inspector-isolation-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.inline-isolate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.14);
+  color: #FDE68A;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.inline-isolate-btn:hover {
+  background: rgba(251, 191, 36, 0.28);
+  color: #ffffff;
+}
+
+/* Vector SVG, T-Shirt, Coaster & Print Export Studio Modal */
+.modal-card.export-studio-modal-card {
+  width: min(1080px, 96vw);
+  max-width: min(1080px, 96vw);
+  max-height: 92dvh;
+}
+
+.export-studio-body {
+  padding: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(92dvh - 68px);
+}
+
+.export-studio-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.export-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  min-width: 0;
+}
+
+.export-preview-stage {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background: #0B0E11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.65), 0 12px 30px rgba(0, 0, 0, 0.48);
+  padding: 10px;
+}
+
+.export-preview-stage.transparent-checker {
+  background-color: #1a1e24;
+  background-image:
+    linear-gradient(45deg, #252a32 25%, transparent 25%),
+    linear-gradient(-45deg, #252a32 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #252a32 75%),
+    linear-gradient(-45deg, transparent 75%, #252a32 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+.export-preview-stage svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  border-radius: 6px;
+}
+
+.export-preview-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.export-controls-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.export-control-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.export-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ph-green-light);
+}
+
+.export-area-select {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.export-preset-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.export-pill {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-cream);
+  cursor: pointer;
+  transition: all 0.14s ease;
+  text-align: center;
+}
+
+.export-pill:hover {
+  border-color: rgba(149, 201, 89, 0.55);
+  background: rgba(149, 201, 89, 0.12);
+}
+
+.export-pill.active {
+  background: rgba(149, 201, 89, 0.24);
+  border-color: var(--ph-green);
+  color: #F4F9EE;
+  box-shadow: 0 0 0 1px rgba(149, 201, 89, 0.35);
+}
+
+.export-options-box {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid var(--border-subtle);
+}
+
+.export-check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.export-download-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.export-dl-btn {
+  min-height: 38px;
+  font-size: 12px;
+  justify-content: center;
+}
+
+.export-dl-png-btn {
+  background: linear-gradient(135deg, #0284C7 0%, #38BDF8 100%);
+  border-color: #7DD3FC;
+  color: #ffffff;
+}
+
+.export-dl-png-btn:hover {
+  filter: brightness(1.08);
+}
+
+@media (max-width: 960px) {
+  .isolation-active-banner {
+    left: 8px;
+    right: 8px;
+    top: calc(var(--topbar-offset, 174px) + 34px);
+  }
+  .export-studio-grid {
+    grid-template-columns: 1fr;
+  }
+  .export-preview-col {
+    position: static;
+  }
+  .export-check-grid,
+  .export-download-actions {
+    grid-template-columns: 1fr;
+  }
+}

@@ -23,6 +23,7 @@ export const DEFAULT_FILTER_STATE = {
   historicMapOpacity: 75, // 15..100 opacity percentage for the Historic Topo Map overlay
   wardEra: 1903, // 1839 | 1866 | 1896 | 1903 (1903-1905 Final Aldermanic Charter)
   showAnnexationSpokes: true, // include 1963 10-ft highway ETJ spokes & 2000s-2010s MUD SPA commercial strips
+  isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
   layers: {
     goodBrickAwards: true,
     landmarks: true,
@@ -507,6 +508,15 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     params.set("wardEra", String(Number(state.wardEra)));
   }
 
+  if (state.isolatedBoundary && (state.isolatedBoundary.id || state.isolatedBoundary.name)) {
+    const isoLayer = state.isolatedBoundary.layerKey || "neighborhoods";
+    const isoTarget = state.isolatedBoundary.id || state.isolatedBoundary.name;
+    params.set("isolate", `${isoLayer}:${isoTarget}`);
+    if (state.isolatedBoundary.mode && state.isolatedBoundary.mode !== "contents") {
+      params.set("isoMode", state.isolatedBoundary.mode);
+    }
+  }
+
   if (selectedHcad) {
     params.set("hcad", String(selectedHcad).trim());
   } else if (effectiveId) {
@@ -690,6 +700,31 @@ export function parseHashToState(hashString = "", searchString = "") {
     const parsedEra = parseInt(rawWardEra, 10);
     if (HISTORIC_WARD_ERAS.includes(parsedEra)) {
       patch.wardEra = parsedEra;
+    }
+  }
+
+  // Isolated Boundary (`isolate` & `isoMode`)
+  const rawIsolate = (mergedParams.get("isolate") || "").trim();
+  if (rawIsolate) {
+    const colonIdx = rawIsolate.indexOf(":");
+    let isoLayer = "";
+    let isoTarget = rawIsolate;
+    if (colonIdx > 0) {
+      isoLayer = rawIsolate.slice(0, colonIdx).trim();
+      isoTarget = rawIsolate.slice(colonIdx + 1).trim();
+    }
+    const rawIsoMode = (mergedParams.get("isoMode") || "contents").trim().toLowerCase();
+    const validIsoMode =
+      rawIsoMode === "footprints_only" || rawIsoMode === "border_only"
+        ? rawIsoMode
+        : "contents";
+    if (isoTarget) {
+      patch.isolatedBoundary = {
+        layerKey: isoLayer || "neighborhoods",
+        id: isoTarget,
+        name: isoTarget,
+        mode: validIsoMode,
+      };
     }
   }
 

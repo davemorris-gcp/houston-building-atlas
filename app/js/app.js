@@ -16,8 +16,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261009m";
-import { AtlasMapController } from "./mapController.js?v=20261009m";
+} from "./filterStore.js?v=20261009o";
+import { AtlasMapController } from "./mapController.js?v=20261009o";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -62,6 +62,21 @@ class HoustonAtlasApp {
     this._activeTour = null;
     this._activeTourStopIndex = -1;
     this._preTourSnapshot = null;
+    this._exportStudioState = {
+      targetSpec: null, // null = current isolated/selected or viewport
+      composition: "figure_ground", // 'figure_ground' | 'footprints_only' | 'border_only' | 'era_poster'
+      theme: "stencil_white", // 'stencil_white' | 'stencil_black' | 'ph_emerald' | 'blueprint' | 'terracotta' | 'archival_era'
+      format: "square", // 'square' | 'round_coaster' | 'poster'
+      transparentBg: false,
+      fillBuildings: true,
+      showLandmarks: true,
+      showCaption: true,
+      customTitle: "",
+      customSubtitle: "",
+      borderWeight: 4,
+      lastExtraction: null,
+      lastSvgMarkup: "",
+    };
 
     this.mapController = new AtlasMapController({
       containerId: "map-canvas",
@@ -76,6 +91,7 @@ class HoustonAtlasApp {
       },
       onOverlapStackChange: (stack, activeIdx) =>
         this._renderMapOverlapBar(stack, activeIdx),
+      onIsolationChange: (iso) => this._renderIsolationBanner(iso),
     });
   }
 
@@ -1648,6 +1664,7 @@ class HoustonAtlasApp {
     }
 
     this._renderSharePresetsGrid();
+    this._bindExportStudioControls();
 
     // About / Methodology Modal
     const btnOpenModal = document.getElementById("btn-open-about-modal");
@@ -4836,6 +4853,70 @@ class HoustonAtlasApp {
         : "";
 
     const overlapStackHtml = this._buildInspectorOverlapStackHtml();
+    const curIso = this.mapController ? this.mapController.getIsolatedBoundary() : null;
+    const isCurrentlyIsolated = Boolean(
+      curIso &&
+        ((rawProps.id && curIso.id === rawProps.id) ||
+          curIso.name.toLowerCase() === String(name || "").trim().toLowerCase())
+    );
+    const activeIsoMode = isCurrentlyIsolated ? curIso.mode : "contents";
+
+    const isolationCardHtml = `
+      <div class="inspector-isolation-card">
+        <div class="inspector-isolation-header">
+          <span class="inspector-isolation-kicker">&#127919; Isolate Area &amp; Merch / Print Export</span>
+          <span class="mono" style="font-size:10px;color:${isCurrentlyIsolated ? "#FDE68A" : "var(--text-secondary)"};">
+            ${isCurrentlyIsolated ? "ACTIVE ISOLATION" : "Figure-Ground &amp; SVG"}
+          </span>
+        </div>
+        <p class="inspector-isolation-desc">
+          Solo <strong>${name}</strong> on the map to hide all outside buildings and overlays, or open the Vector Studio to save a T-shirt, coaster, or print design.
+        </p>
+        <div class="inspector-isolation-modes" role="group" aria-label="Isolation Display Mode">
+          <button
+            type="button"
+            class="inspector-iso-pill ${isCurrentlyIsolated && activeIsoMode === "contents" ? "active" : ""}"
+            data-inspector-iso-mode="contents"
+            title="Show the boundary border plus all building footprints and markers inside"
+          >
+            Border + Buildings
+          </button>
+          <button
+            type="button"
+            class="inspector-iso-pill ${isCurrentlyIsolated && activeIsoMode === "footprints_only" ? "active" : ""}"
+            data-inspector-iso-mode="footprints_only"
+            title="Show only the collection of building footprints inside this polygon"
+          >
+            Buildings Only
+          </button>
+          <button
+            type="button"
+            class="inspector-iso-pill ${isCurrentlyIsolated && activeIsoMode === "border_only" ? "active" : ""}"
+            data-inspector-iso-mode="border_only"
+            title="Show only the distinctive polygon border silhouette"
+          >
+            Border Silhouette
+          </button>
+        </div>
+        <div class="inspector-isolation-actions">
+          <button
+            type="button"
+            class="inspector-btn ${isCurrentlyIsolated ? "secondary" : "primary"}"
+            id="btn-inspector-toggle-isolate"
+          >
+            ${isCurrentlyIsolated ? "&#10005; Exit Isolation Mode" : "&#127919; Isolate This Area"}
+          </button>
+          <button
+            type="button"
+            class="inspector-btn primary"
+            id="btn-inspector-open-export-studio"
+            style="background:linear-gradient(135deg,#B45309,#D97706);border-color:#FBBF24;color:#FFFBEB;"
+          >
+            &#127912; Vector / Shirt Studio
+          </button>
+        </div>
+      </div>
+    `;
 
     content.innerHTML = `
       ${overlapStackHtml}
@@ -4856,6 +4937,8 @@ class HoustonAtlasApp {
           <span>${rawProps.source || "City of Houston &amp; HCAD Boundary Index"}</span>
         </div>
       </div>
+
+      ${isolationCardHtml}
 
       ${boundaryDeedCardHtml}
 
@@ -5051,6 +5134,52 @@ class HoustonAtlasApp {
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, rawProps);
+
+    const boundarySpec = {
+      layerKey: overlayLayer || "neighborhoods",
+      id: rawProps.id || name,
+      name,
+    };
+
+    content.querySelectorAll("[data-inspector-iso-mode]").forEach((modeBtn) => {
+      modeBtn.addEventListener("click", () => {
+        const mode = modeBtn.getAttribute("data-inspector-iso-mode") || "contents";
+        if (this.mapController) {
+          this.mapController.setIsolatedBoundary(
+            { ...boundarySpec, mode },
+            { fitBounds: !isCurrentlyIsolated, openInspector: false }
+          );
+          this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
+        }
+      });
+    });
+
+    const btnToggleIsolate = document.getElementById("btn-inspector-toggle-isolate");
+    if (btnToggleIsolate) {
+      btnToggleIsolate.addEventListener("click", () => {
+        if (!this.mapController) return;
+        if (isCurrentlyIsolated) {
+          this.mapController.clearIsolatedBoundary();
+        } else {
+          this.mapController.setIsolatedBoundary(
+            { ...boundarySpec, mode: "contents" },
+            { fitBounds: true, openInspector: false }
+          );
+        }
+        this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
+      });
+    }
+
+    const btnOpenExport = document.getElementById("btn-inspector-open-export-studio");
+    if (btnOpenExport) {
+      btnOpenExport.addEventListener("click", () => {
+        this.openExportStudioModal({
+          layerKey: boundarySpec.layerKey,
+          id: boundarySpec.id,
+          name: boundarySpec.name,
+        });
+      });
+    }
 
     content.querySelectorAll("[data-filter-chip]").forEach((chipBtn) => {
       chipBtn.addEventListener("click", (e) => {
@@ -5718,10 +5847,11 @@ class HoustonAtlasApp {
         </div>
         <div class="inspector-cell">
           <span class="cell-label">Historic District</span>
-          <span class="cell-value">
+          <span class="cell-value inspector-chip-group">
             ${
               isRealDistrict
-                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${distVal}" data-filter-label="District: ${distVal}" title="Click to search all structures in ${distVal}">${distVal} &#128269;</button>`
+                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${distVal.replace(/"/g, "&quot;")}" data-filter-label="District: ${distVal.replace(/"/g, "&quot;")}" title="Click to search all structures in ${distVal.replace(/"/g, "&quot;")}">${distVal} &#128269;</button>
+                   <button type="button" class="inline-isolate-btn" data-isolate-boundary="${distVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_districts" title="Isolate ${distVal.replace(/"/g, "&quot;")} and its buildings on the map">&#127919; Isolate</button>`
                 : distVal || "Outside City District"
             }
           </span>
@@ -5732,7 +5862,8 @@ class HoustonAtlasApp {
             ${
               nbhdVal
                 ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${nbhdVal.replace(/"/g, "&quot;")}" data-filter-label="Neighborhood: ${nbhdVal.replace(/"/g, "&quot;")}" title="Click to find all structures in ${nbhdVal.replace(/"/g, "&quot;")}">${nbhdVal} &#128269;</button>
-                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${nbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="neighborhoods" title="Outline ${nbhdVal.replace(/"/g, "&quot;")} boundary on the map">Outline</button>`
+                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${nbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="neighborhoods" title="Outline ${nbhdVal.replace(/"/g, "&quot;")} boundary on the map">Outline</button>
+                   <button type="button" class="inline-isolate-btn" data-isolate-boundary="${nbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="neighborhoods" title="Isolate ${nbhdVal.replace(/"/g, "&quot;")} and its buildings on the map">&#127919; Isolate</button>`
                 : "Unincorporated / Outside Boundary"
             }
           </span>
@@ -5743,7 +5874,8 @@ class HoustonAtlasApp {
             ${
               superNbhdVal
                 ? `<button type="button" class="inspector-filter-chip category-chip" data-filter-chip="${superNbhdVal.replace(/"/g, "&quot;")}" data-filter-label="Super Neighborhood: ${superNbhdVal.replace(/"/g, "&quot;")}" title="Click to find structures in Super Neighborhood: ${superNbhdVal.replace(/"/g, "&quot;")}">${superNbhdVal} &#128269;</button>
-                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${superNbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="super_neighborhoods" title="Outline ${superNbhdVal.replace(/"/g, "&quot;")} Super Neighborhood boundary on the map">Outline</button>`
+                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${superNbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="super_neighborhoods" title="Outline ${superNbhdVal.replace(/"/g, "&quot;")} Super Neighborhood boundary on the map">Outline</button>
+                   <button type="button" class="inline-isolate-btn" data-isolate-boundary="${superNbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="super_neighborhoods" title="Isolate ${superNbhdVal.replace(/"/g, "&quot;")} Super Neighborhood on the map">&#127919; Isolate</button>`
                 : "Outside COH Super Neighborhood"
             }
           </span>
@@ -5770,6 +5902,7 @@ class HoustonAtlasApp {
                 <span class="cell-value inspector-chip-group">
                   <button type="button" class="inspector-filter-chip" data-filter-chip="${wardVal.replace(/"/g, "&quot;")}" data-filter-label="Historic Ward: ${wardVal.replace(/"/g, "&quot;")}" title="Click to search structures in ${wardVal.replace(/"/g, "&quot;")}">1903–05 ${wardVal} &#128269;</button>
                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Outline 1903–1905 ${wardVal.replace(/"/g, "&quot;")} boundary on the map">Outline Ward</button>
+                  <button type="button" class="inline-isolate-btn" data-isolate-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Isolate 1903–1905 ${wardVal.replace(/"/g, "&quot;")} on the map">&#127919; Isolate</button>
                 </span>
               </div>`
             : ""
@@ -5822,7 +5955,8 @@ class HoustonAtlasApp {
             ${
               subVal
                 ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${subVal.replace(/"/g, "&quot;")}" data-filter-label="Subdivision: ${subVal.replace(/"/g, "&quot;")}" title="Click to search structures in platted subdivision '${subVal.replace(/"/g, "&quot;")}'">${subVal} &#128269;</button>
-                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${subVal.replace(/"/g, "&quot;")}" data-boundary-layer="platted_subdivisions" title="Outline HCAD platted subdivision boundary for '${subVal.replace(/"/g, "&quot;")}' on the map">Outline Plat</button>`
+                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${subVal.replace(/"/g, "&quot;")}" data-boundary-layer="platted_subdivisions" title="Outline HCAD platted subdivision boundary for '${subVal.replace(/"/g, "&quot;")}' on the map">Outline Plat</button>
+                   <button type="button" class="inline-isolate-btn" data-isolate-boundary="${subVal.replace(/"/g, "&quot;")}" data-boundary-layer="platted_subdivisions" title="Isolate HCAD platted subdivision '${subVal.replace(/"/g, "&quot;")}' and its buildings on the map">&#127919; Isolate Plat</button>`
                 : "Not listed"
             }
           </span>
@@ -5966,6 +6100,21 @@ class HoustonAtlasApp {
                 ? "Outline Plat"
                 : "Outline";
           }, 2200);
+        }
+      });
+    });
+
+    content.querySelectorAll("[data-isolate-boundary]").forEach((isoBtn) => {
+      isoBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const bName = isoBtn.getAttribute("data-isolate-boundary") || "";
+        const bLayer = isoBtn.getAttribute("data-boundary-layer") || "";
+        if (bName && this.mapController) {
+          this.mapController.setIsolatedBoundary(
+            { layerKey: bLayer, id: bName, name: bName, mode: "contents" },
+            { fitBounds: true, openInspector: false }
+          );
         }
       });
     });
@@ -7116,6 +7265,13 @@ class HoustonAtlasApp {
       if (state.extrude3D) {
         pills.push(`<span class="share-pill-tag">3D Extrusion: ON</span>`);
       }
+      if (state.isolatedBoundary && state.isolatedBoundary.name) {
+        pills.push(
+          `<span class="share-pill-tag accent">&#127919; Isolated: ${state.isolatedBoundary.name} (${
+            state.isolatedBoundary.mode || "contents"
+          })</span>`
+        );
+      }
       if (includeSelection && selProps) {
         pills.push(
           `<span class="share-pill-tag accent">Inspecting: ${
@@ -7126,6 +7282,896 @@ class HoustonAtlasApp {
 
       pillsContainer.innerHTML = pills.join("");
     }
+  }
+
+  _renderIsolationBanner(iso) {
+    const banner = document.getElementById("isolation-active-banner");
+    if (!banner) return;
+    if (!iso || !iso.name) {
+      banner.classList.add("hidden");
+      banner.innerHTML = "";
+      return;
+    }
+
+    const mode = iso.mode || "contents";
+    const curBase = this.filterStore.getState().basemap;
+    const isSolid = curBase === "solid_dark" || curBase === "solid_light";
+
+    banner.innerHTML = `
+      <div class="isolation-banner-info">
+        <span class="isolation-banner-badge">&#127919; Isolated Area</span>
+        <span class="isolation-banner-title">${iso.name}</span>
+      </div>
+      <div class="isolation-banner-controls">
+        <div class="isolation-mode-pills" role="group" aria-label="Isolation Display Mode">
+          <button
+            type="button"
+            class="iso-mode-btn ${mode === "contents" ? "active" : ""}"
+            data-banner-iso-mode="contents"
+            title="Show the boundary border plus all building footprints and markers inside"
+          >
+            Border + Buildings
+          </button>
+          <button
+            type="button"
+            class="iso-mode-btn ${mode === "footprints_only" ? "active" : ""}"
+            data-banner-iso-mode="footprints_only"
+            title="Show only the building footprints inside this polygon"
+          >
+            Buildings Only
+          </button>
+          <button
+            type="button"
+            class="iso-mode-btn ${mode === "border_only" ? "active" : ""}"
+            data-banner-iso-mode="border_only"
+            title="Show only the polygon border silhouette"
+          >
+            Border Only
+          </button>
+        </div>
+        <button
+          type="button"
+          class="iso-action-btn"
+          id="btn-banner-toggle-solid"
+          title="Toggle between clean solid background (no map underlay) and map tiles"
+        >
+          ${isSolid ? "&#9635; Map Underlay" : "&#9632; Solid Backdrop"}
+        </button>
+        <button
+          type="button"
+          class="iso-action-btn"
+          id="btn-banner-open-export"
+          title="Open Vector SVG, Print, T-Shirt &amp; Coaster Studio for this isolated area"
+        >
+          &#127912; Vector / Shirt Studio
+        </button>
+        <button
+          type="button"
+          class="iso-action-btn clear"
+          id="btn-banner-exit-isolation"
+          title="Exit Polygon Isolation Mode and show the full Houston map"
+        >
+          &#10005; Exit
+        </button>
+      </div>
+    `;
+    banner.classList.remove("hidden");
+
+    banner.querySelectorAll("[data-banner-iso-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nextMode = btn.getAttribute("data-banner-iso-mode") || "contents";
+        if (this.mapController) {
+          this.mapController.setIsolationMode(nextMode);
+        }
+      });
+    });
+
+    const btnSolid = document.getElementById("btn-banner-toggle-solid");
+    if (btnSolid) {
+      btnSolid.addEventListener("click", () => {
+        const st = this.filterStore.getState();
+        if (st.basemap === "solid_dark" || st.basemap === "solid_light") {
+          this.filterStore.setState({ basemap: "dark_archival" });
+        } else {
+          this.filterStore.setState({
+            basemap: st.basemap === "warm_parchment" ? "solid_light" : "solid_dark",
+          });
+        }
+        this._renderIsolationBanner(this.mapController.getIsolatedBoundary());
+      });
+    }
+
+    const btnExport = document.getElementById("btn-banner-open-export");
+    if (btnExport) {
+      btnExport.addEventListener("click", () => {
+        this.openExportStudioModal({
+          layerKey: iso.layerKey,
+          id: iso.id,
+          name: iso.name,
+        });
+      });
+    }
+
+    const btnExit = document.getElementById("btn-banner-exit-isolation");
+    if (btnExit) {
+      btnExit.addEventListener("click", () => {
+        if (this.mapController) {
+          this.mapController.clearIsolatedBoundary();
+        }
+      });
+    }
+  }
+
+  _bindExportStudioControls() {
+    const modal = document.getElementById("export-studio-modal");
+    const btnOpenTop = document.getElementById("btn-open-export-studio");
+    const btnClose = document.getElementById("btn-close-export-studio");
+
+    if (btnOpenTop) {
+      btnOpenTop.addEventListener("click", () => this.openExportStudioModal());
+    }
+    if (btnClose && modal) {
+      btnClose.addEventListener("click", () => modal.classList.add("hidden"));
+    }
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) modal.classList.add("hidden");
+      });
+    }
+
+    const areaSelect = document.getElementById("select-export-target-area");
+    if (areaSelect) {
+      areaSelect.addEventListener("change", () => {
+        const val = areaSelect.value || "";
+        if (val === "__viewport__") {
+          this._exportStudioState.targetSpec = "__viewport__";
+        } else if (val.includes("::")) {
+          const [layerKey, idOrName] = val.split("::");
+          this._exportStudioState.targetSpec = {
+            layerKey,
+            id: idOrName,
+            name: idOrName,
+          };
+        } else {
+          this._exportStudioState.targetSpec = null;
+        }
+        this._exportStudioState.customTitle = "";
+        this._exportStudioState.customSubtitle = "";
+        const titleInput = document.getElementById("input-export-title");
+        const subInput = document.getElementById("input-export-subtitle");
+        if (titleInput) titleInput.value = "";
+        if (subInput) subInput.value = "";
+        this._renderExportStudioPreview();
+      });
+    }
+
+    document.querySelectorAll("[data-export-comp]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const comp = btn.getAttribute("data-export-comp") || "figure_ground";
+        this._exportStudioState.composition = comp;
+        if (comp === "era_poster" && this._exportStudioState.theme !== "archival_era") {
+          this._exportStudioState.theme = "archival_era";
+        }
+        this._syncExportStudioPills();
+        this._renderExportStudioPreview();
+      });
+    });
+
+    document.querySelectorAll("[data-export-theme]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const theme = btn.getAttribute("data-export-theme") || "stencil_white";
+        this._exportStudioState.theme = theme;
+        this._syncExportStudioPills();
+        this._renderExportStudioPreview();
+      });
+    });
+
+    document.querySelectorAll("[data-export-format]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const fmt = btn.getAttribute("data-export-format") || "square";
+        this._exportStudioState.format = fmt;
+        this._syncExportStudioPills();
+        this._renderExportStudioPreview();
+      });
+    });
+
+    const chkTransparent = document.getElementById("chk-export-transparent");
+    if (chkTransparent) {
+      chkTransparent.addEventListener("change", (e) => {
+        this._exportStudioState.transparentBg = Boolean(e.target.checked);
+        this._renderExportStudioPreview();
+      });
+    }
+
+    const chkFillBld = document.getElementById("chk-export-fill-buildings");
+    if (chkFillBld) {
+      chkFillBld.addEventListener("change", (e) => {
+        this._exportStudioState.fillBuildings = Boolean(e.target.checked);
+        this._renderExportStudioPreview();
+      });
+    }
+
+    const chkLandmarks = document.getElementById("chk-export-show-landmarks");
+    if (chkLandmarks) {
+      chkLandmarks.addEventListener("change", (e) => {
+        this._exportStudioState.showLandmarks = Boolean(e.target.checked);
+        this._renderExportStudioPreview();
+      });
+    }
+
+    const chkCaption = document.getElementById("chk-export-show-caption");
+    if (chkCaption) {
+      chkCaption.addEventListener("change", (e) => {
+        this._exportStudioState.showCaption = Boolean(e.target.checked);
+        this._renderExportStudioPreview();
+      });
+    }
+
+    const inputTitle = document.getElementById("input-export-title");
+    if (inputTitle) {
+      inputTitle.addEventListener("input", (e) => {
+        this._exportStudioState.customTitle = e.target.value;
+        this._renderExportStudioPreview();
+      });
+    }
+
+    const inputSubtitle = document.getElementById("input-export-subtitle");
+    if (inputSubtitle) {
+      inputSubtitle.addEventListener("input", (e) => {
+        this._exportStudioState.customSubtitle = e.target.value;
+        this._renderExportStudioPreview();
+      });
+    }
+
+    const sliderWeight = document.getElementById("slider-export-border-weight");
+    if (sliderWeight) {
+      sliderWeight.addEventListener("input", (e) => {
+        const val = parseFloat(e.target.value) || 4;
+        this._exportStudioState.borderWeight = val;
+        const readout = document.getElementById("export-border-weight-readout");
+        if (readout) readout.textContent = `${val.toFixed(1)}px`;
+        this._renderExportStudioPreview();
+      });
+    }
+
+    const btnApplyIso = document.getElementById("btn-export-apply-isolation");
+    if (btnApplyIso) {
+      btnApplyIso.addEventListener("click", () => {
+        const ext = this._exportStudioState.lastExtraction;
+        if (ext && ext.isIsolatedPolygon && this.mapController) {
+          const modeMap = {
+            figure_ground: "contents",
+            footprints_only: "footprints_only",
+            border_only: "border_only",
+            era_poster: "contents",
+          };
+          this.mapController.setIsolatedBoundary(
+            {
+              layerKey: ext.boundaryLayerKey,
+              id: ext.boundaryName,
+              name: ext.boundaryName,
+              mode: modeMap[this._exportStudioState.composition] || "contents",
+            },
+            { fitBounds: true, openInspector: false }
+          );
+          if (modal) modal.classList.add("hidden");
+        }
+      });
+    }
+
+    const btnDlSvg = document.getElementById("btn-download-export-svg");
+    if (btnDlSvg) {
+      btnDlSvg.addEventListener("click", () => this.downloadExportSvg());
+    }
+
+    const btnDlPng = document.getElementById("btn-download-export-png");
+    if (btnDlPng) {
+      btnDlPng.addEventListener("click", () => this.downloadExportPng());
+    }
+
+    const btnDlScreenshot = document.getElementById("btn-download-live-screenshot");
+    if (btnDlScreenshot) {
+      btnDlScreenshot.addEventListener("click", () => this.downloadLiveMapScreenshot());
+    }
+
+    const btnDlGeoJson = document.getElementById("btn-download-export-geojson");
+    if (btnDlGeoJson) {
+      btnDlGeoJson.addEventListener("click", () => this.downloadExportGeoJson());
+    }
+  }
+
+  _syncExportStudioPills() {
+    const st = this._exportStudioState;
+    document.querySelectorAll("[data-export-comp]").forEach((b) => {
+      b.classList.toggle("active", b.getAttribute("data-export-comp") === st.composition);
+    });
+    document.querySelectorAll("[data-export-theme]").forEach((b) => {
+      b.classList.toggle("active", b.getAttribute("data-export-theme") === st.theme);
+    });
+    document.querySelectorAll("[data-export-format]").forEach((b) => {
+      b.classList.toggle("active", b.getAttribute("data-export-format") === st.format);
+    });
+  }
+
+  openExportStudioModal(initialBoundarySpec = null) {
+    const modal = document.getElementById("export-studio-modal");
+    if (!modal) return;
+
+    if (initialBoundarySpec && initialBoundarySpec.name) {
+      this._exportStudioState.targetSpec = {
+        layerKey: initialBoundarySpec.layerKey || "neighborhoods",
+        id: initialBoundarySpec.id || initialBoundarySpec.name,
+        name: initialBoundarySpec.name,
+      };
+      this._exportStudioState.customTitle = "";
+      this._exportStudioState.customSubtitle = "";
+    } else if (this.mapController?.getIsolatedBoundary()) {
+      const iso = this.mapController.getIsolatedBoundary();
+      this._exportStudioState.targetSpec = {
+        layerKey: iso.layerKey,
+        id: iso.id,
+        name: iso.name,
+      };
+    } else if (this.mapController?.highlightedBoundary?.feature) {
+      const hb = this.mapController.highlightedBoundary;
+      this._exportStudioState.targetSpec = {
+        layerKey: hb.layerKey || "neighborhoods",
+        id: hb.id || hb.name,
+        name: hb.name,
+      };
+    } else if (!this._exportStudioState.targetSpec) {
+      // Default to an iconic Houston historic district so the preview immediately showcases a great shape
+      this._exportStudioState.targetSpec = {
+        layerKey: "historic_districts",
+        id: "Norhill Historic District",
+        name: "Norhill Historic District",
+      };
+    }
+
+    this._populateExportTargetAreaSelect();
+    this._syncExportStudioPills();
+    this._renderExportStudioPreview();
+    modal.classList.remove("hidden");
+  }
+
+  _populateExportTargetAreaSelect() {
+    const sel = document.getElementById("select-export-target-area");
+    if (!sel) return;
+
+    const curTarget = this._exportStudioState.targetSpec;
+    const curVal =
+      curTarget === "__viewport__"
+        ? "__viewport__"
+        : curTarget && typeof curTarget === "object"
+        ? `${curTarget.layerKey}::${curTarget.name || curTarget.id}`
+        : "";
+
+    const featuredGroups = [
+      {
+        label: "Current Map Selection / Viewport",
+        items: [
+          ...(curTarget && typeof curTarget === "object"
+            ? [
+                {
+                  val: `${curTarget.layerKey}::${curTarget.name || curTarget.id}`,
+                  text: `🎯 Selected: ${curTarget.name || curTarget.id}`,
+                },
+              ]
+            : []),
+          { val: "__viewport__", text: "🗺️ Current Map Viewport (All Visible Structures)" },
+        ],
+      },
+      {
+        label: "COH Historic Districts & Heritage Districts (Iconic Shapes)",
+        items: [
+          { val: "historic_districts::Norhill Historic District", text: "Norhill Historic District (951 Structures)" },
+          { val: "historic_districts::Woodland Heights Historic District", text: "Woodland Heights Historic District" },
+          { val: "historic_districts::Houston Heights East Historic District", text: "Houston Heights East Historic District" },
+          { val: "historic_districts::Houston Heights West Historic District", text: "Houston Heights West Historic District" },
+          { val: "historic_districts::Houston Heights South Historic District", text: "Houston Heights South Historic District" },
+          { val: "historic_districts::Old Sixth Ward Historic District", text: "Old Sixth Ward Protected Historic District" },
+          { val: "heritage_districts::Freedmen's Town Heritage District", text: "Freedmen's Town Heritage District" },
+          { val: "historic_districts::Avondale East Historic District", text: "Avondale East Historic District" },
+          { val: "historic_districts::Avondale West Historic District", text: "Avondale West Historic District" },
+          { val: "historic_districts::Broadacres Historic District", text: "Broadacres Historic District" },
+          { val: "historic_districts::Boulevard Oaks Historic District", text: "Boulevard Oaks Historic District" },
+          { val: "historic_districts::Shadow Lawn Historic District", text: "Shadow Lawn Historic District" },
+          { val: "historic_districts::Glenbrook Valley Historic District", text: "Glenbrook Valley Historic District" },
+          { val: "historic_districts::Courtland Place Historic District", text: "Courtland Place Historic District" },
+          { val: "historic_districts::First Montrose Commons Historic District", text: "First Montrose Commons Historic District" },
+          { val: "historic_districts::Westmoreland Historic District", text: "Westmoreland Historic District" },
+          { val: "historic_districts::Audubon Place Historic District", text: "Audubon Place Historic District" },
+          { val: "historic_districts::Germantown Historic District", text: "Germantown Historic District" },
+          { val: "historic_districts::Main Street/Market Square Historic District", text: "Main Street/Market Square Historic District" },
+        ],
+      },
+      {
+        label: "Featured Houston Neighborhoods & Subdivisions",
+        items: [
+          { val: "neighborhoods::Montrose", text: "Montrose (Neighborhood)" },
+          { val: "neighborhoods::Houston Heights", text: "Houston Heights (Neighborhood)" },
+          { val: "neighborhoods::River Oaks", text: "River Oaks (Neighborhood)" },
+          { val: "neighborhoods::Southampton", text: "Southampton Place (Neighborhood)" },
+          { val: "neighborhoods::Riverside Terrace", text: "Riverside Terrace (Neighborhood)" },
+          { val: "neighborhoods::Garden Oaks", text: "Garden Oaks (Neighborhood)" },
+          { val: "neighborhoods::Oak Forest", text: "Oak Forest (Neighborhood)" },
+          { val: "neighborhoods::Eastwood", text: "Eastwood (Neighborhood)" },
+          { val: "platted_subdivisions::Woodland Heights", text: "Woodland Heights (1907 Platted Subdivision)" },
+          { val: "platted_subdivisions::East Norhill", text: "East Norhill (Platted Subdivision)" },
+          { val: "platted_subdivisions::North Norhill", text: "North Norhill (Platted Subdivision)" },
+          { val: "platted_subdivisions::Broadacres", text: "Broadacres (1923 Platted Subdivision)" },
+        ],
+      },
+      {
+        label: "Historic Aldermanic Wards (1839–1905)",
+        items: [
+          { val: "historic_wards::First Ward", text: "First Ward (1903–1905 Charter)" },
+          { val: "historic_wards::Second Ward", text: "Second Ward (1903–1905 Charter)" },
+          { val: "historic_wards::Third Ward", text: "Third Ward (1903–1905 Charter)" },
+          { val: "historic_wards::Fourth Ward", text: "Fourth Ward (1903–1905 Charter)" },
+          { val: "historic_wards::Fifth Ward", text: "Fifth Ward (1903–1905 Charter)" },
+          { val: "historic_wards::Sixth Ward", text: "Sixth Ward (1903–1905 Charter)" },
+        ],
+      },
+    ];
+
+    const seenVals = new Set();
+    sel.innerHTML = featuredGroups
+      .map((grp) => {
+        const opts = grp.items
+          .filter((it) => {
+            if (seenVals.has(it.val)) return false;
+            seenVals.add(it.val);
+            return true;
+          })
+          .map(
+            (it) =>
+              `<option value="${it.val.replace(/"/g, "&quot;")}" ${
+                it.val === curVal ? "selected" : ""
+              }>${it.text}</option>`
+          )
+          .join("");
+        return `<optgroup label="${grp.label}">${opts}</optgroup>`;
+      })
+      .join("");
+  }
+
+  _renderExportStudioPreview() {
+    const stage = document.getElementById("export-svg-preview-stage");
+    const statsEl = document.getElementById("export-preview-stats-readout");
+    const btnApplyIso = document.getElementById("btn-export-apply-isolation");
+    if (!stage || !this.mapController) return;
+
+    const st = this._exportStudioState;
+    stage.classList.toggle("transparent-checker", Boolean(st.transparentBg));
+
+    const boundarySpec =
+      st.targetSpec === "__viewport__" ? null : st.targetSpec;
+    const extraction = this.mapController.collectVectorFeaturesForExport({
+      boundarySpec,
+    });
+    st.lastExtraction = extraction;
+
+    const titleInput = document.getElementById("input-export-title");
+    const subInput = document.getElementById("input-export-subtitle");
+    if (titleInput && !st.customTitle) {
+      titleInput.placeholder = (extraction.boundaryName || "HOUSTON BUILDING ATLAS").toUpperCase();
+    }
+    if (subInput && !st.customSubtitle) {
+      const yrRange =
+        extraction.stats.earliestYear
+          ? `EST. ${extraction.stats.earliestYear} • ${extraction.stats.buildingCount.toLocaleString()} STRUCTURES`
+          : "HOUSTON, TEXAS";
+      subInput.placeholder = yrRange;
+    }
+
+    if (statsEl) {
+      const s = extraction.stats;
+      statsEl.textContent = `${extraction.boundaryName} • ${s.buildingCount.toLocaleString()} footprints${
+        s.earliestYear ? ` • Earliest ${s.earliestYear}` : ""
+      }${s.landmarkCount ? ` • ${s.landmarkCount} Landmarks` : ""}`;
+    }
+    if (btnApplyIso) {
+      btnApplyIso.style.display = extraction.isIsolatedPolygon ? "inline-flex" : "none";
+    }
+
+    const svgMarkup = this._generateExportStudioSvgMarkup(extraction, st);
+    st.lastSvgMarkup = svgMarkup;
+    stage.innerHTML = svgMarkup;
+  }
+
+  _generateExportStudioSvgMarkup(extraction, st) {
+    const themes = {
+      stencil_white: {
+        bg: "#0B0E11",
+        borderStroke: "#FFFFFF",
+        borderFill: "rgba(255,255,255,0.04)",
+        bldFill: "#FFFFFF",
+        bldStroke: "#FFFFFF",
+        accent: "#FBBF24",
+        textPrimary: "#FFFFFF",
+        textSecondary: "#CBD5E1",
+      },
+      stencil_black: {
+        bg: "#F8F6F0",
+        borderStroke: "#111827",
+        borderFill: "rgba(17,24,39,0.03)",
+        bldFill: "#111827",
+        bldStroke: "#111827",
+        accent: "#B45309",
+        textPrimary: "#111827",
+        textSecondary: "#4B5563",
+      },
+      ph_emerald: {
+        bg: "#0C1610",
+        borderStroke: "#95C959",
+        borderFill: "rgba(149,201,89,0.06)",
+        bldFill: "#E9F6D8",
+        bldStroke: "#95C959",
+        accent: "#FBBF24",
+        textPrimary: "#F4F9EE",
+        textSecondary: "#95C959",
+      },
+      blueprint: {
+        bg: "#0A2540",
+        borderStroke: "#38BDF8",
+        borderFill: "rgba(56,189,248,0.07)",
+        bldFill: "#E0F2FE",
+        bldStroke: "#7DD3FC",
+        accent: "#FDE047",
+        textPrimary: "#F0F9FF",
+        textSecondary: "#7DD3FC",
+      },
+      terracotta: {
+        bg: "#F5EFE6",
+        borderStroke: "#9A3412",
+        borderFill: "rgba(154,52,18,0.05)",
+        bldFill: "#B45309",
+        bldStroke: "#7C2D12",
+        accent: "#15803D",
+        textPrimary: "#431407",
+        textSecondary: "#78350F",
+      },
+      archival_era: {
+        bg: "#0B0E11",
+        borderStroke: "#FBBF24",
+        borderFill: "rgba(251,191,36,0.04)",
+        bldFill: "#E2E8F0",
+        bldStroke: "#94A3B8",
+        accent: "#95C959",
+        textPrimary: "#F8FAFC",
+        textSecondary: "#94A3B8",
+      },
+    };
+
+    const pal = themes[st.theme] || themes.stencil_white;
+    const isPoster = st.format === "poster";
+    const isCoaster = st.format === "round_coaster";
+    const vbW = 1200;
+    const vbH = isPoster ? 1500 : 1200;
+
+    const [minLng, minLat, maxLng, maxLat] = extraction.bbox;
+    const midLat = (minLat + maxLat) / 2;
+    const cosLat = Math.cos((midLat * Math.PI) / 180);
+    const geoW = Math.max(0.0002, (maxLng - minLng) * cosLat);
+    const geoH = Math.max(0.0002, maxLat - minLat);
+
+    const padTop = isCoaster ? 150 : st.showCaption ? 115 : 85;
+    const padBottom = isCoaster
+      ? st.showCaption
+        ? 265
+        : 165
+      : st.showCaption
+      ? isPoster
+        ? 255
+        : 175
+      : 85;
+    const padSide = isCoaster ? 195 : 95;
+    const availW = vbW - padSide * 2;
+    const availH = vbH - padTop - padBottom;
+    const scale = Math.min(availW / geoW, availH / geoH);
+    const drawW = geoW * scale;
+    const drawH = geoH * scale;
+    const offsetX = padSide + (availW - drawW) / 2;
+    const offsetY = padTop + (availH - drawH) / 2;
+
+    const proj = (lng, lat) => {
+      const x = offsetX + (lng - minLng) * cosLat * scale;
+      const y = offsetY + (maxLat - lat) * scale;
+      return [x, y];
+    };
+
+    const geomToSvgPath = (geom) => {
+      if (!geom || !geom.coordinates) return "";
+      const polys =
+        geom.type === "Polygon"
+          ? [geom.coordinates]
+          : geom.type === "MultiPolygon"
+          ? geom.coordinates
+          : [];
+      const parts = [];
+      for (const poly of polys) {
+        for (const ring of poly) {
+          if (!Array.isArray(ring) || ring.length < 3) continue;
+          for (let i = 0; i < ring.length; i++) {
+            const [x, y] = proj(ring[i][0], ring[i][1]);
+            parts.push(`${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`);
+          }
+          parts.push("Z");
+        }
+      }
+      return parts.join(" ");
+    };
+
+    const escXml = (str) =>
+      String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    const useEraColors =
+      st.composition === "era_poster" || st.theme === "archival_era";
+    const showBuildings = st.composition !== "border_only";
+    const showBorder = st.composition !== "footprints_only";
+
+    let buildingsSvg = "";
+    if (showBuildings && Array.isArray(extraction.buildings)) {
+      const bldPaths = [];
+      for (const f of extraction.buildings) {
+        const d = geomToSvgPath(f.geometry);
+        if (!d) continue;
+        const p = f.properties || {};
+        const yr = Number(p.year_built) || 0;
+        const fillCol = useEraColors ? getYearColorHex(yr, "archival") : pal.bldFill;
+        const strokeCol = useEraColors ? fillCol : pal.bldStroke;
+        if (st.fillBuildings) {
+          bldPaths.push(
+            `<path d="${d}" fill="${fillCol}" fill-opacity="${
+              useEraColors ? "0.9" : "0.92"
+            }" stroke="${strokeCol}" stroke-width="0.6" stroke-linejoin="round" />`
+          );
+        } else {
+          bldPaths.push(
+            `<path d="${d}" fill="none" stroke="${strokeCol}" stroke-width="1.35" stroke-linejoin="round" />`
+          );
+        }
+      }
+      buildingsSvg = `<g id="building-footprints">${bldPaths.join("\n")}</g>`;
+    }
+
+    let borderSvg = "";
+    if (showBorder && extraction.boundaryFeature?.geometry) {
+      const bdPath = geomToSvgPath(extraction.boundaryFeature.geometry);
+      if (bdPath) {
+        const bw = Number(st.borderWeight) || 4;
+        borderSvg = `
+          <g id="boundary-outline">
+            <path d="${bdPath}" fill="${
+              st.composition === "border_only" && st.fillBuildings
+                ? pal.borderFill
+                : "none"
+            }" stroke="${pal.borderStroke}" stroke-width="${(bw * 2.2).toFixed(
+          1
+        )}" stroke-opacity="0.18" stroke-linejoin="round" />
+            <path d="${bdPath}" fill="none" stroke="${
+          pal.borderStroke
+        }" stroke-width="${bw.toFixed(1)}" stroke-linejoin="round" />
+          </g>
+        `;
+      }
+    }
+
+    let landmarksSvg = "";
+    if (st.showLandmarks && showBuildings) {
+      const pins = [];
+      for (const f of extraction.landmarks || []) {
+        const [cx, cy] = proj(f.geometry.coordinates[0], f.geometry.coordinates[1]);
+        pins.push(
+          `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(
+            1
+          )}" r="5.5" fill="${pal.accent}" stroke="${pal.bg}" stroke-width="1.8" />`
+        );
+      }
+      for (const f of extraction.goodBricks || []) {
+        const [cx, cy] = proj(f.geometry.coordinates[0], f.geometry.coordinates[1]);
+        pins.push(
+          `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(
+            1
+          )}" r="6.2" fill="#95C959" stroke="${pal.bg}" stroke-width="1.8" />`
+        );
+      }
+      if (pins.length > 0) {
+        landmarksSvg = `<g id="landmark-accents">${pins.join("\n")}</g>`;
+      }
+    }
+
+    const titleText = (
+      st.customTitle ||
+      extraction.boundaryName ||
+      "THE HOUSTON BUILDING ATLAS"
+    ).toUpperCase();
+    const centerLat = ((minLat + maxLat) / 2).toFixed(4);
+    const centerLng = Math.abs((minLng + maxLng) / 2).toFixed(4);
+    const defaultSub = extraction.stats.earliestYear
+      ? `HOUSTON, TX • EST. ${extraction.stats.earliestYear} • ${extraction.stats.buildingCount.toLocaleString()} STRUCTURES • ${centerLat}°N ${centerLng}°W`
+      : `HOUSTON, TEXAS • ${centerLat}°N ${centerLng}°W`;
+    const subtitleText = (st.customSubtitle || defaultSub).toUpperCase();
+
+    let frameSvg = "";
+    if (isCoaster) {
+      frameSvg = `
+        <g id="coaster-medallion-rings">
+          <circle cx="600" cy="600" r="560" fill="none" stroke="${pal.borderStroke}" stroke-width="8" />
+          <circle cx="600" cy="600" r="542" fill="none" stroke="${pal.borderStroke}" stroke-width="2" stroke-dasharray="8 6" stroke-opacity="0.65" />
+        </g>
+      `;
+    } else if (isPoster) {
+      frameSvg = `
+        <rect x="36" y="36" width="${vbW - 72}" height="${
+        vbH - 72
+      }" fill="none" stroke="${pal.borderStroke}" stroke-width="2.5" stroke-opacity="0.55" rx="8" />
+      `;
+    }
+
+    let captionSvg = "";
+    if (st.showCaption) {
+      const titleY = isCoaster ? 985 : vbH - (isPoster ? 130 : 88);
+      const subY = titleY + 34;
+      const fontSize = titleText.length > 26 ? 28 : 34;
+      captionSvg = `
+        <g id="cartographic-typography" text-anchor="middle">
+          <text x="${vbW / 2}" y="${titleY}" fill="${
+        pal.textPrimary
+      }" font-family="'Fraunces', 'Georgia', serif" font-size="${fontSize}" font-weight="700" letter-spacing="3">${escXml(
+        titleText
+      )}</text>
+          <text x="${vbW / 2}" y="${subY}" fill="${
+        pal.textSecondary
+      }" font-family="'JetBrains Mono', 'Courier New', monospace" font-size="14" font-weight="600" letter-spacing="2.2">${escXml(
+        subtitleText
+      )}</text>
+        </g>
+      `;
+    }
+
+    const bgSvg = st.transparentBg
+      ? ""
+      : isCoaster
+      ? `<circle cx="600" cy="600" r="572" fill="${pal.bg}" />`
+      : `<rect x="0" y="0" width="${vbW}" height="${vbH}" fill="${pal.bg}" rx="16" />`;
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vbW} ${vbH}" width="${vbW}" height="${vbH}">
+      ${bgSvg}
+      ${frameSvg}
+      ${buildingsSvg}
+      ${borderSvg}
+      ${landmarksSvg}
+      ${captionSvg}
+    </svg>`;
+  }
+
+  _slugifyExportName(name) {
+    return (
+      String(name || "houston_atlas")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "") || "houston_atlas"
+    );
+  }
+
+  downloadExportSvg() {
+    const st = this._exportStudioState;
+    if (!st.lastSvgMarkup) {
+      this._renderExportStudioPreview();
+    }
+    const slug = this._slugifyExportName(
+      st.customTitle || st.lastExtraction?.boundaryName || "houston_atlas"
+    );
+    const blob = new Blob([st.lastSvgMarkup], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}_${st.composition}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  downloadExportPng() {
+    const st = this._exportStudioState;
+    if (!st.lastSvgMarkup) {
+      this._renderExportStudioPreview();
+    }
+    const isPoster = st.format === "poster";
+    const outW = 3000;
+    const outH = isPoster ? 3750 : 3000;
+    const slug = this._slugifyExportName(
+      st.customTitle || st.lastExtraction?.boundaryName || "houston_atlas"
+    );
+
+    const svgBlob = new Blob([st.lastSvgMarkup], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = outW;
+      canvas.height = outH;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, outW, outH);
+      URL.revokeObjectURL(url);
+      const pngUrl = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = pngUrl;
+      a.download = `${slug}_${st.composition}_3000px.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+    img.src = url;
+  }
+
+  downloadLiveMapScreenshot() {
+    if (!this.mapController) return;
+    const dataUrl = this.mapController.captureMapScreenshotDataUrl();
+    if (!dataUrl) return;
+    const iso = this.mapController.getIsolatedBoundary();
+    const slug = this._slugifyExportName(iso?.name || "houston_building_atlas_map");
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `${slug}_screenshot.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  downloadExportGeoJson() {
+    const ext = this._exportStudioState.lastExtraction;
+    if (!ext) return;
+    const features = [];
+    if (ext.boundaryFeature) {
+      features.push({
+        type: "Feature",
+        properties: {
+          ...(ext.boundaryFeature.properties || {}),
+          export_role: "isolated_boundary",
+          boundary_layer: ext.boundaryLayerKey,
+        },
+        geometry: ext.boundaryFeature.geometry,
+      });
+    }
+    for (const f of ext.buildings || []) {
+      features.push({
+        type: "Feature",
+        properties: {
+          ...(f.properties || {}),
+          export_role: "building_footprint",
+        },
+        geometry: f.geometry,
+      });
+    }
+    const fc = {
+      type: "FeatureCollection",
+      name: ext.boundaryName || "Houston Building Atlas Export",
+      features,
+    };
+    const slug = this._slugifyExportName(ext.boundaryName || "houston_atlas");
+    const blob = new Blob([JSON.stringify(fc, null, 2)], {
+      type: "application/geo+json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}_isolated.geojson`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   _updateUrlHash(state) {
