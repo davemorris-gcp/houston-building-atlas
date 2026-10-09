@@ -175,9 +175,24 @@ CURATED_NEIGHBORHOOD_ALIASES: dict[str, list[str]] = {
     ],
     'WOODLAND HEIGHTS': [
         'Germantown',
-        'Watson Addition',
-        'Bayland Park Area',
-        'White Oak Bayou Corridor',
+        'Grota Home Germantown',
+        'Woodson Place',
+        'Woodland Terrace',
+        'Woodland Heights Annex',
+        'Norhill Addition',
+        'Ridgemont',
+        'Norhill Park',
+        'Usener',
+        'Pecore',
+        'Hermosa Court',
+        'Willborg',
+        'Marquart',
+        'Rodgers',
+        'Yeoman',
+        'Howard Terrace',
+        'Woodland Park Place',
+        'Highland Park',
+        'Osceola',
     ],
     'NORHILL': [
         'Norhill Historic District',
@@ -356,18 +371,36 @@ WARD_METADATA = {
     },
 }
 
+# Verified GIS spelling / OCR typo corrections in COH Civic Clubs, Patrol Region 3, and Neighborhoods 2021
+GIS_TYPO_CORRECTIONS = {
+    'WOODKIND HEIGHTS': 'Woodland Heights',
+    'IDLYWOOD': 'Idylwood',
+    'BREABURN GLEN': 'Braeburn Glen',
+    'YOACUM GARDENS': 'Yocum Gardens',
+    'SANDLEWOOD': 'Sandalwood',
+    'HOLLEY TERRACE': 'Holly Terrace',
+    'MONARCH OAK': 'Monarch Oaks',
+    'WILLOW MEADOW': 'Willow Meadows',
+    'ACRES HOME': 'Acres Homes',
+    'SOUTH HAMPTON': 'Southampton',
+    'YOEMAN': 'Yeoman',
+}
+
 
 def clean_title(s: str) -> str:
   if not s:
     return ''
   s = ' '.join(s.replace('_', ' ').split())
+  su = s.upper().strip(' .,')
+  if su in GIS_TYPO_CORRECTIONS:
+    return GIS_TYPO_CORRECTIONS[su]
   # Preserve Roman numerals or acronyms
   words = []
   for w in s.split(' '):
     wu = w.upper().strip('.,')
     if wu in ('I', 'II', 'III', 'IV', 'V', 'VI', 'NW', 'NE', 'SW', 'SE', 'OST', 'TMC', 'U', 'OF', 'H', 'RO', 'R.O.'):
       words.append(wu if wu != 'OF' else 'of')
-    elif wu.startswith("MC") and len(wu) > 2:
+    elif wu.startswith('MC') and len(wu) > 2:
       words.append('Mc' + wu[2:].capitalize())
     else:
       words.append(w.capitalize())
@@ -377,14 +410,21 @@ def clean_title(s: str) -> str:
   res = re.sub(r'\bUniv\.\s+of\s+Houston\b', 'University of Houston', res, flags=re.I)
   res = re.sub(r'\bR\.O\.\s+Center\b', 'River Oaks Center', res, flags=re.I)
   res = re.sub(r'\bCherry-Hurst\b', 'Cherryhurst', res, flags=re.I)
+  res = re.sub(r'\bWoodkind\s+Heights\b', 'Woodland Heights', res, flags=re.I)
+  res = re.sub(r'\bIdlywood\b', 'Idylwood', res, flags=re.I)
+  res = re.sub(r'\bBreaburn\b', 'Braeburn', res, flags=re.I)
+  res = re.sub(r'\bYoacum\b', 'Yocum', res, flags=re.I)
+  res = re.sub(r'\bSandlewood\b', 'Sandalwood', res, flags=re.I)
+  if res.upper() in GIS_TYPO_CORRECTIONS:
+    return GIS_TYPO_CORRECTIONS[res.upper()]
   return res
 
 
 def clean_civic_club_name(raw_name: str) -> str:
   s = raw_name.strip()
-  # Strip civic club / HOA suffixes
+  # Strip civic club / HOA / neighborhood association suffixes
   s = re.sub(
-      r'\b(CIVIC\s+CLUB|CIVIC\s+ASSOCIATION|CIVIC\s+ASSN\.?|HOMEOWNERS\s+ASSOCIATION|HOME\s+OWNERS\s+ASSOCIATION|HOMEOWNERS\s+ASSN\.?|PROPERTY\s+OWNERS\s+ASSOCIATION|PROPERTY\s+OWNERS\s+ASSN\.?|COMMUNITY\s+ASSOCIATION|COMMUNITY\s+IMPROVEMENT\s+ASSN\.?|IMPROVEMENT\s+ASSOCIATION|WOMENS\s+CLUB|OWNERS\s+ASSN\.?|ASSN\.?|INC\.?)\b.*$',
+      r'\b(NEIGHBORHOOD\s+ASSOCIATION|NEIGHBORHOOD\s+COUNCIL|NEIGHBORHOOD\s+CIVIC\s+COUNCIL|NEIGHBORHOOD\s+CIVIC\s+CLUB|CIVIC\s+CLUB|CIVIC\s+ASSOCIATION|CIVIC\s+ASSN\.?|CIVIC\s+ORGANIZATION|CIVIC\s+COUNCIL|CIVIC\s+LEAGUE|HOMEOWNERS\s+ASSOCIATION|HOME\s+OWNERS\s+ASSOCIATION|HOMEOWNER\s+ASSOCIATION|HOMEOWNERS\s+ASSN\.?|HOMES\s+ASSOCIATION|TOWNHOUSE\s+ASSOCIATION|TOWNHOMES\s+ASSOCIATION|PROPERTY\s+OWNERS\s+ASSOCIATION|PROPERTY\s+OWNER\'?S\s+ASSOCIATION|PROPERTY\s+OWNERS\s+ASSN\.?|ASSOCIATION\s+OF\s+PROPERTY\s+OWNERS|COMMUNITY\s+ASSOCIATION|COMMUNITY\s+IMPROVEMENT\s+ASSN\.?|COMMUNITY\s+IMPROVEMENT\s+ASSOCIATION|IMPROVEMENT\s+ASSOCIATION|RESIDENCE\s+ASSOCIATION|RESIDENT\s+COUNCIL|COUNCIL\s+OF\s+CO-OWNERS|WOMENS\s+CLUB|OWNERS\s+ASSN\.?|OWNERS\s+ASSOCIATION|ASSOCIATION|HOA|CIA|CAI|COMM|ASSN\.?|INC\.?)\b.*$',
       '',
       s,
       flags=re.I,
@@ -394,27 +434,43 @@ def clean_civic_club_name(raw_name: str) -> str:
   return clean_title(s)
 
 
-def normalize_hcad_subdivision(lgl_2: str) -> str:
-  if not lgl_2:
+def normalize_hcad_subdivision(raw_lgl: str) -> str:
+  if not raw_lgl:
     return ''
-  s = lgl_2.strip().upper()
-  # Ignore pure acreage, metes-and-bounds, or condo interest lines
+  s = raw_lgl.strip().upper()
+  # Ignore pure acreage, metes-and-bounds, condo interest lines, or HCAD tax remarks
   if any(
       s.startswith(p)
-      for p in ('TR ', 'TRS ', 'ABST ', 'A-', 'lt ', 'LTS ', 'BLK ', '.0', '.1', '.2', '.3', '0.', 'ALL OF', 'UND ', 'INT ')
+      for p in (
+          'TR ', 'TRS ', 'ABST ', 'A-', 'LT ', 'LTS ', 'BLK ', '.0', '.1', '.2', '.3', '0.',
+          'ALL OF', 'UND ', 'INT ', 'PR YR ', 'LAND*', 'PROBATED', 'PRORATED', 'RES ', 'COMMERCIAL USE',
+          'PRIVATE STREET', 'HOMESTEAD', 'N ', 'S ', 'E ', 'W ', 'NE ', 'NW ', 'SE ', 'SW ', 'FT OF',
+      )
   ):
     return ''
-  # Strip section, replat, amendment, and U/R suffixes
-  s = re.sub(r'\b(SEC|SECTION|PT|PART|PARTIAL|REPLAT|R/P|AMEND|AMENDED|AMD|U/R|UR|EXT|EXTENSION|PH|PHASE|ADDN|ADDITION|SUBD|SUBDIVISION|T/H|CONDO|CONDOMINIUM|BLDG|BLK|LT|LTS)\b.*$', '', s)
+  if any(
+      bad in s
+      for bad in (
+          'INT COMMON LAND', 'PR YR IMPS', 'LAND*', 'PROBATED', 'PRORATED', 'SQ FT', 'EASEMENT',
+          'COMMERCIAL USE', 'PRIVATE STREETS', 'PLAT NOT FOUND',
+      )
+  ):
+    return ''
+  # Strip section, partial replat (PAR), amendment, and U/R suffixes
+  s = re.sub(
+      r'\b(SEC|SECTION|PT|PART|PARTIAL|PAR|REPLAT|R/P|P/R|AMEND|AMENDED|AMD|U/R|UR|EXT|EXTN|EXTENSION|PH|PHASE|ADDN|ADDITION|SUBD|SUBDIVISION|T/H|BLDG|BLK|LT|LTS|\d+ST|\d+ND|\d+RD|\d+TH)\b.*$',
+      '',
+      s,
+  )
   s = re.sub(r'\s+#?\d+[A-Z]?\s*$', '', s)
-  s = s.strip(' ,.-/#&()')
-  if len(s) < 3 or s.isdigit():
+  s = s.strip(' ,.-/#&()*')
+  if len(s) < 3 or s.isdigit() or re.match(r'^\d', s):
     return ''
   return clean_title(s)
 
 
 def load_hcad_subdivisions() -> dict[str, str]:
-  """Load HCAD account -> normalized platted subdivision name from Real_acct_owner.zip."""
+  """Load HCAD account -> normalized platted subdivision name from Real_acct_owner.zip (checking lgl_2, lgl_3, lgl_1)."""
   zip_path = os.path.join(CACHE_DIR, 'Real_acct_owner.zip')
   hcad_to_sub: dict[str, str] = {}
   if not os.path.exists(zip_path):
@@ -426,11 +482,15 @@ def load_hcad_subdivisions() -> dict[str, str]:
         parts = line.decode('latin1', errors='replace').rstrip('\r\n').split('\t')
         if len(parts) > 67:
           acct = parts[0].strip()
+          if not acct:
+            continue
           lgl2 = parts[67].strip()
-          if acct and lgl2:
-            sub = normalize_hcad_subdivision(lgl2)
-            if sub:
-              hcad_to_sub[acct] = sub
+          sub = normalize_hcad_subdivision(lgl2)
+          if not sub and len(parts) > 68:
+            # Fallback to lgl_3 for condominiums (.0040 INT COMMON LAND on lgl_2) and multi-lot wrap-around descriptions
+            sub = normalize_hcad_subdivision(parts[68].strip())
+          if sub:
+            hcad_to_sub[acct] = sub
   print(f'Loaded {len(hcad_to_sub):,} normalized HCAD platted subdivision names from real_acct.txt')
   return hcad_to_sub
 
@@ -523,6 +583,8 @@ def build_super_neighborhoods() -> list[dict]:
 
 def norm_key(name: str) -> str:
   s = name.upper().strip()
+  s = re.sub(r'^THE\s+', '', s)
+  s = re.sub(r'^OLD\s+SIXTH\s+WARD$', 'SIXTHWARD', s)
   s = re.sub(r'\b(HISTORIC\s+DISTRICT|HISTORIC\s+PLACE|NEIGHBORHOOD|VILLAGE|ESTATES|ADDITION|PLACE|AREA|HOUSTON)\b', '', s)
   s = re.sub(r'[^A-Z0-9]+', '', s)
   return s
@@ -676,14 +738,15 @@ def build_vernacular_neighborhoods(
   for cand in candidates:
     ckey = norm_key(cand['name'])
     cgeom = cand['geom']
-    c_cent = cgeom.centroid
     matched_existing = None
+    same_name_match = False
     for ex in merged:
       ekey = norm_key(ex['name'])
       # Same name and close/overlapping
       if (ckey and ckey == ekey) or cand['name'].upper() == ex['name'].upper():
         if ex['geom'].distance(cgeom) < 0.025:
           matched_existing = ex
+          same_name_match = True
           break
       # Or very high spatial IoU (> 0.65)
       if ex['geom'].intersects(cgeom):
@@ -693,6 +756,11 @@ def build_vernacular_neighborhoods(
           matched_existing = ex
           break
     if matched_existing is not None:
+      if same_name_match and matched_existing['geom'].intersects(cgeom):
+        inter_a = matched_existing['geom'].intersection(cgeom).area
+        min_a = min(matched_existing['geom'].area, cgeom.area)
+        if min_a > 0 and (inter_a / min_a) >= 0.50 and cgeom.area <= matched_existing['geom'].area * 2.5:
+          matched_existing['geom'] = make_valid(matched_existing['geom'].union(cgeom)).simplify(0.0001, preserve_topology=True)
       for src in cand['sources']:
         if src not in matched_existing['sources']:
           matched_existing['sources'].append(src)
@@ -720,12 +788,20 @@ def build_vernacular_neighborhoods(
       if cur_a.upper() != name.upper() and cur_a not in aliases:
         aliases.append(cur_a)
 
-    # Find parent Super Neighborhood
+    # Find parent Super Neighborhood (prioritize contains(rep), fallback to largest overlap area)
     parent_sn = None
     for sn_idx in sn_tree.query(rep):
-      if sn_geoms[sn_idx].contains(rep) or sn_geoms[sn_idx].intersects(geom):
+      if sn_geoms[sn_idx].contains(rep):
         parent_sn = super_nbhds[sn_idx]['properties']['name']
         break
+    if not parent_sn:
+      best_area = 0.0
+      for sn_idx in sn_tree.query(geom):
+        if sn_geoms[sn_idx].intersects(geom):
+          ia = sn_geoms[sn_idx].intersection(geom).area
+          if ia > best_area:
+            best_area = ia
+            parent_sn = super_nbhds[sn_idx]['properties']['name']
 
     # Find parent 1920 Historic Ward
     parent_ward = None
