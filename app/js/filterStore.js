@@ -22,6 +22,7 @@ export const DEFAULT_FILTER_STATE = {
   preSoloLayers: null, // snapshot of overlay visibility before Solo was clicked
   historicMapOpacity: 75, // 15..100 opacity percentage for the Historic Topo Map overlay
   wardEra: 1920, // 1839 | 1866 | 1896 | 1903 | 1920
+  showAnnexationSpokes: true, // include 1963 10-ft highway ETJ spokes & 2000s-2010s MUD SPA commercial strips
   layers: {
     goodBrickAwards: true,
     landmarks: true,
@@ -148,22 +149,14 @@ export function buildHistoricWardFilterExpression(state) {
 }
 
 /**
- * Resolve the single cumulative annexation boundary decade for a given filter state,
- * or null when showing all historical annexation milestone rings at once.
+ * Resolve the single cumulative annexation boundary decade for a given filter state.
+ * Always resolves to one clean cumulative milestone decade (defaulting to 2020 when no
+ * earlier era/year filter is active) rather than stacking all 15 historical polygons at once.
  */
 export function resolveActiveAnnexationDecade(state) {
-  if (!state) return null;
+  if (!state) return 2020;
   const decStr = String(state.selectedDecade || "all");
   const maxY = Number(state.maxYear) || 2026;
-  const hasEraFilter =
-    Boolean(state.syncAnnexationToTime) ||
-    Boolean(state.isPlaying) ||
-    (decStr !== "all" && decStr !== "unknown") ||
-    maxY < 2026;
-
-  if (!hasEraFilter) {
-    return null;
-  }
 
   let cutoff = maxY;
   if (decStr !== "all" && decStr !== "unknown") {
@@ -186,15 +179,20 @@ export function resolveActiveAnnexationDecade(state) {
 
 /**
  * Compile a MapLibre filter expression for the Annexation History layer.
- * When synced to time or filtered to an era/year, render the single clean dissolved
- * cumulative city boundary for that era rather than stacking internal historical rings.
+ * Renders the single clean dissolved cumulative city boundary for the active era,
+ * optionally excluding 1963 10-ft highway spokes & 2000s-2010s MUD SPA commercial strips.
  */
 export function buildAnnexationFilterExpression(state) {
-  const activeDecade = resolveActiveAnnexationDecade(state);
-  if (activeDecade !== null) {
-    return ["==", ["to-number", ["get", "decade"], 1836], activeDecade];
+  const activeDecade = resolveActiveAnnexationDecade(state) || 2020;
+  const decClause = ["==", ["to-number", ["get", "decade"], 1836], activeDecade];
+  if (state && state.showAnnexationSpokes === false) {
+    return [
+      "all",
+      decClause,
+      ["==", ["coalesce", ["get", "annex_subtype"], "full_purpose"], "full_purpose"],
+    ];
   }
-  return ["all"];
+  return decClause;
 }
 
 function layersMatchDefault(layers) {

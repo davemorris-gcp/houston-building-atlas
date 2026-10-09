@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261009d" />
+  <link rel="stylesheet" href="styles/index.css?v=20261009e" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -616,6 +616,13 @@
             >
               Solo
             </button>
+          </div>
+
+          <div class="historic-ward-era-row hidden" id="annexation-options-row">
+            <label class="check-row" style="font-size:11.5px; color:var(--text-secondary);" title="Toggle the 1963 Ord. 63-1219 10-ft highway ETJ spokes and 2000s–2010s Limited-Purpose MUD Strategic Partnership Agreement (SPA) commercial retail strips">
+              <input type="checkbox" id="chk-annexation-spokes" checked />
+              <span>Include 10-ft Highway Spokes &amp; MUD Commercial Strips</span>
+            </label>
           </div>
 
           <div class="layer-item-row" data-layer-key="historicMap">
@@ -1252,6 +1259,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261009d"></script>
+  <script type="module" src="js/app.js?v=20261009e"></script>
 </body>
 </html>

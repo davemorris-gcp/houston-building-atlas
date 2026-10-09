@@ -9,7 +9,7 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261009d";
+} from "./palettes.js?v=20261009e";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -17,11 +17,11 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261009d";
+} from "./filterStore.js?v=20261009e";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261009d";
+} from "./curatedEdits.js?v=20261009e";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 
 const BASEMAP_TILES = {
@@ -171,10 +171,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261009d"),
-        fetch("public/data/parcels.geojson?v=20261009d"),
-        fetch("public/data/overlays.json?v=20261009d"),
-        fetch("public/data/pmtiles_manifest.json?v=20261009d").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261009e"),
+        fetch("public/data/parcels.geojson?v=20261009e"),
+        fetch("public/data/overlays.json?v=20261009e"),
+        fetch("public/data/pmtiles_manifest.json?v=20261009e").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -658,6 +658,7 @@ export class AtlasMapController {
     this.map.addSource("parcels-src", { type: "geojson", data: this.parcelsFC });
     this.map.addSource("annexations-src", {
       type: "geojson",
+      tolerance: 0.05,
       data: overlays.annexations || { type: "FeatureCollection", features: [] },
     });
     this.map.addSource("historic-wards-src", {
@@ -718,22 +719,53 @@ export class AtlasMapController {
     const filterExpr = buildFeatureFilterExpression(state);
     const shardFilterExpr = this._buildShardLayerFilter(filterExpr);
     const wardFilterExpr = buildHistoricWardFilterExpression(state);
+    const annexFilterExpr = buildAnnexationFilterExpression(state);
 
     this.map.addLayer({
       id: "annexations-fill",
       type: "fill",
       source: "annexations-src",
-      paint: { "fill-color": "#D97706", "fill-opacity": 0.08 },
+      filter: annexFilterExpr,
+      paint: {
+        "fill-color": [
+          "case",
+          ["==", ["get", "annex_subtype"], "spoke_or_spa"],
+          "#EA580C",
+          "#D97706",
+        ],
+        "fill-opacity": [
+          "case",
+          ["==", ["get", "annex_subtype"], "spoke_or_spa"],
+          0.14,
+          0.09,
+        ],
+      },
     });
     this.map.addLayer({
       id: "annexations-line",
       type: "line",
       source: "annexations-src",
+      filter: annexFilterExpr,
       paint: {
-        "line-color": "#F59E0B",
-        "line-width": 1.8,
+        "line-color": [
+          "case",
+          ["==", ["get", "annex_subtype"], "spoke_or_spa"],
+          "#FB923C",
+          "#F59E0B",
+        ],
+        "line-width": [
+          "case",
+          ["==", ["get", "annex_subtype"], "spoke_or_spa"],
+          1.15,
+          2.0,
+        ],
         "line-dasharray": [4, 3],
-        "line-opacity": 0.75,
+        "line-opacity": [
+          "case",
+          ["==", ["get", "annex_subtype"], "spoke_or_spa"],
+          0.82,
+          0.9,
+        ],
       },
     });
     this.map.addLayer({
@@ -2341,7 +2373,10 @@ export class AtlasMapController {
     } else if (p.type) {
       badge = p.type;
     } else if (p.era_label) {
-      badge = "Houston Annexation History";
+      badge =
+        p.annex_subtype === "spoke_or_spa"
+          ? "Highway Spoke / MUD Limited-Purpose"
+          : "Full-Purpose City Boundary";
     } else {
       badge = p.use_category || "Undated Parcel";
     }
@@ -2359,7 +2394,8 @@ export class AtlasMapController {
       p.neighborhood ||
       p.address ||
       p.subdivision ||
-      (p.era_label && p.decade ? `Annexed in the ${p.decade}s` : "") ||
+      p.annex_note ||
+      (p.era_label && p.decade ? `Annexed through the ${p.decade}s` : "") ||
       (p.type ? "Preservation District Boundary" : "Click to inspect property record");
 
     const goodBrickPill =

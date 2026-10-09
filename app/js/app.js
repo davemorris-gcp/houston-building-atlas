@@ -6,7 +6,7 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261009d";
+} from "./palettes.js?v=20261009e";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -15,8 +15,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261009d";
-import { AtlasMapController } from "./mapController.js?v=20261009d";
+} from "./filterStore.js?v=20261009e";
+import { AtlasMapController } from "./mapController.js?v=20261009e";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -28,7 +28,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261009d";
+} from "./curatedEdits.js?v=20261009e";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -169,9 +169,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261009d"),
-        fetch("public/data/stats_summary.json?v=20261009d"),
-        fetch("public/data/haif_index.json?v=20261009d").catch(() => null),
+        fetch("public/data/search_index.json?v=20261009e"),
+        fetch("public/data/stats_summary.json?v=20261009e"),
+        fetch("public/data/haif_index.json?v=20261009e").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -1494,6 +1494,13 @@ class HoustonAtlasApp {
         });
       });
     });
+
+    const chkAnnexSpokes = document.getElementById("chk-annexation-spokes");
+    if (chkAnnexSpokes) {
+      chkAnnexSpokes.addEventListener("change", (e) => {
+        this.filterStore.setState({ showAnnexationSpokes: Boolean(e.target.checked) });
+      });
+    }
 
     const histOpacitySlider = document.getElementById("slider-historic-map-opacity");
     if (histOpacitySlider) {
@@ -3723,6 +3730,18 @@ class HoustonAtlasApp {
       const era = parseInt(btn.getAttribute("data-ward-era"), 10) || 1920;
       btn.classList.toggle("active", era === activeWardEra);
     });
+
+    const annexOptionsRow = document.getElementById("annexation-options-row");
+    if (annexOptionsRow) {
+      annexOptionsRow.classList.toggle(
+        "hidden",
+        !(state.layers.annexations || state.syncAnnexationToTime)
+      );
+    }
+    const chkAnnexSpokes = document.getElementById("chk-annexation-spokes");
+    if (chkAnnexSpokes) {
+      chkAnnexSpokes.checked = state.showAnnexationSpokes !== false;
+    }
 
     const histOpacityRow = document.getElementById("historic-map-opacity-row");
     if (histOpacityRow) {
