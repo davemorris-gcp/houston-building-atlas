@@ -16,8 +16,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261009k";
-import { AtlasMapController } from "./mapController.js?v=20261009k";
+} from "./filterStore.js?v=20261009l";
+import { AtlasMapController } from "./mapController.js?v=20261009l";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -3797,7 +3797,7 @@ class HoustonAtlasApp {
     }
     const activeWardEra = resolveActiveWardEra(state);
     document.querySelectorAll("[data-ward-era]").forEach((btn) => {
-      const era = parseInt(btn.getAttribute("data-ward-era"), 10) || 1920;
+      const era = parseInt(btn.getAttribute("data-ward-era"), 10) || 1903;
       btn.classList.toggle("active", era === activeWardEra);
     });
 
@@ -4717,7 +4717,7 @@ class HoustonAtlasApp {
       badgeLabel = `COH Super Neighborhood${rawProps.sn_id || rawProps.poly_id ? ` #${rawProps.sn_id || rawProps.poly_id}` : ""}`;
       badgeColor = "#818cf8";
     } else if (overlayLayer === "historic_wards") {
-      badgeLabel = `Historic Ward${wardEra ? ` (${wardEra})` : ""}`;
+      badgeLabel = `Historic Ward${wardEra === 1903 ? " (1903–05)" : wardEra ? ` (${wardEra})` : ""}`;
       badgeColor = String(rawProps.color || "#fb923c");
     } else if (overlayLayer === "historic_districts") {
       badgeLabel = "COH Historic District";
@@ -4766,7 +4766,7 @@ class HoustonAtlasApp {
       subtitleParts.push(`Super Neighborhood: ${snName}`);
     }
     if (wardName && overlayLayer !== "historic_wards") {
-      subtitleParts.push(`1920 ${wardName}`);
+      subtitleParts.push(`1903–05 ${wardName}`);
     }
     const subtitle = subtitleParts.join(" · ") || "Harris County, Texas";
 
@@ -5008,7 +5008,7 @@ class HoustonAtlasApp {
         ${
           wardName && overlayLayer !== "historic_wards"
             ? `<div class="inspector-cell">
-                <span class="cell-label">1920 Historic Ward</span>
+                <span class="cell-label">Historic Ward (1839–1905)</span>
                 <span class="cell-value">
                   <button
                     type="button"
@@ -5766,10 +5766,10 @@ class HoustonAtlasApp {
         ${
           wardVal
             ? `<div class="inspector-cell full">
-                <span class="cell-label">Historic Ward (1839–1920 Municipal System)</span>
+                <span class="cell-label">Historic Ward (1839–1905 Aldermanic Charter)</span>
                 <span class="cell-value inspector-chip-group">
-                  <button type="button" class="inspector-filter-chip" data-filter-chip="${wardVal.replace(/"/g, "&quot;")}" data-filter-label="Historic Ward: ${wardVal.replace(/"/g, "&quot;")}" title="Click to search structures in ${wardVal.replace(/"/g, "&quot;")}">1920 ${wardVal} &#128269;</button>
-                  <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Outline 1920 ${wardVal.replace(/"/g, "&quot;")} boundary on the map">Outline Ward</button>
+                  <button type="button" class="inspector-filter-chip" data-filter-chip="${wardVal.replace(/"/g, "&quot;")}" data-filter-label="Historic Ward: ${wardVal.replace(/"/g, "&quot;")}" title="Click to search structures in ${wardVal.replace(/"/g, "&quot;")}">1903–05 ${wardVal} &#128269;</button>
+                  <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Outline 1903–1905 ${wardVal.replace(/"/g, "&quot;")} boundary on the map">Outline Ward</button>
                 </span>
               </div>`
             : ""
