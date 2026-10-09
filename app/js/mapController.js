@@ -9,7 +9,7 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261009e";
+} from "./palettes.js?v=20261009i";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -17,11 +17,11 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261009e";
+} from "./filterStore.js?v=20261009i";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261009e";
+} from "./curatedEdits.js?v=20261009i";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 
 const BASEMAP_TILES = {
@@ -101,6 +101,7 @@ export class AtlasMapController {
     onViewportStats,
     onPitchChange,
     onSelectTourStop,
+    onOverlapStackChange,
   }) {
     this.containerId = containerId;
     this.filterStore = filterStore;
@@ -108,6 +109,7 @@ export class AtlasMapController {
     this.onViewportStats = onViewportStats;
     this.onPitchChange = onPitchChange || null;
     this.onSelectTourStop = onSelectTourStop || null;
+    this.onOverlapStackChange = onOverlapStackChange || null;
     this.map = null;
     this.popup = null;
     this.useCanvasFallback = false;
@@ -121,6 +123,9 @@ export class AtlasMapController {
     this.selectedFeatureId = null;
     this.selectedBoundaryFeature = null;
     this._boundarySpatialIndex = null;
+    this.overlapStack = [];
+    this.overlapStackIndex = 0;
+    this._lastOverlapClickPoint = null;
     this.pmtilesManifest = null;
     this.buildingFillLayerIds = ["buildings-fill"];
     this.buildingLineLayerIds = ["buildings-line"];
@@ -171,10 +176,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261009e"),
-        fetch("public/data/parcels.geojson?v=20261009e"),
-        fetch("public/data/overlays.json?v=20261009e"),
-        fetch("public/data/pmtiles_manifest.json?v=20261009e").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261009i"),
+        fetch("public/data/parcels.geojson?v=20261009i"),
+        fetch("public/data/overlays.json?v=20261009i"),
+        fetch("public/data/pmtiles_manifest.json?v=20261009i").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -685,6 +690,14 @@ export class AtlasMapController {
       type: "geojson",
       data: this._buildLabelPointsFeatureCollection(overlays.neighborhoods),
     });
+    this.map.addSource("platted-subdivisions-src", {
+      type: "geojson",
+      data: overlays.platted_subdivisions || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("platted-subdivisions-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.platted_subdivisions),
+    });
     this.map.addSource("selected-boundary-src", {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
@@ -826,6 +839,26 @@ export class AtlasMapController {
         "line-color": "#95C959",
         "line-width": 1.4,
         "line-opacity": 0.78,
+      },
+    });
+    this.map.addLayer({
+      id: "platted-subdivisions-fill",
+      type: "fill",
+      source: "platted-subdivisions-src",
+      paint: {
+        "fill-color": "#22D3EE",
+        "fill-opacity": 0.08,
+      },
+    });
+    this.map.addLayer({
+      id: "platted-subdivisions-line",
+      type: "line",
+      source: "platted-subdivisions-src",
+      paint: {
+        "line-color": "#22D3EE",
+        "line-width": 1.45,
+        "line-dasharray": [3, 2],
+        "line-opacity": 0.86,
       },
     });
     this.map.addLayer({
@@ -1249,6 +1282,24 @@ export class AtlasMapController {
       },
     });
     this.map.addLayer({
+      id: "platted-subdivisions-label",
+      type: "symbol",
+      source: "platted-subdivisions-labels-src",
+      minzoom: 13.0,
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 13.0, 9.8, 16.5, 13.0],
+        "text-max-width": 8,
+        "text-padding": 3,
+      },
+      paint: {
+        "text-color": "#ECFCCB",
+        "text-halo-color": "rgba(11, 15, 23, 0.94)",
+        "text-halo-width": 1.8,
+      },
+    });
+    this.map.addLayer({
       id: "historic-wards-label",
       type: "symbol",
       source: "historic-wards-labels-src",
@@ -1418,127 +1469,24 @@ export class AtlasMapController {
   }
 
   _bindMapLibreInteractions() {
-    const BOUNDARY_FILL_LAYERS = [
-      "neighborhoods-fill",
-      "super-neighborhoods-fill",
-      "historic-wards-fill",
-      "historic-districts-fill",
-      "heritage-districts-fill",
-      "nrhp-districts-fill",
-      "annexations-fill",
-    ];
-
-    const getClickLayers = () => [
-      "good-brick-circle",
-      "landmarks-circle",
-      "thc-markers-circle",
-      "curated-overrides-extrusion",
-      "curated-overrides-fill",
-      ...this.buildingExtrusionLayerIds,
-      ...this.buildingFillLayerIds,
-      "parcels-fill",
-      "neighborhoods-fill",
-      "super-neighborhoods-fill",
-      "historic-wards-fill",
-    ];
-
-    const getHoverLayers = () => {
-      const base = [...getClickLayers()];
-      if (this.filterStore.getState().renderMode === "none") {
-        base.push(
-          "historic-districts-fill",
-          "heritage-districts-fill",
-          "nrhp-districts-fill",
-          "annexations-fill"
-        );
-      }
-      return base;
-    };
-
     this.map.on("mousemove", (e) => {
-      const activeLayers = getHoverLayers().filter((id) => this.map.getLayer(id));
-      const features = this.map.queryRenderedFeatures(e.point, { layers: activeLayers });
-      if (!features.length) {
+      const stack = this._collectOverlappingFeaturesAtPoint(e.point, e.lngLat);
+      if (!stack.length) {
         this.map.getCanvas().style.cursor = "";
         this.popup.remove();
         return;
       }
       this.map.getCanvas().style.cursor = "pointer";
-      const p = applyOverrideToProperties(features[0].properties || {}, this.curatedOverrides);
+      const topItem = stack[0];
+      const p = applyOverrideToProperties(topItem.props || {}, this.curatedOverrides);
       this.popup
         .setLngLat(e.lngLat)
-        .setHTML(this._buildTooltipHTML(p))
+        .setHTML(this._buildTooltipHTML(p, stack))
         .addTo(this.map);
     });
 
     this.map.on("click", (e) => {
-      const activeLayers = getClickLayers().filter((id) => this.map.getLayer(id));
-      const features = this.map.queryRenderedFeatures(e.point, { layers: activeLayers });
-      if (!features.length) return;
-      const top = features[0];
-      const p = applyOverrideToProperties(top.properties || {}, this.curatedOverrides);
-      if (
-        (top.layer.id === "landmarks-circle" || top.layer.id === "good-brick-circle") &&
-        (p.hcad_num || p.building_id)
-      ) {
-        // Check if there is an exact building_id override, an underlying building polygon at the clicked point, in overridesFC, or in buildingsData
-        const bldHit =
-          (p.building_id &&
-            (this.overridesFC?.features || []).find(
-              (f) =>
-                f.properties &&
-                (f.properties.building_id === p.building_id || f.properties.id === p.building_id)
-            )) ||
-          features.find((f) => !BOUNDARY_FILL_LAYERS.includes(f.layer.id) &&
-            f.layer.id !== "landmarks-circle" &&
-            f.layer.id !== "good-brick-circle" &&
-            f.layer.id !== "thc-markers-circle"
-          ) ||
-          (p.hcad_num &&
-            (this.overridesFC?.features || []).find(
-              (f) => f.properties && f.properties.hcad_num === p.hcad_num
-            )) ||
-          (p.hcad_num &&
-            this.buildingsData.find(
-              (f) => f.properties && f.properties.hcad_num === p.hcad_num
-            ));
-        if (bldHit) {
-          const baseBldProps = applyOverrideToProperties(
-            bldHit.properties || {},
-            this.curatedOverrides
-          );
-          const mergedClickProps = {
-            ...baseBldProps,
-            landmark_name: p.landmark_name || baseBldProps.landmark_name || p.name || "",
-            good_brick_awards: p.good_brick_awards || baseBldProps.good_brick_awards || null,
-            good_brick_summary: p.good_brick_summary || baseBldProps.good_brick_summary || "",
-            good_brick_years: p.good_brick_years || baseBldProps.good_brick_years || "",
-          };
-          this.highlightAndInspectFeature(mergedClickProps, bldHit.geometry || null);
-          return;
-        }
-      }
-      if (
-        top.layer.id === "neighborhoods-fill" ||
-        top.layer.id === "super-neighborhoods-fill" ||
-        top.layer.id === "historic-wards-fill"
-      ) {
-        const boundaryLayerKey =
-          top.layer.id === "neighborhoods-fill"
-            ? "neighborhoods"
-            : top.layer.id === "super-neighborhoods-fill"
-            ? "superNeighborhoods"
-            : "historicWards";
-        this.highlightBoundaryByIdOrName({
-          id: p.id || "",
-          name: p.name || "",
-          layerKey: boundaryLayerKey,
-          flyTo: false,
-          inspect: true,
-        });
-        return;
-      }
-      this.highlightAndInspectFeature(p, top.geometry || null);
+      this._handleMapPointClick(e.point, e.lngLat);
     });
 
     this.map.on("pitch", () => {
@@ -1652,10 +1600,28 @@ export class AtlasMapController {
       const rect = canvas.getBoundingClientRect();
       const px = e.clientX - rect.left;
       const py = e.clientY - rect.top;
+      if (px < 0 || py < 0 || px > rect.width || py > rect.height) {
+        tooltipEl.classList.add("hidden");
+        return;
+      }
       const hit = this._hitTestCanvas2D(px, py);
-      if (hit) {
+      if (hit && hit.isTourStop) {
         canvas.style.cursor = "pointer";
         tooltipEl.innerHTML = `<div class="maplibregl-popup-content">${this._buildTooltipHTML(hit)}</div>`;
+        tooltipEl.style.left = `${Math.min(rect.width - 240, px + 14)}px`;
+        tooltipEl.style.top = `${Math.max(12, py - 68)}px`;
+        tooltipEl.classList.remove("hidden");
+        return;
+      }
+      const lngLat = this._screenToLngLat(px, py, rect.width, rect.height);
+      const stack = this._collectOverlappingFeaturesAtPoint({ x: px, y: py }, lngLat);
+      if (stack.length > 0) {
+        canvas.style.cursor = "pointer";
+        const topProps = applyOverrideToProperties(stack[0].props || {}, this.curatedOverrides);
+        tooltipEl.innerHTML = `<div class="maplibregl-popup-content">${this._buildTooltipHTML(
+          topProps,
+          stack
+        )}</div>`;
         tooltipEl.style.left = `${Math.min(rect.width - 240, px + 14)}px`;
         tooltipEl.style.top = `${Math.max(12, py - 68)}px`;
         tooltipEl.classList.remove("hidden");
@@ -1671,14 +1637,15 @@ export class AtlasMapController {
       canvas.style.cursor = "grab";
       if (!this.canvasState.moved) {
         const rect = canvas.getBoundingClientRect();
-        const hit = this._hitTestCanvas2D(e.clientX - rect.left, e.clientY - rect.top);
-        if (hit) {
-          if (hit.isTourStop && typeof this.onSelectTourStop === "function") {
-            this.onSelectTourStop(hit.stopIndex);
-          } else {
-            this.highlightAndInspectFeature(hit);
-          }
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const hit = this._hitTestCanvas2D(px, py);
+        if (hit && hit.isTourStop && typeof this.onSelectTourStop === "function") {
+          this.onSelectTourStop(hit.stopIndex);
+          return;
         }
+        const lngLat = this._screenToLngLat(px, py, rect.width, rect.height);
+        this._handleMapPointClick({ x: px, y: py }, lngLat);
       } else {
         this.computeViewportHistogram();
       }
@@ -1710,6 +1677,22 @@ export class AtlasMapController {
       (0.5 - Math.log((1 + sinCenter) / (1 - sinCenter)) / (4 * Math.PI)) * scale;
 
     return [width / 2 + (worldX - centerX), height / 2 + (worldY - centerY)];
+  }
+
+  _screenToLngLat(px, py, width, height) {
+    const cs = this.canvasState;
+    if (!cs) return null;
+    const scale = 256 * Math.pow(2, cs.zoom);
+    const centerX = ((cs.lng + 180) / 360) * scale;
+    const sinCenter = Math.sin((cs.lat * Math.PI) / 180);
+    const centerY =
+      (0.5 - Math.log((1 + sinCenter) / (1 - sinCenter)) / (4 * Math.PI)) * scale;
+    const worldX = centerX + (px - width / 2);
+    const worldY = centerY + (py - height / 2);
+    const lng = (worldX / scale) * 360 - 180;
+    const n = Math.PI - (2 * Math.PI * worldY) / scale;
+    const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    return { lng, lat };
   }
 
   _getCanvasBounds() {
@@ -2026,6 +2009,17 @@ export class AtlasMapController {
         );
       }
     }
+    if (state.layers.plattedSubdivisions && this.overlaysData?.platted_subdivisions) {
+      for (const feat of this.overlaysData.platted_subdivisions.features || []) {
+        drawPolygonFeature(
+          feat.geometry,
+          "rgba(163, 230, 53, 0.08)",
+          "rgba(163, 230, 53, 0.85)",
+          1.35,
+          [2, 1.5]
+        );
+      }
+    }
     if (this.selectedBoundaryFeature && this.selectedBoundaryFeature.geometry) {
       drawPolygonFeature(
         this.selectedBoundaryFeature.geometry,
@@ -2053,7 +2047,7 @@ export class AtlasMapController {
         const stroke = showParcelsLine ? "rgba(148, 163, 184, 0.42)" : null;
         const bbox = drawPolygonFeature(feat.geometry, fill, stroke, 0.7);
         if (bbox && showParcelsFill) {
-          cs.renderedBBoxes.push({ ...bbox, props: p });
+          cs.renderedBBoxes.push({ ...bbox, props: p, geom: feat.geometry });
         }
       }
     }
@@ -2083,7 +2077,7 @@ export class AtlasMapController {
 
         const bbox = drawPolygonFeature(feat.geometry, color, stroke, lw, null, extrudeM);
         if (bbox) {
-          cs.renderedBBoxes.push({ ...bbox, props: p });
+          cs.renderedBBoxes.push({ ...bbox, props: p, geom: feat.geometry });
         }
       }
     }
@@ -2108,6 +2102,7 @@ export class AtlasMapController {
           maxX: sx + 6,
           maxY: sy + 6,
           props: feat.properties,
+          geom: feat.geometry,
         });
       }
     }
@@ -2133,6 +2128,7 @@ export class AtlasMapController {
           maxX: sx + 7,
           maxY: sy + 7,
           props: feat.properties,
+          geom: feat.geometry,
         });
       }
     }
@@ -2165,8 +2161,53 @@ export class AtlasMapController {
           maxX: sx + 8,
           maxY: sy + 8,
           props: feat.properties,
+          geom: feat.geometry,
         });
       }
+    }
+
+    // 8b. Boundary Labels in 2D Canvas Mode
+    const drawBoundaryLabels = (features, minZ, textColor) => {
+      if (cs.zoom < minZ || !Array.isArray(features)) return;
+      ctx.save();
+      ctx.font = "700 10.5px Inter, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const placedBoxes = [];
+      for (const feat of features) {
+        const p = feat.properties || {};
+        const lng = Number(p.label_lng);
+        const lat = Number(p.label_lat);
+        const name = String(p.name || "").trim();
+        if (!name || !Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+        if (lng < west || lng > east || lat < south || lat > north) continue;
+        const [sx, sy] = this._lngLatToScreen(lng, lat, width, height);
+        if (sx < 30 || sx > width - 30 || sy < 20 || sy > height - 20) continue;
+        const tw = Math.min(130, name.length * 6.2 + 10);
+        const th = 16;
+        const overlaps = placedBoxes.some(
+          (b) =>
+            Math.abs(b.x - sx) < (b.w + tw) * 0.55 &&
+            Math.abs(b.y - sy) < (b.h + th) * 0.65
+        );
+        if (overlaps) continue;
+        placedBoxes.push({ x: sx, y: sy, w: tw, h: th });
+        ctx.lineWidth = 3.2;
+        ctx.strokeStyle = "rgba(11, 15, 23, 0.92)";
+        ctx.strokeText(name, sx, sy);
+        ctx.fillStyle = textColor;
+        ctx.fillText(name, sx, sy);
+      }
+      ctx.restore();
+    };
+    if (state.layers.plattedSubdivisions && this.overlaysData?.platted_subdivisions) {
+      drawBoundaryLabels(this.overlaysData.platted_subdivisions.features, 13.0, "#ECFCCB");
+    }
+    if (state.layers.neighborhoods && this.overlaysData?.neighborhoods) {
+      drawBoundaryLabels(this.overlaysData.neighborhoods.features, 12.2, "#D9F99D");
+    }
+    if (state.layers.superNeighborhoods && this.overlaysData?.super_neighborhoods) {
+      drawBoundaryLabels(this.overlaysData.super_neighborhoods.features, 10.6, "#BFDBFE");
     }
 
     // 9. Guided Walking Tour Route & Numbered Stop Pins
@@ -2273,14 +2314,33 @@ export class AtlasMapController {
   /* ========================================================================
      Unified Public Controller API
      ======================================================================== */
-  _buildTooltipHTML(p) {
+  _buildTooltipHTML(p, overlapStack = []) {
     const isBoundary =
       p.overlay_layer === "neighborhoods" ||
+      p.overlay_layer === "platted_subdivisions" ||
       p.overlay_layer === "super_neighborhoods" ||
       p.overlay_layer === "historic_wards" ||
+      p.overlay_layer === "historic_districts" ||
+      p.overlay_layer === "heritage_districts" ||
+      p.overlay_layer === "nrhp_districts" ||
       p.type === "Neighborhood / Historic Area" ||
+      p.type === "Platted Subdivision" ||
       p.type === "COH Super Neighborhood" ||
       p.type === "Historic Ward";
+
+    const extraCount =
+      Array.isArray(overlapStack) && overlapStack.length > 1 ? overlapStack.length - 1 : 0;
+    const overlapFooterHtml =
+      extraCount > 0
+        ? `<div class="tooltip-overlap-footer">
+             &#128260; <strong>+${extraCount} overlapping ${
+            extraCount === 1 ? "feature" : "features"
+          }</strong> (${overlapStack
+            .slice(1, 4)
+            .map((it) => `${it.typeBadge}: ${it.title}`)
+            .join(" · ")}) · Click to inspect &amp; cycle
+           </div>`
+        : "";
 
     const title =
       p.building_name ||
@@ -2317,7 +2377,9 @@ export class AtlasMapController {
 
     if (isBoundary) {
       let badge = p.type || "Neighborhood Boundary";
-      if (p.overlay_layer === "historic_wards" && p.era_label) {
+      if (p.overlay_layer === "platted_subdivisions") {
+        badge = p.vol_page ? `HCAD Plat (Vol ${p.vol_page})` : "Platted Subdivision";
+      } else if (p.overlay_layer === "historic_wards" && p.era_label) {
         badge = p.era_label;
       } else if (p.overlay_layer === "super_neighborhoods" && p.poly_id) {
         badge = `COH Super Neighborhood #${p.poly_id}`;
@@ -2332,6 +2394,9 @@ export class AtlasMapController {
       if (Number(p.median_year) >= 1836) {
         statParts.push(`Median ${p.median_year}`);
       }
+      if (!statParts.length && p.neighborhood && p.overlay_layer === "platted_subdivisions") {
+        statParts.push(p.neighborhood);
+      }
       if (!statParts.length && p.super_neighborhood) {
         statParts.push(p.super_neighborhood);
       }
@@ -2341,7 +2406,9 @@ export class AtlasMapController {
         <div class="tooltip-top">
           <span class="tooltip-badge">${badge}</span>
           ${
-            p.historic_ward && p.overlay_layer !== "historic_wards"
+            p.neighborhood && p.overlay_layer === "platted_subdivisions"
+              ? `<span class="tooltip-status">${p.neighborhood}</span>`
+              : p.historic_ward && p.overlay_layer !== "historic_wards"
               ? `<span class="tooltip-status">${p.historic_ward}</span>`
               : ""
           }
@@ -2349,6 +2416,7 @@ export class AtlasMapController {
         <div class="tooltip-title">${title}</div>
         ${akaHtml}
         <div class="tooltip-sub">${subtitle}</div>
+        ${overlapFooterHtml}
       </div>`;
     }
 
@@ -2416,6 +2484,7 @@ export class AtlasMapController {
       <div class="tooltip-title">${title}</div>
       ${akaHtml}
       <div class="tooltip-sub">${subtitle}</div>
+      ${overlapFooterHtml}
     </div>`;
   }
 
@@ -2554,6 +2623,14 @@ export class AtlasMapController {
     setVis(
       ["neighborhoods-fill", "neighborhoods-line", "neighborhoods-label"],
       Boolean(state.layers?.neighborhoods)
+    );
+    setVis(
+      [
+        "platted-subdivisions-fill",
+        "platted-subdivisions-line",
+        "platted-subdivisions-label",
+      ],
+      Boolean(state.layers?.plattedSubdivisions)
     );
     setVis(
       ["super-neighborhoods-fill", "super-neighborhoods-line", "super-neighborhoods-label"],
@@ -2936,7 +3013,27 @@ export class AtlasMapController {
     }
   }
 
-  flyToLocation({ lng, lat, zoom = 16.5, pitch = null, hcadNum = "", featureId = "" }) {
+  flyToLocation(arg1, arg2, arg3 = 16.5) {
+    let lng;
+    let lat;
+    let zoom = 16.5;
+    let pitch = null;
+    let hcadNum = "";
+    let featureId = "";
+    if (arg1 && typeof arg1 === "object") {
+      lng = Number(arg1.lng);
+      lat = Number(arg1.lat);
+      if (Number.isFinite(Number(arg1.zoom))) zoom = Number(arg1.zoom);
+      if (arg1.pitch !== undefined && arg1.pitch !== null) pitch = Number(arg1.pitch);
+      hcadNum = arg1.hcadNum || "";
+      featureId = arg1.featureId || "";
+    } else {
+      lng = Number(arg1);
+      lat = Number(arg2);
+      if (Number.isFinite(Number(arg3))) zoom = Number(arg3);
+    }
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
     if (this.useCanvasFallback && this.canvasState) {
       this.canvasState.lng = lng;
       this.canvasState.lat = lat;
@@ -3437,29 +3534,496 @@ export class AtlasMapController {
     this.boundarySpatialIndex = [];
     const indexLayer = (fc, overlayKey) => {
       if (!fc || !Array.isArray(fc.features)) return;
-      for (const feat of fc.features) {
+      for (let idx = 0; idx < fc.features.length; idx++) {
+        const feat = fc.features[idx];
         const geom = feat?.geometry;
         if (!geom || (geom.type !== "Polygon" && geom.type !== "MultiPolygon")) continue;
         const meta = this._computeGeometryBBoxAndCentroid(geom);
         if (!meta) continue;
+        const rawProps = feat.properties || {};
+        const fallbackId = `${overlayKey}_${idx}`;
+        const propArea = Number(rawProps.area_deg2);
         this.boundarySpatialIndex.push({
           overlayKey,
           feature: feat,
           props: {
-            ...(feat.properties || {}),
-            overlay_layer: feat.properties?.overlay_layer || overlayKey,
+            ...rawProps,
+            id: rawProps.id || fallbackId,
+            overlay_layer: rawProps.overlay_layer || overlayKey,
           },
           bbox: meta.bbox,
           centroid: [meta.lng, meta.lat],
           areaDeg2:
-            Math.max(1e-8, meta.bbox[2] - meta.bbox[0]) *
-            Math.max(1e-8, meta.bbox[3] - meta.bbox[1]),
+            Number.isFinite(propArea) && propArea > 0
+              ? propArea
+              : Math.max(1e-8, meta.bbox[2] - meta.bbox[0]) *
+                Math.max(1e-8, meta.bbox[3] - meta.bbox[1]),
         });
       }
     };
+    indexLayer(this.overlaysData?.platted_subdivisions, "platted_subdivisions");
     indexLayer(this.overlaysData?.neighborhoods, "neighborhoods");
     indexLayer(this.overlaysData?.super_neighborhoods, "super_neighborhoods");
     indexLayer(this.overlaysData?.historic_wards, "historic_wards");
+    indexLayer(this.overlaysData?.historic_districts, "historic_districts");
+    indexLayer(this.overlaysData?.heritage_districts, "heritage_districts");
+    indexLayer(this.overlaysData?.nrhp_districts, "nrhp_districts");
+    indexLayer(this.overlaysData?.annexations, "annexations");
+  }
+
+  _normalizeBoundaryOverlayKey(rawKey) {
+    const k = String(rawKey || "").trim();
+    const map = {
+      plattedSubdivisions: "platted_subdivisions",
+      platted_subdivisions: "platted_subdivisions",
+      "platted-subdivisions-fill": "platted_subdivisions",
+      neighborhoods: "neighborhoods",
+      "neighborhoods-fill": "neighborhoods",
+      superNeighborhoods: "super_neighborhoods",
+      super_neighborhoods: "super_neighborhoods",
+      "super-neighborhoods-fill": "super_neighborhoods",
+      historicWards: "historic_wards",
+      historic_wards: "historic_wards",
+      "historic-wards-fill": "historic_wards",
+      historicDistricts: "historic_districts",
+      historic_districts: "historic_districts",
+      "historic-districts-fill": "historic_districts",
+      heritageDistricts: "heritage_districts",
+      heritage_districts: "heritage_districts",
+      "heritage-districts-fill": "heritage_districts",
+      nrhpDistricts: "nrhp_districts",
+      nrhp_districts: "nrhp_districts",
+      "nrhp-districts-fill": "nrhp_districts",
+      annexations: "annexations",
+      "annexations-fill": "annexations",
+    };
+    return map[k] || k;
+  }
+
+  _collectOverlappingFeaturesAtPoint(point, lngLat) {
+    const state = this.filterStore.getState();
+    const stack = [];
+    const seenKeys = new Set();
+
+    const makeBuildingTitle = (p) =>
+      p.building_name ||
+      p.landmark_name ||
+      p.name ||
+      p.address ||
+      (p.hcad_num ? `HCAD ${p.hcad_num}` : "Historic Structure");
+
+    // 1. Collect rendered point markers & building/parcel footprints at `point`
+    if (!this.useCanvasFallback && this.map && point) {
+      const BOUNDARY_FILL_LAYERS = new Set([
+        "platted-subdivisions-fill",
+        "neighborhoods-fill",
+        "super-neighborhoods-fill",
+        "historic-wards-fill",
+        "historic-districts-fill",
+        "heritage-districts-fill",
+        "nrhp-districts-fill",
+        "annexations-fill",
+      ]);
+      const nonBoundaryLayers = [
+        "good-brick-circle",
+        "landmarks-circle",
+        "thc-markers-circle",
+        "curated-overrides-extrusion",
+        "curated-overrides-fill",
+        ...this.buildingExtrusionLayerIds,
+        ...this.buildingFillLayerIds,
+        "parcels-fill",
+      ].filter((id) => this.map.getLayer(id));
+
+      const rendered = nonBoundaryLayers.length
+        ? this.map.queryRenderedFeatures(point, { layers: nonBoundaryLayers })
+        : [];
+
+      for (const f of rendered) {
+        const lid = f.layer?.id || "";
+        if (BOUNDARY_FILL_LAYERS.has(lid)) continue;
+        const p = applyOverrideToProperties(f.properties || {}, this.curatedOverrides);
+
+        if ((lid === "landmarks-circle" || lid === "good-brick-circle") && (p.hcad_num || p.building_id)) {
+          const bldHit =
+            (p.building_id &&
+              (this.overridesFC?.features || []).find(
+                (bf) =>
+                  bf.properties &&
+                  (bf.properties.building_id === p.building_id || bf.properties.id === p.building_id)
+              )) ||
+            rendered.find(
+              (bf) =>
+                bf.layer?.id !== "landmarks-circle" &&
+                bf.layer?.id !== "good-brick-circle" &&
+                bf.layer?.id !== "thc-markers-circle"
+            ) ||
+            (p.hcad_num &&
+              (this.overridesFC?.features || []).find(
+                (bf) => bf.properties && bf.properties.hcad_num === p.hcad_num
+              )) ||
+            (p.hcad_num &&
+              this.buildingsData.find(
+                (bf) => bf.properties && bf.properties.hcad_num === p.hcad_num
+              ));
+          if (bldHit) {
+            const baseBldProps = applyOverrideToProperties(
+              bldHit.properties || {},
+              this.curatedOverrides
+            );
+            const mergedProps = {
+              ...baseBldProps,
+              landmark_name: p.landmark_name || baseBldProps.landmark_name || p.name || "",
+              good_brick_awards: p.good_brick_awards || baseBldProps.good_brick_awards || null,
+              good_brick_summary: p.good_brick_summary || baseBldProps.good_brick_summary || "",
+              good_brick_years: p.good_brick_years || baseBldProps.good_brick_years || "",
+            };
+            const bldKey = `bld:${
+              mergedProps.building_id || mergedProps.id || mergedProps.hcad_num || makeBuildingTitle(mergedProps)
+            }`;
+            if (!seenKeys.has(bldKey)) {
+              seenKeys.add(bldKey);
+              if (mergedProps.hcad_num) seenKeys.add(`hcad:${mergedProps.hcad_num}`);
+              const bTypeBadge =
+                lid === "good-brick-circle"
+                  ? "Good Brick"
+                  : lid === "landmarks-circle"
+                  ? "Landmark"
+                  : "Building";
+              const bSwatchColor = lid === "good-brick-circle" ? "#95c959" : "#fde047";
+              stack.push({
+                key: bldKey,
+                kind: "building",
+                layerId: lid,
+                overlayKey: "",
+                layerKey: "",
+                typeBadge: bTypeBadge,
+                badge: bTypeBadge,
+                swatchColor: bSwatchColor,
+                color: bSwatchColor,
+                title: makeBuildingTitle(mergedProps),
+                subtitle:
+                  Number(mergedProps.year_built) >= 1836
+                    ? `Built ${mergedProps.year_built}`
+                    : mergedProps.address || "",
+                props: mergedProps,
+                geometry: bldHit.geometry || null,
+              });
+            }
+            continue;
+          }
+        }
+
+        if (lid === "thc-markers-circle") {
+          const mKey = `thc:${p.marker_num || p.name || stack.length}`;
+          if (!seenKeys.has(mKey)) {
+            seenKeys.add(mKey);
+            stack.push({
+              key: mKey,
+              kind: "marker",
+              layerId: lid,
+              overlayKey: "thc_markers",
+              layerKey: "thc_markers",
+              typeBadge: "THC Marker",
+              badge: "THC Marker",
+              swatchColor: "#c084fc",
+              color: "#c084fc",
+              title: p.name || p.landmark_name || `Marker #${p.marker_num || ""}`,
+              subtitle: p.marker_num ? `THC Marker #${p.marker_num}` : "Historical Marker",
+              props: p,
+              geometry: f.geometry || null,
+            });
+          }
+          continue;
+        }
+
+        const rawId = String(p.building_id || p.id || p.hcad_num || "").trim();
+        const bKey = `bld:${rawId || makeBuildingTitle(p)}`;
+        if (seenKeys.has(bKey) || (p.hcad_num && seenKeys.has(`hcad:${p.hcad_num}`))) {
+          continue;
+        }
+        seenKeys.add(bKey);
+        if (p.hcad_num) seenKeys.add(`hcad:${p.hcad_num}`);
+        const bBadge = lid === "parcels-fill" ? "Tax Parcel" : "Building";
+        const bColor = lid === "parcels-fill" ? "#94a3b8" : "#fde047";
+        stack.push({
+          key: bKey,
+          kind: "building",
+          layerId: lid,
+          overlayKey: "",
+          layerKey: "",
+          typeBadge: bBadge,
+          badge: bBadge,
+          swatchColor: bColor,
+          color: bColor,
+          title: makeBuildingTitle(p),
+          subtitle:
+            Number(p.year_built) >= 1836 ? `Built ${p.year_built}` : p.address || "",
+          props: p,
+          geometry: f.geometry || null,
+        });
+      }
+    } else if (this.useCanvasFallback && this.canvasState && point) {
+      const boxes = this.canvasState.renderedBBoxes || [];
+      for (let i = boxes.length - 1; i >= 0; i--) {
+        const b = boxes[i];
+        if (!b || b.props?.isTourStop) continue;
+        if (point.x >= b.minX && point.x <= b.maxX && point.y >= b.minY && point.y <= b.maxY) {
+          const p = applyOverrideToProperties(b.props || {}, this.curatedOverrides);
+          const rawId = String(p.building_id || p.id || p.hcad_num || p.marker_num || "").trim();
+          const bKey = `bld:${rawId || makeBuildingTitle(p)}`;
+          if (seenKeys.has(bKey) || (p.hcad_num && seenKeys.has(`hcad:${p.hcad_num}`))) {
+            continue;
+          }
+          seenKeys.add(bKey);
+          if (p.hcad_num) seenKeys.add(`hcad:${p.hcad_num}`);
+          const cBadge = p.marker_num ? "THC Marker" : "Building";
+          const cColor = p.marker_num ? "#c084fc" : "#fde047";
+          stack.push({
+            key: bKey,
+            kind: p.marker_num ? "marker" : "building",
+            layerId: "canvas-feature",
+            overlayKey: "",
+            layerKey: "",
+            typeBadge: cBadge,
+            badge: cBadge,
+            swatchColor: cColor,
+            color: cColor,
+            title: makeBuildingTitle(p),
+            subtitle:
+              Number(p.year_built) >= 1836 ? `Built ${p.year_built}` : p.address || "",
+            props: p,
+            geometry: b.geom || null,
+          });
+        }
+      }
+    }
+
+    // 2. Collect all visible boundary polygons containing `lngLat` from boundarySpatialIndex
+    const lng = Number(lngLat?.lng ?? lngLat?.[0]);
+    const lat = Number(lngLat?.lat ?? lngLat?.[1]);
+    if (Number.isFinite(lng) && Number.isFinite(lat)) {
+      if (!Array.isArray(this.boundarySpatialIndex) || !this.boundarySpatialIndex.length) {
+        this._buildBoundarySpatialIndex();
+      }
+      const activeWardEra = resolveActiveWardEra(state);
+      const showAnnex = Boolean(state.layers?.annexations || state.syncAnnexationToTime);
+      const maxYear = Number(state.maxYear || 2026);
+      const showSpokes = state.showAnnexationSpokes !== false;
+
+      const LAYER_META = {
+        platted_subdivisions: {
+          enabled: Boolean(state.layers?.plattedSubdivisions),
+          priority: 10,
+          typeBadge: "Platted Subdiv",
+          swatchColor: "#2dd4bf",
+        },
+        historic_districts: {
+          enabled: Boolean(state.layers?.historicDistricts),
+          priority: 20,
+          typeBadge: "Historic Dist",
+          swatchColor: "#a855f7",
+        },
+        heritage_districts: {
+          enabled: Boolean(state.layers?.heritageDistricts),
+          priority: 25,
+          typeBadge: "Heritage Dist",
+          swatchColor: "#ec4899",
+        },
+        nrhp_districts: {
+          enabled: Boolean(state.layers?.nrhpDistricts),
+          priority: 30,
+          typeBadge: "NRHP Dist",
+          swatchColor: "#10b981",
+        },
+        neighborhoods: {
+          enabled: Boolean(state.layers?.neighborhoods),
+          priority: 40,
+          typeBadge: "Neighborhood",
+          swatchColor: "#38bdf8",
+        },
+        super_neighborhoods: {
+          enabled: Boolean(state.layers?.superNeighborhoods),
+          priority: 50,
+          typeBadge: "Super Nbhd",
+          swatchColor: "#818cf8",
+        },
+        historic_wards: {
+          enabled: Boolean(state.layers?.historicWards),
+          priority: 60,
+          typeBadge: `${activeWardEra} Ward`,
+          swatchColor: "#fb923c",
+        },
+        annexations: {
+          enabled: showAnnex,
+          priority: 70,
+          typeBadge: "Annexation",
+          swatchColor: "#f43f5e",
+        },
+      };
+
+      const matchingBoundaries = [];
+      for (const entry of this.boundarySpatialIndex) {
+        const meta = LAYER_META[entry.overlayKey];
+        if (!meta || !meta.enabled) continue;
+        if (entry.overlayKey === "historic_wards") {
+          const entryEra = Number(
+            entry.props.era || entry.props.ward_era || entry.props.era_year || 0
+          );
+          if (entryEra !== activeWardEra) continue;
+        } else if (entry.overlayKey === "annexations") {
+          const annexYr = Number(entry.props.year || entry.props.decade || 0);
+          if (annexYr > maxYear) continue;
+          if (!showSpokes && entry.props.annex_subtype === "spoke_or_spa") continue;
+        }
+        const [minLng, minLat, maxLng, maxLat] = entry.bbox;
+        if (lng < minLng || lng > maxLng || lat < minLat || lat > maxLat) continue;
+        if (!this._pointInPolygonGeometry(lng, lat, entry.feature.geometry)) continue;
+        matchingBoundaries.push({
+          entry,
+          priority: meta.priority,
+          typeBadge: meta.typeBadge,
+          swatchColor: entry.props.color || meta.swatchColor,
+        });
+      }
+
+      matchingBoundaries.sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        return a.entry.areaDeg2 - b.entry.areaDeg2;
+      });
+
+      const superNbhdNamesLower = new Set(
+        matchingBoundaries
+          .filter((mb) => mb.entry.overlayKey === "super_neighborhoods")
+          .map((mb) => String(mb.entry.props.name || "").trim().toLowerCase())
+          .filter(Boolean)
+      );
+
+      for (const mb of matchingBoundaries) {
+        const ep = mb.entry.props;
+        const title = ep.name || ep.era_label || ep.historic_district || "Boundary";
+        const titleLower = String(title || "").trim().toLowerCase();
+        // Skip duplicate Pitney Bowes macro-neighborhood polygons when a COH Super Neighborhood with the same name is present
+        if (
+          mb.entry.overlayKey === "neighborhoods" &&
+          superNbhdNamesLower.has(titleLower)
+        ) {
+          continue;
+        }
+        const bndKey = `bnd:${mb.entry.overlayKey}:${ep.id || ep.name || ep.era_label}`;
+        if (seenKeys.has(bndKey)) continue;
+        seenKeys.add(bndKey);
+        stack.push({
+          key: bndKey,
+          kind: "boundary",
+          layerId: `${mb.entry.overlayKey}-fill`,
+          overlayKey: mb.entry.overlayKey,
+          layerKey: mb.entry.overlayKey,
+          typeBadge: mb.typeBadge,
+          badge: mb.typeBadge,
+          swatchColor: mb.swatchColor,
+          color: mb.swatchColor,
+          title,
+          subtitle:
+            Number(ep.building_count) > 0
+              ? `${Number(ep.building_count).toLocaleString()} structures`
+              : ep.type || mb.typeBadge,
+          props: {
+            ...ep,
+            overlay_layer: mb.entry.overlayKey,
+            is_boundary_feature: true,
+          },
+          geometry: mb.entry.feature.geometry,
+        });
+      }
+    }
+
+    return stack;
+  }
+
+  _handleMapPointClick(point, lngLat) {
+    const stack = this._collectOverlappingFeaturesAtPoint(point, lngLat);
+    if (!stack.length) return;
+
+    let nextIndex = 0;
+    if (
+      point &&
+      this._lastOverlapClickPoint &&
+      Array.isArray(this.overlapStack) &&
+      this.overlapStack.length > 1 &&
+      Math.hypot(
+        point.x - this._lastOverlapClickPoint.x,
+        point.y - this._lastOverlapClickPoint.y
+      ) <= 14 &&
+      this.overlapStack[0]?.key === stack[0]?.key
+    ) {
+      nextIndex = (this.overlapStackIndex + 1) % stack.length;
+    }
+
+    this._lastOverlapClickPoint = point ? { x: point.x, y: point.y } : null;
+    this.overlapStack = stack;
+    this.selectOverlapStackItem(nextIndex);
+  }
+
+  selectOverlapStackItem(index) {
+    if (!Array.isArray(this.overlapStack) || !this.overlapStack.length) return false;
+    const safeIdx =
+      ((Number(index) % this.overlapStack.length) + this.overlapStack.length) %
+      this.overlapStack.length;
+    this.overlapStackIndex = safeIdx;
+    const item = this.overlapStack[safeIdx];
+    if (!item) return false;
+
+    if (item.kind === "boundary") {
+      this.clearSelection({ keepOverlapStack: true, keepBoundary: true });
+      const highlighted = this.highlightBoundaryByIdOrName({
+        id: item.props.id || "",
+        name: item.props.name || item.props.era_label || item.title || "",
+        layerKey: item.overlayKey,
+        eraYear: item.props.era || item.props.ward_era || item.props.era_year || null,
+        flyTo: false,
+        inspect: true,
+        keepOverlapStack: true,
+      });
+      if (!highlighted && item.geometry) {
+        const feat = {
+          type: "Feature",
+          geometry: item.geometry,
+          properties: {
+            ...item.props,
+            overlay_layer: item.overlayKey,
+            is_boundary_feature: true,
+          },
+        };
+        this.selectedBoundaryFeature = feat;
+        if (this.useCanvasFallback) {
+          this._renderCanvas2D();
+        } else if (this.map) {
+          const selBndSrc = this.map.getSource("selected-boundary-src");
+          if (selBndSrc) {
+            selBndSrc.setData({ type: "FeatureCollection", features: [feat] });
+          }
+        }
+        if (this.onSelectFeature) {
+          this.onSelectFeature(feat.properties);
+        }
+      }
+    } else {
+      this.clearHighlightedBoundary();
+      this.highlightAndInspectFeature(item.props, item.geometry || null, {
+        keepOverlapStack: true,
+      });
+    }
+
+    if (typeof this.onOverlapStackChange === "function") {
+      this.onOverlapStackChange(this.overlapStack, this.overlapStackIndex);
+    }
+    return true;
+  }
+
+  cycleOverlapStack(step = 1) {
+    if (!Array.isArray(this.overlapStack) || this.overlapStack.length < 2) return false;
+    return this.selectOverlapStackItem(this.overlapStackIndex + step);
   }
 
   _pointInRing(lng, lat, ring) {
@@ -3505,6 +4069,7 @@ export class AtlasMapController {
       this._buildBoundarySpatialIndex();
     }
     const nhMatches = [];
+    const platMatches = [];
     let snMatch = null;
     let wardMatch1920 = null;
 
@@ -3514,11 +4079,13 @@ export class AtlasMapController {
       if (!this._pointInPolygonGeometry(lng, lat, entry.feature.geometry)) continue;
       if (entry.overlayKey === "neighborhoods") {
         nhMatches.push(entry);
+      } else if (entry.overlayKey === "platted_subdivisions") {
+        platMatches.push(entry);
       } else if (entry.overlayKey === "super_neighborhoods" && !snMatch) {
         snMatch = entry;
       } else if (
         entry.overlayKey === "historic_wards" &&
-        Number(entry.props.ward_era || entry.props.era_year) === 1920 &&
+        Number(entry.props.era || entry.props.ward_era || entry.props.era_year) === 1920 &&
         !wardMatch1920
       ) {
         wardMatch1920 = entry;
@@ -3526,7 +4093,9 @@ export class AtlasMapController {
     }
 
     nhMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    platMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     const primaryNh = nhMatches[0]?.props?.name || "";
+    const primaryPlat = platMatches[0]?.props?.name || "";
     const aliasSet = new Set();
     const aliasList = [];
     const addAlias = (val) => {
@@ -3553,10 +4122,18 @@ export class AtlasMapController {
     return {
       neighborhood: primaryNh,
       neighborhood_aliases: aliasList,
+      platted_subdivision: primaryPlat,
+      platted_subdivision_id: platMatches[0]?.props?.id || "",
       super_neighborhood:
-        snMatch?.props?.name || nhMatches[0]?.props?.super_neighborhood || "",
+        snMatch?.props?.name ||
+        nhMatches[0]?.props?.super_neighborhood ||
+        platMatches[0]?.props?.super_neighborhood ||
+        "",
       historic_ward:
-        wardMatch1920?.props?.name || nhMatches[0]?.props?.historic_ward || "",
+        wardMatch1920?.props?.name ||
+        nhMatches[0]?.props?.historic_ward ||
+        platMatches[0]?.props?.historic_ward ||
+        "",
       neighborhood_id: nhMatches[0]?.props?.id || "",
       super_neighborhood_id: snMatch?.props?.id || "",
       historic_ward_id: wardMatch1920?.props?.id || "",
@@ -3581,14 +4158,24 @@ export class AtlasMapController {
       eraYear = null,
       flyTo = opts.fitBounds !== undefined ? Boolean(opts.fitBounds) : true,
       inspect = opts.openInspector !== undefined ? Boolean(opts.openInspector) : false,
+      keepOverlapStack = false,
     } = opts;
+
+    if (!keepOverlapStack) {
+      this.overlapStack = [];
+      this.overlapStackIndex = 0;
+      this._lastOverlapClickPoint = null;
+      if (typeof this.onOverlapStackChange === "function") {
+        this.onOverlapStackChange([], 0);
+      }
+    }
 
     if (!Array.isArray(this.boundarySpatialIndex) || !this.boundarySpatialIndex.length) {
       this._buildBoundarySpatialIndex();
     }
     const targetId = String(id || "").trim();
     const targetName = String(name || "").trim().toLowerCase();
-    const targetLayer = String(layerKey || "").trim();
+    const targetLayer = this._normalizeBoundaryOverlayKey(layerKey);
 
     let matchEntry = null;
     if (targetId) {
@@ -3602,7 +4189,7 @@ export class AtlasMapController {
       // Exact primary name match first
       matchEntry = this.boundarySpatialIndex.find((e) => {
         if (targetLayer && e.overlayKey !== targetLayer) return false;
-        const entryEra = Number(e.props.ward_era || e.props.era_year || 0);
+        const entryEra = Number(e.props.era || e.props.ward_era || e.props.era_year || 0);
         if (
           e.overlayKey === "historic_wards" &&
           eraYear &&
@@ -3617,14 +4204,31 @@ export class AtlasMapController {
         ) {
           return false;
         }
-        return String(e.props.name || "").trim().toLowerCase() === targetName;
+        return (
+          String(e.props.name || e.props.era_label || "")
+            .trim()
+            .toLowerCase() === targetName
+        );
       });
     }
     if (!matchEntry && targetName) {
-      // Fallback: match any historic ward era or alias
+      // Fallback: match any historic ward era or alias or full_name
       matchEntry = this.boundarySpatialIndex.find((e) => {
         if (targetLayer && e.overlayKey !== targetLayer) return false;
-        if (String(e.props.name || "").trim().toLowerCase() === targetName) return true;
+        if (
+          String(e.props.name || e.props.era_label || "")
+            .trim()
+            .toLowerCase() === targetName
+        ) {
+          return true;
+        }
+        if (
+          String(e.props.full_name || "")
+            .trim()
+            .toLowerCase() === targetName
+        ) {
+          return true;
+        }
         const rawAlt = e.props.aliases || e.props.alt_names;
         const alts = Array.isArray(rawAlt)
           ? rawAlt
@@ -3642,6 +4246,7 @@ export class AtlasMapController {
       geometry: matchEntry.feature.geometry,
       properties: {
         ...matchEntry.props,
+        overlay_layer: matchEntry.overlayKey,
         is_boundary_feature: true,
       },
     };
@@ -3661,6 +4266,9 @@ export class AtlasMapController {
 
     if (flyTo) {
       const [minLng, minLat, maxLng, maxLat] = matchEntry.bbox;
+      const isSmallBoundary =
+        matchEntry.overlayKey === "platted_subdivisions" ||
+        matchEntry.overlayKey === "neighborhoods";
       if (!this.useCanvasFallback && this.map && typeof this.map.fitBounds === "function") {
         try {
           this.map.fitBounds(
@@ -3670,7 +4278,12 @@ export class AtlasMapController {
             ],
             {
               padding: { top: 80, bottom: 110, left: 360, right: 380 },
-              maxZoom: matchEntry.overlayKey === "neighborhoods" ? 15.6 : 14.2,
+              maxZoom:
+                matchEntry.overlayKey === "platted_subdivisions"
+                  ? 16.2
+                  : isSmallBoundary
+                  ? 15.6
+                  : 14.2,
               duration: 950,
             }
           );
@@ -3678,14 +4291,14 @@ export class AtlasMapController {
           this.flyToLocation({
             lng: matchEntry.centroid[0],
             lat: matchEntry.centroid[1],
-            zoom: matchEntry.overlayKey === "neighborhoods" ? 14.8 : 13.5,
+            zoom: isSmallBoundary ? 15.0 : 13.5,
           });
         }
       } else {
         this.flyToLocation({
           lng: matchEntry.centroid[0],
           lat: matchEntry.centroid[1],
-          zoom: matchEntry.overlayKey === "neighborhoods" ? 14.8 : 13.5,
+          zoom: isSmallBoundary ? 15.0 : 13.5,
         });
       }
     }
@@ -3712,8 +4325,16 @@ export class AtlasMapController {
     }
   }
 
-  highlightAndInspectFeature(props, clickedGeometry = null) {
+  highlightAndInspectFeature(props, clickedGeometry = null, opts = {}) {
     if (!props) return;
+    if (!opts?.keepOverlapStack) {
+      this.overlapStack = [];
+      this.overlapStackIndex = 0;
+      this._lastOverlapClickPoint = null;
+      if (typeof this.onOverlapStackChange === "function") {
+        this.onOverlapStackChange([], 0);
+      }
+    }
     const mergedProps = applyOverrideToProperties(props, this.curatedOverrides);
     this.selectedFeatureId = mergedProps.id || "";
     this.selectedFeatureProps = mergedProps;
@@ -3724,8 +4345,13 @@ export class AtlasMapController {
     this.selectedFeatureGeometry = singleGeom;
 
     // Dynamically enrich any countywide PMTiles shard building or parcel with
-    // Vernacular Neighborhood, Historical Aliases, Super Neighborhood, and 1920 Historic Ward
-    if (!mergedProps.neighborhood || !mergedProps.super_neighborhood || !mergedProps.historic_ward) {
+    // Vernacular Neighborhood, Platted Subdivision, Historical Aliases, Super Neighborhood, and 1920 Historic Ward
+    if (
+      !mergedProps.neighborhood ||
+      !mergedProps.subdivision ||
+      !mergedProps.super_neighborhood ||
+      !mergedProps.historic_ward
+    ) {
       let queryLng = Number(mergedProps.lng ?? mergedProps.lon);
       let queryLat = Number(mergedProps.lat);
       if (!Number.isFinite(queryLng) || !Number.isFinite(queryLat)) {
@@ -3740,6 +4366,9 @@ export class AtlasMapController {
         if (geoCtx) {
           if (!mergedProps.neighborhood && geoCtx.neighborhood) {
             mergedProps.neighborhood = geoCtx.neighborhood;
+          }
+          if (!mergedProps.subdivision && geoCtx.platted_subdivision) {
+            mergedProps.subdivision = geoCtx.platted_subdivision;
           }
           if (
             (!mergedProps.neighborhood_aliases || !mergedProps.neighborhood_aliases.length) &&
@@ -3788,11 +4417,21 @@ export class AtlasMapController {
     }
   }
 
-  clearSelection() {
+  clearSelection(opts = {}) {
     this.selectedFeatureId = null;
     this.selectedFeatureProps = null;
     this.selectedFeatureGeometry = null;
-    this.clearHighlightedBoundary();
+    if (!opts?.keepBoundary) {
+      this.clearHighlightedBoundary();
+    }
+    if (!opts?.keepOverlapStack) {
+      this.overlapStack = [];
+      this.overlapStackIndex = 0;
+      this._lastOverlapClickPoint = null;
+      if (typeof this.onOverlapStackChange === "function") {
+        this.onOverlapStackChange([], 0);
+      }
+    }
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
     } else if (this.map) {

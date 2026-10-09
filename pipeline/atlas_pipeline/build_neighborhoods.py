@@ -434,6 +434,25 @@ def clean_civic_club_name(raw_name: str) -> str:
   return clean_title(s)
 
 
+SUB_ALIASES = {
+    'J E BURRELL': 'Burrell',
+    'BURRELL J E': 'Burrell',
+    'GROTA HOMES': 'Grota Home',
+    'GROTA HOME GERMANTOWN': 'Grota Home',
+    'BROOKE SMITH': 'Brooke Smith',
+    'BROOKESMITH': 'Brooke Smith',
+}
+
+
+def canon_sub(s: str) -> str:
+  if not s:
+    return ''
+  su = s.upper().strip()
+  if su in SUB_ALIASES:
+    return SUB_ALIASES[su]
+  return s
+
+
 def normalize_hcad_subdivision(raw_lgl: str) -> str:
   if not raw_lgl:
     return ''
@@ -466,11 +485,20 @@ def normalize_hcad_subdivision(raw_lgl: str) -> str:
   s = s.strip(' ,.-/#&()*')
   if len(s) < 3 or s.isdigit() or re.match(r'^\d', s):
     return ''
-  return clean_title(s)
+  return canon_sub(clean_title(s))
 
 
 def load_hcad_subdivisions() -> dict[str, str]:
-  """Load HCAD account -> normalized platted subdivision name from Real_acct_owner.zip (checking lgl_2, lgl_3, lgl_1)."""
+  """Load HCAD account -> normalized platted subdivision name (using fast pickle cache when available)."""
+  import pickle
+  pkl_path = os.path.join(CACHE_DIR, 'hcad_subdivisions_2026.pkl')
+  if os.path.exists(pkl_path):
+    with open(pkl_path, 'rb') as f:
+      raw_map = pickle.load(f)
+    hcad_to_sub = {k: canon_sub(v) for k, v in raw_map.items()}
+    print(f'Loaded {len(hcad_to_sub):,} normalized HCAD platted subdivision names from cache')
+    return hcad_to_sub
+
   zip_path = os.path.join(CACHE_DIR, 'Real_acct_owner.zip')
   hcad_to_sub: dict[str, str] = {}
   if not os.path.exists(zip_path):
@@ -487,10 +515,11 @@ def load_hcad_subdivisions() -> dict[str, str]:
           lgl2 = parts[67].strip()
           sub = normalize_hcad_subdivision(lgl2)
           if not sub and len(parts) > 68:
-            # Fallback to lgl_3 for condominiums (.0040 INT COMMON LAND on lgl_2) and multi-lot wrap-around descriptions
             sub = normalize_hcad_subdivision(parts[68].strip())
           if sub:
             hcad_to_sub[acct] = sub
+  with open(pkl_path, 'wb') as f:
+    pickle.dump(hcad_to_sub, f, protocol=pickle.HIGHEST_PROTOCOL)
   print(f'Loaded {len(hcad_to_sub):,} normalized HCAD platted subdivision names from real_acct.txt')
   return hcad_to_sub
 
@@ -832,6 +861,47 @@ def build_vernacular_neighborhoods(
   return out_features
 
 
+def build_platted_subdivisions_features(
+    super_nbhds: list[dict],
+    wards_1920: list[dict],
+    vernacular_sorted: list[dict],
+    v_geoms: list,
+    v_tree: STRtree,
+    sn_geoms: list,
+    sn_tree: STRtree,
+    w1920_geoms: list,
+    w1920_tree: STRtree,
+) -> list[dict]:
+  raw_path = os.path.join(CACHE_DIR, 'platted_subdivisions_polygons.geojson')
+  if not os.path.exists(raw_path):
+    print('Warning: platted_subdivisions_polygons.geojson not found in cache')
+    return []
+  with open(raw_path) as f:
+    fc = json.load(f)
+  feats = fc.get('features', [])
+  for feat in feats:
+    p = feat['properties']
+    rep = Point(float(p['label_lng']), float(p['label_lat']))
+    p['overlay_layer'] = 'platted_subdivisions'
+    p['tier'] = 'Platted Subdivision (HCAD)'
+    p['source'] = ' + '.join(p.get('sources') or ['HCAD Subdivision Plat GIS'])
+    # Containing neighborhood (smallest area match)
+    for vi in v_tree.query(rep):
+      if v_geoms[vi].contains(rep):
+        p['neighborhood'] = vernacular_sorted[vi]['properties']['name']
+        break
+    for sni in sn_tree.query(rep):
+      if sn_geoms[sni].contains(rep):
+        p['super_neighborhood'] = super_nbhds[sni]['properties']['name']
+        break
+    for wi in w1920_tree.query(rep):
+      if w1920_geoms[wi].contains(rep):
+        p['historic_ward'] = wards_1920[wi]['properties']['name']
+        break
+  print(f'Loaded {len(feats):,} candidate platted subdivision polygons from cache')
+  return feats
+
+
 def main() -> None:
   hcad_to_sub = load_hcad_subdivisions()
   ward_features = build_historic_wards()
@@ -842,6 +912,7 @@ def main() -> None:
   # Build STRtrees for fast point-in-polygon enrichment
   # Sort vernacular neighborhoods from smallest area to largest area so specific neighborhoods (e.g. Westmoreland, Old Sixth Ward) match before huge macro areas
   vernacular_sorted = sorted(vernacular_nbhds, key=lambda f: f['properties']['area_deg2'])
+  vernacular_nbhds = vernacular_sorted
   v_geoms = [shape(f['geometry']) for f in vernacular_sorted]
   v_tree = STRtree(v_geoms)
 
@@ -851,10 +922,17 @@ def main() -> None:
   w1920_geoms = [shape(f['geometry']) for f in wards_1920]
   w1920_tree = STRtree(w1920_geoms)
 
-  # Track building statistics per neighborhood, super neighborhood, and 1920 ward
+  platted_subs = build_platted_subdivisions_features(
+      super_nbhds, wards_1920, vernacular_sorted, v_geoms, v_tree, sn_geoms, sn_tree, w1920_geoms, w1920_tree
+  )
+  ps_geoms = [shape(f['geometry']) for f in platted_subs]
+  ps_tree = STRtree(ps_geoms) if ps_geoms else None
+
+  # Track building statistics per neighborhood, super neighborhood, 1920 ward, and platted subdivision
   nbhd_stats = defaultdict(lambda: {'years': [], 'landmarks': 0, 'good_brick': 0, 'subs': Counter()})
   sn_stats = defaultdict(lambda: {'years': [], 'landmarks': 0, 'good_brick': 0, 'subs': Counter()})
   ward_stats = defaultdict(lambda: {'years': [], 'landmarks': 0, 'good_brick': 0, 'subs': Counter()})
+  plat_stats = defaultdict(lambda: {'years': [], 'landmarks': 0, 'good_brick': 0, 'subs': Counter()})
 
   # 1. Enrich buildings.geojson
   blds_path = os.path.join(DATA_DIR, 'buildings.geojson')
@@ -977,6 +1055,8 @@ def main() -> None:
   pts_arr = points(np.array(lons_list, dtype=np.float64), np.array(lats_list, dtype=np.float64))
 
   def accumulate_tree_stats(poly_tree, poly_feats, stats_dict, id_prop):
+    if poly_tree is None:
+      return
     pt_idxs, poly_idxs = poly_tree.query(pts_arr, predicate='intersects')
     for pt_i, poly_i in zip(pt_idxs.tolist(), poly_idxs.tolist()):
       key_id = poly_feats[poly_i]['properties'][id_prop]
@@ -995,6 +1075,7 @@ def main() -> None:
   accumulate_tree_stats(v_tree, vernacular_sorted, nbhd_stats, 'id')
   accumulate_tree_stats(sn_tree, super_nbhds, sn_stats, 'id')
   accumulate_tree_stats(w1920_tree, wards_1920, ward_stats, 'ward_key')
+  accumulate_tree_stats(ps_tree, platted_subs, plat_stats, 'id')
 
   def attach_stats(feat_props, st):
     yrs = st['years']
@@ -1004,15 +1085,16 @@ def main() -> None:
       feat_props['earliest_year'] = int(arr.min())
       feat_props['median_year'] = int(np.median(arr))
       feat_props['pre_1940_count'] = int((arr < 1940).sum())
+      feat_props['pre_1965_count'] = int((arr < 1965).sum())
     else:
       feat_props['earliest_year'] = 0
       feat_props['median_year'] = 0
       feat_props['pre_1940_count'] = 0
+      feat_props['pre_1965_count'] = 0
     feat_props['landmark_count'] = st['landmarks']
     feat_props['good_brick_count'] = st['good_brick']
     top_subs = [s for s, _ in st['subs'].most_common(8)]
     feat_props['top_subdivisions'] = top_subs
-    # Also add top platted subdivisions into alt_names if not already present
     existing_alts = list(feat_props.get('alt_names') or [])
     for s in top_subs[:5]:
       if s.upper() != feat_props['name'].upper() and s not in existing_alts:
@@ -1026,6 +1108,30 @@ def main() -> None:
   for feat in ward_features:
     attach_stats(feat['properties'], ward_stats[feat['properties']['ward_key']])
 
+  filtered_platted_subs = []
+  for feat in platted_subs:
+    p = feat['properties']
+    attach_stats(p, plat_stats[p['id']])
+    # Include all historic inner-core subdivisions (>= 2 buildings) and significant countywide subdivisions
+    lng, lat = p['label_lng'], p['label_lat']
+    in_inner_core = -95.48 <= lng <= -95.26 and 29.67 <= lat <= 29.85
+    if (
+        (in_inner_core and (p['pre_1965_count'] >= 2 or p['building_count'] >= 10))
+        or p['pre_1940_count'] >= 2
+        or p['pre_1965_count'] >= 10
+        or p['building_count'] >= 65
+    ):
+      # Add full_name to alt_names if distinct
+      fn_clean = clean_title(p.get('full_name') or '')
+      alts = [a for a in (p.get('alt_names') or []) if a.upper() != p['name'].upper()]
+      if fn_clean and fn_clean.upper() != p['name'].upper() and fn_clean not in alts:
+        alts.insert(0, fn_clean)
+      p['alt_names'] = alts[:10]
+      filtered_platted_subs.append(feat)
+
+  filtered_platted_subs.sort(key=lambda f: f['properties']['area_deg2'])
+  print(f'Filtered to {len(filtered_platted_subs):,} Platted Subdivision polygons (sorted smallest-area-first)')
+
   # 4. Update overlays.json
   overlays_path = os.path.join(DATA_DIR, 'overlays.json')
   with open(overlays_path) as f:
@@ -1033,6 +1139,10 @@ def main() -> None:
   overlays['neighborhoods'] = {
       'type': 'FeatureCollection',
       'features': vernacular_nbhds,
+  }
+  overlays['platted_subdivisions'] = {
+      'type': 'FeatureCollection',
+      'features': filtered_platted_subs,
   }
   overlays['super_neighborhoods'] = {
       'type': 'FeatureCollection',
@@ -1046,7 +1156,7 @@ def main() -> None:
     json.dump(overlays, f, separators=(',', ':'))
   print(f'Updated {overlays_path} ({os.path.getsize(overlays_path)/1e6:.2f} MB)')
 
-  # 5. Enrich search_index.json with building neighborhood/subdivision fields AND searchable Neighborhood / Ward / Super Neighborhood entries
+  # 5. Enrich search_index.json with building neighborhood/subdivision fields AND searchable Neighborhood / Subdivision / Ward / Super Neighborhood entries
   si_path = os.path.join(DATA_DIR, 'search_index.json')
   with open(si_path) as f:
     si_list = json.load(f)
@@ -1156,10 +1266,38 @@ def main() -> None:
         'bbox': [round(v, 5) for v in geom.bounds],
     })
 
+  # Add Platted Subdivisions to search index
+  for feat in filtered_platted_subs:
+    p = feat['properties']
+    geom = shape(feat['geometry'])
+    nb_tag = f" · {p['neighborhood']}" if p.get('neighborhood') else (f" · {p['super_neighborhood']}" if p.get('super_neighborhood') else '')
+    vp_tag = f" · Vol/Pg {p['vol_page']}" if p.get('vol_page') else ''
+    place_entries.append({
+        'id': p['id'],
+        'is_neighborhood_entry': True,
+        'place_type': 'Platted Subdivision (HCAD)',
+        'overlay_layer': 'plattedSubdivisions',
+        'name': p['name'],
+        'building_name': f"{p['name']} (Platted Subdivision)",
+        'alt_names': p.get('alt_names', []),
+        'neighborhood': p.get('neighborhood'),
+        'super_neighborhood': p.get('super_neighborhood'),
+        'historic_ward': p.get('historic_ward'),
+        'address': f"HCAD Platted Subdivision{nb_tag}{vp_tag} · {p.get('building_count', 0):,} structures · Median {p.get('median_year') or 'N/A'}",
+        'category': 'Platted Subdivision',
+        'year_built': p.get('median_year') or 1940,
+        'earliest_year': p.get('earliest_year') or 0,
+        'building_count': p.get('building_count') or 0,
+        'pre_1940_count': p.get('pre_1940_count') or 0,
+        'lng': p['label_lng'],
+        'lat': p['label_lat'],
+        'bbox': [round(v, 5) for v in geom.bounds],
+    })
+
   combined_si = place_entries + si_buildings
   with open(si_path, 'w') as f:
     json.dump(combined_si, f, separators=(',', ':'))
-  print(f'Updated {si_path}: {len(place_entries)} neighborhood/ward entries + {len(si_buildings)} building entries = {len(combined_si)} total ({os.path.getsize(si_path)/1e6:.2f} MB)')
+  print(f'Updated {si_path}: {len(place_entries)} neighborhood/subdivision/ward entries + {len(si_buildings)} building entries = {len(combined_si)} total ({os.path.getsize(si_path)/1e6:.2f} MB)')
 
 
 if __name__ == '__main__':

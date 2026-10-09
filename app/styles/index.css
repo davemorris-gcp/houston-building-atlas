@@ -4717,3 +4717,245 @@ body {
   font-weight: 700;
   color: var(--text-cream);
 }
+
+/* ==========================================================================
+   Overlapping Polygon / Layer Stack Switcher (Inspector + Map Pill + Tooltip)
+   ========================================================================== */
+.inspector-overlap-stack {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.85));
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+}
+
+.inspector-overlap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.inspector-overlap-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #bae6fd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inspector-overlap-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.22);
+  color: #e0f2fe;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+.inspector-overlap-cycle-btn {
+  border: 1px solid rgba(149, 201, 89, 0.55);
+  background: rgba(149, 201, 89, 0.16);
+  color: #d9f99d;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.inspector-overlap-cycle-btn:hover {
+  background: rgba(149, 201, 89, 0.3);
+  border-color: #a3e635;
+  color: #ffffff;
+}
+
+.inspector-overlap-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inspector-overlap-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.inspector-overlap-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+}
+
+.inspector-overlap-pill.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: #38bdf8;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+.overlap-pill-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.overlap-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.overlap-pill-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overlap-pill-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.inspector-overlap-pill.active .overlap-pill-badge {
+  color: #bae6fd;
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.inspector-overlap-hint {
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Floating Map Canvas Overlap Switcher Pill Bar */
+.map-overlap-bar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 32;
+  background: rgba(15, 20, 28, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  border-radius: 14px;
+  padding: 6px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  max-width: min(680px, calc(100vw - 750px));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
+}
+
+.map-overlap-bar.hidden {
+  display: none !important;
+}
+
+.map-overlap-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #bae6fd;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+.map-overlap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.map-overlap-chip:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.map-overlap-chip.active {
+  background: rgba(56, 189, 248, 0.24);
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.map-overlap-next-btn {
+  border: 1px solid rgba(149, 201, 89, 0.55);
+  background: rgba(149, 201, 89, 0.18);
+  color: #d9f99d;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.map-overlap-next-btn:hover {
+  background: rgba(149, 201, 89, 0.32);
+  color: #ffffff;
+}
+
+.tooltip-overlap-footer {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.3);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #bae6fd;
+}
+
+.tooltip-overlap-footer strong {
+  color: #fde68a;
+}
+
+@media (max-width: 900px) {
+  .map-overlap-bar {
+    max-width: calc(100vw - 24px);
+    bottom: 66px;
+  }
+}
+
