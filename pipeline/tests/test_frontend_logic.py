@@ -159,6 +159,43 @@ def test_frontend_es_modules_via_node() -> None:
       throw new Error('Expected formatted CSV to contain 0621100000014');
     }
 
+    // Verify Neighborhoods, Super Neighborhoods & Historic Ward Era filter expressions + URL roundtrip
+    import {
+      resolveActiveWardEra,
+      buildHistoricWardFilterExpression,
+    } from './js/filterStore.js';
+
+    const wardStore = createFilterStore({
+      wardEra: 1866,
+      layers: { neighborhoods: true, superNeighborhoods: true, historicWards: true },
+    });
+    if (resolveActiveWardEra(wardStore.getState()) !== 1866) {
+      throw new Error('Expected active ward era 1866');
+    }
+    const wardExpr = buildHistoricWardFilterExpression(wardStore.getState());
+    if (wardExpr[0] !== '==' || wardExpr[2] !== 1866) {
+      throw new Error('Unexpected ward filter expression: ' + JSON.stringify(wardExpr));
+    }
+    const wardHash = serializeStateToHash(wardStore.getState());
+    const wardParsed = parseHashToState(wardHash);
+    if (
+      wardParsed.patch.wardEra !== 1866 ||
+      !wardParsed.patch.layers?.neighborhoods ||
+      !wardParsed.patch.layers?.superNeighborhoods ||
+      !wardParsed.patch.layers?.historicWards
+    ) {
+      throw new Error('Ward & neighborhood hash roundtrip failed: ' + JSON.stringify(wardParsed));
+    }
+    if (
+      !keyStProps.neighborhood ||
+      !keyStProps.super_neighborhood ||
+      !keyStProps.subdivision ||
+      !Array.isArray(keyStProps.neighborhood_aliases) ||
+      keyStProps.neighborhood_aliases.length === 0
+    ) {
+      throw new Error('Expected 1127 Key St override to include neighborhood, super_neighborhood, subdivision, and neighborhood_aliases: ' + JSON.stringify(keyStProps));
+    }
+
     console.log(JSON.stringify({ ok: true, tours: CURATED_TOURS.length, legendCount: getLegendItems('year_built').length }));
     """
     proc = subprocess.run(
