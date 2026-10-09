@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261009m" />
+  <link rel="stylesheet" href="styles/index.css?v=20261009p" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -67,7 +67,7 @@
         <div id="search-results" class="search-results hidden"></div>
       </div>
 
-      <!-- Quick Action Bar: 3D Extrusion, Basemaps, Share View, Data Guide -->
+      <!-- Quick Action Bar: 3D Extrusion, Basemaps, Share View, Export Studio, Data Guide -->
       <div class="topbar-actions">
         <div class="segmented-group" role="group" aria-label="Basemap Style">
           <button type="button" class="seg-btn active" id="btn-base-dark" data-basemap="dark_archival" title="Archival Dark Map Underlay">
@@ -89,6 +89,15 @@
 
         <button type="button" class="action-pill" id="btn-toggle-3d">
           3D Extrusion: OFF
+        </button>
+
+        <button
+          type="button"
+          class="action-pill export-studio-pill"
+          id="btn-open-export-studio"
+          title="Export high-resolution PNG screenshots or custom Vector SVG files for prints, posters, T-shirts, and coasters"
+        >
+          &#127912; Export / Merch
         </button>
 
         <button
@@ -714,6 +723,9 @@
       </div>
       <div class="inspector-body" id="inspector-body"></div>
     </aside>
+
+    <!-- Floating Polygon Isolation Active Banner -->
+    <div class="isolation-active-banner hidden" id="isolation-active-banner" role="region" aria-label="Active Polygon Isolation Mode"></div>
 
     <!-- Main Interactive Map Canvas -->
     <main id="map-canvas" class="map-canvas"></main>
@@ -1343,10 +1355,170 @@
         <div class="modal-body dossier-modal-body" id="dossier-modal-body"></div>
       </div>
     </div>
+
+    <!-- Vector SVG, Print, T-Shirt & Coaster Export Studio Modal -->
+    <div class="modal-backdrop hidden" id="export-studio-modal" role="dialog" aria-modal="true" aria-labelledby="export-studio-modal-title">
+      <div class="modal-card export-studio-modal-card">
+        <div class="modal-header">
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">Preservation Houston • Cartographic Print &amp; Merch Studio</span>
+              <h2 class="modal-title" id="export-studio-modal-title">Vector SVG, T-Shirt, Coaster &amp; Print Export Studio</h2>
+            </div>
+          </div>
+          <button type="button" class="icon-btn" id="btn-close-export-studio" aria-label="Close Export Studio">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body export-studio-body">
+          <div class="export-studio-grid">
+            <!-- Left Column: Interactive Live SVG Preview Canvas -->
+            <div class="export-preview-col">
+              <div class="export-preview-stage" id="export-svg-preview-stage"></div>
+              <div class="export-preview-meta-bar">
+                <span class="mono" id="export-preview-stats-readout">Loading geometry...</span>
+                <button type="button" class="action-pill subtle" id="btn-export-apply-isolation" title="Apply this boundary isolation directly to the interactive map">
+                  &#127919; Isolate on Live Map
+                </button>
+              </div>
+            </div>
+
+            <!-- Right Column: Controls, Presets & Download Actions -->
+            <div class="export-controls-col">
+              <!-- 1. Target Polygon / Area Selector -->
+              <div class="export-control-section">
+                <label class="export-section-label" for="select-export-target-area">1. Neighborhood, Historic District, Subdivision, or Map View</label>
+                <select id="select-export-target-area" class="form-input export-area-select"></select>
+              </div>
+
+              <!-- 2. Composition Mode (Figure-Ground vs. Buildings Only vs. Border Silhouette vs. Era Poster) -->
+              <div class="export-control-section">
+                <span class="export-section-label">2. Design Composition (T-Shirt / Coaster / Print Style)</span>
+                <div class="export-preset-pills" id="export-composition-pills" role="group" aria-label="Composition Mode">
+                  <button type="button" class="export-pill active" data-export-comp="figure_ground" title="Boundary border + all building footprints inside">
+                    Border + Buildings
+                  </button>
+                  <button type="button" class="export-pill" data-export-comp="footprints_only" title="Only the collection of building outlines inside the polygon (no outer border line)">
+                    Buildings Only
+                  </button>
+                  <button type="button" class="export-pill" data-export-comp="border_only" title="Iconic neighborhood / district border silhouette only">
+                    Border Silhouette
+                  </button>
+                  <button type="button" class="export-pill" data-export-comp="era_poster" title="Color-coded by construction era with border and legend">
+                    Era Spectrum Poster
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3. Color & Ink Theme -->
+              <div class="export-control-section">
+                <span class="export-section-label">3. Ink &amp; Color Palette</span>
+                <div class="export-preset-pills" id="export-theme-pills" role="group" aria-label="Color and Ink Palette">
+                  <button type="button" class="export-pill active" data-export-theme="stencil_white" title="Pure crisp white ink — ideal for dark T-shirts, slate coasters, or screenprinting">
+                    White Ink (Dark Shirt)
+                  </button>
+                  <button type="button" class="export-pill" data-export-theme="stencil_black" title="Pure black architectural linework — ideal for light T-shirts, laser-engraved coasters, or pen plotters">
+                    Black Ink (Light / Laser)
+                  </button>
+                  <button type="button" class="export-pill" data-export-theme="ph_emerald" title="Preservation Houston signature archival green &amp; gold">
+                    PH Green &amp; Gold
+                  </button>
+                  <button type="button" class="export-pill" data-export-theme="blueprint" title="Cyanotype architectural blueprint">
+                    Blueprint Cyan
+                  </button>
+                  <button type="button" class="export-pill" data-export-theme="terracotta" title="Warm Sanborn terracotta &amp; parchment">
+                    Terracotta &amp; Cream
+                  </button>
+                  <button type="button" class="export-pill" data-export-theme="archival_era" title="Multi-color construction era spectrum">
+                    Era Spectrum
+                  </button>
+                </div>
+              </div>
+
+              <!-- 4. Aspect Ratio & Frame Format -->
+              <div class="export-control-section">
+                <span class="export-section-label">4. Frame &amp; Merch Format</span>
+                <div class="export-preset-pills" id="export-format-pills" role="group" aria-label="Frame Format">
+                  <button type="button" class="export-pill active" data-export-format="square" title="1:1 Square artboard (1200×1200 SVG / 3000×3000 PNG) for T-shirts &amp; square coasters">
+                    1:1 T-Shirt / Square
+                  </button>
+                  <button type="button" class="export-pill" data-export-format="round_coaster" title="Circular coaster medallion badge with double border ring">
+                    Round Coaster Medallion
+                  </button>
+                  <button type="button" class="export-pill" data-export-format="poster" title="4:5 Archival Wall Poster with typography header &amp; footer">
+                    4:5 Archival Print
+                  </button>
+                </div>
+              </div>
+
+              <!-- 5. Fine-Tuning Options & Typography -->
+              <div class="export-control-section export-options-box">
+                <div class="export-check-grid">
+                  <label class="check-row" title="Export with a transparent background for direct-to-garment (DTG) T-shirt printing, screenprinting, or laser cutting">
+                    <input type="checkbox" id="chk-export-transparent" />
+                    <span><strong>Transparent background</strong> (for T-shirts &amp; coasters)</span>
+                  </label>
+                  <label class="check-row" title="Toggle between solid filled building footprints and hollow architectural wireframe outlines">
+                    <input type="checkbox" id="chk-export-fill-buildings" checked />
+                    <span>Fill building interiors (uncheck for wireframe outlines)</span>
+                  </label>
+                  <label class="check-row" title="Highlight Designated Landmarks &amp; Good Brick Award winners inside the polygon">
+                    <input type="checkbox" id="chk-export-show-landmarks" checked />
+                    <span>Accent Landmarks &amp; Good Brick winners</span>
+                  </label>
+                  <label class="check-row" title="Include customizable title and subtitle / coordinates in the vector artwork">
+                    <input type="checkbox" id="chk-export-show-caption" checked />
+                    <span>Include title &amp; coordinates typography</span>
+                  </label>
+                </div>
+
+                <div class="form-row-2col" style="margin-top:8px;">
+                  <div class="form-field">
+                    <label for="input-export-title">Custom Title</label>
+                    <input type="text" id="input-export-title" class="form-input" placeholder="e.g. NORHILL HISTORIC DISTRICT" />
+                  </div>
+                  <div class="form-field">
+                    <label for="input-export-subtitle">Custom Subtitle / Tagline</label>
+                    <input type="text" id="input-export-subtitle" class="form-input mono" placeholder="e.g. HOUSTON, TEXAS • EST. 1920" />
+                  </div>
+                </div>
+
+                <div class="slider-row" style="margin-top:8px;">
+                  <label for="slider-export-border-weight" class="slider-label">
+                    Border Stroke Weight: <strong class="mono" id="export-border-weight-readout">4.0px</strong>
+                  </label>
+                  <input type="range" id="slider-export-border-weight" min="1" max="12" step="0.5" value="4" />
+                </div>
+              </div>
+
+              <!-- 6. Download Actions -->
+              <div class="export-download-actions">
+                <button type="button" class="inspector-btn primary export-dl-btn" id="btn-download-export-svg">
+                  &#11015; Download True Vector (.SVG)
+                </button>
+                <button type="button" class="inspector-btn primary export-dl-btn export-dl-png-btn" id="btn-download-export-png">
+                  &#128444; Download Print / Shirt .PNG (3000&times;3000)
+                </button>
+                <button type="button" class="inspector-btn secondary export-dl-btn" id="btn-download-live-screenshot" title="Save an instant PNG screenshot of the live interactive map canvas">
+                  &#128247; Save Live Map Screenshot (.PNG)
+                </button>
+                <button type="button" class="inspector-btn secondary export-dl-btn" id="btn-download-export-geojson" title="Download the isolated boundary and clipped building footprints as GeoJSON for GIS, CAD, or Illustrator">
+                  &#127760; Export Clipped .GeoJSON
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261009m"></script>
+  <script type="module" src="js/app.js?v=20261009p"></script>
 </body>
 </html>

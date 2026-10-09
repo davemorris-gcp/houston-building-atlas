@@ -102,6 +102,7 @@ export class AtlasMapController {
     onPitchChange,
     onSelectTourStop,
     onOverlapStackChange,
+    onIsolationChange,
   }) {
     this.containerId = containerId;
     this.filterStore = filterStore;
@@ -110,6 +111,7 @@ export class AtlasMapController {
     this.onPitchChange = onPitchChange || null;
     this.onSelectTourStop = onSelectTourStop || null;
     this.onOverlapStackChange = onOverlapStackChange || null;
+    this.onIsolationChange = onIsolationChange || null;
     this.map = null;
     this.popup = null;
     this.useCanvasFallback = false;
@@ -122,6 +124,7 @@ export class AtlasMapController {
     this.overridesFC = { type: "FeatureCollection", features: [] };
     this.selectedFeatureId = null;
     this.selectedBoundaryFeature = null;
+    this.isolatedBoundary = null;
     this._boundarySpatialIndex = null;
     this.overlapStack = [];
     this.overlapStackIndex = 0;
@@ -164,10 +167,17 @@ export class AtlasMapController {
     }
 
     this.isReady = true;
-    this.syncWithState(this.filterStore.getState());
+    const currentState = this.filterStore.getState();
+    if (currentState.isolatedBoundary) {
+      this._resolveIsolatedBoundaryFromSpec(currentState.isolatedBoundary, {
+        flyTo: !initialViewport,
+      });
+    }
+    this.syncWithState(currentState);
     this.computeViewportHistogram();
 
     this.filterStore.subscribe((nextState) => {
+      this._syncIsolatedBoundaryWithState(nextState);
       this.syncWithState(nextState);
       this.computeViewportHistogram();
     });
@@ -405,6 +415,7 @@ export class AtlasMapController {
       maxPitch: 65,
       minZoom: 9.5,
       maxZoom: 19.5,
+      preserveDrawingBuffer: true,
       attributionControl: false,
       style: {
         version: 8,
@@ -1266,6 +1277,47 @@ export class AtlasMapController {
       },
     });
 
+    // Polygon Isolation Mask & Highlight Border Layers
+    this.map.addSource("isolation-mask-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("isolation-border-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    this.map.addLayer({
+      id: "isolation-mask-fill",
+      type: "fill",
+      source: "isolation-mask-src",
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": "#0D1117",
+        "fill-opacity": 0.92,
+      },
+    });
+    this.map.addLayer({
+      id: "isolation-border-fill",
+      type: "fill",
+      source: "isolation-border-src",
+      layout: { visibility: "none" },
+      paint: {
+        "fill-color": "#95C959",
+        "fill-opacity": 0.14,
+      },
+    });
+    this.map.addLayer({
+      id: "isolation-border-line",
+      type: "line",
+      source: "isolation-border-src",
+      layout: { visibility: "none", "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "#FDE047",
+        "line-width": 3.2,
+        "line-opacity": 0.98,
+      },
+    });
+
     this.map.addLayer({
       id: "thc-markers-circle",
       type: "circle",
@@ -2072,135 +2124,230 @@ export class AtlasMapController {
       return minX < Infinity ? { minX, minY, maxX, maxY } : null;
     };
 
-    // 2. Annexation History Overlay
-    if (Boolean(state.layers?.annexations) && this.overlaysData?.annexations) {
-      const activeDecade = resolveActiveAnnexationDecade(state);
-      for (const feat of this.overlaysData.annexations.features || []) {
-        const dec = Number(feat.properties?.decade) || 1836;
-        if (activeDecade !== null && dec !== activeDecade) continue;
-        if (state.showAnnexationSpokes === false && feat.properties?.annex_subtype === "spoke_or_spa") {
-          continue;
+    const iso = this.isolatedBoundary;
+    const isoGeom = iso?.feature?.geometry || null;
+    const isoBBox = iso?.bbox || null;
+    const isoMode = iso?.mode || "contents";
+    const isLightBg = state.basemap === "solid_light" || state.basemap === "warm_parchment";
+
+    const isPointInIsolated = (lng, lat) => {
+      if (!isoGeom) return true;
+      if (isoBBox) {
+        if (lng < isoBBox[0] || lng > isoBBox[2] || lat < isoBBox[1] || lat > isoBBox[3]) {
+          return false;
         }
-        drawPolygonFeature(
-          feat.geometry,
-          "rgba(217, 119, 6, 0.08)",
-          "rgba(245, 158, 11, 0.78)",
-          1.8,
-          [5, 4]
-        );
       }
+      return this._pointInPolygonGeometry(lng, lat, isoGeom);
+    };
+
+    const isPolygonInIsolated = (geom) => {
+      if (!isoGeom) return true;
+      if (!geom || !geom.coordinates) return false;
+      const ring =
+        geom.type === "Polygon"
+          ? geom.coordinates[0]
+          : geom.type === "MultiPolygon" && geom.coordinates[0]
+          ? geom.coordinates[0][0]
+          : null;
+      if (!ring || !ring.length) return false;
+      let sumLng = 0;
+      let sumLat = 0;
+      let n = 0;
+      const step = Math.max(1, Math.floor(ring.length / 6));
+      for (let i = 0; i < ring.length; i += step) {
+        const pt = ring[i];
+        if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+          sumLng += pt[0];
+          sumLat += pt[1];
+          n += 1;
+        }
+      }
+      if (n === 0) return false;
+      return isPointInIsolated(sumLng / n, sumLat / n);
+    };
+
+    // If a polygon is isolated over a slippy basemap, dim everything outside the isolated polygon
+    if (isoGeom && !isNoMap) {
+      const polys = isoGeom.type === "Polygon" ? [isoGeom.coordinates] : isoGeom.coordinates || [];
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, width, height);
+      for (const poly of polys) {
+        if (!Array.isArray(poly) || !poly[0] || poly[0].length < 3) continue;
+        const extRing = poly[0];
+        for (let i = 0; i < extRing.length; i++) {
+          const [sx, sy] = this._lngLatToScreen(extRing[i][0], extRing[i][1], width, height);
+          if (i === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.closePath();
+      }
+      ctx.fillStyle = isLightBg ? "rgba(244, 241, 234, 0.88)" : "rgba(13, 17, 23, 0.88)";
+      ctx.fill("evenodd");
+      ctx.restore();
     }
 
-    // 3. NRHP, Heritage, and COH Historic Districts
-    if (state.layers.nrhpDistricts && this.overlaysData?.nrhp_districts) {
-      for (const feat of this.overlaysData.nrhp_districts.features || []) {
-        drawPolygonFeature(
-          feat.geometry,
-          "rgba(168, 85, 247, 0.07)",
-          "#C084FC",
-          1.8,
-          [4, 3]
-        );
+    if (!isoGeom) {
+      // 2. Annexation History Overlay
+      if (Boolean(state.layers?.annexations) && this.overlaysData?.annexations) {
+        const activeDecade = resolveActiveAnnexationDecade(state);
+        for (const feat of this.overlaysData.annexations.features || []) {
+          const dec = Number(feat.properties?.decade) || 1836;
+          if (activeDecade !== null && dec !== activeDecade) continue;
+          if (state.showAnnexationSpokes === false && feat.properties?.annex_subtype === "spoke_or_spa") {
+            continue;
+          }
+          drawPolygonFeature(
+            feat.geometry,
+            "rgba(217, 119, 6, 0.08)",
+            "rgba(245, 158, 11, 0.78)",
+            1.8,
+            [5, 4]
+          );
+        }
       }
-    }
-    if (state.layers.heritageDistricts && this.overlaysData?.heritage_districts) {
-      for (const feat of this.overlaysData.heritage_districts.features || []) {
-        drawPolygonFeature(feat.geometry, "rgba(16, 185, 129, 0.09)", "#34D399", 2.2);
-      }
-    }
-    if (state.layers.historicDistricts && this.overlaysData?.historic_districts) {
-      for (const feat of this.overlaysData.historic_districts.features || []) {
-        drawPolygonFeature(feat.geometry, "rgba(56, 189, 248, 0.06)", "#38BDF8", 2.0);
-      }
-    }
 
-    // 3b. Historic Wards (1839-1905), COH Super Neighborhoods (88), and Neighborhoods (1,387)
-    if (state.layers.historicWards && this.overlaysData?.historic_wards) {
-      const targetEra = resolveActiveWardEra(state);
-      for (const feat of this.overlaysData.historic_wards.features || []) {
-        const p = feat.properties || {};
-        if (Number(p.era || p.ward_era || p.era_year) !== targetEra) continue;
+      // 3. NRHP, Heritage, and COH Historic Districts
+      if (state.layers.nrhpDistricts && this.overlaysData?.nrhp_districts) {
+        for (const feat of this.overlaysData.nrhp_districts.features || []) {
+          drawPolygonFeature(
+            feat.geometry,
+            "rgba(168, 85, 247, 0.07)",
+            "#C084FC",
+            1.8,
+            [4, 3]
+          );
+        }
+      }
+      if (state.layers.heritageDistricts && this.overlaysData?.heritage_districts) {
+        for (const feat of this.overlaysData.heritage_districts.features || []) {
+          drawPolygonFeature(feat.geometry, "rgba(16, 185, 129, 0.09)", "#34D399", 2.2);
+        }
+      }
+      if (state.layers.historicDistricts && this.overlaysData?.historic_districts) {
+        for (const feat of this.overlaysData.historic_districts.features || []) {
+          drawPolygonFeature(feat.geometry, "rgba(56, 189, 248, 0.06)", "#38BDF8", 2.0);
+        }
+      }
+
+      // 3b. Historic Wards (1839-1905), COH Super Neighborhoods (88), and Neighborhoods (1,387)
+      if (state.layers.historicWards && this.overlaysData?.historic_wards) {
+        const targetEra = resolveActiveWardEra(state);
+        for (const feat of this.overlaysData.historic_wards.features || []) {
+          const p = feat.properties || {};
+          if (Number(p.era || p.ward_era || p.era_year) !== targetEra) continue;
+          drawPolygonFeature(
+            feat.geometry,
+            p.color || "rgba(230, 57, 70, 0.08)",
+            p.color || "#F59E0B",
+            2.2,
+            [6, 3]
+          );
+        }
+      }
+      if (state.layers.superNeighborhoods && this.overlaysData?.super_neighborhoods) {
+        for (const feat of this.overlaysData.super_neighborhoods.features || []) {
+          drawPolygonFeature(
+            feat.geometry,
+            "rgba(96, 165, 250, 0.05)",
+            "rgba(96, 165, 250, 0.72)",
+            1.8,
+            [4, 2]
+          );
+        }
+      }
+      if (state.layers.neighborhoods && this.overlaysData?.neighborhoods) {
+        for (const feat of this.overlaysData.neighborhoods.features || []) {
+          drawPolygonFeature(
+            feat.geometry,
+            "rgba(45, 212, 191, 0.06)",
+            "rgba(45, 212, 191, 0.72)",
+            1.3
+          );
+        }
+      }
+      if (state.layers.plattedSubdivisions && this.overlaysData?.platted_subdivisions) {
+        for (const feat of this.overlaysData.platted_subdivisions.features || []) {
+          const hasDocs = Boolean(feat.properties?.has_deed_docs);
+          drawPolygonFeature(
+            feat.geometry,
+            hasDocs ? "rgba(245, 158, 11, 0.14)" : "rgba(34, 211, 238, 0.08)",
+            hasDocs ? "#FBBF24" : "rgba(34, 211, 238, 0.85)",
+            hasDocs ? 2.2 : 1.35,
+            [2, 1.5]
+          );
+        }
+      }
+      if (state.layers.landUseProtections && this.overlaysData?.land_use_protections) {
+        for (const feat of this.overlaysData.land_use_protections.features || []) {
+          const pt = feat.properties?.protection_type;
+          const fill =
+            pt === "smbl"
+              ? "rgba(16, 185, 129, 0.13)"
+              : pt === "conservation"
+              ? "rgba(244, 63, 94, 0.14)"
+              : "rgba(245, 158, 11, 0.13)";
+          const stroke =
+            pt === "smbl"
+              ? "#34D399"
+              : pt === "conservation"
+              ? "#FB7185"
+              : "#FBBF24";
+          drawPolygonFeature(feat.geometry, fill, stroke, 1.7, [2, 1.5]);
+        }
+      }
+      if (this.selectedBoundaryFeature && this.selectedBoundaryFeature.geometry) {
         drawPolygonFeature(
-          feat.geometry,
-          p.color || "rgba(230, 57, 70, 0.08)",
-          p.color || "#F59E0B",
-          2.2,
-          [6, 3]
+          this.selectedBoundaryFeature.geometry,
+          "rgba(253, 224, 71, 0.08)",
+          isLightBg ? "#0F172A" : "#FDE047",
+          2.6,
+          [3, 2]
         );
       }
-    }
-    if (state.layers.superNeighborhoods && this.overlaysData?.super_neighborhoods) {
-      for (const feat of this.overlaysData.super_neighborhoods.features || []) {
-        drawPolygonFeature(
-          feat.geometry,
-          "rgba(96, 165, 250, 0.05)",
-          "rgba(96, 165, 250, 0.72)",
-          1.8,
-          [4, 2]
-        );
-      }
-    }
-    if (state.layers.neighborhoods && this.overlaysData?.neighborhoods) {
-      for (const feat of this.overlaysData.neighborhoods.features || []) {
-        drawPolygonFeature(
-          feat.geometry,
-          "rgba(45, 212, 191, 0.06)",
-          "rgba(45, 212, 191, 0.72)",
-          1.3
-        );
-      }
-    }
-    if (state.layers.plattedSubdivisions && this.overlaysData?.platted_subdivisions) {
-      for (const feat of this.overlaysData.platted_subdivisions.features || []) {
-        const hasDocs = Boolean(feat.properties?.has_deed_docs);
-        drawPolygonFeature(
-          feat.geometry,
-          hasDocs ? "rgba(245, 158, 11, 0.14)" : "rgba(34, 211, 238, 0.08)",
-          hasDocs ? "#FBBF24" : "rgba(34, 211, 238, 0.85)",
-          hasDocs ? 2.2 : 1.35,
-          [2, 1.5]
-        );
-      }
-    }
-    if (state.layers.landUseProtections && this.overlaysData?.land_use_protections) {
-      for (const feat of this.overlaysData.land_use_protections.features || []) {
-        const pt = feat.properties?.protection_type;
-        const fill =
-          pt === "smbl"
-            ? "rgba(16, 185, 129, 0.13)"
-            : pt === "conservation"
-            ? "rgba(244, 63, 94, 0.14)"
-            : "rgba(245, 158, 11, 0.13)";
-        const stroke =
-          pt === "smbl"
-            ? "#34D399"
-            : pt === "conservation"
-            ? "#FB7185"
-            : "#FBBF24";
-        drawPolygonFeature(feat.geometry, fill, stroke, 1.7, [2, 1.5]);
-      }
-    }
-    if (this.selectedBoundaryFeature && this.selectedBoundaryFeature.geometry) {
+    } else if (isoMode !== "footprints_only") {
+      // Draw the isolated boundary polygon outline (and subtle silhouette fill in border_only mode)
+      const isoFill =
+        isoMode === "border_only"
+          ? isLightBg
+            ? "rgba(15, 23, 42, 0.10)"
+            : "rgba(149, 201, 89, 0.14)"
+          : isLightBg
+          ? "rgba(15, 23, 42, 0.03)"
+          : "rgba(253, 224, 71, 0.04)";
+      const isoStroke =
+        isoMode === "border_only"
+          ? isLightBg
+            ? "#0F172A"
+            : "#95C959"
+          : isLightBg
+          ? "#0F172A"
+          : "#FDE047";
+      const isoLw = isoMode === "border_only" ? 3.4 : 2.6;
       drawPolygonFeature(
-        this.selectedBoundaryFeature.geometry,
-        "rgba(253, 224, 71, 0.08)",
-        "#FDE047",
-        2.6,
-        [3, 2]
+        isoGeom,
+        isoFill,
+        isoStroke,
+        isoLw,
+        isoMode === "border_only" ? null : [4, 2.5]
       );
     }
 
     cs.renderedBBoxes = [];
 
     // 4. Tax Parcels Layer
-    const showBuildings = state.renderMode === "buildings" || state.renderMode === "both";
-    const showParcelsFill = state.renderMode === "parcels";
-    const showParcelsLine = state.renderMode === "both" || state.renderMode === "parcels";
+    const allowStructures = !isoGeom || isoMode !== "border_only";
+    const showBuildings =
+      allowStructures && (state.renderMode === "buildings" || state.renderMode === "both");
+    const showParcelsFill = allowStructures && state.renderMode === "parcels";
+    const showParcelsLine =
+      allowStructures && (state.renderMode === "both" || state.renderMode === "parcels");
 
     if (showParcelsFill || showParcelsLine) {
       for (const feat of this.parcelsData) {
         const p = feat.properties || {};
         if (!featureMatchesFilter(p, state)) continue;
+        if (isoGeom && !isPolygonInIsolated(feat.geometry)) continue;
         const fill = showParcelsFill
           ? evaluateFeatureColor(p, state.colorMode, state.paletteStyle)
           : null;
@@ -2227,6 +2374,7 @@ export class AtlasMapController {
           seenCanvasIds.add(fid);
         }
         if (!featureMatchesFilter(p, state)) continue;
+        if (isoGeom && !isPolygonInIsolated(feat.geometry)) continue;
         const color = evaluateFeatureColor(p, state.colorMode, state.paletteStyle);
         const isSelected =
           this.selectedFeatureId &&
@@ -2242,11 +2390,14 @@ export class AtlasMapController {
       }
     }
 
+    const allowPointMarkers = !isoGeom || isoMode === "contents";
+
     // 6. THC Markers
-    if (state.layers.thcMarkers && this.overlaysData?.thc_markers) {
+    if (allowPointMarkers && state.layers.thcMarkers && this.overlaysData?.thc_markers) {
       for (const feat of this.overlaysData.thc_markers.features || []) {
         const coords = feat.geometry?.coordinates;
         if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
         const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
         if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
         ctx.beginPath();
@@ -2268,10 +2419,11 @@ export class AtlasMapController {
     }
 
     // 7. COH Designated Landmarks (LM & PLM)
-    if (state.layers.landmarks && this.overlaysData?.landmarks) {
+    if (allowPointMarkers && state.layers.landmarks && this.overlaysData?.landmarks) {
       for (const feat of this.overlaysData.landmarks.features || []) {
         const coords = feat.geometry?.coordinates;
         if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
         const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
         if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
         const isPLM = feat.properties?.designation === "Protected Landmark";
@@ -2294,10 +2446,11 @@ export class AtlasMapController {
     }
 
     // 8. Preservation Houston Good Brick Award Winners (1979–2026)
-    if (state.layers.goodBrickAwards && this.overlaysData?.good_brick_awards) {
+    if (allowPointMarkers && state.layers.goodBrickAwards && this.overlaysData?.good_brick_awards) {
       for (const feat of this.overlaysData.good_brick_awards.features || []) {
         const coords = feat.geometry?.coordinates;
         if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
         const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
         if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
         const multiAward = Number(feat.properties?.good_brick_count || 1) > 1;
@@ -2329,7 +2482,7 @@ export class AtlasMapController {
     // 8b. Boundary Labels in 2D Canvas Mode
     const placedBoxes = [];
     const drawBoundaryLabels = (features, minZ, textColor) => {
-      if (cs.zoom < minZ || !Array.isArray(features)) return;
+      if (isoGeom || cs.zoom < minZ || !Array.isArray(features)) return;
       ctx.save();
       ctx.font = "700 10.5px Inter, system-ui, sans-serif";
       ctx.textAlign = "center";
@@ -2805,9 +2958,17 @@ export class AtlasMapController {
       this.map.setPaintProperty("parcels-fill", "fill-color", colorExpr);
     }
 
-    const showBuildings = state.renderMode === "buildings" || state.renderMode === "both";
-    const showParcelsFill = state.renderMode === "parcels";
-    const showParcelsLine = state.renderMode === "both" || state.renderMode === "parcels";
+    const iso = this.isolatedBoundary;
+    const isoGeom = iso?.feature?.geometry || null;
+    const isoMode = iso?.mode || "contents";
+    const allowIsoStructures = !isoGeom || isoMode !== "border_only";
+    const allowIsoMarkers = !isoGeom || isoMode === "contents";
+
+    const showBuildings =
+      allowIsoStructures && (state.renderMode === "buildings" || state.renderMode === "both");
+    const showParcelsFill = allowIsoStructures && state.renderMode === "parcels";
+    const showParcelsLine =
+      allowIsoStructures && (state.renderMode === "both" || state.renderMode === "parcels");
 
     const setVis = (ids, visible) => {
       for (const id of ids) {
@@ -2837,16 +2998,67 @@ export class AtlasMapController {
     setVis(["parcels-fill"], showParcelsFill);
     setVis(["parcels-line"], showParcelsLine);
 
-    setVis(["good-brick-glow", "good-brick-circle"], state.layers.goodBrickAwards);
-    setVis(["landmarks-circle"], state.layers.landmarks);
-    setVis(["historic-districts-fill", "historic-districts-line"], state.layers.historicDistricts);
-    setVis(["heritage-districts-fill", "heritage-districts-line"], state.layers.heritageDistricts);
-    setVis(["nrhp-districts-fill", "nrhp-districts-line"], state.layers.nrhpDistricts);
-    setVis(["thc-markers-circle"], state.layers.thcMarkers);
+    setVis(
+      ["good-brick-glow", "good-brick-circle"],
+      allowIsoMarkers && Boolean(state.layers.goodBrickAwards)
+    );
+    setVis(["landmarks-circle"], allowIsoMarkers && Boolean(state.layers.landmarks));
+    setVis(["thc-markers-circle"], allowIsoMarkers && Boolean(state.layers.thcMarkers));
+
+    if (isoGeom && allowIsoMarkers) {
+      const isoBBox = iso.bbox || null;
+      const inIso = (coords) => {
+        if (!Array.isArray(coords) || coords.length < 2) return false;
+        const [lng, lat] = coords;
+        if (isoBBox && (lng < isoBBox[0] || lng > isoBBox[2] || lat < isoBBox[1] || lat > isoBBox[3])) {
+          return false;
+        }
+        return this._pointInPolygonGeometry(lng, lat, isoGeom);
+      };
+      const gbIds = (this.overlaysData?.good_brick_awards?.features || [])
+        .filter((f) => inIso(f.geometry?.coordinates))
+        .map((f) => String(f.properties?.id || f.properties?.hcad_num || ""));
+      const lmIds = (this.overlaysData?.landmarks?.features || [])
+        .filter((f) => inIso(f.geometry?.coordinates))
+        .map((f) => String(f.properties?.id || f.properties?.hcad_num || ""));
+      const thcNums = (this.overlaysData?.thc_markers?.features || [])
+        .filter((f) => inIso(f.geometry?.coordinates))
+        .map((f) => String(f.properties?.marker_num || f.properties?.id || ""));
+
+      const gbFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", gbIds]];
+      const lmFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", lmIds]];
+      const thcFilter = [
+        "in",
+        ["to-string", ["coalesce", ["get", "marker_num"], ["get", "id"], ""]],
+        ["literal", thcNums],
+      ];
+      if (this.map.getLayer("good-brick-glow")) this.map.setFilter("good-brick-glow", gbFilter);
+      if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", gbFilter);
+      if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", lmFilter);
+      if (this.map.getLayer("thc-markers-circle")) this.map.setFilter("thc-markers-circle", thcFilter);
+    } else if (!isoGeom) {
+      if (this.map.getLayer("good-brick-glow")) this.map.setFilter("good-brick-glow", null);
+      if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", null);
+      if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", null);
+      if (this.map.getLayer("thc-markers-circle")) this.map.setFilter("thc-markers-circle", null);
+    }
+
+    setVis(
+      ["historic-districts-fill", "historic-districts-line"],
+      !isoGeom && Boolean(state.layers.historicDistricts)
+    );
+    setVis(
+      ["heritage-districts-fill", "heritage-districts-line"],
+      !isoGeom && Boolean(state.layers.heritageDistricts)
+    );
+    setVis(
+      ["nrhp-districts-fill", "nrhp-districts-line"],
+      !isoGeom && Boolean(state.layers.nrhpDistricts)
+    );
 
     setVis(
       ["neighborhoods-fill", "neighborhoods-line", "neighborhoods-label"],
-      Boolean(state.layers?.neighborhoods)
+      !isoGeom && Boolean(state.layers?.neighborhoods)
     );
     setVis(
       [
@@ -2854,7 +3066,7 @@ export class AtlasMapController {
         "platted-subdivisions-line",
         "platted-subdivisions-label",
       ],
-      Boolean(state.layers?.plattedSubdivisions)
+      !isoGeom && Boolean(state.layers?.plattedSubdivisions)
     );
     setVis(
       [
@@ -2862,14 +3074,14 @@ export class AtlasMapController {
         "land-use-protections-line",
         "land-use-protections-label",
       ],
-      Boolean(state.layers?.landUseProtections)
+      !isoGeom && Boolean(state.layers?.landUseProtections)
     );
     setVis(
       ["super-neighborhoods-fill", "super-neighborhoods-line", "super-neighborhoods-label"],
-      Boolean(state.layers?.superNeighborhoods)
+      !isoGeom && Boolean(state.layers?.superNeighborhoods)
     );
 
-    const showWards = Boolean(state.layers?.historicWards);
+    const showWards = !isoGeom && Boolean(state.layers?.historicWards);
     setVis(
       ["historic-wards-fill", "historic-wards-line", "historic-wards-label"],
       showWards
@@ -2887,7 +3099,7 @@ export class AtlasMapController {
       }
     }
 
-    const showAnnex = Boolean(state.layers?.annexations);
+    const showAnnex = !isoGeom && Boolean(state.layers?.annexations);
     setVis(["annexations-fill", "annexations-line"], showAnnex);
     if (showAnnex) {
       const annexFilter = buildAnnexationFilterExpression(state);
@@ -2895,7 +3107,101 @@ export class AtlasMapController {
       this.map.setFilter("annexations-line", annexFilter);
     }
 
-    if (this.selectedBoundaryFeature?.properties?.overlay_layer) {
+    setVis(["selected-boundary-fill", "selected-boundary-line"], !isoGeom);
+
+    // Update WebGL isolation mask and border layers
+    const maskSrc = this.map.getSource("isolation-mask-src");
+    const borderSrc = this.map.getSource("isolation-border-src");
+    if (isoGeom && maskSrc && borderSrc) {
+      const worldRing = [
+        [-180, -85],
+        [180, -85],
+        [180, 85],
+        [-180, 85],
+        [-180, -85],
+      ];
+      const polys = isoGeom.type === "Polygon" ? [isoGeom.coordinates] : isoGeom.coordinates || [];
+      const outerHoles = [];
+      const islandFeatures = [];
+      for (const poly of polys) {
+        if (!Array.isArray(poly) || !poly[0]) continue;
+        outerHoles.push(poly[0]);
+        for (let h = 1; h < poly.length; h++) {
+          if (Array.isArray(poly[h]) && poly[h].length >= 3) {
+            islandFeatures.push({
+              type: "Feature",
+              geometry: { type: "Polygon", coordinates: [poly[h]] },
+              properties: {},
+            });
+          }
+        }
+      }
+      maskSrc.setData({
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [worldRing, ...outerHoles],
+            },
+            properties: {},
+          },
+          ...islandFeatures,
+        ],
+      });
+      borderSrc.setData({
+        type: "FeatureCollection",
+        features: [iso.feature],
+      });
+      if (this.map.getLayer("isolation-mask-fill")) {
+        this.map.setPaintProperty("isolation-mask-fill", "fill-color", bgHex);
+        this.map.setPaintProperty(
+          "isolation-mask-fill",
+          "fill-opacity",
+          isNoMap ? 1.0 : 0.9
+        );
+      }
+      if (this.map.getLayer("isolation-border-fill")) {
+        this.map.setPaintProperty(
+          "isolation-border-fill",
+          "fill-color",
+          isLightBg ? "#0F172A" : "#95C959"
+        );
+        this.map.setPaintProperty(
+          "isolation-border-fill",
+          "fill-opacity",
+          isoMode === "border_only" ? 0.14 : 0.03
+        );
+      }
+      if (this.map.getLayer("isolation-border-line")) {
+        this.map.setPaintProperty(
+          "isolation-border-line",
+          "line-color",
+          isoMode === "border_only"
+            ? isLightBg
+              ? "#0F172A"
+              : "#95C959"
+            : isLightBg
+            ? "#0F172A"
+            : "#FDE047"
+        );
+        this.map.setPaintProperty(
+          "isolation-border-line",
+          "line-width",
+          isoMode === "border_only" ? 3.5 : 2.8
+        );
+      }
+      setVis(["isolation-mask-fill"], true);
+      setVis(["isolation-border-fill"], isoMode === "border_only");
+      setVis(["isolation-border-line"], isoMode !== "footprints_only");
+    } else {
+      if (maskSrc) maskSrc.setData({ type: "FeatureCollection", features: [] });
+      if (borderSrc) borderSrc.setData({ type: "FeatureCollection", features: [] });
+      setVis(["isolation-mask-fill", "isolation-border-fill", "isolation-border-line"], false);
+    }
+
+    if (!isoGeom && this.selectedBoundaryFeature?.properties?.overlay_layer) {
       const selOverlay = this.selectedBoundaryFeature.properties.overlay_layer;
       const overlayEnabledMap = {
         historic_districts: Boolean(state.layers?.historicDistricts),
@@ -4770,6 +5076,27 @@ export class AtlasMapController {
     let contributingCount = 0;
     let landmarkCount = 0;
 
+    const iso = this.isolatedBoundary;
+    const isoGeom = iso?.feature?.geometry || null;
+    const isoBBox = iso?.bbox || null;
+
+    const isPolygonInIsolated = (geom) => {
+      if (!isoGeom) return true;
+      if (!geom || !geom.coordinates) return false;
+      const ring =
+        geom.type === "Polygon"
+          ? geom.coordinates[0]
+          : geom.type === "MultiPolygon" && geom.coordinates[0]
+          ? geom.coordinates[0][0]
+          : null;
+      if (!ring || !ring.length) return false;
+      const [lon, lat] = ring[0];
+      if (isoBBox && (lon < isoBBox[0] || lon > isoBBox[2] || lat < isoBBox[1] || lat > isoBBox[3])) {
+        return false;
+      }
+      return this._pointInPolygonGeometry(lon, lat, isoGeom);
+    };
+
     // In WebGL mode with countywide PMTiles shards, query rendered vector tile features first
     let usedRenderedFeatures = false;
     if (!this.useCanvasFallback && this.map) {
@@ -4785,6 +5112,7 @@ export class AtlasMapController {
           usedRenderedFeatures = true;
           const seenIds = new Set();
           for (const feat of rendered) {
+            if (isoGeom && !isPolygonInIsolated(feat.geometry)) continue;
             const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
             const firstPt =
               feat.geometry?.type === "Polygon"
@@ -4843,7 +5171,8 @@ export class AtlasMapController {
         if (!ring || !ring.length) continue;
 
         const [lon, lat] = ring[0];
-        if (lon < west || lon > east || lat < south || lat > north) continue;
+        if (!isoGeom && (lon < west || lon > east || lat < south || lat > north)) continue;
+        if (isoGeom && !isPolygonInIsolated(geom)) continue;
 
         const p = feat.properties || {};
         const fid = p.id || p.building_id || "";
@@ -4900,6 +5229,522 @@ export class AtlasMapController {
       decadeCounts,
       viewport: vp,
     });
+  }
+
+  _findBoundaryEntry(spec = {}) {
+    if (!Array.isArray(this.boundarySpatialIndex) || !this.boundarySpatialIndex.length) {
+      this._buildBoundarySpatialIndex();
+    }
+    const targetId = String(spec.id || "").trim();
+    const targetName = String(spec.name || spec.id || "").trim().toLowerCase();
+    const stripDistrictSuffix = (s) =>
+      String(s || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+(protected\s+)?(historic|heritage|nrhp)\s+district$/i, "")
+        .replace(/\s+super\s+neighborhood$/i, "")
+        .trim();
+    const strippedTargetName = stripDistrictSuffix(targetName);
+    const targetLayer = this._normalizeBoundaryOverlayKey(spec.layerKey || spec.overlay_layer || "");
+    const eraYear = spec.eraYear || spec.era || null;
+
+    let matchEntry = null;
+    if (targetId) {
+      matchEntry = this.boundarySpatialIndex.find(
+        (e) =>
+          String(e.props.id || "") === targetId &&
+          (!targetLayer || e.overlayKey === targetLayer)
+      );
+    }
+    if (!matchEntry && targetName) {
+      matchEntry = this.boundarySpatialIndex.find((e) => {
+        if (targetLayer && e.overlayKey !== targetLayer) return false;
+        const entryEra = Number(e.props.era || e.props.ward_era || e.props.era_year || 0);
+        if (e.overlayKey === "historic_wards" && eraYear && entryEra !== Number(eraYear)) {
+          return false;
+        }
+        const entryName = String(e.props.name || e.props.era_label || "")
+          .trim()
+          .toLowerCase();
+        return entryName === targetName || stripDistrictSuffix(entryName) === strippedTargetName;
+      });
+    }
+    if (!matchEntry && targetName) {
+      matchEntry = this.boundarySpatialIndex.find((e) => {
+        if (targetLayer && e.overlayKey !== targetLayer) return false;
+        const entryName = String(e.props.name || e.props.era_label || "")
+          .trim()
+          .toLowerCase();
+        if (
+          entryName === targetName ||
+          stripDistrictSuffix(entryName) === strippedTargetName ||
+          (strippedTargetName.length >= 4 && entryName.includes(strippedTargetName))
+        ) {
+          return true;
+        }
+        if (
+          String(e.props.full_name || "")
+            .trim()
+            .toLowerCase() === targetName
+        ) {
+          return true;
+        }
+        const rawAlt = e.props.aliases || e.props.alt_names;
+        const alts = Array.isArray(rawAlt)
+          ? rawAlt
+          : typeof rawAlt === "string"
+          ? rawAlt.split(/\s*\|\s*|\s*;\s*/)
+          : [];
+        return alts.some((a) => String(a || "").trim().toLowerCase() === targetName);
+      });
+    }
+    if (!matchEntry && targetName && targetLayer) {
+      // Fallback across all boundary layers if layerKey didn't match
+      matchEntry = this.boundarySpatialIndex.find((e) => {
+        const entryName = String(e.props.name || e.props.era_label || "")
+          .trim()
+          .toLowerCase();
+        return (
+          entryName === targetName ||
+          stripDistrictSuffix(entryName) === strippedTargetName ||
+          String(e.props.id || "") === targetId
+        );
+      });
+    }
+    return matchEntry || null;
+  }
+
+  _resolveIsolatedBoundaryFromSpec(spec, opts = {}) {
+    if (!spec) {
+      this.isolatedBoundary = null;
+      return null;
+    }
+    const matchEntry = this._findBoundaryEntry(spec);
+    if (!matchEntry) {
+      this.isolatedBoundary = null;
+      return null;
+    }
+    const validMode =
+      spec.mode === "footprints_only" || spec.mode === "border_only"
+        ? spec.mode
+        : "contents";
+    const feat = {
+      type: "Feature",
+      geometry: matchEntry.feature.geometry,
+      properties: {
+        ...matchEntry.props,
+        overlay_layer: matchEntry.overlayKey,
+        is_boundary_feature: true,
+      },
+    };
+    this.isolatedBoundary = {
+      feature: feat,
+      bbox: matchEntry.bbox,
+      centroid: matchEntry.centroid,
+      layerKey: matchEntry.overlayKey,
+      id: String(matchEntry.props.id || matchEntry.props.name || ""),
+      name: String(
+        matchEntry.props.name ||
+          matchEntry.props.era_label ||
+          matchEntry.props.historic_district ||
+          "Isolated Area"
+      ),
+      mode: validMode,
+    };
+    this.selectedBoundaryFeature = feat;
+
+    if (opts.flyTo) {
+      const [minLng, minLat, maxLng, maxLat] = matchEntry.bbox;
+      const isSmallBoundary =
+        matchEntry.overlayKey === "platted_subdivisions" ||
+        matchEntry.overlayKey === "neighborhoods" ||
+        matchEntry.overlayKey === "historic_districts" ||
+        matchEntry.overlayKey === "heritage_districts";
+      if (!this.useCanvasFallback && this.map && typeof this.map.fitBounds === "function") {
+        try {
+          this.map.fitBounds(
+            [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ],
+            {
+              padding: { top: 90, bottom: 110, left: 360, right: 380 },
+              maxZoom:
+                matchEntry.overlayKey === "platted_subdivisions"
+                  ? 16.2
+                  : isSmallBoundary
+                  ? 15.6
+                  : 14.2,
+              duration: 850,
+            }
+          );
+        } catch (_e) {
+          this.flyToLocation({
+            lng: matchEntry.centroid[0],
+            lat: matchEntry.centroid[1],
+            zoom: isSmallBoundary ? 15.0 : 13.5,
+          });
+        }
+      } else {
+        this.flyToLocation({
+          lng: matchEntry.centroid[0],
+          lat: matchEntry.centroid[1],
+          zoom: isSmallBoundary ? 15.0 : 13.5,
+        });
+      }
+    }
+
+    if (typeof this.onIsolationChange === "function") {
+      this.onIsolationChange(this.isolatedBoundary);
+    }
+    return this.isolatedBoundary;
+  }
+
+  _syncIsolatedBoundaryWithState(state) {
+    const spec = state?.isolatedBoundary || null;
+    if (!spec) {
+      if (this.isolatedBoundary) {
+        this.isolatedBoundary = null;
+        if (typeof this.onIsolationChange === "function") {
+          this.onIsolationChange(null);
+        }
+      }
+      return;
+    }
+    const cur = this.isolatedBoundary;
+    const sameTarget =
+      cur &&
+      cur.layerKey === this._normalizeBoundaryOverlayKey(spec.layerKey || "") &&
+      (cur.id === spec.id || cur.name.toLowerCase() === String(spec.name || "").toLowerCase());
+    if (sameTarget) {
+      const nextMode =
+        spec.mode === "footprints_only" || spec.mode === "border_only"
+          ? spec.mode
+          : "contents";
+      if (cur.mode !== nextMode) {
+        cur.mode = nextMode;
+        if (typeof this.onIsolationChange === "function") {
+          this.onIsolationChange(cur);
+        }
+      }
+      return;
+    }
+    const shouldInitialFly = !this._didInitialIsolateFlyTo;
+    this._didInitialIsolateFlyTo = true;
+    this._resolveIsolatedBoundaryFromSpec(spec, { flyTo: shouldInitialFly });
+  }
+
+  setIsolatedBoundary(spec, opts = {}) {
+    if (!spec) {
+      this.clearIsolatedBoundary();
+      return null;
+    }
+    const resolved = this._resolveIsolatedBoundaryFromSpec(spec, {
+      flyTo: opts.flyTo !== false,
+    });
+    if (!resolved) return null;
+    const state = this.filterStore.getState();
+    const nextPatch = {
+      isolatedBoundary: {
+        layerKey: resolved.layerKey,
+        id: resolved.id,
+        name: resolved.name,
+        mode: resolved.mode,
+      },
+    };
+    if (resolved.mode !== "border_only" && state.renderMode === "none") {
+      nextPatch.renderMode = state.lastActiveRenderMode || "buildings";
+    }
+    this.filterStore.setState(nextPatch);
+    return resolved;
+  }
+
+  setIsolationMode(mode = "contents") {
+    if (!this.isolatedBoundary) return;
+    const validMode =
+      mode === "footprints_only" || mode === "border_only" ? mode : "contents";
+    this.isolatedBoundary.mode = validMode;
+    const state = this.filterStore.getState();
+    const nextPatch = {
+      isolatedBoundary: {
+        layerKey: this.isolatedBoundary.layerKey,
+        id: this.isolatedBoundary.id,
+        name: this.isolatedBoundary.name,
+        mode: validMode,
+      },
+    };
+    if (validMode !== "border_only" && state.renderMode === "none") {
+      nextPatch.renderMode = state.lastActiveRenderMode || "buildings";
+    }
+    this.filterStore.setState(nextPatch);
+    if (typeof this.onIsolationChange === "function") {
+      this.onIsolationChange(this.isolatedBoundary);
+    }
+  }
+
+  clearIsolatedBoundary() {
+    if (!this.isolatedBoundary && !this.filterStore.getState().isolatedBoundary) return;
+    this.isolatedBoundary = null;
+    this.filterStore.setState({ isolatedBoundary: null });
+    if (typeof this.onIsolationChange === "function") {
+      this.onIsolationChange(null);
+    }
+  }
+
+  getIsolatedBoundary() {
+    return this.isolatedBoundary;
+  }
+
+  captureMapScreenshotDataUrl() {
+    try {
+      if (this.useCanvasFallback && this.canvasState?.canvas) {
+        this._renderCanvas2D();
+        return this.canvasState.canvas.toDataURL("image/png");
+      }
+      if (this.map) {
+        this.map.triggerRepaint();
+        return this.map.getCanvas().toDataURL("image/png");
+      }
+    } catch (err) {
+      console.warn("Map canvas screenshot capture failed:", err);
+    }
+    return null;
+  }
+
+  /**
+   * Collects vector boundary geometry, building footprint polygons, and landmark/Good Brick points
+   * for the Vector SVG, Print, T-Shirt & Coaster Studio (`#export-studio-modal`).
+   */
+  collectVectorFeaturesForExport(options = {}) {
+    const state = this.filterStore.getState();
+    let targetEntry = null;
+    let boundaryFeature = null;
+
+    if (options.boundarySpec) {
+      targetEntry = this._findBoundaryEntry(options.boundarySpec);
+      if (targetEntry) {
+        boundaryFeature = {
+          type: "Feature",
+          geometry: targetEntry.feature.geometry,
+          properties: {
+            ...targetEntry.props,
+            overlay_layer: targetEntry.overlayKey,
+            is_boundary_feature: true,
+          },
+        };
+      }
+    } else if (options.useViewportOnly) {
+      boundaryFeature = null;
+    } else if (this.isolatedBoundary?.feature) {
+      boundaryFeature = this.isolatedBoundary.feature;
+      targetEntry = {
+        bbox: this.isolatedBoundary.bbox,
+        centroid: this.isolatedBoundary.centroid,
+        overlayKey: this.isolatedBoundary.layerKey,
+        props: boundaryFeature.properties || {},
+      };
+    } else if (this.selectedBoundaryFeature?.geometry) {
+      boundaryFeature = this.selectedBoundaryFeature;
+      const meta = this._computeGeometryBBoxAndCentroid(boundaryFeature.geometry);
+      targetEntry = {
+        bbox: meta ? meta.bbox : [-95.4, 29.74, -95.35, 29.79],
+        centroid: meta ? [meta.lng, meta.lat] : [-95.38, 29.766],
+        overlayKey: boundaryFeature.properties?.overlay_layer || "neighborhoods",
+        props: boundaryFeature.properties || {},
+      };
+    }
+
+    let clipBBox = null;
+    let centroid = [-95.3805, 29.7662];
+    const boundaryGeom = boundaryFeature?.geometry || null;
+
+    if (boundaryGeom && targetEntry) {
+      clipBBox = targetEntry.bbox;
+      centroid = targetEntry.centroid;
+    } else {
+      const bounds = this.useCanvasFallback
+        ? this._getCanvasBounds()
+        : this.map
+        ? this.map.getBounds()
+        : null;
+      if (bounds) {
+        clipBBox = [
+          bounds.getWest(),
+          bounds.getSouth(),
+          bounds.getEast(),
+          bounds.getNorth(),
+        ];
+        centroid = [
+          (clipBBox[0] + clipBBox[2]) / 2,
+          (clipBBox[1] + clipBBox[3]) / 2,
+        ];
+      } else {
+        clipBBox = [-95.4, 29.74, -95.35, 29.79];
+      }
+    }
+
+    const [minLng, minLat, maxLng, maxLat] = clipBBox;
+    const isPointInside = (lng, lat) => {
+      if (lng < minLng || lng > maxLng || lat < minLat || lat > maxLat) return false;
+      if (!boundaryGeom) return true;
+      return this._pointInPolygonGeometry(lng, lat, boundaryGeom);
+    };
+
+    const getPolySamplePoint = (geom) => {
+      if (!geom || !geom.coordinates) return null;
+      const ring =
+        geom.type === "Polygon"
+          ? geom.coordinates[0]
+          : geom.type === "MultiPolygon" && geom.coordinates[0]
+          ? geom.coordinates[0][0]
+          : null;
+      if (!ring || !ring.length) return null;
+      let sx = 0;
+      let sy = 0;
+      let n = 0;
+      const step = Math.max(1, Math.floor(ring.length / 6));
+      for (let i = 0; i < ring.length; i += step) {
+        const pt = ring[i];
+        if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+          sx += pt[0];
+          sy += pt[1];
+          n += 1;
+        }
+      }
+      return n > 0 ? [sx / n, sy / n] : null;
+    };
+
+    const buildings = [];
+    const seenBldKeys = new Set();
+
+    const addBuildingCandidate = (feat) => {
+      if (!feat?.geometry) return;
+      const gType = feat.geometry.type;
+      if (gType !== "Polygon" && gType !== "MultiPolygon") return;
+      const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
+      if (p.suppress_only) return;
+      if (options.respectYearFilter !== false && !featureMatchesFilter(p, state)) return;
+
+      const samplePt = getPolySamplePoint(feat.geometry);
+      if (!samplePt || !isPointInside(samplePt[0], samplePt[1])) return;
+
+      const key =
+        String(p.id || p.building_id || p.hcad_num || "") ||
+        `${samplePt[0].toFixed(5)},${samplePt[1].toFixed(5)}`;
+      if (seenBldKeys.has(key)) return;
+      seenBldKeys.add(key);
+
+      buildings.push({
+        type: "Feature",
+        geometry: feat.geometry,
+        properties: {
+          ...p,
+          _export_color: evaluateFeatureColor(p, state.colorMode, state.paletteStyle),
+        },
+      });
+    };
+
+    for (const f of this.overridesFC?.features || []) addBuildingCandidate(f);
+    for (const f of this.buildingsData || []) addBuildingCandidate(f);
+
+    if (!this.useCanvasFallback && this.map) {
+      const queryLayers = [
+        ...(this.buildingFillLayerIds || []),
+        ...(this.buildingExtrusionLayerIds || []),
+      ].filter((id) => this.map.getLayer(id));
+      if (queryLayers.length > 0) {
+        try {
+          const rendered = this.map.queryRenderedFeatures({ layers: queryLayers });
+          for (const f of rendered) addBuildingCandidate(f);
+        } catch (_e) {}
+      }
+      if (Array.isArray(this.shardSourceIds)) {
+        for (const srcId of this.shardSourceIds) {
+          try {
+            const srcFeats = this.map.querySourceFeatures(srcId, { sourceLayer: "buildings" });
+            for (const f of srcFeats) addBuildingCandidate(f);
+          } catch (_e) {}
+        }
+      }
+    }
+
+    if (buildings.length === 0 && Array.isArray(this.parcelsData)) {
+      for (const f of this.parcelsData) addBuildingCandidate(f);
+    }
+
+    const landmarks = [];
+    for (const f of this.overlaysData?.landmarks?.features || []) {
+      const c = f.geometry?.coordinates;
+      if (Array.isArray(c) && isPointInside(c[0], c[1])) {
+        landmarks.push(f);
+      }
+    }
+
+    const goodBricks = [];
+    for (const f of this.overlaysData?.good_brick_awards?.features || []) {
+      const c = f.geometry?.coordinates;
+      if (Array.isArray(c) && isPointInside(c[0], c[1])) {
+        goodBricks.push(f);
+      }
+    }
+
+    const years = buildings
+      .map((b) => Number(b.properties?.year_built) || 0)
+      .filter((y) => y >= 1836 && y <= 2026)
+      .sort((a, b) => a - b);
+
+    const bProps = boundaryFeature?.properties || {};
+    const earliestYear =
+      years.length > 0
+        ? years[0]
+        : Number(bProps.earliest_year) >= 1836
+        ? Number(bProps.earliest_year)
+        : 0;
+    const medianYear =
+      years.length > 0
+        ? years[Math.floor(years.length / 2)]
+        : Number(bProps.median_year) >= 1836
+        ? Number(bProps.median_year)
+        : 0;
+    const pre1940Count =
+      years.length > 0
+        ? years.filter((y) => y < 1940).length
+        : Number(bProps.pre_1940_count) || 0;
+
+    const boundaryName = boundaryFeature
+      ? String(
+          bProps.name ||
+            bProps.era_label ||
+            bProps.historic_district ||
+            "Houston Historic District"
+        ).trim()
+      : "Houston Custom Map View";
+
+    const boundaryLayerKey = boundaryFeature
+      ? String(bProps.overlay_layer || "neighborhoods")
+      : "viewport";
+
+    return {
+      scope: boundaryFeature ? "boundary" : "viewport",
+      isIsolatedPolygon: Boolean(boundaryFeature),
+      boundaryFeature,
+      boundaryName,
+      boundaryLayerKey,
+      bbox: clipBBox,
+      centroid,
+      buildings,
+      landmarks,
+      goodBricks,
+      stats: {
+        buildingCount: buildings.length || Number(bProps.building_count) || 0,
+        extractedFootprintCount: buildings.length,
+        earliestYear,
+        medianYear,
+        pre1940Count,
+        landmarkCount: landmarks.length || Number(bProps.landmark_count) || 0,
+        goodBrickCount: goodBricks.length || Number(bProps.good_brick_count) || 0,
+      },
+    };
   }
 
   getRenderedBuildingCandidates(limit = 20000) {
