@@ -17,7 +17,7 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261009i";
+} from "./filterStore.js?v=20261009j";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
@@ -1935,11 +1935,14 @@ export class AtlasMapController {
     };
 
     // 2. Annexation History Overlay
-    if ((state.layers.annexations || state.syncAnnexationToTime) && this.overlaysData?.annexations) {
+    if (Boolean(state.layers?.annexations) && this.overlaysData?.annexations) {
       const activeDecade = resolveActiveAnnexationDecade(state);
       for (const feat of this.overlaysData.annexations.features || []) {
         const dec = Number(feat.properties?.decade) || 1836;
         if (activeDecade !== null && dec !== activeDecade) continue;
+        if (state.showAnnexationSpokes === false && feat.properties?.annex_subtype === "spoke_or_spa") {
+          continue;
+        }
         drawPolygonFeature(
           feat.geometry,
           "rgba(217, 119, 6, 0.08)",
@@ -2655,12 +2658,33 @@ export class AtlasMapController {
       }
     }
 
-    const showAnnex = state.layers.annexations || state.syncAnnexationToTime;
+    const showAnnex = Boolean(state.layers?.annexations);
     setVis(["annexations-fill", "annexations-line"], showAnnex);
     if (showAnnex) {
       const annexFilter = buildAnnexationFilterExpression(state);
       this.map.setFilter("annexations-fill", annexFilter);
       this.map.setFilter("annexations-line", annexFilter);
+    }
+
+    if (this.selectedBoundaryFeature?.properties?.overlay_layer) {
+      const selOverlay = this.selectedBoundaryFeature.properties.overlay_layer;
+      const overlayEnabledMap = {
+        historic_districts: Boolean(state.layers?.historicDistricts),
+        heritage_districts: Boolean(state.layers?.heritageDistricts),
+        nrhp_districts: Boolean(state.layers?.nrhpDistricts),
+        neighborhoods: Boolean(state.layers?.neighborhoods),
+        platted_subdivisions: Boolean(state.layers?.plattedSubdivisions),
+        super_neighborhoods: Boolean(state.layers?.superNeighborhoods),
+        historic_wards: showWards,
+        annexations: showAnnex,
+      };
+      const isSpokeHidden =
+        selOverlay === "annexations" &&
+        state.showAnnexationSpokes === false &&
+        this.selectedBoundaryFeature.properties.annex_subtype === "spoke_or_spa";
+      if (overlayEnabledMap[selOverlay] === false || isSpokeHidden) {
+        this.clearHighlightedBoundary();
+      }
     }
 
     if (this.selectedFeatureProps) {
@@ -3807,8 +3831,8 @@ export class AtlasMapController {
         this._buildBoundarySpatialIndex();
       }
       const activeWardEra = resolveActiveWardEra(state);
-      const showAnnex = Boolean(state.layers?.annexations || state.syncAnnexationToTime);
-      const maxYear = Number(state.maxYear || 2026);
+      const showAnnex = Boolean(state.layers?.annexations);
+      const activeAnnexDecade = resolveActiveAnnexationDecade(state);
       const showSpokes = state.showAnnexationSpokes !== false;
 
       const LAYER_META = {
@@ -3858,7 +3882,7 @@ export class AtlasMapController {
           enabled: showAnnex,
           priority: 70,
           typeBadge: "Annexation",
-          swatchColor: "#f43f5e",
+          swatchColor: "#f59e0b",
         },
       };
 
@@ -3872,8 +3896,8 @@ export class AtlasMapController {
           );
           if (entryEra !== activeWardEra) continue;
         } else if (entry.overlayKey === "annexations") {
-          const annexYr = Number(entry.props.year || entry.props.decade || 0);
-          if (annexYr > maxYear) continue;
+          const annexDecade = Number(entry.props.decade || entry.props.year || 1836);
+          if (annexDecade !== activeAnnexDecade) continue;
           if (!showSpokes && entry.props.annex_subtype === "spoke_or_spa") continue;
         }
         const [minLng, minLat, maxLng, maxLat] = entry.bbox;

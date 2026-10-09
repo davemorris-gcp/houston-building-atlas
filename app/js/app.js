@@ -12,11 +12,12 @@ import {
   createFilterStore,
   HISTORIC_WARD_ERAS,
   parseHashToState,
+  resolveActiveAnnexationDecade,
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261009i";
-import { AtlasMapController } from "./mapController.js?v=20261009i";
+} from "./filterStore.js?v=20261009j";
+import { AtlasMapController } from "./mapController.js?v=20261009j";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -1317,14 +1318,7 @@ class HoustonAtlasApp {
     const chkSyncAnnex = document.getElementById("chk-sync-annexation");
     if (chkSyncAnnex) {
       chkSyncAnnex.addEventListener("change", (e) => {
-        const checked = e.target.checked;
-        this.filterStore.setState({
-          syncAnnexationToTime: checked,
-          layers: {
-            ...this.filterStore.getState().layers,
-            annexations: checked ? true : this.filterStore.getState().layers.annexations,
-          },
-        });
+        this.filterStore.setLayerVisibility("annexations", Boolean(e.target.checked));
       });
     }
 
@@ -3751,10 +3745,14 @@ class HoustonAtlasApp {
 
     const annexOptionsRow = document.getElementById("annexation-options-row");
     if (annexOptionsRow) {
-      annexOptionsRow.classList.toggle(
-        "hidden",
-        !(state.layers.annexations || state.syncAnnexationToTime)
-      );
+      annexOptionsRow.classList.toggle("hidden", !state.layers.annexations);
+    }
+    const annexDecadeBadge = document.getElementById("annexation-active-decade-badge");
+    if (annexDecadeBadge) {
+      const activeDec = resolveActiveAnnexationDecade(state);
+      annexDecadeBadge.textContent = `${
+        activeDec === 1836 ? "1836" : `${activeDec}s`
+      } City Limits`;
     }
     const chkAnnexSpokes = document.getElementById("chk-annexation-spokes");
     if (chkAnnexSpokes) {

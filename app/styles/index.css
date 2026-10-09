@@ -4620,14 +4620,35 @@ body {
 }
 
 /* ==========================================================================
-   Neighborhoods, Super Neighborhoods & Historic Ward Era Controls
+   Neighborhoods, Super Neighborhoods, Historic Ward Era & Annexation Sub-Rows
    ========================================================================== */
-.ward-era-pill-group {
+.historic-ward-era-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-left: 20px;
+  margin-top: -1px;
+  margin-bottom: 2px;
+  padding: 6px 9px 7px 10px;
+  background: rgba(251, 146, 60, 0.06);
+  border: 1px dashed rgba(251, 146, 60, 0.32);
+  border-left: 2px solid #fb923c;
+  border-radius: 6px;
+}
+
+.ward-era-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #fed7aa;
+  letter-spacing: 0.02em;
+}
+
+.ward-era-pill-group,
+.ward-era-pills {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   width: 100%;
-  margin-top: 4px;
 }
 
 .ward-era-pill {
@@ -4637,7 +4658,7 @@ body {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
-  padding: 4px 4px;
+  padding: 3px 4px;
   border-radius: 5px;
   cursor: pointer;
   transition: all 0.14s ease;
@@ -4655,6 +4676,55 @@ body {
   border-color: #fb923c;
   color: #ffedd5;
   box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.45);
+}
+
+.annexation-options-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-left: 20px;
+  margin-top: -1px;
+  margin-bottom: 2px;
+  padding: 6px 9px 7px 10px;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px dashed rgba(245, 158, 11, 0.32);
+  border-left: 2px solid #f59e0b;
+  border-radius: 6px;
+}
+
+.annexation-options-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.annexation-options-kicker {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #fde68a;
+  letter-spacing: 0.02em;
+}
+
+.annexation-active-decade-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #fef3c7;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.annexation-subcheck-row {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.3;
+  align-items: flex-start;
+}
+
+.annexation-subcheck-row input[type="checkbox"] {
+  margin-top: 1px;
 }
 
 .search-result-item.is-place-boundary-item {
