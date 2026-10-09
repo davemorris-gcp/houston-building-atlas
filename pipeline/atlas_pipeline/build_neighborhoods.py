@@ -6,7 +6,7 @@ Combines 6 authoritative geocoded sources:
   3. City of Houston Patrol Region 3 Neighborhoods (237 CAD polygons with multi-name NAME_1 / NAME_2 subdivision lists)
   4. City of Houston Civic Clubs (470 HOA / Civic Association polygons) + Cultural & Conservation Districts
   5. City of Houston Super Neighborhoods (88 official macro planning polygons)
-  6. City of Houston Historical Ward Boundaries across 5 charter eras (1839, 1866, 1896, 1903, 1920)
+  6. City of Houston Historical Ward Boundaries across 4 aldermanic charter eras (1839, 1866, 1896, 1903-1905)
   7. HCAD Real_acct_owner.zip (real_acct.txt lgl_2 platted subdivisions + real_neighborhood_code.txt)
 """
 
@@ -337,37 +337,37 @@ WARD_METADATA = {
         'name': 'First Ward',
         'color': '#38BDF8',
         'alt_names': ['High First Ward', 'First Ward Arts District', 'Sawyer Yards', 'Germantown'],
-        'description': 'Northwest quadrant of original 1839-1920 Houston, north of Congress Ave / Buffalo Bayou and west of Main St.',
+        'description': 'Northwest quadrant of original 1839-1905 Houston, north of Congress Ave / Buffalo Bayou and west of Main St (established 1839; final aldermanic boundary 1903-1905).',
     },
     'SECOND': {
         'name': 'Second Ward',
         'color': '#F59E0B',
         'alt_names': ['Segundo Barrio', 'Frost Town', "Schrimpf's Field", 'East End'],
-        'description': 'Northeast quadrant of original 1839-1920 Houston, north of Congress Ave and east of Main St to Buffalo Bayou.',
+        'description': 'Northeast quadrant of original 1839-1905 Houston, north of Congress Ave and east of Main St to Buffalo Bayou (established 1839; final aldermanic boundary 1903-1905).',
     },
     'THIRD': {
         'name': 'Third Ward',
         'color': '#EC4899',
         'alt_names': ['Greater Third Ward', 'Emancipation Corridor', 'Dowling Street Corridor', 'The Tre'],
-        'description': 'Southeast quadrant of original 1839-1920 Houston, south of Congress Ave and east of Main St.',
+        'description': 'Southeast quadrant of original 1839-1905 Houston, south of Congress Ave and east of Main St (established 1839; final aldermanic boundary 1903-1905).',
     },
     'FOURTH': {
         'name': 'Fourth Ward',
         'color': '#34D399',
         'alt_names': ["Freedmen's Town", 'Historic Fourth Ward', 'San Felipe District', 'South End'],
-        'description': 'Southwest quadrant of original 1839-1920 Houston, south of Congress Ave / Buffalo Bayou and west of Main St.',
+        'description': 'Southwest quadrant of original 1839-1905 Houston, south of Congress Ave / Buffalo Bayou and west of Main St (established 1839; final aldermanic boundary 1903-1905).',
     },
     'FIFTH': {
         'name': 'Fifth Ward',
         'color': '#A855F7',
         'alt_names': ['Greater Fifth Ward', 'The Nickel', 'Lyons Avenue Corridor', 'Frenchtown'],
-        'description': 'Established in 1866 northeast of Buffalo Bayou and east of White Oak Bayou.',
+        'description': 'Established in the 1866 City Charter northeast of Buffalo Bayou and east of White Oak Bayou (final aldermanic boundary 1903-1905).',
     },
     'SIXTH': {
         'name': 'Sixth Ward',
         'color': '#FB923C',
         'alt_names': ['Old Sixth Ward', 'Historic Sixth Ward', 'Vinegar Hill'],
-        'description': 'Established in 1876 north of Buffalo Bayou and west of White Oak Bayou (carved from the original Fourth Ward).',
+        'description': 'Established in 1876 north of Buffalo Bayou and west of White Oak Bayou, carved from the original Fourth Ward (final aldermanic boundary 1903-1905).',
     },
 }
 
@@ -525,15 +525,18 @@ def load_hcad_subdivisions() -> dict[str, str]:
 
 
 def build_historic_wards() -> list[dict]:
+  # Note: Houston's aldermanic ward system was abolished by voters in Dec. 1904 / enacted in the
+  # March 1905 Commission Charter. The 1903 charter boundary (16 sq. mi. 4-mile square) was the
+  # final official municipal ward map. (COH GIS's "1920" layer was digitized from a 1981 exhibit
+  # poster overlaid on a 1920 road map and erroneously traced the outer 1920 city limit line.)
   era_files = [
-      (1839, 'coh_wards_1839.geojson'),
-      (1866, 'coh_wards_1866.geojson'),
-      (1896, 'coh_wards_1896.geojson'),
-      (1903, 'coh_wards_1903.geojson'),
-      (1920, 'coh_wards_1920.geojson'),
+      (1839, 'coh_wards_1839.geojson', '1839', '1839 Original 4-Ward Charter'),
+      (1866, 'coh_wards_1866.geojson', '1866', '1866 5-Ward Charter'),
+      (1896, 'coh_wards_1896.geojson', '1896', '1896 6-Ward Charter (9 Sq. Mi.)'),
+      (1903, 'coh_wards_1903.geojson', '1903–05', '1903–1905 Final Aldermanic Charter (16 Sq. Mi.)'),
   ]
   ward_features = []
-  for era, fname in era_files:
+  for era, fname, era_short, era_desc in era_files:
     fpath = os.path.join(CACHE_DIR, fname)
     if not os.path.exists(fpath):
       continue
@@ -559,16 +562,19 @@ def build_historic_wards() -> list[dict]:
               'name': meta['name'],
               'ward_key': raw_ward,
               'era': era,
-              'display_title': f"{meta['name']} ({era} Boundary)",
+              'era_short': era_short,
+              'era_label': f"{meta['name']} ({era_desc})",
+              'display_title': f"{meta['name']} ({era_desc})",
               'alt_names': meta['alt_names'],
               'color': meta['color'],
               'description': meta['description'],
+              'source': 'City of Houston Historic Ward Charters (1839–1905)',
               'label_lng': round(rep.x, 5),
               'label_lat': round(rep.y, 5),
           },
           'geometry': round_coords(mapping(geom), 5),
       })
-  print(f'Built {len(ward_features)} Historic Ward features across 5 eras (1839-1920)')
+  print(f'Built {len(ward_features)} Historic Ward features across 4 aldermanic charter eras (1839-1905)')
   return ward_features
 
 
@@ -620,7 +626,7 @@ def norm_key(name: str) -> str:
 
 
 def build_vernacular_neighborhoods(
-    super_nbhds: list[dict], wards_1920: list[dict]
+    super_nbhds: list[dict], wards_1903: list[dict]
 ) -> list[dict]:
   """Synthesize vernacular neighborhoods from COH Patrol3, COH 2021, 2009 Peter Brown GeoPDF, and COH Civic Clubs."""
   candidates = []
@@ -801,11 +807,11 @@ def build_vernacular_neighborhoods(
     else:
       merged.append(cand)
 
-  # Enrich each merged neighborhood with Curated Aliases, Parent Super Neighborhood, and 1920 Historic Ward
+  # Enrich each merged neighborhood with Curated Aliases, Parent Super Neighborhood, and 1903-1905 Historic Ward
   sn_geoms = [shape(f['geometry']) for f in super_nbhds]
   sn_tree = STRtree(sn_geoms)
-  w1920_geoms = [shape(f['geometry']) for f in wards_1920]
-  w1920_tree = STRtree(w1920_geoms)
+  w1903_geoms = [shape(f['geometry']) for f in wards_1903]
+  w1903_tree = STRtree(w1903_geoms)
 
   out_features = []
   for idx, item in enumerate(merged):
@@ -832,11 +838,11 @@ def build_vernacular_neighborhoods(
             best_area = ia
             parent_sn = super_nbhds[sn_idx]['properties']['name']
 
-    # Find parent 1920 Historic Ward
+    # Find parent 1903-1905 Historic Ward
     parent_ward = None
-    for w_idx in w1920_tree.query(rep):
-      if w1920_geoms[w_idx].contains(rep):
-        parent_ward = wards_1920[w_idx]['properties']['name']
+    for w_idx in w1903_tree.query(rep):
+      if w1903_geoms[w_idx].contains(rep):
+        parent_ward = wards_1903[w_idx]['properties']['name']
         break
 
     slug = re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')
@@ -863,14 +869,14 @@ def build_vernacular_neighborhoods(
 
 def build_platted_subdivisions_features(
     super_nbhds: list[dict],
-    wards_1920: list[dict],
+    wards_1903: list[dict],
     vernacular_sorted: list[dict],
     v_geoms: list,
     v_tree: STRtree,
     sn_geoms: list,
     sn_tree: STRtree,
-    w1920_geoms: list,
-    w1920_tree: STRtree,
+    w1903_geoms: list,
+    w1903_tree: STRtree,
 ) -> list[dict]:
   raw_path = os.path.join(CACHE_DIR, 'platted_subdivisions_polygons.geojson')
   if not os.path.exists(raw_path):
@@ -885,6 +891,7 @@ def build_platted_subdivisions_features(
     p['overlay_layer'] = 'platted_subdivisions'
     p['tier'] = 'Platted Subdivision (HCAD)'
     p['source'] = ' + '.join(p.get('sources') or ['HCAD Subdivision Plat GIS'])
+    p.pop('historic_ward', None)
     # Containing neighborhood (smallest area match)
     for vi in v_tree.query(rep):
       if v_geoms[vi].contains(rep):
@@ -894,9 +901,9 @@ def build_platted_subdivisions_features(
       if sn_geoms[sni].contains(rep):
         p['super_neighborhood'] = super_nbhds[sni]['properties']['name']
         break
-    for wi in w1920_tree.query(rep):
-      if w1920_geoms[wi].contains(rep):
-        p['historic_ward'] = wards_1920[wi]['properties']['name']
+    for wi in w1903_tree.query(rep):
+      if w1903_geoms[wi].contains(rep):
+        p['historic_ward'] = wards_1903[wi]['properties']['name']
         break
   print(f'Loaded {len(feats):,} candidate platted subdivision polygons from cache')
   return feats
@@ -905,9 +912,9 @@ def build_platted_subdivisions_features(
 def main() -> None:
   hcad_to_sub = load_hcad_subdivisions()
   ward_features = build_historic_wards()
-  wards_1920 = [f for f in ward_features if f['properties']['era'] == 1920]
+  wards_1903 = [f for f in ward_features if f['properties']['era'] == 1903]
   super_nbhds = build_super_neighborhoods()
-  vernacular_nbhds = build_vernacular_neighborhoods(super_nbhds, wards_1920)
+  vernacular_nbhds = build_vernacular_neighborhoods(super_nbhds, wards_1903)
 
   # Build STRtrees for fast point-in-polygon enrichment
   # Sort vernacular neighborhoods from smallest area to largest area so specific neighborhoods (e.g. Westmoreland, Old Sixth Ward) match before huge macro areas
@@ -919,16 +926,19 @@ def main() -> None:
   sn_geoms = [shape(f['geometry']) for f in super_nbhds]
   sn_tree = STRtree(sn_geoms)
 
-  w1920_geoms = [shape(f['geometry']) for f in wards_1920]
-  w1920_tree = STRtree(w1920_geoms)
+  w1903_geoms = [shape(f['geometry']) for f in wards_1903]
+  w1903_tree = STRtree(w1903_geoms)
+
+  all_ward_geoms = [shape(f['geometry']) for f in ward_features]
+  all_ward_tree = STRtree(all_ward_geoms) if all_ward_geoms else None
 
   platted_subs = build_platted_subdivisions_features(
-      super_nbhds, wards_1920, vernacular_sorted, v_geoms, v_tree, sn_geoms, sn_tree, w1920_geoms, w1920_tree
+      super_nbhds, wards_1903, vernacular_sorted, v_geoms, v_tree, sn_geoms, sn_tree, w1903_geoms, w1903_tree
   )
   ps_geoms = [shape(f['geometry']) for f in platted_subs]
   ps_tree = STRtree(ps_geoms) if ps_geoms else None
 
-  # Track building statistics per neighborhood, super neighborhood, 1920 ward, and platted subdivision
+  # Track building statistics per neighborhood, super neighborhood, historic ward era, and platted subdivision
   nbhd_stats = defaultdict(lambda: {'years': [], 'landmarks': 0, 'good_brick': 0, 'subs': Counter()})
   sn_stats = defaultdict(lambda: {'years': [], 'landmarks': 0, 'good_brick': 0, 'subs': Counter()})
   ward_stats = defaultdict(lambda: {'years': [], 'landmarks': 0, 'good_brick': 0, 'subs': Counter()})
@@ -972,10 +982,11 @@ def main() -> None:
         props['super_neighborhood'] = super_nbhds[sni]['properties']['name']
         break
 
-    # Match 1920 Historic Ward
-    for wi in w1920_tree.query(pt):
-      if w1920_geoms[wi].contains(pt):
-        props['historic_ward'] = wards_1920[wi]['properties']['name']
+    # Match 1903-1905 Final Aldermanic Historic Ward (clear any stale 1920 ward tag first)
+    props.pop('historic_ward', None)
+    for wi in w1903_tree.query(pt):
+      if w1903_geoms[wi].contains(pt):
+        props['historic_ward'] = wards_1903[wi]['properties']['name']
         break
 
   with open(blds_path, 'w') as f:
@@ -1012,9 +1023,10 @@ def main() -> None:
       if sn_geoms[sni].contains(pt):
         rec['super_neighborhood'] = super_nbhds[sni]['properties']['name']
         break
-    for wi in w1920_tree.query(pt):
-      if w1920_geoms[wi].contains(pt):
-        rec['historic_ward'] = wards_1920[wi]['properties']['name']
+    rec.pop('historic_ward', None)
+    for wi in w1903_tree.query(pt):
+      if w1903_geoms[wi].contains(pt):
+        rec['historic_ward'] = wards_1903[wi]['properties']['name']
         break
 
   with open(ov_path, 'w') as f:
@@ -1074,7 +1086,7 @@ def main() -> None:
 
   accumulate_tree_stats(v_tree, vernacular_sorted, nbhd_stats, 'id')
   accumulate_tree_stats(sn_tree, super_nbhds, sn_stats, 'id')
-  accumulate_tree_stats(w1920_tree, wards_1920, ward_stats, 'ward_key')
+  accumulate_tree_stats(all_ward_tree, ward_features, ward_stats, 'id')
   accumulate_tree_stats(ps_tree, platted_subs, plat_stats, 'id')
 
   def attach_stats(feat_props, st):
@@ -1106,7 +1118,7 @@ def main() -> None:
   for feat in super_nbhds:
     attach_stats(feat['properties'], sn_stats[feat['properties']['id']])
   for feat in ward_features:
-    attach_stats(feat['properties'], ward_stats[feat['properties']['ward_key']])
+    attach_stats(feat['properties'], ward_stats[feat['properties']['id']])
 
   filtered_platted_subs = []
   for feat in platted_subs:
@@ -1185,25 +1197,26 @@ def main() -> None:
         if sn_geoms[sni].contains(pt):
           item['super_neighborhood'] = super_nbhds[sni]['properties']['name']
           break
-      for wi in w1920_tree.query(pt):
-        if w1920_geoms[wi].contains(pt):
-          item['historic_ward'] = wards_1920[wi]['properties']['name']
+      item.pop('historic_ward', None)
+      for wi in w1903_tree.query(pt):
+        if w1903_geoms[wi].contains(pt):
+          item['historic_ward'] = wards_1903[wi]['properties']['name']
           break
 
   place_entries = []
-  # Add 1920 Historic Wards to search index
-  for feat in wards_1920:
+  # Add 1903-1905 Historic Wards to search index
+  for feat in wards_1903:
     p = feat['properties']
     geom = shape(feat['geometry'])
     place_entries.append({
         'id': p['id'],
         'is_neighborhood_entry': True,
-        'place_type': 'Historic Ward (1839–1920)',
+        'place_type': 'Historic Ward (1839–1905)',
         'overlay_layer': 'historicWards',
         'name': p['name'],
         'building_name': p['name'],
         'alt_names': p.get('alt_names', []),
-        'address': f"Original Houston Ward · {p.get('building_count', 0):,} structures · Median {p.get('median_year') or 'N/A'}",
+        'address': f"Original Houston Aldermanic Ward (1839–1905) · {p.get('building_count', 0):,} structures · Median {p.get('median_year') or 'N/A'}",
         'category': 'Historic Ward',
         'year_built': p.get('median_year') or 1900,
         'earliest_year': p.get('earliest_year') or 0,

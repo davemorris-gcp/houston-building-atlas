@@ -17,7 +17,7 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261009k";
+} from "./filterStore.js?v=20261009l";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
@@ -1412,7 +1412,13 @@ export class AtlasMapController {
       filter: wardFilterExpr,
       minzoom: 10.5,
       layout: {
-        "text-field": ["concat", ["get", "name"], "\n(", ["to-string", ["get", "era"]], ")"],
+        "text-field": [
+          "concat",
+          ["get", "name"],
+          "\n(",
+          ["coalesce", ["get", "era_short"], ["to-string", ["get", "era"]]],
+          ")",
+        ],
         "text-font": ["Noto Sans Bold"],
         "text-size": ["interpolate", ["linear"], ["zoom"], 10.5, 12, 14, 15.5],
         "text-letter-spacing": 0.06,
@@ -2082,12 +2088,12 @@ export class AtlasMapController {
       }
     }
 
-    // 3b. Historic Wards (1839-1920), COH Super Neighborhoods (88), and Neighborhoods (1,426)
+    // 3b. Historic Wards (1839-1905), COH Super Neighborhoods (88), and Neighborhoods (1,387)
     if (state.layers.historicWards && this.overlaysData?.historic_wards) {
       const targetEra = resolveActiveWardEra(state);
       for (const feat of this.overlaysData.historic_wards.features || []) {
         const p = feat.properties || {};
-        if (Number(p.era_year) !== targetEra) continue;
+        if (Number(p.era || p.ward_era || p.era_year) !== targetEra) continue;
         drawPolygonFeature(
           feat.geometry,
           p.color || "rgba(230, 57, 70, 0.08)",
@@ -4054,7 +4060,7 @@ export class AtlasMapController {
         historic_wards: {
           enabled: Boolean(state.layers?.historicWards),
           priority: 60,
-          typeBadge: `${activeWardEra} Ward`,
+          typeBadge: `${activeWardEra === 1903 ? "1903–05" : activeWardEra} Ward`,
           swatchColor: "#fb923c",
         },
         annexations: {
@@ -4293,7 +4299,7 @@ export class AtlasMapController {
     const platMatches = [];
     const protMatches = [];
     let snMatch = null;
-    let wardMatch1920 = null;
+    let wardMatch1903 = null;
 
     for (const entry of this.boundarySpatialIndex) {
       const [minLng, minLat, maxLng, maxLat] = entry.bbox;
@@ -4309,10 +4315,10 @@ export class AtlasMapController {
         snMatch = entry;
       } else if (
         entry.overlayKey === "historic_wards" &&
-        Number(entry.props.era || entry.props.ward_era || entry.props.era_year) === 1920 &&
-        !wardMatch1920
+        Number(entry.props.era || entry.props.ward_era || entry.props.era_year) === 1903 &&
+        !wardMatch1903
       ) {
-        wardMatch1920 = entry;
+        wardMatch1903 = entry;
       }
     }
 
@@ -4357,13 +4363,13 @@ export class AtlasMapController {
         platMatches[0]?.props?.super_neighborhood ||
         "",
       historic_ward:
-        wardMatch1920?.props?.name ||
+        wardMatch1903?.props?.name ||
         nhMatches[0]?.props?.historic_ward ||
         platMatches[0]?.props?.historic_ward ||
         "",
       neighborhood_id: nhMatches[0]?.props?.id || "",
       super_neighborhood_id: snMatch?.props?.id || "",
-      historic_ward_id: wardMatch1920?.props?.id || "",
+      historic_ward_id: wardMatch1903?.props?.id || "",
     };
   }
 

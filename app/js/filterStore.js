@@ -21,7 +21,7 @@ export const DEFAULT_FILTER_STATE = {
   singleLayerMode: false, // when true, clicking any overlay activates only that single overlay
   preSoloLayers: null, // snapshot of overlay visibility before Solo was clicked
   historicMapOpacity: 75, // 15..100 opacity percentage for the Historic Topo Map overlay
-  wardEra: 1920, // 1839 | 1866 | 1896 | 1903 | 1920
+  wardEra: 1903, // 1839 | 1866 | 1896 | 1903 (1903-1905 Final Aldermanic Charter)
   showAnnexationSpokes: true, // include 1963 10-ft highway ETJ spokes & 2000s-2010s MUD SPA commercial strips
   layers: {
     goodBrickAwards: true,
@@ -108,15 +108,17 @@ export const ANNEXATION_MILESTONE_DECADES = [
   1836, 1840, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020,
 ];
 
-export const HISTORIC_WARD_ERAS = [1839, 1866, 1896, 1903, 1920];
+export const HISTORIC_WARD_ERAS = [1839, 1866, 1896, 1903];
 
 /**
- * Resolve the active Historic Ward boundary era (1839, 1866, 1896, 1903, or 1920).
+ * Resolve the active Historic Ward boundary era (1839, 1866, 1896, or 1903).
+ * Houston's aldermanic ward system was abolished in the 1905 City Charter, making the
+ * 1903 charter boundary (1903-1905) the final official municipal ward map.
  * When time-lapse playback (`isPlaying`) is active, steps through the
  * historical ward charters in lockstep with the timeline; otherwise uses `state.wardEra`.
  */
 export function resolveActiveWardEra(state) {
-  if (!state) return 1920;
+  if (!state) return 1903;
   const decStr = String(state.selectedDecade || "all");
   const maxY = Number(state.maxYear) || 2026;
   if (Boolean(state.isPlaying)) {
@@ -137,8 +139,8 @@ export function resolveActiveWardEra(state) {
     }
     return matched;
   }
-  const explicitEra = Number(state.wardEra) || 1920;
-  return HISTORIC_WARD_ERAS.includes(explicitEra) ? explicitEra : 1920;
+  const explicitEra = Number(state.wardEra) || 1903;
+  return HISTORIC_WARD_ERAS.includes(explicitEra) ? explicitEra : 1903;
 }
 
 /**
@@ -146,7 +148,7 @@ export function resolveActiveWardEra(state) {
  */
 export function buildHistoricWardFilterExpression(state) {
   const era = resolveActiveWardEra(state);
-  return ["==", ["to-number", ["get", "era"], 1920], era];
+  return ["==", ["to-number", ["get", "era"], 1903], era];
 }
 
 /**
@@ -489,7 +491,7 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   if (state.layers?.historicMap && Number(state.historicMapOpacity) !== 75) {
     params.set("histOpacity", String(Math.round(Number(state.historicMapOpacity) || 75)));
   }
-  if (state.layers?.historicWards && Number(state.wardEra) && Number(state.wardEra) !== 1920) {
+  if (state.layers?.historicWards && Number(state.wardEra) && Number(state.wardEra) !== 1903) {
     params.set("wardEra", String(Number(state.wardEra)));
   }
 
