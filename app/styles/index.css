@@ -5029,3 +5029,450 @@ body {
   }
 }
 
+/* ==========================================================================
+   Deed Restrictions, Plat Records & Land-Use Protections Card
+   ========================================================================== */
+.deed-restrictions-card {
+  margin: 14px 0;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: linear-gradient(
+    155deg,
+    rgba(245, 158, 11, 0.1) 0%,
+    rgba(15, 23, 42, 0.76) 52%,
+    rgba(16, 185, 129, 0.08) 100%
+  );
+  border: 1px solid rgba(251, 191, 36, 0.36);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.deed-restrictions-card.has-docs {
+  border-color: rgba(251, 191, 36, 0.65);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.12);
+}
+
+.deed-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.deed-card-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fde68a;
+}
+
+.deed-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.deed-status-badge.gold,
+.deed-status-badge.active {
+  background: rgba(245, 158, 11, 0.24);
+  border: 1px solid rgba(251, 191, 36, 0.7);
+  color: #fde68a;
+}
+
+.deed-status-badge.amber,
+.deed-status-badge.ordinance {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(52, 211, 153, 0.55);
+  color: #a7f3d0;
+}
+
+.deed-status-badge.cyan,
+.deed-status-badge.clerk {
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #bae6fd;
+}
+
+.deed-citation-banner {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.deed-citation-row,
+.deed-cit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.deed-cit-label {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.deed-cit-val {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+}
+
+.deed-civic-link {
+  color: #fde68a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.deed-civic-link:hover {
+  color: #ffffff;
+}
+
+.deed-subhead,
+.deed-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+}
+
+.deed-plat-year-pill {
+  font-size: 9.5px;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fde68a;
+}
+
+.deed-covenant-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.deed-cov-cell {
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 7px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.deed-cov-cell.full {
+  grid-column: 1 / -1;
+}
+
+.deed-cov-k,
+.deed-cov-lbl {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fde68a;
+}
+
+.deed-cov-v,
+.deed-cov-val {
+  font-size: 11px;
+  font-weight: 500;
+  color: #f8fafc;
+  line-height: 1.35;
+}
+
+.deed-covenant-notes {
+  margin: 7px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  background: rgba(15, 23, 42, 0.48);
+  border-left: 2px solid #fbbf24;
+  padding: 6px 9px;
+  border-radius: 0 6px 6px 0;
+}
+
+.deed-doc-list,
+.deed-docs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deed-doc-item {
+  background: rgba(15, 23, 42, 0.68);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 8px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.deed-doc-main {
+  display: flex;
+  width: 100%;
+}
+
+.deed-doc-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  width: 100%;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #fef3c7;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.14s ease;
+}
+
+.deed-doc-btn:hover {
+  background: rgba(245, 158, 11, 0.32);
+  border-color: #fbbf24;
+  color: #ffffff;
+}
+
+.deed-doc-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.deed-doc-title {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.25;
+}
+
+.deed-doc-tag {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fde68a;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.deed-doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+}
+
+.deed-clerk-pill {
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  color: #bae6fd;
+  font-size: 9.5px;
+}
+
+.deed-type-pill {
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-secondary);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+.deed-ext-link {
+  margin-left: auto;
+  color: #fde68a;
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.deed-ext-link:hover {
+  color: #ffffff;
+}
+
+.deed-doc-more {
+  margin-top: 4px;
+}
+
+.deed-doc-more-summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fde68a;
+  padding: 4px 2px;
+  user-select: none;
+}
+
+.deed-protection-list,
+.deed-protections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deed-protection-item {
+  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.deed-protection-item.emerald {
+  border-color: rgba(52, 211, 153, 0.42);
+}
+
+.deed-protection-item.rose {
+  border-color: rgba(251, 113, 133, 0.45);
+}
+
+.deed-protection-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.deed-protection-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #fde68a;
+}
+
+.deed-protection-item.emerald .deed-protection-badge {
+  color: #6ee7b7;
+}
+
+.deed-protection-item.rose .deed-protection-badge {
+  color: #fda4af;
+}
+
+.deed-protection-count {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.deed-protection-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.deed-protection-meta {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.deed-clerk-footer {
+  padding-top: 2px;
+}
+
+.deed-clerk-actions,
+.deed-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deed-action-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6.5px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  text-align: center;
+}
+
+.deed-action-btn.clerk-btn,
+.deed-action-btn.primary {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  color: #bae6fd;
+}
+
+.deed-action-btn.clerk-btn:hover,
+.deed-action-btn.primary:hover {
+  background: rgba(56, 189, 248, 0.28);
+  color: #ffffff;
+}
+
+.deed-action-btn.contrib-btn,
+.deed-action-btn.contribute {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+}
+
+.deed-action-btn.contrib-btn:hover,
+.deed-action-btn.contribute:hover {
+  background: rgba(245, 158, 11, 0.28);
+  color: #ffffff;
+}
+
+.corr-deed-details {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.corr-deed-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fde68a;
+  user-select: none;
+}
+
+.corr-deed-body {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+

@@ -16,8 +16,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261009j";
-import { AtlasMapController } from "./mapController.js?v=20261009j";
+} from "./filterStore.js?v=20261009k";
+import { AtlasMapController } from "./mapController.js?v=20261009k";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -54,6 +54,7 @@ class HoustonAtlasApp {
     this.filterStore = createFilterStore(patch);
     this.searchIndex = [];
     this.globalStats = null;
+    this.deedCatalog = null;
     this.lastViewportStats = null;
     this.timelapseTimer = null;
     this._suppressUrlUpdate = false;
@@ -171,10 +172,11 @@ class HoustonAtlasApp {
 
   async _loadMetadataFiles() {
     try {
-      const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261009i"),
-        fetch("public/data/stats_summary.json?v=20261009i"),
-        fetch("public/data/haif_index.json?v=20261009i").catch(() => null),
+      const [searchRes, statsRes, haifRes, deedRes] = await Promise.all([
+        fetch("public/data/search_index.json?v=20261009k"),
+        fetch("public/data/stats_summary.json?v=20261009k"),
+        fetch("public/data/haif_index.json?v=20261009k").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261009k").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -200,6 +202,11 @@ class HoustonAtlasApp {
         this.haifIndex = await haifRes.json();
       } else {
         this.haifIndex = null;
+      }
+      if (deedRes && deedRes.ok) {
+        this.deedCatalog = await deedRes.json();
+      } else {
+        this.deedCatalog = null;
       }
       if (this.mapController?.overlaysData) {
         this._mergeCuratedOverridesIntoSearchIndex();
@@ -1466,6 +1473,7 @@ class HoustonAtlasApp {
       ["chk-layer-nrhp-districts", "nrhpDistricts"],
       ["chk-layer-neighborhoods", "neighborhoods"],
       ["chk-layer-platted-subdivisions", "plattedSubdivisions"],
+      ["chk-layer-land-use-protections", "landUseProtections"],
       ["chk-layer-super-neighborhoods", "superNeighborhoods"],
       ["chk-layer-historic-wards", "historicWards"],
       ["chk-layer-thc-markers", "thcMarkers"],
@@ -1966,6 +1974,9 @@ class HoustonAtlasApp {
           photo_url: document.getElementById("corr-photo-url")?.value || "",
           photo_year: document.getElementById("corr-photo-year")?.value || "",
           photo_caption: document.getElementById("corr-photo-caption")?.value || "",
+          deed_subdivision: document.getElementById("corr-deed-subdivision")?.value || "",
+          deed_clerk_file: document.getElementById("corr-deed-clerk-file")?.value || "",
+          deed_pdf_url: document.getElementById("corr-deed-url")?.value || "",
           submitter_name: document.getElementById("corr-submitter-name")?.value || "",
           submitter_email: document.getElementById("corr-submitter-email")?.value || "",
         };
@@ -1977,10 +1988,20 @@ class HoustonAtlasApp {
         );
         const hasCitation = Boolean(String(payload.source_citation).trim());
         const hasPhoto = Boolean(String(payload.photo_url).trim());
+        const hasDeedContribution = Boolean(
+          String(payload.deed_pdf_url).trim() || String(payload.deed_clerk_file).trim()
+        );
 
-        if (!hasYearChange && !hasNameUpdate && !hasFootprintReport && !hasCitation && !hasPhoto) {
+        if (
+          !hasYearChange &&
+          !hasNameUpdate &&
+          !hasFootprintReport &&
+          !hasCitation &&
+          !hasPhoto &&
+          !hasDeedContribution
+        ) {
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built, Building Name / Alias, select a Building Footprint Shape / Orientation Issue, or provide historical notes before submitting.</strong>`;
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built, Building Name / Alias, Subdivision Deed Restriction PDF / Clerk File #, select a Building Footprint Issue, or provide historical notes before submitting.</strong>`;
             feedbackEl.classList.remove("hidden");
           }
           return;
@@ -2030,13 +2051,20 @@ class HoustonAtlasApp {
           const photoNote = payload.photo_url
             ? " Your contributed photograph has also been added to the Archival Photographs timeline for this session and queued for moderation."
             : "";
+          const deedNote = hasDeedContribution
+            ? ` Your subdivision deed restriction citation (${
+                payload.deed_subdivision || "Subdivision"
+              }${payload.deed_clerk_file ? ` · ${payload.deed_clerk_file}` : ""}) has been queued for archival PDF mirroring.`
+            : "";
           const summaryDesc = hasFootprintReport && hasYearChange
             ? `Year Built <strong>${payload.suggested_year_built}</strong> + Footprint Report (<em>${payload.footprint_issue || "Shape/Orientation"}</em>)`
             : hasFootprintReport
             ? `Footprint Shape / Orientation Report (<em>${payload.footprint_issue || "Geometry Issue"}</em>)`
+            : hasDeedContribution && !hasYearChange
+            ? `Deed Restriction / Plat Record (<strong>${payload.deed_subdivision || payload.address}</strong>)`
             : `Built <strong>${payload.suggested_year_built || payload.current_year_built || "Updated"}</strong>, source: <em>${payload.source_type}</em>`;
 
-          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.building_name || payload.address || payload.hcad_num}</strong> (${summaryDesc}) has been recorded with status <code>Pending</code>. ${deliveryNote}${photoNote}`;
+          feedbackEl.innerHTML = `<strong>&#10003; Thank you!</strong> Suggestion for <strong>${payload.building_name || payload.address || payload.hcad_num}</strong> (${summaryDesc}) has been recorded with status <code>Pending</code>. ${deliveryNote}${photoNote}${deedNote}`;
           feedbackEl.classList.remove("hidden");
         }
       });
@@ -3106,7 +3134,7 @@ class HoustonAtlasApp {
     return count > 0 ? [sumLng / count, sumLat / count] : [NaN, NaN];
   }
 
-  openCorrectionModal(props) {
+  openCorrectionModal(props, opts = {}) {
     const modal = document.getElementById("correction-modal");
     if (!modal || !props) return;
 
@@ -3122,6 +3150,10 @@ class HoustonAtlasApp {
     const photoYearEl = document.getElementById("corr-photo-year");
     const photoCapEl = document.getElementById("corr-photo-caption");
     const photoDetailsEl = document.getElementById("corr-photo-details");
+    const deedSubEl = document.getElementById("corr-deed-subdivision");
+    const deedClerkEl = document.getElementById("corr-deed-clerk-file");
+    const deedUrlEl = document.getElementById("corr-deed-url");
+    const deedDetailsEl = document.getElementById("corr-deed-details");
     const feedbackEl = document.getElementById("corr-submit-feedback");
 
     const footprintSelectEl = document.getElementById("corr-footprint-issue");
@@ -3165,6 +3197,31 @@ class HoustonAtlasApp {
     if (photoYearEl) photoYearEl.value = "";
     if (photoCapEl) photoCapEl.value = "";
     if (photoDetailsEl) photoDetailsEl.open = false;
+
+    const subProps = props._platted_subdivision_props || null;
+    const defaultSubName =
+      opts.subdivisionName ||
+      props.subdivision ||
+      subProps?.name ||
+      (props.overlay_layer === "platted_subdivisions" ? props.name : "") ||
+      "";
+    const defaultClerkCitation =
+      opts.clerkCitation ||
+      props.plat_citation ||
+      subProps?.plat_citation ||
+      props.deed_citation ||
+      subProps?.deed_citation ||
+      "";
+    if (deedSubEl) deedSubEl.value = defaultSubName;
+    if (deedClerkEl) deedClerkEl.value = defaultClerkCitation;
+    if (deedUrlEl) deedUrlEl.value = "";
+    if (deedDetailsEl) {
+      deedDetailsEl.open = Boolean(opts.openDeedSection);
+      if (opts.openDeedSection && deedUrlEl) {
+        setTimeout(() => deedUrlEl.focus(), 60);
+      }
+    }
+
     if (feedbackEl) {
       feedbackEl.classList.add("hidden");
       feedbackEl.innerHTML = "";
@@ -3723,6 +3780,7 @@ class HoustonAtlasApp {
       "chk-layer-thc-markers": state.layers.thcMarkers,
       "chk-layer-neighborhoods": state.layers.neighborhoods,
       "chk-layer-platted-subdivisions": state.layers.plattedSubdivisions,
+      "chk-layer-land-use-protections": state.layers.landUseProtections,
       "chk-layer-super-neighborhoods": state.layers.superNeighborhoods,
       "chk-layer-historic-wards": state.layers.historicWards,
       "chk-layer-annexations": state.layers.annexations,
@@ -4077,6 +4135,528 @@ class HoustonAtlasApp {
     });
   }
 
+  _resolvePlattedSubdivisionProps(subNameOrProps) {
+    if (!subNameOrProps) return null;
+    if (typeof subNameOrProps === "object" && subNameOrProps.overlay_layer === "platted_subdivisions") {
+      return subNameOrProps;
+    }
+    const rawName =
+      typeof subNameOrProps === "string"
+        ? subNameOrProps.trim()
+        : String(subNameOrProps.subdivision || subNameOrProps.name || "").trim();
+    if (!rawName) return null;
+
+    const features = this.mapController?.overlaysData?.platted_subdivisions?.features || [];
+    if (!features.length) return null;
+
+    const norm = (s) =>
+      String(s || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const stripSec = (s) =>
+      norm(s)
+        .replace(
+          /\s+(?:SEC(?:TION)?\s*\w*|ADDN|ADDITION|ANNEX|U\s*R|UR|AMENDED|REPLAT|PARTIAL|PT|EXT|BLK\s*\w*)\b.*$/i,
+          ""
+        )
+        .trim();
+
+    const targetNorm = norm(rawName);
+    const targetBase = stripSec(rawName);
+
+    let exactMatch = null;
+    let baseMatch = null;
+    for (const f of features) {
+      const p = f.properties;
+      if (!p) continue;
+      const pName = norm(p.name);
+      const pFull = norm(p.full_name);
+      if (pName === targetNorm || pFull === targetNorm) {
+        exactMatch = p;
+        break;
+      }
+      if (!baseMatch && targetBase && (pName === targetBase || stripSec(p.name) === targetBase)) {
+        baseMatch = p;
+      }
+    }
+    return exactMatch || baseMatch;
+  }
+
+  _resolveDeedCatalogEntry(subProps = null, fallbackSubName = "", fallbackNbhdName = "") {
+    if (!this.deedCatalog || !this.deedCatalog.subdivisions) return null;
+    const subs = this.deedCatalog.subdivisions;
+    const byName = this.deedCatalog.by_name || {};
+
+    if (subProps?.catalog_id && subs[subProps.catalog_id]) {
+      return subs[subProps.catalog_id];
+    }
+    if (subProps?.id && subs[subProps.id]) {
+      return subs[subProps.id];
+    }
+
+    const norm = (s) =>
+      String(s || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const stripSec = (s) =>
+      norm(s)
+        .replace(
+          /\s+(?:SEC(?:TION)?\s*\w*|ADDN|ADDITION|ANNEX|U\s*R|UR|AMENDED|REPLAT|PARTIAL|PT|EXT|BLK\s*\w*)\b.*$/i,
+          ""
+        )
+        .trim();
+
+    const candidates = [
+      subProps?.name,
+      subProps?.full_name,
+      fallbackSubName,
+      subProps?.neighborhood,
+      fallbackNbhdName,
+    ].filter(Boolean);
+
+    for (const cand of candidates) {
+      const n = norm(cand);
+      if (byName[n] && subs[byName[n]]) {
+        return subs[byName[n]];
+      }
+      const b = stripSec(cand);
+      if (b && byName[b] && subs[byName[b]]) {
+        return subs[byName[b]];
+      }
+      if (n === "BOULEVARD OAKS" && byName["BROADACRES"] && subs[byName["BROADACRES"]]) {
+        return subs[byName["BROADACRES"]];
+      }
+    }
+    return null;
+  }
+
+  _buildDeedRestrictionsCardHtml({
+    subProps = null,
+    catalogEntry = null,
+    landUseProtections = [],
+    rawSubdivisionName = "",
+    neighborhoodName = "",
+    isBoundary = false,
+  } = {}) {
+    const prots = Array.isArray(landUseProtections) ? landUseProtections : [];
+    const docs = Array.isArray(catalogEntry?.documents) ? [...catalogEntry.documents] : [];
+    const cov = catalogEntry?.covenant_summary || null;
+
+    const subName =
+      rawSubdivisionName ||
+      subProps?.name ||
+      catalogEntry?.subdivision_name ||
+      neighborhoodName ||
+      "";
+    const platCitation =
+      subProps?.plat_citation ||
+      catalogEntry?.plat_citation ||
+      (subProps?.vol_page ? `HCAD Plat Map Book Vol-Page ${subProps.vol_page}` : "");
+    const deedCitation = subProps?.deed_citation || catalogEntry?.deed_citation || "";
+    const civicClub = subProps?.civic_club || catalogEntry?.civic_association || "";
+    const civicClubUrl = subProps?.civic_club_url || catalogEntry?.civic_association_url || "";
+
+    const smlsCount = Number(subProps?.smls_count || 0);
+    const smlsMinSqft = Number(subProps?.smls_min_sqft || 0);
+    const smblCount = Number(subProps?.smbl_count || 0);
+    const smblMinFt = Number(subProps?.smbl_min_ft || 0);
+
+    if (
+      !catalogEntry &&
+      !platCitation &&
+      !deedCitation &&
+      !prots.length &&
+      smlsCount === 0 &&
+      smblCount === 0 &&
+      !subName
+    ) {
+      return "";
+    }
+
+    // If rawSubdivisionName specifies a section number (e.g. "OAK FOREST SEC 5"), prioritize matching section PDFs first
+    const secMatch = String(rawSubdivisionName || "").match(/\bSEC(?:TION)?\s*0*(\d{1,2})\b/i);
+    if (secMatch && docs.length > 1) {
+      const secNum = parseInt(secMatch[1], 10);
+      const secPadded = String(secNum).padStart(2, "0");
+      docs.sort((a, b) => {
+        const aMatch =
+          a.title.includes(`Section ${secPadded}`) ||
+          new RegExp(`\\bSection\\s*0*${secNum}\\b`, "i").test(a.title);
+        const bMatch =
+          b.title.includes(`Section ${secPadded}`) ||
+          new RegExp(`\\bSection\\s*0*${secNum}\\b`, "i").test(b.title);
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return 0;
+      });
+    }
+
+    const hasDocs = docs.length > 0;
+    const hasProtections = prots.length > 0 || smlsCount > 0 || smblCount > 0;
+
+    let badgeText = "HCAD Plat Record";
+    let badgeClass = "cyan";
+    if (hasDocs) {
+      badgeText = `${docs.length} Full-Text Deed PDF${docs.length === 1 ? "" : "s"}`;
+      badgeClass = "gold";
+    } else if (hasProtections) {
+      badgeText = "Ch. 42 Protected";
+      badgeClass = "amber";
+    }
+
+    const renderDocItem = (doc) => {
+      const href = doc.local_url || doc.external_url || "#";
+      const isMirrored = Boolean(doc.local_url);
+      return `
+        <div class="deed-doc-item">
+          <div class="deed-doc-main">
+            <a
+              href="${href}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="deed-doc-btn"
+              title="Open full-text searchable PDF of ${String(doc.title || "").replace(/"/g, "&quot;")}"
+            >
+              <span class="deed-doc-icon">&#128196;</span>
+              <span class="deed-doc-title">${doc.title}</span>
+              <span class="deed-doc-tag">${isMirrored ? "Mirrored PDF &#8599;" : "Open PDF &#8599;"}</span>
+            </a>
+          </div>
+          <div class="deed-doc-meta">
+            ${
+              doc.clerk_file
+                ? `<span class="deed-clerk-pill mono" title="Harris County Clerk Instrument / Volume Reference">${doc.clerk_file}</span>`
+                : ""
+            }
+            ${
+              doc.doc_type
+                ? `<span class="deed-type-pill">${doc.doc_type}</span>`
+                : ""
+            }
+            ${
+              doc.external_url && doc.local_url
+                ? `<a href="${doc.external_url}" target="_blank" rel="noopener noreferrer" class="deed-ext-link" title="View original civic association source link">Civic Club Source &#8599;</a>`
+                : ""
+            }
+          </div>
+        </div>
+      `;
+    };
+
+    const primaryDocs = docs.slice(0, 4);
+    const extraDocs = docs.slice(4);
+
+    const docsHtml = hasDocs
+      ? `<div class="deed-docs-section">
+          <div class="deed-subhead">
+            <span>Full-Text Recorded Deed Restrictions &amp; Covenants (Archival Mirror)</span>
+          </div>
+          <div class="deed-doc-list">
+            ${primaryDocs.map(renderDocItem).join("")}
+          </div>
+          ${
+            extraDocs.length > 0
+              ? `<details class="deed-doc-more">
+                  <summary class="deed-doc-more-summary">
+                    Show all ${docs.length} Section Deed Restriction PDFs (+${extraDocs.length} more)
+                  </summary>
+                  <div class="deed-doc-list" style="margin-top:6px;">
+                    ${extraDocs.map(renderDocItem).join("")}
+                  </div>
+                </details>`
+              : ""
+          }
+        </div>`
+      : "";
+
+    const covenantGridHtml = cov
+      ? `<div class="deed-covenant-section">
+          <div class="deed-subhead">
+            <span>Structured Covenant &amp; Architectural Digest</span>
+            ${
+              catalogEntry?.plat_year
+                ? `<span class="deed-plat-year-pill mono">Platted ${catalogEntry.plat_year}</span>`
+                : ""
+            }
+          </div>
+          <div class="deed-covenant-grid">
+            ${
+              cov.allowed_use
+                ? `<div class="deed-cov-cell">
+                    <span class="deed-cov-k">Permitted Land Use</span>
+                    <span class="deed-cov-v">${cov.allowed_use}</span>
+                  </div>`
+                : ""
+            }
+            ${
+              cov.min_lot_size
+                ? `<div class="deed-cov-cell">
+                    <span class="deed-cov-k">Min. Lot Size / Area</span>
+                    <span class="deed-cov-v">${cov.min_lot_size}</span>
+                  </div>`
+                : ""
+            }
+            ${
+              cov.front_setback
+                ? `<div class="deed-cov-cell">
+                    <span class="deed-cov-k">Front Building Line</span>
+                    <span class="deed-cov-v">${cov.front_setback}</span>
+                  </div>`
+                : ""
+            }
+            ${
+              cov.side_rear_setback
+                ? `<div class="deed-cov-cell">
+                    <span class="deed-cov-k">Side / Rear Setbacks</span>
+                    <span class="deed-cov-v">${cov.side_rear_setback}</span>
+                  </div>`
+                : ""
+            }
+            ${
+              cov.max_height
+                ? `<div class="deed-cov-cell">
+                    <span class="deed-cov-k">Max Height / Scale</span>
+                    <span class="deed-cov-v">${cov.max_height}</span>
+                  </div>`
+                : ""
+            }
+            ${
+              cov.plan_review
+                ? `<div class="deed-cov-cell">
+                    <span class="deed-cov-k">Architectural Review</span>
+                    <span class="deed-cov-v">${cov.plan_review}</span>
+                  </div>`
+                : ""
+            }
+          </div>
+          ${
+            cov.notes
+              ? `<div class="deed-covenant-notes">${cov.notes}</div>`
+              : ""
+          }
+        </div>`
+      : "";
+
+    let protectionsHtml = "";
+    if (prots.length > 0) {
+      protectionsHtml = `
+        <div class="deed-protections-section">
+          <div class="deed-subhead">
+            <span>City of Houston Chapter 42 Land-Use Protections Here (${prots.length})</span>
+          </div>
+          <div class="deed-protection-list">
+            ${prots
+              .map((pr) => {
+                const pt = pr.protection_type || "smls";
+                const pillClass =
+                  pt === "smbl" ? "emerald" : pt === "conservation" ? "rose" : "amber";
+                const icon = pt === "smbl" ? "&#128207;" : pt === "conservation" ? "&#127963;" : "&#128737;";
+                const details = [];
+                if (pr.ordinance) details.push(`Ord. #${pr.ordinance}`);
+                if (Number(pr.min_lot_sqft) > 0) {
+                  details.push(`Min Lot: ${Number(pr.min_lot_sqft).toLocaleString()} sq ft`);
+                }
+                if (Number(pr.min_bldg_line_ft) > 0) {
+                  details.push(`Min Setback: ${pr.min_bldg_line_ft} ft`);
+                }
+                if (pr.expiration_date) {
+                  details.push(`Active thru ${String(pr.expiration_date).slice(0, 4)}`);
+                }
+                return `
+                  <div class="deed-protection-item ${pillClass}">
+                    <div class="deed-protection-top">
+                      <span class="deed-protection-badge">${icon} ${pr.type_label || "Chapter 42 Protection"}</span>
+                      <button
+                        type="button"
+                        class="inspector-boundary-btn"
+                        data-highlight-boundary="${String(pr.id || pr.name || "").replace(/"/g, "&quot;")}"
+                        data-boundary-layer="land_use_protections"
+                        title="Highlight this Chapter 42 protection boundary on the map"
+                      >Outline</button>
+                    </div>
+                    <div class="deed-protection-name">${pr.name || "Protected Blockface"}</div>
+                    ${
+                      details.length
+                        ? `<div class="deed-protection-meta mono">${details.join(" · ")}</div>`
+                        : ""
+                    }
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+      `;
+    } else if (smlsCount > 0 || smblCount > 0) {
+      const summaryPills = [];
+      if (smlsCount > 0) {
+        const smlsOrds = Array.isArray(subProps?.smls_ordinances)
+          ? subProps.smls_ordinances.slice(0, 3).join(", ")
+          : "";
+        summaryPills.push(`
+          <div class="deed-protection-item amber">
+            <div class="deed-protection-top">
+              <span class="deed-protection-badge">&#128737; Chapter 42 Special Minimum Lot Size (SMLS)</span>
+              <span class="deed-protection-count mono">${smlsCount} protected area${smlsCount === 1 ? "" : "s"}</span>
+            </div>
+            <div class="deed-protection-meta mono">
+              ${smlsMinSqft > 0 ? `Min Lot Size: <strong>${smlsMinSqft.toLocaleString()} sq ft</strong>` : "Prevents townhouse lot splitting"}
+              ${smlsOrds ? ` · Ord. #${smlsOrds}` : ""}
+            </div>
+          </div>
+        `);
+      }
+      if (smblCount > 0) {
+        const smblOrds = Array.isArray(subProps?.smbl_ordinances)
+          ? subProps.smbl_ordinances.slice(0, 3).join(", ")
+          : "";
+        summaryPills.push(`
+          <div class="deed-protection-item emerald">
+            <div class="deed-protection-top">
+              <span class="deed-protection-badge">&#128207; Chapter 42 Special Minimum Building Line (SMBL)</span>
+              <span class="deed-protection-count mono">${smblCount} protected blockface${smblCount === 1 ? "" : "s"}</span>
+            </div>
+            <div class="deed-protection-meta mono">
+              ${smblMinFt > 0 ? `Min Front Setback: <strong>${smblMinFt} ft</strong>` : "Preserves historic front yard setback"}
+              ${smblOrds ? ` · Ord. #${smblOrds}` : ""}
+            </div>
+          </div>
+        `);
+      }
+      protectionsHtml = `
+        <div class="deed-protections-section">
+          <div class="deed-subhead">
+            <span>City of Houston Chapter 42 Lot &amp; Setback Protections</span>
+          </div>
+          <div class="deed-protection-list">
+            ${summaryPills.join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    const clerkCopyQuery = subName || platCitation || "";
+
+    return `
+      <div class="deed-restrictions-card ${hasDocs ? "has-docs" : ""}">
+        <div class="deed-card-header">
+          <span class="deed-card-kicker">&#128220; Deed Restrictions, Plat &amp; Land-Use Protections</span>
+          <span class="deed-status-badge ${badgeClass}">${badgeText}</span>
+        </div>
+
+        <div class="deed-citation-banner">
+          ${
+            subName
+              ? `<div class="deed-citation-row">
+                  <span class="deed-cit-label">Platted Subdivision:</span>
+                  <span class="deed-cit-val"><strong>${subName}</strong></span>
+                </div>`
+              : ""
+          }
+          ${
+            platCitation
+              ? `<div class="deed-citation-row">
+                  <span class="deed-cit-label">HCAD Plat Record:</span>
+                  <span class="deed-cit-val mono">${platCitation}</span>
+                </div>`
+              : ""
+          }
+          ${
+            deedCitation
+              ? `<div class="deed-citation-row">
+                  <span class="deed-cit-label">Deed Covenant Filing:</span>
+                  <span class="deed-cit-val">${deedCitation}</span>
+                </div>`
+              : ""
+          }
+          ${
+            civicClub
+              ? `<div class="deed-citation-row">
+                  <span class="deed-cit-label">Civic Association:</span>
+                  <span class="deed-cit-val">
+                    ${
+                      civicClubUrl
+                        ? `<a href="${civicClubUrl}" target="_blank" rel="noopener noreferrer" class="deed-civic-link">${civicClub} &#8599;</a>`
+                        : civicClub
+                    }
+                  </span>
+                </div>`
+              : ""
+          }
+        </div>
+
+        ${covenantGridHtml}
+        ${docsHtml}
+        ${protectionsHtml}
+
+        <div class="deed-clerk-footer">
+          <div class="deed-clerk-actions">
+            <button
+              type="button"
+              class="deed-action-btn clerk-btn"
+              data-copy-clerk-query="${String(clerkCopyQuery).replace(/"/g, "&quot;")}"
+              title="Copies '${String(clerkCopyQuery).replace(/"/g, "&quot;")}' to your clipboard and opens the Harris County Clerk Real Property & Map Book Archive"
+            >
+              &#127963; Copy Plat Name &amp; Search County Clerk Archive &#8599;
+            </button>
+            <button
+              type="button"
+              class="deed-action-btn contrib-btn"
+              data-contribute-deed-sub="${String(subName).replace(/"/g, "&quot;")}"
+              data-contribute-deed-cit="${String(deedCitation || platCitation).replace(/"/g, "&quot;")}"
+              title="Submit a link to a neighborhood deed restriction PDF or Harris County Clerk File # for this subdivision"
+            >
+              + Contribute Deed Restriction PDF / Clerk #
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindDeedRestrictionsCardEvents(container, contextProps) {
+    if (!container) return;
+
+    container.querySelectorAll("[data-copy-clerk-query]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const q = btn.getAttribute("data-copy-clerk-query") || "";
+        if (q && navigator.clipboard) {
+          navigator.clipboard.writeText(q);
+        }
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = `&#10003; Copied "${q.slice(0, 22)}${q.length > 22 ? "…" : ""}" · Opening Clerk Search &#8599;`;
+        window.open(
+          "https://www.cclerk.hctx.net/Applications/WebSearch/RP.aspx",
+          "_blank",
+          "noopener,noreferrer"
+        );
+        setTimeout(() => {
+          btn.innerHTML = origHtml;
+        }, 2800);
+      });
+    });
+
+    container.querySelectorAll("[data-contribute-deed-sub]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const subName = btn.getAttribute("data-contribute-deed-sub") || "";
+        const cit = btn.getAttribute("data-contribute-deed-cit") || "";
+        this.openCorrectionModal(contextProps || {}, {
+          openDeedSection: true,
+          subdivisionName: subName,
+          clerkCitation: cit,
+        });
+      });
+    });
+  }
+
   _renderBoundaryInspectorDrawer(rawProps, drawer, content) {
     const parseJsonList = (val) => {
       if (Array.isArray(val)) return val.map((x) => String(x || "").trim()).filter(Boolean);
@@ -4120,8 +4700,19 @@ class HoustonAtlasApp {
     let badgeLabel = "Neighborhood / Subdivision";
     let badgeColor = "#38bdf8";
     if (overlayLayer === "platted_subdivisions") {
-      badgeLabel = "HCAD Platted Subdivision";
-      badgeColor = "#2dd4bf";
+      if (rawProps.has_deed_docs) {
+        badgeLabel = `📜 Deed-Documented Subdivision (${rawProps.deed_doc_count || 1} PDF${
+          Number(rawProps.deed_doc_count) === 1 ? "" : "s"
+        })`;
+        badgeColor = "#fbbf24";
+      } else {
+        badgeLabel = "HCAD Platted Subdivision";
+        badgeColor = "#2dd4bf";
+      }
+    } else if (overlayLayer === "land_use_protections") {
+      badgeLabel = rawProps.type_label || "Chapter 42 Land-Use Protection";
+      const pt = rawProps.protection_type;
+      badgeColor = pt === "smbl" ? "#34d399" : pt === "conservation" ? "#fb7185" : "#fbbf24";
     } else if (overlayLayer === "super_neighborhoods") {
       badgeLabel = `COH Super Neighborhood${rawProps.sn_id || rawProps.poly_id ? ` #${rawProps.sn_id || rawProps.poly_id}` : ""}`;
       badgeColor = "#818cf8";
@@ -4152,10 +4743,22 @@ class HoustonAtlasApp {
 
     const subtitleParts = [];
     if (overlayLayer === "platted_subdivisions") {
-      if (volPage) subtitleParts.push(`Plat Vol-Page: ${volPage}`);
-      if (recNum) subtitleParts.push(`Clerk Filing #${recNum}`);
+      if (rawProps.plat_citation) {
+        subtitleParts.push(rawProps.plat_citation);
+      } else {
+        if (volPage) subtitleParts.push(`Plat Vol-Page: ${volPage}`);
+        if (recNum) subtitleParts.push(`Clerk Filing #${recNum}`);
+      }
       if (parentNbhd && parentNbhd.toLowerCase() !== name.toLowerCase()) {
         subtitleParts.push(`In ${parentNbhd}`);
+      }
+    } else if (overlayLayer === "land_use_protections") {
+      if (rawProps.ordinance) subtitleParts.push(`Ordinance #${rawProps.ordinance}`);
+      if (Number(rawProps.min_lot_sqft) > 0) {
+        subtitleParts.push(`Min Lot Size: ${Number(rawProps.min_lot_sqft).toLocaleString()} sq ft`);
+      }
+      if (Number(rawProps.min_bldg_line_ft) > 0) {
+        subtitleParts.push(`Min Front Setback: ${rawProps.min_bldg_line_ft} ft`);
       }
     }
     if (eraLabel && overlayLayer === "historic_wards") subtitleParts.push(eraLabel);
@@ -4207,6 +4810,31 @@ class HoustonAtlasApp {
           </div>`
         : "";
 
+    // Resolve Deed Restrictions & Land-Use Protections Card for Platted Subdivisions, Neighborhoods, and Land-Use Protections
+    const resolvedSubProps =
+      overlayLayer === "platted_subdivisions"
+        ? rawProps
+        : overlayLayer === "neighborhoods"
+        ? this._resolvePlattedSubdivisionProps(name)
+        : null;
+    const resolvedCatalogEntry =
+      overlayLayer === "platted_subdivisions" || overlayLayer === "neighborhoods"
+        ? this._resolveDeedCatalogEntry(resolvedSubProps, name, parentNbhd || name)
+        : null;
+    const boundaryDeedCardHtml =
+      overlayLayer === "platted_subdivisions" ||
+      overlayLayer === "land_use_protections" ||
+      (overlayLayer === "neighborhoods" && (resolvedCatalogEntry || resolvedSubProps))
+        ? this._buildDeedRestrictionsCardHtml({
+            subProps: resolvedSubProps,
+            catalogEntry: resolvedCatalogEntry,
+            landUseProtections: overlayLayer === "land_use_protections" ? [rawProps] : [],
+            rawSubdivisionName: overlayLayer === "platted_subdivisions" ? name : resolvedSubProps?.name || "",
+            neighborhoodName: overlayLayer === "neighborhoods" ? name : parentNbhd,
+            isBoundary: true,
+          })
+        : "";
+
     const overlapStackHtml = this._buildInspectorOverlapStackHtml();
 
     content.innerHTML = `
@@ -4228,6 +4856,8 @@ class HoustonAtlasApp {
           <span>${rawProps.source || "City of Houston &amp; HCAD Boundary Index"}</span>
         </div>
       </div>
+
+      ${boundaryDeedCardHtml}
 
       ${
         rawProps.description
@@ -4283,6 +4913,14 @@ class HoustonAtlasApp {
             : ""
         }
         ${
+          rawProps.plat_citation && overlayLayer === "platted_subdivisions"
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Harris County Map Book / Plat Citation</span>
+                <span class="cell-value mono">${rawProps.plat_citation}</span>
+              </div>`
+            : ""
+        }
+        ${
           volPage
             ? `<div class="inspector-cell">
                 <span class="cell-label">HCAD Plat Map Book (Vol-Page)</span>
@@ -4295,6 +4933,38 @@ class HoustonAtlasApp {
             ? `<div class="inspector-cell">
                 <span class="cell-label">County Clerk Filing / Deed #</span>
                 <span class="cell-value mono">${recNum}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "land_use_protections" && rawProps.ordinance
+            ? `<div class="inspector-cell">
+                <span class="cell-label">City Council Ordinance #</span>
+                <span class="cell-value mono">${rawProps.ordinance}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "land_use_protections" && Number(rawProps.min_lot_sqft) > 0
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Minimum Lot Size (Ch. 42)</span>
+                <span class="cell-value mono">${Number(rawProps.min_lot_sqft).toLocaleString()} sq ft</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "land_use_protections" && Number(rawProps.min_bldg_line_ft) > 0
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Minimum Front Setback (Ch. 42)</span>
+                <span class="cell-value mono">${rawProps.min_bldg_line_ft} ft</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "land_use_protections" && (rawProps.effective_date || rawProps.expiration_date)
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Ordinance Effective / Expiration Window</span>
+                <span class="cell-value mono">${rawProps.effective_date || "Recorded"} &#8594; ${rawProps.expiration_date || "Permanent"}</span>
               </div>`
             : ""
         }
@@ -4380,6 +5050,7 @@ class HoustonAtlasApp {
     drawer.classList.remove("hidden");
 
     this._bindInspectorOverlapStackEvents(content);
+    this._bindDeedRestrictionsCardEvents(content, rawProps);
 
     content.querySelectorAll("[data-filter-chip]").forEach((chipBtn) => {
       chipBtn.addEventListener("click", (e) => {
@@ -4432,6 +5103,7 @@ class HoustonAtlasApp {
       rawProps.is_boundary_feature ||
       [
         "platted_subdivisions",
+        "land_use_protections",
         "neighborhoods",
         "super_neighborhoods",
         "historic_wards",
@@ -4819,23 +5491,38 @@ class HoustonAtlasApp {
     )}`;
     const streetViewUrl = buildStreetViewUrl(effLat, effLng);
 
-    // Runtime fallback enrichment from spatial index for countywide shard buildings
+    // Runtime fallback enrichment from spatial index for countywide shard buildings & land-use context
     if (
-      !props.neighborhood &&
-      !props.super_neighborhood &&
-      !props.historic_ward &&
+      (!props.neighborhood ||
+        !props._platted_subdivision_props ||
+        !Array.isArray(props._land_use_protections)) &&
       Number.isFinite(effLng) &&
       Number.isFinite(effLat) &&
       this.mapController &&
       typeof this.mapController.resolveGeographicContextAtPoint === "function"
     ) {
       const geoCtx = this.mapController.resolveGeographicContextAtPoint(effLng, effLat);
-      if (geoCtx.neighborhood) props.neighborhood = geoCtx.neighborhood;
-      if (Array.isArray(geoCtx.neighborhood_aliases) && geoCtx.neighborhood_aliases.length > 0) {
+      if (geoCtx.neighborhood && !props.neighborhood) props.neighborhood = geoCtx.neighborhood;
+      if (
+        Array.isArray(geoCtx.neighborhood_aliases) &&
+        geoCtx.neighborhood_aliases.length > 0 &&
+        !props.neighborhood_aliases
+      ) {
         props.neighborhood_aliases = geoCtx.neighborhood_aliases;
       }
-      if (geoCtx.super_neighborhood) props.super_neighborhood = geoCtx.super_neighborhood;
-      if (geoCtx.historic_ward) props.historic_ward = geoCtx.historic_ward;
+      if (geoCtx.super_neighborhood && !props.super_neighborhood) {
+        props.super_neighborhood = geoCtx.super_neighborhood;
+      }
+      if (geoCtx.historic_ward && !props.historic_ward) props.historic_ward = geoCtx.historic_ward;
+      if (geoCtx.platted_subdivision && !props.subdivision) {
+        props.subdivision = geoCtx.platted_subdivision;
+      }
+      if (geoCtx.platted_subdivision_props && !props._platted_subdivision_props) {
+        props._platted_subdivision_props = geoCtx.platted_subdivision_props;
+      }
+      if (Array.isArray(geoCtx.land_use_protections) && !props._land_use_protections) {
+        props._land_use_protections = geoCtx.land_use_protections;
+      }
     }
 
     let neighborhoodAliases = [];
@@ -4861,6 +5548,26 @@ class HoustonAtlasApp {
     const superNbhdVal = String(props.super_neighborhood || "").trim();
     const wardVal = String(props.historic_ward || "").trim();
     const subVal = String(props.subdivision || "").trim();
+
+    const subPropsForDeed =
+      props._platted_subdivision_props || this._resolvePlattedSubdivisionProps(subVal);
+    const catalogEntryForDeed = this._resolveDeedCatalogEntry(
+      subPropsForDeed || {
+        name: subVal,
+        raw_name: subVal,
+        neighborhood: nbhdVal,
+      }
+    );
+    const buildingDeedCardHtml = this._buildDeedRestrictionsCardHtml({
+      subProps: subPropsForDeed,
+      catalogEntry: catalogEntryForDeed,
+      landUseProtections: Array.isArray(props._land_use_protections)
+        ? props._land_use_protections
+        : [],
+      rawSubdivisionName: subVal,
+      neighborhoodName: nbhdVal,
+      isBoundary: false,
+    });
 
     const distVal = String(props.historic_district || "").trim();
     const isRealDistrict =
@@ -5130,6 +5837,8 @@ class HoustonAtlasApp {
         </div>
       </div>
 
+      ${buildingDeedCardHtml}
+
       ${
         hcadNum
           ? `<div class="hcad-live-record-card" id="inspector-hcad-live-card" data-hcad-num="${hcadNum}">
@@ -5222,6 +5931,7 @@ class HoustonAtlasApp {
     drawer.classList.remove("hidden");
 
     this._bindInspectorOverlapStackEvents(content);
+    this._bindDeedRestrictionsCardEvents(content, props);
 
     content.querySelectorAll("[data-filter-chip]").forEach((chipBtn) => {
       chipBtn.addEventListener("click", (e) => {
@@ -6367,6 +7077,11 @@ class HoustonAtlasApp {
         historicDistricts: "Historic Districts",
         heritageDistricts: "Freedmen's Town",
         nrhpDistricts: "NRHP Districts",
+        neighborhoods: "Neighborhoods",
+        plattedSubdivisions: "Platted Subdivisions & Deeds",
+        landUseProtections: "Ch. 42 Lot & Setback Protections",
+        superNeighborhoods: "Super Neighborhoods",
+        historicWards: "Historic Wards",
         thcMarkers: "THC Markers",
         annexations: "Annexation History",
         historicMap: "Historic Topo Map",

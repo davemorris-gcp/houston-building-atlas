@@ -17,7 +17,7 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261009j";
+} from "./filterStore.js?v=20261009k";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
@@ -178,7 +178,7 @@ export class AtlasMapController {
       await Promise.all([
         fetch("public/data/buildings.geojson?v=20261009i"),
         fetch("public/data/parcels.geojson?v=20261009i"),
-        fetch("public/data/overlays.json?v=20261009i"),
+        fetch("public/data/overlays.json?v=20261009k"),
         fetch("public/data/pmtiles_manifest.json?v=20261009i").catch(() => null),
         loadCuratedOverrides(),
       ]);
@@ -698,6 +698,14 @@ export class AtlasMapController {
       type: "geojson",
       data: this._buildLabelPointsFeatureCollection(overlays.platted_subdivisions),
     });
+    this.map.addSource("land-use-protections-src", {
+      type: "geojson",
+      data: overlays.land_use_protections || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("land-use-protections-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.land_use_protections),
+    });
     this.map.addSource("selected-boundary-src", {
       type: "geojson",
       data: { type: "FeatureCollection", features: [] },
@@ -846,8 +854,18 @@ export class AtlasMapController {
       type: "fill",
       source: "platted-subdivisions-src",
       paint: {
-        "fill-color": "#22D3EE",
-        "fill-opacity": 0.08,
+        "fill-color": [
+          "case",
+          ["boolean", ["get", "has_deed_docs"], false],
+          "#F59E0B",
+          "#22D3EE",
+        ],
+        "fill-opacity": [
+          "case",
+          ["boolean", ["get", "has_deed_docs"], false],
+          0.15,
+          0.08,
+        ],
       },
     });
     this.map.addLayer({
@@ -855,10 +873,56 @@ export class AtlasMapController {
       type: "line",
       source: "platted-subdivisions-src",
       paint: {
-        "line-color": "#22D3EE",
-        "line-width": 1.45,
+        "line-color": [
+          "case",
+          ["boolean", ["get", "has_deed_docs"], false],
+          "#FBBF24",
+          "#22D3EE",
+        ],
+        "line-width": [
+          "case",
+          ["boolean", ["get", "has_deed_docs"], false],
+          2.4,
+          1.45,
+        ],
         "line-dasharray": [3, 2],
-        "line-opacity": 0.86,
+        "line-opacity": 0.9,
+      },
+    });
+    this.map.addLayer({
+      id: "land-use-protections-fill",
+      type: "fill",
+      source: "land-use-protections-src",
+      paint: {
+        "fill-color": [
+          "match",
+          ["get", "protection_type"],
+          "smbl",
+          "#10B981",
+          "conservation",
+          "#F43F5E",
+          "#F59E0B",
+        ],
+        "fill-opacity": 0.14,
+      },
+    });
+    this.map.addLayer({
+      id: "land-use-protections-line",
+      type: "line",
+      source: "land-use-protections-src",
+      paint: {
+        "line-color": [
+          "match",
+          ["get", "protection_type"],
+          "smbl",
+          "#34D399",
+          "conservation",
+          "#FB7185",
+          "#FBBF24",
+        ],
+        "line-width": 1.8,
+        "line-dasharray": [2, 1.5],
+        "line-opacity": 0.9,
       },
     });
     this.map.addLayer({
@@ -1287,14 +1351,56 @@ export class AtlasMapController {
       source: "platted-subdivisions-labels-src",
       minzoom: 13.0,
       layout: {
-        "text-field": ["get", "name"],
+        "symbol-sort-key": [
+          "case",
+          ["boolean", ["get", "has_deed_docs"], false],
+          1,
+          10,
+        ],
+        "text-field": [
+          "case",
+          ["boolean", ["get", "has_deed_docs"], false],
+          ["concat", "📜 ", ["get", "name"]],
+          ["get", "name"],
+        ],
         "text-font": ["Noto Sans Bold"],
         "text-size": ["interpolate", ["linear"], ["zoom"], 13.0, 9.8, 16.5, 13.0],
         "text-max-width": 8,
-        "text-padding": 3,
+        "text-padding": 5,
       },
       paint: {
-        "text-color": "#ECFCCB",
+        "text-color": [
+          "case",
+          ["boolean", ["get", "has_deed_docs"], false],
+          "#FDE68A",
+          "#ECFCCB",
+        ],
+        "text-halo-color": "rgba(11, 15, 23, 0.94)",
+        "text-halo-width": 1.8,
+      },
+    });
+    this.map.addLayer({
+      id: "land-use-protections-label",
+      type: "symbol",
+      source: "land-use-protections-labels-src",
+      minzoom: 15.2,
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 15.2, 9.5, 17.0, 12.0],
+        "text-max-width": 9,
+        "text-padding": 12,
+      },
+      paint: {
+        "text-color": [
+          "match",
+          ["get", "protection_type"],
+          "smbl",
+          "#A7F3D0",
+          "conservation",
+          "#FECDD3",
+          "#FDE68A",
+        ],
         "text-halo-color": "rgba(11, 15, 23, 0.94)",
         "text-halo-width": 1.8,
       },
@@ -2014,13 +2120,32 @@ export class AtlasMapController {
     }
     if (state.layers.plattedSubdivisions && this.overlaysData?.platted_subdivisions) {
       for (const feat of this.overlaysData.platted_subdivisions.features || []) {
+        const hasDocs = Boolean(feat.properties?.has_deed_docs);
         drawPolygonFeature(
           feat.geometry,
-          "rgba(163, 230, 53, 0.08)",
-          "rgba(163, 230, 53, 0.85)",
-          1.35,
+          hasDocs ? "rgba(245, 158, 11, 0.14)" : "rgba(34, 211, 238, 0.08)",
+          hasDocs ? "#FBBF24" : "rgba(34, 211, 238, 0.85)",
+          hasDocs ? 2.2 : 1.35,
           [2, 1.5]
         );
+      }
+    }
+    if (state.layers.landUseProtections && this.overlaysData?.land_use_protections) {
+      for (const feat of this.overlaysData.land_use_protections.features || []) {
+        const pt = feat.properties?.protection_type;
+        const fill =
+          pt === "smbl"
+            ? "rgba(16, 185, 129, 0.13)"
+            : pt === "conservation"
+            ? "rgba(244, 63, 94, 0.14)"
+            : "rgba(245, 158, 11, 0.13)";
+        const stroke =
+          pt === "smbl"
+            ? "#34D399"
+            : pt === "conservation"
+            ? "#FB7185"
+            : "#FBBF24";
+        drawPolygonFeature(feat.geometry, fill, stroke, 1.7, [2, 1.5]);
       }
     }
     if (this.selectedBoundaryFeature && this.selectedBoundaryFeature.geometry) {
@@ -2170,41 +2295,50 @@ export class AtlasMapController {
     }
 
     // 8b. Boundary Labels in 2D Canvas Mode
+    const placedBoxes = [];
     const drawBoundaryLabels = (features, minZ, textColor) => {
       if (cs.zoom < minZ || !Array.isArray(features)) return;
       ctx.save();
       ctx.font = "700 10.5px Inter, system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const placedBoxes = [];
-      for (const feat of features) {
+      const ordered = [...features].sort(
+        (a, b) =>
+          (b?.properties?.has_deed_docs ? 1 : 0) - (a?.properties?.has_deed_docs ? 1 : 0)
+      );
+      for (const feat of ordered) {
         const p = feat.properties || {};
         const lng = Number(p.label_lng);
         const lat = Number(p.label_lat);
-        const name = String(p.name || "").trim();
-        if (!name || !Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+        const rawName = String(p.name || "").trim();
+        const hasDocs = Boolean(p.has_deed_docs);
+        const name = hasDocs ? `📜 ${rawName}` : rawName;
+        if (!rawName || !Number.isFinite(lng) || !Number.isFinite(lat)) continue;
         if (lng < west || lng > east || lat < south || lat > north) continue;
         const [sx, sy] = this._lngLatToScreen(lng, lat, width, height);
         if (sx < 30 || sx > width - 30 || sy < 20 || sy > height - 20) continue;
-        const tw = Math.min(130, name.length * 6.2 + 10);
-        const th = 16;
+        const tw = Math.min(180, name.length * 6.5 + 18);
+        const th = 22;
         const overlaps = placedBoxes.some(
           (b) =>
-            Math.abs(b.x - sx) < (b.w + tw) * 0.55 &&
-            Math.abs(b.y - sy) < (b.h + th) * 0.65
+            Math.abs(b.x - sx) < (b.w + tw) * 0.58 &&
+            Math.abs(b.y - sy) < (b.h + th) * 0.72
         );
         if (overlaps) continue;
         placedBoxes.push({ x: sx, y: sy, w: tw, h: th });
         ctx.lineWidth = 3.2;
         ctx.strokeStyle = "rgba(11, 15, 23, 0.92)";
         ctx.strokeText(name, sx, sy);
-        ctx.fillStyle = textColor;
+        ctx.fillStyle = hasDocs ? "#FDE68A" : textColor;
         ctx.fillText(name, sx, sy);
       }
       ctx.restore();
     };
     if (state.layers.plattedSubdivisions && this.overlaysData?.platted_subdivisions) {
       drawBoundaryLabels(this.overlaysData.platted_subdivisions.features, 13.0, "#ECFCCB");
+    }
+    if (state.layers.landUseProtections && this.overlaysData?.land_use_protections) {
+      drawBoundaryLabels(this.overlaysData.land_use_protections.features, 15.6, "#FDE68A");
     }
     if (state.layers.neighborhoods && this.overlaysData?.neighborhoods) {
       drawBoundaryLabels(this.overlaysData.neighborhoods.features, 12.2, "#D9F99D");
@@ -2321,6 +2455,7 @@ export class AtlasMapController {
     const isBoundary =
       p.overlay_layer === "neighborhoods" ||
       p.overlay_layer === "platted_subdivisions" ||
+      p.overlay_layer === "land_use_protections" ||
       p.overlay_layer === "super_neighborhoods" ||
       p.overlay_layer === "historic_wards" ||
       p.overlay_layer === "historic_districts" ||
@@ -2381,21 +2516,45 @@ export class AtlasMapController {
     if (isBoundary) {
       let badge = p.type || "Neighborhood Boundary";
       if (p.overlay_layer === "platted_subdivisions") {
-        badge = p.vol_page ? `HCAD Plat (Vol ${p.vol_page})` : "Platted Subdivision";
+        if (p.has_deed_docs) {
+          badge = `📜 Deed Restrictions + Plat (${p.deed_doc_count || 1} PDF${
+            Number(p.deed_doc_count) === 1 ? "" : "s"
+          })`;
+        } else {
+          badge = p.plat_citation || (p.vol_page ? `HCAD Plat (Vol ${p.vol_page})` : "Platted Subdivision");
+        }
+      } else if (p.overlay_layer === "land_use_protections") {
+        badge = p.type_label || "Chapter 42 Protection";
       } else if (p.overlay_layer === "historic_wards" && p.era_label) {
         badge = p.era_label;
       } else if (p.overlay_layer === "super_neighborhoods" && p.poly_id) {
         badge = `COH Super Neighborhood #${p.poly_id}`;
       }
       const statParts = [];
-      if (Number(p.building_count) > 0) {
-        statParts.push(`${Number(p.building_count).toLocaleString()} structures`);
-      }
-      if (Number(p.earliest_year) >= 1836) {
-        statParts.push(`Earliest ${p.earliest_year}`);
-      }
-      if (Number(p.median_year) >= 1836) {
-        statParts.push(`Median ${p.median_year}`);
+      if (p.overlay_layer === "land_use_protections") {
+        if (p.ordinance) statParts.push(`Ord. #${p.ordinance}`);
+        if (Number(p.min_lot_sqft) > 0) {
+          statParts.push(`Min Lot ${Number(p.min_lot_sqft).toLocaleString()} sq ft`);
+        }
+        if (Number(p.min_bldg_line_ft) > 0) {
+          statParts.push(`Min Setback ${p.min_bldg_line_ft} ft`);
+        }
+      } else {
+        if (p.overlay_layer === "platted_subdivisions" && p.plat_citation && p.has_deed_docs) {
+          statParts.push(p.plat_citation);
+        }
+        if (Number(p.building_count) > 0) {
+          statParts.push(`${Number(p.building_count).toLocaleString()} structures`);
+        }
+        if (Number(p.earliest_year) >= 1836) {
+          statParts.push(`Earliest ${p.earliest_year}`);
+        }
+        if (Number(p.median_year) >= 1836) {
+          statParts.push(`Median ${p.median_year}`);
+        }
+        if (Number(p.smls_min_sqft) > 0) {
+          statParts.push(`Ch.42 Min Lot ${Number(p.smls_min_sqft).toLocaleString()} sqft`);
+        }
       }
       if (!statParts.length && p.neighborhood && p.overlay_layer === "platted_subdivisions") {
         statParts.push(p.neighborhood);
@@ -2404,7 +2563,7 @@ export class AtlasMapController {
         statParts.push(p.super_neighborhood);
       }
       const subtitle =
-        statParts.join(" • ") || "Click to inspect boundary & historic subdivisions";
+        statParts.join(" • ") || "Click to inspect boundary & deed restrictions";
       return `<div class="tooltip-card">
         <div class="tooltip-top">
           <span class="tooltip-badge">${badge}</span>
@@ -2636,6 +2795,14 @@ export class AtlasMapController {
       Boolean(state.layers?.plattedSubdivisions)
     );
     setVis(
+      [
+        "land-use-protections-fill",
+        "land-use-protections-line",
+        "land-use-protections-label",
+      ],
+      Boolean(state.layers?.landUseProtections)
+    );
+    setVis(
       ["super-neighborhoods-fill", "super-neighborhoods-line", "super-neighborhoods-label"],
       Boolean(state.layers?.superNeighborhoods)
     );
@@ -2674,6 +2841,7 @@ export class AtlasMapController {
         nrhp_districts: Boolean(state.layers?.nrhpDistricts),
         neighborhoods: Boolean(state.layers?.neighborhoods),
         platted_subdivisions: Boolean(state.layers?.plattedSubdivisions),
+        land_use_protections: Boolean(state.layers?.landUseProtections),
         super_neighborhoods: Boolean(state.layers?.superNeighborhoods),
         historic_wards: showWards,
         annexations: showAnnex,
@@ -3586,6 +3754,7 @@ export class AtlasMapController {
       }
     };
     indexLayer(this.overlaysData?.platted_subdivisions, "platted_subdivisions");
+    indexLayer(this.overlaysData?.land_use_protections, "land_use_protections");
     indexLayer(this.overlaysData?.neighborhoods, "neighborhoods");
     indexLayer(this.overlaysData?.super_neighborhoods, "super_neighborhoods");
     indexLayer(this.overlaysData?.historic_wards, "historic_wards");
@@ -3601,6 +3770,9 @@ export class AtlasMapController {
       plattedSubdivisions: "platted_subdivisions",
       platted_subdivisions: "platted_subdivisions",
       "platted-subdivisions-fill": "platted_subdivisions",
+      landUseProtections: "land_use_protections",
+      land_use_protections: "land_use_protections",
+      "land-use-protections-fill": "land_use_protections",
       neighborhoods: "neighborhoods",
       "neighborhoods-fill": "neighborhoods",
       superNeighborhoods: "super_neighborhoods",
@@ -3640,6 +3812,7 @@ export class AtlasMapController {
     if (!this.useCanvasFallback && this.map && point) {
       const BOUNDARY_FILL_LAYERS = new Set([
         "platted-subdivisions-fill",
+        "land-use-protections-fill",
         "neighborhoods-fill",
         "super-neighborhoods-fill",
         "historic-wards-fill",
@@ -3842,6 +4015,12 @@ export class AtlasMapController {
           typeBadge: "Platted Subdiv",
           swatchColor: "#2dd4bf",
         },
+        land_use_protections: {
+          enabled: Boolean(state.layers?.landUseProtections),
+          priority: 15,
+          typeBadge: "Ch.42 Protection",
+          swatchColor: "#f59e0b",
+        },
         historic_districts: {
           enabled: Boolean(state.layers?.historicDistricts),
           priority: 20,
@@ -3903,11 +4082,29 @@ export class AtlasMapController {
         const [minLng, minLat, maxLng, maxLat] = entry.bbox;
         if (lng < minLng || lng > maxLng || lat < minLat || lat > maxLat) continue;
         if (!this._pointInPolygonGeometry(lng, lat, entry.feature.geometry)) continue;
+        let dynBadge = meta.typeBadge;
+        let dynSwatch = entry.props.color || meta.swatchColor;
+        if (entry.overlayKey === "platted_subdivisions" && entry.props.has_deed_docs) {
+          dynBadge = "📜 Platted Subdiv";
+          dynSwatch = "#FBBF24";
+        } else if (entry.overlayKey === "land_use_protections") {
+          const pt = entry.props.protection_type;
+          if (pt === "smbl") {
+            dynBadge = "Ch.42 Min Setback";
+            dynSwatch = "#34D399";
+          } else if (pt === "conservation") {
+            dynBadge = "Conservation Dist";
+            dynSwatch = "#FB7185";
+          } else {
+            dynBadge = "Ch.42 Min Lot Size";
+            dynSwatch = "#FBBF24";
+          }
+        }
         matchingBoundaries.push({
           entry,
           priority: meta.priority,
-          typeBadge: meta.typeBadge,
-          swatchColor: entry.props.color || meta.swatchColor,
+          typeBadge: dynBadge,
+          swatchColor: dynSwatch,
         });
       }
 
@@ -4094,6 +4291,7 @@ export class AtlasMapController {
     }
     const nhMatches = [];
     const platMatches = [];
+    const protMatches = [];
     let snMatch = null;
     let wardMatch1920 = null;
 
@@ -4105,6 +4303,8 @@ export class AtlasMapController {
         nhMatches.push(entry);
       } else if (entry.overlayKey === "platted_subdivisions") {
         platMatches.push(entry);
+      } else if (entry.overlayKey === "land_use_protections") {
+        protMatches.push(entry);
       } else if (entry.overlayKey === "super_neighborhoods" && !snMatch) {
         snMatch = entry;
       } else if (
@@ -4118,6 +4318,7 @@ export class AtlasMapController {
 
     nhMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     platMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    protMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     const primaryNh = nhMatches[0]?.props?.name || "";
     const primaryPlat = platMatches[0]?.props?.name || "";
     const aliasSet = new Set();
@@ -4148,6 +4349,8 @@ export class AtlasMapController {
       neighborhood_aliases: aliasList,
       platted_subdivision: primaryPlat,
       platted_subdivision_id: platMatches[0]?.props?.id || "",
+      platted_subdivision_props: platMatches[0]?.props || null,
+      land_use_protections: protMatches.map((m) => m.props),
       super_neighborhood:
         snMatch?.props?.name ||
         nhMatches[0]?.props?.super_neighborhood ||
@@ -4369,13 +4572,9 @@ export class AtlasMapController {
     this.selectedFeatureGeometry = singleGeom;
 
     // Dynamically enrich any countywide PMTiles shard building or parcel with
-    // Vernacular Neighborhood, Platted Subdivision, Historical Aliases, Super Neighborhood, and 1920 Historic Ward
-    if (
-      !mergedProps.neighborhood ||
-      !mergedProps.subdivision ||
-      !mergedProps.super_neighborhood ||
-      !mergedProps.historic_ward
-    ) {
+    // Vernacular Neighborhood, Platted Subdivision, Historical Aliases, Super Neighborhood,
+    // 1920 Historic Ward, Plat Citation, and Chapter 42 Land-Use Protections
+    {
       let queryLng = Number(mergedProps.lng ?? mergedProps.lon);
       let queryLat = Number(mergedProps.lat);
       if (!Number.isFinite(queryLng) || !Number.isFinite(queryLat)) {
@@ -4405,6 +4604,12 @@ export class AtlasMapController {
           }
           if (!mergedProps.historic_ward && geoCtx.historic_ward) {
             mergedProps.historic_ward = geoCtx.historic_ward;
+          }
+          if (geoCtx.platted_subdivision_props) {
+            mergedProps._platted_subdivision_props = geoCtx.platted_subdivision_props;
+          }
+          if (Array.isArray(geoCtx.land_use_protections) && geoCtx.land_use_protections.length) {
+            mergedProps._land_use_protections = geoCtx.land_use_protections;
           }
         }
       }
