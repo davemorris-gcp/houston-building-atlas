@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261009j" />
+  <link rel="stylesheet" href="styles/index.css?v=20261009k" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -562,14 +562,30 @@
           <div class="layer-item-row" data-layer-key="plattedSubdivisions">
             <label class="check-row layer-row-main">
               <input type="checkbox" id="chk-layer-platted-subdivisions" />
-              <span class="swatch-line dashed" style="border-color:#22D3EE;"></span>
-              <span class="layer-name">Platted Subdivisions (HCAD Plats)</span>
+              <span class="swatch-line dashed" style="border-color:#22D3EE;" title="Cyan dashed = Platted Subdivision; Gold border = Full-Text Deed Restriction PDFs attached"></span>
+              <span class="layer-name">Platted Subdivisions &amp; Deeds (5,573)</span>
             </label>
             <button
               type="button"
               class="layer-solo-btn"
               data-solo-layer="plattedSubdivisions"
-              title="Show only HCAD Platted Subdivisions &amp; Additions (click again to restore)"
+              title="Show only HCAD Platted Subdivisions &amp; Deed-Documented Additions (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="landUseProtections">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-land-use-protections" />
+              <span class="swatch-line dashed" style="border-color:#F59E0B;" title="Amber = Special Min. Lot Size (SMLS); Emerald = Special Min. Building Lines (SMBL); Rose = Conservation District"></span>
+              <span class="layer-name">Ch. 42 Lot &amp; Setback Protections (910)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="landUseProtections"
+              title="Show only Chapter 42 Special Minimum Lot Size (SMLS), Building Line (SMBL) &amp; Conservation District overlays (click again to restore)"
             >
               Solo
             </button>
@@ -1003,6 +1019,50 @@
               </div>
             </details>
 
+            <details class="photo-contrib-details" id="corr-deed-details">
+              <summary class="photo-contrib-summary">
+                <span>📜 Contribute a Subdivision Deed Restriction PDF or Clerk File #</span>
+                <span class="photo-contrib-badge">Optional</span>
+              </summary>
+              <div class="photo-contrib-body">
+                <p class="form-hint" style="margin:0 0 8px 0;">
+                  Know where the recorded deed restrictions, plat covenants, or architectural guidelines live for this subdivision? Share a link to a civic club PDF or the Harris County Clerk File / Film Code number so we can mirror and index it.
+                </p>
+                <div class="form-row-2col">
+                  <div class="form-field">
+                    <label for="corr-deed-subdivision">Platted Subdivision / Section Name</label>
+                    <input
+                      type="text"
+                      id="corr-deed-subdivision"
+                      name="deed_subdivision"
+                      class="form-input"
+                      placeholder="e.g. Woodland Heights Sec 2, Braeswood Sec 1"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="corr-deed-clerk-file">County Clerk File # / Vol. &amp; Page</label>
+                    <input
+                      type="text"
+                      id="corr-deed-clerk-file"
+                      name="deed_clerk_file"
+                      class="form-input"
+                      placeholder="e.g. Clerk File #T699546 or Deed Vol. 375, Pg. 180"
+                    />
+                  </div>
+                </div>
+                <div class="form-field" style="margin-top:8px;">
+                  <label for="corr-deed-url">Link to Deed Restriction PDF or Civic Association Page</label>
+                  <input
+                    type="url"
+                    id="corr-deed-url"
+                    name="deed_pdf_url"
+                    class="form-input"
+                    placeholder="https://example-civic-club.org/deed-restrictions.pdf"
+                  />
+                </div>
+              </div>
+            </details>
+
             <div class="form-row-2col">
               <div class="form-field">
                 <label for="corr-submitter-name">Your Name (Optional)</label>
@@ -1282,6 +1342,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261009j"></script>
+  <script type="module" src="js/app.js?v=20261009k"></script>
 </body>
 </html>
