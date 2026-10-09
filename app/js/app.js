@@ -6,7 +6,7 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261009e";
+} from "./palettes.js?v=20261009i";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -15,8 +15,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261009e";
-import { AtlasMapController } from "./mapController.js?v=20261009e";
+} from "./filterStore.js?v=20261009i";
+import { AtlasMapController } from "./mapController.js?v=20261009i";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -28,7 +28,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261009e";
+} from "./curatedEdits.js?v=20261009i";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -72,6 +72,8 @@ class HoustonAtlasApp {
           this._activateTourStop(this._activeTour, stopIdx);
         }
       },
+      onOverlapStackChange: (stack, activeIdx) =>
+        this._renderMapOverlapBar(stack, activeIdx),
     });
   }
 
@@ -169,9 +171,9 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261009e"),
-        fetch("public/data/stats_summary.json?v=20261009e"),
-        fetch("public/data/haif_index.json?v=20261009e").catch(() => null),
+        fetch("public/data/search_index.json?v=20261009i"),
+        fetch("public/data/stats_summary.json?v=20261009i"),
+        fetch("public/data/haif_index.json?v=20261009i").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -180,6 +182,9 @@ class HoustonAtlasApp {
           if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
           if (item.overlay_layer === "historicWards") item.overlay_layer = "historic_wards";
           if (item.overlay_layer === "superNeighborhoods") item.overlay_layer = "super_neighborhoods";
+          if (item.overlay_layer === "plattedSubdivisions") {
+            item.overlay_layer = "platted_subdivisions";
+          }
           if (!item.sublabel) {
             const alts = Array.isArray(item.alt_names) ? item.alt_names.slice(0, 3).join(", ") : "";
             item.sublabel = [alts ? `AKA: ${alts}` : "", item.address || ""]
@@ -1466,6 +1471,7 @@ class HoustonAtlasApp {
       ["chk-layer-heritage-districts", "heritageDistricts"],
       ["chk-layer-nrhp-districts", "nrhpDistricts"],
       ["chk-layer-neighborhoods", "neighborhoods"],
+      ["chk-layer-platted-subdivisions", "plattedSubdivisions"],
       ["chk-layer-super-neighborhoods", "superNeighborhoods"],
       ["chk-layer-historic-wards", "historicWards"],
       ["chk-layer-thc-markers", "thcMarkers"],
@@ -2419,6 +2425,7 @@ class HoustonAtlasApp {
       const isPlaceBoundary = Boolean(
         item.is_neighborhood_entry ||
           item.type === "neighborhood" ||
+          item.type === "platted_subdivision" ||
           item.type === "super_neighborhood" ||
           item.type === "historic_ward"
       );
@@ -2458,6 +2465,8 @@ class HoustonAtlasApp {
         }
         if (isNeighborhoodFilter && item.type === "neighborhood") {
           if (placeName === q || altNames.includes(q)) return 142;
+        } else if (isSubdivisionFilter && item.type === "platted_subdivision") {
+          if (placeName === q || altNames.includes(q)) return 142;
         } else if (isSuperNeighborhoodFilter && item.type === "super_neighborhood") {
           if (placeName === q) return 142;
         } else if (isHistoricWardFilter && item.type === "historic_ward") {
@@ -2468,7 +2477,9 @@ class HoustonAtlasApp {
           !isHistoricWardFilter &&
           !isSubdivisionFilter
         ) {
-          if (placeName === q || lbl === q) return 138;
+          if (placeName === q || lbl === q) {
+            return item.type === "platted_subdivision" ? 136 : 138;
+          }
           if (altNames.some((an) => an === q)) return 135;
           if (placeName.startsWith(q) || altNames.some((an) => an.startsWith(q))) return 118;
           if (placeName.includes(q) || altNames.some((an) => an.includes(q))) return 98;
@@ -2935,6 +2946,7 @@ class HoustonAtlasApp {
           const isPlace = Boolean(
             m.is_neighborhood_entry ||
               m.type === "neighborhood" ||
+              m.type === "platted_subdivision" ||
               m.type === "super_neighborhood" ||
               m.type === "historic_ward"
           );
@@ -2988,6 +3000,7 @@ class HoustonAtlasApp {
           if (
             chosen.is_neighborhood_entry ||
             chosen.type === "neighborhood" ||
+            chosen.type === "platted_subdivision" ||
             chosen.type === "super_neighborhood" ||
             chosen.type === "historic_ward"
           ) {
@@ -2997,11 +3010,15 @@ class HoustonAtlasApp {
                 ? "historic_wards"
                 : rawLayer === "superNeighborhoods"
                 ? "super_neighborhoods"
+                : rawLayer === "plattedSubdivisions"
+                ? "platted_subdivisions"
                 : rawLayer ||
                   (chosen.type === "super_neighborhood"
                     ? "super_neighborhoods"
                     : chosen.type === "historic_ward"
                     ? "historic_wards"
+                    : chosen.type === "platted_subdivision"
+                    ? "platted_subdivisions"
                     : "neighborhoods");
             if (chosen.type === "historic_ward" && chosen.era_year) {
               this.filterStore.setState({ wardEra: Number(chosen.era_year) });
@@ -3711,6 +3728,7 @@ class HoustonAtlasApp {
       "chk-layer-nrhp-districts": state.layers.nrhpDistricts,
       "chk-layer-thc-markers": state.layers.thcMarkers,
       "chk-layer-neighborhoods": state.layers.neighborhoods,
+      "chk-layer-platted-subdivisions": state.layers.plattedSubdivisions,
       "chk-layer-super-neighborhoods": state.layers.superNeighborhoods,
       "chk-layer-historic-wards": state.layers.historicWards,
       "chk-layer-annexations": state.layers.annexations,
@@ -3922,6 +3940,145 @@ class HoustonAtlasApp {
     });
   }
 
+  _renderMapOverlapBar(stack, activeIdx) {
+    const bar = document.getElementById("map-overlap-bar");
+    if (!bar) return;
+
+    if (!Array.isArray(stack) || stack.length <= 1) {
+      bar.classList.add("hidden");
+      bar.innerHTML = "";
+      return;
+    }
+
+    bar.classList.remove("hidden");
+    const safeIdx = Math.max(0, Math.min(stack.length - 1, Number(activeIdx) || 0));
+
+    bar.innerHTML = `
+      <span class="map-overlap-label">
+        &#9783; ${stack.length} Layers (${safeIdx + 1}/${stack.length})
+      </span>
+      ${stack
+        .map((item, idx) => {
+          const badge = item.typeBadge || item.badge || "Layer";
+          const color = item.swatchColor || item.color || "#38bdf8";
+          return `
+            <button
+              type="button"
+              class="map-overlap-chip ${idx === safeIdx ? "active" : ""}"
+              data-overlap-idx="${idx}"
+              title="${String(badge).replace(/"/g, "&quot;")}: ${String(item.title || "").replace(/"/g, "&quot;")}"
+            >
+              <span class="overlap-pill-dot" style="background:${color};"></span>
+              <span>${badge}: ${item.title}</span>
+            </button>`;
+        })
+        .join("")}
+      <button
+        type="button"
+        class="map-overlap-next-btn"
+        data-overlap-step="1"
+        title="Cycle to next underlying polygon or building at this spot"
+      >
+        Next Layer &#8594;
+      </button>
+    `;
+
+    bar.querySelectorAll("[data-overlap-idx]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute("data-overlap-idx"), 10);
+        if (Number.isFinite(idx) && this.mapController) {
+          this.mapController.selectOverlapStackItem(idx);
+        }
+      });
+    });
+
+    bar.querySelectorAll("[data-overlap-step]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const step = parseInt(btn.getAttribute("data-overlap-step"), 10) || 1;
+        if (this.mapController) {
+          this.mapController.cycleOverlapStack(step);
+        }
+      });
+    });
+  }
+
+  _buildInspectorOverlapStackHtml() {
+    const stack = this.mapController?.overlapStack || [];
+    const activeIdx = this.mapController?.overlapStackIndex || 0;
+    if (!Array.isArray(stack) || stack.length <= 1) return "";
+    const safeIdx = Math.max(0, Math.min(stack.length - 1, Number(activeIdx) || 0));
+
+    return `
+      <div class="inspector-overlap-stack" id="inspector-overlap-stack">
+        <div class="inspector-overlap-header">
+          <span class="inspector-overlap-title">
+            &#9783; Overlapping Layers Here (${safeIdx + 1} of ${stack.length})
+          </span>
+          <button
+            type="button"
+            class="inspector-overlap-cycle-btn"
+            data-inspector-overlap-step="1"
+            title="Cycle to next underlying polygon at this point"
+          >
+            Next Layer &#8594;
+          </button>
+        </div>
+        <div class="inspector-overlap-pills">
+          ${stack
+            .map((item, idx) => {
+              const badge = item.typeBadge || item.badge || "Layer";
+              const color = item.swatchColor || item.color || "#38bdf8";
+              return `
+                <button
+                  type="button"
+                  class="inspector-overlap-pill ${idx === safeIdx ? "active" : ""}"
+                  data-inspector-overlap-idx="${idx}"
+                >
+                  <span class="overlap-pill-left">
+                    <span class="overlap-pill-dot" style="background:${color};"></span>
+                    <span class="overlap-pill-name">${item.title}</span>
+                  </span>
+                  <span class="overlap-pill-badge">${badge}</span>
+                </button>`;
+            })
+            .join("")}
+        </div>
+        <div class="inspector-overlap-hint">
+          Tip: Click the same spot on the map again or click any row above to inspect polygons underneath.
+        </div>
+      </div>
+    `;
+  }
+
+  _bindInspectorOverlapStackEvents(container) {
+    if (!container) return;
+    container.querySelectorAll("[data-inspector-overlap-idx]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute("data-inspector-overlap-idx"), 10);
+        if (Number.isFinite(idx) && this.mapController) {
+          this.mapController.selectOverlapStackItem(idx);
+        }
+      });
+    });
+
+    container.querySelectorAll("[data-inspector-overlap-step]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const step = parseInt(btn.getAttribute("data-inspector-overlap-step"), 10) || 1;
+        if (this.mapController) {
+          this.mapController.cycleOverlapStack(step);
+        }
+      });
+    });
+  }
+
   _renderBoundaryInspectorDrawer(rawProps, drawer, content) {
     const parseJsonList = (val) => {
       if (Array.isArray(val)) return val.map((x) => String(x || "").trim()).filter(Boolean);
@@ -3948,22 +4105,44 @@ class HoustonAtlasApp {
     };
 
     const overlayLayer = String(rawProps.overlay_layer || "neighborhoods");
-    const name = String(rawProps.name || "Houston Neighborhood").trim();
+    const name = String(
+      rawProps.name || rawProps.era_label || rawProps.historic_district || "Houston Boundary"
+    ).trim();
+    const fullName = String(rawProps.full_name || "").trim();
+    const volPage = String(rawProps.vol_page || "").trim();
+    const recNum = String(rawProps.recnum || rawProps.deed_num || "").trim();
+    const parentNbhd = String(rawProps.neighborhood || "").trim();
     const aliases = parseJsonList(rawProps.aliases || rawProps.alt_names);
     const topSubs = parseJsonList(rawProps.top_subdivisions);
     const snName = String(rawProps.super_neighborhood || "").trim();
     const wardName = String(rawProps.historic_ward || "").trim();
-    const wardEra = Number(rawProps.ward_era || rawProps.era_year || 0);
-    const eraLabel = String(rawProps.era_label || "").trim();
+    const wardEra = Number(rawProps.era || rawProps.ward_era || rawProps.era_year || 0);
+    const eraLabel = String(rawProps.era_label || rawProps.display_title || "").trim();
 
     let badgeLabel = "Neighborhood / Subdivision";
     let badgeColor = "#38bdf8";
-    if (overlayLayer === "super_neighborhoods") {
-      badgeLabel = `COH Super Neighborhood${rawProps.sn_id ? ` #${rawProps.sn_id}` : ""}`;
+    if (overlayLayer === "platted_subdivisions") {
+      badgeLabel = "HCAD Platted Subdivision";
+      badgeColor = "#2dd4bf";
+    } else if (overlayLayer === "super_neighborhoods") {
+      badgeLabel = `COH Super Neighborhood${rawProps.sn_id || rawProps.poly_id ? ` #${rawProps.sn_id || rawProps.poly_id}` : ""}`;
       badgeColor = "#818cf8";
     } else if (overlayLayer === "historic_wards") {
       badgeLabel = `Historic Ward${wardEra ? ` (${wardEra})` : ""}`;
       badgeColor = String(rawProps.color || "#fb923c");
+    } else if (overlayLayer === "historic_districts") {
+      badgeLabel = "COH Historic District";
+      badgeColor = "#a855f7";
+    } else if (overlayLayer === "heritage_districts") {
+      badgeLabel = "Community Heritage District";
+      badgeColor = "#ec4899";
+    } else if (overlayLayer === "nrhp_districts") {
+      badgeLabel = "National Register District (NRHP)";
+      badgeColor = "#10b981";
+    } else if (overlayLayer === "annexations") {
+      const annexYr = rawProps.annex_year || rawProps.decade || "";
+      badgeLabel = `Municipal Annexation${annexYr ? ` (${annexYr})` : ""}`;
+      badgeColor = "#f43f5e";
     }
 
     const bldCount = Number(rawProps.building_count || 0);
@@ -3974,6 +4153,13 @@ class HoustonAtlasApp {
     const goodBrickCount = Number(rawProps.good_brick_count || 0);
 
     const subtitleParts = [];
+    if (overlayLayer === "platted_subdivisions") {
+      if (volPage) subtitleParts.push(`Plat Vol-Page: ${volPage}`);
+      if (recNum) subtitleParts.push(`Clerk Filing #${recNum}`);
+      if (parentNbhd && parentNbhd.toLowerCase() !== name.toLowerCase()) {
+        subtitleParts.push(`In ${parentNbhd}`);
+      }
+    }
     if (eraLabel && overlayLayer === "historic_wards") subtitleParts.push(eraLabel);
     if (snName && overlayLayer !== "super_neighborhoods") {
       subtitleParts.push(`Super Neighborhood: ${snName}`);
@@ -4023,7 +4209,10 @@ class HoustonAtlasApp {
           </div>`
         : "";
 
+    const overlapStackHtml = this._buildInspectorOverlapStackHtml();
+
     content.innerHTML = `
+      ${overlapStackHtml}
       <div class="inspector-hero">
         <div class="inspector-badges">
           <span class="inspector-year-pill" style="background:${badgeColor};color:#090d16;">${badgeLabel}</span>
@@ -4055,34 +4244,84 @@ class HoustonAtlasApp {
           : ""
       }
 
-      <div class="boundary-dossier-stats-grid">
-        <div class="boundary-stat-card">
-          <span class="boundary-stat-label">Recorded Structures</span>
-          <span class="boundary-stat-val mono">${bldCount > 0 ? bldCount.toLocaleString() : "—"}</span>
-        </div>
-        <div class="boundary-stat-card">
-          <span class="boundary-stat-label">Earliest Structure</span>
-          <span class="boundary-stat-val mono">${earliestYear >= 1836 ? earliestYear : "—"}</span>
-        </div>
-        <div class="boundary-stat-card">
-          <span class="boundary-stat-label">Median Build Year</span>
-          <span class="boundary-stat-val mono">${medianYear >= 1836 ? medianYear : "—"}</span>
-        </div>
-        <div class="boundary-stat-card">
-          <span class="boundary-stat-label">Pre-1940 Structures</span>
-          <span class="boundary-stat-val mono">${pre1940Count > 0 ? pre1940Count.toLocaleString() : "0"}</span>
-        </div>
-        <div class="boundary-stat-card">
-          <span class="boundary-stat-label">Designated Landmarks</span>
-          <span class="boundary-stat-val mono">${landmarkCount > 0 ? landmarkCount.toLocaleString() : "0"}</span>
-        </div>
-        <div class="boundary-stat-card">
-          <span class="boundary-stat-label">Good Brick Awards</span>
-          <span class="boundary-stat-val mono">${goodBrickCount > 0 ? goodBrickCount.toLocaleString() : "0"}</span>
-        </div>
-      </div>
+      ${
+        bldCount > 0 || earliestYear >= 1836
+          ? `<div class="boundary-dossier-stats-grid">
+              <div class="boundary-stat-card">
+                <span class="boundary-stat-label">Recorded Structures</span>
+                <span class="boundary-stat-val mono">${bldCount > 0 ? bldCount.toLocaleString() : "—"}</span>
+              </div>
+              <div class="boundary-stat-card">
+                <span class="boundary-stat-label">Earliest Structure</span>
+                <span class="boundary-stat-val mono">${earliestYear >= 1836 ? earliestYear : "—"}</span>
+              </div>
+              <div class="boundary-stat-card">
+                <span class="boundary-stat-label">Median Build Year</span>
+                <span class="boundary-stat-val mono">${medianYear >= 1836 ? medianYear : "—"}</span>
+              </div>
+              <div class="boundary-stat-card">
+                <span class="boundary-stat-label">Pre-1940 Structures</span>
+                <span class="boundary-stat-val mono">${pre1940Count > 0 ? pre1940Count.toLocaleString() : "0"}</span>
+              </div>
+              <div class="boundary-stat-card">
+                <span class="boundary-stat-label">Designated Landmarks</span>
+                <span class="boundary-stat-val mono">${landmarkCount > 0 ? landmarkCount.toLocaleString() : "0"}</span>
+              </div>
+              <div class="boundary-stat-card">
+                <span class="boundary-stat-label">Good Brick Awards</span>
+                <span class="boundary-stat-val mono">${goodBrickCount > 0 ? goodBrickCount.toLocaleString() : "0"}</span>
+              </div>
+            </div>`
+          : ""
+      }
 
       <div class="inspector-grid">
+        ${
+          fullName && overlayLayer === "platted_subdivisions"
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Full Recorded HCAD Plat Name</span>
+                <span class="cell-value mono">${fullName}</span>
+              </div>`
+            : ""
+        }
+        ${
+          volPage
+            ? `<div class="inspector-cell">
+                <span class="cell-label">HCAD Plat Map Book (Vol-Page)</span>
+                <span class="cell-value mono">${volPage}</span>
+              </div>`
+            : ""
+        }
+        ${
+          recNum
+            ? `<div class="inspector-cell">
+                <span class="cell-label">County Clerk Filing / Deed #</span>
+                <span class="cell-value mono">${recNum}</span>
+              </div>`
+            : ""
+        }
+        ${
+          parentNbhd && overlayLayer === "platted_subdivisions"
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Containing Neighborhood / Subdivision</span>
+                <span class="cell-value inspector-chip-group">
+                  <button
+                    type="button"
+                    class="inspector-filter-chip"
+                    data-filter-chip="${parentNbhd.replace(/"/g, "&quot;")}"
+                    data-filter-label="Neighborhood: ${parentNbhd.replace(/"/g, "&quot;")}"
+                  >${parentNbhd} &#128269;</button>
+                  <button
+                    type="button"
+                    class="inspector-boundary-btn"
+                    data-highlight-boundary="${parentNbhd.replace(/"/g, "&quot;")}"
+                    data-boundary-layer="neighborhoods"
+                    title="Highlight the ${parentNbhd.replace(/"/g, "&quot;")} neighborhood boundary on the map"
+                  >Outline Neighborhood</button>
+                </span>
+              </div>`
+            : ""
+        }
         ${
           snName && overlayLayer !== "super_neighborhoods"
             ? `<div class="inspector-cell">
@@ -4142,6 +4381,8 @@ class HoustonAtlasApp {
 
     drawer.classList.remove("hidden");
 
+    this._bindInspectorOverlapStackEvents(content);
+
     content.querySelectorAll("[data-filter-chip]").forEach((chipBtn) => {
       chipBtn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -4150,6 +4391,22 @@ class HoustonAtlasApp {
         const chipLabel = chipBtn.getAttribute("data-filter-label") || "";
         if (chipQuery) {
           this.triggerMetadataFilterSearch(chipQuery, chipLabel);
+        }
+      });
+    });
+
+    content.querySelectorAll("[data-highlight-boundary]").forEach((bBtn) => {
+      bBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const bName = bBtn.getAttribute("data-highlight-boundary") || "";
+        const bLayer = bBtn.getAttribute("data-boundary-layer") || "";
+        if (bName && this.mapController) {
+          this.mapController.highlightBoundaryByIdOrName(bName, {
+            layerKey: bLayer,
+            fitBounds: true,
+            openInspector: true,
+          });
         }
       });
     });
@@ -4175,9 +4432,16 @@ class HoustonAtlasApp {
 
     if (
       rawProps.is_boundary_feature ||
-      ["neighborhoods", "super_neighborhoods", "historic_wards"].includes(
-        String(rawProps.overlay_layer || "")
-      )
+      [
+        "platted_subdivisions",
+        "neighborhoods",
+        "super_neighborhoods",
+        "historic_wards",
+        "historic_districts",
+        "heritage_districts",
+        "nrhp_districts",
+        "annexations",
+      ].includes(String(rawProps.overlay_layer || ""))
     ) {
       this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
       return;
@@ -4688,7 +4952,10 @@ class HoustonAtlasApp {
           </div>`
         : "";
 
+    const overlapStackHtml = this._buildInspectorOverlapStackHtml();
+
     content.innerHTML = `
+      ${overlapStackHtml}
       <div class="inspector-hero">
         <div class="inspector-badges">
           <span class="inspector-year-pill" style="background:${yearColor};">${yearDisplay}${props.is_curated_override ? " &#10003;" : ""}</span>
@@ -4849,7 +5116,8 @@ class HoustonAtlasApp {
           <span class="cell-value inspector-chip-group" id="inspector-cell-subdivision">
             ${
               subVal
-                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${subVal.replace(/"/g, "&quot;")}" data-filter-label="Subdivision: ${subVal.replace(/"/g, "&quot;")}" title="Click to search structures in platted subdivision '${subVal.replace(/"/g, "&quot;")}'">${subVal} &#128269;</button>`
+                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${subVal.replace(/"/g, "&quot;")}" data-filter-label="Subdivision: ${subVal.replace(/"/g, "&quot;")}" title="Click to search structures in platted subdivision '${subVal.replace(/"/g, "&quot;")}'">${subVal} &#128269;</button>
+                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${subVal.replace(/"/g, "&quot;")}" data-boundary-layer="platted_subdivisions" title="Outline HCAD platted subdivision boundary for '${subVal.replace(/"/g, "&quot;")}' on the map">Outline Plat</button>`
                 : "Not listed"
             }
           </span>
@@ -4955,6 +5223,8 @@ class HoustonAtlasApp {
 
     drawer.classList.remove("hidden");
 
+    this._bindInspectorOverlapStackEvents(content);
+
     content.querySelectorAll("[data-filter-chip]").forEach((chipBtn) => {
       chipBtn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -4981,7 +5251,12 @@ class HoustonAtlasApp {
           });
           bBtn.textContent = "Outlined ✓";
           setTimeout(() => {
-            bBtn.textContent = bLayer === "historic_wards" ? "Outline Ward" : "Outline";
+            bBtn.textContent =
+              bLayer === "historic_wards"
+                ? "Outline Ward"
+                : bLayer === "platted_subdivisions"
+                ? "Outline Plat"
+                : "Outline";
           }, 2200);
         }
       });

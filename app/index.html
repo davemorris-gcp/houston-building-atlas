@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261009e" />
+  <link rel="stylesheet" href="styles/index.css?v=20261009i" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -559,6 +559,22 @@
             </button>
           </div>
 
+          <div class="layer-item-row" data-layer-key="plattedSubdivisions">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-platted-subdivisions" />
+              <span class="swatch-line dashed" style="border-color:#22D3EE;"></span>
+              <span class="layer-name">Platted Subdivisions (HCAD Plats)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="plattedSubdivisions"
+              title="Show only HCAD Platted Subdivisions &amp; Additions (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
           <div class="layer-item-row" data-layer-key="superNeighborhoods">
             <label class="check-row layer-row-main">
               <input type="checkbox" id="chk-layer-super-neighborhoods" />
@@ -676,6 +692,9 @@
 
     <!-- Main Interactive Map Canvas -->
     <main id="map-canvas" class="map-canvas"></main>
+
+    <!-- Floating Overlapping Polygon / Layer Switcher Pill Bar -->
+    <div class="map-overlap-bar hidden" id="map-overlap-bar" role="region" aria-label="Overlapping Layers at Clicked Location"></div>
 
     <!-- Bottom-Right Camera Tilt & 3D Orientation Control Dock -->
     <div class="camera-tilt-dock" id="camera-tilt-dock" role="group" aria-label="3D Camera Tilt Controls">
@@ -1259,6 +1278,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261009e"></script>
+  <script type="module" src="js/app.js?v=20261009i"></script>
 </body>
 </html>
