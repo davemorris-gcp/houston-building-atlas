@@ -9,17 +9,19 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261007f";
+} from "./palettes.js?v=20261009d";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
+  buildHistoricWardFilterExpression,
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
-} from "./filterStore.js?v=20261007f";
+  resolveActiveWardEra,
+} from "./filterStore.js?v=20261009d";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261008z";
+} from "./curatedEdits.js?v=20261009d";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 
 const BASEMAP_TILES = {
@@ -117,6 +119,8 @@ export class AtlasMapController {
     this.sheetSyncStatus = null;
     this.overridesFC = { type: "FeatureCollection", features: [] };
     this.selectedFeatureId = null;
+    this.selectedBoundaryFeature = null;
+    this._boundarySpatialIndex = null;
     this.pmtilesManifest = null;
     this.buildingFillLayerIds = ["buildings-fill"];
     this.buildingLineLayerIds = ["buildings-line"];
@@ -167,10 +171,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261008z"),
-        fetch("public/data/parcels.geojson?v=20261008z"),
-        fetch("public/data/overlays.json?v=20261008z"),
-        fetch("public/data/pmtiles_manifest.json?v=20261008z").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261009d"),
+        fetch("public/data/parcels.geojson?v=20261009d"),
+        fetch("public/data/overlays.json?v=20261009d"),
+        fetch("public/data/pmtiles_manifest.json?v=20261009d").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -193,6 +197,7 @@ export class AtlasMapController {
     this.buildingsData = buildingsFC.features || [];
     this.parcelsData = parcelsFC.features || [];
     this.overlaysData = overlays;
+    this._buildBoundarySpatialIndex();
 
     this._applyCuratedOverridesInMemory();
   }
@@ -398,6 +403,7 @@ export class AtlasMapController {
       attributionControl: false,
       style: {
         version: 8,
+        glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
         sources: {
           "basemap-dark": {
             type: "raster",
@@ -598,10 +604,26 @@ export class AtlasMapController {
     this._bindMapLibreInteractions();
   }
 
+  _buildLabelPointsFeatureCollection(polyFC) {
+    const features = [];
+    for (const feat of polyFC?.features || []) {
+      const p = feat.properties || {};
+      const lng = Number(p.label_lng);
+      const lat = Number(p.label_lat);
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+      features.push({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [lng, lat] },
+        properties: { ...p },
+      });
+    }
+    return { type: "FeatureCollection", features };
+  }
+
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261008z";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261009a";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -638,6 +660,34 @@ export class AtlasMapController {
       type: "geojson",
       data: overlays.annexations || { type: "FeatureCollection", features: [] },
     });
+    this.map.addSource("historic-wards-src", {
+      type: "geojson",
+      data: overlays.historic_wards || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("historic-wards-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.historic_wards),
+    });
+    this.map.addSource("super-neighborhoods-src", {
+      type: "geojson",
+      data: overlays.super_neighborhoods || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("super-neighborhoods-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.super_neighborhoods),
+    });
+    this.map.addSource("neighborhoods-src", {
+      type: "geojson",
+      data: overlays.neighborhoods || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("neighborhoods-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.neighborhoods),
+    });
+    this.map.addSource("selected-boundary-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
     this.map.addSource("historic-districts-src", {
       type: "geojson",
       data: overlays.historic_districts || { type: "FeatureCollection", features: [] },
@@ -667,6 +717,7 @@ export class AtlasMapController {
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
     const filterExpr = buildFeatureFilterExpression(state);
     const shardFilterExpr = this._buildShardLayerFilter(filterExpr);
+    const wardFilterExpr = buildHistoricWardFilterExpression(state);
 
     this.map.addLayer({
       id: "annexations-fill",
@@ -683,6 +734,86 @@ export class AtlasMapController {
         "line-width": 1.8,
         "line-dasharray": [4, 3],
         "line-opacity": 0.75,
+      },
+    });
+    this.map.addLayer({
+      id: "historic-wards-fill",
+      type: "fill",
+      source: "historic-wards-src",
+      filter: wardFilterExpr,
+      paint: {
+        "fill-color": ["coalesce", ["get", "color"], "#FB923C"],
+        "fill-opacity": 0.12,
+      },
+    });
+    this.map.addLayer({
+      id: "historic-wards-line",
+      type: "line",
+      source: "historic-wards-src",
+      filter: wardFilterExpr,
+      paint: {
+        "line-color": ["coalesce", ["get", "color"], "#FB923C"],
+        "line-width": 2.4,
+        "line-opacity": 0.9,
+      },
+    });
+    this.map.addLayer({
+      id: "super-neighborhoods-fill",
+      type: "fill",
+      source: "super-neighborhoods-src",
+      paint: {
+        "fill-color": "#60A5FA",
+        "fill-opacity": 0.06,
+      },
+    });
+    this.map.addLayer({
+      id: "super-neighborhoods-line",
+      type: "line",
+      source: "super-neighborhoods-src",
+      paint: {
+        "line-color": "#60A5FA",
+        "line-width": 1.8,
+        "line-dasharray": [3, 2],
+        "line-opacity": 0.82,
+      },
+    });
+    this.map.addLayer({
+      id: "neighborhoods-fill",
+      type: "fill",
+      source: "neighborhoods-src",
+      paint: {
+        "fill-color": "#95C959",
+        "fill-opacity": 0.07,
+      },
+    });
+    this.map.addLayer({
+      id: "neighborhoods-line",
+      type: "line",
+      source: "neighborhoods-src",
+      paint: {
+        "line-color": "#95C959",
+        "line-width": 1.4,
+        "line-opacity": 0.78,
+      },
+    });
+    this.map.addLayer({
+      id: "selected-boundary-fill",
+      type: "fill",
+      source: "selected-boundary-src",
+      paint: {
+        "fill-color": "#FDE047",
+        "fill-opacity": 0.11,
+      },
+    });
+    this.map.addLayer({
+      id: "selected-boundary-line",
+      type: "line",
+      source: "selected-boundary-src",
+      paint: {
+        "line-color": "#FDE047",
+        "line-width": 3.0,
+        "line-dasharray": [2, 1.5],
+        "line-opacity": 0.95,
       },
     });
     this.map.addLayer({
@@ -1047,6 +1178,63 @@ export class AtlasMapController {
         "circle-stroke-width": 1.8,
       },
     });
+    this.map.addLayer({
+      id: "super-neighborhoods-label",
+      type: "symbol",
+      source: "super-neighborhoods-labels-src",
+      minzoom: 10.5,
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 10.5, 10.5, 14, 13.5],
+        "text-transform": "uppercase",
+        "text-letter-spacing": 0.08,
+        "text-max-width": 9,
+        "text-padding": 6,
+      },
+      paint: {
+        "text-color": "#93C5FD",
+        "text-halo-color": "rgba(11, 15, 23, 0.92)",
+        "text-halo-width": 1.8,
+      },
+    });
+    this.map.addLayer({
+      id: "neighborhoods-label",
+      type: "symbol",
+      source: "neighborhoods-labels-src",
+      minzoom: 12.2,
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 12.2, 10.5, 16, 13.5],
+        "text-max-width": 8,
+        "text-padding": 4,
+      },
+      paint: {
+        "text-color": "#D9F99D",
+        "text-halo-color": "rgba(11, 15, 23, 0.92)",
+        "text-halo-width": 1.8,
+      },
+    });
+    this.map.addLayer({
+      id: "historic-wards-label",
+      type: "symbol",
+      source: "historic-wards-labels-src",
+      filter: wardFilterExpr,
+      minzoom: 10.5,
+      layout: {
+        "text-field": ["concat", ["get", "name"], "\n(", ["to-string", ["get", "era"]], ")"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 10.5, 12, 14, 15.5],
+        "text-letter-spacing": 0.06,
+        "text-max-width": 10,
+      },
+      paint: {
+        "text-color": "#FDE68A",
+        "text-halo-color": "rgba(11, 15, 23, 0.94)",
+        "text-halo-width": 2.1,
+      },
+    });
   }
 
   _buildTourFocusFilterExpression(baseFilterExpr) {
@@ -1198,6 +1386,16 @@ export class AtlasMapController {
   }
 
   _bindMapLibreInteractions() {
+    const BOUNDARY_FILL_LAYERS = [
+      "neighborhoods-fill",
+      "super-neighborhoods-fill",
+      "historic-wards-fill",
+      "historic-districts-fill",
+      "heritage-districts-fill",
+      "nrhp-districts-fill",
+      "annexations-fill",
+    ];
+
     const getClickLayers = () => [
       "good-brick-circle",
       "landmarks-circle",
@@ -1207,6 +1405,9 @@ export class AtlasMapController {
       ...this.buildingExtrusionLayerIds,
       ...this.buildingFillLayerIds,
       "parcels-fill",
+      "neighborhoods-fill",
+      "super-neighborhoods-fill",
+      "historic-wards-fill",
     ];
 
     const getHoverLayers = () => {
@@ -1256,15 +1457,10 @@ export class AtlasMapController {
                 f.properties &&
                 (f.properties.building_id === p.building_id || f.properties.id === p.building_id)
             )) ||
-          features.find(
-            (f) =>
-              f.layer.id !== "landmarks-circle" &&
-              f.layer.id !== "good-brick-circle" &&
-              f.layer.id !== "thc-markers-circle" &&
-              f.layer.id !== "historic-districts-fill" &&
-              f.layer.id !== "heritage-districts-fill" &&
-              f.layer.id !== "nrhp-districts-fill" &&
-              f.layer.id !== "annexations-fill"
+          features.find((f) => !BOUNDARY_FILL_LAYERS.includes(f.layer.id) &&
+            f.layer.id !== "landmarks-circle" &&
+            f.layer.id !== "good-brick-circle" &&
+            f.layer.id !== "thc-markers-circle"
           ) ||
           (p.hcad_num &&
             (this.overridesFC?.features || []).find(
@@ -1289,6 +1485,26 @@ export class AtlasMapController {
           this.highlightAndInspectFeature(mergedClickProps, bldHit.geometry || null);
           return;
         }
+      }
+      if (
+        top.layer.id === "neighborhoods-fill" ||
+        top.layer.id === "super-neighborhoods-fill" ||
+        top.layer.id === "historic-wards-fill"
+      ) {
+        const boundaryLayerKey =
+          top.layer.id === "neighborhoods-fill"
+            ? "neighborhoods"
+            : top.layer.id === "super-neighborhoods-fill"
+            ? "superNeighborhoods"
+            : "historicWards";
+        this.highlightBoundaryByIdOrName({
+          id: p.id || "",
+          name: p.name || "",
+          layerKey: boundaryLayerKey,
+          flyTo: false,
+          inspect: true,
+        });
+        return;
       }
       this.highlightAndInspectFeature(p, top.geometry || null);
     });
@@ -1742,6 +1958,52 @@ export class AtlasMapController {
       }
     }
 
+    // 3b. Historic Wards (1839-1920), COH Super Neighborhoods (88), and Neighborhoods (1,426)
+    if (state.layers.historicWards && this.overlaysData?.historic_wards) {
+      const targetEra = resolveActiveWardEra(state);
+      for (const feat of this.overlaysData.historic_wards.features || []) {
+        const p = feat.properties || {};
+        if (Number(p.era_year) !== targetEra) continue;
+        drawPolygonFeature(
+          feat.geometry,
+          p.color || "rgba(230, 57, 70, 0.08)",
+          p.color || "#F59E0B",
+          2.2,
+          [6, 3]
+        );
+      }
+    }
+    if (state.layers.superNeighborhoods && this.overlaysData?.super_neighborhoods) {
+      for (const feat of this.overlaysData.super_neighborhoods.features || []) {
+        drawPolygonFeature(
+          feat.geometry,
+          "rgba(96, 165, 250, 0.05)",
+          "rgba(96, 165, 250, 0.72)",
+          1.8,
+          [4, 2]
+        );
+      }
+    }
+    if (state.layers.neighborhoods && this.overlaysData?.neighborhoods) {
+      for (const feat of this.overlaysData.neighborhoods.features || []) {
+        drawPolygonFeature(
+          feat.geometry,
+          "rgba(45, 212, 191, 0.06)",
+          "rgba(45, 212, 191, 0.72)",
+          1.3
+        );
+      }
+    }
+    if (this.selectedBoundaryFeature && this.selectedBoundaryFeature.geometry) {
+      drawPolygonFeature(
+        this.selectedBoundaryFeature.geometry,
+        "rgba(253, 224, 71, 0.08)",
+        "#FDE047",
+        2.6,
+        [3, 2]
+      );
+    }
+
     cs.renderedBBoxes = [];
 
     // 4. Tax Parcels Layer
@@ -1980,6 +2242,14 @@ export class AtlasMapController {
      Unified Public Controller API
      ======================================================================== */
   _buildTooltipHTML(p) {
+    const isBoundary =
+      p.overlay_layer === "neighborhoods" ||
+      p.overlay_layer === "super_neighborhoods" ||
+      p.overlay_layer === "historic_wards" ||
+      p.type === "Neighborhood / Historic Area" ||
+      p.type === "COH Super Neighborhood" ||
+      p.type === "Historic Ward";
+
     const title =
       p.building_name ||
       p.landmark_name ||
@@ -2010,8 +2280,45 @@ export class AtlasMapController {
     }
     const akaHtml =
       altList.length > 0
-        ? `<div class="tooltip-aka">AKA: ${altList.slice(0, 2).join(", ")}</div>`
+        ? `<div class="tooltip-aka">AKA: ${altList.slice(0, 3).join(", ")}</div>`
         : "";
+
+    if (isBoundary) {
+      let badge = p.type || "Neighborhood Boundary";
+      if (p.overlay_layer === "historic_wards" && p.era_label) {
+        badge = p.era_label;
+      } else if (p.overlay_layer === "super_neighborhoods" && p.poly_id) {
+        badge = `COH Super Neighborhood #${p.poly_id}`;
+      }
+      const statParts = [];
+      if (Number(p.building_count) > 0) {
+        statParts.push(`${Number(p.building_count).toLocaleString()} structures`);
+      }
+      if (Number(p.earliest_year) >= 1836) {
+        statParts.push(`Earliest ${p.earliest_year}`);
+      }
+      if (Number(p.median_year) >= 1836) {
+        statParts.push(`Median ${p.median_year}`);
+      }
+      if (!statParts.length && p.super_neighborhood) {
+        statParts.push(p.super_neighborhood);
+      }
+      const subtitle =
+        statParts.join(" • ") || "Click to inspect boundary & historic subdivisions";
+      return `<div class="tooltip-card">
+        <div class="tooltip-top">
+          <span class="tooltip-badge">${badge}</span>
+          ${
+            p.historic_ward && p.overlay_layer !== "historic_wards"
+              ? `<span class="tooltip-status">${p.historic_ward}</span>`
+              : ""
+          }
+        </div>
+        <div class="tooltip-title">${title}</div>
+        ${akaHtml}
+        <div class="tooltip-sub">${subtitle}</div>
+      </div>`;
+    }
 
     let badge = "";
     if (p.year_built && Number(p.year_built) >= 1836) {
@@ -2038,9 +2345,18 @@ export class AtlasMapController {
     } else {
       badge = p.use_category || "Undated Parcel";
     }
+    const locSuffix =
+      p.historic_district &&
+      p.historic_district !== "Outside City District" &&
+      p.historic_district !== "Outside Historic District"
+        ? ` • ${p.historic_district}`
+        : p.neighborhood
+        ? ` • ${p.neighborhood}`
+        : "";
     const subtitle =
-      (p.address && p.address !== title ? `${p.address}${p.historic_district && p.historic_district !== "Outside City District" && p.historic_district !== "Outside Historic District" ? ` • ${p.historic_district}` : ""}` : "") ||
+      (p.address && p.address !== title ? `${p.address}${locSuffix}` : "") ||
       p.historic_district ||
+      p.neighborhood ||
       p.address ||
       p.subdivision ||
       (p.era_label && p.decade ? `Annexed in the ${p.decade}s` : "") ||
@@ -2198,6 +2514,33 @@ export class AtlasMapController {
     setVis(["heritage-districts-fill", "heritage-districts-line"], state.layers.heritageDistricts);
     setVis(["nrhp-districts-fill", "nrhp-districts-line"], state.layers.nrhpDistricts);
     setVis(["thc-markers-circle"], state.layers.thcMarkers);
+
+    setVis(
+      ["neighborhoods-fill", "neighborhoods-line", "neighborhoods-label"],
+      Boolean(state.layers?.neighborhoods)
+    );
+    setVis(
+      ["super-neighborhoods-fill", "super-neighborhoods-line", "super-neighborhoods-label"],
+      Boolean(state.layers?.superNeighborhoods)
+    );
+
+    const showWards = Boolean(state.layers?.historicWards);
+    setVis(
+      ["historic-wards-fill", "historic-wards-line", "historic-wards-label"],
+      showWards
+    );
+    if (showWards) {
+      const wardFilter = buildHistoricWardFilterExpression(state);
+      for (const wLayer of [
+        "historic-wards-fill",
+        "historic-wards-line",
+        "historic-wards-label",
+      ]) {
+        if (this.map.getLayer(wLayer)) {
+          this.map.setFilter(wLayer, wardFilter);
+        }
+      }
+    }
 
     const showAnnex = state.layers.annexations || state.syncAnnexationToTime;
     setVis(["annexations-fill", "annexations-line"], showAnnex);
@@ -2999,6 +3342,340 @@ export class AtlasMapController {
     }
   }
 
+  _computeGeometryBBoxAndCentroid(geom) {
+    if (!geom || !geom.coordinates) return null;
+    if (geom.type === "Point" && Array.isArray(geom.coordinates)) {
+      const lng = Number(geom.coordinates[0]);
+      const lat = Number(geom.coordinates[1]);
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+      return {
+        bbox: [lng, lat, lng, lat],
+        lng,
+        lat,
+      };
+    }
+    let minLng = Infinity;
+    let minLat = Infinity;
+    let maxLng = -Infinity;
+    let maxLat = -Infinity;
+    let sumLng = 0;
+    let sumLat = 0;
+    let count = 0;
+
+    const visitRing = (ring) => {
+      if (!Array.isArray(ring)) return;
+      for (const pt of ring) {
+        if (!Array.isArray(pt) || pt.length < 2) continue;
+        const lng = Number(pt[0]);
+        const lat = Number(pt[1]);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        sumLng += lng;
+        sumLat += lat;
+        count += 1;
+      }
+    };
+
+    if (geom.type === "Polygon" && Array.isArray(geom.coordinates)) {
+      visitRing(geom.coordinates[0]);
+    } else if (geom.type === "MultiPolygon" && Array.isArray(geom.coordinates)) {
+      for (const poly of geom.coordinates) {
+        if (Array.isArray(poly) && poly[0]) {
+          visitRing(poly[0]);
+        }
+      }
+    }
+
+    if (count === 0 || !Number.isFinite(minLng)) return null;
+    return {
+      bbox: [minLng, minLat, maxLng, maxLat],
+      lng: sumLng / count,
+      lat: sumLat / count,
+    };
+  }
+
+  _buildBoundarySpatialIndex() {
+    this.boundarySpatialIndex = [];
+    const indexLayer = (fc, overlayKey) => {
+      if (!fc || !Array.isArray(fc.features)) return;
+      for (const feat of fc.features) {
+        const geom = feat?.geometry;
+        if (!geom || (geom.type !== "Polygon" && geom.type !== "MultiPolygon")) continue;
+        const meta = this._computeGeometryBBoxAndCentroid(geom);
+        if (!meta) continue;
+        this.boundarySpatialIndex.push({
+          overlayKey,
+          feature: feat,
+          props: {
+            ...(feat.properties || {}),
+            overlay_layer: feat.properties?.overlay_layer || overlayKey,
+          },
+          bbox: meta.bbox,
+          centroid: [meta.lng, meta.lat],
+          areaDeg2:
+            Math.max(1e-8, meta.bbox[2] - meta.bbox[0]) *
+            Math.max(1e-8, meta.bbox[3] - meta.bbox[1]),
+        });
+      }
+    };
+    indexLayer(this.overlaysData?.neighborhoods, "neighborhoods");
+    indexLayer(this.overlaysData?.super_neighborhoods, "super_neighborhoods");
+    indexLayer(this.overlaysData?.historic_wards, "historic_wards");
+  }
+
+  _pointInRing(lng, lat, ring) {
+    if (!Array.isArray(ring) || ring.length < 3) return false;
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = Number(ring[i][0]);
+      const yi = Number(ring[i][1]);
+      const xj = Number(ring[j][0]);
+      const yj = Number(ring[j][1]);
+      const intersect =
+        yi > lat !== yj > lat &&
+        lng < ((xj - xi) * (lat - yi)) / (yj - yi || 1e-12) + xi;
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  _pointInPolygonGeometry(lng, lat, geom) {
+    if (!geom || !geom.coordinates) return false;
+    const checkPoly = (rings) => {
+      if (!Array.isArray(rings) || !rings.length) return false;
+      if (!this._pointInRing(lng, lat, rings[0])) return false;
+      for (let k = 1; k < rings.length; k++) {
+        if (this._pointInRing(lng, lat, rings[k])) return false;
+      }
+      return true;
+    };
+    if (geom.type === "Polygon") {
+      return checkPoly(geom.coordinates);
+    }
+    if (geom.type === "MultiPolygon") {
+      for (const polyRings of geom.coordinates) {
+        if (checkPoly(polyRings)) return true;
+      }
+    }
+    return false;
+  }
+
+  resolveGeographicContextAtPoint(lng, lat) {
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+    if (!Array.isArray(this.boundarySpatialIndex) || !this.boundarySpatialIndex.length) {
+      this._buildBoundarySpatialIndex();
+    }
+    const nhMatches = [];
+    let snMatch = null;
+    let wardMatch1920 = null;
+
+    for (const entry of this.boundarySpatialIndex) {
+      const [minLng, minLat, maxLng, maxLat] = entry.bbox;
+      if (lng < minLng || lng > maxLng || lat < minLat || lat > maxLat) continue;
+      if (!this._pointInPolygonGeometry(lng, lat, entry.feature.geometry)) continue;
+      if (entry.overlayKey === "neighborhoods") {
+        nhMatches.push(entry);
+      } else if (entry.overlayKey === "super_neighborhoods" && !snMatch) {
+        snMatch = entry;
+      } else if (
+        entry.overlayKey === "historic_wards" &&
+        Number(entry.props.ward_era || entry.props.era_year) === 1920 &&
+        !wardMatch1920
+      ) {
+        wardMatch1920 = entry;
+      }
+    }
+
+    nhMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    const primaryNh = nhMatches[0]?.props?.name || "";
+    const aliasSet = new Set();
+    const aliasList = [];
+    const addAlias = (val) => {
+      const s = String(val || "").trim();
+      if (!s) return;
+      const k = s.toLowerCase();
+      if (primaryNh && k === primaryNh.toLowerCase()) return;
+      if (aliasSet.has(k)) return;
+      aliasSet.add(k);
+      aliasList.push(s);
+    };
+    for (const m of nhMatches) {
+      if (m.props.name && m.props.name !== primaryNh) {
+        addAlias(m.props.name);
+      }
+      const rawAlt = m.props.aliases || m.props.alt_names;
+      if (Array.isArray(rawAlt)) {
+        for (const a of rawAlt) addAlias(a);
+      } else if (typeof rawAlt === "string" && rawAlt.trim()) {
+        for (const a of rawAlt.split(/\s*\|\s*|\s*;\s*/)) addAlias(a);
+      }
+    }
+
+    return {
+      neighborhood: primaryNh,
+      neighborhood_aliases: aliasList,
+      super_neighborhood:
+        snMatch?.props?.name || nhMatches[0]?.props?.super_neighborhood || "",
+      historic_ward:
+        wardMatch1920?.props?.name || nhMatches[0]?.props?.historic_ward || "",
+      neighborhood_id: nhMatches[0]?.props?.id || "",
+      super_neighborhood_id: snMatch?.props?.id || "",
+      historic_ward_id: wardMatch1920?.props?.id || "",
+    };
+  }
+
+  highlightBoundaryByIdOrName(arg1 = {}, arg2 = {}) {
+    let opts = {};
+    if (typeof arg1 === "string") {
+      opts = {
+        ...arg2,
+        id: arg1,
+        name: arg1,
+      };
+    } else if (arg1 && typeof arg1 === "object") {
+      opts = arg1;
+    }
+    const {
+      id = "",
+      name = "",
+      layerKey = "",
+      eraYear = null,
+      flyTo = opts.fitBounds !== undefined ? Boolean(opts.fitBounds) : true,
+      inspect = opts.openInspector !== undefined ? Boolean(opts.openInspector) : false,
+    } = opts;
+
+    if (!Array.isArray(this.boundarySpatialIndex) || !this.boundarySpatialIndex.length) {
+      this._buildBoundarySpatialIndex();
+    }
+    const targetId = String(id || "").trim();
+    const targetName = String(name || "").trim().toLowerCase();
+    const targetLayer = String(layerKey || "").trim();
+
+    let matchEntry = null;
+    if (targetId) {
+      matchEntry = this.boundarySpatialIndex.find(
+        (e) =>
+          String(e.props.id || "") === targetId &&
+          (!targetLayer || e.overlayKey === targetLayer)
+      );
+    }
+    if (!matchEntry && targetName) {
+      // Exact primary name match first
+      matchEntry = this.boundarySpatialIndex.find((e) => {
+        if (targetLayer && e.overlayKey !== targetLayer) return false;
+        const entryEra = Number(e.props.ward_era || e.props.era_year || 0);
+        if (
+          e.overlayKey === "historic_wards" &&
+          eraYear &&
+          entryEra !== Number(eraYear)
+        ) {
+          return false;
+        }
+        if (
+          e.overlayKey === "historic_wards" &&
+          !eraYear &&
+          entryEra !== resolveActiveWardEra(this.filterStore.getState())
+        ) {
+          return false;
+        }
+        return String(e.props.name || "").trim().toLowerCase() === targetName;
+      });
+    }
+    if (!matchEntry && targetName) {
+      // Fallback: match any historic ward era or alias
+      matchEntry = this.boundarySpatialIndex.find((e) => {
+        if (targetLayer && e.overlayKey !== targetLayer) return false;
+        if (String(e.props.name || "").trim().toLowerCase() === targetName) return true;
+        const rawAlt = e.props.aliases || e.props.alt_names;
+        const alts = Array.isArray(rawAlt)
+          ? rawAlt
+          : typeof rawAlt === "string"
+          ? rawAlt.split(/\s*\|\s*|\s*;\s*/)
+          : [];
+        return alts.some((a) => String(a || "").trim().toLowerCase() === targetName);
+      });
+    }
+
+    if (!matchEntry) return false;
+
+    const feat = {
+      type: "Feature",
+      geometry: matchEntry.feature.geometry,
+      properties: {
+        ...matchEntry.props,
+        is_boundary_feature: true,
+      },
+    };
+    this.selectedBoundaryFeature = feat;
+
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+    } else if (this.map) {
+      const selBndSrc = this.map.getSource("selected-boundary-src");
+      if (selBndSrc) {
+        selBndSrc.setData({
+          type: "FeatureCollection",
+          features: [feat],
+        });
+      }
+    }
+
+    if (flyTo) {
+      const [minLng, minLat, maxLng, maxLat] = matchEntry.bbox;
+      if (!this.useCanvasFallback && this.map && typeof this.map.fitBounds === "function") {
+        try {
+          this.map.fitBounds(
+            [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ],
+            {
+              padding: { top: 80, bottom: 110, left: 360, right: 380 },
+              maxZoom: matchEntry.overlayKey === "neighborhoods" ? 15.6 : 14.2,
+              duration: 950,
+            }
+          );
+        } catch (_e) {
+          this.flyToLocation({
+            lng: matchEntry.centroid[0],
+            lat: matchEntry.centroid[1],
+            zoom: matchEntry.overlayKey === "neighborhoods" ? 14.8 : 13.5,
+          });
+        }
+      } else {
+        this.flyToLocation({
+          lng: matchEntry.centroid[0],
+          lat: matchEntry.centroid[1],
+          zoom: matchEntry.overlayKey === "neighborhoods" ? 14.8 : 13.5,
+        });
+      }
+    }
+
+    if (inspect && this.onSelectFeature) {
+      this.onSelectFeature({
+        ...feat.properties,
+        lng: matchEntry.centroid[0],
+        lat: matchEntry.centroid[1],
+      });
+    }
+    return true;
+  }
+
+  clearHighlightedBoundary() {
+    this.selectedBoundaryFeature = null;
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+    } else if (this.map) {
+      const selBndSrc = this.map.getSource("selected-boundary-src");
+      if (selBndSrc) {
+        selBndSrc.setData({ type: "FeatureCollection", features: [] });
+      }
+    }
+  }
+
   highlightAndInspectFeature(props, clickedGeometry = null) {
     if (!props) return;
     const mergedProps = applyOverrideToProperties(props, this.curatedOverrides);
@@ -3009,6 +3686,40 @@ export class AtlasMapController {
     // multi-building parcel (e.g. Rice University) never highlights all buildings on that parcel.
     const singleGeom = this._resolveSelectedPolygonGeometry(mergedProps, clickedGeometry);
     this.selectedFeatureGeometry = singleGeom;
+
+    // Dynamically enrich any countywide PMTiles shard building or parcel with
+    // Vernacular Neighborhood, Historical Aliases, Super Neighborhood, and 1920 Historic Ward
+    if (!mergedProps.neighborhood || !mergedProps.super_neighborhood || !mergedProps.historic_ward) {
+      let queryLng = Number(mergedProps.lng ?? mergedProps.lon);
+      let queryLat = Number(mergedProps.lat);
+      if (!Number.isFinite(queryLng) || !Number.isFinite(queryLat)) {
+        const geomMeta = this._computeGeometryBBoxAndCentroid(singleGeom || clickedGeometry);
+        if (geomMeta) {
+          queryLng = geomMeta.lng;
+          queryLat = geomMeta.lat;
+        }
+      }
+      if (Number.isFinite(queryLng) && Number.isFinite(queryLat)) {
+        const geoCtx = this.resolveGeographicContextAtPoint(queryLng, queryLat);
+        if (geoCtx) {
+          if (!mergedProps.neighborhood && geoCtx.neighborhood) {
+            mergedProps.neighborhood = geoCtx.neighborhood;
+          }
+          if (
+            (!mergedProps.neighborhood_aliases || !mergedProps.neighborhood_aliases.length) &&
+            geoCtx.neighborhood_aliases?.length
+          ) {
+            mergedProps.neighborhood_aliases = geoCtx.neighborhood_aliases;
+          }
+          if (!mergedProps.super_neighborhood && geoCtx.super_neighborhood) {
+            mergedProps.super_neighborhood = geoCtx.super_neighborhood;
+          }
+          if (!mergedProps.historic_ward && geoCtx.historic_ward) {
+            mergedProps.historic_ward = geoCtx.historic_ward;
+          }
+        }
+      }
+    }
 
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
@@ -3045,6 +3756,7 @@ export class AtlasMapController {
     this.selectedFeatureId = null;
     this.selectedFeatureProps = null;
     this.selectedFeatureGeometry = null;
+    this.clearHighlightedBoundary();
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
     } else if (this.map) {

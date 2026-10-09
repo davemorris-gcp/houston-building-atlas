@@ -227,7 +227,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261008z", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261009d", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -425,6 +425,16 @@ export function applyOverrideToProperties(props, overridesMap) {
     address: primaryAddr,
     alt_addresses: altAddresses,
     historic_district: ov.historic_district || props.historic_district || "",
+    neighborhood: ov.neighborhood || props.neighborhood || "",
+    neighborhood_aliases:
+      Array.isArray(ov.neighborhood_aliases) && ov.neighborhood_aliases.length
+        ? ov.neighborhood_aliases
+        : Array.isArray(props.neighborhood_aliases)
+        ? props.neighborhood_aliases
+        : [],
+    super_neighborhood: ov.super_neighborhood || props.super_neighborhood || "",
+    historic_ward: ov.historic_ward || props.historic_ward || "",
+    subdivision: ov.subdivision || props.subdivision || "",
     contributing: ov.contributing || props.contributing || "",
     bld_style: ov.bld_style || props.bld_style || "",
     architect: ov.architect || props.architect || "",

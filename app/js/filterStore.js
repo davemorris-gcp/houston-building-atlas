@@ -21,6 +21,7 @@ export const DEFAULT_FILTER_STATE = {
   singleLayerMode: false, // when true, clicking any overlay activates only that single overlay
   preSoloLayers: null, // snapshot of overlay visibility before Solo was clicked
   historicMapOpacity: 75, // 15..100 opacity percentage for the Historic Topo Map overlay
+  wardEra: 1920, // 1839 | 1866 | 1896 | 1903 | 1920
   layers: {
     goodBrickAwards: true,
     landmarks: true,
@@ -28,6 +29,9 @@ export const DEFAULT_FILTER_STATE = {
     heritageDistricts: true,
     nrhpDistricts: false,
     thcMarkers: false,
+    neighborhoods: false,
+    superNeighborhoods: false,
+    historicWards: false,
     annexations: false,
     historicMap: false,
   },
@@ -101,6 +105,48 @@ export const ANNEXATION_MILESTONE_DECADES = [
   1836, 1840, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020,
 ];
 
+export const HISTORIC_WARD_ERAS = [1839, 1866, 1896, 1903, 1920];
+
+/**
+ * Resolve the active Historic Ward boundary era (1839, 1866, 1896, 1903, or 1920).
+ * When `syncAnnexationToTime` or time-lapse playback is active, steps through the
+ * historical ward charters in lockstep with the timeline.
+ */
+export function resolveActiveWardEra(state) {
+  if (!state) return 1920;
+  const decStr = String(state.selectedDecade || "all");
+  const maxY = Number(state.maxYear) || 2026;
+  const syncActive = Boolean(state.syncAnnexationToTime) || Boolean(state.isPlaying);
+  if (syncActive) {
+    let cutoff = maxY;
+    if (decStr !== "all" && decStr !== "unknown") {
+      const decInt = Number(decStr);
+      if (!Number.isNaN(decInt) && decInt >= 1830) {
+        cutoff = decInt === 1836 ? 1839 : decInt + 9;
+      }
+    }
+    let matched = 1839;
+    for (const era of HISTORIC_WARD_ERAS) {
+      if (era <= cutoff) {
+        matched = era;
+      } else {
+        break;
+      }
+    }
+    return matched;
+  }
+  const explicitEra = Number(state.wardEra) || 1920;
+  return HISTORIC_WARD_ERAS.includes(explicitEra) ? explicitEra : 1920;
+}
+
+/**
+ * Compile a MapLibre filter expression for the Historic Wards layer.
+ */
+export function buildHistoricWardFilterExpression(state) {
+  const era = resolveActiveWardEra(state);
+  return ["==", ["to-number", ["get", "era"], 1920], era];
+}
+
 /**
  * Resolve the single cumulative annexation boundary decade for a given filter state,
  * or null when showing all historical annexation milestone rings at once.
@@ -164,6 +210,9 @@ const LAYER_KEY_TO_SHORT = {
   heritageDistricts: "heritage_districts",
   nrhpDistricts: "nrhp_districts",
   thcMarkers: "thc_markers",
+  neighborhoods: "neighborhoods",
+  superNeighborhoods: "super_neighborhoods",
+  historicWards: "historic_wards",
   annexations: "annexations",
   historicMap: "historic_map",
 };
@@ -192,6 +241,17 @@ const SHORT_TO_LAYER_KEY = {
   thc_markers: "thcMarkers",
   thc: "thcMarkers",
   markers: "thcMarkers",
+  neighborhoods: "neighborhoods",
+  neighborhood: "neighborhoods",
+  nbhd: "neighborhoods",
+  superneighborhoods: "superNeighborhoods",
+  super_neighborhoods: "superNeighborhoods",
+  super_neighborhood: "superNeighborhoods",
+  snbr: "superNeighborhoods",
+  historicwards: "historicWards",
+  historic_wards: "historicWards",
+  wards: "historicWards",
+  ward: "historicWards",
   annexations: "annexations",
   annexation: "annexations",
   annex: "annexations",
@@ -414,6 +474,9 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   if (state.layers?.historicMap && Number(state.historicMapOpacity) !== 75) {
     params.set("histOpacity", String(Math.round(Number(state.historicMapOpacity) || 75)));
   }
+  if (state.layers?.historicWards && Number(state.wardEra) && Number(state.wardEra) !== 1920) {
+    params.set("wardEra", String(Number(state.wardEra)));
+  }
 
   if (selectedHcad) {
     params.set("hcad", String(selectedHcad).trim());
@@ -585,6 +648,13 @@ export function parseHashToState(hashString = "", searchString = "") {
   const rawHistOp = mergedParams.get("histOpacity") || mergedParams.get("topoOpacity");
   if (rawHistOp !== null && rawHistOp !== undefined && rawHistOp !== "") {
     patch.historicMapOpacity = Math.max(15, Math.min(100, parseInt(rawHistOp, 10) || 75));
+  }
+  const rawWardEra = mergedParams.get("wardEra") || mergedParams.get("ward_era");
+  if (rawWardEra !== null && rawWardEra !== undefined && rawWardEra !== "") {
+    const parsedEra = parseInt(rawWardEra, 10);
+    if (HISTORIC_WARD_ERAS.includes(parsedEra)) {
+      patch.wardEra = parsedEra;
+    }
   }
 
   // Overlay Layers (`layers` or `ov` or `overlays`)

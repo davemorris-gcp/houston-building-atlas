@@ -6,15 +6,17 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261007f";
+} from "./palettes.js?v=20261009d";
 import {
   buildShareableUrl,
   createFilterStore,
+  HISTORIC_WARD_ERAS,
   parseHashToState,
+  resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261007f";
-import { AtlasMapController } from "./mapController.js?v=20261008z";
+} from "./filterStore.js?v=20261009d";
+import { AtlasMapController } from "./mapController.js?v=20261009d";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -26,7 +28,7 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261008z";
+} from "./curatedEdits.js?v=20261009d";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
@@ -167,16 +169,35 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261008z"),
-        fetch("public/data/stats_summary.json?v=20261008z"),
-        fetch("public/data/haif_index.json?v=20261008z").catch(() => null),
+        fetch("public/data/search_index.json?v=20261009d"),
+        fetch("public/data/stats_summary.json?v=20261009d"),
+        fetch("public/data/haif_index.json?v=20261009d").catch(() => null),
       ]);
-      this.searchIndex = await searchRes.json();
+      const rawIdx = await searchRes.json();
+      for (const item of rawIdx) {
+        if (item.is_neighborhood_entry) {
+          if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
+          if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
+          if (item.overlay_layer === "historicWards") item.overlay_layer = "historic_wards";
+          if (item.overlay_layer === "superNeighborhoods") item.overlay_layer = "super_neighborhoods";
+          if (!item.sublabel) {
+            const alts = Array.isArray(item.alt_names) ? item.alt_names.slice(0, 3).join(", ") : "";
+            item.sublabel = [alts ? `AKA: ${alts}` : "", item.address || ""]
+              .filter(Boolean)
+              .join(" • ");
+          }
+        }
+      }
+      this.searchIndex = rawIdx;
       this.globalStats = await statsRes.json();
       if (haifRes && haifRes.ok) {
         this.haifIndex = await haifRes.json();
       } else {
         this.haifIndex = null;
+      }
+      if (this.mapController?.overlaysData) {
+        this._mergeCuratedOverridesIntoSearchIndex();
+        this._enrichSearchIndexWithOverlayMetadata();
       }
       this._renderGlobalDatasetSummary();
     } catch (err) {
@@ -840,7 +861,7 @@ class HoustonAtlasApp {
         building_name: primaryBldName,
         alt_names: altNames,
         name_source: ov.name_source || existingItem?.name_source || "",
-        sublabel: `${akaSnippet}${addrSnippet}${ov.historic_district || existingItem?.historic_district || mergedUseCategory || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
+        sublabel: `${akaSnippet}${addrSnippet}${ov.historic_district || ov.neighborhood || existingItem?.historic_district || existingItem?.neighborhood || mergedUseCategory || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
         category: `Built ${ov.year_built} ✓`,
         year_built: ov.year_built,
         architect: ov.architect || existingItem?.architect || "",
@@ -850,6 +871,16 @@ class HoustonAtlasApp {
         use_category: mergedUseCategory,
         landuse_desc: ov.landuse_desc || existingItem?.landuse_desc || "",
         historic_district: ov.historic_district || existingItem?.historic_district || "",
+        neighborhood: ov.neighborhood || existingItem?.neighborhood || "",
+        neighborhood_aliases:
+          Array.isArray(ov.neighborhood_aliases) && ov.neighborhood_aliases.length
+            ? ov.neighborhood_aliases
+            : Array.isArray(existingItem?.neighborhood_aliases)
+            ? existingItem.neighborhood_aliases
+            : [],
+        super_neighborhood: ov.super_neighborhood || existingItem?.super_neighborhood || "",
+        historic_ward: ov.historic_ward || existingItem?.historic_ward || "",
+        subdivision: ov.subdivision || existingItem?.subdivision || "",
         lon,
         lat,
         zoom: 17.6,
@@ -871,11 +902,23 @@ class HoustonAtlasApp {
     const byLabel = new Map();
     for (let i = 0; i < this.searchIndex.length; i++) {
       const item = this.searchIndex[i];
+      if (item.is_neighborhood_entry) {
+        if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
+        if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
+        if (item.overlay_layer === "historicWards") item.overlay_layer = "historic_wards";
+        if (item.overlay_layer === "superNeighborhoods") item.overlay_layer = "super_neighborhoods";
+        if (!item.sublabel) {
+          const alts = Array.isArray(item.alt_names) ? item.alt_names.slice(0, 3).join(", ") : "";
+          item.sublabel = [alts ? `AKA: ${alts}` : "", item.address || ""]
+            .filter(Boolean)
+            .join(" • ");
+        }
+      }
       if (item.hcad_num) byHcad.set(String(item.hcad_num).trim(), item);
       if (item.label) byLabel.set(String(item.label).trim().toLowerCase(), item);
     }
 
-    // 1. Enrich from buildingsData (architect, bld_style, style, use_category, landuse_desc, historic_district, good_brick_years, building_name, alt_names, address, alt_addresses, and geometry coords)
+    // 1. Enrich from buildingsData (architect, bld_style, style, use_category, landuse_desc, historic_district, neighborhood, super_neighborhood, historic_ward, subdivision, good_brick_years, building_name, alt_names, address, alt_addresses, and geometry coords)
     for (const feat of this.mapController.buildingsData || []) {
       const p = feat.properties || {};
       const hcad = String(p.hcad_num || "").trim();
@@ -950,6 +993,18 @@ class HoustonAtlasApp {
           target.good_brick_years = String(p.good_brick_years);
         if (p.historic_district && !target.historic_district)
           target.historic_district = p.historic_district;
+        if (p.neighborhood && !target.neighborhood) target.neighborhood = p.neighborhood;
+        if (
+          Array.isArray(p.neighborhood_aliases) &&
+          p.neighborhood_aliases.length > 0 &&
+          (!target.neighborhood_aliases || !target.neighborhood_aliases.length)
+        ) {
+          target.neighborhood_aliases = p.neighborhood_aliases;
+        }
+        if (p.super_neighborhood && !target.super_neighborhood)
+          target.super_neighborhood = p.super_neighborhood;
+        if (p.historic_ward && !target.historic_ward) target.historic_ward = p.historic_ward;
+        if (p.subdivision && !target.subdivision) target.subdivision = p.subdivision;
         if (p.landmark_code && !target.landmark_code) target.landmark_code = p.landmark_code;
         if (p.landmark_report_url && !target.landmark_report_url)
           target.landmark_report_url = p.landmark_report_url;
@@ -985,7 +1040,7 @@ class HoustonAtlasApp {
               ? `AKA: ${p.alt_names.slice(0, 2).join(", ")}`
               : "",
             p.address,
-            p.historic_district,
+            p.historic_district || p.neighborhood,
             p.architect ? `Arch: ${p.architect}` : "",
           ]
             .filter(Boolean)
@@ -1000,6 +1055,11 @@ class HoustonAtlasApp {
           landuse_desc: p.landuse_desc || "",
           good_brick_years: p.good_brick_years ? String(p.good_brick_years) : "",
           historic_district: p.historic_district || "",
+          neighborhood: p.neighborhood || "",
+          neighborhood_aliases: Array.isArray(p.neighborhood_aliases) ? p.neighborhood_aliases : [],
+          super_neighborhood: p.super_neighborhood || "",
+          historic_ward: p.historic_ward || "",
+          subdivision: p.subdivision || "",
           landmark_code: p.landmark_code || "",
           landmark_report_url: p.landmark_report_url || "",
           landmark_summary: p.landmark_summary || "",
@@ -1405,6 +1465,9 @@ class HoustonAtlasApp {
       ["chk-layer-historic-districts", "historicDistricts"],
       ["chk-layer-heritage-districts", "heritageDistricts"],
       ["chk-layer-nrhp-districts", "nrhpDistricts"],
+      ["chk-layer-neighborhoods", "neighborhoods"],
+      ["chk-layer-super-neighborhoods", "superNeighborhoods"],
+      ["chk-layer-historic-wards", "historicWards"],
       ["chk-layer-thc-markers", "thcMarkers"],
       ["chk-layer-annexations", "annexations"],
       ["chk-layer-historic-map", "historicMap"],
@@ -1417,6 +1480,20 @@ class HoustonAtlasApp {
         });
       }
     }
+
+    document.querySelectorAll("[data-ward-era]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const eraYr = parseInt(btn.getAttribute("data-ward-era"), 10) || 1920;
+        const curLayers = this.filterStore.getState().layers || {};
+        this.filterStore.setState({
+          wardEra: eraYr,
+          layers: {
+            ...curLayers,
+            historicWards: true,
+          },
+        });
+      });
+    });
 
     const histOpacitySlider = document.getElementById("slider-historic-map-opacity");
     if (histOpacitySlider) {
@@ -2241,6 +2318,12 @@ class HoustonAtlasApp {
     const isArchitectFilter =
       hdrLow.startsWith("architect:") || hdrLow.startsWith("architect / builder:");
     const isDistrictFilter = hdrLow.startsWith("district:");
+    const isNeighborhoodFilter =
+      hdrLow.startsWith("neighborhood:") || hdrLow.startsWith("neighborhood / alias:");
+    const isSuperNeighborhoodFilter = hdrLow.startsWith("super neighborhood:");
+    const isHistoricWardFilter = hdrLow.startsWith("historic ward:");
+    const isSubdivisionFilter =
+      hdrLow.startsWith("subdivision:") || hdrLow.startsWith("platted subdivision:");
     const isGoodBrickFilter = hdrLow.startsWith("good brick");
     const isLandUseCategoryFilter = hdrLow.startsWith("land use category:");
     const isLandUseSpecificFilter = hdrLow.startsWith("land use:");
@@ -2315,9 +2398,26 @@ class HoustonAtlasApp {
       const grade = String(item.hcad_grade || "").toLowerCase();
       const gbYrs = String(item.good_brick_years || "").toLowerCase();
       const dist = String(item.historic_district || "").toLowerCase();
+      const nh = String(item.neighborhood || "").toLowerCase();
+      const nhAliases = Array.isArray(item.neighborhood_aliases)
+        ? item.neighborhood_aliases.map((s) => String(s).toLowerCase())
+        : [];
+      const superNh = String(item.super_neighborhood || "").toLowerCase();
+      const ward = String(item.historic_ward || "").toLowerCase();
+      const subdiv = String(item.subdivision || "").toLowerCase();
+      const topSubdivs = Array.isArray(item.top_subdivisions)
+        ? item.top_subdivisions.map((s) => String(s).toLowerCase())
+        : [];
       const lmCode = String(item.landmark_code || "").toLowerCase();
+      const isPlaceBoundary = Boolean(
+        item.is_neighborhood_entry ||
+          item.type === "neighborhood" ||
+          item.type === "super_neighborhood" ||
+          item.type === "historic_ward"
+      );
 
       if (targetGrade) {
+        if (isPlaceBoundary) return 0;
         const hasSpecificStyleOrClass =
           (style && style !== targetGrade && style !== "historical / architectural structure") ||
           (bldStyle &&
@@ -2332,6 +2432,40 @@ class HoustonAtlasApp {
             (isViewportCandidate ? 120 : 100) +
             (item.landmark_code || item.good_brick_years ? 15 : 0)
           );
+        }
+        return 0;
+      }
+
+      if (isPlaceBoundary) {
+        const placeName = String(item.name || item.label || "").toLowerCase();
+        if (
+          isArchitectFilter ||
+          isDistrictFilter ||
+          isGoodBrickFilter ||
+          isLandUseCategoryFilter ||
+          isLandUseSpecificFilter ||
+          isStyleOrClassFilter ||
+          isNameOrAliasFilter
+        ) {
+          return 0;
+        }
+        if (isNeighborhoodFilter && item.type === "neighborhood") {
+          if (placeName === q || altNames.includes(q)) return 142;
+        } else if (isSuperNeighborhoodFilter && item.type === "super_neighborhood") {
+          if (placeName === q) return 142;
+        } else if (isHistoricWardFilter && item.type === "historic_ward") {
+          if (placeName === q || lbl === q) return 142;
+        } else if (
+          !isNeighborhoodFilter &&
+          !isSuperNeighborhoodFilter &&
+          !isHistoricWardFilter &&
+          !isSubdivisionFilter
+        ) {
+          if (placeName === q || lbl === q) return 138;
+          if (altNames.some((an) => an === q)) return 135;
+          if (placeName.startsWith(q) || altNames.some((an) => an.startsWith(q))) return 118;
+          if (placeName.includes(q) || altNames.some((an) => an.includes(q))) return 98;
+          if (topSubdivs.some((sd) => sd === q || sd.includes(q))) return 92;
         }
         return 0;
       }
@@ -2365,6 +2499,38 @@ class HoustonAtlasApp {
       } else if (isDistrictFilter) {
         if (dist && dist.includes(q)) {
           score = dist === q ? 120 : 105;
+        }
+      } else if (isNeighborhoodFilter) {
+        if (nh === q) {
+          score = 126;
+        } else if (nhAliases.some((a) => a === q)) {
+          score = 122;
+        } else if (nh && nh.includes(q)) {
+          score = 108;
+        } else if (nhAliases.some((a) => a.includes(q))) {
+          score = 102;
+        } else if (subdiv === q || (subdiv && subdiv.includes(q))) {
+          score = 96;
+        }
+      } else if (isSuperNeighborhoodFilter) {
+        if (superNh === q) {
+          score = 126;
+        } else if (superNh && superNh.includes(q)) {
+          score = 108;
+        }
+      } else if (isHistoricWardFilter) {
+        if (ward === q) {
+          score = 126;
+        } else if (ward && ward.includes(q)) {
+          score = 108;
+        }
+      } else if (isSubdivisionFilter) {
+        if (subdiv === q) {
+          score = 126;
+        } else if (subdiv && subdiv.includes(q)) {
+          score = 110;
+        } else if (nh === q || nhAliases.includes(q)) {
+          score = 98;
         }
       } else if (isGoodBrickFilter) {
         if (gbYrs && gbYrs.split(/[,\s]+/).includes(q)) {
@@ -2467,6 +2633,21 @@ class HoustonAtlasApp {
         }
         if (dist && dist.includes(q)) {
           score = Math.max(score, dist === q ? 105 : 90);
+        }
+        if (nh && (nh === q || nh.includes(q))) {
+          score = Math.max(score, nh === q ? 106 : 88);
+        }
+        if (nhAliases.some((a) => a === q || a.includes(q))) {
+          score = Math.max(score, nhAliases.includes(q) ? 104 : 86);
+        }
+        if (superNh && (superNh === q || superNh.includes(q))) {
+          score = Math.max(score, superNh === q ? 102 : 84);
+        }
+        if (ward && (ward === q || ward.includes(q))) {
+          score = Math.max(score, ward === q ? 104 : 86);
+        }
+        if (subdiv && (subdiv === q || subdiv.includes(q))) {
+          score = Math.max(score, subdiv === q ? 106 : 86);
         }
         if (gbYrs && gbYrs.split(/[,\s]+/).includes(q)) {
           score = Math.max(score, 110);
@@ -2580,6 +2761,32 @@ class HoustonAtlasApp {
         continue;
       }
 
+      // Lazily populate geographic context on viewport shard candidates when needed
+      if (
+        (!p.neighborhood || !p.super_neighborhood || !p.historic_ward) &&
+        !p._geoResolved &&
+        (cand.inViewport ||
+          isNeighborhoodFilter ||
+          isSuperNeighborhoodFilter ||
+          isHistoricWardFilter) &&
+        this.mapController?.resolveGeographicContextAtPoint
+      ) {
+        p._geoResolved = true;
+        const gCtx = this.mapController.resolveGeographicContextAtPoint(cand.lon, cand.lat);
+        if (gCtx) {
+          if (!p.neighborhood && gCtx.neighborhood) p.neighborhood = gCtx.neighborhood;
+          if (!p.neighborhood_aliases && gCtx.neighborhood_aliases?.length) {
+            p.neighborhood_aliases = gCtx.neighborhood_aliases;
+          }
+          if (!p.super_neighborhood && gCtx.super_neighborhood) {
+            p.super_neighborhood = gCtx.super_neighborhood;
+          }
+          if (!p.historic_ward && gCtx.historic_ward) {
+            p.historic_ward = gCtx.historic_ward;
+          }
+        }
+      }
+
       const nameInfo = this._resolveBuildingNameAndAliases(p);
       const yr = Number(p.year_built) || 0;
       const distClean =
@@ -2591,6 +2798,11 @@ class HoustonAtlasApp {
       const primaryAddr = String(p.address || "").trim();
       const altAddresses = Array.isArray(p.alt_addresses)
         ? p.alt_addresses.map((a) => String(a || "").trim()).filter(Boolean)
+        : [];
+      const nhAliasesArr = Array.isArray(p.neighborhood_aliases)
+        ? p.neighborhood_aliases
+        : typeof p.neighborhood_aliases === "string" && p.neighborhood_aliases.trim()
+        ? p.neighborhood_aliases.split(/\s*\|\s*|\s*;\s*/)
         : [];
       const synthItem = {
         type: "building",
@@ -2613,6 +2825,11 @@ class HoustonAtlasApp {
         landuse_desc: p.landuse_desc || "",
         good_brick_years: p.good_brick_years ? String(p.good_brick_years) : "",
         historic_district: distClean,
+        neighborhood: p.neighborhood || "",
+        neighborhood_aliases: nhAliasesArr,
+        super_neighborhood: p.super_neighborhood || "",
+        historic_ward: p.historic_ward || "",
+        subdivision: p.subdivision || "",
         landmark_code: p.landmark_code || "",
         landmark_report_url: p.landmark_report_url || "",
         landmark_summary: p.landmark_summary || "",
@@ -2635,8 +2852,9 @@ class HoustonAtlasApp {
           combinedAddrDisplay.toLowerCase() !== String(synthItem.label).toLowerCase()
             ? combinedAddrDisplay
             : "",
-          distClean || luSummary || "Harris County",
-          luChips.length > 1 && distClean ? luSummary : "",
+          distClean || p.neighborhood || luSummary || "Harris County",
+          p.neighborhood && distClean && p.neighborhood !== distClean ? p.neighborhood : "",
+          luChips.length > 1 && (distClean || p.neighborhood) ? luSummary : "",
           styleInfo.displayStyle && styleInfo.displayStyle !== luSummary ? styleInfo.displayStyle : "",
           yr >= 1836 ? `Built ${yr}` : "",
         ]
@@ -2681,7 +2899,7 @@ class HoustonAtlasApp {
     const matches = scoredMatches.slice(0, 25).map((m) => m.item);
 
     if (!matches.length) {
-      searchResults.innerHTML = `<div class="search-empty">No matching addresses, architects, styles, landmarks, or districts found for "${rawQuery}".</div>`;
+      searchResults.innerHTML = `<div class="search-empty">No matching addresses, neighborhoods, wards, subdivisions, architects, styles, or landmarks found for "${rawQuery}".</div>`;
       searchResults.classList.remove("hidden");
       return;
     }
@@ -2698,7 +2916,7 @@ class HoustonAtlasApp {
         </div>`
       : totalMatchCount > matches.length
       ? `<div class="search-filter-header">
-          <span>&#128269; Matching Structures (${countSummary})</span>
+          <span>&#128269; Matching Results (${countSummary})</span>
           <button type="button" class="search-filter-clear" id="btn-clear-search-filter">Clear</button>
         </div>`
       : "";
@@ -2706,16 +2924,37 @@ class HoustonAtlasApp {
     searchResults.innerHTML =
       headerBanner +
       matches
-        .map(
-          (m, i) => `
-          <button type="button" class="search-result-item" data-idx="${i}">
+        .map((m, i) => {
+          const isPlace = Boolean(
+            m.is_neighborhood_entry ||
+              m.type === "neighborhood" ||
+              m.type === "super_neighborhood" ||
+              m.type === "historic_ward"
+          );
+          const dispLabel = m.label || m.name || m.building_name || "Houston Neighborhood";
+          const dispSub =
+            m.sublabel ||
+            [
+              Array.isArray(m.alt_names) && m.alt_names.length
+                ? `AKA: ${m.alt_names.slice(0, 3).join(", ")}`
+                : "",
+              m.address || "",
+            ]
+              .filter(Boolean)
+              .join(" • ");
+          return `
+          <button type="button" class="search-result-item ${
+            isPlace ? "is-place-boundary-item" : ""
+          }" data-idx="${i}">
             <div class="search-result-main">
-              <span class="search-result-title">${m.label}</span>
+              <span class="search-result-title">${
+                isPlace ? `&#128506; ${dispLabel}` : dispLabel
+              }</span>
               <span class="search-result-cat">${m.category}</span>
             </div>
-            <div class="search-result-sub">${m.sublabel || ""}</div>
-          </button>`
-        )
+            <div class="search-result-sub">${dispSub}</div>
+          </button>`;
+        })
         .join("");
     searchResults.classList.remove("hidden");
 
@@ -2734,10 +2973,43 @@ class HoustonAtlasApp {
         const chosen = matches[idx];
         if (chosen) {
           searchResults.classList.add("hidden");
-          if (searchInput) searchInput.value = chosen.label;
+          const chosenLabel = chosen.label || chosen.name || chosen.building_name || "";
+          if (searchInput) searchInput.value = chosenLabel;
           if (typeof window !== "undefined" && window.innerWidth <= 900) {
             this._setSidebarCollapsed(true);
           }
+          if (
+            chosen.is_neighborhood_entry ||
+            chosen.type === "neighborhood" ||
+            chosen.type === "super_neighborhood" ||
+            chosen.type === "historic_ward"
+          ) {
+            const rawLayer = String(chosen.overlay_layer || "");
+            const layerKey =
+              rawLayer === "historicWards"
+                ? "historic_wards"
+                : rawLayer === "superNeighborhoods"
+                ? "super_neighborhoods"
+                : rawLayer ||
+                  (chosen.type === "super_neighborhood"
+                    ? "super_neighborhoods"
+                    : chosen.type === "historic_ward"
+                    ? "historic_wards"
+                    : "neighborhoods");
+            if (chosen.type === "historic_ward" && chosen.era_year) {
+              this.filterStore.setState({ wardEra: Number(chosen.era_year) });
+            }
+            this.mapController.highlightBoundaryByIdOrName({
+              id: chosen.id || "",
+              name: chosen.name || chosenLabel,
+              layerKey,
+              eraYear: chosen.era_year || null,
+              flyTo: true,
+              inspect: true,
+            });
+            return;
+          }
+
           this.mapController.flyToLocation({
             lng: chosen.lon,
             lat: chosen.lat,
@@ -2761,7 +3033,12 @@ class HoustonAtlasApp {
               year_built: chosen.year_built,
               hcad_num: chosen.hcad_num,
               landmark_type: chosen.category,
-              historic_district: chosen.historic_district || chosen.sublabel,
+              historic_district: chosen.historic_district || "",
+              neighborhood: chosen.neighborhood || "",
+              neighborhood_aliases: chosen.neighborhood_aliases || [],
+              super_neighborhood: chosen.super_neighborhood || "",
+              historic_ward: chosen.historic_ward || "",
+              subdivision: chosen.subdivision || "",
               architect: chosen.architect || "",
               style: chosen.style || "",
               bld_style: chosen.bld_style || "",
@@ -3426,6 +3703,9 @@ class HoustonAtlasApp {
       "chk-layer-heritage-districts": state.layers.heritageDistricts,
       "chk-layer-nrhp-districts": state.layers.nrhpDistricts,
       "chk-layer-thc-markers": state.layers.thcMarkers,
+      "chk-layer-neighborhoods": state.layers.neighborhoods,
+      "chk-layer-super-neighborhoods": state.layers.superNeighborhoods,
+      "chk-layer-historic-wards": state.layers.historicWards,
       "chk-layer-annexations": state.layers.annexations,
       "chk-layer-historic-map": state.layers.historicMap,
     };
@@ -3433,6 +3713,16 @@ class HoustonAtlasApp {
       const el = document.getElementById(id);
       if (el) el.checked = Boolean(checked);
     }
+
+    const wardEraRow = document.getElementById("historic-ward-era-row");
+    if (wardEraRow) {
+      wardEraRow.classList.toggle("hidden", !state.layers.historicWards);
+    }
+    const activeWardEra = resolveActiveWardEra(state);
+    document.querySelectorAll("[data-ward-era]").forEach((btn) => {
+      const era = parseInt(btn.getAttribute("data-ward-era"), 10) || 1920;
+      btn.classList.toggle("active", era === activeWardEra);
+    });
 
     const histOpacityRow = document.getElementById("historic-map-opacity-row");
     if (histOpacityRow) {
@@ -3613,6 +3903,248 @@ class HoustonAtlasApp {
     });
   }
 
+  _renderBoundaryInspectorDrawer(rawProps, drawer, content) {
+    const parseJsonList = (val) => {
+      if (Array.isArray(val)) return val.map((x) => String(x || "").trim()).filter(Boolean);
+      if (typeof val === "string") {
+        const s = val.trim();
+        if (s.startsWith("[")) {
+          try {
+            const parsed = JSON.parse(s);
+            return Array.isArray(parsed)
+              ? parsed.map((x) => String(x || "").trim()).filter(Boolean)
+              : [];
+          } catch (_e) {
+            return [];
+          }
+        }
+        if (s) {
+          return s
+            .split(/\s*\|\s*|\s*;\s*/)
+            .map((x) => x.trim())
+            .filter(Boolean);
+        }
+      }
+      return [];
+    };
+
+    const overlayLayer = String(rawProps.overlay_layer || "neighborhoods");
+    const name = String(rawProps.name || "Houston Neighborhood").trim();
+    const aliases = parseJsonList(rawProps.aliases || rawProps.alt_names);
+    const topSubs = parseJsonList(rawProps.top_subdivisions);
+    const snName = String(rawProps.super_neighborhood || "").trim();
+    const wardName = String(rawProps.historic_ward || "").trim();
+    const wardEra = Number(rawProps.ward_era || rawProps.era_year || 0);
+    const eraLabel = String(rawProps.era_label || "").trim();
+
+    let badgeLabel = "Neighborhood / Subdivision";
+    let badgeColor = "#38bdf8";
+    if (overlayLayer === "super_neighborhoods") {
+      badgeLabel = `COH Super Neighborhood${rawProps.sn_id ? ` #${rawProps.sn_id}` : ""}`;
+      badgeColor = "#818cf8";
+    } else if (overlayLayer === "historic_wards") {
+      badgeLabel = `Historic Ward${wardEra ? ` (${wardEra})` : ""}`;
+      badgeColor = String(rawProps.color || "#fb923c");
+    }
+
+    const bldCount = Number(rawProps.building_count || 0);
+    const earliestYear = Number(rawProps.earliest_year || 0);
+    const medianYear = Number(rawProps.median_year || 0);
+    const pre1940Count = Number(rawProps.pre_1940_count || 0);
+    const landmarkCount = Number(rawProps.landmark_count || 0);
+    const goodBrickCount = Number(rawProps.good_brick_count || 0);
+
+    const subtitleParts = [];
+    if (eraLabel && overlayLayer === "historic_wards") subtitleParts.push(eraLabel);
+    if (snName && overlayLayer !== "super_neighborhoods") {
+      subtitleParts.push(`Super Neighborhood: ${snName}`);
+    }
+    if (wardName && overlayLayer !== "historic_wards") {
+      subtitleParts.push(`1920 ${wardName}`);
+    }
+    const subtitle = subtitleParts.join(" · ") || "Harris County, Texas";
+
+    const akaHeroHtml =
+      aliases.length > 0
+        ? `<div class="inspector-aka-bar" id="inspector-aka-bar">
+            <span class="inspector-aka-label">Historical &amp; Colloquial Area Names:</span>
+            <div class="inspector-aka-chips">
+              ${aliases
+                .map(
+                  (alias) => `<button
+                    type="button"
+                    class="inspector-alias-chip inspector-filter-chip"
+                    data-filter-chip="${alias.replace(/"/g, "&quot;")}"
+                    data-filter-label="Area / Alias: ${alias.replace(/"/g, "&quot;")}"
+                    title="Click to filter structures matching '${alias.replace(/"/g, "&quot;")}'"
+                  >${alias} &#128269;</button>`
+                )
+                .join("")}
+            </div>
+          </div>`
+        : "";
+
+    const topSubsHtml =
+      topSubs.length > 0
+        ? `<div class="inspector-cell full">
+            <span class="cell-label">Major Platted HCAD Subdivisions in ${name}</span>
+            <span class="cell-value inspector-chip-group">
+              ${topSubs
+                .map(
+                  (sub) => `<button
+                    type="button"
+                    class="inspector-filter-chip"
+                    data-filter-chip="${sub.replace(/"/g, "&quot;")}"
+                    data-filter-label="Subdivision: ${sub.replace(/"/g, "&quot;")}"
+                    title="Click to find structures in subdivision '${sub.replace(/"/g, "&quot;")}'"
+                  >${sub} &#128269;</button>`
+                )
+                .join('<span class="inspector-chip-sep" aria-hidden="true">·</span>')}
+            </span>
+          </div>`
+        : "";
+
+    content.innerHTML = `
+      <div class="inspector-hero">
+        <div class="inspector-badges">
+          <span class="inspector-year-pill" style="background:${badgeColor};color:#090d16;">${badgeLabel}</span>
+          ${
+            earliestYear >= 1836
+              ? `<span class="inspector-age-pill">Earliest Structure: ${earliestYear}</span>`
+              : ""
+          }
+        </div>
+        <h2 class="inspector-title" id="inspector-property-title">${name}</h2>
+        ${akaHeroHtml}
+        <p class="inspector-subtitle">${subtitle}</p>
+        <div class="inspector-status-banner">
+          <span class="status-dot" style="background:${badgeColor};"></span>
+          <span>${rawProps.source || "City of Houston &amp; HCAD Boundary Index"}</span>
+        </div>
+      </div>
+
+      ${
+        rawProps.description
+          ? `<div class="ph-verified-override-card" style="border-left-color:${badgeColor};">
+              <div class="ph-verified-header">
+                <span>Geographic &amp; Historical Context</span>
+              </div>
+              <div class="ph-verified-citation">
+                ${rawProps.description}
+              </div>
+            </div>`
+          : ""
+      }
+
+      <div class="boundary-dossier-stats-grid">
+        <div class="boundary-stat-card">
+          <span class="boundary-stat-label">Recorded Structures</span>
+          <span class="boundary-stat-val mono">${bldCount > 0 ? bldCount.toLocaleString() : "—"}</span>
+        </div>
+        <div class="boundary-stat-card">
+          <span class="boundary-stat-label">Earliest Structure</span>
+          <span class="boundary-stat-val mono">${earliestYear >= 1836 ? earliestYear : "—"}</span>
+        </div>
+        <div class="boundary-stat-card">
+          <span class="boundary-stat-label">Median Build Year</span>
+          <span class="boundary-stat-val mono">${medianYear >= 1836 ? medianYear : "—"}</span>
+        </div>
+        <div class="boundary-stat-card">
+          <span class="boundary-stat-label">Pre-1940 Structures</span>
+          <span class="boundary-stat-val mono">${pre1940Count > 0 ? pre1940Count.toLocaleString() : "0"}</span>
+        </div>
+        <div class="boundary-stat-card">
+          <span class="boundary-stat-label">Designated Landmarks</span>
+          <span class="boundary-stat-val mono">${landmarkCount > 0 ? landmarkCount.toLocaleString() : "0"}</span>
+        </div>
+        <div class="boundary-stat-card">
+          <span class="boundary-stat-label">Good Brick Awards</span>
+          <span class="boundary-stat-val mono">${goodBrickCount > 0 ? goodBrickCount.toLocaleString() : "0"}</span>
+        </div>
+      </div>
+
+      <div class="inspector-grid">
+        ${
+          snName && overlayLayer !== "super_neighborhoods"
+            ? `<div class="inspector-cell">
+                <span class="cell-label">COH Super Neighborhood</span>
+                <span class="cell-value">
+                  <button
+                    type="button"
+                    class="inspector-filter-chip"
+                    data-filter-chip="${snName.replace(/"/g, "&quot;")}"
+                    data-filter-label="Super Neighborhood: ${snName.replace(/"/g, "&quot;")}"
+                  >${snName} &#128269;</button>
+                </span>
+              </div>`
+            : ""
+        }
+        ${
+          wardName && overlayLayer !== "historic_wards"
+            ? `<div class="inspector-cell">
+                <span class="cell-label">1920 Historic Ward</span>
+                <span class="cell-value">
+                  <button
+                    type="button"
+                    class="inspector-filter-chip"
+                    data-filter-chip="${wardName.replace(/"/g, "&quot;")}"
+                    data-filter-label="Historic Ward: ${wardName.replace(/"/g, "&quot;")}"
+                  >${wardName} &#128269;</button>
+                </span>
+              </div>`
+            : ""
+        }
+        ${topSubsHtml}
+        <div class="inspector-cell full">
+          <span class="cell-label">Boundary Data Source</span>
+          <span class="cell-value">${rawProps.source || "City of Houston &amp; HCAD GIS"}</span>
+        </div>
+      </div>
+
+      <div class="inspector-actions">
+        <button
+          type="button"
+          class="inspector-btn primary"
+          id="btn-explore-boundary-buildings"
+          data-filter-chip="${name.replace(/"/g, "&quot;")}"
+          data-filter-label="${badgeLabel}: ${name.replace(/"/g, "&quot;")}"
+        >
+          &#128269; Explore Structures in ${name}
+        </button>
+        <button
+          type="button"
+          class="inspector-btn secondary"
+          id="btn-clear-boundary-outline"
+        >
+          Clear Boundary Outline on Map
+        </button>
+      </div>
+    `;
+
+    drawer.classList.remove("hidden");
+
+    content.querySelectorAll("[data-filter-chip]").forEach((chipBtn) => {
+      chipBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const chipQuery = chipBtn.getAttribute("data-filter-chip") || "";
+        const chipLabel = chipBtn.getAttribute("data-filter-label") || "";
+        if (chipQuery) {
+          this.triggerMetadataFilterSearch(chipQuery, chipLabel);
+        }
+      });
+    });
+
+    const btnClearOutline = document.getElementById("btn-clear-boundary-outline");
+    if (btnClearOutline) {
+      btnClearOutline.addEventListener("click", () => {
+        if (this.mapController) {
+          this.mapController.clearHighlightedBoundary();
+        }
+      });
+    }
+  }
+
   renderInspectorDrawer(rawProps) {
     const drawer = document.getElementById("inspector-drawer");
     const content = document.getElementById("inspector-body");
@@ -3620,6 +4152,16 @@ class HoustonAtlasApp {
 
     if (typeof window !== "undefined" && window.innerWidth <= 900) {
       this._setSidebarCollapsed(true);
+    }
+
+    if (
+      rawProps.is_boundary_feature ||
+      ["neighborhoods", "super_neighborhoods", "historic_wards"].includes(
+        String(rawProps.overlay_layer || "")
+      )
+    ) {
+      this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
+      return;
     }
 
     const props = applyOverrideToProperties(
@@ -3996,6 +4538,49 @@ class HoustonAtlasApp {
     )}`;
     const streetViewUrl = buildStreetViewUrl(effLat, effLng);
 
+    // Runtime fallback enrichment from spatial index for countywide shard buildings
+    if (
+      !props.neighborhood &&
+      !props.super_neighborhood &&
+      !props.historic_ward &&
+      Number.isFinite(effLng) &&
+      Number.isFinite(effLat) &&
+      this.mapController &&
+      typeof this.mapController.resolveGeographicContextAtPoint === "function"
+    ) {
+      const geoCtx = this.mapController.resolveGeographicContextAtPoint(effLng, effLat);
+      if (geoCtx.neighborhood) props.neighborhood = geoCtx.neighborhood;
+      if (Array.isArray(geoCtx.neighborhood_aliases) && geoCtx.neighborhood_aliases.length > 0) {
+        props.neighborhood_aliases = geoCtx.neighborhood_aliases;
+      }
+      if (geoCtx.super_neighborhood) props.super_neighborhood = geoCtx.super_neighborhood;
+      if (geoCtx.historic_ward) props.historic_ward = geoCtx.historic_ward;
+    }
+
+    let neighborhoodAliases = [];
+    if (Array.isArray(props.neighborhood_aliases)) {
+      neighborhoodAliases = props.neighborhood_aliases
+        .map((a) => String(a || "").trim())
+        .filter(Boolean);
+    } else if (
+      typeof props.neighborhood_aliases === "string" &&
+      props.neighborhood_aliases.trim().startsWith("[")
+    ) {
+      try {
+        const parsed = JSON.parse(props.neighborhood_aliases);
+        if (Array.isArray(parsed)) {
+          neighborhoodAliases = parsed.map((a) => String(a || "").trim()).filter(Boolean);
+        }
+      } catch (_e) {
+        neighborhoodAliases = [];
+      }
+    }
+
+    const nbhdVal = String(props.neighborhood || "").trim();
+    const superNbhdVal = String(props.super_neighborhood || "").trim();
+    const wardVal = String(props.historic_ward || "").trim();
+    const subVal = String(props.subdivision || "").trim();
+
     const distVal = String(props.historic_district || "").trim();
     const isRealDistrict =
       distVal &&
@@ -4151,6 +4736,54 @@ class HoustonAtlasApp {
           </span>
         </div>
         <div class="inspector-cell">
+          <span class="cell-label">Neighborhood / Area</span>
+          <span class="cell-value inspector-chip-group">
+            ${
+              nbhdVal
+                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${nbhdVal.replace(/"/g, "&quot;")}" data-filter-label="Neighborhood: ${nbhdVal.replace(/"/g, "&quot;")}" title="Click to find all structures in ${nbhdVal.replace(/"/g, "&quot;")}">${nbhdVal} &#128269;</button>
+                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${nbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="neighborhoods" title="Outline ${nbhdVal.replace(/"/g, "&quot;")} boundary on the map">Outline</button>`
+                : "Unincorporated / Outside Boundary"
+            }
+          </span>
+        </div>
+        <div class="inspector-cell">
+          <span class="cell-label">COH Super Neighborhood</span>
+          <span class="cell-value inspector-chip-group">
+            ${
+              superNbhdVal
+                ? `<button type="button" class="inspector-filter-chip category-chip" data-filter-chip="${superNbhdVal.replace(/"/g, "&quot;")}" data-filter-label="Super Neighborhood: ${superNbhdVal.replace(/"/g, "&quot;")}" title="Click to find structures in Super Neighborhood: ${superNbhdVal.replace(/"/g, "&quot;")}">${superNbhdVal} &#128269;</button>
+                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${superNbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="super_neighborhoods" title="Outline ${superNbhdVal.replace(/"/g, "&quot;")} Super Neighborhood boundary on the map">Outline</button>`
+                : "Outside COH Super Neighborhood"
+            }
+          </span>
+        </div>
+        ${
+          neighborhoodAliases.length > 0
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Historical &amp; Colloquial Area Names</span>
+                <span class="cell-value inspector-chip-group">
+                  ${neighborhoodAliases
+                    .map(
+                      (alias) =>
+                        `<button type="button" class="inspector-alias-chip small inspector-filter-chip" data-filter-chip="${alias.replace(/"/g, "&quot;")}" data-filter-label="Area / Alias: ${alias.replace(/"/g, "&quot;")}" title="Click to search structures in '${alias.replace(/"/g, "&quot;")}'">${alias} &#128269;</button>`
+                    )
+                    .join(" ")}
+                </span>
+              </div>`
+            : ""
+        }
+        ${
+          wardVal
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Historic Ward (1839–1920 Municipal System)</span>
+                <span class="cell-value inspector-chip-group">
+                  <button type="button" class="inspector-filter-chip" data-filter-chip="${wardVal.replace(/"/g, "&quot;")}" data-filter-label="Historic Ward: ${wardVal.replace(/"/g, "&quot;")}" title="Click to search structures in ${wardVal.replace(/"/g, "&quot;")}">1920 ${wardVal} &#128269;</button>
+                  <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Outline 1920 ${wardVal.replace(/"/g, "&quot;")} boundary on the map">Outline Ward</button>
+                </span>
+              </div>`
+            : ""
+        }
+        <div class="inspector-cell">
           <span class="cell-label">Building Floor Area</span>
           <span class="cell-value mono" id="inspector-cell-bld-sqft">${bldSqft}</span>
         </div>
@@ -4193,8 +4826,14 @@ class HoustonAtlasApp {
           </span>
         </div>
         <div class="inspector-cell full">
-          <span class="cell-label">Subdivision / Legal Description</span>
-          <span class="cell-value" id="inspector-cell-subdivision">${props.subdivision || "Not listed"}</span>
+          <span class="cell-label">Platted Subdivision / Legal Description (HCAD)</span>
+          <span class="cell-value inspector-chip-group" id="inspector-cell-subdivision">
+            ${
+              subVal
+                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${subVal.replace(/"/g, "&quot;")}" data-filter-label="Subdivision: ${subVal.replace(/"/g, "&quot;")}" title="Click to search structures in platted subdivision '${subVal.replace(/"/g, "&quot;")}'">${subVal} &#128269;</button>`
+                : "Not listed"
+            }
+          </span>
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Recorded Property Owner (HCAD)</span>
@@ -4309,6 +4948,26 @@ class HoustonAtlasApp {
       });
     });
 
+    content.querySelectorAll("[data-highlight-boundary]").forEach((bBtn) => {
+      bBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const bName = bBtn.getAttribute("data-highlight-boundary") || "";
+        const bLayer = bBtn.getAttribute("data-boundary-layer") || "";
+        if (bName && this.mapController) {
+          this.mapController.highlightBoundaryByIdOrName(bName, {
+            layerKey: bLayer,
+            fitBounds: false,
+            openInspector: false,
+          });
+          bBtn.textContent = "Outlined ✓";
+          setTimeout(() => {
+            bBtn.textContent = bLayer === "historic_wards" ? "Outline Ward" : "Outline";
+          }, 2200);
+        }
+      });
+    });
+
     const btnPrintDossier = document.getElementById("btn-print-property-sheet");
     if (btnPrintDossier) {
       btnPrintDossier.addEventListener("click", () => {
@@ -4407,8 +5066,25 @@ class HoustonAtlasApp {
             ownerCell.textContent = rec.owner;
           }
           const subCell = document.getElementById("inspector-cell-subdivision");
-          if (subCell && (rec.subdivision || rec.legalDescription) && (!props.subdivision || subCell.textContent === "Not listed")) {
-            subCell.textContent = [rec.subdivision, rec.legalDescription].filter(Boolean).join(" — ");
+          if (
+            subCell &&
+            (rec.subdivision || rec.legalDescription) &&
+            (!props.subdivision || subCell.textContent.trim() === "Not listed")
+          ) {
+            const liveSub = String(rec.subdivision || "").trim();
+            if (liveSub) {
+              subCell.innerHTML = `<button type="button" class="inspector-filter-chip" data-filter-chip="${liveSub.replace(/"/g, "&quot;")}" data-filter-label="Subdivision: ${liveSub.replace(/"/g, "&quot;")}" title="Click to search structures in subdivision '${liveSub.replace(/"/g, "&quot;")}'">${liveSub} &#128269;</button>${rec.legalDescription ? `<span class="inspector-chip-note">${rec.legalDescription}</span>` : ""}`;
+              const newChip = subCell.querySelector("[data-filter-chip]");
+              if (newChip) {
+                newChip.addEventListener("click", (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  this.triggerMetadataFilterSearch(liveSub, `Subdivision: ${liveSub}`);
+                });
+              }
+            } else {
+              subCell.textContent = rec.legalDescription;
+            }
           }
           const bldCell = document.getElementById("inspector-cell-bld-sqft");
           if (bldCell && rec.bldgSqft && bldCell.textContent === "Unlisted") {

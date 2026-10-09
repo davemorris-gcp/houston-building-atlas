@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261008x" />
+  <link rel="stylesheet" href="styles/index.css?v=20261009d" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -61,7 +61,7 @@
           type="search"
           id="search-input"
           class="search-input"
-          placeholder="Search address, historic landmark, district, or HCAD account #..."
+          placeholder="Search address, neighborhood, historic ward, landmark, or HCAD #..."
           autocomplete="off"
         />
         <div id="search-results" class="search-results hidden"></div>
@@ -541,6 +541,65 @@
             >
               Solo
             </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="neighborhoods">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-neighborhoods" />
+              <span class="swatch-line" style="border-color:#95C959;"></span>
+              <span class="layer-name">Neighborhoods &amp; Sub-Areas (1,426)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="neighborhoods"
+              title="Show only Houston Vernacular Neighborhoods &amp; Civic Clubs (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="superNeighborhoods">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-super-neighborhoods" />
+              <span class="swatch-line dashed" style="border-color:#60A5FA;"></span>
+              <span class="layer-name">COH Super Neighborhoods (88)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="superNeighborhoods"
+              title="Show only City of Houston Super Neighborhoods (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="historicWards">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-historic-wards" />
+              <span class="swatch-line" style="border-color:#FB923C;"></span>
+              <span class="layer-name">Historic Wards (1839–1920)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="historicWards"
+              title="Show only Original Houston Historic Wards (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="historic-ward-era-row hidden" id="historic-ward-era-row" role="group" aria-label="Historic Ward Charter Era">
+            <span class="ward-era-label">Ward Charter Era:</span>
+            <div class="ward-era-pills">
+              <button type="button" class="ward-era-pill mono" data-ward-era="1839" title="1839 Original 4 Wards Charter">1839</button>
+              <button type="button" class="ward-era-pill mono" data-ward-era="1866" title="1866 Charter (Fifth Ward Created)">1866</button>
+              <button type="button" class="ward-era-pill mono" data-ward-era="1896" title="1896 Charter (Sixth Ward &amp; Expanded Limits)">1896</button>
+              <button type="button" class="ward-era-pill mono" data-ward-era="1903" title="1903 Ward Boundaries">1903</button>
+              <button type="button" class="ward-era-pill mono active" data-ward-era="1920" title="1920 Historic 6 Wards">1920</button>
+            </div>
           </div>
 
           <div class="layer-item-row" data-layer-key="annexations">
@@ -1193,6 +1252,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261008z"></script>
+  <script type="module" src="js/app.js?v=20261009d"></script>
 </body>
 </html>
