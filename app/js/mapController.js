@@ -17,7 +17,7 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261009l";
+} from "./filterStore.js?v=20261009m";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
@@ -463,6 +463,18 @@ export class AtlasMapController {
         },
         layers: [
           {
+            id: "basemap-solid-bg",
+            type: "background",
+            paint: {
+              "background-color":
+                state.basemap === "solid_light"
+                  ? "#F4F1EA"
+                  : state.basemap === "warm_parchment"
+                  ? "#EBE6DC"
+                  : "#0D1117",
+            },
+          },
+          {
             id: "basemap-dark-layer",
             type: "raster",
             source: "basemap-dark",
@@ -507,6 +519,12 @@ export class AtlasMapController {
             source: "openfreemap-vector",
             "source-layer": "transportation",
             minzoom: 15,
+            layout: {
+              visibility:
+                state.basemap === "solid_dark" || state.basemap === "solid_light"
+                  ? "none"
+                  : "visible",
+            },
             paint: {
               "line-color": "rgba(148, 163, 184, 0.28)",
               "line-width": [
@@ -1849,63 +1867,71 @@ export class AtlasMapController {
     ctx.scale(dpr, dpr);
 
     // 1. Background & Basemap Slippy Tiles
-    ctx.fillStyle = state.basemap === "warm_parchment" ? "#EBE6DC" : "#0D1016";
+    const isNoMap = state.basemap === "solid_dark" || state.basemap === "solid_light";
+    ctx.fillStyle =
+      state.basemap === "solid_light"
+        ? "#F4F1EA"
+        : state.basemap === "warm_parchment"
+        ? "#EBE6DC"
+        : "#0D1117";
     ctx.fillRect(0, 0, width, height);
 
-    const baseKey = state.basemap || "dark_archival";
-    const baseConfig = BASEMAP_TILES[baseKey] || BASEMAP_TILES.dark_archival;
-    const maxTileZ = baseConfig.maxZoom || 16;
-    const tileZ = Math.max(10, Math.min(maxTileZ, Math.floor(cs.zoom)));
-    const zoomFactor = Math.pow(2, cs.zoom - tileZ);
-    const tileSizeScreen = 256 * zoomFactor;
+    if (!isNoMap) {
+      const baseKey = state.basemap || "dark_archival";
+      const baseConfig = BASEMAP_TILES[baseKey] || BASEMAP_TILES.dark_archival;
+      const maxTileZ = baseConfig.maxZoom || 16;
+      const tileZ = Math.max(10, Math.min(maxTileZ, Math.floor(cs.zoom)));
+      const zoomFactor = Math.pow(2, cs.zoom - tileZ);
+      const tileSizeScreen = 256 * zoomFactor;
 
-    const centerTileX = ((cs.lng + 180) / 360) * Math.pow(2, tileZ);
-    const sinLat = Math.sin((cs.lat * Math.PI) / 180);
-    const centerTileY =
-      (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * Math.pow(2, tileZ);
+      const centerTileX = ((cs.lng + 180) / 360) * Math.pow(2, tileZ);
+      const sinLat = Math.sin((cs.lat * Math.PI) / 180);
+      const centerTileY =
+        (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * Math.pow(2, tileZ);
 
-    const colsHalf = Math.ceil(width / tileSizeScreen / 2) + 1;
-    const rowsHalf = Math.ceil(height / tileSizeScreen / 2) + 1;
-    const tileTemplates = baseConfig.tiles;
-    const labelTemplates = baseConfig.labelTiles || [];
+      const colsHalf = Math.ceil(width / tileSizeScreen / 2) + 1;
+      const rowsHalf = Math.ceil(height / tileSizeScreen / 2) + 1;
+      const tileTemplates = baseConfig.tiles;
+      const labelTemplates = baseConfig.labelTiles || [];
 
-    for (let dx = -colsHalf; dx <= colsHalf; dx++) {
-      for (let dy = -rowsHalf; dy <= rowsHalf; dy++) {
-        const tx = Math.floor(centerTileX) + dx;
-        const ty = Math.floor(centerTileY) + dy;
-        const maxT = 1 << tileZ;
-        if (tx < 0 || ty < 0 || tx >= maxT || ty >= maxT) continue;
+      for (let dx = -colsHalf; dx <= colsHalf; dx++) {
+        for (let dy = -rowsHalf; dy <= rowsHalf; dy++) {
+          const tx = Math.floor(centerTileX) + dx;
+          const ty = Math.floor(centerTileY) + dy;
+          const maxT = 1 << tileZ;
+          if (tx < 0 || ty < 0 || tx >= maxT || ty >= maxT) continue;
 
-        const screenX = width / 2 + (tx - centerTileX) * tileSizeScreen;
-        const screenY = height / 2 + (ty - centerTileY) * tileSizeScreen;
-        const cacheId = `${baseKey}:${tileZ}/${tx}/${ty}`;
+          const screenX = width / 2 + (tx - centerTileX) * tileSizeScreen;
+          const screenY = height / 2 + (ty - centerTileY) * tileSizeScreen;
+          const cacheId = `${baseKey}:${tileZ}/${tx}/${ty}`;
 
-        let img = cs.tileCache.get(cacheId);
-        if (!img) {
-          img = new Image();
-          img.crossOrigin = "anonymous";
-          const tpl = tileTemplates[Math.abs(tx + ty) % tileTemplates.length];
-          img.src = tpl.replace("{z}", tileZ).replace("{x}", tx).replace("{y}", ty);
-          img.onload = () => this._renderCanvas2D();
-          cs.tileCache.set(cacheId, img);
-        }
-        if (img.complete && img.naturalWidth > 0) {
-          ctx.drawImage(img, screenX, screenY, tileSizeScreen + 0.5, tileSizeScreen + 0.5);
-        }
-
-        if (labelTemplates.length > 0) {
-          const lblCacheId = `${baseKey}_lbl:${tileZ}/${tx}/${ty}`;
-          let lblImg = cs.tileCache.get(lblCacheId);
-          if (!lblImg) {
-            lblImg = new Image();
-            lblImg.crossOrigin = "anonymous";
-            const ltpl = labelTemplates[Math.abs(tx + ty) % labelTemplates.length];
-            lblImg.src = ltpl.replace("{z}", tileZ).replace("{x}", tx).replace("{y}", ty);
-            lblImg.onload = () => this._renderCanvas2D();
-            cs.tileCache.set(lblCacheId, lblImg);
+          let img = cs.tileCache.get(cacheId);
+          if (!img) {
+            img = new Image();
+            img.crossOrigin = "anonymous";
+            const tpl = tileTemplates[Math.abs(tx + ty) % tileTemplates.length];
+            img.src = tpl.replace("{z}", tileZ).replace("{x}", tx).replace("{y}", ty);
+            img.onload = () => this._renderCanvas2D();
+            cs.tileCache.set(cacheId, img);
           }
-          if (lblImg.complete && lblImg.naturalWidth > 0) {
-            ctx.drawImage(lblImg, screenX, screenY, tileSizeScreen + 0.5, tileSizeScreen + 0.5);
+          if (img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, screenX, screenY, tileSizeScreen + 0.5, tileSizeScreen + 0.5);
+          }
+
+          if (labelTemplates.length > 0) {
+            const lblCacheId = `${baseKey}_lbl:${tileZ}/${tx}/${ty}`;
+            let lblImg = cs.tileCache.get(lblCacheId);
+            if (!lblImg) {
+              lblImg = new Image();
+              lblImg.crossOrigin = "anonymous";
+              const ltpl = labelTemplates[Math.abs(tx + ty) % labelTemplates.length];
+              lblImg.src = ltpl.replace("{z}", tileZ).replace("{x}", tx).replace("{y}", ty);
+              lblImg.onload = () => this._renderCanvas2D();
+              cs.tileCache.set(lblCacheId, lblImg);
+            }
+            if (lblImg.complete && lblImg.naturalWidth > 0) {
+              ctx.drawImage(lblImg, screenX, screenY, tileSizeScreen + 0.5, tileSizeScreen + 0.5);
+            }
           }
         }
       }
@@ -2663,6 +2689,36 @@ export class AtlasMapController {
       return;
     }
     if (!this.map) return;
+
+    const isNoMap = state.basemap === "solid_dark" || state.basemap === "solid_light";
+    const isLightBg = state.basemap === "solid_light" || state.basemap === "warm_parchment";
+    const bgHex =
+      state.basemap === "solid_light"
+        ? "#F4F1EA"
+        : state.basemap === "warm_parchment"
+        ? "#EBE6DC"
+        : "#0D1117";
+    if (this.container) {
+      this.container.style.backgroundColor = bgHex;
+    }
+    if (this.map.getLayer("basemap-solid-bg")) {
+      this.map.setPaintProperty("basemap-solid-bg", "background-color", bgHex);
+    }
+    if (this.map.getLayer("vector-roads-highzoom")) {
+      this.map.setLayoutProperty(
+        "vector-roads-highzoom",
+        "visibility",
+        isNoMap ? "none" : "visible"
+      );
+    }
+    if (this.map.getLayer("platted-subdivisions-line")) {
+      this.map.setPaintProperty("platted-subdivisions-line", "line-color", [
+        "case",
+        ["boolean", ["get", "has_deed_docs"], false],
+        isLightBg ? "#D97706" : "#FBBF24",
+        isLightBg ? "#0891B2" : "#22D3EE",
+      ]);
+    }
 
     this.map.setLayoutProperty(
       "basemap-dark-layer",
