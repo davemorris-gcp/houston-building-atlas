@@ -8,7 +8,7 @@ export const DEFAULT_FILTER_STATE = {
   paletteStyle: "archival", // 'archival' | 'classic_ee'
   renderMode: "buildings", // 'buildings' | 'both' | 'parcels' | 'none'
   lastActiveRenderMode: "buildings", // remembers 'buildings' | 'both' | 'parcels' when buildings are toggled off
-  basemap: "dark_archival", // 'dark_archival' | 'warm_parchment' | 'satellite'
+  basemap: "dark_archival", // 'dark_archival' | 'warm_parchment' | 'satellite' | 'solid_dark' | 'solid_light'
   extrude3D: false,
   minYear: 1836,
   maxYear: 2026,
@@ -281,6 +281,8 @@ const BASEMAP_TO_SHORT = {
   dark_archival: "dark",
   warm_parchment: "light",
   satellite: "satellite",
+  solid_dark: "solid_dark",
+  solid_light: "solid_light",
 };
 
 const SHORT_TO_BASEMAP = {
@@ -295,6 +297,16 @@ const SHORT_TO_BASEMAP = {
   sat: "satellite",
   aerial: "satellite",
   imagery: "satellite",
+  solid_dark: "solid_dark",
+  nodark: "solid_dark",
+  blank_dark: "solid_dark",
+  none_dark: "solid_dark",
+  none: "solid_dark",
+  blank: "solid_dark",
+  solid_light: "solid_light",
+  nolight: "solid_light",
+  blank_light: "solid_light",
+  none_light: "solid_light",
 };
 
 const SHORT_TO_RENDER_MODE = {

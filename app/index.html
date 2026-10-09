@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261009k" />
+  <link rel="stylesheet" href="styles/index.css?v=20261009m" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -70,14 +70,20 @@
       <!-- Quick Action Bar: 3D Extrusion, Basemaps, Share View, Data Guide -->
       <div class="topbar-actions">
         <div class="segmented-group" role="group" aria-label="Basemap Style">
-          <button type="button" class="seg-btn active" id="btn-base-dark" data-basemap="dark_archival">
+          <button type="button" class="seg-btn active" id="btn-base-dark" data-basemap="dark_archival" title="Archival Dark Map Underlay">
             Archival Dark
           </button>
-          <button type="button" class="seg-btn" id="btn-base-light" data-basemap="warm_parchment">
+          <button type="button" class="seg-btn" id="btn-base-light" data-basemap="warm_parchment" title="Warm Parchment Map Underlay">
             Parchment
           </button>
-          <button type="button" class="seg-btn" id="btn-base-sat" data-basemap="satellite">
+          <button type="button" class="seg-btn" id="btn-base-sat" data-basemap="satellite" title="Aerial Satellite Imagery Underlay">
             Aerial
+          </button>
+          <button type="button" class="seg-btn" id="btn-base-solid-dark" data-basemap="solid_dark" title="Solid Dark Background (No Map Underlay — Clean Layer View)">
+            Solid Dark
+          </button>
+          <button type="button" class="seg-btn" id="btn-base-solid-light" data-basemap="solid_light" title="Solid Light Background (No Map Underlay — Clean Layer View)">
+            Solid Light
           </button>
         </div>
 
@@ -1259,7 +1265,7 @@
                   </li>
                   <li>
                     <strong>Supported Parameters:</strong>
-                    <code>base=light|dark|satellite</code> &middot;
+                    <code>base=light|dark|satellite|solid_dark|solid_light</code> &middot;
                     <code>buildings=off|buildings|both|parcels</code> &middot;
                     <code>layers=good_brick,landmarks,historic_districts,heritage_districts,nrhp_districts,thc_markers,annexations,none,all</code> &middot;
                     <code>minY=1836</code> &middot; <code>maxY=2026</code> &middot;
@@ -1341,6 +1347,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261009l"></script>
+  <script type="module" src="js/app.js?v=20261009m"></script>
 </body>
 </html>

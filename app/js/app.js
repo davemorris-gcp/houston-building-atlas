@@ -16,8 +16,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261009l";
-import { AtlasMapController } from "./mapController.js?v=20261009l";
+} from "./filterStore.js?v=20261009m";
+import { AtlasMapController } from "./mapController.js?v=20261009m";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
 import {
   applyOverrideToProperties,
@@ -1491,7 +1491,7 @@ class HoustonAtlasApp {
 
     document.querySelectorAll("[data-ward-era]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const eraYr = parseInt(btn.getAttribute("data-ward-era"), 10) || 1920;
+        const eraYr = parseInt(btn.getAttribute("data-ward-era"), 10) || 1903;
         const curLayers = this.filterStore.getState().layers || {};
         this.filterStore.setState({
           wardEra: eraYr,
@@ -7064,6 +7064,8 @@ class HoustonAtlasApp {
         dark_archival: "Basemap: Archival Dark",
         warm_parchment: "Basemap: Light Parchment",
         satellite: "Basemap: Aerial Satellite",
+        solid_dark: "Basemap: Solid Dark (No Map)",
+        solid_light: "Basemap: Solid Light (No Map)",
       };
       const geomLabels = {
         buildings: "Footprints: Buildings ON",
