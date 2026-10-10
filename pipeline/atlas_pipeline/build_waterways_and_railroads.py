@@ -44,7 +44,18 @@ HEADERS = {"User-Agent": "HoustonBuildingAtlas/1.0 (PreservationHouston)"}
 
 
 def fetch_arcgis_features(url: str, where: str = "1=1", bbox: str = None, out_fields: str = "*") -> list:
-    """Fetch all features with pagination from an ArcGIS REST FeatureServer/MapServer layer."""
+    """Fetch all features with pagination and disk caching from an ArcGIS REST FeatureServer/MapServer layer."""
+    import hashlib
+
+    cache_key = hashlib.sha1(f"{url}|{where}|{bbox}|{out_fields}".encode("utf-8")).hexdigest()[:16]
+    cache_file = CACHE_DIR / f"arcgis_cache_{cache_key}.json"
+    if cache_file.exists():
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
     all_features = []
     offset = 0
     page_size = 1000
@@ -65,13 +76,23 @@ def fetch_arcgis_features(url: str, where: str = "1=1", bbox: str = None, out_fi
             params["spatialRel"] = "esriSpatialRelIntersects"
         qurl = f"{url}/query?{urllib.parse.urlencode(params)}"
         req = urllib.request.Request(qurl, headers=HEADERS)
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(req, timeout=25) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            print(f"   [warn] ArcGIS query timeout/error on {url} (offset={offset}): {e}")
+            break
         feats = data.get("features") or []
         all_features.extend(feats)
         if not data.get("exceededTransferLimit") or len(feats) < page_size:
             break
         offset += len(feats)
+    if all_features:
+        try:
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(all_features, f)
+        except Exception:
+            pass
     return all_features
 
 
@@ -1811,6 +1832,256 @@ def build_waterways_collection() -> list:
             }
         )
 
+    # 1F. Recover Countywide HCFCD Open Tributary Creeks, Historic Natural Channels & Unnamed USGS NHD / COH Tributary Streams
+    from shapely.ops import nearest_points
+    from shapely.strtree import STRtree
+
+    HCFCD_WATERSHED_MAP = {
+        "A": ("Clear Creek", "Clear Creek Watershed (HCFCD Unit A)"),
+        "B": ("Armand Bayou", "Armand Bayou Watershed (HCFCD Unit B)"),
+        "C": ("Sims Bayou", "Sims Bayou Watershed (HCFCD Unit C)"),
+        "D": ("Brays Bayou", "Brays Bayou Watershed (HCFCD Unit D)"),
+        "E": ("White Oak Bayou", "White Oak Bayou Watershed (HCFCD Unit E)"),
+        "F": ("Galveston Bay Coastal", "Galveston Bay Coastal Watershed (HCFCD Unit F)"),
+        "G": ("San Jacinto River", "San Jacinto River Watershed (HCFCD Unit G)"),
+        "H": ("Hunting Bayou", "Hunting Bayou Watershed (HCFCD Unit H)"),
+        "I": ("Vince Bayou", "Vince Bayou Watershed (HCFCD Unit I)"),
+        "J": ("Spring Creek", "Spring Creek Watershed (HCFCD Unit J)"),
+        "K": ("Cypress Creek", "Cypress Creek Watershed (HCFCD Unit K)"),
+        "L": ("Little Cypress Creek", "Little Cypress Creek Watershed (HCFCD Unit L)"),
+        "M": ("Willow Creek", "Willow Creek Watershed (HCFCD Unit M)"),
+        "N": ("Carpenters Bayou", "Carpenters Bayou Watershed (HCFCD Unit N)"),
+        "O": ("Spring Gully", "Spring Gully Watershed (HCFCD Unit O)"),
+        "P": ("Greens & Halls Bayou", "Greens Bayou Watershed (HCFCD Unit P)"),
+        "Q": ("Cedar Bayou", "Cedar Bayou Watershed (HCFCD Unit Q)"),
+        "R": ("Jackson Bayou", "Jackson Bayou Watershed (HCFCD Unit R)"),
+        "S": ("Luce Bayou", "Luce Bayou Watershed (HCFCD Unit S)"),
+        "T": ("Cane Island Branch", "Cane Island Branch Watershed (HCFCD Unit T)"),
+        "U": ("Addicks / Langham Creek", "Addicks Reservoir Watershed (HCFCD Unit U)"),
+        "V": ("Barker / Upper Buffalo Bayou", "Barker Reservoir Watershed (HCFCD Unit V)"),
+        "W": ("Buffalo Bayou", "Buffalo Bayou Watershed (HCFCD Unit W)"),
+    }
+
+    existing_bufs = []
+    existing_parents = []
+    for wf in waterway_features:
+        g = shape(wf["geometry"])
+        existing_bufs.append(g.buffer(0.00042))
+        existing_parents.append((g, wf["properties"]["name"], wf["properties"]["watershed"]))
+    buf_tree = STRtree(existing_bufs)
+    base_parent_geoms = [p[0] for p in existing_parents]
+    base_parent_tree = STRtree(base_parent_geoms)
+
+    def subtract_existing(geom, tree, bufs):
+        idxs = tree.query(geom)
+        if len(idxs) == 0:
+            return geom
+        sub_u = unary_union([bufs[i] for i in idxs])
+        return geom.difference(sub_u)
+
+    def snap_tributary_endpoints(geom, p_tree, p_geoms, max_snap_deg=0.00068):
+        """Snap tributary endpoints that were clipped by parent bayou buffers directly onto the parent centerline."""
+        if geom is None or geom.is_empty:
+            return geom
+        parts = [geom] if isinstance(geom, LineString) else list(getattr(geom, "geoms", []))
+        snapped_parts = []
+        for part in parts:
+            if not isinstance(part, LineString) or len(part.coords) < 2:
+                continue
+            coords = list(part.coords)
+            pt0 = Point(coords[0])
+            pt1 = Point(coords[-1])
+            idx0 = int(p_tree.nearest(pt0))
+            idx1 = int(p_tree.nearest(pt1))
+            p0 = p_geoms[idx0]
+            p1 = p_geoms[idx1]
+            d0 = pt0.distance(p0)
+            d1 = pt1.distance(p1)
+            # Skip short parallel chord fragments whose both ends hug the same parent waterway
+            if d0 <= max_snap_deg and d1 <= max_snap_deg and idx0 == idx1 and part.length < 0.0022:
+                continue
+            if 0 < d0 <= max_snap_deg:
+                s0 = nearest_points(pt0, p0)[1]
+                coords = [(s0.x, s0.y)] + coords
+            if 0 < d1 <= max_snap_deg:
+                s1 = nearest_points(pt1, p1)[1]
+                coords = coords + [(s1.x, s1.y)]
+            if len(coords) >= 2:
+                snapped_parts.append(LineString(coords))
+        if not snapped_parts:
+            return LineString()
+        return snapped_parts[0] if len(snapped_parts) == 1 else MultiLineString(snapped_parts)
+
+    m3_cache_path = CACHE_DIR / "hcfcd_m3_all_existing.json"
+    if m3_cache_path.exists():
+        with open(m3_cache_path, "r", encoding="utf-8") as f:
+            m3_all = json.load(f)
+    else:
+        m3_all = fetch_arcgis_features(
+            "https://services2.arcgis.com/nLl0k0Mja5hnSeSl/arcgis/rest/services/M3_HCFCD_Drainage_Network/FeatureServer/0",
+            where="Type NOT IN ('PROPOSED', 'Proposed', 'CONNECTOR')",
+            out_fields="UnitNumber,Type,MainStem_or_Trib,Drains_To_Sub_Reach,Wtsh_Unit,Comments",
+        )
+        with open(m3_cache_path, "w", encoding="utf-8") as f:
+            json.dump(m3_all, f)
+
+    m3_groups = {}
+    for f in m3_all:
+        a = f.get("attributes") or {}
+        wtsh = (a.get("Wtsh_Unit") or "W").strip()
+        u = (a.get("UnitNumber") or "").strip() or f"HIST-{wtsh}"
+        t = (a.get("Type") or "OPEN").strip().upper()
+        # Skip generic suburban street-grid storm sewer pipes (curated historic buried gullies are built in Step 1D)
+        if t in ("CLOSED CONDUIT", "STORM SEWER"):
+            continue
+        wtype = "historic_oxbow" if t == "HISTORICAL" else "creek"
+        drains_to = (a.get("Drains_To_Sub_Reach") or "").strip().split("_")[0]
+        g = esri_paths_to_shapely(f.get("geometry"))
+        if g is not None and not g.is_empty:
+            rec = m3_groups.setdefault((u, wtype, wtsh), {"geoms": [], "drains_to": drains_to})
+            rec["geoms"].append(g)
+
+    added_m3_count = 0
+    new_m3_bufs = []
+    for (u, wtype, wtsh), rec in sorted(m3_groups.items()):
+        merged = safe_linemerge(unary_union(rec["geoms"]))
+        if not merged or merged.is_empty:
+            continue
+        diff = subtract_existing(merged, buf_tree, existing_bufs)
+        if diff.is_empty:
+            continue
+        diff = snap_tributary_endpoints(diff, base_parent_tree, base_parent_geoms)
+        if diff.is_empty:
+            continue
+        length_mi = approx_length_miles(diff)
+        if length_mi < 0.08:
+            continue
+        geom_json = round_coords_geom(diff, tol=0.00002, precision=5)
+        if not geom_json:
+            continue
+
+        parent_bayou, wtsh_label = HCFCD_WATERSHED_MAP.get(
+            wtsh, ("Houston Bayou", f"HCFCD Watershed {wtsh}")
+        )
+        drains_note = f" (draining into HCFCD Unit {rec['drains_to']})" if rec["drains_to"] else ""
+        slug_u = re.sub(r"[^a-z0-9]+", "_", u.lower()).strip("_")
+
+        if wtype == "historic_oxbow":
+            feat_name = f"{parent_bayou} Historic Natural Channel ({u})"
+            status_str = f"Historic Natural Stream Channel (HCFCD Archive {u})"
+            sig_str = (
+                f"Surveyed historic natural stream channel in the {wtsh_label} preserved in the Harris County Flood "
+                f"Control District (HCFCD) historical drainage archive."
+            )
+        else:
+            feat_name = f"{parent_bayou} Tributary ({u})"
+            status_str = f"Historic & Flood-Control Tributary Creek (HCFCD Unit {u})"
+            sig_str = (
+                f"Natural and flood-control tributary stream (HCFCD Unit {u}) in the {wtsh_label}{drains_note}. "
+                f"Part of Harris County's lateral creek and drainage network feeding {parent_bayou}."
+            )
+
+        waterway_features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "id": f"waterway_hcfcd_{slug_u}_{wtype}",
+                    "name": feat_name,
+                    "alt_names": [f"HCFCD Unit {u}", f"{parent_bayou} Tributary {u}"],
+                    "waterway_type": wtype,
+                    "status": status_str,
+                    "watershed": wtsh_label,
+                    "era_notes": f"HCFCD Unit {u} · {wtsh_label}",
+                    "historic_significance": sig_str,
+                    "length_miles": length_mi,
+                    "source": "Harris County Flood Control District (HCFCD M3 Drainage Network Survey)",
+                    "is_minor_trib": True,
+                },
+                "geometry": geom_json,
+            }
+        )
+        new_m3_bufs.append(diff.buffer(0.00042))
+        existing_parents.append((diff, parent_bayou, wtsh_label))
+        added_m3_count += 1
+
+    # Also recover unnamed USGS NHD / City of Houston hydrography stream reaches (e.g., pond/ravine tributaries on basemap)
+    all_bufs = existing_bufs + new_m3_bufs
+    all_buf_tree = STRtree(all_bufs)
+    parent_geoms = [p[0] for p in existing_parents]
+    parent_tree = STRtree(parent_geoms)
+
+    coh_all_path = CACHE_DIR / "coh_water_lines_all.json"
+    if coh_all_path.exists():
+        with open(coh_all_path, "r", encoding="utf-8") as f:
+            coh_all_feats = json.load(f)
+    else:
+        coh_all_feats = fetch_arcgis_features(
+            "https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/Water_Line_Texas_ClippedCOH/FeatureServer/0",
+            where="1=1",
+        )
+        with open(coh_all_path, "w", encoding="utf-8") as f:
+            json.dump(coh_all_feats, f)
+
+    coh_unnamed_rc = {}
+    for f in coh_all_feats:
+        a = f.get("attributes") or {}
+        if (a.get("NAME") or "").strip():
+            continue
+        rc = (a.get("ReachCode") or "").strip()
+        g = esri_paths_to_shapely(f.get("geometry"))
+        if rc and g is not None and not g.is_empty:
+            coh_unnamed_rc.setdefault(rc, []).append(g)
+
+    added_nhd_count = 0
+    for rc, geoms in sorted(coh_unnamed_rc.items()):
+        merged = safe_linemerge(unary_union(geoms))
+        if not merged or merged.is_empty:
+            continue
+        diff = subtract_existing(merged, all_buf_tree, all_bufs)
+        if diff.is_empty:
+            continue
+        diff = snap_tributary_endpoints(diff, parent_tree, parent_geoms)
+        if diff.is_empty:
+            continue
+        length_mi = approx_length_miles(diff)
+        if length_mi < 0.08:
+            continue
+        geom_json = round_coords_geom(diff, tol=0.00002, precision=5)
+        if not geom_json:
+            continue
+
+        nearest_idx = parent_tree.nearest(diff)
+        _, p_name, p_wtsh = existing_parents[int(nearest_idx)]
+        short_parent = p_name.split(" (")[0].split(" - ")[0].replace(" Tributary", "")
+        short_rc = rc[-6:] if len(rc) >= 6 else rc
+
+        waterway_features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "id": f"waterway_nhd_{rc}",
+                    "name": f"{short_parent} Tributary Stream (NHD #{short_rc})",
+                    "alt_names": [f"USGS NHD Reach {rc}", f"{short_parent} Natural Ravine / Tributary"],
+                    "waterway_type": "creek",
+                    "status": f"Natural Tributary Stream & Ravine (USGS NHD Reach {rc})",
+                    "watershed": p_wtsh,
+                    "era_notes": f"USGS National Hydrography Dataset (Reach {rc}) & City of Houston Hydrography",
+                    "historic_significance": (
+                        f"Natural tributary stream and drainage ravine (USGS NHD Reach {rc}) in the {p_wtsh}, "
+                        f"feeding {short_parent} and preserved on USGS topographic maps and City of Houston hydrography."
+                    ),
+                    "length_miles": length_mi,
+                    "source": "USGS National Hydrography Dataset (NHD) & City of Houston Hydrography",
+                    "is_minor_trib": True,
+                },
+                "geometry": geom_json,
+            }
+        )
+        added_nhd_count += 1
+
+    print(
+        f"   Recovered +{added_m3_count} HCFCD M3 open/historic tributaries and +{added_nhd_count} unnamed NHD tributary streams"
+    )
     print(f"   -> Built {len(waterway_features)} total Historical Waterway features")
     return waterway_features
 
@@ -2251,6 +2522,8 @@ def update_overlays_and_search_index(waterways: list, railroads: list):
     added_water = 0
     for feat in waterways:
         p = feat["properties"]
+        if p.get("is_minor_trib") and float(p.get("length_miles") or 0) < 0.45:
+            continue
         geom = shape(feat["geometry"])
         rep = geom.representative_point()
         b = geom.bounds  # (minx, miny, maxx, maxy)
