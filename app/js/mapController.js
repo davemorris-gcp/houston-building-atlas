@@ -9,7 +9,7 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261010e";
+} from "./palettes.js?v=20261010f";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -17,12 +17,12 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261010e";
+} from "./filterStore.js?v=20261010f";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261010e";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261010e";
+} from "./curatedEdits.js?v=20261010f";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261010f";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -186,10 +186,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261010e"),
-        fetch("public/data/parcels.geojson?v=20261010e"),
-        fetch("public/data/overlays.json?v=20261010e"),
-        fetch("public/data/pmtiles_manifest.json?v=20261010e").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261010f"),
+        fetch("public/data/parcels.geojson?v=20261010f"),
+        fetch("public/data/overlays.json?v=20261010f"),
+        fetch("public/data/pmtiles_manifest.json?v=20261010f").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -6447,7 +6447,7 @@ export class AtlasMapController {
     };
   }
 
-  getRenderedBuildingCandidates(limit = 20000) {
+  getRenderedBuildingCandidates(limit = 500) {
     const out = [];
     const seenKeys = new Set();
 
@@ -6484,7 +6484,7 @@ export class AtlasMapController {
       return res;
     };
 
-    if (!this.useCanvasFallback && this.map) {
+    if (!this.useCanvasFallback && this.map && this.map.getZoom() >= 13.5) {
       const queryLayers = [
         "curated-overrides-fill",
         "curated-overrides-extrusion",
@@ -6515,47 +6515,7 @@ export class AtlasMapController {
       }
     }
 
-    const vp = this.getCurrentViewport ? this.getCurrentViewport() : null;
-    const allFeatures = [
-      ...(this.overridesFC?.features || []),
-      ...(this.buildingsData || []),
-    ];
-    const nonViewportOut = [];
-    for (const feat of allFeatures) {
-      const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
-      if (p.suppress_only) continue;
-      const key = this._getCanonicalBuildingKey(p);
-      if (key) {
-        if (seenKeys.has(key)) continue;
-        seenKeys.add(key);
-      }
-      const pt = extractCentroid(feat);
-      if (!pt) continue;
-      const inVp = Boolean(
-        vp &&
-          pt[0] >= vp.west &&
-          pt[0] <= vp.east &&
-          pt[1] >= vp.south &&
-          pt[1] <= vp.north
-      );
-      if (inVp) {
-        out.push({
-          props: p,
-          lon: pt[0],
-          lat: pt[1],
-          inViewport: true,
-        });
-      } else if (nonViewportOut.length < limit) {
-        nonViewportOut.push({
-          props: p,
-          lon: pt[0],
-          lat: pt[1],
-          inViewport: false,
-        });
-      }
-    }
-
-    return out.concat(nonViewportOut).slice(0, limit * 2);
+    return out;
   }
 }
 
