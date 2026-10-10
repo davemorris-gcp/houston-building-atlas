@@ -9,7 +9,7 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261009i";
+} from "./palettes.js?v=20261010a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -17,12 +17,12 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261009m";
+} from "./filterStore.js?v=20261010a";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261009i";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
+} from "./curatedEdits.js?v=20261010a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261010a";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -186,10 +186,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261009i"),
-        fetch("public/data/parcels.geojson?v=20261009i"),
-        fetch("public/data/overlays.json?v=20261009q"),
-        fetch("public/data/pmtiles_manifest.json?v=20261009i").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261010a"),
+        fetch("public/data/parcels.geojson?v=20261010a"),
+        fetch("public/data/overlays.json?v=20261010a"),
+        fetch("public/data/pmtiles_manifest.json?v=20261010a").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -763,6 +763,14 @@ export class AtlasMapController {
       type: "geojson",
       data: overlays.good_brick_awards || { type: "FeatureCollection", features: [] },
     });
+    this.map.addSource("historical-waterways-src", {
+      type: "geojson",
+      data: overlays.historical_waterways || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("historical-railroads-src", {
+      type: "geojson",
+      data: overlays.historical_railroads || { type: "FeatureCollection", features: [] },
+    });
 
     const state = this.filterStore.getState();
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
@@ -958,6 +966,11 @@ export class AtlasMapController {
       id: "selected-boundary-fill",
       type: "fill",
       source: "selected-boundary-src",
+      filter: [
+        "any",
+        ["==", ["geometry-type"], "Polygon"],
+        ["==", ["geometry-type"], "MultiPolygon"],
+      ],
       paint: {
         "fill-color": "#FDE047",
         "fill-opacity": 0.11,
@@ -967,11 +980,25 @@ export class AtlasMapController {
       id: "selected-boundary-line",
       type: "line",
       source: "selected-boundary-src",
+      filter: ["!=", ["geometry-type"], "Point"],
       paint: {
         "line-color": "#FDE047",
-        "line-width": 3.0,
+        "line-width": 3.5,
         "line-dasharray": [2, 1.5],
-        "line-opacity": 0.95,
+        "line-opacity": 0.98,
+      },
+    });
+    this.map.addLayer({
+      id: "selected-boundary-point",
+      type: "circle",
+      source: "selected-boundary-src",
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: {
+        "circle-radius": 9.5,
+        "circle-color": "#FDE047",
+        "circle-stroke-color": "#0F172A",
+        "circle-stroke-width": 2.4,
+        "circle-opacity": 0.95,
       },
     });
     this.map.addLayer({
@@ -1009,6 +1036,156 @@ export class AtlasMapController {
       type: "line",
       source: "historic-districts-src",
       paint: { "line-color": "#38BDF8", "line-width": 2.0, "line-opacity": 0.85 },
+    });
+    this.map.addLayer({
+      id: "historical-waterways-casing",
+      type: "line",
+      source: "historical-waterways-src",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": "rgba(9, 13, 22, 0.85)",
+        "line-width": [
+          "match",
+          ["get", "waterway_type"],
+          "bayou",
+          5.2,
+          "buried_gully",
+          4.4,
+          "historic_oxbow",
+          4.4,
+          3.8,
+        ],
+        "line-opacity": 0.82,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-waterways-line",
+      type: "line",
+      source: "historical-waterways-src",
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": [
+          "match",
+          ["get", "waterway_type"],
+          "bayou",
+          "#0EA5E9",
+          "creek",
+          "#22D3EE",
+          "buried_gully",
+          "#FBBF24",
+          "historic_oxbow",
+          "#A78BFA",
+          "#38BDF8",
+        ],
+        "line-width": [
+          "match",
+          ["get", "waterway_type"],
+          "bayou",
+          3.1,
+          "buried_gully",
+          2.6,
+          "historic_oxbow",
+          2.6,
+          2.1,
+        ],
+        "line-dasharray": [
+          "match",
+          ["get", "waterway_type"],
+          "buried_gully",
+          ["literal", [3, 2]],
+          "historic_oxbow",
+          ["literal", [2, 2]],
+          ["literal", [1, 0]],
+        ],
+        "line-opacity": 0.94,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-railroads-casing",
+      type: "line",
+      source: "historical-railroads-src",
+      filter: ["!=", ["get", "rail_type"], "depot"],
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": "rgba(9, 13, 22, 0.88)",
+        "line-width": [
+          "match",
+          ["get", "rail_type"],
+          "mainline",
+          4.6,
+          "abandoned_trail",
+          4.2,
+          "streetcar_interurban",
+          4.0,
+          3.4,
+        ],
+        "line-opacity": 0.84,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-railroads-line",
+      type: "line",
+      source: "historical-railroads-src",
+      filter: ["!=", ["get", "rail_type"], "depot"],
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": [
+          "match",
+          ["get", "rail_type"],
+          "mainline",
+          "#F59E0B",
+          "abandoned_trail",
+          "#FB7185",
+          "streetcar_interurban",
+          "#C084FC",
+          "#94A3B8",
+        ],
+        "line-width": [
+          "match",
+          ["get", "rail_type"],
+          "mainline",
+          2.6,
+          "abandoned_trail",
+          2.4,
+          "streetcar_interurban",
+          2.2,
+          1.7,
+        ],
+        "line-dasharray": [
+          "match",
+          ["get", "rail_type"],
+          "abandoned_trail",
+          ["literal", [3, 2]],
+          "streetcar_interurban",
+          ["literal", [2, 1.5]],
+          ["literal", [1, 0]],
+        ],
+        "line-opacity": 0.94,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-railroads-ties",
+      type: "line",
+      source: "historical-railroads-src",
+      filter: ["==", ["get", "rail_type"], "mainline"],
+      paint: {
+        "line-color": "#FEF3C7",
+        "line-width": 4.2,
+        "line-dasharray": [0.4, 2.6],
+        "line-opacity": 0.72,
+      },
     });
     this.map.addLayer({
       id: "parcels-fill",
@@ -1378,6 +1555,18 @@ export class AtlasMapController {
       },
     });
     this.map.addLayer({
+      id: "historical-railroads-depots",
+      type: "circle",
+      source: "historical-railroads-src",
+      filter: ["==", ["get", "rail_type"], "depot"],
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 4.8, 15, 7.6],
+        "circle-color": "#FDE047",
+        "circle-stroke-color": "#0F172A",
+        "circle-stroke-width": 2.2,
+      },
+    });
+    this.map.addLayer({
       id: "super-neighborhoods-label",
       type: "symbol",
       source: "super-neighborhoods-labels-src",
@@ -1498,6 +1687,81 @@ export class AtlasMapController {
         "text-color": "#FDE68A",
         "text-halo-color": "rgba(11, 15, 23, 0.94)",
         "text-halo-width": 2.1,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-waterways-label",
+      type: "symbol",
+      source: "historical-waterways-src",
+      minzoom: 11.2,
+      layout: {
+        "symbol-placement": "line",
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11.2, 10.0, 15, 12.5],
+        "symbol-spacing": 320,
+      },
+      paint: {
+        "text-color": [
+          "match",
+          ["get", "waterway_type"],
+          "buried_gully",
+          "#FDE68A",
+          "historic_oxbow",
+          "#DDD6FE",
+          "#7DD3FC",
+        ],
+        "text-halo-color": "rgba(11, 15, 23, 0.95)",
+        "text-halo-width": 1.9,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-railroads-label",
+      type: "symbol",
+      source: "historical-railroads-src",
+      filter: ["!=", ["get", "rail_type"], "depot"],
+      minzoom: 11.2,
+      layout: {
+        "symbol-placement": "line",
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11.2, 10.0, 15, 12.2],
+        "symbol-spacing": 340,
+      },
+      paint: {
+        "text-color": [
+          "match",
+          ["get", "rail_type"],
+          "abandoned_trail",
+          "#FDA4AF",
+          "streetcar_interurban",
+          "#E9D5FF",
+          "industrial_spur",
+          "#CBD5E1",
+          "#FDE68A",
+        ],
+        "text-halo-color": "rgba(11, 15, 23, 0.95)",
+        "text-halo-width": 1.9,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-railroads-depots-label",
+      type: "symbol",
+      source: "historical-railroads-src",
+      filter: ["==", ["get", "rail_type"], "depot"],
+      minzoom: 11.8,
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11.8, 10.2, 15.5, 12.5],
+        "text-offset": [0, 1.15],
+        "text-anchor": "top",
+        "text-max-width": 11,
+      },
+      paint: {
+        "text-color": "#FEF08A",
+        "text-halo-color": "rgba(11, 15, 23, 0.96)",
+        "text-halo-width": 2.0,
       },
     });
   }
@@ -2296,14 +2560,102 @@ export class AtlasMapController {
           drawPolygonFeature(feat.geometry, fill, stroke, 1.7, [2, 1.5]);
         }
       }
+      const drawPolylineFeature = (geom, strokeStyle, lineWidth = 2.0, dash = null) => {
+        if (!geom || !geom.coordinates) return;
+        const lines =
+          geom.type === "LineString"
+            ? [geom.coordinates]
+            : geom.type === "MultiLineString"
+            ? geom.coordinates
+            : [];
+        for (const coords of lines) {
+          if (!Array.isArray(coords) || coords.length < 2) continue;
+          ctx.beginPath();
+          for (let i = 0; i < coords.length; i++) {
+            const [sx, sy] = this._lngLatToScreen(coords[i][0], coords[i][1], width, height);
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+          }
+          if (dash) ctx.setLineDash(dash);
+          ctx.strokeStyle = strokeStyle;
+          ctx.lineWidth = lineWidth;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.stroke();
+          if (dash) ctx.setLineDash([]);
+        }
+      };
+
+      if (state.layers.historicalWaterways && this.overlaysData?.historical_waterways) {
+        for (const feat of this.overlaysData.historical_waterways.features || []) {
+          const wt = feat.properties?.waterway_type;
+          const color =
+            wt === "bayou"
+              ? "#0EA5E9"
+              : wt === "buried_gully"
+              ? "#FBBF24"
+              : wt === "historic_oxbow"
+              ? "#A78BFA"
+              : "#22D3EE";
+          const lw = wt === "bayou" ? 3.0 : wt === "buried_gully" || wt === "historic_oxbow" ? 2.5 : 2.0;
+          const dash = wt === "buried_gully" ? [5, 3] : wt === "historic_oxbow" ? [4, 4] : null;
+          drawPolylineFeature(feat.geometry, color, lw, dash);
+        }
+      }
+      if (state.layers.historicalRailroads && this.overlaysData?.historical_railroads) {
+        for (const feat of this.overlaysData.historical_railroads.features || []) {
+          const rt = feat.properties?.rail_type;
+          if (rt === "depot" && feat.geometry?.type === "Point") {
+            const [sx, sy] = this._lngLatToScreen(
+              feat.geometry.coordinates[0],
+              feat.geometry.coordinates[1],
+              width,
+              height
+            );
+            ctx.beginPath();
+            ctx.arc(sx, sy, 5.8, 0, Math.PI * 2);
+            ctx.fillStyle = "#FDE047";
+            ctx.fill();
+            ctx.strokeStyle = "#0F172A";
+            ctx.lineWidth = 2.0;
+            ctx.stroke();
+            continue;
+          }
+          const color =
+            rt === "mainline"
+              ? "#F59E0B"
+              : rt === "abandoned_trail"
+              ? "#FB7185"
+              : rt === "streetcar_interurban"
+              ? "#C084FC"
+              : "#94A3B8";
+          const lw = rt === "mainline" ? 2.6 : rt === "abandoned_trail" ? 2.3 : 2.0;
+          const dash = rt === "abandoned_trail" ? [5, 3] : rt === "streetcar_interurban" ? [3, 2.5] : null;
+          drawPolylineFeature(feat.geometry, color, lw, dash);
+        }
+      }
       if (this.selectedBoundaryFeature && this.selectedBoundaryFeature.geometry) {
-        drawPolygonFeature(
-          this.selectedBoundaryFeature.geometry,
-          "rgba(253, 224, 71, 0.08)",
-          isLightBg ? "#0F172A" : "#FDE047",
-          2.6,
-          [3, 2]
-        );
+        const sGeom = this.selectedBoundaryFeature.geometry;
+        if (sGeom.type === "LineString" || sGeom.type === "MultiLineString") {
+          drawPolylineFeature(sGeom, isLightBg ? "#0F172A" : "#FDE047", 3.6, [4, 3]);
+        } else if (sGeom.type === "Point" && Array.isArray(sGeom.coordinates)) {
+          const [sx, sy] = this._lngLatToScreen(sGeom.coordinates[0], sGeom.coordinates[1], width, height);
+          ctx.beginPath();
+          ctx.arc(sx, sy, 8.5, 0, Math.PI * 2);
+          ctx.fillStyle = "#FDE047";
+          ctx.fill();
+          ctx.strokeStyle = "#0F172A";
+          ctx.lineWidth = 2.4;
+          ctx.stroke();
+        } else {
+          drawPolygonFeature(
+            sGeom,
+            "rgba(253, 224, 71, 0.08)",
+            isLightBg ? "#0F172A" : "#FDE047",
+            2.6,
+            [3, 2]
+          );
+        }
       }
     } else if (isoMode !== "footprints_only") {
       // Draw the isolated boundary polygon outline (and subtle silhouette fill in border_only mode)
@@ -2646,6 +2998,8 @@ export class AtlasMapController {
       p.overlay_layer === "historic_districts" ||
       p.overlay_layer === "heritage_districts" ||
       p.overlay_layer === "nrhp_districts" ||
+      p.overlay_layer === "historical_waterways" ||
+      p.overlay_layer === "historical_railroads" ||
       p.type === "Neighborhood / Historic Area" ||
       p.type === "Platted Subdivision" ||
       p.type === "COH Super Neighborhood" ||
@@ -2699,7 +3053,7 @@ export class AtlasMapController {
         : "";
 
     if (isBoundary) {
-      let badge = p.type || "Neighborhood Boundary";
+      let badge = p.type_label || p.type || "Neighborhood Boundary";
       if (p.overlay_layer === "platted_subdivisions") {
         if (p.has_deed_docs) {
           badge = `📜 Deed Restrictions + Plat (${p.deed_doc_count || 1} PDF${
@@ -2714,9 +3068,21 @@ export class AtlasMapController {
         badge = p.era_label;
       } else if (p.overlay_layer === "super_neighborhoods" && p.poly_id) {
         badge = `COH Super Neighborhood #${p.poly_id}`;
+      } else if (p.overlay_layer === "historical_waterways") {
+        badge = p.type_label || "Historical Waterway";
+      } else if (p.overlay_layer === "historical_railroads") {
+        badge = p.type_label || "Historical Railroad";
       }
       const statParts = [];
-      if (p.overlay_layer === "land_use_protections") {
+      if (p.overlay_layer === "historical_waterways") {
+        if (p.status) statParts.push(p.status);
+        if (p.era_notes) statParts.push(p.era_notes);
+        if (Number(p.length_miles) > 0) statParts.push(`${p.length_miles} mi mapped`);
+      } else if (p.overlay_layer === "historical_railroads") {
+        if (p.historic_company) statParts.push(p.historic_company);
+        if (p.charter_year) statParts.push(`Opened/Chartered ${p.charter_year}`);
+        if (p.status) statParts.push(p.status);
+      } else if (p.overlay_layer === "land_use_protections") {
         if (p.ordinance) statParts.push(`Ord. #${p.ordinance}`);
         if (Number(p.min_lot_sqft) > 0) {
           statParts.push(`Min Lot ${Number(p.min_lot_sqft).toLocaleString()} sq ft`);
@@ -2748,7 +3114,7 @@ export class AtlasMapController {
         statParts.push(p.super_neighborhood);
       }
       const subtitle =
-        statParts.join(" • ") || "Click to inspect boundary & deed restrictions";
+        statParts.join(" • ") || "Click to inspect historical dossier";
       return `<div class="tooltip-card">
         <div class="tooltip-top">
           <span class="tooltip-badge">${badge}</span>
@@ -2757,6 +3123,8 @@ export class AtlasMapController {
               ? `<span class="tooltip-status">${p.neighborhood}</span>`
               : p.historic_ward && p.overlay_layer !== "historic_wards"
               ? `<span class="tooltip-status">${p.historic_ward}</span>`
+              : p.watershed && p.overlay_layer === "historical_waterways"
+              ? `<span class="tooltip-status">${p.watershed}</span>`
               : ""
           }
         </div>
@@ -3107,7 +3475,26 @@ export class AtlasMapController {
       this.map.setFilter("annexations-line", annexFilter);
     }
 
-    setVis(["selected-boundary-fill", "selected-boundary-line"], !isoGeom);
+    setVis(
+      ["historical-waterways-casing", "historical-waterways-line", "historical-waterways-label"],
+      !isoGeom && Boolean(state.layers?.historicalWaterways)
+    );
+    setVis(
+      [
+        "historical-railroads-casing",
+        "historical-railroads-line",
+        "historical-railroads-ties",
+        "historical-railroads-depots",
+        "historical-railroads-label",
+        "historical-railroads-depots-label",
+      ],
+      !isoGeom && Boolean(state.layers?.historicalRailroads)
+    );
+
+    setVis(
+      ["selected-boundary-fill", "selected-boundary-line", "selected-boundary-point"],
+      !isoGeom
+    );
 
     // Update WebGL isolation mask and border layers
     const maskSrc = this.map.getSource("isolation-mask-src");
@@ -3213,6 +3600,8 @@ export class AtlasMapController {
         super_neighborhoods: Boolean(state.layers?.superNeighborhoods),
         historic_wards: showWards,
         annexations: showAnnex,
+        historical_waterways: Boolean(state.layers?.historicalWaterways),
+        historical_railroads: Boolean(state.layers?.historicalRailroads),
       };
       const isSpokeHidden =
         selOverlay === "annexations" &&
@@ -4080,6 +4469,14 @@ export class AtlasMapController {
           visitRing(poly[0]);
         }
       }
+    } else if (geom.type === "LineString" && Array.isArray(geom.coordinates)) {
+      visitRing(geom.coordinates);
+    } else if (geom.type === "MultiLineString" && Array.isArray(geom.coordinates)) {
+      for (const line of geom.coordinates) {
+        if (Array.isArray(line)) {
+          visitRing(line);
+        }
+      }
     }
 
     if (count === 0 || !Number.isFinite(minLng)) return null;
@@ -4092,12 +4489,14 @@ export class AtlasMapController {
 
   _buildBoundarySpatialIndex() {
     this.boundarySpatialIndex = [];
-    const indexLayer = (fc, overlayKey) => {
+    const indexLayer = (fc, overlayKey, allowNonPolygon = false) => {
       if (!fc || !Array.isArray(fc.features)) return;
       for (let idx = 0; idx < fc.features.length; idx++) {
         const feat = fc.features[idx];
         const geom = feat?.geometry;
-        if (!geom || (geom.type !== "Polygon" && geom.type !== "MultiPolygon")) continue;
+        if (!geom) continue;
+        const isPoly = geom.type === "Polygon" || geom.type === "MultiPolygon";
+        if (!isPoly && !allowNonPolygon) continue;
         const meta = this._computeGeometryBBoxAndCentroid(geom);
         if (!meta) continue;
         const rawProps = feat.properties || {};
@@ -4130,6 +4529,8 @@ export class AtlasMapController {
     indexLayer(this.overlaysData?.heritage_districts, "heritage_districts");
     indexLayer(this.overlaysData?.nrhp_districts, "nrhp_districts");
     indexLayer(this.overlaysData?.annexations, "annexations");
+    indexLayer(this.overlaysData?.historical_waterways, "historical_waterways", true);
+    indexLayer(this.overlaysData?.historical_railroads, "historical_railroads", true);
   }
 
   _normalizeBoundaryOverlayKey(rawKey) {
@@ -4160,6 +4561,13 @@ export class AtlasMapController {
       "nrhp-districts-fill": "nrhp_districts",
       annexations: "annexations",
       "annexations-fill": "annexations",
+      historicalWaterways: "historical_waterways",
+      historical_waterways: "historical_waterways",
+      "historical-waterways-line": "historical_waterways",
+      historicalRailroads: "historical_railroads",
+      historical_railroads: "historical_railroads",
+      "historical-railroads-line": "historical_railroads",
+      "historical-railroads-depots": "historical_railroads",
     };
     return map[k] || k;
   }
@@ -4327,6 +4735,89 @@ export class AtlasMapController {
           props: p,
           geometry: f.geometry || null,
         });
+      }
+
+      // 1b. Collect rendered historical waterways & railroads within a 6px hit box
+      const linearOverlayLayers = [
+        state.layers?.historicalRailroads ? "historical-railroads-depots" : null,
+        state.layers?.historicalRailroads ? "historical-railroads-line" : null,
+        state.layers?.historicalWaterways ? "historical-waterways-line" : null,
+      ].filter((id) => id && this.map.getLayer(id));
+
+      if (linearOverlayLayers.length) {
+        const hitBox = [
+          [point.x - 6, point.y - 6],
+          [point.x + 6, point.y + 6],
+        ];
+        const linearHits = this.map.queryRenderedFeatures(hitBox, {
+          layers: linearOverlayLayers,
+        });
+        for (const lf of linearHits) {
+          const lp = lf.properties || {};
+          const lid = lf.layer?.id || "";
+          const isWaterway = lid.startsWith("historical-waterways") || lp.overlay_layer === "historical_waterways";
+          const overlayKey = isWaterway ? "historical_waterways" : "historical_railroads";
+          const itemKey = `bnd:${overlayKey}:${lp.id || lp.name}`;
+          if (seenKeys.has(itemKey)) continue;
+          seenKeys.add(itemKey);
+
+          let badge = lp.type_label || (isWaterway ? "Historical Waterway" : "Historical Railroad");
+          let swatch = "#38bdf8";
+          if (isWaterway) {
+            const wt = lp.waterway_type;
+            if (wt === "buried_gully") {
+              badge = "Buried Gully";
+              swatch = "#FBBF24";
+            } else if (wt === "historic_oxbow") {
+              badge = "Historic Oxbow";
+              swatch = "#A78BFA";
+            } else if (wt === "bayou") {
+              badge = "Bayou";
+              swatch = "#0EA5E9";
+            } else {
+              badge = "Historic Creek";
+              swatch = "#22D3EE";
+            }
+          } else {
+            const rt = lp.rail_type;
+            if (rt === "depot") {
+              badge = "Historic Depot";
+              swatch = "#FDE047";
+            } else if (rt === "abandoned_trail") {
+              badge = "Abandoned Rail";
+              swatch = "#FB7185";
+            } else if (rt === "streetcar_interurban") {
+              badge = "Streetcar Line";
+              swatch = "#C084FC";
+            } else if (rt === "industrial_spur") {
+              badge = "Industrial Spur";
+              swatch = "#94A3B8";
+            } else {
+              badge = "Pioneer Railroad";
+              swatch = "#F59E0B";
+            }
+          }
+
+          stack.push({
+            key: itemKey,
+            kind: "boundary",
+            layerId: lid,
+            overlayKey,
+            layerKey: overlayKey,
+            typeBadge: badge,
+            badge,
+            swatchColor: swatch,
+            color: swatch,
+            title: lp.name || badge,
+            subtitle: lp.status || lp.historic_company || lp.era_notes || badge,
+            props: {
+              ...lp,
+              overlay_layer: overlayKey,
+              is_boundary_feature: true,
+            },
+            geometry: lf.geometry || null,
+          });
+        }
       }
     } else if (this.useCanvasFallback && this.canvasState && point) {
       const boxes = this.canvasState.renderedBBoxes || [];
@@ -4861,10 +5352,19 @@ export class AtlasMapController {
 
     if (flyTo) {
       const [minLng, minLat, maxLng, maxLat] = matchEntry.bbox;
+      const isPointFeature =
+        matchEntry.feature?.geometry?.type === "Point" ||
+        (Math.abs(maxLng - minLng) < 1e-6 && Math.abs(maxLat - minLat) < 1e-6);
       const isSmallBoundary =
         matchEntry.overlayKey === "platted_subdivisions" ||
         matchEntry.overlayKey === "neighborhoods";
-      if (!this.useCanvasFallback && this.map && typeof this.map.fitBounds === "function") {
+      if (isPointFeature) {
+        this.flyToLocation({
+          lng: matchEntry.centroid[0],
+          lat: matchEntry.centroid[1],
+          zoom: 15.5,
+        });
+      } else if (!this.useCanvasFallback && this.map && typeof this.map.fitBounds === "function") {
         try {
           this.map.fitBounds(
             [
@@ -5048,6 +5548,45 @@ export class AtlasMapController {
     }
   }
 
+  _getCanonicalBuildingKey(props, fallbackCoord = "") {
+    if (!props) return fallbackCoord;
+    const rawId = String(props.building_id || props.id || "").trim();
+    const hcad = String(props.hcad_num || "").trim();
+    if (rawId.includes("#")) {
+      if (/#aux_\d+$/.test(rawId) && hcad) return hcad;
+      return rawId;
+    }
+    if (hcad && !hcad.startsWith("bld_")) {
+      return hcad;
+    }
+    return rawId || fallbackCoord;
+  }
+
+  _approxPolygonAreaDeg2(geom) {
+    if (!geom || !geom.coordinates) return 0;
+    const polys =
+      geom.type === "Polygon"
+        ? [geom.coordinates]
+        : geom.type === "MultiPolygon" && Array.isArray(geom.coordinates)
+        ? geom.coordinates
+        : [];
+    let total = 0;
+    for (const poly of polys) {
+      const ring = poly && poly[0];
+      if (!Array.isArray(ring) || ring.length < 3) continue;
+      let sum = 0;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = Number(ring[i][0]) || 0;
+        const yi = Number(ring[i][1]) || 0;
+        const xj = Number(ring[j][0]) || 0;
+        const yj = Number(ring[j][1]) || 0;
+        sum += xj * yi - xi * yj;
+      }
+      total += Math.abs(sum) * 0.5;
+    }
+    return total;
+  }
+
   computeViewportHistogram() {
     if (!this.onViewportStats) return;
 
@@ -5080,17 +5619,35 @@ export class AtlasMapController {
     const isoGeom = iso?.feature?.geometry || null;
     const isoBBox = iso?.bbox || null;
 
-    const isPolygonInIsolated = (geom) => {
-      if (!isoGeom) return true;
-      if (!geom || !geom.coordinates) return false;
+    const getSamplePt = (geom) => {
+      if (!geom || !geom.coordinates) return null;
       const ring =
         geom.type === "Polygon"
           ? geom.coordinates[0]
           : geom.type === "MultiPolygon" && geom.coordinates[0]
           ? geom.coordinates[0][0]
           : null;
-      if (!ring || !ring.length) return false;
-      const [lon, lat] = ring[0];
+      if (!ring || !ring.length) return null;
+      let sx = 0;
+      let sy = 0;
+      let n = 0;
+      const step = Math.max(1, Math.floor(ring.length / 6));
+      for (let i = 0; i < ring.length; i += step) {
+        const pt = ring[i];
+        if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+          sx += pt[0];
+          sy += pt[1];
+          n += 1;
+        }
+      }
+      return n > 0 ? [sx / n, sy / n] : null;
+    };
+
+    const isPolygonInIsolated = (geom) => {
+      if (!isoGeom) return true;
+      const pt = getSamplePt(geom);
+      if (!pt) return false;
+      const [lon, lat] = pt;
       if (isoBBox && (lon < isoBBox[0] || lon > isoBBox[2] || lat < isoBBox[1] || lat > isoBBox[3])) {
         return false;
       }
@@ -5114,16 +5671,12 @@ export class AtlasMapController {
           for (const feat of rendered) {
             if (isoGeom && !isPolygonInIsolated(feat.geometry)) continue;
             const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
-            const firstPt =
-              feat.geometry?.type === "Polygon"
-                ? feat.geometry.coordinates?.[0]?.[0]
-                : feat.geometry?.coordinates?.[0]?.[0]?.[0];
-            const coordSig =
-              Array.isArray(firstPt) && firstPt.length >= 2
-                ? `${Number(firstPt[0]).toFixed(5)},${Number(firstPt[1]).toFixed(5)}`
-                : "";
-            const baseKey = p.id || p.hcad_num || "";
-            const key = coordSig ? `${baseKey}:${coordSig}` : baseKey;
+            if (p.suppress_only) continue;
+            const samplePt = getSamplePt(feat.geometry);
+            const coordSig = samplePt
+              ? `${Number(samplePt[0]).toFixed(5)},${Number(samplePt[1]).toFixed(5)}`
+              : "";
+            const key = this._getCanonicalBuildingKey(p, coordSig);
             if (key) {
               if (seenIds.has(key)) continue;
               seenIds.add(key);
@@ -5160,25 +5713,20 @@ export class AtlasMapController {
       ];
       for (const feat of allFallbackFeatures) {
         const geom = feat.geometry;
-        if (!geom || !geom.coordinates) continue;
+        const pt = getSamplePt(geom);
+        if (!pt) continue;
 
-        const ring =
-          geom.type === "Polygon"
-            ? geom.coordinates[0]
-            : geom.type === "MultiPolygon" && geom.coordinates[0]
-            ? geom.coordinates[0][0]
-            : null;
-        if (!ring || !ring.length) continue;
-
-        const [lon, lat] = ring[0];
+        const [lon, lat] = pt;
         if (!isoGeom && (lon < west || lon > east || lat < south || lat > north)) continue;
         if (isoGeom && !isPolygonInIsolated(geom)) continue;
 
         const p = feat.properties || {};
-        const fid = p.id || p.building_id || "";
-        if (fid) {
-          if (seenFallbackIds.has(fid)) continue;
-          seenFallbackIds.add(fid);
+        if (p.suppress_only) continue;
+        const coordSig = `${lon.toFixed(5)},${lat.toFixed(5)}`;
+        const key = this._getCanonicalBuildingKey(p, coordSig);
+        if (key) {
+          if (seenFallbackIds.has(key)) continue;
+          seenFallbackIds.add(key);
         }
 
         inViewportTotal += 1;
@@ -5614,10 +6162,9 @@ export class AtlasMapController {
       return n > 0 ? [sx / n, sy / n] : null;
     };
 
-    const buildings = [];
-    const seenBldKeys = new Set();
+    const buildingsByKey = new Map();
 
-    const addBuildingCandidate = (feat) => {
+    const addBuildingCandidate = (feat, isAuthoritativeSource = false) => {
       if (!feat?.geometry) return;
       const gType = feat.geometry.type;
       if (gType !== "Polygon" && gType !== "MultiPolygon") return;
@@ -5628,15 +6175,24 @@ export class AtlasMapController {
       const samplePt = getPolySamplePoint(feat.geometry);
       if (!samplePt || !isPointInside(samplePt[0], samplePt[1])) return;
 
-      const key =
-        String(p.id || p.building_id || p.hcad_num || "") ||
-        `${samplePt[0].toFixed(5)},${samplePt[1].toFixed(5)}`;
-      if (seenBldKeys.has(key)) return;
-      seenBldKeys.add(key);
+      const coordFallback = `${samplePt[0].toFixed(5)},${samplePt[1].toFixed(5)}`;
+      const key = this._getCanonicalBuildingKey(p, coordFallback);
+      const areaDeg2 = this._approxPolygonAreaDeg2(feat.geometry);
 
-      buildings.push({
+      const existing = buildingsByKey.get(key);
+      if (existing) {
+        if (!existing._authoritative && areaDeg2 > existing._areaDeg2 * 1.05) {
+          existing.geometry = feat.geometry;
+          existing._areaDeg2 = areaDeg2;
+        }
+        return;
+      }
+
+      buildingsByKey.set(key, {
         type: "Feature",
         geometry: feat.geometry,
+        _areaDeg2: areaDeg2,
+        _authoritative: isAuthoritativeSource,
         properties: {
           ...p,
           _export_color: evaluateFeatureColor(p, state.colorMode, state.paletteStyle),
@@ -5644,8 +6200,8 @@ export class AtlasMapController {
       });
     };
 
-    for (const f of this.overridesFC?.features || []) addBuildingCandidate(f);
-    for (const f of this.buildingsData || []) addBuildingCandidate(f);
+    for (const f of this.overridesFC?.features || []) addBuildingCandidate(f, true);
+    for (const f of this.buildingsData || []) addBuildingCandidate(f, true);
 
     if (!this.useCanvasFallback && this.map) {
       const queryLayers = [
@@ -5655,22 +6211,24 @@ export class AtlasMapController {
       if (queryLayers.length > 0) {
         try {
           const rendered = this.map.queryRenderedFeatures({ layers: queryLayers });
-          for (const f of rendered) addBuildingCandidate(f);
+          for (const f of rendered) addBuildingCandidate(f, false);
         } catch (_e) {}
       }
       if (Array.isArray(this.shardSourceIds)) {
         for (const srcId of this.shardSourceIds) {
           try {
             const srcFeats = this.map.querySourceFeatures(srcId, { sourceLayer: "buildings" });
-            for (const f of srcFeats) addBuildingCandidate(f);
+            for (const f of srcFeats) addBuildingCandidate(f, false);
           } catch (_e) {}
         }
       }
     }
 
-    if (buildings.length === 0 && Array.isArray(this.parcelsData)) {
-      for (const f of this.parcelsData) addBuildingCandidate(f);
+    if (buildingsByKey.size === 0 && Array.isArray(this.parcelsData)) {
+      for (const f of this.parcelsData) addBuildingCandidate(f, false);
     }
+
+    const buildings = Array.from(buildingsByKey.values());
 
     const landmarks = [];
     for (const f of this.overlaysData?.landmarks?.features || []) {
@@ -5798,7 +6356,7 @@ export class AtlasMapController {
           if (out.length >= limit) break;
           const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
           if (p.suppress_only) continue;
-          const key = p.id || p.building_id || p.hcad_num || "";
+          const key = this._getCanonicalBuildingKey(p);
           if (key) {
             if (seenKeys.has(key)) continue;
             seenKeys.add(key);
@@ -5824,7 +6382,7 @@ export class AtlasMapController {
     for (const feat of allFeatures) {
       const p = applyOverrideToProperties(feat.properties || {}, this.curatedOverrides);
       if (p.suppress_only) continue;
-      const key = p.id || p.building_id || p.hcad_num || "";
+      const key = this._getCanonicalBuildingKey(p);
       if (key) {
         if (seenKeys.has(key)) continue;
         seenKeys.add(key);

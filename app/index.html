@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261009p" />
+  <link rel="stylesheet" href="styles/index.css?v=20261010a" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -673,6 +673,55 @@
               <input type="checkbox" id="chk-annexation-spokes" checked />
               <span>Include 10-ft Highway Spokes &amp; MUD Commercial Strips</span>
             </label>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="historicalWaterways">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-waterways" />
+              <span class="swatch-line" style="border-color:#0EA5E9;" title="Cerulean = Bayous &amp; Creeks · Dashed Amber/Cyan = Buried Gullies · Dotted Violet = Pre-Channelization Oxbows"></span>
+              <span class="layer-name">Historical Waterways &amp; Gullies (114)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="historicalWaterways"
+              title="Show only Historical Waterways, Streams, Creeks, Buried Gullies &amp; Pre-Channelization Oxbows (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="annexation-options-row hidden" id="waterways-legend-row">
+            <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
+              <span><strong style="color:#38BDF8;">&#9473;&#9473;</strong> Bayous &amp; Creeks</span>
+              <span><strong style="color:#FBBF24;">&#9476;&#9476;</strong> Buried Gullies (Harris, Pecore, Slaughterpen)</span>
+              <span><strong style="color:#A78BFA;">&middot;&middot;&middot;</strong> Historic Oxbows</span>
+            </div>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="historicalRailroads">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-railroads" />
+              <span class="swatch-line dashed" style="border-color:#F59E0B;" title="Gold Cross-Tie = Pioneer Mainlines · Rose Dashed = Abandoned / Rail-Trail · Violet Dashed = Streetcars &amp; Interurban · Gold Pin = Historic Depots"></span>
+              <span class="layer-name">Historical Railroads &amp; Streetcars (58)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="historicalRailroads"
+              title="Show only Historical Railroads, Abandoned Rail-Trails, Streetcar Lines &amp; Historic Train Depots (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="annexation-options-row hidden" id="railroads-legend-row">
+            <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
+              <span><strong style="color:#F59E0B;">&#9547;&#9547;</strong> Pioneer Mainlines</span>
+              <span><strong style="color:#FB7185;">&#9476;&#9476;</strong> Abandoned / Rail-Trails</span>
+              <span><strong style="color:#C084FC;">&#9476;&#9476;</strong> Streetcars &amp; Interurban</span>
+              <span><strong style="color:#FDE047;">&#9670;</strong> Depots</span>
+            </div>
           </div>
 
           <div class="layer-item-row" data-layer-key="historicMap">
@@ -1519,6 +1568,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261009q"></script>
+  <script type="module" src="js/app.js?v=20261010a"></script>
 </body>
 </html>

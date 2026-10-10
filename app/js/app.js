@@ -6,7 +6,7 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261009i";
+} from "./palettes.js?v=20261010a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -16,9 +16,9 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261009o";
-import { AtlasMapController } from "./mapController.js?v=20261009o";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261008t";
+} from "./filterStore.js?v=20261010a";
+import { AtlasMapController } from "./mapController.js?v=20261010a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261010a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -29,14 +29,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261009i";
+} from "./curatedEdits.js?v=20261010a";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261007f";
+} from "./photoService.js?v=20261010a";
 
 class HoustonAtlasApp {
   constructor() {
@@ -124,6 +124,8 @@ class HoustonAtlasApp {
       });
     }
 
+    this._applyExportStudioHashParams(window.location.hash, window.location.search);
+
     this.filterStore.subscribe((state) => {
       this._syncControlsFromState(state);
       this._renderLegend();
@@ -160,6 +162,7 @@ class HoustonAtlasApp {
           flyTo: true,
         });
       }
+      this._applyExportStudioHashParams(window.location.hash, window.location.search);
       this._suppressUrlUpdate = false;
     };
 
@@ -189,10 +192,10 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261009k"),
-        fetch("public/data/stats_summary.json?v=20261009k"),
-        fetch("public/data/haif_index.json?v=20261009k").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261009q").catch(() => null),
+        fetch("public/data/search_index.json?v=20261010a"),
+        fetch("public/data/stats_summary.json?v=20261010a"),
+        fetch("public/data/haif_index.json?v=20261010a").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261010a").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -1494,6 +1497,8 @@ class HoustonAtlasApp {
       ["chk-layer-historic-wards", "historicWards"],
       ["chk-layer-thc-markers", "thcMarkers"],
       ["chk-layer-annexations", "annexations"],
+      ["chk-layer-waterways", "historicalWaterways"],
+      ["chk-layer-railroads", "historicalRailroads"],
       ["chk-layer-historic-map", "historicMap"],
     ];
     for (const [domId, layerKey] of layerCheckboxes) {
@@ -2466,7 +2471,9 @@ class HoustonAtlasApp {
           item.type === "neighborhood" ||
           item.type === "platted_subdivision" ||
           item.type === "super_neighborhood" ||
-          item.type === "historic_ward"
+          item.type === "historic_ward" ||
+          item.type === "historical_waterway" ||
+          item.type === "historical_railroad"
       );
 
       if (targetGrade) {
@@ -2987,7 +2994,9 @@ class HoustonAtlasApp {
               m.type === "neighborhood" ||
               m.type === "platted_subdivision" ||
               m.type === "super_neighborhood" ||
-              m.type === "historic_ward"
+              m.type === "historic_ward" ||
+              m.type === "historical_waterway" ||
+              m.type === "historical_railroad"
           );
           const dispLabel = m.label || m.name || m.building_name || "Houston Neighborhood";
           const dispSub =
@@ -3041,7 +3050,9 @@ class HoustonAtlasApp {
             chosen.type === "neighborhood" ||
             chosen.type === "platted_subdivision" ||
             chosen.type === "super_neighborhood" ||
-            chosen.type === "historic_ward"
+            chosen.type === "historic_ward" ||
+            chosen.type === "historical_waterway" ||
+            chosen.type === "historical_railroad"
           ) {
             const rawLayer = String(chosen.overlay_layer || "");
             const layerKey =
@@ -3051,6 +3062,10 @@ class HoustonAtlasApp {
                 ? "super_neighborhoods"
                 : rawLayer === "plattedSubdivisions"
                 ? "platted_subdivisions"
+                : rawLayer === "historicalWaterways"
+                ? "historical_waterways"
+                : rawLayer === "historicalRailroads"
+                ? "historical_railroads"
                 : rawLayer ||
                   (chosen.type === "super_neighborhood"
                     ? "super_neighborhoods"
@@ -3058,9 +3073,18 @@ class HoustonAtlasApp {
                     ? "historic_wards"
                     : chosen.type === "platted_subdivision"
                     ? "platted_subdivisions"
+                    : chosen.type === "historical_waterway"
+                    ? "historical_waterways"
+                    : chosen.type === "historical_railroad"
+                    ? "historical_railroads"
                     : "neighborhoods");
             if (chosen.type === "historic_ward" && chosen.era_year) {
               this.filterStore.setState({ wardEra: Number(chosen.era_year) });
+            }
+            if (layerKey === "historical_waterways") {
+              this.filterStore.setLayerVisibility("historicalWaterways", true);
+            } else if (layerKey === "historical_railroads") {
+              this.filterStore.setLayerVisibility("historicalRailroads", true);
             }
             this.mapController.highlightBoundaryByIdOrName({
               id: chosen.id || "",
@@ -3801,11 +3825,22 @@ class HoustonAtlasApp {
       "chk-layer-super-neighborhoods": state.layers.superNeighborhoods,
       "chk-layer-historic-wards": state.layers.historicWards,
       "chk-layer-annexations": state.layers.annexations,
+      "chk-layer-waterways": state.layers.historicalWaterways,
+      "chk-layer-railroads": state.layers.historicalRailroads,
       "chk-layer-historic-map": state.layers.historicMap,
     };
     for (const [id, checked] of Object.entries(mapLayerIds)) {
       const el = document.getElementById(id);
       if (el) el.checked = Boolean(checked);
+    }
+
+    const waterwaysLegendRow = document.getElementById("waterways-legend-row");
+    if (waterwaysLegendRow) {
+      waterwaysLegendRow.classList.toggle("hidden", !state.layers.historicalWaterways);
+    }
+    const railroadsLegendRow = document.getElementById("railroads-legend-row");
+    if (railroadsLegendRow) {
+      railroadsLegendRow.classList.toggle("hidden", !state.layers.historicalRailroads);
     }
 
     const wardEraRow = document.getElementById("historic-ward-era-row");
@@ -4749,7 +4784,34 @@ class HoustonAtlasApp {
       const annexYr = rawProps.annex_year || rawProps.decade || "";
       badgeLabel = `Municipal Annexation${annexYr ? ` (${annexYr})` : ""}`;
       badgeColor = "#f43f5e";
+    } else if (overlayLayer === "historical_waterways") {
+      badgeLabel = rawProps.type_label || "Historical Waterway";
+      const wt = rawProps.waterway_type;
+      badgeColor =
+        wt === "buried_gully"
+          ? "#fbbf24"
+          : wt === "historic_oxbow"
+          ? "#a78bfa"
+          : wt === "bayou"
+          ? "#0ea5e9"
+          : "#22d3ee";
+    } else if (overlayLayer === "historical_railroads") {
+      badgeLabel = rawProps.type_label || "Historical Railroad";
+      const rt = rawProps.rail_type;
+      badgeColor =
+        rt === "depot"
+          ? "#fde047"
+          : rt === "abandoned_trail"
+          ? "#fb7185"
+          : rt === "streetcar_interurban"
+          ? "#c084fc"
+          : rt === "industrial_spur"
+          ? "#94a3b8"
+          : "#f59e0b";
     }
+
+    const isLinearOrPointOverlay =
+      overlayLayer === "historical_waterways" || overlayLayer === "historical_railroads";
 
     const bldCount = Number(rawProps.building_count || 0);
     const earliestYear = Number(rawProps.earliest_year || 0);
@@ -4759,7 +4821,15 @@ class HoustonAtlasApp {
     const goodBrickCount = Number(rawProps.good_brick_count || 0);
 
     const subtitleParts = [];
-    if (overlayLayer === "platted_subdivisions") {
+    if (overlayLayer === "historical_waterways") {
+      if (rawProps.status) subtitleParts.push(rawProps.status);
+      if (rawProps.watershed) subtitleParts.push(`Watershed: ${rawProps.watershed}`);
+      if (Number(rawProps.length_miles) > 0) subtitleParts.push(`${rawProps.length_miles} mi mapped`);
+    } else if (overlayLayer === "historical_railroads") {
+      if (rawProps.historic_company) subtitleParts.push(rawProps.historic_company);
+      if (rawProps.charter_year) subtitleParts.push(`Opened/Chartered ${rawProps.charter_year}`);
+      if (rawProps.status) subtitleParts.push(rawProps.status);
+    } else if (overlayLayer === "platted_subdivisions") {
       if (rawProps.plat_citation) {
         subtitleParts.push(rawProps.plat_citation);
       } else {
@@ -4790,7 +4860,7 @@ class HoustonAtlasApp {
     const akaHeroHtml =
       aliases.length > 0
         ? `<div class="inspector-aka-bar" id="inspector-aka-bar">
-            <span class="inspector-aka-label">Historical &amp; Colloquial Area Names:</span>
+            <span class="inspector-aka-label">Historical &amp; Colloquial Names:</span>
             <div class="inspector-aka-chips">
               ${aliases
                 .map(
@@ -4861,7 +4931,9 @@ class HoustonAtlasApp {
     );
     const activeIsoMode = isCurrentlyIsolated ? curIso.mode : "contents";
 
-    const isolationCardHtml = `
+    const isolationCardHtml = isLinearOrPointOverlay
+      ? ""
+      : `
       <div class="inspector-isolation-card">
         <div class="inspector-isolation-header">
           <span class="inspector-isolation-kicker">&#127919; Isolate Area &amp; Merch / Print Export</span>
@@ -4918,6 +4990,8 @@ class HoustonAtlasApp {
       </div>
     `;
 
+    const narrativeDesc = rawProps.historic_significance || rawProps.description || "";
+
     content.innerHTML = `
       ${overlapStackHtml}
       <div class="inspector-hero">
@@ -4926,6 +5000,8 @@ class HoustonAtlasApp {
           ${
             earliestYear >= 1836
               ? `<span class="inspector-age-pill">Earliest Structure: ${earliestYear}</span>`
+              : rawProps.charter_year
+              ? `<span class="inspector-age-pill">Era: ${rawProps.charter_year}</span>`
               : ""
           }
         </div>
@@ -4943,13 +5019,13 @@ class HoustonAtlasApp {
       ${boundaryDeedCardHtml}
 
       ${
-        rawProps.description
+        narrativeDesc
           ? `<div class="ph-verified-override-card" style="border-left-color:${badgeColor};">
               <div class="ph-verified-header">
-                <span>Geographic &amp; Historical Context</span>
+                <span>${isLinearOrPointOverlay ? "Historical &amp; Architectural Significance" : "Geographic &amp; Historical Context"}</span>
               </div>
               <div class="ph-verified-citation">
-                ${rawProps.description}
+                ${narrativeDesc}
               </div>
             </div>`
           : ""
@@ -4960,15 +5036,15 @@ class HoustonAtlasApp {
           ? `<div class="boundary-dossier-stats-grid">
               <div class="boundary-stat-card">
                 <span class="boundary-stat-label">Recorded Structures</span>
-                <span class="boundary-stat-val mono">${bldCount > 0 ? bldCount.toLocaleString() : "—"}</span>
+                <span class="boundary-stat-val mono">${bldCount > 0 ? bldCount.toLocaleString() : "-"}</span>
               </div>
               <div class="boundary-stat-card">
                 <span class="boundary-stat-label">Earliest Structure</span>
-                <span class="boundary-stat-val mono">${earliestYear >= 1836 ? earliestYear : "—"}</span>
+                <span class="boundary-stat-val mono">${earliestYear >= 1836 ? earliestYear : "-"}</span>
               </div>
               <div class="boundary-stat-card">
                 <span class="boundary-stat-label">Median Build Year</span>
-                <span class="boundary-stat-val mono">${medianYear >= 1836 ? medianYear : "—"}</span>
+                <span class="boundary-stat-val mono">${medianYear >= 1836 ? medianYear : "-"}</span>
               </div>
               <div class="boundary-stat-card">
                 <span class="boundary-stat-label">Pre-1940 Structures</span>
@@ -4987,6 +5063,94 @@ class HoustonAtlasApp {
       }
 
       <div class="inspector-grid">
+        ${
+          overlayLayer === "historical_waterways" && rawProps.status
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Channel &amp; Culvert Status</span>
+                <span class="cell-value">${rawProps.status}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_waterways" && rawProps.watershed
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Primary Watershed</span>
+                <span class="cell-value">${rawProps.watershed}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_waterways" && rawProps.hcfcd_unit
+            ? `<div class="inspector-cell">
+                <span class="cell-label">HCFCD Unit / Tributary ID</span>
+                <span class="cell-value mono">${rawProps.hcfcd_unit}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_waterways" && rawProps.era_notes
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Historical Engineering &amp; Channelization Milestones</span>
+                <span class="cell-value">${rawProps.era_notes}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_railroads" && rawProps.historic_company
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Pioneer Railroad / Streetcar Company</span>
+                <span class="cell-value">${rawProps.historic_company}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_railroads" && rawProps.charter_year
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Charter / Opening Era</span>
+                <span class="cell-value mono">${rawProps.charter_year}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_railroads" && rawProps.modern_operator
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Modern Operator / Legacy</span>
+                <span class="cell-value">${rawProps.modern_operator}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_railroads" && rawProps.status
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Current Corridor Status</span>
+                <span class="cell-value">${rawProps.status}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_railroads" && rawProps.route_corridor
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Historic Route Alignment</span>
+                <span class="cell-value">${rawProps.route_corridor}</span>
+              </div>`
+            : ""
+        }
+        ${
+          overlayLayer === "historical_railroads" && rawProps.address
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Historic Site Location</span>
+                <span class="cell-value">${rawProps.address}</span>
+              </div>`
+            : ""
+        }
+        ${
+          Number(rawProps.length_miles) > 0
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Mapped Corridor Length</span>
+                <span class="cell-value mono">${rawProps.length_miles} miles</span>
+              </div>`
+            : ""
+        }
         ${
           fullName && overlayLayer === "platted_subdivisions"
             ? `<div class="inspector-cell full">
@@ -5105,27 +5269,31 @@ class HoustonAtlasApp {
         }
         ${topSubsHtml}
         <div class="inspector-cell full">
-          <span class="cell-label">Boundary Data Source</span>
+          <span class="cell-label">Cartographic &amp; Archival Data Source</span>
           <span class="cell-value">${rawProps.source || "City of Houston &amp; HCAD GIS"}</span>
         </div>
       </div>
 
       <div class="inspector-actions">
-        <button
-          type="button"
-          class="inspector-btn primary"
-          id="btn-explore-boundary-buildings"
-          data-filter-chip="${name.replace(/"/g, "&quot;")}"
-          data-filter-label="${badgeLabel}: ${name.replace(/"/g, "&quot;")}"
-        >
-          &#128269; Explore Structures in ${name}
-        </button>
+        ${
+          isLinearOrPointOverlay
+            ? ""
+            : `<button
+                type="button"
+                class="inspector-btn primary"
+                id="btn-explore-boundary-buildings"
+                data-filter-chip="${name.replace(/"/g, "&quot;")}"
+                data-filter-label="${badgeLabel}: ${name.replace(/"/g, "&quot;")}"
+              >
+                &#128269; Explore Structures in ${name}
+              </button>`
+        }
         <button
           type="button"
           class="inspector-btn secondary"
           id="btn-clear-boundary-outline"
         >
-          Clear Boundary Outline on Map
+          Clear Highlight on Map
         </button>
       </div>
     `;
@@ -5240,6 +5408,8 @@ class HoustonAtlasApp {
         "heritage_districts",
         "nrhp_districts",
         "annexations",
+        "historical_waterways",
+        "historical_railroads",
       ].includes(String(rawProps.overlay_layer || ""))
     ) {
       this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
@@ -7293,6 +7463,8 @@ class HoustonAtlasApp {
       return;
     }
 
+    this._ensureCachedExportFootprints(iso);
+
     const mode = iso.mode || "contents";
     const curBase = this.filterStore.getState().basemap;
     const isSolid = curBase === "solid_dark" || curBase === "solid_light";
@@ -7593,7 +7765,7 @@ class HoustonAtlasApp {
     });
   }
 
-  openExportStudioModal(initialBoundarySpec = null) {
+  openExportStudioModal(initialBoundarySpec = null, opts = {}) {
     const modal = document.getElementById("export-studio-modal");
     if (!modal) return;
 
@@ -7603,8 +7775,10 @@ class HoustonAtlasApp {
         id: initialBoundarySpec.id || initialBoundarySpec.name,
         name: initialBoundarySpec.name,
       };
-      this._exportStudioState.customTitle = "";
-      this._exportStudioState.customSubtitle = "";
+      if (!opts.preserveCustomText) {
+        this._exportStudioState.customTitle = "";
+        this._exportStudioState.customSubtitle = "";
+      }
     } else if (this.mapController?.getIsolatedBoundary()) {
       const iso = this.mapController.getIsolatedBoundary();
       this._exportStudioState.targetSpec = {
@@ -7662,44 +7836,49 @@ class HoustonAtlasApp {
         ],
       },
       {
-        label: "COH Historic Districts & Heritage Districts (Iconic Shapes)",
+        label: "COH Historic Districts & Heritage Districts (All 24)",
         items: [
-          { val: "historic_districts::Norhill Historic District", text: "Norhill Historic District (951 Structures)" },
+          { val: "historic_districts::Norhill Historic District", text: "Norhill Historic District" },
           { val: "historic_districts::Woodland Heights Historic District", text: "Woodland Heights Historic District" },
+          { val: "historic_districts::Old Sixth Ward Historic District", text: "Old Sixth Ward Protected Historic District" },
+          { val: "heritage_districts::Freedmen's Town Heritage District", text: "Freedmen's Town Heritage District" },
           { val: "historic_districts::Houston Heights East Historic District", text: "Houston Heights East Historic District" },
           { val: "historic_districts::Houston Heights West Historic District", text: "Houston Heights West Historic District" },
           { val: "historic_districts::Houston Heights South Historic District", text: "Houston Heights South Historic District" },
-          { val: "historic_districts::Old Sixth Ward Historic District", text: "Old Sixth Ward Protected Historic District" },
-          { val: "heritage_districts::Freedmen's Town Heritage District", text: "Freedmen's Town Heritage District" },
+          { val: "historic_districts::Freeland Historic District", text: "Freeland Historic District" },
+          { val: "historic_districts::Germantown Historic District", text: "Germantown Historic District" },
+          { val: "historic_districts::High First Ward Historic District", text: "High First Ward Historic District" },
+          { val: "historic_districts::Starkweather Historic District", text: "Starkweather Historic District" },
+          { val: "historic_districts::Brunner-Harmonium Historic District", text: "Brunner-Harmonium Historic District" },
+          { val: "historic_districts::Main Street/Market Square Historic District", text: "Main Street/Market Square Historic District" },
           { val: "historic_districts::Avondale East Historic District", text: "Avondale East Historic District" },
           { val: "historic_districts::Avondale West Historic District", text: "Avondale West Historic District" },
           { val: "historic_districts::Broadacres Historic District", text: "Broadacres Historic District" },
           { val: "historic_districts::Boulevard Oaks Historic District", text: "Boulevard Oaks Historic District" },
-          { val: "historic_districts::Shadow Lawn Historic District", text: "Shadow Lawn Historic District" },
-          { val: "historic_districts::Glenbrook Valley Historic District", text: "Glenbrook Valley Historic District" },
           { val: "historic_districts::Courtland Place Historic District", text: "Courtland Place Historic District" },
           { val: "historic_districts::First Montrose Commons Historic District", text: "First Montrose Commons Historic District" },
           { val: "historic_districts::Westmoreland Historic District", text: "Westmoreland Historic District" },
           { val: "historic_districts::Audubon Place Historic District", text: "Audubon Place Historic District" },
-          { val: "historic_districts::Germantown Historic District", text: "Germantown Historic District" },
-          { val: "historic_districts::Main Street/Market Square Historic District", text: "Main Street/Market Square Historic District" },
+          { val: "historic_districts::Shadow Lawn Historic District", text: "Shadow Lawn Historic District" },
+          { val: "historic_districts::West Eleventh Place Historic District", text: "West Eleventh Place Historic District" },
+          { val: "historic_districts::Glenbrook Valley Historic District", text: "Glenbrook Valley Historic District" },
         ],
       },
       {
-        label: "Featured Houston Neighborhoods & Subdivisions",
+        label: "National Register (NRHP) Historic Districts",
         items: [
-          { val: "neighborhoods::Montrose", text: "Montrose (Neighborhood)" },
-          { val: "neighborhoods::Houston Heights", text: "Houston Heights (Neighborhood)" },
-          { val: "neighborhoods::River Oaks", text: "River Oaks (Neighborhood)" },
-          { val: "neighborhoods::Southampton", text: "Southampton Place (Neighborhood)" },
-          { val: "neighborhoods::Riverside Terrace", text: "Riverside Terrace (Neighborhood)" },
-          { val: "neighborhoods::Garden Oaks", text: "Garden Oaks (Neighborhood)" },
-          { val: "neighborhoods::Oak Forest", text: "Oak Forest (Neighborhood)" },
-          { val: "neighborhoods::Eastwood", text: "Eastwood (Neighborhood)" },
-          { val: "platted_subdivisions::Woodland Heights", text: "Woodland Heights (1907 Platted Subdivision)" },
-          { val: "platted_subdivisions::East Norhill", text: "East Norhill (Platted Subdivision)" },
-          { val: "platted_subdivisions::North Norhill", text: "North Norhill (Platted Subdivision)" },
-          { val: "platted_subdivisions::Broadacres", text: "Broadacres (1923 Platted Subdivision)" },
+          { val: "nrhp_districts::HOUSTON HEIGHTS MRA", text: "Houston Heights MRA (NRHP)" },
+          { val: "nrhp_districts::INDEPENDENCE HEIGHTS N.R.", text: "Independence Heights N.R. (NRHP)" },
+          { val: "nrhp_districts::NEAR NORTHSIDE N.R.", text: "Near Northside N.R. (NRHP)" },
+          { val: "nrhp_districts::IDYLWOOD N.R.", text: "Idylwood N.R. (NRHP)" },
+          { val: "nrhp_districts::FREEDMEN'S TOWN N.R.", text: "Freedmen's Town N.R. (NRHP)" },
+          { val: "nrhp_districts::OLD SIXTH WARD N.R.", text: "Old Sixth Ward N.R. (NRHP)" },
+          { val: "nrhp_districts::BOULEVARD OAKS N.R.", text: "Boulevard Oaks N.R. (NRHP)" },
+          { val: "nrhp_districts::BROADACRES N.R.", text: "Broadacres N.R. (NRHP)" },
+          { val: "nrhp_districts::COURTLANDT PLACE N.R.", text: "Courtlandt Place N.R. (NRHP)" },
+          { val: "nrhp_districts::WESTMORELAND N.R.", text: "Westmoreland N.R. (NRHP)" },
+          { val: "nrhp_districts::WEST ELEVENTH PLACE N.R.", text: "West Eleventh Place N.R. (NRHP)" },
+          { val: "nrhp_districts::MAIN STREET/MARKET SQUARE N.R.", text: "Main Street/Market Square N.R. (NRHP)" },
         ],
       },
       {
@@ -7711,6 +7890,67 @@ class HoustonAtlasApp {
           { val: "historic_wards::Fourth Ward", text: "Fourth Ward (1903–1905 Charter)" },
           { val: "historic_wards::Fifth Ward", text: "Fifth Ward (1903–1905 Charter)" },
           { val: "historic_wards::Sixth Ward", text: "Sixth Ward (1903–1905 Charter)" },
+        ],
+      },
+      {
+        label: "Famous Houston Neighborhoods & Subdivisions",
+        items: [
+          { val: "neighborhoods::Montrose", text: "Montrose (Neighborhood)" },
+          { val: "neighborhoods::Houston Heights", text: "Houston Heights (Neighborhood)" },
+          { val: "neighborhoods::River Oaks", text: "River Oaks (Neighborhood)" },
+          { val: "neighborhoods::Southampton", text: "Southampton Place (Neighborhood)" },
+          { val: "neighborhoods::Boulevard Oaks", text: "Boulevard Oaks (Neighborhood)" },
+          { val: "neighborhoods::Woodland Heights", text: "Woodland Heights (Neighborhood)" },
+          { val: "neighborhoods::Riverside Terrace", text: "Riverside Terrace (Neighborhood)" },
+          { val: "neighborhoods::Garden Oaks", text: "Garden Oaks (Neighborhood)" },
+          { val: "neighborhoods::Oak Forest", text: "Oak Forest (Neighborhood)" },
+          { val: "neighborhoods::Idylwood", text: "Idylwood (Neighborhood)" },
+          { val: "neighborhoods::Eastwood", text: "Eastwood (Neighborhood)" },
+          { val: "neighborhoods::Pecan Park Place", text: "Pecan Park Place (Neighborhood)" },
+          { val: "neighborhoods::Lindale Park", text: "Lindale Park (Neighborhood)" },
+          { val: "super_neighborhoods::Museum Park", text: "Museum Park / Museum District (Super Neighborhood)" },
+          { val: "neighborhoods::Midtown", text: "Midtown (Neighborhood)" },
+          { val: "neighborhoods::Downtown", text: "Downtown Houston (Neighborhood)" },
+          { val: "neighborhoods::East Downtown", text: "East Downtown / EaDo (Neighborhood)" },
+          { val: "neighborhoods::Rice Military", text: "Rice Military (Neighborhood)" },
+          { val: "neighborhoods::Camp Logan", text: "Camp Logan (Neighborhood)" },
+          { val: "neighborhoods::Cottage Grove", text: "Cottage Grove (Neighborhood)" },
+          { val: "neighborhoods::Timbergrove Manor", text: "Timbergrove Manor (Neighborhood)" },
+          { val: "neighborhoods::Lazybrook", text: "Lazybrook (Neighborhood)" },
+          { val: "neighborhoods::Meyerland", text: "Meyerland (Neighborhood)" },
+          { val: "neighborhoods::Old Braeswood", text: "Old Braeswood (Neighborhood)" },
+          { val: "neighborhoods::Bellaire", text: "Bellaire (City / Neighborhood)" },
+          { val: "platted_subdivisions::West University Place", text: "West University Place (Subdivision)" },
+          { val: "neighborhoods::Southgate", text: "Southgate (Neighborhood)" },
+          { val: "neighborhoods::Tanglewood", text: "Tanglewood (Neighborhood)" },
+          { val: "neighborhoods::Shady Acres", text: "Shady Acres (Neighborhood)" },
+          { val: "neighborhoods::Sunset Heights", text: "Sunset Heights (Neighborhood)" },
+          { val: "neighborhoods::Brooke Smith", text: "Brooke Smith (Neighborhood)" },
+          { val: "neighborhoods::Magnolia Park", text: "Magnolia Park (Neighborhood)" },
+          { val: "neighborhoods::Pleasantville", text: "Pleasantville (Neighborhood)" },
+          { val: "neighborhoods::Denver Harbor", text: "Denver Harbor (Neighborhood)" },
+          { val: "neighborhoods::Kashmere Gardens", text: "Kashmere Gardens (Neighborhood)" },
+          { val: "neighborhoods::Acres Homes", text: "Acres Homes (Neighborhood)" },
+          { val: "super_neighborhoods::Sunnyside", text: "Sunnyside (Super Neighborhood)" },
+          { val: "super_neighborhoods::Independence Heights", text: "Independence Heights (Super Neighborhood)" },
+          { val: "neighborhoods::Near Northside", text: "Near Northside (Neighborhood)" },
+          { val: "neighborhoods::Third Ward", text: "Third Ward (Neighborhood)" },
+          { val: "neighborhoods::Second Ward", text: "Second Ward / Segundo Barrio (Neighborhood)" },
+          { val: "neighborhoods::Fourth Ward", text: "Fourth Ward / Freedmen's Town (Neighborhood)" },
+          { val: "neighborhoods::Fifth Ward", text: "Fifth Ward / The Nickel (Neighborhood)" },
+          { val: "neighborhoods::First Ward", text: "First Ward (Neighborhood)" },
+          { val: "neighborhoods::Clear Lake City", text: "Clear Lake City (Neighborhood)" },
+          { val: "neighborhoods::Kingwood", text: "Kingwood (Neighborhood)" },
+          { val: "platted_subdivisions::Woodland Heights", text: "Woodland Heights (1907 Platted Subdivision)" },
+          { val: "platted_subdivisions::Norhill", text: "Norhill (1920 Platted Subdivision)" },
+          { val: "platted_subdivisions::East Norhill", text: "East Norhill (1923 Platted Subdivision)" },
+          { val: "platted_subdivisions::North Norhill", text: "North Norhill (1924 Platted Subdivision)" },
+          { val: "platted_subdivisions::Broadacres", text: "Broadacres (1923 Platted Subdivision)" },
+          { val: "platted_subdivisions::Cherokee", text: "Cherokee (1925 Platted Subdivision)" },
+          { val: "platted_subdivisions::Edgemont", text: "Edgemont (1924 Platted Subdivision)" },
+          { val: "platted_subdivisions::Ormond Place", text: "Ormond Place (1922 Platted Subdivision)" },
+          { val: "platted_subdivisions::Woodson Place", text: "Woodson Place (1914 Platted Subdivision)" },
+          { val: "platted_subdivisions::Woodland Terrace", text: "Woodland Terrace (1909 Platted Subdivision)" },
         ],
       },
     ];
@@ -7736,6 +7976,62 @@ class HoustonAtlasApp {
       .join("");
   }
 
+  _getExportCacheSlug(layerKey, name) {
+    const cleanLayer = String(layerKey || "neighborhoods")
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, "_");
+    const cleanName = String(name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    return `${cleanLayer}__${cleanName}`;
+  }
+
+  async _ensureCachedExportFootprints(boundarySpec) {
+    if (!boundarySpec || typeof boundarySpec !== "object" || !boundarySpec.name) return false;
+    if (!this._loadedExportFootprintSlugs) {
+      this._loadedExportFootprintSlugs = new Set();
+    }
+    const slug = this._getExportCacheSlug(
+      boundarySpec.layerKey || "neighborhoods",
+      boundarySpec.name || boundarySpec.id
+    );
+    if (this._loadedExportFootprintSlugs.has(slug)) return false;
+    this._loadedExportFootprintSlugs.add(slug);
+
+    try {
+      const res = await fetch(`public/data/export_cache/${slug}.json`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
+
+      if (this.mapController && Array.isArray(this.mapController.buildingsData)) {
+        const getKey = (props) =>
+          this.mapController._getCanonicalBuildingKey
+            ? this.mapController._getCanonicalBuildingKey(props)
+            : String(props?.hcad_num || props?.building_id || props?.id || "").trim();
+        const existingKeys = new Set(
+          this.mapController.buildingsData.map((f) => getKey(f?.properties)).filter(Boolean)
+        );
+        let added = 0;
+        for (const f of data.buildings) {
+          const k = getKey(f?.properties);
+          if (k && existingKeys.has(k)) continue;
+          if (k) existingKeys.add(k);
+          this.mapController.buildingsData.push(f);
+          added += 1;
+        }
+        if (added > 0 && this.mapController.useCanvasFallback) {
+          this.mapController._renderCanvas2D();
+        }
+        return added > 0;
+      }
+    } catch (_e) {
+      // Cache file optional
+    }
+    return false;
+  }
+
   _renderExportStudioPreview() {
     const stage = document.getElementById("export-svg-preview-stage");
     const statsEl = document.getElementById("export-preview-stats-readout");
@@ -7747,6 +8043,13 @@ class HoustonAtlasApp {
 
     const boundarySpec =
       st.targetSpec === "__viewport__" ? null : st.targetSpec;
+    if (boundarySpec) {
+      this._ensureCachedExportFootprints(boundarySpec).then((added) => {
+        if (added) {
+          this._renderExportStudioPreview();
+        }
+      });
+    }
     const extraction = this.mapController.collectVectorFeaturesForExport({
       boundarySpec,
     });
@@ -8174,6 +8477,98 @@ class HoustonAtlasApp {
     URL.revokeObjectURL(url);
   }
 
+  _applyExportStudioHashParams(hashStr = "", searchStr = "") {
+    const raw =
+      hashStr && hashStr.length > 1
+        ? hashStr.replace(/^#/, "")
+        : searchStr && searchStr.length > 1
+        ? searchStr.replace(/^\?/, "")
+        : "";
+    if (!raw) return;
+    const params = new URLSearchParams(raw);
+    const expOpen = params.get("exp");
+    if (!expOpen || expOpen === "0" || expOpen === "false") return;
+
+    const st = this._exportStudioState;
+    const comp = params.get("expComp");
+    if (
+      comp &&
+      ["figure_ground", "footprints_only", "border_only", "era_poster"].includes(comp)
+    ) {
+      st.composition = comp;
+    }
+    const theme = params.get("expTheme");
+    if (
+      theme &&
+      [
+        "stencil_white",
+        "stencil_black",
+        "ph_emerald",
+        "blueprint",
+        "terracotta",
+        "archival_era",
+      ].includes(theme)
+    ) {
+      st.theme = theme;
+    }
+    const fmt = params.get("expFmt");
+    if (fmt && ["square", "round_coaster", "poster"].includes(fmt)) {
+      st.format = fmt;
+    }
+    if (params.has("expFill")) {
+      st.fillBuildings = params.get("expFill") !== "0" && params.get("expFill") !== "false";
+    }
+    if (params.has("expTrans")) {
+      st.transparentBg = params.get("expTrans") === "1" || params.get("expTrans") === "true";
+    }
+    if (params.has("expLm")) {
+      st.showLandmarks = params.get("expLm") !== "0" && params.get("expLm") !== "false";
+    }
+    if (params.has("expCap")) {
+      st.showCaption = params.get("expCap") !== "0" && params.get("expCap") !== "false";
+    }
+    if (params.has("expBw")) {
+      const bw = parseFloat(params.get("expBw"));
+      if (Number.isFinite(bw) && bw >= 0.5 && bw <= 16) {
+        st.borderWeight = bw;
+      }
+    }
+    const hasCustomText = params.has("expTitle") || params.has("expSub");
+    if (params.has("expTitle")) {
+      st.customTitle = params.get("expTitle") || "";
+    }
+    if (params.has("expSub")) {
+      st.customSubtitle = params.get("expSub") || "";
+    }
+
+    const chkTransparent = document.getElementById("chk-export-transparent");
+    if (chkTransparent) chkTransparent.checked = Boolean(st.transparentBg);
+    const chkFillBld = document.getElementById("chk-export-fill-buildings");
+    if (chkFillBld) chkFillBld.checked = Boolean(st.fillBuildings);
+    const chkLandmarks = document.getElementById("chk-export-show-landmarks");
+    if (chkLandmarks) chkLandmarks.checked = Boolean(st.showLandmarks);
+    const chkCaption = document.getElementById("chk-export-show-caption");
+    if (chkCaption) chkCaption.checked = Boolean(st.showCaption);
+    const sliderWeight = document.getElementById("slider-export-border-weight");
+    if (sliderWeight) sliderWeight.value = String(st.borderWeight);
+    const readout = document.getElementById("export-border-weight-readout");
+    if (readout) readout.textContent = `${Number(st.borderWeight).toFixed(1)}px`;
+    const inputTitle = document.getElementById("input-export-title");
+    if (inputTitle) inputTitle.value = st.customTitle || "";
+    const inputSubtitle = document.getElementById("input-export-subtitle");
+    if (inputSubtitle) inputSubtitle.value = st.customSubtitle || "";
+
+    const iso =
+      this.mapController?.getIsolatedBoundary() ||
+      this.filterStore.getState()?.isolatedBoundary;
+    this.openExportStudioModal(
+      iso && iso.name
+        ? { layerKey: iso.layerKey, id: iso.id || iso.name, name: iso.name }
+        : null,
+      { preserveCustomText: hasCustomText }
+    );
+  }
+
   _updateUrlHash(state) {
     if (this._suppressUrlUpdate) return;
     const vp = this.mapController
@@ -8185,11 +8580,26 @@ class HoustonAtlasApp {
     const selectedHcad = selProps?.hcad_num ? String(selProps.hcad_num).trim() : "";
     const selectedFeatureId = !selectedHcad && selProps?.id ? String(selProps.id).trim() : "";
 
-    const hash = serializeStateToHash(state, vp, {
+    let hash = serializeStateToHash(state, vp, {
       includeViewport: true,
       selectedHcad,
       selectedFeatureId,
     });
+    const expModal = document.getElementById("export-studio-modal");
+    if (expModal && !expModal.classList.contains("hidden")) {
+      const st = this._exportStudioState;
+      const expParams = new URLSearchParams();
+      expParams.set("exp", "1");
+      expParams.set("expComp", st.composition || "figure_ground");
+      expParams.set("expTheme", st.theme || "stencil_white");
+      expParams.set("expFmt", st.format || "square");
+      expParams.set("expFill", st.fillBuildings ? "1" : "0");
+      if (st.transparentBg) expParams.set("expTrans", "1");
+      expParams.set("expLm", st.showLandmarks ? "1" : "0");
+      expParams.set("expCap", st.showCaption ? "1" : "0");
+      expParams.set("expBw", String(st.borderWeight || 4));
+      hash = hash ? `${hash}&${expParams.toString()}` : expParams.toString();
+    }
     const basePath = window.location.pathname;
     if (hash) {
       window.history.replaceState(null, "", `${basePath}#${hash}`);
