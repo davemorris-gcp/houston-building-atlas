@@ -6,7 +6,7 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261010a";
+} from "./palettes.js?v=20261010c";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -16,9 +16,9 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261010a";
-import { AtlasMapController } from "./mapController.js?v=20261010a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261010a";
+} from "./filterStore.js?v=20261010c";
+import { AtlasMapController } from "./mapController.js?v=20261010c";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261010c";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -29,14 +29,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261010a";
+} from "./curatedEdits.js?v=20261010c";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261010a";
+} from "./photoService.js?v=20261010c";
 
 class HoustonAtlasApp {
   constructor() {
@@ -192,10 +192,10 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261010a"),
-        fetch("public/data/stats_summary.json?v=20261010a"),
-        fetch("public/data/haif_index.json?v=20261010a").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261010a").catch(() => null),
+        fetch("public/data/search_index.json?v=20261010c"),
+        fetch("public/data/stats_summary.json?v=20261010c"),
+        fetch("public/data/haif_index.json?v=20261010c").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261010c").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {

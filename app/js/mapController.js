@@ -9,7 +9,7 @@ import {
   getYearColorHex,
   PRESERVATION_STATUS_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261010a";
+} from "./palettes.js?v=20261010c";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -17,12 +17,12 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261010a";
+} from "./filterStore.js?v=20261010c";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261010a";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261010a";
+} from "./curatedEdits.js?v=20261010c";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261010c";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -186,10 +186,10 @@ export class AtlasMapController {
   async _fetchDataPayloads() {
     const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
       await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261010a"),
-        fetch("public/data/parcels.geojson?v=20261010a"),
-        fetch("public/data/overlays.json?v=20261010a"),
-        fetch("public/data/pmtiles_manifest.json?v=20261010a").catch(() => null),
+        fetch("public/data/buildings.geojson?v=20261010c"),
+        fetch("public/data/parcels.geojson?v=20261010c"),
+        fetch("public/data/overlays.json?v=20261010c"),
+        fetch("public/data/pmtiles_manifest.json?v=20261010c").catch(() => null),
         loadCuratedOverrides(),
       ]);
 
@@ -1046,7 +1046,7 @@ export class AtlasMapController {
         "line-join": "round",
       },
       paint: {
-        "line-color": "rgba(9, 13, 22, 0.85)",
+        "line-color": "rgba(9, 13, 22, 0.72)",
         "line-width": [
           "match",
           ["get", "waterway_type"],
@@ -1058,13 +1058,17 @@ export class AtlasMapController {
           4.4,
           3.8,
         ],
-        "line-opacity": 0.82,
+        "line-opacity": 0.75,
       },
     });
     this.map.addLayer({
-      id: "historical-waterways-line",
+      id: "historical-waterways-line-solid",
       type: "line",
       source: "historical-waterways-src",
+      filter: [
+        "!",
+        ["in", ["get", "waterway_type"], ["literal", ["buried_gully", "historic_oxbow"]]],
+      ],
       layout: {
         "line-cap": "round",
         "line-join": "round",
@@ -1077,33 +1081,38 @@ export class AtlasMapController {
           "#0EA5E9",
           "creek",
           "#22D3EE",
+          "#38BDF8",
+        ],
+        "line-width": ["match", ["get", "waterway_type"], "bayou", 3.4, 2.3],
+        "line-opacity": 0.96,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-waterways-line-dashed",
+      type: "line",
+      source: "historical-waterways-src",
+      filter: [
+        "in",
+        ["get", "waterway_type"],
+        ["literal", ["buried_gully", "historic_oxbow"]],
+      ],
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": [
+          "match",
+          ["get", "waterway_type"],
           "buried_gully",
           "#FBBF24",
           "historic_oxbow",
           "#A78BFA",
-          "#38BDF8",
+          "#FBBF24",
         ],
-        "line-width": [
-          "match",
-          ["get", "waterway_type"],
-          "bayou",
-          3.1,
-          "buried_gully",
-          2.6,
-          "historic_oxbow",
-          2.6,
-          2.1,
-        ],
-        "line-dasharray": [
-          "match",
-          ["get", "waterway_type"],
-          "buried_gully",
-          ["literal", [3, 2]],
-          "historic_oxbow",
-          ["literal", [2, 2]],
-          ["literal", [1, 0]],
-        ],
-        "line-opacity": 0.94,
+        "line-width": 2.9,
+        "line-dasharray": [3, 2],
+        "line-opacity": 0.96,
       },
     });
     this.map.addLayer({
@@ -1116,26 +1125,30 @@ export class AtlasMapController {
         "line-join": "round",
       },
       paint: {
-        "line-color": "rgba(9, 13, 22, 0.88)",
+        "line-color": "rgba(9, 13, 22, 0.75)",
         "line-width": [
           "match",
           ["get", "rail_type"],
           "mainline",
-          4.6,
+          4.8,
           "abandoned_trail",
-          4.2,
+          4.4,
           "streetcar_interurban",
-          4.0,
-          3.4,
+          4.2,
+          3.6,
         ],
-        "line-opacity": 0.84,
+        "line-opacity": 0.76,
       },
     });
     this.map.addLayer({
-      id: "historical-railroads-line",
+      id: "historical-railroads-line-solid",
       type: "line",
       source: "historical-railroads-src",
-      filter: ["!=", ["get", "rail_type"], "depot"],
+      filter: [
+        "all",
+        ["!=", ["get", "rail_type"], "depot"],
+        ["!", ["in", ["get", "rail_type"], ["literal", ["abandoned_trail", "streetcar_interurban"]]]],
+      ],
       layout: {
         "line-cap": "round",
         "line-join": "round",
@@ -1146,33 +1159,38 @@ export class AtlasMapController {
           ["get", "rail_type"],
           "mainline",
           "#F59E0B",
+          "#94A3B8",
+        ],
+        "line-width": ["match", ["get", "rail_type"], "mainline", 2.9, 2.0],
+        "line-opacity": 0.96,
+      },
+    });
+    this.map.addLayer({
+      id: "historical-railroads-line-dashed",
+      type: "line",
+      source: "historical-railroads-src",
+      filter: [
+        "in",
+        ["get", "rail_type"],
+        ["literal", ["abandoned_trail", "streetcar_interurban"]],
+      ],
+      layout: {
+        "line-cap": "round",
+        "line-join": "round",
+      },
+      paint: {
+        "line-color": [
+          "match",
+          ["get", "rail_type"],
           "abandoned_trail",
           "#FB7185",
           "streetcar_interurban",
           "#C084FC",
-          "#94A3B8",
+          "#FB7185",
         ],
-        "line-width": [
-          "match",
-          ["get", "rail_type"],
-          "mainline",
-          2.6,
-          "abandoned_trail",
-          2.4,
-          "streetcar_interurban",
-          2.2,
-          1.7,
-        ],
-        "line-dasharray": [
-          "match",
-          ["get", "rail_type"],
-          "abandoned_trail",
-          ["literal", [3, 2]],
-          "streetcar_interurban",
-          ["literal", [2, 1.5]],
-          ["literal", [1, 0]],
-        ],
-        "line-opacity": 0.94,
+        "line-width": 2.7,
+        "line-dasharray": [3, 2],
+        "line-opacity": 0.96,
       },
     });
     this.map.addLayer({
@@ -3476,13 +3494,19 @@ export class AtlasMapController {
     }
 
     setVis(
-      ["historical-waterways-casing", "historical-waterways-line", "historical-waterways-label"],
+      [
+        "historical-waterways-casing",
+        "historical-waterways-line-solid",
+        "historical-waterways-line-dashed",
+        "historical-waterways-label",
+      ],
       !isoGeom && Boolean(state.layers?.historicalWaterways)
     );
     setVis(
       [
         "historical-railroads-casing",
-        "historical-railroads-line",
+        "historical-railroads-line-solid",
+        "historical-railroads-line-dashed",
         "historical-railroads-ties",
         "historical-railroads-depots",
         "historical-railroads-label",
@@ -4564,12 +4588,56 @@ export class AtlasMapController {
       historicalWaterways: "historical_waterways",
       historical_waterways: "historical_waterways",
       "historical-waterways-line": "historical_waterways",
+      "historical-waterways-line-solid": "historical_waterways",
+      "historical-waterways-line-dashed": "historical_waterways",
+      "historical-waterways-casing": "historical_waterways",
       historicalRailroads: "historical_railroads",
       historical_railroads: "historical_railroads",
       "historical-railroads-line": "historical_railroads",
+      "historical-railroads-line-solid": "historical_railroads",
+      "historical-railroads-line-dashed": "historical_railroads",
+      "historical-railroads-casing": "historical_railroads",
+      "historical-railroads-ties": "historical_railroads",
       "historical-railroads-depots": "historical_railroads",
     };
     return map[k] || k;
+  }
+
+  _minDistanceToGeometryDeg(lng, lat, geom) {
+    if (!geom || !geom.coordinates) return Infinity;
+    const cosLat = Math.cos((lat * Math.PI) / 180) || 0.868;
+    const segDist = (x1, y1, x2, y2) => {
+      const dx = (x2 - x1) * cosLat;
+      const dy = y2 - y1;
+      const lenSq = dx * dx + dy * dy;
+      const px = (lng - x1) * cosLat;
+      const py = lat - y1;
+      if (lenSq <= 1e-16) return Math.hypot(px, py);
+      const t = Math.max(0, Math.min(1, (px * dx + py * dy) / lenSq));
+      return Math.hypot(px - t * dx, py - t * dy);
+    };
+    if (geom.type === "Point") {
+      const [gx, gy] = geom.coordinates;
+      return Math.hypot((lng - gx) * cosLat, lat - gy);
+    }
+    const lines =
+      geom.type === "LineString"
+        ? [geom.coordinates]
+        : geom.type === "MultiLineString"
+        ? geom.coordinates
+        : [];
+    let best = Infinity;
+    for (const line of lines) {
+      if (!Array.isArray(line)) continue;
+      for (let i = 0; i < line.length - 1; i++) {
+        const a = line[i];
+        const b = line[i + 1];
+        if (!a || !b) continue;
+        const d = segDist(a[0], a[1], b[0], b[1]);
+        if (d < best) best = d;
+      }
+    }
+    return best;
   }
 
   _collectOverlappingFeaturesAtPoint(point, lngLat) {
@@ -4583,6 +4651,83 @@ export class AtlasMapController {
       p.name ||
       p.address ||
       (p.hcad_num ? `HCAD ${p.hcad_num}` : "Historic Structure");
+
+    const pushLinearOverlayHit = (lp, fallbackGeom, overlayKey, lid = "") => {
+      const itemKey = `bnd:${overlayKey}:${lp.id || lp.name}`;
+      if (seenKeys.has(itemKey)) return;
+      seenKeys.add(itemKey);
+
+      const isWaterway = overlayKey === "historical_waterways";
+      let badge = lp.type_label || (isWaterway ? "Historical Waterway" : "Historical Railroad");
+      let swatch = "#38bdf8";
+      if (isWaterway) {
+        const wt = lp.waterway_type;
+        if (wt === "buried_gully") {
+          badge = "Buried Gully";
+          swatch = "#FBBF24";
+        } else if (wt === "historic_oxbow") {
+          badge = "Historic Oxbow";
+          swatch = "#A78BFA";
+        } else if (wt === "bayou") {
+          badge = "Bayou";
+          swatch = "#0EA5E9";
+        } else {
+          badge = "Historic Creek";
+          swatch = "#22D3EE";
+        }
+      } else {
+        const rt = lp.rail_type;
+        if (rt === "depot") {
+          badge = "Historic Depot";
+          swatch = "#FDE047";
+        } else if (rt === "abandoned_trail") {
+          badge = "Abandoned Rail";
+          swatch = "#FB7185";
+        } else if (rt === "streetcar_interurban") {
+          badge = "Streetcar Line";
+          swatch = "#C084FC";
+        } else if (rt === "industrial_spur") {
+          badge = "Industrial Spur";
+          swatch = "#94A3B8";
+        } else {
+          badge = "Pioneer Railroad";
+          swatch = "#F59E0B";
+        }
+      }
+
+      // Resolve full untruncated geometry from overlaysData so highlighting shows the entire line
+      const fullFeat = (this.overlaysData?.[overlayKey]?.features || []).find(
+        (of) =>
+          of.properties &&
+          ((lp.id && of.properties.id === lp.id) || (lp.name && of.properties.name === lp.name))
+      );
+      const fullProps = fullFeat?.properties ? { ...fullFeat.properties, ...lp } : lp;
+      const fullGeom = fullFeat?.geometry || fallbackGeom || null;
+
+      stack.push({
+        key: itemKey,
+        kind: "boundary",
+        layerId: lid || overlayKey,
+        overlayKey,
+        layerKey: overlayKey,
+        typeBadge: badge,
+        badge,
+        swatchColor: swatch,
+        color: swatch,
+        title: fullProps.name || badge,
+        subtitle:
+          fullProps.status ||
+          fullProps.historic_company ||
+          fullProps.era_notes ||
+          badge,
+        props: {
+          ...fullProps,
+          overlay_layer: overlayKey,
+          is_boundary_feature: true,
+        },
+        geometry: fullGeom,
+      });
+    };
 
     // 1. Collect rendered point markers & building/parcel footprints at `point`
     if (!this.useCanvasFallback && this.map && point) {
@@ -4737,17 +4882,21 @@ export class AtlasMapController {
         });
       }
 
-      // 1b. Collect rendered historical waterways & railroads within a 6px hit box
+      // 1b. Collect rendered historical waterways & railroads within an 8px hit box
       const linearOverlayLayers = [
         state.layers?.historicalRailroads ? "historical-railroads-depots" : null,
-        state.layers?.historicalRailroads ? "historical-railroads-line" : null,
-        state.layers?.historicalWaterways ? "historical-waterways-line" : null,
+        state.layers?.historicalRailroads ? "historical-railroads-line-solid" : null,
+        state.layers?.historicalRailroads ? "historical-railroads-line-dashed" : null,
+        state.layers?.historicalRailroads ? "historical-railroads-casing" : null,
+        state.layers?.historicalWaterways ? "historical-waterways-line-solid" : null,
+        state.layers?.historicalWaterways ? "historical-waterways-line-dashed" : null,
+        state.layers?.historicalWaterways ? "historical-waterways-casing" : null,
       ].filter((id) => id && this.map.getLayer(id));
 
       if (linearOverlayLayers.length) {
         const hitBox = [
-          [point.x - 6, point.y - 6],
-          [point.x + 6, point.y + 6],
+          [point.x - 8, point.y - 8],
+          [point.x + 8, point.y + 8],
         ];
         const linearHits = this.map.queryRenderedFeatures(hitBox, {
           layers: linearOverlayLayers,
@@ -4755,68 +4904,10 @@ export class AtlasMapController {
         for (const lf of linearHits) {
           const lp = lf.properties || {};
           const lid = lf.layer?.id || "";
-          const isWaterway = lid.startsWith("historical-waterways") || lp.overlay_layer === "historical_waterways";
+          const isWaterway =
+            lid.startsWith("historical-waterways") || lp.overlay_layer === "historical_waterways";
           const overlayKey = isWaterway ? "historical_waterways" : "historical_railroads";
-          const itemKey = `bnd:${overlayKey}:${lp.id || lp.name}`;
-          if (seenKeys.has(itemKey)) continue;
-          seenKeys.add(itemKey);
-
-          let badge = lp.type_label || (isWaterway ? "Historical Waterway" : "Historical Railroad");
-          let swatch = "#38bdf8";
-          if (isWaterway) {
-            const wt = lp.waterway_type;
-            if (wt === "buried_gully") {
-              badge = "Buried Gully";
-              swatch = "#FBBF24";
-            } else if (wt === "historic_oxbow") {
-              badge = "Historic Oxbow";
-              swatch = "#A78BFA";
-            } else if (wt === "bayou") {
-              badge = "Bayou";
-              swatch = "#0EA5E9";
-            } else {
-              badge = "Historic Creek";
-              swatch = "#22D3EE";
-            }
-          } else {
-            const rt = lp.rail_type;
-            if (rt === "depot") {
-              badge = "Historic Depot";
-              swatch = "#FDE047";
-            } else if (rt === "abandoned_trail") {
-              badge = "Abandoned Rail";
-              swatch = "#FB7185";
-            } else if (rt === "streetcar_interurban") {
-              badge = "Streetcar Line";
-              swatch = "#C084FC";
-            } else if (rt === "industrial_spur") {
-              badge = "Industrial Spur";
-              swatch = "#94A3B8";
-            } else {
-              badge = "Pioneer Railroad";
-              swatch = "#F59E0B";
-            }
-          }
-
-          stack.push({
-            key: itemKey,
-            kind: "boundary",
-            layerId: lid,
-            overlayKey,
-            layerKey: overlayKey,
-            typeBadge: badge,
-            badge,
-            swatchColor: swatch,
-            color: swatch,
-            title: lp.name || badge,
-            subtitle: lp.status || lp.historic_company || lp.era_notes || badge,
-            props: {
-              ...lp,
-              overlay_layer: overlayKey,
-              is_boundary_feature: true,
-            },
-            geometry: lf.geometry || null,
-          });
+          pushLinearOverlayHit(lp, lf.geometry, overlayKey, lid);
         }
       }
     } else if (this.useCanvasFallback && this.canvasState && point) {
@@ -4855,9 +4946,59 @@ export class AtlasMapController {
       }
     }
 
-    // 2. Collect all visible boundary polygons containing `lngLat` from boundarySpatialIndex
+    // 1c. Direct geometric polyline/depot hit-test fallback (works in both WebGL and 2D Canvas)
     const lng = Number(lngLat?.lng ?? lngLat?.[0]);
     const lat = Number(lngLat?.lat ?? lngLat?.[1]);
+    if (
+      Number.isFinite(lng) &&
+      Number.isFinite(lat) &&
+      (state.layers?.historicalWaterways || state.layers?.historicalRailroads)
+    ) {
+      const curZoom = this.useCanvasFallback
+        ? Number(this.canvasState?.zoom || 13)
+        : Number(this.map?.getZoom?.() || 13);
+      // ~9 pixels tolerance in degrees at current zoom
+      const degPerPixel = 360 / (256 * Math.pow(2, curZoom));
+      const hitTolDeg = Math.max(0.00008, Math.min(0.0035, degPerPixel * 9.5));
+
+      const linearCandidates = [];
+      if (state.layers?.historicalRailroads && this.overlaysData?.historical_railroads?.features) {
+        for (const rf of this.overlaysData.historical_railroads.features) {
+          const d = this._minDistanceToGeometryDeg(lng, lat, rf.geometry);
+          const tol = rf.properties?.rail_type === "depot" ? hitTolDeg * 1.35 : hitTolDeg;
+          if (d <= tol) {
+            linearCandidates.push({
+              dist: rf.properties?.rail_type === "depot" ? d * 0.5 : d,
+              feat: rf,
+              overlayKey: "historical_railroads",
+            });
+          }
+        }
+      }
+      if (state.layers?.historicalWaterways && this.overlaysData?.historical_waterways?.features) {
+        for (const wf of this.overlaysData.historical_waterways.features) {
+          const d = this._minDistanceToGeometryDeg(lng, lat, wf.geometry);
+          if (d <= hitTolDeg) {
+            linearCandidates.push({
+              dist: d,
+              feat: wf,
+              overlayKey: "historical_waterways",
+            });
+          }
+        }
+      }
+      linearCandidates.sort((a, b) => a.dist - b.dist);
+      for (const cand of linearCandidates) {
+        pushLinearOverlayHit(
+          cand.feat.properties || {},
+          cand.feat.geometry,
+          cand.overlayKey,
+          cand.overlayKey
+        );
+      }
+    }
+
+    // 2. Collect all visible boundary polygons containing `lngLat` from boundarySpatialIndex
     if (Number.isFinite(lng) && Number.isFinite(lat)) {
       if (!Array.isArray(this.boundarySpatialIndex) || !this.boundarySpatialIndex.length) {
         this._buildBoundarySpatialIndex();
