@@ -101,8 +101,53 @@ def esri_paths_to_shapely(geom_dict: dict):
         return MultiLineString(valid_lines)
 
 
-def round_coords_geom(geom, tol: float = 0.00006, precision: int = 5):
-    """Simplify and round geometry coordinates to keep GeoJSON compact and fast."""
+def safe_linemerge(geom):
+    """Safely merge connected LineStrings in a MultiLineString without raising on LineString input."""
+    if geom is None or geom.is_empty:
+        return geom
+    if geom.geom_type == "MultiLineString":
+        try:
+            return linemerge(geom)
+        except Exception:
+            return geom
+    return geom
+
+
+def catmull_rom_spline(coords: list, subdivisions: int = 8) -> list:
+    """Interpolate a smooth centripetal Catmull-Rom curve through control points."""
+    if not coords or len(coords) < 3 or subdivisions <= 1:
+        return coords
+    pts = [(float(p[0]), float(p[1])) for p in coords]
+    # Extrapolate endpoints
+    p_start = (2 * pts[0][0] - pts[1][0], 2 * pts[0][1] - pts[1][1])
+    p_end = (2 * pts[-1][0] - pts[-2][0], 2 * pts[-1][1] - pts[-2][1])
+    ext = [p_start] + pts + [p_end]
+    out = []
+    for i in range(len(pts) - 1):
+        p0, p1, p2, p3 = ext[i], ext[i + 1], ext[i + 2], ext[i + 3]
+        for s in range(subdivisions):
+            t = s / float(subdivisions)
+            t2 = t * t
+            t3 = t2 * t
+            x = 0.5 * (
+                (2.0 * p1[0])
+                + (-p0[0] + p2[0]) * t
+                + (2.0 * p0[0] - 5.0 * p1[0] + 4.0 * p2[0] - p3[0]) * t2
+                + (-p0[0] + 3.0 * p1[0] - 3.0 * p2[0] + p3[0]) * t3
+            )
+            y = 0.5 * (
+                (2.0 * p1[1])
+                + (-p0[1] + p2[1]) * t
+                + (2.0 * p0[1] - 5.0 * p1[1] + 4.0 * p2[1] - p3[1]) * t2
+                + (-p0[1] + 3.0 * p1[1] - 3.0 * p2[1] + p3[1]) * t3
+            )
+            out.append([round(x, 6), round(y, 6)])
+    out.append([round(pts[-1][0], 6), round(pts[-1][1], 6)])
+    return out
+
+
+def round_coords_geom(geom, tol: float = 0.000018, precision: int = 5):
+    """Simplify and round geometry coordinates to keep GeoJSON compact and smooth."""
     if geom is None or geom.is_empty:
         return None
     if tol > 0 and geom.geom_type in ("LineString", "MultiLineString"):
@@ -287,7 +332,7 @@ WATERWAY_HISTORICAL_DOSSIERS = {
         ),
     },
     "Country Club Bayou": {
-        "alt_names": ["East End / Gus Wortham Golf Course Bayou", "vital Third Ward / East End Tributary"],
+        "alt_names": ["East End / Gus Wortham Golf Course Bayou", "Third Ward / East End Tributary"],
         "waterway_type": "creek",
         "status": "Partially Culverted & Open Historic Creek (Gus Wortham Park / Wayside)",
         "watershed": "Brays Bayou Watershed",
@@ -297,6 +342,58 @@ WATERWAY_HISTORICAL_DOSSIERS = {
             "(now Gus Wortham Park Golf Course, Houston's oldest 18-hole golf course) where its natural bluffs and ravines "
             "formed the signature water hazards before joining Brays Bayou."
         ),
+    },
+    "Japhet Creek": {
+        "alt_names": ["Japhet Ravine", "Fifth Ward Spring-Fed Tributary of Buffalo Bayou"],
+        "waterway_type": "creek",
+        "status": "Preserved Wooded Spring-Fed Creek & Nature Corridor",
+        "watershed": "Buffalo Bayou Watershed",
+        "era_notes": "1880s Dan Japhet Homestead · Emilie Street & Japhet Street Ravine",
+        "historic_significance": (
+            "Historic spring-fed creek on the south edge of Fifth Ward near Emilie and Japhet Streets that flows through "
+            "a deep wooded ravine directly into Buffalo Bayou east of Downtown."
+        ),
+    },
+    "Poor Farm Ditch": {
+        "alt_names": ["Harris County Poor Farm Drainage Canal (1880s)", "West University & Bellaire Ditch"],
+        "waterway_type": "creek",
+        "status": "Historic 19th-Century County Poor Farm Drainage Channel (HCFCD Unit D111)",
+        "watershed": "Brays Bayou Watershed",
+        "era_notes": "1880s Harris County Poor Farm (now Boulevard Oaks / West U / Southside Place) · Brays Bayou Outfall",
+        "historic_significance": (
+            "Excavated in the late 19th century to drain the 250-acre Harris County Poor Farm and surrounding rice/coastal "
+            "prairie southward between West University Place, Southside Place, and Bellaire into Brays Bayou."
+        ),
+    },
+    "Old Buffalo Bayou": {
+        "alt_names": ["Buffalo Bayou Cut-Off Natural Oxbows", "Memorial Park & River Oaks Historic Meanders"],
+        "waterway_type": "historic_oxbow",
+        "status": "Cut-Off Natural Bayou Meander Loops (Surveyed Remnant Channels)",
+        "watershed": "Buffalo Bayou Watershed",
+        "era_notes": "Pre-20th-Century Natural Bayou Channel · Cut Off by Flood Control & Navigation Straightening",
+        "historic_significance": (
+            "Surviving cut-off natural oxbow channels along Buffalo Bayou showing the original tight horseshoe meanders "
+            "before 20th-century channel straightening."
+        ),
+    },
+    "Old Sims Bayou": {
+        "alt_names": ["Sims Bayou Cut-Off Oxbow Loops", "Reveille & Glenbrook Valley Historic Meanders"],
+        "waterway_type": "historic_oxbow",
+        "status": "Cut-Off Natural Bayou Oxbow Loops (Surveyed Remnant Channels)",
+        "watershed": "Sims Bayou Watershed",
+        "era_notes": "Pre-1950s Natural Sims Bayou Meanders · Preserved as Oxbow Parkland & Remnant Channels",
+        "historic_significance": (
+            "Surveyed remnant natural oxbow loops of Sims Bayou that were bypassed when the main flood-control channel "
+            "was widened and straightened in the mid-20th century."
+        ),
+    },
+    "Old Turkey Creek": {
+        "alt_names": ["Turkey Creek Historic Channel"],
+        "waterway_type": "historic_oxbow",
+        "status": "Historic Natural Creek Meanders",
+        "watershed": "Buffalo Bayou Watershed",
+        "era_notes": "Addicks & West Memorial Historic Creek Bed",
+        "historic_significance": "Remnant natural meander channel of Turkey Creek prior to flood-control realignment.",
     },
     "Plum Creek": {
         "alt_names": ["Plum Creek Tributary of Sims Bayou"],
@@ -418,145 +515,125 @@ WATERWAY_HISTORICAL_DOSSIERS = {
     },
 }
 
-# Curated lost/buried gullies & pre-channelization oxbows from 1915 USGS Topo / Sanborn / Bird's-Eye Maps
+# Surveyed lost/buried gullies (from HCFCD M3_HCFCD_Drainage_Network CLOSED CONDUIT) & pre-channelization oxbows (from 1903 Ward Surveys & COH Hydrography)
 CURATED_BURIED_GULLIES_AND_OXBOWS = [
     {
         "id": "waterway_harris_gully",
-        "name": "Harris Gully (Buried Historic Creek - Rice, Hermann Park & TMC)",
-        "alt_names": ["Harris Bayou", "Rice Institute & Hermann Park Ravine", "Fannin / Sunset Box Culvert"],
+        "name": "Harris Gully (Buried Historic Creek - Rice, Hermann Park & TMC, HCFCD D109-00-00)",
+        "alt_names": ["Harris Bayou", "Rice Institute & Hermann Park Ravine", "Fannin / Sunset Box Culvert (D109-00-00)"],
         "waterway_type": "buried_gully",
-        "status": "Buried Underground in Twin Box Culverts (Enclosed 1950s–1960s)",
+        "status": "Buried Underground in Twin Box Culverts (HCFCD Closed Conduit Unit D109-00-00, Enclosed 1950s–1960s)",
         "watershed": "Brays Bayou Watershed",
         "era_notes": "1912 Rice Institute Campus Plan · 1914 Hermann Park · Enclosed 1950s–1960s · 2001 Tropical Storm Allison",
         "historic_significance": (
-            "Houston's most consequential lost waterway. Shown prominently on the 1915 and 1922 USGS Houston Topographic "
-            "Quadrangles, Harris Gully rose in West University Place along Sunset Blvd, curved directly through the eastern "
-            "edge of the Rice University campus (where Cram, Goodhue & Ferguson sited bridges over its wooded ravine), wound "
-            "past the Mecom Fountain site and Hermann Park Golf Course, carved a deep ravine through what became the Texas "
-            "Medical Center (TMC), and emptied into Brays Bayou near MacGregor Park. Enclosed in massive underground box culverts "
-            "under Sunset, Fannin, and MacGregor in the 1950s–1960s, the buried creek bed still governs TMC flood hydrology "
-            "and famously backed up into Medical Center basements during Tropical Storm Allison in June 2001."
+            "Houston's most consequential lost waterway (839-vertex surveyed alignment in HCFCD Unit D109-00-00). Shown "
+            "prominently on the 1915 and 1922 USGS Houston Topographic Quadrangles, Harris Gully rose near Rice University "
+            "and Sunset Blvd, curved past Hermann Park and the Mecom Fountain site, carved a deep ravine through what became "
+            "the Texas Medical Center (TMC), and emptied into Brays Bayou at MacGregor Park. Enclosed in massive underground "
+            "box culverts in the 1950s–1960s, the buried creek bed still governs TMC flood hydrology and famously backed up "
+            "into Medical Center basements during Tropical Storm Allison in June 2001."
         ),
-        "coords": [
-            [-95.4265, 29.7212],
-            [-95.4178, 29.7209],
-            [-95.4085, 29.7203],
-            [-95.4012, 29.7198],
-            [-95.3964, 29.7192],
-            [-95.3922, 29.7186],
-            [-95.3895, 29.7155],
-            [-95.3910, 29.7115],
-            [-95.3948, 29.7082],
-            [-95.3972, 29.7048],
-        ],
+        "hcfcd_units": ["D109-00-00"],
     },
     {
-        "id": "waterway_pecore_stude_gully",
-        "name": "Pecore Gully / Stude Park Ravine (Woodland Heights & Norhill - Buried)",
-        "alt_names": ["Woodland Heights West Ravine", "Highland & Bayland Dip Gully"],
+        "id": "waterway_slaughterpen_yates_culvert",
+        "name": "Slaughterpen Bayou & Yates Gully Underground Culvert System (HCFCD D103-00-00 / D103-02-00)",
+        "alt_names": ["Slaughterpen Gully", "East End & Eastwood Buried Ravine", "Yates Gully Box Culvert"],
         "waterway_type": "buried_gully",
-        "status": "Buried / Culverted Ravine (Enclosed c. 1910–1925)",
+        "status": "Buried in Municipal Box Culverts (HCFCD Closed Conduit Units D103-00-00 & D103-02-00)",
+        "watershed": "Brays / Buffalo Bayou Watershed",
+        "era_notes": "1860s–1900s East End Slaughterhouses · 1913 Eastwood & Country Club Place · Enclosed 20th Century",
+        "historic_significance": (
+            "Surveyed 200-vertex underground box-culvert network (HCFCD Units D103-00-00 and D103-02-00) carrying the "
+            "enclosed waters of historic Slaughterpen Bayou and Yates Gully beneath the East End, Eastwood, and Lawndale "
+            "toward Brays Bayou."
+        ),
+        "hcfcd_units": ["D103-00-00", "D103-02-00"],
+    },
+    {
+        "id": "waterway_third_ward_d105_gully",
+        "name": "Third Ward, University of Houston & Riverside Buried Gully (HCFCD D105-00-00)",
+        "alt_names": ["Third Ward South Ravine", "Calhoun & St. Augustine Underground Culvert (D105-00-00)"],
+        "waterway_type": "buried_gully",
+        "status": "Buried Historic Ravine (HCFCD Closed Conduit Unit D105-00-00)",
+        "watershed": "Brays Bayou Watershed",
+        "era_notes": "1920s Riverside Terrace & University of Houston Campus Drainage · Enclosed Mid-20th Century",
+        "historic_significance": (
+            "Historic natural gully draining southern Third Ward and the University of Houston corridor eastward into "
+            "Brays Bayou; enclosed in underground box culverts as HCFCD Closed Conduit Unit D105-00-00."
+        ),
+        "hcfcd_units": ["D105-00-00"],
+    },
+    {
+        "id": "waterway_fifth_ward_g122_gully",
+        "name": "Fifth Ward, Gregg Street & Buck Street Buried Gully (HCFCD G122-00-00 / G122-01-00)",
+        "alt_names": ["Fifth Ward South Ravine", "Lyons Avenue & Gregg Street Storm Conduit (G122)"],
+        "waterway_type": "buried_gully",
+        "status": "Buried Historic Ravine (HCFCD Closed Conduit Units G122-00-00, G122-01-00 & G123-00-00)",
+        "watershed": "Buffalo Bayou Watershed",
+        "era_notes": "1866 Fifth Ward Founding · 1880s T&NO Rail Yards · Enclosed 20th Century",
+        "historic_significance": (
+            "Surveyed 129-vertex underground storm conduit (HCFCD Units G122-00-00, G122-01-00, and G123-00-00) following "
+            "the historic natural drainage ravine from the heart of Fifth Ward near Lyons Avenue and Gregg Street southward "
+            "into Buffalo Bayou."
+        ),
+        "hcfcd_units": ["G122-00-00", "G122-01-00", "G123-00-00"],
+    },
+    {
+        "id": "waterway_river_oaks_post_oak_gully",
+        "name": "River Oaks, Post Oak & Westheimer Buried Gullies (HCFCD W129 / W132 / W133)",
+        "alt_names": ["Post Oak Ravine", "Westheimer & Uptown Underground Conduit (W129 / W132 / W133)"],
+        "waterway_type": "buried_gully",
+        "status": "Buried Historic Ravines (HCFCD Closed Conduit Units W129, W132, W133 & W134)",
+        "watershed": "Buffalo Bayou Watershed",
+        "era_notes": "1920s–1950s Westheimer & Post Oak Expansion · Enclosed in Box Culverts",
+        "historic_significance": (
+            "Surveyed western tributary gullies of Buffalo Bayou (HCFCD Closed Conduit Units W129-01-00, W132-00-00, "
+            "W133-00-00, and W134-00-00) that were enclosed in underground box culverts as Houston expanded westward "
+            "past River Oaks and Post Oak Road."
+        ),
+        "hcfcd_units": ["W129-01-00", "W129-01-05", "W132-00-00", "W133-00-00", "W134-00-00"],
+    },
+    {
+        "id": "waterway_timbergrove_e107_gully",
+        "name": "Timbergrove, Lazybrook & Heights West Buried Gully (HCFCD E107-00-00)",
+        "alt_names": ["North Loop West & Ella Buried Tributary", "White Oak Bayou Closed Conduit E107"],
+        "waterway_type": "buried_gully",
+        "status": "Buried Historic Tributary (HCFCD Closed Conduit Units E107-00-00, E107-02-00 & E107-03-00)",
         "watershed": "White Oak Bayou Watershed",
-        "era_notes": "1907 Woodland Heights Plat · 1920 Norhill Addition · Stude Park Outfall",
+        "era_notes": "1940s–1950s Timbergrove Manor & Shady Acres Development · Enclosed in Box Culverts",
         "historic_significance": (
-            "Natural tributary ravine of White Oak Bayou that drained southwest from North Norhill (near Michaux & Pecore) "
-            "across Merrill, Bayland, and Highland Streets down into White Oak Bayou at Stude Park. When William A. Wilson "
-            "platted Woodland Heights (1907) and Will Hogg / Varner Realty platted Norhill (1920), portions of this ravine "
-            "were graded over and placed into brick/concrete storm culverts, leaving the gentle topographic swales still "
-            "visible along Pecore, Bayland, and Highland today."
+            "Surveyed historic tributary gully of White Oak Bayou (HCFCD Closed Conduit Units E107-00-00, E107-02-00, "
+            "and E107-03-00) enclosed in underground conduits during the mid-century residential development of Timbergrove "
+            "and Lazybrook."
         ),
-        "coords": [
-            [-95.3808, 29.7952],
-            [-95.3826, 29.7921],
-            [-95.3849, 29.7894],
-            [-95.3868, 29.7866],
-            [-95.3885, 29.7838],
-            [-95.3902, 29.7812],
-        ],
+        "hcfcd_units": ["E107-00-00", "E107-02-00", "E107-03-00"],
     },
     {
-        "id": "waterway_san_felipe_fourth_ward_gully",
-        "name": "San Felipe / Fourth Ward Gully (Freedmen's Town Ravine - Buried)",
-        "alt_names": ["Freedmen's Town Gully", "Sabine Street & West Dallas Ravine"],
+        "id": "waterway_little_white_oak_buried_tribs",
+        "name": "Little White Oak Bayou Buried Tributary Gullies - Independence Heights & Lindale Park (HCFCD E101)",
+        "alt_names": ["Independence Heights & Airline Buried Gullies", "HCFCD Closed Conduit Units E101-06 to E101-14"],
         "waterway_type": "buried_gully",
-        "status": "Buried Historic Ravine (Enclosed Early 20th Century)",
-        "watershed": "Buffalo Bayou Watershed",
-        "era_notes": "1836 Townsite West Ravine · 1865 Freedmen's Town Founding · 1914 Brick Street Paving",
+        "status": "Buried Lateral Gullies (HCFCD Closed Conduit Sub-Units of E101)",
+        "watershed": "White Oak Bayou Watershed",
+        "era_notes": "1910 Independence Heights · 1920s–1930s Lindale Park & Northside",
         "historic_significance": (
-            "Deep natural gully that cut northeast across Fourth Ward / Freedmen's Town from near West Gray and Taft, "
-            "crossing San Felipe Trail (West Dallas), Andrews, Ruthven, and Valentine Streets before plunging into Buffalo "
-            "Bayou near Sabine Street. In the 1860s–1880s, low-lying marshy lots along this gully were sold to formerly "
-            "enslaved families who founded Freedmen's Town, bridging the muddy ravine with footbridges and later laying "
-            "hand-made manganese brick streets and curbs to channel its runoff."
+            "Surveyed lateral drainage gullies feeding Little White Oak Bayou across Independence Heights, Northline, and "
+            "Lindale Park that were enclosed into underground municipal storm conduits (HCFCD Closed Conduit Units E101-06 "
+            "through E101-15)."
         ),
-        "coords": [
-            [-95.3848, 29.7542],
-            [-95.3822, 29.7561],
-            [-95.3796, 29.7578],
-            [-95.3774, 29.7596],
-            [-95.3756, 29.7615],
-        ],
-    },
-    {
-        "id": "waterway_first_ward_sawyers_gully",
-        "name": "Sawyers Gully / First Ward Spring Street Ravine (Buried)",
-        "alt_names": ["First Ward Gully", "Sawyer & Edwards Street Ravine"],
-        "waterway_type": "buried_gully",
-        "status": "Buried Historic Ravine (Enclosed 1900s–1920s)",
-        "watershed": "White Oak / Buffalo Bayou Watershed",
-        "era_notes": "1856 H&TC Rail Yards · First Ward & Old Sixth Ward Border Ravine",
-        "historic_significance": (
-            "Historic drainage gully running south from the H&TC / MKT rail corridor near Sawyer and Spring Streets "
-            "between First Ward and Old Sixth Ward down into Buffalo Bayou/White Oak Bayou. Shown on 1869 and 1891 "
-            "Houston bird's-eye views as a wooded draw crossed by wooden wagon bridges and railroad trestles."
-        ),
-        "coords": [
-            [-95.3802, 29.7765],
-            [-95.3792, 29.7732],
-            [-95.3779, 29.7704],
-            [-95.3765, 29.7678],
-        ],
-    },
-    {
-        "id": "waterway_frost_town_caroline_gully",
-        "name": "Frost Town & Caroline Street Gully (1836 Townsite East Ravine - Buried)",
-        "alt_names": ["Downtown East Gully", "Frost Town Ravine"],
-        "waterway_type": "buried_gully",
-        "status": "Filled & Culverted 19th-Century Downtown Ravine",
-        "watershed": "Buffalo Bayou Watershed",
-        "era_notes": "1836 Allen Brothers Townsite · 1838 Frost Town German Settlement · Filled 1870s–1900s",
-        "historic_significance": (
-            "On Augustus Koch's 1873 Bird's-Eye View of Houston and early 1839–1869 maps, a steep gully cut northward "
-            "along the eastern edge of the original 62-block townsite (near Caroline, Austin, and Chenevert Streets) "
-            "separating Courthouse Square from the early German immigrant settlement of Frost Town on the bank of Buffalo Bayou. "
-            "Bridged by timber trestles in the Republic of Texas era and gradually filled over clay and brick sewer arches "
-            "as Downtown expanded eastward."
-        ),
-        "coords": [
-            [-95.3628, 29.7525],
-            [-95.3612, 29.7556],
-            [-95.3596, 29.7588],
-            [-95.3582, 29.7618],
-            [-95.3574, 29.7641],
-        ],
-    },
-    {
-        "id": "waterway_quality_hill_second_ward_gully",
-        "name": "Quality Hill / Second Ward Slaughterhouse Gully (Buried)",
-        "alt_names": ["Second Ward East Ravine", "Navigation & Sampson Gully"],
-        "waterway_type": "buried_gully",
-        "status": "Buried Historic Ravine (Enclosed 1910s–1930s)",
-        "watershed": "Buffalo Bayou Watershed",
-        "era_notes": "1850s Quality Hill · 1880s Second Ward Industrial Expansion",
-        "historic_significance": (
-            "Natural ravine in historic Second Ward that drained north across Garrow, Commerce, and Navigation Blvd "
-            "into the great bend of Buffalo Bayou east of Quality Hill."
-        ),
-        "coords": [
-            [-95.3448, 29.7505],
-            [-95.3435, 29.7542],
-            [-95.3422, 29.7578],
-            [-95.3412, 29.7611],
+        "hcfcd_units": [
+            "E101-06-00",
+            "E101-07-00",
+            "E101-10-00",
+            "E101-10-01",
+            "E101-11-00",
+            "E101-12-00",
+            "E101-13-00",
+            "E101-14-00",
+            "E101-15-00",
+            "E101-15-01",
+            "E101-15-02",
         ],
     },
     {
@@ -573,85 +650,53 @@ CURATED_BURIED_GULLIES_AND_OXBOWS = [
             "Houston had to navigate this tight natural loop around historic Harrisburg and Magnolia Park. Cutting the "
             "straight Ship Channel across the northern neck transformed the peninsula into Brady Island."
         ),
-        "coords": [
-            [-95.2862, 29.7228],
-            [-95.2845, 29.7192],
-            [-95.2812, 29.7168],
-            [-95.2768, 29.7169],
-            [-95.2738, 29.7195],
-            [-95.2732, 29.7226],
-        ],
+        "brady_island_survey": True,
     },
     {
         "id": "waterway_frost_town_oxbow",
-        "name": "Buffalo Bayou - Pre-1935 Frost Town & McKee Street Natural Meander",
-        "alt_names": ["Frost Town Bend", "Second Ward / Fifth Ward Historic Bayou Loop"],
+        "name": "Buffalo Bayou - 1839–1903 Frost Town, McKee St & Quality Hill Natural Meanders",
+        "alt_names": ["Frost Town Bend", "1903 Second Ward & Fifth Ward Bayou Boundary Survey"],
         "waterway_type": "historic_oxbow",
-        "status": "Historic Natural Bayou Meander (Straightened After 1929 & 1935 Floods)",
+        "status": "Surveyed 1903 Bayou Thalweg (Prior to Post-1935 Flood Control Rectification)",
         "watershed": "Buffalo Bayou Watershed",
-        "era_notes": "1838 Frost Town · 1910 McKee Street Bridge · 1935 Flood Channel Rectification",
+        "era_notes": "1838 Frost Town · 1903 Aldermanic Ward Charter Survey · 1910 McKee Street Bridge · 1935 Flood Rectification",
         "historic_significance": (
-            "Prior to post-1935 flood-control rectification, Buffalo Bayou made a tight double horseshoe bend immediately "
-            "east of Allen's Landing around Frost Town (Second Ward) and the foot of McKee and Hardy Streets. Historic "
-            "Survey and Ward boundaries still trace the original 19th-century thalweg of this meander."
+            "Exact surveyed 1903 municipal charter boundary between Second Ward and Fifth Ward, tracing the pre-channelization "
+            "centerline (thalweg) of Buffalo Bayou around Frost Town, McKee Street, and Quality Hill before 20th-century "
+            "flood-control and barge-channel straightening."
         ),
-        "coords": [
-            [-95.3568, 29.7644],
-            [-95.3542, 29.7672],
-            [-95.3508, 29.7681],
-            [-95.3482, 29.7654],
-            [-95.3465, 29.7621],
-        ],
+        "ward_boundary_pair": ("SECOND", "FIFTH"),
     },
     {
         "id": "waterway_shepherd_tinsley_oxbows",
-        "name": "Buffalo Bayou - Pre-1950s Shepherd to Sabine Natural Meander Loops",
-        "alt_names": ["Cleveland Park & Spotts Park Cut-Off Oxbows", "Fourth Ward & Sixth Ward Bayou Loops"],
+        "name": "Buffalo Bayou - 1839–1903 Shepherd to Sabine Natural Meander Loops",
+        "alt_names": ["Cleveland Park & Spotts Park Cut-Off Oxbows", "1903 Fourth Ward & Sixth Ward Bayou Boundary Survey"],
         "waterway_type": "historic_oxbow",
-        "status": "Cut-Off Natural Bayou Oxbows (Straightened by USACE in 1950s)",
+        "status": "Surveyed 1903 Bayou Thalweg (Cut Off by USACE Channel Straightening in 1950s)",
         "watershed": "Buffalo Bayou Watershed",
-        "era_notes": "1915 USGS Houston Topo Map · 1924 Memorial Drive · 1950s USACE Channel Straightening",
+        "era_notes": "1839–1903 Ward Charter Survey · 1915 USGS Houston Topo Map · 1950s USACE Channel Straightening",
         "historic_significance": (
-            "Between Shepherd Drive and Sabine Street, natural Buffalo Bayou originally wound in deep horseshoe loops "
-            "nearly twice as long as its present channel. In the 1950s, the U.S. Army Corps of Engineers cut straight "
-            "pilot channels across the necks of the tighter bends near Jackson Hill/Spotts Park and Taft/Eleanor Tinsley "
-            "Park to speed floodwaters downstream; the historic 1839–1903 Ward boundary between Fourth Ward and Sixth Ward "
-            "still follows the original meandering centerline!"
+            "Exact surveyed 1903 municipal charter boundary between Fourth Ward and Sixth Ward along the original meandering "
+            "centerline of Buffalo Bayou from Shepherd Drive to Sabine Street. In the 1950s, the U.S. Army Corps of Engineers "
+            "cut straight pilot channels across the necks of the tighter bends near Spotts Park and Eleanor Tinsley Park, "
+            "leaving the 1903 Ward boundary as an exact historical survey of the lost natural meander loops."
         ),
-        "coords": [
-            [-95.4052, 29.7618],
-            [-95.4018, 29.7649],
-            [-95.3982, 29.7602],
-            [-95.3935, 29.7646],
-            [-95.3892, 29.7598],
-            [-95.3845, 29.7642],
-            [-95.3795, 29.7612],
-        ],
+        "ward_boundary_pair": ("FOURTH", "SIXTH"),
     },
     {
         "id": "waterway_white_oak_stude_oxbows",
-        "name": "White Oak Bayou - Pre-1960s Stude Park & Heights Natural Meanders",
-        "alt_names": ["White Oak Bayou Historic Winding Channel", "Woodland Heights / First Ward Oxbow Loops"],
+        "name": "Little White Oak & Lower White Oak Bayou - 1839–1903 Natural Ravine Meanders",
+        "alt_names": ["Woodland Park & Hogg Park 1903 Bayou Survey", "1903 First Ward & Fifth Ward Bayou Boundary Survey"],
         "waterway_type": "historic_oxbow",
-        "status": "Natural Winding Channel Prior to 1960s Concrete Trapezoidal Lining",
+        "status": "Surveyed 1903 Bayou Thalweg (Woodland Park, Beauchamp Springs & Hogg Park Ravine)",
         "watershed": "White Oak Bayou Watershed",
-        "era_notes": "1907 Woodland Heights · 1915 Stude Park · 1960s USACE Channel Rectification",
+        "era_notes": "1839–1903 Ward Charter Survey · 1903 Woodland Park · 1907 Woodland Heights",
         "historic_significance": (
-            "Before 1960s USACE flood control projects encased White Oak Bayou in a straightened concrete trapezoidal "
-            "channel, the bayou wound in tight, tree-shaded S-curves through Stude Park and Hogg Park between Woodland "
-            "Heights and First/Sixth Wards. Several platted subdivision borders in Woodland Heights and First Ward still "
-            "follow the pre-1960s natural bank line."
+            "Exact 93-vertex surveyed 1903 municipal charter boundary between First Ward and Fifth Ward along the natural "
+            "winding channel of Little White Oak Bayou and lower White Oak Bayou through Woodland Park, Beauchamp Springs, "
+            "and Wright-Bembry / Hogg Park down to the Buffalo Bayou confluence at Allen's Landing."
         ),
-        "coords": [
-            [-95.3985, 29.7828],
-            [-95.3945, 29.7801],
-            [-95.3910, 29.7829],
-            [-95.3865, 29.7788],
-            [-95.3818, 29.7804],
-            [-95.3768, 29.7745],
-            [-95.3712, 29.7752],
-            [-95.3662, 29.7702],
-        ],
+        "ward_boundary_pair": ("FIRST", "FIFTH"),
     },
 ]
 
@@ -940,6 +985,22 @@ TXDOT_SUBDIV_TO_HISTORICAL_RR = {
         "route_summary": "Northwest Houston junction connector between Eureka and Hardy / West Belt corridors",
         "historic_significance": "Historic H&TC / Southern Pacific junction track linking Eureka and Northside rail corridors.",
     },
+    "TERMINAL-PASSENGER": {
+        "name": "H&TC / Southern Pacific Grand Central Station & Amtrak Passenger Approach (1856–Present)",
+        "historic_company": "Houston & Texas Central Railway (1856) · Southern Pacific Lines ('Sunset Limited' & 'Sunbeam')",
+        "charter_year": 1856,
+        "opened_year": 1860,
+        "modern_operator": "Union Pacific Railroad & Amtrak Sunset Limited (902 Washington Ave Passenger Track)",
+        "rail_type": "mainline",
+        "status": "Active Historic Passenger Rail Approach (Former Grand Central Station Corridor)",
+        "route_summary": "Chaney Junction east along Washington Ave and White Oak Bayou past the 1959 Amtrak Station toward the historic Grand Central Station site (POST Houston)",
+        "historic_significance": (
+            "For over a century, Houston's primary west-side passenger train approach ran along this corridor into "
+            "Grand Central Station at Franklin and Washington Avenues (site of the 1886 Victorian depot and 1934 Art Moderne "
+            "terminal). In 1959–1960, Southern Pacific relocated passenger service half a mile west along this track to the "
+            "902 Washington Ave station (now Houston's Amtrak station) and sold the terminal site for the main U.S. Post Office."
+        ),
+    },
 }
 
 PTRA_HISTORICAL_INFO = {
@@ -960,93 +1021,61 @@ PTRA_HISTORICAL_INFO = {
 
 # Curated Abandoned / Rail-Trail Corridors, Historic Streetcar / Interurban Lines, and Historic Depots
 CURATED_ABANDONED_RAILS_AND_STREETCARS = [
-    # 1. Abandoned / Pulled Pioneer Rail Corridors
+    # 1. Abandoned / Pulled Pioneer Rail Corridors (100% Surveyed TxDOT Deprecated & OpenStreetMap Rail-Trail Geometries)
     {
         "id": "rail_mkt_katy_heights_mainline",
-        "name": "Missouri-Kansas-Texas RR ('The Katy' / MKT Inner-Loop Mainline & Heights Spur, 1893)",
+        "name": "Missouri-Kansas-Texas RR ('The Katy' / MKT Inner-Loop Mainline, 1893)",
         "historic_company": "Missouri, Kansas & Texas Railway Co. ('The Katy', 1893–1988) · Pulled 1997 (Now MKT Hike-and-Bike Trail)",
         "charter_year": 1880,
         "opened_year": 1893,
         "modern_operator": "Abandoned 1997 · City of Houston MKT Trail (White Oak Bayou Greenway)",
         "rail_type": "abandoned_trail",
-        "status": "Abandoned Pioneer Mainline (Converted to MKT Hike-and-Bike Trail)",
-        "route_summary": "Eureka Yard east along 7th Street through Houston Heights, Shady Acres, Sawyer Yards & Studemont across White Oak Bayou to Downtown MKT Depot (Main & Shea)",
+        "status": "Abandoned Pioneer Mainline (Surveyed TxDOT Pulled Mainline & MKT Trail)",
+        "route_summary": "Katy & Eureka Yard east along 7th Street through Houston Heights, Shady Acres, Sawyer Yards & Studemont across White Oak Bayou to Downtown MKT Depot (Main & Shea)",
         "historic_significance": (
             "Completed into Houston in April 1893, the Missouri-Kansas-Texas ('The Katy') mainline ran due east from "
             "Eureka Junction through the southern Houston Heights (along 7th Street), crossed White Oak Bayou on a steel "
             "trestle at Studemont/Wright-Bembry Park, and terminated at the MKT Passenger & Freight Depot tucked beneath "
             "the 1913 Main Street Viaduct. After Union Pacific absorbed the Katy in 1988, the inner-loop tracks were pulled "
-            "in 1997 and transformed into the MKT Hike-and-Bike Trail - preserving the historic 1893 railroad grade and "
-            "bayou bridge."
+            "in 1997 and transformed into the MKT Hike-and-Bike Trail."
         ),
-        "coords": [
-            [-95.4384, 29.7838],
-            [-95.4245, 29.7834],
-            [-95.4144, 29.7833],
-            [-95.4046, 29.7833],
-            [-95.3982, 29.7828],
-            [-95.3885, 29.7753],
-            [-95.3802, 29.7753],
-            [-95.3769, 29.7753],
-            [-95.3705, 29.7738],
-            [-95.3644, 29.7723],
-            [-95.3594, 29.7675],
-        ],
+        "txdot_pulled_mkt": True,
+    },
+    {
+        "id": "rail_htc_nicholson_heights_spur",
+        "name": "Houston & Texas Central / Southern Pacific Heights Industrial Lead (1890s - Now Nicholson Trail)",
+        "historic_company": "Houston & Texas Central Railway · Southern Pacific Lines (Heights & Sawyer Industrial Spur)",
+        "charter_year": 1856,
+        "opened_year": 1894,
+        "modern_operator": "Abandoned · City of Houston Nicholson Street Hike-and-Bike Trail",
+        "rail_type": "abandoned_trail",
+        "status": "Abandoned Historic Industrial Rail Spur (Converted to Nicholson Hike-and-Bike Trail)",
+        "route_summary": "North-South through the Houston Heights along Nicholson Street from 7th Street / MKT Junction north across 19th/20th Streets to North Loop",
+        "historic_significance": (
+            "Constructed in the 1890s as the Houston Heights industrial rail lead branching off the H&TC / MKT corridor "
+            "along Nicholson Street to serve early Heights factories, textile mills, lumber yards, and ice plants on the "
+            "western side of Houston Heights. Today the preserved right-of-way forms the Nicholson Hike-and-Bike Trail."
+        ),
+        "osm_trail_names": ["Nicholson Trail"],
     },
     {
         "id": "rail_saap_westpark_blodgett",
-        "name": "San Antonio & Aransas Pass Railway ('The SAP' - Blodgett & Westpark Line, 1886)",
+        "name": "San Antonio & Aransas Pass Railway ('The SAP' - Westpark & Bellaire Line, 1886)",
         "historic_company": "San Antonio & Aransas Pass Railway (Uriah Lott, 1886) · Southern Pacific (1925–1990s)",
         "charter_year": 1884,
         "opened_year": 1886,
-        "modern_operator": "Abandoned 1990s (Now Westpark Tollway / METRO Transit Corridor & Southwest Trail)",
+        "modern_operator": "Abandoned 1990s (Surveyed 203-Vertex TxDOT Pulled Mainline · Now Westpark Corridor)",
         "rail_type": "abandoned_trail",
         "status": "Abandoned 19th-Century Mainline (Tracks Pulled 1990s)",
-        "route_summary": "Blodgett Depot (Almeda & Blodgett in Third Ward/Museum District) west along Blodgett/US-59 & Westpark Drive through Upper Kirby, Greenway Plaza & Bellaire toward Eagle Lake & San Antonio",
+        "route_summary": "Upper Kirby / Shepherd west along the Westpark right-of-way through Greenway Plaza, Bellaire (1908), Westchase & Alief toward Eagle Lake & San Antonio",
         "historic_significance": (
             "Built eastward into Houston in 1886–1887 by Uriah Lott's San Antonio & Aransas Pass Railway ('The SAP' or "
-            "'Davy Crockett Route'), this line entered south Houston parallel to Westpark Drive, crossed Kirby and Shepherd, "
-            "and ran along the Blodgett Street alignment between the Museum District and Third Ward to the SA&AP Blodgett "
-            "Depot near Almeda Road. It spurred the early industrial and residential development of Bellaire (1908), "
-            "West University Place, and Upper Kirby before Southern Pacific abandoned the inner-loop tracks in the 1990s."
+            "'Davy Crockett Route'), this line entered south Houston along the Westpark corridor through Bellaire, "
+            "West University Place, and Upper Kirby toward the Blodgett Depot in Third Ward. It spurred the early "
+            "development of Bellaire (1908) and West University Place before Southern Pacific pulled the inner-loop tracks "
+            "in the 1990s."
         ),
-        "coords": [
-            [-95.5120, 29.7235],
-            [-95.4850, 29.7248],
-            [-95.4570, 29.7258],
-            [-95.4476, 29.7270],
-            [-95.4295, 29.7282],
-            [-95.4175, 29.7290],
-            [-95.4050, 29.7275],
-            [-95.3920, 29.7262],
-            [-95.3805, 29.7248],
-            [-95.3715, 29.7238],
-        ],
-    },
-    {
-        "id": "rail_htc_grand_central_approach",
-        "name": "H&TC / Southern Pacific Grand Central Station Passenger Approach (1856–1960)",
-        "historic_company": "Houston & Texas Central Railway (1856) · Southern Pacific Lines (Closed 1959, Pulled 1960)",
-        "charter_year": 1856,
-        "opened_year": 1860,
-        "modern_operator": "Abandoned & Removed 1960 (Site of Barbara Jordan Post Office / POST Houston)",
-        "rail_type": "abandoned_trail",
-        "status": "Demolished Historic Passenger Terminal Tracks (1856–1960)",
-        "route_summary": "Chaney Junction / Washington Ave east along the south bank of White Oak Bayou into Grand Central Station (901 Franklin Ave at Bagby)",
-        "historic_significance": (
-            "For over a century, Houston's primary west-side passenger train approach ran along the south bank of White Oak "
-            "Bayou directly to Grand Central Station at Franklin and Washington Avenues (where the 1886 Victorian depot and "
-            "1934 Art Moderne terminal stood). In 1959–1960, Southern Pacific relocated passenger trains half a mile west to "
-            "the modest 902 Washington Ave Amtrak station and sold the 16-acre Grand Central terminal complex for the main "
-            "U.S. Post Office (now POST Houston)."
-        ),
-        "coords": [
-            [-95.3885, 29.7695],
-            [-95.3812, 29.7689],
-            [-95.3752, 29.7676],
-            [-95.3708, 29.7668],
-            [-95.3665, 29.7658],
-        ],
+        "txdot_pulled_saap": True,
     },
     # 2. Historic Streetcar & Electric Interurban Lines (1874–1940)
     {
@@ -1055,10 +1084,10 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
         "historic_company": "Galveston-Houston Electric Railway Co. (Stone & Webster Management, 1911–1936)",
         "charter_year": 1907,
         "opened_year": 1911,
-        "modern_operator": "Removed 1936 (Right-of-Way Preserved as HL&P / CenterPoint High-Voltage Transmission Corridor)",
+        "modern_operator": "Removed 1936 (Pierce & Sampson Streets + Parallel GH&H / HL&P Interurban Corridor to Galveston)",
         "rail_type": "streetcar_interurban",
         "status": "Historic High-Speed Electric Interurban Railway (Operated Dec. 1911 – Oct. 1936)",
-        "route_summary": "Downtown Interurban Terminal (Pierce & Travis) southeast through Midtown, Eastwood/Lawndale, Park Place, South Houston, Genoa, Webster, League City & Dickinson to Galveston",
+        "route_summary": "Downtown Interurban Terminal (Pierce & Travis) southeast along Pierce & Sampson Streets and the straight Interurban corridor parallel to the GH&H through Park Place, South Houston, Genoa, Webster & Dickinson to Galveston",
         "historic_significance": (
             "Opened on December 5, 1911 by Stone & Webster, the Galveston-Houston Electric Railway was a marvel of "
             "early-20th-century electric transit: a 50-mile, grade-separated, catenary-powered line that whisked passengers "
@@ -1066,28 +1095,18 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
             "Traction Speed Cup' in 1925 and 1926 as the fastest interurban in North America. It directly spurred the "
             "development of Park Place (1912), South Houston, and Glenbrook Valley before closing on October 31, 1936."
         ),
-        "coords": [
-            [-95.3698, 29.7502],
-            [-95.3615, 29.7448],
-            [-95.3485, 29.7362],
-            [-95.3312, 29.7235],
-            [-95.3125, 29.7085],
-            [-95.2862, 29.6872],
-            [-95.2580, 29.6625],
-            [-95.2285, 29.6345],
-            [-95.1820, 29.5890],
-        ],
+        "interurban_corridor": True,
     },
     {
         "id": "rail_heights_blvd_streetcar",
         "name": "Houston Heights Boulevard Electric Streetcar Line (1891–1937)",
-        "historic_company": "Omaha & South Texas Land Co. (1891) · Houston City Street Railway · Houston Electric Co.",
+        "historic_company": "Omaha & South Texas Land Co. (1891) · Houston City Street Railway · Houston Electric Co. (Route #2)",
         "charter_year": 1891,
         "opened_year": 1892,
         "modern_operator": "Removed 1937 (Preserved as Heights Boulevard Esplanade & 19th Street Commercial Spine)",
         "rail_type": "streetcar_interurban",
         "status": "Historic Electric Streetcar Line (1891–1937)",
-        "route_summary": "Downtown Market Square west via Washington Ave, north across White Oak Bayou up the center esplanade of Heights Boulevard (4th St to 20th St) and along 19th Street",
+        "route_summary": "Downtown Market Square west via Washington Ave, north across White Oak Bayou up the center esplanade of Heights Boulevard (4th St to 20th St) and along W. 19th/20th Street",
         "historic_significance": (
             "When Oscar Martin Carter and the Omaha & South Texas Land Company founded Houston Heights in 1891 as a standalone "
             "streetcar suburb 62 feet above Downtown Houston's yellow fever marshes, they built a wide, tree-lined 120-foot "
@@ -1095,70 +1114,122 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
             "20th Street (extending along 19th Street). The streetcar median is why Heights Boulevard has its iconic "
             "60-foot parkway esplanade today."
         ),
-        "coords": [
-            [-95.3632, 29.7632],
-            [-95.3715, 29.7662],
-            [-95.3825, 29.7681],
-            [-95.3948, 29.7695],
-            [-95.3976, 29.7752],
-            [-95.3976, 29.7815],
-            [-95.3977, 29.7905],
-            [-95.3978, 29.8038],
-            [-95.4085, 29.8029],
+        "osm_streetcar_legs": [
+            {
+                "waypoints": [
+                    [-95.3632, 29.7632],
+                    [-95.3976, 29.7695],
+                    [-95.3978, 29.8030],
+                    [-95.4085, 29.8029],
+                ],
+                "streets": {"Washington Avenue", "Heights Boulevard", "West 19th Street", "West 20th Street"},
+            }
         ],
+        "coords": [],
     },
     {
         "id": "rail_woodland_heights_norhill_streetcar",
-        "name": "Woodland Heights, Bayland Avenue & Norhill Streetcar Line (1907–1938)",
-        "historic_company": "Houston Electric Company (Stone & Webster) & William A. Wilson Realty Co.",
+        "name": "Woodland Heights, Houston Avenue & Watson Street Streetcar Line (1907–1938)",
+        "historic_company": "Houston Electric Company (Stone & Webster - Routes #5 Watson & #6 Houston Ave) & William A. Wilson Realty Co.",
         "charter_year": 1907,
         "opened_year": 1907,
-        "modern_operator": "Removed 1938 (Preserved along Houston Ave, Bayland Ave, Euclid St & Michaux St)",
+        "modern_operator": "Removed 1938 (Preserved along Houston Ave to Bayland Gate, White Oak Dr & Watson St to Merrill St)",
         "rail_type": "streetcar_interurban",
         "status": "Historic Electric Streetcar Line (1907–1938)",
-        "route_summary": "Downtown north up Houston Avenue across White Oak Bayou & Woodland Park, east on Bayland Avenue through Woodland Heights to Euclid/Michaux, and north into Norhill",
+        "route_summary": "Downtown via Washington Ave & north up Houston Avenue across White Oak Bayou past the Woodland Heights Gates at Bayland Ave, plus the Route #5 Watson Street branch via White Oak Dr & Watson St to Merrill St",
         "historic_significance": (
-            "To market Woodland Heights in 1907 as 'A Miniature City in a Forest of Magnificent Pines and Oaks - Twenty "
-            "Minutes from Main Street', developer William A. Wilson partnered with the Houston Electric Company to run "
-            "streetcars north on Houston Avenue past Woodland Park, turning east down Bayland Avenue and north up Euclid and "
-            "Michaux Streets into Woodland Terrace and Norhill. The streetcar tracks on Bayland and Euclid explain the wide "
-            "right-of-way and corner neighborhood commercial buildings along Bayland, Euclid, and Michaux."
+            "To market Woodland Heights in October 1907 as 'A Miniature City in a Forest of Magnificent Pines and Oaks - Twenty "
+            "Minutes from Main Street', developer William A. Wilson partnered with the Houston Electric Company on the Houston "
+            "Avenue streetcar line, which stopped at the ornamental stone gates spanning Bayland Avenue at Houston Avenue and "
+            "continued north to North Norhill. A second branch (Route #5 'Watson') turned west from Houston Avenue along White Oak "
+            "Drive and ran north directly through the interior of Woodland Heights up Watson Street to Merrill Street."
         ),
-        "coords": [
-            [-95.3660, 29.7620],
-            [-95.3728, 29.7662],
-            [-95.3728, 29.7765],
-            [-95.3729, 29.7848],
-            [-95.3879, 29.7866],
-            [-95.3832, 29.7866],
-            [-95.3832, 29.7918],
-            [-95.3806, 29.7918],
-            [-95.3806, 29.7985],
+        "osm_streetcar_legs": [
+            {
+                "waypoints": [
+                    [-95.3665, 29.7648],
+                    [-95.3723, 29.7662],
+                    [-95.3723, 29.7810],
+                    [-95.3809, 29.7810],
+                    [-95.3809, 29.7889],
+                ],
+                "streets": {"Washington Avenue", "Houston Avenue", "White Oak Drive", "Watson Street", "Merrill Street"},
+            },
+            {
+                "waypoints": [
+                    [-95.3723, 29.7810],
+                    [-95.3721, 29.7868],
+                    [-95.3721, 29.7901],
+                ],
+                "streets": {"Houston Avenue"},
+            },
         ],
+        "coords": [],
+    },
+    {
+        "id": "rail_studewood_norhill_streetcar",
+        "name": "Studewood & Norhill Electric Streetcar Line (Route #4, 1910–1938)",
+        "historic_company": "Houston Electric Company (Stone & Webster - Route #4 Studewood)",
+        "charter_year": 1910,
+        "opened_year": 1910,
+        "modern_operator": "Removed 1938 (Preserved along White Oak Dr, Usener St & Studewood St through Woodland Heights & Norhill)",
+        "rail_type": "streetcar_interurban",
+        "status": "Historic Electric Streetcar Line (1910–1938)",
+        "route_summary": "Houston Avenue west along White Oak Drive & Usener Street across Stude Park, then due north up Studewood Street along the western border of Woodland Heights and Norhill to 20th/30th Streets",
+        "historic_significance": (
+            "Operated by the Houston Electric Company as the Studewood Line (Route #4), this streetcar branched west off "
+            "Houston Avenue along White Oak Drive and Usener Street above Stude Park and ran north up Studewood Street, "
+            "providing direct streetcar service along the western edge of Woodland Heights, Norhill (1920), and North Norhill "
+            "(1924) and fostering the historic corner commercial districts at Studewood & White Oak and Studewood & 11th/14th."
+        ),
+        "osm_streetcar_legs": [
+            {
+                "waypoints": [
+                    [-95.3723, 29.7810],
+                    [-95.3809, 29.7810],
+                    [-95.3879, 29.7808],
+                    [-95.3879, 29.8038],
+                ],
+                "streets": {"White Oak Drive", "Usener Street", "Studewood Street", "Studemont Street"},
+            }
+        ],
+        "coords": [],
     },
     {
         "id": "rail_montrose_courtlandt_streetcar",
-        "name": "Montrose, Avondale & Courtlandt Place Electric Streetcar Line (1906–1937)",
-        "historic_company": "Houston Electric Company & Montrose Land Co. (J.W. Link, 1911)",
+        "name": "Montrose, Avondale, Courtlandt Place & Mandell Electric Streetcar Lines (1906–1937)",
+        "historic_company": "Houston Electric Company (Routes #22 Montrose & #23 Mandell) & Montrose Land Co. (J.W. Link, 1911)",
         "charter_year": 1906,
         "opened_year": 1906,
-        "modern_operator": "Removed 1937 (Montrose Blvd, Westheimer & Fairview Streetcar Suburb Spine)",
+        "modern_operator": "Removed 1937 (Tuam, Fairview, Montrose Blvd & Mandell Streetcar Suburb Spines)",
         "rail_type": "streetcar_interurban",
         "status": "Historic Electric Streetcar Line (1906–1937)",
-        "route_summary": "Downtown southwest via Milam/Louisiana & Tuam/Fairview through Avondale, Courtlandt Place, and down Montrose Boulevard to Bissonnet",
+        "route_summary": "Downtown southwest via Louisiana, Tuam & Fairview Streets through Avondale & Courtlandt Place, branching south down Montrose Boulevard to Bissonnet and down Mandell Street to Colquitt",
         "historic_significance": (
-            "Extended into the South End to serve Avondale (1907) and Courtlandt Place (1906), and rebuilt by lumberman "
+            "Extended into the South End to serve Courtlandt Place (1906) and Avondale (1907), rebuilt by lumberman "
             "John Wiley Link in 1911 down the palm-lined esplanades of Montrose Boulevard to sell lots in his master-planned "
-            "suburb of Montrose."
+            "suburb of Montrose, and branched west along Fairview to Mandell Street (Route #23) through Westheimer and Castle Court."
         ),
-        "coords": [
-            [-95.3655, 29.7575],
-            [-95.3735, 29.7478],
-            [-95.3815, 29.7458],
-            [-95.3912, 29.7456],
-            [-95.3913, 29.7345],
-            [-95.3914, 29.7258],
+        "osm_streetcar_legs": [
+            {
+                "waypoints": [
+                    [-95.3655, 29.7575],
+                    [-95.3755, 29.7460],
+                    [-95.3912, 29.7448],
+                    [-95.3914, 29.7258],
+                ],
+                "streets": {"Louisiana Street", "Milam Street", "Tuam Street", "Fairview Street", "Montrose Boulevard"},
+            },
+            {
+                "waypoints": [
+                    [-95.3912, 29.7448],
+                    [-95.4021, 29.7448],
+                    [-95.4021, 29.7325],
+                ],
+                "streets": {"Fairview Street", "Mandell Street", "Colquitt Street"},
+            },
         ],
+        "coords": [],
     },
     {
         "id": "rail_south_end_main_st_streetcar",
@@ -1176,14 +1247,18 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
             "Hermann Park and the Houston Zoo. It made the final run of Houston's historic streetcar era on the night of "
             "June 8, 1940 - and 64 years later, the METRORail Red Line opened along the exact same Main Street corridor."
         ),
-        "coords": [
-            [-95.3592, 29.7642],
-            [-95.3638, 29.7572],
-            [-95.3712, 29.7460],
-            [-95.3792, 29.7338],
-            [-95.3895, 29.7215],
-            [-95.3975, 29.7155],
+        "osm_streetcar_legs": [
+            {
+                "waypoints": [
+                    [-95.3592, 29.7642],
+                    [-95.3712, 29.7460],
+                    [-95.3895, 29.7215],
+                    [-95.3975, 29.7155],
+                ],
+                "streets": {"Main Street", "Fannin Street"},
+            }
         ],
+        "coords": [],
     },
     {
         "id": "rail_westmoreland_bellaire_streetcar",
@@ -1194,46 +1269,51 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
         "modern_operator": "Removed 1927 (Preserved as the Wide Center Esplanade of Bellaire/Holcombe Boulevard)",
         "rail_type": "streetcar_interurban",
         "status": "Historic Streetcar & Suburban Trolley Line (1904–1927)",
-        "route_summary": "Midtown / Westmoreland Historic District (Hawthorne & Mason) south and west down the center esplanade of Holcombe & Bellaire Boulevard into the City of Bellaire",
+        "route_summary": "South End / Main Street west down the center esplanade of Holcombe & Bellaire Boulevard through Southside Place & West University Place into the City of Bellaire",
         "historic_significance": (
             "Burlington Railroad vice president William Wright Baldwin purchased the 9,449-acre Rice ranch in 1908 to develop "
             "the town of Bellaire and surrounding 'Westmoreland Farms' citrus/truck-garden estates. In December 1910, Baldwin "
-            "opened the 'Toonerville Trolley' down the broad grassy center esplanade of Bellaire Boulevard, linking his earlier "
-            "1902 Westmoreland Addition in Midtown to Bellaire Boulevard & South Rice Avenue."
+            "opened the 'Toonerville Trolley' down the broad grassy center esplanade of Holcombe and Bellaire Boulevards, "
+            "connecting the South End streetcar line to Bellaire Boulevard & South Rice Avenue."
         ),
-        "coords": [
-            [-95.3782, 29.7438],
-            [-95.3862, 29.7418],
-            [-95.3882, 29.7285],
-            [-95.3910, 29.7062],
-            [-95.4150, 29.7058],
-            [-95.4420, 29.7055],
-            [-95.4650, 29.7052],
+        "osm_streetcar_legs": [
+            {
+                "waypoints": [
+                    [-95.4052, 29.7062],
+                    [-95.4337, 29.7060],
+                    [-95.4650, 29.7058],
+                ],
+                "streets": {"West Holcombe Boulevard", "Holcombe Boulevard", "Bellaire Boulevard"},
+            }
         ],
+        "coords": [],
     },
     {
         "id": "rail_harrisburg_eastwood_streetcar",
         "name": "Harrisburg, Eastwood & Magnolia Park Electric Streetcar Line (1892–1939)",
-        "historic_company": "Houston City Street Railway (1892) · Houston Electric Company",
+        "historic_company": "Houston City Street Railway (1892) · Houston Electric Company (Route #13 Port Houston)",
         "charter_year": 1892,
         "opened_year": 1892,
         "modern_operator": "Removed 1939 (Now Served by METRORail Green Line along Harrisburg Blvd)",
         "rail_type": "streetcar_interurban",
         "status": "Historic East End Electric Streetcar Spine (1892–1939)",
-        "route_summary": "Downtown east via Capitol/Rusk & Harrisburg Boulevard through Second Ward, Eastwood (1913), Country Club Place & Magnolia Park to Harrisburg",
+        "route_summary": "Downtown east via Preston/Congress & Harrisburg Boulevard through Second Ward, Eastwood (1913), Country Club Place & Magnolia Park to Harrisburg",
         "historic_significance": (
             "Electrified in 1892 along Harrisburg Road between Houston and historic Harrisburg, this streetcar line enabled "
             "William A. Wilson to develop Eastwood (1913) and Country Club Place as Craftsman and Four-Square streetcar "
             "suburbs for managers and workers along the newly opened Houston Ship Channel."
         ),
-        "coords": [
-            [-95.3622, 29.7592],
-            [-95.3515, 29.7532],
-            [-95.3412, 29.7478],
-            [-95.3275, 29.7405],
-            [-95.3115, 29.7322],
-            [-95.2915, 29.7218],
+        "osm_streetcar_legs": [
+            {
+                "waypoints": [
+                    [-95.3622, 29.7608],
+                    [-95.34851, 29.75310],
+                    [-95.2788, 29.7275],
+                ],
+                "streets": {"Preston Street", "Congress Street", "Harrisburg Boulevard"},
+            }
         ],
+        "coords": [],
     },
 ]
 
@@ -1447,16 +1527,69 @@ def normalize_waterway_name(raw_name: str) -> str:
         return "Carpenters Bayou"
     if "houston ship channel" in s.lower():
         return "Houston Ship Channel"
+    if s.lower() == "old buffalo bayou":
+        return "Old Buffalo Bayou"
+    if s.lower() == "old sims bayou":
+        return "Old Sims Bayou"
+    if s.lower() == "old turkey creek":
+        return "Old Turkey Creek"
     if "buffalo bayou" in s.lower():
         return "Buffalo Bayou"
     return s
 
 
-def build_waterways_collection() -> list:
-    print("1. Fetching Historical Waterways from COH GIS, USGS NHD & PWE Storm Sewer Archives...")
-    grouped_lines = {}  # name -> {"geoms": [], "is_culvert": False, "category": "Minor"}
+def load_ward_1903_shared_boundaries() -> dict:
+    """Load exact 1903 Aldermanic Ward boundaries (which follow the pre-channelization bayou centerlines)."""
+    ward_path = CACHE_DIR / "coh_wards_1903.geojson"
+    if not ward_path.exists():
+        return {}
+    with open(ward_path, "r", encoding="utf-8") as f:
+        feats = json.load(f).get("features") or []
+    polys = {}
+    for feat in feats:
+        w = (feat.get("properties") or {}).get("WARD")
+        if w:
+            polys[w] = shape(feat["geometry"]).buffer(0)
+    out = {}
+    for w1, w2 in [("FOURTH", "SIXTH"), ("SECOND", "FIFTH"), ("FIRST", "FIFTH")]:
+        if w1 in polys and w2 in polys:
+            inter = safe_linemerge(polys[w1].boundary.intersection(polys[w2].boundary))
+            if inter and not inter.is_empty:
+                out[(w1, w2)] = inter
+    return out
 
-    # 1A. COH Water_Line_Texas_ClippedCOH
+
+def build_waterways_collection() -> list:
+    print("1. Building High-Resolution Historical Waterways from OpenStreetMap, USGS NHD, COH GIS & 1903 Ward Surveys...")
+    grouped_lines = {}  # name -> {"osm": [], "nhd": [], "coh": [], "pwe": [], "is_culvert": False, "category": "Minor"}
+
+    # 1A. OpenStreetMap High-Resolution Waterways Cache (single centerline, aerial-traced)
+    osm_cache_path = CACHE_DIR / "osm_waterways_and_rail_trails.json"
+    if osm_cache_path.exists():
+        with open(osm_cache_path, "r", encoding="utf-8") as f:
+            osm_els = json.load(f).get("elements") or []
+        osm_count = 0
+        for el in osm_els:
+            tags = el.get("tags") or {}
+            wtype = tags.get("waterway")
+            raw_nm = tags.get("name") or ""
+            geom = el.get("geometry") or []
+            if wtype in ("river", "stream", "canal", "drain", "ditch") and raw_nm and len(geom) >= 2:
+                if raw_nm.strip().lower().startswith("unnamed"):
+                    continue
+                nm = normalize_waterway_name(raw_nm)
+                if not nm:
+                    continue
+                ln = LineString([(round(float(pt["lon"]), 6), round(float(pt["lat"]), 6)) for pt in geom])
+                if ln.length > 0:
+                    rec = grouped_lines.setdefault(
+                        nm, {"osm": [], "nhd": [], "coh": [], "pwe": [], "is_culvert": False, "category": "Minor"}
+                    )
+                    rec["osm"].append(ln)
+                    osm_count += 1
+        print(f"   OpenStreetMap High-Res Waterways: {osm_count} ways")
+
+    # 1B. COH Water_Line_Texas_ClippedCOH
     coh_wl = fetch_arcgis_features(
         "https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/Water_Line_Texas_ClippedCOH/FeatureServer/0",
         where="NAME <> ' ' AND NAME IS NOT NULL",
@@ -1474,12 +1607,14 @@ def build_waterways_collection() -> list:
         if g is None:
             continue
         cat = ((f.get("attributes") or {}).get("CATEGORY") or "Minor").strip()
-        rec = grouped_lines.setdefault(nm, {"geoms": [], "is_culvert": False, "category": cat})
-        rec["geoms"].append(g)
+        rec = grouped_lines.setdefault(
+            nm, {"osm": [], "nhd": [], "coh": [], "pwe": [], "is_culvert": False, "category": cat}
+        )
+        rec["coh"].append(g)
         if cat == "Major":
             rec["category"] = "Major"
 
-    # 1B. USGS NHD Flowline (captures Little White Oak Bayou, Bering Ditch, Briar Branch, Country Club Bayou, etc.)
+    # 1C. USGS NHD Flowline
     nhd_feats = fetch_arcgis_features(
         "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6",
         where="gnis_name IS NOT NULL",
@@ -1497,12 +1632,14 @@ def build_waterways_collection() -> list:
         if g is None:
             continue
         ftype = attr.get("ftype")
-        rec = grouped_lines.setdefault(nm, {"geoms": [], "is_culvert": False, "category": "Minor"})
-        rec["geoms"].append(g)
+        rec = grouped_lines.setdefault(
+            nm, {"osm": [], "nhd": [], "coh": [], "pwe": [], "is_culvert": False, "category": "Minor"}
+        )
+        rec["nhd"].append(g)
         if ftype == 428:
             rec["is_culvert"] = True
 
-    # 1C. COH Public Works Maintained Waterways (captures buried storm-sewer waterways like Slaughterpen Bayou, City Ditch, Yates Gully, Cypress Slough)
+    # 1D. COH Public Works Maintained Waterways (captures buried storm-sewer waterways like Slaughterpen Bayou, City Ditch, Yates Gully, Cypress Slough)
     pwe_feats = fetch_arcgis_features(
         "https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/PWE_COH_Maintained_Waterways/FeatureServer/0",
         where="CHANNELNAM <> ' ' AND CHANNELNAM IS NOT NULL",
@@ -1519,22 +1656,48 @@ def build_waterways_collection() -> list:
         g = esri_paths_to_shapely(f.get("geometry"))
         if g is None:
             continue
-        rec = grouped_lines.setdefault(nm, {"geoms": [], "is_culvert": False, "category": "Minor"})
-        rec["geoms"].append(g)
+        rec = grouped_lines.setdefault(
+            nm, {"osm": [], "nhd": [], "coh": [], "pwe": [], "is_culvert": False, "category": "Minor"}
+        )
+        rec["pwe"].append(g)
         if ltype == "Storm Sewer":
             rec["is_culvert"] = True
 
     waterway_features = []
     idx = 1
     for nm, info in sorted(grouped_lines.items()):
-        if not info["geoms"]:
+        # Choose a SINGLE authoritative source per waterway so competing centerlines from 3 datasets never overlap/crisscross!
+        if nm in ("Slaughterpen Bayou", "City Ditch", "Yates Gully", "Cypress Slough") and info["pwe"]:
+            chosen_geoms = info["pwe"]
+            source_label = "City of Houston Public Works Storm Sewer GIS Archive"
+        elif info["osm"]:
+            chosen_geoms = list(info["osm"])
+            source_label = "OpenStreetMap High-Resolution Hydrography + USGS NHD Archive"
+            # If NHD or COH has major unmapped reaches outside a ~120m buffer of OSM (e.g. Houston Ship Channel lower bay reach), append only non-overlapping segments
+            osm_union = safe_linemerge(unary_union(chosen_geoms))
+            fallback_pool = info["nhd"] or info["coh"]
+            if fallback_pool:
+                fb_union = safe_linemerge(unary_union(fallback_pool))
+                if fb_union.length > osm_union.length * 1.35:
+                    diff = fb_union.difference(osm_union.buffer(0.0012))
+                    if not diff.is_empty and diff.length > 0.005:
+                        chosen_geoms.append(diff)
+        elif info["nhd"]:
+            chosen_geoms = info["nhd"]
+            source_label = "USGS National Hydrography Dataset (NHD)"
+        elif info["coh"]:
+            chosen_geoms = info["coh"]
+            source_label = "City of Houston Hydrography GIS Archive"
+        elif info["pwe"]:
+            chosen_geoms = info["pwe"]
+            source_label = "City of Houston Public Works Waterways GIS Archive"
+        else:
             continue
+
         try:
-            merged = unary_union(info["geoms"])
-            if merged.geom_type == "MultiLineString":
-                merged = linemerge(merged)
+            merged = safe_linemerge(unary_union(chosen_geoms))
         except Exception:
-            merged = info["geoms"][0]
+            merged = chosen_geoms[0]
 
         length_mi = approx_length_miles(merged)
         if length_mi < 0.12 and nm not in WATERWAY_HISTORICAL_DOSSIERS:
@@ -1560,7 +1723,8 @@ def build_waterways_collection() -> list:
             f"({length_mi:.1f} miles mapped across USGS National Hydrography and City of Houston archives)."
         )
 
-        geom_json = round_coords_geom(merged, tol=0.00007, precision=5)
+        # Keep full smooth resolution (tol=0.000018 ~ 1.8m) so natural meanders are never angular
+        geom_json = round_coords_geom(merged, tol=0.000018, precision=5)
         if not geom_json:
             continue
 
@@ -1575,14 +1739,57 @@ def build_waterways_collection() -> list:
             "era_notes": dossier.get("era_notes", "USGS Historical Topographic & COH Hydrography Archive"),
             "historic_significance": dossier.get("historic_significance", default_sig),
             "length_miles": length_mi,
-            "source": "USGS NHD + City of Houston Hydrography & PWE Archives",
+            "source": source_label,
         }
         waterway_features.append({"type": "Feature", "properties": props, "geometry": geom_json})
         idx += 1
 
-    # 1D. Append Curated Buried Gullies & Pre-Channelization Natural Oxbows
+    # 1E. Append Surveyed Buried Gullies (HCFCD Closed Conduits) & Pre-Channelization Natural Bayou Oxbows (1903 Ward Surveys & COH Hydrography)
+    ward_1903_bounds = load_ward_1903_shared_boundaries()
+    hcfcd_conduits_by_unit = {}
+    hcfcd_cache_path = CACHE_DIR / "hcfcd_closed_conduits.json"
+    if hcfcd_cache_path.exists():
+        with open(hcfcd_cache_path, "r", encoding="utf-8") as f:
+            for cf in json.load(f):
+                u = ((cf.get("attributes") or {}).get("UnitNumber") or "").strip()
+                g = esri_paths_to_shapely(cf.get("geometry"))
+                if u and g is not None:
+                    hcfcd_conduits_by_unit.setdefault(u, []).append(g)
+
+    brady_oxbow_geoms = []
+    brady_cache_path = CACHE_DIR / "coh_brady_island_oxbow.json"
+    if brady_cache_path.exists():
+        with open(brady_cache_path, "r", encoding="utf-8") as f:
+            for bf in json.load(f):
+                g = esri_paths_to_shapely(bf.get("geometry"))
+                if g is not None:
+                    brady_oxbow_geoms.append(g)
+
     for item in CURATED_BURIED_GULLIES_AND_OXBOWS:
-        ln = LineString(item["coords"])
+        ward_pair = item.get("ward_boundary_pair")
+        if ward_pair and ward_pair in ward_1903_bounds:
+            raw_geom = ward_1903_bounds[ward_pair]
+            if raw_geom.geom_type == "LineString":
+                ln = LineString(catmull_rom_spline(list(raw_geom.coords), subdivisions=4))
+            else:
+                ln = safe_linemerge(
+                    MultiLineString([LineString(catmull_rom_spline(list(g.coords), subdivisions=4)) for g in raw_geom.geoms])
+                )
+            src_label = "1903 City of Houston Aldermanic Ward Charter Survey & 1915 USGS Houston Topo Quad"
+        elif item.get("hcfcd_units"):
+            unit_geoms = []
+            for u in item["hcfcd_units"]:
+                unit_geoms.extend(hcfcd_conduits_by_unit.get(u, []))
+            if not unit_geoms:
+                continue
+            ln = safe_linemerge(unary_union(unit_geoms))
+            src_label = "Harris County Flood Control District (HCFCD M3 Closed Conduit Survey) & 1915 USGS Houston Topo Quad"
+        elif item.get("brady_island_survey") and brady_oxbow_geoms:
+            ln = safe_linemerge(unary_union(brady_oxbow_geoms))
+            src_label = "City of Houston Hydrography GIS Survey (Pre-1914 Brady Island Channel)"
+        else:
+            continue
+
         length_mi = approx_length_miles(ln)
         props = {
             "id": item["id"],
@@ -1594,13 +1801,13 @@ def build_waterways_collection() -> list:
             "era_notes": item.get("era_notes", "1915 USGS Houston Topo Quad & Sanborn Maps"),
             "historic_significance": item["historic_significance"],
             "length_miles": length_mi,
-            "source": "1915/1922 USGS Houston Topographic Quadrangle & 1869/1891 Bird's-Eye Cartography",
+            "source": src_label,
         }
         waterway_features.append(
             {
                 "type": "Feature",
                 "properties": props,
-                "geometry": round_coords_geom(ln, tol=0.0, precision=5),
+                "geometry": round_coords_geom(ln, tol=0.00001, precision=5),
             }
         )
 
@@ -1608,9 +1815,136 @@ def build_waterways_collection() -> list:
     return waterway_features
 
 
+def build_osm_streetcar_router():
+    """Build a fast spatial-grid-indexed Dijkstra router over cached OpenStreetMap street centerlines."""
+    import heapq
+
+    street_cache = CACHE_DIR / "osm_streetcar_streets.json"
+    if not street_cache.exists():
+        return None
+    with open(street_cache, "r", encoding="utf-8") as f:
+        els = json.load(f).get("elements") or []
+
+    adj = {}
+    grid = {}
+
+    def snap_node(lon, lat):
+        k = (round(float(lon), 5), round(float(lat), 5))
+        gx, gy = int(k[0] * 1200), int(k[1] * 1200)
+        grid.setdefault((gx, gy), set()).add(k)
+        return k
+
+    for el in els:
+        tags = el.get("tags") or {}
+        nm = tags.get("name") or ""
+        geom = el.get("geometry") or []
+        if len(geom) < 2:
+            continue
+        pts = [snap_node(p["lon"], p["lat"]) for p in geom]
+        for i in range(len(pts) - 1):
+            u, v = pts[i], pts[i + 1]
+            if u == v:
+                continue
+            d = math.hypot(u[0] - v[0], u[1] - v[1])
+            adj.setdefault(u, []).append((v, d, nm))
+            adj.setdefault(v, []).append((u, d, nm))
+
+    for (gx, gy), cell_nodes in list(grid.items()):
+        nbrs = set()
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                nbrs |= grid.get((gx + dx, gy + dy), set())
+        for u in cell_nodes:
+            for v in nbrs:
+                if u < v:
+                    d = math.hypot(u[0] - v[0], u[1] - v[1])
+                    if d <= 0.00075:
+                        adj.setdefault(u, []).append((v, d * 2.5, "intersection"))
+                        adj.setdefault(v, []).append((u, d * 2.5, "intersection"))
+
+    def nearest_node(lon, lat, preferred_streets=None):
+        best = None
+        best_d = 1e9
+        for u, edges in adj.items():
+            if preferred_streets and not any(st in preferred_streets for _, _, st in edges):
+                continue
+            d = math.hypot(u[0] - lon, u[1] - lat)
+            if d < best_d:
+                best_d = d
+                best = u
+        if best is None or best_d > 0.003:
+            for u in adj.keys():
+                d = math.hypot(u[0] - lon, u[1] - lat)
+                if d < best_d:
+                    best_d = d
+                    best = u
+        return best
+
+    def route_legs(legs: list):
+        lines = []
+        for leg in legs:
+            waypoints = leg["waypoints"]
+            preferred_streets = leg.get("streets")
+            full_coords = []
+            for i in range(len(waypoints) - 1):
+                s = nearest_node(waypoints[i][0], waypoints[i][1], preferred_streets)
+                t = nearest_node(waypoints[i + 1][0], waypoints[i + 1][1], preferred_streets)
+                pq = [(0.0, s)]
+                dist = {s: 0.0}
+                prev = {}
+                while pq:
+                    cost, u = heapq.heappop(pq)
+                    if u == t:
+                        break
+                    if cost > dist.get(u, 1e9):
+                        continue
+                    for v, d, st in adj.get(u, []):
+                        penalty = 1.0 if (not preferred_streets or st in preferred_streets) else 10.0
+                        nc = cost + d * penalty
+                        if nc < dist.get(v, 1e9):
+                            dist[v] = nc
+                            prev[v] = u
+                            heapq.heappush(pq, (nc, v))
+                if t not in prev and s != t:
+                    seg = [s, t]
+                else:
+                    seg = []
+                    cur = t
+                    while cur != s:
+                        seg.append(cur)
+                        cur = prev[cur]
+                    seg.append(s)
+                    seg.reverse()
+                if full_coords and seg[0] == full_coords[-1]:
+                    full_coords.extend(seg[1:])
+                else:
+                    full_coords.extend(seg)
+            if len(full_coords) >= 2:
+                lines.append(LineString(full_coords))
+        if not lines:
+            return None
+        return safe_linemerge(unary_union(lines))
+
+    return route_legs
+
+
 def build_railroads_collection() -> list:
-    print("2. Fetching Historical Railroads from TxDOT, COH TIGER & Rail-Trail Archives...")
+    print("2. Fetching Historical Railroads from TxDOT, OpenStreetMap Rail-Trails & Streetcar Centerlines...")
     railroad_features = []
+
+    # Load OpenStreetMap rail-trails from cache
+    osm_trails_by_name = {}
+    osm_cache_path = CACHE_DIR / "osm_waterways_and_rail_trails.json"
+    if osm_cache_path.exists():
+        with open(osm_cache_path, "r", encoding="utf-8") as f:
+            for el in json.load(f).get("elements") or []:
+                tags = el.get("tags") or {}
+                nm = tags.get("name") or ""
+                geom = el.get("geometry") or []
+                if nm and len(geom) >= 2 and ("Trail" in nm or "Rail" in nm):
+                    ln = LineString([(round(float(pt["lon"]), 6), round(float(pt["lat"]), 6)) for pt in geom])
+                    if ln.length > 0:
+                        osm_trails_by_name.setdefault(nm, []).append(ln)
 
     # 2A. TxDOT Texas_Railroads (Harris County CNTY_FIPS='201') grouped by historical corridor
     txdot_rr = fetch_arcgis_features(
@@ -1674,26 +2008,16 @@ def build_railroads_collection() -> list:
         rec = grouped_rr.setdefault(key, {"meta": meta, "geoms": []})
         rec["geoms"].append(g)
 
-    # 2B. Fetch Columbia Tap Trail & Harrisburg-Sunset Trail from COH ArcGIS
-    col_tap_feats = fetch_arcgis_features(
-        "https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/Columbia_Tap_Trail/FeatureServer/0",
-        where="1=1",
-    )
-    col_tap_geoms = [esri_paths_to_shapely(f.get("geometry")) for f in col_tap_feats]
-    col_tap_geoms = [g for g in col_tap_geoms if g is not None]
-    if col_tap_geoms:
-        rec = grouped_rr.setdefault(
-            "subdiv_COLUMBIA TAP INDUSTRIAL LEAD",
-            {"meta": dict(TXDOT_SUBDIV_TO_HISTORICAL_RR["COLUMBIA TAP INDUSTRIAL LEAD"]), "geoms": []},
-        )
-        rec["geoms"].extend(col_tap_geoms)
+    # 2B. Fetch Harrisburg-Sunset Trail from OSM + COH ArcGIS (Columbia Tap uses TxDOT Deprecated OBJECTID 10456 below)
 
-    hb_sunset_feats = fetch_arcgis_features(
-        "https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/Harrisburg_Sunset_Trail/FeatureServer/7",
-        where="1=1",
-    )
-    hb_sunset_geoms = [esri_paths_to_shapely(f.get("geometry")) for f in hb_sunset_feats]
-    hb_sunset_geoms = [g for g in hb_sunset_geoms if g is not None]
+    hb_sunset_geoms = list(osm_trails_by_name.get("Harrisburg Hike & Bike Trail", []))
+    if not hb_sunset_geoms:
+        hb_sunset_feats = fetch_arcgis_features(
+            "https://services.arcgis.com/NummVBqZSIJKUeVR/arcgis/rest/services/Harrisburg_Sunset_Trail/FeatureServer/7",
+            where="1=1",
+        )
+        hb_sunset_geoms = [esri_paths_to_shapely(f.get("geometry")) for f in hb_sunset_feats]
+        hb_sunset_geoms = [g for g in hb_sunset_geoms if g is not None]
     if hb_sunset_geoms:
         grouped_rr["trail_harrisburg_sunset"] = {
             "meta": {
@@ -1721,16 +2045,26 @@ def build_railroads_collection() -> list:
         out_fields="OBJECTID,RR_ABRVN,RR_COMPANY,RR_STATUS,RR_TYP",
     )
     print(f"   TxDOT Texas_Railroads_Deprecated (Pulled/Abandoned): {len(dep_feats)} segments")
-    pulled_main_geoms = []
+    pulled_mkt_geoms = []
+    pulled_saap_geoms = []
     pulled_spur_geoms = []
     for f in dep_feats:
         attr = f.get("attributes") or {}
+        oid = attr.get("OBJECTID")
         g = esri_paths_to_shapely(f.get("geometry"))
         if g is None:
             continue
         rtyp = (attr.get("RR_TYP") or "").strip()
-        if rtyp == "Main Line":
-            pulled_main_geoms.append(g)
+        if oid in (10548, 515, 1502, 1503, 1775):
+            pulled_saap_geoms.append(g)
+        elif oid == 10456:
+            rec = grouped_rr.setdefault(
+                "subdiv_COLUMBIA TAP INDUSTRIAL LEAD",
+                {"meta": dict(TXDOT_SUBDIV_TO_HISTORICAL_RR["COLUMBIA TAP INDUSTRIAL LEAD"]), "geoms": []},
+            )
+            rec["geoms"].append(g)
+        elif rtyp == "Main Line" and g.bounds[1] >= 29.760 and g.bounds[0] < -95.355:
+            pulled_mkt_geoms.append(g)
         else:
             pulled_spur_geoms.append(g)
 
@@ -1762,9 +2096,7 @@ def build_railroads_collection() -> list:
         if not geoms:
             continue
         try:
-            merged = unary_union(geoms)
-            if merged.geom_type == "MultiLineString":
-                merged = linemerge(merged)
+            merged = safe_linemerge(unary_union(geoms))
         except Exception:
             merged = geoms[0]
 
@@ -1772,7 +2104,7 @@ def build_railroads_collection() -> list:
         if length_mi < 0.08:
             continue
 
-        geom_json = round_coords_geom(merged, tol=0.00006, precision=5)
+        geom_json = round_coords_geom(merged, tol=0.00002, precision=5)
         if not geom_json:
             continue
 
@@ -1790,19 +2122,50 @@ def build_railroads_collection() -> list:
             "route_summary": meta["route_summary"],
             "historic_significance": meta["historic_significance"],
             "length_miles": length_mi,
-            "source": "TxDOT Rail Archive, US Census TIGER & Preservation Houston Historical Research",
+            "source": "TxDOT Rail Archive, OpenStreetMap & Preservation Houston Historical Research",
         }
         railroad_features.append({"type": "Feature", "properties": props, "geometry": geom_json})
         idx += 1
 
-    # 2D. Append Curated Abandoned Pioneer Rail Corridors & Historic Electric Streetcar / Interurban Lines
+    # 2D. Append Surveyed Abandoned Pioneer Rail Corridors & Street-Aligned Historic Streetcar / Interurban Lines
+    streetcar_router = build_osm_streetcar_router()
     for item in CURATED_ABANDONED_RAILS_AND_STREETCARS:
-        ln = LineString(item["coords"])
-        # If this is the MKT Heights Mainline, merge in the exact TxDOT pulled mainline segments along 7th St
-        if item["id"] == "rail_mkt_katy_heights_mainline" and pulled_main_geoms:
-            ln = unary_union([ln] + pulled_main_geoms)
-            if ln.geom_type == "MultiLineString":
-                ln = linemerge(ln)
+        if item.get("txdot_pulled_mkt") and pulled_mkt_geoms:
+            ln = safe_linemerge(unary_union(pulled_mkt_geoms))
+        elif item.get("txdot_pulled_saap") and pulled_saap_geoms:
+            ln = safe_linemerge(unary_union(pulled_saap_geoms))
+        elif item.get("interurban_corridor"):
+            # Route Downtown approach along Pierce St & Sampson St, then follow the straight GH&H / Interurban right-of-way (offset ~120ft SW so both lines remain distinct and clickable)
+            interurban_parts = []
+            if streetcar_router is not None:
+                dt_leg = streetcar_router(
+                    [
+                        {
+                            "waypoints": [[-95.3702, 29.7505], [-95.3541, 29.7400], [-95.3442, 29.7340]],
+                            "streets": {"Pierce Street", "Sampson Street"},
+                        }
+                    ]
+                )
+                if dt_leg is not None:
+                    interurban_parts.append(dt_leg)
+            ghh_rec = grouped_rr.get("subdiv_GALVESTON (UP)")
+            if ghh_rec and ghh_rec["geoms"]:
+                from shapely.affinity import translate
+                ghh_merged = safe_linemerge(unary_union(ghh_rec["geoms"]))
+                interurban_parts.append(translate(ghh_merged, xoff=-0.00035, yoff=-0.00025))
+            ln = safe_linemerge(unary_union(interurban_parts)) if interurban_parts else None
+        elif item.get("osm_trail_names"):
+            trail_lns = []
+            for tname in item["osm_trail_names"]:
+                trail_lns.extend(osm_trails_by_name.get(tname, []))
+            ln = safe_linemerge(unary_union(trail_lns)) if trail_lns else None
+        elif item.get("osm_streetcar_legs") and streetcar_router is not None:
+            ln = streetcar_router(item["osm_streetcar_legs"])
+        else:
+            ln = None
+
+        if ln is None or ln.is_empty:
+            continue
         length_mi = approx_length_miles(ln)
         props = {
             "id": item["id"],
@@ -1816,13 +2179,13 @@ def build_railroads_collection() -> list:
             "route_summary": item["route_summary"],
             "historic_significance": item["historic_significance"],
             "length_miles": length_mi,
-            "source": "Houston Electric Co. Archival Route Maps (1891–1936) & TxDOT Historical Rail Archive",
+            "source": "Houston Electric Co. Archival Route Maps (1891–1936), OpenStreetMap Street Centerlines & TxDOT Archive",
         }
         railroad_features.append(
             {
                 "type": "Feature",
                 "properties": props,
-                "geometry": round_coords_geom(ln, tol=0.00004, precision=5),
+                "geometry": round_coords_geom(ln, tol=0.000012, precision=5),
             }
         )
 
