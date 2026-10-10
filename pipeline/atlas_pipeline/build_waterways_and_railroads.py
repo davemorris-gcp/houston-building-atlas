@@ -933,20 +933,21 @@ TXDOT_SUBDIV_TO_HISTORICAL_RR = {
         ),
     },
     "COLUMBIA TAP INDUSTRIAL LEAD": {
-        "name": "Houston Tap & Brazoria Railway ('The Sugar Road' / Columbia Tap, 1856)",
-        "historic_company": "Houston Tap Railroad (City of Houston, 1856) · Houston Tap & Brazoria Ry. (1856) · I&GN (1871)",
+        "name": "Houston Tap & Brazoria Railway ('The Columbia Tap' / I&GN Almeda & Third Ward Line, 1856)",
+        "historic_company": "Houston Tap Railroad (City of Houston, 1856) · Houston Tap & Brazoria Ry. ('The Sugar Road', 1856) · I&GN (1871)",
         "charter_year": 1856,
         "opened_year": 1856,
-        "modern_operator": "Union Pacific (Southern Industrial Stub) & City of Houston (Columbia Tap Rail-Trail)",
+        "modern_operator": "Abandoned Inner-Loop Mainline (Now Columbia Tap Rail-Trail) & Union Pacific Almeda Lead",
         "rail_type": "abandoned_trail",
-        "status": "Pioneer 1856 Municipal Railroad (Now Columbia Tap Rail-Trail & Southern Stub)",
-        "route_summary": "East Downtown (Walker & Velasco) diagonally southwest through Third Ward, TSU, and Brays Bayou to Pierce Junction & Brazoria County",
+        "status": "Pioneer 1856 Municipal Railroad (Full Extent: I&GN Depot through EaDo, Third Ward & Almeda Rd to Pierce Jct)",
+        "route_summary": "1879 I&GN Depot (Congress & St. Emanuel) south through EaDo & diagonally across Third Ward / TSU to Brays Bayou, then south alongside Almeda Road past Pierce Junction to Brazoria County",
         "historic_significance": (
             "Alarmed that the 1853 BBB&C Railroad at Harrisburg might bypass Houston entirely, Houston voters approved a "
             "municipal property tax in January 1856 to build their own 7-mile 'Houston Tap' railroad south to Pierce Junction "
             "on the BBB&C. Extended by Brazoria County planters later in 1856 as the Houston Tap & Brazoria Railway ('The Sugar "
-            "Road') to East Columbia on the Brazos River, it hauled plantation sugar and cotton into Houston before being "
-            "acquired by the I&GN in 1871. The inner-city corridor through Third Ward and EaDo is now the Columbia Tap Trail."
+            "Road') to East Columbia on the Brazos River, it hauled plantation sugar and cotton north alongside Almeda Road "
+            "and diagonally across Third Ward into East Downtown before being acquired by the I&GN in 1871–1873. Today its "
+            "4-mile inner-city corridor from Dixie Drive to Polk Street forms the Columbia Tap Hike-and-Bike Trail."
         ),
     },
     "CLINTON INDUSTRIAL LEAD": {
@@ -995,17 +996,6 @@ TXDOT_SUBDIV_TO_HISTORICAL_RR = {
             "petrochemical and Barbours Cut container port corridor."
         ),
     },
-    "POPP": {
-        "name": "Houston & Texas Central / Hempstead-Austin Cutoff & Belt Connector",
-        "historic_company": "Houston & Texas Central Ry. / Southern Pacific",
-        "charter_year": 1856,
-        "opened_year": 1895,
-        "modern_operator": "Union Pacific Railroad (Popp Subdivision)",
-        "rail_type": "mainline",
-        "status": "Active Historic Connector",
-        "route_summary": "Northwest Houston junction connector between Eureka and Hardy / West Belt corridors",
-        "historic_significance": "Historic H&TC / Southern Pacific junction track linking Eureka and Northside rail corridors.",
-    },
     "TERMINAL-PASSENGER": {
         "name": "H&TC / Southern Pacific Grand Central Station & Amtrak Passenger Approach (1856–Present)",
         "historic_company": "Houston & Texas Central Railway (1856) · Southern Pacific Lines ('Sunset Limited' & 'Sunbeam')",
@@ -1042,7 +1032,7 @@ PTRA_HISTORICAL_INFO = {
 
 # Curated Abandoned / Rail-Trail Corridors, Historic Streetcar / Interurban Lines, and Historic Depots
 CURATED_ABANDONED_RAILS_AND_STREETCARS = [
-    # 1. Abandoned / Pulled Pioneer Rail Corridors (100% Surveyed TxDOT Deprecated & OpenStreetMap Rail-Trail Geometries)
+    # 1. Abandoned / Pulled Pioneer Rail Corridors (Surveyed TxDOT Deprecated, HCAD Plat ROWs & OpenStreetMap Geometries)
     {
         "id": "rail_mkt_katy_heights_mainline",
         "name": "Missouri-Kansas-Texas RR ('The Katy' / MKT Inner-Loop Mainline, 1893)",
@@ -1081,22 +1071,52 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
     },
     {
         "id": "rail_saap_westpark_blodgett",
-        "name": "San Antonio & Aransas Pass Railway ('The SAP' - Westpark & Bellaire Line, 1886)",
-        "historic_company": "San Antonio & Aransas Pass Railway (Uriah Lott, 1886) · Southern Pacific (1925–1990s)",
+        "name": "San Antonio & Aransas Pass Railway ('The SAP' - Westpark, Blodgett & EaDo Mainline, 1886–1990s)",
+        "historic_company": "San Antonio & Aransas Pass Railway (Uriah Lott & B.F. Yoakum, 1886–1888) · Southern Pacific (1925–1990s)",
         "charter_year": 1884,
-        "opened_year": 1886,
-        "modern_operator": "Abandoned 1990s (Surveyed 203-Vertex TxDOT Pulled Mainline · Now Westpark Corridor)",
+        "opened_year": 1888,
+        "modern_operator": "Abandoned / Pulled (Full Extent: Alief, Bellaire & Westpark alongside US-59 through Blodgett into EaDo)",
         "rail_type": "abandoned_trail",
-        "status": "Abandoned 19th-Century Mainline (Tracks Pulled 1990s)",
-        "route_summary": "Upper Kirby / Shepherd west along the Westpark right-of-way through Greenway Plaza, Bellaire (1908), Westchase & Alief toward Eagle Lake & San Antonio",
+        "status": "Abandoned 19th-Century Mainline (Full Historic Corridor from Westpark through Blodgett to EaDo & Buffalo Bayou)",
+        "route_summary": "Alief, Westchase & Bellaire (Tower 104) east along Westpark & alongside the Southwest Freeway (US-59) through Upper Kirby and Blodgett Junction (Tower 12), then northeast across Third Ward into East Downtown (Polk/Dowling Yard) & across Buffalo Bayou",
         "historic_significance": (
-            "Built eastward into Houston in 1886–1887 by Uriah Lott's San Antonio & Aransas Pass Railway ('The SAP' or "
-            "'Davy Crockett Route'), this line entered south Houston along the Westpark corridor through Bellaire, "
-            "West University Place, and Upper Kirby toward the Blodgett Depot in Third Ward. It spurred the early "
-            "development of Bellaire (1908) and West University Place before Southern Pacific pulled the inner-loop tracks "
-            "in the 1990s."
+            "Built into Houston from the west in 1886–1888 by Uriah Lott and B.F. Yoakum's San Antonio & Aransas Pass "
+            "Railway ('The SAP' or 'Davy Crockett Route'), this mainline ran east along the Westpark corridor through "
+            "Bellaire (1908) and West University Place, continued alongside the present Southwest Freeway (US-59) to cross "
+            "the GH&SA at Blodgett Junction (Tower 12, near Main/Almeda & Wheeler), and curved northeast across Third Ward "
+            "to its freight yards and depot near Polk and Dowling (Emancipation) in East Downtown, extending north across "
+            "Buffalo Bayou in 1895 to connect with the T&NO and Englewood Yard. After the central Blodgett/Southwest Freeway "
+            "segment was severed in the mid-20th century, the eastern end in EaDo operated as industrial leads and warehouse "
+            "spurs before the remaining tracks were pulled."
         ),
         "txdot_pulled_saap": True,
+    },
+    {
+        "id": "rail_ghsa_montrose_stella_chaney",
+        "name": "GH&SA / Southern Pacific Almeda Road, Blodgett & Montrose Line (Stella to Chaney Jct, 1880–1915)",
+        "historic_company": "Galveston, Harrisburg & San Antonio Railway ('Sunset Route', Thomas W. Peirce / Southern Pacific, 1880–1915)",
+        "charter_year": 1870,
+        "opened_year": 1880,
+        "modern_operator": "Montrose Segment Removed July–Fall 1915 (Preserved in Grant St Curve, Rosemont Bridge Piers & Almeda Corridor)",
+        "rail_type": "abandoned_trail",
+        "status": "Abandoned 1880–1915 Sunset Route Cutoff (Almeda Road Corridor & Diagonal Line Through Montrose)",
+        "route_summary": "Stella / Pierce Junction north-northeast alongside Almeda Road past Brays Bayou, Hermann Park & Museum District to Blodgett Junction (Tower 12), then diagonally northwest through First Montrose Commons & Montrose (Tewena Stop, Grant Street & 1880 Rosemont Bridge Piers over Buffalo Bayou) to Chaney Junction",
+        "historic_significance": (
+            "Built in 1880–1881 so Southern Pacific's Galveston, Harrisburg & San Antonio ('Sunset Route') trains could "
+            "reach Houston's northside yards and Grand Central Station without using the rival Columbia Tap, this line "
+            "departed the Sunset Route at Stella (just west of Pierce Junction), ran 3.6 miles north-northeast alongside "
+            "Almeda Road past Hermann Park and the Museum District to Blodgett Junction (Tower 12, where it crossed the SA&AP), "
+            "and cut diagonally northwest across Montrose on a 4-to-5-foot earthen embankment. By 1911–1914, the embankment "
+            "blocked 13 Montrose streets and caused severe neighborhood flooding, while the City capped train speeds at 6 mph. "
+            "After Southern Pacific completed the Eureka-Stella Cutoff on the west side of town and sold two miles of the "
+            "Montrose right-of-way to J.W. Link's Houston Land Corporation in January 1915, the last train ran through "
+            "Montrose on Thursday night, July 15, 1915. Even after the tracks were pulled in the fall of 1915, the railroad "
+            "left unmistakable imprints across Houston: the sweeping diagonal curve of Grant Street north of Westheimer, "
+            "diagonal subdivision plat seams in Blodgett and First Montrose Commons (site of the 'Tewena' flag stop between "
+            "Branard and West Main), and the surviving 1880 concrete railroad bridge piers in Buffalo Bayou Park that now "
+            "support the Rosemont Pedestrian Bridge."
+        ),
+        "ghsa_almeda_montrose_corridor": True,
     },
     # 2. Historic Streetcar & Electric Interurban Lines (1874–1940)
     {
@@ -1105,16 +1125,17 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
         "historic_company": "Galveston-Houston Electric Railway Co. (Stone & Webster Management, 1911–1936)",
         "charter_year": 1907,
         "opened_year": 1911,
-        "modern_operator": "Removed 1936 (Pierce & Sampson Streets + Parallel GH&H / HL&P Interurban Corridor to Galveston)",
+        "modern_operator": "Removed 1936 (1006–1008 Texas Ave at Fannin via Jackson, Pierce & Sampson + Straight GH&H / HL&P Interurban Corridor)",
         "rail_type": "streetcar_interurban",
         "status": "Historic High-Speed Electric Interurban Railway (Operated Dec. 1911 – Oct. 1936)",
-        "route_summary": "Downtown Interurban Terminal (Pierce & Travis) southeast along Pierce & Sampson Streets and the straight Interurban corridor parallel to the GH&H through Park Place, South Houston, Genoa, Webster & Dickinson to Galveston",
+        "route_summary": "Downtown Interurban Terminal at 1006–1008 Texas Ave (near Texas & Fannin) east on Texas Ave, south on Jackson St, and southeast on Pierce & Sampson Streets into the straight Interurban corridor parallel to the GH&H through Park Place, South Houston, Genoa, Webster & Dickinson to Galveston",
         "historic_significance": (
-            "Opened on December 5, 1911 by Stone & Webster, the Galveston-Houston Electric Railway was a marvel of "
-            "early-20th-century electric transit: a 50-mile, grade-separated, catenary-powered line that whisked passengers "
-            "between Downtown Houston and Galveston Island in 75 minutes at speeds exceeding 60 mph - winning the 'Electric "
-            "Traction Speed Cup' in 1925 and 1926 as the fastest interurban in North America. It directly spurred the "
-            "development of Park Place (1912), South Houston, and Glenbrook Valley before closing on October 31, 1936."
+            "Opened on December 5, 1911 by Stone & Webster from its Downtown Houston terminal at 1006–1008 Texas Avenue "
+            "(between Main and Fannin Streets), the Galveston-Houston Electric Railway was a marvel of early-20th-century "
+            "electric transit: a 50-mile, grade-separated, catenary-powered line that whisked passengers between Downtown "
+            "Houston and Galveston Island in 75 minutes at speeds exceeding 60 mph - winning the 'Electric Traction Speed Cup' "
+            "in 1925 and 1926 as the fastest interurban in North America. It directly spurred the development of Park Place "
+            "(1912), South Houston, and Glenbrook Valley before making its final run on October 31, 1936."
         ),
         "interurban_corridor": True,
     },
@@ -1218,36 +1239,51 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
     },
     {
         "id": "rail_montrose_courtlandt_streetcar",
-        "name": "Montrose, Avondale, Courtlandt Place & Mandell Electric Streetcar Lines (1906–1937)",
-        "historic_company": "Houston Electric Company (Routes #22 Montrose & #23 Mandell) & Montrose Land Co. (J.W. Link, 1911)",
+        "name": "Montrose (Roseland St), Avondale, Courtlandt Place & Mandell Electric Streetcar Lines (1906–1937)",
+        "historic_company": "Houston Electric Company (Routes #22 Montrose & #23 Mandell) & Houston Land Corp. (J.W. Link, 1911–1912)",
         "charter_year": 1906,
-        "opened_year": 1906,
-        "modern_operator": "Removed 1937 (Tuam, Fairview, Montrose Blvd & Mandell Streetcar Suburb Spines)",
+        "opened_year": 1912,
+        "modern_operator": "Removed March 1937 (Tuam, Fairview, Taft, Hawthorne & Roseland St to Richmond Ave + Mandell St to Richmond Ave)",
         "rail_type": "streetcar_interurban",
-        "status": "Historic Electric Streetcar Line (1906–1937)",
-        "route_summary": "Downtown southwest via Louisiana, Tuam & Fairview Streets through Avondale & Courtlandt Place, branching south down Montrose Boulevard to Bissonnet and down Mandell Street to Colquitt",
+        "status": "Historic Electric Streetcar Line (1906–1937 · Montrose Branch Opened Aug. 18, 1912)",
+        "route_summary": "Downtown southwest via Louisiana, Tuam & Fairview Streets through Avondale & Courtlandt Place, south on Taft, west on Hawthorne, and south down Roseland Street (one block east of Montrose Blvd) to Richmond Avenue, plus the Mandell branch via Fairview & Mandell Street to Richmond Avenue",
         "historic_significance": (
-            "Extended into the South End to serve Courtlandt Place (1906) and Avondale (1907), rebuilt by lumberman "
-            "John Wiley Link in 1911 down the palm-lined esplanades of Montrose Boulevard to sell lots in his master-planned "
-            "suburb of Montrose, and branched west along Fairview to Mandell Street (Route #23) through Westheimer and Castle Court."
+            "Extended into the South End to serve Courtlandt Place (1906) and Avondale (1907). When lumberman John Wiley Link "
+            "and the Houston Land Corporation platted the master-planned suburb of Montrose in October 1911 with wide, "
+            "palm-lined esplanades along Montrose Boulevard designed as a showplace parkway for automobiles, Link deliberately "
+            "kept streetcar tracks off Montrose Boulevard itself. Instead, he partnered with the Houston Electric Company to "
+            "route the Montrose Streetcar Line (opened August 18, 1912) via Taft and Hawthorne Streets and south down "
+            "Roseland Street (one block east of Montrose Boulevard) through First Montrose Commons, terminating at Richmond "
+            "Avenue (the southern boundary of the 1911 Montrose plat), while the Mandell Line (Route #23) branched west "
+            "along Fairview Street and ran south down Mandell Street to Richmond Avenue."
         ),
         "osm_streetcar_legs": [
             {
                 "waypoints": [
-                    [-95.3655, 29.7575],
-                    [-95.3755, 29.7460],
-                    [-95.3912, 29.7448],
-                    [-95.3914, 29.7258],
+                    [-95.36550, 29.75750],
+                    [-95.37815, 29.74508],
+                    [-95.38397, 29.74831],
+                    [-95.38570, 29.74822],
+                    [-95.38593, 29.74250],
+                    [-95.38992, 29.74238],
+                    [-95.38982, 29.73447],
                 ],
-                "streets": {"Louisiana Street", "Milam Street", "Tuam Street", "Fairview Street", "Montrose Boulevard"},
+                "streets": {
+                    "Louisiana Street",
+                    "Tuam Street",
+                    "Fairview Street",
+                    "Taft Street",
+                    "Hawthorne Street",
+                    "Roseland Street",
+                },
             },
             {
                 "waypoints": [
-                    [-95.3912, 29.7448],
-                    [-95.4021, 29.7448],
-                    [-95.4021, 29.7325],
+                    [-95.38570, 29.74822],
+                    [-95.40080, 29.74530],
+                    [-95.39949, 29.73447],
                 ],
-                "streets": {"Fairview Street", "Mandell Street", "Colquitt Street"},
+                "streets": {"Fairview Street", "Mandell Street"},
             },
         ],
         "coords": [],
@@ -1261,20 +1297,22 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
         "modern_operator": "Removed June 1940 (Now Reborn along the Same Corridor as METRORail Red Line)",
         "rail_type": "streetcar_interurban",
         "status": "Historic Flagship Streetcar Spine (Last Houston Streetcar Line to Close, June 1940)",
-        "route_summary": "Downtown Main Street south through Midtown, Eagle/Holman, Museum District, Hermann Park & Rice University to Sunset Blvd",
+        "route_summary": "Downtown Main Street south through Midtown, Blodgett, Museum District, Hermann Park & Rice Institute to Holcombe/Bellaire Boulevard (connecting with the Bellaire Streetcar Line)",
         "historic_significance": (
             "Begun as a mule-drawn streetcar line in 1874 and electrified on June 12, 1891, the South End Main Street line "
-            "was Houston's busiest transit artery, carrying students to the opening of Rice Institute in 1912 and families to "
-            "Hermann Park and the Houston Zoo. It made the final run of Houston's historic streetcar era on the night of "
-            "June 8, 1940 - and 64 years later, the METRORail Red Line opened along the exact same Main Street corridor."
+            "was Houston's busiest transit artery, carrying students to the opening of Rice Institute in 1912, families to "
+            "Hermann Park and the Houston Zoo, and passengers transferring at Holcombe/Bellaire Boulevard to the Westmoreland "
+            "and Bellaire trolley. It made the final run of Houston's historic streetcar era on the night of June 8, 1940 - "
+            "and 64 years later, the METRORail Red Line opened along the exact same Main Street corridor."
         ),
         "osm_streetcar_legs": [
             {
                 "waypoints": [
-                    [-95.3592, 29.7642],
-                    [-95.3712, 29.7460],
-                    [-95.3895, 29.7215],
-                    [-95.3975, 29.7155],
+                    [-95.35920, 29.76420],
+                    [-95.37120, 29.74600],
+                    [-95.38950, 29.72150],
+                    [-95.39750, 29.71550],
+                    [-95.40512, 29.70623],
                 ],
                 "streets": {"Main Street", "Fannin Street"},
             }
@@ -1290,21 +1328,22 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
         "modern_operator": "Removed 1927 (Preserved as the Wide Center Esplanade of Bellaire/Holcombe Boulevard)",
         "rail_type": "streetcar_interurban",
         "status": "Historic Streetcar & Suburban Trolley Line (1904–1927)",
-        "route_summary": "South End / Main Street west down the center esplanade of Holcombe & Bellaire Boulevard through Southside Place & West University Place into the City of Bellaire",
+        "route_summary": "South End / Main Street junction at Holcombe Boulevard due west down the center esplanade of West Holcombe & Bellaire Boulevard through Southside Place & West University Place into the City of Bellaire",
         "historic_significance": (
             "Burlington Railroad vice president William Wright Baldwin purchased the 9,449-acre Rice ranch in 1908 to develop "
             "the town of Bellaire and surrounding 'Westmoreland Farms' citrus/truck-garden estates. In December 1910, Baldwin "
             "opened the 'Toonerville Trolley' down the broad grassy center esplanade of Holcombe and Bellaire Boulevards, "
-            "connecting the South End streetcar line to Bellaire Boulevard & South Rice Avenue."
+            "connecting directly with the South End / Main Street streetcar line at Main & Holcombe and running west to "
+            "Bellaire Boulevard & South Rice Avenue."
         ),
         "osm_streetcar_legs": [
             {
                 "waypoints": [
-                    [-95.4052, 29.7062],
-                    [-95.4337, 29.7060],
-                    [-95.4650, 29.7058],
+                    [-95.40512, 29.70623],
+                    [-95.43368, 29.70600],
+                    [-95.46500, 29.70580],
                 ],
-                "streets": {"West Holcombe Boulevard", "Holcombe Boulevard", "Bellaire Boulevard"},
+                "streets": {"Main Street", "West Holcombe Boulevard", "Holcombe Boulevard", "Bellaire Boulevard"},
             }
         ],
         "coords": [],
@@ -1465,19 +1504,58 @@ CURATED_HISTORIC_DEPOTS = [
     },
     {
         "id": "depot_interurban_terminal",
-        "name": "Galveston-Houston Electric Interurban Downtown Terminal Site (1911–1936)",
+        "name": "Galveston-Houston Electric Interurban Downtown Terminal Site (1006–1008 Texas Ave, 1911–1936)",
         "historic_company": "Galveston-Houston Electric Railway Co. (Stone & Webster)",
         "charter_year": 1911,
         "opened_year": 1911,
-        "modern_operator": "Historic Site at Pierce St & Travis/Milam St, Downtown",
+        "modern_operator": "Historic Site at 1006–1008 Texas Ave (at Fannin St), Downtown Houston",
         "rail_type": "depot",
         "status": "Historic Interurban Terminal Site (1911–1936)",
-        "route_summary": "Pierce St between Travis & Milam St, Downtown Houston",
+        "route_summary": "1006–1008 Texas Avenue between Main & Fannin Streets, Downtown Houston",
         "historic_significance": (
-            "Northern terminal of the Galveston-Houston Electric Railway ('The Interurban'), where hourly high-speed "
-            "electric parlor and commuter cars departed for Galveston between 1911 and 1936."
+            "Northern passenger station and ticket terminal of the Galveston-Houston Electric Railway ('The Interurban') at "
+            "1006–1008 Texas Avenue near Fannin Street, where hourly high-speed electric interurban parlor and commuter cars "
+            "departed for Galveston Island between December 1911 and October 1936."
         ),
-        "coords": [-95.3702, 29.7505],
+        "coords": [-95.36185, 29.75953],
+    },
+    {
+        "id": "depot_tower_12_blodgett",
+        "name": "Blodgett Junction & Interlocker Tower 12 Site (1888 / 1903–1915 - GH&SA & SA&AP Crossing)",
+        "historic_company": "Texas Railroad Commission Interlocker #12 (GH&SA 'Sunset Route' & San Antonio & Aransas Pass Ry.)",
+        "charter_year": 1888,
+        "opened_year": 1903,
+        "modern_operator": "Historic Site near Wheeler/Blodgett, Main/Fannin & US-59 / Spur 527 (South End of Montrose / Museum District)",
+        "rail_type": "depot",
+        "status": "Historic Railroad Diamond & Interlocking Tower Site (1888 Crossing · Tower 12 Operated 1903–1915)",
+        "route_summary": "Blodgett / Wheeler St between Main/Fannin & Almeda Rd on the south edge of Montrose",
+        "historic_significance": (
+            "Established in 1888 where the San Antonio & Aransas Pass Railway ('The SAP') crossed the 1880 Galveston, "
+            "Harrisburg & San Antonio (Southern Pacific) line from Stella to Chaney Junction on the southern edge of Montrose. "
+            "Commissioned by the Railroad Commission of Texas on July 4, 1903 as Interlocker Tower 12 with connecting wye "
+            "tracks in its southeast and northwest quadrants, it controlled trains entering Montrose and East Downtown until "
+            "Southern Pacific abandoned the Montrose embankment north of Blodgett in July 1915."
+        ),
+        "coords": [-95.38260, 29.72960],
+    },
+    {
+        "id": "depot_tower_134_pierce_jct",
+        "name": "Pierce Junction & Interlocker Tower 134 (1856 / 1880 - First Railroad Junction in Texas)",
+        "historic_company": "Buffalo Bayou, Brazos & Colorado Ry. (1853) · Houston Tap & Brazoria Ry. (1856) · GH&SA & I&GN",
+        "charter_year": 1856,
+        "opened_year": 1856,
+        "modern_operator": "Union Pacific Railroad (Almeda Road & Glidden Subdivision Crossing, South Houston)",
+        "rail_type": "depot",
+        "status": "Historic Birthplace of Texas Railroad Junctions (Established Oct. 1856)",
+        "route_summary": "Almeda Road at the BBB&C / GH&SA Sunset Route crossing (6.5 miles south of Downtown)",
+        "historic_significance": (
+            "The first railroad junction in Texas, created in October 1856 when the municipal Houston Tap Railroad built "
+            "south from Houston along Almeda Road to 'tap' the 1853 Buffalo Bayou, Brazos & Colorado Railway. Later named "
+            "for GH&SA president and Arcola sugar planter Thomas W. Peirce ('Pierce Junction'), it was also the point (at "
+            "nearby 'Stella', 1,000 feet west) where the 1880 GH&SA line diverged north alongside Almeda Road toward Blodgett "
+            "and Montrose."
+        ),
+        "coords": [-95.39606, 29.67198],
     },
     {
         "id": "depot_tower_26",
@@ -1514,8 +1592,8 @@ CURATED_HISTORIC_DEPOTS = [
     },
     {
         "id": "depot_chaney_junction",
-        "name": "Chaney Junction (1860s–1890s H&TC & T&NO West Loop Junction - Tower 108)",
-        "historic_company": "Houston & Texas Central Ry. · Texas & New Orleans RR · Southern Pacific",
+        "name": "Chaney Junction (1860s–1890s H&TC, GH&SA & T&NO West Loop Junction - Tower 108)",
+        "historic_company": "Houston & Texas Central Ry. · Galveston, Harrisburg & San Antonio Ry. · Texas & New Orleans RR",
         "charter_year": 1856,
         "opened_year": 1880,
         "modern_operator": "Union Pacific Railroad (Washington Ave & Studemont / Sawyer Yards)",
@@ -1523,9 +1601,9 @@ CURATED_HISTORIC_DEPOTS = [
         "status": "Active Historic Railroad Wye & Junction",
         "route_summary": "Washington Ave & Sawyer/Studemont between Old Sixth Ward and Sawyer Yards",
         "historic_significance": (
-            "Historic railroad wye where trains on the H&TC and GH&SA Sunset Route split between the passenger tracks "
-            "into Grand Central Station along White Oak Bayou and the freight bypass loop around the north side of Downtown "
-            "to Hardy Street Shops and Englewood Yard."
+            "Historic railroad wye where the 1880–1915 GH&SA line through Montrose met the 1856 H&TC mainline, splitting "
+            "trains between the passenger approach into Grand Central Station along White Oak Bayou and the northern freight "
+            "bypass loop to Hardy Street Shops and Englewood Yard."
         ),
         "coords": [-95.3886, 29.7712],
     },
@@ -2236,6 +2314,10 @@ def build_railroads_collection() -> list:
         brnch = (attr.get("BRNCH") or "").strip().upper()
         status_raw = (attr.get("RR_STATUS") or "Active").strip()
 
+        if subdiv == "POPP":
+            # In Harris County, TxDOT's POPP subdivision is the active southern Almeda Road segment of the 1856 Columbia Tap
+            subdiv = "COLUMBIA TAP INDUSTRIAL LEAD"
+
         if subdiv in TXDOT_SUBDIV_TO_HISTORICAL_RR:
             meta = dict(TXDOT_SUBDIV_TO_HISTORICAL_RR[subdiv])
             key = f"subdiv_{subdiv}"
@@ -2277,7 +2359,8 @@ def build_railroads_collection() -> list:
             key = f"up_{subdiv or 'other'}"
 
         rec = grouped_rr.setdefault(key, {"meta": meta, "geoms": []})
-        rec["geoms"].append(g)
+        if key != "subdiv_COLUMBIA TAP INDUSTRIAL LEAD":
+            rec["geoms"].append(g)
 
     # 2B. Fetch Harrisburg-Sunset Trail from OSM + COH ArcGIS (Columbia Tap uses TxDOT Deprecated OBJECTID 10456 below)
 
@@ -2319,6 +2402,18 @@ def build_railroads_collection() -> list:
     pulled_mkt_geoms = []
     pulled_saap_geoms = []
     pulled_spur_geoms = []
+
+    # Surveyed SA&AP ('The SAP') OBJECTIDs across Westpark/Bellaire AND Third Ward/EaDo (where TxDOT classified the eastern half as Spur Line after the US-59 cut)
+    SAAP_DEPRECATED_OIDS = {
+        10548, 515, 1502, 1503, 1775,
+        2320, 2074, 2073, 2463, 2449, 2442, 2441,
+        2402, 2395, 2396, 2384, 2373, 2368,
+        2213, 2203, 2204, 2208, 2196, 2193,
+        477, 10208, 207, 323, 2706,
+    }
+    # Surveyed Columbia Tap / I&GN OBJECTIDs along Almeda Rd, Third Ward, and East Downtown
+    COLUMBIA_TAP_DEPRECATED_OIDS = {10456, 10457, 2410, 2382}
+
     for f in dep_feats:
         attr = f.get("attributes") or {}
         oid = attr.get("OBJECTID")
@@ -2326,9 +2421,9 @@ def build_railroads_collection() -> list:
         if g is None:
             continue
         rtyp = (attr.get("RR_TYP") or "").strip()
-        if oid in (10548, 515, 1502, 1503, 1775):
+        if oid in SAAP_DEPRECATED_OIDS:
             pulled_saap_geoms.append(g)
-        elif oid == 10456:
+        elif oid in COLUMBIA_TAP_DEPRECATED_OIDS:
             rec = grouped_rr.setdefault(
                 "subdiv_COLUMBIA TAP INDUSTRIAL LEAD",
                 {"meta": dict(TXDOT_SUBDIV_TO_HISTORICAL_RR["COLUMBIA TAP INDUSTRIAL LEAD"]), "geoms": []},
@@ -2338,6 +2433,47 @@ def build_railroads_collection() -> list:
             pulled_mkt_geoms.append(g)
         else:
             pulled_spur_geoms.append(g)
+
+    # Connect the 1856 Columbia Tap / I&GN continuously from OBJECTID 10456 (-95.34623, 29.74734) through
+    # East Downtown (Velasco / St. Emanuel) to the 1879 I&GN Depot at Congress & St. Emanuel (-95.35220, 29.75950)
+    if "subdiv_COLUMBIA TAP INDUSTRIAL LEAD" in grouped_rr:
+        ct_geoms = grouped_rr["subdiv_COLUMBIA TAP INDUSTRIAL LEAD"]["geoms"]
+        ct_geoms.append(
+            LineString(
+                [
+                    (-95.346227, 29.747337),
+                    (-95.35101, 29.74968),
+                    (-95.35218, 29.75331),
+                    (-95.35221, 29.75365),
+                    (-95.35220, 29.75950),
+                ]
+            )
+        )
+
+    # Connect the central inner-loop segment of the San Antonio & Aransas Pass ('The SAP') from Shepherd & US-59
+    # alongside the Southwest Freeway (Colby Court / South End Villa / MacGregor's Blodgett Park plat ROWs) through
+    # Blodgett Junction (Tower 12) and Third Ward into the surveyed EaDo SA&AP tracks (OBJECTID 2320), plus short
+    # grade-crossing bridges across Polk St and Capitol Ave in EaDo
+    if pulled_saap_geoms:
+        pulled_saap_geoms.append(
+            LineString(
+                [
+                    (-95.40808, 29.73019),  # Eastern end of OID 10548 at Shepherd & Southwest Freeway
+                    (-95.39850, 29.72975),  # Alongside US-59 / Mandell-Dunlavy
+                    (-95.39028, 29.72936),  # Colby Court / Roseland south ROW
+                    (-95.38698, 29.72937),  # South End Villa / Spur 527 ROW
+                    (-95.38408, 29.72939),  # MacGregor's Blodgett Park west edge
+                    (-95.38260, 29.72960),  # Blodgett Junction (Tower 12 - crossing GH&SA line)
+                    (-95.38080, 29.73062),  # MacGregor's Blodgett Park diagonal ROW
+                    (-95.37937, 29.73243),  # Blodgett / Wheeler northeast ROW
+                    (-95.37537, 29.73334),  # Crossing Almeda Rd in Third Ward
+                    (-95.37050, 29.73555),  # Third Ward northeast alignment
+                    (-95.36569, 29.73781),  # Exact western vertex of OID 2320 in Third Ward / EaDo
+                ]
+            )
+        )
+        pulled_saap_geoms.append(LineString([(-95.35218, 29.75331), (-95.35224, 29.75435)]))
+        pulled_saap_geoms.append(LineString([(-95.35031, 29.75813), (-95.34962, 29.75913), (-95.34936, 29.75756)]))
 
     if pulled_spur_geoms:
         grouped_rr["pulled_historic_spurs"] = {
@@ -2405,25 +2541,80 @@ def build_railroads_collection() -> list:
             ln = safe_linemerge(unary_union(pulled_mkt_geoms))
         elif item.get("txdot_pulled_saap") and pulled_saap_geoms:
             ln = safe_linemerge(unary_union(pulled_saap_geoms))
+        elif item.get("ghsa_almeda_montrose_corridor"):
+            # 1880-1915 GH&SA / Southern Pacific Line from Stella / Pierce Junction north-northeast alongside Almeda Road
+            # past Brays Bayou, Hermann Park & Museum District to Blodgett Junction (Tower 12), then diagonally northwest
+            # through First Montrose Commons & Montrose along surveyed HCAD plat seams, the curve of Grant Street, and
+            # the 1880 Rosemont Bridge piers across Buffalo Bayou to Chaney Junction
+            ln = LineString(
+                [
+                    (-95.40550, 29.67650),  # Stella Junction on GH&SA Sunset Route (0.2 mi west of Pierce Junction)
+                    (-95.39606, 29.67198),  # Pierce Junction (Tower 134) at Almeda Road
+                    (-95.39391, 29.67816),  # Alongside Almeda Road (north of Holly Hall)
+                    (-95.39132, 29.68551),  # Alongside Almeda Road (south of Old Spanish Trail)
+                    (-95.38946, 29.69094),  # Alongside Almeda Road at OST
+                    (-95.38815, 29.69592),  # Alongside Almeda Road crossing Brays Bayou
+                    (-95.38637, 29.70010),  # Alongside Almeda Road at North MacGregor / Hermann Park SE corner
+                    (-95.38482, 29.70556),  # Alongside Almeda Road at Holcombe Blvd (east edge of Hermann Park)
+                    (-95.38270, 29.71146),  # Alongside Almeda Road along Hermann Park
+                    (-95.38055, 29.71759),  # Alongside Almeda Road at Hermann Dr / Museum District
+                    (-95.37916, 29.72164),  # Alongside Almeda Road at Binz / Southmore
+                    (-95.37790, 29.72566),  # Entering MacGregor's Blodgett Park right-of-way from Almeda Road
+                    (-95.38046, 29.72820),  # Curving northwest toward Blodgett Junction
+                    (-95.38260, 29.72960),  # Blodgett Junction (Tower 12 - diamond crossing with SA&AP)
+                    (-95.38360, 29.73035),  # MacGregor's Blodgett Park surveyed NW diagonal ROW
+                    (-95.38508, 29.73126),  # Fitze Homestead / South End Villa surveyed plat seam
+                    (-95.38653, 29.73253),  # Fitze Homestead surveyed diagonal ROW
+                    (-95.38794, 29.73457),  # Crossing Richmond Avenue (entering First Montrose Commons / Montrose)
+                    (-95.38875, 29.73660),  # 'Tewena' commuter flag stop (between Branard & West Main, east of Jack St)
+                    (-95.38958, 29.73832),  # Crossing West Alabama Street (Lockhart, Connor & Barziza plat corner)
+                    (-95.39020, 29.74245),  # Crossing Hawthorne Street
+                    (-95.39052, 29.74467),  # Entering Grant Street at Westheimer Road
+                    (-95.39056, 29.74651),  # Grant Street at Hyde Park Blvd
+                    (-95.39085, 29.74703),  # Grant Street surveyed curve
+                    (-95.39104, 29.74759),  # Grant Street at Fairview St
+                    (-95.39120, 29.74821),  # Grant Street at California / Welch St
+                    (-95.39129, 29.74898),  # Grant Street at Indiana / Peden St
+                    (-95.39134, 29.75044),  # Grant Street north through Hyde Park
+                    (-95.39118, 29.75198),  # North end of Grant Street at Bomar / West Gray
+                    (-95.39145, 29.75650),  # Parallel to Montrose Blvd / Crocker through Rosemont Heights
+                    (-95.39175, 29.76100),  # Approaching Allen Parkway & Buffalo Bayou
+                    (-95.39180, 29.76214),  # South abutment of 1880 GH&SA Railroad Bridge (Rosemont Pedestrian Bridge)
+                    (-95.39131, 29.76319),  # North abutment of 1880 GH&SA Railroad Bridge over Buffalo Bayou
+                    (-95.39180, 29.76665),  # Along Studemont right-of-way south of Washington Ave
+                    (-95.39141, 29.76979),  # Approaching Chaney Junction wye
+                    (-95.38860, 29.77120),  # Chaney Junction (Tower 108 at Washington Ave & Studemont/Sawyer)
+                ]
+            )
         elif item.get("interurban_corridor"):
-            # Route Downtown approach along Pierce St & Sampson St, then follow the straight GH&H / Interurban right-of-way (offset ~120ft SW so both lines remain distinct and clickable)
-            interurban_parts = []
-            if streetcar_router is not None:
-                dt_leg = streetcar_router(
+            # Route Downtown approach from Interurban Terminal at 1006-1008 Texas Ave (at Fannin St) east on Texas Ave,
+            # south on Jackson St (across the 2 blocks later closed by Daikin Park), and southeast on Pierce & Sampson
+            # Streets directly into the straight GH&H / Interurban right-of-way at Sampson St (-95.34324, 29.74601)
+            interurban_parts = [
+                LineString(
                     [
-                        {
-                            "waypoints": [[-95.3702, 29.7505], [-95.3541, 29.7400], [-95.3442, 29.7340]],
-                            "streets": {"Pierce Street", "Sampson Street"},
-                        }
+                        (-95.36185, 29.75953),  # 1006-1008 Texas Ave (at Fannin St) Interurban Terminal
+                        (-95.35651, 29.75632),  # Texas Ave & Jackson St
+                        (-95.36484, 29.74586),  # Jackson St & Pierce St
+                        (-95.35595, 29.74051),  # Pierce St at Emancipation / Dowling
+                        (-95.34988, 29.73759),  # Pierce St & Sampson St
+                        (-95.34324, 29.74601),  # Sampson St & GH&H / Interurban private right-of-way
                     ]
                 )
-                if dt_leg is not None:
-                    interurban_parts.append(dt_leg)
+            ]
             ghh_rec = grouped_rr.get("subdiv_GALVESTON (UP)")
             if ghh_rec and ghh_rec["geoms"]:
                 from shapely.affinity import translate
                 ghh_merged = safe_linemerge(unary_union(ghh_rec["geoms"]))
-                interurban_parts.append(translate(ghh_merged, xoff=-0.00035, yoff=-0.00025))
+                ghh_shifted = translate(ghh_merged, xoff=-0.00035, yoff=-0.00025)
+                # Keep segments from Sampson Street (-95.34324, 29.74601) southeast toward Galveston
+                for sub_g in (ghh_shifted.geoms if ghh_shifted.geom_type == "MultiLineString" else [ghh_shifted]):
+                    coords = [c for c in sub_g.coords if c[0] >= -95.34330]
+                    if len(coords) >= 2:
+                        interurban_parts.append(LineString(coords))
+            # Bridge the two short street-crossing gaps along the Galveston corridor near Harrisburg
+            interurban_parts.append(LineString([(-95.28887, 29.72330), (-95.28865, 29.72294)]))
+            interurban_parts.append(LineString([(-95.26290, 29.69225), (-95.26234, 29.69164)]))
             ln = safe_linemerge(unary_union(interurban_parts)) if interurban_parts else None
         elif item.get("osm_trail_names"):
             trail_lns = []
@@ -2432,6 +2623,11 @@ def build_railroads_collection() -> list:
             ln = safe_linemerge(unary_union(trail_lns)) if trail_lns else None
         elif item.get("osm_streetcar_legs") and streetcar_router is not None:
             ln = streetcar_router(item["osm_streetcar_legs"])
+            if item["id"] == "rail_westmoreland_bellaire_streetcar" and ln is not None:
+                # Ensure exact vertex continuity with the South End / Main Street line at Main & Holcombe (-95.40485, 29.70643)
+                ln = safe_linemerge(
+                    unary_union([LineString([(-95.40485, 29.70643), ln.coords[0]]), ln])
+                )
         else:
             ln = None
 
