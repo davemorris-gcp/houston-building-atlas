@@ -62,6 +62,9 @@ function extractFilenameKey(url) {
   try {
     const cleanUrl = String(url).split(/[?#]/)[0];
     const decoded = decodeURIComponent(cleanUrl);
+    if (decoded.includes('/iiif/')) {
+      return decoded.toLowerCase().replace(/[^a-z0-9.]+/g, '_');
+    }
     const parts = decoded.split('/');
     let last = parts[parts.length - 1] || '';
     // Strip thumbnail prefix like "960px-" or "lossy-page1-960px-"
@@ -163,7 +166,7 @@ export async function loadCuratedPhotosIndex() {
       allPhotos: [],
     };
     try {
-      const resp = await fetch('./public/data/building_photos.json?v=20261011k');
+      const resp = await fetch('./public/data/building_photos.json?v=20261011m');
       if (resp.ok) {
         const data = await resp.json();
         const photos = Array.isArray(data?.photos) ? data.photos : [];
@@ -206,11 +209,14 @@ export async function getCuratedBuildingPhotos({
     }
   };
 
-  if (buildingId) {
-    const bid = String(buildingId).trim().toLowerCase();
+  const bid = String(buildingId || '').trim().toLowerCase();
+  if (bid) {
     addList(index.byBuildingId.get(bid));
     if (bid.includes('#')) {
       addList(index.byBuildingId.get(bid.split('#')[0]));
+    }
+    if (bid.startsWith('lost_') && matched.length > 0) {
+      return matched.sort((a, b) => (a.photo_year || 9999) - (b.photo_year || 9999));
     }
   }
 
@@ -717,8 +723,9 @@ export async function resolveBuildingPhotos({
     combined.push(item);
   }
 
+  const isLostHouston = String(buildingId || '').trim().toLowerCase().startsWith('lost_');
   // Supplement with architecturally verified Wikimedia Commons photos if fewer than 4 curated photos exist
-  if (combined.length < 4 && (Number.isFinite(lat) || landmarkName)) {
+  if (!isLostHouston && combined.length < 4 && (Number.isFinite(lat) || landmarkName)) {
     const commons = await fetchCommonsPhotos({
       lat,
       lng,
