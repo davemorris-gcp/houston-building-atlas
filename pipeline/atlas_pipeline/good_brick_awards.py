@@ -1051,7 +1051,7 @@ CURATED_AWARD_LOCATIONS: list[tuple[int, str, dict[str, Any]]] = [
     }),
     (2015, "BBVA Compass Stadium", {
         "address": "2200 TEXAS AVE",
-        "hcad_num": "1338050010001",
+        "hcad_num": "1420820010001",
         "project_name": "Shell Energy Stadium (BBVA Compass Stadium)",
         "lat": 29.7522,
         "lng": -95.3524,

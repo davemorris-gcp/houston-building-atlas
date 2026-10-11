@@ -181,8 +181,8 @@ SEED_PHOTOS = [
     },
     # 5. Union Station / Daikin Park (501 Crawford St — 1911 Terminal & Good Brick Winner)
     {
-        "hcad_num": "1420820010001",
-        "building_id": "1420820010001",
+        "hcad_num": "0011020000001",
+        "building_id": "0011020000001",
         "landmark_name": "Union Station (Daikin Park)",
         "address": "501 CRAWFORD ST",
         "photo_year": 1911,
@@ -194,8 +194,8 @@ SEED_PHOTOS = [
         "source_url": "https://commons.wikimedia.org/wiki/File:Union_Station,_Houston,_Texas.jpg",
     },
     {
-        "hcad_num": "1420820010001",
-        "building_id": "1420820010001",
+        "hcad_num": "0011020000001",
+        "building_id": "0011020000001",
         "landmark_name": "Union Station (Daikin Park)",
         "address": "501 CRAWFORD ST",
         "photo_year": 2010,
@@ -207,8 +207,8 @@ SEED_PHOTOS = [
         "source_url": "https://commons.wikimedia.org/wiki/File:Union_Station_Houston_Texas_(HDR).jpg",
     },
     {
-        "hcad_num": "1420820010001",
-        "building_id": "1420820010001",
+        "hcad_num": "0011020000001",
+        "building_id": "0011020000001",
         "landmark_name": "Union Station (Daikin Park)",
         "address": "501 CRAWFORD ST",
         "photo_year": 2020,

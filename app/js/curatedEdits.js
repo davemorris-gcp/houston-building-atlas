@@ -171,29 +171,56 @@ export function parseOverridesFromSheetRows(rows) {
           .filter(Boolean)
       : [];
 
+    let rawAddress = String(row.address || row.street_address || "").trim();
+    let rawBuildingName = String(
+      row.building_name || row.landmark_name || row.historic_name || ""
+    ).trim();
+    let rawLandmarkName = String(
+      row.landmark_name || row.historic_name || row.building_name || ""
+    ).trim();
+    let rawStyle = String(row.bld_style || row.style || "").trim();
+    const rawCitation = String(
+      row.source_citation || row.directory_evidence || row.notes || ""
+    ).trim();
+
+    // Unpack legacy "<Landmark Name> (<Street Address>)" strings in the sheet's address column
+    const combinedAddrMatch = rawAddress.match(/^(.+?)\s*\((\d+\s+[^()]+)\)$/);
+    if (combinedAddrMatch) {
+      const extractedName = combinedAddrMatch[1].trim();
+      const extractedStreet = combinedAddrMatch[2].trim();
+      rawAddress = extractedStreet;
+      if (!rawBuildingName) rawBuildingName = extractedName;
+      if (!rawLandmarkName) rawLandmarkName = extractedName;
+    }
+
+    if (!rawStyle && rawCitation) {
+      const styleMatch = rawCitation.match(/(?:^|\.\s*|\s+)Style:\s*([^.|;]+?)(?:\.|$)/i);
+      if (styleMatch) {
+        rawStyle = styleMatch[1].trim();
+      }
+    }
+
     overrides[overrideKey] = {
       id: overrideKey,
       building_id: overrideKey,
       hcad_num: hcadNum,
       is_building_override: hasBuildingSuffix,
-      address: String(row.address || row.street_address || "").trim().toUpperCase(),
+      address: rawAddress.toUpperCase(),
       historic_district: String(row.historic_district || row.district || "").trim(),
       contributing: String(row.contributing || row.contributing_status || "").trim(),
       year_built: yearBuilt,
       decade: computeNormalizedDecade(yearBuilt),
       original_hcad_year: origYrRaw >= 1830 ? Math.round(origYrRaw) : 0,
-      bld_style: String(row.bld_style || row.style || "").trim(),
+      bld_style: rawStyle,
       architect: String(row.architect || row.builder || "").trim(),
-      landmark_name: String(row.landmark_name || row.historic_name || row.building_name || "").trim(),
-      building_name: String(row.building_name || row.landmark_name || row.historic_name || "").trim(),
+      landmark_name: rawLandmarkName,
+      building_name: rawBuildingName,
       ...(parsedAltNames.length ? { alt_names: parsedAltNames } : {}),
       landmark_type: String(row.landmark_type || "").trim(),
       source_type: String(
         row.source_type || row.evidence_source || "Preservation Houston Archival Record"
       ).trim(),
-      source_citation: String(
-        row.source_citation || row.directory_evidence || row.notes || ""
-      ).trim(),
+      source_citation: rawCitation,
       source_url: String(row.source_url || row.contentdm_url || "").trim(),
       verified_by: String(row.verified_by || "Preservation Houston").trim(),
       updated_at: String(row.updated_at || "").trim(),
@@ -227,7 +254,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261009e", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261011b", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -277,13 +304,23 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
     for (const [hcadNum, ov] of Object.entries(sheetOverrides)) {
       syncedHcads.add(hcadNum);
       const existing = mergedOverrides[hcadNum] || {};
-      mergedOverrides[hcadNum] = {
-        ...existing,
-        ...ov,
-        geometry: ov.geometry || existing.geometry || null,
-        good_brick_awards: existing.good_brick_awards || null,
-        good_brick_summary: existing.good_brick_summary || "",
-      };
+      const merged = { ...existing };
+      for (const [k, v] of Object.entries(ov)) {
+        if (k === "geometry") continue;
+        if (Array.isArray(v)) {
+          if (v.length > 0) merged[k] = v;
+        } else if (typeof v === "number") {
+          if (v > 0 || !(k in existing)) merged[k] = v;
+        } else if (typeof v === "string") {
+          if (v !== "" || !(k in existing)) merged[k] = v;
+        } else if (v !== null && v !== undefined) {
+          merged[k] = v;
+        }
+      }
+      merged.geometry = ov.geometry || existing.geometry || null;
+      merged.good_brick_awards = existing.good_brick_awards || null;
+      merged.good_brick_summary = existing.good_brick_summary || "";
+      mergedOverrides[hcadNum] = merged;
     }
     sheetSyncStatus.sheetRowCount = syncedHcads.size;
     sheetSyncStatus.totalOverrideCount = Object.keys(mergedOverrides).length;
