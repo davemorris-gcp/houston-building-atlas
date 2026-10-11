@@ -432,6 +432,8 @@ def build_sanborn_catalog() -> dict:
         if vid not in iiif_templates:
             continue
         era_short, date_str, title_str, tmpl = iiif_templates[vid]
+        tparts = tmpl.split(":")
+        loc_resource_base = f"https://www.loc.gov/resource/{tparts[4]}.{tparts[5]}/"
         sheets = existing_sheets_by_vid.get(vid, [])
         vol_feat = featured_sheets.get(
             vid,
@@ -440,6 +442,8 @@ def build_sanborn_catalog() -> dict:
         feat_by_code = {f"{int(f['sheet']):04d}": f["label"] for f in vol_feat}
         for s in sheets:
             code = str(s.get("code", ""))
+            sp_val = int(s.get("sp", 1))
+            s["loc_url"] = f"{loc_resource_base}?sp={sp_val}"
             if s.get("thumb_url"):
                 s["preview_url"] = s["thumb_url"]
             elif s.get("preview_url"):
@@ -490,6 +494,7 @@ def build_sanborn_catalog() -> dict:
             "title": title_str,
             "sheet_count": count,
             "loc_url": item["loc_url"],
+            "loc_resource_url": loc_resource_base,
             "iiif_template": f"https://tile.loc.gov/image-services/iiif/{tmpl}/full/pct:12.5/0/default.jpg",
             "iiif_highres_template": f"https://tile.loc.gov/image-services/iiif/{tmpl}/full/pct:25/0/default.jpg",
             "featured_sheets": enriched_feat,
@@ -1629,6 +1634,7 @@ def _resolve_sanborn_sheet(
     for v in sanborn_catalog["volumes"]:
         if v["id"] == loc_vol:
             v_sheets = v.get("sheets", [])
+            loc_res_base = str(v.get("loc_resource_url") or v.get("loc_url") or f"https://www.loc.gov/item/{loc_vol}/")
             matched_s = next((s for s in v_sheets if s.get("code") == target_code), None)
             if not matched_s:
                 matched_s = next((s for s in v_sheets if s.get("sp") == int(loc_sheet)), None)
@@ -1637,10 +1643,10 @@ def _resolve_sanborn_sheet(
                 code = str(matched_s.get("code", target_code))
                 preview_url = matched_s["preview_url"]
                 hires_url = matched_s["hires_url"]
-                loc_url = f"https://www.loc.gov/resource/{loc_vol}.?sp={sp}"
+                loc_url = str(matched_s.get("loc_url") or f"{loc_res_base}?sp={sp}")
                 return preview_url, hires_url, loc_url, sp, code
             preview_url = v.get("iiif_highres_template", v["iiif_template"]).format(sheet=int(loc_sheet))
-            return preview_url, preview_url, f"https://www.loc.gov/resource/{loc_vol}.?sp={int(loc_sheet)}", int(loc_sheet), target_code
+            return preview_url, preview_url, f"{loc_res_base}?sp={int(loc_sheet)}", int(loc_sheet), target_code
     return None, None, None, None, None
 
 

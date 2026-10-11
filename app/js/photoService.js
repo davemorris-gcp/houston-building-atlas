@@ -102,6 +102,7 @@ function indexPhotoRecord(index, raw, sourceTier = 'curated') {
     ...raw,
     thumb_url: raw.thumb_url || raw.image_url,
     full_url: raw.full_url || raw.image_url,
+    credit: raw.credit || raw.attribution || null,
     photo_year: Number(raw.photo_year) || null,
     era_label:
       raw.era_label ||
@@ -166,7 +167,7 @@ export async function loadCuratedPhotosIndex() {
       allPhotos: [],
     };
     try {
-      const resp = await fetch('./public/data/building_photos.json?v=20261011m');
+      const resp = await fetch('./public/data/building_photos.json?v=20261011u');
       if (resp.ok) {
         const data = await resp.json();
         const photos = Array.isArray(data?.photos) ? data.photos : [];

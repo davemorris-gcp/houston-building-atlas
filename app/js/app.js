@@ -19,7 +19,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261011s";
-import { AtlasMapController } from "./mapController.js?v=20261011s";
+import { AtlasMapController } from "./mapController.js?v=20261011u";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 import {
   applyOverrideToProperties,
@@ -38,7 +38,7 @@ import {
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261011r";
+} from "./photoService.js?v=20261011v";
 
 class HoustonAtlasApp {
   constructor() {
@@ -195,11 +195,11 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261011r"),
+        fetch("public/data/search_index.json?v=20261011u"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261011r").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261011u").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -7602,7 +7602,7 @@ class HoustonAtlasApp {
       <div class="photo-caption-box">
         <div class="photo-caption-text">${current.caption || state.title}</div>
         <div class="photo-meta-row">
-          <span>${current.credit || "Public Domain / Wikimedia Commons"}</span>
+          <span>${current.credit || current.attribution || "Public Domain / Wikimedia Commons"}</span>
           <span class="photo-meta-actions" style="display:inline-flex;align-items:center;gap:10px;">
             ${
               current.source_url
@@ -9510,10 +9510,11 @@ class HoustonAtlasApp {
 
     const buildSheetRecordFromVerified = (vol, shObj) => {
       const sp = Number(shObj.sp) || 1;
-      const locSheetUrl = `${String(vol.loc_url || "https://www.loc.gov/collections/sanborn-maps/").replace(
-        /\/?$/,
-        "/"
-      )}?sp=${sp}`;
+      const locSheetUrl =
+        shObj.loc_url ||
+        `${String(
+          vol.loc_resource_url || vol.loc_url || "https://www.loc.gov/collections/sanborn-maps/"
+        ).replace(/\/?$/, "/")}?sp=${sp}`;
       return {
         key: `${vol.id}__${sp}`,
         volId: vol.id,
