@@ -19,7 +19,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261011f";
-import { AtlasMapController } from "./mapController.js?v=20261011i";
+import { AtlasMapController } from "./mapController.js?v=20261011p";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 import {
   applyOverrideToProperties,
@@ -38,7 +38,7 @@ import {
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261011i";
+} from "./photoService.js?v=20261011k";
 
 class HoustonAtlasApp {
   constructor() {
@@ -195,11 +195,11 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261011i"),
+        fetch("public/data/search_index.json?v=20261011k"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261011i").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261011k").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {

@@ -457,6 +457,585 @@ def build_sanborn_catalog() -> dict:
     }
 
 
+EXPLICIT_HCAD_FIXES = {
+    "lost_republic_of_texas_capitol": (
+        ["0010570000009"],
+        "001057",
+        -95.36260,
+        29.76038,
+        20.0,
+        28.0,
+        "Main St at Texas Ave (NW Corner, Block 57)",
+    ),
+    "lost_capitol_hotel_1883": (
+        ["0010570000009"],
+        "001057",
+        -95.36262,
+        29.76040,
+        36.0,
+        33.0,
+        "909 Texas Ave at Main St (NW Corner, Block 57)",
+    ),
+    "lost_binz_building_1895": (
+        ["0010560000006"],
+        "001056",
+        -95.36212,
+        29.76005,
+        25.0,
+        26.0,
+        "1001 Texas Ave at Main St (NE Corner, Block 56)",
+    ),
+    "lost_pillot_opera_house_1880": (
+        ["0010320000004", "0010320000001"],
+        "001032",
+        -95.36045,
+        29.76152,
+        22.0,
+        34.0,
+        "316 Fannin St between Congress & Preston (Block 32)",
+    ),
+    "lost_prince_theatre_1904": (
+        ["0010560000001"],
+        "001056",
+        -95.36180,
+        29.75982,
+        20.0,
+        26.0,
+        "1011-1015 Texas Ave between Main & Fannin (Block 56)",
+    ),
+    "lost_first_national_bank_1905": (
+        ["1228970000001", "0010210000001"],
+        "122897",
+        -95.36002,
+        29.76238,
+        26.0,
+        36.0,
+        "201 Main St at Franklin Ave (SE Corner, Block 21)",
+    ),
+    "lost_masonic_temple_1885": (
+        ["0010680000009"],
+        "001068",
+        -95.36324,
+        29.75956,
+        26.0,
+        18.0,
+        "701 Main St at Capitol Ave (NW Corner, Block 68)",
+    ),
+    "lost_carnegie_library_1904": (
+        ["0011390000002"],
+        "001139",
+        -95.36575,
+        29.75705,
+        26.0,
+        30.0,
+        "Travis St at McKinney Ave (SE Corner, Block 139)",
+    ),
+    "lost_hotel_brazos_1898": (
+        ["0030690000004"],
+        "003069",
+        -95.36610,
+        29.76545,
+        36.0,
+        44.0,
+        "901 Washington Ave at Preston St (Opposite Grand Central Station)",
+    ),
+    "lost_hutchins_house_1866": (
+        ["0010190000011", "0010190000007", "0010190000008", "0010190000006"],
+        "001019",
+        -95.36180,
+        29.76355,
+        28.0,
+        36.0,
+        "800 Franklin Ave at Travis St (NW Corner, Block 19)",
+    ),
+    "lost_macatee_hotel_1906": (
+        ["0400990000008"],
+        "040099",
+        -95.36535,
+        29.76478,
+        26.0,
+        34.0,
+        "519 Washington Ave at Preston St Approach",
+    ),
+    "lost_tremont_house_1873": (
+        ["1305070010001", "0010930000001"],
+        "130507",
+        -95.36362,
+        29.75782,
+        26.0,
+        36.0,
+        "811 Main St at Walker Ave (Block 93)",
+    ),
+    "lost_bristol_hotel_1895": (
+        ["0010670000001"],
+        "001067",
+        -95.36395,
+        29.76015,
+        26.0,
+        34.0,
+        "618 Travis St at Capitol Ave (Block 67)",
+    ),
+    "lost_queen_theatre_1913": (
+        ["0010670000001"],
+        "001067",
+        -95.36415,
+        29.76042,
+        20.0,
+        38.0,
+        "608 Travis St between Texas & Capitol (Block 67)",
+    ),
+    "lost_kiam_building_1893": (
+        ["0010330000013"],
+        "001033",
+        -95.36145,
+        29.76178,
+        28.0,
+        9.5,
+        "320 Main St at Preston Ave (NW Corner, Block 33)",
+    ),
+    "lost_chronicle_building_1909": (
+        ["1398670010001"],
+        "139867",
+        -95.36325,
+        29.76100,
+        42.0,
+        54.0,
+        "801 Texas Ave at Travis St (NW Corner, Block 58)",
+    ),
+    "lost_shearn_methodist_church_1884": (
+        ["1398670010001"],
+        "139867",
+        -95.36368,
+        29.76128,
+        26.0,
+        36.0,
+        "815-901 Texas Ave at Milam St (Block 58)",
+    ),
+    "lost_majestic_theatre_1923": (
+        ["0010810000007"],
+        "001081",
+        -95.36385,
+        29.75888,
+        32.0,
+        48.0,
+        "908 Rusk St between Main & Travis (Block 81)",
+    ),
+    "lost_kirby_theatre_1927": (
+        ["0011350000001"],
+        "001135",
+        -95.36385,
+        29.75612,
+        24.0,
+        38.0,
+        "1002 Main St at McKinney Ave (Block 135)",
+    ),
+    "lost_metropolitan_theatre_1926": (
+        ["0011350000001"],
+        "001135",
+        -95.36402,
+        29.75588,
+        28.0,
+        44.0,
+        "1016 Main St between McKinney & Lamar (Block 135)",
+    ),
+    "lost_loews_state_theatre_1927": (
+        ["0011350000001"],
+        "001135",
+        -95.36420,
+        29.75562,
+        28.0,
+        44.0,
+        "1022 Main St at Lamar Ave (Block 135)",
+    ),
+    "lost_azteca_theatre_1927": (
+        ["0010220000002"],
+        "001022",
+        -95.35910,
+        29.76182,
+        18.0,
+        32.0,
+        "1112 Congress Ave between Fannin & San Jacinto (Block 22)",
+    ),
+    "lost_lincoln_theatre_1926": (
+        ["0010470000012", "0010470000001"],
+        "001047",
+        -95.35955,
+        29.75965,
+        20.0,
+        34.0,
+        "1211 Prairie Ave between San Jacinto & Caroline (Block 47)",
+    ),
+    "lost_scanlan_mansion_1891": (
+        [],
+        "002050",
+        -95.36885,
+        29.75025,
+        22.0,
+        26.0,
+        "1917 Main St between Pierce & St. Joseph (Block bounded by Main, Fannin, Pierce, St. Joseph)",
+    ),
+    "lost_house_mansion_quality_hill_1870": (
+        ["0010220000033", "0010220000002"],
+        "001022",
+        -95.35928,
+        29.76195,
+        20.0,
+        24.0,
+        "1104 Congress Ave at Fannin St (Quality Hill, Block 22)",
+    ),
+    "lost_rice_home_rusk_1860": (
+        ["0010710000008", "0010710000017"],
+        "001071",
+        -95.36075,
+        29.75835,
+        18.0,
+        22.0,
+        "Rusk Ave at San Jacinto St (Block 71)",
+    ),
+    "lost_ross_sterling_mansion_montrose_1912": (
+        ["0302450000008"],
+        "030245",
+        -95.39185,
+        29.73220,
+        22.0,
+        20.0,
+        "4515 Yoakum Blvd at Sunset/Bissonnet (Montrose / Museum District)",
+    ),
+    "lost_cullinan_mansion_1906": (
+        ["0011250000006"],
+        "001125",
+        -95.35909,
+        29.75436,
+        11.5,
+        10.5,
+        "1600 Polk St at Crawford St (Block 125)",
+    ),
+    "lost_dickson_mansion_main_1896": (
+        ["0020150000001"],
+        "002015",
+        -95.36645,
+        29.75402,
+        20.0,
+        24.0,
+        "1316 Main St at Polk/Clay (Block 262)",
+    ),
+    "lost_incarnate_word_academy_1873": (
+        ["0011020000001"],
+        "001102",
+        -95.35665,
+        29.75718,
+        26.0,
+        30.0,
+        "609 Crawford St at Capitol Ave (Block 97)",
+    ),
+    "lost_pilgrim_building_1926": (
+        ["1035350000018"],
+        "103535",
+        -95.37178,
+        29.75732,
+        28.0,
+        36.0,
+        "222 W. Dallas St at Bagby St (Fourth Ward)",
+    ),
+    "lost_sweeney_coombs_fredericks_1891": (
+        ["0010320000005"],
+        "001032",
+        -95.36065,
+        29.76192,
+        20.0,
+        30.0,
+        "301 Main St at Congress Ave (SW Corner, Block 32)",
+    ),
+    "lost_mistrot_emporium_1904": (
+        ["0010330000030", "0010330000024", "0010330000026"],
+        "001033",
+        -95.36155,
+        29.76252,
+        26.0,
+        32.0,
+        "910 Congress Ave at Travis St (Block 33)",
+    ),
+    "lost_turnverein_hall_1908": (
+        ["0010480000006", "0010480000013"],
+        "001048",
+        -95.35865,
+        29.75925,
+        26.0,
+        34.0,
+        "1314 Prairie Ave at Austin St (Block 48)",
+    ),
+    "lost_concordia_club_1903": (
+        ["0012600000010"],
+        "001260",
+        -95.36569,
+        29.75488,
+        24.0,
+        32.0,
+        "1217 Main St at Polk Ave (Block 260)",
+    ),
+    "lost_temple_beth_israel_1908": (
+        ["0011260000002"],
+        "001126",
+        -95.36003,
+        29.75446,
+        26.0,
+        34.0,
+        "1101 Crawford St at Lamar Ave (Block 126)",
+    ),
+    "lost_first_presbyterian_main_mckinney_1896": (
+        ["1272590000067", "0011340000021"],
+        "001134",
+        -95.36360,
+        29.75665,
+        30.0,
+        40.0,
+        "917 Main St at McKinney Ave (NE Corner, Block 134)",
+    ),
+    "lost_emancipation_park_1918_pavilion": (
+        ["0191150000001"],
+        "019115",
+        -95.36487,
+        29.73596,
+        28.0,
+        36.0,
+        "3018 Emancipation Ave (Dowling St) at Elgin St",
+    ),
+    "lost_luna_park_1924": (
+        ["1398730010001", "0051080000013"],
+        "139873",
+        -95.37280,
+        29.77580,
+        140.0,
+        105.0,
+        "Houston Ave at White Oak Bayou & Crockett St",
+    ),
+    "lost_colored_high_school_1893": (
+        ["0090730000003", "1246690020002"],
+        "009073",
+        -95.37920,
+        29.75620,
+        30.0,
+        24.0,
+        "303 W. Dallas / San Felipe Rd at Tirrell & Andrews (Fourth Ward)",
+    ),
+    "lost_colored_carnegie_library_1913": (
+        ["1274610010002"],
+        "127461",
+        -95.37665,
+        29.75448,
+        18.0,
+        24.0,
+        "1302 Frederick St at Robin St (Fourth Ward / Freedmen's Town)",
+    ),
+}
+
+
+def load_parcel_index() -> dict[str, list[dict]]:
+    """Indexes HCAD parcels from app/public/data/parcels.geojson with polygon rings and surveyed edge angles."""
+    parcels_path = DATA_DIR / "parcels.geojson"
+    if not parcels_path.exists():
+        return {}
+    features = json.loads(parcels_path.read_text(encoding="utf-8")).get("features", [])
+    p_by_hcad: dict[str, list[dict]] = {}
+    for f in features:
+        p = f.get("properties", {})
+        h = str(p.get("hcad_num", ""))
+        if not h:
+            continue
+        ring = f["geometry"]["coordinates"][0]
+        if isinstance(ring[0][0], list):
+            ring = ring[0]
+        lons = [pt[0] for pt in ring]
+        lats = [pt[1] for pt in ring]
+        mlon, mlat = sum(lons) / len(lons), sum(lats) / len(lats)
+        best_l = 0.0
+        best_a = -34.65
+        for i in range(len(ring) - 1):
+            dx = (ring[i + 1][0] - ring[i][0]) * 111320.0 * math.cos(math.radians(mlat))
+            dy = (ring[i + 1][1] - ring[i][1]) * 110850.0
+            l = math.hypot(dx, dy)
+            if l > best_l:
+                best_l = l
+                a = math.degrees(math.atan2(dy, dx))
+                while a > 45.0:
+                    a -= 90.0
+                while a < -45.0:
+                    a += 90.0
+                best_a = a
+        p_by_hcad.setdefault(h, []).append({
+            "hcad": h,
+            "lon": mlon,
+            "lat": mlat,
+            "ring": ring,
+            "angle": best_a,
+            "max_edge_m": best_l,
+        })
+    return p_by_hcad
+
+
+def _point_in_ring(u: float, v: float, ring_uv: list[tuple[float, float]]) -> bool:
+    inside = False
+    n = len(ring_uv)
+    j = n - 1
+    for i in range(n):
+        ui, vi = ring_uv[i]
+        uj, vj = ring_uv[j]
+        if ((vi > v) != (vj > v)) and (
+            u < (uj - ui) * (v - vi) / ((vj - vi) or 1e-12) + ui
+        ):
+            inside = not inside
+        j = i
+    return inside
+
+
+def _point_in_any_ring(
+    u: float, v: float, rings_uv: list[list[tuple[float, float]]]
+) -> bool:
+    if any(_point_in_ring(u, v, r) for r in rings_uv):
+        return True
+    for du, dv in ((0.08, 0.0), (-0.08, 0.0), (0.0, 0.08), (0.0, -0.08)):
+        if any(_point_in_ring(u + du, v + dv, r) for r in rings_uv):
+            return True
+    return False
+
+
+_SAMPLE_FRACS = (-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0)
+
+
+def _rect_inside_single_ring(
+    uc: float,
+    vc: float,
+    hw: float,
+    hd: float,
+    rings_uv: list[list[tuple[float, float]]],
+) -> bool:
+    for r in rings_uv:
+        ok = True
+        for fx in _SAMPLE_FRACS:
+            for fy in _SAMPLE_FRACS:
+                if not _point_in_ring(uc + fx * hw, vc + fy * hd, r):
+                    ok = False
+                    break
+            if not ok:
+                break
+        if ok:
+            return True
+    return False
+
+
+def _rect_inside_rings(
+    uc: float,
+    vc: float,
+    hw: float,
+    hd: float,
+    rings_uv: list[list[tuple[float, float]]],
+) -> bool:
+    for fx in _SAMPLE_FRACS:
+        for fy in _SAMPLE_FRACS:
+            if not _point_in_any_ring(uc + fx * hw, vc + fy * hd, rings_uv):
+                return False
+    return True
+
+
+def fit_rect_in_parcel(
+    lon: float,
+    lat: float,
+    width_m: float,
+    depth_m: float,
+    angle_deg: float,
+    rings_lonlat: list[list[list[float]]],
+    setback_m: float = 1.5,
+    max_shift_m: float = 35.0,
+) -> tuple[float, float, float, float]:
+    """Fits a building footprint strictly inside the polygon ring(s) of its HCAD parcel(s) in the rotated street-grid frame."""
+    if not rings_lonlat:
+        return lon, lat, width_m, depth_m
+    rad = math.radians(angle_deg)
+    cos_a, sin_a = math.cos(rad), math.sin(rad)
+    m_lat = 110850.0
+    m_lon = 111320.0 * math.cos(math.radians(lat))
+
+    rings_uv = []
+    all_u, all_v = [], []
+    for ring in rings_lonlat:
+        ruv = []
+        for plon, plat in ring:
+            dx = (plon - lon) * m_lon
+            dy = (plat - lat) * m_lat
+            u = dx * cos_a + dy * sin_a
+            v = -dx * sin_a + dy * cos_a
+            ruv.append((u, v))
+            all_u.append(u)
+            all_v.append(v)
+        rings_uv.append(ruv)
+
+    umin, umax = min(all_u), max(all_u)
+    vmin, vmax = min(all_v), max(all_v)
+
+    for check_fn in (_rect_inside_single_ring, _rect_inside_rings):
+        for scale in (1.0, 0.92, 0.85, 0.78, 0.70, 0.62, 0.55):
+            for tw, td in ((width_m, depth_m), (depth_m, width_m)):
+                w = round(tw * scale, 1)
+                d = round(td * scale, 1)
+                hw = w / 2.0 + setback_m
+                hd = d / 2.0 + setback_m
+                if umax - umin < 2 * hw or vmax - vmin < 2 * hd:
+                    continue
+
+                best_uv = None
+                best_dist = 1e18
+                u_steps = max(1, int((umax - umin - 2 * hw) / 1.0) + 1)
+                v_steps = max(1, int((vmax - vmin - 2 * hd) / 1.0) + 1)
+                for iu in range(u_steps + 1):
+                    uc = (umin + hw) + (umax - umin - 2 * hw) * (iu / max(1, u_steps))
+                    for iv in range(v_steps + 1):
+                        vc = (vmin + hd) + (vmax - vmin - 2 * hd) * (iv / max(1, v_steps))
+                        dist = math.hypot(uc, vc)
+                        if (
+                            dist <= max_shift_m
+                            and dist < best_dist
+                            and check_fn(uc, vc, hw, hd, rings_uv)
+                        ):
+                            best_dist = dist
+                            best_uv = (uc, vc)
+                if best_uv is not None:
+                    uc, vc = best_uv
+                    dx_new = uc * cos_a - vc * sin_a
+                    dy_new = uc * sin_a + vc * cos_a
+                    return (
+                        round(lon + dx_new / m_lon, 6),
+                        round(lat + dy_new / m_lat, 6),
+                        w,
+                        d,
+                    )
+
+    avail_w = (umax - umin) - 2.0 * setback_m
+    avail_d = (vmax - vmin) - 2.0 * setback_m
+    w = min(width_m, max(12.0, avail_w)) if avail_w > 12.0 else width_m
+    d = min(depth_m, max(12.0, avail_d)) if avail_d > 12.0 else depth_m
+    hw, hd = w / 2.0, d / 2.0
+    uc = (
+        max(umin + setback_m + hw, min(umax - setback_m - hw, 0.0))
+        if umin + setback_m + hw <= umax - setback_m - hw
+        else (umin + umax) / 2.0
+    )
+    vc = (
+        max(vmin + setback_m + hd, min(vmax - setback_m - hd, 0.0))
+        if vmin + setback_m + hd <= vmax - setback_m - hd
+        else (vmin + vmax) / 2.0
+    )
+    if math.hypot(uc, vc) > max_shift_m:
+        return lon, lat, width_m, depth_m
+    dx_new = uc * cos_a - vc * sin_a
+    dy_new = uc * sin_a + vc * cos_a
+    return (
+        round(lon + dx_new / m_lon, 6),
+        round(lat + dy_new / m_lat, 6),
+        round(w, 1),
+        round(d, 1),
+    )
+
+
 def main() -> None:
     # 1. Write sanborn_catalog.json
     sanborn_catalog = build_sanborn_catalog()
@@ -464,12 +1043,12 @@ def main() -> None:
     sanborn_path.write_text(json.dumps(sanborn_catalog, indent=2), encoding="utf-8")
     print(f"Wrote {sanborn_path} ({len(sanborn_catalog['volumes'])} volumes, {sanborn_catalog['total_digitized_sheets']} sheets)")
 
-    # 2. Build overlays.json['lost_houston']
+    # 2. Build overlays.json['lost_houston'] with surveyed HCAD parcel fitting & orientation
+    p_by_hcad = load_parcel_index()
     all_entries = LOST_HOUSTON_PART_1 + LOST_HOUSTON_PART_2 + LOST_HOUSTON_PART_3
     features = []
     photos_path = DATA_DIR / "building_photos.json"
     photos_db = json.loads(photos_path.read_text(encoding="utf-8")) if photos_path.exists() else {"photos": []}
-    # Clean any accidental top-level lost_* keys and existing lost_* entries in photos_db["photos"]
     for k in list(photos_db.keys()):
         if k.startswith("lost_"):
             del photos_db[k]
@@ -479,12 +1058,67 @@ def main() -> None:
     ]
 
     for entry in all_entries:
+        eid = entry["id"]
+        lon = float(entry["lon"])
+        lat = float(entry["lat"])
+        width_m = float(entry["width_m"])
+        depth_m = float(entry["depth_m"])
+        site_hcads = list(entry.get("site_hcad_nums", []))
+        address = str(entry["address"])
+
+        if eid in EXPLICIT_HCAD_FIXES:
+            site_hcads, _, lon, lat, width_m, depth_m, address = EXPLICIT_HCAD_FIXES[eid]
+
+        rings = []
+        best_edge_len = -1.0
+        parcel_ang = None
+        for h in site_hcads:
+            for r in p_by_hcad.get(h, []):
+                rings.append(r["ring"])
+                if r["max_edge_m"] > best_edge_len:
+                    best_edge_len = r["max_edge_m"]
+                    parcel_ang = r["angle"]
+
+        cat_ang = float(entry.get("angle", -34.65))
+        if cat_ang == 115.0 or eid in ("lost_hotel_brazos_1898", "lost_macatee_hotel_1906"):
+            ang = -25.0  # H&TC Grand Central / Southern Pacific Station & Washington Ave corridor
+        elif cat_ang == 15.0:
+            ang = -14.2  # MKT Katy Station at White Oak Bayou
+        elif cat_ang == 12.0:
+            ang = 0.5  # 1937 Jefferson Davis Hospital on Allen Pkwy
+        elif cat_ang == 82.0:
+            ang = -34.65  # SA&AP Depot at Blodgett
+        elif eid == "lost_cullinan_mansion_1906":
+            ang = -34.65  # 1600 Polk at Crawford on Borden Downtown grid
+        elif parcel_ang is not None:
+            ang = parcel_ang
+            if -38.0 <= ang <= -30.0 and not (-35.2 <= ang <= -34.1):
+                ang = -34.65
+        else:
+            ang = -34.65 if abs(cat_ang - 35.0) < 5.0 else cat_ang
+
+        if (
+            rings
+            and max(width_m, depth_m) <= 95.0
+            and eid
+            not in (
+                "lost_grand_central_station_1887",
+                "lost_southern_pacific_station_1934",
+                "lost_mkt_station_1914",
+                "lost_magnolia_brewery_foot_of_main_1893",
+                "lost_frost_town_germantown_cottages_1850",
+            )
+        ):
+            lon, lat, width_m, depth_m = fit_rect_in_parcel(
+                lon, lat, width_m, depth_m, ang, rings, setback_m=1.5, max_shift_m=35.0
+            )
+
         coords = make_footprint_polygon(
-            lon=entry["lon"],
-            lat=entry["lat"],
-            width_m=entry["width_m"],
-            depth_m=entry["depth_m"],
-            angle_deg=entry.get("angle", 35.0),
+            lon=lon,
+            lat=lat,
+            width_m=width_m,
+            depth_m=depth_m,
+            angle_deg=ang,
             shape=entry.get("shape", "rect"),
         )
         loc_vol = entry.get("loc_volume_id")
@@ -512,11 +1146,10 @@ def main() -> None:
         )
         yb = int(entry["year_built"])
         yd = int(entry["year_demolished"])
-        site_hcads = entry.get("site_hcad_nums", [])
         primary_hcad = site_hcads[0] if site_hcads else ""
 
         props = {
-            "id": entry["id"],
+            "id": eid,
             "overlay_layer": "lost_houston",
             "is_boundary_feature": True,
             "feature_type": "lost_houston",
@@ -528,7 +1161,7 @@ def main() -> None:
             "lifespan_label": f"{yb}-{yd}",
             "lifespan_years": max(1, yd - yb),
             "category": entry["category"],
-            "address": entry["address"],
+            "address": address,
             "neighborhood": entry["neighborhood"],
             "year_built": yb,
             "year_demolished": yd,
@@ -553,11 +1186,11 @@ def main() -> None:
             "blurb": entry["blurb"],
             "historic_significance": entry["blurb"],
             "description": entry["blurb"],
-            "lon": entry["lon"],
-            "lng": entry["lon"],
-            "lat": entry["lat"],
-            "label_lng": entry["lon"],
-            "label_lat": entry["lat"],
+            "lon": lon,
+            "lng": lon,
+            "lat": lat,
+            "label_lng": lon,
+            "label_lat": lat,
         }
 
         if entry.get("photo_url"):
