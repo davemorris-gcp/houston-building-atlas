@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261011f";
+} from "./palettes.js?v=20261011w";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -19,7 +19,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261011s";
-import { AtlasMapController } from "./mapController.js?v=20261011u";
+import { AtlasMapController } from "./mapController.js?v=20261011w";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 import {
   applyOverrideToProperties,
@@ -1779,6 +1779,24 @@ class HoustonAtlasApp {
             historicMap: true,
           },
         });
+        const mapEntry = HISTORICAL_MAP_CATALOG.find((m) => m.id === mapId);
+        if (mapEntry && Array.isArray(mapEntry.focusCenter) && Array.isArray(mapEntry.bounds)) {
+          const [[minLng, minLat], [maxLng, maxLat]] = mapEntry.bounds;
+          const [fLng, fLat, fZoom] = mapEntry.focusCenter;
+          const curCenter = this.mapController?.getMapCenterAndZoom?.();
+          const cLng = Number(curCenter?.lng);
+          const cLat = Number(curCenter?.lat);
+          const outsideBounds =
+            !Number.isFinite(cLng) ||
+            !Number.isFinite(cLat) ||
+            cLng < minLng - 0.008 ||
+            cLng > maxLng + 0.008 ||
+            cLat < minLat - 0.008 ||
+            cLat > maxLat + 0.008;
+          if (outsideBounds) {
+            this.mapController?.flyToLocation?.(fLng, fLat, fZoom || 15.4);
+          }
+        }
       });
     }
 
@@ -4302,7 +4320,25 @@ class HoustonAtlasApp {
       const mapEntry =
         HISTORICAL_MAP_CATALOG.find((m) => m.id === activeMapId) || HISTORICAL_MAP_CATALOG[0];
       if (mapEntry) {
-        histCitationEl.textContent = `${mapEntry.attribution} · ${mapEntry.description || ""}`;
+        histCitationEl.innerHTML = "";
+        const textSpan = document.createElement("span");
+        textSpan.textContent = `${mapEntry.attribution} · ${mapEntry.description || ""}`;
+        histCitationEl.appendChild(textSpan);
+        if (Array.isArray(mapEntry.focusCenter)) {
+          const [fLng, fLat, fZoom] = mapEntry.focusCenter;
+          const jumpBtn = document.createElement("button");
+          jumpBtn.type = "button";
+          jumpBtn.className = "action-pill subtle";
+          jumpBtn.style.cssText =
+            "margin-top:6px;padding:3px 8px;font-size:11px;display:inline-flex;align-items:center;gap:4px;";
+          jumpBtn.textContent = "📍 Center on Map Coverage Area";
+          jumpBtn.addEventListener("click", () => {
+            this.mapController?.flyToLocation?.(fLng, fLat, fZoom || 15.4);
+          });
+          const br = document.createElement("div");
+          br.appendChild(jumpBtn);
+          histCitationEl.appendChild(br);
+        }
       }
     }
     const btnToggleSpyglass = document.getElementById("btn-toggle-spyglass");
