@@ -97,11 +97,11 @@ body {
   left: 12px;
   right: 12px;
   height: 58px;
-  z-index: 20;
+  z-index: 35;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   padding: 0 16px;
   background: var(--bg-panel);
   backdrop-filter: blur(16px);
@@ -175,8 +175,8 @@ body {
 .search-wrapper {
   position: relative;
   flex: 1;
-  min-width: 170px;
-  max-width: 310px;
+  min-width: 180px;
+  max-width: 440px;
 }
 
 .search-icon {
@@ -224,7 +224,7 @@ body {
   box-shadow: var(--shadow-panel);
   max-height: 360px;
   overflow-y: auto;
-  z-index: 50;
+  z-index: 95;
 }
 
 .search-result-item {
@@ -283,6 +283,174 @@ body {
   align-items: center;
   gap: 7px;
   flex-shrink: 0;
+}
+
+/* Basemap Dropdown Widget */
+.basemap-dropdown,
+.topbar-more-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.basemap-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+}
+
+.basemap-trigger-prefix {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.basemap-active-label {
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+.basemap-caret {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-left: 1px;
+}
+
+.basemap-swatch-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.basemap-swatch-dot[data-swatch="dark_archival"] {
+  background: linear-gradient(135deg, #1b222c 0%, #334155 100%);
+  border-color: #95c959;
+}
+
+.basemap-swatch-dot[data-swatch="warm_parchment"] {
+  background: linear-gradient(135deg, #efe8d8 0%, #d4c4a8 100%);
+  border-color: #c29b61;
+}
+
+.basemap-swatch-dot[data-swatch="satellite"] {
+  background: linear-gradient(135deg, #14532d 0%, #0284c7 100%);
+  border-color: #7dd3fc;
+}
+
+.basemap-swatch-dot[data-swatch="solid_dark"] {
+  background: #0d1117;
+  border-color: #64748b;
+}
+
+.basemap-swatch-dot[data-swatch="solid_light"] {
+  background: #f4f1ea;
+  border-color: #94a3b8;
+}
+
+.topbar-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  min-width: 242px;
+  background: rgba(21, 25, 28, 0.98);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border-brass);
+  border-radius: 10px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.68);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 98;
+}
+
+.dropdown-menu-kicker {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 4px 8px 3px 8px;
+}
+
+.basemap-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-cream);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.basemap-menu-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.basemap-menu-item.active {
+  background: rgba(149, 201, 89, 0.16);
+  border-color: rgba(149, 201, 89, 0.38);
+}
+
+.basemap-item-copy {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.basemap-item-copy strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-cream);
+}
+
+.basemap-menu-item.active .basemap-item-copy strong {
+  color: var(--accent-gold);
+}
+
+.basemap-item-copy small {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+}
+
+.basemap-item-check {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ph-green-light);
+  opacity: 0;
+}
+
+.basemap-menu-item.active .basemap-item-check {
+  opacity: 1;
+}
+
+/* Desktop inline vs Mobile/Compact dropdown for More Tools */
+.topbar-more-trigger {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.more-dots-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.topbar-more-items {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .segmented-group {
@@ -2103,54 +2271,43 @@ body {
    Responsive Layout: Compact Desktop & Tablet (<= 1180px)
    ========================================================================== */
 @media (max-width: 1180px) {
-  .atlas-topbar {
-    height: auto;
-    min-height: 54px;
-    flex-wrap: wrap;
-    padding: 8px 12px;
-    gap: 8px 12px;
+  .topbar-more-trigger {
+    display: inline-flex;
   }
 
-  .brand-cluster {
-    order: 1;
-    min-width: 0;
-  }
-
-  .search-wrapper {
-    order: 2;
-    flex: 1 1 240px;
-    max-width: none;
-    min-width: 180px;
-  }
-
-  .topbar-actions {
-    order: 3;
-    width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    justify-content: flex-start;
-    gap: 8px;
-    padding-bottom: 2px;
-  }
-
-  .topbar-actions::-webkit-scrollbar {
+  .topbar-more-items {
     display: none;
+    position: absolute;
+    top: calc(100% + 7px);
+    right: 0;
+    min-width: 210px;
+    background: rgba(21, 25, 28, 0.98);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--border-brass);
+    border-radius: 10px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.68);
+    padding: 6px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    z-index: 98;
   }
 
-  .tour-bar {
-    top: var(--topbar-offset, 108px);
+  .topbar-more-dropdown.open .topbar-more-items {
+    display: flex;
   }
 
-  .tour-narrative-banner {
-    top: calc(var(--topbar-offset, 108px) + 36px);
+  .topbar-more-dropdown.open .topbar-more-trigger {
+    border-color: var(--accent-amber);
+    background: rgba(149, 201, 89, 0.18);
   }
 
-  .atlas-sidebar {
-    top: var(--topbar-offset, 108px);
-  }
-
-  .inspector-drawer {
-    top: var(--topbar-offset, 108px);
+  .topbar-more-items .action-pill {
+    width: 100%;
+    height: 34px;
+    justify-content: flex-start;
+    padding: 0 11px;
+    font-size: 12px;
   }
 }
 
@@ -2166,12 +2323,15 @@ body {
     overflow: hidden;
   }
 
-  /* 1. Multi-Row Mobile Topbar */
+  /* 1. Compact 2-Row Mobile Topbar (Row 1: Brand + Filters, Row 2: Search + Map/3D/More) */
   .atlas-topbar {
     top: 8px;
     left: 8px;
     right: 8px;
-    padding: 8px 10px;
+    height: auto;
+    min-height: 0;
+    flex-wrap: wrap;
+    padding: 7px 9px;
     gap: 6px;
     border-radius: 12px;
   }
@@ -2185,8 +2345,9 @@ body {
 
   .sidebar-toggle-btn {
     width: auto;
-    height: 30px;
+    height: 28px;
     padding: 0 8px;
+    font-size: 12px;
     flex-shrink: 0;
     border-color: var(--border-brass);
     background: rgba(149, 201, 89, 0.14);
@@ -2202,13 +2363,13 @@ body {
   }
 
   .ph-brand-logo-badge {
-    height: 30px;
+    height: 28px;
     padding: 3px 7px;
     flex-shrink: 0;
   }
 
   .ph-logo-img {
-    height: 20px;
+    height: 19px;
   }
 
   .brand-divider {
@@ -2222,7 +2383,7 @@ body {
   }
 
   .brand-kicker {
-    font-size: 8.5px;
+    font-size: 8px;
     letter-spacing: 0.08em;
     white-space: nowrap;
     overflow: hidden;
@@ -2230,63 +2391,91 @@ body {
   }
 
   .brand-heading {
-    font-size: 13.5px;
-    line-height: 1.2;
+    font-size: 13px;
+    line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  /* Row 2: Full-width Search Bar */
+  /* Row 2 Left: Search Bar shares Row 2 with compact Map/3D/More pills */
   .search-wrapper {
     order: 2;
-    flex: 1 1 100%;
-    width: 100%;
-    max-width: 100%;
+    flex: 1 1 0%;
+    width: 0;
+    max-width: none;
     min-width: 0;
   }
 
   .search-input {
-    height: 33px;
-    font-size: 12.5px;
-    padding: 0 10px 0 32px;
+    height: 30px;
+    font-size: 12px;
+    padding: 0 8px 0 26px;
+    min-width: 0;
+  }
+
+  .search-icon {
+    left: 8px;
+    font-size: 13px;
   }
 
   .search-results {
-    max-height: 50dvh;
-    z-index: 90;
+    width: calc(100vw - 34px);
+    max-width: calc(100vw - 34px);
+    max-height: 52dvh;
+    z-index: 98;
   }
 
-  /* Row 3: Wrapped Action Bar so all menu buttons remain visible on screen */
+  /* Row 2 Right: Compact inline Basemap Dropdown + 3D + More menu trigger */
   .topbar-actions {
     order: 3;
-    width: 100%;
+    width: auto;
+    flex: 0 0 auto;
     display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    overflow-x: visible;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+    overflow: visible;
   }
 
-  .seg-btn {
-    padding: 4px 7px;
-    font-size: 11px;
+  .basemap-trigger-prefix {
+    display: none;
+  }
+
+  .more-trigger-label {
+    display: none;
   }
 
   .action-pill {
-    height: 27px;
-    padding: 0 9px;
+    height: 30px;
+    padding: 0 7px;
     font-size: 11px;
     white-space: nowrap;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     justify-content: center;
     display: inline-flex;
     align-items: center;
   }
 
+  .basemap-trigger-btn {
+    gap: 5px;
+    padding: 0 8px;
+  }
+
+  .topbar-more-trigger {
+    padding: 0 8px;
+  }
+
+  /* Keep Basemap menu aligned on screen on narrow phones */
+  .basemap-dropdown-menu {
+    right: -68px;
+    min-width: 228px;
+  }
+
   /* 2. Curated Historic Neighborhood Tour Bar (Full Width Below Topbar) */
   .tour-bar,
   .atlas-shell.sidebar-collapsed .tour-bar {
-    top: var(--topbar-offset, 174px);
+    top: var(--topbar-offset, 96px);
     left: 8px;
     right: 8px;
     z-index: 18;
@@ -2305,7 +2494,7 @@ body {
 
   .tour-narrative-banner,
   .atlas-shell.sidebar-collapsed .tour-narrative-banner {
-    top: calc(var(--topbar-offset, 174px) + 34px);
+    top: calc(var(--topbar-offset, 96px) + 34px);
     left: 8px;
     right: 8px;
     max-width: none;

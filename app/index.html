@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261011g" />
+  <link rel="stylesheet" href="styles/index.css?v=20261011k" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -67,60 +67,161 @@
         <div id="search-results" class="search-results hidden"></div>
       </div>
 
-      <!-- Quick Action Bar: 3D Extrusion, Basemaps, Share View, Export Studio, Data Guide -->
-      <div class="topbar-actions">
-        <div class="segmented-group" role="group" aria-label="Basemap Style">
-          <button type="button" class="seg-btn active" id="btn-base-dark" data-basemap="dark_archival" title="Archival Dark Map Underlay">
-            Archival Dark
+      <!-- Quick Action Bar: Basemap Dropdown, 3D Extrusion, Export Studio, Share View, Data Guide & Admin -->
+      <div class="topbar-actions" id="topbar-actions">
+        <div class="basemap-dropdown" id="basemap-dropdown">
+          <button
+            type="button"
+            class="action-pill basemap-trigger-btn"
+            id="btn-basemap-trigger"
+            aria-haspopup="true"
+            aria-expanded="false"
+            title="Select Map Background / Underlay"
+          >
+            <span class="basemap-swatch-dot" id="basemap-active-swatch" data-swatch="dark_archival"></span>
+            <span class="basemap-trigger-prefix">Map:</span>
+            <span class="basemap-active-label" id="basemap-active-label">Archival Dark</span>
+            <span class="basemap-caret" aria-hidden="true">&#9662;</span>
           </button>
-          <button type="button" class="seg-btn" id="btn-base-light" data-basemap="warm_parchment" title="Warm Parchment Map Underlay">
-            Parchment
-          </button>
-          <button type="button" class="seg-btn" id="btn-base-sat" data-basemap="satellite" title="Aerial Satellite Imagery Underlay">
-            Aerial
-          </button>
-          <button type="button" class="seg-btn" id="btn-base-solid-dark" data-basemap="solid_dark" title="Solid Dark Background (No Map Underlay — Clean Layer View)">
-            Solid Dark
-          </button>
-          <button type="button" class="seg-btn" id="btn-base-solid-light" data-basemap="solid_light" title="Solid Light Background (No Map Underlay — Clean Layer View)">
-            Solid Light
-          </button>
+          <div
+            class="topbar-dropdown-menu basemap-dropdown-menu hidden"
+            id="basemap-dropdown-menu"
+            role="menu"
+            aria-label="Basemap Style"
+          >
+            <div class="dropdown-menu-kicker">Map Background</div>
+            <button
+              type="button"
+              class="basemap-menu-item active"
+              id="btn-base-dark"
+              data-basemap="dark_archival"
+              role="menuitem"
+              title="Archival Dark Map Underlay"
+            >
+              <span class="basemap-swatch-dot" data-swatch="dark_archival"></span>
+              <span class="basemap-item-copy">
+                <strong>Archival Dark</strong>
+                <small>Dark cartographic street map</small>
+              </span>
+              <span class="basemap-item-check" aria-hidden="true">&#10003;</span>
+            </button>
+            <button
+              type="button"
+              class="basemap-menu-item"
+              id="btn-base-light"
+              data-basemap="warm_parchment"
+              role="menuitem"
+              title="Warm Parchment Map Underlay"
+            >
+              <span class="basemap-swatch-dot" data-swatch="warm_parchment"></span>
+              <span class="basemap-item-copy">
+                <strong>Parchment</strong>
+                <small>Warm vintage paper street map</small>
+              </span>
+              <span class="basemap-item-check" aria-hidden="true">&#10003;</span>
+            </button>
+            <button
+              type="button"
+              class="basemap-menu-item"
+              id="btn-base-sat"
+              data-basemap="satellite"
+              role="menuitem"
+              title="Aerial Satellite Imagery Underlay"
+            >
+              <span class="basemap-swatch-dot" data-swatch="satellite"></span>
+              <span class="basemap-item-copy">
+                <strong>Aerial</strong>
+                <small>High-resolution satellite imagery</small>
+              </span>
+              <span class="basemap-item-check" aria-hidden="true">&#10003;</span>
+            </button>
+            <button
+              type="button"
+              class="basemap-menu-item"
+              id="btn-base-solid-dark"
+              data-basemap="solid_dark"
+              role="menuitem"
+              title="Solid Dark Background (No Map Underlay)"
+            >
+              <span class="basemap-swatch-dot" data-swatch="solid_dark"></span>
+              <span class="basemap-item-copy">
+                <strong>Solid Dark</strong>
+                <small>Clean dark canvas (no streets)</small>
+              </span>
+              <span class="basemap-item-check" aria-hidden="true">&#10003;</span>
+            </button>
+            <button
+              type="button"
+              class="basemap-menu-item"
+              id="btn-base-solid-light"
+              data-basemap="solid_light"
+              role="menuitem"
+              title="Solid Light Background (No Map Underlay)"
+            >
+              <span class="basemap-swatch-dot" data-swatch="solid_light"></span>
+              <span class="basemap-item-copy">
+                <strong>Solid Light</strong>
+                <small>Clean light canvas (no streets)</small>
+              </span>
+              <span class="basemap-item-check" aria-hidden="true">&#10003;</span>
+            </button>
+          </div>
         </div>
 
-        <button type="button" class="action-pill" id="btn-toggle-3d">
-          3D Extrusion: OFF
-        </button>
-
         <button
           type="button"
-          class="action-pill export-studio-pill"
-          id="btn-open-export-studio"
-          title="Export high-resolution PNG screenshots or custom Vector SVG files for prints, posters, T-shirts, and coasters"
+          class="action-pill"
+          id="btn-toggle-3d"
+          title="Toggle 3D Building Height Extrusion"
         >
-          &#127912; Export / Merch
+          3D: OFF
         </button>
 
-        <button
-          type="button"
-          class="action-pill share-pill"
-          id="btn-open-share-modal"
-          title="Share or embed the map with current layers, basemap, filters, and camera view"
-        >
-          &#128279; Share View
-        </button>
+        <div class="topbar-more-dropdown" id="topbar-more-dropdown">
+          <button
+            type="button"
+            class="action-pill topbar-more-trigger"
+            id="btn-topbar-more"
+            aria-haspopup="true"
+            aria-expanded="false"
+            title="Export, Share, Methodology &amp; Admin Tools"
+          >
+            <span class="more-dots-icon" aria-hidden="true">&#8943;</span>
+            <span class="more-trigger-label">More</span>
+          </button>
+          <div class="topbar-more-items" id="topbar-more-items">
+            <button
+              type="button"
+              class="action-pill export-studio-pill"
+              id="btn-open-export-studio"
+              title="Export high-resolution PNG screenshots or custom Vector SVG files for prints, posters, T-shirts, and coasters"
+            >
+              &#127912; Export / Merch
+            </button>
 
-        <button type="button" class="action-pill subtle" id="btn-open-about-modal">
-          Methodology &amp; Data
-        </button>
+            <button
+              type="button"
+              class="action-pill share-pill"
+              id="btn-open-share-modal"
+              title="Share or embed the map with current layers, basemap, filters, and camera view"
+            >
+              &#128279; Share View
+            </button>
 
-        <button
-          type="button"
-          class="action-pill subtle"
-          id="btn-topbar-admin"
-          title="Preservation Houston Staff Admin Sign-In &amp; Curated Overrides Console"
-        >
-          &#128274; Staff Admin
-        </button>
+            <button type="button" class="action-pill subtle" id="btn-open-about-modal">
+              Methodology &amp; Data
+            </button>
+
+            <button
+              type="button"
+              class="action-pill subtle"
+              id="btn-topbar-admin"
+              title="Preservation Houston Staff Admin Sign-In &amp; Curated Overrides Console"
+            >
+              &#128274; Staff Admin
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -1779,6 +1880,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261011i"></script>
+  <script type="module" src="js/app.js?v=20261011j"></script>
 </body>
 </html>
