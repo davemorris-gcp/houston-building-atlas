@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261011f";
+} from "./palettes.js?v=20261011w";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
