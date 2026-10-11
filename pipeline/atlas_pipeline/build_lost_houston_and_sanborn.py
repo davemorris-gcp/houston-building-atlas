@@ -405,27 +405,42 @@ def build_sanborn_catalog() -> dict:
         ],
     }
 
+    existing_sheets_by_vid = {}
+    existing_catalog_path = DATA_DIR / "sanborn_catalog.json"
+    if existing_catalog_path.exists():
+        try:
+            existing_cat = json.loads(existing_catalog_path.read_text(encoding="utf-8"))
+            for ev in existing_cat.get("volumes", []):
+                if ev.get("id") and ev.get("sheets"):
+                    existing_sheets_by_vid[ev["id"]] = ev["sheets"]
+        except Exception:
+            pass
+
     volumes = []
     for item in raw.get("volumes", []):
         vid = item["id"]
         if vid not in iiif_templates:
             continue
         era_short, date_str, title_str, tmpl = iiif_templates[vid]
-        count = item["sheet_count"]
-        volumes.append({
+        sheets = existing_sheets_by_vid.get(vid, [])
+        count = len(sheets) if sheets else item["sheet_count"]
+        vol_obj = {
             "id": vid,
             "era": era_short,
             "date": date_str,
             "title": title_str,
             "sheet_count": count,
             "loc_url": item["loc_url"],
-            "iiif_template": f"https://tile.loc.gov/image-services/iiif/{tmpl}/full/pct:35/0/default.jpg",
-            "iiif_highres_template": f"https://tile.loc.gov/image-services/iiif/{tmpl}/full/pct:75/0/default.jpg",
+            "iiif_template": f"https://tile.loc.gov/image-services/iiif/{tmpl}/full/pct:12.5/0/default.jpg",
+            "iiif_highres_template": f"https://tile.loc.gov/image-services/iiif/{tmpl}/full/pct:25/0/default.jpg",
             "featured_sheets": featured_sheets.get(
                 vid,
                 [{"sheet": 1, "label": "Sheet 1: Volume Title & Graphic Index Map"}],
             ),
-        })
+        }
+        if sheets:
+            vol_obj["sheets"] = sheets
+        volumes.append(vol_obj)
 
     return {
         "title": "Library of Congress & UT PCL Digitized Houston Sanborn Fire Insurance Atlases (1885-1955)",
@@ -480,8 +495,14 @@ def main() -> None:
         if loc_vol and loc_sheet:
             for v in sanborn_catalog["volumes"]:
                 if v["id"] == loc_vol:
-                    sanborn_sheet_image_url = v["iiif_template"].format(sheet=loc_sheet)
-                    sanborn_sheet_hires_url = v.get("iiif_highres_template", v["iiif_template"]).format(sheet=loc_sheet)
+                    v_sheets = v.get("sheets", [])
+                    matched_s = next((s for s in v_sheets if s.get("sp") == loc_sheet), None)
+                    if matched_s:
+                        sanborn_sheet_image_url = matched_s["preview_url"]
+                        sanborn_sheet_hires_url = matched_s["hires_url"]
+                    else:
+                        sanborn_sheet_image_url = v.get("iiif_highres_template", v["iiif_template"]).format(sheet=loc_sheet)
+                        sanborn_sheet_hires_url = sanborn_sheet_image_url
                     sanborn_sheet_loc_url = f"https://www.loc.gov/resource/{loc_vol}.?sp={loc_sheet}"
                     break
 
