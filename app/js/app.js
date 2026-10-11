@@ -19,7 +19,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261011f";
-import { AtlasMapController } from "./mapController.js?v=20261011h";
+import { AtlasMapController } from "./mapController.js?v=20261011i";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 import {
   applyOverrideToProperties,
@@ -38,7 +38,7 @@ import {
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261011f";
+} from "./photoService.js?v=20261011i";
 
 class HoustonAtlasApp {
   constructor() {
@@ -195,11 +195,11 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261011d"),
+        fetch("public/data/search_index.json?v=20261011i"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261011d").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261011i").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -9273,16 +9273,30 @@ class HoustonAtlasApp {
     const btnLoc = document.getElementById("btn-sanborn-open-loc-viewer");
     const btnJpg = document.getElementById("btn-sanborn-open-hires-jpg");
 
+    const previewUrl = rec.previewUrl || rec.thumbUrl;
+    const hiresUrl = rec.hiresUrl || previewUrl;
+
     if (titleEl) titleEl.textContent = rec.label;
-    if (subEl) subEl.textContent = `${rec.volTitle} · Published ${rec.date} · Sheet ${rec.sheetNum}`;
+    if (subEl) subEl.textContent = `${rec.volTitle} · Published ${rec.date} · Page ${rec.sheetNum}`;
     if (btnLoc) btnLoc.href = rec.locSheetUrl;
-    if (btnJpg) btnJpg.href = rec.hiresUrl;
+    if (btnJpg) btnJpg.href = previewUrl;
     if (stageEl) {
+      // Display the already-cached thumbnail (pct:12.5, ~806x956px) immediately so the preview pane is never blank,
+      // then seamlessly upgrade to the pre-cached high-resolution plate (pct:25, ~1612x1912px) once loaded.
       stageEl.innerHTML = `
-        <a href="${rec.hiresUrl}" target="_blank" rel="noopener noreferrer" title="Click to open full-resolution IIIF scan in a new tab">
-          <img src="${rec.hiresUrl}" alt="${rec.label.replace(/"/g, "&quot;")}" loading="eager" />
+        <a href="${previewUrl}" target="_blank" rel="noopener noreferrer" title="Click to open high-resolution IIIF scan in a new tab">
+          <img id="sanborn-preview-stage-img" src="${rec.thumbUrl}" alt="${rec.label.replace(/"/g, "&quot;")}" loading="eager" />
         </a>
       `;
+      if (previewUrl && previewUrl !== rec.thumbUrl) {
+        const hiLoader = new Image();
+        hiLoader.onload = () => {
+          if (this._activeSanbornSheetRec?.key !== rec.key) return;
+          const stageImg = document.getElementById("sanborn-preview-stage-img");
+          if (stageImg) stageImg.src = previewUrl;
+        };
+        hiLoader.src = previewUrl;
+      }
     }
     if (footerEl) {
       footerEl.innerHTML = `
@@ -9321,35 +9335,27 @@ class HoustonAtlasApp {
       .trim()
       .toLowerCase();
 
-    const buildSheetRecord = (vol, sheetNum, customLabel = "") => {
-      const padded = String(sheetNum).padStart(4, "0");
-      const thumbUrl = String(vol.iiif_template || "").replace("{sheet:04d}", padded);
-      const hiresUrl = String(vol.iiif_highres_template || vol.iiif_template || "").replace(
-        "{sheet:04d}",
-        padded
-      );
+    const buildSheetRecordFromVerified = (vol, shObj) => {
+      const sp = Number(shObj.sp) || 1;
       const locSheetUrl = `${String(vol.loc_url || "https://www.loc.gov/collections/sanborn-maps/").replace(
         /\/?$/,
         "/"
-      )}?sp=${sheetNum}`;
-      const label =
-        customLabel ||
-        (sheetNum === 1
-          ? `Sheet 1: Graphic Index Map & Key (${vol.date})`
-          : `Sheet ${sheetNum} (${vol.date})`);
+      )}?sp=${sp}`;
       return {
-        key: `${vol.id}__${sheetNum}`,
+        key: `${vol.id}__${sp}`,
         volId: vol.id,
         era: vol.era,
         date: vol.date,
         volTitle: vol.title,
         locUrl: vol.loc_url,
         locSheetUrl,
-        sheetNum,
-        label,
-        isFeatured: Boolean(customLabel),
-        thumbUrl,
-        hiresUrl,
+        sheetNum: sp,
+        code: shObj.code || String(sp),
+        label: shObj.label || `Sheet ${sp} (${vol.date})`,
+        isFeatured: Boolean(shObj.is_featured),
+        thumbUrl: shObj.thumb_url,
+        previewUrl: shObj.preview_url || shObj.thumb_url,
+        hiresUrl: shObj.hires_url || shObj.preview_url || shObj.thumb_url,
       };
     };
 
@@ -9367,24 +9373,15 @@ class HoustonAtlasApp {
       if (vol.id === selectedVolId) {
         selectedVolObj = vol;
       }
-      const featuredMap = new Map();
-      for (const fs of vol.featured_sheets || []) {
-        if (fs && Number.isFinite(Number(fs.sheet))) {
-          featuredMap.set(Number(fs.sheet), fs.label || "");
-        }
-      }
 
-      if (selectedVolId === "featured" && !filterQ) {
-        for (const [sNum, sLbl] of featuredMap.entries()) {
-          items.push(buildSheetRecord(vol, sNum, sLbl));
-        }
-      } else {
-        const count = Number(vol.sheet_count) || 1;
-        for (let sNum = 1; sNum <= count; sNum++) {
-          const sLbl = featuredMap.get(sNum) || "";
-          const rec = buildSheetRecord(vol, sNum, sLbl);
+      if (Array.isArray(vol.sheets) && vol.sheets.length > 0) {
+        for (const shObj of vol.sheets) {
+          if (selectedVolId === "featured" && !filterQ && !shObj.is_featured) {
+            continue;
+          }
+          const rec = buildSheetRecordFromVerified(vol, shObj);
           if (filterQ) {
-            const hay = `${rec.label} ${rec.volTitle} ${rec.date} sheet ${sNum}`.toLowerCase();
+            const hay = `${rec.label} ${rec.volTitle} ${rec.date} sheet ${rec.code} page ${rec.sheetNum}`.toLowerCase();
             if (!hay.includes(filterQ)) continue;
           }
           items.push(rec);
