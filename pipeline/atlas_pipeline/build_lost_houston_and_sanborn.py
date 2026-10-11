@@ -360,48 +360,58 @@ def build_sanborn_catalog() -> dict:
 
     featured_sheets = {
         "sanborn08580_001": [
-            {"sheet": 1, "label": "Index & Title Sheet (Aug 1885)"},
-            {"sheet": 2, "label": "Sheet 2: Market Square, 1876 City Hall & Hutchins House"},
-            {"sheet": 3, "label": "Sheet 3: 1883 Victorian Courthouse & Quality Hill"},
-            {"sheet": 4, "label": "Sheet 4: 1883 Capitol Hotel &Pillot's Opera House"},
-            {"sheet": 6, "label": "Sheet 6: Houston Academy & Incarnate Word Convent"},
+            {"sheet": 1, "label": "Sheet 1: Index Map, Bayou Wharves & Foot of Main (Aug 1885)"},
+            {"sheet": 2, "label": "Sheet 2: H&TC Passenger Depot & Roundhouse (Aug 1885)"},
+            {"sheet": 8, "label": "Sheet 8: Market Square, 1876 City Hall & Hutchins House (Blocks 19 & 34)"},
+            {"sheet": 9, "label": "Sheet 9: 1883 Victorian Courthouse, Quality Hill (Block 22) & Gray's Opera House"},
+            {"sheet": 10, "label": "Sheet 10: 1883 Capitol Hotel (Block 57), Pillot's Opera House & Binz Site"},
+            {"sheet": 11, "label": "Sheet 11: Masonic Temple (Block 68), Tremont House & Rice Home"},
         ],
         "sanborn08580_002": [
-            {"sheet": 1, "label": "Index Map & Key (June 1890)"},
-            {"sheet": 2, "label": "Sheet 2: Grand Central Station (H&TC Ry)"},
-            {"sheet": 4, "label": "Sheet 4: Market Square & 1876 Market House"},
-            {"sheet": 6, "label": "Sheet 6: Courthouse Square & Congress Ave"},
-            {"sheet": 8, "label": "Sheet 8: Capitol Hotel & Main Street Core"},
+            {"sheet": 1, "label": "Sheet 1: Index Map & Key (June 1890)"},
+            {"sheet": 3, "label": "Sheet 3: Grand Central Station (H&TC Ry) & Washington Ave"},
+            {"sheet": 13, "label": "Sheet 13: Market Square, 1876 Market House & Hutchins House"},
+            {"sheet": 14, "label": "Sheet 14: 1883 Courthouse Square & Quality Hill (Block 22)"},
+            {"sheet": 15, "label": "Sheet 15: Capitol Hotel, Pillot's Opera House & Shearn Church"},
         ],
         "sanborn08580_003": [
-            {"sheet": 1, "label": "Index Map & Key (1896)"},
-            {"sheet": 7, "label": "Sheet 7: Market Square & 1876 City Hall"},
-            {"sheet": 10, "label": "Sheet 10: 1883 Courthouse & Quality Hill Mansions"},
-            {"sheet": 14, "label": "Sheet 14: Capitol Hotel & Pillot's Opera House"},
-            {"sheet": 15, "label": "Sheet 15: 1895 Binz Building & Shearn Methodist"},
-            {"sheet": 34, "label": "Sheet 34: Scanlan Mansion (1917 Main St)"},
+            {"sheet": 1, "label": "Sheet 1: Hutchins House (Block 19) & Franklin Ave Wharves (1896)"},
+            {"sheet": 2, "label": "Sheet 2: Quality Hill / Thomas W. House Mansion (Block 22) & Main/Franklin"},
+            {"sheet": 3, "label": "Sheet 3: 1876 City Hall & Market House, Kiam Bldg & Capitol Hotel (Blocks 33, 34, 57, 58)"},
+            {"sheet": 4, "label": "Sheet 4: 1883 Courthouse (Block 31), Sweeney & Coombs (Block 32) & 1895 Binz Bldg (Block 56)"},
+            {"sheet": 7, "label": "Sheet 7: Bristol Hotel (Block 67) & Masonic Temple Site (Block 68)"},
+            {"sheet": 8, "label": "Sheet 8: Temple Bldg (701 Main), Tremont House (Block 93) & Rice Home (Block 71)"},
+            {"sheet": 33, "label": "Sheet 33: T. H. Scanlan Mansion (1917 Main St, Block 404)"},
         ],
         "sanborn08580_004": [
-            {"sheet": 1, "label": "Sheet 1: Key Map, H&TC Grand Central Depot & Hotel Brazos"},
-            {"sheet": 2, "label": "Sheet 2: Magnolia Brewery & Foot of Main Street"},
-            {"sheet": 3, "label": "Sheet 3: 1905 First National Bank (8-Story Steel Frame)"},
-            {"sheet": 6, "label": "Sheet 6: 1904 City Hall & Market House + Mistrot Bros."},
-            {"sheet": 7, "label": "Sheet 7: 1893 Kiam Building & Sweeney-Coombs"},
-            {"sheet": 9, "label": "Sheet 9: 1883 Victorian Courthouse (Before 1910 Rebuild)"},
-            {"sheet": 12, "label": "Sheet 12: 1883 Capitol Hotel & 1895 Binz Building"},
-            {"sheet": 20, "label": "Sheet 20: Central High School (Block 88)"},
-            {"sheet": 25, "label": "Sheet 25: First Presbyterian Church (Main & McKinney)"},
-            {"sheet": 26, "label": "Sheet 26: 1904 Houston Lyceum & Carnegie Library"},
-            {"sheet": 43, "label": "Sheet 43: Frost Town ('El Barrio del Alacran') on Buffalo Bayou"},
-            {"sheet": 46, "label": "Sheet 46: I&GN Railroad Passenger Depot (Congress Ave)"},
+            {"sheet": 1, "label": "Sheet 1: Hutchins House (Block 19, Franklin & Travis) & Buffalo Bayou"},
+            {"sheet": 2, "label": "Sheet 2: Quality Hill / Thomas W. House Mansion (Block 22) & 1905 First National Bank (Block 21)"},
+            {"sheet": 3, "label": "Sheet 3: 1904 Market House (Block 34), Kiam Bldg & Mistrot (Block 33), Capitol Hotel (Block 57) & Shearn Church (Block 58)"},
+            {"sheet": 4, "label": "Sheet 4: 1883 Courthouse (Block 31), Sweeney & Coombs (Block 32) & 1895 Binz Building (Block 56)"},
+            {"sheet": 5, "label": "Sheet 5: Criminal Court & County Jail (Capitol & Bagby) & Buffalo Bayou"},
+            {"sheet": 6, "label": "Sheet 6: Civic Center Precinct (Blocks 63-65, 84-89, Bagby to Louisiana)"},
+            {"sheet": 7, "label": "Sheet 7: Hotel Bristol (Block 67/82), Odd Fellows Temple (Block 83) & Majestic Site (Block 81)"},
+            {"sheet": 8, "label": "Sheet 8: Temple Bldg (701 Main), Tremont House (Block 93) & Rice Home (Block 71)"},
+            {"sheet": 12, "label": "Sheet 12: I&GN Railroad Passenger Station & Roundhouse (Congress Ave)"},
+            {"sheet": 13, "label": "Sheet 13: Houston Turn-Verein Hall (Block 53) & Majestic Vaudeville Theatre (Block 29)"},
+            {"sheet": 17, "label": "Sheet 17: Central High School / Houston Academy (Block 77, Rusk & Austin)"},
+            {"sheet": 18, "label": "Sheet 18: Annunciation Church & Incarnate Word Academy (Block 101, Crawford & Texas)"},
+            {"sheet": 23, "label": "Sheet 23: 1904 Carnegie Library & Lyceum and 1896 First Presbyterian Church (Block 138)"},
+            {"sheet": 24, "label": "Sheet 24: Theater District Block 135 (Main, Travis, McKinney, Lamar) & YMCA (Block 137)"},
+            {"sheet": 33, "label": "Sheet 33: John F. Dickson Mansion (Main & Polk, Block 271)"},
+            {"sheet": 34, "label": "Sheet 34: The Concordia Club (Main & Polk, Block 272)"},
+            {"sheet": 50, "label": "Sheet 50: T. H. Scanlan Mansion (1917 Main St, Block 404) & Sacred Heart Church (Block 403)"},
+            {"sheet": 51, "label": "Sheet 51: 1894 St. Joseph's Infirmary (Block 399, Crawford & Pierce)"},
+            {"sheet": 86, "label": "Sheet 86: West End Park Baseball Grounds (Andrews & Heiner)"},
+            {"sheet": 87, "label": "Sheet 87: Colored High School (San Felipe) & Antioch Baptist Church (Robin St)"},
+            {"sheet": 89, "label": "Sheet 89: Frost Town ('El Barrio del Alacran', Spruce, Race & Arch Streets)"},
         ],
         "sanborn08580_005": [
-            {"sheet": 1, "label": "Sheet 1: Vol. 2 Graphic Index & Key"},
-            {"sheet": 68, "label": "Sheet 68: Fifth Ward Steam Cotton Compress Special Sheet"},
-            {"sheet": 79, "label": "Sheet 79: West End Park ('Base Ball Park', Andrews & Heiner)"},
-            {"sheet": 80, "label": "Sheet 80: Colored High School (Fourth Ward)"},
-            {"sheet": 101, "label": "Sheet 101: T. H. Scanlan Mansion (1917 Main St)"},
-            {"sheet": 105, "label": "Sheet 105: 1894 St. Joseph's Infirmary (Nicholas J. Clayton)"},
+            {"sheet": 1, "label": "Sheet 1: H&TC Freight Yards & Buffalo Bayou Confluence"},
+            {"sheet": 2, "label": "Sheet 2: Houston Infirmary (H&TC Hospital) & Western Train Shed (Washington Ave)"},
+            {"sheet": 3, "label": "Sheet 3: Grand Central Depot (H&TC / SP), Hotel Brazos & Macatee Hotel (Washington & Franklin)"},
+            {"sheet": 7, "label": "Sheet 7: MKT Freight Depot, Dickson Car Wheel Co. & Planters Compress"},
+            {"sheet": 68, "label": "Sheet 68: Fifth Ward Steam Cotton Compress & Special Industrial Risks"},
         ],
     }
 
@@ -423,6 +433,55 @@ def build_sanborn_catalog() -> dict:
             continue
         era_short, date_str, title_str, tmpl = iiif_templates[vid]
         sheets = existing_sheets_by_vid.get(vid, [])
+        vol_feat = featured_sheets.get(
+            vid,
+            [{"sheet": 1, "label": f"Sheet 1: Volume Overview ({date_str})"}],
+        )
+        feat_by_code = {f"{int(f['sheet']):04d}": f["label"] for f in vol_feat}
+        for s in sheets:
+            code = str(s.get("code", ""))
+            if s.get("thumb_url"):
+                s["preview_url"] = s["thumb_url"]
+            elif s.get("preview_url"):
+                s["preview_url"] = str(s["preview_url"]).replace("/pct:25/", "/pct:12.5/").replace("/pct:50/", "/pct:12.5/")
+            if s.get("hires_url"):
+                s["hires_url"] = str(s["hires_url"]).replace("/pct:50/", "/pct:25/")
+            if code == "titl":
+                s["label"] = f"Title Sheet ({date_str})"
+                s["is_featured"] = True
+            elif code in ("ind1", "ind2"):
+                s["label"] = f"Graphic Index & Street Key ({date_str})"
+                s["is_featured"] = True
+            elif code == "0000":
+                s["label"] = f"Key Map & Volume Overview ({date_str})"
+                s["is_featured"] = True
+            elif code.endswith("s") and code[:-1].isdigit():
+                s["label"] = f"Skeleton Map Sheet {int(code[:-1])} ({date_str})"
+                s["is_featured"] = False
+            elif code in feat_by_code:
+                s["label"] = feat_by_code[code]
+                s["is_featured"] = True
+            elif code.isdigit():
+                s["label"] = f"Sheet {int(code)} ({date_str})"
+                s["is_featured"] = False
+            else:
+                s["label"] = f"Page {s.get('sp', '')} ({date_str})"
+                s["is_featured"] = False
+
+        # Enrich vol_feat with exact LOC sequential page index (sp) and code
+        enriched_feat = []
+        for f in vol_feat:
+            f_code = f"{int(f['sheet']):04d}"
+            ms = next((s for s in sheets if s.get("code") == f_code), None)
+            if not ms:
+                ms = next((s for s in sheets if s.get("sp") == int(f["sheet"])), None)
+            enriched_feat.append({
+                "sheet": int(f["sheet"]),
+                "code": ms["code"] if ms else f_code,
+                "sp": ms["sp"] if ms else int(f["sheet"]),
+                "label": f["label"],
+            })
+
         count = len(sheets) if sheets else item["sheet_count"]
         vol_obj = {
             "id": vid,
@@ -433,10 +492,7 @@ def build_sanborn_catalog() -> dict:
             "loc_url": item["loc_url"],
             "iiif_template": f"https://tile.loc.gov/image-services/iiif/{tmpl}/full/pct:12.5/0/default.jpg",
             "iiif_highres_template": f"https://tile.loc.gov/image-services/iiif/{tmpl}/full/pct:25/0/default.jpg",
-            "featured_sheets": featured_sheets.get(
-                vid,
-                [{"sheet": 1, "label": "Sheet 1: Volume Title & Graphic Index Map"}],
-            ),
+            "featured_sheets": enriched_feat,
         }
         if sheets:
             vol_obj["sheets"] = sheets
@@ -1036,6 +1092,558 @@ def fit_rect_in_parcel(
     )
 
 
+# Visually verified against the digitized LOC Sanborn plates:
+# Maps each landmark ID -> (loc_volume_id, printed_sheet_num, sanborn_ref_label, extra_plates[(vol_id, sheet_num, label)])
+VERIFIED_SANBORN_REFS: dict[str, tuple[str | None, int | None, str, list[tuple[str, int, str]]]] = {
+    # Block 57 (Main, Travis, Prairie, Texas) -> 1885 Sheet 10, 1896 Sheet 3, 1907 Vol. 1 Sheet 3
+    "lost_republic_of_texas_capitol": (
+        "sanborn08580_001",
+        10,
+        "1885 Sheet 10 & 1907 Vol. 1 Sheet 3 (Block 57: Main & Texas NW Corner, Old Capitol Site)",
+        [("sanborn08580_004", 3, "1907 Vol. 1 Sheet 3 (Block 57: Main & Texas NW Corner)")],
+    ),
+    "lost_capitol_hotel_1883": (
+        "sanborn08580_004",
+        3,
+        "1885 Sheet 10; 1896 Sheet 3; 1907 Vol. 1 Sheet 3 (Block 57: Main & Texas NW Corner)",
+        [
+            ("sanborn08580_001", 10, "1885 Sheet 10 (Block 57: 1883 Capitol Hotel)"),
+            ("sanborn08580_003", 3, "1896 Sheet 3 (Block 57: Capitol Hotel at Main & Texas)"),
+        ],
+    ),
+    # Block 45 (Main, Fannin, Preston, Prairie) -> 1885 Sheet 9, 1896 Sheet 4, 1907 Vol. 1 Sheet 4
+    "lost_first_texas_white_house": (
+        "sanborn08580_001",
+        9,
+        "1885 Sheet 9 & 1907 Vol. 1 Sheet 4 (Block 45: 405 Main St at Preston SE Corner)",
+        [("sanborn08580_004", 4, "1907 Vol. 1 Sheet 4 (Block 45: Main & Preston SE Corner)")],
+    ),
+    # Block 34 (Market Square: Congress, Preston, Travis, Milam) -> 1885 Sheet 8, 1896 Sheet 3, 1907 Vol. 1 Sheet 3
+    "lost_market_house_1840": (
+        "sanborn08580_001",
+        8,
+        "1885 Sheet 8 & 1907 Vol. 1 Sheet 3 (Block 34: Market Square, Congress to Preston)",
+        [("sanborn08580_004", 3, "1907 Vol. 1 Sheet 3 (Block 34: Market Square)")],
+    ),
+    "lost_market_house_1876": (
+        "sanborn08580_003",
+        3,
+        "1885 Sheet 8 & 1896 Sheet 3 (Block 34: 1876 City Hall & Market House on Market Square)",
+        [
+            ("sanborn08580_001", 8, "1885 Sheet 8 (Block 34: 1876 City Hall & Market House)"),
+            ("sanborn08580_004", 3, "1907 Vol. 1 Sheet 3 (Block 34: 1904 Successor Market House)"),
+        ],
+    ),
+    "lost_market_house_1904": (
+        "sanborn08580_004",
+        3,
+        "1907 Vol. 1 Sheet 3 (Block 34: 1904 City Market House, Bounded by Congress, Preston, Travis, Milam)",
+        [("sanborn08580_003", 3, "1896 Sheet 3 (Block 34: Earlier 1876 Market House on Same Square)")],
+    ),
+    # Block 31 (Courthouse Square: Congress, Preston, Fannin, San Jacinto) -> 1885 Sheet 9, 1896 Sheet 4, 1907 Vol. 1 Sheet 4
+    "lost_courthouse_1851": (
+        "sanborn08580_001",
+        9,
+        "1885 Sheet 9 & 1907 Vol. 1 Sheet 4 (Block 31: Courthouse Square, Fannin to San Jacinto)",
+        [("sanborn08580_004", 4, "1907 Vol. 1 Sheet 4 (Block 31: Courthouse Square)")],
+    ),
+    "lost_courthouse_1883": (
+        "sanborn08580_004",
+        4,
+        "1885 Sheet 9; 1896 Sheet 4; 1907 Vol. 1 Sheet 4 (Block 31: 1883 Harris County Court House)",
+        [
+            ("sanborn08580_001", 9, "1885 Sheet 9 (Block 31: 1883 Victorian Harris County Court House)"),
+            ("sanborn08580_003", 4, "1896 Sheet 4 (Block 31: Harris County Court House)"),
+        ],
+    ),
+    # Block 56 (Main, Fannin, Prairie, Texas) -> 1896 Sheet 4, 1907 Vol. 1 Sheet 4
+    "lost_binz_building_1895": (
+        "sanborn08580_004",
+        4,
+        "1896 Sheet 4 & 1907 Vol. 1 Sheet 4 (Block 56: 1001 Texas Ave at Main St NE Corner)",
+        [("sanborn08580_003", 4, "1896 Sheet 4 (Block 56: Newly Completed 6-Story 1895 Binz Building)")],
+    ),
+    "lost_prince_theatre_1904": (
+        "sanborn08580_004",
+        4,
+        "1907 Vol. 1 Sheet 4 (Block 56: Texas Ave between Main & Fannin, Adj. to Binz Building)",
+        [("sanborn08580_003", 4, "1896 Sheet 4 (Block 56: Main, Fannin, Prairie, Texas)")],
+    ),
+    # Block 21 (Main, Fannin, Franklin, Congress) -> 1885 Sheet 9, 1896 Sheet 2, 1907 Vol. 1 Sheet 2
+    "lost_first_national_bank_1905": (
+        "sanborn08580_004",
+        2,
+        "1907 Vol. 1 Sheet 2 (Block 21: 201 Main St at Franklin Ave SE Corner, 'First Nat'l Bank Bldg.')",
+        [("sanborn08580_003", 2, "1896 Sheet 2 (Block 21: Earlier 3-Story First National Bank at Main & Franklin)")],
+    ),
+    # Block 68 / 69 (Main & Capitol) -> 1885 Sheet 11, 1896 Sheet 7 & 8, 1907 Vol. 1 Sheet 7 & 8
+    "lost_masonic_temple_1885": (
+        "sanborn08580_004",
+        8,
+        "1885 Sheet 11; 1896 Sheet 8; 1907 Vol. 1 Sheet 8 & Sheet 7 (701 Main St at Capitol Ave, Temple Bldg)",
+        [
+            ("sanborn08580_004", 7, "1907 Vol. 1 Sheet 7 (Block 68: West Side of 700 Main at Capitol)"),
+            ("sanborn08580_001", 11, "1885 Sheet 11 (Blocks 68 & 69: Main St & Capitol Ave)"),
+        ],
+    ),
+    # Block 138 / 139 (Main, Travis, McKinney, Lamar) -> 1907 Vol. 1 Sheet 23
+    "lost_carnegie_library_1904": (
+        "sanborn08580_004",
+        23,
+        "1907 Vol. 1 Sheet 23 (Block 138: Travis St & McKinney Ave, 'Carnegie Library and Lyceum')",
+        [],
+    ),
+    "lost_first_presbyterian_main_mckinney_1896": (
+        "sanborn08580_004",
+        23,
+        "1907 Vol. 1 Sheet 23 (Block 138: Main St & McKinney Ave, '1st Presby'n Church')",
+        [],
+    ),
+    "lost_lamar_hotel_1927": (
+        "sanborn08580_004",
+        23,
+        "1907 Vol. 1 Sheet 23 (Block 138: Main St at Lamar Ave West Side, Pre-1927 Site Plate)",
+        [],
+    ),
+    # Fourth Ward (Frederick & Robin) -> 1907 Vol. 1 Sheet 88
+    "lost_colored_carnegie_library_1913": (
+        "sanborn08580_004",
+        88,
+        "1907 Vol. 1 Sheet 88 (Fourth Ward: Frederick & Robin Streets, Pre-1913 Site Plate)",
+        [("sanborn08580_004", 87, "1907 Vol. 1 Sheet 87 (Adjacent Fourth Ward Colored High School & Antioch Baptist)")],
+    ),
+    # South Main / Texas Medical Center -> 1924-1950 Vol. 11 (sanborn08580_027)
+    "lost_shamrock_hotel_1949": (
+        "sanborn08580_027",
+        1,
+        "1924-1950 Vol. 11 Sheet 1 (South Main & Holcombe Blvd Volume Overview)",
+        [],
+    ),
+    "lost_prudential_building_1952": (
+        "sanborn08580_027",
+        1,
+        "1924-1950 Vol. 11 Sheet 1 (South Main & Holcombe Medical Center Corridor Overview)",
+        [],
+    ),
+    # Washington Ave & Preston / Franklin (Grand Central Depot, Hotel Brazos, Macatee Hotel) -> 1907 Vol. 2 Sheet 3
+    "lost_hotel_brazos_1898": (
+        "sanborn08580_005",
+        3,
+        "1907 Vol. 2 Sheet 3 (Washington Ave Opposite H&TC Grand Central Depot, 'Hotel Brazos')",
+        [("sanborn08580_005", 2, "1907 Vol. 2 Sheet 2 (Adjacent H&TC Train Shed & Houston Infirmary)")],
+    ),
+    "lost_macatee_hotel_1906": (
+        "sanborn08580_005",
+        3,
+        "1907 Vol. 2 Sheet 3 (Washington Ave & Franklin Approach, 'The Macatee Hotel')",
+        [],
+    ),
+    "lost_grand_central_station_1887": (
+        "sanborn08580_005",
+        3,
+        "1890 Sheet 3 & 1907 Vol. 2 Sheet 3 (Washington Ave: 'Grand Central Depot - Passenger Depot & Train Shed')",
+        [
+            ("sanborn08580_005", 2, "1907 Vol. 2 Sheet 2 (Western H&TC Passenger Train Shed & Hospital)"),
+            ("sanborn08580_001", 2, "1885 Sheet 2 (Earlier H&TC Passenger Depot & Roundhouse on Same Site)"),
+        ],
+    ),
+    "lost_southern_pacific_station_1934": (
+        "sanborn08580_005",
+        3,
+        "1907 Vol. 2 Sheet 3 (Washington Ave & Franklin: Grand Central / Southern Pacific Depot Site)",
+        [("sanborn08580_005", 2, "1907 Vol. 2 Sheet 2 (Western Passenger Yard & Bayou Frontage)")],
+    ),
+    # Block 19 (Franklin, Congress, Travis, Milam) -> 1885 Sheet 8, 1896 Sheet 1, 1907 Vol. 1 Sheet 1
+    "lost_hutchins_house_1866": (
+        "sanborn08580_004",
+        1,
+        "1885 Sheet 8; 1896 Sheet 1; 1907 Vol. 1 Sheet 1 (Block 19: Franklin Ave & Travis NW Corner)",
+        [
+            ("sanborn08580_001", 8, "1885 Sheet 8 (Block 19: Hutchins House Hotel at Franklin & Travis)"),
+            ("sanborn08580_003", 1, "1896 Sheet 1 (Block 19: Hutchins House)"),
+        ],
+    ),
+    # Block 93 (Main, Travis, Rusk, Walker) -> 1885 Sheet 11, 1896 Sheet 8, 1907 Vol. 1 Sheet 8
+    "lost_tremont_house_1873": (
+        "sanborn08580_004",
+        8,
+        "1885 Sheet 11; 1896 Sheet 8; 1907 Vol. 1 Sheet 8 (Block 93: 811 Main St at Walker Ave)",
+        [
+            ("sanborn08580_001", 11, "1885 Sheet 11 (Block 93: Victorian Tremont House Hotel)"),
+            ("sanborn08580_003", 8, "1896 Sheet 8 (Block 93: Tremont House at Main & Walker)"),
+        ],
+    ),
+    # Block 67 / 82 (Travis & Capitol) -> 1896 Sheet 7, 1907 Vol. 1 Sheet 7
+    "lost_bristol_hotel_1895": (
+        "sanborn08580_004",
+        7,
+        "1896 Sheet 7 & 1907 Vol. 1 Sheet 7 (Blocks 67 & 82: Travis St at Capitol Ave, 'Hotel Bristol')",
+        [("sanborn08580_003", 7, "1896 Sheet 7 (Blocks 67 & 82: Travis St & Capitol Ave)")],
+    ),
+    "lost_queen_theatre_1913": (
+        "sanborn08580_004",
+        7,
+        "1907 Vol. 1 Sheet 7 (Block 67: 608 Travis St between Texas & Capitol, Pre-1913 Site Plate)",
+        [],
+    ),
+    # Block 66 (Milam, Louisiana, Texas, Capitol) -> 1907 Vol. 1 Sheet 7
+    "lost_city_auditorium_1910": (
+        "sanborn08580_004",
+        7,
+        "1907 Vol. 1 Sheet 7 (Block 66: Bounded by Louisiana, Milam, Texas & Capitol, Pre-1910 Site Plate)",
+        [],
+    ),
+    # Civic Center (Bagby to Smith, Capitol to Walker) -> 1907 Vol. 1 Sheet 6
+    "lost_sam_houston_hall_1928": (
+        "sanborn08580_004",
+        6,
+        "1907 Vol. 1 Sheet 6 (Blocks 63-64 & 85-86: Bagby to Smith at Rusk/Walker, Pre-1928 Civic Center Site)",
+        [],
+    ),
+    "lost_sam_houston_coliseum_1937": (
+        "sanborn08580_004",
+        6,
+        "1907 Vol. 1 Sheet 6 (Blocks 63-64 & 85-86: Bagby to Smith at Walker, Pre-1937 Coliseum Site)",
+        [],
+    ),
+    # Block 33 (Main, Travis, Congress, Preston) -> 1885 Sheet 8, 1896 Sheet 3, 1907 Vol. 1 Sheet 3
+    "lost_kiam_building_1893": (
+        "sanborn08580_004",
+        3,
+        "1896 Sheet 3 & 1907 Vol. 1 Sheet 3 (Block 33: 320 Main St at Preston NW Corner, 'Kiam Bldg')",
+        [("sanborn08580_003", 3, "1896 Sheet 3 (Block 33: Kiam Building at Main & Preston)")],
+    ),
+    "lost_mistrot_emporium_1904": (
+        "sanborn08580_004",
+        3,
+        "1907 Vol. 1 Sheet 3 (Block 33: 910 Congress Ave at Travis St, Facing Market Square)",
+        [("sanborn08580_003", 3, "1896 Sheet 3 (Block 33: South Side of Market Square)")],
+    ),
+    # Block 58 (Travis, Milam, Prairie, Texas) -> 1885 Sheet 10, 1896 Sheet 3, 1907 Vol. 1 Sheet 3
+    "lost_chronicle_building_1909": (
+        "sanborn08580_004",
+        3,
+        "1907 Vol. 1 Sheet 3 (Block 58: 801 Texas Ave at Travis NW Corner, Pre-1909 Site Adjoining Shearn Church)",
+        [("sanborn08580_003", 3, "1896 Sheet 3 (Block 58: Travis, Milam, Prairie, Texas)")],
+    ),
+    "lost_shearn_methodist_church_1884": (
+        "sanborn08580_004",
+        3,
+        "1885 Sheet 10; 1896 Sheet 3; 1907 Vol. 1 Sheet 3 (Block 58: 'Chas. Shearn Memorial Church' at Texas & Milam)",
+        [
+            ("sanborn08580_001", 10, "1885 Sheet 10 (Block 58: 1884 Shearn Methodist Church on Texas Ave)"),
+            ("sanborn08580_003", 3, "1896 Sheet 3 (Block 58: Shearn Memorial Methodist Church)"),
+        ],
+    ),
+    # Block 32 (Main, Fannin, Congress, Preston) -> 1885 Sheet 9 & 10, 1896 Sheet 4, 1907 Vol. 1 Sheet 4
+    "lost_pillot_opera_house_1880": (
+        "sanborn08580_004",
+        4,
+        "1885 Sheet 10; 1896 Sheet 4; 1907 Vol. 1 Sheet 4 (Block 32: Main to Fannin between Congress & Preston)",
+        [
+            ("sanborn08580_001", 10, "1885 Sheet 10 (Block 32: Pillot's Building / Opera House)"),
+            ("sanborn08580_003", 4, "1896 Sheet 4 (Block 32: Sweeney & Coombs' Opera House)"),
+        ],
+    ),
+    "lost_sweeney_coombs_fredericks_1891": (
+        "sanborn08580_004",
+        4,
+        "1896 Sheet 4 & 1907 Vol. 1 Sheet 4 (Block 32: 301 Main St at Congress SW Corner, 'Sweeney & Coombs')",
+        [("sanborn08580_003", 4, "1896 Sheet 4 (Block 32: Sweeney, Coombs & Fredericks at 301 Main)")],
+    ),
+    # Block 81 (Main, Travis, Capitol, Rusk) -> 1907 Vol. 1 Sheet 7
+    "lost_majestic_theatre_1923": (
+        "sanborn08580_004",
+        7,
+        "1907 Vol. 1 Sheet 7 (Block 81: 908 Rusk St between Main & Travis; plus 1907 Majestic on Sheet 13)",
+        [("sanborn08580_004", 13, "1907 Vol. 1 Sheet 13 (Block 29: Earlier 1907 'Majestic Theatre' on Congress Ave)")],
+    ),
+    # Block 135 (Main, Fannin, McKinney, Lamar) -> 1907 Vol. 1 Sheet 24
+    "lost_metropolitan_theatre_1926": (
+        "sanborn08580_004",
+        24,
+        "1907 Vol. 1 Sheet 24 (Block 135: 1016 Main St between McKinney & Lamar, Pre-1926 Site Plate)",
+        [],
+    ),
+    "lost_loews_state_theatre_1927": (
+        "sanborn08580_004",
+        24,
+        "1907 Vol. 1 Sheet 24 (Block 135: 1022 Main St at Lamar Ave, Pre-1927 Site Plate)",
+        [],
+    ),
+    "lost_kirby_theatre_1927": (
+        "sanborn08580_004",
+        24,
+        "1907 Vol. 1 Sheet 24 (Block 135: 1002 Main St at McKinney Ave, Pre-1927 Site Plate)",
+        [],
+    ),
+    # Block 22 (Quality Hill: Fannin, San Jacinto, Franklin, Congress) -> 1885 Sheet 9, 1896 Sheet 2, 1907 Vol. 1 Sheet 2
+    "lost_house_mansion_quality_hill_1870": (
+        "sanborn08580_004",
+        2,
+        "1885 Sheet 9; 1896 Sheet 2; 1907 Vol. 1 Sheet 2 (Block 22: Bounded by Fannin, Franklin, San Jacinto & Congress)",
+        [
+            ("sanborn08580_001", 9, "1885 Sheet 9 (Block 22: Thomas W. House Mansion on Quality Hill)"),
+            ("sanborn08580_003", 2, "1896 Sheet 2 (Block 22: Fannin, Franklin, San Jacinto & Congress)"),
+        ],
+    ),
+    "lost_azteca_theatre_1927": (
+        "sanborn08580_004",
+        2,
+        "1907 Vol. 1 Sheet 2 (Block 22: 1112 Congress Ave between Fannin & San Jacinto)",
+        [("sanborn08580_003", 2, "1896 Sheet 2 (Block 22: Congress Ave between Fannin & San Jacinto)")],
+    ),
+    # Block 47 (San Jacinto, Caroline, Preston, Prairie) -> 1896 Sheet 4, 1907 Vol. 1 Sheet 4
+    "lost_lincoln_theatre_1926": (
+        "sanborn08580_004",
+        4,
+        "1907 Vol. 1 Sheet 4 (Block 47: 1211 Prairie Ave between San Jacinto & Caroline)",
+        [("sanborn08580_003", 4, "1896 Sheet 4 (Block 47: Prairie Ave between San Jacinto & Caroline)")],
+    ),
+    # I&GN Passenger Depot (Congress & Emanuel) -> 1907 Vol. 1 Sheet 12
+    "lost_IGN_depot_1880": (
+        "sanborn08580_004",
+        12,
+        "1907 Vol. 1 Sheet 12 (Congress Ave & Emanuel: 'I. & G. N. R. R. Passenger Station' & Roundhouse)",
+        [],
+    ),
+    # MKT Katy Station (Main St Viaduct at White Oak Bayou) -> 1907 Vol. 2 Sheet 7
+    "lost_mkt_station_1914": (
+        "sanborn08580_005",
+        7,
+        "1907 Vol. 2 Sheet 7 (M. K. & T. Ry. Freight & Terminal Yard along White Oak / Buffalo Bayou)",
+        [],
+    ),
+    # SA&AP Depot (South End / Blodgett) -> 1924-1950 Vol. 11 Sheet 1
+    "lost_sap_aransas_pass_depot_1890": (
+        "sanborn08580_027",
+        1,
+        "1924-1950 Vol. 11 Sheet 1 (South Main & Blodgett Corridor Overview)",
+        [],
+    ),
+    # Block 59 (Milam, Louisiana, Prairie, Texas) -> 1907 Vol. 1 Sheet 3
+    "lost_galveston_houston_interurban_terminal_1911": (
+        "sanborn08580_004",
+        3,
+        "1907 Vol. 1 Sheet 3 (Block 59: Texas Ave between Milam & Louisiana, Pre-1911 Terminal Block)",
+        [],
+    ),
+    # Block 404 (1917 Main St between Calhoun & Pierce) -> 1907 Vol. 1 Sheet 50 & 1896 Sheet 33
+    "lost_scanlan_mansion_1891": (
+        "sanborn08580_004",
+        50,
+        "1896 Sheet 33 & 1907 Vol. 1 Sheet 50 (Block 404: 1917 Main St between Calhoun & Pierce, Pink Brick Turreted Mansion)",
+        [
+            ("sanborn08580_003", 33, "1896 Sheet 33 (Block 404: T. H. Scanlan Mansion at 1917 Main St)"),
+            ("sanborn08580_004", 49, "1907 Vol. 1 Sheet 49 (Adjacent West Side of 1900 Main St, Block 405)"),
+        ],
+    ),
+    # Block 71 (San Jacinto, Caroline, Texas, Capitol) -> 1885 Sheet 11, 1896 Sheet 8, 1907 Vol. 1 Sheet 8
+    "lost_rice_home_rusk_1860": (
+        "sanborn08580_004",
+        8,
+        "1885 Sheet 11; 1896 Sheet 8; 1907 Vol. 1 Sheet 8 (Block 71: San Jacinto to Caroline)",
+        [("sanborn08580_001", 11, "1885 Sheet 11 (Block 71: San Jacinto & Capitol/Rusk Precinct)")],
+    ),
+    # Montrose (4515 Yoakum) -> 1924-1950 Vol. 11
+    "lost_ross_sterling_mansion_montrose_1912": (
+        "sanborn08580_027",
+        1,
+        "1924-1950 Vol. 11 Sheet 1 (Montrose / Museum District South End Overview)",
+        [],
+    ),
+    # Block 125 / 277 (1600 Polk at Crawford) -> 1907 Vol. 1 Sheet 25 & Sheet 35
+    "lost_cullinan_mansion_1906": (
+        "sanborn08580_004",
+        35,
+        "1907 Vol. 1 Sheet 35 & Sheet 25 (Polk Ave & Crawford St, John F. Dickson / J. S. Cullinan Precinct)",
+        [("sanborn08580_004", 25, "1907 Vol. 1 Sheet 25 (Adjacent Block 125: Polk, Dallas, La Branch, Crawford)")],
+    ),
+    # Block 271 / 296 (1316 Main at Polk/Clay) -> 1907 Vol. 1 Sheet 33
+    "lost_dickson_mansion_main_1896": (
+        "sanborn08580_004",
+        33,
+        "1907 Vol. 1 Sheet 33 (Blocks 271 & 296: West Side of 1200-1300 Main St at Polk & Clay)",
+        [("sanborn08580_004", 34, "1907 Vol. 1 Sheet 34 (East Side of 1200-1300 Main St at Polk & Clay)")],
+    ),
+    # Block 272 (1217 Main at Polk) -> 1907 Vol. 1 Sheet 34
+    "lost_concordia_club_1903": (
+        "sanborn08580_004",
+        34,
+        "1907 Vol. 1 Sheet 34 (Block 272: East Side of 1200 Main St at Polk Ave)",
+        [("sanborn08580_004", 8, "1907 Vol. 1 Sheet 8 (Block 71: Earlier Concordia Club at San Jacinto & Texas)")],
+    ),
+    # Block 77 (Caroline, Austin, Capitol, Rusk) -> 1907 Vol. 1 Sheet 17
+    "lost_houston_academy_clopper_1858": (
+        "sanborn08580_004",
+        17,
+        "1907 Vol. 1 Sheet 17 (Block 77: 'Houston High School' Bounded by Capitol, Rusk, Caroline & Austin)",
+        [],
+    ),
+    # Fourth Ward (San Felipe & Tirrell) -> 1907 Vol. 1 Sheet 87
+    "lost_colored_high_school_1893": (
+        "sanborn08580_004",
+        87,
+        "1907 Vol. 1 Sheet 87 (Fourth Ward: 'Negro High School' at San Felipe & Tirrell)",
+        [],
+    ),
+    # Block 101 (Crawford, Jackson, Texas, Capitol) -> 1907 Vol. 1 Sheet 18
+    "lost_incarnate_word_academy_1873": (
+        "sanborn08580_004",
+        18,
+        "1907 Vol. 1 Sheet 18 (Block 101: 'Incarnate Word Academy' & 'Annunciation R. C. Church' at Crawford & Texas/Capitol)",
+        [],
+    ),
+    # Block 399 (Crawford, La Branch, Calhoun, Pierce) -> 1907 Vol. 1 Sheet 51
+    "lost_st_joseph_infirmary_1887": (
+        "sanborn08580_004",
+        51,
+        "1907 Vol. 1 Sheet 51 (Block 399: 'St. Joseph Infirmary' Bounded by Crawford, La Branch, Calhoun & Pierce)",
+        [],
+    ),
+    # Allen Parkway (Fourth Ward / Buffalo Bayou) -> 1907 Vol. 1 Sheet 86
+    "lost_jefferson_davis_hospital_1937": (
+        "sanborn08580_004",
+        86,
+        "1907 Vol. 1 Sheet 86 (Old City Cemetery / Founders Memorial & Andrews/Heiner Corridor on Buffalo Bayou)",
+        [],
+    ),
+    # H&TC / Southern Pacific Hospital -> 1907 Vol. 2 Sheet 2
+    "lost_sunset_hospital_sp_1911": (
+        "sanborn08580_005",
+        2,
+        "1907 Vol. 2 Sheet 2 (Predecessor 'Houston Infirmary' / H&TC Railroad Hospital at Washington Ave)",
+        [],
+    ),
+    # West End Park (Andrews & Heiner) -> 1907 Vol. 1 Sheet 86
+    "lost_west_end_park_1905": (
+        "sanborn08580_004",
+        86,
+        "1907 Vol. 1 Sheet 86 (Andrews & Heiner Streets: 'Baseball Grounds' & Grand Stand)",
+        [],
+    ),
+    # Mid-century ballparks & amusement parks -> 1924-1955 Supplement / Vol. 11 / Vol. 12
+    "lost_buff_stadium_1928": (
+        "sanborn08580_030",
+        1,
+        "1924-1955 Supplement Sheet 1 (East End / Polk & Cullen Corridor Overview)",
+        [],
+    ),
+    "lost_colt_stadium_1962": (
+        "sanborn08580_027",
+        1,
+        "1924-1950 Vol. 11 Sheet 1 (South Main & Kirby Corridor Pre-Stadium Overview)",
+        [],
+    ),
+    "lost_luna_park_1924": (
+        "sanborn08580_005",
+        1,
+        "1907 Vol. 2 Sheet 1 (White Oak Bayou & Houston Ave Northside Overview)",
+        [],
+    ),
+    "lost_playland_park_1940": (
+        "sanborn08580_027",
+        1,
+        "1924-1950 Vol. 11 Sheet 1 (South Main & Old Spanish Trail Corridor Overview)",
+        [],
+    ),
+    "lost_astroworld_1968": (
+        "sanborn08580_027",
+        1,
+        "1924-1950 Vol. 11 Sheet 1 (South Main & Kirby Corridor Overview)",
+        [],
+    ),
+    # Antioch Baptist Church (Fourth Ward) -> 1907 Vol. 1 Sheet 87
+    "lost_antioch_old_tabernacle_1879": (
+        "sanborn08580_004",
+        87,
+        "1907 Vol. 1 Sheet 87 (Fourth Ward: 'Antioch Baptist Church' at Robin & Smith/Shaw)",
+        [],
+    ),
+    # Emancipation Park (Third Ward) -> 1924-1950 Vol. 11
+    "lost_emancipation_park_1918_pavilion": (
+        "sanborn08580_027",
+        1,
+        "1924-1950 Vol. 11 Sheet 1 (Third Ward / South End Volume Overview)",
+        [],
+    ),
+    # Pilgrim Building (W. Dallas & Bagby) -> 1907 Vol. 1 Sheet 22
+    "lost_pilgrim_building_1926": (
+        "sanborn08580_004",
+        22,
+        "1907 Vol. 1 Sheet 22 (Fourth Ward: Dallas Ave & Bagby St, Pre-1926 Site Plate)",
+        [],
+    ),
+    # Odd Fellows Temple (Louisiana & Rusk, Block 83) -> 1907 Vol. 1 Sheet 7
+    "lost_odd_fellows_temple_fourth_ward_1908": (
+        "sanborn08580_004",
+        7,
+        "1907 Vol. 1 Sheet 7 (Block 83: 'Odd Fellows Temple' at Louisiana St & Rusk Ave)",
+        [],
+    ),
+    # Frost Town (Spruce, Race, Arch, Gable on Buffalo Bayou) -> 1907 Vol. 1 Sheet 89 & Sheet 90
+    "lost_frost_town_germantown_cottages_1850": (
+        "sanborn08580_004",
+        89,
+        "1907 Vol. 1 Sheet 89 & Sheet 90 (Frost Town: Arch, Race, Spruce, Pine & Gable Streets on Buffalo Bayou)",
+        [("sanborn08580_004", 90, "1907 Vol. 1 Sheet 90 (Eastern Frost Town: Gable, Runnels, Maple & Schrimpf Streets)")],
+    ),
+    # Magnolia Brewery / Foot of Main & Buffalo Bayou -> 1907 Vol. 1 Sheet 5 & 1885 Sheet 1
+    "lost_magnolia_brewery_foot_of_main_1893": (
+        "sanborn08580_004",
+        5,
+        "1885 Sheet 1 & 1907 Vol. 1 Sheet 5 (Buffalo Bayou Bend at Preston/Franklin Bridge & Foot of Main)",
+        [("sanborn08580_001", 1, "1885 Sheet 1 (Buffalo Bayou Wharves & Foot of Main Street)")],
+    ),
+    # Houston Turn-Verein (Block 53, Prairie & Austin) -> 1907 Vol. 1 Sheet 13
+    "lost_turnverein_hall_1908": (
+        "sanborn08580_004",
+        13,
+        "1907 Vol. 1 Sheet 13 (Block 53: 'Houston Turnverein' Club House, Dance Hall & Bowling Alleys at Prairie & Austin)",
+        [],
+    ),
+    # Temple Beth Israel (1870 Franklin Ave on Sheet 10; 1908 Crawford & Lamar on Sheet 25)
+    "lost_temple_beth_israel_1908": (
+        "sanborn08580_004",
+        25,
+        "1907 Vol. 1 Sheet 25 (Block 126: Crawford & Lamar 1908 Site; plus 1870 Temple on Sheet 10, Block 105)",
+        [("sanborn08580_004", 10, "1907 Vol. 1 Sheet 10 (Block 105: Earlier 1870 'Temple Beth Israel' on Franklin Ave)")],
+    ),
+    # Fifth Ward Cotton Compress -> 1907 Vol. 2 Sheet 68 & Sheet 7
+    "lost_fifth_ward_cotton_compress_1892": (
+        "sanborn08580_005",
+        68,
+        "1907 Vol. 2 Sheet 68 & Sheet 7 (Fifth Ward Steam Cotton Compress & Special Industrial Risks)",
+        [("sanborn08580_005", 7, "1907 Vol. 2 Sheet 7 (Planters Compress Co. & MKT Freight Yards)")],
+    ),
+}
+
+
+def _resolve_sanborn_sheet(
+    sanborn_catalog: dict, loc_vol: str | None, loc_sheet: int | None
+) -> tuple[str | None, str | None, str | None, int | None, str | None]:
+    """Resolves (loc_vol, printed_sheet_num) by matching s['code'] == f'{loc_sheet:04d}' first, returning (preview_url, hires_url, loc_url, sp, code)."""
+    if not loc_vol or not loc_sheet:
+        return None, None, None, None, None
+    target_code = f"{int(loc_sheet):04d}"
+    for v in sanborn_catalog["volumes"]:
+        if v["id"] == loc_vol:
+            v_sheets = v.get("sheets", [])
+            matched_s = next((s for s in v_sheets if s.get("code") == target_code), None)
+            if not matched_s:
+                matched_s = next((s for s in v_sheets if s.get("sp") == int(loc_sheet)), None)
+            if matched_s:
+                sp = int(matched_s["sp"])
+                code = str(matched_s.get("code", target_code))
+                preview_url = matched_s["preview_url"]
+                hires_url = matched_s["hires_url"]
+                loc_url = f"https://www.loc.gov/resource/{loc_vol}.?sp={sp}"
+                return preview_url, hires_url, loc_url, sp, code
+            preview_url = v.get("iiif_highres_template", v["iiif_template"]).format(sheet=int(loc_sheet))
+            return preview_url, preview_url, f"https://www.loc.gov/resource/{loc_vol}.?sp={int(loc_sheet)}", int(loc_sheet), target_code
+    return None, None, None, None, None
+
+
 def main() -> None:
     # 1. Write sanborn_catalog.json
     sanborn_catalog = build_sanborn_catalog()
@@ -1123,26 +1731,22 @@ def main() -> None:
         )
         loc_vol = entry.get("loc_volume_id")
         loc_sheet = entry.get("loc_sheet_num")
-        sanborn_sheet_image_url = None
-        sanborn_sheet_hires_url = None
-        sanborn_sheet_loc_url = None
-        if loc_vol and loc_sheet:
-            for v in sanborn_catalog["volumes"]:
-                if v["id"] == loc_vol:
-                    v_sheets = v.get("sheets", [])
-                    matched_s = next((s for s in v_sheets if s.get("sp") == loc_sheet), None)
-                    if matched_s:
-                        sanborn_sheet_image_url = matched_s["preview_url"]
-                        sanborn_sheet_hires_url = matched_s["hires_url"]
-                    else:
-                        sanborn_sheet_image_url = v.get("iiif_highres_template", v["iiif_template"]).format(sheet=loc_sheet)
-                        sanborn_sheet_hires_url = sanborn_sheet_image_url
-                    sanborn_sheet_loc_url = f"https://www.loc.gov/resource/{loc_vol}.?sp={loc_sheet}"
-                    break
+        sanborn_ref = str(entry.get("sanborn_ref", ""))
+        extra_plates: list[tuple[str, int, str]] = []
+        if eid in VERIFIED_SANBORN_REFS:
+            loc_vol, loc_sheet, sanborn_ref, extra_plates = VERIFIED_SANBORN_REFS[eid]
+
+        (
+            sanborn_sheet_image_url,
+            sanborn_sheet_hires_url,
+            sanborn_sheet_loc_url,
+            loc_sp,
+            loc_sheet_code,
+        ) = _resolve_sanborn_sheet(sanborn_catalog, loc_vol, loc_sheet)
 
         photo_url = entry.get("photo_url") or sanborn_sheet_image_url
         photo_credit = entry.get("photo_credit") or (
-            f"Library of Congress Sanborn Map ({entry.get('sanborn_ref')})" if sanborn_sheet_image_url else None
+            f"Library of Congress Sanborn Map ({sanborn_ref})" if sanborn_sheet_image_url else None
         )
         yb = int(entry["year_built"])
         yd = int(entry["year_demolished"])
@@ -1175,11 +1779,14 @@ def main() -> None:
             "sanborn_material_label": entry["sanborn_material_label"],
             "stories": entry["stories"],
             "height_m": entry["height_m"],
-            "sanborn_ref": entry["sanborn_ref"],
-            "source": f"Sanborn Fire Insurance Atlas ({entry.get('sanborn_ref', '1885-1950')}) · Preservation Houston Lost Houston Archive",
+            "sanborn_ref": sanborn_ref,
+            "source": f"Sanborn Fire Insurance Atlas ({sanborn_ref}) · Preservation Houston Lost Houston Archive",
             "loc_volume_id": loc_vol,
             "loc_sheet_num": loc_sheet,
+            "loc_sp": loc_sp,
+            "loc_sheet_code": loc_sheet_code,
             "sanborn_sheet_image_url": sanborn_sheet_image_url,
+            "sanborn_sheet_hires_url": sanborn_sheet_hires_url,
             "sanborn_sheet_loc_url": sanborn_sheet_loc_url,
             "photo_url": photo_url,
             "photo_credit": photo_credit,
@@ -1197,7 +1804,7 @@ def main() -> None:
             photo_list.append({
                 "building_id": entry["id"],
                 "landmark_name": entry["name"],
-                "address": entry["address"],
+                "address": address,
                 "image_url": entry["photo_url"],
                 "thumb_url": entry["photo_url"],
                 "full_url": entry["photo_url"],
@@ -1208,19 +1815,60 @@ def main() -> None:
                 "source_url": entry["photo_url"],
             })
         if sanborn_sheet_image_url:
+            primary_year = (
+                1885 if loc_vol == "sanborn08580_001"
+                else 1890 if loc_vol == "sanborn08580_002"
+                else 1896 if loc_vol == "sanborn08580_003"
+                else 1907 if loc_vol in ("sanborn08580_004", "sanborn08580_005")
+                else 1950
+            )
+            vol_short = (
+                f"1885 Sheet {loc_sheet}" if loc_vol == "sanborn08580_001"
+                else f"1890 Sheet {loc_sheet}" if loc_vol == "sanborn08580_002"
+                else f"1896 Sheet {loc_sheet}" if loc_vol == "sanborn08580_003"
+                else f"1907 Vol. 1 Sheet {loc_sheet}" if loc_vol == "sanborn08580_004"
+                else f"1907 Vol. 2 Sheet {loc_sheet}" if loc_vol == "sanborn08580_005"
+                else f"1924-1950 Vol. 11 Sheet {loc_sheet}" if loc_vol == "sanborn08580_027"
+                else f"1924-1955 Sheet {loc_sheet}"
+            )
+            paren_idx = sanborn_ref.find("(")
+            block_suffix = f" {sanborn_ref[paren_idx:]}" if paren_idx != -1 else ""
             photo_list.append({
                 "building_id": entry["id"],
                 "landmark_name": entry["name"],
-                "address": entry["address"],
+                "address": address,
                 "image_url": sanborn_sheet_image_url,
                 "thumb_url": sanborn_sheet_image_url,
                 "full_url": sanborn_sheet_hires_url or sanborn_sheet_image_url,
-                "photo_year": 1907 if "1907" in str(entry.get("sanborn_ref", "")) else yb,
-                "era_label": f"Sanborn Atlas Plate ({entry.get('sanborn_ref', 'LOC')})",
-                "caption": f"Digitized Sanborn Fire Insurance Map plate showing the block and surrounding context for {entry['name']} ({entry.get('sanborn_ref', '')}).",
+                "photo_year": primary_year,
+                "era_label": f"Sanborn Plate: {vol_short}{block_suffix}",
+                "caption": f"Digitized Library of Congress Sanborn Fire Insurance Map plate showing the block and surrounding context for {entry['name']} ({vol_short}{block_suffix}).",
                 "attribution": "Library of Congress Geography & Map Division",
                 "source_url": sanborn_sheet_loc_url or "https://www.loc.gov/collections/sanborn-maps/",
             })
+        for ex_vol, ex_sheet, ex_label in extra_plates:
+            ex_prev, ex_hi, ex_loc, _, _ = _resolve_sanborn_sheet(sanborn_catalog, ex_vol, ex_sheet)
+            if ex_prev:
+                ex_year = (
+                    1885 if ex_vol == "sanborn08580_001"
+                    else 1890 if ex_vol == "sanborn08580_002"
+                    else 1896 if ex_vol == "sanborn08580_003"
+                    else 1907 if ex_vol in ("sanborn08580_004", "sanborn08580_005")
+                    else 1950
+                )
+                photo_list.append({
+                    "building_id": entry["id"],
+                    "landmark_name": entry["name"],
+                    "address": address,
+                    "image_url": ex_prev,
+                    "thumb_url": ex_prev,
+                    "full_url": ex_hi or ex_prev,
+                    "photo_year": ex_year,
+                    "era_label": f"Sanborn Plate: {ex_label}",
+                    "caption": f"Comparative Library of Congress Sanborn Fire Insurance Map plate for {entry['name']}: {ex_label}.",
+                    "attribution": "Library of Congress Geography & Map Division",
+                    "source_url": ex_loc or "https://www.loc.gov/collections/sanborn-maps/",
+                })
 
         features.append({
             "type": "Feature",

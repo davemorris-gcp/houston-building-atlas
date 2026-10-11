@@ -231,7 +231,7 @@ export class AtlasMapController {
       await Promise.all([
         fetch("public/data/buildings.geojson?v=20261011c"),
         fetch("public/data/parcels.geojson?v=20261011c"),
-        fetch("public/data/overlays.json?v=20261011p"),
+        fetch("public/data/overlays.json?v=20261011r"),
         fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
         loadCuratedOverrides(),
       ]);

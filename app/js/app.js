@@ -19,7 +19,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261011f";
-import { AtlasMapController } from "./mapController.js?v=20261011q";
+import { AtlasMapController } from "./mapController.js?v=20261011r";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 import {
   applyOverrideToProperties,
@@ -38,7 +38,7 @@ import {
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261011k";
+} from "./photoService.js?v=20261011r";
 
 class HoustonAtlasApp {
   constructor() {
@@ -195,11 +195,11 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261011k"),
+        fetch("public/data/search_index.json?v=20261011r"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261011k").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261011r").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -5565,6 +5565,14 @@ class HoustonAtlasApp {
                 <span class="cell-value mono">${rawProps.stories || 2} stories (~${rawProps.height_m || 9}m)</span>
               </div>
               ${
+                rawProps.sanborn_ref
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Verified Sanborn Fire Insurance Atlas Plate</span>
+                      <span class="cell-value" style="color:#fde68a;">${rawProps.sanborn_ref}</span>
+                    </div>`
+                  : ""
+              }
+              ${
                 rawProps.architect
                   ? `<div class="inspector-cell full">
                       <span class="cell-label">Architect / Builder</span>
@@ -5813,6 +5821,21 @@ class HoustonAtlasApp {
         ${
           overlayLayer === "lost_houston"
             ? `
+              ${
+                rawProps.loc_volume_id
+                  ? `<button
+                      type="button"
+                      class="inspector-btn primary"
+                      id="btn-lost-houston-open-sanborn-sheet"
+                      data-loc-vol="${rawProps.loc_volume_id}"
+                      data-loc-sheet="${rawProps.loc_sheet_code || rawProps.loc_sheet_num || ""}"
+                      data-loc-sp="${rawProps.loc_sp || ""}"
+                      style="background:linear-gradient(135deg,#92400e,#d97706);border-color:#fde68a;color:#fffbeb;"
+                    >
+                      &#128220; Inspect Sheet ${rawProps.loc_sheet_num || ""} in Sanborn Atlas Browser
+                    </button>`
+                  : ""
+              }
               <button
                 type="button"
                 class="inspector-btn primary"
@@ -5876,6 +5899,16 @@ class HoustonAtlasApp {
         lng: lostLng,
         streetViewUrl: lostStreetViewUrl,
       });
+
+      const btnOpenSanbornSheet = document.getElementById("btn-lost-houston-open-sanborn-sheet");
+      if (btnOpenSanbornSheet) {
+        btnOpenSanbornSheet.addEventListener("click", () => {
+          const volId = btnOpenSanbornSheet.getAttribute("data-loc-vol") || "";
+          const sheetCode = btnOpenSanbornSheet.getAttribute("data-loc-sheet") || "";
+          const locSp = btnOpenSanbornSheet.getAttribute("data-loc-sp") || "";
+          this.openSanbornBrowserModal(volId, sheetCode, locSp);
+        });
+      }
 
       const btnOverlaySanborn = document.getElementById("btn-lost-houston-overlay-sanborn");
       if (btnOverlaySanborn) {
@@ -9291,7 +9324,7 @@ class HoustonAtlasApp {
     );
   }
 
-  openSanbornBrowserModal() {
+  openSanbornBrowserModal(initialVolId = null, initialSheetCode = null, initialSp = null) {
     const modal = document.getElementById("sanborn-browser-modal");
     if (!modal) return;
     modal.classList.remove("hidden");
@@ -9313,13 +9346,14 @@ class HoustonAtlasApp {
     }
 
     const selectVol = document.getElementById("select-sanborn-volume");
+    const inputFilter = document.getElementById("input-sanborn-filter");
     const volumes = Array.isArray(this.sanbornCatalog?.volumes)
       ? this.sanbornCatalog.volumes
       : [];
     if (selectVol && selectVol.options.length <= 1 && volumes.length > 0) {
       selectVol.innerHTML =
         `<option value="featured">★ Featured Historic Sheets Across All Editions (1885-1950)</option>` +
-        `<option value="all">All ${volumes.length} Digitized Volumes (629 Sheets Total)</option>` +
+        `<option value="all">All ${volumes.length} Digitized Volumes (626 Sheets Total)</option>` +
         volumes
           .map(
             (v) =>
@@ -9328,7 +9362,50 @@ class HoustonAtlasApp {
           .join("");
       selectVol.value = "featured";
     }
+
+    if (initialVolId && volumes.some((v) => v.id === initialVolId)) {
+      if (selectVol) selectVol.value = initialVolId;
+      if (inputFilter) inputFilter.value = "";
+      const targetVol = volumes.find((v) => v.id === initialVolId);
+      if (targetVol && Array.isArray(targetVol.sheets)) {
+        const paddedCode =
+          initialSheetCode && /^\d+$/.test(String(initialSheetCode))
+            ? String(Number(initialSheetCode)).padStart(4, "0")
+            : String(initialSheetCode || "");
+        const matchedSheet =
+          targetVol.sheets.find((s) => paddedCode && String(s.code) === paddedCode) ||
+          targetVol.sheets.find((s) => initialSp && Number(s.sp) === Number(initialSp));
+        if (matchedSheet) {
+          this._activeSanbornSheetRec = { key: `${initialVolId}__${matchedSheet.sp}` };
+        }
+      }
+    }
+
     this._renderSanbornBrowserSheets();
+    if (initialVolId) {
+      const grid =
+        document.getElementById("sanborn-sheet-grid") ||
+        document.getElementById("sanborn-sheets-grid");
+      const activeBtn = grid?.querySelector(".sanborn-sheet-card.active");
+      if (activeBtn && typeof activeBtn.scrollIntoView === "function") {
+        setTimeout(() => activeBtn.scrollIntoView({ block: "nearest", behavior: "smooth" }), 50);
+      }
+    }
+  }
+
+  _formatSanbornSheetTag(code, sp) {
+    const codeStr = String(code || "").trim();
+    if (/^\d+$/.test(codeStr)) {
+      const n = Number(codeStr);
+      if (n === 0) return `Key Map (LOC p.${sp})`;
+      return n !== Number(sp) ? `Sheet ${n} (LOC p.${sp})` : `Sheet ${n}`;
+    }
+    if (codeStr.endsWith("s") && /^\d+$/.test(codeStr.slice(0, -1))) {
+      return `Skeleton ${Number(codeStr.slice(0, -1))} (LOC p.${sp})`;
+    }
+    if (codeStr === "titl") return `Title Sheet (LOC p.${sp})`;
+    if (codeStr.startsWith("ind")) return `Index Map (LOC p.${sp})`;
+    return `Page ${sp}`;
   }
 
   _selectSanbornPreviewSheet(rec) {
@@ -9343,16 +9420,17 @@ class HoustonAtlasApp {
 
     const previewUrl = rec.previewUrl || rec.thumbUrl;
     const hiresUrl = rec.hiresUrl || previewUrl;
+    const sheetTag = this._formatSanbornSheetTag(rec.code, rec.sheetNum);
 
     if (titleEl) titleEl.textContent = rec.label;
-    if (subEl) subEl.textContent = `${rec.volTitle} · Published ${rec.date} · Page ${rec.sheetNum}`;
+    if (subEl) subEl.textContent = `${rec.volTitle} · Published ${rec.date} · ${sheetTag}`;
     if (btnLoc) btnLoc.href = rec.locSheetUrl;
-    if (btnJpg) btnJpg.href = previewUrl;
+    if (btnJpg) btnJpg.href = hiresUrl;
     if (stageEl) {
       // Display the already-cached thumbnail (pct:12.5, ~806x956px) immediately so the preview pane is never blank,
       // then seamlessly upgrade to the pre-cached high-resolution plate (pct:25, ~1612x1912px) once loaded.
       stageEl.innerHTML = `
-        <a href="${previewUrl}" target="_blank" rel="noopener noreferrer" title="Click to open high-resolution IIIF scan in a new tab">
+        <a href="${hiresUrl}" target="_blank" rel="noopener noreferrer" title="Click to open high-resolution IIIF scan in a new tab">
           <img id="sanborn-preview-stage-img" src="${rec.thumbUrl}" alt="${rec.label.replace(/"/g, "&quot;")}" loading="eager" />
         </a>
       `;
@@ -9449,7 +9527,7 @@ class HoustonAtlasApp {
           }
           const rec = buildSheetRecordFromVerified(vol, shObj);
           if (filterQ) {
-            const hay = `${rec.label} ${rec.volTitle} ${rec.date} sheet ${rec.code} page ${rec.sheetNum}`.toLowerCase();
+            const hay = `${rec.label} ${rec.volTitle} ${rec.date} sheet ${rec.code} sheet ${Number(rec.code) || ""} page ${rec.sheetNum}`.toLowerCase();
             if (!hay.includes(filterQ)) continue;
           }
           items.push(rec);
@@ -9477,7 +9555,7 @@ class HoustonAtlasApp {
           <div>
             Showing <strong>${items.length}</strong> ${
           selectedVolId === "featured" && !filterQ ? "curated highlight sheets" : "matching sheets"
-        } across <strong>${volumes.length} Library of Congress Houston Sanborn Volumes (1885-1950, 629 sheets total)</strong>.
+        } across <strong>${volumes.length} Library of Congress Houston Sanborn Volumes (1885-1950, 626 sheets total)</strong>.
             Click any sheet on the left to inspect its high-resolution IIIF plate.
           </div>
           <a href="https://www.loc.gov/collections/sanborn-maps/?fa=location:texas%7Clocation:houston" target="_blank" rel="noopener noreferrer" class="action-pill subtle">
@@ -9507,7 +9585,7 @@ class HoustonAtlasApp {
             />
           </div>
           <div class="sanborn-sheet-label">${it.label}</div>
-          <div class="mono" style="font-size:10px;color:#94a3b8;">${it.date} · Sheet ${it.sheetNum}</div>
+          <div class="mono" style="font-size:10px;color:#94a3b8;">${it.date} · ${this._formatSanbornSheetTag(it.code, it.sheetNum)}</div>
         </button>`
       )
       .join("");
