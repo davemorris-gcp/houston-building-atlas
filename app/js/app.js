@@ -1409,12 +1409,65 @@ class HoustonAtlasApp {
       });
     });
 
-    // Basemap selector
+    // Basemap dropdown & selector
+    const basemapDropdown = document.getElementById("basemap-dropdown");
+    const basemapTrigger = document.getElementById("btn-basemap-trigger");
+    const basemapMenu = document.getElementById("basemap-dropdown-menu");
+    const moreDropdown = document.getElementById("topbar-more-dropdown");
+    const moreTrigger = document.getElementById("btn-topbar-more");
+
+    const closeTopbarDropdowns = () => {
+      if (basemapMenu) basemapMenu.classList.add("hidden");
+      if (basemapTrigger) basemapTrigger.setAttribute("aria-expanded", "false");
+      if (moreDropdown) moreDropdown.classList.remove("open");
+      if (moreTrigger) moreTrigger.setAttribute("aria-expanded", "false");
+    };
+
+    if (basemapTrigger && basemapMenu) {
+      basemapTrigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const willOpen = basemapMenu.classList.contains("hidden");
+        closeTopbarDropdowns();
+        if (willOpen) {
+          basemapMenu.classList.remove("hidden");
+          basemapTrigger.setAttribute("aria-expanded", "true");
+        }
+      });
+    }
+
+    if (moreTrigger && moreDropdown) {
+      moreTrigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const willOpen = !moreDropdown.classList.contains("open");
+        closeTopbarDropdowns();
+        if (willOpen) {
+          moreDropdown.classList.add("open");
+          moreTrigger.setAttribute("aria-expanded", "true");
+        }
+      });
+    }
+
+    document.querySelectorAll("#topbar-more-items button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        closeTopbarDropdowns();
+      });
+    });
+
     document.querySelectorAll("[data-basemap]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const base = btn.getAttribute("data-basemap");
         this.filterStore.setState({ basemap: base });
+        closeTopbarDropdowns();
       });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (
+        (basemapDropdown && !basemapDropdown.contains(e.target)) &&
+        (!moreDropdown || !moreDropdown.contains(e.target))
+      ) {
+        closeTopbarDropdowns();
+      }
     });
 
     // 3D Extrusion Toggle
@@ -4013,16 +4066,31 @@ class HoustonAtlasApp {
       btn.classList.toggle("active", btn.getAttribute("data-render-mode") === state.renderMode);
     });
 
-    // Basemap Buttons
+    // Basemap Buttons & Dropdown Trigger
+    const BASEMAP_LABELS = {
+      dark_archival: "Archival Dark",
+      warm_parchment: "Parchment",
+      satellite: "Aerial",
+      solid_dark: "Solid Dark",
+      solid_light: "Solid Light",
+    };
     document.querySelectorAll("[data-basemap]").forEach((btn) => {
       btn.classList.toggle("active", btn.getAttribute("data-basemap") === state.basemap);
     });
+    const activeBaseLabelEl = document.getElementById("basemap-active-label");
+    if (activeBaseLabelEl) {
+      activeBaseLabelEl.textContent = BASEMAP_LABELS[state.basemap] || "Archival Dark";
+    }
+    const activeBaseSwatchEl = document.getElementById("basemap-active-swatch");
+    if (activeBaseSwatchEl) {
+      activeBaseSwatchEl.setAttribute("data-swatch", state.basemap || "dark_archival");
+    }
 
     // 3D Toggle Button
     const btn3d = document.getElementById("btn-toggle-3d");
     if (btn3d) {
       btn3d.classList.toggle("active", state.extrude3D);
-      btn3d.textContent = state.extrude3D ? "3D Extrusion: ON" : "3D Extrusion: OFF";
+      btn3d.textContent = state.extrude3D ? "3D: ON" : "3D: OFF";
     }
 
     const currentPitch = this.mapController ? this.mapController.getCameraPitch() : state.extrude3D ? 50 : 0;
