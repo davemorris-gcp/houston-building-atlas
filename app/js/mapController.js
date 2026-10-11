@@ -2212,6 +2212,7 @@ export class AtlasMapController {
     let vpLng = -95.3635;
     let vpLat = 29.7595;
     let vpZoom = 15.2;
+    const isWebGLMap = !this.useCanvasFallback && Boolean(this.map);
     if (this.useCanvasFallback && this.canvasState) {
       vpLng = this.canvasState.lng;
       vpLat = this.canvasState.lat;
@@ -2223,14 +2224,57 @@ export class AtlasMapController {
       vpZoom = this.map.getZoom();
     }
 
+    // MapLibre GL JS uses a 512px world size at zoom 0 (worldSize = 512 * 2^zoom = 256 * 2^(zoom + 1)),
+    // whereas the 2D Canvas fallback uses 256 * 2^zoom.
+    const effectiveTileZoom = isWebGLMap ? vpZoom + 1 : vpZoom;
     const histEntry = getHistoricalMapEntry(state.historicMapId);
-    const histZ = Math.max(10, Math.min(histEntry.maxZoom || 19, Math.floor(vpZoom)));
-    const histFactor = Math.pow(2, vpZoom - histZ);
-    const histSizeScreen = 256 * histFactor;
-    const sinLat = Math.sin((vpLat * Math.PI) / 180);
-    const histCenterX = ((vpLng + 180) / 360) * Math.pow(2, histZ);
-    const histCenterY =
-      (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * Math.pow(2, histZ);
+    const minTileZ = Number(histEntry.minZoom || histEntry.minzoom) || 10;
+    const maxTileZ = Number(histEntry.maxZoom || histEntry.maxzoom) || 19;
+    const histZ = Math.max(minTileZ, Math.min(maxTileZ, Math.floor(effectiveTileZoom)));
+    const nTiles = Math.pow(2, histZ);
+
+    // Find exact geographic coordinate directly beneath the center of the spyglass lens (cx, cy)
+    let lensLng = vpLng;
+    let lensLat = vpLat;
+    if (isWebGLMap) {
+      try {
+        const unproj = this.map.unproject([cx, cy]);
+        if (unproj && Number.isFinite(unproj.lng) && Number.isFinite(unproj.lat)) {
+          lensLng = unproj.lng;
+          lensLat = unproj.lat;
+        }
+      } catch (_e) {}
+    } else if (this.useCanvasFallback) {
+      const unproj = this._screenToLngLat(cx, cy, width, height);
+      if (unproj && Number.isFinite(unproj.lng) && Number.isFinite(unproj.lat)) {
+        lensLng = unproj.lng;
+        lensLat = unproj.lat;
+      }
+    }
+
+    const sinLensLat = Math.sin((Math.max(-85.0511, Math.min(85.0511, lensLat)) * Math.PI) / 180);
+    const lensTileX = ((lensLng + 180) / 360) * nTiles;
+    const lensTileY =
+      (0.5 - Math.log((1 + sinLensLat) / (1 - sinLensLat)) / (4 * Math.PI)) * nTiles;
+    const baseTx = Math.floor(lensTileX);
+    const baseTy = Math.floor(lensTileY);
+
+    const tileXToLng = (x) => (x / nTiles) * 360 - 180;
+    const tileYToLat = (y) => {
+      const n = Math.PI - (2 * Math.PI * y) / nTiles;
+      return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    };
+    const projectLngLat = (lng, lat) => {
+      if (isWebGLMap) {
+        const pt = this.map.project([lng, lat]);
+        return [pt.x, pt.y];
+      }
+      return this._lngLatToScreen(lng, lat, width, height);
+    };
+
+    const approxTileScreenPx = Math.max(48, 256 * Math.pow(2, effectiveTileZoom - histZ));
+    const hCols = Math.min(5, Math.ceil(r / approxTileScreenPx) + 1);
+    const hRows = Math.min(5, Math.ceil(r / approxTileScreenPx) + 1);
 
     // Clip to spyglass circle
     ctx.save();
@@ -2241,29 +2285,36 @@ export class AtlasMapController {
     ctx.fillStyle = "#181512";
     ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
 
-    const hCols = Math.ceil((r * 2) / histSizeScreen) + 2;
-    const hRows = Math.ceil((r * 2) / histSizeScreen) + 2;
-    const centerScreenTileOffsetX = (cx - width / 2) / histSizeScreen;
-    const centerScreenTileOffsetY = (cy - height / 2) / histSizeScreen;
-    const baseTx = Math.floor(histCenterX + centerScreenTileOffsetX);
-    const baseTy = Math.floor(histCenterY + centerScreenTileOffsetY);
-
     ctx.globalAlpha = Math.max(
       0.15,
       Math.min(1, (Number(state.historicMapOpacity) || 82) / 100)
     );
 
+    const maxT = 1 << histZ;
     for (let dx = -hCols; dx <= hCols; dx++) {
       for (let dy = -hRows; dy <= hRows; dy++) {
         const tx = baseTx + dx;
         const ty = baseTy + dy;
-        const maxT = 1 << histZ;
         if (tx < 0 || ty < 0 || tx >= maxT || ty >= maxT) continue;
-        const sx = width / 2 + (tx - histCenterX) * histSizeScreen;
-        const sy = height / 2 + (ty - histCenterY) * histSizeScreen;
-        if (sx + histSizeScreen < cx - r || sx > cx + r || sy + histSizeScreen < cy - r || sy > cy + r) {
+
+        const lngWest = tileXToLng(tx);
+        const lngEast = tileXToLng(tx + 1);
+        const latNorth = tileYToLat(ty);
+        const latSouth = tileYToLat(ty + 1);
+
+        const [nwX, nwY] = projectLngLat(lngWest, latNorth);
+        const [neX, neY] = projectLngLat(lngEast, latNorth);
+        const [swX, swY] = projectLngLat(lngWest, latSouth);
+        const [seX, seY] = projectLngLat(lngEast, latSouth);
+
+        const minX = Math.min(nwX, neX, swX, seX);
+        const maxX = Math.max(nwX, neX, swX, seX);
+        const minY = Math.min(nwY, neY, swY, seY);
+        const maxY = Math.max(nwY, neY, swY, seY);
+        if (maxX < cx - r || minX > cx + r || maxY < cy - r || minY > cy + r) {
           continue;
         }
+
         const hCacheId = `spy:${histEntry.id}:${histZ}/${tx}/${ty}`;
         let hImg = sp.tileCache.get(hCacheId);
         if (!hImg) {
@@ -2274,7 +2325,19 @@ export class AtlasMapController {
           sp.tileCache.set(hCacheId, hImg);
         }
         if (hImg.complete && hImg.naturalWidth > 0) {
-          ctx.drawImage(hImg, sx, sy, histSizeScreen + 0.5, histSizeScreen + 0.5);
+          const imgW = hImg.naturalWidth;
+          const imgH = hImg.naturalHeight;
+          ctx.save();
+          ctx.transform(
+            (neX - nwX) / imgW,
+            (neY - nwY) / imgW,
+            (swX - nwX) / imgH,
+            (swY - nwY) / imgH,
+            nwX,
+            nwY
+          );
+          ctx.drawImage(hImg, 0, 0, imgW + 0.4, imgH + 0.4);
+          ctx.restore();
         }
       }
     }
