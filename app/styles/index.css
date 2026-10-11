@@ -1672,7 +1672,7 @@ body {
 }
 
 .inspector-drawer:not(.hidden) ~ .camera-tilt-dock {
-  right: 378px;
+  right: 422px;
 }
 
 .inspector-drawer:not(.hidden) ~ .map-canvas .maplibregl-ctrl-bottom-right {

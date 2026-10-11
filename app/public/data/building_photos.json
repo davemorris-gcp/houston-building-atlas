@@ -1977,6 +1977,45 @@
       "thumb_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/3626_Overbrook.jpg",
       "credit": "City of Houston Historic Preservation Office (HAHC)",
       "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/3626_Overbrook.jpg"
+    },
+    {
+      "hcad_num": "0601510000005",
+      "building_id": "bld_010732",
+      "landmark_name": "Bayou Bend",
+      "address": "2940 LAZY LN",
+      "photo_year": 2008,
+      "era_label": "2008 Exterior Facade",
+      "caption": "Bayou Bend (Ima Hogg Mansion, built 1928, designed by John F. Staub and Birdsall P. Briscoe) at 2940 Lazy Lane in River Oaks.",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/BayouBendHome.JPG",
+      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/BayouBendHome.JPG/960px-BayouBendHome.JPG",
+      "credit": "Wikimedia Commons (Public Domain)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:BayouBendHome.JPG"
+    },
+    {
+      "hcad_num": "0601510000005",
+      "building_id": "bld_010732",
+      "landmark_name": "Bayou Bend",
+      "address": "2940 LAZY LN",
+      "photo_year": 2008,
+      "era_label": "2008 Portico & Terrace",
+      "caption": "Georgian Revival portico and terrace of Bayou Bend (Ima Hogg Mansion, 1928) overlooking the formal gardens.",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d1/BayouBendPorch.JPG",
+      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/BayouBendPorch.JPG/960px-BayouBendPorch.JPG",
+      "credit": "Wikimedia Commons (Public Domain)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:BayouBendPorch.JPG"
+    },
+    {
+      "hcad_num": "0601510000005",
+      "building_id": "bld_010732",
+      "landmark_name": "Bayou Bend",
+      "address": "2940 LAZY LN",
+      "photo_year": 2008,
+      "era_label": "2008 Diana Garden",
+      "caption": "The Diana Garden fountain on the grounds of Bayou Bend Collection and Gardens in Houston.",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/47/BayouBendDianaFountain.JPG",
+      "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/BayouBendDianaFountain.JPG/960px-BayouBendDianaFountain.JPG",
+      "credit": "Wikimedia Commons (Public Domain)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:BayouBendDianaFountain.JPG"
     }
   ],
   "by_hcad": {

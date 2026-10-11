@@ -163,7 +163,7 @@ export async function loadCuratedPhotosIndex() {
       allPhotos: [],
     };
     try {
-      const resp = await fetch('./public/data/building_photos.json?v=20261011b');
+      const resp = await fetch('./public/data/building_photos.json?v=20261011c');
       if (resp.ok) {
         const data = await resp.json();
         const photos = Array.isArray(data?.photos) ? data.photos : [];
@@ -426,6 +426,8 @@ function evaluateCommonsCandidate(page, {
     /\b(holotype|taxidermy|dinosaur\s+skeleton|fossil\s+of|specimen\s+of)\b/i,
     /\b(insects\s+of|spiders\s+of|fungi\s+of|arthropods\s+of)\b/i,
     /\b(food\s+in\s+houston|dishes\s+of|restaurant\s+meals|menu\s+of)\b/i,
+    /500px\s+provided\s+description:/i,
+    /(?:#[a-z0-9\s]+\s*,\s*){4,}/i,
   ];
   for (const pat of negativePeopleEventsAndArtifactsPatterns) {
     if (pat.test(combinedText)) {
