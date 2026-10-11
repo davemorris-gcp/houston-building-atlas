@@ -1843,6 +1843,13 @@ body {
   right: 422px;
 }
 
+.map-canvas .maplibregl-ctrl-bottom-right,
+.map-canvas .maplibregl-ctrl-top-right,
+.map-canvas .maplibregl-ctrl-bottom-left,
+.map-canvas .maplibregl-ctrl-top-left {
+  z-index: 18;
+}
+
 .inspector-drawer:not(.hidden) ~ .map-canvas .maplibregl-ctrl-bottom-right {
   right: 368px;
 }

@@ -19,7 +19,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261011f";
-import { AtlasMapController } from "./mapController.js?v=20261011p";
+import { AtlasMapController } from "./mapController.js?v=20261011q";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 import {
   applyOverrideToProperties,

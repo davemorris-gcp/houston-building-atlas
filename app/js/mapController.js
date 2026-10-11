@@ -2150,9 +2150,16 @@ export class AtlasMapController {
       spCanvas.style.width = "100%";
       spCanvas.style.height = "100%";
       spCanvas.style.pointerEvents = "none";
-      spCanvas.style.zIndex = "16";
+      spCanvas.style.zIndex = "1";
       spCanvas.style.display = "none";
-      container.appendChild(spCanvas);
+      const ctrlContainer = container.querySelector(".maplibregl-control-container");
+      if (ctrlContainer) {
+        container.insertBefore(spCanvas, ctrlContainer);
+      } else {
+        container.appendChild(spCanvas);
+      }
+    } else {
+      spCanvas.style.zIndex = "1";
     }
 
     this.spyglassState = {
