@@ -6,7 +6,9 @@ import {
   CURATED_TOURS,
   getLegendItems,
   getYearColorHex,
-} from "./palettes.js?v=20261011c";
+  HISTORICAL_MAP_CATALOG,
+  SANBORN_MATERIAL_ITEMS,
+} from "./palettes.js?v=20261011f";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -16,9 +18,9 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261011c";
-import { AtlasMapController } from "./mapController.js?v=20261011c";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011c";
+} from "./filterStore.js?v=20261011f";
+import { AtlasMapController } from "./mapController.js?v=20261011f";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -29,14 +31,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261011c";
+} from "./curatedEdits.js?v=20261011f";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261011c";
+} from "./photoService.js?v=20261011f";
 
 class HoustonAtlasApp {
   constructor() {
@@ -55,6 +57,7 @@ class HoustonAtlasApp {
     this.searchIndex = [];
     this.globalStats = null;
     this.deedCatalog = null;
+    this.sanbornCatalog = null;
     this.lastViewportStats = null;
     this.timelapseTimer = null;
     this._suppressUrlUpdate = false;
@@ -191,15 +194,16 @@ class HoustonAtlasApp {
 
   async _loadMetadataFiles() {
     try {
-      const [searchRes, statsRes, haifRes, deedRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261011c"),
-        fetch("public/data/stats_summary.json?v=20261011c"),
-        fetch("public/data/haif_index.json?v=20261011c").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261011c").catch(() => null),
+      const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
+        fetch("public/data/search_index.json?v=20261011d"),
+        fetch("public/data/stats_summary.json?v=20261011d"),
+        fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261011d").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
-        if (item.is_neighborhood_entry) {
+        if (item.is_neighborhood_entry || item.type === "lost_houston") {
           if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
           if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
           if (item.overlay_layer === "historicWards") item.overlay_layer = "historic_wards";
@@ -207,6 +211,7 @@ class HoustonAtlasApp {
           if (item.overlay_layer === "plattedSubdivisions") {
             item.overlay_layer = "platted_subdivisions";
           }
+          if (item.overlay_layer === "lostHouston") item.overlay_layer = "lost_houston";
           if (!item.sublabel) {
             const alts = Array.isArray(item.alt_names) ? item.alt_names.slice(0, 3).join(", ") : "";
             item.sublabel = [alts ? `AKA: ${alts}` : "", item.address || ""]
@@ -226,6 +231,11 @@ class HoustonAtlasApp {
         this.deedCatalog = await deedRes.json();
       } else {
         this.deedCatalog = null;
+      }
+      if (sanbornRes && sanbornRes.ok) {
+        this.sanbornCatalog = await sanbornRes.json();
+      } else {
+        this.sanbornCatalog = null;
       }
       if (this.mapController?.overlaysData) {
         this._mergeCuratedOverridesIntoSearchIndex();
@@ -1504,6 +1514,22 @@ class HoustonAtlasApp {
       });
     }
 
+    // Historical Snapshot Mode Checkbox
+    const chkHistoricalSnapshot = document.getElementById("chk-historical-snapshot");
+    if (chkHistoricalSnapshot) {
+      chkHistoricalSnapshot.addEventListener("change", (e) => {
+        const checked = Boolean(e.target.checked);
+        const curLayers = this.filterStore.getState().layers || {};
+        this.filterStore.setState({
+          historicalSnapshotMode: checked,
+          layers: {
+            ...curLayers,
+            lostHouston: checked ? true : curLayers.lostHouston,
+          },
+        });
+      });
+    }
+
     // Time-Lapse Play / Pause Button
     const btnPlay = document.getElementById("btn-timelapse-play");
     if (btnPlay) {
@@ -1643,6 +1669,7 @@ class HoustonAtlasApp {
     const layerCheckboxes = [
       ["chk-layer-good-brick", "goodBrickAwards"],
       ["chk-layer-landmarks", "landmarks"],
+      ["chk-layer-lost-houston", "lostHouston"],
       ["chk-layer-historic-districts", "historicDistricts"],
       ["chk-layer-heritage-districts", "heritageDistricts"],
       ["chk-layer-nrhp-districts", "nrhpDistricts"],
@@ -1687,6 +1714,21 @@ class HoustonAtlasApp {
       });
     }
 
+    const selectHistoricMapId = document.getElementById("select-historic-map-id");
+    if (selectHistoricMapId) {
+      selectHistoricMapId.addEventListener("change", (e) => {
+        const mapId = String(e.target.value || "sanborn_1907");
+        const curLayers = this.filterStore.getState().layers || {};
+        this.filterStore.setState({
+          historicMapId: mapId,
+          layers: {
+            ...curLayers,
+            historicMap: true,
+          },
+        });
+      });
+    }
+
     const histOpacitySlider = document.getElementById("slider-historic-map-opacity");
     if (histOpacitySlider) {
       histOpacitySlider.addEventListener("input", (e) => {
@@ -1694,6 +1736,88 @@ class HoustonAtlasApp {
         const readout = document.getElementById("historic-map-opacity-readout");
         if (readout) readout.textContent = `${val}%`;
         this.filterStore.setState({ historicMapOpacity: val });
+      });
+    }
+
+    const btnToggleSpyglass = document.getElementById("btn-toggle-spyglass");
+    if (btnToggleSpyglass) {
+      btnToggleSpyglass.addEventListener("click", () => {
+        const curState = this.filterStore.getState();
+        const nextSpy = !curState.historicMapSpyglass;
+        this.filterStore.setState({
+          historicMapSpyglass: nextSpy,
+          layers: {
+            ...(curState.layers || {}),
+            historicMap: true,
+          },
+        });
+      });
+    }
+
+    const btnOpenSanbornBrowser = document.getElementById("btn-open-sanborn-browser");
+    if (btnOpenSanbornBrowser) {
+      btnOpenSanbornBrowser.addEventListener("click", () => {
+        this.openSanbornBrowserModal();
+      });
+    }
+    const btnOpenSanbornQuick = document.getElementById("btn-open-sanborn-browser-quick");
+    if (btnOpenSanbornQuick) {
+      btnOpenSanbornQuick.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openSanbornBrowserModal();
+      });
+    }
+
+    const sanbornModal = document.getElementById("sanborn-browser-modal");
+    const btnCloseSanbornModal = document.getElementById("btn-close-sanborn-modal");
+    if (btnCloseSanbornModal && sanbornModal) {
+      btnCloseSanbornModal.addEventListener("click", () => {
+        sanbornModal.classList.add("hidden");
+      });
+    }
+    if (sanbornModal) {
+      const backdrop = sanbornModal.querySelector(".modal-backdrop");
+      if (backdrop) {
+        backdrop.addEventListener("click", () => {
+          sanbornModal.classList.add("hidden");
+        });
+      }
+    }
+
+    const btnActivate1907Mosaic = document.getElementById("btn-sanborn-activate-1907-mosaic");
+    if (btnActivate1907Mosaic) {
+      btnActivate1907Mosaic.addEventListener("click", () => {
+        const curLayers = this.filterStore.getState().layers || {};
+        this.filterStore.setState({
+          historicMapId: "sanborn_1907",
+          layers: {
+            ...curLayers,
+            historicMap: true,
+          },
+        });
+        const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+        if (!vp || vp.zoom < 14) {
+          this.mapController?.flyToLocation({
+            lng: -95.3632,
+            lat: 29.7595,
+            zoom: 15.6,
+          });
+        }
+        if (sanbornModal) sanbornModal.classList.add("hidden");
+      });
+    }
+
+    const selectSanbornVol = document.getElementById("select-sanborn-volume");
+    const inputSanbornFilter = document.getElementById("input-sanborn-filter");
+    if (selectSanbornVol) {
+      selectSanbornVol.addEventListener("change", () => {
+        this._renderSanbornBrowserSheets();
+      });
+    }
+    if (inputSanbornFilter) {
+      inputSanbornFilter.addEventListener("input", () => {
+        this._renderSanbornBrowserSheets();
       });
     }
 
@@ -3175,6 +3299,9 @@ class HoustonAtlasApp {
               m.type === "historical_waterway" ||
               m.type === "historical_railroad"
           );
+          const isLostHouston = Boolean(
+            m.type === "lost_houston" || m.overlay_layer === "lost_houston"
+          );
           const dispLabel = m.label || m.name || m.building_name || "Houston Neighborhood";
           const dispSub =
             m.sublabel ||
@@ -3188,11 +3315,15 @@ class HoustonAtlasApp {
               .join(" • ");
           return `
           <button type="button" class="search-result-item ${
-            isPlace ? "is-place-boundary-item" : ""
+            isPlace || isLostHouston ? "is-place-boundary-item" : ""
           }" data-idx="${i}">
             <div class="search-result-main">
               <span class="search-result-title">${
-                isPlace ? `&#128506; ${dispLabel}` : dispLabel
+                isLostHouston
+                  ? `&#127963; ${dispLabel}`
+                  : isPlace
+                  ? `&#128506; ${dispLabel}`
+                  : dispLabel
               }</span>
               <span class="search-result-cat">${m.category}</span>
             </div>
@@ -3221,6 +3352,22 @@ class HoustonAtlasApp {
           if (searchInput) searchInput.value = chosenLabel;
           if (typeof window !== "undefined" && window.innerWidth <= 900) {
             this._setSidebarCollapsed(true);
+          }
+          if (chosen.type === "lost_houston" || chosen.overlay_layer === "lost_houston") {
+            this.filterStore.setLayerVisibility("lostHouston", true);
+            this.mapController.highlightBoundaryByIdOrName(
+              {
+                id: chosen.id || "",
+                name: chosen.name || chosenLabel,
+                layerKey: "lost_houston",
+              },
+              {
+                layerKey: "lost_houston",
+                fitBounds: true,
+                openInspector: true,
+              }
+            );
+            return;
           }
           if (
             chosen.is_neighborhood_entry ||
@@ -3889,12 +4036,14 @@ class HoustonAtlasApp {
 
     const yearBadge = document.getElementById("year-range-readout");
     if (yearBadge) {
-      if (state.selectedDecade === "unknown") {
+      if (state.historicalSnapshotMode) {
+        yearBadge.textContent = `Snapshot: ${state.maxYear} (Standing)`;
+      } else if (state.selectedDecade === "unknown") {
         yearBadge.textContent = "Undated / Exempt Only";
       } else if (state.selectedDecade !== "all") {
-        yearBadge.textContent = `${state.selectedDecade}s Decade (${state.minYear}–${state.maxYear})`;
+        yearBadge.textContent = `${state.selectedDecade}s Decade (${state.minYear}-${state.maxYear})`;
       } else {
-        yearBadge.textContent = `${state.minYear} – ${state.maxYear}`;
+        yearBadge.textContent = `${state.minYear} - ${state.maxYear}`;
       }
     }
 
@@ -3908,6 +4057,11 @@ class HoustonAtlasApp {
 
     const chkSyncAnnex = document.getElementById("chk-sync-annexation");
     if (chkSyncAnnex) chkSyncAnnex.checked = Boolean(state.syncAnnexationToTime);
+
+    const chkHistoricalSnapshot = document.getElementById("chk-historical-snapshot");
+    if (chkHistoricalSnapshot) {
+      chkHistoricalSnapshot.checked = Boolean(state.historicalSnapshotMode);
+    }
 
     const btnPlay = document.getElementById("btn-timelapse-play");
     if (btnPlay) {
@@ -3953,7 +4107,7 @@ class HoustonAtlasApp {
     const buildingsSublabel = document.getElementById("buildings-layer-sublabel");
     if (buildingsSublabel) {
       if (!buildingsVisible) {
-        buildingsSublabel.textContent = "Hidden — showing overlays only";
+        buildingsSublabel.textContent = "Hidden - showing overlays only";
       } else if (state.renderMode === "both") {
         buildingsSublabel.textContent = "1.51M structures + lots · Visible";
       } else if (state.renderMode === "parcels") {
@@ -3992,6 +4146,7 @@ class HoustonAtlasApp {
     const mapLayerIds = {
       "chk-layer-good-brick": state.layers.goodBrickAwards,
       "chk-layer-landmarks": state.layers.landmarks,
+      "chk-layer-lost-houston": state.layers.lostHouston || state.historicalSnapshotMode,
       "chk-layer-historic-districts": state.layers.historicDistricts,
       "chk-layer-heritage-districts": state.layers.heritageDistricts,
       "chk-layer-nrhp-districts": state.layers.nrhpDistricts,
@@ -4009,6 +4164,14 @@ class HoustonAtlasApp {
     for (const [id, checked] of Object.entries(mapLayerIds)) {
       const el = document.getElementById(id);
       if (el) el.checked = Boolean(checked);
+    }
+
+    const lostHoustonLegendRow = document.getElementById("lost-houston-legend-row");
+    if (lostHoustonLegendRow) {
+      lostHoustonLegendRow.classList.toggle(
+        "hidden",
+        !state.layers.lostHouston && !state.historicalSnapshotMode
+      );
     }
 
     const waterwaysLegendRow = document.getElementById("waterways-legend-row");
@@ -4049,6 +4212,27 @@ class HoustonAtlasApp {
     const histOpacityRow = document.getElementById("historic-map-opacity-row");
     if (histOpacityRow) {
       histOpacityRow.classList.toggle("hidden", !state.layers.historicMap);
+    }
+    const selectHistoricMapId = document.getElementById("select-historic-map-id");
+    const activeMapId = state.historicMapId || "sanborn_1907";
+    if (selectHistoricMapId && selectHistoricMapId.value !== activeMapId) {
+      selectHistoricMapId.value = activeMapId;
+    }
+    const histCitationEl = document.getElementById("historic-map-citation-readout");
+    if (histCitationEl) {
+      const mapEntry =
+        HISTORICAL_MAP_CATALOG.find((m) => m.id === activeMapId) || HISTORICAL_MAP_CATALOG[0];
+      if (mapEntry) {
+        histCitationEl.textContent = `${mapEntry.attribution} · ${mapEntry.description || ""}`;
+      }
+    }
+    const btnToggleSpyglass = document.getElementById("btn-toggle-spyglass");
+    if (btnToggleSpyglass) {
+      const spyOn = Boolean(state.historicMapSpyglass);
+      btnToggleSpyglass.classList.toggle("active", spyOn);
+      btnToggleSpyglass.innerHTML = spyOn
+        ? `&#128269; Spyglass Lens: ON`
+        : `&#128269; Spyglass Lens: OFF`;
     }
     const histOpacitySlider = document.getElementById("slider-historic-map-opacity");
     const histOpacityVal = Math.max(15, Math.min(100, Number(state.historicMapOpacity) || 75));
@@ -4985,10 +5169,25 @@ class HoustonAtlasApp {
           : rt === "industrial_spur"
           ? "#94a3b8"
           : "#f59e0b";
+    } else if (overlayLayer === "lost_houston") {
+      badgeLabel = rawProps.type_label || "Lost Houston · Demolished Landmark";
+      const mat = String(rawProps.sanborn_material || "brick").toLowerCase();
+      badgeColor =
+        mat === "frame"
+          ? "#facc15"
+          : mat === "stone"
+          ? "#60a5fa"
+          : mat === "iron"
+          ? "#cbd5e1"
+          : mat === "fireproof"
+          ? "#a3b18a"
+          : "#f472b6";
     }
 
     const isLinearOrPointOverlay =
-      overlayLayer === "historical_waterways" || overlayLayer === "historical_railroads";
+      overlayLayer === "historical_waterways" ||
+      overlayLayer === "historical_railroads" ||
+      overlayLayer === "lost_houston";
 
     const bldCount = Number(rawProps.building_count || 0);
     const earliestYear = Number(rawProps.earliest_year || 0);
@@ -4998,7 +5197,11 @@ class HoustonAtlasApp {
     const goodBrickCount = Number(rawProps.good_brick_count || 0);
 
     const subtitleParts = [];
-    if (overlayLayer === "historical_waterways") {
+    if (overlayLayer === "lost_houston") {
+      if (rawProps.address) subtitleParts.push(rawProps.address);
+      if (rawProps.lifespan_label) subtitleParts.push(`Stood ${rawProps.lifespan_label}`);
+      if (rawProps.sanborn_material_label) subtitleParts.push(rawProps.sanborn_material_label);
+    } else if (overlayLayer === "historical_waterways") {
       if (rawProps.status) subtitleParts.push(rawProps.status);
       if (rawProps.watershed) subtitleParts.push(`Watershed: ${rawProps.watershed}`);
       if (Number(rawProps.length_miles) > 0) subtitleParts.push(`${rawProps.length_miles} mi mapped`);
@@ -5168,6 +5371,37 @@ class HoustonAtlasApp {
     `;
 
     const narrativeDesc = rawProps.historic_significance || rawProps.description || "";
+    const lostSiteHcads = parseJsonList(rawProps.site_hcad_nums);
+    const primarySiteHcad = String(rawProps.hcad_num || lostSiteHcads[0] || "").trim();
+    const lostLat = Number(rawProps.lat) || 29.7604;
+    const lostLng = Number(rawProps.lng) || -95.3698;
+    const lostStreetViewUrl = buildStreetViewUrl(lostLat, lostLng);
+
+    const lostPhotoCardHtml =
+      overlayLayer === "lost_houston"
+        ? `<div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${primarySiteHcad}">
+            <div class="inspector-photo-header">
+              <div class="inspector-photo-title-group">
+                <span class="inspector-photo-kicker">&#128247; Archival Photographs</span>
+                <span class="inspector-photo-count-badge" id="inspector-photo-badge">Searching Archives…</span>
+              </div>
+              <div class="inspector-photo-header-btns" id="inspector-photo-header-btns"></div>
+            </div>
+            <div id="inspector-photo-stage"></div>
+            <div class="photo-footer-actions">
+              <a
+                href="${lostStreetViewUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="photo-streetview-btn"
+                id="btn-inspector-streetview"
+                title="Open Google Maps Street View Time Machine (2007-Present) for this site"
+              >
+                &#128065; Present-Day Site on Street View &#8599;
+              </a>
+            </div>
+          </div>`
+        : "";
 
     content.innerHTML = `
       ${overlapStackHtml}
@@ -5175,7 +5409,9 @@ class HoustonAtlasApp {
         <div class="inspector-badges">
           <span class="inspector-year-pill" style="background:${badgeColor};color:#090d16;">${badgeLabel}</span>
           ${
-            earliestYear >= 1836
+            overlayLayer === "lost_houston" && rawProps.lifespan_label
+              ? `<span class="inspector-age-pill">Stood ${rawProps.lifespan_label} (${rawProps.lifespan_years || ""} yrs)</span>`
+              : earliestYear >= 1836
               ? `<span class="inspector-age-pill">Earliest Structure: ${earliestYear}</span>`
               : rawProps.charter_year
               ? `<span class="inspector-age-pill">Era: ${rawProps.charter_year}</span>`
@@ -5190,6 +5426,8 @@ class HoustonAtlasApp {
           <span>${rawProps.source || "City of Houston &amp; HCAD Boundary Index"}</span>
         </div>
       </div>
+
+      ${lostPhotoCardHtml}
 
       ${isolationCardHtml}
 
@@ -5240,6 +5478,58 @@ class HoustonAtlasApp {
       }
 
       <div class="inspector-grid">
+        ${
+          overlayLayer === "lost_houston"
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Completed / Opened</span>
+                <span class="cell-value mono">${rawProps.year_built || "-"}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Demolished / Destroyed</span>
+                <span class="cell-value mono" style="color:#fda4af;">${rawProps.year_demolished || "-"} (${rawProps.demolition_cause || "Demolished"})</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Sanborn Construction Class</span>
+                <span class="cell-value">${rawProps.sanborn_material_label || "Brick / Masonry"}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Historic Scale</span>
+                <span class="cell-value mono">${rawProps.stories || 2} stories (~${rawProps.height_m || 9}m)</span>
+              </div>
+              ${
+                rawProps.architect
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Architect / Builder</span>
+                      <span class="cell-value">${rawProps.architect}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.style
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Architectural Style</span>
+                      <span class="cell-value">${rawProps.style}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.replaced_by
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Present-Day Site / Replaced By</span>
+                      <span class="cell-value">${rawProps.replaced_by}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                primarySiteHcad
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Present-Day HCAD Tax Parcel(s) on Site</span>
+                      <span class="cell-value mono">${lostSiteHcads.join(", ") || primarySiteHcad}</span>
+                    </div>`
+                  : ""
+              }`
+            : ""
+        }
         ${
           overlayLayer === "historical_waterways" && rawProps.status
             ? `<div class="inspector-cell full">
@@ -5453,7 +5743,30 @@ class HoustonAtlasApp {
 
       <div class="inspector-actions">
         ${
-          isLinearOrPointOverlay
+          overlayLayer === "lost_houston"
+            ? `
+              <button
+                type="button"
+                class="inspector-btn primary"
+                id="btn-lost-houston-overlay-sanborn"
+                style="background:linear-gradient(135deg,#047857,#10B981);border-color:#6EE7B7;color:#ECFDF5;"
+              >
+                &#128506; Overlay 1907 Sanborn Atlas on Map
+              </button>
+              ${
+                primarySiteHcad
+                  ? `<button
+                      type="button"
+                      class="inspector-btn secondary"
+                      id="btn-lost-houston-inspect-modern"
+                      data-modern-hcad="${primarySiteHcad}"
+                    >
+                      &#127970; Inspect Modern Parcel on This Site (${primarySiteHcad})
+                    </button>`
+                  : ""
+              }
+            `
+            : isLinearOrPointOverlay
             ? ""
             : `<button
                 type="button"
@@ -5479,6 +5792,51 @@ class HoustonAtlasApp {
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, rawProps);
+
+    if (overlayLayer === "lost_houston") {
+      this._populateInspectorPhotos({
+        props: {
+          ...rawProps,
+          id: rawProps.id,
+          building_name: name,
+          landmark_name: name,
+        },
+        title: name,
+        subtitle,
+        hcadNum: primarySiteHcad,
+        lat: lostLat,
+        lng: lostLng,
+        streetViewUrl: lostStreetViewUrl,
+      });
+
+      const btnOverlaySanborn = document.getElementById("btn-lost-houston-overlay-sanborn");
+      if (btnOverlaySanborn) {
+        btnOverlaySanborn.addEventListener("click", () => {
+          const curLayers = this.filterStore.getState().layers || {};
+          this.filterStore.setState({
+            historicMapId: "sanborn_1907",
+            layers: {
+              ...curLayers,
+              historicMap: true,
+              lostHouston: true,
+            },
+          });
+        });
+      }
+
+      const btnInspectModern = document.getElementById("btn-lost-houston-inspect-modern");
+      if (btnInspectModern) {
+        btnInspectModern.addEventListener("click", () => {
+          const modernHcad = btnInspectModern.getAttribute("data-modern-hcad") || "";
+          if (modernHcad && this.mapController) {
+            this.mapController.selectFeatureByIdOrHcad({
+              hcadNum: modernHcad,
+              flyTo: true,
+            });
+          }
+        });
+      }
+    }
 
     const boundarySpec = {
       layerKey: overlayLayer || "neighborhoods",
@@ -5587,6 +5945,7 @@ class HoustonAtlasApp {
         "annexations",
         "historical_waterways",
         "historical_railroads",
+        "lost_houston",
       ].includes(String(rawProps.overlay_layer || ""))
     ) {
       this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
@@ -6135,6 +6494,82 @@ class HoustonAtlasApp {
 
     const overlapStackHtml = this._buildInspectorOverlapStackHtml();
 
+    const lostHoustonAtSite =
+      this.mapController && typeof this.mapController.findLostHoustonAtSite === "function"
+        ? this.mapController.findLostHoustonAtSite({
+            hcadNum,
+            lng: effLng,
+            lat: effLat,
+          })
+        : [];
+
+    const lostHoustonSiteCardHtml =
+      lostHoustonAtSite.length > 0
+        ? `<div class="lost-houston-site-card" id="lost-houston-site-card">
+            <div class="lost-houston-site-header">
+              <span class="lost-houston-site-kicker">&#127963; Previous Historic Structure${
+                lostHoustonAtSite.length > 1 ? `s (${lostHoustonAtSite.length})` : ""
+              } on This Site</span>
+              <span class="lost-houston-site-badge">Lost Houston</span>
+            </div>
+            <div class="lost-houston-site-list">
+              ${lostHoustonAtSite
+                .map((lh) => {
+                  const mat = String(lh.sanborn_material || "brick").toLowerCase();
+                  const matColor =
+                    mat === "frame"
+                      ? "#facc15"
+                      : mat === "stone"
+                      ? "#60a5fa"
+                      : mat === "iron"
+                      ? "#cbd5e1"
+                      : mat === "fireproof"
+                      ? "#a3b18a"
+                      : "#f472b6";
+                  return `
+                  <div class="lost-houston-site-item">
+                    <div class="lost-houston-site-item-top">
+                      <span class="lost-houston-site-name">${lh.name}</span>
+                      <span class="lost-houston-site-lifespan">${
+                        lh.lifespan_label || `${lh.year_built || "?"}-${lh.year_demolished || "?"}`
+                      }</span>
+                    </div>
+                    <div class="lost-houston-site-meta">
+                      <span style="display:inline-flex;align-items:center;gap:4px;">
+                        <span style="width:8px;height:8px;border-radius:2px;background:${matColor};display:inline-block;"></span>
+                        ${lh.sanborn_material_label || "Brick / Masonry"}
+                      </span>
+                      ${lh.architect ? `<span>· Architect: ${lh.architect}</span>` : ""}
+                      ${lh.demolition_cause ? `<span>· ${lh.demolition_cause}</span>` : ""}
+                    </div>
+                    ${
+                      lh.historic_significance
+                        ? `<div class="lost-houston-site-desc">${lh.historic_significance}</div>`
+                        : ""
+                    }
+                    <div class="lost-houston-site-actions">
+                      <button
+                        type="button"
+                        class="lost-houston-site-btn"
+                        data-inspect-lost-houston="${String(lh.id || lh.name).replace(/"/g, "&quot;")}"
+                      >
+                        &#128506; Outline Historic Footprint &amp; Open Dossier
+                      </button>
+                      <button
+                        type="button"
+                        class="lost-houston-site-btn secondary"
+                        data-overlay-lost-sanborn="sanborn_1907"
+                      >
+                        1907 Sanborn Underlay
+                      </button>
+                    </div>
+                  </div>`;
+                })
+                .join("")}
+            </div>
+          </div>`
+        : "";
+
     content.innerHTML = `
       ${overlapStackHtml}
       <div class="inspector-hero">
@@ -6174,6 +6609,7 @@ class HoustonAtlasApp {
         </div>
       </div>
 
+      ${lostHoustonSiteCardHtml}
       ${goodBrickHtml}
       ${landmarkReportHtml}
       ${verifiedBannerHtml}
@@ -6413,6 +6849,47 @@ class HoustonAtlasApp {
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, props);
+
+    content.querySelectorAll("[data-inspect-lost-houston]").forEach((lhBtn) => {
+      lhBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const lhId = lhBtn.getAttribute("data-inspect-lost-houston") || "";
+        if (lhId && this.mapController) {
+          this.filterStore.setLayerVisibility("lostHouston", true);
+          this.mapController.highlightBoundaryByIdOrName(
+            {
+              id: lhId,
+              name: lhId,
+              layerKey: "lost_houston",
+            },
+            {
+              layerKey: "lost_houston",
+              fitBounds: true,
+              openInspector: true,
+            }
+          );
+        }
+      });
+    });
+
+    content.querySelectorAll("[data-overlay-lost-sanborn]").forEach((sbBtn) => {
+      sbBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const mapId = sbBtn.getAttribute("data-overlay-lost-sanborn") || "sanborn_1907";
+        const curLayers = this.filterStore.getState().layers || {};
+        this.filterStore.setState({
+          historicMapId: mapId,
+          layers: {
+            ...curLayers,
+            historicMap: true,
+            lostHouston: true,
+          },
+        });
+        sbBtn.textContent = "1907 Sanborn Active ✓";
+      });
+    });
 
     content.querySelectorAll("[data-filter-chip]").forEach((chipBtn) => {
       chipBtn.addEventListener("click", (e) => {
@@ -8744,6 +9221,247 @@ class HoustonAtlasApp {
         : null,
       { preserveCustomText: hasCustomText }
     );
+  }
+
+  openSanbornBrowserModal() {
+    const modal = document.getElementById("sanborn-browser-modal");
+    if (!modal) return;
+    modal.classList.remove("hidden");
+
+    const btnActivateMosaic = document.getElementById("btn-sanborn-activate-1907-mosaic");
+    if (btnActivateMosaic && !btnActivateMosaic._boundSanbornActivate) {
+      btnActivateMosaic._boundSanbornActivate = true;
+      btnActivateMosaic.addEventListener("click", () => {
+        this.filterStore.setLayerEnabled("historic_map", true);
+        this.filterStore.setHistoricMapId("sanborn_1907");
+        const chkHistoricMap = document.getElementById("layer-historic_map");
+        if (chkHistoricMap) chkHistoricMap.checked = true;
+        const opacityRow = document.getElementById("historic-map-opacity-row");
+        if (opacityRow) opacityRow.classList.remove("hidden");
+        const selectSource = document.getElementById("select-historic-map-source");
+        if (selectSource) selectSource.value = "sanborn_1907";
+        modal.classList.add("hidden");
+      });
+    }
+
+    const selectVol = document.getElementById("select-sanborn-volume");
+    const volumes = Array.isArray(this.sanbornCatalog?.volumes)
+      ? this.sanbornCatalog.volumes
+      : [];
+    if (selectVol && selectVol.options.length <= 1 && volumes.length > 0) {
+      selectVol.innerHTML =
+        `<option value="featured">★ Featured Historic Sheets Across All Editions (1885-1950)</option>` +
+        `<option value="all">All ${volumes.length} Digitized Volumes (629 Sheets Total)</option>` +
+        volumes
+          .map(
+            (v) =>
+              `<option value="${v.id}">${v.title || `${v.date} (${v.sheet_count} Sheets)`}</option>`
+          )
+          .join("");
+      selectVol.value = "featured";
+    }
+    this._renderSanbornBrowserSheets();
+  }
+
+  _selectSanbornPreviewSheet(rec) {
+    if (!rec) return;
+    this._activeSanbornSheetRec = rec;
+    const titleEl = document.getElementById("sanborn-preview-title");
+    const subEl = document.getElementById("sanborn-preview-subtitle");
+    const stageEl = document.getElementById("sanborn-preview-stage");
+    const footerEl = document.getElementById("sanborn-preview-footer");
+    const btnLoc = document.getElementById("btn-sanborn-open-loc-viewer");
+    const btnJpg = document.getElementById("btn-sanborn-open-hires-jpg");
+
+    if (titleEl) titleEl.textContent = rec.label;
+    if (subEl) subEl.textContent = `${rec.volTitle} · Published ${rec.date} · Sheet ${rec.sheetNum}`;
+    if (btnLoc) btnLoc.href = rec.locSheetUrl;
+    if (btnJpg) btnJpg.href = rec.hiresUrl;
+    if (stageEl) {
+      stageEl.innerHTML = `
+        <a href="${rec.hiresUrl}" target="_blank" rel="noopener noreferrer" title="Click to open full-resolution IIIF scan in a new tab">
+          <img src="${rec.hiresUrl}" alt="${rec.label.replace(/"/g, "&quot;")}" loading="eager" />
+        </a>
+      `;
+    }
+    if (footerEl) {
+      footerEl.innerHTML = `
+        <strong>Library of Congress Geography &amp; Map Division (${rec.volId})</strong> ·
+        Color Key: <span style="color:#fde047;">Yellow = Wood Frame</span>,
+        <span style="color:#f472b6;">Pink = Brick Masonry</span>,
+        <span style="color:#60a5fa;">Blue = Stone / Concrete</span>,
+        <span style="color:#cbd5e1;">Gray = Iron / Metal</span>,
+        <span style="color:#a3e635;">Olive = Fireproof Steel</span>.
+      `;
+    }
+  }
+
+  _renderSanbornBrowserSheets() {
+    const grid =
+      document.getElementById("sanborn-sheet-grid") ||
+      document.getElementById("sanborn-sheets-grid");
+    const metaBar =
+      document.getElementById("sanborn-volume-meta-banner") ||
+      document.getElementById("sanborn-volume-meta-bar");
+    const countBadge = document.getElementById("sanborn-sheet-count-badge");
+    const selectVol = document.getElementById("select-sanborn-volume");
+    const inputFilter = document.getElementById("input-sanborn-filter");
+    if (!grid) return;
+
+    const volumes = Array.isArray(this.sanbornCatalog?.volumes)
+      ? this.sanbornCatalog.volumes
+      : [];
+    if (!volumes.length) {
+      grid.innerHTML = `<div style="padding:18px;color:var(--text-secondary);">Loading Library of Congress Sanborn catalog...</div>`;
+      return;
+    }
+
+    const selectedVolId = selectVol ? selectVol.value || "featured" : "featured";
+    const filterQ = String(inputFilter?.value || "")
+      .trim()
+      .toLowerCase();
+
+    const buildSheetRecord = (vol, sheetNum, customLabel = "") => {
+      const padded = String(sheetNum).padStart(4, "0");
+      const thumbUrl = String(vol.iiif_template || "").replace("{sheet:04d}", padded);
+      const hiresUrl = String(vol.iiif_highres_template || vol.iiif_template || "").replace(
+        "{sheet:04d}",
+        padded
+      );
+      const locSheetUrl = `${String(vol.loc_url || "https://www.loc.gov/collections/sanborn-maps/").replace(
+        /\/?$/,
+        "/"
+      )}?sp=${sheetNum}`;
+      const label =
+        customLabel ||
+        (sheetNum === 1
+          ? `Sheet 1: Graphic Index Map & Key (${vol.date})`
+          : `Sheet ${sheetNum} (${vol.date})`);
+      return {
+        key: `${vol.id}__${sheetNum}`,
+        volId: vol.id,
+        era: vol.era,
+        date: vol.date,
+        volTitle: vol.title,
+        locUrl: vol.loc_url,
+        locSheetUrl,
+        sheetNum,
+        label,
+        isFeatured: Boolean(customLabel),
+        thumbUrl,
+        hiresUrl,
+      };
+    };
+
+    const items = [];
+    let selectedVolObj = null;
+
+    for (const vol of volumes) {
+      if (
+        selectedVolId !== "all" &&
+        selectedVolId !== "featured" &&
+        vol.id !== selectedVolId
+      ) {
+        continue;
+      }
+      if (vol.id === selectedVolId) {
+        selectedVolObj = vol;
+      }
+      const featuredMap = new Map();
+      for (const fs of vol.featured_sheets || []) {
+        if (fs && Number.isFinite(Number(fs.sheet))) {
+          featuredMap.set(Number(fs.sheet), fs.label || "");
+        }
+      }
+
+      if (selectedVolId === "featured" && !filterQ) {
+        for (const [sNum, sLbl] of featuredMap.entries()) {
+          items.push(buildSheetRecord(vol, sNum, sLbl));
+        }
+      } else {
+        const count = Number(vol.sheet_count) || 1;
+        for (let sNum = 1; sNum <= count; sNum++) {
+          const sLbl = featuredMap.get(sNum) || "";
+          const rec = buildSheetRecord(vol, sNum, sLbl);
+          if (filterQ) {
+            const hay = `${rec.label} ${rec.volTitle} ${rec.date} sheet ${sNum}`.toLowerCase();
+            if (!hay.includes(filterQ)) continue;
+          }
+          items.push(rec);
+        }
+      }
+    }
+
+    if (countBadge) {
+      countBadge.textContent = `${items.length} sheets`;
+    }
+
+    if (metaBar) {
+      if (selectedVolObj) {
+        metaBar.innerHTML = `
+          <div>
+            <strong>${selectedVolObj.title}</strong> · Published ${selectedVolObj.date} ·
+            <strong>${selectedVolObj.sheet_count}</strong> digitized plates in Library of Congress Geography &amp; Map Division
+          </div>
+          <a href="${selectedVolObj.loc_url}" target="_blank" rel="noopener noreferrer" class="action-pill subtle">
+            Open Full Volume at Library of Congress (loc.gov) &#8599;
+          </a>
+        `;
+      } else {
+        metaBar.innerHTML = `
+          <div>
+            Showing <strong>${items.length}</strong> ${
+          selectedVolId === "featured" && !filterQ ? "curated highlight sheets" : "matching sheets"
+        } across <strong>${volumes.length} Library of Congress Houston Sanborn Volumes (1885-1950, 629 sheets total)</strong>.
+            Click any sheet on the left to inspect its high-resolution IIIF plate.
+          </div>
+          <a href="https://www.loc.gov/collections/sanborn-maps/?fa=location:texas%7Clocation:houston" target="_blank" rel="noopener noreferrer" class="action-pill subtle">
+            LOC Houston Sanborn Archive &#8599;
+          </a>
+        `;
+      }
+    }
+
+    const displayItems = items.slice(0, 120);
+    const activeKey =
+      displayItems.find((d) => d.key === this._activeSanbornSheetRec?.key)?.key ||
+      displayItems[0]?.key ||
+      "";
+    const activeRec = displayItems.find((d) => d.key === activeKey) || displayItems[0] || null;
+
+    grid.innerHTML = displayItems
+      .map(
+        (it) => `
+        <button type="button" class="sanborn-sheet-card ${it.key === activeKey ? "active" : ""}" data-sanborn-key="${it.key}">
+          <div class="sanborn-sheet-thumb-wrap">
+            <img
+              src="${it.thumbUrl}"
+              alt="${it.label.replace(/"/g, "&quot;")}"
+              class="sanborn-sheet-thumb"
+              loading="lazy"
+            />
+          </div>
+          <div class="sanborn-sheet-label">${it.label}</div>
+          <div class="mono" style="font-size:10px;color:#94a3b8;">${it.date} · Sheet ${it.sheetNum}</div>
+        </button>`
+      )
+      .join("");
+
+    if (activeRec) {
+      this._selectSanbornPreviewSheet(activeRec);
+    }
+
+    grid.querySelectorAll("[data-sanborn-key]").forEach((cardBtn) => {
+      cardBtn.addEventListener("click", () => {
+        const k = cardBtn.getAttribute("data-sanborn-key");
+        const found = displayItems.find((d) => d.key === k);
+        if (found) {
+          grid.querySelectorAll(".sanborn-sheet-card").forEach((b) => b.classList.remove("active"));
+          cardBtn.classList.add("active");
+          this._selectSanbornPreviewSheet(found);
+        }
+      });
+    });
   }
 
   _updateUrlHash(state) {

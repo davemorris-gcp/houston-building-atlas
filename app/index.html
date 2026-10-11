@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261011c" />
+  <link rel="stylesheet" href="styles/index.css?v=20261011g" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -341,6 +341,10 @@
         </div>
 
         <div class="checkbox-stack compact">
+          <label class="check-row" title="Show Houston as it stood in the selected Latest Year: automatically displays demolished Lost Houston landmarks standing in that year and hides structures demolished before that year">
+            <input type="checkbox" id="chk-historical-snapshot" />
+            <span><strong>Historical Snapshot Mode</strong> (include demolished structures standing in Latest Year)</span>
+          </label>
           <label class="check-row">
             <input type="checkbox" id="chk-show-unknown" checked />
             <span>Show undated, vacant &amp; tax-exempt properties</span>
@@ -724,34 +728,146 @@
             </div>
           </div>
 
+          <div class="layer-item-row" data-layer-key="lostHouston">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-lost-houston" />
+              <span class="swatch-line dashed" style="border-color:#F472B6;" title="Dashed Architectural Ghost Footprints color-coded by Sanborn Underwriters Construction Material (Pink = Brick, Yellow = Wood Frame, Blue = Stone/Concrete, Olive = Fireproof)"></span>
+              <span class="layer-name">Lost Houston: Demolished Landmarks (73)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="lostHouston"
+              title="Show only Lost Houston demolished historic structures, ballparks, depots &amp; theatres (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
+          <div class="annexation-options-row hidden" id="lost-houston-legend-row">
+            <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
+              <span><strong style="color:#F472B6;">&#9645;</strong> Brick (Sanborn Pink)</span>
+              <span><strong style="color:#FACC15;">&#9645;</strong> Wood Frame (Yellow)</span>
+              <span><strong style="color:#60A5FA;">&#9645;</strong> Concrete / Stone (Blue)</span>
+              <span><strong style="color:#84CC16;">&#9645;</strong> Steel / Fireproof (Olive)</span>
+              <span><strong style="color:#A8A29E;">&#9645;</strong> Iron / Truss (Gray)</span>
+            </div>
+          </div>
+
           <div class="layer-item-row" data-layer-key="historicMap">
             <label class="check-row layer-row-main">
               <input type="checkbox" id="chk-layer-historic-map" />
-              <span class="swatch-line" style="border-color:#D4A373;"></span>
-              <span class="layer-name">Historic Topo Map (USGS Quad)</span>
+              <span class="swatch-line" style="border-color:#D4A373;" title="Georeferenced 1907 Sanborn Fire Insurance Atlas, 1869-1950 Historic City Maps, 1937 HOLC Map, 1944/1953 Aerials &amp; USGS Quads"></span>
+              <span class="layer-name">Historical Maps &amp; Sanborn Atlases (15)</span>
             </label>
             <button
               type="button"
               class="layer-solo-btn"
               data-solo-layer="historicMap"
-              title="Show Historic USGS Topographic Quad Map overlay"
+              title="Show Georeferenced Sanborn Fire Insurance Atlas or Historical Map Underlay"
             >
               Solo
             </button>
           </div>
 
           <div class="historic-map-opacity-row hidden" id="historic-map-opacity-row">
-            <label for="slider-historic-map-opacity" class="slider-label">
-              Topo Map Opacity: <strong class="mono" id="historic-map-opacity-readout">75%</strong>
-            </label>
-            <input
-              type="range"
-              id="slider-historic-map-opacity"
-              min="15"
-              max="100"
-              step="5"
-              value="75"
-            />
+            <div class="historic-map-select-group">
+              <label for="select-historic-map-id" class="slider-label">
+                Historical Map Sheet / Era:
+              </label>
+              <select id="select-historic-map-id" class="full-select historic-map-select" aria-label="Select Georeferenced Historical Map or Sanborn Atlas">
+                <optgroup label="Sanborn Fire Insurance Atlases (1907)">
+                  <option value="sanborn_1907">1907 Sanborn Fire Insurance Atlas (Vols. 1 &amp; 2 Full Mosaic)</option>
+                  <option value="sanborn_1907_downtown_hires">1907 Sanborn Downtown &amp; Market Square (Hi-Res Detail)</option>
+                </optgroup>
+                <optgroup label="Historic Houston City &amp; Planning Maps (1869-1950)">
+                  <option value="wood_1869">1869 W. E. Wood Map of Houston (4th Ward &amp; Downtown)</option>
+                  <option value="whitty_1913">1913 Whitty Map of Houston (Wards &amp; Streetcars)</option>
+                  <option value="comey_1913">1913 Arthur Comey Park &amp; Bayou System Plan</option>
+                  <option value="hpl_1917">1917 Houston Map (HPL / HMRC Archival Mosaic)</option>
+                  <option value="hpl_1921">1921 Houston Street &amp; Subdivision Map (HPL)</option>
+                  <option value="planning_1929">1929 City Planning Commission Major Street Plan</option>
+                  <option value="hpl_1930">1930 Houston Map (HPL / HMRC Archival Mosaic)</option>
+                  <option value="holc_1937">1937 HOLC Neighborhood Security ("Redlining") Map</option>
+                  <option value="hpl_1941">1941 Houston Pre-WWII Street Map (HPL)</option>
+                  <option value="hpl_1950">1950 Post-War Houston Expansion Map (HPL)</option>
+                </optgroup>
+                <optgroup label="Historical Aerial Photography &amp; USGS Quads">
+                  <option value="aerial_1944">1944 WWII Historical Aerial Photography Mosaic</option>
+                  <option value="aerial_1953">1953 USDA Historical Aerial Photography Mosaic</option>
+                  <option value="usgs_topo">Historic USGS Topographic Quad Mosaic (1915-1982)</option>
+                </optgroup>
+              </select>
+              <div class="historic-map-citation" id="historic-map-citation-readout">
+                Georeferenced 1907 Sanborn Fire Insurance sheets (Rice University GIS/Data Center &amp; Library of Congress).
+              </div>
+            </div>
+
+            <div class="historic-map-slider-wrap">
+              <label for="slider-historic-map-opacity" class="slider-label">
+                Map Underlay Opacity: <strong class="mono" id="historic-map-opacity-readout">75%</strong>
+              </label>
+              <input
+                type="range"
+                id="slider-historic-map-opacity"
+                min="15"
+                max="100"
+                step="5"
+                value="75"
+              />
+            </div>
+
+            <div class="historic-map-actions-row">
+              <button
+                type="button"
+                class="historic-tool-btn"
+                id="btn-toggle-spyglass"
+                title="Reveal the selected historical map inside a movable circular spyglass lens around your cursor to compare directly against 2026 building footprints"
+              >
+                &#128269; Spyglass Lens: OFF
+              </button>
+              <button
+                type="button"
+                class="historic-tool-btn accent"
+                id="btn-open-sanborn-browser"
+                title="Browse all 629 digitized Library of Congress Sanborn Fire Insurance Map sheets of Houston (1885-1955)"
+              >
+                &#128214; 629 LOC Sanborn Sheets
+              </button>
+            </div>
+
+            <div class="sanborn-color-key-box" id="sanborn-color-key-box">
+              <div class="sanborn-key-header">Sanborn Underwriters Color Key (1885-1955)</div>
+              <div class="sanborn-key-grid">
+                <span class="sanborn-key-chip" title="Wood Frame Construction (Carpentry, Shiplap, Clapboard)">
+                  <i style="background:#FACC15; border-color:#854D0E;"></i> Yellow: Wood Frame
+                </span>
+                <span class="sanborn-key-chip" title="Brick or Tile Masonry Construction">
+                  <i style="background:#F472B6; border-color:#9D174D;"></i> Pink: Brick Masonry
+                </span>
+                <span class="sanborn-key-chip" title="Cut Stone, Terra Cotta, Concrete Block, or Hollow Tile">
+                  <i style="background:#60A5FA; border-color:#1E40AF;"></i> Blue: Stone / Concrete
+                </span>
+                <span class="sanborn-key-chip" title="Iron, Corrugated Metal, or Structural Steel Truss">
+                  <i style="background:#A8A29E; border-color:#44403C;"></i> Gray: Iron / Metal
+                </span>
+                <span class="sanborn-key-chip" title="Fireproof Steel Frame or Reinforced Concrete Construction">
+                  <i style="background:#84CC16; border-color:#3F6212;"></i> Olive: Fireproof Steel
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sanborn-quick-launcher-row">
+            <button
+              type="button"
+              class="sanborn-quick-launcher-btn"
+              id="btn-open-sanborn-browser-quick"
+              title="Open the Library of Congress Sanborn Fire Insurance Map Sheet Browser (14 Houston Volumes, 1885-1955, 629 High-Resolution IIIF Sheets)"
+            >
+              <span>&#128214; Browse 1885–1955 Sanborn Fire Insurance Maps (629 Sheets)</span>
+              <span class="mono">LOC IIIF &#8599;</span>
+            </button>
           </div>
         </div>
 
@@ -1564,10 +1680,105 @@
         </div>
       </div>
     </div>
+
+    <!-- Library of Congress Sanborn Fire Insurance Map Sheet Browser Modal (1885–1955) -->
+    <div class="modal-backdrop hidden" id="sanborn-browser-modal" role="dialog" aria-modal="true" aria-labelledby="sanborn-modal-title">
+      <div class="modal-card sanborn-modal-card">
+        <div class="modal-header sanborn-modal-header">
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">Preservation Houston • Library of Congress &amp; Rice University GIS Archive</span>
+              <h2 class="modal-title" id="sanborn-modal-title">Houston Sanborn Fire Insurance Map Atlases (1885–1955)</h2>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button
+              type="button"
+              class="action-pill active"
+              id="btn-sanborn-activate-1907-mosaic"
+              title="Enable the georeferenced 1907 Sanborn Fire Insurance Atlas overlay directly on the interactive Houston map"
+            >
+              &#127758; Overlay 1907 Sanborn on Map
+            </button>
+            <button type="button" class="icon-btn" id="btn-close-sanborn-modal" aria-label="Close Sanborn Browser Modal">
+              &times;
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-body sanborn-modal-body">
+          <div class="sanborn-browser-toolbar">
+            <div class="sanborn-toolbar-left">
+              <label for="select-sanborn-volume" class="sanborn-toolbar-label">Atlas Volume (14 Digitized Volumes, 629 Sheets):</label>
+              <select id="select-sanborn-volume" class="form-input sanborn-volume-select"></select>
+            </div>
+            <div class="sanborn-toolbar-right">
+              <label for="input-sanborn-filter" class="sanborn-toolbar-label">Filter Volume / Ward / Coverage:</label>
+              <input
+                type="search"
+                id="input-sanborn-filter"
+                class="form-input sanborn-filter-input"
+                placeholder="e.g. Heights, Freedmen's Town, 1907, East End, Ship Channel..."
+              />
+            </div>
+          </div>
+
+          <!-- Active Volume Metadata & Direct Archival Links Banner -->
+          <div class="sanborn-volume-meta-banner" id="sanborn-volume-meta-banner"></div>
+
+          <!-- Two-Column Layout: Sheet Grid + Interactive High-Resolution IIIF Sheet Viewer -->
+          <div class="sanborn-browser-split">
+            <div class="sanborn-sheet-list-col">
+              <div class="sanborn-col-header">
+                <span id="sanborn-sheet-list-title">Digitized Sheets in Volume</span>
+                <span class="mono" id="sanborn-sheet-count-badge"></span>
+              </div>
+              <div class="sanborn-sheet-grid" id="sanborn-sheet-grid"></div>
+            </div>
+
+            <div class="sanborn-sheet-preview-col" id="sanborn-sheet-preview-col">
+              <div class="sanborn-preview-header">
+                <div>
+                  <strong id="sanborn-preview-title">Select a Sanborn Sheet</strong>
+                  <span class="mono" id="sanborn-preview-subtitle">Library of Congress IIIF Archival Scan</span>
+                </div>
+                <div class="sanborn-preview-actions">
+                  <a
+                    href="https://www.loc.gov/collections/sanborn-maps/?fa=location:texas%7Clocation:harris+county%7Clocation:houston"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="action-pill"
+                    id="btn-sanborn-open-loc-viewer"
+                    title="Open interactive zoomable IIIF sheet viewer on Library of Congress (loc.gov)"
+                  >
+                    Open Full Zoomable Sheet on LOC.gov &#8599;
+                  </a>
+                  <a
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="action-pill subtle"
+                    id="btn-sanborn-open-hires-jpg"
+                    title="Open high-resolution 2000px JPEG scan directly from Library of Congress IIIF server"
+                  >
+                    Hi-Res Scan (.JPG) &#8599;
+                  </a>
+                </div>
+              </div>
+              <div class="sanborn-preview-stage" id="sanborn-preview-stage"></div>
+              <div class="sanborn-preview-footer" id="sanborn-preview-footer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261011c"></script>
+  <script type="module" src="js/app.js?v=20261011g"></script>
 </body>
 </html>

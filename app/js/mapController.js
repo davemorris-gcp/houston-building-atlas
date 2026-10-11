@@ -7,22 +7,25 @@
 import {
   buildColorExpression,
   getYearColorHex,
+  HISTORICAL_MAP_CATALOG,
   PRESERVATION_STATUS_ITEMS,
+  SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261011c";
+} from "./palettes.js?v=20261011f";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   buildHistoricWardFilterExpression,
+  buildLostHoustonFilterExpression,
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261011c";
+} from "./filterStore.js?v=20261011f";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261011c";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261011c";
+} from "./curatedEdits.js?v=20261011f";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -63,6 +66,46 @@ const BASEMAP_TILES = {
     attribution: "Historic USGS 7.5-Minute Topographic Quads &copy; USGS / National Geographic / Esri",
   },
 };
+
+function getHistoricalMapEntry(historicMapId) {
+  const id = String(historicMapId || "sanborn_1907").trim();
+  return (
+    HISTORICAL_MAP_CATALOG.find((m) => m.id === id) ||
+    HISTORICAL_MAP_CATALOG[0]
+  );
+}
+
+function formatHistoricalTileUrl(tpl, z, tx, ty) {
+  if (!tpl) return "";
+  if (tpl.includes("{bbox-epsg-3857}")) {
+    const ORIGIN_SHIFT = 20037508.342789244;
+    const res = (2 * ORIGIN_SHIFT) / Math.pow(2, z);
+    const minX = -ORIGIN_SHIFT + tx * res;
+    const maxX = -ORIGIN_SHIFT + (tx + 1) * res;
+    const maxY = ORIGIN_SHIFT - ty * res;
+    const minY = ORIGIN_SHIFT - (ty + 1) * res;
+    return tpl.replace(
+      "{bbox-epsg-3857}",
+      `${minX.toFixed(2)},${minY.toFixed(2)},${maxX.toFixed(2)},${maxY.toFixed(2)}`
+    );
+  }
+  return tpl
+    .replace("{z}", z)
+    .replace("{x}", tx)
+    .replace("{y}", ty);
+}
+
+function getSanbornMaterialColors(materialKey) {
+  const found = SANBORN_MATERIAL_ITEMS.find((m) => m.key === materialKey);
+  return (
+    found || {
+      key: "brick",
+      color: "#F472B6",
+      fillColor: "rgba(244, 114, 182, 0.28)",
+      strokeColor: "#F472B6",
+    }
+  );
+}
 
 function evaluateFeatureColor(props, colorMode, paletteStyle) {
   if (!props) return "#524E4A";
@@ -462,10 +505,12 @@ export class AtlasMapController {
           },
           "basemap-historic-topo": {
             type: "raster",
-            tiles: BASEMAP_TILES.historic_topo.tiles,
+            tiles: [getHistoricalMapEntry(state.historicMapId).tileUrl],
             tileSize: 256,
-            maxzoom: 15,
-            attribution: BASEMAP_TILES.historic_topo.attribution,
+            maxzoom: getHistoricalMapEntry(state.historicMapId).maxZoom || 19,
+            attribution:
+              getHistoricalMapEntry(state.historicMapId).attribution ||
+              BASEMAP_TILES.historic_topo.attribution,
           },
           "openfreemap-vector": {
             type: "vector",
@@ -514,12 +559,15 @@ export class AtlasMapController {
             type: "raster",
             source: "basemap-historic-topo",
             layout: {
-              visibility: state.layers?.historicMap ? "visible" : "none",
+              visibility:
+                state.layers?.historicMap && !state.historicMapSpyglass
+                  ? "visible"
+                  : "none",
             },
             paint: {
               "raster-opacity": Math.max(
                 0.1,
-                Math.min(1, (Number(state.historicMapOpacity) || 75) / 100)
+                Math.min(1, (Number(state.historicMapOpacity) || 82) / 100)
               ),
               "raster-contrast": 0.08,
             },
@@ -576,6 +624,7 @@ export class AtlasMapController {
         ],
       },
     });
+    this._activeWebGLHistoricMapId = getHistoricalMapEntry(state.historicMapId).id;
 
     this.map.addControl(
       new maplibregl.NavigationControl({ visualizePitch: true }),
@@ -636,6 +685,7 @@ export class AtlasMapController {
 
     this._addMapLibreSourcesAndLayers();
     this._bindMapLibreInteractions();
+    this._initSpyglassOverlay();
   }
 
   _buildLabelPointsFeatureCollection(polyFC) {
@@ -771,6 +821,14 @@ export class AtlasMapController {
       type: "geojson",
       data: overlays.historical_railroads || { type: "FeatureCollection", features: [] },
     });
+    this.map.addSource("lost-houston-src", {
+      type: "geojson",
+      data: overlays.lost_houston || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("lost-houston-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.lost_houston),
+    });
 
     const state = this.filterStore.getState();
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
@@ -778,6 +836,7 @@ export class AtlasMapController {
     const shardFilterExpr = this._buildShardLayerFilter(filterExpr);
     const wardFilterExpr = buildHistoricWardFilterExpression(state);
     const annexFilterExpr = buildAnnexationFilterExpression(state);
+    const lostHoustonFilterExpr = buildLostHoustonFilterExpression(state);
 
     this.map.addLayer({
       id: "annexations-fill",
@@ -1449,6 +1508,64 @@ export class AtlasMapController {
       },
     });
 
+    const sanbornMaterialColorExpr = [
+      "match",
+      ["coalesce", ["get", "sanborn_material"], "brick"],
+      "wood_frame",
+      "#FACC15",
+      "brick",
+      "#F472B6",
+      "stone_concrete",
+      "#60A5FA",
+      "iron_steel",
+      "#94A3B8",
+      "fireproof",
+      "#A3E635",
+      "#F472B6",
+    ];
+    const showLostHouston =
+      Boolean(state.layers?.lostHouston) || Boolean(state.historicalSnapshotMode);
+
+    this.map.addLayer({
+      id: "lost-houston-fill",
+      type: "fill",
+      source: "lost-houston-src",
+      filter: lostHoustonFilterExpr,
+      layout: { visibility: showLostHouston ? "visible" : "none" },
+      paint: {
+        "fill-color": sanbornMaterialColorExpr,
+        "fill-opacity": 0.28,
+      },
+    });
+    this.map.addLayer({
+      id: "lost-houston-line",
+      type: "line",
+      source: "lost-houston-src",
+      filter: lostHoustonFilterExpr,
+      layout: { visibility: showLostHouston ? "visible" : "none" },
+      paint: {
+        "line-color": sanbornMaterialColorExpr,
+        "line-width": 2.3,
+        "line-dasharray": [2.2, 1.5],
+        "line-opacity": 0.96,
+      },
+    });
+    this.map.addLayer({
+      id: "lost-houston-extrusion",
+      type: "fill-extrusion",
+      source: "lost-houston-src",
+      filter: lostHoustonFilterExpr,
+      layout: {
+        visibility: showLostHouston && state.extrude3D ? "visible" : "none",
+      },
+      paint: {
+        "fill-extrusion-color": sanbornMaterialColorExpr,
+        "fill-extrusion-height": ["to-number", ["get", "height_m"], 10.5],
+        "fill-extrusion-base": 0,
+        "fill-extrusion-opacity": 0.38,
+      },
+    });
+
     // Depth-occluded 3D volumetric selection wireframe source & layer:
     // Renders the selected building's 3D roofline collar (z = H), ground-base collar (z = 0),
     // vertical corner edge ribs (z = 0..H), and nearby 3D occluder volumes in a single shared
@@ -1783,6 +1900,35 @@ export class AtlasMapController {
         "text-halo-width": 2.0,
       },
     });
+    this.map.addLayer({
+      id: "lost-houston-label",
+      type: "symbol",
+      source: "lost-houston-labels-src",
+      filter: lostHoustonFilterExpr,
+      minzoom: 12.2,
+      layout: {
+        visibility: showLostHouston ? "visible" : "none",
+        "text-field": [
+          "concat",
+          "† ",
+          ["get", "name"],
+          "\n(",
+          ["to-string", ["get", "year_built"]],
+          "-",
+          ["to-string", ["get", "year_demolished"]],
+          ")",
+        ],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 12.2, 9.8, 16, 12.5],
+        "text-max-width": 9,
+        "text-padding": 4,
+      },
+      paint: {
+        "text-color": "#FBCFE8",
+        "text-halo-color": "rgba(11, 15, 23, 0.95)",
+        "text-halo-width": 1.9,
+      },
+    });
   }
 
   _buildTourFocusFilterExpression(baseFilterExpr) {
@@ -1973,6 +2119,12 @@ export class AtlasMapController {
       }
     });
 
+    this.map.on("move", () => {
+      if (this.spyglassState) {
+        this._renderSpyglassOverlay();
+      }
+    });
+
     this.map.on("moveend", () => {
       this._captureDynamicOverrideGeometries();
       this._refreshSelectionAfterViewportChange();
@@ -1984,6 +2136,256 @@ export class AtlasMapController {
       this._refreshSelectionAfterViewportChange();
       this.computeViewportHistogram();
     });
+  }
+
+  _initSpyglassOverlay() {
+    const container = document.getElementById(this.containerId);
+    if (!container) return;
+    let spCanvas = container.querySelector("#atlas-spyglass-canvas");
+    if (!spCanvas) {
+      spCanvas = document.createElement("canvas");
+      spCanvas.id = "atlas-spyglass-canvas";
+      spCanvas.style.position = "absolute";
+      spCanvas.style.inset = "0";
+      spCanvas.style.width = "100%";
+      spCanvas.style.height = "100%";
+      spCanvas.style.pointerEvents = "none";
+      spCanvas.style.zIndex = "16";
+      spCanvas.style.display = "none";
+      container.appendChild(spCanvas);
+    }
+
+    this.spyglassState = {
+      canvas: spCanvas,
+      ctx: spCanvas.getContext("2d"),
+      mouseX: null,
+      mouseY: null,
+      radius: 152,
+      tileCache: new Map(),
+    };
+
+    const resizeSpyglass = () => {
+      if (!this.spyglassState?.canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      this.spyglassState.canvas.width = container.clientWidth * dpr;
+      this.spyglassState.canvas.height = container.clientHeight * dpr;
+      this._renderSpyglassOverlay();
+    };
+    window.addEventListener("resize", resizeSpyglass);
+    resizeSpyglass();
+
+    container.addEventListener("mousemove", (e) => {
+      if (!this.spyglassState) return;
+      const rect = container.getBoundingClientRect();
+      this.spyglassState.mouseX = e.clientX - rect.left;
+      this.spyglassState.mouseY = e.clientY - rect.top;
+      const st = this.filterStore.getState();
+      if (st.layers?.historicMap && st.historicMapSpyglass) {
+        this._renderSpyglassOverlay();
+      }
+    });
+  }
+
+  _renderSpyglassOverlay() {
+    const sp = this.spyglassState;
+    if (!sp || !sp.canvas) return;
+    const state = this.filterStore.getState();
+    if (!state.layers?.historicMap || !state.historicMapSpyglass) {
+      sp.canvas.style.display = "none";
+      return;
+    }
+    sp.canvas.style.display = "block";
+    const dpr = window.devicePixelRatio || 1;
+    const width = sp.canvas.width / dpr;
+    const height = sp.canvas.height / dpr;
+    if (width <= 0 || height <= 0) return;
+
+    const ctx = sp.ctx;
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, width, height);
+
+    const cx = Number.isFinite(sp.mouseX) ? sp.mouseX : width * 0.52;
+    const cy = Number.isFinite(sp.mouseY) ? sp.mouseY : height * 0.48;
+    const r = sp.radius || 152;
+
+    let vpLng = -95.3635;
+    let vpLat = 29.7595;
+    let vpZoom = 15.2;
+    if (this.useCanvasFallback && this.canvasState) {
+      vpLng = this.canvasState.lng;
+      vpLat = this.canvasState.lat;
+      vpZoom = this.canvasState.zoom;
+    } else if (this.map) {
+      const c = this.map.getCenter();
+      vpLng = c.lng;
+      vpLat = c.lat;
+      vpZoom = this.map.getZoom();
+    }
+
+    const histEntry = getHistoricalMapEntry(state.historicMapId);
+    const histZ = Math.max(10, Math.min(histEntry.maxZoom || 19, Math.floor(vpZoom)));
+    const histFactor = Math.pow(2, vpZoom - histZ);
+    const histSizeScreen = 256 * histFactor;
+    const sinLat = Math.sin((vpLat * Math.PI) / 180);
+    const histCenterX = ((vpLng + 180) / 360) * Math.pow(2, histZ);
+    const histCenterY =
+      (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * Math.pow(2, histZ);
+
+    // Clip to spyglass circle
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+
+    ctx.fillStyle = "#181512";
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+
+    const hCols = Math.ceil((r * 2) / histSizeScreen) + 2;
+    const hRows = Math.ceil((r * 2) / histSizeScreen) + 2;
+    const centerScreenTileOffsetX = (cx - width / 2) / histSizeScreen;
+    const centerScreenTileOffsetY = (cy - height / 2) / histSizeScreen;
+    const baseTx = Math.floor(histCenterX + centerScreenTileOffsetX);
+    const baseTy = Math.floor(histCenterY + centerScreenTileOffsetY);
+
+    ctx.globalAlpha = Math.max(
+      0.15,
+      Math.min(1, (Number(state.historicMapOpacity) || 82) / 100)
+    );
+
+    for (let dx = -hCols; dx <= hCols; dx++) {
+      for (let dy = -hRows; dy <= hRows; dy++) {
+        const tx = baseTx + dx;
+        const ty = baseTy + dy;
+        const maxT = 1 << histZ;
+        if (tx < 0 || ty < 0 || tx >= maxT || ty >= maxT) continue;
+        const sx = width / 2 + (tx - histCenterX) * histSizeScreen;
+        const sy = height / 2 + (ty - histCenterY) * histSizeScreen;
+        if (sx + histSizeScreen < cx - r || sx > cx + r || sy + histSizeScreen < cy - r || sy > cy + r) {
+          continue;
+        }
+        const hCacheId = `spy:${histEntry.id}:${histZ}/${tx}/${ty}`;
+        let hImg = sp.tileCache.get(hCacheId);
+        if (!hImg) {
+          hImg = new Image();
+          hImg.crossOrigin = "anonymous";
+          hImg.src = formatHistoricalTileUrl(histEntry.tileUrl, histZ, tx, ty);
+          hImg.onload = () => this._renderSpyglassOverlay();
+          sp.tileCache.set(hCacheId, hImg);
+        }
+        if (hImg.complete && hImg.naturalWidth > 0) {
+          ctx.drawImage(hImg, sx, sy, histSizeScreen + 0.5, histSizeScreen + 0.5);
+        }
+      }
+    }
+    ctx.restore();
+
+    // Draw archival brass/gold spyglass bezel & reticle ticks
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(11, 15, 23, 0.88)";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = "#FDE047";
+    ctx.lineWidth = 2.6;
+    ctx.stroke();
+
+    // Subtle compass ticks on the spyglass ring
+    const tickAngles = [0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2];
+    ctx.strokeStyle = "rgba(253, 224, 71, 0.85)";
+    ctx.lineWidth = 1.6;
+    for (const ang of tickAngles) {
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(ang) * (r - 8), cy + Math.sin(ang) * (r - 8));
+      ctx.lineTo(cx + Math.cos(ang) * (r + 3), cy + Math.sin(ang) * (r + 3));
+      ctx.stroke();
+    }
+
+    // Bottom pill label showing active historical map year & title
+    const pillText = `🔍 ${histEntry.year} · ${histEntry.shortLabel}`;
+    ctx.font = "700 11px Inter, system-ui, sans-serif";
+    const textW = ctx.measureText(pillText).width;
+    const pillW = textW + 18;
+    const pillH = 22;
+    const pillX = cx - pillW / 2;
+    const pillY = cy + r - 14;
+
+    ctx.fillStyle = "rgba(11, 15, 23, 0.92)";
+    ctx.strokeStyle = "rgba(253, 224, 71, 0.78)";
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(pillX, pillY, pillW, pillH, 11);
+    } else {
+      ctx.rect(pillX, pillY, pillW, pillH);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#FEF08A";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(pillText, cx, pillY + pillH / 2 + 0.5);
+
+    ctx.restore();
+  }
+
+  _syncWebGLHistoricMapSource(state) {
+    if (!this.map) return;
+    const entry = getHistoricalMapEntry(state.historicMapId);
+    if (this._activeWebGLHistoricMapId === entry.id) return;
+    this._activeWebGLHistoricMapId = entry.id;
+    const src = this.map.getSource("basemap-historic-topo");
+    if (src && typeof src.setTiles === "function") {
+      try {
+        src.setTiles([entry.tileUrl]);
+        return;
+      } catch (_e) {}
+    }
+    try {
+      if (this.map.getLayer("basemap-historic-topo-layer")) {
+        this.map.removeLayer("basemap-historic-topo-layer");
+      }
+      if (this.map.getSource("basemap-historic-topo")) {
+        this.map.removeSource("basemap-historic-topo");
+      }
+      this.map.addSource("basemap-historic-topo", {
+        type: "raster",
+        tiles: [entry.tileUrl],
+        tileSize: 256,
+        maxzoom: entry.maxZoom || 19,
+        attribution: entry.attribution || "",
+      });
+      const beforeId = this.map.getLayer("vector-roads-highzoom")
+        ? "vector-roads-highzoom"
+        : undefined;
+      this.map.addLayer(
+        {
+          id: "basemap-historic-topo-layer",
+          type: "raster",
+          source: "basemap-historic-topo",
+          layout: {
+            visibility:
+              state.layers?.historicMap && !state.historicMapSpyglass
+                ? "visible"
+                : "none",
+          },
+          paint: {
+            "raster-opacity": Math.max(
+              0.1,
+              Math.min(1, (Number(state.historicMapOpacity) || 82) / 100)
+            ),
+            "raster-contrast": 0.08,
+          },
+        },
+        beforeId
+      );
+    } catch (err) {
+      console.warn("Could not switch WebGL historic map source:", err);
+    }
   }
 
   /* ========================================================================
@@ -2033,6 +2435,7 @@ export class AtlasMapController {
     };
     window.addEventListener("resize", resize);
     resize();
+    this._initSpyglassOverlay();
 
     // Pan & Zoom interactions
     canvas.addEventListener("mousedown", (e) => {
@@ -2197,6 +2600,7 @@ export class AtlasMapController {
     const width = cs.canvas.width / dpr;
     const height = cs.canvas.height / dpr;
     const ctx = cs.ctx;
+    const sinLat = Math.sin((cs.lat * Math.PI) / 180);
 
     ctx.save();
     ctx.scale(dpr, dpr);
@@ -2220,7 +2624,6 @@ export class AtlasMapController {
       const tileSizeScreen = 256 * zoomFactor;
 
       const centerTileX = ((cs.lng + 180) / 360) * Math.pow(2, tileZ);
-      const sinLat = Math.sin((cs.lat * Math.PI) / 180);
       const centerTileY =
         (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * Math.pow(2, tileZ);
 
@@ -2272,9 +2675,9 @@ export class AtlasMapController {
       }
     }
 
-    if (state.layers?.historicMap && BASEMAP_TILES.historic_topo) {
-      const histConfig = BASEMAP_TILES.historic_topo;
-      const histZ = Math.max(10, Math.min(histConfig.maxZoom || 15, Math.floor(cs.zoom)));
+    if (state.layers?.historicMap && !state.historicMapSpyglass) {
+      const histEntry = getHistoricalMapEntry(state.historicMapId);
+      const histZ = Math.max(10, Math.min(histEntry.maxZoom || 19, Math.floor(cs.zoom)));
       const histFactor = Math.pow(2, cs.zoom - histZ);
       const histSizeScreen = 256 * histFactor;
       const histCenterX = ((cs.lng + 180) / 360) * Math.pow(2, histZ);
@@ -2282,9 +2685,8 @@ export class AtlasMapController {
         (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * Math.pow(2, histZ);
       const hCols = Math.ceil(width / histSizeScreen / 2) + 1;
       const hRows = Math.ceil(height / histSizeScreen / 2) + 1;
-      const histTpl = histConfig.tiles[0];
       ctx.save();
-      ctx.globalAlpha = Math.max(0.1, Math.min(1, (Number(state.historicMapOpacity) || 75) / 100));
+      ctx.globalAlpha = Math.max(0.1, Math.min(1, (Number(state.historicMapOpacity) || 82) / 100));
       for (let dx = -hCols; dx <= hCols; dx++) {
         for (let dy = -hRows; dy <= hRows; dy++) {
           const tx = Math.floor(histCenterX) + dx;
@@ -2293,12 +2695,12 @@ export class AtlasMapController {
           if (tx < 0 || ty < 0 || tx >= maxT || ty >= maxT) continue;
           const sx = width / 2 + (tx - histCenterX) * histSizeScreen;
           const sy = height / 2 + (ty - histCenterY) * histSizeScreen;
-          const hCacheId = `hist_topo:${histZ}/${tx}/${ty}`;
+          const hCacheId = `hist_${histEntry.id}:${histZ}/${tx}/${ty}`;
           let hImg = cs.tileCache.get(hCacheId);
           if (!hImg) {
             hImg = new Image();
             hImg.crossOrigin = "anonymous";
-            hImg.src = histTpl.replace("{z}", histZ).replace("{x}", tx).replace("{y}", ty);
+            hImg.src = formatHistoricalTileUrl(histEntry.tileUrl, histZ, tx, ty);
             hImg.onload = () => this._renderCanvas2D();
             cs.tileCache.set(hCacheId, hImg);
           }
@@ -2761,6 +3163,44 @@ export class AtlasMapController {
       }
     }
 
+    // 5b. Lost Houston Demolished Historic Structures (Sanborn Underwriter Color Key & Dashed Blueprint Outline)
+    const showLostHouston =
+      !isoGeom &&
+      (Boolean(state.layers?.lostHouston) || Boolean(state.historicalSnapshotMode));
+    const visibleLostHoustonFeatures = [];
+    if (showLostHouston && this.overlaysData?.lost_houston) {
+      const minY = Number(state.minYear ?? 1836) || 1836;
+      const maxY = Number(state.maxYear ?? 2026) || 2026;
+      for (const feat of this.overlaysData.lost_houston.features || []) {
+        const p = feat.properties || {};
+        const yb = Number(p.year_built) || 1836;
+        const yd = Number(p.year_demolished) || 1950;
+        if (state.historicalSnapshotMode) {
+          if (!(yb <= maxY && yd > maxY && yb >= minY)) continue;
+        } else if (minY > 1836 || maxY < 2026) {
+          if (!(yb <= maxY && yd >= minY)) continue;
+        }
+        visibleLostHoustonFeatures.push(feat);
+        const mat = getSanbornMaterialColors(p.sanborn_material);
+        const extrudeM = state.extrude3D ? (Number(p.height_m) || 10.0) * 0.55 : 0;
+        const bbox = drawPolygonFeature(
+          feat.geometry,
+          mat.fillColor,
+          mat.strokeColor,
+          2.2,
+          [5, 3],
+          extrudeM
+        );
+        if (bbox) {
+          cs.renderedBBoxes.push({
+            ...bbox,
+            props: { ...p, overlay_layer: "lost_houston", is_boundary_feature: true },
+            geom: feat.geometry,
+          });
+        }
+      }
+    }
+
     const allowPointMarkers = !isoGeom || isoMode === "contents";
 
     // 6. THC Markers
@@ -2868,7 +3308,13 @@ export class AtlasMapController {
         const lat = Number(p.label_lat);
         const rawName = String(p.name || "").trim();
         const hasDocs = Boolean(p.has_deed_docs);
-        const name = hasDocs ? `📜 ${rawName}` : rawName;
+        const cleanLostName = rawName.replace(/\s*\(\d{4}(?:\s*[/–-]\s*\d{4})?\)\s*$/, "").trim();
+        const name =
+          p.overlay_layer === "lost_houston"
+            ? `† ${cleanLostName} (${p.year_built}-${p.year_demolished})`
+            : hasDocs
+            ? `📜 ${rawName}`
+            : rawName;
         if (!rawName || !Number.isFinite(lng) || !Number.isFinite(lat)) continue;
         if (lng < west || lng > east || lat < south || lat > north) continue;
         const [sx, sy] = this._lngLatToScreen(lng, lat, width, height);
@@ -2890,6 +3336,9 @@ export class AtlasMapController {
       }
       ctx.restore();
     };
+    if (showLostHouston && visibleLostHoustonFeatures.length > 0) {
+      drawBoundaryLabels(visibleLostHoustonFeatures, 12.8, "#FBCFE8");
+    }
     if (state.layers.plattedSubdivisions && this.overlaysData?.platted_subdivisions) {
       drawBoundaryLabels(this.overlaysData.platted_subdivisions.features, 13.0, "#ECFCCB");
     }
@@ -3002,6 +3451,7 @@ export class AtlasMapController {
     }
 
     ctx.restore();
+    this._renderSpyglassOverlay();
   }
 
   /* ========================================================================
@@ -3009,6 +3459,7 @@ export class AtlasMapController {
      ======================================================================== */
   _buildTooltipHTML(p, overlapStack = []) {
     const isBoundary =
+      p.overlay_layer === "lost_houston" ||
       p.overlay_layer === "neighborhoods" ||
       p.overlay_layer === "platted_subdivisions" ||
       p.overlay_layer === "land_use_protections" ||
@@ -3073,7 +3524,9 @@ export class AtlasMapController {
 
     if (isBoundary) {
       let badge = p.type_label || p.type || "Neighborhood Boundary";
-      if (p.overlay_layer === "platted_subdivisions") {
+      if (p.overlay_layer === "lost_houston") {
+        badge = `† Lost Houston (${p.year_built}-${p.year_demolished})`;
+      } else if (p.overlay_layer === "platted_subdivisions") {
         if (p.has_deed_docs) {
           badge = `📜 Deed Restrictions + Plat (${p.deed_doc_count || 1} PDF${
             Number(p.deed_doc_count) === 1 ? "" : "s"
@@ -3093,7 +3546,11 @@ export class AtlasMapController {
         badge = p.type_label || "Historical Railroad";
       }
       const statParts = [];
-      if (p.overlay_layer === "historical_waterways") {
+      if (p.overlay_layer === "lost_houston") {
+        if (p.address) statParts.push(p.address);
+        if (p.architect) statParts.push(p.architect);
+        if (p.replaced_by) statParts.push(`Site now: ${p.replaced_by}`);
+      } else if (p.overlay_layer === "historical_waterways") {
         if (p.status) statParts.push(p.status);
         if (p.era_notes) statParts.push(p.era_notes);
         if (Number(p.length_miles) > 0) statParts.push(`${p.length_miles} mi mapped`);
@@ -3138,7 +3595,9 @@ export class AtlasMapController {
         <div class="tooltip-top">
           <span class="tooltip-badge">${badge}</span>
           ${
-            p.neighborhood && p.overlay_layer === "platted_subdivisions"
+            p.overlay_layer === "lost_houston" && p.sanborn_material_label
+              ? `<span class="tooltip-status">${p.sanborn_material_label}</span>`
+              : p.neighborhood && p.overlay_layer === "platted_subdivisions"
               ? `<span class="tooltip-status">${p.neighborhood}</span>`
               : p.historic_ward && p.overlay_layer !== "historic_wards"
               ? `<span class="tooltip-status">${p.historic_ward}</span>`
@@ -3230,6 +3689,9 @@ export class AtlasMapController {
     }
     if (!this.map) return;
 
+    this._syncWebGLHistoricMapSource(state);
+    this._renderSpyglassOverlay();
+
     const isNoMap = state.basemap === "solid_dark" || state.basemap === "solid_light";
     const isLightBg = state.basemap === "solid_light" || state.basemap === "warm_parchment";
     const bgHex =
@@ -3295,11 +3757,11 @@ export class AtlasMapController {
       this.map.setLayoutProperty(
         "basemap-historic-topo-layer",
         "visibility",
-        state.layers?.historicMap ? "visible" : "none"
+        state.layers?.historicMap && !state.historicMapSpyglass ? "visible" : "none"
       );
       const histOpacity = Math.max(
         0.1,
-        Math.min(1, (Number(state.historicMapOpacity) || 75) / 100)
+        Math.min(1, (Number(state.historicMapOpacity) || 82) / 100)
       );
       this.map.setPaintProperty("basemap-historic-topo-layer", "raster-opacity", histOpacity);
     }
@@ -3308,6 +3770,7 @@ export class AtlasMapController {
     const baseFilterExpr = buildFeatureFilterExpression(state);
     const filterExpr = this._buildTourFocusFilterExpression(baseFilterExpr);
     const shardFilterExpr = this._buildShardLayerFilter(filterExpr);
+    const lostHoustonFilterExpr = buildLostHoustonFilterExpression(state);
 
     for (const layerId of [
       ...this.buildingFillLayerIds,
@@ -3384,6 +3847,24 @@ export class AtlasMapController {
     setVis(["selected-feature-3d-extrusion"], showBuildings && state.extrude3D);
     setVis(["parcels-fill"], showParcelsFill);
     setVis(["parcels-line"], showParcelsLine);
+
+    const showLostHouston =
+      !isoGeom &&
+      (Boolean(state.layers?.lostHouston) || Boolean(state.historicalSnapshotMode));
+    setVis(["lost-houston-fill", "lost-houston-line", "lost-houston-label"], showLostHouston);
+    setVis(["lost-houston-extrusion"], showLostHouston && Boolean(state.extrude3D));
+    if (showLostHouston) {
+      for (const lhLayer of [
+        "lost-houston-fill",
+        "lost-houston-line",
+        "lost-houston-extrusion",
+        "lost-houston-label",
+      ]) {
+        if (this.map.getLayer(lhLayer)) {
+          this.map.setFilter(lhLayer, lostHoustonFilterExpr);
+        }
+      }
+    }
 
     setVis(
       ["good-brick-glow", "good-brick-circle"],
@@ -3616,6 +4097,7 @@ export class AtlasMapController {
     if (!isoGeom && this.selectedBoundaryFeature?.properties?.overlay_layer) {
       const selOverlay = this.selectedBoundaryFeature.properties.overlay_layer;
       const overlayEnabledMap = {
+        lost_houston: showLostHouston,
         historic_districts: Boolean(state.layers?.historicDistricts),
         heritage_districts: Boolean(state.layers?.heritageDistricts),
         nrhp_districts: Boolean(state.layers?.nrhpDistricts),
@@ -4545,6 +5027,7 @@ export class AtlasMapController {
         });
       }
     };
+    indexLayer(this.overlaysData?.lost_houston, "lost_houston");
     indexLayer(this.overlaysData?.platted_subdivisions, "platted_subdivisions");
     indexLayer(this.overlaysData?.land_use_protections, "land_use_protections");
     indexLayer(this.overlaysData?.neighborhoods, "neighborhoods");
@@ -4561,6 +5044,11 @@ export class AtlasMapController {
   _normalizeBoundaryOverlayKey(rawKey) {
     const k = String(rawKey || "").trim();
     const map = {
+      lostHouston: "lost_houston",
+      lost_houston: "lost_houston",
+      "lost-houston-fill": "lost_houston",
+      "lost-houston-line": "lost_houston",
+      "lost-houston-extrusion": "lost_houston",
       plattedSubdivisions: "platted_subdivisions",
       platted_subdivisions: "platted_subdivisions",
       "platted-subdivisions-fill": "platted_subdivisions",
@@ -5010,6 +5498,13 @@ export class AtlasMapController {
       const showSpokes = state.showAnnexationSpokes !== false;
 
       const LAYER_META = {
+        lost_houston: {
+          enabled:
+            Boolean(state.layers?.lostHouston) || Boolean(state.historicalSnapshotMode),
+          priority: 2,
+          typeBadge: "† Lost Houston",
+          swatchColor: "#F472B6",
+        },
         platted_subdivisions: {
           enabled: Boolean(state.layers?.plattedSubdivisions),
           priority: 10,
@@ -5070,7 +5565,17 @@ export class AtlasMapController {
       for (const entry of this.boundarySpatialIndex) {
         const meta = LAYER_META[entry.overlayKey];
         if (!meta || !meta.enabled) continue;
-        if (entry.overlayKey === "historic_wards") {
+        if (entry.overlayKey === "lost_houston") {
+          const yb = Number(entry.props.year_built || 1836);
+          const yd = Number(entry.props.year_demolished || 9999);
+          const minY = Number(state.minYear ?? 1836);
+          const maxY = Number(state.maxYear ?? 2026);
+          if (state.historicalSnapshotMode) {
+            if (yb > maxY || yd <= maxY) continue;
+          } else {
+            if (yb > maxY || yd < minY) continue;
+          }
+        } else if (entry.overlayKey === "historic_wards") {
           const entryEra = Number(
             entry.props.era || entry.props.ward_era || entry.props.era_year || 0
           );
@@ -5085,7 +5590,12 @@ export class AtlasMapController {
         if (!this._pointInPolygonGeometry(lng, lat, entry.feature.geometry)) continue;
         let dynBadge = meta.typeBadge;
         let dynSwatch = entry.props.color || meta.swatchColor;
-        if (entry.overlayKey === "platted_subdivisions" && entry.props.has_deed_docs) {
+        if (entry.overlayKey === "lost_houston") {
+          const yb = entry.props.year_built || "?";
+          const yd = entry.props.year_demolished || "?";
+          dynBadge = `† Lost (${yb}-${yd})`;
+          dynSwatch = getSanbornMaterialColors(entry.props.sanborn_material).color;
+        } else if (entry.overlayKey === "platted_subdivisions" && entry.props.has_deed_docs) {
           dynBadge = "📜 Platted Subdiv";
           dynSwatch = "#FBBF24";
         } else if (entry.overlayKey === "land_use_protections") {
@@ -5121,6 +5631,7 @@ export class AtlasMapController {
           .filter(Boolean)
       );
 
+      const lostHoustonFrontItems = [];
       for (const mb of matchingBoundaries) {
         const ep = mb.entry.props;
         const title = ep.name || ep.era_label || ep.historic_district || "Boundary";
@@ -5135,7 +5646,7 @@ export class AtlasMapController {
         const bndKey = `bnd:${mb.entry.overlayKey}:${ep.id || ep.name || ep.era_label}`;
         if (seenKeys.has(bndKey)) continue;
         seenKeys.add(bndKey);
-        stack.push({
+        const stackItem = {
           key: bndKey,
           kind: "boundary",
           layerId: `${mb.entry.overlayKey}-fill`,
@@ -5147,7 +5658,9 @@ export class AtlasMapController {
           color: mb.swatchColor,
           title,
           subtitle:
-            Number(ep.building_count) > 0
+            mb.entry.overlayKey === "lost_houston"
+              ? `${ep.category || "Demolished Landmark"} (${ep.year_built || "?"}-${ep.year_demolished || "?"})`
+              : Number(ep.building_count) > 0
               ? `${Number(ep.building_count).toLocaleString()} structures`
               : ep.type || mb.typeBadge,
           props: {
@@ -5156,7 +5669,15 @@ export class AtlasMapController {
             is_boundary_feature: true,
           },
           geometry: mb.entry.feature.geometry,
-        });
+        };
+        if (mb.entry.overlayKey === "lost_houston") {
+          lostHoustonFrontItems.push(stackItem);
+        } else {
+          stack.push(stackItem);
+        }
+      }
+      if (lostHoustonFrontItems.length) {
+        stack.unshift(...lostHoustonFrontItems);
       }
     }
 
@@ -5368,6 +5889,57 @@ export class AtlasMapController {
     };
   }
 
+  findLostHoustonAtSite({ hcadNum = "", lng = null, lat = null } = {}) {
+    const features = this.overlaysData?.lost_houston?.features;
+    if (!Array.isArray(features) || !features.length) return [];
+    const cleanHcad = String(hcadNum || "").trim();
+    const numLng = Number(lng);
+    const numLat = Number(lat);
+    const hasCoords = Number.isFinite(numLng) && Number.isFinite(numLat);
+    const exactMatches = [];
+    const nearMatches = [];
+    const seenIds = new Set();
+
+    for (const feat of features) {
+      const p = feat?.properties || {};
+      const id = String(p.id || p.name || "");
+      if (!id || seenIds.has(id)) continue;
+
+      let isExact = false;
+      if (cleanHcad && Array.isArray(p.site_hcad_nums)) {
+        if (p.site_hcad_nums.some((h) => String(h || "").trim() === cleanHcad)) {
+          isExact = true;
+        }
+      }
+      if (!isExact && hasCoords && feat.geometry) {
+        if (this._pointInPolygonGeometry(numLng, numLat, feat.geometry)) {
+          isExact = true;
+        }
+      }
+      if (isExact) {
+        seenIds.add(id);
+        exactMatches.push(p);
+        continue;
+      }
+      if (!cleanHcad && hasCoords) {
+        const cLng = Number(p.label_lng ?? p.lng ?? p.lon);
+        const cLat = Number(p.label_lat ?? p.lat);
+        if (
+          Number.isFinite(cLng) &&
+          Number.isFinite(cLat) &&
+          Math.hypot(numLng - cLng, numLat - cLat) <= 0.00018
+        ) {
+          seenIds.add(id);
+          nearMatches.push(p);
+        }
+      }
+    }
+
+    const matches = exactMatches.length > 0 ? exactMatches : nearMatches;
+    matches.sort((a, b) => Number(a.year_built || 9999) - Number(b.year_built || 9999));
+    return matches;
+  }
+
   highlightBoundaryByIdOrName(arg1 = {}, arg2 = {}) {
     let opts = {};
     if (typeof arg1 === "string") {
@@ -5377,7 +5949,10 @@ export class AtlasMapController {
         name: arg1,
       };
     } else if (arg1 && typeof arg1 === "object") {
-      opts = arg1;
+      opts = {
+        ...arg2,
+        ...arg1,
+      };
     }
     const {
       id = "",
@@ -5497,7 +6072,9 @@ export class AtlasMapController {
       const isPointFeature =
         matchEntry.feature?.geometry?.type === "Point" ||
         (Math.abs(maxLng - minLng) < 1e-6 && Math.abs(maxLat - minLat) < 1e-6);
+      const isLostHouston = matchEntry.overlayKey === "lost_houston";
       const isSmallBoundary =
+        isLostHouston ||
         matchEntry.overlayKey === "platted_subdivisions" ||
         matchEntry.overlayKey === "neighborhoods";
       if (isPointFeature) {
@@ -5515,12 +6092,13 @@ export class AtlasMapController {
             ],
             {
               padding: { top: 80, bottom: 110, left: 360, right: 380 },
-              maxZoom:
-                matchEntry.overlayKey === "platted_subdivisions"
-                  ? 16.2
-                  : isSmallBoundary
-                  ? 15.6
-                  : 14.2,
+              maxZoom: isLostHouston
+                ? 17.4
+                : matchEntry.overlayKey === "platted_subdivisions"
+                ? 16.2
+                : isSmallBoundary
+                ? 15.6
+                : 14.2,
               duration: 950,
             }
           );
@@ -5528,14 +6106,14 @@ export class AtlasMapController {
           this.flyToLocation({
             lng: matchEntry.centroid[0],
             lat: matchEntry.centroid[1],
-            zoom: isSmallBoundary ? 15.0 : 13.5,
+            zoom: isLostHouston ? 17.0 : isSmallBoundary ? 15.0 : 13.5,
           });
         }
       } else {
         this.flyToLocation({
           lng: matchEntry.centroid[0],
           lat: matchEntry.centroid[1],
-          zoom: isSmallBoundary ? 15.0 : 13.5,
+          zoom: isLostHouston ? 17.0 : isSmallBoundary ? 15.0 : 13.5,
         });
       }
     }

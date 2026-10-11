@@ -20,7 +20,10 @@ export const DEFAULT_FILTER_STATE = {
   stepYears: 5, // 1 | 5 | 10
   singleLayerMode: false, // when true, clicking any overlay activates only that single overlay
   preSoloLayers: null, // snapshot of overlay visibility before Solo was clicked
-  historicMapOpacity: 75, // 15..100 opacity percentage for the Historic Topo Map overlay
+  historicMapId: "sanborn_1907", // active historical / Sanborn raster map ID from HISTORICAL_MAP_CATALOG
+  historicMapOpacity: 82, // 15..100 opacity percentage for the Historical / Sanborn Map overlay
+  historicMapSpyglass: false, // when true, reveals the historical map inside a movable circular spyglass lens
+  historicalSnapshotMode: false, // when true, hides structures not yet built or already demolished at maxYear
   wardEra: 1903, // 1839 | 1866 | 1896 | 1903 (1903-1905 Final Aldermanic Charter)
   showAnnexationSpokes: true, // include 1963 10-ft highway ETJ spokes & 2000s-2010s MUD SPA commercial strips
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
@@ -39,6 +42,7 @@ export const DEFAULT_FILTER_STATE = {
     annexations: false,
     historicalWaterways: false,
     historicalRailroads: false,
+    lostHouston: false,
     historicMap: false,
   },
 };
@@ -59,6 +63,13 @@ export function buildFeatureFilterExpression(state) {
     const decInt = Number(dec);
     if (!Number.isNaN(decInt) && decInt >= 1830) {
       const lowBound = decInt === 1840 ? 1836 : decInt;
+      if (state.historicalSnapshotMode) {
+        return [
+          "all",
+          [">=", ["to-number", ["get", "year_built"], 0], 1836],
+          ["<=", ["to-number", ["get", "year_built"], 0], decInt + 9],
+        ];
+      }
       return [
         "all",
         [">=", ["to-number", ["get", "year_built"], 0], lowBound],
@@ -67,13 +78,14 @@ export function buildFeatureFilterExpression(state) {
     }
   }
 
+  const effectiveMinY = state.historicalSnapshotMode ? 1836 : minY;
   const datedInRange = [
     "all",
-    [">=", ["to-number", ["get", "year_built"], 0], minY],
+    [">=", ["to-number", ["get", "year_built"], 0], effectiveMinY],
     ["<=", ["to-number", ["get", "year_built"], 0], maxY],
   ];
 
-  if (state.showUnknownYears) {
+  if (state.showUnknownYears && !state.historicalSnapshotMode) {
     return [
       "any",
       ["<", ["to-number", ["get", "year_built"], 0], 1836],
@@ -82,6 +94,47 @@ export function buildFeatureFilterExpression(state) {
   }
 
   return datedInRange;
+}
+
+/**
+ * Compile a MapLibre GL JS filter expression for the Lost Houston (demolished structures) layer.
+ * In Historical Snapshot Mode (or during time-lapse playback before 2026), displays only structures
+ * that were standing in the active target year (`year_built <= cutoff && year_demolished > cutoff`).
+ * Otherwise displays all demolished structures whose lifespan overlaps `[minYear, maxYear]`.
+ */
+export function buildLostHoustonFilterExpression(state) {
+  if (!state) return ["has", "year_built"];
+  const minY = Number(state.minYear) || 1836;
+  const maxY = Number(state.maxYear) || 2026;
+  const dec = String(state.selectedDecade || "all");
+
+  let lowBound = minY;
+  let highBound = maxY;
+  if (dec !== "all" && dec !== "unknown") {
+    const decInt = Number(dec);
+    if (!Number.isNaN(decInt) && decInt >= 1830) {
+      lowBound = decInt === 1840 ? 1836 : decInt;
+      highBound = decInt + 9;
+    }
+  }
+
+  if (state.historicalSnapshotMode || (state.isPlaying && highBound < 2026)) {
+    return [
+      "all",
+      ["<=", ["to-number", ["get", "year_built"], 1836], highBound],
+      [">", ["to-number", ["get", "year_demolished"], 2026], highBound],
+    ];
+  }
+
+  if (lowBound <= 1836 && highBound >= 2026) {
+    return ["has", "year_built"];
+  }
+
+  return [
+    "all",
+    ["<=", ["to-number", ["get", "year_built"], 1836], highBound],
+    [">=", ["to-number", ["get", "year_demolished"], 2026], lowBound],
+  ];
 }
 
 /**
@@ -222,6 +275,7 @@ const LAYER_KEY_TO_SHORT = {
   annexations: "annexations",
   historicalWaterways: "waterways",
   historicalRailroads: "railroads",
+  lostHouston: "lost_houston",
   historicMap: "historic_map",
 };
 
@@ -291,8 +345,13 @@ const SHORT_TO_LAYER_KEY = {
   rail: "historicalRailroads",
   trains: "historicalRailroads",
   streetcars: "historicalRailroads",
+  losthouston: "lostHouston",
+  lost_houston: "lostHouston",
+  lost: "lostHouston",
+  demolished: "lostHouston",
   historicmap: "historicMap",
   historic_map: "historicMap",
+  sanborn: "historicMap",
   topo: "historicMap",
   usgs: "historicMap",
 };
@@ -520,8 +579,17 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   if (state.layers?.annexations || state.syncAnnexationToTime) params.set("syncAnnex", "1");
   if (state.showAnnexationSpokes === false) params.set("spokes", "0");
   if (state.singleLayerMode) params.set("1x", "1");
-  if (state.layers?.historicMap && Number(state.historicMapOpacity) !== 75) {
-    params.set("histOpacity", String(Math.round(Number(state.historicMapOpacity) || 75)));
+  if (state.layers?.historicMap && state.historicMapId && state.historicMapId !== "sanborn_1907") {
+    params.set("histMap", String(state.historicMapId));
+  }
+  if (state.layers?.historicMap && Number(state.historicMapOpacity) !== 82) {
+    params.set("histOpacity", String(Math.round(Number(state.historicMapOpacity) || 82)));
+  }
+  if (state.layers?.historicMap && state.historicMapSpyglass) {
+    params.set("spyglass", "1");
+  }
+  if (state.historicalSnapshotMode) {
+    params.set("snapshot", "1");
   }
   if (state.layers?.historicWards && Number(state.wardEra) && Number(state.wardEra) !== 1903) {
     params.set("wardEra", String(Number(state.wardEra)));
@@ -710,9 +778,19 @@ export function parseHashToState(hashString = "", searchString = "") {
   if (mergedParams.get("1x") === "1" || mergedParams.get("singleLayer") === "1") {
     patch.singleLayerMode = true;
   }
+  const rawHistMap = (mergedParams.get("histMap") || mergedParams.get("historicMapId") || "").trim();
+  if (rawHistMap) {
+    patch.historicMapId = rawHistMap;
+  }
   const rawHistOp = mergedParams.get("histOpacity") || mergedParams.get("topoOpacity");
   if (rawHistOp !== null && rawHistOp !== undefined && rawHistOp !== "") {
-    patch.historicMapOpacity = Math.max(15, Math.min(100, parseInt(rawHistOp, 10) || 75));
+    patch.historicMapOpacity = Math.max(15, Math.min(100, parseInt(rawHistOp, 10) || 82));
+  }
+  if (mergedParams.get("spyglass") === "1" || mergedParams.get("spyglass") === "true") {
+    patch.historicMapSpyglass = true;
+  }
+  if (mergedParams.get("snapshot") === "1" || mergedParams.get("snapshot") === "true") {
+    patch.historicalSnapshotMode = true;
   }
   const rawWardEra = mergedParams.get("wardEra") || mergedParams.get("ward_era");
   if (rawWardEra !== null && rawWardEra !== undefined && rawWardEra !== "") {

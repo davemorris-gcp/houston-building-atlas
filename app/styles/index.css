@@ -5901,3 +5901,428 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Historical Maps, Sanborn Fire Insurance Atlases & "Lost Houston" Styles
+   ========================================================================== */
+
+.historic-map-opacity-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  gap: 9px;
+  padding: 10px 11px;
+  margin-top: 4px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(212, 163, 115, 0.35);
+}
+
+.historic-map-select-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  gap: 5px;
+}
+
+.historic-map-select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historic-map-citation {
+  font-size: 10.5px;
+  color: #cbd5e1;
+  line-height: 1.35;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 2px solid #d4a373;
+}
+
+.historic-map-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  gap: 3px;
+}
+
+.historic-map-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  gap: 6px;
+}
+
+.historic-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-cream);
+  cursor: pointer;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+
+.historic-tool-btn:hover {
+  border-color: #d4a373;
+  background: rgba(212, 163, 115, 0.16);
+}
+
+.historic-tool-btn.active {
+  background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+  border-color: #fde047;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+}
+
+.historic-tool-btn.accent {
+  border-color: rgba(244, 114, 182, 0.45);
+  background: rgba(244, 114, 182, 0.12);
+  color: #fbcfe8;
+}
+
+.historic-tool-btn.accent:hover {
+  border-color: #f472b6;
+  background: rgba(244, 114, 182, 0.24);
+  color: #ffffff;
+}
+
+.sanborn-color-key-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.sanborn-key-header {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fde68a;
+}
+
+.sanborn-key-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+}
+
+.sanborn-key-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.sanborn-key-chip i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+}
+
+.sanborn-quick-launcher-row {
+  margin-top: 4px;
+}
+
+.sanborn-quick-launcher-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px dashed rgba(212, 163, 115, 0.48);
+  background: rgba(212, 163, 115, 0.09);
+  color: #fde68a;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sanborn-quick-launcher-btn:hover {
+  background: rgba(212, 163, 115, 0.2);
+  border-color: #fde047;
+  color: #ffffff;
+}
+
+/* LOC Sanborn Fire Insurance Sheet Browser Modal */
+.sanborn-modal-card {
+  width: min(1180px, 95vw);
+  max-width: min(1180px, 95vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.sanborn-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sanborn-browser-toolbar {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 12px;
+  align-items: end;
+}
+
+.sanborn-toolbar-left,
+.sanborn-toolbar-right {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sanborn-toolbar-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ph-green-light);
+}
+
+.sanborn-volume-meta-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(212, 163, 115, 0.35);
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.sanborn-browser-split {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 460px;
+}
+
+.sanborn-sheet-list-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 540px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border-subtle);
+  padding: 10px;
+}
+
+.sanborn-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sanborn-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sanborn-sheet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: all 0.14s ease;
+  text-align: left;
+  color: #f8fafc;
+}
+
+.sanborn-sheet-card:hover {
+  border-color: #d4a373;
+  background: rgba(212, 163, 115, 0.14);
+}
+
+.sanborn-sheet-card.active {
+  border-color: #fde047;
+  background: rgba(212, 163, 115, 0.25);
+  box-shadow: 0 0 0 1px rgba(253, 224, 71, 0.4);
+}
+
+.sanborn-sheet-thumb-wrap {
+  width: 100%;
+  height: 112px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sanborn-sheet-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sanborn-sheet-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #f8fafc;
+}
+
+.sanborn-sheet-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  padding: 12px;
+  min-width: 0;
+}
+
+.sanborn-preview-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sanborn-preview-header strong {
+  display: block;
+  font-size: 14px;
+  color: #fef3c7;
+}
+
+.sanborn-preview-header span {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.sanborn-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sanborn-preview-stage {
+  flex: 1 1 auto;
+  min-height: 360px;
+  max-height: 460px;
+  border-radius: 7px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.sanborn-preview-stage img {
+  max-width: 100%;
+  max-height: 440px;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+.sanborn-preview-footer {
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+/* Property Inspector: "Previous Historic Structures on This Site" Card */
+.lost-houston-site-card {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  background: linear-gradient(145deg, rgba(131, 24, 67, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px dashed rgba(244, 114, 182, 0.55);
+}
+
+.lost-houston-site-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #f472b6;
+  margin-bottom: 8px;
+}
+
+.lost-houston-site-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 7px;
+}
+
+.lost-houston-site-item:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 960px) {
+  .sanborn-browser-toolbar,
+  .sanborn-browser-split {
+    grid-template-columns: 1fr;
+  }
+}
+
