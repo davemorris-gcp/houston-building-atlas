@@ -923,7 +923,7 @@
                 type="button"
                 class="historic-tool-btn"
                 id="btn-toggle-spyglass"
-                title="Reveal the selected historical map inside a movable circular spyglass lens around your cursor to compare directly against 2026 building footprints"
+                title="Reveal the selected historical map inside a movable circular spyglass lens around your cursor (press [ and ] keys to shrink or enlarge lens)"
               >
                 &#128269; Spyglass Lens: OFF
               </button>
@@ -935,6 +935,20 @@
               >
                 &#128214; 629 LOC Sanborn Sheets
               </button>
+            </div>
+
+            <div class="historic-map-slider-wrap hidden" id="spyglass-radius-row" style="margin-top:6px;">
+              <label for="slider-spyglass-radius" class="slider-label">
+                Spyglass Lens Size (<span class="mono">[ / ]</span> keys): <strong class="mono" id="spyglass-radius-readout">152px</strong>
+              </label>
+              <input
+                type="range"
+                id="slider-spyglass-radius"
+                min="72"
+                max="360"
+                step="4"
+                value="152"
+              />
             </div>
 
             <div class="sanborn-color-key-box" id="sanborn-color-key-box">
@@ -1880,6 +1894,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261011r"></script>
+  <script type="module" src="js/app.js?v=20261011s"></script>
 </body>
 </html>

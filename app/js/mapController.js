@@ -2160,15 +2160,21 @@ export class AtlasMapController {
       }
     } else {
       spCanvas.style.zIndex = "1";
+      const ctrlContainer = container.querySelector(".maplibregl-control-container");
+      if (ctrlContainer && spCanvas.nextSibling !== ctrlContainer) {
+        container.insertBefore(spCanvas, ctrlContainer);
+      }
     }
 
+    const prev = this.spyglassState;
+    const initRadius = Number(this.filterStore?.getState?.()?.historicMapSpyglassRadius) || prev?.radius || 152;
     this.spyglassState = {
       canvas: spCanvas,
       ctx: spCanvas.getContext("2d"),
-      mouseX: null,
-      mouseY: null,
-      radius: 152,
-      tileCache: new Map(),
+      mouseX: prev ? prev.mouseX : null,
+      mouseY: prev ? prev.mouseY : null,
+      radius: initRadius,
+      tileCache: prev?.tileCache || new Map(),
     };
 
     const resizeSpyglass = () => {
@@ -2178,19 +2184,63 @@ export class AtlasMapController {
       this.spyglassState.canvas.height = container.clientHeight * dpr;
       this._renderSpyglassOverlay();
     };
-    window.addEventListener("resize", resizeSpyglass);
     resizeSpyglass();
 
-    container.addEventListener("mousemove", (e) => {
-      if (!this.spyglassState) return;
-      const rect = container.getBoundingClientRect();
-      this.spyglassState.mouseX = e.clientX - rect.left;
-      this.spyglassState.mouseY = e.clientY - rect.top;
-      const st = this.filterStore.getState();
-      if (st.layers?.historicMap && st.historicMapSpyglass) {
-        this._renderSpyglassOverlay();
-      }
-    });
+    if (!this._spyglassListenersAttached) {
+      this._spyglassListenersAttached = true;
+      window.addEventListener("resize", resizeSpyglass);
+
+      container.addEventListener("mousemove", (e) => {
+        if (!this.spyglassState) return;
+        const rect = container.getBoundingClientRect();
+        this.spyglassState.mouseX = e.clientX - rect.left;
+        this.spyglassState.mouseY = e.clientY - rect.top;
+        const st = this.filterStore.getState();
+        if (st.layers?.historicMap && st.historicMapSpyglass) {
+          this._renderSpyglassOverlay();
+        }
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const activeEl = document.activeElement;
+        if (activeEl) {
+          const tag = (activeEl.tagName || "").toUpperCase();
+          if (tag === "TEXTAREA" || activeEl.isContentEditable) return;
+          if (tag === "INPUT") {
+            const inputType = (activeEl.type || "text").toLowerCase();
+            if (
+              inputType !== "range" &&
+              inputType !== "checkbox" &&
+              inputType !== "radio" &&
+              inputType !== "button"
+            ) {
+              return;
+            }
+          }
+        }
+        const st = this.filterStore?.getState?.();
+        if (!st?.layers?.historicMap || !st?.historicMapSpyglass) return;
+
+        let delta = 0;
+        if (e.key === "[" || e.key === "{" || e.code === "BracketLeft") {
+          delta = -20;
+        } else if (e.key === "]" || e.key === "}" || e.code === "BracketRight") {
+          delta = 20;
+        }
+        if (delta !== 0) {
+          e.preventDefault();
+          const curRadius =
+            Number(st.historicMapSpyglassRadius) || this.spyglassState?.radius || 152;
+          const nextRadius = Math.max(72, Math.min(360, curRadius + delta));
+          if (this.spyglassState) {
+            this.spyglassState.radius = nextRadius;
+          }
+          this.filterStore.setState({ historicMapSpyglassRadius: nextRadius });
+          this._renderSpyglassOverlay();
+        }
+      });
+    }
   }
 
   _renderSpyglassOverlay() {
@@ -2214,7 +2264,8 @@ export class AtlasMapController {
 
     const cx = Number.isFinite(sp.mouseX) ? sp.mouseX : width * 0.52;
     const cy = Number.isFinite(sp.mouseY) ? sp.mouseY : height * 0.48;
-    const r = sp.radius || 152;
+    const r = Math.max(72, Math.min(360, Number(state.historicMapSpyglassRadius) || sp.radius || 152));
+    sp.radius = r;
 
     let vpLng = -95.3635;
     let vpLat = 29.7595;

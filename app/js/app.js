@@ -18,8 +18,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261011f";
-import { AtlasMapController } from "./mapController.js?v=20261011r";
+} from "./filterStore.js?v=20261011s";
+import { AtlasMapController } from "./mapController.js?v=20261011s";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
 import {
   applyOverrideToProperties,
@@ -1804,6 +1804,17 @@ class HoustonAtlasApp {
             historicMap: true,
           },
         });
+      });
+    }
+
+    const spyglassRadiusSlider = document.getElementById("slider-spyglass-radius");
+    if (spyglassRadiusSlider) {
+      spyglassRadiusSlider.addEventListener("input", (e) => {
+        const val = Math.max(72, Math.min(360, parseInt(e.target.value, 10) || 152));
+        const readout = document.getElementById("spyglass-radius-readout");
+        if (readout) readout.textContent = `${val}px`;
+        this.filterStore.setState({ historicMapSpyglassRadius: val });
+        this.mapController?._renderSpyglassOverlay?.();
       });
     }
 
@@ -4295,12 +4306,28 @@ class HoustonAtlasApp {
       }
     }
     const btnToggleSpyglass = document.getElementById("btn-toggle-spyglass");
+    const spyOn = Boolean(state.historicMapSpyglass);
     if (btnToggleSpyglass) {
-      const spyOn = Boolean(state.historicMapSpyglass);
       btnToggleSpyglass.classList.toggle("active", spyOn);
       btnToggleSpyglass.innerHTML = spyOn
         ? `&#128269; Spyglass Lens: ON`
         : `&#128269; Spyglass Lens: OFF`;
+    }
+    const spyglassRadiusRow = document.getElementById("spyglass-radius-row");
+    if (spyglassRadiusRow) {
+      spyglassRadiusRow.classList.toggle("hidden", !spyOn);
+    }
+    const spyglassRadiusVal = Math.max(
+      72,
+      Math.min(360, Number(state.historicMapSpyglassRadius) || 152)
+    );
+    const spyglassRadiusSlider = document.getElementById("slider-spyglass-radius");
+    if (spyglassRadiusSlider && Number(spyglassRadiusSlider.value) !== spyglassRadiusVal) {
+      spyglassRadiusSlider.value = String(spyglassRadiusVal);
+    }
+    const spyglassRadiusReadout = document.getElementById("spyglass-radius-readout");
+    if (spyglassRadiusReadout) {
+      spyglassRadiusReadout.textContent = `${spyglassRadiusVal}px`;
     }
     const histOpacitySlider = document.getElementById("slider-historic-map-opacity");
     const histOpacityVal = Math.max(15, Math.min(100, Number(state.historicMapOpacity) || 75));

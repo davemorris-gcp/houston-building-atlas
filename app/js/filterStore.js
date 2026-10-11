@@ -23,6 +23,7 @@ export const DEFAULT_FILTER_STATE = {
   historicMapId: "sanborn_1907", // active historical / Sanborn raster map ID from HISTORICAL_MAP_CATALOG
   historicMapOpacity: 82, // 15..100 opacity percentage for the Historical / Sanborn Map overlay
   historicMapSpyglass: false, // when true, reveals the historical map inside a movable circular spyglass lens
+  historicMapSpyglassRadius: 152, // 72..360px radius for the circular spyglass lens (adjusted via [ / ] keys or slider)
   historicalSnapshotMode: false, // when true, hides structures not yet built or already demolished at maxYear
   wardEra: 1903, // 1839 | 1866 | 1896 | 1903 (1903-1905 Final Aldermanic Charter)
   showAnnexationSpokes: true, // include 1963 10-ft highway ETJ spokes & 2000s-2010s MUD SPA commercial strips
