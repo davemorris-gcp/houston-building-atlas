@@ -6601,7 +6601,13 @@ class HoustonAtlasApp {
     const histSourceLabel = String(
       histContractObj?.source_title || histContractObj?.source || props.builder_source || (histPermitVal ? "COH Historic Building Permit / Landmark Dossier" : "")
     ).trim();
-    const histSourceUrl = String(histContractObj?.source_url || "").trim();
+    const histSourceUrl = String(histContractObj?.source_url || props.source_url || "")
+      .trim()
+      .replace(
+        /^https?:\/\/digital\.houstonlibrary\.org\/digital\//i,
+        "https://cdm17006.contentdm.oclc.org/digital/"
+      );
+    const histImageUrl = String(histContractObj?.image_url || "").trim();
     const histSubcontractorsVal = String(histContractObj?.subcontractors || "").trim();
     const histNotesVal = String(histContractObj?.scope || histContractObj?.notes || "").trim();
     const wasRelocatedFlag = Boolean(props.was_relocated);
@@ -6681,11 +6687,18 @@ class HoustonAtlasApp {
                 histSourceLabel
                   ? `<div class="hist-contract-source-line">
                       <span><strong>Archival Source:</strong> ${histSourceLabel}</span>
-                      ${
-                        histSourceUrl
-                          ? `<a href="${histSourceUrl}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View HMRC Archive Page &#8599;</a>`
-                          : ""
-                      }
+                      <div class="hist-contract-source-actions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+                        ${
+                          histSourceUrl
+                            ? `<a href="${histSourceUrl}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View HMRC Archive Page &#8599;</a>`
+                            : ""
+                        }
+                        ${
+                          histImageUrl
+                            ? `<a href="${histImageUrl}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View Scanned Page (.JPG) &#8599;</a>`
+                            : ""
+                        }
+                      </div>
                     </div>`
                   : ""
               }
