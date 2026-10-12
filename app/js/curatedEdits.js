@@ -212,7 +212,15 @@ export function parseOverridesFromSheetRows(rows) {
       decade: computeNormalizedDecade(yearBuilt),
       original_hcad_year: origYrRaw >= 1830 ? Math.round(origYrRaw) : 0,
       bld_style: rawStyle,
-      architect: String(row.architect || row.builder || "").trim(),
+      architect: String(row.architect || "").trim(),
+      builder: String(row.builder || row.contractor || row.general_contractor || "").trim(),
+      builder_source: String(row.builder_source || "").trim(),
+      engineers: String(row.engineers || "").trim(),
+      original_permit: String(row.original_permit || "").trim(),
+      original_cost: String(row.original_cost || "").trim(),
+      yr_remodel: Number(row.yr_remodel) || 0,
+      eff_year_built: Number(row.eff_year_built) || 0,
+      was_relocated: Boolean(row.was_relocated),
       landmark_name: rawLandmarkName,
       building_name: rawBuildingName,
       ...(parsedAltNames.length ? { alt_names: parsedAltNames } : {}),
@@ -475,6 +483,16 @@ export function applyOverrideToProperties(props, overridesMap) {
     contributing: ov.contributing || props.contributing || "",
     bld_style: ov.bld_style || props.bld_style || "",
     architect: ov.architect || props.architect || "",
+    builder: ov.builder || props.builder || "",
+    builder_source: ov.builder_source || props.builder_source || "",
+    engineers: ov.engineers || props.engineers || "",
+    original_permit: ov.original_permit || props.original_permit || "",
+    original_cost: ov.original_cost || props.original_cost || "",
+    yr_remodel: Number(ov.yr_remodel) || Number(props.yr_remodel) || 0,
+    eff_year_built: Number(ov.eff_year_built) || Number(props.eff_year_built) || 0,
+    was_relocated: Boolean(ov.was_relocated || props.was_relocated),
+    relocation_note: ov.relocation_note || props.relocation_note || "",
+    hist_contract: ov.hist_contract || props.hist_contract || null,
     landmark_name:
       (isGbPoint && props.landmark_name) || ov.landmark_name || props.landmark_name || "",
     building_name:
@@ -534,6 +552,8 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
   const footprintIssue = String(payload.footprint_issue || "").trim();
   const footprintNotes = String(payload.footprint_notes || "").trim();
   const suggestedBldName = String(payload.building_name || "").trim();
+  const suggestedBuilder = String(payload.builder || "").trim();
+  const suggestedPermitInfo = String(payload.permit_info || "").trim();
   const rawCitation = String(payload.source_citation || "").trim();
   const rawSourceType = String(payload.source_type || "Houston City Directory").trim();
   const satelliteUrl = String(payload.satellite_url || "").trim();
@@ -552,9 +572,15 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
   if (suggestedBldName) {
     citationParts.push(`[BUILDING NAME / HISTORICAL ALIAS]: ${suggestedBldName}`);
   }
+  if (suggestedBuilder) {
+    citationParts.push(`[BUILDER / CONTRACTOR]: ${suggestedBuilder}`);
+  }
+  if (suggestedPermitInfo) {
+    citationParts.push(`[PERMIT / CONTRACT RECORD]: ${suggestedPermitInfo}`);
+  }
   if (footprintIssue || footprintNotes) {
     citationParts.push(
-      `[FOOTPRINT / SHAPE ISSUE — ${footprintIssue || "Geometry Error"}]: ${
+      `[FOOTPRINT / SHAPE ISSUE - ${footprintIssue || "Geometry Error"}]: ${
         footprintNotes || "Flagged for building footprint review."
       }`
     );
@@ -574,6 +600,8 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
     suggested_year_built: suggestedYr,
     bld_style: String(payload.bld_style || "").trim(),
     architect: String(payload.architect || "").trim(),
+    builder: suggestedBuilder,
+    permit_info: suggestedPermitInfo,
     source_type: effectiveSourceType,
     source_citation: citationParts.join(" | "),
     source_url: String(payload.source_url || satelliteUrl || "").trim(),

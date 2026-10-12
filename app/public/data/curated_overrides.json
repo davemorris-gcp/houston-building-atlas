@@ -79,7 +79,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2006,
+      "eff_year_built": 1920
     },
     "0011010000001": {
       "id": "0011010000001",
@@ -744,7 +746,22 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "builder": "H. L. Stevens & Company",
+      "builder_source": "Harris County Commissioners Court Minutes / NRHP Inventory",
+      "engineers": "Lang & Witchell (Supervising Engineers)",
+      "original_cost": "$500,000",
+      "original_permit": "Harris County Commissioners Court Contract (1909)",
+      "hist_contract": {
+        "date": "1909 - 1910 (Restored 2011; Remodeled May 1923)",
+        "cost": "$500,000 (1910 Original) | $17,910 (1923 Remodel) | $50,000,000 (2011 Restoration)",
+        "architect": "Lang & Witchell (1910); Endress & Cato (1923); PGAL / ArchiTexas (2011)",
+        "builder": "H. L. Stevens & Company (1910); E. D. Harlow & Son (1923); Vaughn Construction (2011)",
+        "other_bidders": "1923 Courthouse Remodel Bids: E. D. Harlow & Son ($17,910, awarded); Chas. Dahl ($19,420); Andrew Ness ($24,137); Fred B. Chambers ($26,650); W. E. Woodruff ($27,546)",
+        "scope": "6-story Beaux-Arts pink Texas granite and terra-cotta county courthouse with monumental rotunda dome",
+        "source_title": "T.G.C.A. Monthly Bulletin, Vol. 4, No. 5 (May 1923), p. 24 & NRHP Nomination",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16184"
+      }
     },
     "0010110000010": {
       "id": "0010110000010",
@@ -1896,7 +1913,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "G. H. Pare & Associates / Tellepsen Construction Company",
+      "builder_source": "Houston Endowment / AIA Pritzker Honor Award Citation",
+      "engineers": "Lockwood, Andrews & Newnam (Structural/MEP); Bolt Beranek & Newman (Acoustics)",
+      "original_cost": "$7,400,000"
     },
     "0010650000001": {
       "id": "0010650000001",
@@ -2155,7 +2176,11 @@
       ],
       "super_neighborhood": "Downtown",
       "subdivision": "Ssbb",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "American Construction Company (1911 Union Station) & Brown & Root / Barton Malow / Empire Construction (2000 Ballpark)",
+      "builder_source": "COH Landmark Report / Harris County-Houston Sports Authority",
+      "engineers": "Walter P Moore & Associates (Retractable Roof Structural Engineer)",
+      "original_cost": "$500,000 (1911 Station) | $250,000,000 (2000 Ballpark)"
     },
     "1372190010001": {
       "id": "1372190010001",
@@ -5394,7 +5419,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2025,
+      "eff_year_built": 2002
     },
     "1350780010002": {
       "id": "1350780010002",
@@ -7645,7 +7672,21 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "American Construction Company",
+      "builder_source": "Houston Public Library / HMRC Architectural Archives",
+      "engineers": "Robert J. Cummins (Structural Engineer)",
+      "original_cost": "$500,000",
+      "original_permit": "COH Library Construction Contract (1925)",
+      "hist_contract": {
+        "date": "1925 - October 18, 1926",
+        "cost": "$500,000 (Original 1926 Building) | $32,000,000 (2010 Wing & Restoration)",
+        "architect": "Cram & Ferguson; William Ward Watkin; Louis A. Glover",
+        "builder": "American Construction Company (1926); Vaughn Construction (2010 Restoration)",
+        "engineers": "Robert J. Cummins (Structural)",
+        "scope": "3-story Spanish Renaissance Revival central public library in limestone, brick, and stucco",
+        "source_title": "HMRC Institutional Building Records / 2012 Good Brick Award Citation"
+      }
     },
     "1319030010001": {
       "id": "1319030010001",
@@ -9782,7 +9823,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 2003
     },
     "1288260010010": {
       "id": "1288260010010",
@@ -52299,7 +52342,7 @@
       "stories": 50,
       "height_m": 190.0,
       "bld_style": "modern architecture",
-      "architect": "",
+      "architect": "Skidmore, Owings & Merrill; Wilson, Morris, Crain & Anderson",
       "source_type": "OpenStreetMap & Wikidata Architectural Registry",
       "source_citation": "Verified construction year 1971 via OpenStreetMap (way/44821986) and Wikidata (Q1537698).",
       "source_url": "https://www.wikidata.org/wiki/Q1537698",
@@ -52356,7 +52399,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "W. S. Bellows Construction Corporation",
+      "builder_source": "W. S. Bellows Construction Corp. Historical Portfolio",
+      "engineers": "Skidmore, Owings & Merrill (Fazlur Rahman Khan, Structural)",
+      "original_cost": "$35,000,000"
     },
     "osm_city_44821987#bldg_wells_fargo_plaza": {
       "id": "osm_city_44821987#bldg_wells_fargo_plaza",
@@ -52571,7 +52618,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "Miner-Turner Joint Venture (Turner Construction & Miner-Dederick)",
+      "builder_source": "Engineering News-Record / Century Development",
+      "engineers": "Skidmore, Owings & Merrill (Structural)",
+      "original_cost": "$185,000,000"
     },
     "osm_city_45493275#bldg_lowe_s": {
       "id": "osm_city_45493275#bldg_lowe_s",
@@ -56311,7 +56362,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "Turner Construction Company",
+      "builder_source": "Gerald D. Hines Interests / Engineering News-Record",
+      "engineers": "CBM Engineers, Inc. (Structural); I. A. Naman + Associates (MEP)",
+      "original_cost": "$125,000,000"
     },
     "osm_city_54357942#bldg_ironworks": {
       "id": "osm_city_54357942#bldg_ironworks",
@@ -56614,7 +56669,7 @@
       "stories": 3,
       "height_m": 11.399999999999999,
       "bld_style": "Historical / Architectural Structure",
-      "architect": "",
+      "architect": "Ulrich Franzen & Associates; MacKie & Kamrath",
       "source_type": "OpenStreetMap & Wikidata Architectural Registry",
       "source_citation": "Verified construction year 1947 via OpenStreetMap (way/54369011) and Wikidata (Q3612530).",
       "source_url": "https://www.wikidata.org/wiki/Q3612530",
@@ -57069,7 +57124,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "W. S. Bellows Construction Corporation",
+      "builder_source": "W. S. Bellows Construction Corp. / Alley Theatre Archives",
+      "engineers": "Weiskopf & Pickworth (Structural)",
+      "original_cost": "$3,500,000"
     },
     "osm_city_54369992#bldg_1600_smith_street": {
       "id": "osm_city_54369992#bldg_1600_smith_street",
@@ -114393,7 +114452,7 @@
       "stories": 2,
       "height_m": 9.0,
       "bld_style": "modern architecture",
-      "architect": "",
+      "architect": "M. Nasr & Partners",
       "source_type": "OpenStreetMap & Wikidata Architectural Registry",
       "source_citation": "Verified construction year 1987 via OpenStreetMap (way/1512782864) and Wikidata (Q1510199).",
       "source_url": "https://www.wikidata.org/wiki/Q1510199",
@@ -114473,7 +114532,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "W. S. Bellows Construction Corporation",
+      "builder_source": "W. S. Bellows Construction Corp. Historical Portfolio",
+      "engineers": "CBM Engineers, Inc.",
+      "original_cost": "$140,000,000"
     },
     "0410070140045#uh_1547743703_hobby_school_of_public_a": {
       "id": "0410070140045#uh_1547743703_hobby_school_of_public_a",
@@ -129878,7 +129941,9 @@
       "subdivision": "Holman Outlot",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$2000.12"
     },
     "0201660000034": {
       "id": "0201660000034",
@@ -649940,7 +650005,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2010,
+      "eff_year_built": 1920
     },
     "0523010000002": {
       "hcad_num": "0523010000002",
@@ -650029,7 +650096,9 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2022,
+      "eff_year_built": 1952
     },
     "0442250000170": {
       "hcad_num": "0442250000170",
@@ -650206,7 +650275,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2018,
+      "eff_year_built": 2013
     },
     "0400480000011": {
       "hcad_num": "0400480000011",
@@ -650283,7 +650354,9 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2023,
+      "eff_year_built": 1875
     },
     "0560670000038": {
       "hcad_num": "0560670000038",
@@ -650344,7 +650417,9 @@
       "neighborhood": "Southside Place",
       "neighborhood_aliases": [
         "Rice Village"
-      ]
+      ],
+      "yr_remodel": 2023,
+      "eff_year_built": 1938
     },
     "0212420000001": {
       "hcad_num": "0212420000001",
@@ -650580,7 +650655,9 @@
         "Cherokee",
         "Southampton Civic Club"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2002,
+      "eff_year_built": 1956
     },
     "0731870000043": {
       "hcad_num": "0731870000043",
@@ -650654,7 +650731,8 @@
         "Mid West",
         "Richmond Avenue Merchants Association"
       ],
-      "super_neighborhood": "Mid West"
+      "super_neighborhood": "Mid West",
+      "eff_year_built": 1976
     },
     "0431870000010": {
       "hcad_num": "0431870000010",
@@ -650938,7 +651016,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1995,
+      "eff_year_built": 1885
     },
     "0052000000006": {
       "hcad_num": "0052000000006",
@@ -651101,7 +651181,9 @@
         "University Place",
         "Old Braeswood Civic Club"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2021,
+      "eff_year_built": 1956
     },
     "0410460010017": {
       "hcad_num": "0410460010017",
@@ -651359,7 +651441,8 @@
       "subdivision": "Empire",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1998
     },
     "0370340000003": {
       "hcad_num": "0370340000003",
@@ -651434,7 +651517,11 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$800,",
+      "yr_remodel": 2019,
+      "eff_year_built": 1907
     },
     "0551960000005": {
       "hcad_num": "0551960000005",
@@ -651575,7 +651662,9 @@
         "Meyerland",
         "Southwest Security Association"
       ],
-      "super_neighborhood": "Meyerland Area"
+      "super_neighborhood": "Meyerland Area",
+      "yr_remodel": 2020,
+      "eff_year_built": 1965
     },
     "0200130000012": {
       "hcad_num": "0200130000012",
@@ -651891,7 +651980,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1885
     },
     "0190900000001": {
       "hcad_num": "0190900000001",
@@ -652245,7 +652336,8 @@
         "Meyerland",
         "Southwest Security Association"
       ],
-      "super_neighborhood": "Meyerland Area"
+      "super_neighborhood": "Meyerland Area",
+      "eff_year_built": 1960
     },
     "0371650000001": {
       "hcad_num": "0371650000001",
@@ -652505,7 +652597,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2017,
+      "eff_year_built": 1935
     },
     "0160440000008": {
       "hcad_num": "0160440000008",
@@ -652825,7 +652919,9 @@
         "Timberlane Terrace",
         "Saddlebrook Square"
       ],
-      "super_neighborhood": "Greater Uptown"
+      "super_neighborhood": "Greater Uptown",
+      "yr_remodel": 2019,
+      "eff_year_built": 1968
     },
     "0010010000013": {
       "hcad_num": "0010010000013",
@@ -653037,7 +653133,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2020,
+      "eff_year_built": 1910
     },
     "0020110000005": {
       "hcad_num": "0020110000005",
@@ -653193,7 +653291,8 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "eff_year_built": 1906
     },
     "0502350010001": {
       "hcad_num": "0502350010001",
@@ -653294,7 +653393,8 @@
         "Neartown - Montrose",
         "Lancaster Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "eff_year_built": 1932
     },
     "0601530360005": {
       "hcad_num": "0601530360005",
@@ -653373,7 +653473,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2007,
+      "eff_year_built": 1932
     },
     "0201010000014": {
       "hcad_num": "0201010000014",
@@ -653519,7 +653621,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2019,
+      "eff_year_built": 1900
     },
     "0090480000029": {
       "hcad_num": "0090480000029",
@@ -653589,7 +653693,9 @@
         "Northside Village"
       ],
       "super_neighborhood": "Near Northside",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2021,
+      "eff_year_built": 1915
     },
     "0051390000001": {
       "hcad_num": "0051390000001",
@@ -653665,7 +653771,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1930
     },
     "0401230000044": {
       "hcad_num": "0401230000044",
@@ -653767,7 +653875,11 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$96,815",
+      "yr_remodel": 2020,
+      "eff_year_built": 2012
     },
     "0601480240002": {
       "hcad_num": "0601480240002",
@@ -653843,7 +653955,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2020,
+      "eff_year_built": 1936
     },
     "0140650000001": {
       "hcad_num": "0140650000001",
@@ -654155,7 +654269,9 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2022,
+      "eff_year_built": 1920
     },
     "0052150000002": {
       "hcad_num": "0052150000002",
@@ -654409,7 +654525,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2018,
+      "eff_year_built": 1926
     },
     "0522230000006": {
       "hcad_num": "0522230000006",
@@ -654477,7 +654595,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2017,
+      "eff_year_built": 1930
     },
     "0552000000033": {
       "hcad_num": "0552000000033",
@@ -654633,7 +654753,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2010,
+      "eff_year_built": 1930
     },
     "0090800000010": {
       "hcad_num": "0090800000010",
@@ -654765,7 +654887,8 @@
         "Third Ward",
         "Historic Riverside Terrace Civic Association"
       ],
-      "super_neighborhood": "Macgregor"
+      "super_neighborhood": "Macgregor",
+      "eff_year_built": 1936
     },
     "0820680000028": {
       "hcad_num": "0820680000028",
@@ -655461,7 +655584,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2001,
+      "eff_year_built": 1890
     },
     "0052010000005": {
       "hcad_num": "0052010000005",
@@ -655562,7 +655687,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2018,
+      "eff_year_built": 1905
     },
     "0410010020002": {
       "hcad_num": "0410010020002",
@@ -655668,7 +655795,8 @@
       "subdivision": "Ssbb",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1979
     },
     "0131200000004": {
       "hcad_num": "0131200000004",
@@ -655751,7 +655879,9 @@
         "Lyons Avenue Corridor",
         "Frenchtown"
       ],
-      "super_neighborhood": "Greater Fifth Ward"
+      "super_neighborhood": "Greater Fifth Ward",
+      "yr_remodel": 2018,
+      "eff_year_built": 1953
     },
     "0090810000005": {
       "hcad_num": "0090810000005",
@@ -656074,7 +656204,8 @@
         "Lawndale - Wayside",
         "East Lawndale Civic Association"
       ],
-      "super_neighborhood": "Lawndale / Wayside"
+      "super_neighborhood": "Lawndale / Wayside",
+      "eff_year_built": 1939
     },
     "0102490000003": {
       "hcad_num": "0102490000003",
@@ -656148,7 +656279,9 @@
         "Courtlandt Place Civic Association"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1910
     },
     "0202300000001": {
       "hcad_num": "0202300000001",
@@ -656222,7 +656355,9 @@
         "Greater Heights",
         "Houston Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2000,
+      "eff_year_built": 1925
     },
     "0010800000013": {
       "hcad_num": "0010800000013",
@@ -656317,7 +656452,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2019,
+      "eff_year_built": 2010
     },
     "0202450000027": {
       "hcad_num": "0202450000027",
@@ -656419,7 +656556,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2021,
+      "eff_year_built": 1920
     },
     "0300430000015": {
       "hcad_num": "0300430000015",
@@ -656488,7 +656627,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1920
     },
     "0401760010002": {
       "hcad_num": "0401760010002",
@@ -656682,7 +656823,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2014,
+      "eff_year_built": 1932
     },
     "0051440000004": {
       "hcad_num": "0051440000004",
@@ -656755,7 +656898,8 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "eff_year_built": 1902
     },
     "0191150000001": {
       "hcad_num": "0191150000001",
@@ -657127,7 +657271,10 @@
         "Project Row Houses Area"
       ],
       "super_neighborhood": "Greater Third Ward",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$100,000",
+      "eff_year_built": 1938
     },
     "0141700000001": {
       "hcad_num": "0141700000001",
@@ -657353,7 +657500,9 @@
         "Shadow Lawn",
         "Southampton Civic Club"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2015,
+      "eff_year_built": 1929
     },
     "0611980000036": {
       "hcad_num": "0611980000036",
@@ -657485,7 +657634,8 @@
         "Schrimpf's Field",
         "East End"
       ],
-      "super_neighborhood": "Second Ward"
+      "super_neighborhood": "Second Ward",
+      "eff_year_built": 1942
     },
     "0410100020031": {
       "hcad_num": "0410100020031",
@@ -657896,7 +658046,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2016,
+      "eff_year_built": 1885
     },
     "0370290000003": {
       "hcad_num": "0370290000003",
@@ -658113,7 +658265,23 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "George T. Broun",
+      "builder_source": "Texas General Contractors Bulletin (March 1923, p. 31)",
+      "original_cost": "$8,500",
+      "original_permit": "TGCA Contract Award (March 1923)",
+      "hist_contract": {
+        "date": "March 1923",
+        "cost": "$8,500",
+        "owner": "E. H. Lightfoot",
+        "builder": "George T. Broun",
+        "scope": "1-story stucco residence at 3702 Audubon for E. H. Lightfoot",
+        "source_title": "T.G.C.A. Monthly Bulletin (March 1923, p. 31)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16139",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16139/full/pct:75/0/default.jpg"
+      },
+      "yr_remodel": 2016,
+      "eff_year_built": 1922
     },
     "0141800000010": {
       "hcad_num": "0141800000010",
@@ -658309,7 +658477,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2016,
+      "eff_year_built": 2001
     },
     "0400860000010": {
       "hcad_num": "0400860000010",
@@ -658408,7 +658578,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 2006
     },
     "0051280000013": {
       "hcad_num": "0051280000013",
@@ -658493,7 +658665,8 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "eff_year_built": 1930
     },
     "0051470000011": {
       "hcad_num": "0051470000011",
@@ -658648,7 +658821,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 1930
     },
     "0550130000005": {
       "hcad_num": "0550130000005",
@@ -658801,7 +658976,9 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2019,
+      "eff_year_built": 1920
     },
     "0030370000026": {
       "hcad_num": "0030370000026",
@@ -658935,7 +659112,11 @@
         "Warehouse District South"
       ],
       "super_neighborhood": "Second Ward",
-      "historic_ward": "Second Ward"
+      "historic_ward": "Second Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 1960,
+      "was_relocated": true,
+      "relocation_note": "12/10/2013: NEW FOUNDATION (Permit #1380357)"
     },
     "0131580000018": {
       "hcad_num": "0131580000018",
@@ -659060,7 +659241,9 @@
         "First Montrose Commons Historic District"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1970,
+      "eff_year_built": 1920
     },
     "1374310010001": {
       "hcad_num": "1374310010001",
@@ -659123,7 +659306,8 @@
       "building_name": "New Hope Housing at Brays Crossing",
       "name_source": "Preservation Houston Good Brick Award",
       "subdivision": "Crain Square",
-      "neighborhood": "Southside Place"
+      "neighborhood": "Southside Place",
+      "eff_year_built": 2023
     },
     "0382430000007": {
       "hcad_num": "0382430000007",
@@ -659201,7 +659385,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2009,
+      "eff_year_built": 1922
     },
     "0052310000001": {
       "hcad_num": "0052310000001",
@@ -659309,7 +659495,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2004,
+      "eff_year_built": 1890
     },
     "0051910000001": {
       "hcad_num": "0051910000001",
@@ -659607,7 +659795,9 @@
         "Sunset Heights"
       ],
       "super_neighborhood": "Greater Heights",
-      "subdivision": "Houston Heights"
+      "subdivision": "Houston Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 2002
     },
     "0051800000015": {
       "hcad_num": "0051800000015",
@@ -659679,7 +659869,11 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2013,
+      "eff_year_built": 1965,
+      "was_relocated": true,
+      "relocation_note": "05/13/2013: RESIDENTIAL HOUSE MOVING (Permit #1353076)"
     },
     "0601510000002": {
       "hcad_num": "0601510000002",
@@ -659758,7 +659952,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2020,
+      "eff_year_built": 1950
     },
     "0030370000008": {
       "hcad_num": "0030370000008",
@@ -659838,7 +660034,11 @@
         "Warehouse District South"
       ],
       "super_neighborhood": "Second Ward",
-      "historic_ward": "Second Ward"
+      "historic_ward": "Second Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 1955,
+      "was_relocated": true,
+      "relocation_note": "12/10/2013: NEW FOUNDATION FOR HOUSE MOVE IN (Permit #1380358)"
     },
     "0410170050182": {
       "hcad_num": "0410170050182",
@@ -659899,7 +660099,8 @@
       "neighborhood_aliases": [
         "Greenway Plaza"
       ],
-      "super_neighborhood": "Greenway / Upper Kirby Area"
+      "super_neighborhood": "Greenway / Upper Kirby Area",
+      "eff_year_built": 2004
     },
     "0601400000004": {
       "hcad_num": "0601400000004",
@@ -659986,7 +660187,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2021,
+      "eff_year_built": 1935
     },
     "0601610760003": {
       "hcad_num": "0601610760003",
@@ -660053,7 +660256,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2013,
+      "eff_year_built": 1942
     },
     "0601590560024": {
       "hcad_num": "0601590560024",
@@ -660147,7 +660352,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2010,
+      "eff_year_built": 1950
     },
     "0730040310003": {
       "hcad_num": "0730040310003",
@@ -660210,7 +660417,9 @@
       "neighborhood_aliases": [
         "Southwest Civic Club"
       ],
-      "super_neighborhood": "Braeswood"
+      "super_neighborhood": "Braeswood",
+      "yr_remodel": 2012,
+      "eff_year_built": 1953
     },
     "0172220000011": {
       "hcad_num": "0172220000011",
@@ -660286,7 +660495,8 @@
       ],
       "landuse_desc": "Cultural Facility",
       "subdivision": "Humble",
-      "neighborhood": "Humble"
+      "neighborhood": "Humble",
+      "eff_year_built": 1930
     },
     "1268530020001": {
       "hcad_num": "1268530020001",
@@ -660356,7 +660566,11 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2011,
+      "eff_year_built": 1980,
+      "was_relocated": true,
+      "relocation_note": "01/14/2011: NEW RESIDENTIAL FOUNDATION FOR MOVE-IN HOUSE (Permit #1)"
     },
     "0431480000165": {
       "hcad_num": "0431480000165",
@@ -661709,7 +661923,8 @@
       "use_category": "Civic / Institutional",
       "building_name": "Lee Davis Library",
       "name_source": "Preservation Houston Good Brick Award",
-      "landuse_desc": "Library"
+      "landuse_desc": "Library",
+      "eff_year_built": 2011
     },
     "0530380000004": {
       "hcad_num": "0530380000004",
@@ -661786,7 +662001,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2011,
+      "eff_year_built": 1928
     },
     "0031940000001": {
       "hcad_num": "0031940000001",
@@ -661968,7 +662185,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2013,
+      "eff_year_built": 1885
     },
     "0250400000180": {
       "hcad_num": "0250400000180",
@@ -662060,7 +662279,8 @@
       "neighborhood_aliases": [
         "Old West End"
       ],
-      "super_neighborhood": "Washington Avenue Coalition / Memorial Park"
+      "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
+      "eff_year_built": 1991
     },
     "0943060000010": {
       "hcad_num": "0943060000010",
@@ -662155,7 +662375,9 @@
         "Meyerland",
         "Southwest Security Association"
       ],
-      "super_neighborhood": "Meyerland Area"
+      "super_neighborhood": "Meyerland Area",
+      "yr_remodel": 2019,
+      "eff_year_built": 1964
     },
     "0770520000001": {
       "hcad_num": "0770520000001",
@@ -662252,7 +662474,9 @@
         "Norhill",
         "Brookesmith"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2013,
+      "eff_year_built": 1920
     },
     "0360350000006": {
       "hcad_num": "0360350000006",
@@ -662320,7 +662544,9 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2011,
+      "eff_year_built": 1926
     },
     "0530390000028": {
       "hcad_num": "0530390000028",
@@ -662448,7 +662674,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2011,
+      "eff_year_built": 1926
     },
     "1286060010001": {
       "hcad_num": "1286060010001",
@@ -662561,7 +662789,8 @@
         "Discovery Green Park"
       ],
       "subdivision": "Spring Cypress Commerce Development",
-      "neighborhood": "Gleannloch Farms"
+      "neighborhood": "Gleannloch Farms",
+      "eff_year_built": 2005
     },
     "0201980000013": {
       "hcad_num": "0201980000013",
@@ -662720,7 +662949,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 2002
     },
     "0440820030119": {
       "hcad_num": "0440820030119",
@@ -662783,7 +663014,8 @@
       "building_name": "The American Brakeshoe Company Building",
       "name_source": "COH Landmark Designation Report",
       "neighborhood": "Lazy Brook - Timbergrove",
-      "super_neighborhood": "Lazybrook / Timbergrove"
+      "super_neighborhood": "Lazybrook / Timbergrove",
+      "eff_year_built": 1965
     },
     "0420940000025": {
       "hcad_num": "0420940000025",
@@ -662946,7 +663178,11 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2012,
+      "eff_year_built": 2000,
+      "was_relocated": true,
+      "relocation_note": "06/11/2012: S.F. RESIDENTIAL FOUNDATION MOVE-IN (Permit #1312859)"
     },
     "0050060000015": {
       "hcad_num": "0050060000015",
@@ -663132,7 +663368,8 @@
       "subdivision": "Holman Outlot",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1999
     },
     "0162010000004": {
       "hcad_num": "0162010000004",
@@ -663222,7 +663459,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2011,
+      "eff_year_built": 2001
     },
     "0530440000002": {
       "hcad_num": "0530440000002",
@@ -663331,7 +663570,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2011,
+      "eff_year_built": 1936
     },
     "0601340000010": {
       "hcad_num": "0601340000010",
@@ -663423,7 +663664,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2011,
+      "eff_year_built": 1938
     },
     "0601530360007": {
       "hcad_num": "0601530360007",
@@ -663506,7 +663749,11 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 2013,
+      "eff_year_built": 1946
     },
     "0372670000021": {
       "hcad_num": "0372670000021",
@@ -663575,7 +663822,9 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2009,
+      "eff_year_built": 1924
     },
     "1361610000001": {
       "hcad_num": "1361610000001",
@@ -663659,7 +663908,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2012,
+      "eff_year_built": 1999
     },
     "0812870000012": {
       "hcad_num": "0812870000012",
@@ -663743,7 +663994,9 @@
         "Glenbrook Valley Civic Club",
         "Hobby Mid-Century Modern District"
       ],
-      "super_neighborhood": "Golfcrest / Bellfort / Reveille"
+      "super_neighborhood": "Golfcrest / Bellfort / Reveille",
+      "yr_remodel": 2012,
+      "eff_year_built": 1955
     },
     "0010010000030": {
       "hcad_num": "0010010000030",
@@ -664035,7 +664288,9 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1982,
+      "eff_year_built": 1924
     },
     "0530380000001": {
       "hcad_num": "0530380000001",
@@ -664233,7 +664488,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2009,
+      "eff_year_built": 1928
     },
     "1456070010001": {
       "hcad_num": "1456070010001",
@@ -664298,7 +664555,9 @@
         "Neartown - Montrose",
         "Lancaster Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2012,
+      "eff_year_built": 1935
     },
     "0601560480001": {
       "hcad_num": "0601560480001",
@@ -664372,7 +664631,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2020,
+      "eff_year_built": 1930
     },
     "0401730000001": {
       "hcad_num": "0401730000001",
@@ -664511,7 +664772,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1986
     },
     "0601320000014": {
       "hcad_num": "0601320000014",
@@ -664622,7 +664884,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 1994,
+      "eff_year_built": 1941
     },
     "0601460190005": {
       "hcad_num": "0601460190005",
@@ -664920,7 +665184,10 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "H. A. Lott, Inc.",
+      "builder_source": "Houston Public Library / HMRC Archives",
+      "original_cost": "$10,500,000"
     },
     "0050180000019": {
       "hcad_num": "0050180000019",
@@ -665161,7 +665428,9 @@
         "Northside Village"
       ],
       "super_neighborhood": "Near Northside",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2010,
+      "eff_year_built": 1901
     },
     "0052260000014": {
       "hcad_num": "0052260000014",
@@ -665341,7 +665610,9 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2017,
+      "eff_year_built": 1930
     },
     "0370350000008": {
       "hcad_num": "0370350000008",
@@ -665411,7 +665682,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1985,
+      "eff_year_built": 1910
     },
     "0540320000005": {
       "hcad_num": "0540320000005",
@@ -665801,7 +666074,9 @@
       "building_name": "Warren-McCormick Residence (Southside Place)",
       "name_source": "Preservation Houston Good Brick Award",
       "subdivision": "Southside Place",
-      "neighborhood": "Southside Place"
+      "neighborhood": "Southside Place",
+      "yr_remodel": 1994,
+      "eff_year_built": 1937
     },
     "0010530000008": {
       "hcad_num": "0010530000008",
@@ -665878,7 +666153,10 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$28,",
+      "eff_year_built": 1992
     },
     "0052250000032": {
       "hcad_num": "0052250000032",
@@ -665947,7 +666225,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1895
     },
     "0360350000015": {
       "hcad_num": "0360350000015",
@@ -666016,7 +666296,9 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2007,
+      "eff_year_built": 1996
     },
     "0300510060021": {
       "hcad_num": "0300510060021",
@@ -666079,7 +666361,9 @@
       "neighborhood_aliases": [
         "Washington Avenue - Memorial Park"
       ],
-      "super_neighborhood": "Washington Avenue Coalition / Memorial Park"
+      "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
+      "yr_remodel": 2020,
+      "eff_year_built": 2002
     },
     "0052240000025": {
       "hcad_num": "0052240000025",
@@ -666160,7 +666444,8 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "eff_year_built": 2007
     },
     "0601550460036": {
       "hcad_num": "0601550460036",
@@ -666226,7 +666511,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2008,
+      "eff_year_built": 1929
     },
     "0601560500005": {
       "hcad_num": "0601560500005",
@@ -666321,7 +666608,11 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 2007,
+      "eff_year_built": 1937
     },
     "0191570000011": {
       "hcad_num": "0191570000011",
@@ -666406,7 +666697,8 @@
         "Cuney Homes",
         "Project Row Houses Area"
       ],
-      "super_neighborhood": "Greater Third Ward"
+      "super_neighborhood": "Greater Third Ward",
+      "eff_year_built": 1935
     },
     "0590440000009": {
       "hcad_num": "0590440000009",
@@ -666478,7 +666770,9 @@
         "Brantwood",
         "Carolina Place",
         "West University Place"
-      ]
+      ],
+      "yr_remodel": 2007,
+      "eff_year_built": 1935
     },
     "0601520320004": {
       "hcad_num": "0601520320004",
@@ -666561,7 +666855,11 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$63,000",
+      "yr_remodel": 2006,
+      "eff_year_built": 1931
     },
     "0601620920003": {
       "hcad_num": "0601620920003",
@@ -666638,7 +666936,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2022,
+      "eff_year_built": 1938
     },
     "0102490000002": {
       "hcad_num": "0102490000002",
@@ -666730,7 +667030,9 @@
         "Westmoreland"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2008,
+      "eff_year_built": 1910
     },
     "0332770000001": {
       "hcad_num": "0332770000001",
@@ -667014,7 +667316,9 @@
         "Sunset Heights"
       ],
       "super_neighborhood": "Greater Heights",
-      "subdivision": "Houston Heights"
+      "subdivision": "Houston Heights",
+      "yr_remodel": 2016,
+      "eff_year_built": 1998
     },
     "0843190000007": {
       "hcad_num": "0843190000007",
@@ -667111,7 +667415,9 @@
         "Memorial",
         "Tealwood Home Owners Association"
       ],
-      "super_neighborhood": "Memorial"
+      "super_neighborhood": "Memorial",
+      "yr_remodel": 2009,
+      "eff_year_built": 1955
     },
     "0911320000070": {
       "hcad_num": "0911320000070",
@@ -667209,7 +667515,9 @@
       "neighborhood_aliases": [
         "Longwoods",
         "Hunter's Creek Village"
-      ]
+      ],
+      "yr_remodel": 2007,
+      "eff_year_built": 1960
     },
     "0201690000001": {
       "hcad_num": "0201690000001",
@@ -667277,7 +667585,9 @@
         "Houston Heights",
         "Houston Heights West"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 1910
     },
     "0210080000010": {
       "hcad_num": "0210080000010",
@@ -667341,7 +667651,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2004,
+      "eff_year_built": 1930
     },
     "0220630000017": {
       "hcad_num": "0220630000017",
@@ -667419,7 +667731,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2007,
+      "eff_year_built": 1920
     },
     "0360040000001": {
       "hcad_num": "0360040000001",
@@ -667843,7 +668157,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1998,
+      "eff_year_built": 1924
     },
     "0542320000019": {
       "hcad_num": "0542320000019",
@@ -667906,7 +668222,8 @@
         "Neartown - Montrose",
         "Mandell Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "eff_year_built": 1930
     },
     "0401540000001": {
       "hcad_num": "0401540000001",
@@ -668056,7 +668373,8 @@
         "Downtown"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1982
     },
     "0130500000006": {
       "hcad_num": "0130500000006",
@@ -668141,7 +668459,8 @@
         "Lawndale / Boheme"
       ],
       "super_neighborhood": "Greater Eastwood",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1930
     },
     "0560220000001": {
       "hcad_num": "0560220000001",
@@ -668423,7 +668742,9 @@
         "Institute Lane",
         "Southampton Civic Club"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2020,
+      "eff_year_built": 1920
     },
     "0802590010010": {
       "hcad_num": "0802590010010",
@@ -668524,7 +668845,9 @@
         "Willow Meadows - Willowbend",
         "Willow Bend"
       ],
-      "super_neighborhood": "Near Southwest"
+      "super_neighborhood": "Near Southwest",
+      "yr_remodel": 2018,
+      "eff_year_built": 1955
     },
     "1152220000011": {
       "hcad_num": "1152220000011",
@@ -668593,7 +668916,9 @@
       "name_source": "Preservation Houston Good Brick Award",
       "subdivision": "Aldine Westfield Business Park",
       "neighborhood": "George Bush Intercontinental Airport",
-      "super_neighborhood": "Iah / Airport Area"
+      "super_neighborhood": "Iah / Airport Area",
+      "yr_remodel": 2021,
+      "eff_year_built": 2004
     },
     "0370320000001": {
       "hcad_num": "0370320000001",
@@ -668663,7 +668988,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2005,
+      "eff_year_built": 1903
     },
     "0823830000033": {
       "hcad_num": "0823830000033",
@@ -668742,7 +669069,9 @@
         "Timberlane Terrace",
         "Saddlebrook Square"
       ],
-      "super_neighborhood": "Greater Uptown"
+      "super_neighborhood": "Greater Uptown",
+      "yr_remodel": 2018,
+      "eff_year_built": 1960
     },
     "0130320000005": {
       "hcad_num": "0130320000005",
@@ -668816,7 +669145,9 @@
         "Lawndale / Boheme"
       ],
       "super_neighborhood": "Greater Eastwood",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2004,
+      "eff_year_built": 1914
     },
     "0380430000003": {
       "hcad_num": "0380430000003",
@@ -668932,7 +669263,9 @@
         "Country Club Place",
         "Broadmoor",
         "Lawndale / Boheme"
-      ]
+      ],
+      "yr_remodel": 2011,
+      "eff_year_built": 1987
     },
     "0261360000003": {
       "hcad_num": "0261360000003",
@@ -669050,7 +669383,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2004,
+      "eff_year_built": 1969
     },
     "1233520010001": {
       "hcad_num": "1233520010001",
@@ -669409,7 +669744,11 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 2005,
+      "eff_year_built": 1985
     },
     "0010250000013": {
       "hcad_num": "0010250000013",
@@ -669490,7 +669829,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Second Ward"
+      "historic_ward": "Second Ward",
+      "eff_year_built": 1930
     },
     "0451880000261": {
       "hcad_num": "0451880000261",
@@ -669587,7 +669927,9 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2004,
+      "eff_year_built": 1925
     },
     "1264630000002": {
       "hcad_num": "1264630000002",
@@ -669682,7 +670024,9 @@
       ],
       "super_neighborhood": "Downtown",
       "subdivision": "Byrds Lofts Condo",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2005,
+      "eff_year_built": 1990
     },
     "1220280010001": {
       "hcad_num": "1220280010001",
@@ -670378,7 +670722,8 @@
       "neighborhood_aliases": [
         "Washington Avenue - Memorial Park"
       ],
-      "super_neighborhood": "Washington Avenue Coalition / Memorial Park"
+      "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
+      "eff_year_built": 1992
     },
     "0421790000004": {
       "hcad_num": "0421790000004",
@@ -670756,7 +671101,21 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "builder": "Westlake Construction Company (St. Louis)",
+      "builder_source": "COH Protected Landmark Report / D. H. Burnham Archives",
+      "engineers": "D. H. Burnham & Company (Structural)",
+      "original_cost": "$600,000",
+      "original_permit": "COH Building Permit (1908)",
+      "hist_contract": {
+        "date": "1908 - 1909",
+        "cost": "$600,000",
+        "architect": "D. H. Burnham & Company (Daniel H. Burnham)",
+        "builder": "Westlake Construction Company",
+        "scope": "11-story Chicago School steel-frame office building clad in white glazed architectural terra cotta",
+        "source_title": "City of Houston Protected Landmark Designation Report (Scanlan Building)"
+      },
+      "eff_year_built": 1968
     },
     "0600720050020": {
       "hcad_num": "0600720050020",
@@ -670846,7 +671205,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2008,
+      "eff_year_built": 1991
     },
     "0201290000018": {
       "hcad_num": "0201290000018",
@@ -670922,7 +671283,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2001,
+      "eff_year_built": 1918
     },
     "0051290000005": {
       "hcad_num": "0051290000005",
@@ -670992,7 +671355,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 1930
     },
     "0010200000001": {
       "hcad_num": "0010200000001",
@@ -671104,7 +671469,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "builder": "Westlake Construction",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 2012,
+      "eff_year_built": 1988
     },
     "0440960000117": {
       "hcad_num": "0440960000117",
@@ -671272,7 +671641,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2002,
+      "eff_year_built": 1910
     },
     "0650580000010": {
       "hcad_num": "0650580000010",
@@ -671351,7 +671722,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2003,
+      "eff_year_built": 1940
     },
     "0130270000005": {
       "hcad_num": "0130270000005",
@@ -671422,7 +671795,8 @@
         "Lawndale / Boheme"
       ],
       "super_neighborhood": "Greater Eastwood",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 2006
     },
     "0010010000020": {
       "hcad_num": "0010010000020",
@@ -671558,7 +671932,10 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "builder": "Don Hall",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "eff_year_built": 1986
     },
     "1246600010020": {
       "hcad_num": "1246600010020",
@@ -671655,7 +672032,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2005,
+      "eff_year_built": 1980
     },
     "1210850000002": {
       "hcad_num": "1210850000002",
@@ -671756,7 +672135,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1928
     },
     "0052100000020": {
       "hcad_num": "0052100000020",
@@ -671831,7 +672211,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 2000
     },
     "0052000000013": {
       "hcad_num": "0052000000013",
@@ -671900,7 +672282,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1885
     },
     "0601540390025": {
       "hcad_num": "0601540390025",
@@ -672009,7 +672393,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2012,
+      "eff_year_built": 1927
     },
     "1240560000001": {
       "hcad_num": "1240560000001",
@@ -672097,7 +672483,8 @@
       ],
       "super_neighborhood": "Midtown",
       "subdivision": "Villa Serena Flats Condo",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 2000
     },
     "0620920000014": {
       "hcad_num": "0620920000014",
@@ -672183,7 +672570,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2002,
+      "eff_year_built": 1926
     },
     "0010810000007": {
       "hcad_num": "0010810000007",
@@ -672301,7 +672690,12 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "American Construction Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$6,550,000",
+      "yr_remodel": 2016,
+      "eff_year_built": 1975
     },
     "0011370000009": {
       "hcad_num": "0011370000009",
@@ -672374,7 +672768,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1941
     },
     "1219610010002": {
       "hcad_num": "1219610010002",
@@ -672459,7 +672854,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2003,
+      "eff_year_built": 1984
     },
     "1228970000001": {
       "hcad_num": "1228970000001",
@@ -672739,7 +673136,10 @@
       ],
       "super_neighborhood": "Downtown",
       "subdivision": "Franklin Lofts Condo",
-      "historic_ward": "Second Ward"
+      "historic_ward": "Second Ward",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$228,000",
+      "eff_year_built": 1995
     },
     "0052000000004": {
       "hcad_num": "0052000000004",
@@ -672807,7 +673207,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1885
     },
     "0620260000001": {
       "hcad_num": "0620260000001",
@@ -672893,7 +673295,9 @@
         "University Place",
         "Old Braeswood Civic Club"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2001,
+      "eff_year_built": 1936
     },
     "0601530370008": {
       "hcad_num": "0601530370008",
@@ -672977,7 +673381,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2022,
+      "eff_year_built": 1929
     },
     "0901520000001": {
       "hcad_num": "0901520000001",
@@ -673088,7 +673494,9 @@
       "neighborhood_aliases": [
         "Southwest Civic Club"
       ],
-      "super_neighborhood": "Braeswood"
+      "super_neighborhood": "Braeswood",
+      "yr_remodel": 2003,
+      "eff_year_built": 1997
     },
     "1200170010008": {
       "hcad_num": "1200170010008",
@@ -673198,7 +673606,8 @@
         "Southampton",
         "Boulevard Oaks"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "eff_year_built": 1948
     },
     "0010560000008": {
       "hcad_num": "0010560000008",
@@ -673285,7 +673694,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 1991
     },
     "0090720000003": {
       "hcad_num": "0090720000003",
@@ -673353,7 +673764,8 @@
         "Cdc of Freedmen's Town"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1984
     },
     "0180270000003": {
       "hcad_num": "0180270000003",
@@ -673419,7 +673831,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2000,
+      "eff_year_built": 1905
     },
     "0010490000004": {
       "hcad_num": "0010490000004",
@@ -673505,7 +673919,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1953
     },
     "0332570020001": {
       "hcad_num": "0332570020001",
@@ -673825,7 +674240,8 @@
         "The Museum District"
       ],
       "super_neighborhood": "Museum Park",
-      "subdivision": "J Christy"
+      "subdivision": "J Christy",
+      "eff_year_built": 1969
     },
     "0420660000180": {
       "hcad_num": "0420660000180",
@@ -674031,7 +674447,10 @@
       "neighborhood_aliases": [
         "The Museum District"
       ],
-      "super_neighborhood": "Museum Park"
+      "super_neighborhood": "Museum Park",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$50,000.00",
+      "eff_year_built": 1921
     },
     "0261390000006": {
       "hcad_num": "0261390000006",
@@ -674100,7 +674519,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2001,
+      "eff_year_built": 1930
     },
     "0010150000001": {
       "hcad_num": "0010150000001",
@@ -674218,7 +674639,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 1965
     },
     "0021750000004": {
       "hcad_num": "0021750000004",
@@ -674343,7 +674766,9 @@
       "subdivision": "Ssbb",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1992
     },
     "0052260000013": {
       "hcad_num": "0052260000013",
@@ -674420,7 +674845,11 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1890,
+      "was_relocated": true,
+      "relocation_note": "12/30/1899: W/F LIST IMPS AS RESIDENTIAL PER HRG (Permit #1)"
     },
     "0201270000037": {
       "hcad_num": "0201270000037",
@@ -674490,7 +674919,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 1985,
+      "eff_year_built": 1920
     },
     "0011020000001": {
       "hcad_num": "0011020000001",
@@ -674793,7 +675224,12 @@
         "Astros Field"
       ],
       "name_source": "Preservation Houston Curated Archive & Good Brick Archive",
-      "decade": 1910
+      "decade": 1910,
+      "builder": "American Construction Company (1911 Union Station) & Brown & Root / Barton Malow (2000)",
+      "builder_source": "COH Landmark Designation Report (Union Station)",
+      "engineers": "Walter P Moore & Associates",
+      "original_cost": "$500,000 (1911 Union Station)",
+      "eff_year_built": 1903
     },
     "0332780000004": {
       "hcad_num": "0332780000004",
@@ -674864,7 +675300,9 @@
       "neighborhood_aliases": [
         "Southmore"
       ],
-      "super_neighborhood": "Museum Park"
+      "super_neighborhood": "Museum Park",
+      "yr_remodel": 1996,
+      "eff_year_built": 1913
     },
     "0010530000006": {
       "hcad_num": "0010530000006",
@@ -674950,7 +675388,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1921
     },
     "0010330000029": {
       "hcad_num": "0010330000029",
@@ -675045,7 +675484,23 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "T. B. Hubbard Construction Co.",
+      "builder_source": "Texas General Contractors Bulletin (June 1924, p. 33)",
+      "original_cost": "$35,000",
+      "original_permit": "TGCA Contract Award (June 1924)",
+      "hist_contract": {
+        "date": "June 1924",
+        "cost": "$35,000",
+        "owner": "Guaranty National Bank",
+        "builder": "T. B. Hubbard Construction Co.",
+        "scope": "3-story bank & office building remodel at 306 Main for Guaranty National Bank",
+        "source_title": "T.G.C.A. Monthly Bulletin (June 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg"
+      },
+      "yr_remodel": 2018,
+      "eff_year_built": 2010
     },
     "0610230140022": {
       "hcad_num": "0610230140022",
@@ -675106,7 +675561,9 @@
         "Greater Fifth Ward",
         "Fifth Ward"
       ],
-      "super_neighborhood": "Greater Fifth Ward"
+      "super_neighborhood": "Greater Fifth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1945
     },
     "0261350000014": {
       "hcad_num": "0261350000014",
@@ -675207,7 +675664,8 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1981
     },
     "0010570000011": {
       "hcad_num": "0010570000011",
@@ -675288,7 +675746,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2013,
+      "eff_year_built": 1991
     },
     "0201540000013": {
       "hcad_num": "0201540000013",
@@ -675368,7 +675828,9 @@
         "Sunset Heights"
       ],
       "super_neighborhood": "Greater Heights",
-      "subdivision": "Houston Heights"
+      "subdivision": "Houston Heights",
+      "yr_remodel": 2009,
+      "eff_year_built": 1920
     },
     "0010280000012": {
       "hcad_num": "0010280000012",
@@ -675449,7 +675911,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2006,
+      "eff_year_built": 1993
     },
     "0010190000020": {
       "hcad_num": "0010190000020",
@@ -675585,7 +676049,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 1939
     },
     "0611260340004": {
       "hcad_num": "0611260340004",
@@ -675662,7 +676128,9 @@
       "neighborhood_aliases": [
         "Historic Riverside Terrace Civic Association"
       ],
-      "super_neighborhood": "Macgregor"
+      "super_neighborhood": "Macgregor",
+      "yr_remodel": 1995,
+      "eff_year_built": 1930
     },
     "0601310000004": {
       "hcad_num": "0601310000004",
@@ -675728,7 +676196,11 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "builder": "River Oaks Corporation",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 2021,
+      "eff_year_built": 1927
     },
     "1185990010006": {
       "hcad_num": "1185990010006",
@@ -675827,7 +676299,8 @@
       "landuse_desc": "College or University",
       "subdivision": "Herman Hospital",
       "super_neighborhood": "Medical Center Area",
-      "neighborhood": "Texas Medical Center"
+      "neighborhood": "Texas Medical Center",
+      "eff_year_built": 1988
     },
     "0201820000029": {
       "hcad_num": "0201820000029",
@@ -675917,7 +676390,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2010,
+      "eff_year_built": 1969
     },
     "0090780000008": {
       "hcad_num": "0090780000008",
@@ -676033,7 +676508,9 @@
         "Cdc of Freedmen's Town"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1997,
+      "eff_year_built": 1920
     },
     "0052090000004": {
       "hcad_num": "0052090000004",
@@ -676114,7 +676591,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 1996,
+      "eff_year_built": 1861
     },
     "0542190000004": {
       "hcad_num": "0542190000004",
@@ -676203,7 +676682,9 @@
       "neighborhood_aliases": [
         "Neartown - Montrose"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 1995,
+      "eff_year_built": 1989
     },
     "0640950120009": {
       "hcad_num": "0640950120009",
@@ -676265,7 +676746,9 @@
         "University Place",
         "Southgate Civic Club"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1985,
+      "eff_year_built": 1938
     },
     "1406470010001": {
       "hcad_num": "1406470010001",
@@ -676323,7 +676806,9 @@
       "subdivision": "Waggaman Garden",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 1996,
+      "eff_year_built": 1904
     },
     "0410070200014": {
       "hcad_num": "0410070200014",
@@ -676553,7 +677038,21 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "Thomas B. Hubbard Construction Company",
+      "builder_source": "PWA Docket No. Tex-1538-F / City of Houston Cornerstone Ledger",
+      "engineers": "Robert J. Cummins (Structural Engineer)",
+      "original_cost": "$1,680,000",
+      "original_permit": "PWA Docket No. Tex-1538-F (March 1938)",
+      "hist_contract": {
+        "date": "March 7, 1938 - June 1939",
+        "cost": "$1,680,000 (PWA Grant & City Bond Issue)",
+        "architect": "Joseph Finger, Inc.",
+        "builder": "Thomas B. Hubbard Construction Company",
+        "engineers": "Robert J. Cummins (Structural)",
+        "scope": "11-story Texas Cordova limestone PWA Moderne municipal hall at Hermann Square",
+        "source_title": "City of Houston Landmark Designation Report (Houston City Hall)"
+      }
     },
     "1330680010001": {
       "hcad_num": "1330680010001",
@@ -676624,7 +677123,9 @@
         "Southampton",
         "Boulevard Oaks"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2024,
+      "eff_year_built": 1940
     },
     "1495940010001": {
       "hcad_num": "1495940010001",
@@ -676814,7 +677315,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 1992,
+      "eff_year_built": 1945
     },
     "0010330000008": {
       "hcad_num": "0010330000008",
@@ -676887,7 +677390,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2022,
+      "eff_year_built": 1942
     },
     "0052010000001": {
       "hcad_num": "0052010000001",
@@ -676956,7 +677461,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 1979,
+      "eff_year_built": 1925
     },
     "0052100000009": {
       "hcad_num": "0052100000009",
@@ -677034,7 +677541,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2002,
+      "eff_year_built": 1932
     },
     "0601510000005": {
       "hcad_num": "0601510000005",
@@ -677260,7 +677769,9 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2025,
+      "eff_year_built": 1920
     },
     "0020160000001": {
       "id": "0020160000001",
@@ -677357,7 +677868,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2018,
+      "eff_year_built": 1994
     },
     "0130830000002": {
       "hcad_num": "0130830000002",
@@ -677416,7 +677929,9 @@
       "subdivision": "Empire",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2011,
+      "eff_year_built": 1921
     },
     "0200860000033": {
       "hcad_num": "0200860000033",
@@ -677492,7 +678007,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2016,
+      "eff_year_built": 2004
     },
     "0440990010134": {
       "hcad_num": "0440990010134",
@@ -677682,7 +678199,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1920
     },
     "0590050010001": {
       "hcad_num": "0590050010001",
@@ -677868,7 +678386,8 @@
       ],
       "subdivision": "Devonshire Place - Houston",
       "super_neighborhood": "Medical Center Area",
-      "neighborhood": "Texas Medical Center"
+      "neighborhood": "Texas Medical Center",
+      "eff_year_built": 1927
     },
     "0201840000011": {
       "hcad_num": "0201840000011",
@@ -677958,7 +678477,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2015,
+      "eff_year_built": 1900
     },
     "1416730010001": {
       "hcad_num": "1416730010001",
@@ -678029,7 +678550,8 @@
         "Frenchtown"
       ],
       "super_neighborhood": "Greater Fifth Ward",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 2021
     },
     "0010330000012": {
       "hcad_num": "0010330000012",
@@ -678140,7 +678662,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1989,
+      "eff_year_built": 1926
     },
     "0052240000010": {
       "hcad_num": "0052240000010",
@@ -678210,7 +678734,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 1996,
+      "eff_year_built": 1910
     },
     "0261640000027": {
       "hcad_num": "0261640000027",
@@ -678322,7 +678848,8 @@
         "Neartown - Montrose"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1945
     },
     "0012450000001": {
       "hcad_num": "0012450000001",
@@ -678422,7 +678949,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1946
     },
     "0010320000004": {
       "hcad_num": "0010320000004",
@@ -678572,7 +679100,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 1990,
+      "eff_year_built": 1963
     },
     "0010440000019": {
       "hcad_num": "0010440000019",
@@ -678670,7 +679200,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 2015
     },
     "0010330000013": {
       "hcad_num": "0010330000013",
@@ -678790,7 +679322,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1993,
+      "eff_year_built": 1900
     },
     "0010190000004": {
       "hcad_num": "0010190000004",
@@ -678865,7 +679399,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2001,
+      "eff_year_built": 1994
     },
     "0152300000001": {
       "hcad_num": "0152300000001",
@@ -679011,7 +679547,8 @@
       "subdivision": "Hadley & Franklin",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1892
     },
     "0010190000013": {
       "hcad_num": "0010190000013",
@@ -679091,7 +679628,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "eff_year_built": 1991
     },
     "0010420000006": {
       "hcad_num": "0010420000006",
@@ -679184,7 +679722,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 2009
     },
     "0010240000001": {
       "address": "201 CAROLINE ST",
@@ -679308,7 +679848,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Second Ward"
+      "historic_ward": "Second Ward",
+      "eff_year_built": 2003
     },
     "1306320010001": {
       "address": "1201 CONGRESS ST",
@@ -679602,7 +680143,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Second Ward"
+      "historic_ward": "Second Ward",
+      "eff_year_built": 2010
     },
     "0010120000010": {
       "address": "1201 FRANKLIN ST",
@@ -679737,7 +680279,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Second Ward"
+      "historic_ward": "Second Ward",
+      "eff_year_built": 2000
     },
     "0210200000029": {
       "building_id": "bld_000475",
@@ -679836,7 +680379,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 1940
     },
     "0210200000029#modern_print_shop": {
       "building_id": "0210200000029#modern_print_shop",
@@ -679927,7 +680472,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 1940
     },
     "0210200000029#north_wing": {
       "building_id": "0210200000029#north_wing",
@@ -680003,7 +680550,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 1940
     },
     "0210200000029#north_garage": {
       "building_id": "0210200000029#north_garage",
@@ -680067,7 +680616,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 1940
     },
     "1223790030002": {
       "id": "bld_004896",
@@ -680125,7 +680676,8 @@
       ],
       "super_neighborhood": "Fourth Ward",
       "subdivision": "Antioch Courts At Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 2004
     },
     "1223790030001": {
       "id": "bld_004897",
@@ -680191,7 +680743,8 @@
       ],
       "super_neighborhood": "Fourth Ward",
       "subdivision": "Antioch Courts At Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 2004
     },
     "0401230000044#aux_1": {
       "id": "0401230000044#aux_1",
@@ -680273,7 +680826,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2020,
+      "eff_year_built": 2012
     },
     "0010190000004#aux_1": {
       "id": "0010190000004#aux_1",
@@ -680334,7 +680889,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2001,
+      "eff_year_built": 1994
     },
     "0010420000006#aux_1": {
       "id": "0010420000006#aux_1",
@@ -680391,7 +680948,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 2009
     },
     "0131480000016#aux_1": {
       "id": "0131480000016#aux_1",
@@ -680646,7 +681205,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1993,
+      "eff_year_built": 1900
     },
     "0010650000001#aux_1": {
       "id": "0010650000001#aux_1",
@@ -680962,7 +681523,8 @@
         "Neartown - Montrose"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1945
     },
     "0230680000001#aux_1": {
       "id": "0230680000001#aux_1",
@@ -681394,7 +681956,8 @@
       "subdivision": "Hadley & Franklin",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1892
     },
     "0152300000001#aux_2": {
       "id": "0152300000001#aux_2",
@@ -681456,7 +682019,8 @@
       "subdivision": "Hadley & Franklin",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1892
     },
     "1219970000001#aux_1": {
       "id": "1219970000001#aux_1",
@@ -681717,7 +682281,8 @@
         "Cdc of Freedmen's Town"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1984
     },
     "0090720000003#aux_2": {
       "id": "0090720000003#aux_2",
@@ -681770,7 +682335,8 @@
         "Cdc of Freedmen's Town"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1984
     },
     "0050150000011#aux_1": {
       "id": "0050150000011#aux_1",
@@ -681953,7 +682519,9 @@
         "Cdc of Freedmen's Town"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1997,
+      "eff_year_built": 1920
     },
     "0090780000008#aux_2": {
       "id": "0090780000008#aux_2",
@@ -682036,7 +682604,9 @@
         "Cdc of Freedmen's Town"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1997,
+      "eff_year_built": 1920
     },
     "0140280000001#aux_1": {
       "id": "0140280000001#aux_1",
@@ -682147,7 +682717,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2020,
+      "eff_year_built": 1910
     },
     "0370350000008#aux_1": {
       "id": "0370350000008#aux_1",
@@ -682211,7 +682783,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1985,
+      "eff_year_built": 1910
     },
     "0370350000008#aux_2": {
       "id": "0370350000008#aux_2",
@@ -682267,7 +682841,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1985,
+      "eff_year_built": 1910
     },
     "0370320000010#aux_1": {
       "id": "0370320000010#aux_1",
@@ -682361,7 +682937,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1995,
+      "eff_year_built": 1885
     },
     "0261390000006#aux_1": {
       "id": "0261390000006#aux_1",
@@ -682418,7 +682996,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2001,
+      "eff_year_built": 1930
     },
     "0370320000001#aux_1": {
       "id": "0370320000001#aux_1",
@@ -682474,7 +683054,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2005,
+      "eff_year_built": 1903
     },
     "0370320000001#aux_2": {
       "id": "0370320000001#aux_2",
@@ -682530,7 +683112,9 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2005,
+      "eff_year_built": 1903
     },
     "0102490000002#aux_1": {
       "id": "0102490000002#aux_1",
@@ -682582,7 +683166,9 @@
         "Courtlandt Place Civic Association"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2008,
+      "eff_year_built": 1910
     },
     "0261350000014#aux_1": {
       "id": "0261350000014#aux_1",
@@ -682647,7 +683233,8 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1981
     },
     "0261350000014#aux_2": {
       "id": "0261350000014#aux_2",
@@ -682704,7 +683291,8 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1981
     },
     "0382500020002#aux_1": {
       "id": "0382500020002#aux_1",
@@ -682757,7 +683345,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2010,
+      "eff_year_built": 1920
     },
     "0502350010001#aux_1": {
       "id": "0502350010001#aux_1",
@@ -682842,7 +683432,8 @@
         "Neartown - Montrose",
         "Lancaster Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "eff_year_built": 1932
     },
     "0502350010001#aux_2": {
       "id": "0502350010001#aux_2",
@@ -682927,7 +683518,8 @@
         "Neartown - Montrose",
         "Lancaster Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "eff_year_built": 1932
     },
     "0502350010001#aux_3": {
       "id": "0502350010001#aux_3",
@@ -683012,7 +683604,8 @@
         "Neartown - Montrose",
         "Lancaster Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "eff_year_built": 1932
     },
     "0502350010001#aux_4": {
       "id": "0502350010001#aux_4",
@@ -683097,7 +683690,8 @@
         "Neartown - Montrose",
         "Lancaster Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "eff_year_built": 1932
     },
     "0332770000001#aux_1": {
       "id": "0332770000001#aux_1",
@@ -683355,7 +683949,8 @@
       "neighborhood_aliases": [
         "The Museum District"
       ],
-      "super_neighborhood": "Museum Park"
+      "super_neighborhood": "Museum Park",
+      "eff_year_built": 1921
     },
     "0130830000002#aux_1": {
       "id": "0130830000002#aux_1",
@@ -683402,7 +683997,9 @@
       "subdivision": "Empire",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2011,
+      "eff_year_built": 1921
     },
     "0130830000002#aux_2": {
       "id": "0130830000002#aux_2",
@@ -683449,7 +684046,9 @@
       "subdivision": "Empire",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2011,
+      "eff_year_built": 1921
     },
     "0530390000004#aux_1": {
       "id": "0530390000004#aux_1",
@@ -683512,7 +684111,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1998,
+      "eff_year_built": 1924
     },
     "0530390000004#aux_2": {
       "id": "0530390000004#aux_2",
@@ -683567,7 +684168,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1998,
+      "eff_year_built": 1924
     },
     "0530390000004#aux_3": {
       "id": "0530390000004#aux_3",
@@ -683630,7 +684233,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1998,
+      "eff_year_built": 1924
     },
     "0530390000004#aux_4": {
       "id": "0530390000004#aux_4",
@@ -683685,7 +684290,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1998,
+      "eff_year_built": 1924
     },
     "0502260000012#aux_1": {
       "id": "0502260000012#aux_1",
@@ -683743,7 +684350,9 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1982,
+      "eff_year_built": 1924
     },
     "1330680010001#aux_1": {
       "id": "1330680010001#aux_1",
@@ -683799,7 +684408,9 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2024,
+      "eff_year_built": 1940
     },
     "0530380000001#aux_1": {
       "id": "0530380000001#aux_1",
@@ -683855,7 +684466,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2009,
+      "eff_year_built": 1928
     },
     "0523230010001#aux_1": {
       "id": "0523230010001#aux_1",
@@ -683908,7 +684521,9 @@
         "Shadow Lawn",
         "Southampton Civic Club"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2015,
+      "eff_year_built": 1929
     },
     "0530390000028#aux_1": {
       "id": "0530390000028#aux_1",
@@ -683965,7 +684580,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2011,
+      "eff_year_built": 1926
     },
     "0530390000008#aux_1": {
       "id": "0530390000008#aux_1",
@@ -684021,7 +684638,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2018,
+      "eff_year_built": 1926
     },
     "0530390000008#aux_2": {
       "id": "0530390000008#aux_2",
@@ -684077,7 +684696,9 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2018,
+      "eff_year_built": 1926
     },
     "0193100000014#aux_1": {
       "id": "0193100000014#aux_1",
@@ -684126,7 +684747,8 @@
         "Third Ward",
         "Historic Riverside Terrace Civic Association"
       ],
-      "super_neighborhood": "Macgregor"
+      "super_neighborhood": "Macgregor",
+      "eff_year_built": 1936
     },
     "1456070010001#aux_1": {
       "id": "1456070010001#aux_1",
@@ -684177,7 +684799,9 @@
         "Neartown - Montrose",
         "Lancaster Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2012,
+      "eff_year_built": 1935
     },
     "1456070010001#aux_2": {
       "id": "1456070010001#aux_2",
@@ -684228,7 +684852,9 @@
         "Neartown - Montrose",
         "Lancaster Place Civic Association"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 2012,
+      "eff_year_built": 1935
     },
     "0230810000002#aux_1": {
       "id": "0230810000002#aux_1",
@@ -684304,7 +684930,9 @@
         "First Montrose Commons Historic District"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1970,
+      "eff_year_built": 1920
     },
     "0191850000001#aux_1": {
       "id": "0191850000001#aux_1",
@@ -684462,7 +685090,9 @@
         "Courtlandt Place Civic Association"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1910
     },
     "0102490000003#aux_2": {
       "id": "0102490000003#aux_2",
@@ -684514,7 +685144,9 @@
         "Courtlandt Place Civic Association"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1910
     },
     "0681070000025#aux_1": {
       "id": "0681070000025#aux_1",
@@ -685014,7 +685646,9 @@
         ]
       },
       "subdivision": "Southside Place",
-      "neighborhood": "Southside Place"
+      "neighborhood": "Southside Place",
+      "yr_remodel": 1994,
+      "eff_year_built": 1937
     },
     "0611260340004#aux_1": {
       "id": "0611260340004#aux_1",
@@ -685063,7 +685697,9 @@
       "neighborhood_aliases": [
         "Historic Riverside Terrace Civic Association"
       ],
-      "super_neighborhood": "Macgregor"
+      "super_neighborhood": "Macgregor",
+      "yr_remodel": 1995,
+      "eff_year_built": 1930
     },
     "0611260340004#aux_2": {
       "id": "0611260340004#aux_2",
@@ -685112,7 +685748,9 @@
       "neighborhood_aliases": [
         "Historic Riverside Terrace Civic Association"
       ],
-      "super_neighborhood": "Macgregor"
+      "super_neighborhood": "Macgregor",
+      "yr_remodel": 1995,
+      "eff_year_built": 1930
     },
     "0601550460036#aux_1": {
       "id": "0601550460036#aux_1",
@@ -685162,7 +685800,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2008,
+      "eff_year_built": 1929
     },
     "0432270000004#aux_1": {
       "id": "0432270000004#aux_1",
@@ -685733,7 +686373,9 @@
         "Avondale",
         "Courtlandt Place"
       ],
-      "super_neighborhood": "Neartown - Montrose"
+      "super_neighborhood": "Neartown - Montrose",
+      "yr_remodel": 1995,
+      "eff_year_built": 1989
     },
     "0590440000009#aux_1": {
       "id": "0590440000009#aux_1",
@@ -685785,7 +686427,9 @@
         "Brantwood",
         "Carolina Place",
         "West University Place"
-      ]
+      ],
+      "yr_remodel": 2007,
+      "eff_year_built": 1935
     },
     "0401610000040#aux_1": {
       "id": "0401610000040#aux_1",
@@ -686372,7 +687016,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2021,
+      "eff_year_built": 1927
     },
     "0601310000004#aux_2": {
       "id": "0601310000004#aux_2",
@@ -686422,7 +687068,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2021,
+      "eff_year_built": 1927
     },
     "1344350010001#aux_1": {
       "id": "1344350010001#aux_1",
@@ -686962,7 +687610,8 @@
       "name_source": "Houston Architecture Forum (HAIF)",
       "subdivision": "Devonshire Place - Houston",
       "super_neighborhood": "Medical Center Area",
-      "neighborhood": "Texas Medical Center"
+      "neighborhood": "Texas Medical Center",
+      "eff_year_built": 1927
     },
     "0560670000038#aux_1": {
       "id": "0560670000038#aux_1",
@@ -687006,7 +687655,9 @@
         ]
       },
       "subdivision": "Southside Place",
-      "neighborhood": "Southside Place"
+      "neighborhood": "Southside Place",
+      "yr_remodel": 2023,
+      "eff_year_built": 1938
     },
     "1406470010001#aux_1": {
       "id": "1406470010001#aux_1",
@@ -687052,7 +687703,9 @@
       "subdivision": "Waggaman Garden",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 1996,
+      "eff_year_built": 1904
     },
     "0440970000222#aux_1": {
       "id": "0440970000222#aux_1",
@@ -687783,7 +688436,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2013,
+      "eff_year_built": 1942
     },
     "1368420010001#aux_1": {
       "id": "1368420010001#aux_1",
@@ -687881,7 +688536,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2020,
+      "eff_year_built": 1930
     },
     "0601520320004#aux_1": {
       "id": "0601520320004#aux_1",
@@ -687933,7 +688590,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2006,
+      "eff_year_built": 1931
     },
     "1423010010001#aux_1": {
       "id": "1423010010001#aux_1",
@@ -688023,7 +688682,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 2003
     },
     "0190570000006#aux_1": {
       "id": "0190570000006#aux_1",
@@ -688137,7 +688798,8 @@
       "subdivision": "Ssbb",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "eff_year_built": 1979
     },
     "0450640000010#aux_1": {
       "id": "0450640000010#aux_1",
@@ -688806,7 +689468,12 @@
       "name_source": "Preservation Houston Curated Archive & Good Brick Archive",
       "architect": "Warren & Wetmore",
       "source_type": "Preservation Houston Good Brick Award & Landmark Inventory",
-      "source_citation": "Historic Houston Union Station terminal lobby designed by Warren & Wetmore (opened March 1, 1911; expanded to 6 stories in 1912). 2000 Preservation Houston President's Award."
+      "source_citation": "Historic Houston Union Station terminal lobby designed by Warren & Wetmore (opened March 1, 1911; expanded to 6 stories in 1912). 2000 Preservation Houston President's Award.",
+      "builder": "American Construction Company (1911 Union Station) & Brown & Root / Barton Malow (2000)",
+      "builder_source": "COH Landmark Designation Report (Union Station)",
+      "engineers": "Walter P Moore & Associates",
+      "original_cost": "$500,000 (1911 Union Station)",
+      "eff_year_built": 1903
     },
     "0011010000001#aux_1": {
       "id": "0011010000001#aux_1",
@@ -691218,7 +691885,9 @@
         "Lawndale / Boheme"
       ],
       "super_neighborhood": "Greater Eastwood",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2004,
+      "eff_year_built": 1914
     },
     "0410070200014#aux_1": {
       "id": "0410070200014#aux_1",
@@ -692325,7 +692994,9 @@
         "Sunset Heights"
       ],
       "super_neighborhood": "Greater Heights",
-      "subdivision": "Houston Heights"
+      "subdivision": "Houston Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 2002
     },
     "0200490000001#aux_2": {
       "id": "0200490000001#aux_2",
@@ -692389,7 +693060,9 @@
         "Sunset Heights"
       ],
       "super_neighborhood": "Greater Heights",
-      "subdivision": "Houston Heights"
+      "subdivision": "Houston Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 2002
     },
     "0200490000001#aux_3": {
       "id": "0200490000001#aux_3",
@@ -692449,7 +693122,9 @@
         "Sunset Heights"
       ],
       "super_neighborhood": "Greater Heights",
-      "subdivision": "Houston Heights"
+      "subdivision": "Houston Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 2002
     },
     "1471540010001#aux_1": {
       "id": "1471540010001#aux_1",
@@ -692501,7 +693176,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2025,
+      "eff_year_built": 2002
     },
     "1471540010001#aux_2": {
       "id": "1471540010001#aux_2",
@@ -692553,7 +693230,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2025,
+      "eff_year_built": 2002
     },
     "1471540010001#aux_3": {
       "id": "1471540010001#aux_3",
@@ -692605,7 +693284,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2025,
+      "eff_year_built": 2002
     },
     "0201550000028#aux_1": {
       "id": "0201550000028#aux_1",
@@ -692891,7 +693572,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2001,
+      "eff_year_built": 1918
     },
     "0201690000001#aux_1": {
       "id": "0201690000001#aux_1",
@@ -692942,7 +693625,9 @@
         "Houston Heights",
         "Houston Heights West"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2024,
+      "eff_year_built": 1910
     },
     "0330860000005#aux_1": {
       "id": "0330860000005#aux_1",
@@ -692996,7 +693681,11 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2012,
+      "eff_year_built": 2000,
+      "was_relocated": true,
+      "relocation_note": "06/11/2012: S.F. RESIDENTIAL FOUNDATION MOVE-IN (Permit #1312859)"
     },
     "0621100000014#aux_1": {
       "id": "0621100000014#aux_1",
@@ -693077,7 +693766,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2006,
+      "eff_year_built": 1920
     },
     "0621120010001#aux_1": {
       "id": "0621120010001#aux_1",
@@ -693211,7 +693902,9 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2025,
+      "eff_year_built": 1920
     },
     "0513480000019#aux_1": {
       "id": "0513480000019#aux_1",
@@ -693272,7 +693965,9 @@
         "Norhill",
         "Brookesmith"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2013,
+      "eff_year_built": 1920
     },
     "0513480000019#aux_2": {
       "id": "0513480000019#aux_2",
@@ -693325,7 +694020,9 @@
         "Norhill",
         "Brookesmith"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2013,
+      "eff_year_built": 1920
     },
     "0513480000019#aux_3": {
       "id": "0513480000019#aux_3",
@@ -693378,7 +694075,9 @@
         "Norhill",
         "Brookesmith"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2013,
+      "eff_year_built": 1920
     },
     "0051290000005#aux_1": {
       "id": "0051290000005#aux_1",
@@ -693434,7 +694133,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 1930
     },
     "0051290000005#aux_2": {
       "id": "0051290000005#aux_2",
@@ -693490,7 +694191,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 1930
     },
     "0051290000005#aux_3": {
       "id": "0051290000005#aux_3",
@@ -693546,7 +694249,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 1930
     },
     "0051110000022#aux_1": {
       "id": "0051110000022#aux_1",
@@ -693659,7 +694364,8 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "eff_year_built": 1930
     },
     "0051440000004#aux_1": {
       "id": "0051440000004#aux_1",
@@ -693731,7 +694437,8 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "eff_year_built": 1902
     },
     "0051440000004#aux_2": {
       "id": "0051440000004#aux_2",
@@ -693787,7 +694494,8 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "eff_year_built": 1902
     },
     "1495940010001#aux_1": {
       "id": "1495940010001#aux_1",
@@ -694274,7 +694982,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2011,
+      "eff_year_built": 2001
     },
     "0300430000015#aux_1": {
       "id": "0300430000015#aux_1",
@@ -694337,7 +695047,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1920
     },
     "0300430000015#aux_2": {
       "id": "0300430000015#aux_2",
@@ -694392,7 +695104,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1920
     },
     "1248130010001#aux_1": {
       "id": "1248130010001#aux_1",
@@ -694505,7 +695219,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 1996,
+      "eff_year_built": 1910
     },
     "0052240000010#aux_2": {
       "id": "0052240000010#aux_2",
@@ -694560,7 +695276,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 1996,
+      "eff_year_built": 1910
     },
     "0052090000004#aux_1": {
       "id": "0052090000004#aux_1",
@@ -694617,7 +695335,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 1996,
+      "eff_year_built": 1861
     },
     "0052090000003#aux_1": {
       "id": "0052090000003#aux_1",
@@ -694675,7 +695395,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2001,
+      "eff_year_built": 1890
     },
     "0052010000005#aux_1": {
       "id": "0052010000005#aux_1",
@@ -694754,7 +695476,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2018,
+      "eff_year_built": 1905
     },
     "0052000000013#aux_1": {
       "id": "0052000000013#aux_1",
@@ -694812,7 +695536,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1885
     },
     "0051810000012#aux_1": {
       "id": "0051810000012#aux_1",
@@ -694870,7 +695596,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 1885
     },
     "0052250000032#aux_1": {
       "id": "0052250000032#aux_1",
@@ -694925,7 +695653,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1895
     },
     "0052250000032#aux_2": {
       "id": "0052250000032#aux_2",
@@ -694980,7 +695710,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1895
     },
     "0051440000005#aux_1": {
       "id": "0051440000005#aux_1",
@@ -695042,7 +695774,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 1930
     },
     "0051440000005#aux_2": {
       "id": "0051440000005#aux_2",
@@ -695104,7 +695838,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 1930
     },
     "0051440000005#aux_3": {
       "id": "0051440000005#aux_3",
@@ -695166,7 +695902,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 1930
     },
     "0051300000010#aux_1": {
       "id": "0051300000010#aux_1",
@@ -695222,7 +695960,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 2006
     },
     "0401120000010#aux_1": {
       "id": "0401120000010#aux_1",
@@ -695316,7 +696056,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 2002
     },
     "0401120000010#aux_2": {
       "id": "0401120000010#aux_2",
@@ -695378,7 +696120,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 2002
     },
     "0401120000010#aux_3": {
       "id": "0401120000010#aux_3",
@@ -695444,7 +696188,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 2002
     },
     "0401120000010#aux_4": {
       "id": "0401120000010#aux_4",
@@ -695506,7 +696252,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 2002
     },
     "0202440000024#aux_1": {
       "id": "0202440000024#aux_1",
@@ -695631,7 +696379,8 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "eff_year_built": 1906
     },
     "0410500030785#aux_1": {
       "id": "0410500030785#aux_1",
@@ -696043,7 +696792,8 @@
       "landuse_desc": "Office Bldgs. Low-Rise (1 to 4 Stories)",
       "architect": "",
       "neighborhood": "Lazy Brook - Timbergrove",
-      "super_neighborhood": "Lazybrook / Timbergrove"
+      "super_neighborhood": "Lazybrook / Timbergrove",
+      "eff_year_built": 1965
     },
     "0410770000625#aux_1": {
       "id": "0410770000625#aux_1",
@@ -696858,7 +697608,9 @@
         "Woodland Terrace"
       ],
       "super_neighborhood": "Greater Heights",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2004,
+      "eff_year_built": 1925
     },
     "0471620000005#aux_1": {
       "id": "0471620000005#aux_1",
@@ -697278,7 +698030,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2005,
+      "eff_year_built": 1985
     },
     "1178810010001#aux_1": {
       "id": "1178810010001#aux_1",
@@ -698812,7 +699566,9 @@
         "Greater Fifth Ward",
         "Fifth Ward"
       ],
-      "super_neighborhood": "Greater Fifth Ward"
+      "super_neighborhood": "Greater Fifth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1945
     },
     "1121800000001": {
       "hcad_num": "1121800000001",
@@ -698882,7 +699638,9 @@
         "Downtown"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1999,
+      "eff_year_built": 1911
     },
     "0202150000006": {
       "hcad_num": "0202150000006",
@@ -698973,7 +699731,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2019,
+      "eff_year_built": 1920
     },
     "0201720000004": {
       "hcad_num": "0201720000004",
@@ -699046,7 +699806,9 @@
         "Houston Heights",
         "Houston Heights West"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2004,
+      "eff_year_built": 1920
     },
     "0201010000035": {
       "hcad_num": "0201010000035",
@@ -699107,7 +699869,8 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "eff_year_built": 1920
     },
     "0200420000019": {
       "hcad_num": "0200420000019",
@@ -699246,7 +700009,9 @@
         "Greater Heights",
         "Houston Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2011,
+      "eff_year_built": 1920
     },
     "0201640000026": {
       "hcad_num": "0201640000026",
@@ -699315,7 +700080,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 1995,
+      "eff_year_built": 1920
     },
     "0400030000013": {
       "hcad_num": "0400030000013",
@@ -699540,7 +700307,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 1993,
+      "eff_year_built": 1904
     },
     "0201840000017": {
       "hcad_num": "0201840000017",
@@ -699601,7 +700370,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 1987,
+      "eff_year_built": 1900
     },
     "1331740010001": {
       "hcad_num": "1331740010001",
@@ -699825,7 +700596,8 @@
         "Cuney Homes",
         "Project Row Houses Area"
       ],
-      "super_neighborhood": "Greater Third Ward"
+      "super_neighborhood": "Greater Third Ward",
+      "eff_year_built": 1960
     },
     "0201520000007": {
       "hcad_num": "0201520000007",
@@ -699912,7 +700684,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2019,
+      "eff_year_built": 1930
     },
     "0360300000001": {
       "hcad_num": "0360300000001",
@@ -700033,7 +700807,8 @@
         "Sunset Terrace"
       ],
       "super_neighborhood": "University Place",
-      "subdivision": "Turner N P"
+      "subdivision": "Turner N P",
+      "eff_year_built": 1919
     },
     "0010570000004": {
       "hcad_num": "0010570000004",
@@ -700133,7 +700908,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2023,
+      "eff_year_built": 1995
     },
     "1246600010019": {
       "hcad_num": "1246600010019",
@@ -700211,7 +700988,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2003,
+      "eff_year_built": 1991
     },
     "0261670000001": {
       "hcad_num": "0261670000001",
@@ -700269,7 +701048,9 @@
         "Neartown - Montrose"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$60,000"
     },
     "0530440000007": {
       "hcad_num": "0530440000007",
@@ -700404,7 +701185,11 @@
         "Chevy Chase",
         "Edgemont"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "builder": "W. J. Goggan",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 2020,
+      "eff_year_built": 1931
     },
     "0201970000009": {
       "hcad_num": "0201970000009",
@@ -700523,7 +701308,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 1978,
+      "eff_year_built": 1900
     },
     "0202250000002": {
       "hcad_num": "0202250000002",
@@ -700580,7 +701367,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2009,
+      "eff_year_built": 1887
     },
     "0010170000015": {
       "hcad_num": "0010170000015",
@@ -700679,7 +701468,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 1998,
+      "eff_year_built": 1991
     },
     "0051080000013": {
       "hcad_num": "0051080000013",
@@ -700740,7 +701531,11 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$500",
+      "yr_remodel": 2016,
+      "eff_year_built": 2008
     },
     "0050930000027": {
       "hcad_num": "0050930000027",
@@ -700927,7 +701722,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2020,
+      "eff_year_built": 2012
     },
     "0191440000010": {
       "hcad_num": "0191440000010",
@@ -700992,7 +701789,9 @@
       "subdivision": "Holman Outlot",
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2004,
+      "eff_year_built": 1990
     },
     "0601550470015": {
       "hcad_num": "0601550470015",
@@ -701055,7 +701854,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2012,
+      "eff_year_built": 1927
     },
     "0011210000006": {
       "hcad_num": "0011210000006",
@@ -701171,7 +701972,12 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "builder": "American Construction Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$8,440",
+      "yr_remodel": 2008,
+      "eff_year_built": 1999
     },
     "0010920000004": {
       "hcad_num": "0010920000004",
@@ -701389,7 +702195,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 1980,
+      "eff_year_built": 1920
     },
     "0210210000015": {
       "hcad_num": "0210210000015",
@@ -701454,7 +702262,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2010,
+      "eff_year_built": 1900
     },
     "0210210000020": {
       "hcad_num": "0210210000020",
@@ -701519,7 +702329,11 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "builder": "Hart Oil and Well Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 2017,
+      "eff_year_built": 1920
     },
     "0202140000023": {
       "hcad_num": "0202140000023",
@@ -701610,7 +702424,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 1996,
+      "eff_year_built": 1920
     },
     "0210080000003": {
       "hcad_num": "0210080000003",
@@ -701667,7 +702483,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2011,
+      "eff_year_built": 1989
     },
     "0210450000025": {
       "hcad_num": "0210450000025",
@@ -701735,7 +702553,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2012,
+      "eff_year_built": 1996
     },
     "0210330000001": {
       "hcad_num": "0210330000001",
@@ -701792,7 +702612,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2020,
+      "eff_year_built": 1920
     },
     "0210210000025": {
       "hcad_num": "0210210000025",
@@ -701907,43 +702729,48 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 1985,
+      "eff_year_built": 1910,
+      "was_relocated": true,
+      "relocation_note": "2/18/25 NC-- NO SIGNS OF RMDL-- ADJ SKETCH    10/7/24-FR-WOOD DECK REMOVED CHANGED TO ENCLOSED FRAME,HOME APPEARS AVG MOVED FROM FAIR,PERMIT CREATED F"
     },
     "0400030000014": {
+      "building_id": "0400030000014",
       "hcad_num": "0400030000014",
-      "address": "1100 Bagby St",
-      "landmark_name": "Sam Houston Park",
-      "year_built": 1901,
-      "original_hcad_year": null,
-      "bld_style": "Colonial Revival",
+      "is_building_override": false,
+      "address": "1100 BAGBY ST",
+      "historic_district": "none",
+      "contributing": "",
+      "year_built": 1891,
+      "decade": "1890s",
+      "original_hcad_year": 1891,
+      "bld_style": "Gothic Revival Wood-Frame Country Church",
       "architect": "",
-      "source_type": "COH Landmark Designation Report",
-      "source_citation": "HPO #06PL33: Sam Houston Park is the first and oldest municipal park in the city and currently comprises nineteen acres on the edge of the downtown business district, adjacent to the Buffalo Bayou parkway and Bagby Street. Its acreage was originally comprised of several different plots of land\u2014each of which relates significantly to Houston\u2019s history, heritag",
-      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL33%20_Sam_Houston_Park_1100_Bagby.pdf",
-      "landmark_report_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL33%20_Sam_Houston_Park_1100_Bagby.pdf",
-      "landmark_code": "06PL33",
-      "landmark_summary": "Sam Houston Park is the first and oldest municipal park in the city and currently comprises nineteen acres on the edge of the downtown business district, adjacent to the Buffalo Bayou parkway and Bagby Street. Its acreage was originally comprised of several different plots of land\u2014each of which relates significantly to Houston\u2019s history, heritage and development.",
-      "verified_by": "City of Houston HAHC Landmark Report",
-      "verified_at": "2026-10-08",
-      "building_name": "Sam Houston Park",
-      "haif_threads": [
-        {
-          "tid": 10723,
-          "title": "The Heritage Society Museum At Sam Houston Park At 1100 Bagby St.",
-          "subforum": "Historic Houston",
-          "url": "https://www.houstonarchitecture.com/topic/10723-the-heritage-society-museum-at-sam-houston-park-at-1100-bagby-st/",
-          "wb_url": "https://web.archive.org/web/20241109215957/https://www.houstonarchitecture.com/topic/10723-the-heritage-society-museum-at-sam-houston-park-at-1100-bagby-st/",
-          "date": "2007-04-16",
-          "excerpt": "THE HERITAGE SOCIETY The Heritage Society presents Coming Home What: A new exhibition in The Heritage Society Museum. When: Tuesday, March 13, 2007",
-          "is_demo": false
-        }
-      ],
-      "use_category": "Civic / Institutional",
-      "name_source": "COH Landmark Designation Report",
-      "alt_names": [
-        "The Heritage Society Museum At Sam Houston Park"
-      ],
-      "landuse_desc": "Cultural Facility",
+      "builder": "Nathaniel Kellum (Master Brickmaker & Builder)",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$18,500",
+      "original_permit": "",
+      "yr_remodel": 0,
+      "eff_year_built": 0,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "1847 - 1848 (Saved & Restored 1954 by The Heritage Society)",
+        "cost": "Built with slave-made brick fired at Nathaniel Kellum's Buffalo Bayou brickyard",
+        "architect": "Nathaniel Kellum",
+        "builder": "Nathaniel Kellum",
+        "scope": "2-story Louisiana Colonial double-gallery brick residence, oldest surviving brick house on its original foundation in Houston",
+        "source_title": "The Heritage Society at Sam Houston Park Archival Records"
+      },
+      "landmark_name": "Sam Houston Park",
+      "building_name": "",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "The Heritage Society / NRHP Inventory",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
       "geometry": {
         "type": "Polygon",
         "coordinates": [
@@ -701970,18 +702797,7 @@
             ]
           ]
         ]
-      },
-      "super_neighborhood": "Downtown",
-      "neighborhood": "Downtown",
-      "neighborhood_aliases": [
-        "Downtown Houston",
-        "1836 Original Townsite",
-        "Market Square",
-        "Main Street Corridor",
-        "Theater District",
-        "Skyline District"
-      ],
-      "historic_ward": "Fourth Ward"
+      }
     },
     "0601310000005": {
       "hcad_num": "0601310000005",
@@ -702132,7 +702948,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2005,
+      "eff_year_built": 1950
     },
     "0442690000001": {
       "hcad_num": "0442690000001",
@@ -702255,7 +703073,9 @@
       "building_name": "Alabama Theatre and Alabama Community Shopping Center",
       "name_source": "COH Landmark Designation Report",
       "neighborhood": "Greenway - Upper Kirby",
-      "super_neighborhood": "Greenway / Upper Kirby Area"
+      "super_neighborhood": "Greenway / Upper Kirby Area",
+      "yr_remodel": 2013,
+      "eff_year_built": 1940
     },
     "0601340000012": {
       "hcad_num": "0601340000012",
@@ -702310,7 +703130,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 1989,
+      "eff_year_built": 1925
     },
     "0360100000003": {
       "hcad_num": "0360100000003",
@@ -702409,7 +703231,9 @@
         "Southampton",
         "Boulevard Oaks"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 2021,
+      "eff_year_built": 1920
     },
     "0601610780008": {
       "hcad_num": "0601610780008",
@@ -702522,7 +703346,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2008,
+      "eff_year_built": 1939
     },
     "0010190000002": {
       "hcad_num": "0010190000002",
@@ -702543,7 +703369,11 @@
       "use_category": "Residential",
       "building_name": "Kennedy Steam Bakery Building",
       "name_source": "COH Landmark Designation Report",
-      "subdivision": "Ssbb"
+      "subdivision": "Ssbb",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$110,000",
+      "yr_remodel": 2004,
+      "eff_year_built": 1845
     },
     "0050390000009": {
       "hcad_num": "0050390000009",
@@ -702629,7 +703459,9 @@
         "Fourth Ward"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2021,
+      "eff_year_built": 1930
     },
     "0260920000014": {
       "hcad_num": "0260920000014",
@@ -702698,7 +703530,9 @@
         "East End"
       ],
       "super_neighborhood": "Second Ward",
-      "historic_ward": "Second Ward"
+      "historic_ward": "Second Ward",
+      "yr_remodel": 2012,
+      "eff_year_built": 1940
     },
     "0601550460003": {
       "hcad_num": "0601550460003",
@@ -702753,7 +703587,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2001,
+      "eff_year_built": 1930
     },
     "0601330000008": {
       "hcad_num": "0601330000008",
@@ -702858,7 +703694,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2013,
+      "eff_year_built": 1938
     },
     "0030030000001": {
       "hcad_num": "0030030000001",
@@ -702939,7 +703777,9 @@
         "East Downtown"
       ],
       "super_neighborhood": "Greater Eastwood",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "yr_remodel": 2017,
+      "eff_year_built": 2009
     },
     "0200980000035": {
       "hcad_num": "0200980000035",
@@ -703025,7 +703865,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2002,
+      "eff_year_built": 1930
     },
     "0601290000013": {
       "hcad_num": "0601290000013",
@@ -703094,7 +703936,8 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "eff_year_built": 2021
     },
     "0610230070001": {
       "hcad_num": "0610230070001",
@@ -703176,7 +704019,8 @@
         "Greater Fifth Ward",
         "Fifth Ward"
       ],
-      "super_neighborhood": "Greater Fifth Ward"
+      "super_neighborhood": "Greater Fifth Ward",
+      "eff_year_built": 1949
     },
     "0641720010003": {
       "hcad_num": "0641720010003",
@@ -703281,7 +704125,9 @@
       "super_neighborhood": "Afton Oaks / River Oaks Area",
       "neighborhood_aliases": [
         "River Oaks"
-      ]
+      ],
+      "yr_remodel": 2007,
+      "eff_year_built": 1928
     },
     "0300940000014": {
       "id": "0300940000014",
@@ -703471,7 +704317,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2000,
+      "eff_year_built": 1992
     },
     "0601640810010": {
       "hcad_num": "0601640810010",
@@ -703526,7 +704374,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "0202460000016": {
       "hcad_num": "0202460000016",
@@ -703591,7 +704441,9 @@
         "Houston Heights",
         "Houston Heights South Historic District"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2008,
+      "eff_year_built": 1920
     },
     "0611350550001": {
       "hcad_num": "0611350550001",
@@ -703662,7 +704514,9 @@
       "neighborhood_aliases": [
         "Parkwood Drive Civic Club"
       ],
-      "super_neighborhood": "Macgregor"
+      "super_neighborhood": "Macgregor",
+      "yr_remodel": 2013,
+      "eff_year_built": 1945
     },
     "0601560520003": {
       "hcad_num": "0601560520003",
@@ -703725,7 +704579,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 1995,
+      "eff_year_built": 1934
     },
     "1321140010001": {
       "hcad_num": "1321140010001",
@@ -703825,7 +704681,9 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "First Ward"
+      "historic_ward": "First Ward",
+      "yr_remodel": 2011,
+      "eff_year_built": 1998
     },
     "0601560510002": {
       "hcad_num": "0601560510002",
@@ -703914,7 +704772,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2012,
+      "eff_year_built": 1935
     },
     "0601590590010": {
       "hcad_num": "0601590590010",
@@ -704011,7 +704871,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2013,
+      "eff_year_built": 1930
     },
     "0601500290022": {
       "hcad_num": "0601500290022",
@@ -704066,7 +704928,11 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 1995,
+      "eff_year_built": 1927
     },
     "1296950010001": {
       "hcad_num": "1296950010001",
@@ -704208,7 +705074,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2007,
+      "eff_year_built": 1945
     },
     "0601610740001": {
       "hcad_num": "0601610740001",
@@ -704297,7 +705165,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 1989,
+      "eff_year_built": 1945
     },
     "0330920000014": {
       "hcad_num": "0330920000014",
@@ -704358,7 +705228,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2015,
+      "eff_year_built": 1910
     },
     "0540940000006": {
       "hcad_num": "0540940000006",
@@ -704459,7 +705331,9 @@
         "University Place",
         "Southampton Civic Club"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "yr_remodel": 1991,
+      "eff_year_built": 1937
     },
     "0401100000006": {
       "hcad_num": "0401100000006",
@@ -704592,7 +705466,8 @@
         "Washington Avenue East"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "eff_year_built": 1891
     },
     "0010330000004": {
       "hcad_num": "0010330000004",
@@ -704672,7 +705547,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 1979
     },
     "0010600000002": {
       "hcad_num": "0010600000002",
@@ -704766,7 +705643,12 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "W. S. Bellows Construction Corporation",
+      "builder_source": "W. S. Bellows Construction Corp. / Alley Theatre Archives",
+      "engineers": "Weiskopf & Pickworth (Structural)",
+      "original_cost": "$3,500,000",
+      "eff_year_built": 1982
     },
     "0601540400001": {
       "hcad_num": "0601540400001",
@@ -704837,7 +705719,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2010,
+      "eff_year_built": 1930
     },
     "0321930000008": {
       "hcad_num": "0321930000008",
@@ -704966,7 +705850,8 @@
       "neighborhood_aliases": [
         "Old West End"
       ],
-      "super_neighborhood": "Washington Avenue Coalition / Memorial Park"
+      "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
+      "eff_year_built": 1930
     },
     "0601620900011": {
       "hcad_num": "0601620900011",
@@ -705055,7 +705940,9 @@
       "neighborhood_aliases": [
         "River Oaks"
       ],
-      "super_neighborhood": "Afton Oaks / River Oaks Area"
+      "super_neighborhood": "Afton Oaks / River Oaks Area",
+      "yr_remodel": 2021,
+      "eff_year_built": 1950
     },
     "0611260320005": {
       "hcad_num": "0611260320005",
@@ -705118,7 +706005,9 @@
       "neighborhood_aliases": [
         "Historic Riverside Terrace Civic Association"
       ],
-      "super_neighborhood": "Macgregor"
+      "super_neighborhood": "Macgregor",
+      "yr_remodel": 2015,
+      "eff_year_built": 1933
     },
     "1344850010001": {
       "id": "1344850010001",
@@ -705195,7 +706084,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2010,
+      "eff_year_built": 1988
     },
     "1344850010002": {
       "id": "1344850010002",
@@ -705293,7 +706184,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$1200",
+      "yr_remodel": 2010,
+      "eff_year_built": 1992
     },
     "1344850010002#stage": {
       "id": "1344850010002#stage",
@@ -705362,7 +706257,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2010,
+      "eff_year_built": 1992
     },
     "1412870010001": {
       "id": "1412870010001",
@@ -705440,7 +706337,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2020,
+      "eff_year_built": 1970
     },
     "0271180000019": {
       "id": "0271180000019",
@@ -705510,7 +706409,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2014,
+      "eff_year_built": 1947
     },
     "0271180000004": {
       "id": "0271180000004",
@@ -705648,7 +706549,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 1935
     },
     "0031280000002": {
       "id": "0031280000002",
@@ -705828,7 +706730,8 @@
       ],
       "super_neighborhood": "Downtown",
       "subdivision": "Nsbb",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 1900
     },
     "0031330000006": {
       "id": "0031330000006",
@@ -705890,7 +706793,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2007,
+      "eff_year_built": 1916
     },
     "0031330000015": {
       "id": "0031330000015",
@@ -705976,7 +706881,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2016,
+      "eff_year_built": 2003
     },
     "0031290000013": {
       "id": "0031290000013",
@@ -706088,7 +706995,11 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "builder": "Thomas E",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "yr_remodel": 1997,
+      "eff_year_built": 1986
     },
     "1216410000008": {
       "id": "1216410000008",
@@ -706154,7 +707065,9 @@
       ],
       "super_neighborhood": "Downtown",
       "subdivision": "The San Jacinto Lofts Condo",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2001,
+      "eff_year_built": 1986
     },
     "0300960000001": {
       "id": "0300960000001",
@@ -706224,7 +707137,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2004,
+      "eff_year_built": 1980
     },
     "0300960000006": {
       "id": "0300960000006",
@@ -706286,7 +707201,9 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2019,
+      "eff_year_built": 1972
     },
     "0300970000005": {
       "hcad_num": "0300970000005",
@@ -706388,7 +707305,8 @@
       ],
       "super_neighborhood": "Downtown",
       "subdivision": "Adj 50x110 Ft of William St",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 1993
     },
     "1412880010001": {
       "id": "1412880010001",
@@ -706482,7 +707400,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 2022
     },
     "0031320000008": {
       "id": "0031320000008",
@@ -706544,7 +707463,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 1946
     },
     "0031320000003": {
       "id": "0031320000003",
@@ -706742,7 +707662,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 2005
     },
     "1246600010017": {
       "id": "1246600010017",
@@ -706801,7 +707722,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 2005
     },
     "1246600010016": {
       "id": "1246600010016",
@@ -706860,7 +707782,8 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "eff_year_built": 2005
     },
     "0400100000002": {
       "hcad_num": "0400100000002",
@@ -706939,7 +707862,9 @@
         "Northside Village"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fifth Ward"
+      "historic_ward": "Fifth Ward",
+      "yr_remodel": 2024,
+      "eff_year_built": 2010
     },
     "0052240000015": {
       "hcad_num": "0052240000015",
@@ -707002,7 +707927,11 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 2022,
+      "eff_year_built": 1950,
+      "was_relocated": true,
+      "relocation_note": "08/10/2006: FOUNDATION FOR MOVIN HOUSE (Permit #1052889)"
     },
     "0052100000001": {
       "hcad_num": "0052100000001",
@@ -707069,7 +707998,9 @@
         "Sabine District"
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
-      "historic_ward": "Sixth Ward"
+      "historic_ward": "Sixth Ward",
+      "yr_remodel": 1988,
+      "eff_year_built": 1875
     },
     "0201540000011": {
       "hcad_num": "0201540000011",
@@ -707132,7 +708063,8 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "eff_year_built": 1903
     },
     "0201530000017": {
       "hcad_num": "0201530000017",
@@ -707203,7 +708135,9 @@
         "Brookesmith",
         "Sunset Heights"
       ],
-      "super_neighborhood": "Greater Heights"
+      "super_neighborhood": "Greater Heights",
+      "yr_remodel": 2005,
+      "eff_year_built": 1920
     },
     "0050210000005": {
       "hcad_num": "0050210000005",
@@ -707295,7 +708229,8 @@
         "Cdc of Freedmen's Town"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "eff_year_built": 1927
     },
     "0010570000009": {
       "hcad_num": "0010570000009",
@@ -707431,7 +708366,9 @@
       ],
       "super_neighborhood": "Downtown",
       "subdivision": "Ssbb",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2015,
+      "eff_year_built": 1997
     },
     "0102490000010": {
       "hcad_num": "0102490000010",
@@ -707519,7 +708456,9 @@
         "Westmoreland"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2012,
+      "eff_year_built": 1912
     },
     "0102490000012": {
       "hcad_num": "0102490000012",
@@ -707599,7 +708538,9 @@
         "Westmoreland"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 1970,
+      "eff_year_built": 1917
     },
     "0102490000013": {
       "hcad_num": "0102490000013",
@@ -707695,7 +708636,9 @@
         "Westmoreland"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2010,
+      "eff_year_built": 1919
     },
     "0041400000004": {
       "hcad_num": "0041400000004",
@@ -707762,7 +708705,21 @@
         "Avondale Civic Association"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "hist_contract": {
+        "date": "1917 (Plan No. 204)",
+        "cost": "$9,000 (est. Russell Brown Co. contract)",
+        "architect": "The Russell Brown Company (Plan No. 204)",
+        "builder": "The Russell Brown Company",
+        "scope": "2-story residence in Avondale Addition featured in The Russell Brown Co.'s 'Modern Homes, Book Number Two' (Page 8, Plan 204)",
+        "source_title": "HMRC: Modern Homes, Book Number Two (The Russell Brown Co.), Plan 204, Page 8",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12347",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12347/full/pct:75/0/default.jpg"
+      },
+      "yr_remodel": 2010,
+      "eff_year_built": 1917
     },
     "0844820000006": {
       "hcad_num": "0844820000006",
@@ -707822,7 +708779,8 @@
         "Glenbrook Valley Civic Club",
         "Hobby Mid-Century Modern District"
       ],
-      "super_neighborhood": "Golfcrest / Bellfort / Reveille"
+      "super_neighborhood": "Golfcrest / Bellfort / Reveille",
+      "eff_year_built": 1956
     },
     "0844800000010": {
       "hcad_num": "0844800000010",
@@ -707882,7 +708840,8 @@
         "Glenbrook Valley Civic Club",
         "Hobby Mid-Century Modern District"
       ],
-      "super_neighborhood": "Golfcrest / Bellfort / Reveille"
+      "super_neighborhood": "Golfcrest / Bellfort / Reveille",
+      "eff_year_built": 1960
     },
     "0812870000026": {
       "hcad_num": "0812870000026",
@@ -707958,7 +708917,8 @@
         "Glenbrook Valley Civic Club",
         "Hobby Mid-Century Modern District"
       ],
-      "super_neighborhood": "Golfcrest / Bellfort / Reveille"
+      "super_neighborhood": "Golfcrest / Bellfort / Reveille",
+      "eff_year_built": 1955
     },
     "0812870000020": {
       "hcad_num": "0812870000020",
@@ -708018,7 +708978,8 @@
         "Glenbrook Valley Civic Club",
         "Hobby Mid-Century Modern District"
       ],
-      "super_neighborhood": "Golfcrest / Bellfort / Reveille"
+      "super_neighborhood": "Golfcrest / Bellfort / Reveille",
+      "eff_year_built": 1953
     },
     "1274570010001": {
       "hcad_num": "1274570010001",
@@ -708316,7 +709277,75 @@
         "Fourth Ward"
       ],
       "super_neighborhood": "Fourth Ward",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "yr_remodel": 2018,
+      "eff_year_built": 2014
+    },
+    "0332640000005": {
+      "building_id": "0332640000005",
+      "hcad_num": "0332640000005",
+      "is_building_override": false,
+      "address": "5417 CRAWFORD ST",
+      "historic_district": "",
+      "contributing": "",
+      "year_built": 1996,
+      "decade": "1990s",
+      "original_hcad_year": 1996,
+      "bld_style": "Contemporary Memorial Museum",
+      "architect": "",
+      "builder": "Don Hall, Constructor",
+      "builder_source": "Texas General Contractors Bulletin, Vol. 4, No. 2 (Feb. 1923), p. 25",
+      "engineers": "William Ward Watkin",
+      "original_cost": "$200,000",
+      "original_permit": "TGCA Contract Award (Feb. 1923)",
+      "yr_remodel": 0,
+      "eff_year_built": 0,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "Contract awarded February 1923; dedicated April 12, 1924 (Cullinan Hall added 1958 by W. S. Bellows Construction Co.)",
+        "cost": "$200,000 (First Unit, 1923-1924)",
+        "architect": "William Ward Watkin & Cram and Ferguson (1924); Ludwig Mies van der Rohe (1958 & 1974)",
+        "builder": "Don Hall, Constructor (1924 First Unit); W. S. Bellows Construction Co. (1958 Cullinan Hall)",
+        "scope": "First unit of the Houston Art Museum (Neoclassical limestone pavilion), followed by Mies van der Rohe's 1958 Cullinan Hall",
+        "source_title": "T.G.C.A. Monthly Bulletin, Vol. 4, No. 2 (February 1923), p. 25",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16089",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "Holocaust Museum Houston (Lester and Sue Smith Campus)",
+      "building_name": "",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Texas General Contractors Bulletin, Vol. 4, No. 2 (Feb. 1923), p. 25",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.383397,
+              29.723521
+            ],
+            [
+              -95.383342,
+              29.723496
+            ],
+            [
+              -95.383195,
+              29.723735
+            ],
+            [
+              -95.383249,
+              29.72376
+            ],
+            [
+              -95.383397,
+              29.723521
+            ]
+          ]
+        ]
+      }
     }
   },
   "updatedAt": "2026-10-05T20:08:43Z",

@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261011w";
+} from "./palettes.js?v=20261012a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -18,9 +18,9 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261011s";
-import { AtlasMapController } from "./mapController.js?v=20261011w";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
+} from "./filterStore.js?v=20261012a";
+import { AtlasMapController } from "./mapController.js?v=20261012a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -31,14 +31,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261011f";
+} from "./curatedEdits.js?v=20261012a";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261011v";
+} from "./photoService.js?v=20261012a";
 
 class HoustonAtlasApp {
   constructor() {
@@ -58,6 +58,7 @@ class HoustonAtlasApp {
     this.globalStats = null;
     this.deedCatalog = null;
     this.sanbornCatalog = null;
+    this._permitShardCache = new Map();
     this.lastViewportStats = null;
     this.timelapseTimer = null;
     this._suppressUrlUpdate = false;
@@ -809,6 +810,32 @@ class HoustonAtlasApp {
     return chips;
   }
 
+  _resolveBuilderChips(props = {}) {
+    const raw = String(props.builder || "").trim();
+    if (!raw || /^(?:unknown|none|n\/a|null|unrecorded|tbd)$/i.test(raw)) {
+      return [];
+    }
+    const parts = raw
+      .split(/\s*[;/]\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const chips = [];
+    for (const part of parts) {
+      const m = part.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+      const core = m ? m[1].trim() : part;
+      const note = m ? m[2].trim() : "";
+      if (!core) continue;
+      chips.push({
+        label: core,
+        query: core,
+        note,
+        headerLabel: `Builder / Contractor: ${core}`,
+      });
+    }
+    return chips;
+  }
+
   _mergeCuratedOverridesIntoSearchIndex() {
     const ovMap = (this.mapController && this.mapController.curatedOverrides) || {};
     const suppressedHcads = new Set();
@@ -825,14 +852,18 @@ class HoustonAtlasApp {
     const existingByHcad = new Map();
     for (let i = 0; i < this.searchIndex.length; i++) {
       const item = this.searchIndex[i];
+      if (item.is_neighborhood_entry || item.is_place_boundary) continue;
       if (item.hcad_num) {
         existingByHcad.set(String(item.hcad_num).trim(), i);
+      }
+      if (item.id && !existingByHcad.has(String(item.id).trim())) {
+        existingByHcad.set(String(item.id).trim(), i);
       }
     }
 
     for (const [hcad, ov] of Object.entries(ovMap)) {
       if (!ov || ov.suppress_only) continue;
-      const existingIdx = existingByHcad.get(hcad);
+      const existingIdx = existingByHcad.get(hcad) ?? (ov.hcad_num ? existingByHcad.get(String(ov.hcad_num).trim()) : undefined);
       const existingItem = existingIdx !== undefined ? this.searchIndex[existingIdx] : null;
       let lon = ov.lon ?? ov.lng ?? existingItem?.lon ?? -95.38718;
       let lat = ov.lat ?? existingItem?.lat ?? 29.79175;
@@ -906,20 +937,33 @@ class HoustonAtlasApp {
           ? `${combinedAddrDisplay} • `
           : "";
 
+      const mergedBuilder = ov.builder || existingItem?.builder || "";
+      const bldrSnippet = mergedBuilder ? ` • Built by ${mergedBuilder}` : "";
+
       const entry = {
         type: "building",
         id: ov.id || existingItem?.id || `ov_${hcad}`,
-        hcad_num: hcad,
+        hcad_num: ov.hcad_num || hcad,
         label: primaryBldName || primaryAddr || ov.address || existingItem?.label || `HCAD ${hcad}`,
         address: primaryAddr || ov.address || "",
         ...(altAddresses.length > 0 ? { alt_addresses: altAddresses } : {}),
         building_name: primaryBldName,
         alt_names: altNames,
         name_source: ov.name_source || existingItem?.name_source || "",
-        sublabel: `${akaSnippet}${addrSnippet}${ov.historic_district || ov.neighborhood || existingItem?.historic_district || existingItem?.neighborhood || mergedUseCategory || "Harris County"} • Built ${ov.year_built} (✓ PH Verified)`,
+        sublabel: `${akaSnippet}${addrSnippet}${ov.historic_district || ov.neighborhood || existingItem?.historic_district || existingItem?.neighborhood || mergedUseCategory || "Harris County"} • Built ${ov.year_built}${bldrSnippet} (✓ PH Verified)`,
         category: `Built ${ov.year_built} ✓`,
         year_built: ov.year_built,
         architect: ov.architect || existingItem?.architect || "",
+        builder: mergedBuilder,
+        builder_source: ov.builder_source || existingItem?.builder_source || "",
+        engineers: ov.engineers || existingItem?.engineers || "",
+        original_cost: ov.original_cost || existingItem?.original_cost || "",
+        original_permit: ov.original_permit || existingItem?.original_permit || "",
+        yr_remodel: ov.yr_remodel || existingItem?.yr_remodel || 0,
+        eff_year_built: ov.eff_year_built || existingItem?.eff_year_built || 0,
+        was_relocated: Boolean(ov.was_relocated || existingItem?.was_relocated),
+        relocation_note: ov.relocation_note || existingItem?.relocation_note || "",
+        hist_contract: ov.hist_contract || existingItem?.hist_contract || null,
         style: ov.style || existingItem?.style || "",
         bld_style: mergedBldStyle,
         hcad_grade: ov.hcad_grade || existingItem?.hcad_grade || "",
@@ -946,7 +990,9 @@ class HoustonAtlasApp {
           ...entry,
         };
       } else {
-        this.searchIndex.unshift(entry);
+        const newIdx = this.searchIndex.push(entry) - 1;
+        existingByHcad.set(hcad, newIdx);
+        if (entry.hcad_num) existingByHcad.set(String(entry.hcad_num).trim(), newIdx);
       }
     }
   }
@@ -957,7 +1003,7 @@ class HoustonAtlasApp {
     const byLabel = new Map();
     for (let i = 0; i < this.searchIndex.length; i++) {
       const item = this.searchIndex[i];
-      if (item.is_neighborhood_entry) {
+      if (item.is_neighborhood_entry || item.is_place_boundary) {
         if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
         if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
         if (item.overlay_layer === "historicWards") item.overlay_layer = "historic_wards";
@@ -968,12 +1014,13 @@ class HoustonAtlasApp {
             .filter(Boolean)
             .join(" • ");
         }
+        continue;
       }
       if (item.hcad_num) byHcad.set(String(item.hcad_num).trim(), item);
       if (item.label) byLabel.set(String(item.label).trim().toLowerCase(), item);
     }
 
-    // 1. Enrich from buildingsData (architect, bld_style, style, use_category, landuse_desc, historic_district, neighborhood, super_neighborhood, historic_ward, subdivision, good_brick_years, building_name, alt_names, address, alt_addresses, and geometry coords)
+    // 1. Enrich from buildingsData
     for (const feat of this.mapController.buildingsData || []) {
       const p = feat.properties || {};
       const hcad = String(p.hcad_num || "").trim();
@@ -1032,6 +1079,16 @@ class HoustonAtlasApp {
         }
         if (p.name_source && !target.name_source) target.name_source = p.name_source;
         if (p.architect && !target.architect) target.architect = p.architect;
+        if (p.builder && !target.builder) target.builder = p.builder;
+        if (p.builder_source && !target.builder_source) target.builder_source = p.builder_source;
+        if (p.engineers && !target.engineers) target.engineers = p.engineers;
+        if (p.original_cost && !target.original_cost) target.original_cost = p.original_cost;
+        if (p.original_permit && !target.original_permit) target.original_permit = p.original_permit;
+        if (p.yr_remodel && !target.yr_remodel) target.yr_remodel = p.yr_remodel;
+        if (p.eff_year_built && !target.eff_year_built) target.eff_year_built = p.eff_year_built;
+        if (p.was_relocated) target.was_relocated = true;
+        if (p.relocation_note && !target.relocation_note) target.relocation_note = p.relocation_note;
+        if (p.hist_contract && !target.hist_contract) target.hist_contract = p.hist_contract;
         if (p.style && (!target.style || target.style === "Historical / Architectural Structure")) {
           target.style = p.style;
         }
@@ -1068,6 +1125,7 @@ class HoustonAtlasApp {
       } else if (
         p.address ||
         p.architect ||
+        p.builder ||
         p.building_name ||
         p.landmark_name ||
         p.good_brick_years ||
@@ -1097,12 +1155,23 @@ class HoustonAtlasApp {
             p.address,
             p.historic_district || p.neighborhood,
             p.architect ? `Arch: ${p.architect}` : "",
+            p.builder ? `Built by ${p.builder}` : "",
           ]
             .filter(Boolean)
             .join(" • "),
           category: p.year_built ? `Built ${p.year_built}` : p.use_category || "Historic Structure",
           year_built: p.year_built || 0,
           architect: p.architect || "",
+          builder: p.builder || "",
+          builder_source: p.builder_source || "",
+          engineers: p.engineers || "",
+          original_cost: p.original_cost || "",
+          original_permit: p.original_permit || "",
+          yr_remodel: p.yr_remodel || 0,
+          eff_year_built: p.eff_year_built || 0,
+          was_relocated: Boolean(p.was_relocated),
+          relocation_note: p.relocation_note || "",
+          hist_contract: p.hist_contract || null,
           style: p.style || "",
           bld_style: p.bld_style || p.style || "",
           hcad_grade: p.hcad_grade || "",
@@ -1127,7 +1196,7 @@ class HoustonAtlasApp {
       }
     }
 
-    // 2. Enrich from overlaysData.landmarks & overlaysData.good_brick_awards
+    // 2. Enrich from overlaysData.landmarks & overlaysData.good_brick_awards & overlaysData.relocated_structures
     const landmarks = this.mapController.overlaysData?.landmarks?.features || [];
     for (const feat of landmarks) {
       const p = feat.properties || {};
@@ -1144,6 +1213,10 @@ class HoustonAtlasApp {
           target.alt_names = p.alt_names;
         }
         if (p.architect && !target.architect) target.architect = p.architect;
+        if (p.builder && !target.builder) target.builder = p.builder;
+        if (p.builder_source && !target.builder_source) target.builder_source = p.builder_source;
+        if (p.original_cost && !target.original_cost) target.original_cost = p.original_cost;
+        if (p.original_permit && !target.original_permit) target.original_permit = p.original_permit;
         if (p.style && !target.bld_style) target.bld_style = p.style;
         if (lmCode && !target.landmark_code) target.landmark_code = lmCode;
         if (p.report_pdf_url && !target.landmark_report_url) target.landmark_report_url = p.report_pdf_url;
@@ -1169,12 +1242,17 @@ class HoustonAtlasApp {
             lmCode ? `HPO #${lmCode}` : "",
             p.style,
             p.architect ? `Arch: ${p.architect}` : "",
+            p.builder ? `Built by ${p.builder}` : "",
           ]
             .filter(Boolean)
             .join(" • "),
           category: p.designation || "Landmark",
           year_built: p.year_built || 0,
           architect: p.architect || "",
+          builder: p.builder || "",
+          builder_source: p.builder_source || "",
+          original_cost: p.original_cost || "",
+          original_permit: p.original_permit || "",
           bld_style: p.style || "",
           landmark_code: lmCode,
           landmark_report_url: p.report_pdf_url || "",
@@ -1183,6 +1261,57 @@ class HoustonAtlasApp {
           lat,
           zoom: 17.5,
         });
+      }
+    }
+
+    const relocFeats = this.mapController.overlaysData?.relocated_structures?.features || [];
+    for (const feat of relocFeats) {
+      const p = feat.properties || {};
+      const hcad = String(p.hcad_num || "").trim();
+      const target =
+        (hcad && byHcad.get(hcad)) ||
+        (p.name && byLabel.get(String(p.name).toLowerCase()));
+      if (target) {
+        if (p.builder && !target.builder) target.builder = p.builder;
+        if (p.builder_source && !target.builder_source) target.builder_source = p.builder_source;
+        if (p.architect && !target.architect) target.architect = p.architect;
+        if (p.original_cost && !target.original_cost) target.original_cost = p.original_cost;
+        if (p.original_permit && !target.original_permit) target.original_permit = p.original_permit;
+        if (p.was_relocated) target.was_relocated = true;
+        if (p.relocation_note && !target.relocation_note) target.relocation_note = p.relocation_note;
+        if (p.hist_contract && !target.hist_contract) target.hist_contract = p.hist_contract;
+      } else if (feat.geometry?.coordinates) {
+        const [lon, lat] = feat.geometry.coordinates;
+        const newEntry = {
+          type: "building",
+          id: p.id || hcad,
+          hcad_num: hcad,
+          label: p.name || p.address || `HCAD ${hcad}`,
+          address: p.address || "",
+          building_name: p.name || "",
+          sublabel: [
+            p.address,
+            p.builder ? `Built by ${p.builder}` : "",
+            p.was_relocated ? "🚚 Relocated Structure" : "",
+          ]
+            .filter(Boolean)
+            .join(" • "),
+          category: p.year_built ? `Built ${p.year_built}` : "Historic Structure",
+          year_built: p.year_built || 0,
+          architect: p.architect || "",
+          builder: p.builder || "",
+          builder_source: p.builder_source || "",
+          original_cost: p.original_cost || "",
+          original_permit: p.original_permit || "",
+          was_relocated: Boolean(p.was_relocated),
+          relocation_note: p.relocation_note || "",
+          hist_contract: p.hist_contract || null,
+          lon,
+          lat,
+          zoom: 17.5,
+        };
+        this.searchIndex.push(newEntry);
+        if (hcad) byHcad.set(hcad, newEntry);
       }
     }
 
@@ -1256,6 +1385,9 @@ class HoustonAtlasApp {
     const sub = String(item.sublabel || "").toLowerCase();
     const hcad = hcadKey.toLowerCase();
     const arch = String(item.architect || "").toLowerCase();
+    const builder = String(item.builder || "").toLowerCase();
+    const permit = String(item.original_permit || "").toLowerCase();
+    const reloc = item.was_relocated ? "relocated moved structure" : "";
     const style = String(item.style || "").toLowerCase();
     const bldStyle = String(item.bld_style || "").toLowerCase();
     const useCat = String(item.use_category || "").toLowerCase();
@@ -1300,6 +1432,9 @@ class HoustonAtlasApp {
       sub,
       hcad,
       arch,
+      builder,
+      permit,
+      reloc,
       style,
       bldStyle !== style ? bldStyle : "",
       useCat,
@@ -1333,6 +1468,9 @@ class HoustonAtlasApp {
       sub,
       hcad,
       arch,
+      builder,
+      permit,
+      reloc,
       style,
       bldStyle,
       useCat,
@@ -1723,6 +1861,7 @@ class HoustonAtlasApp {
       ["chk-layer-good-brick", "goodBrickAwards"],
       ["chk-layer-landmarks", "landmarks"],
       ["chk-layer-lost-houston", "lostHouston"],
+      ["chk-layer-relocated-structures", "relocatedStructures"],
       ["chk-layer-historic-districts", "historicDistricts"],
       ["chk-layer-heritage-districts", "heritageDistricts"],
       ["chk-layer-nrhp-districts", "nrhpDistricts"],
@@ -2230,6 +2369,8 @@ class HoustonAtlasApp {
           historic_district: document.getElementById("corr-district")?.value || "",
           source_type: document.getElementById("corr-source-type")?.value || "Houston City Directory",
           architect: document.getElementById("corr-style-arch")?.value || "",
+          builder: document.getElementById("corr-builder")?.value || "",
+          permit_info: document.getElementById("corr-permit-info")?.value || "",
           source_citation: document.getElementById("corr-citation")?.value || "",
           photo_url: document.getElementById("corr-photo-url")?.value || "",
           photo_year: document.getElementById("corr-photo-year")?.value || "",
@@ -2365,6 +2506,8 @@ class HoustonAtlasApp {
           historic_district: document.getElementById("corr-district")?.value || "",
           source_type: document.getElementById("corr-source-type")?.value || "Houston City Directory",
           architect: document.getElementById("corr-style-arch")?.value || "",
+          builder: document.getElementById("corr-builder")?.value || "",
+          permit_info: document.getElementById("corr-permit-info")?.value || "",
           source_citation: document.getElementById("corr-citation")?.value || "",
           footprint_issue: document.getElementById("corr-footprint-issue")?.value || "",
           footprint_notes: document.getElementById("corr-footprint-notes")?.value || "",
@@ -2381,6 +2524,9 @@ class HoustonAtlasApp {
 
         const hasYearChange = Boolean(String(payload.suggested_year_built).trim());
         const hasNameUpdate = Boolean(parsedPrimaryBldName);
+        const hasBuilderOrPermit = Boolean(
+          String(payload.builder).trim() || String(payload.permit_info).trim()
+        );
         const hasFootprintReport = Boolean(
           String(payload.footprint_issue).trim() || String(payload.footprint_notes).trim()
         );
@@ -2393,13 +2539,14 @@ class HoustonAtlasApp {
         if (
           !hasYearChange &&
           !hasNameUpdate &&
+          !hasBuilderOrPermit &&
           !hasFootprintReport &&
           !hasCitation &&
           !hasPhoto &&
           !hasDeedContribution
         ) {
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built, Building Name / Alias, Subdivision Deed Restriction PDF / Clerk File #, select a Building Footprint Issue, or provide historical notes before submitting.</strong>`;
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built, Building Name / Alias, Builder / Contractor, Subdivision Deed Restriction PDF / Clerk File #, select a Building Footprint Issue, or provide historical notes before submitting.</strong>`;
             feedbackEl.classList.remove("hidden");
           }
           return;
@@ -2750,6 +2897,10 @@ class HoustonAtlasApp {
       hdrLow.startsWith("name / alias:") || hdrLow.startsWith("building name:");
     const isArchitectFilter =
       hdrLow.startsWith("architect:") || hdrLow.startsWith("architect / builder:");
+    const isBuilderFilter =
+      hdrLow.startsWith("builder:") ||
+      hdrLow.startsWith("builder / contractor:") ||
+      hdrLow.startsWith("contractor:");
     const isDistrictFilter = hdrLow.startsWith("district:");
     const isNeighborhoodFilter =
       hdrLow.startsWith("neighborhood:") || hdrLow.startsWith("neighborhood / alias:");
@@ -2847,6 +2998,9 @@ class HoustonAtlasApp {
         sub,
         hcad,
         arch,
+        builder,
+        permit,
+        reloc,
         style,
         bldStyle,
         useCat,
@@ -2888,6 +3042,7 @@ class HoustonAtlasApp {
       if (isPlaceBoundary) {
         if (
           isArchitectFilter ||
+          isBuilderFilter ||
           isDistrictFilter ||
           isGoodBrickFilter ||
           isLandUseCategoryFilter ||
@@ -2948,9 +3103,17 @@ class HoustonAtlasApp {
             score = 94;
           }
         }
+      } else if (isBuilderFilter) {
+        if (builder && builder.includes(q)) {
+          score = builder === q ? 124 : 108;
+        } else if (arch && arch.includes(q)) {
+          score = 96;
+        }
       } else if (isArchitectFilter) {
         if (arch && arch.includes(q)) {
           score = arch === q ? 120 : 105;
+        } else if (builder && builder.includes(q)) {
+          score = builder === q ? 115 : 100;
         }
       } else if (isDistrictFilter) {
         if (dist && dist.includes(q)) {
@@ -3043,8 +3206,6 @@ class HoustonAtlasApp {
         }
       } else {
         // General free-text search across all metadata & labels
-        // Note: Do NOT check `q.includes(style)` here, or multi-word building queries like
-        // "Spaghetti Warehouse" or "Sam Houston Hotel" will match every building with style="Warehouse" or "Hotel"!
         if (style === q || bldStyle === q) {
           score = Math.max(score, 118);
         } else if (
@@ -3086,6 +3247,15 @@ class HoustonAtlasApp {
 
         if (arch && arch.includes(q)) {
           score = Math.max(score, arch === q ? 116 : 98);
+        }
+        if (builder && builder.includes(q)) {
+          score = Math.max(score, builder === q ? 118 : 100);
+        }
+        if (permit && permit.includes(q)) {
+          score = Math.max(score, 102);
+        }
+        if (reloc && reloc.includes(q)) {
+          score = Math.max(score, 98);
         }
         if (dist && dist.includes(q)) {
           score = Math.max(score, dist === q ? 105 : 90);
@@ -3158,9 +3328,7 @@ class HoustonAtlasApp {
           score = Math.max(score, 55);
         }
 
-        // Multi-word token fallback across address + names (e.g. "1001 mckinney" or "city national mckinney")
-        // Require at least one distinctive non-stopword token if matching against names so generic words
-        // like "warehouse" or "building" alone don't pull in unrelated structures.
+        // Multi-word token fallback across address + names
         if (score < 85 && qTokens.length >= 2) {
           const addrHaystack = `${addr} ${altAddrs.join(" ")}`;
           const nameHaystack = `${lbl} ${bldName} ${altNames.join(" ")}`;
@@ -3212,7 +3380,6 @@ class HoustonAtlasApp {
         continue;
       }
 
-      // Only populate geographic context before scoring when a geographic filter chip is active
       if (
         needsPreGeo &&
         (!p.neighborhood || !p.super_neighborhood || !p.historic_ward) &&
@@ -3266,6 +3433,16 @@ class HoustonAtlasApp {
         category: yr >= 1836 ? `Built ${yr}${p.is_curated_override ? " ✓" : ""}` : p.use_category || "Structure",
         year_built: yr,
         architect: p.architect || "",
+        builder: p.builder || "",
+        builder_source: p.builder_source || "",
+        engineers: p.engineers || "",
+        original_cost: p.original_cost || "",
+        original_permit: p.original_permit || "",
+        yr_remodel: p.yr_remodel || 0,
+        eff_year_built: p.eff_year_built || 0,
+        was_relocated: Boolean(p.was_relocated),
+        relocation_note: p.relocation_note || "",
+        hist_contract: p.hist_contract || null,
         style: p.style || "",
         bld_style: p.bld_style || p.style || "",
         hcad_grade: p.hcad_grade || "",
@@ -3304,6 +3481,7 @@ class HoustonAtlasApp {
           p.neighborhood && distClean && p.neighborhood !== distClean ? p.neighborhood : "",
           luChips.length > 1 && (distClean || p.neighborhood) ? luSummary : "",
           styleInfo.displayStyle && styleInfo.displayStyle !== luSummary ? styleInfo.displayStyle : "",
+          p.builder ? `Built by ${p.builder}` : "",
           yr >= 1836 ? `Built ${yr}` : "",
         ]
           .filter(Boolean)
@@ -3346,7 +3524,7 @@ class HoustonAtlasApp {
     const matches = scoredMatches.slice(0, 25).map((m) => m.item);
 
     if (!matches.length) {
-      searchResults.innerHTML = `<div class="search-empty">No matching addresses, neighborhoods, wards, subdivisions, architects, styles, or landmarks found for "${rawQuery}".</div>`;
+      searchResults.innerHTML = `<div class="search-empty">No matching addresses, neighborhoods, wards, subdivisions, architects, builders, styles, or landmarks found for "${rawQuery}".</div>`;
       searchResults.classList.remove("hidden");
       return;
     }
@@ -3533,6 +3711,16 @@ class HoustonAtlasApp {
               historic_ward: chosen.historic_ward || "",
               subdivision: chosen.subdivision || "",
               architect: chosen.architect || "",
+              builder: chosen.builder || "",
+              builder_source: chosen.builder_source || "",
+              engineers: chosen.engineers || "",
+              original_cost: chosen.original_cost || "",
+              original_permit: chosen.original_permit || "",
+              yr_remodel: chosen.yr_remodel || 0,
+              eff_year_built: chosen.eff_year_built || 0,
+              was_relocated: Boolean(chosen.was_relocated),
+              relocation_note: chosen.relocation_note || "",
+              hist_contract: chosen.hist_contract || null,
               style: chosen.style || "",
               bld_style: chosen.bld_style || "",
               hcad_grade: chosen.hcad_grade || "",
@@ -3592,6 +3780,8 @@ class HoustonAtlasApp {
     const suggYrEl = document.getElementById("corr-suggested-year");
     const distEl = document.getElementById("corr-district");
     const styleEl = document.getElementById("corr-style-arch");
+    const builderEl = document.getElementById("corr-builder");
+    const permitInfoEl = document.getElementById("corr-permit-info");
     const citeEl = document.getElementById("corr-citation");
     const photoUrlEl = document.getElementById("corr-photo-url");
     const photoYearEl = document.getElementById("corr-photo-year");
@@ -3631,6 +3821,14 @@ class HoustonAtlasApp {
     if (suggYrEl) suggYrEl.value = props.is_curated_override ? props.year_built : "";
     if (distEl) distEl.value = props.historic_district || "";
     if (styleEl) styleEl.value = props.architect || props.bld_style || "";
+    if (builderEl) builderEl.value = props.builder || "";
+    if (permitInfoEl) {
+      permitInfoEl.value =
+        props.original_permit ||
+        props.relocation_note ||
+        (props.original_cost ? `Cost: ${props.original_cost}` : "") ||
+        "";
+    }
     if (citeEl) citeEl.value = props.source_citation || "";
     if (sourceTypeEl) sourceTypeEl.value = "Houston City Directory";
     if (footprintSelectEl) footprintSelectEl.value = "";
@@ -4243,6 +4441,7 @@ class HoustonAtlasApp {
     const mapLayerIds = {
       "chk-layer-good-brick": state.layers.goodBrickAwards,
       "chk-layer-landmarks": state.layers.landmarks,
+      "chk-layer-relocated-structures": state.layers.relocatedStructures,
       "chk-layer-lost-houston": state.layers.lostHouston || state.historicalSnapshotMode,
       "chk-layer-historic-districts": state.layers.historicDistricts,
       "chk-layer-heritage-districts": state.layers.heritageDistricts,
@@ -6286,10 +6485,139 @@ class HoustonAtlasApp {
           secondaryPdfUrl = lp.secondary_pdf_url || "";
           if (!landmarkCode) landmarkCode = lp.plm_num || lp.lm_num || "";
           if (!landmarkSummary) landmarkSummary = lp.pdf_summary || "";
+          if (!props.builder && lp.builder) props.builder = lp.builder;
+          if (!props.builder_source && lp.builder_source) props.builder_source = lp.builder_source;
+          if (!props.original_permit && lp.original_permit) props.original_permit = lp.original_permit;
+          if (!props.original_cost && lp.original_cost) props.original_cost = lp.original_cost;
+          if (!props.engineers && lp.engineers) props.engineers = lp.engineers;
           break;
         }
       }
     }
+
+    // Runtime fallback from overlaysData.relocated_structures by hcadNum
+    if (hcadNum && this.mapController?.overlaysData?.relocated_structures?.features) {
+      for (const rf of this.mapController.overlaysData.relocated_structures.features) {
+        const rp = rf.properties || {};
+        if (String(rp.hcad_num || "").trim() === hcadNum) {
+          if (!props.builder && rp.builder) props.builder = rp.builder;
+          if (!props.builder_source && rp.builder_source) props.builder_source = rp.builder_source;
+          if (!props.was_relocated && rp.was_relocated) props.was_relocated = true;
+          if (!props.relocation_note && rp.relocation_note) props.relocation_note = rp.relocation_note;
+          if (!props.hist_contract && rp.hist_contract) props.hist_contract = rp.hist_contract;
+          if (!props.original_cost && rp.original_cost) props.original_cost = rp.original_cost;
+          if (!props.original_permit && rp.original_permit) props.original_permit = rp.original_permit;
+          break;
+        }
+      }
+    }
+
+    let histContractObj = props.hist_contract || null;
+    if (typeof histContractObj === "string" && histContractObj.trim().startsWith("{")) {
+      try {
+        histContractObj = JSON.parse(histContractObj);
+      } catch (_e) {
+        histContractObj = null;
+      }
+    }
+
+    const histBuilderVal = String(props.builder || histContractObj?.builder || histContractObj?.contractor || "").trim();
+    const histCostVal = String(props.original_cost || histContractObj?.cost || "").trim();
+    const histPermitVal = String(props.original_permit || "").trim();
+    const histSourceLabel = String(
+      histContractObj?.source_title || histContractObj?.source || props.builder_source || (histPermitVal ? "COH Historic Building Permit / Landmark Dossier" : "")
+    ).trim();
+    const histSourceUrl = String(histContractObj?.source_url || "").trim();
+    const histSubcontractorsVal = String(histContractObj?.subcontractors || "").trim();
+    const histNotesVal = String(histContractObj?.scope || histContractObj?.notes || "").trim();
+    const wasRelocatedFlag = Boolean(props.was_relocated);
+    const relocationNoteVal = String(props.relocation_note || "").trim();
+
+    const histContractHtml =
+      histContractObj || histBuilderVal || histCostVal || histPermitVal || wasRelocatedFlag
+        ? `<div class="hist-contract-card" id="inspector-hist-contract-card">
+            <div class="hist-contract-header">
+              <span class="hist-contract-kicker">&#127959; Historical Construction &amp; Contract Record</span>
+              ${
+                wasRelocatedFlag
+                  ? `<span class="hist-relocated-badge" title="Structure has a documented move or relocation permit">&#128666; Relocated Structure</span>`
+                  : histContractObj?.date
+                  ? `<span class="hist-contract-date-badge">${histContractObj.date}</span>`
+                  : ""
+              }
+            </div>
+            <div class="hist-contract-grid">
+              ${
+                histBuilderVal
+                  ? `<div class="hist-contract-row">
+                      <span class="hist-contract-label">General Contractor / Builder:</span>
+                      <span class="hist-contract-val"><strong>${histBuilderVal}</strong></span>
+                    </div>`
+                  : ""
+              }
+              ${
+                props.engineers
+                  ? `<div class="hist-contract-row">
+                      <span class="hist-contract-label">Structural / MEP Engineers:</span>
+                      <span class="hist-contract-val">${props.engineers}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                histCostVal
+                  ? `<div class="hist-contract-row">
+                      <span class="hist-contract-label">Original Contract Cost:</span>
+                      <span class="hist-contract-val mono">${histCostVal}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                histPermitVal
+                  ? `<div class="hist-contract-row">
+                      <span class="hist-contract-label">Historic Building Permit:</span>
+                      <span class="hist-contract-val mono">${histPermitVal}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                histSubcontractorsVal
+                  ? `<div class="hist-contract-row">
+                      <span class="hist-contract-label">Subcontractors / Trades:</span>
+                      <span class="hist-contract-val">${histSubcontractorsVal}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                histNotesVal
+                  ? `<div class="hist-contract-row">
+                      <span class="hist-contract-label">Contract Scope:</span>
+                      <span class="hist-contract-val">${histNotesVal}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                relocationNoteVal
+                  ? `<div class="hist-contract-row">
+                      <span class="hist-contract-label">Relocation / Move Record:</span>
+                      <span class="hist-contract-val">${relocationNoteVal}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                histSourceLabel
+                  ? `<div class="hist-contract-source-line">
+                      <span><strong>Archival Source:</strong> ${histSourceLabel}</span>
+                      ${
+                        histSourceUrl
+                          ? `<a href="${histSourceUrl}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View HMRC Archive Page &#8599;</a>`
+                          : ""
+                      }
+                    </div>`
+                  : ""
+              }
+            </div>
+          </div>`
+        : "";
 
     const landmarkReportHtml =
       reportPdfUrl || landmarkCode
@@ -6619,6 +6947,22 @@ class HoustonAtlasApp {
       )
       .join('<span class="inspector-chip-sep" aria-hidden="true">·</span>');
 
+    const builderChips = this._resolveBuilderChips(props);
+    const builderChipsHtml = builderChips
+      .map(
+        (c) =>
+          `<button
+            type="button"
+            class="inspector-filter-chip"
+            data-filter-chip="${c.query.replace(/"/g, "&quot;")}"
+            data-filter-label="${c.headerLabel.replace(/"/g, "&quot;")}"
+            title="Click to find all Houston buildings built by '${c.label.replace(/"/g, "&quot;")}'"
+          >&#127959; ${c.label} &#128269;</button>${
+            c.note ? `<span class="inspector-chip-note">${c.note}</span>` : ""
+          }`
+      )
+      .join('<span class="inspector-chip-sep" aria-hidden="true">·</span>');
+
     const buildingNamesGridRowHtml =
       nameInfo.hasCustomBuildingName || nameInfo.altNames.length > 0
         ? `<div class="inspector-cell full">
@@ -6734,12 +7078,20 @@ class HoustonAtlasApp {
           </div>`
         : "";
 
+    const initialRemodelYear = Number(props.yr_remodel || props.remodel_year) || 0;
+    const initialEffYear = Number(props.eff_year_built) || 0;
+
     content.innerHTML = `
       ${overlapStackHtml}
       <div class="inspector-hero">
         <div class="inspector-badges">
           <span class="inspector-year-pill" style="background:${yearColor};">${yearDisplay}${props.is_curated_override ? " &#10003;" : ""}</span>
           <span class="inspector-age-pill">${ageText}</span>
+          ${
+            wasRelocatedFlag
+              ? `<span class="inspector-age-pill" style="background:rgba(249,115,22,0.18);color:#fdba74;border-color:rgba(249,115,22,0.4);" title="Structure relocated to or within Houston">&#128666; Relocated</span>`
+              : ""
+          }
         </div>
         <h2 class="inspector-title" id="inspector-property-title">${title}</h2>
         ${akaHeroHtml}
@@ -6776,6 +7128,7 @@ class HoustonAtlasApp {
       ${lostHoustonSiteCardHtml}
       ${goodBrickHtml}
       ${landmarkReportHtml}
+      ${histContractHtml}
       ${verifiedBannerHtml}
       ${haifForumHtml}
 
@@ -6867,8 +7220,16 @@ class HoustonAtlasApp {
           <span class="cell-value mono">${scaleText}</span>
         </div>
         <div class="inspector-cell">
-          <span class="cell-label">Remodel Year</span>
-          <span class="cell-value mono">${Number(props.remodel_year) > 1836 ? props.remodel_year : "None recorded"}</span>
+          <span class="cell-label">Remodel / Effective Yr</span>
+          <span class="cell-value mono" id="inspector-cell-remodel-year">${
+            initialRemodelYear > 1836 && initialEffYear > 1836 && initialEffYear !== initialRemodelYear
+              ? `Remod ${initialRemodelYear} · Eff ${initialEffYear}`
+              : initialRemodelYear > 1836
+              ? `Remodeled ${initialRemodelYear}`
+              : initialEffYear > 1836 && initialEffYear !== yr
+              ? `Eff. Year ${initialEffYear}`
+              : "None recorded"
+          }</span>
         </div>
         <div class="inspector-cell full">
           <span class="cell-label">Construction Date Provenance</span>
@@ -6883,9 +7244,19 @@ class HoustonAtlasApp {
         ${
           archChips.length > 0
             ? `<div class="inspector-cell full">
-                <span class="cell-label">Architect / Builder (COH Landmark Record)</span>
+                <span class="cell-label">Architect (COH / Archival Record)</span>
                 <span class="cell-value inspector-chip-group">
                   ${archChipsHtml}
+                </span>
+              </div>`
+            : ""
+        }
+        ${
+          builderChips.length > 0
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Builder / General Contractor</span>
+                <span class="cell-value inspector-chip-group">
+                  ${builderChipsHtml}
                 </span>
               </div>`
             : ""
@@ -6919,6 +7290,25 @@ class HoustonAtlasApp {
       </div>
 
       ${buildingDeedCardHtml}
+
+      ${
+        hcadNum || histPermitVal || histCostVal || wasRelocatedFlag
+          ? `<details class="inspector-permits-card" id="inspector-permits-card" data-hcad-num="${hcadNum}" ${
+              histPermitVal || wasRelocatedFlag ? "open" : ""
+            }>
+              <summary class="inspector-permits-summary">
+                <div class="inspector-permits-title-wrap">
+                  <span class="inspector-permits-kicker">&#128203; Building Permits &amp; Alteration Timeline</span>
+                  <span class="inspector-permits-badge" id="inspector-permits-badge">Loading history…</span>
+                </div>
+                <span class="inspector-permits-chevron" aria-hidden="true">&#9662;</span>
+              </summary>
+              <div class="inspector-permits-body" id="inspector-permits-body">
+                <div class="inspector-permits-loading">Loading HCAD &amp; City of Houston permit history…</div>
+              </div>
+            </details>`
+          : ""
+      }
 
       ${
         hcadNum
@@ -7124,6 +7514,8 @@ class HoustonAtlasApp {
       streetViewUrl,
     });
 
+    this._populateInspectorPermits(props, hcadNum);
+
     const btnSuggestCorr = document.getElementById("btn-suggest-correction");
     if (btnSuggestCorr) {
       btnSuggestCorr.addEventListener("click", () => {
@@ -7290,7 +7682,7 @@ class HoustonAtlasApp {
           return;
         }
         if (!isDeepReady) {
-          btnOpenHcad.innerHTML = `&#10003; Copied ${hcadNum} — Paste in HCAD Search &#8599;`;
+          btnOpenHcad.innerHTML = `&#10003; Copied ${hcadNum} - Paste in HCAD Search &#8599;`;
           if (statusNote) {
             statusNote.innerHTML = `&#10003; Copied <strong>${hcadNum}</strong> to clipboard! Paste (<code>Ctrl+V</code> / <code>&#8984;V</code>) into the HCAD Account Number search box.`;
             statusNote.classList.remove("hidden");
@@ -7327,6 +7719,159 @@ class HoustonAtlasApp {
 
     this._updateUrlHash(this.filterStore.getState());
     this._refreshShareModalContent();
+  }
+
+  async _fetchPermitRecord(hcadNum) {
+    const clean = String(hcadNum || "").replace(/\D/g, "");
+    if (clean.length < 10) return null;
+    const prefix3 = clean.slice(0, 3);
+    if (!this._permitShardCache.has(prefix3)) {
+      const p = fetch(`public/data/permits/permits_${prefix3}.json`)
+        .then((res) => (res.ok ? res.json() : {}))
+        .catch(() => ({}));
+      this._permitShardCache.set(prefix3, p);
+    }
+    const shard = await this._permitShardCache.get(prefix3);
+    return (shard && shard[clean]) || null;
+  }
+
+  async _populateInspectorPermits(props, hcadNum) {
+    const card = document.getElementById("inspector-permits-card");
+    const badge = document.getElementById("inspector-permits-badge");
+    const body = document.getElementById("inspector-permits-body");
+    if (!card || !body) return;
+
+    const rec = hcadNum ? await this._fetchPermitRecord(hcadNum) : null;
+    if (card.getAttribute("data-hcad-num") !== String(hcadNum || "")) return;
+
+    // Update Remodel / Effective Year cell in the main grid if shard has richer data
+    const remodelCell = document.getElementById("inspector-cell-remodel-year");
+    const remodYr = Number(rec?.remod || props.yr_remodel || props.remodel_year) || 0;
+    const effYr = Number(rec?.eff || props.eff_year_built) || 0;
+    const origYr = Number(rec?.yr || props.year_built) || 0;
+    if (remodelCell) {
+      if (remodYr > 1836 && effYr > 1836 && effYr !== remodYr && effYr !== origYr) {
+        remodelCell.textContent = `Remod ${remodYr} · Eff ${effYr}`;
+      } else if (remodYr > 1836) {
+        remodelCell.textContent = `Remodeled ${remodYr}`;
+      } else if (effYr > 1836 && effYr !== origYr) {
+        remodelCell.textContent = `Eff. Year ${effYr}`;
+      }
+    }
+
+    const permitsList = Array.isArray(rec?.p) ? rec.p : [];
+    const extraFeatures = Array.isArray(rec?.xf) ? rec.xf : [];
+    const appraiserNote = String(rec?.note || "").trim();
+    const relocNote = String(rec?.reloc || props.relocation_note || "").trim();
+    const qualGrade = String(rec?.qual || "").trim();
+    const origPermit = String(props.original_permit || "").trim();
+    const origCost = String(props.original_cost || "").trim();
+
+    if (badge) {
+      if (permitsList.length > 0) {
+        badge.textContent = `${permitsList.length} Permit${permitsList.length === 1 ? "" : "s"}${
+          remodYr > 1836 ? ` · Remod ${remodYr}` : ""
+        }`;
+      } else if (remodYr > 1836) {
+        badge.textContent = `Remodeled ${remodYr}`;
+      } else if (extraFeatures.length > 0) {
+        badge.textContent = `${extraFeatures.length} Dated Addition${extraFeatures.length === 1 ? "" : "s"}`;
+      } else if (origPermit || origCost) {
+        badge.textContent = "Archival Permit";
+      } else {
+        badge.textContent = "HCAD Structural History";
+      }
+    }
+
+    if (permitsList.length > 0 || relocNote || appraiserNote) {
+      card.open = true;
+    }
+
+    const summaryPills = [];
+    if (origYr > 1800) {
+      summaryPills.push(`<span class="permit-stat-pill">Original Erection: <strong>${origYr}</strong></span>`);
+    }
+    if (remodYr > 1836) {
+      summaryPills.push(`<span class="permit-stat-pill highlight">HCAD Remodel Year: <strong>${remodYr}</strong></span>`);
+    }
+    if (effYr > 1836 && effYr !== origYr) {
+      summaryPills.push(`<span class="permit-stat-pill">Effective Age Basis: <strong>${effYr}</strong></span>`);
+    }
+    if (qualGrade) {
+      summaryPills.push(`<span class="permit-stat-pill">Quality: <strong>${qualGrade}</strong></span>`);
+    }
+
+    let html = "";
+    if (summaryPills.length > 0) {
+      html += `<div class="permit-summary-badges">${summaryPills.join("")}</div>`;
+    }
+
+    if (relocNote) {
+      html += `<div class="permit-appraiser-note reloc">
+        <strong>&#128666; Documented Structure Relocation:</strong> ${relocNote}
+      </div>`;
+    }
+    if (appraiserNote && appraiserNote !== relocNote) {
+      html += `<div class="permit-appraiser-note">
+        <strong>HCAD Appraiser Permit / Renovation Note:</strong> ${appraiserNote}
+      </div>`;
+    }
+
+    const timelineItems = [];
+    if (origPermit || origCost) {
+      timelineItems.push(`
+        <div class="permit-timeline-item">
+          <div class="permit-timeline-top">
+            <span class="permit-cat-badge cat-new">Original Construction Permit</span>
+            <span class="permit-date-mono">${origYr || "Historic"}</span>
+          </div>
+          <div class="permit-desc-text">
+            ${origPermit ? `Permit ${origPermit}` : "Original Building Permit"}${
+        origCost ? ` · Contract / Valuation: ${origCost}` : ""
+      }${props.builder ? ` · Contractor: ${props.builder}` : ""}
+          </div>
+        </div>
+      `);
+    }
+
+    for (const p of permitsList) {
+      const cat = String(p.cat || "other");
+      const tp = String(p.tp || "Building Permit");
+      const dt = String(p.dt || "");
+      const desc = String(p.d || "");
+      const pid = String(p.id || "");
+      timelineItems.push(`
+        <div class="permit-timeline-item">
+          <div class="permit-timeline-top">
+            <span class="permit-cat-badge cat-${cat}">${tp}</span>
+            <span class="permit-date-mono">${dt}${pid ? ` · #${pid}` : ""}</span>
+          </div>
+          ${desc ? `<div class="permit-desc-text">${desc}</div>` : ""}
+        </div>
+      `);
+    }
+
+    if (extraFeatures.length > 0) {
+      for (const xf of extraFeatures) {
+        timelineItems.push(`
+          <div class="permit-timeline-item xf-item">
+            <div class="permit-timeline-top">
+              <span class="permit-cat-badge cat-aux">Dated Site Feature / Sub-Structure</span>
+              <span class="permit-date-mono">${xf.y || "Dated"}</span>
+            </div>
+            <div class="permit-desc-text">${xf.d}</div>
+          </div>
+        `);
+      }
+    }
+
+    if (timelineItems.length > 0) {
+      html += `<div class="permit-timeline-list">${timelineItems.join("")}</div>`;
+    } else if (!appraiserNote && !relocNote) {
+      html += `<div class="permit-empty-note">No itemized 2004-2026 municipal building permits recorded in HCAD's CAMA permit table for this parcel. Know of a historic building permit or contractor record? Click <strong>Suggest a Date / Shape / Data Correction</strong> below.</div>`;
+    }
+
+    body.innerHTML = html;
   }
 
   async _populateInspectorPhotos({

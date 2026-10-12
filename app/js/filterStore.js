@@ -44,6 +44,7 @@ export const DEFAULT_FILTER_STATE = {
     historicalWaterways: false,
     historicalRailroads: false,
     lostHouston: false,
+    relocatedStructures: false,
     historicMap: false,
   },
 };
@@ -277,6 +278,7 @@ const LAYER_KEY_TO_SHORT = {
   historicalWaterways: "waterways",
   historicalRailroads: "railroads",
   lostHouston: "lost_houston",
+  relocatedStructures: "relocated_structures",
   historicMap: "historic_map",
 };
 
@@ -350,6 +352,11 @@ const SHORT_TO_LAYER_KEY = {
   lost_houston: "lostHouston",
   lost: "lostHouston",
   demolished: "lostHouston",
+  relocatedstructures: "relocatedStructures",
+  relocated_structures: "relocatedStructures",
+  relocated: "relocatedStructures",
+  moved: "relocatedStructures",
+  permits: "relocatedStructures",
   historicmap: "historicMap",
   historic_map: "historicMap",
   sanborn: "historicMap",
