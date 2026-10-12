@@ -829,6 +829,10 @@ export class AtlasMapController {
       type: "geojson",
       data: this._buildLabelPointsFeatureCollection(overlays.lost_houston),
     });
+    this.map.addSource("relocated-structures-src", {
+      type: "geojson",
+      data: overlays.relocated_structures || { type: "FeatureCollection", features: [] },
+    });
 
     const state = this.filterStore.getState();
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
@@ -1686,6 +1690,38 @@ export class AtlasMapController {
         ],
         "circle-color": "#95C959",
         "circle-stroke-color": "#F4F9EE",
+        "circle-stroke-width": 1.8,
+      },
+    });
+    this.map.addLayer({
+      id: "relocated-structures-glow",
+      type: "circle",
+      source: "relocated-structures-src",
+      paint: {
+        "circle-radius": 9.5,
+        "circle-color": [
+          "case",
+          ["boolean", ["get", "was_relocated"], false],
+          "#38BDF8",
+          "#F59E0B",
+        ],
+        "circle-opacity": 0.34,
+        "circle-blur": 0.45,
+      },
+    });
+    this.map.addLayer({
+      id: "relocated-structures-circle",
+      type: "circle",
+      source: "relocated-structures-src",
+      paint: {
+        "circle-radius": 5.8,
+        "circle-color": [
+          "case",
+          ["boolean", ["get", "was_relocated"], false],
+          "#38BDF8",
+          "#F59E0B",
+        ],
+        "circle-stroke-color": "#0F172A",
         "circle-stroke-width": 1.8,
       },
     });
@@ -3411,6 +3447,38 @@ export class AtlasMapController {
       }
     }
 
+    // 8a. Relocated Structures & Historic Contractor Portfolio Sites
+    if (allowPointMarkers && state.layers.relocatedStructures && this.overlaysData?.relocated_structures) {
+      for (const feat of this.overlaysData.relocated_structures.features || []) {
+        const coords = feat.geometry?.coordinates;
+        if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
+        const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
+        if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+        const isReloc = Boolean(feat.properties?.was_relocated);
+        const dotColor = isReloc ? "#38BDF8" : "#F59E0B";
+        ctx.beginPath();
+        ctx.arc(sx, sy, 8.8, 0, Math.PI * 2);
+        ctx.fillStyle = isReloc ? "rgba(56, 189, 248, 0.32)" : "rgba(245, 158, 11, 0.32)";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx, sy, 5.6, 0, Math.PI * 2);
+        ctx.fillStyle = dotColor;
+        ctx.fill();
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = "#0F172A";
+        ctx.stroke();
+        cs.renderedBBoxes.push({
+          minX: sx - 8,
+          minY: sy - 8,
+          maxX: sx + 8,
+          maxY: sy + 8,
+          props: feat.properties,
+          geom: feat.geometry,
+        });
+      }
+    }
+
     // 8b. Boundary Labels in 2D Canvas Mode
     const placedBoxes = [];
     const drawBoundaryLabels = (features, minZ, textColor) => {
@@ -3990,6 +4058,10 @@ export class AtlasMapController {
     setVis(
       ["good-brick-glow", "good-brick-circle"],
       allowIsoMarkers && Boolean(state.layers.goodBrickAwards)
+    );
+    setVis(
+      ["relocated-structures-glow", "relocated-structures-circle"],
+      allowIsoMarkers && Boolean(state.layers.relocatedStructures)
     );
     setVis(["landmarks-circle"], allowIsoMarkers && Boolean(state.layers.landmarks));
     setVis(["thc-markers-circle"], allowIsoMarkers && Boolean(state.layers.thcMarkers));
@@ -5354,6 +5426,7 @@ export class AtlasMapController {
       ]);
       const nonBoundaryLayers = [
         "good-brick-circle",
+        "relocated-structures-circle",
         "landmarks-circle",
         "thc-markers-circle",
         "curated-overrides-extrusion",
@@ -5372,7 +5445,12 @@ export class AtlasMapController {
         if (BOUNDARY_FILL_LAYERS.has(lid)) continue;
         const p = applyOverrideToProperties(f.properties || {}, this.curatedOverrides);
 
-        if ((lid === "landmarks-circle" || lid === "good-brick-circle") && (p.hcad_num || p.building_id)) {
+        if (
+          (lid === "landmarks-circle" ||
+            lid === "good-brick-circle" ||
+            lid === "relocated-structures-circle") &&
+          (p.hcad_num || p.building_id)
+        ) {
           const bldHit =
             (p.building_id &&
               (this.overridesFC?.features || []).find(
@@ -5384,6 +5462,7 @@ export class AtlasMapController {
               (bf) =>
                 bf.layer?.id !== "landmarks-circle" &&
                 bf.layer?.id !== "good-brick-circle" &&
+                bf.layer?.id !== "relocated-structures-circle" &&
                 bf.layer?.id !== "thc-markers-circle"
             ) ||
             (p.hcad_num &&
@@ -5405,6 +5484,13 @@ export class AtlasMapController {
               good_brick_awards: p.good_brick_awards || baseBldProps.good_brick_awards || null,
               good_brick_summary: p.good_brick_summary || baseBldProps.good_brick_summary || "",
               good_brick_years: p.good_brick_years || baseBldProps.good_brick_years || "",
+              builder: p.builder || baseBldProps.builder || "",
+              builder_source: p.builder_source || baseBldProps.builder_source || "",
+              original_permit: p.original_permit || baseBldProps.original_permit || "",
+              original_cost: p.original_cost || baseBldProps.original_cost || "",
+              was_relocated: Boolean(p.was_relocated || baseBldProps.was_relocated),
+              relocation_note: p.relocation_note || baseBldProps.relocation_note || "",
+              hist_contract: p.hist_contract || baseBldProps.hist_contract || null,
             };
             const bldKey = `bld:${
               mergedProps.building_id || mergedProps.id || mergedProps.hcad_num || makeBuildingTitle(mergedProps)
@@ -5415,10 +5501,21 @@ export class AtlasMapController {
               const bTypeBadge =
                 lid === "good-brick-circle"
                   ? "Good Brick"
+                  : lid === "relocated-structures-circle"
+                  ? mergedProps.was_relocated
+                    ? "Relocated"
+                    : "Contractor Portfolio"
                   : lid === "landmarks-circle"
                   ? "Landmark"
                   : "Building";
-              const bSwatchColor = lid === "good-brick-circle" ? "#95c959" : "#fde047";
+              const bSwatchColor =
+                lid === "good-brick-circle"
+                  ? "#95c959"
+                  : lid === "relocated-structures-circle"
+                  ? mergedProps.was_relocated
+                    ? "#38bdf8"
+                    : "#f59e0b"
+                  : "#fde047";
               stack.push({
                 key: bldKey,
                 kind: "building",

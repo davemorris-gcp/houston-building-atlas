@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261011q" />
+  <link rel="stylesheet" href="styles/index.css?v=20261012a" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -855,6 +855,22 @@
             </div>
           </div>
 
+          <div class="layer-item-row" data-layer-key="relocatedStructures">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-relocated-structures" />
+              <span class="swatch-dot" style="background:#38BDF8; box-shadow: 0 0 6px #38BDF8;" title="Relocated Historic Structures &amp; Documented Historic Contractor Portfolio Sites"></span>
+              <span class="layer-name">Relocated &amp; Contractor Portfolio Sites (480)</span>
+            </label>
+            <button
+              type="button"
+              class="layer-solo-btn"
+              data-solo-layer="relocatedStructures"
+              title="Show only Relocated Historic Structures and HMRC Contractor Portfolio Sites (click again to restore)"
+            >
+              Solo
+            </button>
+          </div>
+
           <div class="layer-item-row" data-layer-key="historicMap">
             <label class="check-row layer-row-main">
               <input type="checkbox" id="chk-layer-historic-map" />
@@ -1257,9 +1273,10 @@
                 <select id="corr-source-type" name="source_type" class="form-input">
                   <option value="Houston City Directory">Houston City Directory (HPL Digital Archives)</option>
                   <option value="Sanborn Fire Insurance Map">Sanborn Fire Insurance Map</option>
-                  <option value="Aerial / Satellite Imagery">Aerial / Satellite Imagery (Roof Footprint Verification)</option>
-                  <option value="Historic Deed / Mechanic's Lien">Historic Deed / Mechanic's Lien (Harris County Clerk)</option>
+                  <option value="HMRC Contractor Portfolio / TGCA Bulletin">HMRC Contractor Portfolio / TGCA Bulletin</option>
                   <option value="City of Houston Building Permit">City of Houston Building Permit</option>
+                  <option value="Historic Deed / Mechanic's Lien">Historic Deed / Mechanic's Lien (Harris County Clerk)</option>
+                  <option value="Aerial / Satellite Imagery">Aerial / Satellite Imagery (Roof Footprint Verification)</option>
                   <option value="Historic Newspaper / Archival Photo">Historic Newspaper / Archival Photograph</option>
                   <option value="COH Landmark / Historic District Inventory">COH Landmark / Historic District Inventory</option>
                   <option value="On-Site Visual Inspection">On-Site / Street View Visual Inspection</option>
@@ -1267,8 +1284,19 @@
                 </select>
               </div>
               <div class="form-field">
-                <label for="corr-style-arch">Architect / Builder / Style (Optional)</label>
+                <label for="corr-style-arch">Architect / Architectural Style (Optional)</label>
                 <input type="text" id="corr-style-arch" name="architect" class="form-input" placeholder="e.g. 1920s Bungalow / John Staub" />
+              </div>
+            </div>
+
+            <div class="form-row-2col">
+              <div class="form-field">
+                <label for="corr-builder">Builder / General Contractor (Optional)</label>
+                <input type="text" id="corr-builder" name="builder" class="form-input" placeholder="e.g. W. S. Bellows Construction Co. / Russell Brown Co." />
+              </div>
+              <div class="form-field">
+                <label for="corr-permit-info">Original Permit # / Contract Cost (Optional)</label>
+                <input type="text" id="corr-permit-info" name="permit_info" class="form-input" placeholder="e.g. Permit #5061 ($8,500) or Mechanic's Lien Vol. 14" />
               </div>
             </div>
 
@@ -1899,6 +1927,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261011w"></script>
+  <script type="module" src="js/app.js?v=20261012a"></script>
 </body>
 </html>

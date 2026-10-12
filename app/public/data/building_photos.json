@@ -5626,5 +5626,259 @@
         "license": "HAIF Community Archive"
       }
     ]
+  },
+  "buildings": {
+    "0010550000013": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16082/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16082/full/pct:75/0/default.jpg",
+        "year": 1923,
+        "era_label": "1923 (HMRC Archive)",
+        "caption": "12-story reinforced concrete and brick bank & office building (45x100 ft); steel frame by Virginia Bridge & Iron Co. - Built by American Construction Company",
+        "credit": "Texas General Contractors Bulletin, Vol. 4, No. 2 (Feb. 1923), pp. 18, 25",
+        "source_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16082/full/pct:75/0/default.jpg",
+        "is_historical": true
+      }
+    ],
+    "0010250000010": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16129/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16129/full/pct:75/0/default.jpg",
+        "year": 1923,
+        "era_label": "1923 (HMRC Archive)",
+        "caption": "9-story reinforced concrete addition (90x100 ft) to First National Bank of Houston at Main & Franklin - Built by Central Contracting Company",
+        "credit": "Texas General Contractors Bulletin, Vol. 4, No. 3 (March 1923), pp. 21, 31",
+        "source_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16129/full/pct:75/0/default.jpg",
+        "is_historical": true
+      }
+    ],
+    "0332640000005": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg",
+        "year": 1923,
+        "era_label": "1923 (HMRC Archive)",
+        "caption": "First unit of the Houston Art Museum (Neoclassical limestone pavilion), followed by Mies van der Rohe's 1958 Cullinan Hall - Built by Don Hall, Constructor",
+        "credit": "Texas General Contractors Bulletin, Vol. 4, No. 2 (Feb. 1923), p. 25",
+        "source_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg",
+        "is_historical": true
+      }
+    ],
+    "0041390000005": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12375/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12375/full/pct:75/0/default.jpg",
+        "year": 1917,
+        "era_label": "1917 (HMRC Archive)",
+        "caption": "2-story residence in Avondale Addition featured in 'Modern Homes, Book Number Two' (Page 36, Plan 312) - Built by Russell Brown Company",
+        "credit": "City of Houston Landmark Designation Report (HPO)",
+        "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL21_Connelly_House_218_Avondale.pdf",
+        "is_historical": true
+      }
+    ],
+    "0041380000002": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12376/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12376/full/pct:75/0/default.jpg",
+        "year": 1917,
+        "era_label": "1917 (HMRC Archive)",
+        "caption": "2-story residence at 104 Avondale featured in 'Modern Homes, Book Number Two' (Page 37, Plan 313) - Built by Russell Brown Company",
+        "credit": "City of Houston Landmark Designation Report (HPO)",
+        "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL55_Turnbow-Smith_House_104_Avondale.pdf",
+        "is_historical": true
+      }
+    ],
+    "0041400000004": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12347/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12347/full/pct:75/0/default.jpg",
+        "year": 1917,
+        "era_label": "1917 (HMRC Archive)",
+        "caption": "2-story residence in Avondale Addition featured in The Russell Brown Co.'s 'Modern Homes, Book Number Two' (Page 8, Plan 204) - Built by Russell Brown Company",
+        "credit": "City of Houston Landmark Designation Report (HPO)",
+        "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/11PL100_Edward_Weil_House_308_Avondale.pdf",
+        "is_historical": true
+      }
+    ],
+    "0261380000002": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/9545/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/9545/full/pct:75/0/default.jpg",
+        "year": 1922,
+        "era_label": "1922 (HMRC Archive)",
+        "caption": "2-story brick-veneer residence at 3404 Audubon for Wm. Largey - Built by Swedman & Page",
+        "credit": "Texas General Contractors Bulletin (October 1922, p. 23)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/9545",
+        "is_historical": true
+      }
+    ],
+    "0250290000006": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg",
+        "year": 1923,
+        "era_label": "1923 (HMRC Archive)",
+        "caption": "2-story brick-veneer apartment at 3617 Main for Frank J. Schlueter - Built by Frank J. Schlueter",
+        "credit": "Texas General Contractors Bulletin (February 1923, p. 25)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16089",
+        "is_historical": true
+      }
+    ],
+    "0261410000017": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16139/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16139/full/pct:75/0/default.jpg",
+        "year": 1923,
+        "era_label": "1923 (HMRC Archive)",
+        "caption": "1-story stucco residence at 3702 Audubon for E. H. Lightfoot - Built by George T. Broun",
+        "credit": "Texas General Contractors Bulletin (March 1923, p. 31)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16139",
+        "is_historical": true
+      }
+    ],
+    "0041360010008": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16139/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16139/full/pct:75/0/default.jpg",
+        "year": 1923,
+        "era_label": "1923 (HMRC Archive)",
+        "caption": "1-story brick-veneer residence at 201 Avondale for Swedman & Page - Built by Swedman & Page",
+        "credit": "Texas General Contractors Bulletin (March 1923, p. 31)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16139",
+        "is_historical": true
+      }
+    ],
+    "0041360010002": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16139/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16139/full/pct:75/0/default.jpg",
+        "year": 1923,
+        "era_label": "1923 (HMRC Archive)",
+        "caption": "1-story brick-veneer residence at 201 Avondale for Swedman & Page - Built by Swedman & Page",
+        "credit": "Texas General Contractors Bulletin (March 1923, p. 31)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16139",
+        "is_historical": true
+      }
+    ],
+    "0010330000029": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg",
+        "year": 1924,
+        "era_label": "1924 (HMRC Archive)",
+        "caption": "3-story bank & office building remodel at 306 Main for Guaranty National Bank - Built by T. B. Hubbard Construction Co.",
+        "credit": "Texas General Contractors Bulletin (June 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
+        "is_historical": true
+      }
+    ],
+    "0530390000002": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg",
+        "year": 1924,
+        "era_label": "1924 (HMRC Archive)",
+        "caption": "2-story tile & stucco residence at 1311 South for J. F. Dickson - Built by Thos. M. Murray",
+        "credit": "Texas General Contractors Bulletin (June 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
+        "is_historical": true
+      }
+    ],
+    "0540970000002": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg",
+        "year": 1924,
+        "era_label": "1924 (HMRC Archive)",
+        "caption": "2-story brick-veneer residence at 1932 Albans for Joe Ludwick - Built by Chas. Wygant",
+        "credit": "Texas General Contractors Bulletin (June 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
+        "is_historical": true
+      }
+    ],
+    "0370370000007": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22003/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22003/full/pct:75/0/default.jpg",
+        "year": 1924,
+        "era_label": "1924 (HMRC Archive)",
+        "caption": "2-story stucco residence at 408 Marshall for Miss L. C. Daniel - Built by The Russell Brown Company",
+        "credit": "Texas General Contractors Bulletin (July 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22003",
+        "is_historical": true
+      }
+    ],
+    "1350960010001": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22062/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22062/full/pct:75/0/default.jpg",
+        "year": 1924,
+        "era_label": "1924 (HMRC Archive)",
+        "caption": "2-story 12-room brick-veneer residence at 221 Avondale for George T. Broun Co. - Built by George T. Broun Co.",
+        "credit": "Texas General Contractors Bulletin (August 1924, p. 32)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22062",
+        "is_historical": true
+      }
+    ],
+    "0530380000007": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22183/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22183/full/pct:75/0/default.jpg",
+        "year": 1924,
+        "era_label": "1924 (HMRC Archive)",
+        "caption": "2-story 62x46 brick-veneer residence at 1611 South for U. B. Fuesler - Built by L. W. Lindsay",
+        "credit": "Texas General Contractors Bulletin (October 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22183",
+        "is_historical": true
+      }
+    ],
+    "0010900000011": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22303/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22303/full/pct:75/0/default.jpg",
+        "year": 1924,
+        "era_label": "1924 (HMRC Archive)",
+        "caption": "2-story brick store & apartment at 720 Rusk for N. Wicks, Jr. - Built by F. O. Megginson",
+        "credit": "Texas General Contractors Bulletin (December 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22303",
+        "is_historical": true
+      }
+    ],
+    "1203760010003": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12354/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12354/full/pct:75/0/default.jpg",
+        "year": 1914,
+        "era_label": "1914 (HMRC Archive)",
+        "caption": "2-story residence in Avondale Addition featured in The Russell Brown Co.'s 'Modern Homes, Book Number Two' (Page 15, Plan 211) - Built by The Russell Brown Company",
+        "credit": "HMRC: 'Modern Homes, Book Number Two' (The Russell Brown Co., c. 1917), Plan 211, p. 15",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12354",
+        "is_historical": true
+      }
+    ],
+    "0041390000004": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12365/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12365/full/pct:75/0/default.jpg",
+        "year": 1918,
+        "era_label": "1918 (HMRC Archive)",
+        "caption": "2-story residence in Avondale Addition featured in 'Modern Homes, Book Number Two' (Page 26, Plan 220) - Built by The Russell Brown Company",
+        "credit": "HMRC: 'Modern Homes, Book Number Two' (The Russell Brown Co., c. 1917), Plan 220, p. 26",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12365",
+        "is_historical": true
+      }
+    ],
+    "0370340000019": [
+      {
+        "url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12370/full/pct:75/0/default.jpg",
+        "thumbUrl": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12370/full/pct:75/0/default.jpg",
+        "year": 1916,
+        "era_label": "1916 (HMRC Archive)",
+        "caption": "2-story residence on Burlington Street featured in 'Modern Homes, Book Number Two' (Page 31, Plan 304) - Built by The Russell Brown Company",
+        "credit": "HMRC: 'Modern Homes, Book Number Two' (The Russell Brown Co., c. 1917), Plan 304, p. 31",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12370",
+        "is_historical": true
+      }
+    ]
   }
 }
