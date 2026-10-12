@@ -547,6 +547,7 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     selectedHcad = "",
     selectedId = "",
     selectedFeatureId = "",
+    selectedBoundary = null,
     collapseSidebar = false,
     humanReadable = false,
   } = options;
@@ -616,6 +617,10 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     params.set("hcad", String(selectedHcad).trim());
   } else if (effectiveId) {
     params.set("id", String(effectiveId).trim());
+  } else if (selectedBoundary && (selectedBoundary.id || selectedBoundary.name)) {
+    const bndLayer = selectedBoundary.layerKey || "neighborhoods";
+    const bndTarget = selectedBoundary.id || selectedBoundary.name;
+    params.set("bnd", `${bndLayer}:${bndTarget}`);
   }
 
   if (collapseSidebar) {
@@ -896,11 +901,22 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.syncAnnexationToTime = patch.layers.annexations;
   }
 
-  // Optional Selected Property (`hcad` or `id` or `selected`)
+  // Optional Selected Property (`hcad` or `id` or `selected` or `bnd`)
   const selHcad = (mergedParams.get("hcad") || "").trim();
   const selId = (mergedParams.get("id") || mergedParams.get("selected") || "").trim();
+  const selBnd = (mergedParams.get("bnd") || "").trim();
   if (selHcad || selId) {
     selection = { hcadNum: selHcad, featureId: selId };
+  } else if (selBnd) {
+    const colonIdx = selBnd.indexOf(":");
+    const bndLayer =
+      colonIdx > 0
+        ? SHORT_TO_LAYER_KEY[selBnd.slice(0, colonIdx)] || selBnd.slice(0, colonIdx)
+        : "neighborhoods";
+    const bndTarget = colonIdx > 0 ? selBnd.slice(colonIdx + 1).trim() : selBnd;
+    if (bndTarget) {
+      selection = { boundaryLayer: bndLayer, boundaryId: bndTarget };
+    }
   }
 
   // Optional Sidebar collapsed state (`sidebar=0` / `embed=1`)

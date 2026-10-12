@@ -1849,24 +1849,24 @@
         "coordinates": [
           [
             [
-              -95.36447,
-              29.76098
+              -95.364472,
+              29.760983
             ],
             [
-              -95.36516,
-              29.76136
+              -95.365161,
+              29.761362
             ],
             [
-              -95.3656,
-              29.76076
+              -95.365598,
+              29.760763
             ],
             [
-              -95.36491,
-              29.76038
+              -95.364908,
+              29.760384
             ],
             [
-              -95.36447,
-              29.76098
+              -95.364472,
+              29.760983
             ]
           ]
         ]
@@ -7554,102 +7554,76 @@
       "verified_by": "Preservation Houston Good Brick Awards",
       "updated_at": "2026-10-07",
       "geometry": {
-        "type": "MultiPolygon",
+        "type": "Polygon",
         "coordinates": [
           [
             [
-              [
-                -95.36923,
-                29.75859
-              ],
-              [
-                -95.36908,
-                29.7588
-              ],
-              [
-                -95.36887,
-                29.75869
-              ],
-              [
-                -95.3688,
-                29.75879
-              ],
-              [
-                -95.369,
-                29.75889
-              ],
-              [
-                -95.36896,
-                29.75895
-              ],
-              [
-                -95.36916,
-                29.75905
-              ],
-              [
-                -95.36917,
-                29.75902
-              ],
-              [
-                -95.36941,
-                29.75914
-              ],
-              [
-                -95.36959,
-                29.75889
-              ],
-              [
-                -95.36953,
-                29.75886
-              ],
-              [
-                -95.36955,
-                29.75883
-              ],
-              [
-                -95.3695,
-                29.7588
-              ],
-              [
-                -95.36952,
-                29.75878
-              ],
-              [
-                -95.36948,
-                29.75876
-              ],
-              [
-                -95.3695,
-                29.75873
-              ],
-              [
-                -95.36923,
-                29.75859
-              ]
-            ]
-          ],
-          [
+              -95.369229,
+              29.758587
+            ],
             [
-              [
-                -95.3691,
-                29.75927
-              ],
-              [
-                -95.36921,
-                29.75934
-              ],
-              [
-                -95.36937,
-                29.75915
-              ],
-              [
-                -95.36925,
-                29.75908
-              ],
-              [
-                -95.3691,
-                29.75927
-              ]
+              -95.36908,
+              29.7588
+            ],
+            [
+              -95.368871,
+              29.758691
+            ],
+            [
+              -95.3688,
+              29.758792
+            ],
+            [
+              -95.368996,
+              29.758895
+            ],
+            [
+              -95.368961,
+              29.758945
+            ],
+            [
+              -95.369156,
+              29.759047
+            ],
+            [
+              -95.369175,
+              29.759019
+            ],
+            [
+              -95.369413,
+              29.759144
+            ],
+            [
+              -95.369588,
+              29.758892
+            ],
+            [
+              -95.36953,
+              29.758862
+            ],
+            [
+              -95.369552,
+              29.75883
+            ],
+            [
+              -95.369503,
+              29.758804
+            ],
+            [
+              -95.369518,
+              29.758783
+            ],
+            [
+              -95.369477,
+              29.758762
+            ],
+            [
+              -95.3695,
+              29.758729
+            ],
+            [
+              -95.369229,
+              29.758587
             ]
           ]
         ]
@@ -9825,7 +9799,21 @@
       "super_neighborhood": "Downtown",
       "historic_ward": "Fourth Ward",
       "yr_remodel": 2014,
-      "eff_year_built": 2003
+      "eff_year_built": 2003,
+      "builder": "American Construction Company",
+      "builder_source": "COH Protected Landmark Report & T.G.C.A. Monthly Bulletin (Dec. 1922, p. 23)",
+      "engineers": "Sanguinet & Staats",
+      "original_cost": "$750,000",
+      "original_permit": "COH Building Permit (1909); 6-Story Top Addition (Dec. 1922, $20,000 prelim)",
+      "hist_contract": {
+        "date": "1909 - 1910 (16 stories); December 1922 - 1924 (6-story addition to 22 stories)",
+        "cost": "$750,000 (1910 Original)",
+        "architect": "Sanguinet & Staats; Alfred C. Finn",
+        "builder": "American Construction Company",
+        "scope": "16-story steel-frame skyscraper built for lumber magnate W. T. Carter & Jesse H. Jones, raised to 22 stories in 1923-1924",
+        "source_title": "T.G.C.A. Monthly Bulletin, Vol. 3, No. 12 (December 1922), p. 23",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/9625"
+      }
     },
     "1288260010010": {
       "id": "1288260010010",
@@ -52247,7 +52235,18 @@
         "Theater District",
         "Skyline District"
       ],
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "Nathaniel Kellum (Master Brickmaker & Builder)",
+      "builder_source": "The Heritage Society / NRHP Inventory",
+      "original_cost": "$3,500 (est. 1847 construction)",
+      "hist_contract": {
+        "date": "1847 - 1848 (Saved & Restored 1954 by The Heritage Society)",
+        "cost": "Built with slave-made brick fired at Nathaniel Kellum's Buffalo Bayou brickyard",
+        "architect": "Nathaniel Kellum",
+        "builder": "Nathaniel Kellum",
+        "scope": "2-story Louisiana Colonial double-gallery brick residence, oldest surviving brick house on its original foundation in Houston",
+        "source_title": "The Heritage Society at Sam Houston Park Archival Records"
+      }
     },
     "osm_city_44821975#bldg_kinder_morgan_building": {
       "id": "osm_city_44821975#bldg_kinder_morgan_building",
@@ -53598,7 +53597,22 @@
         "Boulevard Oaks",
         "Sunset Terrace"
       ],
-      "super_neighborhood": "University Place"
+      "super_neighborhood": "University Place",
+      "builder": "Don Hall, Constructor",
+      "builder_source": "Texas General Contractors Bulletin, Vol. 4, No. 2 (Feb. 1923), p. 25",
+      "engineers": "William Ward Watkin",
+      "original_cost": "$200,000",
+      "original_permit": "TGCA Contract Award (Feb. 1923)",
+      "hist_contract": {
+        "date": "Contract awarded February 1923; dedicated April 12, 1924 (Cullinan Hall added 1958 by W. S. Bellows Construction Co.)",
+        "cost": "$200,000 (First Unit, 1923-1924)",
+        "architect": "William Ward Watkin & Cram and Ferguson (1924); Ludwig Mies van der Rohe (1958 & 1974)",
+        "builder": "Don Hall, Constructor (1924 First Unit); W. S. Bellows Construction Co. (1958 Cullinan Hall)",
+        "scope": "First unit of the Houston Art Museum (Neoclassical limestone pavilion), followed by Mies van der Rohe's 1958 Cullinan Hall",
+        "source_title": "T.G.C.A. Monthly Bulletin, Vol. 4, No. 2 (February 1923), p. 25",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16089",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg"
+      }
     },
     "0360810000011#zoo_45821961_st_paul_s_united_methodi": {
       "id": "0360810000011#zoo_45821961_st_paul_s_united_methodi",
@@ -56135,7 +56149,20 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "builder": "Westlake Construction Company (St. Louis)",
+      "builder_source": "COH Protected Landmark Report / D. H. Burnham Archives",
+      "engineers": "D. H. Burnham & Company (Structural)",
+      "original_cost": "$600,000",
+      "original_permit": "COH Building Permit (1908)",
+      "hist_contract": {
+        "date": "1908 - 1909",
+        "cost": "$600,000",
+        "architect": "D. H. Burnham & Company (Daniel H. Burnham)",
+        "builder": "Westlake Construction Company",
+        "scope": "11-story Chicago School steel-frame office building clad in white glazed architectural terra cotta",
+        "source_title": "City of Houston Protected Landmark Designation Report (Scanlan Building)"
+      }
     },
     "osm_city_54046923#bldg_paul_building": {
       "id": "osm_city_54046923#bldg_paul_building",
@@ -58633,7 +58660,21 @@
       "neighborhood_aliases": [
         "Astrodome"
       ],
-      "super_neighborhood": "Astrodome Area"
+      "super_neighborhood": "Astrodome Area",
+      "builder": "H. A. Lott, Inc. & Lummus Company (Joint Venture)",
+      "builder_source": "Harris County Sports & Convention Corp. / NRHP Nomination",
+      "engineers": "Walter P Moore & Associates; Roof Structures, Inc.; Praeger-Kavanagh-Waterbury",
+      "original_cost": "$31,600,000",
+      "original_permit": "Harris County Domed Stadium Bond Contract (1962)",
+      "hist_contract": {
+        "date": "January 3, 1962 - April 9, 1965",
+        "cost": "$31,600,000 ($35,000,000 with site infrastructure)",
+        "architect": "Hermon Lloyd & W. B. Morgan; Wilson, Morris, Crain & Anderson",
+        "builder": "H. A. Lott, Inc. & Lummus Company",
+        "engineers": "Walter P Moore; Praeger-Kavanagh-Waterbury; Roof Structures, Inc. (Kiewitt Lamella Dome)",
+        "scope": "World's first multi-purpose, air-conditioned domed sports stadium (642-foot clear-span steel lamella truss dome)",
+        "source_title": "National Register of Historic Places Registration Form (Harris County Domed Stadium)"
+      }
     },
     "osm_city_119422708#bldg_nrg_stadium": {
       "id": "osm_city_119422708#bldg_nrg_stadium",
@@ -80949,7 +80990,20 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "American Construction Company (1927) & W. S. Bellows Construction Co. (1941)",
+      "builder_source": "COH Landmark Designation Report / HMRC Architectural Archives",
+      "engineers": "Weiskopf & Pickworth (Structural)",
+      "original_cost": "$4,000,000",
+      "original_permit": "COH Building Permit (1925 & 1940)",
+      "hist_contract": {
+        "date": "1925 - 1927 (Niels Esperson) & 1940 - 1941 (Mellie Esperson)",
+        "cost": "$4,000,000 (1927 Tower) | $2,500,000 (1941 Annex)",
+        "architect": "John Eberson (1927); John & Drew Eberson (1941)",
+        "builder": "American Construction Company (1927); W. S. Bellows Construction Co. (1941)",
+        "scope": "32-story Italian Renaissance Revival skyscraper crowned by the columned tempietto",
+        "source_title": "City of Houston Landmark Designation Report (Esperson Buildings)"
+      }
     },
     "osm_city_510323321#bldg_1000_main": {
       "id": "osm_city_510323321#bldg_1000_main",
@@ -130183,746 +130237,28 @@
       "verified_by": "Preservation Houston",
       "updated_at": "2026-10-06",
       "geometry": {
-        "type": "MultiPolygon",
+        "type": "Polygon",
         "coordinates": [
           [
             [
-              [
-                -95.40393,
-                29.68685
-              ],
-              [
-                -95.40393,
-                29.68754
-              ],
-              [
-                -95.40388,
-                29.68754
-              ],
-              [
-                -95.40388,
-                29.68791
-              ],
-              [
-                -95.40395,
-                29.68791
-              ],
-              [
-                -95.40394,
-                29.68849
-              ],
-              [
-                -95.40421,
-                29.68849
-              ],
-              [
-                -95.40421,
-                29.68855
-              ],
-              [
-                -95.4086,
-                29.68857
-              ],
-              [
-                -95.4086,
-                29.68846
-              ],
-              [
-                -95.40877,
-                29.68846
-              ],
-              [
-                -95.40877,
-                29.68787
-              ],
-              [
-                -95.40878,
-                29.68787
-              ],
-              [
-                -95.40879,
-                29.68685
-              ],
-              [
-                -95.40857,
-                29.68685
-              ],
-              [
-                -95.40857,
-                29.68669
-              ],
-              [
-                -95.40845,
-                29.68669
-              ],
-              [
-                -95.40845,
-                29.68669
-              ],
-              [
-                -95.40679,
-                29.68668
-              ],
-              [
-                -95.40683,
-                29.68662
-              ],
-              [
-                -95.40679,
-                29.68662
-              ],
-              [
-                -95.40659,
-                29.68686
-              ],
-              [
-                -95.4061,
-                29.68686
-              ],
-              [
-                -95.4061,
-                29.68682
-              ],
-              [
-                -95.40605,
-                29.68682
-              ],
-              [
-                -95.40605,
-                29.68669
-              ],
-              [
-                -95.40484,
-                29.68669
-              ],
-              [
-                -95.40484,
-                29.68683
-              ],
-              [
-                -95.4048,
-                29.68683
-              ],
-              [
-                -95.4048,
-                29.68685
-              ],
-              [
-                -95.40393,
-                29.68685
-              ]
-            ]
-          ],
-          [
+              -95.407247,
+              29.679519
+            ],
             [
-              [
-                -95.40602,
-                29.67973
-              ],
-              [
-                -95.40549,
-                29.68067
-              ],
-              [
-                -95.40536,
-                29.68061
-              ],
-              [
-                -95.40505,
-                29.68116
-              ],
-              [
-                -95.40508,
-                29.68118
-              ],
-              [
-                -95.4046,
-                29.68203
-              ],
-              [
-                -95.40474,
-                29.68209
-              ],
-              [
-                -95.40472,
-                29.68213
-              ],
-              [
-                -95.40488,
-                29.6822
-              ],
-              [
-                -95.40486,
-                29.68224
-              ],
-              [
-                -95.40503,
-                29.68231
-              ],
-              [
-                -95.40501,
-                29.68235
-              ],
-              [
-                -95.40518,
-                29.68242
-              ],
-              [
-                -95.40515,
-                29.68246
-              ],
-              [
-                -95.40532,
-                29.68254
-              ],
-              [
-                -95.4053,
-                29.68257
-              ],
-              [
-                -95.4055,
-                29.68266
-              ],
-              [
-                -95.40585,
-                29.68205
-              ],
-              [
-                -95.40625,
-                29.68222
-              ],
-              [
-                -95.40698,
-                29.68093
-              ],
-              [
-                -95.40693,
-                29.68092
-              ],
-              [
-                -95.40702,
-                29.68076
-              ],
-              [
-                -95.40687,
-                29.68069
-              ],
-              [
-                -95.40695,
-                29.68054
-              ],
-              [
-                -95.40688,
-                29.68051
-              ],
-              [
-                -95.40697,
-                29.68035
-              ],
-              [
-                -95.40689,
-                29.68032
-              ],
-              [
-                -95.40699,
-                29.68015
-              ],
-              [
-                -95.40602,
-                29.67973
-              ]
-            ]
-          ],
-          [
+              -95.407556,
+              29.679517
+            ],
             [
-              [
-                -95.40846,
-                29.68559
-              ],
-              [
-                -95.40847,
-                29.68556
-              ],
-              [
-                -95.40871,
-                29.68538
-              ],
-              [
-                -95.40886,
-                29.6851
-              ],
-              [
-                -95.40893,
-                29.68511
-              ],
-              [
-                -95.40893,
-                29.685
-              ],
-              [
-                -95.40863,
-                29.68418
-              ],
-              [
-                -95.40799,
-                29.68391
-              ],
-              [
-                -95.408,
-                29.68386
-              ],
-              [
-                -95.4078,
-                29.68384
-              ],
-              [
-                -95.40696,
-                29.68408
-              ],
-              [
-                -95.40644,
-                29.68503
-              ],
-              [
-                -95.40664,
-                29.68506
-              ],
-              [
-                -95.40681,
-                29.68549
-              ],
-              [
-                -95.40687,
-                29.68547
-              ],
-              [
-                -95.40708,
-                29.68569
-              ],
-              [
-                -95.40713,
-                29.68567
-              ],
-              [
-                -95.40715,
-                29.68565
-              ],
-              [
-                -95.40716,
-                29.68561
-              ],
-              [
-                -95.40751,
-                29.68575
-              ],
-              [
-                -95.40753,
-                29.68574
-              ],
-              [
-                -95.40752,
-                29.68575
-              ],
-              [
-                -95.4078,
-                29.68579
-              ],
-              [
-                -95.40813,
-                29.6857
-              ],
-              [
-                -95.40815,
-                29.68572
-              ],
-              [
-                -95.40824,
-                29.68566
-              ],
-              [
-                -95.40823,
-                29.68566
-              ],
-              [
-                -95.40846,
-                29.68559
-              ]
-            ]
-          ],
-          [
+              -95.407555,
+              29.679406
+            ],
             [
-              [
-                -95.40755,
-                29.68982
-              ],
-              [
-                -95.40754,
-                29.68948
-              ],
-              [
-                -95.40471,
-                29.68951
-              ],
-              [
-                -95.40471,
-                29.68934
-              ],
-              [
-                -95.40405,
-                29.68935
-              ],
-              [
-                -95.40405,
-                29.68952
-              ],
-              [
-                -95.40362,
-                29.68953
-              ],
-              [
-                -95.40362,
-                29.68987
-              ],
-              [
-                -95.40755,
-                29.68982
-              ]
-            ]
-          ],
-          [
+              -95.407246,
+              29.679408
+            ],
             [
-              [
-                -95.40617,
-                29.68337
-              ],
-              [
-                -95.40624,
-                29.68333
-              ],
-              [
-                -95.40627,
-                29.68339
-              ],
-              [
-                -95.40629,
-                29.68341
-              ],
-              [
-                -95.40648,
-                29.68333
-              ],
-              [
-                -95.40644,
-                29.68329
-              ],
-              [
-                -95.40632,
-                29.68309
-              ],
-              [
-                -95.40601,
-                29.68323
-              ],
-              [
-                -95.40617,
-                29.68337
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40422,
-                29.69022
-              ],
-              [
-                -95.40414,
-                29.69014
-              ],
-              [
-                -95.4037,
-                29.69048
-              ],
-              [
-                -95.40378,
-                29.69056
-              ],
-              [
-                -95.40422,
-                29.69022
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40696,
-                29.68414
-              ],
-              [
-                -95.40678,
-                29.68397
-              ],
-              [
-                -95.40662,
-                29.6841
-              ],
-              [
-                -95.4068,
-                29.68427
-              ],
-              [
-                -95.40696,
-                29.68414
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40725,
-                29.67952
-              ],
-              [
-                -95.40756,
-                29.67952
-              ],
-              [
-                -95.40756,
-                29.67941
-              ],
-              [
-                -95.40725,
-                29.67941
-              ],
-              [
-                -95.40725,
-                29.67952
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40682,
-                29.67953
-              ],
-              [
-                -95.4071,
-                29.67952
-              ],
-              [
-                -95.4071,
-                29.67941
-              ],
-              [
-                -95.40682,
-                29.67941
-              ],
-              [
-                -95.40682,
-                29.67953
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40838,
-                29.67874
-              ],
-              [
-                -95.40866,
-                29.67874
-              ],
-              [
-                -95.40866,
-                29.67866
-              ],
-              [
-                -95.40838,
-                29.67866
-              ],
-              [
-                -95.40838,
-                29.67874
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40674,
-                29.67941
-              ],
-              [
-                -95.40658,
-                29.67941
-              ],
-              [
-                -95.40658,
-                29.67951
-              ],
-              [
-                -95.40674,
-                29.67951
-              ],
-              [
-                -95.40674,
-                29.67941
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.41046,
-                29.6833
-              ],
-              [
-                -95.41033,
-                29.6833
-              ],
-              [
-                -95.41033,
-                29.68337
-              ],
-              [
-                -95.41046,
-                29.68337
-              ],
-              [
-                -95.41046,
-                29.6833
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.41144,
-                29.68357
-              ],
-              [
-                -95.41149,
-                29.68357
-              ],
-              [
-                -95.41148,
-                29.68335
-              ],
-              [
-                -95.41144,
-                29.68335
-              ],
-              [
-                -95.41144,
-                29.68357
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40877,
-                29.68569
-              ],
-              [
-                -95.40884,
-                29.68575
-              ],
-              [
-                -95.40891,
-                29.68568
-              ],
-              [
-                -95.40884,
-                29.68562
-              ],
-              [
-                -95.40877,
-                29.68569
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40821,
-                29.68611
-              ],
-              [
-                -95.40812,
-                29.68615
-              ],
-              [
-                -95.40816,
-                29.68622
-              ],
-              [
-                -95.40825,
-                29.68618
-              ],
-              [
-                -95.40821,
-                29.68611
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.40885,
-                29.68466
-              ],
-              [
-                -95.40886,
-                29.68472
-              ],
-              [
-                -95.40894,
-                29.68471
-              ],
-              [
-                -95.40893,
-                29.68465
-              ],
-              [
-                -95.40885,
-                29.68466
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.4101,
-                29.68338
-              ],
-              [
-                -95.41007,
-                29.68338
-              ],
-              [
-                -95.41007,
-                29.68345
-              ],
-              [
-                -95.41011,
-                29.68345
-              ],
-              [
-                -95.41011,
-                29.68341
-              ],
-              [
-                -95.4101,
-                29.68341
-              ],
-              [
-                -95.4101,
-                29.68338
-              ]
+              -95.407247,
+              29.679519
             ]
           ]
         ]
@@ -130947,7 +130283,21 @@
       "neighborhood_aliases": [
         "Astrodome"
       ],
-      "super_neighborhood": "Astrodome Area"
+      "super_neighborhood": "Astrodome Area",
+      "builder": "H. A. Lott, Inc. & Lummus Company (Joint Venture)",
+      "builder_source": "Harris County Sports & Convention Corp. / NRHP Nomination",
+      "engineers": "Walter P Moore & Associates; Roof Structures, Inc.; Praeger-Kavanagh-Waterbury",
+      "original_cost": "$31,600,000",
+      "original_permit": "Harris County Domed Stadium Bond Contract (1962)",
+      "hist_contract": {
+        "date": "January 3, 1962 - April 9, 1965",
+        "cost": "$31,600,000 ($35,000,000 with site infrastructure)",
+        "architect": "Hermon Lloyd & W. B. Morgan; Wilson, Morris, Crain & Anderson",
+        "builder": "H. A. Lott, Inc. & Lummus Company",
+        "engineers": "Walter P Moore; Praeger-Kavanagh-Waterbury; Roof Structures, Inc. (Kiewitt Lamella Dome)",
+        "scope": "World's first multi-purpose, air-conditioned domed sports stadium (642-foot clear-span steel lamella truss dome)",
+        "source_title": "National Register of Historic Places Registration Form (Harris County Domed Stadium)"
+      }
     },
     "0440920000001": {
       "id": "0440920000001",
@@ -651518,10 +650868,10 @@
       ],
       "super_neighborhood": "Neartown - Montrose",
       "historic_ward": "Fourth Ward",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$800,",
       "yr_remodel": 2019,
-      "eff_year_built": 1907
+      "eff_year_built": 1907,
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$800,"
     },
     "0551960000005": {
       "hcad_num": "0551960000005",
@@ -652078,7 +651428,20 @@
         "Project Row Houses Area"
       ],
       "super_neighborhood": "Greater Third Ward",
-      "historic_ward": "Third Ward"
+      "historic_ward": "Third Ward",
+      "builder": "Knutson Construction Company",
+      "builder_source": "COH Protected Landmark Report / HMRC Architectural Archives",
+      "engineers": "Lenard Gabert",
+      "original_cost": "$38,000",
+      "original_permit": "COH Building Permit (1939)",
+      "hist_contract": {
+        "date": "1939 (Opened October 1939; Restored 2023)",
+        "cost": "$38,000",
+        "architect": "Lenard Gabert",
+        "builder": "Knutson Construction Company (1939); Forney Construction (2023 Restoration)",
+        "scope": "2-story Streamline Moderne brick retail and upstairs music ballroom commissioned by Anna & Clarence Dupree in Third Ward",
+        "source_title": "City of Houston Protected Landmark Report (Eldorado Ballroom)"
+      }
     },
     "0152470000018": {
       "hcad_num": "0152470000018",
@@ -653876,10 +653239,10 @@
         "Courtlandt Place"
       ],
       "super_neighborhood": "Neartown - Montrose",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$96,815",
       "yr_remodel": 2020,
-      "eff_year_built": 2012
+      "eff_year_built": 2012,
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$96,815"
     },
     "0601480240002": {
       "hcad_num": "0601480240002",
@@ -656927,310 +656290,28 @@
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards",
       "geometry": {
-        "type": "MultiPolygon",
+        "type": "Polygon",
         "coordinates": [
           [
             [
-              [
-                -95.36502,
-                29.73519
-              ],
-              [
-                -95.36498,
-                29.73525
-              ],
-              [
-                -95.36495,
-                29.73524
-              ],
-              [
-                -95.36492,
-                29.73528
-              ],
-              [
-                -95.36486,
-                29.73524
-              ],
-              [
-                -95.36483,
-                29.73528
-              ],
-              [
-                -95.36471,
-                29.73521
-              ],
-              [
-                -95.36477,
-                29.73513
-              ],
-              [
-                -95.36474,
-                29.73511
-              ],
-              [
-                -95.36485,
-                29.73497
-              ],
-              [
-                -95.36488,
-                29.73498
-              ],
-              [
-                -95.36493,
-                29.73492
-              ],
-              [
-                -95.36499,
-                29.73496
-              ],
-              [
-                -95.36504,
-                29.7349
-              ],
-              [
-                -95.36515,
-                29.73497
-              ],
-              [
-                -95.36499,
-                29.73517
-              ],
-              [
-                -95.36502,
-                29.73519
-              ]
-            ]
-          ],
-          [
+              -95.3654595,
+              29.7364287
+            ],
             [
-              [
-                -95.36469,
-                29.73581
-              ],
-              [
-                -95.36479,
-                29.73587
-              ],
-              [
-                -95.36483,
-                29.73581
-              ],
-              [
-                -95.36501,
-                29.7359
-              ],
-              [
-                -95.36503,
-                29.73587
-              ],
-              [
-                -95.36509,
-                29.7359
-              ],
-              [
-                -95.36515,
-                29.73581
-              ],
-              [
-                -95.3651,
-                29.73579
-              ],
-              [
-                -95.36512,
-                29.73576
-              ],
-              [
-                -95.36495,
-                29.73567
-              ],
-              [
-                -95.365,
-                29.7356
-              ],
-              [
-                -95.36489,
-                29.73553
-              ],
-              [
-                -95.36469,
-                29.73581
-              ]
-            ]
-          ],
-          [
+              -95.3653159,
+              29.736608
+            ],
             [
-              [
-                -95.36475,
-                29.73554
-              ],
-              [
-                -95.36452,
-                29.7354
-              ],
-              [
-                -95.36474,
-                29.73511
-              ],
-              [
-                -95.36477,
-                29.73513
-              ],
-              [
-                -95.36471,
-                29.73521
-              ],
-              [
-                -95.36483,
-                29.73528
-              ],
-              [
-                -95.36486,
-                29.73524
-              ],
-              [
-                -95.36492,
-                29.73528
-              ],
-              [
-                -95.36495,
-                29.73524
-              ],
-              [
-                -95.36498,
-                29.73525
-              ],
-              [
-                -95.36475,
-                29.73554
-              ]
-            ]
-          ],
-          [
+              -95.3652732,
+              29.7365822
+            ],
             [
-              [
-                -95.36421,
-                29.73579
-              ],
-              [
-                -95.36445,
-                29.73592
-              ],
-              [
-                -95.36448,
-                29.73587
-              ],
-              [
-                -95.36455,
-                29.73591
-              ],
-              [
-                -95.36463,
-                29.7358
-              ],
-              [
-                -95.36457,
-                29.73577
-              ],
-              [
-                -95.36462,
-                29.7357
-              ],
-              [
-                -95.36452,
-                29.73565
-              ],
-              [
-                -95.36448,
-                29.7357
-              ],
-              [
-                -95.36433,
-                29.73562
-              ],
-              [
-                -95.36421,
-                29.73579
-              ]
-            ]
-          ],
-          [
+              -95.3654168,
+              29.7364029
+            ],
             [
-              [
-                -95.36546,
-                29.73643
-              ],
-              [
-                -95.36532,
-                29.73661
-              ],
-              [
-                -95.36527,
-                29.73658
-              ],
-              [
-                -95.36542,
-                29.7364
-              ],
-              [
-                -95.36546,
-                29.73643
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.36599,
-                29.73597
-              ],
-              [
-                -95.36604,
-                29.736
-              ],
-              [
-                -95.36614,
-                29.73586
-              ],
-              [
-                -95.36608,
-                29.73583
-              ],
-              [
-                -95.36599,
-                29.73597
-              ]
-            ]
-          ],
-          [
-            [
-              [
-                -95.36586,
-                29.73578
-              ],
-              [
-                -95.36579,
-                29.73586
-              ],
-              [
-                -95.36584,
-                29.73589
-              ],
-              [
-                -95.36587,
-                29.73585
-              ],
-              [
-                -95.36585,
-                29.73584
-              ],
-              [
-                -95.36589,
-                29.73579
-              ],
-              [
-                -95.36586,
-                29.73578
-              ]
+              -95.3654595,
+              29.7364287
             ]
           ]
         ]
@@ -657272,9 +656353,9 @@
       ],
       "super_neighborhood": "Greater Third Ward",
       "historic_ward": "Third Ward",
+      "eff_year_built": 1938,
       "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$100,000",
-      "eff_year_built": 1938
+      "original_cost": "$100,000"
     },
     "0141700000001": {
       "hcad_num": "0141700000001",
@@ -658198,7 +657279,7 @@
       "address": "3702 AUDUBON PL",
       "landmark_name": "Ewart H. Lightfoot House",
       "historic_district": "Audubon Place",
-      "year_built": 1925,
+      "year_built": 1923,
       "architect": "",
       "good_brick_awards": [
         {
@@ -658266,6 +657347,8 @@
       ],
       "super_neighborhood": "Neartown - Montrose",
       "historic_ward": "Fourth Ward",
+      "yr_remodel": 2016,
+      "eff_year_built": 1922,
       "builder": "George T. Broun",
       "builder_source": "Texas General Contractors Bulletin (March 1923, p. 31)",
       "original_cost": "$8,500",
@@ -658280,8 +657363,8 @@
         "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16139",
         "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16139/full/pct:75/0/default.jpg"
       },
-      "yr_remodel": 2016,
-      "eff_year_built": 1922
+      "original_hcad_year": 1925,
+      "decade": "1920s"
     },
     "0141800000010": {
       "hcad_num": "0141800000010",
@@ -663750,10 +662833,10 @@
         "River Oaks"
       ],
       "super_neighborhood": "Afton Oaks / River Oaks Area",
-      "builder": "Russell Brown Company",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 2013,
-      "eff_year_built": 1946
+      "eff_year_built": 1946,
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "0372670000021": {
       "hcad_num": "0372670000021",
@@ -666108,24 +665191,24 @@
         "coordinates": [
           [
             [
-              -95.35953,
-              29.75874
+              -95.3595313,
+              29.7587355
             ],
             [
-              -95.35958,
-              29.75868
+              -95.3595776,
+              29.7586777
             ],
             [
-              -95.35933,
-              29.75853
+              -95.359328,
+              29.7585267
             ],
             [
-              -95.35928,
-              29.75858
+              -95.3592816,
+              29.7585845
             ],
             [
-              -95.35953,
-              29.75874
+              -95.3595313,
+              29.7587355
             ]
           ]
         ]
@@ -666154,9 +665237,9 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "Third Ward",
+      "eff_year_built": 1992,
       "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$28,",
-      "eff_year_built": 1992
+      "original_cost": "$28,"
     },
     "0052250000032": {
       "hcad_num": "0052250000032",
@@ -666609,10 +665692,10 @@
         "River Oaks"
       ],
       "super_neighborhood": "Afton Oaks / River Oaks Area",
-      "builder": "Russell Brown Company",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 2007,
-      "eff_year_built": 1937
+      "eff_year_built": 1937,
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "0191570000011": {
       "hcad_num": "0191570000011",
@@ -666856,10 +665939,10 @@
         "River Oaks"
       ],
       "super_neighborhood": "Afton Oaks / River Oaks Area",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$63,000",
       "yr_remodel": 2006,
-      "eff_year_built": 1931
+      "eff_year_built": 1931,
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$63,000"
     },
     "0601620920003": {
       "hcad_num": "0601620920003",
@@ -669745,10 +668828,10 @@
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
       "historic_ward": "First Ward",
-      "builder": "Russell Brown Company",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 2005,
-      "eff_year_built": 1985
+      "eff_year_built": 1985,
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "0010250000013": {
       "hcad_num": "0010250000013",
@@ -671102,20 +670185,20 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "Third Ward",
-      "builder": "Westlake Construction Company (St. Louis)",
-      "builder_source": "COH Protected Landmark Report / D. H. Burnham Archives",
-      "engineers": "D. H. Burnham & Company (Structural)",
-      "original_cost": "$600,000",
-      "original_permit": "COH Building Permit (1908)",
+      "eff_year_built": 1968,
+      "builder": "James Stewart & Company",
+      "builder_source": "COH Landmark Designation Report / Jesse H. Jones Papers",
+      "engineers": "Joseph Finger, Inc.",
+      "original_cost": "$1,500,000",
+      "original_permit": "COH Building Permit (1928)",
       "hist_contract": {
-        "date": "1908 - 1909",
-        "cost": "$600,000",
-        "architect": "D. H. Burnham & Company (Daniel H. Burnham)",
-        "builder": "Westlake Construction Company",
-        "scope": "11-story Chicago School steel-frame office building clad in white glazed architectural terra cotta",
-        "source_title": "City of Houston Protected Landmark Designation Report (Scanlan Building)"
-      },
-      "eff_year_built": 1968
+        "date": "1928 - 1929",
+        "cost": "$1,500,000",
+        "architect": "Joseph Finger",
+        "builder": "James Stewart & Company",
+        "scope": "17-story Spanish Renaissance Revival brick and limestone hotel built for Jesse H. Jones",
+        "source_title": "City of Houston Landmark Designation Report (Texas State Hotel)"
+      }
     },
     "0600720050020": {
       "hcad_num": "0600720050020",
@@ -671470,10 +670553,10 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "First Ward",
-      "builder": "Westlake Construction",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 2012,
-      "eff_year_built": 1988
+      "eff_year_built": 1988,
+      "builder": "Westlake Construction",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "0440960000117": {
       "hcad_num": "0440960000117",
@@ -671933,9 +671016,9 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "Third Ward",
+      "eff_year_built": 1986,
       "builder": "Don Hall",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "eff_year_built": 1986
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "1246600010020": {
       "hcad_num": "1246600010020",
@@ -672691,11 +671774,22 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "Fourth Ward",
-      "builder": "American Construction Company",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$6,550,000",
       "yr_remodel": 2016,
-      "eff_year_built": 1975
+      "eff_year_built": 1975,
+      "builder": "American Construction Company",
+      "builder_source": "COH Protected Landmark Report / Jesse H. Jones Papers",
+      "engineers": "Weiskopf & Pickworth (Structural); Reg F. Taylor (Mechanical)",
+      "original_cost": "$6,500,000",
+      "original_permit": "COH Building Permit (Jan. 1928)",
+      "hist_contract": {
+        "date": "January 1928 - April 1929",
+        "cost": "$6,500,000",
+        "architect": "Alfred C. Finn; Kenneth Franzheim; J. E. R. Carpenter",
+        "builder": "American Construction Company",
+        "engineers": "Weiskopf & Pickworth (Structural); Reg F. Taylor (Mechanical)",
+        "scope": "36-story, 428-foot Art Deco skyscraper for Jesse H. Jones (Houston's tallest building, 1929-1963)",
+        "source_title": "City of Houston Landmark Designation Report (Gulf Building)"
+      }
     },
     "0011370000009": {
       "hcad_num": "0011370000009",
@@ -673137,9 +672231,23 @@
       "super_neighborhood": "Downtown",
       "subdivision": "Franklin Lofts Condo",
       "historic_ward": "Second Ward",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$228,000",
-      "eff_year_built": 1995
+      "eff_year_built": 1995,
+      "builder": "Central Contracting Company",
+      "builder_source": "Texas General Contractors Bulletin, Vol. 4, No. 3 (March 1923), pp. 21, 31",
+      "engineers": "Sanguinet, Staats, Hedrick & Gottlieb",
+      "original_cost": "$460,000",
+      "original_permit": "TGCA Contract Award (March 1923)",
+      "hist_contract": {
+        "date": "March 1923 (Original 8-story building erected 1905 by James Stewart & Co.)",
+        "cost": "$460,000 (1923 9-Story Concrete Addition, 90x100 ft)",
+        "architect": "Sanguinet & Staats (1905); Sanguinet, Staats, Hedrick & Gottlieb (1923)",
+        "builder": "Central Contracting Company (1923 Addition); James Stewart & Co. (1905 Original)",
+        "other_bidders": "Central Contracting Co. ($460,000, awarded); Southwestern Construction Co. ($466,500); Alzina Construction Co.",
+        "scope": "9-story reinforced concrete addition (90x100 ft) to First National Bank of Houston at Main & Franklin",
+        "source_title": "T.G.C.A. Monthly Bulletin, Vol. 4, No. 3 (March 1923), pp. 21 & 31",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16129",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16129/full/pct:75/0/default.jpg"
+      }
     },
     "0052000000004": {
       "hcad_num": "0052000000004",
@@ -674448,9 +673556,9 @@
         "The Museum District"
       ],
       "super_neighborhood": "Museum Park",
+      "eff_year_built": 1921,
       "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$50,000.00",
-      "eff_year_built": 1921
+      "original_cost": "$50,000.00"
     },
     "0261390000006": {
       "hcad_num": "0261390000006",
@@ -675225,11 +674333,11 @@
       ],
       "name_source": "Preservation Houston Curated Archive & Good Brick Archive",
       "decade": 1910,
+      "eff_year_built": 1903,
       "builder": "American Construction Company (1911 Union Station) & Brown & Root / Barton Malow (2000)",
       "builder_source": "COH Landmark Designation Report (Union Station)",
       "engineers": "Walter P Moore & Associates",
-      "original_cost": "$500,000 (1911 Union Station)",
-      "eff_year_built": 1903
+      "original_cost": "$500,000 (1911 Union Station)"
     },
     "0332780000004": {
       "hcad_num": "0332780000004",
@@ -675485,6 +674593,8 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "Fourth Ward",
+      "yr_remodel": 2018,
+      "eff_year_built": 2010,
       "builder": "T. B. Hubbard Construction Co.",
       "builder_source": "Texas General Contractors Bulletin (June 1924, p. 33)",
       "original_cost": "$35,000",
@@ -675498,9 +674608,7 @@
         "source_title": "T.G.C.A. Monthly Bulletin (June 1924, p. 33)",
         "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
         "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg"
-      },
-      "yr_remodel": 2018,
-      "eff_year_built": 2010
+      }
     },
     "0610230140022": {
       "hcad_num": "0610230140022",
@@ -676162,24 +675270,24 @@
         "coordinates": [
           [
             [
-              -95.42460509915418,
-              29.751018139564877
+              -95.424388,
+              29.750817
             ],
             [
-              -95.42441567653485,
-              29.75111247362404
+              -95.424359,
+              29.750762
             ],
             [
-              -95.42431531933269,
-              29.750881856998312
+              -95.424237,
+              29.750811
             ],
             [
-              -95.42450474195206,
-              29.7507875229394
+              -95.424267,
+              29.750866
             ],
             [
-              -95.42460509915418,
-              29.751018139564877
+              -95.424388,
+              29.750817
             ]
           ]
         ]
@@ -676197,10 +675305,10 @@
         "River Oaks"
       ],
       "super_neighborhood": "Afton Oaks / River Oaks Area",
-      "builder": "River Oaks Corporation",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 2021,
-      "eff_year_built": 1927
+      "eff_year_built": 1927,
+      "builder": "River Oaks Corporation",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "1185990010006": {
       "hcad_num": "1185990010006",
@@ -679202,7 +678310,23 @@
       "super_neighborhood": "Downtown",
       "historic_ward": "Fourth Ward",
       "yr_remodel": 2024,
-      "eff_year_built": 2015
+      "eff_year_built": 2015,
+      "builder": "American Construction Company",
+      "builder_source": "Texas General Contractors Bulletin, Vol. 4, No. 2 (Feb. 1923), pp. 18, 25",
+      "engineers": "Virginia Bridge & Iron Company (Structural Steel)",
+      "original_cost": "$367,100",
+      "original_permit": "TGCA Contract Award (Jan. 29, 1923)",
+      "hist_contract": {
+        "date": "Bids opened January 29, 1923 (Completed August 1, 1923)",
+        "cost": "$344,500 superstructure + $22,600 basement/foundation ($367,100 total)",
+        "architect": "Alfred C. Finn",
+        "builder": "American Construction Company",
+        "other_bidders": "Tom Tellepsen ($340,000, 250 wk. days); American Construction Co. ($344,500, awarded for Aug. 1, 1923 completion); James Stewart & Co. ($346,000); W. E. Woodruff ($350,000); J. E. McGillicuddy Co. ($350,000); Central Contracting Co.",
+        "scope": "12-story reinforced concrete and brick bank & office building (45x100 ft); steel frame by Virginia Bridge & Iron Co.",
+        "source_title": "T.G.C.A. Monthly Bulletin, Vol. 4, No. 2 (February 1923), pp. 18 & 25",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16082",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16082/full/pct:75/0/default.jpg"
+      }
     },
     "0010330000013": {
       "hcad_num": "0010330000013",
@@ -689469,11 +688593,11 @@
       "architect": "Warren & Wetmore",
       "source_type": "Preservation Houston Good Brick Award & Landmark Inventory",
       "source_citation": "Historic Houston Union Station terminal lobby designed by Warren & Wetmore (opened March 1, 1911; expanded to 6 stories in 1912). 2000 Preservation Houston President's Award.",
+      "eff_year_built": 1903,
       "builder": "American Construction Company (1911 Union Station) & Brown & Root / Barton Malow (2000)",
       "builder_source": "COH Landmark Designation Report (Union Station)",
       "engineers": "Walter P Moore & Associates",
-      "original_cost": "$500,000 (1911 Union Station)",
-      "eff_year_built": 1903
+      "original_cost": "$500,000 (1911 Union Station)"
     },
     "0011010000001#aux_1": {
       "id": "0011010000001#aux_1",
@@ -700101,110 +699225,36 @@
       "verified_by": "City of Houston HAHC Landmark Report",
       "verified_at": "2026-10-08",
       "geometry": {
-        "type": "MultiPolygon",
+        "type": "Polygon",
         "coordinates": [
           [
             [
-              [
-                -95.37235,
-                29.7588
-              ],
-              [
-                -95.37216,
-                29.75888
-              ],
-              [
-                -95.37224,
-                29.75903
-              ],
-              [
-                -95.37234,
-                29.75899
-              ],
-              [
-                -95.37231,
-                29.75893
-              ],
-              [
-                -95.3724,
-                29.75889
-              ],
-              [
-                -95.37235,
-                29.7588
-              ]
-            ]
-          ],
-          [
+              -95.3723499,
+              29.7588
+            ],
             [
-              [
-                -95.37194,
-                29.75936
-              ],
-              [
-                -95.372,
-                29.75929
-              ],
-              [
-                -95.37187,
-                29.75921
-              ],
-              [
-                -95.37181,
-                29.75928
-              ],
-              [
-                -95.37194,
-                29.75936
-              ]
-            ]
-          ],
-          [
+              -95.3721607,
+              29.7588788
+            ],
             [
-              [
-                -95.37238,
-                29.75911
-              ],
-              [
-                -95.37235,
-                29.75904
-              ],
-              [
-                -95.37242,
-                29.75901
-              ],
-              [
-                -95.37246,
-                29.75909
-              ],
-              [
-                -95.37238,
-                29.75911
-              ]
-            ]
-          ],
-          [
+              -95.3722441,
+              29.7590295
+            ],
             [
-              [
-                -95.37197,
-                29.7594
-              ],
-              [
-                -95.37194,
-                29.75943
-              ],
-              [
-                -95.37196,
-                29.75945
-              ],
-              [
-                -95.37199,
-                29.75942
-              ],
-              [
-                -95.37197,
-                29.7594
-              ]
+              -95.372341,
+              29.7589891
+            ],
+            [
+              -95.3723059,
+              29.7589256
+            ],
+            [
+              -95.3723981,
+              29.7588872
+            ],
+            [
+              -95.3723499,
+              29.7588
             ]
           ]
         ]
@@ -700242,7 +699292,18 @@
         "Theater District",
         "Skyline District"
       ],
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "Nathaniel Kellum (Master Brickmaker & Builder)",
+      "builder_source": "The Heritage Society / NRHP Inventory",
+      "original_cost": "$3,500 (est. 1847 construction)",
+      "hist_contract": {
+        "date": "1847 - 1848 (Saved & Restored 1954 by The Heritage Society)",
+        "cost": "Built with slave-made brick fired at Nathaniel Kellum's Buffalo Bayou brickyard",
+        "architect": "Nathaniel Kellum",
+        "builder": "Nathaniel Kellum",
+        "scope": "2-story Louisiana Colonial double-gallery brick residence, oldest surviving brick house on its original foundation in Houston",
+        "source_title": "The Heritage Society at Sam Houston Park Archival Records"
+      }
     },
     "0202530000010": {
       "hcad_num": "0202530000010",
@@ -701069,102 +700130,76 @@
       "verified_by": "City of Houston HAHC Landmark Report",
       "verified_at": "2026-10-08",
       "geometry": {
-        "type": "MultiPolygon",
+        "type": "Polygon",
         "coordinates": [
           [
             [
-              [
-                -95.40421,
-                29.72757
-              ],
-              [
-                -95.40421,
-                29.72759
-              ],
-              [
-                -95.40415,
-                29.72759
-              ],
-              [
-                -95.40415,
-                29.72757
-              ],
-              [
-                -95.4041,
-                29.72757
-              ],
-              [
-                -95.4041,
-                29.72755
-              ],
-              [
-                -95.40405,
-                29.72755
-              ],
-              [
-                -95.40405,
-                29.72749
-              ],
-              [
-                -95.4041,
-                29.72749
-              ],
-              [
-                -95.4041,
-                29.72747
-              ],
-              [
-                -95.40415,
-                29.72747
-              ],
-              [
-                -95.40415,
-                29.72744
-              ],
-              [
-                -95.40425,
-                29.72744
-              ],
-              [
-                -95.40425,
-                29.72747
-              ],
-              [
-                -95.40427,
-                29.72747
-              ],
-              [
-                -95.40427,
-                29.72757
-              ],
-              [
-                -95.40421,
-                29.72757
-              ]
-            ]
-          ],
-          [
+              -95.4042124,
+              29.7275717
+            ],
             [
-              [
-                -95.40416,
-                29.7273
-              ],
-              [
-                -95.40428,
-                29.7273
-              ],
-              [
-                -95.40428,
-                29.72724
-              ],
-              [
-                -95.40416,
-                29.72724
-              ],
-              [
-                -95.40416,
-                29.7273
-              ]
+              -95.4042126,
+              29.7275872
+            ],
+            [
+              -95.4041541,
+              29.727588
+            ],
+            [
+              -95.4041538,
+              29.7275725
+            ],
+            [
+              -95.4040973,
+              29.7275733
+            ],
+            [
+              -95.4040969,
+              29.7275505
+            ],
+            [
+              -95.404049,
+              29.7275511
+            ],
+            [
+              -95.4040479,
+              29.7274891
+            ],
+            [
+              -95.4040958,
+              29.7274885
+            ],
+            [
+              -95.4040955,
+              29.7274695
+            ],
+            [
+              -95.4041467,
+              29.7274688
+            ],
+            [
+              -95.4041462,
+              29.7274442
+            ],
+            [
+              -95.4042462,
+              29.7274428
+            ],
+            [
+              -95.4042466,
+              29.7274675
+            ],
+            [
+              -95.4042712,
+              29.7274672
+            ],
+            [
+              -95.404273,
+              29.7275709
+            ],
+            [
+              -95.4042124,
+              29.7275717
             ]
           ]
         ]
@@ -701186,10 +700221,10 @@
         "Edgemont"
       ],
       "super_neighborhood": "University Place",
-      "builder": "W. J. Goggan",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 2020,
-      "eff_year_built": 1931
+      "eff_year_built": 1931,
+      "builder": "W. J. Goggan",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "0201970000009": {
       "hcad_num": "0201970000009",
@@ -701493,24 +700528,24 @@
         "coordinates": [
           [
             [
-              -95.37258,
-              29.77513
+              -95.372582,
+              29.775128
             ],
             [
-              -95.37274,
-              29.77512
+              -95.372735,
+              29.775125
             ],
             [
-              -95.37273,
-              29.77499
+              -95.372731,
+              29.774985
             ],
             [
-              -95.37258,
-              29.77499
+              -95.372578,
+              29.774989
             ],
             [
-              -95.37258,
-              29.77513
+              -95.372582,
+              29.775128
             ]
           ]
         ]
@@ -701532,10 +700567,10 @@
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
       "historic_ward": "First Ward",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$500",
       "yr_remodel": 2016,
-      "eff_year_built": 2008
+      "eff_year_built": 2008,
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$500"
     },
     "0050930000027": {
       "hcad_num": "0050930000027",
@@ -701973,11 +701008,11 @@
       ],
       "super_neighborhood": "Washington Avenue Coalition / Memorial Park",
       "historic_ward": "Sixth Ward",
+      "yr_remodel": 2008,
+      "eff_year_built": 1999,
       "builder": "American Construction Company",
       "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$8,440",
-      "yr_remodel": 2008,
-      "eff_year_built": 1999
+      "original_cost": "$8,440"
     },
     "0010920000004": {
       "hcad_num": "0010920000004",
@@ -702082,7 +701117,21 @@
         "Skyline District"
       ],
       "super_neighborhood": "Downtown",
-      "historic_ward": "Fourth Ward"
+      "historic_ward": "Fourth Ward",
+      "builder": "American Construction Company",
+      "builder_source": "COH Protected Landmark Report & T.G.C.A. Monthly Bulletin (Dec. 1922, p. 23)",
+      "engineers": "Sanguinet & Staats",
+      "original_cost": "$750,000",
+      "original_permit": "COH Building Permit (1909); 6-Story Top Addition (Dec. 1922, $20,000 prelim)",
+      "hist_contract": {
+        "date": "1909 - 1910 (16 stories); December 1922 - 1924 (6-story addition to 22 stories)",
+        "cost": "$750,000 (1910 Original)",
+        "architect": "Sanguinet & Staats; Alfred C. Finn",
+        "builder": "American Construction Company",
+        "scope": "16-story steel-frame skyscraper built for lumber magnate W. T. Carter & Jesse H. Jones, raised to 22 stories in 1923-1924",
+        "source_title": "T.G.C.A. Monthly Bulletin, Vol. 3, No. 12 (December 1922), p. 23",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/9625"
+      }
     },
     "0601590620014": {
       "hcad_num": "0601590620014",
@@ -702330,10 +701379,10 @@
         "Houston Heights South Historic District"
       ],
       "super_neighborhood": "Greater Heights",
-      "builder": "Hart Oil and Well Company",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 2017,
-      "eff_year_built": 1920
+      "eff_year_built": 1920,
+      "builder": "Hart Oil and Well Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "0202140000023": {
       "hcad_num": "0202140000023",
@@ -702747,23 +701796,10 @@
       "original_hcad_year": 1891,
       "bld_style": "Gothic Revival Wood-Frame Country Church",
       "architect": "",
-      "builder": "Nathaniel Kellum (Master Brickmaker & Builder)",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "engineers": "",
-      "original_cost": "$18,500",
-      "original_permit": "",
       "yr_remodel": 0,
       "eff_year_built": 0,
       "was_relocated": false,
       "relocation_note": "",
-      "hist_contract": {
-        "date": "1847 - 1848 (Saved & Restored 1954 by The Heritage Society)",
-        "cost": "Built with slave-made brick fired at Nathaniel Kellum's Buffalo Bayou brickyard",
-        "architect": "Nathaniel Kellum",
-        "builder": "Nathaniel Kellum",
-        "scope": "2-story Louisiana Colonial double-gallery brick residence, oldest surviving brick house on its original foundation in Houston",
-        "source_title": "The Heritage Society at Sam Houston Park Archival Records"
-      },
       "landmark_name": "Sam Houston Park",
       "building_name": "",
       "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
@@ -702797,7 +701833,9 @@
             ]
           ]
         ]
-      }
+      },
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$18,500"
     },
     "0601310000005": {
       "hcad_num": "0601310000005",
@@ -703370,10 +702408,10 @@
       "building_name": "Kennedy Steam Bakery Building",
       "name_source": "COH Landmark Designation Report",
       "subdivision": "Ssbb",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$110,000",
       "yr_remodel": 2004,
-      "eff_year_built": 1845
+      "eff_year_built": 1845,
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$110,000"
     },
     "0050390000009": {
       "hcad_num": "0050390000009",
@@ -704896,24 +703934,24 @@
         "coordinates": [
           [
             [
-              -95.42111,
-              29.74821
+              -95.421106,
+              29.748212
             ],
             [
-              -95.42111,
+              -95.421112,
               29.74833
             ],
             [
-              -95.42124,
-              29.74833
+              -95.421238,
+              29.748325
             ],
             [
-              -95.42123,
-              29.74821
+              -95.421231,
+              29.748206
             ],
             [
-              -95.42111,
-              29.74821
+              -95.421106,
+              29.748212
             ]
           ]
         ]
@@ -704929,10 +703967,10 @@
         "River Oaks"
       ],
       "super_neighborhood": "Afton Oaks / River Oaks Area",
-      "builder": "Russell Brown Company",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 1995,
-      "eff_year_built": 1927
+      "eff_year_built": 1927,
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "1296950010001": {
       "hcad_num": "1296950010001",
@@ -705644,11 +704682,11 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "Fourth Ward",
+      "eff_year_built": 1982,
       "builder": "W. S. Bellows Construction Corporation",
       "builder_source": "W. S. Bellows Construction Corp. / Alley Theatre Archives",
       "engineers": "Weiskopf & Pickworth (Structural)",
-      "original_cost": "$3,500,000",
-      "eff_year_built": 1982
+      "original_cost": "$3,500,000"
     },
     "0601540400001": {
       "hcad_num": "0601540400001",
@@ -706185,10 +705223,10 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "Fifth Ward",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
-      "original_cost": "$1200",
       "yr_remodel": 2010,
-      "eff_year_built": 1992
+      "eff_year_built": 1992,
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "original_cost": "$1200"
     },
     "1344850010002#stage": {
       "id": "1344850010002#stage",
@@ -706904,78 +705942,28 @@
       "landmark_code": "97L040",
       "replace_parcel_shards": true,
       "geometry": {
-        "type": "MultiPolygon",
+        "type": "Polygon",
         "coordinates": [
           [
             [
-              [
-                -95.357108,
-                29.766827
-              ],
-              [
-                -95.356895,
-                29.76678
-              ],
-              [
-                -95.356983,
-                29.766516
-              ],
-              [
-                -95.357187,
-                29.766562
-              ],
-              [
-                -95.357108,
-                29.766827
-              ]
-            ]
-          ],
-          [
+              -95.357409,
+              29.766641
+            ],
             [
-              [
-                -95.357282,
-                29.76687
-              ],
-              [
-                -95.357354,
-                29.766631
-              ],
-              [
-                -95.357412,
-                29.766644
-              ],
-              [
-                -95.357335,
-                29.766882
-              ],
-              [
-                -95.357282,
-                29.76687
-              ]
-            ]
-          ],
-          [
+              -95.357344,
+              29.766628
+            ],
             [
-              [
-                -95.357061,
-                29.766455
-              ],
-              [
-                -95.357079,
-                29.766404
-              ],
-              [
-                -95.357322,
-                29.766465
-              ],
-              [
-                -95.357305,
-                29.766517
-              ],
-              [
-                -95.357061,
-                29.766455
-              ]
+              -95.357277,
+              29.766874
+            ],
+            [
+              -95.357342,
+              29.766887
+            ],
+            [
+              -95.357409,
+              29.766641
             ]
           ]
         ]
@@ -706996,10 +705984,10 @@
       ],
       "super_neighborhood": "Downtown",
       "historic_ward": "Fifth Ward",
-      "builder": "Thomas E",
-      "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "yr_remodel": 1997,
-      "eff_year_built": 1986
+      "eff_year_built": 1986,
+      "builder": "Thomas E",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)"
     },
     "1216410000008": {
       "id": "1216410000008",
@@ -708368,7 +707356,20 @@
       "subdivision": "Ssbb",
       "historic_ward": "Fourth Ward",
       "yr_remodel": 2015,
-      "eff_year_built": 1997
+      "eff_year_built": 1997,
+      "builder": "James Stewart & Company",
+      "builder_source": "Jesse H. Jones Papers / COH Protected Landmark Report",
+      "engineers": "Mauran, Russell & Crowell",
+      "original_cost": "$3,000,000",
+      "original_permit": "COH Building Permit (1912); East Wing Addition (1925)",
+      "hist_contract": {
+        "date": "1912 - May 1913 (East Wing added 1925; Adaptive Reuse 1998)",
+        "cost": "$3,000,000",
+        "architect": "Mauran, Russell & Crowell; Alfred C. Finn (1925 Wing)",
+        "builder": "James Stewart & Company (1913); American Construction Company (1925)",
+        "scope": "18-story, 1,000-room U-shaped Beaux-Arts hotel on the site of the 1837 Republic of Texas Capitol",
+        "source_title": "City of Houston Protected Landmark Designation Report (The Rice Hotel)"
+      }
     },
     "0102490000010": {
       "hcad_num": "0102490000010",
@@ -708706,6 +707707,8 @@
       ],
       "super_neighborhood": "Neartown - Montrose",
       "historic_ward": "Fourth Ward",
+      "yr_remodel": 2010,
+      "eff_year_built": 1917,
       "builder": "Russell Brown Company",
       "builder_source": "City of Houston Landmark Designation Report (HPO)",
       "hist_contract": {
@@ -708717,9 +707720,7 @@
         "source_title": "HMRC: Modern Homes, Book Number Two (The Russell Brown Co.), Plan 204, Page 8",
         "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12347",
         "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12347/full/pct:75/0/default.jpg"
-      },
-      "yr_remodel": 2010,
-      "eff_year_built": 1917
+      }
     },
     "0844820000006": {
       "hcad_num": "0844820000006",
@@ -709293,25 +708294,10 @@
       "original_hcad_year": 1996,
       "bld_style": "Contemporary Memorial Museum",
       "architect": "",
-      "builder": "Don Hall, Constructor",
-      "builder_source": "Texas General Contractors Bulletin, Vol. 4, No. 2 (Feb. 1923), p. 25",
-      "engineers": "William Ward Watkin",
-      "original_cost": "$200,000",
-      "original_permit": "TGCA Contract Award (Feb. 1923)",
       "yr_remodel": 0,
       "eff_year_built": 0,
       "was_relocated": false,
       "relocation_note": "",
-      "hist_contract": {
-        "date": "Contract awarded February 1923; dedicated April 12, 1924 (Cullinan Hall added 1958 by W. S. Bellows Construction Co.)",
-        "cost": "$200,000 (First Unit, 1923-1924)",
-        "architect": "William Ward Watkin & Cram and Ferguson (1924); Ludwig Mies van der Rohe (1958 & 1974)",
-        "builder": "Don Hall, Constructor (1924 First Unit); W. S. Bellows Construction Co. (1958 Cullinan Hall)",
-        "scope": "First unit of the Houston Art Museum (Neoclassical limestone pavilion), followed by Mies van der Rohe's 1958 Cullinan Hall",
-        "source_title": "T.G.C.A. Monthly Bulletin, Vol. 4, No. 2 (February 1923), p. 25",
-        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16089",
-        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg"
-      },
       "landmark_name": "Holocaust Museum Houston (Lester and Sue Smith Campus)",
       "building_name": "",
       "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
@@ -709342,6 +708328,3756 @@
             [
               -95.383397,
               29.723521
+            ]
+          ]
+        ]
+      }
+    },
+    "0010910000015": {
+      "building_id": "0010910000015",
+      "hcad_num": "0010910000015",
+      "is_building_override": false,
+      "address": "808 TRAVIS ST 295",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1925,
+      "decade": "1920s",
+      "original_hcad_year": 1925,
+      "bld_style": "Reinforced Concrete",
+      "architect": "1941",
+      "builder": "American Construction Company (1927) & W. S. Bellows Construction Co. (1941)",
+      "builder_source": "COH Landmark Designation Report / HMRC Architectural Archives",
+      "engineers": "Weiskopf & Pickworth (Structural)",
+      "original_cost": "$4,000,000",
+      "original_permit": "COH Building Permit (1925 & 1940)",
+      "yr_remodel": 2005,
+      "eff_year_built": 1941,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "1925 - 1927 (Niels Esperson) & 1940 - 1941 (Mellie Esperson)",
+        "cost": "$4,000,000 (1927 Tower) | $2,500,000 (1941 Annex)",
+        "architect": "John Eberson (1927); John & Drew Eberson (1941)",
+        "builder": "American Construction Company (1927); W. S. Bellows Construction Co. (1941)",
+        "scope": "32-story Italian Renaissance Revival skyscraper crowned by the columned tempietto",
+        "source_title": "City of Houston Landmark Designation Report (Esperson Buildings)"
+      },
+      "landmark_name": "Niels & Mellie Esperson Buildings",
+      "building_name": "Niels & Mellie Esperson Buildings",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "COH Landmark Designation Report / HMRC Architectural Archives",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3657792,
+              29.7589125
+            ],
+            [
+              -95.3654502,
+              29.7593279
+            ],
+            [
+              -95.3652201,
+              29.7591914
+            ],
+            [
+              -95.365323,
+              29.7590624
+            ],
+            [
+              -95.365086,
+              29.7589199
+            ],
+            [
+              -95.3652749,
+              29.758683
+            ],
+            [
+              -95.3653135,
+              29.7586346
+            ],
+            [
+              -95.3654335,
+              29.7587058
+            ],
+            [
+              -95.3655922,
+              29.7588013
+            ],
+            [
+              -95.3657792,
+              29.7589125
+            ]
+          ]
+        ]
+      }
+    },
+    "0010450000009": {
+      "building_id": "0010450000009",
+      "hcad_num": "0010450000009",
+      "is_building_override": false,
+      "address": "405 MAIN ST",
+      "historic_district": "Main Street/Market Square Historic District",
+      "contributing": "Contributing",
+      "year_built": 1908,
+      "decade": "1900s",
+      "original_hcad_year": 1908,
+      "bld_style": "Reinforced Concrete",
+      "architect": "Daniel Burnham",
+      "builder": "Westlake Construction Company (St. Louis)",
+      "builder_source": "COH Protected Landmark Report / D. H. Burnham Archives",
+      "engineers": "D. H. Burnham & Company (Structural)",
+      "original_cost": "$600,000",
+      "original_permit": "COH Building Permit (1908)",
+      "yr_remodel": 2015,
+      "eff_year_built": 1990,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "1908 - 1909",
+        "cost": "$600,000",
+        "architect": "D. H. Burnham & Company (Daniel H. Burnham)",
+        "builder": "Westlake Construction Company",
+        "scope": "11-story Chicago School steel-frame office building clad in white glazed architectural terra cotta",
+        "source_title": "City of Houston Protected Landmark Designation Report (Scanlan Building)"
+      },
+      "landmark_name": "The Scanlan Building",
+      "building_name": "The Scanlan Building",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "COH Protected Landmark Report / D. H. Burnham Archives",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3613002,
+              29.7613424
+            ],
+            [
+              -95.3610323,
+              29.7611806
+            ],
+            [
+              -95.3611904,
+              29.7609835
+            ],
+            [
+              -95.3614582,
+              29.7611454
+            ],
+            [
+              -95.3613002,
+              29.7613424
+            ]
+          ]
+        ]
+      }
+    },
+    "1464830000001": {
+      "building_id": "1464830000001",
+      "hcad_num": "1464830000001",
+      "is_building_override": false,
+      "address": "2310 ELGIN ST 1",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1930,
+      "decade": "1930s",
+      "original_hcad_year": 1930,
+      "bld_style": "Masonry Bearing",
+      "architect": "",
+      "builder": "Knutson Construction Company",
+      "builder_source": "COH Protected Landmark Report / HMRC Architectural Archives",
+      "engineers": "Lenard Gabert",
+      "original_cost": "$38,000",
+      "original_permit": "COH Building Permit (1939)",
+      "yr_remodel": 2022,
+      "eff_year_built": 2012,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "1939 (Opened October 1939; Restored 2023)",
+        "cost": "$38,000",
+        "architect": "Lenard Gabert",
+        "builder": "Knutson Construction Company (1939); Forney Construction (2023 Restoration)",
+        "scope": "2-story Streamline Moderne brick retail and upstairs music ballroom commissioned by Anna & Clarence Dupree in Third Ward",
+        "source_title": "City of Houston Protected Landmark Report (Eldorado Ballroom)"
+      },
+      "landmark_name": "Eldorado Ballroom",
+      "building_name": "Eldorado Ballroom",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "COH Protected Landmark Report / HMRC Architectural Archives",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3655475,
+              29.7344677
+            ],
+            [
+              -95.3652796,
+              29.7343004
+            ],
+            [
+              -95.3651984,
+              29.7343987
+            ],
+            [
+              -95.3651975,
+              29.7344099
+            ],
+            [
+              -95.365201,
+              29.7344219
+            ],
+            [
+              -95.3652122,
+              29.7344302
+            ],
+            [
+              -95.3654576,
+              29.7345757
+            ],
+            [
+              -95.3655475,
+              29.7344677
+            ]
+          ]
+        ]
+      }
+    },
+    "0202430000024": {
+      "building_id": "0202430000024",
+      "hcad_num": "0202430000024",
+      "is_building_override": false,
+      "address": "848 HEIGHTS BLVD",
+      "historic_district": "Houston Heights South Historic District",
+      "contributing": "Contributing",
+      "year_built": 1923,
+      "decade": "1920s",
+      "original_hcad_year": 1923,
+      "bld_style": "Prairie/American Four Square/ Colonial Revival combo",
+      "architect": "Temple Lumber Company",
+      "builder": "Temple Lumber Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2015,
+      "eff_year_built": 1923,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "The McTighe-Durham House",
+      "building_name": "The McTighe-Durham House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/96L011_848_Heights_Blvd_McTighe_Durham_House.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.396928,
+              29.786791
+            ],
+            [
+              -95.396932,
+              29.786902
+            ],
+            [
+              -95.397055,
+              29.786899
+            ],
+            [
+              -95.397054,
+              29.786862
+            ],
+            [
+              -95.397094,
+              29.786861
+            ],
+            [
+              -95.397096,
+              29.786912
+            ],
+            [
+              -95.397259,
+              29.786908
+            ],
+            [
+              -95.397255,
+              29.786782
+            ],
+            [
+              -95.396928,
+              29.786791
+            ]
+          ]
+        ]
+      }
+    },
+    "0130840000003": {
+      "building_id": "0130840000003",
+      "hcad_num": "0130840000003",
+      "is_building_override": false,
+      "address": "4002 AUSTIN ST",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1911,
+      "decade": "1910s",
+      "original_hcad_year": 1911,
+      "bld_style": "Bungalow",
+      "architect": "William A. Wilson Company",
+      "builder": "",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$5,616",
+      "original_permit": "",
+      "yr_remodel": 2000,
+      "eff_year_built": 1911,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "The Gustav G. Heyne House",
+      "building_name": "The Gustav G. Heyne House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/97L015_Gustav_Heyne_House_4002_Austin.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3779104,
+              29.7344617
+            ],
+            [
+              -95.3780593,
+              29.7345495
+            ],
+            [
+              -95.3780234,
+              29.7345954
+            ],
+            [
+              -95.3780159,
+              29.7345909
+            ],
+            [
+              -95.377961,
+              29.7346611
+            ],
+            [
+              -95.3778196,
+              29.7345776
+            ],
+            [
+              -95.3779104,
+              29.7344617
+            ]
+          ]
+        ]
+      }
+    },
+    "0441840000035": {
+      "building_id": "0441840000035",
+      "hcad_num": "0441840000035",
+      "is_building_override": false,
+      "address": "1401 CASTLE CT",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1939,
+      "decade": "1930s",
+      "original_hcad_year": 1939,
+      "bld_style": "Residential",
+      "architect": "",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2009,
+      "eff_year_built": 1939,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Maurice J. and Reginald A. Hirsch House",
+      "building_name": "Maurice J. and Reginald A. Hirsch House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/98L046_Hirsch_House_1401_Castle_Ct.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.396713,
+              29.731808
+            ],
+            [
+              -95.396381,
+              29.731812
+            ],
+            [
+              -95.396382,
+              29.731915
+            ],
+            [
+              -95.396715,
+              29.73191
+            ],
+            [
+              -95.396713,
+              29.731808
+            ]
+          ]
+        ]
+      }
+    },
+    "0010460000001": {
+      "building_id": "0010460000001",
+      "hcad_num": "0010460000001",
+      "is_building_override": false,
+      "address": "1117 PRAIRIE ST 97",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1920,
+      "decade": "1920s",
+      "original_hcad_year": 1920,
+      "bld_style": "Reinforced Concrete",
+      "architect": "Sanguinet, Staats, Hedrick & Gottlieb",
+      "builder": "",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$500,000",
+      "original_permit": "",
+      "yr_remodel": 2002,
+      "eff_year_built": 1986,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Sam Houston Hotel",
+      "building_name": "Sam Houston Hotel",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/01L096_Sam_Houston_Hotel_1117_Prairie.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.360497,
+              29.759999
+            ],
+            [
+              -95.360214,
+              29.759863
+            ],
+            [
+              -95.360065,
+              29.760097
+            ],
+            [
+              -95.360302,
+              29.760211
+            ],
+            [
+              -95.360392,
+              29.76007
+            ],
+            [
+              -95.360438,
+              29.760092
+            ],
+            [
+              -95.360497,
+              29.759999
+            ]
+          ]
+        ]
+      }
+    },
+    "0082610000006": {
+      "building_id": "0082610000006",
+      "hcad_num": "0082610000006",
+      "is_building_override": false,
+      "address": "3900 MILAM ST",
+      "historic_district": "First Montrose Commons Historic District",
+      "contributing": "Contributing",
+      "year_built": 1912,
+      "decade": "1910s",
+      "original_hcad_year": 1912,
+      "bld_style": "Prairie with Colonial Revival features",
+      "architect": "",
+      "builder": "The Russell Brown Co",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2005,
+      "eff_year_built": 1912,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Cochran-Hofheinz House",
+      "building_name": "Cochran-Hofheinz House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/05L124 Cochran-Hofheinz House 3900 Milam.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3839223,
+              29.7373602
+            ],
+            [
+              -95.3838229,
+              29.7373598
+            ],
+            [
+              -95.3838231,
+              29.7373078
+            ],
+            [
+              -95.383673,
+              29.7373072
+            ],
+            [
+              -95.383672,
+              29.7375011
+            ],
+            [
+              -95.3838839,
+              29.7375019
+            ],
+            [
+              -95.3838841,
+              29.7374544
+            ],
+            [
+              -95.3839217,
+              29.7374546
+            ],
+            [
+              -95.3839223,
+              29.7373602
+            ]
+          ]
+        ]
+      }
+    },
+    "0120560000057": {
+      "building_id": "0120560000057",
+      "hcad_num": "0120560000057",
+      "is_building_override": false,
+      "address": "6302 LYONS AVE",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1966,
+      "decade": "1960s",
+      "original_hcad_year": 1966,
+      "bld_style": "Wood or Light Steel",
+      "architect": "",
+      "builder": "T. D. Howe Construction",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 0,
+      "eff_year_built": 1966,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "City of Houston Fire Station No. 27",
+      "building_name": "City of Houston Fire Station No. 27",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL19_Fire_Station_No.27_6302_Lyons_Ave.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.307174,
+              29.776279
+            ],
+            [
+              -95.307117,
+              29.77628
+            ],
+            [
+              -95.307116,
+              29.776239
+            ],
+            [
+              -95.307056,
+              29.77624
+            ],
+            [
+              -95.307059,
+              29.776382
+            ],
+            [
+              -95.307176,
+              29.77638
+            ],
+            [
+              -95.307174,
+              29.776279
+            ]
+          ]
+        ]
+      }
+    },
+    "0041390000005": {
+      "building_id": "0041390000005",
+      "hcad_num": "0041390000005",
+      "is_building_override": false,
+      "address": "218 AVONDALE ST",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1917,
+      "decade": "1910s",
+      "original_hcad_year": 1940,
+      "bld_style": "Prairie Style",
+      "architect": "The Russell Brown Company (Design-Build, Plan No. 312)",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 1999,
+      "eff_year_built": 1940,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "1917 (Plan No. 312)",
+        "cost": "$10,500 (est. Russell Brown Co. contract)",
+        "architect": "The Russell Brown Company (Plan No. 312)",
+        "builder": "The Russell Brown Company",
+        "scope": "2-story residence in Avondale Addition featured in 'Modern Homes, Book Number Two' (Page 36, Plan 312)",
+        "source_title": "HMRC: Modern Homes, Book Number Two (The Russell Brown Co.), Plan 312, Page 36",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12375",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12375/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "William L. Connelly House",
+      "building_name": "William L. Connelly House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL21_Connelly_House_218_Avondale.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3843641,
+              29.7450526
+            ],
+            [
+              -95.3842319,
+              29.7450549
+            ],
+            [
+              -95.3842335,
+              29.7451255
+            ],
+            [
+              -95.3843657,
+              29.7451231
+            ],
+            [
+              -95.3843641,
+              29.7450526
+            ]
+          ]
+        ]
+      }
+    },
+    "0601520320014": {
+      "building_id": "0601520320014",
+      "hcad_num": "0601520320014",
+      "is_building_override": false,
+      "address": "3000 DEL MONTE DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1927,
+      "decade": "1920s",
+      "original_hcad_year": 1927,
+      "bld_style": "Italian Renaissance",
+      "architect": "Alfred C. Finn",
+      "builder": "",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$250,000",
+      "original_permit": "",
+      "yr_remodel": 2007,
+      "eff_year_built": 1927,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Arthur R. Holliday House",
+      "building_name": "Arthur R. Holliday House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06L127 Arthur Holliday House 3000 Del Monte.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.420731,
+              29.750793
+            ],
+            [
+              -95.420739,
+              29.750897
+            ],
+            [
+              -95.420929,
+              29.750885
+            ],
+            [
+              -95.420929,
+              29.750894
+            ],
+            [
+              -95.420999,
+              29.75089
+            ],
+            [
+              -95.420996,
+              29.750855
+            ],
+            [
+              -95.421033,
+              29.750853
+            ],
+            [
+              -95.421027,
+              29.750774
+            ],
+            [
+              -95.420731,
+              29.750793
+            ]
+          ]
+        ]
+      }
+    },
+    "0130360000004": {
+      "building_id": "0130360000004",
+      "hcad_num": "0130360000004",
+      "is_building_override": false,
+      "address": "4518 PARK DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1916,
+      "decade": "1910s",
+      "original_hcad_year": 1916,
+      "bld_style": "Prairie Style",
+      "architect": "",
+      "builder": "Tellepsen Construction",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 0,
+      "eff_year_built": 1916,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Tom and Ingeborg Tellepsen House",
+      "building_name": "Tom and Ingeborg Tellepsen House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL30_Tellepsen_House_4518_Park.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.331411,
+              29.738935
+            ],
+            [
+              -95.331405,
+              29.739118
+            ],
+            [
+              -95.331523,
+              29.739121
+            ],
+            [
+              -95.331529,
+              29.738938
+            ],
+            [
+              -95.331411,
+              29.738935
+            ]
+          ]
+        ]
+      }
+    },
+    "0601380000015": {
+      "building_id": "0601380000015",
+      "hcad_num": "0601380000015",
+      "is_building_override": false,
+      "address": "1915 BELLMEADE ST",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1928,
+      "decade": "1920s",
+      "original_hcad_year": 1928,
+      "bld_style": "",
+      "architect": "Charles Oliver",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 1997,
+      "eff_year_built": 1928,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Hal and Iley Nunn Davis House",
+      "building_name": "Hal and Iley Nunn Davis House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL32_Hal_and_Iley_Nunn_Davis_House_1915_Bellmeade.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.422415,
+              29.74863
+            ],
+            [
+              -95.422635,
+              29.748628
+            ],
+            [
+              -95.422634,
+              29.748578
+            ],
+            [
+              -95.422602,
+              29.748578
+            ],
+            [
+              -95.422601,
+              29.748509
+            ],
+            [
+              -95.422539,
+              29.74851
+            ],
+            [
+              -95.422541,
+              29.748582
+            ],
+            [
+              -95.422455,
+              29.748583
+            ],
+            [
+              -95.422454,
+              29.748529
+            ],
+            [
+              -95.422355,
+              29.74853
+            ],
+            [
+              -95.422356,
+              29.748589
+            ],
+            [
+              -95.422415,
+              29.748588
+            ],
+            [
+              -95.422415,
+              29.74863
+            ]
+          ]
+        ]
+      }
+    },
+    "0601550430012": {
+      "building_id": "0601550430012",
+      "hcad_num": "0601550430012",
+      "is_building_override": false,
+      "address": "2147 PELHAM DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1935,
+      "decade": "1930s",
+      "original_hcad_year": 1935,
+      "bld_style": "Colonial Revival",
+      "architect": "Robert D. McCready",
+      "builder": "W. J. Goggan",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2007,
+      "eff_year_built": 1935,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Roswell W. Moreland House",
+      "building_name": "Roswell W. Moreland House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/07L175_Roswell-W-Moreland_House_2147_Pelham.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.41261,
+              29.750731
+            ],
+            [
+              -95.412738,
+              29.750729
+            ],
+            [
+              -95.412734,
+              29.750599
+            ],
+            [
+              -95.412606,
+              29.750602
+            ],
+            [
+              -95.41261,
+              29.750731
+            ]
+          ]
+        ]
+      }
+    },
+    "0601610790011": {
+      "building_id": "0601610790011",
+      "hcad_num": "0601610790011",
+      "is_building_override": false,
+      "address": "3664 INVERNESS DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1947,
+      "decade": "1940s",
+      "original_hcad_year": 1947,
+      "bld_style": "Colonial Revival",
+      "architect": "J. Leon Osborn, bldr",
+      "builder": "",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$100,000",
+      "original_permit": "",
+      "yr_remodel": 2008,
+      "eff_year_built": 1947,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Charles W. Duncan, Sr., House",
+      "building_name": "Charles W. Duncan, Sr., House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/07L181_3664_Inverness_Charles_W_Duncan_House.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.43732,
+              29.752471
+            ],
+            [
+              -95.437165,
+              29.75252
+            ],
+            [
+              -95.437188,
+              29.752575
+            ],
+            [
+              -95.437157,
+              29.752584
+            ],
+            [
+              -95.437224,
+              29.752743
+            ],
+            [
+              -95.437345,
+              29.752704
+            ],
+            [
+              -95.437299,
+              29.752596
+            ],
+            [
+              -95.437408,
+              29.752562
+            ],
+            [
+              -95.43738,
+              29.752496
+            ],
+            [
+              -95.437336,
+              29.75251
+            ],
+            [
+              -95.43732,
+              29.752471
+            ]
+          ]
+        ]
+      }
+    },
+    "0601550470025": {
+      "building_id": "0601550470025",
+      "hcad_num": "0601550470025",
+      "is_building_override": false,
+      "address": "2232 BRENTWOOD DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1930,
+      "decade": "1930s",
+      "original_hcad_year": 1930,
+      "bld_style": "English-Tudor",
+      "architect": "Russell Brown Co.",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2007,
+      "eff_year_built": 1930,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Joseph H. Russell House",
+      "building_name": "Joseph H. Russell House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/07L177_Joseph_H_Russell_House_2232_Brentwood.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.414464,
+              29.754103
+            ],
+            [
+              -95.414462,
+              29.753993
+            ],
+            [
+              -95.414259,
+              29.753996
+            ],
+            [
+              -95.414261,
+              29.754095
+            ],
+            [
+              -95.414325,
+              29.754094
+            ],
+            [
+              -95.414326,
+              29.754137
+            ],
+            [
+              -95.414391,
+              29.754136
+            ],
+            [
+              -95.41439,
+              29.754105
+            ],
+            [
+              -95.414464,
+              29.754103
+            ]
+          ]
+        ]
+      }
+    },
+    "0601560520005": {
+      "building_id": "0601560520005",
+      "hcad_num": "0601560520005",
+      "is_building_override": false,
+      "address": "2175 TROON RD",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1935,
+      "decade": "1930s",
+      "original_hcad_year": 1935,
+      "bld_style": "",
+      "architect": "Russell Brown Company",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2006,
+      "eff_year_built": 1935,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Kendall-Harris House",
+      "building_name": "Kendall-Harris House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08L197_Kendall-Harris_House_2175_Troon.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.411686,
+              29.757539
+            ],
+            [
+              -95.411636,
+              29.75732
+            ],
+            [
+              -95.411572,
+              29.757331
+            ],
+            [
+              -95.411603,
+              29.757472
+            ],
+            [
+              -95.4115,
+              29.75749
+            ],
+            [
+              -95.411518,
+              29.757567
+            ],
+            [
+              -95.411686,
+              29.757539
+            ]
+          ]
+        ]
+      }
+    },
+    "0041380000002": {
+      "building_id": "0041380000002",
+      "hcad_num": "0041380000002",
+      "is_building_override": false,
+      "address": "104 AVONDALE ST",
+      "historic_district": "Avondale East Historic District",
+      "contributing": "Contributing",
+      "year_built": 1917,
+      "decade": "1910s",
+      "original_hcad_year": 1920,
+      "bld_style": "Prairie",
+      "architect": "The Russell Brown Company (Design-Build, Plan No. 313)",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 1983,
+      "eff_year_built": 1920,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "1917 (Plan No. 313)",
+        "cost": "$11,000 (est. Russell Brown Co. contract)",
+        "architect": "The Russell Brown Company (Plan No. 313)",
+        "builder": "The Russell Brown Company",
+        "scope": "2-story residence at 104 Avondale featured in 'Modern Homes, Book Number Two' (Page 37, Plan 313)",
+        "source_title": "HMRC: Modern Homes, Book Number Two (The Russell Brown Co.), Plan 313, Page 37",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12376",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12376/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "Turnbow-Smith House",
+      "building_name": "Turnbow-Smith House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL55_Turnbow-Smith_House_104_Avondale.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.382132,
+              29.745188
+            ],
+            [
+              -95.382135,
+              29.745262
+            ],
+            [
+              -95.382097,
+              29.745263
+            ],
+            [
+              -95.382101,
+              29.745341
+            ],
+            [
+              -95.382275,
+              29.745335
+            ],
+            [
+              -95.382273,
+              29.745297
+            ],
+            [
+              -95.382311,
+              29.745296
+            ],
+            [
+              -95.382308,
+              29.745227
+            ],
+            [
+              -95.382269,
+              29.745228
+            ],
+            [
+              -95.382267,
+              29.745184
+            ],
+            [
+              -95.382132,
+              29.745188
+            ]
+          ]
+        ]
+      }
+    },
+    "0090780000020": {
+      "building_id": "0090780000020",
+      "hcad_num": "0090780000020",
+      "is_building_override": false,
+      "address": "1217 WILSON ST",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1960,
+      "decade": "1960s",
+      "original_hcad_year": 1960,
+      "bld_style": "Masonry Bearing",
+      "architect": "",
+      "builder": "Fretz Construction",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$60,993.86",
+      "original_permit": "",
+      "yr_remodel": 0,
+      "eff_year_built": 1960,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "St. James United Methodist Church",
+      "building_name": "St. James United Methodist Church",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL58_St_James_UMC_1217_Wilson.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.381294,
+              29.755826
+            ],
+            [
+              -95.381147,
+              29.755825
+            ],
+            [
+              -95.381145,
+              29.756097
+            ],
+            [
+              -95.381293,
+              29.756097
+            ],
+            [
+              -95.381294,
+              29.755826
+            ]
+          ]
+        ]
+      }
+    },
+    "0641720010013": {
+      "building_id": "0641720010013",
+      "hcad_num": "0641720010013",
+      "is_building_override": false,
+      "address": "3023 ELLA LEE LN",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1940,
+      "decade": "1940s",
+      "original_hcad_year": 1940,
+      "bld_style": "French Eclectic",
+      "architect": "Wylie Vale",
+      "builder": "Pace Development and Construction",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2019,
+      "eff_year_built": 1940,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Frederic L. Bouknight House",
+      "building_name": "Frederic L. Bouknight House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL64_Bouknight_House_3023_Ella_Lee.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.421378,
+              29.74496
+            ],
+            [
+              -95.421361,
+              29.74487
+            ],
+            [
+              -95.421293,
+              29.74488
+            ],
+            [
+              -95.421287,
+              29.744847
+            ],
+            [
+              -95.42118,
+              29.744862
+            ],
+            [
+              -95.421203,
+              29.744985
+            ],
+            [
+              -95.421378,
+              29.74496
+            ]
+          ]
+        ]
+      }
+    },
+    "0370300000011": {
+      "building_id": "0370300000011",
+      "hcad_num": "0370300000011",
+      "is_building_override": false,
+      "address": "401 EMERSON ST",
+      "historic_district": "Westmoreland Historic District",
+      "contributing": "Contributing",
+      "year_built": 1905,
+      "decade": "1900s",
+      "original_hcad_year": 1905,
+      "bld_style": "Foursquare/Col Rev/Queen Anne",
+      "architect": "Barber design",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2019,
+      "eff_year_built": 1905,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Sterling-Hamman House",
+      "building_name": "Sterling-Hamman House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL61_Sterling-Hamman_House_401_Emerson.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.383747,
+              29.741842
+            ],
+            [
+              -95.383745,
+              29.741741
+            ],
+            [
+              -95.3836,
+              29.741744
+            ],
+            [
+              -95.383603,
+              29.741845
+            ],
+            [
+              -95.383747,
+              29.741842
+            ]
+          ]
+        ]
+      }
+    },
+    "0601610760009": {
+      "building_id": "0601610760009",
+      "hcad_num": "0601610760009",
+      "is_building_override": false,
+      "address": "3605 DEL MONTE DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1947,
+      "decade": "1940s",
+      "original_hcad_year": 1947,
+      "bld_style": "Colonial Revival",
+      "architect": "Theo F. Keller",
+      "builder": "Bell Construction",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2017,
+      "eff_year_built": 1947,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Smith-Anderson House",
+      "building_name": "Smith-Anderson House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL60_Smith_Anderson_House_3605_Del_Monte.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.434084,
+              29.750494
+            ],
+            [
+              -95.434082,
+              29.750425
+            ],
+            [
+              -95.434021,
+              29.750427
+            ],
+            [
+              -95.434019,
+              29.75036
+            ],
+            [
+              -95.43408,
+              29.750359
+            ],
+            [
+              -95.434078,
+              29.750287
+            ],
+            [
+              -95.433849,
+              29.750292
+            ],
+            [
+              -95.433851,
+              29.750369
+            ],
+            [
+              -95.433936,
+              29.750367
+            ],
+            [
+              -95.433937,
+              29.750425
+            ],
+            [
+              -95.433886,
+              29.750426
+            ],
+            [
+              -95.433889,
+              29.750499
+            ],
+            [
+              -95.434084,
+              29.750494
+            ]
+          ]
+        ]
+      }
+    },
+    "0601530340031": {
+      "building_id": "0601530340031",
+      "hcad_num": "0601530340031",
+      "is_building_override": false,
+      "address": "1059 KIRBY DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 2019,
+      "decade": "2010s",
+      "original_hcad_year": 2019,
+      "bld_style": "",
+      "architect": "Charles Oliver",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 0,
+      "eff_year_built": 2019,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "T. J. and Ruth Bettes House",
+      "building_name": "T. J. and Ruth Bettes House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/09L215_Bettes_House_1059_Kirby.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.415127,
+              29.757056
+            ],
+            [
+              -95.415254,
+              29.756897
+            ],
+            [
+              -95.415073,
+              29.756787
+            ],
+            [
+              -95.414923,
+              29.756974
+            ],
+            [
+              -95.415071,
+              29.757063
+            ],
+            [
+              -95.415093,
+              29.757036
+            ],
+            [
+              -95.415127,
+              29.757056
+            ]
+          ]
+        ]
+      }
+    },
+    "0102490000015": {
+      "building_id": "0102490000015",
+      "hcad_num": "0102490000015",
+      "is_building_override": false,
+      "address": "19 COURTLANDT PL",
+      "historic_district": "Courtland Place Historic District",
+      "contributing": "Contributing",
+      "year_built": 1914,
+      "decade": "1910s",
+      "original_hcad_year": 1914,
+      "bld_style": "Colonial Revival",
+      "architect": "Birdsall P. Briscoe",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 1986,
+      "eff_year_built": 1914,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "John and Marie Etta Garrow House",
+      "building_name": "John and Marie Etta Garrow House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/09L219_19_Courtlandt_Pl.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3852,
+              29.742898
+            ],
+            [
+              -95.385201,
+              29.742966
+            ],
+            [
+              -95.385339,
+              29.742963
+            ],
+            [
+              -95.385337,
+              29.742896
+            ],
+            [
+              -95.3852,
+              29.742898
+            ]
+          ]
+        ]
+      }
+    },
+    "0601480210001": {
+      "building_id": "0601480210001",
+      "hcad_num": "0601480210001",
+      "is_building_override": false,
+      "address": "2221 RIVER OAKS BLVD",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1928,
+      "decade": "1920s",
+      "original_hcad_year": 1928,
+      "bld_style": "Southern Colonial",
+      "architect": "Cameron Fairchild",
+      "builder": "",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$50,000,",
+      "original_permit": "",
+      "yr_remodel": 1996,
+      "eff_year_built": 1928,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Lamberth-Abercrombie House",
+      "building_name": "Lamberth-Abercrombie House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL73_Lamberth-Abercrombie_House_2221_River_Oaks_Blvd.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.426051,
+              29.745466
+            ],
+            [
+              -95.426053,
+              29.745313
+            ],
+            [
+              -95.425919,
+              29.745312
+            ],
+            [
+              -95.425918,
+              29.745351
+            ],
+            [
+              -95.425857,
+              29.74535
+            ],
+            [
+              -95.425856,
+              29.745448
+            ],
+            [
+              -95.425899,
+              29.745448
+            ],
+            [
+              -95.425899,
+              29.745512
+            ],
+            [
+              -95.425995,
+              29.745513
+            ],
+            [
+              -95.425996,
+              29.745466
+            ],
+            [
+              -95.426051,
+              29.745466
+            ]
+          ]
+        ]
+      }
+    },
+    "0540760000008": {
+      "building_id": "0540760000008",
+      "hcad_num": "0540760000008",
+      "is_building_override": false,
+      "address": "2002 BOLSOVER ST",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1931,
+      "decade": "1930s",
+      "original_hcad_year": 1931,
+      "bld_style": "Raised Brick Bungalow",
+      "architect": "J.W. Northrop",
+      "builder": "",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$5,250,",
+      "original_permit": "",
+      "yr_remodel": 0,
+      "eff_year_built": 1931,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Lackner House",
+      "building_name": "Lackner House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/09L221_Lackner_House_2002_Bolsover_St.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.40633,
+              29.720841
+            ],
+            [
+              -95.406406,
+              29.720998
+            ],
+            [
+              -95.406543,
+              29.720949
+            ],
+            [
+              -95.406467,
+              29.720791
+            ],
+            [
+              -95.40633,
+              29.720841
+            ]
+          ]
+        ]
+      }
+    },
+    "0601530340003": {
+      "building_id": "0601530340003",
+      "hcad_num": "0601530340003",
+      "is_building_override": false,
+      "address": "1407 KIRBY DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1928,
+      "decade": "1920s",
+      "original_hcad_year": 1928,
+      "bld_style": "Tudor Revival",
+      "architect": "Charles Oliver",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 1978,
+      "eff_year_built": 1928,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Stokes-Farnsworth House",
+      "building_name": "Stokes-Farnsworth House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/09L222_Stokes-Farnsworth_House_1407_Kirby.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.415689,
+              29.755999
+            ],
+            [
+              -95.415624,
+              29.755962
+            ],
+            [
+              -95.415546,
+              29.756063
+            ],
+            [
+              -95.415611,
+              29.756101
+            ],
+            [
+              -95.415689,
+              29.755999
+            ]
+          ]
+        ]
+      }
+    },
+    "0601390000001": {
+      "building_id": "0601390000001",
+      "hcad_num": "0601390000001",
+      "is_building_override": false,
+      "address": "3223 CHEVY CHASE DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1934,
+      "decade": "1930s",
+      "original_hcad_year": 1934,
+      "bld_style": "Spanish Colonial Revival",
+      "architect": "Charles Oliver",
+      "builder": "Hall Building Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2008,
+      "eff_year_built": 1934,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Casa a la Punta",
+      "building_name": "Casa a la Punta",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/10L229_Casa_A_La_Punta_3223_Chevy_Chase_Dr.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.423894,
+              29.748892
+            ],
+            [
+              -95.423884,
+              29.748856
+            ],
+            [
+              -95.423951,
+              29.748844
+            ],
+            [
+              -95.423929,
+              29.74876
+            ],
+            [
+              -95.423712,
+              29.748803
+            ],
+            [
+              -95.423711,
+              29.748799
+            ],
+            [
+              -95.423568,
+              29.748827
+            ],
+            [
+              -95.423588,
+              29.748905
+            ],
+            [
+              -95.423553,
+              29.748912
+            ],
+            [
+              -95.423564,
+              29.748956
+            ],
+            [
+              -95.423894,
+              29.748892
+            ]
+          ]
+        ]
+      }
+    },
+    "0601560530016": {
+      "building_id": "0601560530016",
+      "hcad_num": "0601560530016",
+      "is_building_override": false,
+      "address": "2164 TROON RD",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1943,
+      "decade": "1940s",
+      "original_hcad_year": 1943,
+      "bld_style": "Colonial Revival",
+      "architect": "Charles Oliver",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 1998,
+      "eff_year_built": 1945,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "River Oaks Corporation House",
+      "building_name": "River Oaks Corporation House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/11L240_River_Oaks_Corporation_House_2164_Troon_Rd.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.4115829,
+              29.7579667
+            ],
+            [
+              -95.411622,
+              29.7581767
+            ],
+            [
+              -95.4114293,
+              29.758204
+            ],
+            [
+              -95.4113902,
+              29.757994
+            ],
+            [
+              -95.4115829,
+              29.7579667
+            ]
+          ]
+        ]
+      }
+    },
+    "0601410000006": {
+      "building_id": "0601410000006",
+      "hcad_num": "0601410000006",
+      "is_building_override": false,
+      "address": "3325 CHEVY CHASE DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1937,
+      "decade": "1930s",
+      "original_hcad_year": 1937,
+      "bld_style": "English picturesque",
+      "architect": "Charles Oliver",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2001,
+      "eff_year_built": 1937,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Ben Johnston House",
+      "building_name": "Ben Johnston House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/11L249_3325_Chevy_Chase.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.42767,
+              29.747887
+            ],
+            [
+              -95.427668,
+              29.747957
+            ],
+            [
+              -95.427835,
+              29.74796
+            ],
+            [
+              -95.427836,
+              29.74789
+            ],
+            [
+              -95.42767,
+              29.747887
+            ]
+          ]
+        ]
+      }
+    },
+    "0601550460022": {
+      "building_id": "0601550460022",
+      "hcad_num": "0601550460022",
+      "is_building_override": false,
+      "address": "2105 BRENTWOOD DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1929,
+      "decade": "1920s",
+      "original_hcad_year": 1929,
+      "bld_style": "",
+      "architect": "Charles Oliver",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2012,
+      "eff_year_built": 1929,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "James and Marguerite Shepherd House",
+      "building_name": "James and Marguerite Shepherd House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/11LM2105_Brentwood_Drive_James_and_Marguerite_Shepherd_House.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.41104,
+              29.753674
+            ],
+            [
+              -95.411041,
+              29.753653
+            ],
+            [
+              -95.410955,
+              29.753651
+            ],
+            [
+              -95.410952,
+              29.753758
+            ],
+            [
+              -95.411135,
+              29.753763
+            ],
+            [
+              -95.411138,
+              29.753677
+            ],
+            [
+              -95.41104,
+              29.753674
+            ]
+          ]
+        ]
+      }
+    },
+    "0601520320013": {
+      "building_id": "0601520320013",
+      "hcad_num": "0601520320013",
+      "is_building_override": false,
+      "address": "2938 DEL MONTE DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1929,
+      "decade": "1920s",
+      "original_hcad_year": 1929,
+      "bld_style": "Tudor Revival",
+      "architect": "Charles Oliver",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2020,
+      "eff_year_built": 1929,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Walter F. Daly House",
+      "building_name": "Walter F. Daly House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/12L264_2938_Del_Monte.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.420489,
+              29.751083
+            ],
+            [
+              -95.420488,
+              29.751019
+            ],
+            [
+              -95.420388,
+              29.751021
+            ],
+            [
+              -95.42039,
+              29.751085
+            ],
+            [
+              -95.420489,
+              29.751083
+            ]
+          ]
+        ]
+      }
+    },
+    "0601520310002": {
+      "building_id": "0601520310002",
+      "hcad_num": "0601520310002",
+      "is_building_override": false,
+      "address": "3015 DEL MONTE DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1929,
+      "decade": "1920s",
+      "original_hcad_year": 1929,
+      "bld_style": "Tudor Revival",
+      "architect": "Charles Oliver",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2014,
+      "eff_year_built": 1929,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "James W. and Lella D. Cain House",
+      "building_name": "James W. and Lella D. Cain House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/12L270_Cain_House.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.42165,
+              29.750113
+            ],
+            [
+              -95.421579,
+              29.75011
+            ],
+            [
+              -95.421575,
+              29.750181
+            ],
+            [
+              -95.421646,
+              29.750184
+            ],
+            [
+              -95.42165,
+              29.750113
+            ]
+          ]
+        ]
+      }
+    },
+    "0601480210002": {
+      "building_id": "0601480210002",
+      "hcad_num": "0601480210002",
+      "is_building_override": false,
+      "address": "3262 ELLA LEE LN",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1934,
+      "decade": "1930s",
+      "original_hcad_year": 1934,
+      "bld_style": "Colonial Revival",
+      "architect": "Cameron Fairchild",
+      "builder": "",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$10,000",
+      "original_permit": "",
+      "yr_remodel": 1978,
+      "eff_year_built": 1934,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Cooper-Bland House",
+      "building_name": "Cooper-Bland House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/13L276_3262_Ella_Lee_Bland_House.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.425513,
+              29.745516
+            ],
+            [
+              -95.425518,
+              29.745547
+            ],
+            [
+              -95.425581,
+              29.745539
+            ],
+            [
+              -95.425576,
+              29.745509
+            ],
+            [
+              -95.425513,
+              29.745516
+            ]
+          ]
+        ]
+      }
+    },
+    "0601530360019": {
+      "building_id": "0601530360019",
+      "hcad_num": "0601530360019",
+      "is_building_override": false,
+      "address": "2455 PINE VALLEY DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1934,
+      "decade": "1930s",
+      "original_hcad_year": 1934,
+      "bld_style": "Colonial Revival",
+      "architect": "Salisbury & McHale",
+      "builder": "",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$15,000",
+      "original_permit": "",
+      "yr_remodel": 2025,
+      "eff_year_built": 1934,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Herbert A. and Elizabeth Kipp House",
+      "building_name": "Herbert A. and Elizabeth Kipp House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/13L277_2455_Pine_Valley.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.416118,
+              29.755154
+            ],
+            [
+              -95.41612,
+              29.755054
+            ],
+            [
+              -95.416239,
+              29.755055
+            ],
+            [
+              -95.41624,
+              29.755001
+            ],
+            [
+              -95.416276,
+              29.755001
+            ],
+            [
+              -95.416277,
+              29.754915
+            ],
+            [
+              -95.416211,
+              29.754915
+            ],
+            [
+              -95.416211,
+              29.754982
+            ],
+            [
+              -95.416004,
+              29.75498
+            ],
+            [
+              -95.416003,
+              29.755046
+            ],
+            [
+              -95.415886,
+              29.755045
+            ],
+            [
+              -95.415885,
+              29.755173
+            ],
+            [
+              -95.415962,
+              29.755173
+            ],
+            [
+              -95.415962,
+              29.755152
+            ],
+            [
+              -95.416118,
+              29.755154
+            ]
+          ]
+        ]
+      }
+    },
+    "0601550470019": {
+      "building_id": "0601550470019",
+      "hcad_num": "0601550470019",
+      "is_building_override": false,
+      "address": "2144 BRENTWOOD DR",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1932,
+      "decade": "1930s",
+      "original_hcad_year": 1932,
+      "bld_style": "English w/ Tudor influence",
+      "architect": "",
+      "builder": "Russell Brown Company",
+      "builder_source": "City of Houston Landmark Designation Report (HPO)",
+      "engineers": "",
+      "original_cost": "$20,000",
+      "original_permit": "",
+      "yr_remodel": 0,
+      "eff_year_built": 1932,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Lena Meredith and Ada Carlton House",
+      "building_name": "Lena Meredith and Ada Carlton House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "City of Houston Landmark Designation Report (HPO)",
+      "source_url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/13PL116_2144_Brentwood_Meredith_Carlton_House.pdf",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.412591,
+              29.754289
+            ],
+            [
+              -95.412698,
+              29.754285
+            ],
+            [
+              -95.412696,
+              29.754234
+            ],
+            [
+              -95.412589,
+              29.754238
+            ],
+            [
+              -95.412591,
+              29.754289
+            ]
+          ]
+        ]
+      }
+    },
+    "0261380000002": {
+      "building_id": "0261380000002",
+      "hcad_num": "0261380000002",
+      "is_building_override": false,
+      "address": "3404 AUDUBON PL",
+      "historic_district": "Audubon Place Historic District",
+      "contributing": "Contributing",
+      "year_built": 1922,
+      "decade": "1920s",
+      "original_hcad_year": 1928,
+      "bld_style": "",
+      "architect": "",
+      "builder": "Swedman & Page",
+      "builder_source": "Texas General Contractors Bulletin (October 1922, p. 23)",
+      "engineers": "",
+      "original_cost": "$10,000",
+      "original_permit": "TGCA Contract Award (October 1922)",
+      "yr_remodel": 2010,
+      "eff_year_built": 1928,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "October 1922",
+        "cost": "$10,000",
+        "owner": "Wm. Largey",
+        "builder": "Swedman & Page",
+        "scope": "2-story brick-veneer residence at 3404 Audubon for Wm. Largey",
+        "source_title": "T.G.C.A. Monthly Bulletin (October 1922, p. 23)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/9545",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/9545/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "",
+      "building_name": "Wm. Largey Building (1922)",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Texas General Contractors Bulletin (October 1922, p. 23)",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/9545",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.38695,
+              29.742128
+            ],
+            [
+              -95.386922,
+              29.742129
+            ],
+            [
+              -95.386921,
+              29.74208
+            ],
+            [
+              -95.386823,
+              29.742082
+            ],
+            [
+              -95.386823,
+              29.74207
+            ],
+            [
+              -95.386733,
+              29.742072
+            ],
+            [
+              -95.386736,
+              29.742188
+            ],
+            [
+              -95.386952,
+              29.742184
+            ],
+            [
+              -95.38695,
+              29.742128
+            ]
+          ]
+        ]
+      }
+    },
+    "0250290000006": {
+      "building_id": "0250290000006",
+      "hcad_num": "0250290000006",
+      "is_building_override": false,
+      "address": "3617 MAIN ST",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1923,
+      "decade": "1920s",
+      "original_hcad_year": 1919,
+      "bld_style": "Masonry Bearing",
+      "architect": "",
+      "builder": "Frank J. Schlueter",
+      "builder_source": "Texas General Contractors Bulletin (February 1923, p. 25)",
+      "engineers": "",
+      "original_cost": "$7,000",
+      "original_permit": "TGCA Contract Award (February 1923)",
+      "yr_remodel": 0,
+      "eff_year_built": 1919,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "February 1923",
+        "cost": "$7,000",
+        "owner": "Frank J. Schlueter",
+        "builder": "Frank J. Schlueter",
+        "scope": "2-story brick-veneer apartment at 3617 Main for Frank J. Schlueter",
+        "source_title": "T.G.C.A. Monthly Bulletin (February 1923, p. 25)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16089",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "Former Alley Theatre Building",
+      "building_name": "Former Alley Theatre Building",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Texas General Contractors Bulletin (February 1923, p. 25)",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16089",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3789654,
+              29.7385457
+            ],
+            [
+              -95.3790018,
+              29.7384986
+            ],
+            [
+              -95.379045,
+              29.7385238
+            ],
+            [
+              -95.3790644,
+              29.7384987
+            ],
+            [
+              -95.3790963,
+              29.7385173
+            ],
+            [
+              -95.3791185,
+              29.7384885
+            ],
+            [
+              -95.3792975,
+              29.7385927
+            ],
+            [
+              -95.3792195,
+              29.7386936
+            ],
+            [
+              -95.3789654,
+              29.7385457
+            ]
+          ]
+        ]
+      }
+    },
+    "0530390000002": {
+      "building_id": "0530390000002",
+      "hcad_num": "0530390000002",
+      "is_building_override": false,
+      "address": "1311 SOUTH BLVD",
+      "historic_district": "Broadacres Historic District",
+      "contributing": "Contributing",
+      "year_built": 1924,
+      "decade": "1920s",
+      "original_hcad_year": 1923,
+      "bld_style": "",
+      "architect": "",
+      "builder": "Thos. M. Murray",
+      "builder_source": "Texas General Contractors Bulletin (June 1924, p. 33)",
+      "engineers": "",
+      "original_cost": "$10,000",
+      "original_permit": "TGCA Contract Award (June 1924)",
+      "yr_remodel": 0,
+      "eff_year_built": 1923,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "June 1924",
+        "cost": "$10,000",
+        "owner": "J. F. Dickson",
+        "builder": "Thos. M. Murray",
+        "scope": "2-story tile & stucco residence at 1311 South for J. F. Dickson",
+        "source_title": "T.G.C.A. Monthly Bulletin (June 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "",
+      "building_name": "J. F. Dickson Building (1924)",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Texas General Contractors Bulletin (June 1924, p. 33)",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3955899,
+              29.7262663
+            ],
+            [
+              -95.395587,
+              29.7261477
+            ],
+            [
+              -95.3957189,
+              29.7261466
+            ],
+            [
+              -95.3957188,
+              29.7261096
+            ],
+            [
+              -95.3957281,
+              29.7260973
+            ],
+            [
+              -95.395742,
+              29.7260911
+            ],
+            [
+              -95.3957683,
+              29.7260907
+            ],
+            [
+              -95.3957842,
+              29.7260987
+            ],
+            [
+              -95.3957912,
+              29.7261091
+            ],
+            [
+              -95.395792,
+              29.7261449
+            ],
+            [
+              -95.3958168,
+              29.726145
+            ],
+            [
+              -95.3958171,
+              29.726156
+            ],
+            [
+              -95.3958991,
+              29.7261556
+            ],
+            [
+              -95.3959014,
+              29.7262024
+            ],
+            [
+              -95.3958157,
+              29.7262042
+            ],
+            [
+              -95.3958167,
+              29.7262615
+            ],
+            [
+              -95.3955899,
+              29.7262663
+            ]
+          ]
+        ]
+      }
+    },
+    "0540970000002": {
+      "building_id": "0540970000002",
+      "hcad_num": "0540970000002",
+      "is_building_override": false,
+      "address": "1932 ALBANS RD",
+      "historic_district": "Outside Historic District",
+      "contributing": "Outside Historic District",
+      "year_built": 1924,
+      "decade": "1920s",
+      "original_hcad_year": 1911,
+      "bld_style": "",
+      "architect": "",
+      "builder": "Chas. Wygant",
+      "builder_source": "Texas General Contractors Bulletin (June 1924, p. 33)",
+      "engineers": "",
+      "original_cost": "$8,000",
+      "original_permit": "TGCA Contract Award (June 1924)",
+      "yr_remodel": 2025,
+      "eff_year_built": 1911,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "June 1924",
+        "cost": "$8,000",
+        "owner": "Joe Ludwick",
+        "builder": "Chas. Wygant",
+        "scope": "2-story brick-veneer residence at 1932 Albans for Joe Ludwick",
+        "source_title": "T.G.C.A. Monthly Bulletin (June 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/21943/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "Joseph and Annie Ludwig House",
+      "building_name": "Joseph and Annie Ludwig House",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Texas General Contractors Bulletin (June 1924, p. 33)",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/21943",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.4065971,
+              29.7240782
+            ],
+            [
+              -95.4065971,
+              29.724232
+            ],
+            [
+              -95.4064657,
+              29.724232
+            ],
+            [
+              -95.4064657,
+              29.7240782
+            ],
+            [
+              -95.4065971,
+              29.7240782
+            ]
+          ]
+        ]
+      }
+    },
+    "0370370000007": {
+      "building_id": "0370370000007",
+      "hcad_num": "0370370000007",
+      "is_building_override": false,
+      "address": "408 MARSHALL ST",
+      "historic_district": "Westmoreland Historic District",
+      "contributing": "Contributing",
+      "year_built": 1924,
+      "decade": "1920s",
+      "original_hcad_year": 1920,
+      "bld_style": "",
+      "architect": "",
+      "builder": "The Russell Brown Company",
+      "builder_source": "Texas General Contractors Bulletin (July 1924, p. 33)",
+      "engineers": "",
+      "original_cost": "$7,500",
+      "original_permit": "TGCA Contract Award (July 1924)",
+      "yr_remodel": 0,
+      "eff_year_built": 1920,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "July 1924",
+        "cost": "$7,500",
+        "owner": "Miss L. C. Daniel",
+        "builder": "The Russell Brown Company",
+        "scope": "2-story stucco residence at 408 Marshall for Miss L. C. Daniel",
+        "source_title": "T.G.C.A. Monthly Bulletin (July 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22003",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22003/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "",
+      "building_name": "Miss L. C. Daniel Building (1924)",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Texas General Contractors Bulletin (July 1924, p. 33)",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22003",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.383209,
+              29.739607
+            ],
+            [
+              -95.383335,
+              29.739616
+            ],
+            [
+              -95.383346,
+              29.739494
+            ],
+            [
+              -95.383304,
+              29.739491
+            ],
+            [
+              -95.3833,
+              29.739532
+            ],
+            [
+              -95.383217,
+              29.739526
+            ],
+            [
+              -95.383209,
+              29.739607
+            ]
+          ]
+        ]
+      }
+    },
+    "0530380000007": {
+      "building_id": "0530380000007",
+      "hcad_num": "0530380000007",
+      "is_building_override": false,
+      "address": "1611 SOUTH BLVD",
+      "historic_district": "Boulevard Oaks Historic District",
+      "contributing": "Contributing",
+      "year_built": 1924,
+      "decade": "1920s",
+      "original_hcad_year": 1925,
+      "bld_style": "",
+      "architect": "",
+      "builder": "L. W. Lindsay",
+      "builder_source": "Texas General Contractors Bulletin (October 1924, p. 33)",
+      "engineers": "",
+      "original_cost": "$23,350",
+      "original_permit": "TGCA Contract Award (October 1924)",
+      "yr_remodel": 2009,
+      "eff_year_built": 1925,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "October 1924",
+        "cost": "$23,350",
+        "owner": "U. B. Fuesler",
+        "builder": "L. W. Lindsay",
+        "scope": "2-story 62x46 brick-veneer residence at 1611 South for U. B. Fuesler",
+        "source_title": "T.G.C.A. Monthly Bulletin (October 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22183",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22183/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "",
+      "building_name": "U. B. Fuesler Building (1924)",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Texas General Contractors Bulletin (October 1924, p. 33)",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22183",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3999774,
+              29.7261728
+            ],
+            [
+              -95.3999962,
+              29.7261728
+            ],
+            [
+              -95.3999962,
+              29.7262072
+            ],
+            [
+              -95.3999774,
+              29.7262072
+            ],
+            [
+              -95.3999774,
+              29.7262188
+            ],
+            [
+              -95.3999238,
+              29.7262188
+            ],
+            [
+              -95.3999238,
+              29.7262072
+            ],
+            [
+              -95.3998996,
+              29.7262072
+            ],
+            [
+              -95.3998996,
+              29.7261728
+            ],
+            [
+              -95.3999238,
+              29.7261728
+            ],
+            [
+              -95.3999238,
+              29.7261653
+            ],
+            [
+              -95.3999774,
+              29.7261653
+            ],
+            [
+              -95.3999774,
+              29.7261728
+            ]
+          ]
+        ]
+      }
+    },
+    "0010900000011": {
+      "building_id": "0010900000011",
+      "hcad_num": "0010900000011",
+      "is_building_override": false,
+      "address": "720 RUSK ST",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1924,
+      "decade": "1920s",
+      "original_hcad_year": 1935,
+      "bld_style": "",
+      "architect": "",
+      "builder": "F. O. Megginson",
+      "builder_source": "Texas General Contractors Bulletin (December 1924, p. 33)",
+      "engineers": "",
+      "original_cost": "$20,000",
+      "original_permit": "TGCA Contract Award (December 1924)",
+      "yr_remodel": 0,
+      "eff_year_built": 0,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "December 1924",
+        "cost": "$20,000",
+        "owner": "N. Wicks, Jr.",
+        "builder": "F. O. Megginson",
+        "scope": "2-story brick store & apartment at 720 Rusk for N. Wicks, Jr.",
+        "source_title": "T.G.C.A. Monthly Bulletin (December 1924, p. 33)",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22303",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/22303/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "",
+      "building_name": "N. Wicks, Jr. Building (1924)",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Texas General Contractors Bulletin (December 1924, p. 33)",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/22303",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.3660591,
+              29.7596973
+            ],
+            [
+              -95.3659243,
+              29.7596183
+            ],
+            [
+              -95.3660088,
+              29.7595096
+            ],
+            [
+              -95.3660936,
+              29.7594006
+            ],
+            [
+              -95.3662284,
+              29.7594796
+            ],
+            [
+              -95.3660591,
+              29.7596973
+            ]
+          ]
+        ]
+      }
+    },
+    "0041390000004": {
+      "building_id": "0041390000004",
+      "hcad_num": "0041390000004",
+      "is_building_override": false,
+      "address": "216 AVONDALE ST",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1918,
+      "decade": "1910s",
+      "original_hcad_year": 1928,
+      "bld_style": "",
+      "architect": "The Russell Brown Company (Design-Build, Plan No. 220)",
+      "builder": "The Russell Brown Company",
+      "builder_source": "HMRC: 'Modern Homes, Book Number Two' (The Russell Brown Co., c. 1917), Plan 220, p. 26",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2011,
+      "eff_year_built": 1928,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "1918 (Plan No. 220)",
+        "cost": "$9,500 (est. Russell Brown Co. contract)",
+        "architect": "The Russell Brown Company (Plan No. 220)",
+        "builder": "The Russell Brown Company",
+        "scope": "2-story residence in Avondale Addition featured in 'Modern Homes, Book Number Two' (Page 26, Plan 220)",
+        "source_title": "HMRC: Modern Homes, Book Number Two (The Russell Brown Co.), Plan 220, Page 26",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12365",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12365/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "",
+      "building_name": "",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "HMRC: 'Modern Homes, Book Number Two' (The Russell Brown Co., c. 1917), Plan 220, p. 26",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12365",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.384179,
+              29.745293
+            ],
+            [
+              -95.384176,
+              29.745131
+            ],
+            [
+              -95.384068,
+              29.745132
+            ],
+            [
+              -95.38407,
+              29.745199
+            ],
+            [
+              -95.383991,
+              29.7452
+            ],
+            [
+              -95.383993,
+              29.745296
+            ],
+            [
+              -95.384179,
+              29.745293
+            ]
+          ]
+        ]
+      }
+    },
+    "0370340000019": {
+      "building_id": "0370340000019",
+      "hcad_num": "0370340000019",
+      "is_building_override": false,
+      "address": "3618 BURLINGTON ST",
+      "historic_district": "Westmoreland Historic District",
+      "contributing": "Contributing",
+      "year_built": 1916,
+      "decade": "1910s",
+      "original_hcad_year": 1897,
+      "bld_style": "",
+      "architect": "The Russell Brown Company (Design-Build, Plan No. 304)",
+      "builder": "The Russell Brown Company",
+      "builder_source": "HMRC: 'Modern Homes, Book Number Two' (The Russell Brown Co., c. 1917), Plan 304, p. 31",
+      "engineers": "",
+      "original_cost": "",
+      "original_permit": "",
+      "yr_remodel": 2016,
+      "eff_year_built": 1897,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": {
+        "date": "c. 1916 (Plan No. 304)",
+        "cost": "$8,500 (est. Russell Brown Co. contract)",
+        "architect": "The Russell Brown Company (Plan No. 304)",
+        "builder": "The Russell Brown Company",
+        "scope": "2-story residence on Burlington Street featured in 'Modern Homes, Book Number Two' (Page 31, Plan 304)",
+        "source_title": "HMRC: Modern Homes, Book Number Two (The Russell Brown Co.), Plan 304, Page 31",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12370",
+        "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12370/full/pct:75/0/default.jpg"
+      },
+      "landmark_name": "",
+      "building_name": "",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "HMRC: 'Modern Homes, Book Number Two' (The Russell Brown Co., c. 1917), Plan 304, p. 31",
+      "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12370",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.382423,
+              29.739968
+            ],
+            [
+              -95.38238,
+              29.739968
+            ],
+            [
+              -95.382381,
+              29.739891
+            ],
+            [
+              -95.382235,
+              29.73989
+            ],
+            [
+              -95.382233,
+              29.74007
+            ],
+            [
+              -95.382422,
+              29.740071
+            ],
+            [
+              -95.382423,
+              29.739968
+            ]
+          ]
+        ]
+      }
+    },
+    "0010840000015": {
+      "building_id": "0010840000015",
+      "hcad_num": "0010840000015",
+      "is_building_override": false,
+      "address": "700 LOUISIANA ST",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1983,
+      "decade": "1980s",
+      "original_hcad_year": 1983,
+      "bld_style": "Fireproofed Steel",
+      "architect": "Johnson/Burgee Architects; Kendall/Heaton Associates",
+      "builder": "Turner Construction Company",
+      "builder_source": "Gerald D. Hines Interests / Engineering News-Record",
+      "engineers": "CBM Engineers, Inc. (Structural); I. A. Naman + Associates (MEP)",
+      "original_cost": "$125,000,000",
+      "original_permit": "",
+      "yr_remodel": 2003,
+      "eff_year_built": 1995,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "TC Energy Center",
+      "building_name": "TC Energy Center",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Gerald D. Hines Interests / Engineering News-Record",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.366371,
+              29.760167
+            ],
+            [
+              -95.366096,
+              29.760542
+            ],
+            [
+              -95.366155,
+              29.760574
+            ],
+            [
+              -95.366194,
+              29.76057
+            ],
+            [
+              -95.366225,
+              29.760588
+            ],
+            [
+              -95.366319,
+              29.760606
+            ],
+            [
+              -95.366331,
+              29.760689
+            ],
+            [
+              -95.366399,
+              29.760727
+            ],
+            [
+              -95.366244,
+              29.760752
+            ],
+            [
+              -95.366235,
+              29.760786
+            ],
+            [
+              -95.366271,
+              29.760806
+            ],
+            [
+              -95.366236,
+              29.76081
+            ],
+            [
+              -95.366242,
+              29.760853
+            ],
+            [
+              -95.366259,
+              29.760864
+            ],
+            [
+              -95.36627,
+              29.760849
+            ],
+            [
+              -95.366295,
+              29.760863
+            ],
+            [
+              -95.366276,
+              29.760935
+            ],
+            [
+              -95.3663,
+              29.76094
+            ],
+            [
+              -95.366372,
+              29.760932
+            ],
+            [
+              -95.366358,
+              29.760836
+            ],
+            [
+              -95.366371,
+              29.760835
+            ],
+            [
+              -95.366535,
+              29.760925
+            ],
+            [
+              -95.366623,
+              29.760805
+            ],
+            [
+              -95.36666,
+              29.760813
+            ],
+            [
+              -95.366656,
+              29.760785
+            ],
+            [
+              -95.366687,
+              29.760744
+            ],
+            [
+              -95.36673,
+              29.760739
+            ],
+            [
+              -95.366804,
+              29.76078
+            ],
+            [
+              -95.366859,
+              29.760773
+            ],
+            [
+              -95.367035,
+              29.760535
+            ],
+            [
+              -95.366371,
+              29.760167
+            ]
+          ]
+        ]
+      }
+    },
+    "0010670000001": {
+      "building_id": "0010670000001",
+      "hcad_num": "0010670000001",
+      "is_building_override": false,
+      "address": "600 TRAVIS ST",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1981,
+      "decade": "1980s",
+      "original_hcad_year": 1981,
+      "bld_style": "Fireproofed Steel",
+      "architect": "I. M. Pei & Partners; 3D/International",
+      "builder": "Turner Construction Company",
+      "builder_source": "Gerald D. Hines Interests / Engineering News-Record",
+      "engineers": "CBM Engineers, Inc. (Structural)",
+      "original_cost": "$160,000,000",
+      "original_permit": "",
+      "yr_remodel": 0,
+      "eff_year_built": 1998,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Westheimer Furniture Company",
+      "building_name": "Westheimer Furniture Company",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Gerald D. Hines Interests / Engineering News-Record",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.364184,
+              29.760206
+            ],
+            [
+              -95.363991,
+              29.7601
+            ],
+            [
+              -95.363945,
+              29.760107
+            ],
+            [
+              -95.363875,
+              29.760204
+            ],
+            [
+              -95.363822,
+              29.760211
+            ],
+            [
+              -95.36383,
+              29.760255
+            ],
+            [
+              -95.363804,
+              29.760292
+            ],
+            [
+              -95.363769,
+              29.760297
+            ],
+            [
+              -95.363776,
+              29.760334
+            ],
+            [
+              -95.363707,
+              29.760428
+            ],
+            [
+              -95.363716,
+              29.760476
+            ],
+            [
+              -95.364088,
+              29.76068
+            ],
+            [
+              -95.364126,
+              29.760674
+            ],
+            [
+              -95.364271,
+              29.760475
+            ],
+            [
+              -95.364232,
+              29.760454
+            ],
+            [
+              -95.364184,
+              29.760206
+            ]
+          ]
+        ]
+      }
+    },
+    "0011440000001": {
+      "building_id": "0011440000001",
+      "hcad_num": "0011440000001",
+      "is_building_override": false,
+      "address": "1000 LOUISIANA ST",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1983,
+      "decade": "1980s",
+      "original_hcad_year": 1983,
+      "bld_style": "Fireproofed Steel",
+      "architect": "Skidmore, Owings & Merrill; Lloyd Jones Brewer & Associates",
+      "builder": "Miner-Turner Joint Venture (Turner Construction & Miner-Dederick)",
+      "builder_source": "Engineering News-Record / Century Development",
+      "engineers": "Skidmore, Owings & Merrill (Structural)",
+      "original_cost": "$185,000,000",
+      "original_permit": "",
+      "yr_remodel": 2018,
+      "eff_year_built": 1996,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Wells Fargo Plaza",
+      "building_name": "Wells Fargo Plaza",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "Engineering News-Record / Century Development",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.367953,
+              29.758578
+            ],
+            [
+              -95.36811,
+              29.75866
+            ],
+            [
+              -95.368415,
+              29.75867
+            ],
+            [
+              -95.368504,
+              29.758541
+            ],
+            [
+              -95.36848,
+              29.758529
+            ],
+            [
+              -95.368655,
+              29.758275
+            ],
+            [
+              -95.368597,
+              29.758245
+            ],
+            [
+              -95.368599,
+              29.758193
+            ],
+            [
+              -95.368493,
+              29.758137
+            ],
+            [
+              -95.36821,
+              29.758127
+            ],
+            [
+              -95.368087,
+              29.758306
+            ],
+            [
+              -95.368127,
+              29.758326
+            ],
+            [
+              -95.367953,
+              29.758578
+            ]
+          ]
+        ]
+      }
+    },
+    "0012470000001": {
+      "building_id": "0012470000001",
+      "hcad_num": "0012470000001",
+      "is_building_override": false,
+      "address": "1100 LOUISIANA ST",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1980,
+      "decade": "1980s",
+      "original_hcad_year": 1980,
+      "bld_style": "Fireproofed Steel",
+      "architect": "Skidmore, Owings & Merrill; 3D/International",
+      "builder": "W. S. Bellows Construction Corporation",
+      "builder_source": "W. S. Bellows Construction Corp. Historical Portfolio",
+      "engineers": "CBM Engineers, Inc.",
+      "original_cost": "$110,000,000",
+      "original_permit": "",
+      "yr_remodel": 2017,
+      "eff_year_built": 2004,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Enterprise Plaza",
+      "building_name": "Enterprise Plaza",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "W. S. Bellows Construction Corp. Historical Portfolio",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.369226,
+              29.7575426
+            ],
+            [
+              -95.3692614,
+              29.7575645
+            ],
+            [
+              -95.3692855,
+              29.7575332
+            ],
+            [
+              -95.3693388,
+              29.7575606
+            ],
+            [
+              -95.3691069,
+              29.7578589
+            ],
+            [
+              -95.3690514,
+              29.7579304
+            ],
+            [
+              -95.3689989,
+              29.7579979
+            ],
+            [
+              -95.3689447,
+              29.7580676
+            ],
+            [
+              -95.3688663,
+              29.7580221
+            ],
+            [
+              -95.3687835,
+              29.757971
+            ],
+            [
+              -95.3687093,
+              29.7579253
+            ],
+            [
+              -95.3685826,
+              29.7578493
+            ],
+            [
+              -95.3687662,
+              29.7576197
+            ],
+            [
+              -95.368528,
+              29.7574802
+            ],
+            [
+              -95.3685556,
+              29.7574447
+            ],
+            [
+              -95.368581,
+              29.7574107
+            ],
+            [
+              -95.3686075,
+              29.7573751
+            ],
+            [
+              -95.3686318,
+              29.7573426
+            ],
+            [
+              -95.3686554,
+              29.7573109
+            ],
+            [
+              -95.3686825,
+              29.7572746
+            ],
+            [
+              -95.3687096,
+              29.7572384
+            ],
+            [
+              -95.369226,
+              29.7575426
+            ]
+          ]
+        ]
+      }
+    },
+    "0012490000001": {
+      "building_id": "0012490000001",
+      "hcad_num": "0012490000001",
+      "is_building_override": false,
+      "address": "1111 BAGBY ST",
+      "historic_district": "",
+      "contributing": "Outside Historic District",
+      "year_built": 1986,
+      "decade": "1980s",
+      "original_hcad_year": 1986,
+      "bld_style": "Fireproofed Steel",
+      "architect": "M. Nasr & Partners",
+      "builder": "W. S. Bellows Construction Corporation",
+      "builder_source": "W. S. Bellows Construction Corp. Historical Portfolio",
+      "engineers": "CBM Engineers, Inc.",
+      "original_cost": "$140,000,000",
+      "original_permit": "",
+      "yr_remodel": 2019,
+      "eff_year_built": 2011,
+      "was_relocated": false,
+      "relocation_note": "",
+      "hist_contract": null,
+      "landmark_name": "Heritage Plaza: Office Skyscraper",
+      "building_name": "Heritage Plaza: Office Skyscraper",
+      "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
+      "source_citation": "W. S. Bellows Construction Corp. Historical Portfolio",
+      "source_url": "",
+      "verified_by": "Preservation Houston / HMRC Digital Archives",
+      "updated_at": "2026-10-12",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.37109,
+              29.758579
+            ],
+            [
+              -95.37068,
+              29.758358
+            ],
+            [
+              -95.37057,
+              29.75851
+            ],
+            [
+              -95.37053,
+              29.758488
+            ],
+            [
+              -95.370513,
+              29.758512
+            ],
+            [
+              -95.37048,
+              29.758494
+            ],
+            [
+              -95.370492,
+              29.758477
+            ],
+            [
+              -95.370432,
+              29.758445
+            ],
+            [
+              -95.370436,
+              29.75844
+            ],
+            [
+              -95.370372,
+              29.758405
+            ],
+            [
+              -95.370292,
+              29.758516
+            ],
+            [
+              -95.370234,
+              29.758485
+            ],
+            [
+              -95.370014,
+              29.758792
+            ],
+            [
+              -95.370679,
+              29.759151
+            ],
+            [
+              -95.37109,
+              29.758579
             ]
           ]
         ]
