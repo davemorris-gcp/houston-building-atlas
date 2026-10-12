@@ -43,7 +43,7 @@ PERMITS_DIR = DATA_DIR / "permits"
 # Keyed by 13-digit HCAD account number (or composite building_id) and/or normalized address.
 CURATED_BUILDER_BY_HCAD = {
     # Downtown Skyscrapers, Civic Landmarks & Historic Commercial Buildings
-    "0010820000001": {  # Gulf Building (712 Main St, 1929)
+    "0010810000007": {  # Gulf Building (712 Main St, 1929)
         "builder": "American Construction Company",
         "engineers": "Weiskopf & Pickworth (Structural); Reg F. Taylor (Mechanical)",
         "original_cost": "$6,500,000",
@@ -108,7 +108,7 @@ CURATED_BUILDER_BY_HCAD = {
             "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/16184",
         },
     },
-    "0010600000001": {  # Niels and Mellie Esperson Buildings (808 Travis St, 1927 & 1941)
+    "osm_city_510322923#bldg_niels_esperson_building": {  # Niels and Mellie Esperson Buildings (808 Travis St, 1927 & 1941)
         "builder": "American Construction Company (1927) & W. S. Bellows Construction Co. (1941)",
         "engineers": "Weiskopf & Pickworth (Structural)",
         "original_cost": "$4,000,000",
@@ -123,7 +123,22 @@ CURATED_BUILDER_BY_HCAD = {
             "source_title": "City of Houston Landmark Designation Report (Esperson Buildings)",
         },
     },
-    "0010530000001": {  # Rice Hotel (909 Texas Ave, 1913)
+    "0010910000015": {  # Niels and Mellie Esperson Buildings (HCAD parcel key)
+        "builder": "American Construction Company (1927) & W. S. Bellows Construction Co. (1941)",
+        "engineers": "Weiskopf & Pickworth (Structural)",
+        "original_cost": "$4,000,000",
+        "original_permit": "COH Building Permit (1925 & 1940)",
+        "builder_source": "COH Landmark Designation Report / HMRC Architectural Archives",
+        "hist_contract": {
+            "date": "1925 - 1927 (Niels Esperson) & 1940 - 1941 (Mellie Esperson)",
+            "cost": "$4,000,000 (1927 Tower) | $2,500,000 (1941 Annex)",
+            "architect": "John Eberson (1927); John & Drew Eberson (1941)",
+            "builder": "American Construction Company (1927); W. S. Bellows Construction Co. (1941)",
+            "scope": "32-story Italian Renaissance Revival skyscraper crowned by the columned tempietto",
+            "source_title": "City of Houston Landmark Designation Report (Esperson Buildings)",
+        },
+    },
+    "0010570000009": {  # Rice Hotel (909 Texas Ave, 1913)
         "builder": "James Stewart & Company",
         "engineers": "Mauran, Russell & Crowell",
         "original_cost": "$3,000,000",
@@ -138,7 +153,7 @@ CURATED_BUILDER_BY_HCAD = {
             "source_title": "City of Houston Protected Landmark Designation Report (The Rice Hotel)",
         },
     },
-    "0010550000013": {  # State National Bank Building (412 Main St, 1923)
+    "0010440000019": {  # State National Bank Building (412 Main St, 1923)
         "builder": "American Construction Company",
         "engineers": "Virginia Bridge & Iron Company (Structural Steel)",
         "original_cost": "$367,100",
@@ -156,7 +171,7 @@ CURATED_BUILDER_BY_HCAD = {
             "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16082/full/pct:75/0/default.jpg",
         },
     },
-    "0010250000010": {  # First National Bank Building 1923 Addition (201 Main St)
+    "1228970000001": {  # First National Bank Building 1923 Addition (201 Main St)
         "builder": "Central Contracting Company",
         "engineers": "Sanguinet, Staats, Hedrick & Gottlieb",
         "original_cost": "$460,000",
@@ -174,7 +189,7 @@ CURATED_BUILDER_BY_HCAD = {
             "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16129/full/pct:75/0/default.jpg",
         },
     },
-    "0010800000001": {  # Scanlan Building (405 Main St, 1909)
+    "osm_city_54046916#bldg_scanlan_building": {  # Scanlan Building (405 Main St, 1909)
         "builder": "Westlake Construction Company (St. Louis)",
         "engineers": "D. H. Burnham & Company (Structural)",
         "original_cost": "$600,000",
@@ -189,7 +204,37 @@ CURATED_BUILDER_BY_HCAD = {
             "source_title": "City of Houston Protected Landmark Designation Report (Scanlan Building)",
         },
     },
-    "0010810000002": {  # Carter Building / Second National Bank (806 Main St, 1910)
+    "0010450000009": {  # Scanlan Building (405 Main St, HCAD parcel key)
+        "builder": "Westlake Construction Company (St. Louis)",
+        "engineers": "D. H. Burnham & Company (Structural)",
+        "original_cost": "$600,000",
+        "original_permit": "COH Building Permit (1908)",
+        "builder_source": "COH Protected Landmark Report / D. H. Burnham Archives",
+        "hist_contract": {
+            "date": "1908 - 1909",
+            "cost": "$600,000",
+            "architect": "D. H. Burnham & Company (Daniel H. Burnham)",
+            "builder": "Westlake Construction Company",
+            "scope": "11-story Chicago School steel-frame office building clad in white glazed architectural terra cotta",
+            "source_title": "City of Houston Protected Landmark Designation Report (Scanlan Building)",
+        },
+    },
+    "0010800000001": {  # Texas State Hotel (720 Fannin St, 1929)
+        "builder": "James Stewart & Company",
+        "engineers": "Joseph Finger, Inc.",
+        "original_cost": "$1,500,000",
+        "original_permit": "COH Building Permit (1928)",
+        "builder_source": "COH Landmark Designation Report / Jesse H. Jones Papers",
+        "hist_contract": {
+            "date": "1928 - 1929",
+            "cost": "$1,500,000",
+            "architect": "Joseph Finger",
+            "builder": "James Stewart & Company",
+            "scope": "17-story Spanish Renaissance Revival brick and limestone hotel built for Jesse H. Jones",
+            "source_title": "City of Houston Landmark Designation Report (Texas State Hotel)",
+        },
+    },
+    "0010920000004": {  # Carter Building / Second National Bank (806 Main St, 1910)
         "builder": "American Construction Company",
         "engineers": "Sanguinet & Staats",
         "original_cost": "$750,000",
@@ -205,7 +250,23 @@ CURATED_BUILDER_BY_HCAD = {
             "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/9625",
         },
     },
-    "0332640000005#mfah_caroline_wiess_law": {  # Museum of Fine Arts, Houston - Original 1924 Watkin Wing (1001 Bissonnet St)
+    "1423010010001": {  # Carter Building / JW Marriott Houston Downtown (806 Main St, 1910)
+        "builder": "American Construction Company",
+        "engineers": "Sanguinet & Staats",
+        "original_cost": "$750,000",
+        "original_permit": "COH Building Permit (1909); 6-Story Top Addition (Dec. 1922, $20,000 prelim)",
+        "builder_source": "COH Protected Landmark Report & T.G.C.A. Monthly Bulletin (Dec. 1922, p. 23)",
+        "hist_contract": {
+            "date": "1909 - 1910 (16 stories); December 1922 - 1924 (6-story addition to 22 stories)",
+            "cost": "$750,000 (1910 Original)",
+            "architect": "Sanguinet & Staats; Alfred C. Finn",
+            "builder": "American Construction Company",
+            "scope": "16-story steel-frame skyscraper built for lumber magnate W. T. Carter & Jesse H. Jones, raised to 22 stories in 1923-1924",
+            "source_title": "T.G.C.A. Monthly Bulletin, Vol. 3, No. 12 (December 1922), p. 23",
+            "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/9625",
+        },
+    },
+    "0332640000005#zoo_45776272_caroline_wiess_law_build": {  # Museum of Fine Arts, Houston - Original 1924 Watkin Wing (1001 Bissonnet St)
         "builder": "Don Hall, Constructor",
         "engineers": "William Ward Watkin",
         "original_cost": "$200,000",
@@ -222,7 +283,22 @@ CURATED_BUILDER_BY_HCAD = {
             "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/16089/full/pct:75/0/default.jpg",
         },
     },
-    "0451370000002": {  # Eldorado Ballroom (2310 Elgin St, 1939)
+    "0190900000001": {  # Eldorado Ballroom (2310 Elgin St, 1939)
+        "builder": "Knutson Construction Company",
+        "engineers": "Lenard Gabert",
+        "original_cost": "$38,000",
+        "original_permit": "COH Building Permit (1939)",
+        "builder_source": "COH Protected Landmark Report / HMRC Architectural Archives",
+        "hist_contract": {
+            "date": "1939 (Opened October 1939; Restored 2023)",
+            "cost": "$38,000",
+            "architect": "Lenard Gabert",
+            "builder": "Knutson Construction Company (1939); Forney Construction (2023 Restoration)",
+            "scope": "2-story Streamline Moderne brick retail and upstairs music ballroom commissioned by Anna & Clarence Dupree in Third Ward",
+            "source_title": "City of Houston Protected Landmark Report (Eldorado Ballroom)",
+        },
+    },
+    "1464830000001": {  # Eldorado Ballroom (secondary HCAD parcel key)
         "builder": "Knutson Construction Company",
         "engineers": "Lenard Gabert",
         "original_cost": "$38,000",
@@ -253,7 +329,7 @@ CURATED_BUILDER_BY_HCAD = {
             "source_title": "W. S. Bellows Construction Corp. Historical Portfolio & NHL Nomination",
         },
     },
-    "0410560000001": {  # NRG Astrodome (8400 Kirby Dr, 1965)
+    "osm_city_119420928#bldg_nrg_astrodome": {  # NRG Astrodome (8400 Kirby Dr, 1965)
         "builder": "H. A. Lott, Inc. & Lummus Company (Joint Venture)",
         "engineers": "Walter P Moore & Associates; Roof Structures, Inc.; Praeger-Kavanagh-Waterbury",
         "original_cost": "$31,600,000",
@@ -269,7 +345,36 @@ CURATED_BUILDER_BY_HCAD = {
             "source_title": "National Register of Historic Places Registration Form (Harris County Domed Stadium)",
         },
     },
-    "0400030000014#shp_375296719_the_kellum_noble_house": {  # Kellum-Noble House (212 Dallas St, 1847)
+    "0440930000004": {  # NRG Astrodome & NRG Park Complex (8400 Fannin St, 1965)
+        "builder": "H. A. Lott, Inc. & Lummus Company (Joint Venture)",
+        "engineers": "Walter P Moore & Associates; Roof Structures, Inc.; Praeger-Kavanagh-Waterbury",
+        "original_cost": "$31,600,000",
+        "original_permit": "Harris County Domed Stadium Bond Contract (1962)",
+        "builder_source": "Harris County Sports & Convention Corp. / NRHP Nomination",
+        "hist_contract": {
+            "date": "January 3, 1962 - April 9, 1965",
+            "cost": "$31,600,000 ($35,000,000 with site infrastructure)",
+            "architect": "Hermon Lloyd & W. B. Morgan; Wilson, Morris, Crain & Anderson",
+            "builder": "H. A. Lott, Inc. & Lummus Company",
+            "engineers": "Walter P Moore; Praeger-Kavanagh-Waterbury; Roof Structures, Inc. (Kiewitt Lamella Dome)",
+            "scope": "World's first multi-purpose, air-conditioned domed sports stadium (642-foot clear-span steel lamella truss dome)",
+            "source_title": "National Register of Historic Places Registration Form (Harris County Domed Stadium)",
+        },
+    },
+    "0400030000014#shp_44632292_the_kellum_noble_house": {  # Kellum-Noble House (212 Dallas St, 1847)
+        "builder": "Nathaniel Kellum (Master Brickmaker & Builder)",
+        "original_cost": "$3,500 (est. 1847 construction)",
+        "builder_source": "The Heritage Society / NRHP Inventory",
+        "hist_contract": {
+            "date": "1847 - 1848 (Saved & Restored 1954 by The Heritage Society)",
+            "cost": "Built with slave-made brick fired at Nathaniel Kellum's Buffalo Bayou brickyard",
+            "architect": "Nathaniel Kellum",
+            "builder": "Nathaniel Kellum",
+            "scope": "2-story Louisiana Colonial double-gallery brick residence, oldest surviving brick house on its original foundation in Houston",
+            "source_title": "The Heritage Society at Sam Houston Park Archival Records",
+        },
+    },
+    "0400030000013": {  # Kellum-Noble House (212 Dallas St, 1847)
         "builder": "Nathaniel Kellum (Master Brickmaker & Builder)",
         "original_cost": "$3,500 (est. 1847 construction)",
         "builder_source": "The Heritage Society / NRHP Inventory",
@@ -322,24 +427,6 @@ CURATED_BUILDER_BY_ADDRESS = {
             "source_title": "HMRC: Modern Homes, Book Number Two (The Russell Brown Co.), Plan 204, Page 8",
             "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12347",
             "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12347/full/pct:75/0/default.jpg",
-        },
-    },
-    "220 AVONDALE": {
-        "builder": "The Russell Brown Company",
-        "architect": "The Russell Brown Company (Design-Build, Plan No. 211)",
-        "year_built": 1914,
-        "builder_source": "HMRC: 'Modern Homes, Book Number Two' (The Russell Brown Co., c. 1917), Plan 211, p. 15",
-        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12354",
-        "photo_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12354/full/pct:75/0/default.jpg",
-        "hist_contract": {
-            "date": "1914 (Plan No. 211)",
-            "cost": "$8,000 (est. Russell Brown Co. contract)",
-            "architect": "The Russell Brown Company (Plan No. 211)",
-            "builder": "The Russell Brown Company",
-            "scope": "2-story residence in Avondale Addition featured in The Russell Brown Co.'s 'Modern Homes, Book Number Two' (Page 15, Plan 211)",
-            "source_title": "HMRC: Modern Homes, Book Number Two (The Russell Brown Co.), Plan 211, Page 15",
-            "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12354",
-            "image_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12354/full/pct:75/0/default.jpg",
         },
     },
     "808 LOVETT": {
@@ -517,12 +604,6 @@ CURATED_BUILDER_BY_ADDRESS = {
         "original_cost": "$8,000,000",
         "builder_source": "Tellepsen Archives / COH Landmark Report",
     },
-    "1111 MAIN": {  # Sakowitz Bros. Downtown Store (1951)
-        "builder": "Tellepsen Construction Company",
-        "architect": "Alfred C. Finn",
-        "original_cost": "$8,000,000",
-        "builder_source": "Tellepsen Archives / COH Landmark Report",
-    },
     "711 MAIN": {  # Pennzoil Place (1975)
         "builder": "Zapata Warrior Constructors",
         "engineers": "Ellisor Engineers (Structural); I. A. Naman + Associates (MEP)",
@@ -645,6 +726,23 @@ CURATED_BUILDER_BY_ADDRESS = {
 
 # Demolished Russell Brown Co. "Modern Homes" & TGCA Landmarks to add/enrich in `lost_houston`
 DEMOLISHED_CONTRACTOR_SITES = [
+    {
+        "id": "lost_rb_220_avondale",
+        "name": "Russell Brown Model Residence (Plan No. 211)",
+        "address": "220 AVONDALE ST",
+        "year_built": 1914,
+        "year_demolished": 1998,
+        "architect": "The Russell Brown Company (Plan No. 211)",
+        "builder": "The Russell Brown Company",
+        "builder_source": "HMRC: 'Modern Homes, Book Number Two' (c. 1917), Plan 211, p. 15",
+        "source_url": "https://digital.houstonlibrary.org/digital/collection/books/id/12354",
+        "photo_url": "https://cdm17006.contentdm.oclc.org/digital/iiif/books/12354/full/pct:75/0/default.jpg",
+        "sanborn_material": "wood_frame",
+        "stories": 2,
+        "height_m": 8.8,
+        "center": [-95.3849, 29.7468],
+        "description": "Two-story residence in Avondale Addition built in 1914 by The Russell Brown Company and featured as Plan No. 211 on Page 15 of 'Modern Homes, Book Number Two' (HMRC); demolished c. 1998.",
+    },
     {
         "id": "lost_rb_3904_day",
         "name": "Russell Brown Model Residence (Plan No. 203)",
@@ -1472,6 +1570,15 @@ def main():
 
     overrides = overrides_data.get("overrides", {})
 
+    # Reset any previous contractor-enrichment fields so re-runs are 100% idempotent
+    for k, ov in list(overrides.items()):
+        for fld in ("builder", "builder_source", "engineers", "original_cost", "original_permit", "hist_contract"):
+            ov.pop(fld, None)
+    for feat in buildings_fc.get("features", []):
+        p = feat.get("properties", {})
+        for fld in ("builder", "builder_source", "engineers", "original_cost", "original_permit", "hist_contract"):
+            p.pop(fld, None)
+
     # Collect all HCAD accounts referenced in core datasets
     target_hcads = set(CURATED_BUILDER_BY_HCAD.keys())
     for k, ov in overrides.items():
@@ -1527,7 +1634,7 @@ def main():
         if h:
             hcad_to_building_feats[h].append(feat)
 
-    # Also matchLandmark PDF contractor attributions via `landmark_report_url`
+    # Also match Landmark PDF contractor attributions via `landmark_report_url`
     for feat in overlays_data.get("landmarks", {}).get("features", []):
         lp = feat.get("properties", {})
         rurl = lp.get("landmark_report_url") or lp.get("report_pdf_url") or ""
@@ -1542,34 +1649,50 @@ def main():
             if pinfo.get("original_permit") and not lp.get("original_permit"):
                 lp["original_permit"] = pinfo["original_permit"]
             if h and h not in CURATED_BUILDER_BY_HCAD and (pinfo.get("builder") or pinfo.get("original_cost")):
-                CURATED_BUILDER_BY_HCAD[h] = {
-                    "builder": pinfo.get("builder", ""),
-                    "original_cost": pinfo.get("original_cost", ""),
-                    "original_permit": pinfo.get("original_permit", ""),
-                    "builder_source": f"City of Houston Landmark Designation Report ({lp.get('landmark_code') or 'HPO'})",
-                    "source_url": rurl,
-                }
+                # Verify the HCAD parcel was not replaced by a post-1955 modern teardown when the landmark is pre-1950
+                lm_yr = int(lp.get("year_built") or 0)
+                bld_yr = 0
+                if h in overrides:
+                    bld_yr = int(overrides[h].get("year_built") or 0)
+                elif h in hcad_to_building_feats:
+                    bld_yr = int(hcad_to_building_feats[h][0].get("properties", {}).get("year_built") or 0)
+                if not (1836 <= lm_yr <= 1945 and bld_yr >= 1955):
+                    CURATED_BUILDER_BY_HCAD[h] = {
+                        "builder": pinfo.get("builder", ""),
+                        "original_cost": pinfo.get("original_cost", ""),
+                        "original_permit": pinfo.get("original_permit", ""),
+                        "builder_source": f"City of Houston Landmark Designation Report ({lp.get('landmark_code') or 'HPO'})",
+                        "source_url": rurl,
+                    }
 
     # Resolve address-keyed builder records to HCAD accounts
     matched_addr_hcads = {}
     for norm_a, rec in all_addr_records.items():
         matched_h = None
+        expected_yr = int(rec.get("year_built") or 0)
         if norm_a in addr_to_override_keys:
             for ok in addr_to_override_keys[norm_a]:
+                ov_yr = int(overrides[ok].get("year_built") or 0)
+                # Do not attach a 1910s-1940s contract to a post-1955 replacement structure
+                if 1836 <= expected_yr <= 1945 and ov_yr >= 1955 and norm_a not in ("501 TEXAS", "806 MAIN"):
+                    continue
                 matched_h = overrides[ok].get("hcad_num") or ok.split("#")[0]
                 CURATED_BUILDER_BY_HCAD[ok] = {**rec, **CURATED_BUILDER_BY_HCAD.get(ok, {})}
         if norm_a in addr_to_building_feats:
             for bf in addr_to_building_feats[norm_a]:
-                bh = bf.get("properties", {}).get("hcad_num")
+                bp = bf.get("properties", {})
+                bh = bp.get("hcad_num")
+                b_yr = int(bp.get("year_built") or 0)
+                if 1836 <= expected_yr <= 1945 and b_yr >= 1955 and norm_a not in ("501 TEXAS", "806 MAIN"):
+                    continue
                 if bh:
                     matched_h = bh
                     CURATED_BUILDER_BY_HCAD[bh] = {**rec, **CURATED_BUILDER_BY_HCAD.get(bh, {})}
         if not matched_h and norm_a in addr_to_acct:
             acct, hcad_yr, raw_addr = addr_to_acct[norm_a]
-            # For 1922-1924 TGCA residential/commercial contracts, verify the building on the parcel
-            # was not replaced by a post-1945 teardown (allow 0 or 1890..1942, or explicitly curated)
-            expected_yr = rec.get("year_built", 0)
-            if norm_a in CURATED_BUILDER_BY_ADDRESS or hcad_yr == 0 or (1880 <= hcad_yr <= 1942) or abs(hcad_yr - expected_yr) <= 18:
+            # For 1914-1929 residential/commercial contracts, verify the building on the parcel
+            # was not replaced by a post-1950 teardown
+            if (norm_a in CURATED_BUILDER_BY_ADDRESS and (hcad_yr == 0 or hcad_yr <= 1954)) or hcad_yr == 0 or (1880 <= hcad_yr <= 1942) or (expected_yr > 0 and abs(hcad_yr - expected_yr) <= 18):
                 matched_h = acct
                 CURATED_BUILDER_BY_HCAD[acct] = {
                     **rec,
@@ -1580,21 +1703,28 @@ def main():
 
     print(f"Total HCAD / building_id keys with Builder/Contractor or Contract metadata: {len(CURATED_BUILDER_BY_HCAD)}")
 
-    # Find footprints from the 5 countywide `.geojsonseq` shards for any newly matched TGCA / Russell Brown HCADs
-    # or relocated historic structures that aren't yet in `curated_overrides.json`
+    # Scan the 5 countywide `.geojsonseq` shards for ALL HCADs in `buildings.geojson`,
+    # `CURATED_BUILDER_BY_HCAD`, and historic `relocated_accts` so that:
+    # 1. Every contractor-attributed building is promoted into `curated_overrides.json` with its true footprint.
+    # 2. All 3,560 synthetic-box geometries in `buildings.geojson` are upgraded to the real aligned footprints
+    #    rendered in `houston_buildings_*.pmtiles`.
     needed_shard_hcads = set()
+    for feat in buildings_fc.get("features", []):
+        h = str(feat.get("properties", {}).get("hcad_num") or "").strip()
+        if h.isdigit() and len(h) == 13:
+            needed_shard_hcads.add(h)
     for k in CURATED_BUILDER_BY_HCAD:
         base_h = k.split("#")[0]
-        if base_h.isdigit() and len(base_h) == 13 and k not in overrides and base_h not in hcad_to_building_feats:
+        if base_h.isdigit() and len(base_h) == 13:
             needed_shard_hcads.add(base_h)
     for rh, rinfo in relocated_accts.items():
         cama_yr = cama_by_acct.get(rh, {}).get("yr", 0)
-        if (1836 <= cama_yr <= 1965 or rinfo.get("permit_id")) and rh not in overrides and len(needed_shard_hcads) < 450:
+        if (1836 <= cama_yr <= 1965 or rinfo.get("permit_id")) and rh not in overrides:
             needed_shard_hcads.add(rh)
 
     shard_footprints = {}
     if needed_shard_hcads:
-        print(f"Scanning countywide footprint shards for {len(needed_shard_hcads)} contractor & relocated parcels...")
+        print(f"Scanning countywide footprint shards for {len(needed_shard_hcads)} building, contractor & relocated parcels...")
         ndjson_dir = CACHE_DIR / "aligned_ndjson"
         for sfile in sorted(ndjson_dir.glob("*.geojsonseq")):
             with open(sfile, "r", encoding="utf-8") as sf:
@@ -1614,12 +1744,13 @@ def main():
                         shard_footprints[h] = feat
         print(f"Found {len(shard_footprints)} footprints in countywide shards.")
 
-    # Enrich `curated_overrides.json` and `buildings.geojson`
+    # Enrich `curated_overrides.json` and promote all contractor-attributed buildings into `curated_overrides.json`
     for k, binfo in CURATED_BUILDER_BY_HCAD.items():
         base_h = k.split("#")[0]
         cama = cama_by_acct.get(base_h, {})
-        if k in overrides:
-            ov = overrides[k]
+        target_ov_key = k if k in overrides else (base_h if base_h in overrides else None)
+        if target_ov_key:
+            ov = overrides[target_ov_key]
             if binfo.get("builder"):
                 ov["builder"] = binfo["builder"]
             if binfo.get("builder_source"):
@@ -1637,27 +1768,45 @@ def main():
                 ov["relocation_note"] = binfo.get("relocation_note", "")
             if binfo.get("hist_contract"):
                 ov["hist_contract"] = binfo["hist_contract"]
+            if binfo.get("year_built"):
+                arch_yr = int(binfo["year_built"])
+                cur_yr = int(ov.get("year_built") or 0)
+                if cur_yr != arch_yr and (cur_yr == 0 or abs(cur_yr - arch_yr) <= 22):
+                    if not ov.get("original_hcad_year"):
+                        ov["original_hcad_year"] = cur_yr or cama.get("yr") or 0
+                    ov["year_built"] = arch_yr
+                    ov["decade"] = f"{(arch_yr // 10) * 10}s"
             if cama.get("remod"):
                 ov["yr_remodel"] = cama["remod"]
             if cama.get("eff"):
                 ov["eff_year_built"] = cama["eff"]
-        elif base_h in shard_footprints:
-            sf = shard_footprints[base_h]
+            # If the override had a 5-point synthetic rectangle and shard_footprints has a detailed polygon, upgrade it
+            if base_h in shard_footprints and "#" not in target_ov_key:
+                ov_geom = ov.get("geometry") or {}
+                ov_coords = ov_geom.get("coordinates") or []
+                ov_ring = ov_coords[0] if ov_geom.get("type") == "Polygon" and ov_coords else []
+                sf_geom = shard_footprints[base_h].get("geometry")
+                if sf_geom and len(ov_ring) <= 5:
+                    ov["geometry"] = sf_geom
+        elif base_h in shard_footprints or base_h in hcad_to_building_feats:
+            sf = shard_footprints.get(base_h) or hcad_to_building_feats[base_h][0]
             sp = sf.get("properties", {})
-            yr = binfo.get("year_built") or sp.get("year_built") or cama.get("yr") or 1924
+            bf_props = hcad_to_building_feats[base_h][0].get("properties", {}) if base_h in hcad_to_building_feats else {}
+            orig_yr = int(sp.get("year_built") or bf_props.get("year_built") or cama.get("yr") or 0)
+            yr = int(binfo.get("year_built") or orig_yr or 1924)
             hc = binfo.get("hist_contract") or {}
             overrides[base_h] = {
                 "building_id": base_h,
                 "hcad_num": base_h,
                 "is_building_override": False,
-                "address": binfo.get("address") or sp.get("address") or "",
-                "historic_district": sp.get("historic_district", ""),
-                "contributing": sp.get("contributing", ""),
+                "address": binfo.get("address") or bf_props.get("address") or sp.get("address") or "",
+                "historic_district": bf_props.get("historic_district") or sp.get("historic_district", ""),
+                "contributing": bf_props.get("contributing") or sp.get("contributing", ""),
                 "year_built": yr,
                 "decade": f"{(yr // 10) * 10}s",
-                "original_hcad_year": sp.get("year_built") or cama.get("yr") or 0,
-                "bld_style": sp.get("bld_style", ""),
-                "architect": binfo.get("architect") or sp.get("architect", ""),
+                "original_hcad_year": orig_yr,
+                "bld_style": bf_props.get("bld_style") or sp.get("bld_style", ""),
+                "architect": binfo.get("architect") or bf_props.get("architect") or sp.get("architect", ""),
                 "builder": binfo.get("builder", ""),
                 "builder_source": binfo.get("builder_source", ""),
                 "engineers": binfo.get("engineers", ""),
@@ -1668,8 +1817,8 @@ def main():
                 "was_relocated": bool(binfo.get("was_relocated") or base_h in relocated_accts),
                 "relocation_note": binfo.get("relocation_note") or relocated_accts.get(base_h, {}).get("note", ""),
                 "hist_contract": hc if hc else None,
-                "landmark_name": sp.get("landmark_name", ""),
-                "building_name": sp.get("building_name") or (f"{hc.get('owner', '')} Building ({yr})".strip() if hc.get("owner") else ""),
+                "landmark_name": bf_props.get("landmark_name") or sp.get("landmark_name", ""),
+                "building_name": bf_props.get("building_name") or sp.get("building_name") or (f"{hc.get('owner', '')} Building ({yr})".strip() if hc.get("owner") else ""),
                 "source_type": "HMRC Contractor Archive / T.G.C.A. Bulletin",
                 "source_citation": binfo.get("builder_source", ""),
                 "source_url": binfo.get("source_url", ""),
@@ -1698,7 +1847,9 @@ def main():
                     },
                 )
 
-    # Enrich all features in `buildings.geojson` with `yr_remodel`, `eff_year_built`, `was_relocated`, `builder`, etc.
+    # Enrich all features in `buildings.geojson` with `yr_remodel`, `eff_year_built`, `was_relocated`, `builder`,
+    # verified `year_built`, and authoritative aligned footprint geometry from `overrides` / `shard_footprints`!
+    synced_geoms = 0
     for feat in buildings_fc.get("features", []):
         p = feat.get("properties", {})
         h = str(p.get("hcad_num") or "").strip()
@@ -1721,6 +1872,8 @@ def main():
                 p["builder"] = binfo["builder"]
             if binfo.get("builder_source"):
                 p["builder_source"] = binfo["builder_source"]
+            if binfo.get("architect") and not p.get("architect"):
+                p["architect"] = binfo["architect"]
             if binfo.get("engineers"):
                 p["engineers"] = binfo["engineers"]
             if binfo.get("original_cost"):
@@ -1732,6 +1885,28 @@ def main():
             if binfo.get("was_relocated"):
                 p["was_relocated"] = True
                 p["relocation_note"] = binfo.get("relocation_note", "")
+            if binfo.get("year_built"):
+                arch_yr = int(binfo["year_built"])
+                cur_yr = int(p.get("year_built") or 0)
+                if cur_yr != arch_yr and (cur_yr == 0 or abs(cur_yr - arch_yr) <= 22):
+                    p["original_hcad_year"] = cur_yr
+                    p["year_built"] = arch_yr
+                    p["decade"] = f"{(arch_yr // 10) * 10}s"
+                    p["is_curated_override"] = True
+
+        # Sync geometry with `overrides` or `shard_footprints` so `buildings.geojson` matches `.pmtiles` shards
+        auth_geom = None
+        if bid in overrides and overrides[bid].get("geometry"):
+            auth_geom = overrides[bid]["geometry"]
+        elif h in overrides and overrides[h].get("geometry"):
+            auth_geom = overrides[h]["geometry"]
+        elif h in shard_footprints and shard_footprints[h].get("geometry"):
+            auth_geom = shard_footprints[h]["geometry"]
+        if auth_geom and feat.get("geometry") != auth_geom:
+            feat["geometry"] = auth_geom
+            synced_geoms += 1
+
+    print(f"Synced {synced_geoms:,} geometries in buildings.geojson with authoritative PMTiles shard / override footprints.")
 
     # Enrich `curated_overrides.json` with `yr_remodel`, `eff_year_built`, and `was_relocated`
     for k, ov in overrides.items():
@@ -1898,6 +2073,14 @@ def main():
         ov = overrides.get(bid) or overrides.get(h) or {}
         binfo = CURATED_BUILDER_BY_HCAD.get(bid) or CURATED_BUILDER_BY_HCAD.get(h) or {}
         cama = cama_by_acct.get(h, {})
+        ov_yr = int(ov.get("year_built") or 0)
+        if ov_yr >= 1836:
+            old_yr = int(it.get("year_built") or 0)
+            it["year_built"] = ov_yr
+            if it.get("category") and str(it["category"]).startswith("Built "):
+                it["category"] = f"Built {ov_yr}"
+            if old_yr >= 1836 and it.get("sublabel") and f"Built {old_yr}" in str(it["sublabel"]):
+                it["sublabel"] = str(it["sublabel"]).replace(f"Built {old_yr}", f"Built {ov_yr}")
         builder = ov.get("builder") or binfo.get("builder") or it.get("builder") or ""
         if builder:
             it["builder"] = builder

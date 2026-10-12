@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261012a";
+} from "./palettes.js?v=20261012b";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -18,9 +18,9 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261012a";
-import { AtlasMapController } from "./mapController.js?v=20261012a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012a";
+} from "./filterStore.js?v=20261012b";
+import { AtlasMapController } from "./mapController.js?v=20261012b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -31,14 +31,14 @@ import {
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261012a";
+} from "./curatedEdits.js?v=20261012b";
 import {
   buildStreetViewUrl,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261012a";
+} from "./photoService.js?v=20261012b";
 
 class HoustonAtlasApp {
   constructor() {
@@ -62,6 +62,9 @@ class HoustonAtlasApp {
     this.lastViewportStats = null;
     this.timelapseTimer = null;
     this._suppressUrlUpdate = false;
+    this._isRestoringHistory = false;
+    this._lastHistorySignature = null;
+    this._lastHandledUrlKey = "";
     this._activePhotoState = null;
     this._activeTour = null;
     this._activeTourStopIndex = -1;
@@ -121,14 +124,26 @@ class HoustonAtlasApp {
     this._enrichSearchIndexWithOverlayMetadata();
 
     if (this.initialSelection) {
-      this.mapController.selectFeatureByIdOrHcad({
-        hcadNum: this.initialSelection.hcadNum || "",
-        featureId: this.initialSelection.featureId || "",
-        flyTo: !this.initialViewport,
-      });
+      if (this.initialSelection.boundaryId) {
+        this.mapController.highlightBoundaryByIdOrName({
+          layerKey: this.initialSelection.boundaryLayer || "neighborhoods",
+          id: this.initialSelection.boundaryId,
+          name: this.initialSelection.boundaryId,
+          flyTo: !this.initialViewport,
+          inspect: true,
+        });
+      } else {
+        this.mapController.selectFeatureByIdOrHcad({
+          hcadNum: this.initialSelection.hcadNum || "",
+          featureId: this.initialSelection.featureId || "",
+          flyTo: !this.initialViewport,
+        });
+      }
     }
 
     this._applyExportStudioHashParams(window.location.hash, window.location.search);
+    this._lastHistorySignature = this._computeHistorySignature(this.filterStore.getState());
+    this._lastHandledUrlKey = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
     this.filterStore.subscribe((state) => {
       this._syncControlsFromState(state);
@@ -139,35 +154,89 @@ class HoustonAtlasApp {
     });
 
     const handleUrlChange = () => {
+      const urlKey = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (urlKey === this._lastHandledUrlKey) return;
+      this._lastHandledUrlKey = urlKey;
+
       const { patch, viewport, selection, collapseSidebar } = parseHashToState(
         window.location.hash,
         window.location.search
       );
+      this._isRestoringHistory = true;
       this._suppressUrlUpdate = true;
-      if (Object.keys(patch).length > 0) {
-        this.filterStore.setState(patch);
+      try {
+        if (!patch.isolatedBoundary && this.filterStore.getState().isolatedBoundary) {
+          patch.isolatedBoundary = null;
+          this.mapController.clearIsolatedBoundary();
+        }
+        if (Object.keys(patch).length > 0) {
+          this.filterStore.setState(patch);
+        }
+        if (collapseSidebar !== null) {
+          this._setSidebarCollapsed(collapseSidebar);
+        }
+
+        const curVp = this.mapController ? this.mapController.getCurrentViewport() : null;
+        const vpChangedSignificantly =
+          viewport &&
+          (!curVp ||
+            Math.abs(curVp.lat - viewport.lat) > 0.00018 ||
+            Math.abs(curVp.lng - viewport.lng) > 0.00018 ||
+            Math.abs(curVp.zoom - viewport.zoom) > 0.04 ||
+            Math.abs((curVp.pitch || 0) - (viewport.pitch || 0)) > 1);
+
+        if (selection?.hcadNum || selection?.featureId) {
+          this.mapController.clearHighlightedBoundary();
+          if (vpChangedSignificantly) {
+            this.mapController.flyToLocation({
+              lng: viewport.lng,
+              lat: viewport.lat,
+              zoom: viewport.zoom,
+              pitch: viewport.pitch,
+              hcadNum: selection.hcadNum || "",
+              featureId: selection.featureId || "",
+            });
+          } else {
+            this.mapController.selectFeatureByIdOrHcad({
+              hcadNum: selection.hcadNum || "",
+              featureId: selection.featureId || "",
+              flyTo: !viewport,
+            });
+          }
+        } else if (selection?.boundaryId) {
+          if (vpChangedSignificantly) {
+            this.mapController.flyToLocation({
+              lng: viewport.lng,
+              lat: viewport.lat,
+              zoom: viewport.zoom,
+              pitch: viewport.pitch,
+            });
+          }
+          this.mapController.highlightBoundaryByIdOrName({
+            layerKey: selection.boundaryLayer || "neighborhoods",
+            id: selection.boundaryId,
+            name: selection.boundaryId,
+            flyTo: !viewport,
+            inspect: true,
+          });
+        } else {
+          this.mapController.clearSelection();
+          document.getElementById("inspector-drawer")?.classList.add("hidden");
+          if (vpChangedSignificantly) {
+            this.mapController.flyToLocation({
+              lng: viewport.lng,
+              lat: viewport.lat,
+              zoom: viewport.zoom,
+              pitch: viewport.pitch,
+            });
+          }
+        }
+        this._applyExportStudioHashParams(window.location.hash, window.location.search);
+        this._lastHistorySignature = this._computeHistorySignature(this.filterStore.getState());
+      } finally {
+        this._suppressUrlUpdate = false;
+        this._isRestoringHistory = false;
       }
-      if (collapseSidebar !== null) {
-        this._setSidebarCollapsed(collapseSidebar);
-      }
-      if (viewport) {
-        this.mapController.flyToLocation({
-          lng: viewport.lng,
-          lat: viewport.lat,
-          zoom: viewport.zoom,
-          pitch: viewport.pitch,
-          hcadNum: selection?.hcadNum || "",
-          featureId: selection?.featureId || "",
-        });
-      } else if (selection) {
-        this.mapController.selectFeatureByIdOrHcad({
-          hcadNum: selection.hcadNum || "",
-          featureId: selection.featureId || "",
-          flyTo: true,
-        });
-      }
-      this._applyExportStudioHashParams(window.location.hash, window.location.search);
-      this._suppressUrlUpdate = false;
     };
 
     window.addEventListener("hashchange", handleUrlChange);
@@ -6281,8 +6350,13 @@ class HoustonAtlasApp {
         if (this.mapController) {
           this.mapController.clearHighlightedBoundary();
         }
+        this._updateUrlHash(this.filterStore.getState());
+        this._refreshShareModalContent();
       });
     }
+
+    this._updateUrlHash(this.filterStore.getState());
+    this._refreshShareModalContent();
   }
 
   renderInspectorDrawer(rawProps) {
@@ -10216,7 +10290,33 @@ class HoustonAtlasApp {
     });
   }
 
-  _updateUrlHash(state) {
+  _computeHistorySignature(state) {
+    const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
+    const selectedHcad = selProps?.hcad_num ? String(selProps.hcad_num).trim() : "";
+    const selectedFeatureId = !selectedHcad && selProps?.id ? String(selProps.id).trim() : "";
+    const selBnd = this.mapController?.selectedBoundaryFeature?.properties || null;
+    const bndLayer = selBnd?.overlay_layer || "neighborhoods";
+    const bndTarget = selBnd?.id || selBnd?.name || selBnd?.era_label || "";
+    const iso = state?.isolatedBoundary;
+    const isoSig =
+      iso && (iso.id || iso.name)
+        ? `iso:${iso.layerKey || "neighborhoods"}:${iso.id || iso.name}:${iso.mode || "contents"}`
+        : "";
+    const tourSig = this._activeTour
+      ? `tour:${this._activeTour.id}:${this._activeTourStopIndex}`
+      : "";
+    return [
+      selectedHcad ? `hcad:${selectedHcad}` : "",
+      selectedFeatureId ? `id:${selectedFeatureId}` : "",
+      !selectedHcad && !selectedFeatureId && bndTarget ? `bnd:${bndLayer}:${bndTarget}` : "",
+      isoSig,
+      tourSig,
+    ]
+      .filter(Boolean)
+      .join("|");
+  }
+
+  _updateUrlHash(state, { push = false } = {}) {
     if (this._suppressUrlUpdate) return;
     const vp = this.mapController
       ? this.mapController.getCurrentViewport()
@@ -10226,11 +10326,20 @@ class HoustonAtlasApp {
     const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
     const selectedHcad = selProps?.hcad_num ? String(selProps.hcad_num).trim() : "";
     const selectedFeatureId = !selectedHcad && selProps?.id ? String(selProps.id).trim() : "";
+    const selBnd = this.mapController?.selectedBoundaryFeature?.properties || null;
+    const selectedBoundary =
+      !selectedHcad && !selectedFeatureId && selBnd && (selBnd.id || selBnd.name || selBnd.era_label)
+        ? {
+            layerKey: selBnd.overlay_layer || "neighborhoods",
+            id: selBnd.id || selBnd.name || selBnd.era_label || "",
+          }
+        : null;
 
     let hash = serializeStateToHash(state, vp, {
       includeViewport: true,
       selectedHcad,
       selectedFeatureId,
+      selectedBoundary,
     });
     const expModal = document.getElementById("export-studio-modal");
     if (expModal && !expModal.classList.contains("hidden")) {
@@ -10248,11 +10357,19 @@ class HoustonAtlasApp {
       hash = hash ? `${hash}&${expParams.toString()}` : expParams.toString();
     }
     const basePath = window.location.pathname;
-    if (hash) {
-      window.history.replaceState(null, "", `${basePath}#${hash}`);
+    const targetUrl = hash ? `${basePath}#${hash}` : basePath;
+    const navSig = this._computeHistorySignature(state);
+
+    if (this._lastHistorySignature === null) {
+      this._lastHistorySignature = navSig;
+      window.history.replaceState({ navSig }, "", targetUrl);
+    } else if (!this._isRestoringHistory && (push || navSig !== this._lastHistorySignature)) {
+      this._lastHistorySignature = navSig;
+      window.history.pushState({ navSig }, "", targetUrl);
     } else {
-      window.history.replaceState(null, "", basePath);
+      window.history.replaceState({ navSig }, "", targetUrl);
     }
+    this._lastHandledUrlKey = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   }
 }
 

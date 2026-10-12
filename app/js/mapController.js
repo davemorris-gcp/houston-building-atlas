@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261011w";
+} from "./palettes.js?v=20261012b";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -20,12 +20,12 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261011f";
+} from "./filterStore.js?v=20261012b";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261011f";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261011f";
+} from "./curatedEdits.js?v=20261012b";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -3292,23 +3292,35 @@ export class AtlasMapController {
     // 5. Building Footprints & Curated Overrides (2D or 3D Isometric Extrusion)
     if (showBuildings) {
       const seenCanvasIds = new Set();
+      const seenCanvasHcads = new Set();
+      const selHcad = String(this.selectedFeatureProps?.hcad_num || "").trim();
       const allBuildingFeatures = [
         ...(this.overridesFC?.features || []),
         ...this.buildingsData,
       ];
       for (const feat of allBuildingFeatures) {
-        const p = feat.properties || {};
-        const fid = p.id || p.building_id || "";
+        const rawP = feat.properties || {};
+        if (rawP.suppress_only) continue;
+        const p = applyOverrideToProperties(rawP, this.curatedOverrides);
+        const fid = String(p.id || p.building_id || "").trim();
+        const hcad = String(p.hcad_num || "").trim();
+        const isCompositeId = fid.includes("#");
         if (fid) {
           if (seenCanvasIds.has(fid)) continue;
           seenCanvasIds.add(fid);
         }
+        if (hcad && !isCompositeId) {
+          if (seenCanvasHcads.has(hcad)) continue;
+          seenCanvasHcads.add(hcad);
+        }
         if (!featureMatchesFilter(p, state)) continue;
         if (isoGeom && !isPolygonInIsolated(feat.geometry)) continue;
         const color = evaluateFeatureColor(p, state.colorMode, state.paletteStyle);
-        const isSelected =
-          this.selectedFeatureId &&
-          (p.id === this.selectedFeatureId || p.building_id === this.selectedFeatureId);
+        const isSelected = Boolean(
+          (this.selectedFeatureId &&
+            (p.id === this.selectedFeatureId || p.building_id === this.selectedFeatureId)) ||
+            (selHcad && !isCompositeId && hcad === selHcad)
+        );
         const stroke = isSelected ? "#FDE047" : "rgba(15, 17, 21, 0.72)";
         const lw = isSelected ? 2.8 : 0.75;
         const extrudeM = state.extrude3D ? Number(p.height_m) || 5.0 : 0;
@@ -4029,11 +4041,19 @@ export class AtlasMapController {
       [...this.buildingExtrusionLayerIds, "curated-overrides-extrusion"],
       showBuildings && state.extrude3D
     );
+    const selectedPassesFilter =
+      !this.selectedFeatureProps || featureMatchesFilter(this.selectedFeatureProps, state);
     setVis(
       ["selected-feature-outline", ...(this.highlightLayerIds || [])],
-      showBuildings && !state.extrude3D
+      showBuildings && !state.extrude3D && selectedPassesFilter
     );
-    setVis(["selected-feature-3d-extrusion"], showBuildings && state.extrude3D);
+    setVis(
+      ["selected-feature-3d-extrusion"],
+      showBuildings && state.extrude3D && selectedPassesFilter
+    );
+    if (state.extrude3D && this.selectedFeatureProps) {
+      this._updateSelectedFeature3DSource(state);
+    }
     setVis(["parcels-fill"], showParcelsFill);
     setVis(["parcels-line"], showParcelsLine);
 
@@ -4433,23 +4453,56 @@ export class AtlasMapController {
           const p = f.properties || {};
           return p.id === targetBuildingId || p.building_id === targetBuildingId;
         })) ||
+      (hcadNum &&
+        ovFeatures.find((f) => {
+          const p = f.properties || {};
+          return p.hcad_num === hcadNum;
+        })) ||
+      renderedTileMatch ||
       (targetBuildingId &&
         this.buildingsData.find((f) => {
           const p = f.properties || {};
           return p.id === targetBuildingId || p.building_id === targetBuildingId;
         })) ||
       (hcadNum &&
-        ovFeatures.find((f) => {
-          const p = f.properties || {};
-          return p.hcad_num === hcadNum;
-        })) ||
-      (hcadNum &&
         this.buildingsData.find((f) => {
           const p = f.properties || {};
           return p.hcad_num === hcadNum;
         })) ||
-      renderedTileMatch ||
-      gbMatch;
+      gbMatch ||
+      (() => {
+        if (!featureId && !hcadNum) return null;
+        const overlayCollections = [
+          ["relocated_structures", this.overlaysData?.relocated_structures?.features],
+          ["thc_markers", this.overlaysData?.thc_markers?.features],
+          ["historical_railroads", this.overlaysData?.historical_railroads?.features],
+          ["historical_waterways", this.overlaysData?.historical_waterways?.features],
+        ];
+        for (const [ovKey, list] of overlayCollections) {
+          if (!Array.isArray(list)) continue;
+          const found = list.find((f) => {
+            const p = f.properties || {};
+            return (
+              (featureId && (p.id === featureId || p.building_id === featureId || p.marker_num === featureId)) ||
+              (hcadNum && p.hcad_num === hcadNum)
+            );
+          });
+          if (found) {
+            if (ovKey === "historical_railroads" || ovKey === "historical_waterways") {
+              return {
+                ...found,
+                properties: {
+                  ...(found.properties || {}),
+                  overlay_layer: ovKey,
+                  is_boundary_feature: true,
+                },
+              };
+            }
+            return found;
+          }
+        }
+        return null;
+      })();
 
     if (!match) {
       if (hcadNum) {
@@ -4734,9 +4787,6 @@ export class AtlasMapController {
     const fromOverrides = searchCollection(this.overridesFC?.features);
     if (fromOverrides) return fromOverrides;
 
-    const fromBuildings = searchCollection(this.buildingsData);
-    if (fromBuildings) return fromBuildings;
-
     if (!this.useCanvasFallback && this.map) {
       const polyLayers = [
         "curated-overrides-extrusion",
@@ -4764,6 +4814,10 @@ export class AtlasMapController {
         }
       }
     }
+
+    const fromBuildings = searchCollection(this.buildingsData);
+    if (fromBuildings) return fromBuildings;
+
     return null;
   }
 
@@ -5081,7 +5135,12 @@ export class AtlasMapController {
     if (!sel3DSrc) return;
 
     const state = stateOverride || this.filterStore.getState();
-    if (!state.extrude3D || !this.selectedFeatureProps || !this.selectedFeatureGeometry) {
+    if (
+      !state.extrude3D ||
+      !this.selectedFeatureProps ||
+      !this.selectedFeatureGeometry ||
+      !featureMatchesFilter(this.selectedFeatureProps, state)
+    ) {
       sel3DSrc.setData({ type: "FeatureCollection", features: [] });
       return;
     }
@@ -6271,6 +6330,9 @@ export class AtlasMapController {
         is_boundary_feature: true,
       },
     };
+    if (inspect) {
+      this.clearSelection({ keepOverlapStack: true, keepBoundary: true });
+    }
     this.selectedBoundaryFeature = feat;
 
     if (this.useCanvasFallback) {
@@ -6424,6 +6486,20 @@ export class AtlasMapController {
     if (this.useCanvasFallback) {
       this._renderCanvas2D();
     } else if (this.map) {
+      const curState = this.filterStore.getState();
+      const showBuildings = curState.layers?.buildings !== false;
+      const passesFilter = featureMatchesFilter(mergedProps, curState);
+      const selOutlineVis = showBuildings && passesFilter ? "visible" : "none";
+      if (this.map.getLayer("selected-feature-outline")) {
+        this.map.setLayoutProperty("selected-feature-outline", "visibility", selOutlineVis);
+      }
+      if (this.map.getLayer("selected-feature-3d-extrusion")) {
+        this.map.setLayoutProperty(
+          "selected-feature-3d-extrusion",
+          "visibility",
+          showBuildings && curState.extrude3D && passesFilter ? "visible" : "none"
+        );
+      }
       const selSrc = this.map.getSource("selected-feature-src");
       if (selSrc && singleGeom) {
         selSrc.setData({
@@ -6441,11 +6517,12 @@ export class AtlasMapController {
         }
         for (const hlId of this.highlightLayerIds) {
           if (this.map.getLayer(hlId)) {
+            this.map.setLayoutProperty(hlId, "visibility", selOutlineVis);
             this.map.setFilter(hlId, ["==", ["get", "id"], this.selectedFeatureId]);
           }
         }
       }
-      this._updateSelectedFeature3DSource();
+      this._updateSelectedFeature3DSource(curState);
     }
     if (this.onSelectFeature) {
       this.onSelectFeature(mergedProps);
