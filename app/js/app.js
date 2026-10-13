@@ -6695,7 +6695,7 @@ class HoustonAtlasApp {
                         }
                         ${
                           histImageUrl
-                            ? `<a href="${histImageUrl}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View Scanned Page (.JPG) &#8599;</a>`
+                            ? `<a href="${histImageUrl}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View Scanned Page (PDF) &#8599;</a>`
                             : ""
                         }
                       </div>
