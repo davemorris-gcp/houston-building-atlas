@@ -1,6 +1,6 @@
 # Zero-Cost Google Sheets Curation, Moderated User Feedback & City Directory Batch Auditor
 
-This guide explains how **Preservation Houston** administrators can manage property date corrections (such as **`1127 Key St`**, built **`1928`** per Houston City Directories vs. HCAD's rounded placeholder **`1920`**), review end-user correction suggestions, and run the polite **Houston City Directory (1866–1926) Batch Auditor**—all with **$0/month hosting cost** and **no backend database server to maintain**.
+This guide explains how **Preservation Houston** administrators can manage property date corrections (such as **`1127 Key St`**, built **`1928`** per Houston City Directories vs. HCAD's rounded placeholder **`1920`**), review end-user correction suggestions, and run the polite **Houston City Directory (1866–1926) Batch Auditor** - all with **$0/month hosting cost** and **no backend database server to maintain**.
 
 ---
 
@@ -36,7 +36,7 @@ This guide explains how **Preservation Houston** administrators can manage prope
 
 ## 2. Setting Up the Google Sheet (5 Minutes)
 
-1. Create a new Google Sheet named **`Houston Building Atlas — Curated Overrides & Moderation`**.
+1. Create a new Google Sheet named **`Houston Building Atlas  -  Curated Overrides & Moderation`**.
 2. Create two tabs at the bottom:
    - **`Pending_Submissions`** (where staff enters edits or reviews public submissions)
    - **`Approved_Edits`** (auto-filtered view that is published to the live map as CSV)
@@ -93,7 +93,7 @@ To let end users submit corrections directly into your **`Pending_Submissions`**
 
 ```javascript
 /**
- * Houston Building Atlas — Moderated User Correction Webhook
+ * Houston Building Atlas  -  Moderated User Correction Webhook
  * Appends public suggestions to the `Pending_Submissions` tab with status = "Pending".
  * Public submissions NEVER go live until a Preservation Houston admin sets status = "Approved".
  */
@@ -150,7 +150,7 @@ We built [`pipeline/atlas_pipeline/city_directory_audit.py`](../pipeline/atlas_p
 - **Polite Rate Limiting (`--delay 2.0`):** Enforces a strict minimum pause between live HTTP requests + exponential backoff on transient errors.
 - **Two-Way Discrepancy Detection:**
   1. **`EARLIER_THAN_HCAD`:** The property address appears in an earlier Houston City Directory than HCAD's `year_built` (for example, a house HCAD lists as `1920` that is already occupied in the `1908` or `1913` directory), complete with a direct link to the digitized ContentDM page and OCR snippet.
-  2. **`ABSENT_THROUGH_1926_PREMATURE_HCAD_1920`:** HCAD lists `1920`, neighboring homes on the same block (`±2`, `±4` house numbers, e.g., `1123`, `1125`, `1129 Key St`) appear in the `1920–1926` directories, yet the target address (`1127 Key St`) is absent through `1926`—proving the structure was built *after* the `1926` directory (c. `1927–1929`, such as `1928`) and HCAD defaulted to `1920`.
+  2. **`ABSENT_THROUGH_1926_PREMATURE_HCAD_1920`:** HCAD lists `1920`, neighboring homes on the same block (`±2`, `±4` house numbers, e.g., `1123`, `1125`, `1129 Key St`) appear in the `1920–1926` directories, yet the target address (`1127 Key St`) is absent through `1926` - proving the structure was built *after* the `1926` directory (c. `1927–1929`, such as `1928`) and HCAD defaulted to `1920`.
 
 ### Example Commands
 
