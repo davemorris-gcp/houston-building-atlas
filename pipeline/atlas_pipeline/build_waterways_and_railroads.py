@@ -706,18 +706,193 @@ CURATED_BURIED_GULLIES_AND_OXBOWS = [
     },
     {
         "id": "waterway_white_oak_stude_oxbows",
-        "name": "Little White Oak & Lower White Oak Bayou - 1839–1903 Natural Ravine Meanders",
+        "name": "Little White Oak & Lower White Oak Bayou - 1839-1903 Natural Ravine Meanders",
         "alt_names": ["Woodland Park & Hogg Park 1903 Bayou Survey", "1903 First Ward & Fifth Ward Bayou Boundary Survey"],
         "waterway_type": "historic_oxbow",
-        "status": "Surveyed 1903 Bayou Thalweg (Woodland Park, Beauchamp Springs & Hogg Park Ravine)",
+        "status": "Surveyed 1903 Bayou Thalweg (Woodland Park & Hogg Park Ravine)",
         "watershed": "White Oak Bayou Watershed",
-        "era_notes": "1839–1903 Ward Charter Survey · 1903 Woodland Park · 1907 Woodland Heights",
+        "era_notes": "1839-1903 Ward Charter Survey · 1903 Woodland Park · 1907 Woodland Heights",
         "historic_significance": (
             "Exact 93-vertex surveyed 1903 municipal charter boundary between First Ward and Fifth Ward along the natural "
-            "winding channel of Little White Oak Bayou and lower White Oak Bayou through Woodland Park, Beauchamp Springs, "
+            "winding channel of Little White Oak Bayou and lower White Oak Bayou through Woodland Park "
             "and Wright-Bembry / Hogg Park down to the Buffalo Bayou confluence at Allen's Landing."
         ),
         "ward_boundary_pair": ("FIRST", "FIFTH"),
+    },
+    {
+        "id": "waterway_beauchamp_springs_gully",
+        "name": "Beauchamp Springs & Ravine (Buried Historic Spring & Tributary of White Oak Bayou)",
+        "alt_names": [
+            "Beauchamp Springs",
+            "Beauchamp Spring Branch",
+            "Germantown & Woodland Heights Spring Ravine",
+            "Park Place & Morrison Street Gully",
+        ],
+        "waterway_type": "buried_gully",
+        "status": "Buried Historic Spring & Ravine (Culverted 1920s-1930s; Lower Mouth Under I-45 North Freeway)",
+        "watershed": "White Oak Bayou Watershed",
+        "era_notes": "1840s John Beauchamp Tract · 1870s H. Beltz Germantown · 1894 Beauchamp Springs Plat · 1921/1929/1930 Houston Maps",
+        "historic_significance": (
+            "One of 19th-century Houston's best-known natural mineral springs and wooded excursion hollows, named for early "
+            "settler John Beauchamp on the northern bluff of White Oak Bayou. Fed by two spring branches in Woodland Heights - "
+            "a western perennial spring rising near Euclid and Byrne (formerly White Oak St) east of Helen Street, and a northern "
+            "ravine branch descending between Beauchamp and Morrison streets from Omar and Highland - the stream cut diagonally "
+            "southeast across Florence, Beauchamp, and Morrison streets and ran down the east side of Park Place into White Oak "
+            "Bayou just west of the Houston Avenue Bridge opposite Hogg Park. Shown as an open stream on the 1921 and 1929 maps "
+            "and as a dashed ravine on the 1930 map as street-grid storm sewers enclosed its upper reaches, its lower ravine mouth "
+            "was buried beneath the I-45 North Freeway embankment in the late 1950s."
+        ),
+        "source_label": "1921, 1929 & 1930 Georeferenced Houston Street Maps (HPL Historic Houston Archive)",
+        "surveyed_coords": [
+            [
+                [-95.3767, 29.7855],
+                [-95.3761, 29.7851],
+                [-95.3754, 29.7846],
+                [-95.3746, 29.7839],
+                [-95.3738, 29.7833],
+                [-95.3734, 29.7825],
+                [-95.3731, 29.7815],
+                [-95.3727, 29.7806],
+                [-95.3723, 29.7797],
+            ],
+            [
+                [-95.3741, 29.7880],
+                [-95.3742, 29.7871],
+                [-95.3742, 29.7862],
+                [-95.3741, 29.7852],
+                [-95.3740, 29.7843],
+                [-95.3738, 29.7833],
+            ],
+        ],
+    },
+    {
+        "id": "waterway_woodland_terrace_sabine_gully",
+        "name": "Woodland Heights West - Byrne, Peetshorn & Ridge Ravine (Buried Tributary of White Oak Bayou)",
+        "alt_names": [
+            "Woodland Terrace Ravine",
+            "Reichman & Ridge Street Gully",
+            "N. Sabine Bluff Spring Branch",
+        ],
+        "waterway_type": "buried_gully",
+        "status": "Buried Historic Spring Ravine (Enclosed in Woodland Heights Storm Sewers c. 1925-1930)",
+        "watershed": "White Oak Bayou Watershed",
+        "era_notes": "1907 Woodland Heights & Woodland Terrace Plats · 1921 & 1929 Houston Maps · 1930 Gladys/Thelma Ravine Cul-de-Sacs",
+        "historic_significance": (
+            "The western of the two historic spring-fed ravines cutting through Woodland Heights on the 1921 and 1929 maps. "
+            "Rising between Euclid and Byrne (formerly White Oak Street) just east of Reagan and Louise streets, this tributary "
+            "flowed southeast across Peetshorn (formerly Reichman Street) and Ridge Street to empty into the northernmost apex "
+            "of White Oak Bayou's historic N. Sabine horseshoe loop."
+        ),
+        "source_label": "1921 & 1929 Georeferenced Houston Street Maps (HPL Historic Houston & Rice Fondren Archives)",
+        "surveyed_coords": [
+            [
+                [-95.3796, 29.7851],
+                [-95.3790, 29.7847],
+                [-95.3784, 29.7840],
+                [-95.3779, 29.7833],
+                [-95.3773, 29.7826],
+            ],
+        ],
+    },
+    {
+        "id": "waterway_stude_beverly_gully",
+        "name": "Stude Park & Beverly-Studewood Ravine (Buried Heights Tributary of White Oak Bayou)",
+        "alt_names": [
+            "Stude Gully",
+            "Beverly & Studewood Creek",
+            "Threlkeld Street Ravine",
+            "East Houston Heights Gully",
+        ],
+        "waterway_type": "buried_gully",
+        "status": "Buried Historic Ravine & Park Swale (Upper Reach Culverted; Lower Swale in Stude Park)",
+        "watershed": "White Oak Bayou Watershed",
+        "era_notes": "1891 Houston Heights · 1910 Stude Subdivision · 1914 Stude Park Donation · 1921/1929/1930 Houston Maps",
+        "historic_significance": (
+            "Prominent natural tributary ravine on the eastern edge of the Houston Heights documented on the 1915 USGS topo quad "
+            "and the 1921, 1929, and 1930 Houston maps. Rising near E. 8 1/2 Street and Beverly Street just west of Studewood, "
+            "the stream wound south-southeast across 8th, 7 1/2, 7th, 6 1/2, and 6th (White Oak Drive) before following the "
+            "diagonal curve of Threlkeld Street through Stude Park (donated by Alfonso and Hingia Stude in 1914) into White Oak "
+            "Bayou. The ravine topography explains why Threlkeld Street curves diagonally off the grid and why the half-numbered "
+            "streets dead-end between Beverly and Studewood."
+        ),
+        "source_label": "1915 USGS Topo Quad & 1921, 1929, 1930 Georeferenced Houston Maps",
+        "surveyed_coords": [
+            [
+                [-95.3908, 29.7868],
+                [-95.3902, 29.7860],
+                [-95.3899, 29.7854],
+                [-95.3902, 29.7846],
+                [-95.3898, 29.7837],
+                [-95.3894, 29.7828],
+                [-95.3890, 29.7819],
+                [-95.3886, 29.7810],
+                [-95.3883, 29.7801],
+                [-95.3879, 29.7793],
+                [-95.3876, 29.7787],
+            ],
+        ],
+    },
+    {
+        "id": "waterway_white_oak_stude_sabine_oxbows",
+        "name": "White Oak Bayou - Pre-1960s Olivewood, Stude Park, N. Sabine & Mattie St Natural Oxbows",
+        "alt_names": [
+            "White Oak Bayou Pre-Channelization Meanders",
+            "Stude Park & N. Sabine Horseshoe Bends",
+            "Mattie Street & First Ward Oxbow Loops",
+        ],
+        "waterway_type": "historic_oxbow",
+        "status": "Cut-Off Natural Bayou Meander Loops (Bypassed by 1960s USACE Concrete Channel & I-45/I-10 Grading)",
+        "watershed": "White Oak Bayou Watershed",
+        "era_notes": "1869 W. E. Wood Map · 1915 USGS Topo · 1921/1929/1930 Maps · 1960s USACE Flood Control Channelization",
+        "historic_significance": (
+            "Before the U.S. Army Corps of Engineers and HCFCD excavated the straightened concrete flood-control channel "
+            "(HCFCD Unit E100-00-00) in the 1960s, White Oak Bayou wound through four deep horseshoe oxbow loops between "
+            "historic Olivewood Cemetery (MKT Railroad crossing), Stude Park, the Taylor Street bridge, the high bluff at "
+            "N. Sabine and Ridge streets in Woodland Heights, and the Mattie/Maud street peninsula west of Houston Avenue. "
+            "Why this segment was previously missing: our 1903 Ward boundary oxbow extractor only traced the First/Fifth Ward "
+            "boundary, which turned north up Little White Oak Bayou at Hogg Park and never followed White Oak Bayou west of "
+            "Houston Avenue."
+        ),
+        "source_label": "1921, 1929 & 1930 Georeferenced Houston Maps & 1915 USGS Houston Topo Quad",
+        "surveyed_coords": [
+            [
+                [-95.3942, 29.7747],
+                [-95.3931, 29.7755],
+                [-95.3918, 29.7753],
+                [-95.3904, 29.7760],
+                [-95.3895, 29.7768],
+                [-95.3893, 29.7780],
+                [-95.3885, 29.7789],
+                [-95.3876, 29.7787],
+                [-95.3867, 29.7791],
+                [-95.3862, 29.7784],
+                [-95.3860, 29.7772],
+                [-95.3851, 29.7776],
+                [-95.3840, 29.7785],
+                [-95.3831, 29.7784],
+                [-95.3827, 29.7794],
+                [-95.3822, 29.7801],
+                [-95.3818, 29.7792],
+                [-95.3818, 29.7778],
+                [-95.3814, 29.7784],
+                [-95.3813, 29.7799],
+                [-95.3802, 29.7789],
+                [-95.3790, 29.7789],
+                [-95.3788, 29.7801],
+                [-95.3776, 29.7808],
+                [-95.3775, 29.7820],
+                [-95.3771, 29.7826],
+                [-95.3764, 29.7823],
+                [-95.3763, 29.7812],
+                [-95.3752, 29.7808],
+                [-95.3738, 29.7800],
+                [-95.3751, 29.7797],
+                [-95.3753, 29.7789],
+                [-95.3738, 29.7789],
+                [-95.3723, 29.7797],
+                [-95.3712, 29.7784],
+            ],
+        ],
     },
 ]
 
@@ -1886,6 +2061,16 @@ def build_waterways_collection() -> list:
         elif item.get("brady_island_survey") and brady_oxbow_geoms:
             ln = safe_linemerge(unary_union(brady_oxbow_geoms))
             src_label = "City of Houston Hydrography GIS Survey (Pre-1914 Brady Island Channel)"
+        elif item.get("surveyed_coords"):
+            sub_lines = [
+                LineString(catmull_rom_spline(path_pts, subdivisions=5))
+                for path_pts in item["surveyed_coords"]
+                if len(path_pts) >= 2
+            ]
+            if not sub_lines:
+                continue
+            ln = sub_lines[0] if len(sub_lines) == 1 else MultiLineString(sub_lines)
+            src_label = item.get("source_label", "1915 USGS Houston Topo Quad & 1921-1930 Houston Street Maps")
         else:
             continue
 
