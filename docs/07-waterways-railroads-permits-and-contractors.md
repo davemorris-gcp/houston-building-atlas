@@ -28,6 +28,22 @@ Why do certain Downtown blocks have angled foundations or mid-block alleys, and 
 6. **Montrose / Mandell Street Gully (`D120` Historic Swale):** Drained southern Montrose and the Castle Court / Westheimer corridor southward toward Brays Bayou and Poor Farm Ditch (`culverted under Dunlavy/Mandell storm trunks in the 1920s`).
 7. **Third Ward / Blodgett Gully (`D112` Historic Ravine):** Drained Third Ward, TSU, and the University of Houston campus southwest into Brays Bayou near Hermann Park.
 
+### 1.3 Case Study: Recovering Beauchamp Springs, the Woodland Heights Ravines & Pre-1960s White Oak Bayou Oxbows
+Why were **Beauchamp Springs**, the **Western Woodland Heights Ravine**, the **Stude Park / Beverly-Studewood Ravine**, and the **Pre-1960s White Oak Bayou oxbow loops** initially absent from modern GIS hydrography layers (`USGS NHD`, `HCFCD M3`, and `COH Water Lines`)?
+
+![Beauchamp Springs, Woodland Heights Ravines, and Pre-1960s White Oak Bayou Oxbows](images/07_beauchamp_springs_and_oxbows.jpg)
+
+1. **Why Modern GIS Datasets Missed the Three Spring Ravines:**
+   - `USGS NHD` and `HCFCD M3` only include channels that remain open waterways (`E100-00-00` White Oak Bayou and `E101-00-00` Little White Oak Bayou) or giant regional HCFCD box-culvert trunks (`D109-00-00` Harris Gully).
+   - Comparing the **1921**, **1929**, and **1930** georeferenced Houston maps reveals the exact moment these spring-fed tributaries were enclosed: on the 1921 and 1929 maps, all three appear as solid open streams, whereas by the 1930 map they appear as dashed intermittent ravines as municipal street-grid storm sewers replaced their upper reaches, and in the late 1950s the **I-45 North Freeway (`NORTH FWY`)** embankment buried the lower mouth of Beauchamp Springs just west of Houston Avenue.
+2. **Why the 1903 Ward Boundary Oxbow Extractor Missed White Oak Bayou West of Houston Avenue:**
+   - Our 1903 Aldermanic Ward boundary oxbow extractor (`ward_boundary_pair: ("FIRST", "FIFTH")`) followed the charter boundary between First Ward and Fifth Ward, which ran up lower White Oak Bayou only as far as **Hogg Park / Wrightwood** and then turned **north up Little White Oak Bayou** along the east side of Woodland Park. Because White Oak Bayou west of Houston Avenue lay entirely inside First Ward (and west of Sabine/Studewood lay outside the 1840-1903 `9 sq. mi.` city limits), the ward boundary never traced the four dramatic natural oxbow loops of White Oak Bayou that were later bypassed when the U.S. Army Corps of Engineers built the straight concrete flood-control channel (`HCFCD E100-00-00`) in the 1960s.
+3. **Four Surveyed Features Digitized from the 1915, 1921, 1929 & 1930 Maps:**
+   - **`waterway_beauchamp_springs_gully` (Beauchamp Springs & Ravine):** Includes both the perennial spring branch rising near `Euclid` and `Byrne` (called `White Oak St` on the 1921 map) east of `Helen St` and the northern ravine fork descending between `Beauchamp` and `Morrison` from `Omar` and `Highland`, converging across `Florence`, `Beauchamp`, and `Morrison` and running down the east side of `Park Place` into White Oak Bayou just west of the Houston Avenue bridge.
+   - **`waterway_woodland_terrace_sabine_gully` (Woodland Heights West - Byrne, Peetshorn & Ridge Ravine):** Rises near `Euclid` and `Byrne` east of `Reagan` and `Louise`, flowing southeast across `Peetshorn` (called `Reichman St` on the 1921 map) and `Ridge St` into the northern apex of White Oak Bayou's N. Sabine bluff loop (where `Gladys`, `Thelma`, and `Greenleaf` cul-de-sacs were platted into the ravine walls by 1930).
+   - **`waterway_stude_beverly_gully` (Stude Park & Beverly-Studewood Ravine):** Rises in the eastern Houston Heights at `E. 8 1/2 St` and `Beverly St` just west of `Studewood St`, winding south across `8th`, `7 1/2`, `7th`, `6 1/2`, and `6th` (`White Oak Dr`) and down the diagonal curve of `Threlkeld St` through **Stude Park** into White Oak Bayou.
+   - **`waterway_white_oak_stude_sabine_oxbows` (White Oak Bayou - Pre-1960s Olivewood, Stude Park, N. Sabine & Mattie St Natural Oxbows):** Traces the four pre-channelization horseshoe meander loops from Olivewood Cemetery (`MKT Railroad`) through Stude Park, the Taylor Street bridge, the N. Sabine bluff, and the Mattie/Maud peninsula to Hogg Park.
+
 ---
 
 ## 2. Historical Railroads, Abandoned Rights-of-Way, Electric Streetcars & Depots
