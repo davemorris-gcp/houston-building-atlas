@@ -476,7 +476,9 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             return "ne"
         return "sw" if lon < SPLIT_LON_EAST else "se"
 
-    def build_parcel_props(p_idx: int, bld_id: int, is_observed: bool) -> dict[str, Any]:
+    def build_parcel_props(
+        p_idx: int, bld_id: int, is_observed: bool, footprint_area_sqft: float = 0.0
+    ) -> dict[str, Any]:
         raw_acct = hcad_nums_arr[p_idx]
         acct = str(raw_acct).strip() if raw_acct is not None else ""
         cama = cama_lookup.get(acct)
@@ -492,9 +494,14 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
         dec = compute_decade(yr)
         use_cat = classify_use_category(use_cd, "", bld_area)
         land_sqft = int(float(shape_area_arr[p_idx] or 0.0))
+        eff_fp_sqft = (
+            footprint_area_sqft
+            if footprint_area_sqft >= 150.0
+            else (float(max(bld_area, 900)) if bld_area > 0 else 1100.0)
+        )
         stories, height_m = estimate_stories_and_height(
             bld_area=float(bld_area),
-            footprint_area_sqft=float(max(bld_area, 900)) if bld_area > 0 else 1100.0,
+            footprint_area_sqft=eff_fp_sqft,
             use_category=use_cat,
         )
 
@@ -588,7 +595,17 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             if pcl_idx is None:
                 continue
             matched_parcel_mask[pcl_idx] = True
-            props = build_parcel_props(pcl_idx, total_buildings + 1, is_observed=True)
+            fp_sqft = 0.0
+            coords = geom_d.get("coordinates")
+            if coords and coords[0] and len(coords[0]) >= 3:
+                ring = coords[0]
+                area_deg2 = 0.0
+                for k in range(len(ring) - 1):
+                    area_deg2 += ring[k][0] * ring[k + 1][1] - ring[k + 1][0] * ring[k][1]
+                fp_sqft = abs(area_deg2) * 0.5 * 96500.0 * 110800.0 * 10.7639
+            props = build_parcel_props(
+                pcl_idx, total_buildings + 1, is_observed=True, footprint_area_sqft=fp_sqft
+            )
             record_stats(props, is_observed=True)
             q = get_quadrant(lons[idx_in_batch], lats[idx_in_batch])
             feat_bytes = (
