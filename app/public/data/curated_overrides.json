@@ -678530,10 +678530,10 @@
     "0152300000001": {
       "hcad_num": "0152300000001",
       "address": "2000 SMITH ST",
-      "landmark_name": "Kirby Mansion",
+      "landmark_name": "John Henry Kirby Mansion",
       "historic_district": "",
-      "year_built": 1926,
-      "architect": "",
+      "year_built": 1894,
+      "architect": "James Ruskin Bailey (1928 Tudor Revival remodeling)",
       "good_brick_awards": [
         {
           "award_year": 1979,
@@ -678549,7 +678549,7 @@
       ],
       "good_brick_summary": "1979 Good Brick Award",
       "source_type": "Preservation Houston Good Brick Award",
-      "source_citation": "Thomas Thompson for restoration and adaptive reuse of the Kirby mansion (1926), 2000 Smith St.",
+      "source_citation": "Original house built 1894 for J.S. Price; purchased 1896 by John Henry Kirby; 36-room Tudor Revival remodeling designed by James Ruskin Bailey completed 1928. 1979 Good Brick Award recipient (Thomas Thompson).",
       "source_url": "https://www.preservationhouston.org/awards/past",
       "verified_by": "Preservation Houston Good Brick Awards",
       "geometry": {
@@ -678651,7 +678651,7 @@
           ]
         ]
       },
-      "building_name": "Kirby Mansion",
+      "building_name": "John Henry Kirby Mansion",
       "haif_threads": [
         {
           "tid": 32766,
@@ -678664,7 +678664,7 @@
           "is_demo": false
         }
       ],
-      "bld_style": "Wood or Light Steel",
+      "bld_style": "Tudor Revival",
       "use_category": "Residential",
       "landuse_desc": "Res. Struct. Or Conversion",
       "name_source": "Preservation Houston Curated Archive",
@@ -678672,7 +678672,14 @@
       "neighborhood": "Midtown",
       "super_neighborhood": "Midtown",
       "historic_ward": "Fourth Ward",
-      "eff_year_built": 1892
+      "eff_year_built": 1928,
+      "alt_names": [
+        "Kirby Mansion",
+        "J.S. Price House"
+      ],
+      "yr_remodel": 1928,
+      "style": "Tudor Revival",
+      "owner": "OB Texas Properties LLC (Omair Bashir)"
     },
     "0010190000013": {
       "hcad_num": "0010190000013",

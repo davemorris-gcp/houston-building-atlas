@@ -20,7 +20,7 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261012b";
+} from "./filterStore.js?v=20261022a";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
@@ -162,6 +162,10 @@ export class AtlasMapController {
     this.buildingsData = [];
     this.parcelsData = [];
     this.overlaysData = null;
+    this.permitAlertsData = null;
+    this.permitAlertsFC = { type: "FeatureCollection", features: [] };
+    this.permitAlertsByHcad = new Map();
+    this.permitAlertsByBldId = new Map();
     this.curatedOverrides = {};
     this.sheetSyncStatus = null;
     this.overridesFC = { type: "FeatureCollection", features: [] };
@@ -227,14 +231,21 @@ export class AtlasMapController {
   }
 
   async _fetchDataPayloads() {
-    const [buildingsRes, parcelsRes, overlaysRes, manifestRes, overridesResult] =
-      await Promise.all([
-        fetch("public/data/buildings.geojson?v=20261011c"),
-        fetch("public/data/parcels.geojson?v=20261011c"),
-        fetch("public/data/overlays.json?v=20261011u"),
-        fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
-        loadCuratedOverrides(),
-      ]);
+    const [
+      buildingsRes,
+      parcelsRes,
+      overlaysRes,
+      manifestRes,
+      overridesResult,
+      permitAlertsRes,
+    ] = await Promise.all([
+      fetch("public/data/buildings.geojson?v=20261022a"),
+      fetch("public/data/parcels.geojson?v=20261011c"),
+      fetch("public/data/overlays.json?v=20261011u"),
+      fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
+      loadCuratedOverrides(),
+      fetch("public/data/active_permit_alerts.json?v=20261022a").catch(() => null),
+    ]);
 
     const buildingsFC = await buildingsRes.json();
     const parcelsFC = await parcelsRes.json();
@@ -247,6 +258,16 @@ export class AtlasMapController {
       }
     }
 
+    let permitAlertsJson = null;
+    if (permitAlertsRes && permitAlertsRes.ok) {
+      try {
+        permitAlertsJson = await permitAlertsRes.json();
+      } catch {
+        permitAlertsJson = null;
+      }
+    }
+    this._indexPermitAlerts(permitAlertsJson);
+
     this.curatedOverrides = (overridesResult && overridesResult.overrides) || {};
     this.sheetSyncStatus = (overridesResult && overridesResult.syncStatus) || null;
 
@@ -258,6 +279,115 @@ export class AtlasMapController {
     this._buildBoundarySpatialIndex();
 
     this._applyCuratedOverridesInMemory();
+  }
+
+  _indexPermitAlerts(permitAlertsJson) {
+    this.permitAlertsData = permitAlertsJson || {
+      updated_at: null,
+      lookback_days: 45,
+      summary: {
+        total_flagged_buildings: 0,
+        critical_count: 0,
+        watch_count: 0,
+        coh_permits_matched: 0,
+        dshs_notifications_matched: 0,
+      },
+      alerts: [],
+    };
+    this.permitAlertsByHcad = new Map();
+    this.permitAlertsByBldId = new Map();
+    const pointFeatures = [];
+
+    for (const alert of this.permitAlertsData.alerts || []) {
+      if (!alert) continue;
+      const primaryHcad = String(alert.hcad_num || "").trim();
+      const primaryBldId = String(alert.building_id || "").trim();
+      if (primaryHcad) {
+        this.permitAlertsByHcad.set(primaryHcad, alert);
+      }
+      if (primaryBldId) {
+        this.permitAlertsByBldId.set(primaryBldId, alert);
+      }
+      if (Array.isArray(alert.related_hcads)) {
+        for (const rh of alert.related_hcads) {
+          const cleanRh = String(rh || "").trim();
+          if (cleanRh && !this.permitAlertsByHcad.has(cleanRh)) {
+            this.permitAlertsByHcad.set(cleanRh, alert);
+          }
+        }
+      }
+      if (Array.isArray(alert.related_building_ids)) {
+        for (const rb of alert.related_building_ids) {
+          const cleanRb = String(rb || "").trim();
+          if (cleanRb && !this.permitAlertsByBldId.has(cleanRb)) {
+            this.permitAlertsByBldId.set(cleanRb, alert);
+          }
+        }
+      }
+
+      const lng = Number(alert.lng);
+      const lat = Number(alert.lat);
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        pointFeatures.push({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [lng, lat],
+          },
+          properties: {
+            id: `permit_alert_${primaryHcad || primaryBldId || pointFeatures.length}`,
+            hcad_num: primaryHcad,
+            building_id: primaryBldId,
+            title: alert.title || alert.address || "Historic Property",
+            landmark_name: alert.landmark_name || "",
+            address: alert.address || "",
+            year_built: Number(alert.year_built) || 0,
+            yr_remodel: Number(alert.yr_remodel) || 0,
+            style: alert.style || "",
+            architect: alert.architect || "",
+            neighborhood: alert.neighborhood || "",
+            historic_district: alert.historic_district || "",
+            good_brick_summary: alert.good_brick_summary || "",
+            owner: alert.owner || "",
+            severity: alert.severity || "watch",
+            severity_label: alert.severity_label || "Permit Watch",
+            headline: alert.headline || "",
+            latest_filing_date: alert.latest_filing_date || "",
+            coh_permit_count: Array.isArray(alert.coh_permits) ? alert.coh_permits.length : 0,
+            dshs_count: Array.isArray(alert.dshs_notifications)
+              ? alert.dshs_notifications.length
+              : 0,
+          },
+        });
+      }
+    }
+
+    this.permitAlertsFC = {
+      type: "FeatureCollection",
+      features: pointFeatures,
+    };
+  }
+
+  getPermitAlertsPayload() {
+    return this.permitAlertsData;
+  }
+
+  getPermitAlertForBuilding({ hcadNum = "", buildingId = "" } = {}) {
+    const cleanBld = String(buildingId || "").trim();
+    if (cleanBld && this.permitAlertsByBldId?.has(cleanBld)) {
+      return this.permitAlertsByBldId.get(cleanBld);
+    }
+    const cleanHcad = String(hcadNum || "").trim();
+    if (cleanHcad && this.permitAlertsByHcad?.has(cleanHcad)) {
+      return this.permitAlertsByHcad.get(cleanHcad);
+    }
+    if (cleanBld.includes("#")) {
+      const prefixHcad = cleanBld.split("#")[0].trim();
+      if (prefixHcad && this.permitAlertsByHcad?.has(prefixHcad)) {
+        return this.permitAlertsByHcad.get(prefixHcad);
+      }
+    }
+    return null;
   }
 
   _applyCuratedOverridesInMemory() {
@@ -832,6 +962,10 @@ export class AtlasMapController {
     this.map.addSource("relocated-structures-src", {
       type: "geojson",
       data: overlays.relocated_structures || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("permit-watch-src", {
+      type: "geojson",
+      data: this.permitAlertsFC || { type: "FeatureCollection", features: [] },
     });
 
     const state = this.filterStore.getState();
@@ -1723,6 +1857,75 @@ export class AtlasMapController {
         ],
         "circle-stroke-color": "#0F172A",
         "circle-stroke-width": 1.8,
+      },
+    });
+    this.map.addLayer({
+      id: "permit-watch-outer-glow",
+      type: "circle",
+      source: "permit-watch-src",
+      paint: {
+        "circle-radius": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          15.5,
+          12.0,
+        ],
+        "circle-color": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          "#EF4444",
+          "#F59E0B",
+        ],
+        "circle-opacity": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          0.34,
+          0.26,
+        ],
+        "circle-blur": 0.48,
+      },
+    });
+    this.map.addLayer({
+      id: "permit-watch-ring",
+      type: "circle",
+      source: "permit-watch-src",
+      paint: {
+        "circle-radius": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          10.2,
+          8.4,
+        ],
+        "circle-color": "rgba(15, 23, 42, 0.0)",
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          "#FCA5A5",
+          "#FDE68A",
+        ],
+        "circle-stroke-width": 1.8,
+        "circle-stroke-opacity": 0.92,
+      },
+    });
+    this.map.addLayer({
+      id: "permit-watch-circle",
+      type: "circle",
+      source: "permit-watch-src",
+      paint: {
+        "circle-radius": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          6.8,
+          5.8,
+        ],
+        "circle-color": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          "#EF4444",
+          "#F59E0B",
+        ],
+        "circle-stroke-color": "#FEF2F2",
+        "circle-stroke-width": 2.0,
       },
     });
     this.map.addLayer({
@@ -3491,6 +3694,45 @@ export class AtlasMapController {
       }
     }
 
+    // 8a2. Active Permit & Demolition Watch Alerts
+    if (allowPointMarkers && state.layers.permitWatch && this.permitAlertsFC?.features) {
+      for (const feat of this.permitAlertsFC.features) {
+        const coords = feat.geometry?.coordinates;
+        if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
+        const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
+        if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+        const isCritical = feat.properties?.severity === "critical";
+        const dotColor = isCritical ? "#EF4444" : "#F59E0B";
+        const ringColor = isCritical ? "#FCA5A5" : "#FDE68A";
+        const glowColor = isCritical ? "rgba(239, 68, 68, 0.34)" : "rgba(245, 158, 11, 0.28)";
+        ctx.beginPath();
+        ctx.arc(sx, sy, isCritical ? 14.0 : 11.2, 0, Math.PI * 2);
+        ctx.fillStyle = glowColor;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx, sy, isCritical ? 9.8 : 8.2, 0, Math.PI * 2);
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = ringColor;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(sx, sy, isCritical ? 6.6 : 5.6, 0, Math.PI * 2);
+        ctx.fillStyle = dotColor;
+        ctx.fill();
+        ctx.lineWidth = 2.0;
+        ctx.strokeStyle = "#FEF2F2";
+        ctx.stroke();
+        cs.renderedBBoxes.push({
+          minX: sx - 10,
+          minY: sy - 10,
+          maxX: sx + 10,
+          maxY: sy + 10,
+          props: feat.properties,
+          geom: feat.geometry,
+        });
+      }
+    }
+
     // 8b. Boundary Labels in 2D Canvas Mode
     const placedBoxes = [];
     const drawBoundaryLabels = (features, minZ, textColor) => {
@@ -3865,9 +4107,29 @@ export class AtlasMapController {
         ? `<span class="tooltip-good-brick">&#9733; ${p.good_brick_summary}</span>`
         : "";
 
+    const matchedPermitAlert = this.getPermitAlertForBuilding({
+      hcadNum: p.hcad_num,
+      buildingId: p.building_id || p.id,
+    });
+    const permitAlertPill = matchedPermitAlert
+      ? `<span class="tooltip-permit-alert ${
+          matchedPermitAlert.severity === "critical" ? "critical" : "watch"
+        }">&#9888; ${
+          matchedPermitAlert.severity === "critical"
+            ? "DEMO / SEWER ALERT"
+            : "PERMIT / ABATEMENT WATCH"
+        }</span>`
+      : "";
+    const permitAlertNoteHtml = matchedPermitAlert?.headline
+      ? `<div class="tooltip-permit-alert-note ${
+          matchedPermitAlert.severity === "critical" ? "critical" : "watch"
+        }">${matchedPermitAlert.headline}</div>`
+      : "";
+
     return `<div class="tooltip-card">
       <div class="tooltip-top">
         <span class="tooltip-badge">${badge}</span>
+        ${permitAlertPill}
         ${goodBrickPill}
         ${
           p.contributing && p.contributing !== "Outside Historic District"
@@ -3878,6 +4140,7 @@ export class AtlasMapController {
       <div class="tooltip-title">${title}</div>
       ${akaHtml}
       <div class="tooltip-sub">${subtitle}</div>
+      ${permitAlertNoteHtml}
       ${overlapFooterHtml}
     </div>`;
   }
@@ -4083,6 +4346,10 @@ export class AtlasMapController {
       ["relocated-structures-glow", "relocated-structures-circle"],
       allowIsoMarkers && Boolean(state.layers.relocatedStructures)
     );
+    setVis(
+      ["permit-watch-outer-glow", "permit-watch-ring", "permit-watch-circle"],
+      allowIsoMarkers && Boolean(state.layers.permitWatch)
+    );
     setVis(["landmarks-circle"], allowIsoMarkers && Boolean(state.layers.landmarks));
     setVis(["thc-markers-circle"], allowIsoMarkers && Boolean(state.layers.thcMarkers));
 
@@ -4105,6 +4372,9 @@ export class AtlasMapController {
       const thcNums = (this.overlaysData?.thc_markers?.features || [])
         .filter((f) => inIso(f.geometry?.coordinates))
         .map((f) => String(f.properties?.marker_num || f.properties?.id || ""));
+      const pwIds = (this.permitAlertsFC?.features || [])
+        .filter((f) => inIso(f.geometry?.coordinates))
+        .map((f) => String(f.properties?.id || f.properties?.hcad_num || ""));
 
       const gbFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", gbIds]];
       const lmFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", lmIds]];
@@ -4113,15 +4383,22 @@ export class AtlasMapController {
         ["to-string", ["coalesce", ["get", "marker_num"], ["get", "id"], ""]],
         ["literal", thcNums],
       ];
+      const pwFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", pwIds]];
       if (this.map.getLayer("good-brick-glow")) this.map.setFilter("good-brick-glow", gbFilter);
       if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", gbFilter);
       if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", lmFilter);
       if (this.map.getLayer("thc-markers-circle")) this.map.setFilter("thc-markers-circle", thcFilter);
+      if (this.map.getLayer("permit-watch-outer-glow")) this.map.setFilter("permit-watch-outer-glow", pwFilter);
+      if (this.map.getLayer("permit-watch-ring")) this.map.setFilter("permit-watch-ring", pwFilter);
+      if (this.map.getLayer("permit-watch-circle")) this.map.setFilter("permit-watch-circle", pwFilter);
     } else if (!isoGeom) {
       if (this.map.getLayer("good-brick-glow")) this.map.setFilter("good-brick-glow", null);
       if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", null);
       if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", null);
       if (this.map.getLayer("thc-markers-circle")) this.map.setFilter("thc-markers-circle", null);
+      if (this.map.getLayer("permit-watch-outer-glow")) this.map.setFilter("permit-watch-outer-glow", null);
+      if (this.map.getLayer("permit-watch-ring")) this.map.setFilter("permit-watch-ring", null);
+      if (this.map.getLayer("permit-watch-circle")) this.map.setFilter("permit-watch-circle", null);
     }
 
     setVis(
@@ -5484,6 +5761,7 @@ export class AtlasMapController {
         "annexations-fill",
       ]);
       const nonBoundaryLayers = [
+        "permit-watch-circle",
         "good-brick-circle",
         "relocated-structures-circle",
         "landmarks-circle",
@@ -5505,7 +5783,8 @@ export class AtlasMapController {
         const p = applyOverrideToProperties(f.properties || {}, this.curatedOverrides);
 
         if (
-          (lid === "landmarks-circle" ||
+          (lid === "permit-watch-circle" ||
+            lid === "landmarks-circle" ||
             lid === "good-brick-circle" ||
             lid === "relocated-structures-circle") &&
           (p.hcad_num || p.building_id)
@@ -5519,6 +5798,7 @@ export class AtlasMapController {
               )) ||
             rendered.find(
               (bf) =>
+                bf.layer?.id !== "permit-watch-circle" &&
                 bf.layer?.id !== "landmarks-circle" &&
                 bf.layer?.id !== "good-brick-circle" &&
                 bf.layer?.id !== "relocated-structures-circle" &&
@@ -5558,7 +5838,11 @@ export class AtlasMapController {
               seenKeys.add(bldKey);
               if (mergedProps.hcad_num) seenKeys.add(`hcad:${mergedProps.hcad_num}`);
               const bTypeBadge =
-                lid === "good-brick-circle"
+                lid === "permit-watch-circle"
+                  ? p.severity === "critical"
+                    ? "⚠️ Demo Alert"
+                    : "⚠️ Permit Watch"
+                  : lid === "good-brick-circle"
                   ? "Good Brick"
                   : lid === "relocated-structures-circle"
                   ? mergedProps.was_relocated
@@ -5568,7 +5852,11 @@ export class AtlasMapController {
                   ? "Landmark"
                   : "Building";
               const bSwatchColor =
-                lid === "good-brick-circle"
+                lid === "permit-watch-circle"
+                  ? p.severity === "critical"
+                    ? "#EF4444"
+                    : "#F59E0B"
+                  : lid === "good-brick-circle"
                   ? "#95c959"
                   : lid === "relocated-structures-circle"
                   ? mergedProps.was_relocated

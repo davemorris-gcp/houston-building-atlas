@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261012a" />
+  <link rel="stylesheet" href="styles/index.css?v=20261022a" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -175,6 +175,17 @@
           title="Toggle 3D Building Height Extrusion"
         >
           3D: OFF
+        </button>
+
+        <button
+          type="button"
+          class="action-pill permit-watch-pill"
+          id="btn-open-permit-watch-modal"
+          title="Open Active City of Houston Demolition, Sewer Disconnect &amp; Texas DSHS Asbestos Watchlist"
+        >
+          <span class="permit-watch-pill-dot" aria-hidden="true"></span>
+          <span>&#9888; Permit Watch</span>
+          <span class="permit-watch-pill-badge mono" id="permit-watch-topbar-count">15</span>
         </button>
 
         <div class="topbar-more-dropdown" id="topbar-more-dropdown">
@@ -567,6 +578,33 @@
 
         <!-- Preservation & Civic Overlay Layers -->
         <div class="checkbox-stack layer-list" id="overlay-layer-list">
+          <div class="layer-item-row" data-layer-key="permitWatch">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-permit-watch" checked />
+              <span class="swatch-dot" style="background:#EF4444; border:1.5px solid #FEF08A; box-shadow:0 0 7px rgba(239,68,68,0.85);"></span>
+              <span class="layer-name">Permit &amp; Demo Watch (<span id="permit-watch-layer-count">15</span>)</span>
+            </label>
+            <div style="display:inline-flex;align-items:center;gap:4px;">
+              <button
+                type="button"
+                class="layer-solo-btn"
+                id="btn-open-permit-watch-inline"
+                style="border-color:rgba(248,113,113,0.45);background:rgba(239,68,68,0.14);color:#FECACA;"
+                title="Open Active Demolition, Sewer Disconnect &amp; DSHS Asbestos Watchlist Modal"
+              >
+                Watchlist
+              </button>
+              <button
+                type="button"
+                class="layer-solo-btn"
+                data-solo-layer="permitWatch"
+                title="Show only Permit &amp; Demolition Watch alerts (click again to restore)"
+              >
+                Solo
+              </button>
+            </div>
+          </div>
+
           <div class="layer-item-row" data-layer-key="goodBrickAwards">
             <label class="check-row layer-row-main">
               <input type="checkbox" id="chk-layer-good-brick" checked />
@@ -1923,10 +1961,92 @@
         </div>
       </div>
     </div>
+
+    <!-- Active Demolition, Sewer Disconnection & Texas DSHS Asbestos Watchlist Modal -->
+    <div class="modal-backdrop hidden" id="permit-watch-modal" role="dialog" aria-modal="true" aria-labelledby="permit-watch-modal-title">
+      <div class="modal-card permit-watch-modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="brand-kicker" style="color:#FCA5A5;">&#9888; Preservation Houston Early-Warning Feed</span>
+            <h2 class="modal-title" id="permit-watch-modal-title">Active Permit &amp; Demolition Watchlist</h2>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="mono" id="permit-watch-updated-badge" style="font-size:11px;color:#94a3b8;">Auto-Synced Daily</span>
+            <button type="button" class="icon-btn" id="btn-close-permit-watch-modal" aria-label="Close Permit Watchlist Modal">
+              &times;
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-body permit-watch-modal-body">
+          <div class="permit-watch-intro-banner">
+            <div>
+              <strong>Automated Municipal &amp; State Regulatory Surveillance:</strong>
+              Combines daily <strong>City of Houston Permitting Center</strong> sold permits (Demolition Bldg/House, Demo Authorization, Sewer Disconnection, House Moving) with <strong>Texas Department of State Health Services (DSHS)</strong> Asbestos Abatement &amp; Demolition notifications (10-working-day advance filings) cross-referenced against pre-1960 historic structures, City Landmarks, and Historic Districts.
+            </div>
+          </div>
+
+          <div class="permit-watch-summary-strip" id="permit-watch-summary-strip">
+            <div class="permit-watch-stat-box critical">
+              <span class="permit-watch-stat-label">Critical Demo / Sewer Threats</span>
+              <span class="permit-watch-stat-val mono" id="pw-stat-critical">5</span>
+            </div>
+            <div class="permit-watch-stat-box watch">
+              <span class="permit-watch-stat-label">Abatement / Garage Watch</span>
+              <span class="permit-watch-stat-val mono" id="pw-stat-watch">10</span>
+            </div>
+            <div class="permit-watch-stat-box">
+              <span class="permit-watch-stat-label">COH Permits Matched</span>
+              <span class="permit-watch-stat-val mono" id="pw-stat-coh">8</span>
+            </div>
+            <div class="permit-watch-stat-box">
+              <span class="permit-watch-stat-label">TX DSHS Filings Matched</span>
+              <span class="permit-watch-stat-val mono" id="pw-stat-dshs">7</span>
+            </div>
+          </div>
+
+          <div class="permit-watch-filter-bar">
+            <div class="permit-watch-filter-pills" role="tablist" aria-label="Filter Watchlist Alerts by Severity">
+              <button type="button" class="permit-watch-filter-pill active" data-pw-filter="all">
+                All Flagged Structures (<span id="pw-pill-count-all">15</span>)
+              </button>
+              <button type="button" class="permit-watch-filter-pill critical" data-pw-filter="critical">
+                &#128680; Critical Demo / Sewer Disc (<span id="pw-pill-count-critical">5</span>)
+              </button>
+              <button type="button" class="permit-watch-filter-pill watch" data-pw-filter="watch">
+                &#9888; Abatement / Garage Watch (<span id="pw-pill-count-watch">10</span>)
+              </button>
+            </div>
+            <div class="permit-watch-portal-links">
+              <a
+                href="https://www.houstonpermittingcenter.org/sold-permits-search"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="action-pill subtle"
+                title="Open City of Houston Permitting Center Sold Permits Search"
+              >
+                COH Sold Permits Portal &#8599;
+              </a>
+              <a
+                href="https://vo.ras.dshs.state.tx.us/datamart/notificationSearchAction.do"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="action-pill subtle"
+                title="Open Texas Department of State Health Services Asbestos &amp; Demolition Notification Search"
+              >
+                TX DSHS Asbestos Portal &#8599;
+              </a>
+            </div>
+          </div>
+
+          <div class="permit-watch-list" id="permit-watch-modal-list"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261012c"></script>
+  <script type="module" src="js/app.js?v=20261022a"></script>
 </body>
 </html>

@@ -29,6 +29,7 @@ export const DEFAULT_FILTER_STATE = {
   showAnnexationSpokes: true, // include 1963 10-ft highway ETJ spokes & 2000s-2010s MUD SPA commercial strips
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
   layers: {
+    permitWatch: true,
     goodBrickAwards: true,
     landmarks: true,
     historicDistricts: true,
@@ -263,6 +264,7 @@ function layersMatchDefault(layers) {
 }
 
 const LAYER_KEY_TO_SHORT = {
+  permitWatch: "permit_watch",
   goodBrickAwards: "good_brick",
   landmarks: "landmarks",
   historicDistricts: "historic_districts",
@@ -283,6 +285,11 @@ const LAYER_KEY_TO_SHORT = {
 };
 
 const SHORT_TO_LAYER_KEY = {
+  permitwatch: "permitWatch",
+  permit_watch: "permitWatch",
+  permit_alerts: "permitWatch",
+  demolition_watch: "permitWatch",
+  endangered: "permitWatch",
   goodbrickawards: "goodBrickAwards",
   good_brick_awards: "goodBrickAwards",
   good_brick: "goodBrickAwards",
