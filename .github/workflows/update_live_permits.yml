@@ -1,0 +1,58 @@
+name: Update Live Houston Permits & Asbestos Alerts
+
+on:
+  schedule:
+    # Runs daily at 12:00 UTC (7:00 AM Central Daylight Time / 6:00 AM Central Standard Time)
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      lookback_days:
+        description: 'Number of days to look back for City of Houston Sold Permits'
+        required: false
+        default: '45'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-permits-and-asbestos:
+    name: Fetch City of Houston Permits & Texas DSHS Asbestos Filings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install poppler-utils (pdftotext for Texas DSHS PDFs)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y poppler-utils
+
+      - name: Run live permit & asbestos ingestion pipeline
+        run: |
+          python3 pipeline/atlas_pipeline/fetch_live_permits.py \
+            --lookback-days "${{ github.event.inputs.lookback_days || '45' }}" \
+            --weekly-xlsx-count 4
+
+      - name: Commit and push updated permit alerts and shards
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/data/active_permit_alerts.json app/public/data/permits/
+          if git diff --cached --quiet; then
+            echo "No new permit or asbestos changes detected."
+          else
+            ALERT_SUMMARY=$(python3 -c '
+          import json
+          with open("app/public/data/active_permit_alerts.json") as f:
+              s = json.load(f).get("summary", {})
+          print(f"{s.get(\"critical_count\", 0)} critical, {s.get(\"watch_count\", 0)} watch ({s.get(\"total_flagged_buildings\", 0)} total)")
+          ')
+            git commit -m "chore(permits): automated update of Houston permits & DSHS asbestos alerts ($ALERT_SUMMARY)"
+            git push
+          fi

@@ -18,8 +18,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261012b";
-import { AtlasMapController } from "./mapController.js?v=20261012b";
+} from "./filterStore.js?v=20261022a";
+import { AtlasMapController } from "./mapController.js?v=20261022a";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
 import {
   applyOverrideToProperties,
@@ -120,6 +120,7 @@ class HoustonAtlasApp {
       loadCuratedPhotosIndex(),
     ]);
 
+    this._syncPermitWatchCounts();
     this._mergeCuratedOverridesIntoSearchIndex();
     this._enrichSearchIndexWithOverlayMetadata();
 
@@ -265,7 +266,7 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261011u"),
+        fetch("public/data/search_index.json?v=20261022a"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
@@ -1430,6 +1431,70 @@ class HoustonAtlasApp {
       }
     }
 
+    // 3. Enrich from active_permit_alerts.json
+    const permitAlertsPayload = this.mapController?.getPermitAlertsPayload?.();
+    const permitAlerts = Array.isArray(permitAlertsPayload?.alerts) ? permitAlertsPayload.alerts : [];
+    for (const al of permitAlerts) {
+      const hcad = String(al.hcad_num || "").trim();
+      const target = hcad && byHcad.get(hcad);
+      const badgeLabel =
+        al.severity === "critical"
+          ? `🚨 ${al.badge || "Active Demo / Sewer Disc"}`
+          : `⚠ ${al.badge || "Permit / Asbestos Watch"}`;
+      if (target) {
+        if (al.building_name && !target.building_name) {
+          target.building_name = al.building_name;
+          if (!target.label || target.label.toLowerCase() === String(al.address || "").toLowerCase()) {
+            target.label = al.building_name;
+          }
+        }
+        if (al.architect && !target.architect) target.architect = al.architect;
+        if (al.style && !target.style) target.style = al.style;
+        if (al.yr_remodel && !target.yr_remodel) target.yr_remodel = al.yr_remodel;
+        if (!String(target.sublabel || "").includes(badgeLabel)) {
+          target.sublabel = `${badgeLabel} • ${target.sublabel || al.address || ""}`;
+        }
+        target.original_permit = [
+          target.original_permit || "",
+          al.headline || "",
+          al.badge || "",
+          "demolition watch permit watch sewer disconnect asbestos abatement",
+        ]
+          .filter(Boolean)
+          .join(" ");
+      } else if (Number.isFinite(al.lon) && Number.isFinite(al.lat)) {
+        const newEntry = {
+          type: "building",
+          id: al.building_id || hcad,
+          hcad_num: hcad,
+          label: al.building_name || al.address || `HCAD ${hcad}`,
+          address: al.address || "",
+          building_name: al.building_name || "",
+          sublabel: [
+            badgeLabel,
+            al.address,
+            al.neighborhood || al.historic_district || "",
+            al.headline || "",
+          ]
+            .filter(Boolean)
+            .join(" • "),
+          category: al.year_built ? `Built ${al.year_built}` : badgeLabel,
+          year_built: al.year_built || 0,
+          architect: al.architect || "",
+          style: al.style || "",
+          bld_style: al.style || "",
+          historic_district: al.historic_district || "",
+          neighborhood: al.neighborhood || "",
+          original_permit: `${al.headline || ""} ${al.badge || ""} demolition watch permit watch sewer disconnect asbestos abatement`,
+          lon: al.lon,
+          lat: al.lat,
+          zoom: 17.6,
+        };
+        this.searchIndex.push(newEntry);
+        if (hcad) byHcad.set(hcad, newEntry);
+      }
+    }
+
     for (let i = 0; i < this.searchIndex.length; i++) {
       this.searchIndex[i]._lc = null;
     }
@@ -1927,6 +1992,7 @@ class HoustonAtlasApp {
 
     // Overlay Layer Toggles & Per-Row Solo Buttons
     const layerCheckboxes = [
+      ["chk-layer-permit-watch", "permitWatch"],
       ["chk-layer-good-brick", "goodBrickAwards"],
       ["chk-layer-landmarks", "landmarks"],
       ["chk-layer-lost-houston", "lostHouston"],
@@ -2056,6 +2122,46 @@ class HoustonAtlasApp {
         e.preventDefault();
         e.stopPropagation();
         this.openSanbornBrowserModal();
+      });
+    }
+
+    // Active Demolition, Sewer Disconnect & Texas DSHS Asbestos Watchlist Modal
+    const btnOpenPermitWatchTop = document.getElementById("btn-open-permit-watch-modal");
+    if (btnOpenPermitWatchTop) {
+      btnOpenPermitWatchTop.addEventListener("click", () => {
+        this.openPermitWatchModal("all");
+      });
+    }
+    const btnOpenPermitWatchInline = document.getElementById("btn-open-permit-watch-inline");
+    if (btnOpenPermitWatchInline) {
+      btnOpenPermitWatchInline.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openPermitWatchModal("all");
+      });
+    }
+    const permitWatchModal = document.getElementById("permit-watch-modal");
+    const btnClosePermitWatchModal = document.getElementById("btn-close-permit-watch-modal");
+    if (btnClosePermitWatchModal && permitWatchModal) {
+      btnClosePermitWatchModal.addEventListener("click", () => {
+        permitWatchModal.classList.add("hidden");
+      });
+    }
+    if (permitWatchModal) {
+      permitWatchModal.addEventListener("click", (e) => {
+        if (e.target === permitWatchModal) {
+          permitWatchModal.classList.add("hidden");
+        }
+      });
+      permitWatchModal.querySelectorAll("[data-pw-filter]").forEach((pillBtn) => {
+        pillBtn.addEventListener("click", () => {
+          const sev = pillBtn.getAttribute("data-pw-filter") || "all";
+          permitWatchModal
+            .querySelectorAll("[data-pw-filter]")
+            .forEach((b) => b.classList.remove("active"));
+          pillBtn.classList.add("active");
+          this._renderPermitWatchModalList(sev);
+        });
       });
     }
 
@@ -4508,6 +4614,7 @@ class HoustonAtlasApp {
 
     // Overlay Layer Checkboxes & Per-Row Solo State
     const mapLayerIds = {
+      "chk-layer-permit-watch": state.layers.permitWatch,
       "chk-layer-good-brick": state.layers.goodBrickAwards,
       "chk-layer-landmarks": state.layers.landmarks,
       "chk-layer-relocated-structures": state.layers.relocatedStructures,
@@ -7168,6 +7275,17 @@ class HoustonAtlasApp {
     const initialRemodelYear = Number(props.yr_remodel || props.remodel_year) || 0;
     const initialEffYear = Number(props.eff_year_built) || 0;
 
+    const activePermitAlert =
+      this.mapController && typeof this.mapController.getPermitAlertForBuilding === "function"
+        ? this.mapController.getPermitAlertForBuilding({
+            hcadNum,
+            buildingId: props.building_id || props.id || "",
+          })
+        : null;
+    const permitAlertCardHtml = activePermitAlert
+      ? this._buildInspectorPermitAlertCardHtml(activePermitAlert)
+      : "";
+
     content.innerHTML = `
       ${overlapStackHtml}
       <div class="inspector-hero">
@@ -7179,6 +7297,21 @@ class HoustonAtlasApp {
               ? `<span class="inspector-age-pill" style="background:rgba(249,115,22,0.18);color:#fdba74;border-color:rgba(249,115,22,0.4);" title="Structure relocated to or within Houston">&#128666; Relocated</span>`
               : ""
           }
+          ${
+            activePermitAlert
+              ? `<span class="inspector-age-pill" style="background:${
+                  activePermitAlert.severity === "critical"
+                    ? "rgba(239,68,68,0.28)"
+                    : "rgba(245,158,11,0.24)"
+                };color:${
+                  activePermitAlert.severity === "critical" ? "#FECACA" : "#FDE68A"
+                };border-color:${
+                  activePermitAlert.severity === "critical"
+                    ? "rgba(248,113,113,0.65)"
+                    : "rgba(251,191,36,0.55)"
+                };">&#9888; ${activePermitAlert.badge || "Active Permit Watch"}</span>`
+              : ""
+          }
         </div>
         <h2 class="inspector-title" id="inspector-property-title">${title}</h2>
         ${akaHeroHtml}
@@ -7188,6 +7321,8 @@ class HoustonAtlasApp {
           <span>${statusBadge}</span>
         </div>
       </div>
+
+      ${permitAlertCardHtml}
 
       <div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${hcadNum}">
         <div class="inspector-photo-header">
@@ -7379,9 +7514,9 @@ class HoustonAtlasApp {
       ${buildingDeedCardHtml}
 
       ${
-        hcadNum || histPermitVal || histCostVal || wasRelocatedFlag
+        hcadNum || histPermitVal || histCostVal || wasRelocatedFlag || activePermitAlert
           ? `<details class="inspector-permits-card" id="inspector-permits-card" data-hcad-num="${hcadNum}" ${
-              histPermitVal || wasRelocatedFlag ? "open" : ""
+              histPermitVal || wasRelocatedFlag || activePermitAlert ? "open" : ""
             }>
               <summary class="inspector-permits-summary">
                 <div class="inspector-permits-title-wrap">
@@ -7490,6 +7625,15 @@ class HoustonAtlasApp {
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, props);
+
+    content.querySelectorAll("[data-open-permit-watchlist]").forEach((pwBtn) => {
+      pwBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const sev = pwBtn.getAttribute("data-open-permit-watchlist") || "all";
+        this.openPermitWatchModal(sev);
+      });
+    });
 
     content.querySelectorAll("[data-inspect-lost-houston]").forEach((lhBtn) => {
       lhBtn.addEventListener("click", (e) => {
@@ -7813,7 +7957,7 @@ class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261022a`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -7927,11 +8071,21 @@ class HoustonAtlasApp {
       const dt = String(p.dt || "");
       const desc = String(p.d || "");
       const pid = String(p.id || "");
+      const srcLabel =
+        p.src === "TX_DSHS"
+          ? "TX DSHS Notification"
+          : p.src === "COH_LIVE"
+          ? "COH Live Permit"
+          : "";
       timelineItems.push(`
-        <div class="permit-timeline-item">
+        <div class="permit-timeline-item ${
+          cat === "demo" ? "permit-item-demo" : cat === "asbestos" ? "permit-item-asbestos" : ""
+        }">
           <div class="permit-timeline-top">
             <span class="permit-cat-badge cat-${cat}">${tp}</span>
-            <span class="permit-date-mono">${dt}${pid ? ` · #${pid}` : ""}</span>
+            <span class="permit-date-mono">${dt}${pid ? ` · #${pid}` : ""}${
+        srcLabel ? ` · ${srcLabel}` : ""
+      }</span>
           </div>
           ${desc ? `<div class="permit-desc-text">${desc}</div>` : ""}
         </div>
@@ -10298,6 +10452,304 @@ class HoustonAtlasApp {
           grid.querySelectorAll(".sanborn-sheet-card").forEach((b) => b.classList.remove("active"));
           cardBtn.classList.add("active");
           this._selectSanbornPreviewSheet(found);
+        }
+      });
+    });
+  }
+
+  _syncPermitWatchCounts() {
+    const payload = this.mapController?.getPermitAlertsPayload?.();
+    const alerts = Array.isArray(payload?.alerts) ? payload.alerts : [];
+    const total = alerts.length;
+    const critCount = alerts.filter((a) => a.severity === "critical").length;
+    const watchCount = total - critCount;
+    const cohCount = Number(payload?.summary?.coh_permits_matched || 0);
+    const dshsCount = Number(payload?.summary?.dshs_notifications_matched || 0);
+
+    const topCountEl = document.getElementById("permit-watch-topbar-count");
+    if (topCountEl) topCountEl.textContent = String(total);
+    const layerCountEl = document.getElementById("permit-watch-layer-count");
+    if (layerCountEl) layerCountEl.textContent = String(total);
+
+    const critEl = document.getElementById("pw-stat-critical");
+    if (critEl) critEl.textContent = String(critCount);
+    const watchEl = document.getElementById("pw-stat-watch");
+    if (watchEl) watchEl.textContent = String(watchCount);
+    const cohEl = document.getElementById("pw-stat-coh");
+    if (cohEl) cohEl.textContent = String(cohCount);
+    const dshsEl = document.getElementById("pw-stat-dshs");
+    if (dshsEl) dshsEl.textContent = String(dshsCount);
+
+    const pillAll = document.getElementById("pw-pill-count-all");
+    if (pillAll) pillAll.textContent = String(total);
+    const pillCrit = document.getElementById("pw-pill-count-critical");
+    if (pillCrit) pillCrit.textContent = String(critCount);
+    const pillWatch = document.getElementById("pw-pill-count-watch");
+    if (pillWatch) pillWatch.textContent = String(watchCount);
+
+    const updatedBadge = document.getElementById("permit-watch-updated-badge");
+    if (updatedBadge && payload?.generated_at) {
+      const dtStr = String(payload.generated_at).slice(0, 10);
+      updatedBadge.textContent = `Updated ${dtStr} · Daily Sync`;
+    }
+  }
+
+  _buildInspectorPermitAlertCardHtml(alert) {
+    if (!alert) return "";
+    const isCritical = alert.severity === "critical";
+    const cohPermits = Array.isArray(alert.coh_permits) ? alert.coh_permits : [];
+    const dshsFilings = Array.isArray(alert.dshs_notifications) ? alert.dshs_notifications : [];
+    const totalAlertsCount = Array.isArray(this.mapController?.getPermitAlertsPayload?.()?.alerts)
+      ? this.mapController.getPermitAlertsPayload().alerts.length
+      : 15;
+
+    const cohRowsHtml = cohPermits
+      .map(
+        (cp) => `
+        <div class="inspector-permit-filing-box coh">
+          <div class="inspector-permit-filing-top">
+            <span class="inspector-permit-agency-tag coh">COH Sold Permit #${cp.project_no || "N/A"}</span>
+            <span class="mono inspector-permit-filing-date">${cp.date || ""}</span>
+          </div>
+          <div class="inspector-permit-filing-title">
+            <strong>${cp.permit_type_label || cp.permit_type || "Permit"}:</strong>
+            ${cp.use_desc || cp.permit_desc || ""}
+          </div>
+          <div class="inspector-permit-filing-meta">
+            ${cp.fcc_group ? `<span><strong>Group:</strong> ${cp.fcc_group}</span>` : ""}
+            ${cp.buyer ? `<span><strong>Applicant / Contractor:</strong> ${cp.buyer}</span>` : ""}
+            ${cp.owner_occupant ? `<span><strong>Listed Occupant:</strong> ${cp.owner_occupant}</span>` : ""}
+          </div>
+        </div>`
+      )
+      .join("");
+
+    const dshsRowsHtml = dshsFilings
+      .map(
+        (dn) => `
+        <div class="inspector-permit-filing-box dshs">
+          <div class="inspector-permit-filing-top">
+            <span class="inspector-permit-agency-tag dshs">TX DSHS #${dn.notification_number || "N/A"} (${dn.amendment_number || "O"})</span>
+            <span class="mono inspector-permit-filing-date">Work Window: ${dn.start_date || "?"} &#8594; ${dn.end_date || "?"}</span>
+          </div>
+          <div class="inspector-permit-filing-title">
+            <strong>${dn.work_type || "Asbestos / Demolition Notification"}:</strong>
+            ${dn.work_description || "Regulated Asbestos-Containing Material (RACM) Abatement"}${
+          dn.racm_sqft ? ` (${Number(dn.racm_sqft).toLocaleString()} sq ft RACM)` : ""
+        }
+          </div>
+          <div class="inspector-permit-filing-meta">
+            ${dn.containment_method ? `<span><strong>Containment:</strong> ${dn.containment_method}</span>` : ""}
+            ${dn.facility_owner ? `<span><strong>Facility Owner:</strong> ${dn.facility_owner}</span>` : ""}
+            ${dn.abatement_contractor ? `<span><strong>Abatement Operator:</strong> ${dn.abatement_contractor}</span>` : ""}
+            ${dn.project_consultant ? `<span><strong>Licensed Consultant:</strong> ${dn.project_consultant}</span>` : ""}
+            ${dn.disposal_site ? `<span><strong>Waste Disposal:</strong> ${dn.disposal_site}</span>` : ""}
+          </div>
+        </div>`
+      )
+      .join("");
+
+    return `
+      <div class="inspector-permit-alert-card ${isCritical ? "critical" : "watch"}" id="inspector-permit-alert-card">
+        <div class="inspector-permit-alert-header">
+          <span class="inspector-permit-alert-kicker">
+            ${isCritical ? "&#128680; Active Demolition / Sewer Disconnection Alert" : "&#9888; Active Permit &amp; Abatement Watch"}
+          </span>
+          <span class="inspector-permit-alert-badge mono">${alert.badge || "Active Filing"}</span>
+        </div>
+        <div class="inspector-permit-alert-headline">${alert.headline || ""}</div>
+        ${
+          alert.preservation_note
+            ? `<div class="inspector-permit-alert-narrative">${alert.preservation_note}</div>`
+            : ""
+        }
+        <div class="inspector-permit-filings-stack">
+          ${cohRowsHtml}
+          ${dshsRowsHtml}
+        </div>
+        <div class="inspector-permit-alert-actions">
+          <button
+            type="button"
+            class="inspector-permit-watch-btn primary"
+            data-open-permit-watchlist="all"
+          >
+            &#9888; Open Active Watchlist (${totalAlertsCount} Flagged Structures)
+          </button>
+          <a
+            href="mailto:contact@preservationhouston.org?subject=${encodeURIComponent(
+              `Permit Watch Observation: ${alert.building_name || alert.address || alert.hcad_num}`
+            )}"
+            class="inspector-permit-watch-btn secondary"
+            title="Report on-site observations or preservation updates to Preservation Houston"
+          >
+            &#9993; Report Site Activity to PH
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  openPermitWatchModal(filterSeverity = "all") {
+    const modal = document.getElementById("permit-watch-modal");
+    if (!modal) return;
+    this._syncPermitWatchCounts();
+    modal.classList.remove("hidden");
+
+    modal.querySelectorAll("[data-pw-filter]").forEach((btn) => {
+      const sev = btn.getAttribute("data-pw-filter") || "all";
+      btn.classList.toggle("active", sev === filterSeverity);
+    });
+
+    this._renderPermitWatchModalList(filterSeverity);
+  }
+
+  _renderPermitWatchModalList(filterSeverity = "all") {
+    const listEl = document.getElementById("permit-watch-modal-list");
+    if (!listEl) return;
+
+    const payload = this.mapController?.getPermitAlertsPayload?.();
+    const allAlerts = Array.isArray(payload?.alerts) ? payload.alerts : [];
+    const filtered = allAlerts.filter((al) => {
+      if (filterSeverity === "critical") return al.severity === "critical";
+      if (filterSeverity === "watch") return al.severity !== "critical";
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = `<div style="padding:18px;color:var(--text-secondary);">No flagged structures match this filter.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = filtered
+      .map((al) => {
+        const isCritical = al.severity === "critical";
+        const yrText =
+          Number(al.year_built) > 1800
+            ? `Built ${al.year_built}${al.yr_remodel ? ` (Remod ${al.yr_remodel})` : ""}`
+            : "Historic Parcel";
+        const cohList = Array.isArray(al.coh_permits) ? al.coh_permits : [];
+        const dshsList = Array.isArray(al.dshs_notifications) ? al.dshs_notifications : [];
+        const locParts = [
+          al.neighborhood || "",
+          al.historic_district &&
+          al.historic_district !== "Outside City District" &&
+          al.historic_district !== "Outside Historic District"
+            ? al.historic_district
+            : "",
+          al.style || "",
+          al.architect ? `Architect: ${al.architect}` : "",
+        ].filter(Boolean);
+
+        const cohSummaryHtml = cohList
+          .map(
+            (cp) => `
+            <div class="pw-item-filing coh">
+              <span class="pw-filing-pill coh">COH #${cp.project_no} · ${cp.date}</span>
+              <span><strong>${cp.permit_type_label || cp.permit_type}:</strong> ${cp.use_desc || cp.permit_desc}${
+              cp.buyer ? ` · Applicant: ${cp.buyer}` : ""
+            }</span>
+            </div>`
+          )
+          .join("");
+
+        const dshsSummaryHtml = dshsList
+          .map(
+            (dn) => `
+            <div class="pw-item-filing dshs">
+              <span class="pw-filing-pill dshs">TX DSHS #${dn.notification_number} · ${dn.start_date} &#8594; ${dn.end_date}</span>
+              <span><strong>${dn.work_type || "Asbestos Abatement"}:</strong> ${
+              dn.work_description || "RACM Abatement"
+            }${dn.racm_sqft ? ` (${Number(dn.racm_sqft).toLocaleString()} sq ft)` : ""}${
+              dn.abatement_contractor ? ` · Operator: ${dn.abatement_contractor}` : ""
+            }${dn.facility_owner ? ` · Owner: ${dn.facility_owner}` : ""}</span>
+            </div>`
+          )
+          .join("");
+
+        return `
+          <div class="permit-watch-item-card ${isCritical ? "critical" : "watch"}">
+            <div class="pw-item-top">
+              <div class="pw-item-title-group">
+                <div class="pw-item-badges">
+                  <span class="pw-severity-badge ${isCritical ? "critical" : "watch"}">
+                    ${isCritical ? "&#128680; Critical Threat" : "&#9888; Watch"} · ${al.badge || "Active Filing"}
+                  </span>
+                  <span class="pw-year-badge mono">${yrText}</span>
+                  ${
+                    al.hcad_num
+                      ? `<span class="pw-hcad-badge mono">HCAD ${al.hcad_num}</span>`
+                      : ""
+                  }
+                </div>
+                <h3 class="pw-item-title">${
+                  al.building_name && al.building_name !== al.address
+                    ? `${al.building_name} <span class="pw-item-addr-inline">(${al.address})</span>`
+                    : al.address
+                }</h3>
+                ${
+                  locParts.length > 0
+                    ? `<div class="pw-item-loc-line">${locParts.join(" · ")}</div>`
+                    : ""
+                }
+              </div>
+              <div class="pw-item-actions">
+                <button
+                  type="button"
+                  class="action-pill pw-inspect-btn"
+                  data-pw-inspect-hcad="${al.hcad_num || ""}"
+                  data-pw-inspect-id="${al.building_id || ""}"
+                  data-pw-lon="${al.lon}"
+                  data-pw-lat="${al.lat}"
+                >
+                  &#128269; Inspect on Map
+                </button>
+              </div>
+            </div>
+
+            ${
+              al.preservation_note
+                ? `<div class="pw-item-narrative">${al.preservation_note}</div>`
+                : ""
+            }
+
+            <div class="pw-item-filings-list">
+              ${cohSummaryHtml}
+              ${dshsSummaryHtml}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    listEl.querySelectorAll("[data-pw-inspect-hcad]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const hcad = btn.getAttribute("data-pw-inspect-hcad") || "";
+        const bldId = btn.getAttribute("data-pw-inspect-id") || "";
+        const lon = parseFloat(btn.getAttribute("data-pw-lon"));
+        const lat = parseFloat(btn.getAttribute("data-pw-lat"));
+        const modal = document.getElementById("permit-watch-modal");
+        if (modal) modal.classList.add("hidden");
+
+        if (!this.filterStore.getState().layers.permitWatch) {
+          this.filterStore.setLayerVisibility("permitWatch", true);
+        }
+
+        if (this.mapController) {
+          if (Number.isFinite(lon) && Number.isFinite(lat)) {
+            this.mapController.flyToLocation({
+              lng: lon,
+              lat: lat,
+              zoom: 17.6,
+              hcadNum: hcad,
+              featureId: bldId,
+            });
+          } else {
+            this.mapController.selectFeatureByIdOrHcad({
+              hcadNum: hcad,
+              featureId: bldId,
+              flyTo: true,
+            });
+          }
         }
       });
     });
