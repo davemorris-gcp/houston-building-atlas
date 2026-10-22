@@ -6289,7 +6289,7 @@ export class AtlasMapController {
         name: item.props.name || item.props.era_label || item.title || "",
         layerKey: item.overlayKey,
         eraYear: item.props.era || item.props.ward_era || item.props.era_year || null,
-        flyTo: false,
+        flyTo: true,
         inspect: true,
         keepOverlapStack: true,
       });
@@ -6312,6 +6312,46 @@ export class AtlasMapController {
             selBndSrc.setData({ type: "FeatureCollection", features: [feat] });
           }
         }
+        const geomMeta = this._computeGeometryBBoxAndCentroid(item.geometry);
+        if (geomMeta) {
+          const curZoom = this.useCanvasFallback
+            ? Number(this.canvasState?.zoom || 13)
+            : Number(this.map?.getZoom?.() || 13);
+          if (
+            geomMeta.bbox &&
+            !this.useCanvasFallback &&
+            this.map &&
+            typeof this.map.fitBounds === "function" &&
+            (Math.abs(geomMeta.bbox[2] - geomMeta.bbox[0]) > 1e-5 ||
+              Math.abs(geomMeta.bbox[3] - geomMeta.bbox[1]) > 1e-5)
+          ) {
+            try {
+              this.map.fitBounds(
+                [
+                  [geomMeta.bbox[0], geomMeta.bbox[1]],
+                  [geomMeta.bbox[2], geomMeta.bbox[3]],
+                ],
+                {
+                  padding: { top: 80, bottom: 110, left: 360, right: 380 },
+                  maxZoom: item.overlayKey === "lost_houston" ? 17.5 : Math.max(curZoom, 15.8),
+                  duration: 850,
+                }
+              );
+            } catch (_e) {
+              this.flyToLocation({
+                lng: geomMeta.lng,
+                lat: geomMeta.lat,
+                zoom: Math.max(curZoom, 16.0),
+              });
+            }
+          } else if (Number.isFinite(geomMeta.lng) && Number.isFinite(geomMeta.lat)) {
+            this.flyToLocation({
+              lng: geomMeta.lng,
+              lat: geomMeta.lat,
+              zoom: Math.max(curZoom, 16.5),
+            });
+          }
+        }
         if (this.onSelectFeature) {
           this.onSelectFeature(feat.properties);
         }
@@ -6321,6 +6361,55 @@ export class AtlasMapController {
       this.highlightAndInspectFeature(item.props, item.geometry || null, {
         keepOverlapStack: true,
       });
+      // When clicking any Map Layers & Overlays point marker (Good Brick, COH Landmarks,
+      // THC Markers, Relocated Structures, Active Permit Watch) or clicking a building while
+      // zoomed out, smoothly fly and zoom to the structure.
+      const curZoom = this.useCanvasFallback
+        ? Number(this.canvasState?.zoom || 13)
+        : Number(this.map?.getZoom?.() || 13);
+      const lid = String(item.layerId || "");
+      const isOverlayMarkerOrLine =
+        item.kind === "marker" ||
+        Boolean(item.overlayKey) ||
+        lid.includes("good-brick") ||
+        lid.includes("landmarks") ||
+        lid.includes("thc-markers") ||
+        lid.includes("relocated") ||
+        lid.includes("permit-watch") ||
+        lid.includes("lost-houston") ||
+        lid.includes("historical-waterways") ||
+        lid.includes("historical-railroads");
+      if (isOverlayMarkerOrLine || curZoom < 16.5) {
+        let targetLng = Number(
+          this.selectedFeatureProps?.lng ??
+            this.selectedFeatureProps?.lon ??
+            item.props?.lng ??
+            item.props?.lon
+        );
+        let targetLat = Number(this.selectedFeatureProps?.lat ?? item.props?.lat);
+        const geomMeta = this._computeGeometryBBoxAndCentroid(
+          this.selectedFeatureGeometry || item.geometry
+        );
+        if ((!Number.isFinite(targetLng) || !Number.isFinite(targetLat)) && geomMeta) {
+          targetLng = geomMeta.lng;
+          targetLat = geomMeta.lat;
+        }
+        if (Number.isFinite(targetLng) && Number.isFinite(targetLat)) {
+          const isLinearOverlay =
+            lid.includes("historical-waterways") ||
+            lid.includes("historical-railroads") ||
+            item.overlayKey === "historical_waterways" ||
+            item.overlayKey === "historical_railroads";
+          const targetZoom = isLinearOverlay
+            ? Math.max(curZoom, 15.2)
+            : Math.max(curZoom, 17.4);
+          this.flyToLocation({
+            lng: targetLng,
+            lat: targetLat,
+            zoom: targetZoom,
+          });
+        }
+      }
     }
 
     if (typeof this.onOverlapStackChange === "function") {

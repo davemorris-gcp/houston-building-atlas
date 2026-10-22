@@ -1385,6 +1385,9 @@ def run_resolve_undated() -> None:
             best_yr = 0
             best_acct = ""
             for yr, dlon, dlat, dacct in owner_to_dated[norm_own]:
+                # Do not propagate pre-war residential bungalow dates (< 1945) onto institutional university/church campus tracts
+                if is_inst and yr < 1945:
+                    continue
                 dist_m = math.hypot((ulon - dlon) * 111320.0 * cos_lat, (ulat - dlat) * 110540.0)
                 if dist_m <= max_dist and dist_m < best_d:
                     best_d = dist_m

@@ -3694,6 +3694,104 @@ class HoustonAtlasApp {
       }
     }
 
+    //Third: Lazy-load and match countywide street address shards (1.22M Harris County addresses)
+    // whenever the query begins with a street number (e.g. "1407 Enid", "3000 Caroline", "413 E 13th").
+    const addrNumMatch = qAddr.match(/^(\d+[a-z]?)(?:\s+(.*))?$/i);
+    if (addrNumMatch) {
+      const typedNum = addrNumMatch[1].toUpperCase();
+      const typedDigits = typedNum.replace(/\D/g, "");
+      const typedStreetPart = String(addrNumMatch[2] || "")
+        .trim()
+        .toUpperCase();
+      const streetTokens = typedStreetPart.split(/\s+/).filter(Boolean);
+      if (typedDigits.length >= 1) {
+        const shardKey = typedDigits.slice(0, 2).padEnd(2, "0");
+        this._addressShardCache = this._addressShardCache || {};
+        this._addressShardPending = this._addressShardPending || {};
+        const shardData = this._addressShardCache[shardKey];
+        if (!shardData && !this._addressShardPending[shardKey]) {
+          this._addressShardPending[shardKey] = fetch(`data/address_shards/addr_${shardKey}.json`)
+            .then((r) => (r.ok ? r.json() : {}))
+            .then((data) => {
+              this._addressShardCache[shardKey] = data || {};
+              delete this._addressShardPending[shardKey];
+              const curInputVal = String(searchInput?.value || "").trim();
+              if (curInputVal.toLowerCase() === rawQuery.trim().toLowerCase()) {
+                this._runSearchQuery(rawQuery, customHeaderLabel);
+              }
+            })
+            .catch(() => {
+              this._addressShardCache[shardKey] = {};
+              delete this._addressShardPending[shardKey];
+            });
+        } else if (shardData) {
+          let shardAdded = 0;
+          for (const [stName, rows] of Object.entries(shardData)) {
+            if (
+              streetTokens.length > 0 &&
+              !streetTokens.every((tok) => stName.includes(tok))
+            ) {
+              continue;
+            }
+            for (const row of rows) {
+              const hnum = String(row[0]);
+              const exactNum = hnum === typedNum;
+              const prefixNum = !exactNum && hnum.startsWith(typedNum);
+              if (!exactNum && !prefixNum) continue;
+              const lon = Number(row[1]);
+              const lat = Number(row[2]);
+              const yr = Number(row[3]) || 0;
+              const hcad = String(row[4] || "");
+              const bldName = String(row[5] || "");
+              if (hcad && seenKeys.has(hcad)) continue;
+              const fullAddr = `${hnum} ${stName}`;
+              const addrId = hcad || `addr_${fullAddr}`;
+              if (seenKeys.has(addrId)) continue;
+              seenKeys.add(addrId);
+              if (hcad) seenKeys.add(hcad);
+
+              let sc = exactNum ? 118 : 92;
+              if (streetTokens.length > 0) {
+                if (stName === typedStreetPart || stName.startsWith(typedStreetPart + " ")) {
+                  sc += 12;
+                } else if (stName.startsWith(streetTokens[0])) {
+                  sc += 6;
+                }
+              }
+              if (bldName) sc += 4;
+
+              scoredMatches.push({
+                score: sc,
+                item: {
+                  type: "building",
+                  id: hcad ? `${hcad}#b1` : addrId,
+                  hcad_num: hcad,
+                  label: bldName ? `${bldName} (${fullAddr})` : fullAddr,
+                  building_name: bldName,
+                  address: fullAddr,
+                  sublabel: [
+                    bldName ? fullAddr : "Harris County Street Address",
+                    hcad ? `HCAD ${hcad}` : "",
+                    yr >= 1836 ? `Built ${yr}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" • "),
+                  category: yr >= 1836 ? `Built ${yr}` : "Property Address",
+                  year_built: yr,
+                  lon,
+                  lat,
+                  zoom: 17.6,
+                },
+              });
+              shardAdded++;
+              if (shardAdded >= 60) break;
+            }
+            if (shardAdded >= 60) break;
+          }
+        }
+      }
+    }
+
     scoredMatches.sort((a, b) => b.score - a.score);
     const totalMatchCount = scoredMatches.length;
     const matches = scoredMatches.slice(0, 25).map((m) => m.item);

@@ -44,7 +44,7 @@ export const DEFAULT_FILTER_STATE = {
     annexations: false,
     historicalWaterways: false,
     historicalRailroads: false,
-    lostHouston: false,
+    lostHouston: true,
     relocatedStructures: false,
     historicMap: false,
   },

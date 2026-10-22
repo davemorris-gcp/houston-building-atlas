@@ -515,6 +515,15 @@ def audit_suspect_property(
 
     house_num, street_stem, _ = parsed
     mentions = client.find_address_mentions(house_num, street_stem)
+    # Multi-bay corner or commercial buildings often appear under an adjacent storefront
+    # street number (+2 or +4 on the same parity, e.g. 3002/3004 for a 3000 corner parcel)
+    use_cat = str(property_record.get("use_category", "")).strip()
+    if not mentions and house_num >= 100 and (house_num % 100 == 0 or "Commercial" in use_cat or "Mixed" in use_cat):
+        for adj_delta in (2, 4):
+            adj_mentions = client.find_address_mentions(house_num + adj_delta, street_stem)
+            if adj_mentions:
+                mentions = adj_mentions
+                break
     matched_years = sorted({m.year for m in mentions if m.year > 0})
     earliest_year = matched_years[0] if matched_years else None
 
