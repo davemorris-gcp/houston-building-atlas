@@ -149,6 +149,19 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 .chk-add input[type="date"]{width:130px;padding:3px 6px;font-size:12px;border:1px solid var(--line);border-radius:4px}
 .chk-add input[type="text"]{flex:1;min-width:180px;padding:3px 6px;font-size:12px;border:1px solid var(--line);border-radius:4px}
 .chk-add button{padding:3px 8px;font-size:12px}
+.assist-pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.assist-pill{font-size:11.5px;padding:3px 7px;border-radius:4px;border:1px solid #B8D0E8;background:#F2F7FC;color:var(--survey);cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;text-decoration:none;line-height:1.25;text-align:left}
+.assist-pill:hover{background:var(--survey);color:#fff;border-color:var(--survey)}
+.assist-pill.govqa{background:#FBE9D0;border-color:#E0A85A;color:#7A4300}
+.assist-pill.govqa:hover{background:#8A5E00;color:#fff;border-color:#8A5E00}
+.assist-pill.stamp{background:var(--ok-soft);border-color:#A5D9B8;color:var(--ok);white-space:nowrap}
+.assist-pill.stamp:hover{background:var(--ok);color:#fff;border-color:var(--ok)}
+.missing-hcad-box{background:#FDF9EE;border:1px solid #E2C684;border-left:4px solid #C88A00;border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:13.5px}
+.missing-hcad-box .mh-head{font-weight:700;color:#7A4300;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.missing-hcad-box .mh-desc{font-size:12.5px;color:#4A3B22;margin-bottom:8px;line-height:1.45}
+.missing-hcad-box .mh-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.missing-hcad-box .mh-inline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:8px;border-top:1px dashed #E2C684;font-size:12.5px}
+.missing-hcad-box .mh-inline input{border:1px solid #C9B273;border-radius:4px;padding:4px 8px;background:#fff;font-size:13px;width:170px;font-variant-numeric:tabular-nums}
 
 /* Start screen */
 .start{max-width:760px;margin:48px auto;padding:0 24px}
@@ -653,23 +666,69 @@ function renderList(){
       <div class="chips">${yrBadge}${chipsHtml(it, 4)}</div></button>`;
   }).join("");
 }
-function hcadLinks(it){
+function hcadLinks(it, r){
   if (!/harris/i.test(it.county || "Harris")) return `<span class="dis">Check the ${esc(it.county)} County appraisal district</span>`;
-  const ids = (it.hcad || "").split(/[,;\s]+/).filter(x => /^\d{10,13}$/.test(x));
-  if (!ids.length) return `<a href="https://hcad.org" target="_blank" rel="noopener">HCAD Search</a>`;
+  const rawHcad = (r && r.hcad ? r.hcad + " " : "") + (it.hcad || "");
+  const ids = [...new Set(rawHcad.split(/[,;\s]+/).filter(x => /^\d{10,13}$/.test(x)).map(x => x.padStart(13, "0")))];
+  if (!ids.length) return `<a href="https://search.hcad.org/" target="_blank" rel="noopener">HCAD Property Search</a>`;
   return ids.map((id, i) => `<a href="https://hcad.org/hcad-resources/hcad-online-toolkit/hcad-property-search/?account=${id}" target="_blank" rel="noopener">HCAD Record${ids.length>1?" "+(i+1):""}</a><a href="https://arcgis.hcad.org/HCADViewer/?accountNumber=${id}" target="_blank" rel="noopener">HCAD Map${ids.length>1?" "+(i+1):""}</a>`).join("");
 }
 function atlasMapLink(it, r){
   const at = it.atlas || {};
-  const firstHcad = ((it.hcad || "").split(/[,;\s]+/).find(x => /^\d{10,13}$/.test(x)) || "").padStart(13, "0");
-  if (at.buildingId || (firstHcad && firstHcad.length === 13 && at.coordSource === "parcel")) {
+  const rawHcad = (r && r.hcad ? r.hcad + " " : "") + (it.hcad || "");
+  const firstHcad = (rawHcad.split(/[,;\s]+/).find(x => /^\d{10,13}$/.test(x)) || "").padStart(13, "0");
+  if (firstHcad && firstHcad.length === 13 && ((r && r.hcad) || at.buildingId || at.coordSource === "parcel")) {
     const q = encodeURIComponent(r.address || at.primaryAddress || firstHcad);
-    return `<a class="atlas-link" href="index.html?q=${q}${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=18` : ""}" target="_blank" rel="noopener">View in Houston Building Atlas Map ↗</a>`;
+    return `<a class="atlas-link" href="index.html?hcad=${firstHcad}&q=${q}${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=18` : ""}" target="_blank" rel="noopener">View Parcel in Houston Building Atlas Map ↗</a>`;
+  }
+  if (at.subdivisionMatch || at.subdivisionId) {
+    const bndTarget = encodeURIComponent(at.subdivisionId || at.subdivisionMatch);
+    return `<a class="atlas-link" href="index.html?bnd=platted_subdivisions:${bndTarget}&layers=platted_subdivisions,super_neighborhoods,landmarks,historic_districts,plat_watch${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=16` : ""}" target="_blank" rel="noopener">🗺️ Fly to Subdivision (${esc(at.subdivisionMatch)}) on Atlas Map ↗</a>`;
+  }
+  if (at.superNeighborhoodMatch || at.superNeighborhoodId) {
+    const bndTarget = encodeURIComponent(at.superNeighborhoodId || at.superNeighborhoodMatch);
+    return `<a class="atlas-link" href="index.html?bnd=super_neighborhoods:${bndTarget}&layers=super_neighborhoods,platted_subdivisions,landmarks,historic_districts,plat_watch${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=14.8` : ""}" target="_blank" rel="noopener">🗺️ Fly to ${esc(at.superNeighborhoodMatch)} on Atlas Map ↗</a>`;
   }
   if (at.lat && at.lng) {
     return `<a class="atlas-link" href="index.html?lat=${at.lat}&lng=${at.lng}&z=17" target="_blank" rel="noopener">Locate in Houston Building Atlas Map ↗</a>`;
   }
   return "";
+}
+function buildMissingHcadHelperBox(it, r){
+  const at = it.atlas || {};
+  const rawHcad = (r && r.hcad ? r.hcad + " " : "") + (it.hcad || "");
+  const resolvedHcad = (rawHcad.split(/[,;\s]+/).find(x => /^\d{10,13}$/.test(x)) || "");
+  if (it.hcad && /^\d{10,13}$/.test(String(it.hcad).trim().split(/[,;\s]+/)[0] || "")) return "";
+  const cleanPrevSub = (it.prevSub && !/Existing Urban Parcel/i.test(it.prevSub)) ? it.prevSub : "";
+  const subTarget = at.subdivisionId || at.subdivisionMatch || cleanPrevSub;
+  const snTarget = at.superNeighborhoodId || at.superNeighborhoodMatch || it.superN || "";
+  const searchCopyTerm = cleanPrevSub || it.noticeLocation || it.name || "";
+  return `
+    <div class="missing-hcad-box">
+      <div class="mh-head">
+        <span>🧭 Pass 2 Assisted Parcel Resolver (Column Z HCAD Account Omitted by Applicant)</span>
+        ${resolvedHcad ? `<span class="chip ok">✓ HCAD ${esc(resolvedHcad.padStart(13, "0"))} Locked In</span>` : `<span class="chip strong">Needs 10-Sec Parcel Click</span>`}
+      </div>
+      <div class="mh-desc">
+        The applicant's surveyor left Column Z (<i>HCAD Account No.</i>) blank in the City spreadsheet.
+        ${at.subdivisionMatch
+          ? `The Atlas matched <b>Previous/Original Subdivision "${esc(at.subdivisionMatch)}"</b> (earliest standing building <b>${esc(at.subdivisionEarliestYear || "N/A")}</b>, median <b>${esc(at.subdivisionMedianYear || "N/A")}</b>).`
+          : (snTarget ? `Located in <b>${esc(at.superNeighborhoodMatch || it.superN)}</b>${cleanPrevSub ? ` (Original Subdivision: <b>${esc(cleanPrevSub)}</b>)` : ""}.` : "Open the Submittal Plat PDF vicinity map alongside the Atlas Map to click the corner parcel.")}
+        Click a map helper below to view the highlighted subdivision boundary on the Atlas map, click the target lot shown in the Plat PDF vicinity map, and paste its 13-digit HCAD Account # below.
+      </div>
+      <div class="mh-actions">
+        ${subTarget ? `<a class="assist-pill" href="index.html?bnd=platted_subdivisions:${encodeURIComponent(subTarget)}&layers=platted_subdivisions,super_neighborhoods,landmarks,historic_districts,plat_watch${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=16` : ""}" target="_blank" rel="noopener">🗺️ Fly to "${esc(at.subdivisionMatch || cleanPrevSub)}" on Atlas Map ↗</a>` : ""}
+        ${snTarget ? `<a class="assist-pill" href="index.html?bnd=super_neighborhoods:${encodeURIComponent(snTarget)}&layers=super_neighborhoods,platted_subdivisions,landmarks,historic_districts,plat_watch${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=14.8` : ""}" target="_blank" rel="noopener">🗺️ Fly to ${esc(at.superNeighborhoodMatch || it.superN)} Boundary on Atlas Map ↗</a>` : ""}
+        ${/^https?:/i.test(it.pdf) ? `<a class="assist-pill govqa" href="${esc(it.pdf)}" target="_blank" rel="noopener">📐 Open Submittal Plat PDF (Vicinity Map) ↗</a>` : ""}
+        ${searchCopyTerm ? `<button type="button" class="assist-pill" data-copy-text="${esc(searchCopyTerm)}" data-copy-open-url="https://search.hcad.org/">📋 Copy "${esc(searchCopyTerm)}" &amp; Open HCAD Search ↗</button>` : ""}
+      </div>
+      <div class="mh-inline">
+        <label for="r-hcad-inline"><b>📌 Lock In 13-Digit HCAD Account #:</b></label>
+        <input id="r-hcad-inline" data-k="hcad" placeholder="e.g. 0621100000014" value="${esc(r.hcad || "")}" inputmode="numeric">
+        <span style="color:var(--muted);font-size:12px">Saves to this plat review &amp; syncs to the shared Google Sheet for all reviewers.</span>
+      </div>
+    </div>
+  `;
 }
 function renderDetail(){
   const it = S && S.items.find(i => i.app === view.selected);
@@ -690,8 +749,9 @@ function renderDetail(){
     return `<li class="${isCrit ? 'crit' : ''}"><b>${esc(FLAG_INFO[f]?.[0] || f)}.</b> ${esc(FLAG_INFO[f]?.[1] || "")}${extra}</li>`;
   }).join("");
 
-  const hasAtlasInfo = at.primaryAddress || at.earliestYearBuilt || at.subdivisionMatch || (at.designations && at.designations.length) || it.varianceSummary;
-  const alreadyWatched = (WL.watchedProperties || []).some(w => w.appNo === it.app || (it.hcad && w.hcadAccount === it.hcad));
+  const hasAtlasInfo = at.primaryAddress || at.earliestYearBuilt || at.subdivisionMatch || at.superNeighborhoodMatch || (at.designations && at.designations.length) || it.varianceSummary;
+  const effHcad = (r.hcad || it.hcad || "").trim();
+  const alreadyWatched = (WL.watchedProperties || []).some(w => w.appNo === it.app || (effHcad && w.hcadAccount === effHcad));
 
   $("#detail").innerHTML = `
     <h2>${esc(it.name)}</h2>
@@ -707,17 +767,19 @@ function renderDetail(){
           ${at.primaryAddress ? `<div class="kv">Parcel Address: <b>${esc(at.primaryAddress)}</b></div>` : ""}
           ${at.earliestYearBuilt ? `<div class="kv">HCAD Year Built: <b>${esc(at.earliestYearBuilt)}</b></div>` : ""}
           ${at.subdivisionMatch ? `<div class="kv">Historic Addition: <b>${esc(at.subdivisionMatch)}</b> (Earliest ${esc(at.subdivisionEarliestYear || "N/A")}, Median ${esc(at.subdivisionMedianYear || "N/A")})</div>` : ""}
+          ${!at.subdivisionMatch && at.superNeighborhoodMatch ? `<div class="kv">Super Neighborhood: <b>${esc(at.superNeighborhoodMatch)}</b> (Earliest ${esc(at.superNeighborhoodEarliestYear || "N/A")}, Median ${esc(at.superNeighborhoodMedianYear || "N/A")})</div>` : ""}
           ${at.designations && at.designations.length ? `<div class="kv">Designations: <b>${esc(at.designations.join(", "))}</b></div>` : ""}
           ${at.smlsProtections && at.smlsProtections.length ? `<div class="kv">Ch. 42 Protection: <b>${esc(at.smlsProtections.join(", "))}</b></div>` : ""}
         </div>
         ${it.varianceSummary ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #D0E1F0"><b>Variance / Notice Summary:</b> ${esc(it.varianceSummary)}</div>` : ""}
       </div>
     ` : ""}
+    ${buildMissingHcadHelperBox(it, r)}
     <div class="links">
       ${atlasMapLink(it, r)}
       ${/^https?:/i.test(it.pdf) ? `<a href="${esc(it.pdf)}" target="_blank" rel="noopener">Plat PDF</a>` : '<span class="dis">No plat PDF link</span>'}
       ${/^https?:/i.test(it.noticePdf) && it.noticePdf !== it.pdf ? `<a class="notice-link" href="${esc(it.noticePdf)}" target="_blank" rel="noopener">Public Notice &amp; Site Plan PDF</a>` : ""}
-      ${hcadLinks(it)}
+      ${hcadLinks(it, r)}
       ${addr ? `<a href="https://www.google.com/maps/search/?api=1&query=${addr}" target="_blank" rel="noopener">Google Maps &amp; Street View</a>` : '<span class="dis">Add an address to open Street View</span>'}
       <a href="https://atlas.thc.texas.gov/" target="_blank" rel="noopener">THC Atlas</a>
       <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits</a>
@@ -727,7 +789,7 @@ function renderDetail(){
       ${fact("Land use", it.landUse)}${fact("Acreage", it.acreage && num(it.acreage) != null ? num(it.acreage).toFixed(3) + " ac" : "")}${fact("Lots created", it.lots)}
       ${fact("Council district", it.council)}${fact("City limits", it.city)}${fact("Historic district", it.hd)}
       ${fact("TIRZ", it.tirz)}${fact("Management district", it.mgmt)}${fact("Key Map", it.keymap)}
-      ${fact("ZIP", it.zip)}${fact("Major thoroughfare", it.thoroughfare)}${fact("HCAD account", it.hcad)}
+      ${fact("ZIP", it.zip)}${fact("Major thoroughfare", it.thoroughfare)}${fact("HCAD account", r.hcad ? `${r.hcad} (Resolved)` : it.hcad)}
       ${fact("Developer", it.developer)}${fact("Applicant", [it.applicant, it.org].filter(Boolean).join(", "))}${fact("Phone", it.phone)}
       ${fact("Submitted", sub ? fmtDate(sub) : "")}
     </dl>
@@ -751,7 +813,10 @@ function renderDetail(){
         <div class="field"><label for="r-address">Address <span class="hint">from Atlas / HCAD</span></label><input id="r-address" data-k="address" value="${esc(r.address)}"></div>
         <div class="field"><label for="r-year">Year built <span class="hint">from Atlas / HCAD</span></label><input id="r-year" data-k="yearBuilt" value="${esc(r.yearBuilt)}" inputmode="numeric"></div>
       </div>
-      <div class="field"><label for="r-des">Designation status</label><select id="r-des" data-k="designation">${DESIGNATIONS.map(d => `<option ${ (r.designation||DESIGNATIONS[0])===d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>
+      <div class="grid2">
+        <div class="field"><label for="r-hcad">HCAD Account # <span class="hint">13 digits (resolve if blank in Col Z)</span></label><input id="r-hcad" data-k="hcad" placeholder="${esc(it.hcad || 'e.g. 0621100000014')}" value="${esc(r.hcad || it.hcad || '')}" inputmode="numeric"></div>
+        <div class="field"><label for="r-des">Designation status</label><select id="r-des" data-k="designation">${DESIGNATIONS.map(d => `<option ${ (r.designation||DESIGNATIONS[0])===d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>
+      </div>
       <div class="field"><label>Tier</label><div class="tierpick">${TIERS.map(([v,l,cls]) => `<label class="${cls} ${(r.tier||"")===v ? "on" : ""}"><input type="radio" name="tier" value="${v}" ${(r.tier||"")===v ? "checked" : ""}>${l}</label>`).join("")}</div></div>
       <div class="field"><label for="r-why">Why <span class="hint">2-3 sentences: what it is and why it matters, or why you dropped it</span></label><textarea id="r-why" data-k="why">${esc(r.why)}</textarea></div>
       <div class="field"><label for="r-src">Sources <span class="hint">links or citations, one per line</span></label><textarea id="r-src" data-k="sources">${esc(r.sources)}</textarea></div>
@@ -862,6 +927,178 @@ function renderWatchlistSidebar(){
   }).join("");
 }
 
+function extractWatchPropertyHelpers(p){
+  const cleanAddr = s => String(s || "").replace(/[.,]+$/g, "").replace(/\s+/g, " ").trim();
+  const primaryAddr = cleanAddr(p.address);
+  const secondaryAddrs = (p.secondaryAddresses || []).map(cleanAddr).filter(Boolean);
+  const splitEntities = raw => String(raw || "")
+    .split(/[,;/]+/)
+    .map(s => s.replace(/\([^)]*\)/g, "").trim())
+    .filter(s => s && !/^not recorded$/i.test(s) && !/^none$/i.test(s));
+  const ownerEntities = splitEntities(p.ownerOfRecord);
+  const buyerEntities = splitEntities(p.buyerRelatedEntities);
+  const allEntities = [...new Set([...buyerEntities, ...ownerEntities])];
+  const fullTextBlob = [
+    p.ilmsProjectNo || "",
+    p.notes || "",
+    ...((p.checklist || []).flatMap(r => (r.checks || []).map(c => c.result || "")))
+  ].join(" ");
+  const ilmsMatches = [...new Set((fullTextBlob.match(/\b(2\d{7})\b/g) || []))];
+  const tabsMatches = [...new Set((fullTextBlob.match(/\b(TABS\d{8,12})\b/gi) || []))];
+  return {
+    primaryAddr,
+    secondaryAddrs,
+    ownerEntities,
+    buyerEntities,
+    allEntities,
+    ilmsProjectNos: p.ilmsProjectNo ? [p.ilmsProjectNo, ...ilmsMatches.filter(x => x !== p.ilmsProjectNo)] : ilmsMatches,
+    tabsNos: tabsMatches
+  };
+}
+
+function buildAssistedPortalPills(p, row, idxRow){
+  const h = extractWatchPropertyHelpers(p);
+  const pills = [];
+  const addCopyOpen = (label, copyVal, openUrl, extraClass = "") => {
+    if (!copyVal) return;
+    pills.push(`<button type="button" class="assist-pill ${extraClass}" data-copy-text="${esc(copyVal)}" ${openUrl ? `data-copy-open-url="${esc(openUrl)}"` : ""} title="Copy '${esc(copyVal)}' to clipboard${openUrl ? ' and open portal in a new tab' : ''}">📋 ${esc(label)}${openUrl ? " ↗" : ""}</button>`);
+  };
+  const act = (row.activity || "").toLowerCase();
+  const resUrl = row.resourceUrl || "";
+
+  if (idxRow === 0 || /public notice/i.test(act)) {
+    addCopyOpen(`Copy "${h.primaryAddr}" & Open Notices`, h.primaryAddr, resUrl || "https://www.texaspublicnotices.com/");
+    h.secondaryAddrs.forEach(sa => addCopyOpen(`Copy "${sa}" & Open`, sa, resUrl || "https://www.texaspublicnotices.com/"));
+    if (h.allEntities[0]) addCopyOpen(`Copy "${h.allEntities[0]}"`, h.allEntities[0], "");
+  } else if (idxRow === 1 || /site visit/i.test(act)) {
+    const searchTerms = [h.primaryAddr, ...h.secondaryAddrs].filter(Boolean).map(a => `"${a}"`).join(" OR ");
+    const marketSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`(${searchTerms}) Houston (site:loopnet.com OR site:crexi.com OR site:houstonarchitecture.com)`)}`;
+    pills.push(`<a class="assist-pill" href="${esc(marketSearchUrl)}" target="_blank" rel="noopener" title="Run standard Google search across LoopNet, Crexi &amp; HAIF for all block addresses">🔎 Search Listings &amp; HAIF ↗</a>`);
+    h.secondaryAddrs.forEach(sa => {
+      const svUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(sa + ", Houston, TX")}`;
+      pills.push(`<a class="assist-pill" href="${esc(svUrl)}" target="_blank" rel="noopener">🗺️ Street View (${esc(sa)}) ↗</a>`);
+    });
+  } else if (idxRow === 2 || /deed/i.test(act)) {
+    const clerkUrl = resUrl || "https://www.cclerk.hctx.net/applications/websearch/RP.aspx";
+    if (h.allEntities.length) {
+      h.allEntities.slice(0, 3).forEach(ent => addCopyOpen(`Copy "${ent}" & Open HC Clerk`, ent, clerkUrl));
+    } else {
+      addCopyOpen(`Copy "${h.primaryAddr}" & Open HC Clerk`, h.primaryAddr, clerkUrl);
+    }
+  } else if (idxRow === 3 || /corporate entity/i.test(act)) {
+    const compUrl = resUrl || "https://comptroller.texas.gov/taxes/franchise/account-status/search";
+    if (h.allEntities.length) {
+      h.allEntities.slice(0, 3).forEach(ent => addCopyOpen(`Copy "${ent}" & Open Comptroller`, ent, compUrl));
+    } else {
+      addCopyOpen(`Copy "${h.primaryAddr}" & Open Comptroller`, h.primaryAddr, compUrl);
+    }
+  } else if (idxRow === 4 || /hcad/i.test(act)) {
+    if (p.hcadAccount) addCopyOpen(`Copy HCAD ${p.hcadAccount} & Open HCAD`, p.hcadAccount, "https://search.hcad.org/");
+    addCopyOpen(`Copy "${h.primaryAddr}"`, h.primaryAddr, "");
+  } else if (idxRow === 7 || /pending plans|open records|ilms/i.test(act)) {
+    pills.push(`<button type="button" class="assist-pill govqa" data-open-govqa-modal="1" title="Generate ready-to-paste Texas Public Information Act (GovQA) Open Records Request covering all perimeter addresses, HCAD ID, and LLCs">📄 Draft Ready-to-Send GovQA Request ↗</button>`);
+    const ilmsUrl = row.additionalResourceUrl || "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp";
+    if (h.ilmsProjectNos.length) {
+      h.ilmsProjectNos.slice(0, 2).forEach(pn => addCopyOpen(`Copy ILMS #${pn} & Open Plan Lookup`, pn, ilmsUrl));
+    } else {
+      addCopyOpen(`Copy "${h.primaryAddr}" & Open ILMS`, h.primaryAddr, ilmsUrl);
+    }
+  } else {
+    addCopyOpen(`Copy "${h.primaryAddr}" & Open`, h.primaryAddr, resUrl);
+    h.secondaryAddrs.forEach(sa => addCopyOpen(`Copy "${sa}" & Open`, sa, resUrl));
+  }
+  return pills.length ? `<div class="assist-pills">${pills.join("")}</div>` : "";
+}
+
+function buildGovQaRequestText(p){
+  const h = extractWatchPropertyHelpers(p);
+  const allAddrs = [h.primaryAddr, ...h.secondaryAddrs].filter(Boolean);
+  const addrListStr = allAddrs.length ? allAddrs.join("; ") : (p.address || p.propertyName);
+  const entitiesStr = h.allEntities.length ? h.allEntities.join("; ") : (p.ownerOfRecord || "Owner / Applicant of Record");
+  const projRefs = [
+    ...(h.ilmsProjectNos.map(n => `COH ILMS Plan Review / Project #${n}`)),
+    ...(h.tabsNos.map(t => `TDLR TABS #${t}`))
+  ];
+  return [
+    `To: City of Houston Permitting Center / Houston Public Works Public Information Office (GovQA)`,
+    `Pursuant to the Texas Public Information Act (Tex. Gov't Code Ch. 552), please provide copies of the following public records regarding the property known as ${p.propertyName || h.primaryAddr}:`,
+    ``,
+    `1. Subject Street Address(es) (including all block-perimeter addresses): ${addrListStr}, Houston, TX`,
+    `2. HCAD Account Number(s): ${p.hcadAccount || "See address(es) above"}`,
+    `3. Known Owner / Applicant / Tenant Entities: ${entitiesStr}`,
+    projRefs.length ? `4. Known Reference / Project Number(s): ${projRefs.join(", ")}` : null,
+    ``,
+    `Specifically, please provide:`,
+    `- All commercial or residential building plan review applications, 8-digit ILMS project numbers, and plan review comment sheets (whether approved, pending, in review, or rejected/returned);`,
+    `- All submitted architectural site plans, floor plans, exterior elevations, civil/grading drawings, and traffic/driveway access submittals;`,
+    `- All pre-development or pre-application meeting notes, correspondence, and wastewater/utility capacity or disconnection applications from January 1, 2025 to the present.`,
+    ``,
+    `Please provide electronic copies (PDF) via the GovQA portal. Thank you.`
+  ].filter(line => line !== null).join("\n");
+}
+
+function openGovQaRequestModal(p){
+  if (!p) return;
+  const existingModal = document.querySelector(".modal-back");
+  if (existingModal) existingModal.remove();
+  const h = extractWatchPropertyHelpers(p);
+  const reqText = buildGovQaRequestText(p);
+  const back = document.createElement("div");
+  back.className = "modal-back";
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:680px">
+    <h3>📄 Ready-to-Send Texas Public Information Act (GovQA) Request</h3>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 10px;line-height:1.45">
+      Unissued commercial building plans and rejected plan review comments require a Texas Public Information Act request on <b>houstontx.govqa.us</b>, and the public COH ILMS portal only looks up 8-digit Project Numbers. This generator pre-populates all perimeter block addresses, HCAD IDs, LLC names, and known project numbers for <b>${esc(p.propertyName)}</b>.
+    </p>
+    <textarea id="govqaReqTextarea" style="min-height:260px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px">${esc(reqText)}</textarea>
+    <div style="margin-top:10px;padding:8px 10px;background:#F2F7FC;border:1px solid #B8D0E8;border-radius:5px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;font-size:12.5px">
+      <div>
+        <b>🔎 COH ILMS 8-Digit Plan Review Project #:</b>
+        <input id="govqaIlmsInput" type="text" placeholder="e.g. 26052089" value="${esc(h.ilmsProjectNos[0] || "")}" style="margin-left:6px;padding:3px 7px;border:1px solid var(--line);border-radius:4px;width:120px;font-variant-numeric:tabular-nums">
+      </div>
+      <button type="button" class="assist-pill" id="govqaOpenIlmsBtn">📋 Copy 8-Digit Project # &amp; Open COH ILMS Lookup ↗</button>
+    </div>
+    <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
+      <button type="button" class="btn" id="govqaCloseBtn">Close</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn" id="govqaCopyOnlyBtn">📋 Copy Request Text</button>
+        <button type="button" class="btn primary" id="govqaCopyAndOpenBtn">📋 Copy Request &amp; Open Houston GovQA Portal ↗</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => { if (e.target === back || e.target.id === "govqaCloseBtn") back.remove(); });
+  $("#govqaIlmsInput")?.addEventListener("change", e => {
+    const val = (e.target.value || "").trim();
+    if (!val) return;
+    if (!requireStaffAuth("saving an ILMS project number")) return;
+    p.ilmsProjectNo = val;
+    persistWatchlist();
+    queueCloudSyncWatchProperty(p);
+    $("#govqaReqTextarea").value = buildGovQaRequestText(p);
+    renderWatchlistDetail();
+    toast(`Saved ILMS Project #${val} to ${p.propertyName}.`);
+  });
+  $("#govqaOpenIlmsBtn")?.addEventListener("click", async () => {
+    const val = ($("#govqaIlmsInput")?.value || h.ilmsProjectNos[0] || h.primaryAddr || "").trim();
+    try { await navigator.clipboard.writeText(val); } catch (_e) {}
+    window.open("https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp", "_blank", "noopener");
+    toast(`Copied "${val}" to clipboard and opened COH ILMS Plan Status Lookup.`);
+  });
+  $("#govqaCopyOnlyBtn")?.addEventListener("click", async () => {
+    const ta = $("#govqaReqTextarea");
+    try { await navigator.clipboard.writeText(ta.value); } catch (_e) { ta.select(); document.execCommand("copy"); }
+    toast("Copied GovQA Open Records Request text to clipboard.");
+  });
+  $("#govqaCopyAndOpenBtn")?.addEventListener("click", async () => {
+    const ta = $("#govqaReqTextarea");
+    try { await navigator.clipboard.writeText(ta.value); } catch (_e) { ta.select(); document.execCommand("copy"); }
+    window.open("https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx", "_blank", "noopener");
+    toast("Copied TPIA request to clipboard & opened Houston GovQA Portal.");
+    back.remove();
+  });
+}
+
 function renderWatchlistDetail(){
   const p = getSelectedWatchProp();
   if (!p) {
@@ -875,6 +1112,7 @@ function renderWatchlistDetail(){
   const pct = Math.round(((cnt("Complete") + cnt("Flagged")) / activeDenom) * 100);
   const kd = p.keyDates || {};
   const staffSess = getStaffSession();
+  const h = extractWatchPropertyHelpers(p);
 
   $("#detail").innerHTML = `
     <h2>${esc(p.propertyName)}</h2>
@@ -885,6 +1123,8 @@ function renderWatchlistDetail(){
       <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address + ", Houston, TX")}" target="_blank" rel="noopener">Google Street View</a>
       <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits</a>
       <a href="https://www.tdlr.texas.gov/TABS/Search" target="_blank" rel="noopener">TDLR TABS Search</a>
+      <button type="button" class="assist-pill govqa" data-open-govqa-modal="1" style="padding:6px 10px;font-size:13px">📄 Draft GovQA Open Records Request (TPIA)</button>
+      ${h.ilmsProjectNos[0] ? `<button type="button" class="assist-pill" data-copy-text="${esc(h.ilmsProjectNos[0])}" data-copy-open-url="https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp" style="padding:6px 10px;font-size:13px">📋 Copy ILMS #${esc(h.ilmsProjectNos[0])} &amp; Open Plan Lookup ↗</button>` : ""}
       ${p.platPdf ? `<a href="${esc(p.platPdf)}" target="_blank" rel="noopener">Plat PDF</a>` : ""}
       ${p.noticePdf ? `<a class="notice-link" href="${esc(p.noticePdf)}" target="_blank" rel="noopener">Public Notice PDF</a>` : ""}
     </div>
@@ -928,45 +1168,51 @@ function renderWatchlistDetail(){
     </div>
 
     <div class="wl-card">
-      <h3>
+      <h3 style="flex-wrap:wrap;gap:8px">
         <span>15-Point Multi-Agency Monitoring Checklist</span>
-        <span style="font-size:12px;color:var(--muted);font-weight:400">Every dated check automatically populates the chronological Findings Log below</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-weight:400">
+          <button type="button" class="assist-pill govqa" data-open-govqa-modal="1">📄 Draft GovQA Open Records Request</button>
+          <span style="font-size:12px;color:var(--muted)">1-Click Copy pills copy exact search terms to your clipboard &amp; open the portal</span>
+        </div>
       </h3>
       <div style="overflow-x:auto">
         <table class="wl-table">
           <thead>
             <tr>
               <th style="width:110px">Stage</th>
-              <th style="width:180px">Monitoring Activity</th>
-              <th style="width:220px">What to Look For &amp; Timing</th>
-              <th style="width:140px">Portal Resources</th>
-              <th style="width:120px">Status</th>
-              <th>Logged Checks &amp; Add New Check</th>
+              <th style="width:175px">Monitoring Activity</th>
+              <th style="width:210px">What to Look For &amp; Timing</th>
+              <th style="width:205px">Portal Resources &amp; 1-Click Copy</th>
+              <th style="width:130px">Status</th>
+              <th>Logged Checks &amp; 1-Click Stamp</th>
             </tr>
           </thead>
           <tbody>
             ${ck.map((row, idxRow) => {
               const stClass = (row.status || "To Do").replace(/\s+/g, "");
               return `<tr>
-                <td><span class="wl-stage">${esc(row.stage)}</span>${row.automated ? '<br><span class="chip ok" style="margin-top:4px;display:inline-block">Atlas Auto-Sweep</span>' : ""}</td>
+                <td><span class="wl-stage">${esc(row.stage)}</span>${row.automated ? '<br><span class="chip ok" style="margin-top:4px;display:inline-block">Atlas Auto-Sweep</span>' : '<br><span class="chip" style="margin-top:4px;display:inline-block">Assisted Check</span>'}</td>
                 <td><b>${esc(row.activity)}</b></td>
                 <td><div>${esc(row.whatToLookFor)}</div><div style="color:var(--muted);font-size:11.5px;margin-top:4px"><i>Timing:</i> ${esc(row.typicalTiming)}</div></td>
                 <td>
                   ${row.resourceUrl ? `<div><a href="${esc(row.resourceUrl)}" target="_blank" rel="noopener">${esc(row.resourceLabel || "Open Portal")} ↗</a></div>` : "<span>-</span>"}
                   ${row.additionalResourceUrl ? `<div style="margin-top:4px"><a href="${esc(row.additionalResourceUrl)}" target="_blank" rel="noopener">${esc(row.additionalResourceLabel || "Secondary Link")} ↗</a></div>` : ""}
+                  ${buildAssistedPortalPills(p, row, idxRow)}
                 </td>
                 <td>
                   <select class="status-sel ${esc(stClass)}" data-wl-idx="${idxRow}">
                     ${["To Do","In Progress","Flagged","Complete","N/A"].map(opt => `<option value="${opt}" ${row.status===opt?"selected":""}>${opt}</option>`).join("")}
                   </select>
                   <div style="font-size:11px;color:var(--muted);margin-top:4px">Last: ${esc(row.lastChecked || "Not yet")}</div>
+                  <button type="button" class="assist-pill stamp" data-quick-check="${idxRow}" style="margin-top:5px" title="Stamp checked date with 'No new filings' and sync to Google Sheet">✓ Mark Checked</button>
                 </td>
                 <td>
                   ${(row.checks && row.checks.length) ? `<ul class="chk-list">${row.checks.map(c => `<li><b>${esc(c.date)}:</b> ${esc(c.result)}</li>`).join("")}</ul>` : '<div style="color:var(--muted);font-size:12px">No checks recorded yet.</div>'}
                   <div class="chk-add">
                     <input type="date" id="chkDate-${idxRow}" value="${new Date().toISOString().slice(0,10)}" aria-label="Check date">
-                    <input type="text" id="chkText-${idxRow}" placeholder="Record check result (e.g. No new filings)" aria-label="Check result">
+                    <input type="text" id="chkText-${idxRow}" placeholder="Record check result (or click ✓ Mark Checked)" aria-label="Check result">
                     <button class="btn" data-add-chk="${idxRow}">+ Log</button>
+                    <button type="button" class="assist-pill stamp" data-quick-check="${idxRow}" title="Stamp checked date ('No new filings') and sync to Google Sheet">✓ Mark Checked (No New Filings)</button>
                   </div>
                 </td>
               </tr>`;
@@ -1119,9 +1365,70 @@ function showAddWatchPropertyModal(){
 }
 
 /* ---------- Events ---------- */
-document.addEventListener("click", e => {
+document.addEventListener("click", async e => {
   if (e.target.closest("#staffAuthBtn") || e.target.closest("[data-open-staff-auth]")) {
     openStaffAuthModal();
+    return;
+  }
+  const copyBtn = e.target.closest("[data-copy-text]");
+  if (copyBtn) {
+    const textToCopy = copyBtn.dataset.copyText || "";
+    const openUrl = copyBtn.dataset.copyOpenUrl || "";
+    if (textToCopy) {
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+      } catch (_err) {
+        const tmp = document.createElement("textarea");
+        tmp.value = textToCopy;
+        document.body.appendChild(tmp);
+        tmp.select();
+        document.execCommand("copy");
+        tmp.remove();
+      }
+    }
+    if (openUrl) {
+      window.open(openUrl, "_blank", "noopener");
+      toast(`Copied "${textToCopy}" to clipboard & opened portal — press Ctrl+V / Cmd+V to paste.`);
+    } else {
+      toast(`Copied "${textToCopy}" to clipboard.`);
+    }
+    return;
+  }
+  const govqaBtn = e.target.closest("[data-open-govqa-modal]");
+  if (govqaBtn) {
+    openGovQaRequestModal(getSelectedWatchProp());
+    return;
+  }
+  const quickChkBtn = e.target.closest("[data-quick-check]");
+  if (quickChkBtn) {
+    if (!requireStaffAuth("marking a property monitoring check as complete")) return;
+    const idxRow = parseInt(quickChkBtn.dataset.quickCheck, 10);
+    const p = getSelectedWatchProp();
+    if (!p || !p.checklist[idxRow]) return;
+    const dVal = ($("#chkDate-" + idxRow)?.value || new Date().toISOString().slice(0,10)).trim();
+    const customText = ($("#chkText-" + idxRow)?.value || "").trim();
+    const reviewerName = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
+    const humanDate = (() => {
+      try {
+        const [y, m, d] = dVal.split("-").map(Number);
+        if (y && m && d) return new Date(y, m - 1, d).toLocaleDateString("en-US", {month: "short", day: "numeric", year: "numeric"});
+      } catch (_e) {}
+      return dVal;
+    })();
+    const resultText = customText || `Checked ${humanDate} by ${reviewerName} - No new filings found.`;
+    p.checklist[idxRow].checks = p.checklist[idxRow].checks || [];
+    p.checklist[idxRow].checks.push({date: dVal, result: resultText});
+    p.checklist[idxRow].lastChecked = dVal;
+    if (p.checklist[idxRow].status === "To Do") p.checklist[idxRow].status = "Complete";
+    rebuildFindingsLog(p);
+    persistWatchlist();
+    queueCloudSyncWatchProperty(p);
+    const prevScroll = $("#detail").scrollTop;
+    renderWatchlistFunnel();
+    renderWatchlistSidebar();
+    renderWatchlistDetail();
+    $("#detail").scrollTop = prevScroll;
+    toast(`Marked "${p.checklist[idxRow].activity}" checked (${dVal}) & synced to Google Sheet.`);
     return;
   }
   const modeBtn = e.target.closest(".mode-btn");
@@ -1144,7 +1451,7 @@ document.addEventListener("click", e => {
     if (!p || !p.checklist[idxRow]) return;
     const dVal = ($("#chkDate-" + idxRow)?.value || new Date().toISOString().slice(0,10)).trim();
     const tVal = ($("#chkText-" + idxRow)?.value || "").trim();
-    if (!tVal) { toast("Enter a check result before logging."); return; }
+    if (!tVal) { toast("Enter a check result before logging (or click ✓ Mark Checked)."); return; }
     p.checklist[idxRow].checks = p.checklist[idxRow].checks || [];
     p.checklist[idxRow].checks.push({date: dVal, result: tVal});
     p.checklist[idxRow].lastChecked = dVal;
@@ -1152,9 +1459,11 @@ document.addEventListener("click", e => {
     rebuildFindingsLog(p);
     persistWatchlist();
     queueCloudSyncWatchProperty(p);
+    const prevScroll = $("#detail").scrollTop;
     renderWatchlistFunnel();
     renderWatchlistSidebar();
     renderWatchlistDetail();
+    $("#detail").scrollTop = prevScroll;
     toast("Logged check & synced to Google Sheet.");
     return;
   }
@@ -1229,7 +1538,7 @@ $("#detail").addEventListener("change", e => {
     }
     return;
   }
-  if (el.dataset && el.dataset.k === "address") { const sc = $("#detail").scrollTop; renderDetail(); $("#detail").scrollTop = sc; }
+  if (el.dataset && (el.dataset.k === "address" || el.dataset.k === "hcad")) { const sc = $("#detail").scrollTop; renderDetail(); $("#detail").scrollTop = sc; }
 });
 
 $("#q").addEventListener("input", e => { view.q = e.target.value; renderList(); renderDetail(); });
@@ -1328,7 +1637,7 @@ function doAction(a){
 function buildCsv(){
   const cols = [["PC date", () => S.cycleKey],["App No.", i => i.app],["Subdivision name", i => i.name],["Address", (i,r) => r.address || (i.atlas||{}).primaryAddress || ""],["Original subdivision", i => i.prevSub],
     ["Super neighborhood", i => i.superN],["Council district", i => i.council],["Application type", i => i.type],["Agenda section", i => i.section],["Special request", i => i.special],
-    ["Land use", i => i.landUse],["Acreage", i => i.acreage],["Lots created", i => i.lots],["Developer", i => i.developer],["HCAD account", i => i.hcad],
+    ["Land use", i => i.landUse],["Acreage", i => i.acreage],["Lots created", i => i.lots],["Developer", i => i.developer],["HCAD account", (i,r) => r.hcad || i.hcad],
     ["Year built", (i,r) => r.yearBuilt || (i.atlas||{}).earliestYearBuilt || ""],["Designation", (i,r) => r.designation || ""],["Tier", (i,r) => r.tier],["Why", (i,r) => r.why],["Sources", (i,r) => r.sources],
     ["Follow-up", (i,r) => r.followup],["Screening flags", i => i._c.flags.map(f => FLAG_INFO[f]?.[0] || f).join("; ")],["Reviewer", () => S.reviewer],["Plat PDF", i => i.pdf]];
   const q = v => { v = String(v ?? ""); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
@@ -1845,6 +2154,7 @@ function queueCloudSyncWatchProperty(prop){
         address: prop.address,
         secondaryAddresses: prop.secondaryAddresses,
         hcadAccount: prop.hcadAccount,
+        ilmsProjectNo: prop.ilmsProjectNo || "",
         yearBuilt: prop.yearBuilt,
         designation: prop.designation,
         ownerOfRecord: prop.ownerOfRecord,
