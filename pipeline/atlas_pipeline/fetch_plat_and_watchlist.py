@@ -11,8 +11,22 @@ Integrates Preservation Houston's two preservation monitoring workflows into the
      buildings.geojson, curated_overrides.json, and overlays.json (landmarks, historic districts,
      NRHP districts, THC markers, Good Brick awards, 5,573 historic platted subdivisions, and SMLS/SMBL)
 2. Endangered Property Multi-Agency Watchlist & Dossier:
-   - Sweeps TDLR TABS (Architectural Barriers), Texas Comptroller Sales Tax & Franchise Tax (Socrata),
-     TABC Pending & Active Licenses, and Houston 311 Code Complaints / Dangerous Buildings
+   - Sweeps 8 public Open Data endpoints automatically:
+     * Check #4: TX Comptroller Active Sales Tax (Socrata jrea-zgmq) & Franchise Tax (9cir-efmm)
+     * Check #5: HCAD Ownership & Classification (HCAD ArcGIS REST MapServer + CAMA)
+     * Check #6: TABC Pending Applications (Socrata mxm5-tdpj) & Active Licenses (7hf9-qc9f)
+     * Check #9: COH Planning Commission Plats, Section K Variances & PlatTracker
+     * Check #10: TDLR Architectural Barriers TABS (/TABS/Search/SearchProjects JSON POST)
+     * Check #13: Houston 311 Code Complaints & Dangerous Buildings (ArcGIS FeatureServer)
+     * Check #14: COH Weekly Sold Permits (building, demolition, sewer disconnect)
+     * Check #15: TX DSHS Asbestos & Demolition Notifications (datamart notificationSearchAction.do)
+   - Documents and prepares assisted human-in-the-loop launchers for the 7 non-automatable checks
+     (#1 TexasPublicNotices ASP.NET session/ToS, #2 Physical Site Visit/Street View, #3 Harris County
+     Clerk Real Property ASP.NET ViewState/CAPTCHA/login wall, #7 DSHS Consumable Hemp login.do wall,
+     #8 GovQA TPIA Open Records & 8-digit-only ILMS Plan Status lookup, #11 decentralized TIRZ/JRC
+     abandonment PDFs, and #12 stateful TCEQ Central Registry crpub sessions).
+   - See docs/PRESERVATION_MONITORING_AUTOMATION_ARCHITECTURE.md for the full technical, statutory,
+     and Terms-of-Service architecture guide.
    - Outputs app/public/data/plat_agenda_monitor.json and app/public/data/property_watchlist.json
    - Enriches app/public/data/active_permit_alerts.json and app/public/data/permits/permits_015.json
 """
