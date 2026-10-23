@@ -215,6 +215,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
         <button role="menuitem" data-act="work">Open a saved work file<small>A .json file saved from this tool</small></button>
         <div class="sep"></div>
         <button role="menuitem" data-act="history">Add past findings for the watchlist<small>Findings CSVs from earlier cycles</small></button>
+        <a role="menuitem" id="loadMenuSheetLink" class="hidden" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener">Open Raw Data in Google Sheet (Plat_&amp;_Watchlist_Sync ↗)<small>Jump directly to the live synced Google Sheet tab (Staff Admins only)</small></a>
       </div>
     </div>
     <div class="menu" id="exportMenu">
@@ -228,6 +229,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
         <button role="menuitem" data-act="watchlist-csv">Download Property Watchlist Log (CSV)<small>Opens in Google Sheets or Excel; checklist &amp; dated findings log</small></button>
         <div class="sep"></div>
         <button role="menuitem" data-act="savework">Save work file (.json)<small>Pick up later or hand off to a colleague</small></button>
+        <a role="menuitem" id="exportMenuSheetLink" class="hidden" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener">Open Raw Data in Google Sheet (Plat_&amp;_Watchlist_Sync ↗)<small>Jump directly to the live synced Google Sheet tab (Staff Admins only)</small></a>
         <a role="menuitem" id="exportMenuGuideLink" class="hidden" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener">Open Plat &amp; Property Monitoring Guide (Google Doc ↗)<small>SOP including Section K DPV Variances &amp; Atlas automation (Staff Admins only)</small></a>
       </div>
     </div>
@@ -738,7 +740,7 @@ function renderDetail(){
       ${getStaffSession()
         ? `<div style="margin-bottom:10px;padding:7px 10px;background:#E8F4ED;border:1px solid #95D5B2;border-radius:4px;font-size:12px;color:#1F6B43;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
              <span><strong>&#9729; Google Sheet Cloud Sync Active:</strong> Signed in as <strong>${esc(getStaffSession().email)}</strong>. All changes save automatically to the shared Preservation Houston Google Sheet.</span>
-             <a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit" target="_blank" rel="noopener" style="color:#1F6B43;font-weight:700;text-decoration:underline;">Open Google Sheet &#8599;</a>
+             <a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener" style="color:#1F6B43;font-weight:700;text-decoration:underline;white-space:nowrap;">Open Raw Sheet Tab &#8599;</a>
            </div>`
         : `<div style="margin-bottom:10px;padding:8px 10px;background:#FDF2E3;border:1px solid #F3D19E;border-radius:4px;font-size:12px;color:#8E5109;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
              <span><strong>&#128274; Staff Sign-In Required to Edit &amp; Save to Google Sheet:</strong> Sign in with a Google Account that has Editor access on the Preservation Houston Google Sheet.</span>
@@ -889,7 +891,7 @@ function renderWatchlistDetail(){
 
     <div style="margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:${staffSess ? "#e8f3ee" : "#fdf7eb"};border:1px solid ${staffSess ? "#9ccbb5" : "#e3c58e"};color:${staffSess ? "#175e3c" : "#805300"};">
       <span>${staffSess ? `☁️ <b>Authenticated Staff Session (${esc(staffSess.email)})</b>: Any checklist updates, notes, or new findings automatically save to the shared Preservation Houston Google Sheet.` : `🔒 <b>Read-Only Mode</b>: Sign in with your Google Sheet Editor email to modify the 15-point checklist or log new findings.`}</span>
-      ${!staffSess ? `<button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>` : `<a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit" target="_blank" rel="noopener" style="color:#175e3c;font-weight:600;text-decoration:underline;white-space:nowrap;margin-left:8px;">Open Google Sheet ↗</a>`}
+      ${!staffSess ? `<button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>` : `<a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener" style="color:#175e3c;font-weight:600;text-decoration:underline;white-space:nowrap;margin-left:8px;">Open Raw Sheet Tab ↗</a>`}
     </div>
 
     <div class="wl-card">
@@ -1636,9 +1638,13 @@ function updateStaffAuthButtonUI(){
   const btn = $("#staffAuthBtn");
   const guideBtn = $("#staffGuideDocBtn");
   const menuGuideLink = $("#exportMenuGuideLink");
+  const menuSheetLink = $("#exportMenuSheetLink");
+  const loadSheetLink = $("#loadMenuSheetLink");
   const sess = getStaffSession();
   if (guideBtn) guideBtn.classList.toggle("hidden", !sess);
   if (menuGuideLink) menuGuideLink.classList.toggle("hidden", !sess);
+  if (menuSheetLink) menuSheetLink.classList.toggle("hidden", !sess);
+  if (loadSheetLink) loadSheetLink.classList.toggle("hidden", !sess);
   if (!btn) return;
   if (sess) {
     btn.innerHTML = `&#9729; Cloud Sync: ${esc(sess.email.split("@")[0])}`;
@@ -1695,7 +1701,7 @@ function openStaffAuthModal(){
     <div id="sa-msg" style="font-size:12px;margin-top:8px;min-height:18px;color:var(--tier1)"></div>
     <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <a class="btn" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit" target="_blank" rel="noopener">Open Google Sheet &#8599;</a>
+        <a class="btn" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener">Open Raw Sheet Tab &#8599;</a>
         ${sess ? `<a class="btn" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener">Monitoring Guide (Google Doc &#8599;)</a>` : ""}
         ${sess ? `<button class="btn" id="saLock" type="button" style="color:var(--tier1);border-color:#E5B4B0">Sign Out / Lock</button>` : ""}
       </div>
