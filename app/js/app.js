@@ -18,8 +18,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261022a";
-import { AtlasMapController } from "./mapController.js?v=20261023f";
+} from "./filterStore.js?v=20261023g";
+import { AtlasMapController } from "./mapController.js?v=20261023g";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
 import {
   applyOverrideToProperties,
@@ -134,11 +134,11 @@ class HoustonAtlasApp {
           inspect: true,
         });
       } else {
-        this.mapController.selectFeatureByIdOrHcad({
-          hcadNum: this.initialSelection.hcadNum || "",
-          featureId: this.initialSelection.featureId || "",
-          flyTo: !this.initialViewport,
-        });
+        await this._resolveAndSelectDeepLinkedProperty(
+          this.initialSelection,
+          this.initialViewport,
+          false
+        );
       }
     }
 
@@ -186,24 +186,13 @@ class HoustonAtlasApp {
             Math.abs(curVp.zoom - viewport.zoom) > 0.04 ||
             Math.abs((curVp.pitch || 0) - (viewport.pitch || 0)) > 1);
 
-        if (selection?.hcadNum || selection?.featureId) {
+        if (selection?.hcadNum || selection?.featureId || selection?.query) {
           this.mapController.clearHighlightedBoundary();
-          if (vpChangedSignificantly) {
-            this.mapController.flyToLocation({
-              lng: viewport.lng,
-              lat: viewport.lat,
-              zoom: viewport.zoom,
-              pitch: viewport.pitch,
-              hcadNum: selection.hcadNum || "",
-              featureId: selection.featureId || "",
-            });
-          } else {
-            this.mapController.selectFeatureByIdOrHcad({
-              hcadNum: selection.hcadNum || "",
-              featureId: selection.featureId || "",
-              flyTo: !viewport,
-            });
-          }
+          this._resolveAndSelectDeepLinkedProperty(
+            selection,
+            viewport,
+            Boolean(vpChangedSignificantly)
+          );
         } else if (selection?.boundaryId) {
           if (vpChangedSignificantly) {
             this.mapController.flyToLocation({
@@ -242,6 +231,152 @@ class HoustonAtlasApp {
 
     window.addEventListener("hashchange", handleUrlChange);
     window.addEventListener("popstate", handleUrlChange);
+  }
+
+  async _resolveAndSelectDeepLinkedProperty(selection, viewport = null, vpChangedSignificantly = false) {
+    if (!selection) return;
+    let hcadNum = String(selection.hcadNum || "").trim();
+    let featureId = String(selection.featureId || "").trim();
+    const rawQuery = String(selection.query || "").trim();
+    let addressQuery = rawQuery;
+    let fallbackYearBuilt = 0;
+    const extraCandidateHcads = [];
+    let targetLng = Number.isFinite(Number(viewport?.lng)) ? Number(viewport.lng) : null;
+    let targetLat = Number.isFinite(Number(viewport?.lat)) ? Number(viewport.lat) : null;
+
+    if (rawQuery) {
+      const searchInput = document.getElementById("search-input");
+      if (searchInput && !searchInput.value) {
+        searchInput.value = rawQuery;
+      }
+    }
+
+    const normAddr = (s) =>
+      String(s || "")
+        .toUpperCase()
+        .replace(/\./g, "")
+        .replace(/\bSTREET\b/g, "ST")
+        .replace(/\bAVENUE\b/g, "AVE")
+        .replace(/\bDRIVE\b/g, "DR")
+        .replace(/\bROAD\b/g, "RD")
+        .replace(/\bBOULEVARD\b/g, "BLVD")
+        .replace(/\bLANE\b/g, "LN")
+        .replace(/\bCOURT\b/g, "CT")
+        .replace(/\bPLACE\b/g, "PL")
+        .replace(/\bNORTH\b/g, "N")
+        .replace(/\bSOUTH\b/g, "S")
+        .replace(/\bEAST\b/g, "E")
+        .replace(/\bWEST\b/g, "W")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    // 1. Check searchIndex for matching HCAD, featureId, or street address
+    if (Array.isArray(this.searchIndex)) {
+      const normQ = normAddr(rawQuery);
+      const idxHit = this.searchIndex.find((it) => {
+        if (it.is_neighborhood_entry || it.is_place_boundary) return false;
+        if (hcadNum && String(it.hcad_num || "").trim() === hcadNum) return true;
+        if (featureId && String(it.id || "").trim() === featureId) return true;
+        if (normQ && (normAddr(it.address) === normQ || normAddr(it.label) === normQ)) return true;
+        return false;
+      });
+      if (idxHit) {
+        if (!hcadNum && idxHit.hcad_num) hcadNum = String(idxHit.hcad_num).trim();
+        if (idxHit.hcad_num && String(idxHit.hcad_num).trim() !== hcadNum) {
+          extraCandidateHcads.push(String(idxHit.hcad_num).trim());
+        }
+        if (!featureId && idxHit.id) featureId = String(idxHit.id).trim();
+        if (!addressQuery && idxHit.address) addressQuery = String(idxHit.address).trim();
+        if (Number(idxHit.year_built) >= 1836) fallbackYearBuilt = Number(idxHit.year_built);
+        if (!Number.isFinite(targetLng) && Number.isFinite(Number(idxHit.lon ?? idxHit.lng))) {
+          targetLng = Number(idxHit.lon ?? idxHit.lng);
+        }
+        if (!Number.isFinite(targetLat) && Number.isFinite(Number(idxHit.lat))) {
+          targetLat = Number(idxHit.lat);
+        }
+      }
+    }
+
+    // 2. Also check countywide address_shards whenever rawQuery (or addressQuery) begins with a house number
+    const addrNumMatch = String(addressQuery || "").trim().match(/^(\d+[a-z]?)\s+(.*)$/i);
+    if (addrNumMatch) {
+      const typedNum = addrNumMatch[1].toUpperCase();
+      const typedDigits = typedNum.replace(/\D/g, "");
+      const typedStreetPart = normAddr(addrNumMatch[2]);
+      const streetTokens = typedStreetPart.split(/\s+/).filter(Boolean);
+      if (typedDigits.length >= 1) {
+        const shardKey = typedDigits.slice(0, 2).padEnd(2, "0");
+        this._addressShardCache = this._addressShardCache || {};
+        if (!this._addressShardCache[shardKey]) {
+          try {
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json`);
+            this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
+          } catch (_e) {
+            this._addressShardCache[shardKey] = {};
+          }
+        }
+        const shardData = this._addressShardCache[shardKey] || {};
+        let bestRow = null;
+        let bestStreet = "";
+        for (const [stName, rows] of Object.entries(shardData)) {
+          const normSt = normAddr(stName);
+          if (streetTokens.length > 0 && !streetTokens.every((tok) => normSt.includes(tok))) {
+            continue;
+          }
+          for (const row of rows) {
+            if (String(row[0]).toUpperCase() === typedNum) {
+              bestRow = row;
+              bestStreet = normSt;
+              if (normSt === typedStreetPart) break;
+            }
+          }
+          if (bestRow && bestStreet === typedStreetPart) break;
+        }
+        if (bestRow) {
+          const shardLon = Number(bestRow[1]);
+          const shardLat = Number(bestRow[2]);
+          const shardYr = Number(bestRow[3]) || 0;
+          const shardHcad = String(bestRow[4] || "").trim();
+          const shardAddr = `${bestRow[0]} ${bestStreet}`.replace(/\s+/g, " ").trim();
+          if (shardHcad) {
+            if (!hcadNum) {
+              hcadNum = shardHcad;
+            } else if (shardHcad !== hcadNum) {
+              extraCandidateHcads.push(shardHcad);
+            }
+          }
+          if (!addressQuery) addressQuery = shardAddr;
+          if (!fallbackYearBuilt && shardYr >= 1836) fallbackYearBuilt = shardYr;
+          if (!Number.isFinite(targetLng) && Number.isFinite(shardLon)) targetLng = shardLon;
+          if (!Number.isFinite(targetLat) && Number.isFinite(shardLat)) targetLat = shardLat;
+        }
+      }
+    }
+
+    if (vpChangedSignificantly && viewport) {
+      this.mapController.flyToLocation({
+        lng: viewport.lng,
+        lat: viewport.lat,
+        zoom: viewport.zoom,
+        pitch: viewport.pitch,
+        hcadNum,
+        featureId,
+        addressQuery,
+        fallbackYearBuilt,
+        extraCandidateHcads,
+      });
+    } else {
+      this.mapController.selectFeatureByIdOrHcad({
+        hcadNum,
+        featureId,
+        addressQuery,
+        fallbackYearBuilt,
+        extraCandidateHcads,
+        targetLng,
+        targetLat,
+        flyTo: !viewport,
+      });
+    }
   }
 
   _setSidebarCollapsed(collapsed) {
@@ -3744,7 +3879,7 @@ class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`data/address_shards/addr_${shardKey}.json`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -3761,9 +3896,10 @@ class HoustonAtlasApp {
         } else if (shardData) {
           let shardAdded = 0;
           for (const [stName, rows] of Object.entries(shardData)) {
+            const normStName = String(stName).replace(/\s+/g, " ").trim();
             if (
               streetTokens.length > 0 &&
-              !streetTokens.every((tok) => stName.includes(tok))
+              !streetTokens.every((tok) => normStName.includes(tok))
             ) {
               continue;
             }
@@ -3778,7 +3914,7 @@ class HoustonAtlasApp {
               const hcad = String(row[4] || "");
               const bldName = String(row[5] || "");
               if (hcad && seenKeys.has(hcad)) continue;
-              const fullAddr = `${hnum} ${stName}`;
+              const fullAddr = `${hnum} ${normStName}`;
               const addrId = hcad || `addr_${fullAddr}`;
               if (seenKeys.has(addrId)) continue;
               seenKeys.add(addrId);
@@ -3786,9 +3922,9 @@ class HoustonAtlasApp {
 
               let sc = exactNum ? 118 : 92;
               if (streetTokens.length > 0) {
-                if (stName === typedStreetPart || stName.startsWith(typedStreetPart + " ")) {
+                if (normStName === typedStreetPart || normStName.startsWith(typedStreetPart + " ")) {
                   sc += 12;
-                } else if (stName.startsWith(streetTokens[0])) {
+                } else if (normStName.startsWith(streetTokens[0])) {
                   sc += 6;
                 }
               }
@@ -10969,13 +11105,15 @@ class HoustonAtlasApp {
     if (!platItem) return "";
     const isCrit =
       platItem.tier === "tier1" || platItem.is_variance || platItem.is_public_hearing;
+    const appId = platItem.appNo || platItem.id || "";
+    const hasWatchlistEntry = platItem.tier === "tier1" || platItem.tier === "tier2";
     return `
       <div class="inspector-permit-alert-card ${isCrit ? "critical" : "watch"}" style="border-color:rgba(244,63,94,0.45);background:rgba(136,19,55,0.18);">
         <div class="inspector-permit-alert-header">
           <span class="inspector-permit-alert-kicker">
             &#128203; Planning Commission Plat &amp; Variance Monitor
           </span>
-          <span class="inspector-permit-alert-badge mono">App #${platItem.appNo || "N/A"} · Sec ${platItem.section || "I"}</span>
+          <span class="inspector-permit-alert-badge mono">App #${appId || "N/A"} · Sec ${platItem.section || "I"}</span>
         </div>
         <div class="inspector-permit-alert-headline">${platItem.name || ""} (${platItem.type || "Plat"})</div>
         ${
@@ -10988,15 +11126,27 @@ class HoustonAtlasApp {
             ? `<div class="inspector-permit-alert-narrative">${platItem.notes}</div>`
             : ""
         }
-        <div class="inspector-permit-alert-actions">
+        <div class="inspector-permit-alert-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
           <a
-            href="plat-monitor.html?tab=plat&id=${encodeURIComponent(platItem.id || "")}"
+            href="plat-monitor.html?tab=plat&id=${encodeURIComponent(appId)}"
             target="_blank"
             rel="noopener"
             class="inspector-permit-watch-btn primary"
           >
             &#128203; Open in Plat &amp; Property Monitor &#8599;
           </a>
+          ${
+            hasWatchlistEntry
+              ? `<a
+                  href="plat-monitor.html?tab=watchlist&watch=${encodeURIComponent("plat-" + appId)}&hcad=${encodeURIComponent(platItem.hcad_num || "")}"
+                  target="_blank"
+                  rel="noopener"
+                  class="inspector-permit-watch-btn secondary"
+                >
+                  &#128269; Open 15-Point Watchlist &#8599;
+                </a>`
+              : ""
+          }
         </div>
       </div>
     `;

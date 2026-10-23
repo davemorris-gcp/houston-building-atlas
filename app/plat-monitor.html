@@ -678,8 +678,10 @@ function atlasMapLink(it, r){
   const rawHcad = (r && r.hcad ? r.hcad + " " : "") + (it.hcad || "");
   const firstHcad = (rawHcad.split(/[,;\s]+/).find(x => /^\d{10,13}$/.test(x)) || "").padStart(13, "0");
   if (firstHcad && firstHcad.length === 13 && ((r && r.hcad) || at.buildingId || at.coordSource === "parcel")) {
-    const q = encodeURIComponent(r.address || at.primaryAddress || firstHcad);
-    return `<a class="atlas-link" href="index.html?hcad=${firstHcad}&q=${q}${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=18` : ""}" target="_blank" rel="noopener">View Parcel in Houston Building Atlas Map ↗</a>`;
+    const rawAddr = String((r && r.address) || at.primaryAddress || firstHcad).split(/[;,]/)[0].trim();
+    const q = encodeURIComponent(rawAddr);
+    const idParam = at.buildingId ? `&id=${encodeURIComponent(at.buildingId)}` : "";
+    return `<a class="atlas-link" href="index.html?hcad=${firstHcad}${idParam}&q=${q}${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=18` : ""}" target="_blank" rel="noopener">View Parcel in Houston Building Atlas Map ↗</a>`;
   }
   if (at.subdivisionMatch || at.subdivisionId) {
     const bndTarget = encodeURIComponent(at.subdivisionId || at.subdivisionMatch);
@@ -691,6 +693,33 @@ function atlasMapLink(it, r){
   }
   if (at.lat && at.lng) {
     return `<a class="atlas-link" href="index.html?lat=${at.lat}&lng=${at.lng}&z=17" target="_blank" rel="noopener">Locate in Houston Building Atlas Map ↗</a>`;
+  }
+  return "";
+}
+function watchlistAtlasMapLink(p){
+  if (!p) return "";
+  const rawHcad = String(p.hcadAccount || "");
+  const firstHcadToken = rawHcad.split(/[,;\s]+/).find(x => /^\d{10,13}$/.test(x)) || "";
+  const firstHcad = firstHcadToken ? firstHcadToken.padStart(13, "0") : "";
+  const primaryAddr = String(p.address || p.propertyName || "").split(/[;,]/)[0].trim();
+  if (firstHcad || p.buildingId || (p.lat && p.lng && p.coordSource !== "subdivision")) {
+    const params = [];
+    if (firstHcad) params.push(`hcad=${encodeURIComponent(firstHcad)}`);
+    if (p.buildingId) params.push(`id=${encodeURIComponent(p.buildingId)}`);
+    if (primaryAddr) params.push(`q=${encodeURIComponent(primaryAddr)}`);
+    if (p.lat && p.lng) params.push(`lat=${p.lat}&lng=${p.lng}&z=18`);
+    return `<a class="atlas-link" href="index.html?${params.join("&")}" target="_blank" rel="noopener">Open Dossier in Houston Building Atlas Map ↗</a>`;
+  }
+  if (p.subdivisionMatch || p.subdivisionId) {
+    const bndTarget = encodeURIComponent(p.subdivisionId || p.subdivisionMatch);
+    return `<a class="atlas-link" href="index.html?bnd=platted_subdivisions:${bndTarget}&layers=platted_subdivisions,super_neighborhoods,landmarks,historic_districts,plat_watch${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=16` : ""}" target="_blank" rel="noopener">🗺️ Fly to Subdivision (${esc(p.subdivisionMatch)}) on Atlas Map ↗</a>`;
+  }
+  if (p.superNeighborhoodMatch || p.superNeighborhoodId) {
+    const bndTarget = encodeURIComponent(p.superNeighborhoodId || p.superNeighborhoodMatch);
+    return `<a class="atlas-link" href="index.html?bnd=super_neighborhoods:${bndTarget}&layers=super_neighborhoods,platted_subdivisions,landmarks,historic_districts,plat_watch${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=14.8` : ""}" target="_blank" rel="noopener">🗺️ Fly to ${esc(p.superNeighborhoodMatch)} on Atlas Map ↗</a>`;
+  }
+  if (primaryAddr) {
+    return `<a class="atlas-link" href="index.html?q=${encodeURIComponent(primaryAddr)}" target="_blank" rel="noopener">Search in Houston Building Atlas Map ↗</a>`;
   }
   return "";
 }
@@ -1118,7 +1147,7 @@ function renderWatchlistDetail(){
     <h2>${esc(p.propertyName)}</h2>
     <div class="meta">${esc(p.address)}${p.secondaryAddresses && p.secondaryAddresses.length ? " (Secondary block addresses: " + esc(p.secondaryAddresses.join(", ")) + ")" : ""} · HCAD ${esc(p.hcadAccount || "N/A")}${p.yearBuilt ? " · Built " + esc(p.yearBuilt) : ""}${p.yearRemodeled ? " / Remodeled " + esc(p.yearRemodeled) : ""}</div>
     <div class="links">
-      ${p.lat && p.lng ? `<a class="atlas-link" href="index.html?q=${encodeURIComponent(p.address)}&lat=${p.lat}&lng=${p.lng}&z=18" target="_blank" rel="noopener">Open Dossier in Houston Building Atlas Map ↗</a>` : ""}
+      ${watchlistAtlasMapLink(p)}
       ${p.hcadAccount ? `<a href="https://hcad.org/hcad-resources/hcad-online-toolkit/hcad-property-search/?account=${encodeURIComponent(p.hcadAccount)}" target="_blank" rel="noopener">HCAD Record</a>` : ""}
       <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address + ", Houston, TX")}" target="_blank" rel="noopener">Google Street View</a>
       <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits</a>
@@ -2381,10 +2410,31 @@ async function loadLiveAtlasCycle(forceReload){
         WL = wlData;
         persistWatchlist();
       } else {
-        // Ensure Kirby Mansion is always up to date while preserving user-added watched properties
-        const existingIds = new Set(WL.watchedProperties.map(p => p.id));
+        // Ensure Kirby Mansion and pre-enriched watched properties stay synced with updated Atlas coordinates/HCADs while preserving user edits
+        const byId = new Map(WL.watchedProperties.map(p => [p.id, p]));
         (wlData.watchedProperties || []).forEach(p => {
-          if (!existingIds.has(p.id)) WL.watchedProperties.push(p);
+          const ex = byId.get(p.id);
+          if (!ex) {
+            WL.watchedProperties.push(p);
+          } else {
+            ex.lat = p.lat;
+            ex.lng = p.lng;
+            ex.coordSource = p.coordSource || ex.coordSource || "";
+            ex.subdivisionMatch = p.subdivisionMatch || ex.subdivisionMatch || "";
+            ex.subdivisionId = p.subdivisionId || ex.subdivisionId || "";
+            ex.superNeighborhoodMatch = p.superNeighborhoodMatch || ex.superNeighborhoodMatch || "";
+            ex.superNeighborhoodId = p.superNeighborhoodId || ex.superNeighborhoodId || "";
+            if (p.buildingId && !ex.buildingId) ex.buildingId = p.buildingId;
+            if (p.hcadAccount && (!ex.hcadAccount || ex.hcadAccount === "0391500000001" || ex.hcadAccount === "0012070000001")) {
+              ex.hcadAccount = p.hcadAccount;
+            }
+            if (p.address && (!ex.address || ex.address === ex.propertyName)) {
+              ex.address = p.address;
+            }
+            if (ex.yearBuilt === "ca. 1941 (subdiv.)") {
+              ex.yearBuilt = p.yearBuilt || "";
+            }
+          }
         });
         persistWatchlist();
       }
@@ -2399,9 +2449,9 @@ async function loadLiveAtlasCycle(forceReload){
       const params = new URLSearchParams(window.location.search);
       const qId = (params.get("id") || params.get("app") || "").trim();
       if (qId && Array.isArray(d.items)) {
-        const foundItem = d.items.find(it => it.id === qId || it.appNo === qId);
+        const foundItem = d.items.find(it => it.app === qId || it.id === qId || it.appNo === qId);
         if (foundItem) {
-          view.selected = foundItem.id;
+          view.selected = foundItem.app || foundItem.id;
           view.group = "all";
           render();
         }

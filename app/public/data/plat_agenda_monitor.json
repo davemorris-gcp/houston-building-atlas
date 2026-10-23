@@ -67,9 +67,9 @@
         "allYearsBuilt": [
           1954
         ],
-        "lng": -95.37079,
-        "lat": 29.78415,
-        "coordSource": "subdivision",
+        "lng": -95.44804,
+        "lat": 29.86551,
+        "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "HIGHLAND ADDITION",
@@ -4006,9 +4006,9 @@
         "allYearsBuilt": [
           1998
         ],
-        "lng": -95.32557,
-        "lat": 29.74551,
-        "coordSource": "subdivision",
+        "lng": -95.32769,
+        "lat": 29.74649,
+        "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "OAK LAWN ADDITION",
@@ -5821,9 +5821,9 @@
         "allYearsBuilt": [
           1933
         ],
-        "lng": -95.28273,
-        "lat": 29.80747,
-        "coordSource": "subdivision",
+        "lng": -95.27768,
+        "lat": 29.81229,
+        "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "HOLLEMAN ADDITION",
@@ -6520,9 +6520,9 @@
         "allYearsBuilt": [
           1981
         ],
-        "lng": -95.3621,
-        "lat": 29.95662,
-        "coordSource": "subdivision",
+        "lng": -95.36396,
+        "lat": 29.94857,
+        "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "WAVERLY FARMS",
@@ -7911,9 +7911,9 @@
         "allYearsBuilt": [
           2018
         ],
-        "lng": -95.55758,
-        "lat": 29.80869,
-        "coordSource": "super_neighborhood",
+        "lng": -95.56825,
+        "lat": 29.79562,
+        "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "",
@@ -8987,7 +8987,7 @@
       "landUse": "Commercial (Convenience Store, Fuel Canopy & Retail Shell)",
       "acreage": "",
       "lots": "1",
-      "hcad": "0012070000001",
+      "hcad": "0060610000001",
       "developer": "",
       "org": "",
       "applicant": "Jessica Rubio",
@@ -9000,14 +9000,18 @@
       "deferral": "",
       "atlas": {
         "addresses": [
-          "801 MCGOWEN ST"
+          "801 MCGOWEN ST",
+          "2603 MILAM ST"
         ],
         "primaryAddress": "801 MCGOWEN ST",
-        "earliestYearBuilt": 0,
-        "allYearsBuilt": [],
-        "lng": -95.37252,
-        "lat": 29.74371,
-        "coordSource": "super_neighborhood",
+        "earliestYearBuilt": 1929,
+        "allYearsBuilt": [
+          1929,
+          1960
+        ],
+        "lng": -95.37551,
+        "lat": 29.74584,
+        "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "",
@@ -9066,7 +9070,7 @@
       "landUse": "Commercial",
       "acreage": "",
       "lots": "1",
-      "hcad": "0391500000001",
+      "hcad": "0331890010001",
       "developer": "",
       "org": "",
       "applicant": "Development Plat Variance Applicant",
@@ -9086,9 +9090,9 @@
         "allYearsBuilt": [
           1920
         ],
-        "lng": -95.40283,
-        "lat": 29.79104,
-        "coordSource": "subdivision",
+        "lng": -95.38401,
+        "lat": 29.79874,
+        "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "HOUSTON HEIGHTS",
@@ -9168,9 +9172,9 @@
         "allYearsBuilt": [
           1960
         ],
-        "lng": -95.56776,
-        "lat": 29.77726,
-        "coordSource": "subdivision",
+        "lng": -95.57476,
+        "lat": 29.76715,
+        "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "RUSTLING OAKS",
@@ -10549,14 +10553,15 @@
     },
     "DPV-26073533": {
       "address": "801 MCGOWEN ST",
-      "yearBuilt": "ca. 1941 (subdiv.)",
+      "yearBuilt": "1929",
       "designation": "None found",
       "tier": "1",
       "why": "Section K Development Plat Variance (DPV-26073533) in MIDTOWN. The applicant is requesting to allow auto-related uses in the pedestrian realm along McGowen Street for a new convenience store, fuel canopy, and retail shell building.",
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-23T16:53:01.169622+00:00"
+      "updated": "2026-10-23T16:53:01.169622+00:00",
+      "hcad": "0060610000001"
     },
     "DPV-4801-NMAIN": {
       "address": "4801 N MAIN ST",
@@ -10567,7 +10572,8 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-23T16:53:01.169627+00:00"
+      "updated": "2026-10-23T16:53:01.169627+00:00",
+      "hcad": "0331890010001"
     },
     "DPV-323-WYCLIFFE": {
       "address": "323 WYCLIFFE DR",
