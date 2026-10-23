@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-10-22T16:30:48Z",
-  "generated_at": "2026-10-22T16:30:48Z",
+  "updated_at": "2026-10-23T16:52:39Z",
+  "generated_at": "2026-10-23T16:52:39Z",
   "lookback_days": 45,
   "summary": {
-    "total_flagged_buildings": 15,
-    "critical_count": 5,
-    "watch_count": 10,
-    "coh_permits_matched": 10,
-    "dshs_notifications_matched": 11
+    "total_flagged_buildings": 18,
+    "critical_count": 6,
+    "watch_count": 12,
+    "coh_permits_matched": 12,
+    "dshs_notifications_matched": 13
   },
   "alerts": [
     {
@@ -95,10 +95,14 @@
         }
       ],
       "related_hcads": [
-        "0152300000001"
+        "0152300000001",
+        "0152300000001#aux_1",
+        "0152300000001#aux_2"
       ],
       "related_building_ids": [
-        "bld_004618"
+        "bld_004618",
+        "0152300000001#aux_1",
+        "0152300000001#aux_2"
       ],
       "secondary_addresses": [
         "530 PIERCE ST",
@@ -301,6 +305,24 @@
           "is_garage_only": false,
           "is_structural_demo": true,
           "is_interior_only": false
+        },
+        {
+          "project_no": "26078006",
+          "date": "2026-09-09",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_desc": "Plumbing Pmt",
+          "use_desc": "DEMO BLD /SEWER DISC",
+          "fcc_group": "Demo; Other Building(s)",
+          "owner_occupant": "*SHAUNTY HEALING CENTER",
+          "buyer": "BARRERA OSCAR",
+          "buyer_address": "10826 SAGEVALE LN 77089",
+          "valuation": "$ 0",
+          "job_address": "503 SUL ROSS ST A 77006",
+          "is_sewer_disconnect": true,
+          "is_garage_only": false,
+          "is_structural_demo": true,
+          "is_interior_only": false
         }
       ],
       "dshs_notifications": [],
@@ -311,6 +333,62 @@
       "related_building_ids": [
         "bld_005866",
         "bld_014328"
+      ]
+    },
+    {
+      "hcad_num": "osm_city_1324112262",
+      "building_id": "osm_city_1324112262#bldg_5403_san_juan_street",
+      "title": "5403 SAN JUAN STREET",
+      "building_name": "",
+      "address": "5403 SAN JUAN STREET",
+      "year_built": 1948,
+      "yr_remodel": 0,
+      "style": "",
+      "architect": "",
+      "neighborhood": "",
+      "historic_district": "",
+      "landmark_name": "",
+      "good_brick_summary": "",
+      "owner": "",
+      "lng": -95.3698,
+      "lon": -95.3698,
+      "lat": 29.771776,
+      "severity": "critical",
+      "severity_label": "Critical Alert: City of Houston Demolition Permit Issued",
+      "badge": "Active Demo Permit",
+      "headline": "City of Houston demolition permit (#26077407, issued 2026-09-11: COH D.B./RESIDENTIAL DEMO/DAP LIST 2026/).",
+      "preservation_note": "",
+      "latest_filing_date": "2026-09-11",
+      "coh_permits": [
+        {
+          "project_no": "26077407",
+          "date": "2026-09-11",
+          "permit_type": "4D",
+          "permit_type_label": "Building Demolition Permit",
+          "permit_desc": "Dgr Bldg Demo",
+          "use_desc": "COH D.B./RESIDENTIAL DEMO/DAP LIST 2026/",
+          "fcc_group": "Demo; Single Familty Dwelling",
+          "owner_occupant": "*COH",
+          "buyer": "HONESTY CONSTRUCTION GROUP, LL",
+          "buyer_address": "6801 CULLEN BLVD STE 100 77021",
+          "valuation": "$ 0",
+          "job_address": "5403 SAN JUAN ST BLD#2 77020",
+          "is_sewer_disconnect": false,
+          "is_garage_only": false,
+          "is_structural_demo": true,
+          "is_interior_only": false
+        }
+      ],
+      "dshs_notifications": [],
+      "related_hcads": [
+        "osm_city_1324112262",
+        "osm_city_1324112262#bldg_5403_san_juan_street",
+        "osm_city_1324112261",
+        "osm_city_1324112261#bldg_5403_san_juan_street"
+      ],
+      "related_building_ids": [
+        "osm_city_1324112262#bldg_5403_san_juan_street",
+        "osm_city_1324112261#bldg_5403_san_juan_street"
       ]
     },
     {
@@ -535,23 +613,23 @@
       ]
     },
     {
-      "hcad_num": "1382870010001",
-      "building_id": "bld_004655",
-      "title": "3800 MONTROSE BLVD",
+      "hcad_num": "0261670000001",
+      "building_id": "bld_0261670000001",
+      "title": "3800 Montrose Blvd",
       "building_name": "",
-      "address": "3800 MONTROSE BLVD",
-      "year_built": 1910,
+      "address": "3800 Montrose Blvd",
+      "year_built": 1912,
       "yr_remodel": 0,
-      "style": "E",
-      "architect": "",
-      "neighborhood": "University of St Thomas",
-      "historic_district": "Outside Historic District",
+      "style": "Brick Veneer residential building",
+      "architect": "Sanguinet & Staats",
+      "neighborhood": "",
+      "historic_district": "",
       "landmark_name": "",
       "good_brick_summary": "",
-      "owner": "ST THOMAS COLLEGE",
-      "lng": -95.392305,
-      "lon": -95.392305,
-      "lat": 29.738242,
+      "owner": "",
+      "lng": -95.3698,
+      "lon": -95.3698,
+      "lat": 29.738313,
       "severity": "watch",
       "severity_label": "Active Watch: Texas DSHS Abatement Filing",
       "badge": "DSHS Abatement",
@@ -589,7 +667,6 @@
         }
       ],
       "related_hcads": [
-        "1382870010001",
         "0261670000001",
         "0440970000170",
         "0261800000011",
@@ -602,7 +679,6 @@
         "0502350020001"
       ],
       "related_building_ids": [
-        "bld_004655",
         "bld_0261670000001",
         "0440970000170#ust_256264834_link_lee_mansion_ust_cul",
         "0261800000011#ust_20380690_baylor_college_of_medici",
@@ -613,6 +689,74 @@
         "1466090010001#ust_51812681_children_s_memorial_herm",
         "0261810000001#ust_425224061_chapel_of_st_basil_unive",
         "0502350020001#ust_87657668_byzantine_fresco_chapel_"
+      ]
+    },
+    {
+      "hcad_num": "0421790000001#rice_58_lovett_hall_administration_b",
+      "building_id": "0421790000001#rice_58_lovett_hall_administration_b",
+      "title": "6100 MAIN ST",
+      "building_name": "",
+      "address": "6100 MAIN ST",
+      "year_built": 1912,
+      "yr_remodel": 0,
+      "style": "Mediterranean / Byzantine Revival",
+      "architect": "Cram, Goodhue & Ferguson",
+      "neighborhood": "",
+      "historic_district": "",
+      "landmark_name": "",
+      "good_brick_summary": "",
+      "owner": "",
+      "lng": -95.3698,
+      "lon": -95.3698,
+      "lat": 29.7604,
+      "severity": "watch",
+      "severity_label": "Active Watch: Texas DSHS Abatement Filing",
+      "badge": "DSHS Abatement",
+      "headline": "Texas DSHS abatement notification (#2026005518) scheduled 2026-10-10 to 2026-10-11.",
+      "preservation_note": "",
+      "latest_filing_date": "2026-09-24",
+      "coh_permits": [],
+      "dshs_notifications": [
+        {
+          "notification_number": "2026005518",
+          "facility_name": "RICE UNIVERSITY",
+          "raw_address": "6100 MAIN STREET HOUSTON HARRIS TX 77005",
+          "norm_address": "6100 MAIN ST",
+          "start_date": "2026-10-10",
+          "end_date": "2026-10-11",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2445916",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=234374",
+          "filing_date": "2026-09-24",
+          "work_type": "Abatement",
+          "start_date_pretty": "Oct 10, 2026",
+          "end_date_pretty": "Oct 11, 2026",
+          "work_hours": "7:00 AM to 5:00 PM",
+          "containment_method": "Full Containment (296.212)",
+          "reported_building_age": "65 years",
+          "reported_sqft": "45000 square feet",
+          "reported_floors": 5,
+          "survey_date": "Jun 30, 2025",
+          "racm_linear_ft": 0,
+          "racm_sqft": 200,
+          "work_description": "WET MATERIAL, CONTAIN AREA, NOTIFY ON-SITE HYGIENIST D-CON, SHOWER, CONTAINMENT, NEGATIVE PRESSURE, PPE & PERSONNEL AND AREA AIR MONITORING. REMOVAL UTILIZING WET METHODS",
+          "contractor_license": "800401",
+          "abatement_contractor": "D & T CONTRACTING LP",
+          "contractor_address": "26231 HANNA RD, SPRING, TX 77386",
+          "tceq_permit": "D1307",
+          "disposal_site": "ATASCOCITA"
+        }
+      ],
+      "related_hcads": [
+        "0421790000001#rice_58_lovett_hall_administration_b",
+        "0421790000001#rice_62_mechanical_laboratory_campan",
+        "0421790000001#rice_51_howard_keck_hall_original_ch",
+        "0440980000065#rice_13_raymond_and_susan_brochstein"
+      ],
+      "related_building_ids": [
+        "0421790000001#rice_58_lovett_hall_administration_b",
+        "0421790000001#rice_62_mechanical_laboratory_campan",
+        "0421790000001#rice_51_howard_keck_hall_original_ch",
+        "0440980000065#rice_13_raymond_and_susan_brochstein"
       ]
     },
     {
@@ -921,24 +1065,6 @@
         {
           "project_no": "26087441",
           "date": "2026-10-06",
-          "permit_type": "13",
-          "permit_type_label": "Building Pmt",
-          "permit_desc": "Building Pmt",
-          "use_desc": "PPR DEMO OF NON-LOAD BEARING/NON- FIRE R",
-          "fcc_group": "Non-Residential Alteration",
-          "owner_occupant": "*THE HOUSTON CLUB",
-          "buyer": "*DELTON CONSTRUCTION",
-          "buyer_address": "11176 WINDJAMMER DR 75036",
-          "valuation": "$ 20,000",
-          "job_address": "910 LOUISIANA ST 4900 77002",
-          "is_sewer_disconnect": false,
-          "is_garage_only": false,
-          "is_structural_demo": false,
-          "is_interior_only": true
-        },
-        {
-          "project_no": "26087441",
-          "date": "2026-10-06",
           "permit_type": "PX",
           "permit_type_label": "Plan Review Fee",
           "permit_desc": "Plan Review Fee",
@@ -948,6 +1074,24 @@
           "buyer": "*DELTON CONSTRUCTION",
           "buyer_address": "11176 WINDJAMMER DR 75036",
           "valuation": "$ 0",
+          "job_address": "910 LOUISIANA ST 4900 77002",
+          "is_sewer_disconnect": false,
+          "is_garage_only": false,
+          "is_structural_demo": false,
+          "is_interior_only": true
+        },
+        {
+          "project_no": "26087441",
+          "date": "2026-10-06",
+          "permit_type": "13",
+          "permit_type_label": "Building Pmt",
+          "permit_desc": "Building Pmt",
+          "use_desc": "PPR DEMO OF NON-LOAD BEARING/NON- FIRE R",
+          "fcc_group": "Non-Residential Alteration",
+          "owner_occupant": "*THE HOUSTON CLUB",
+          "buyer": "*DELTON CONSTRUCTION",
+          "buyer_address": "11176 WINDJAMMER DR 75036",
+          "valuation": "$ 20,000",
           "job_address": "910 LOUISIANA ST 4900 77002",
           "is_sewer_disconnect": false,
           "is_garage_only": false,
@@ -981,10 +1125,73 @@
         }
       ],
       "related_hcads": [
-        "osm_city_44821986"
+        "osm_city_44821986",
+        "osm_city_44821986#bldg_one_shell_plaza"
       ],
       "related_building_ids": [
         "osm_city_44821986#bldg_one_shell_plaza"
+      ]
+    },
+    {
+      "hcad_num": "0261550000006",
+      "building_id": "bld_003789",
+      "title": "3509 MONTROSE BLVD",
+      "building_name": "",
+      "address": "3509 MONTROSE BLVD",
+      "year_built": 1980,
+      "yr_remodel": 2004,
+      "style": "",
+      "architect": "",
+      "neighborhood": "Montrose",
+      "historic_district": "",
+      "landmark_name": "",
+      "good_brick_summary": "",
+      "owner": "SOUNDWAVES REALTY LP",
+      "lng": -95.390837,
+      "lon": -95.390837,
+      "lat": 29.740976,
+      "severity": "watch",
+      "severity_label": "Active Watch: Texas DSHS Abatement Filing",
+      "badge": "DSHS Abatement",
+      "headline": "Texas DSHS abatement notification (#2026005986) scheduled 2026-11-09 to 2026-11-11.",
+      "preservation_note": "",
+      "latest_filing_date": "2026-10-22",
+      "coh_permits": [],
+      "dshs_notifications": [
+        {
+          "notification_number": "2026005986",
+          "facility_name": "VACANT RETAIL BUILDING",
+          "raw_address": "3509 MONTROSE BLVD HOUSTON HARRIS TX 77006",
+          "norm_address": "3509 MONTROSE BLVD",
+          "start_date": "2026-11-09",
+          "end_date": "2026-11-11",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2454029",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=235782",
+          "filing_date": "2026-10-22",
+          "work_type": "Abatement",
+          "start_date_pretty": "Nov 09, 2026",
+          "end_date_pretty": "Nov 11, 2026",
+          "work_hours": "7:00 AM to 5:30 PM",
+          "reported_building_age": "46 years",
+          "reported_sqft": "15000 square feet",
+          "reported_floors": 1,
+          "survey_date": "Oct 02, 2026",
+          "work_description": "REMOVAL OF ACM FLOOR TILE AND ASSOC. MASTIC IN THE BACK AREA AND DJ BOOTH, SINGLE LAYER CERAMIC FLOOR TILE OVER MASTIC IN THE BATHROOMS, ACM MIRROR MASTIC IN THE BATHROOMS AND DRESSING ROOMS UNDER FULL CONTAINMENT AND ACM CAULKING ON ROOF FLASHING",
+          "contractor_license": "800493",
+          "abatement_contractor": "ARROW SERVICES INC",
+          "contractor_address": "11811 NORTH FREEWAY, STE. 480, HOUSTON, TX 77060",
+          "facility_owner": "SHAPE UP GC",
+          "owner_address": "30310 IRIS CIRCLE CT, BROOKSHIRE, TX 77423",
+          "owner_phone": "281-760-5106",
+          "tceq_permit": "261-B",
+          "disposal_site": "BFI MCCARTY LANDFILL"
+        }
+      ],
+      "related_hcads": [
+        "0261550000006"
+      ],
+      "related_building_ids": [
+        "bld_003789"
       ]
     },
     {
@@ -1091,7 +1298,8 @@
         }
       ],
       "related_hcads": [
-        "osm_city_260359937"
+        "osm_city_260359937",
+        "osm_city_260359937#bldg_marathon_oil_tower"
       ],
       "related_building_ids": [
         "osm_city_260359937#bldg_marathon_oil_tower"
