@@ -61,6 +61,6 @@ jobs:
           print(f"{c} critical, {w} watch ({t} total)")
           ')
             git commit -m "chore(permits): automated update of Houston permits & DSHS asbestos alerts ($ALERT_SUMMARY)"
-            git pull --rebase origin main
+            git pull --rebase --autostash origin main
             git push origin main
           fi
