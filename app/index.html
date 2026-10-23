@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261022a" />
+  <link rel="stylesheet" href="styles/index.css?v=20261023e" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -1090,11 +1090,40 @@
 
     <!-- Right Slide-Over Property & Landmark Inspector Drawer -->
     <aside class="inspector-drawer hidden" id="inspector-drawer" aria-label="Property Inspector">
+      <div
+        class="inspector-mobile-drag-handle"
+        id="inspector-mobile-drag-handle"
+        role="button"
+        tabindex="0"
+        title="Tap to cycle bottom sheet height (Peek / Half / Full)"
+        aria-label="Cycle mobile sheet height"
+      >
+        <span class="inspector-drag-pill"></span>
+      </div>
       <div class="inspector-topbar">
-        <span class="inspector-kicker">Archival Property Record</span>
-        <button type="button" class="icon-btn" id="btn-close-inspector" aria-label="Close Inspector">
-          &times;
-        </button>
+        <span class="inspector-kicker" id="inspector-kicker-text">Archival Property Record</span>
+        <div class="inspector-topbar-actions">
+          <button
+            type="button"
+            class="inspector-layout-btn desktop-only"
+            id="btn-toggle-inspector-wide"
+            title="Expand to 2-column Wide Researcher View on large screens"
+            aria-pressed="false"
+          >
+            &#10530; Wide View
+          </button>
+          <button
+            type="button"
+            class="inspector-layout-btn mobile-only"
+            id="btn-cycle-mobile-sheet"
+            title="Cycle mobile sheet height (Peek / Half / Full)"
+          >
+            &#8597; Half
+          </button>
+          <button type="button" class="icon-btn" id="btn-close-inspector" aria-label="Close Inspector">
+            &times;
+          </button>
+        </div>
       </div>
       <div class="inspector-body" id="inspector-body"></div>
     </aside>
@@ -2099,6 +2128,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261023d"></script>
+  <script type="module" src="js/app.js?v=20261023e"></script>
 </body>
 </html>

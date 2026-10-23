@@ -1397,7 +1397,7 @@ body {
   top: 76px;
   right: 12px;
   bottom: 12px;
-  width: 356px;
+  width: 364px;
   z-index: 22;
   background: var(--bg-panel);
   backdrop-filter: blur(18px);
@@ -1407,14 +1407,294 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1), max-height 0.22s ease;
+}
+
+@media (min-width: 901px) {
+  .inspector-drawer.wide-mode {
+    width: min(760px, calc(100vw - 380px));
+  }
+
+  .atlas-sidebar.collapsed ~ .inspector-drawer.wide-mode {
+    width: min(820px, calc(100vw - 32px));
+  }
+}
+
+.inspector-mobile-drag-handle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0 2px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.inspector-drag-pill {
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  transition: background 0.15s ease, width 0.15s ease;
+}
+
+.inspector-mobile-drag-handle:hover .inspector-drag-pill {
+  background: var(--ph-green-light);
+  width: 46px;
 }
 
 .inspector-topbar {
-  padding: 12px 15px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.inspector-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inspector-layout-btn {
+  appearance: none;
+  border: 1px solid rgba(149, 201, 89, 0.38);
+  background: rgba(149, 201, 89, 0.1);
+  color: var(--ph-green-light);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.inspector-layout-btn:hover {
+  background: rgba(149, 201, 89, 0.22);
+  border-color: rgba(149, 201, 89, 0.65);
+  color: #fff;
+}
+
+.inspector-layout-btn.active {
+  background: rgba(149, 201, 89, 0.26);
+  border-color: var(--ph-green);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(149, 201, 89, 0.25);
+}
+
+.mobile-only {
+  display: none;
+}
+
+/* Sticky 4-Tab Bar inside Property Inspector */
+.inspector-tabs-bar {
+  position: sticky;
+  top: -15px;
+  z-index: 6;
+  margin: 0 -15px;
+  padding: 7px 12px;
+  background: rgba(18, 22, 26, 0.94);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.inspector-tabs-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.inspector-tab-btn {
+  appearance: none;
+  flex: 1 1 auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.inspector-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-cream);
+}
+
+.inspector-tab-btn.active {
+  background: rgba(149, 201, 89, 0.2);
+  border-color: rgba(149, 201, 89, 0.65);
+  color: #fff;
+}
+
+.inspector-tab-badge {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-cream);
+  line-height: 1.3;
+}
+
+.inspector-tab-btn.active .inspector-tab-badge {
+  background: rgba(149, 201, 89, 0.35);
+  color: #fff;
+}
+
+.inspector-tab-badge.alert-critical {
+  background: rgba(239, 68, 68, 0.32);
+  border: 1px solid rgba(248, 113, 113, 0.65);
+  color: #fecaca;
+}
+
+.inspector-tab-badge.alert-watch {
+  background: rgba(245, 158, 11, 0.28);
+  border: 1px solid rgba(251, 191, 36, 0.6);
+  color: #fde68a;
+}
+
+/* Compact Urgent Alert Callout Banner (shown above tabs when not on Permits tab in compact mode) */
+.inspector-compact-alert-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: rgba(185, 28, 28, 0.24);
+  border: 1px solid rgba(248, 113, 113, 0.55);
+  color: #fecaca;
+  font-size: 11.5px;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.inspector-compact-alert-banner.watch {
+  background: rgba(180, 83, 9, 0.22);
+  border-color: rgba(251, 191, 36, 0.5);
+  color: #fde68a;
+}
+
+.inspector-compact-alert-banner:hover {
+  background: rgba(185, 28, 28, 0.34);
+}
+
+.inspector-compact-alert-cta {
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  text-decoration: underline;
+  font-size: 11px;
+}
+
+@media (min-width: 901px) {
+  .inspector-drawer.wide-mode .inspector-compact-alert-banner {
+    display: none;
+  }
+}
+
+/* Tab Panes & Desktop Wide-Mode 2-Column Researcher Grid */
+.inspector-sections-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inspector-col {
+  display: contents;
+}
+
+.inspector-tab-pane {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.inspector-tab-pane.active {
+  display: flex;
+}
+
+.inspector-wide-pane-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px 2px;
+  border-bottom: 1px solid rgba(149, 201, 89, 0.28);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ph-green-light);
+}
+
+@media (min-width: 901px) {
+  .inspector-drawer.wide-mode .inspector-sections-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .inspector-drawer.wide-mode .inspector-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .inspector-drawer.wide-mode .inspector-tab-pane {
+    display: flex !important;
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 11px;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+
+  .inspector-drawer.wide-mode .inspector-tab-pane.wide-focus-pulse {
+    border-color: var(--ph-green);
+    box-shadow: 0 0 0 2px rgba(149, 201, 89, 0.28);
+  }
+
+  .inspector-drawer.wide-mode .inspector-wide-pane-header {
+    display: flex;
+  }
+}
+
+.inspector-empty-history-card {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--bg-card-inner);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
 }
 
 .inspector-kicker {
@@ -1844,7 +2124,15 @@ body {
 }
 
 .inspector-drawer:not(.hidden) ~ .camera-tilt-dock {
-  right: 422px;
+  right: 430px;
+}
+
+.inspector-drawer.wide-mode:not(.hidden) ~ .camera-tilt-dock {
+  right: calc(min(760px, calc(100vw - 380px)) + 26px);
+}
+
+.atlas-sidebar.collapsed ~ .inspector-drawer.wide-mode:not(.hidden) ~ .camera-tilt-dock {
+  right: calc(min(820px, calc(100vw - 32px)) + 26px);
 }
 
 .map-canvas .maplibregl-ctrl-bottom-right,
@@ -1855,7 +2143,15 @@ body {
 }
 
 .inspector-drawer:not(.hidden) ~ .map-canvas .maplibregl-ctrl-bottom-right {
-  right: 368px;
+  right: 376px;
+}
+
+.inspector-drawer.wide-mode:not(.hidden) ~ .map-canvas .maplibregl-ctrl-bottom-right {
+  right: calc(min(760px, calc(100vw - 380px)) + 16px);
+}
+
+.atlas-sidebar.collapsed ~ .inspector-drawer.wide-mode:not(.hidden) ~ .map-canvas .maplibregl-ctrl-bottom-right {
+  right: calc(min(820px, calc(100vw - 32px)) + 16px);
 }
 
 .tilt-dock-header {
@@ -2561,17 +2857,41 @@ body {
     color: var(--ph-green-light);
   }
 
-  /* 4. Right Property Inspector Drawer -> Mobile Bottom Sheet */
+  /* 4. Right Property Inspector Drawer -> Mobile Bottom Sheet (3-State Snap: Peek / Half / Full) */
   .inspector-drawer {
     top: auto;
     left: 8px;
     right: 8px;
     bottom: 8px;
-    width: auto;
+    width: auto !important;
     max-width: calc(100vw - 16px);
-    max-height: 58dvh;
+    max-height: 56dvh;
     z-index: 48;
     border-top: 3px solid var(--ph-green);
+  }
+
+  .inspector-drawer.sheet-peek {
+    max-height: 24dvh;
+  }
+
+  .inspector-drawer.sheet-half {
+    max-height: 56dvh;
+  }
+
+  .inspector-drawer.sheet-full {
+    max-height: 88dvh;
+  }
+
+  .inspector-mobile-drag-handle {
+    display: flex;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: inline-flex !important;
   }
 
   /* Prevent desktop right-offset push on mobile when inspector is open */

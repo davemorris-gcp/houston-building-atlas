@@ -2277,7 +2277,7 @@ class HoustonAtlasApp {
       });
     }
 
-    // Inspector Drawer Close Button
+    // Inspector Drawer Close, Desktop Wide-Mode Toggle & Mobile 3-State Sheet Controls
     const btnCloseInspector = document.getElementById("btn-close-inspector");
     if (btnCloseInspector) {
       btnCloseInspector.addEventListener("click", () => {
@@ -2287,6 +2287,39 @@ class HoustonAtlasApp {
         this._updateUrlHash(this.filterStore.getState());
         this._refreshShareModalContent();
       });
+    }
+
+    const savedWidePref = localStorage.getItem("atlas_inspector_wide") === "1";
+    this._inspectorWideMode = savedWidePref;
+    this._mobileSheetMode = "half";
+    this._activeInspectorTab = "overview";
+    this._syncInspectorLayoutControls();
+
+    const btnToggleWide = document.getElementById("btn-toggle-inspector-wide");
+    if (btnToggleWide) {
+      btnToggleWide.addEventListener("click", () => {
+        this._inspectorWideMode = !this._inspectorWideMode;
+        try {
+          localStorage.setItem("atlas_inspector_wide", this._inspectorWideMode ? "1" : "0");
+        } catch (_e) {}
+        this._syncInspectorLayoutControls();
+      });
+    }
+
+    const cycleMobileSheet = () => {
+      const order = ["half", "full", "peek"];
+      const nextIdx = (order.indexOf(this._mobileSheetMode || "half") + 1) % order.length;
+      this._setMobileSheetMode(order[nextIdx]);
+    };
+
+    const btnCycleMobileSheet = document.getElementById("btn-cycle-mobile-sheet");
+    if (btnCycleMobileSheet) {
+      btnCycleMobileSheet.addEventListener("click", cycleMobileSheet);
+    }
+
+    const mobileDragHandle = document.getElementById("inspector-mobile-drag-handle");
+    if (mobileDragHandle) {
+      mobileDragHandle.addEventListener("click", cycleMobileSheet);
     }
 
     // Share Map Configuration Modal
@@ -6566,6 +6599,89 @@ class HoustonAtlasApp {
     this._refreshShareModalContent();
   }
 
+  _syncInspectorLayoutControls() {
+    const drawer = document.getElementById("inspector-drawer");
+    const btnWide = document.getElementById("btn-toggle-inspector-wide");
+    const btnMobile = document.getElementById("btn-cycle-mobile-sheet");
+    const isWide = Boolean(this._inspectorWideMode);
+    const sheetMode = this._mobileSheetMode || "half";
+
+    if (drawer) {
+      drawer.classList.toggle("wide-mode", isWide && !drawer.classList.contains("boundary-mode"));
+      drawer.classList.remove("sheet-peek", "sheet-half", "sheet-full");
+      drawer.classList.add(`sheet-${sheetMode}`);
+    }
+
+    if (btnWide) {
+      btnWide.classList.toggle("active", isWide);
+      btnWide.setAttribute("aria-pressed", isWide ? "true" : "false");
+      btnWide.innerHTML = isWide ? "&#10529; Compact" : "&#10530; Wide View";
+      btnWide.title = isWide
+        ? "Switch back to Compact Single-Column Sidebar (364px)"
+        : "Expand to 2-Column Wide Researcher View (760px)";
+    }
+
+    if (btnMobile) {
+      const labelMap = {
+        peek: "&#8593; Peek",
+        half: "&#8597; Half",
+        full: "&#8595; Full",
+      };
+      btnMobile.innerHTML = labelMap[sheetMode] || "&#8597; Half";
+      btnMobile.classList.toggle("active", sheetMode === "full");
+    }
+  }
+
+  _setMobileSheetMode(mode) {
+    this._mobileSheetMode = ["peek", "half", "full"].includes(mode) ? mode : "half";
+    this._syncInspectorLayoutControls();
+  }
+
+  _switchInspectorTab(tabKey, { scrollInWide = false } = {}) {
+    const validTabs = ["overview", "history", "permits", "hcad"];
+    const nextTab = validTabs.includes(tabKey) ? tabKey : "overview";
+    this._activeInspectorTab = nextTab;
+
+    const content = document.getElementById("inspector-body");
+    const drawer = document.getElementById("inspector-drawer");
+    if (!content) return;
+
+    content.querySelectorAll("[data-inspector-tab]").forEach((btn) => {
+      const isMatch = btn.getAttribute("data-inspector-tab") === nextTab;
+      btn.classList.toggle("active", isMatch);
+      btn.setAttribute("aria-selected", isMatch ? "true" : "false");
+    });
+
+    content.querySelectorAll("[data-tab-pane]").forEach((pane) => {
+      const isMatch = pane.getAttribute("data-tab-pane") === nextTab;
+      pane.classList.toggle("active", isMatch);
+    });
+
+    const compactAlertBanner = document.getElementById("inspector-compact-alert-banner");
+    if (compactAlertBanner) {
+      compactAlertBanner.style.display = nextTab === "permits" ? "none" : "";
+    }
+
+    if (typeof window !== "undefined" && window.innerWidth <= 900 && this._mobileSheetMode === "peek") {
+      this._setMobileSheetMode("half");
+    }
+
+    if (
+      scrollInWide &&
+      drawer &&
+      drawer.classList.contains("wide-mode") &&
+      typeof window !== "undefined" &&
+      window.innerWidth > 900
+    ) {
+      const targetPane = content.querySelector(`[data-tab-pane="${nextTab}"]`);
+      if (targetPane) {
+        targetPane.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        targetPane.classList.add("wide-focus-pulse");
+        setTimeout(() => targetPane.classList.remove("wide-focus-pulse"), 1100);
+      }
+    }
+  }
+
   renderInspectorDrawer(rawProps) {
     const drawer = document.getElementById("inspector-drawer");
     const content = document.getElementById("inspector-body");
@@ -6592,9 +6708,14 @@ class HoustonAtlasApp {
         "lost_houston",
       ].includes(String(rawProps.overlay_layer || ""))
     ) {
+      drawer.classList.add("boundary-mode");
+      this._syncInspectorLayoutControls();
       this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
       return;
     }
+
+    drawer.classList.remove("boundary-mode");
+    this._syncInspectorLayoutControls();
 
     const props = applyOverrideToProperties(
       rawProps,
@@ -7395,6 +7516,76 @@ class HoustonAtlasApp {
       ? this._buildInspectorPlatWatchCardHtml(activePlatItem)
       : "";
 
+    const historyItemCount = [
+      Boolean(props.is_curated_override),
+      Boolean(reportPdfUrl || landmarkCode),
+      goodBrickAwards.length > 0,
+      Boolean(histContractObj || histBuilderVal || histCostVal || histPermitVal || wasRelocatedFlag),
+      lostHoustonAtSite.length > 0,
+      haifThreads.length > 0,
+    ].filter(Boolean).length;
+
+    const initialTab =
+      this._activeInspectorTab &&
+      ["overview", "history", "permits", "hcad"].includes(this._activeInspectorTab)
+        ? this._activeInspectorTab
+        : "overview";
+    this._activeInspectorTab = initialTab;
+
+    const compactAlertBannerHtml =
+      activePermitAlert || activePlatItem
+        ? `<div
+            class="inspector-compact-alert-banner ${
+              activePermitAlert && activePermitAlert.severity === "critical" ? "critical" : "watch"
+            }"
+            id="inspector-compact-alert-banner"
+            data-switch-inspector-tab="permits"
+            style="${initialTab === "permits" ? "display:none;" : ""}"
+            role="button"
+            tabindex="0"
+            title="Switch to the Permits & Watch tab to inspect active filings and open the 15-Point Property Tracker"
+          >
+            <span>
+              <strong>${
+                activePermitAlert && activePermitAlert.severity === "critical"
+                  ? "&#128680; Active Demolition / Abatement Alert:"
+                  : "&#9888; Active Permit / Plat Watch:"
+              }</strong>
+              ${
+                activePermitAlert
+                  ? activePermitAlert.badge || "Active Filing"
+                  : `Plat App #${activePlatItem.appNo || "N/A"}`
+              }
+            </span>
+            <span class="inspector-compact-alert-cta">Permits &amp; 15-Pt Tracker &rarr;</span>
+          </div>`
+        : "";
+
+    const emptyHistoryFallbackHtml =
+      !verifiedBannerHtml &&
+      !landmarkReportHtml &&
+      !goodBrickHtml &&
+      !histContractHtml &&
+      !lostHoustonSiteCardHtml
+        ? `<div class="inspector-empty-history-card">
+            <div>
+              <strong style="color:var(--text-cream);">Construction Date Basis:</strong>
+              ${yearProvenanceLabel}
+            </div>
+            <div>
+              Have a Houston City Directory listing, historic building permit, deed citation, or vintage photograph for <strong>${title}</strong>?
+            </div>
+            <button
+              type="button"
+              class="inspector-btn suggest-edit"
+              data-open-correction-history="1"
+              style="margin-top:2px;"
+            >
+              &#9998; Submit Archival Evidence or Historic Photo
+            </button>
+          </div>`
+        : "";
+
     content.innerHTML = `
       ${overlapStackHtml}
       <div class="inspector-hero">
@@ -7418,7 +7609,7 @@ class HoustonAtlasApp {
                   activePermitAlert.severity === "critical"
                     ? "rgba(248,113,113,0.65)"
                     : "rgba(251,191,36,0.55)"
-                };">&#9888; ${activePermitAlert.badge || "Active Permit Watch"}</span>`
+                };cursor:pointer;" data-switch-inspector-tab="permits" title="Click to open Permits & Watch tab">&#9888; ${activePermitAlert.badge || "Active Permit Watch"}</span>`
               : ""
           }
         </div>
@@ -7431,306 +7622,437 @@ class HoustonAtlasApp {
         </div>
       </div>
 
-      ${permitAlertCardHtml}
+      ${compactAlertBannerHtml}
 
-      <div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${hcadNum}">
-        <div class="inspector-photo-header">
-          <div class="inspector-photo-title-group">
-            <span class="inspector-photo-kicker">&#128247; Archival Photographs</span>
-            <span class="inspector-photo-count-badge" id="inspector-photo-badge">Searching Archives…</span>
-          </div>
-          <div class="inspector-photo-header-btns" id="inspector-photo-header-btns"></div>
-        </div>
-        <div id="inspector-photo-stage"></div>
-        <div class="photo-footer-actions">
-          <a
-            href="${streetViewUrl}"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="photo-streetview-btn"
-            id="btn-inspector-streetview"
-            title="Open Google Maps Street View Time Machine (2007–Present) for this building"
-          >
-            &#128065; Street View Time Machine (2007–Present) &#8599;
-          </a>
-        </div>
-      </div>
-
-      ${lostHoustonSiteCardHtml}
-      ${goodBrickHtml}
-      ${landmarkReportHtml}
-      ${histContractHtml}
-      ${verifiedBannerHtml}
-      ${haifForumHtml}
-
-      <div class="inspector-grid">
-        ${buildingNamesGridRowHtml}
-        <div class="inspector-cell">
-          <span class="cell-label">HCAD Account #</span>
-          <span class="cell-value mono">
-            ${hcadNum || "Exempt / Unlisted"}
-            ${
-              hcadNum
-                ? `<button type="button" id="btn-copy-hcad-acct" style="margin-left:6px;padding:1px 6px;font-size:10px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:inherit;cursor:pointer;" title="Copy 13-digit HCAD Account Number">Copy</button>`
-                : ""
-            }
-          </span>
-        </div>
-        <div class="inspector-cell">
-          <span class="cell-label">Historic District</span>
-          <span class="cell-value inspector-chip-group">
-            ${
-              isRealDistrict
-                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${distVal.replace(/"/g, "&quot;")}" data-filter-label="District: ${distVal.replace(/"/g, "&quot;")}" title="Click to search all structures in ${distVal.replace(/"/g, "&quot;")}">${distVal} &#128269;</button>
-                   <button type="button" class="inline-isolate-btn" data-isolate-boundary="${distVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_districts" title="Isolate ${distVal.replace(/"/g, "&quot;")} and its buildings on the map">&#127919; Isolate</button>`
-                : distVal || "Outside City District"
-            }
-          </span>
-        </div>
-        <div class="inspector-cell">
-          <span class="cell-label">Neighborhood / Area</span>
-          <span class="cell-value inspector-chip-group">
-            ${
-              nbhdVal
-                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${nbhdVal.replace(/"/g, "&quot;")}" data-filter-label="Neighborhood: ${nbhdVal.replace(/"/g, "&quot;")}" title="Click to find all structures in ${nbhdVal.replace(/"/g, "&quot;")}">${nbhdVal} &#128269;</button>
-                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${nbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="neighborhoods" title="Outline ${nbhdVal.replace(/"/g, "&quot;")} boundary on the map">Outline</button>
-                   <button type="button" class="inline-isolate-btn" data-isolate-boundary="${nbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="neighborhoods" title="Isolate ${nbhdVal.replace(/"/g, "&quot;")} and its buildings on the map">&#127919; Isolate</button>`
-                : "Unincorporated / Outside Boundary"
-            }
-          </span>
-        </div>
-        <div class="inspector-cell">
-          <span class="cell-label">COH Super Neighborhood</span>
-          <span class="cell-value inspector-chip-group">
-            ${
-              superNbhdVal
-                ? `<button type="button" class="inspector-filter-chip category-chip" data-filter-chip="${superNbhdVal.replace(/"/g, "&quot;")}" data-filter-label="Super Neighborhood: ${superNbhdVal.replace(/"/g, "&quot;")}" title="Click to find structures in Super Neighborhood: ${superNbhdVal.replace(/"/g, "&quot;")}">${superNbhdVal} &#128269;</button>
-                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${superNbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="super_neighborhoods" title="Outline ${superNbhdVal.replace(/"/g, "&quot;")} Super Neighborhood boundary on the map">Outline</button>
-                   <button type="button" class="inline-isolate-btn" data-isolate-boundary="${superNbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="super_neighborhoods" title="Isolate ${superNbhdVal.replace(/"/g, "&quot;")} Super Neighborhood on the map">&#127919; Isolate</button>`
-                : "Outside COH Super Neighborhood"
-            }
-          </span>
-        </div>
-        ${
-          neighborhoodAliases.length > 0
-            ? `<div class="inspector-cell full">
-                <span class="cell-label">Historical &amp; Colloquial Area Names</span>
-                <span class="cell-value inspector-chip-group">
-                  ${neighborhoodAliases
-                    .map(
-                      (alias) =>
-                        `<button type="button" class="inspector-alias-chip small inspector-filter-chip" data-filter-chip="${alias.replace(/"/g, "&quot;")}" data-filter-label="Area / Alias: ${alias.replace(/"/g, "&quot;")}" title="Click to search structures in '${alias.replace(/"/g, "&quot;")}'">${alias} &#128269;</button>`
-                    )
-                    .join(" ")}
-                </span>
-              </div>`
-            : ""
-        }
-        ${
-          wardVal
-            ? `<div class="inspector-cell full">
-                <span class="cell-label">Historic Ward (1839–1905 Aldermanic Charter)</span>
-                <span class="cell-value inspector-chip-group">
-                  <button type="button" class="inspector-filter-chip" data-filter-chip="${wardVal.replace(/"/g, "&quot;")}" data-filter-label="Historic Ward: ${wardVal.replace(/"/g, "&quot;")}" title="Click to search structures in ${wardVal.replace(/"/g, "&quot;")}">1903–05 ${wardVal} &#128269;</button>
-                  <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Outline 1903–1905 ${wardVal.replace(/"/g, "&quot;")} boundary on the map">Outline Ward</button>
-                  <button type="button" class="inline-isolate-btn" data-isolate-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Isolate 1903–1905 ${wardVal.replace(/"/g, "&quot;")} on the map">&#127919; Isolate</button>
-                </span>
-              </div>`
-            : ""
-        }
-        <div class="inspector-cell">
-          <span class="cell-label">Building Floor Area</span>
-          <span class="cell-value mono" id="inspector-cell-bld-sqft">${bldSqft}</span>
-        </div>
-        <div class="inspector-cell">
-          <span class="cell-label">Parcel Lot Size</span>
-          <span class="cell-value mono" id="inspector-cell-lot-sqft">${landSqft}</span>
-        </div>
-        <div class="inspector-cell">
-          <span class="cell-label">Estimated Scale</span>
-          <span class="cell-value mono">${scaleText}</span>
-        </div>
-        <div class="inspector-cell">
-          <span class="cell-label">Remodel / Effective Yr</span>
-          <span class="cell-value mono" id="inspector-cell-remodel-year">${
-            initialRemodelYear > 1836 && initialEffYear > 1836 && initialEffYear !== initialRemodelYear
-              ? `Remod ${initialRemodelYear} · Eff ${initialEffYear}`
-              : initialRemodelYear > 1836
-              ? `Remodeled ${initialRemodelYear}`
-              : initialEffYear > 1836 && initialEffYear !== yr
-              ? `Eff. Year ${initialEffYear}`
-              : "None recorded"
-          }</span>
-        </div>
-        <div class="inspector-cell full">
-          <span class="cell-label">Construction Date Provenance</span>
-          <span class="cell-value">${yearProvenanceLabel}</span>
-        </div>
-        <div class="inspector-cell full">
-          <span class="cell-label">Architectural Style / Building Class</span>
-          <span class="cell-value inspector-chip-group">
-            ${styleChipsHtml}
-          </span>
-        </div>
-        ${
-          archChips.length > 0
-            ? `<div class="inspector-cell full">
-                <span class="cell-label">Architect (COH / Archival Record)</span>
-                <span class="cell-value inspector-chip-group">
-                  ${archChipsHtml}
-                </span>
-              </div>`
-            : ""
-        }
-        ${
-          builderChips.length > 0
-            ? `<div class="inspector-cell full">
-                <span class="cell-label">Builder / General Contractor</span>
-                <span class="cell-value inspector-chip-group">
-                  ${builderChipsHtml}
-                </span>
-              </div>`
-            : ""
-        }
-        <div class="inspector-cell full">
-          <span class="cell-label">Land Use Classification</span>
-          <span class="cell-value inspector-chip-group">
-            ${landUseChipsHtml}
-          </span>
-        </div>
-        <div class="inspector-cell full">
-          <span class="cell-label">Platted Subdivision / Legal Description (HCAD)</span>
-          <span class="cell-value inspector-chip-group" id="inspector-cell-subdivision">
-            ${
-              subVal
-                ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${subVal.replace(/"/g, "&quot;")}" data-filter-label="Subdivision: ${subVal.replace(/"/g, "&quot;")}" title="Click to search structures in platted subdivision '${subVal.replace(/"/g, "&quot;")}'">${subVal} &#128269;</button>
-                   <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${subVal.replace(/"/g, "&quot;")}" data-boundary-layer="platted_subdivisions" title="Outline HCAD platted subdivision boundary for '${subVal.replace(/"/g, "&quot;")}' on the map">Outline Plat</button>
-                   <button type="button" class="inline-isolate-btn" data-isolate-boundary="${subVal.replace(/"/g, "&quot;")}" data-boundary-layer="platted_subdivisions" title="Isolate HCAD platted subdivision '${subVal.replace(/"/g, "&quot;")}' and its buildings on the map">&#127919; Isolate Plat</button>`
-                : "Not listed"
-            }
-          </span>
-        </div>
-        <div class="inspector-cell full">
-          <span class="cell-label">Recorded Property Owner (HCAD)</span>
-          <span class="cell-value" id="inspector-cell-owner">${props.owner || "Public / Unlisted"}</span>
-        </div>
-        <div class="inspector-cell full">
-          <span class="cell-label">Geometry Provenance</span>
-          <span class="cell-value">${fpSourceLabel}</span>
-        </div>
-      </div>
-
-      ${buildingDeedCardHtml}
-
-      ${
-        hcadNum || histPermitVal || histCostVal || wasRelocatedFlag || activePermitAlert
-          ? `<details class="inspector-permits-card" id="inspector-permits-card" data-hcad-num="${hcadNum}" ${
-              histPermitVal || wasRelocatedFlag || activePermitAlert ? "open" : ""
-            }>
-              <summary class="inspector-permits-summary">
-                <div class="inspector-permits-title-wrap">
-                  <span class="inspector-permits-kicker">&#128203; Building Permits &amp; Alteration Timeline</span>
-                  <span class="inspector-permits-badge" id="inspector-permits-badge">Loading history…</span>
-                </div>
-                <span class="inspector-permits-chevron" aria-hidden="true">&#9662;</span>
-              </summary>
-              <div class="inspector-permits-body" id="inspector-permits-body">
-                <div class="inspector-permits-loading">Loading HCAD &amp; City of Houston permit history…</div>
-              </div>
-            </details>`
-          : ""
-      }
-
-      ${
-        hcadNum
-          ? `<div class="hcad-live-record-card" id="inspector-hcad-live-card" data-hcad-num="${hcadNum}">
-              <div class="hcad-live-header">
-                <span class="hcad-live-title">Live HCAD Appraisal Record</span>
-                <span class="hcad-live-badge" id="hcad-live-status-badge">Loading HCAD GIS…</span>
-              </div>
-              <div class="hcad-live-grid" id="hcad-live-grid">
-                <div class="hcad-live-cell">
-                  <span class="hcad-live-label">Appraised Value</span>
-                  <span class="hcad-live-val mono" id="hcad-live-appr">…</span>
-                </div>
-                <div class="hcad-live-cell">
-                  <span class="hcad-live-label">Market Value</span>
-                  <span class="hcad-live-val mono" id="hcad-live-mkt">…</span>
-                </div>
-                <div class="hcad-live-cell">
-                  <span class="hcad-live-label">Improvement Value</span>
-                  <span class="hcad-live-val mono" id="hcad-live-impr">…</span>
-                </div>
-                <div class="hcad-live-cell">
-                  <span class="hcad-live-label">Land Value</span>
-                  <span class="hcad-live-val mono" id="hcad-live-land">…</span>
-                </div>
-                <div class="hcad-live-cell full" id="hcad-live-meta-row" style="display:none;">
-                  <span class="hcad-live-label">State Class &amp; Legal Lines</span>
-                  <span class="hcad-live-val" id="hcad-live-legal"></span>
-                </div>
-              </div>
-            </div>`
-          : ""
-      }
-
-      <div class="inspector-actions">
-        <button type="button" class="inspector-btn suggest-edit" id="btn-suggest-correction">
-          &#9998; Suggest a Date / Shape / Data Correction
+      <div class="inspector-tabs-bar" role="tablist" aria-label="Property Record Sections">
+        <button
+          type="button"
+          role="tab"
+          class="inspector-tab-btn ${initialTab === "overview" ? "active" : ""}"
+          data-inspector-tab="overview"
+          aria-selected="${initialTab === "overview" ? "true" : "false"}"
+        >
+          Overview
         </button>
-        ${
-          hcadNum
-            ? `<div class="hcad-link-status-note hidden" id="hcad-link-status-note"></div>
+        <button
+          type="button"
+          role="tab"
+          class="inspector-tab-btn ${initialTab === "history" ? "active" : ""}"
+          data-inspector-tab="history"
+          aria-selected="${initialTab === "history" ? "true" : "false"}"
+        >
+          History${
+            historyItemCount > 0
+              ? ` <span class="inspector-tab-badge">${historyItemCount}</span>`
+              : ""
+          }
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="inspector-tab-btn ${initialTab === "permits" ? "active" : ""}"
+          data-inspector-tab="permits"
+          aria-selected="${initialTab === "permits" ? "true" : "false"}"
+        >
+          Permits${
+            activePermitAlert
+              ? ` <span class="inspector-tab-badge ${
+                  activePermitAlert.severity === "critical" ? "alert-critical" : "alert-watch"
+                }">Alert</span>`
+              : activePlatItem
+              ? ` <span class="inspector-tab-badge alert-watch">Plat</span>`
+              : ` <span class="inspector-tab-badge hidden" id="inspector-tab-permits-count"></span>`
+          }
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="inspector-tab-btn ${initialTab === "hcad" ? "active" : ""}"
+          data-inspector-tab="hcad"
+          aria-selected="${initialTab === "hcad" ? "true" : "false"}"
+        >
+          HCAD &amp; Parcel
+        </button>
+      </div>
+
+      <div class="inspector-sections-grid">
+        <div class="inspector-col inspector-col-primary">
+          <!-- TAB 1: OVERVIEW & ARCHITECTURE -->
+          <div
+            class="inspector-tab-pane ${initialTab === "overview" ? "active" : ""}"
+            data-tab-pane="overview"
+          >
+            <div class="inspector-wide-pane-header">
+              <span>&#127968; Overview &amp; Architecture</span>
+              <span>Photos &amp; Key Facts</span>
+            </div>
+
+            <div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${hcadNum}">
+              <div class="inspector-photo-header">
+                <div class="inspector-photo-title-group">
+                  <span class="inspector-photo-kicker">&#128247; Archival Photographs</span>
+                  <span class="inspector-photo-count-badge" id="inspector-photo-badge">Searching Archives…</span>
+                </div>
+                <div class="inspector-photo-header-btns" id="inspector-photo-header-btns"></div>
+              </div>
+              <div id="inspector-photo-stage"></div>
+              <div class="photo-footer-actions">
+                <a
+                  href="${streetViewUrl}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="photo-streetview-btn"
+                  id="btn-inspector-streetview"
+                  title="Open Google Maps Street View Time Machine (2007–Present) for this building"
+                >
+                  &#128065; Street View Time Machine (2007–Present) &#8599;
+                </a>
+              </div>
+            </div>
+
+            <div class="inspector-grid">
+              <div class="inspector-cell full">
+                <span class="cell-label">Architectural Style / Building Class</span>
+                <span class="cell-value inspector-chip-group">
+                  ${styleChipsHtml}
+                </span>
+              </div>
+              ${
+                archChips.length > 0
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Architect (COH / Archival Record)</span>
+                      <span class="cell-value inspector-chip-group">
+                        ${archChipsHtml}
+                      </span>
+                    </div>`
+                  : ""
+              }
+              ${
+                builderChips.length > 0
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Builder / General Contractor</span>
+                      <span class="cell-value inspector-chip-group">
+                        ${builderChipsHtml}
+                      </span>
+                    </div>`
+                  : ""
+              }
+              <div class="inspector-cell">
+                <span class="cell-label">Historic District</span>
+                <span class="cell-value inspector-chip-group">
+                  ${
+                    isRealDistrict
+                      ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${distVal.replace(/"/g, "&quot;")}" data-filter-label="District: ${distVal.replace(/"/g, "&quot;")}" title="Click to search all structures in ${distVal.replace(/"/g, "&quot;")}">${distVal} &#128269;</button>
+                         <button type="button" class="inline-isolate-btn" data-isolate-boundary="${distVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_districts" title="Isolate ${distVal.replace(/"/g, "&quot;")} and its buildings on the map">&#127919; Isolate</button>`
+                      : distVal || "Outside City District"
+                  }
+                </span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Neighborhood / Area</span>
+                <span class="cell-value inspector-chip-group">
+                  ${
+                    nbhdVal
+                      ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${nbhdVal.replace(/"/g, "&quot;")}" data-filter-label="Neighborhood: ${nbhdVal.replace(/"/g, "&quot;")}" title="Click to find all structures in ${nbhdVal.replace(/"/g, "&quot;")}">${nbhdVal} &#128269;</button>
+                         <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${nbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="neighborhoods" title="Outline ${nbhdVal.replace(/"/g, "&quot;")} boundary on the map">Outline</button>
+                         <button type="button" class="inline-isolate-btn" data-isolate-boundary="${nbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="neighborhoods" title="Isolate ${nbhdVal.replace(/"/g, "&quot;")} and its buildings on the map">&#127919; Isolate</button>`
+                      : "Unincorporated / Outside Boundary"
+                  }
+                </span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Building Floor Area</span>
+                <span class="cell-value mono" id="inspector-cell-bld-sqft">${bldSqft}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Parcel Lot Size</span>
+                <span class="cell-value mono" id="inspector-cell-lot-sqft">${landSqft}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Estimated Scale</span>
+                <span class="cell-value mono">${scaleText}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Remodel / Effective Yr</span>
+                <span class="cell-value mono" id="inspector-cell-remodel-year">${
+                  initialRemodelYear > 1836 && initialEffYear > 1836 && initialEffYear !== initialRemodelYear
+                    ? `Remod ${initialRemodelYear} · Eff ${initialEffYear}`
+                    : initialRemodelYear > 1836
+                    ? `Remodeled ${initialRemodelYear}`
+                    : initialEffYear > 1836 && initialEffYear !== yr
+                    ? `Eff. Year ${initialEffYear}`
+                    : "None recorded"
+                }</span>
+              </div>
+              <div class="inspector-cell full">
+                <span class="cell-label">Construction Date Provenance</span>
+                <span class="cell-value">${yearProvenanceLabel}</span>
+              </div>
+              <div class="inspector-cell full">
+                <span class="cell-label">Land Use Classification</span>
+                <span class="cell-value inspector-chip-group">
+                  ${landUseChipsHtml}
+                </span>
+              </div>
+            </div>
+
+            <div class="inspector-actions">
+              <button type="button" class="inspector-btn suggest-edit" id="btn-suggest-correction">
+                &#9998; Suggest a Date / Shape / Data Correction
+              </button>
+              <div class="inspector-action-row-2col">
+                <button type="button" class="inspector-btn secondary" id="btn-copy-share-link">
+                  Copy Shareable Link
+                </button>
+                <button
+                  type="button"
+                  class="inspector-btn secondary"
+                  id="btn-print-property-sheet"
+                  title="Open a printable Preservation Houston archival property sheet / PDF dossier"
+                >
+                  &#128424; Print Property Sheet
+                </button>
+              </div>
               <a
-                href="https://search.hcad.org/"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inspector-btn primary"
-                id="btn-open-hcad"
-                data-hcad-num="${hcadNum}"
-                title="Copies ${hcadNum} to your clipboard and opens HCAD Property Search"
-              >
-                Copy # &amp; Open HCAD Search (${hcadNum}) &#8599;
-              </a>
-              <a
-                href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(hcadNum)}"
+                href="${googleMapsUrl}"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inspector-btn secondary"
-                id="btn-open-hcad-gis"
-                title="Direct link to parcel ${hcadNum} in HCAD Official GIS Parcel Viewer"
+                id="btn-open-google-maps"
+                title="Open this building location on Google Maps &amp; Street View"
               >
-                Open HCAD GIS Parcel Map (${hcadNum}) &#8599;
-              </a>`
-            : ""
-        }
-        <a
-          href="${googleMapsUrl}"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inspector-btn secondary"
-          id="btn-open-google-maps"
-          title="Open this building location on Google Maps &amp; Street View"
-        >
-          View on Google Maps &#8599;
-        </a>
-        <div class="inspector-action-row-2col">
-          <button type="button" class="inspector-btn secondary" id="btn-copy-share-link">
-            Copy Shareable Link
-          </button>
-          <button
-            type="button"
-            class="inspector-btn secondary"
-            id="btn-print-property-sheet"
-            title="Open a printable Preservation Houston archival property sheet / PDF dossier"
+                View on Google Maps &#8599;
+              </a>
+            </div>
+          </div>
+
+          <!-- TAB 2: HISTORY, DESIGNATIONS & AWARDS -->
+          <div
+            class="inspector-tab-pane ${initialTab === "history" ? "active" : ""}"
+            data-tab-pane="history"
           >
-            &#128424; Print Property Sheet
-          </button>
+            <div class="inspector-wide-pane-header">
+              <span>&#127963; History, Landmarks &amp; Awards</span>
+              <span>Archival Provenance</span>
+            </div>
+            ${verifiedBannerHtml}
+            ${landmarkReportHtml}
+            ${goodBrickHtml}
+            ${histContractHtml}
+            ${lostHoustonSiteCardHtml}
+            ${
+              buildingNamesGridRowHtml
+                ? `<div class="inspector-grid">${buildingNamesGridRowHtml}</div>`
+                : ""
+            }
+            ${haifForumHtml}
+            ${emptyHistoryFallbackHtml}
+          </div>
+        </div>
+
+        <div class="inspector-col inspector-col-secondary">
+          <!-- TAB 3: PERMITS & ACTIVE WATCH -->
+          <div
+            class="inspector-tab-pane ${initialTab === "permits" ? "active" : ""}"
+            data-tab-pane="permits"
+          >
+            <div class="inspector-wide-pane-header">
+              <span>&#128203; Permits &amp; Active Watch</span>
+              <span>COH · TX DSHS · HCAD</span>
+            </div>
+            ${permitAlertCardHtml}
+            ${
+              hcadNum || histPermitVal || histCostVal || wasRelocatedFlag || activePermitAlert
+                ? `<details class="inspector-permits-card" id="inspector-permits-card" data-hcad-num="${hcadNum}" open>
+                    <summary class="inspector-permits-summary">
+                      <div class="inspector-permits-title-wrap">
+                        <span class="inspector-permits-kicker">&#128203; Building Permits &amp; Alteration Timeline</span>
+                        <span class="inspector-permits-badge" id="inspector-permits-badge">Loading history…</span>
+                      </div>
+                      <span class="inspector-permits-chevron" aria-hidden="true">&#9662;</span>
+                    </summary>
+                    <div class="inspector-permits-body" id="inspector-permits-body">
+                      <div class="inspector-permits-loading">Loading HCAD &amp; City of Houston permit history…</div>
+                    </div>
+                  </details>`
+                : `<div class="inspector-empty-history-card">No HCAD account number or permit history linked to this structure.</div>`
+            }
+          </div>
+
+          <!-- TAB 4: HCAD & PARCEL RECORDS -->
+          <div
+            class="inspector-tab-pane ${initialTab === "hcad" ? "active" : ""}"
+            data-tab-pane="hcad"
+          >
+            <div class="inspector-wide-pane-header">
+              <span>&#128209; Parcel, Deed &amp; HCAD Appraisal</span>
+              <span>Tax Roll &amp; Boundaries</span>
+            </div>
+
+            ${
+              hcadNum
+                ? `<div class="hcad-live-record-card" id="inspector-hcad-live-card" data-hcad-num="${hcadNum}">
+                    <div class="hcad-live-header">
+                      <span class="hcad-live-title">Live HCAD Appraisal Record</span>
+                      <span class="hcad-live-badge" id="hcad-live-status-badge">Loading HCAD GIS…</span>
+                    </div>
+                    <div class="hcad-live-grid" id="hcad-live-grid">
+                      <div class="hcad-live-cell">
+                        <span class="hcad-live-label">Appraised Value</span>
+                        <span class="hcad-live-val mono" id="hcad-live-appr">…</span>
+                      </div>
+                      <div class="hcad-live-cell">
+                        <span class="hcad-live-label">Market Value</span>
+                        <span class="hcad-live-val mono" id="hcad-live-mkt">…</span>
+                      </div>
+                      <div class="hcad-live-cell">
+                        <span class="hcad-live-label">Improvement Value</span>
+                        <span class="hcad-live-val mono" id="hcad-live-impr">…</span>
+                      </div>
+                      <div class="hcad-live-cell">
+                        <span class="hcad-live-label">Land Value</span>
+                        <span class="hcad-live-val mono" id="hcad-live-land">…</span>
+                      </div>
+                      <div class="hcad-live-cell full" id="hcad-live-meta-row" style="display:none;">
+                        <span class="hcad-live-label">State Class &amp; Legal Lines</span>
+                        <span class="hcad-live-val" id="hcad-live-legal"></span>
+                      </div>
+                    </div>
+                  </div>`
+                : ""
+            }
+
+            <div class="inspector-grid">
+              <div class="inspector-cell">
+                <span class="cell-label">HCAD Account #</span>
+                <span class="cell-value mono">
+                  ${hcadNum || "Exempt / Unlisted"}
+                  ${
+                    hcadNum
+                      ? `<button type="button" id="btn-copy-hcad-acct" style="margin-left:6px;padding:1px 6px;font-size:10px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:inherit;cursor:pointer;" title="Copy 13-digit HCAD Account Number">Copy</button>`
+                      : ""
+                  }
+                </span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">COH Super Neighborhood</span>
+                <span class="cell-value inspector-chip-group">
+                  ${
+                    superNbhdVal
+                      ? `<button type="button" class="inspector-filter-chip category-chip" data-filter-chip="${superNbhdVal.replace(/"/g, "&quot;")}" data-filter-label="Super Neighborhood: ${superNbhdVal.replace(/"/g, "&quot;")}" title="Click to find structures in Super Neighborhood: ${superNbhdVal.replace(/"/g, "&quot;")}">${superNbhdVal} &#128269;</button>
+                         <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${superNbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="super_neighborhoods" title="Outline ${superNbhdVal.replace(/"/g, "&quot;")} Super Neighborhood boundary on the map">Outline</button>
+                         <button type="button" class="inline-isolate-btn" data-isolate-boundary="${superNbhdVal.replace(/"/g, "&quot;")}" data-boundary-layer="super_neighborhoods" title="Isolate ${superNbhdVal.replace(/"/g, "&quot;")} Super Neighborhood on the map">&#127919; Isolate</button>`
+                      : "Outside COH Super Neighborhood"
+                  }
+                </span>
+              </div>
+              <div class="inspector-cell full">
+                <span class="cell-label">Recorded Property Owner (HCAD)</span>
+                <span class="cell-value" id="inspector-cell-owner">${props.owner || "Public / Unlisted"}</span>
+              </div>
+              <div class="inspector-cell full">
+                <span class="cell-label">Platted Subdivision / Legal Description (HCAD)</span>
+                <span class="cell-value inspector-chip-group" id="inspector-cell-subdivision">
+                  ${
+                    subVal
+                      ? `<button type="button" class="inspector-filter-chip" data-filter-chip="${subVal.replace(/"/g, "&quot;")}" data-filter-label="Subdivision: ${subVal.replace(/"/g, "&quot;")}" title="Click to search structures in platted subdivision '${subVal.replace(/"/g, "&quot;")}'">${subVal} &#128269;</button>
+                         <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${subVal.replace(/"/g, "&quot;")}" data-boundary-layer="platted_subdivisions" title="Outline HCAD platted subdivision boundary for '${subVal.replace(/"/g, "&quot;")}' on the map">Outline Plat</button>
+                         <button type="button" class="inline-isolate-btn" data-isolate-boundary="${subVal.replace(/"/g, "&quot;")}" data-boundary-layer="platted_subdivisions" title="Isolate HCAD platted subdivision '${subVal.replace(/"/g, "&quot;")}' and its buildings on the map">&#127919; Isolate Plat</button>`
+                      : "Not listed"
+                  }
+                </span>
+              </div>
+              ${
+                neighborhoodAliases.length > 0
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Historical &amp; Colloquial Area Names</span>
+                      <span class="cell-value inspector-chip-group">
+                        ${neighborhoodAliases
+                          .map(
+                            (alias) =>
+                              `<button type="button" class="inspector-alias-chip small inspector-filter-chip" data-filter-chip="${alias.replace(/"/g, "&quot;")}" data-filter-label="Area / Alias: ${alias.replace(/"/g, "&quot;")}" title="Click to search structures in '${alias.replace(/"/g, "&quot;")}'">${alias} &#128269;</button>`
+                          )
+                          .join(" ")}
+                      </span>
+                    </div>`
+                  : ""
+              }
+              ${
+                wardVal
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Historic Ward (1839–1905 Aldermanic Charter)</span>
+                      <span class="cell-value inspector-chip-group">
+                        <button type="button" class="inspector-filter-chip" data-filter-chip="${wardVal.replace(/"/g, "&quot;")}" data-filter-label="Historic Ward: ${wardVal.replace(/"/g, "&quot;")}" title="Click to search structures in ${wardVal.replace(/"/g, "&quot;")}">1903–05 ${wardVal} &#128269;</button>
+                        <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Outline 1903–1905 ${wardVal.replace(/"/g, "&quot;")} boundary on the map">Outline Ward</button>
+                        <button type="button" class="inline-isolate-btn" data-isolate-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Isolate 1903–1905 ${wardVal.replace(/"/g, "&quot;")} on the map">&#127919; Isolate</button>
+                      </span>
+                    </div>`
+                  : ""
+              }
+              <div class="inspector-cell full">
+                <span class="cell-label">Geometry Provenance</span>
+                <span class="cell-value">${fpSourceLabel}</span>
+              </div>
+            </div>
+
+            ${buildingDeedCardHtml}
+
+            ${
+              hcadNum
+                ? `<div class="inspector-actions">
+                    <div class="hcad-link-status-note hidden" id="hcad-link-status-note"></div>
+                    <a
+                      href="https://search.hcad.org/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inspector-btn primary"
+                      id="btn-open-hcad"
+                      data-hcad-num="${hcadNum}"
+                      title="Copies ${hcadNum} to your clipboard and opens HCAD Property Search"
+                    >
+                      Copy # &amp; Open HCAD Search (${hcadNum}) &#8599;
+                    </a>
+                    <a
+                      href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(hcadNum)}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inspector-btn secondary"
+                      id="btn-open-hcad-gis"
+                      title="Direct link to parcel ${hcadNum} in HCAD Official GIS Parcel Viewer"
+                    >
+                      Open HCAD GIS Parcel Map (${hcadNum}) &#8599;
+                    </a>
+                  </div>`
+                : ""
+            }
+          </div>
         </div>
       </div>
     `;
 
     drawer.classList.remove("hidden");
+
+    content.querySelectorAll("[data-inspector-tab]").forEach((tabBtn) => {
+      tabBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const tKey = tabBtn.getAttribute("data-inspector-tab") || "overview";
+        this._switchInspectorTab(tKey, { scrollInWide: true });
+      });
+    });
+
+    content.querySelectorAll("[data-switch-inspector-tab]").forEach((jumpEl) => {
+      jumpEl.addEventListener("click", (e) => {
+        e.preventDefault();
+        const tKey = jumpEl.getAttribute("data-switch-inspector-tab") || "permits";
+        this._switchInspectorTab(tKey, { scrollInWide: true });
+      });
+    });
+
+    content.querySelectorAll("[data-open-correction-history]").forEach((histBtn) => {
+      histBtn.addEventListener("click", () => {
+        this.openCorrectionModal(props);
+      });
+    });
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, props);
@@ -8145,6 +8467,16 @@ class HoustonAtlasApp {
         badge.textContent = "Archival Permit";
       } else {
         badge.textContent = "HCAD Structural History";
+      }
+    }
+
+    const tabPermitsBadge = document.getElementById("inspector-tab-permits-count");
+    if (tabPermitsBadge) {
+      const totalItems =
+        permitsList.length + extraFeatures.length + (origPermit || origCost ? 1 : 0);
+      if (totalItems > 0) {
+        tabPermitsBadge.textContent = String(totalItems);
+        tabPermitsBadge.classList.remove("hidden");
       }
     }
 
