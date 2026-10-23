@@ -203,6 +203,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
     <a class="btn dark" href="index.html" title="Return to interactive Houston Building Atlas map">← Back to Atlas Map</a>
     <a class="btn dark" href="public/docs/01_Plat_Report-Monitoring_Guide_Updated.docx" download title="Download updated Preservation Houston Plat &amp; Property Monitoring Guide (.docx)">📘 Guide (.docx)</a>
     <span id="cycleLabel" style="font-size:13px;color:#B8C6D3"></span>
+    <button class="btn dark" id="staffAuthBtn" type="button" title="Preservation Houston Staff Admin Sign-In (Google Sheet Editor Verification &amp; Live Cloud Sync)">🔒 Staff Sign-In</button>
     <label for="reviewer">Reviewer</label>
     <input id="reviewer" type="text" placeholder="Your name" autocomplete="name">
     <div class="menu" id="loadMenu">
@@ -735,6 +736,16 @@ function renderDetail(){
         <span>Your Review</span>
         ${r.autoEnriched ? '<span class="chip ok">Pre-filled by Houston Building Atlas (editable)</span>' : ""}
       </h3>
+      ${getStaffSession()
+        ? `<div style="margin-bottom:10px;padding:7px 10px;background:#E8F4ED;border:1px solid #95D5B2;border-radius:4px;font-size:12px;color:#1F6B43;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+             <span><strong>&#9729; Google Sheet Cloud Sync Active:</strong> Signed in as <strong>${esc(getStaffSession().email)}</strong>. All changes save automatically to the shared Preservation Houston Google Sheet.</span>
+             <a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit" target="_blank" rel="noopener" style="color:#1F6B43;font-weight:700;text-decoration:underline;">Open Google Sheet &#8599;</a>
+           </div>`
+        : `<div style="margin-bottom:10px;padding:8px 10px;background:#FDF2E3;border:1px solid #F3D19E;border-radius:4px;font-size:12px;color:#8E5109;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+             <span><strong>&#128274; Staff Sign-In Required to Edit &amp; Save to Google Sheet:</strong> Sign in with a Google Account that has Editor access on the Preservation Houston Google Sheet.</span>
+             <button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>
+           </div>`
+      }
       <div class="grid2">
         <div class="field"><label for="r-address">Address <span class="hint">from Atlas / HCAD</span></label><input id="r-address" data-k="address" value="${esc(r.address)}"></div>
         <div class="field"><label for="r-year">Year built <span class="hint">from Atlas / HCAD</span></label><input id="r-year" data-k="yearBuilt" value="${esc(r.yearBuilt)}" inputmode="numeric"></div>
@@ -744,7 +755,7 @@ function renderDetail(){
       <div class="field"><label for="r-why">Why <span class="hint">2-3 sentences: what it is and why it matters, or why you dropped it</span></label><textarea id="r-why" data-k="why">${esc(r.why)}</textarea></div>
       <div class="field"><label for="r-src">Sources <span class="hint">links or citations, one per line</span></label><textarea id="r-src" data-k="sources">${esc(r.sources)}</textarea></div>
       <div class="field"><label for="r-fu">Follow-up <span class="hint">next check or decision needed</span></label><input id="r-fu" data-k="followup" value="${esc(r.followup)}"></div>
-      <div class="saved" id="savedNote">${r.updated ? "Saved " + new Date(r.updated).toLocaleString() : "Changes save automatically in this browser."}</div>
+      <div class="saved" id="savedNote">${r.updated ? "Saved " + new Date(r.updated).toLocaleString() + (getStaffSession() ? " · Synced to Google Sheet" : "") : (getStaffSession() ? "Cloud Sync Active · Changes auto-save to Google Sheet." : "Sign in via '🔒 Staff Sign-In' to save edits to the shared Google Sheet.")}</div>
     </section>`;
 }
 
@@ -862,6 +873,7 @@ function renderWatchlistDetail(){
   const activeDenom = ck.filter(r => r.status !== "N/A").length || 1;
   const pct = Math.round(((cnt("Complete") + cnt("Flagged")) / activeDenom) * 100);
   const kd = p.keyDates || {};
+  const staffSess = getStaffSession();
 
   $("#detail").innerHTML = `
     <h2>${esc(p.propertyName)}</h2>
@@ -874,6 +886,11 @@ function renderWatchlistDetail(){
       <a href="https://www.tdlr.texas.gov/TABS/Search" target="_blank" rel="noopener">TDLR TABS Search</a>
       ${p.platPdf ? `<a href="${esc(p.platPdf)}" target="_blank" rel="noopener">Plat PDF</a>` : ""}
       ${p.noticePdf ? `<a class="notice-link" href="${esc(p.noticePdf)}" target="_blank" rel="noopener">Public Notice PDF</a>` : ""}
+    </div>
+
+    <div style="margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:${staffSess ? "#e8f3ee" : "#fdf7eb"};border:1px solid ${staffSess ? "#9ccbb5" : "#e3c58e"};color:${staffSess ? "#175e3c" : "#805300"};">
+      <span>${staffSess ? `☁️ <b>Authenticated Staff Session (${esc(staffSess.email)})</b>: Any checklist updates, notes, or new findings automatically save to the shared Preservation Houston Google Sheet.` : `🔒 <b>Read-Only Mode</b>: Sign in with your Google Sheet Editor email to modify the 15-point checklist or log new findings.`}</span>
+      ${!staffSess ? `<button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>` : `<a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit" target="_blank" rel="noopener" style="color:#175e3c;font-weight:600;text-decoration:underline;white-space:nowrap;margin-left:8px;">Open Google Sheet ↗</a>`}
     </div>
 
     <div class="wl-card">
@@ -1036,13 +1053,15 @@ function promoteItemToWatchlist(appNo){
   WL.watchedProperties = WL.watchedProperties || [];
   WL.watchedProperties.push(newProp);
   persistWatchlist();
+  queueCloudSyncWatchProperty(newProp);
   view.mode = "watchlist";
   view.selectedWatchId = newProp.id;
   render();
-  toast(`Added ${it.name} to Property Watchlist.`);
+  toast(`Added ${it.name} to Property Watchlist & synced to Google Sheet.`);
 }
 
 function showAddWatchPropertyModal(){
+  if (!requireStaffAuth("adding a property to the Watchlist")) return;
   const back = document.createElement("div"); back.className = "modal-back";
   back.innerHTML = `<div class="modal" role="dialog" aria-modal="true">
     <h3>Add Endangered Property to Multi-Agency Watchlist</h3>
@@ -1089,16 +1108,21 @@ function showAddWatchPropertyModal(){
     WL.watchedProperties = WL.watchedProperties || [];
     WL.watchedProperties.unshift(p);
     persistWatchlist();
+    queueCloudSyncWatchProperty(p);
     view.mode = "watchlist";
     view.selectedWatchId = p.id;
     back.remove();
     render();
-    toast("Created 15-point Property Monitoring Tracker.");
+    toast("Created 15-point Property Monitoring Tracker & synced to Google Sheet.");
   });
 }
 
 /* ---------- Events ---------- */
 document.addEventListener("click", e => {
+  if (e.target.closest("#staffAuthBtn") || e.target.closest("[data-open-staff-auth]")) {
+    openStaffAuthModal();
+    return;
+  }
   const modeBtn = e.target.closest(".mode-btn");
   if (modeBtn) {
     view.mode = modeBtn.dataset.mode;
@@ -1107,11 +1131,13 @@ document.addEventListener("click", e => {
   }
   const promoteBtn = e.target.closest("#promoteWatchBtn");
   if (promoteBtn) {
+    if (!requireStaffAuth("promoting a plat item to the Property Watchlist")) return;
     promoteItemToWatchlist(promoteBtn.dataset.app);
     return;
   }
   const addChkBtn = e.target.closest("[data-add-chk]");
   if (addChkBtn) {
+    if (!requireStaffAuth("logging a property monitoring check")) return;
     const idxRow = parseInt(addChkBtn.dataset.addChk, 10);
     const p = getSelectedWatchProp();
     if (!p || !p.checklist[idxRow]) return;
@@ -1124,10 +1150,11 @@ document.addEventListener("click", e => {
     if (p.checklist[idxRow].status === "To Do") p.checklist[idxRow].status = "In Progress";
     rebuildFindingsLog(p);
     persistWatchlist();
+    queueCloudSyncWatchProperty(p);
     renderWatchlistFunnel();
     renderWatchlistSidebar();
     renderWatchlistDetail();
-    toast("Logged check to Findings Log.");
+    toast("Logged check & synced to Google Sheet.");
     return;
   }
   const tab = e.target.closest(".tab"); if (tab) { view.group = tab.dataset.g; view.selected = null; render(); return; }
@@ -1153,12 +1180,18 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") { document.q
 
 $("#detail").addEventListener("input", e => {
   const el = e.target;
+  if (el.id && el.id.startsWith("chk")) return;
+  if (!requireStaffAuth("editing reviews or watchlist notes")) {
+    renderDetail();
+    return;
+  }
   if (view.mode === "watchlist") {
     const p = getSelectedWatchProp();
     if (!p) return;
     if (el.id === "wlNotesInput") {
       p.notes = el.value;
       persistWatchlist();
+      queueCloudSyncWatchProperty(p);
     }
     return;
   }
@@ -1169,19 +1202,27 @@ $("#detail").addEventListener("input", e => {
   else return;
   r.updated = new Date().toISOString();
   const ok = persist();
-  $("#savedNote").textContent = ok ? "Saved " + new Date().toLocaleTimeString() : "Use Save & Export > Save work file before closing.";
+  queueCloudSyncPlatReview(view.selected);
+  $("#savedNote").textContent = ok ? "Saved " + new Date().toLocaleTimeString() + " · Syncing to Google Sheet..." : "Syncing to Google Sheet...";
   if (el.name === "tier") { render(); const radio = document.querySelector(`input[name=tier][value="${el.value}"]`); if (radio) radio.focus(); }
   else { renderList(); }
 });
 
 $("#detail").addEventListener("change", e => {
   const el = e.target;
+  if (el.id && el.id.startsWith("chk")) return;
+  if (!requireStaffAuth("updating checklist or review status")) {
+    if (view.mode === "watchlist") renderWatchlistDetail();
+    else renderDetail();
+    return;
+  }
   if (view.mode === "watchlist" && el.dataset.wlIdx != null) {
     const idxRow = parseInt(el.dataset.wlIdx, 10);
     const p = getSelectedWatchProp();
     if (p && p.checklist[idxRow]) {
       p.checklist[idxRow].status = el.value;
       persistWatchlist();
+      queueCloudSyncWatchProperty(p);
       renderWatchlistFunnel();
       renderWatchlistDetail();
     }
@@ -1538,8 +1579,328 @@ function showEmail(){
   $("#emt").focus();
 }
 
+/* ---------- Google Sheet Staff Admin Auth & Live Two-Way Cloud Sync ---------- */
+const SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw1axAzEHZgcIKcdRUAjltDIsq505PJRalUMOfmJJa07qR-RCdsWBAwPv1gjN3sJlEbtg/exec";
+const SHEET_PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS6oiB-T1JH-oy8coeDD1Gqey_l9rP7Its3NWe7KerNQyBF_Mqrx1NHPLWV8yKTtgS0CTXoJySi3jcO/pub?gid=1876369840&single=true&output=csv";
+const LS_ADMIN_SESSION_KEY = "ph_atlas_admin_session";
+const cloudSyncTimers = {};
+
+function getStaffSession(){
+  try {
+    const raw = sessionStorage.getItem(LS_ADMIN_SESSION_KEY) || localStorage.getItem(LS_ADMIN_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && parsed.authorized) ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function updateStaffAuthButtonUI(){
+  const btn = $("#staffAuthBtn");
+  if (!btn) return;
+  const sess = getStaffSession();
+  if (sess) {
+    btn.innerHTML = `&#9729; Cloud Sync: ${esc(sess.email.split("@")[0])}`;
+    btn.style.background = "#1F6B43";
+    btn.style.borderColor = "#40916C";
+    btn.style.color = "#FFFFFF";
+    if (!$("#reviewer").value && sess.email) {
+      $("#reviewer").value = sess.email;
+      store.set("phpam:reviewer", sess.email);
+      if (S) S.reviewer = sess.email;
+    }
+  } else {
+    btn.innerHTML = `&#128274; Staff Sign-In`;
+    btn.style.background = "";
+    btn.style.borderColor = "";
+    btn.style.color = "";
+  }
+}
+
+function requireStaffAuth(actionDesc){
+  if (getStaffSession()) return true;
+  toast("Sign in as a Google Sheet Editor to " + (actionDesc || "edit and sync to the Google Sheet") + ".");
+  openStaffAuthModal();
+  return false;
+}
+
+function openStaffAuthModal(){
+  const existingModal = document.querySelector(".modal-back");
+  if (existingModal) existingModal.remove();
+  const sess = getStaffSession();
+  const back = document.createElement("div");
+  back.className = "modal-back";
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:560px">
+    <h3>&#128272; Preservation Houston Staff Admin Verification &amp; Google Sheet Sync</h3>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 12px 0;line-height:1.5">
+      Editing Plat Reviews and the 15-Point Property Watchlist is restricted to Google Accounts with <strong>Editor</strong> access on the Preservation Houston Google Sheet. Once verified, every edit saves automatically to the shared Google Sheet in the background (no manual file export needed).
+    </p>
+    ${sess ? `
+      <div style="padding:10px 12px;background:#E8F4ED;border:1px solid #95D5B2;border-radius:4px;margin-bottom:12px;font-size:13px;color:#1F6B43">
+        <strong>&#10003; Currently Authenticated:</strong> ${esc(sess.email)}<br>
+        <span style="font-size:12px">Live two-way Google Sheet Cloud Sync is active on this browser.</span>
+      </div>
+    ` : ""}
+    <div class="grid2">
+      <div class="field">
+        <label for="sa-email">Google Account Email (Sheet Editor)</label>
+        <input id="sa-email" type="email" placeholder="name@preservationhouston.org" value="${esc(sess ? sess.email : "")}">
+      </div>
+      <div class="field">
+        <label for="sa-passkey">Sheet Editor Passkey (Tab 3, Cell B6)</label>
+        <input id="sa-passkey" type="password" placeholder="Enter Sheet Editor Passkey" value="${esc(sess ? sess.adminPasskey : "")}">
+      </div>
+    </div>
+    <div id="sa-msg" style="font-size:12px;margin-top:8px;min-height:18px;color:var(--tier1)"></div>
+    <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;align-items:center">
+        <a class="btn" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit" target="_blank" rel="noopener">Open Google Sheet &#8599;</a>
+        ${sess ? `<button class="btn" id="saLock" type="button" style="color:var(--tier1);border-color:#E5B4B0">Sign Out / Lock</button>` : ""}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" id="saCancel" type="button">Close</button>
+        <button class="btn primary" id="saVerify" type="button">&#10003; Verify Sheet Editor &amp; Enable Cloud Sync</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => { if (e.target === back || e.target.id === "saCancel") back.remove(); });
+  $("#saLock")?.addEventListener("click", () => {
+    sessionStorage.removeItem(LS_ADMIN_SESSION_KEY);
+    localStorage.removeItem(LS_ADMIN_SESSION_KEY);
+    updateStaffAuthButtonUI();
+    render();
+    back.remove();
+    toast("Signed out of Staff Admin Cloud Sync.");
+  });
+  $("#saVerify").addEventListener("click", async () => {
+    const email = ($("#sa-email").value || "").trim();
+    const passkey = ($("#sa-passkey").value || "").trim();
+    const msgEl = $("#sa-msg");
+    if (!email || !passkey) {
+      msgEl.textContent = "Please enter both your Sheet Editor Google Account Email and the Sheet Editor Passkey.";
+      return;
+    }
+    const btn = $("#saVerify");
+    btn.disabled = true;
+    btn.textContent = "Verifying with Google Sheet...";
+    msgEl.style.color = "var(--muted)";
+    msgEl.textContent = "Checking Spreadsheet.getEditors() and passkey...";
+    try {
+      const res = await fetch(SHEET_WEBHOOK_URL, {
+        method: "POST",
+        headers: {"Content-Type": "text/plain;charset=utf-8"},
+        body: JSON.stringify({
+          action: "verify_admin",
+          admin_email: email,
+          admin_passkey: passkey
+        })
+      });
+      const data = await res.json();
+      if (!data || !data.authorized) {
+        msgEl.style.color = "var(--tier1)";
+        msgEl.textContent = (data && data.error) || "Access denied: Google account is not listed as an Editor on the Google Sheet or passkey is invalid.";
+        btn.disabled = false;
+        btn.textContent = "Verify Sheet Editor & Enable Cloud Sync";
+        return;
+      }
+      const newSession = {
+        authorized: true,
+        verifiedByWebhook: true,
+        email: data.email || email,
+        adminPasskey: passkey,
+        unlockedAt: new Date().toISOString()
+      };
+      sessionStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(newSession));
+      localStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(newSession));
+      updateStaffAuthButtonUI();
+      render();
+      back.remove();
+      toast("Verified Sheet Editor (" + newSession.email + "). Live Google Sheet Cloud Sync enabled.");
+    } catch (err) {
+      msgEl.style.color = "var(--tier1)";
+      msgEl.textContent = "Could not reach Google Sheet verification service: " + (err.message || err);
+      btn.disabled = false;
+      btn.textContent = "Verify Sheet Editor & Enable Cloud Sync";
+    }
+  });
+}
+
+function queueCloudSyncPlatReview(appNo){
+  const sess = getStaffSession();
+  if (!sess || !S || !appNo) return;
+  const timerKey = "plat:" + appNo;
+  if (cloudSyncTimers[timerKey]) clearTimeout(cloudSyncTimers[timerKey]);
+  cloudSyncTimers[timerKey] = setTimeout(async () => {
+    const r = S.reviews[appNo];
+    const it = S.items.find(i => i.app === appNo) || {};
+    if (!r) return;
+    const payload = {
+      action: "admin_approve",
+      admin_email: sess.email,
+      admin_passkey: sess.adminPasskey,
+      google_id_token: sess.googleIdToken || "",
+      hcad_num: `PLAT_REV:${S.cycleKey}:${appNo}`,
+      address: `${it.name || appNo} (${r.address || ""})`,
+      suggested_year_built: Number(r.yearBuilt) || 0,
+      hcad_year_built: Number(it.atlas?.yearBuilt) || 0,
+      historic_district: r.designation || "",
+      contributing: r.tier ? `Tier ${r.tier}` : "Unreviewed",
+      source_type: "PLAT_MONITOR_REVIEW",
+      source_citation: JSON.stringify({
+        cycleKey: S.cycleKey,
+        appNo: appNo,
+        review: r,
+        reviewer: S.reviewer || sess.email,
+        updatedAt: new Date().toISOString()
+      }),
+      source_url: it.pdf || it.noticePdf || "",
+      submitter_name: S.reviewer || sess.email
+    };
+    try {
+      const res = await fetch(SHEET_WEBHOOK_URL, {
+        method: "POST",
+        headers: {"Content-Type": "text/plain;charset=utf-8"},
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const noteEl = $("#savedNote");
+        if (noteEl) noteEl.textContent = "☁️ Synced to Google Sheet · " + new Date().toLocaleTimeString();
+      }
+    } catch (err) {
+      console.warn("Cloud sync warning for plat review:", err);
+    }
+  }, 900);
+}
+
+function queueCloudSyncWatchProperty(prop){
+  const sess = getStaffSession();
+  if (!sess || !prop || !prop.id) return;
+  const timerKey = "watch:" + prop.id;
+  if (cloudSyncTimers[timerKey]) clearTimeout(cloudSyncTimers[timerKey]);
+  cloudSyncTimers[timerKey] = setTimeout(async () => {
+    const payload = {
+      action: "admin_approve",
+      admin_email: sess.email,
+      admin_passkey: sess.adminPasskey,
+      google_id_token: sess.googleIdToken || "",
+      hcad_num: `WATCH_PROP:${prop.id}`,
+      address: `${prop.propertyName || ""} (${prop.address || ""})`,
+      suggested_year_built: Number(String(prop.yearBuilt || "").slice(0, 4)) || 0,
+      hcad_year_built: 0,
+      historic_district: prop.designation || "",
+      contributing: `Tier ${prop.tier || "1"}`,
+      source_type: "PROPERTY_WATCHLIST_UPDATE",
+      source_citation: JSON.stringify({
+        id: prop.id,
+        propertyName: prop.propertyName,
+        address: prop.address,
+        secondaryAddresses: prop.secondaryAddresses,
+        hcadAccount: prop.hcadAccount,
+        yearBuilt: prop.yearBuilt,
+        designation: prop.designation,
+        ownerOfRecord: prop.ownerOfRecord,
+        buyerRelatedEntities: prop.buyerRelatedEntities,
+        lender: prop.lender,
+        architectEngineer: prop.architectEngineer,
+        keyDates: prop.keyDates,
+        notes: prop.notes,
+        tier: prop.tier,
+        checklist: prop.checklist,
+        updatedAt: new Date().toISOString(),
+        updatedBy: ($("#reviewer")?.value || sess.email)
+      }),
+      source_url: "",
+      submitter_name: ($("#reviewer")?.value || sess.email)
+    };
+    try {
+      await fetch(SHEET_WEBHOOK_URL, {
+        method: "POST",
+        headers: {"Content-Type": "text/plain;charset=utf-8"},
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn("Cloud sync warning for watched property:", err);
+    }
+  }, 900);
+}
+
+async function pullCloudSheetSync(){
+  try {
+    let csvText = "";
+    try {
+      const r = await fetch(SHEET_WEBHOOK_URL, {cache: "no-store"});
+      if (r.ok) csvText = await r.text();
+    } catch (_e) {}
+    if (!csvText) {
+      const r2 = await fetch(SHEET_PUBLISHED_CSV_URL, {cache: "no-store"});
+      if (r2.ok) csvText = await r2.text();
+    }
+    if (!csvText) return;
+    const rows = parseCsv(csvText);
+    if (rows.length < 2) return;
+    const hdr = rows[0].map(h => String(h || "").trim().toLowerCase());
+    const idxStatus = hdr.indexOf("status");
+    const idxHcad = hdr.indexOf("hcad_num");
+    const idxType = hdr.indexOf("source_type");
+    const idxCit = hdr.indexOf("source_citation");
+    if (idxHcad < 0 || idxCit < 0) return;
+
+    let appliedPlat = 0;
+    let appliedWatch = 0;
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const st = idxStatus >= 0 ? String(row[idxStatus] || "").trim().toLowerCase() : "approved";
+      if (st && st !== "approved") continue;
+      const key = String(row[idxHcad] || "").trim();
+      const sType = idxType >= 0 ? String(row[idxType] || "").trim() : "";
+      const rawJson = String(row[idxCit] || "").trim();
+      if (!rawJson.startsWith("{")) continue;
+
+      if (sType === "PLAT_MONITOR_REVIEW" || key.startsWith("PLAT_REV:")) {
+        try {
+          const parsed = JSON.parse(rawJson);
+          if (S && parsed.appNo && parsed.review && (!parsed.cycleKey || parsed.cycleKey === S.cycleKey)) {
+            S.reviews[parsed.appNo] = {...(S.reviews[parsed.appNo] || {}), ...parsed.review};
+            appliedPlat++;
+          }
+        } catch (_e) {}
+      } else if (sType === "PROPERTY_WATCHLIST_UPDATE" || key.startsWith("WATCH_PROP:")) {
+        try {
+          const parsed = JSON.parse(rawJson);
+          if (parsed && parsed.id && WL && Array.isArray(WL.watchedProperties)) {
+            const existingIdx = WL.watchedProperties.findIndex(p => p.id === parsed.id);
+            if (existingIdx >= 0) {
+              WL.watchedProperties[existingIdx] = {...WL.watchedProperties[existingIdx], ...parsed};
+              rebuildFindingsLog(WL.watchedProperties[existingIdx]);
+            } else {
+              rebuildFindingsLog(parsed);
+              WL.watchedProperties.unshift(parsed);
+            }
+            appliedWatch++;
+          }
+        } catch (_e) {}
+      }
+    }
+    if (appliedPlat > 0 && S) {
+      prepare();
+      persist();
+      render();
+    }
+    if (appliedWatch > 0) {
+      persistWatchlist();
+      if (view.mode === "watchlist") render();
+      else updateModeButtons();
+    }
+  } catch (err) {
+    console.warn("Could not pull live Google Sheet sync:", err);
+  }
+}
+
 /* ---------- Auto-Load Live Houston Building Atlas Cycle & Watchlist ---------- */
 async function loadLiveAtlasCycle(forceReload){
+  updateStaffAuthButtonUI();
   try {
     const [platResp, wlResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json?v=" + Date.now()),
@@ -1586,6 +1947,7 @@ async function loadLiveAtlasCycle(forceReload){
       }
       if (forceReload) toast("Loaded live pre-enriched Planning Commission cycle (" + d.cycleKey + ").");
     }
+    await pullCloudSheetSync();
   } catch (err) {
     console.warn("Could not auto-load live Atlas cycle:", err);
     if (!S) {
