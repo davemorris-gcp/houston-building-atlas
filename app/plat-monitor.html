@@ -201,7 +201,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 
   <div class="cycle" id="cycleBar">
     <a class="btn dark" href="index.html" title="Return to interactive Houston Building Atlas map">← Back to Atlas Map</a>
-    <a class="btn dark" href="public/docs/01_Plat_Report-Monitoring_Guide_Updated.docx" download title="Download updated Preservation Houston Plat &amp; Property Monitoring Guide (.docx)">📘 Guide (.docx)</a>
+    <a class="btn dark hidden" id="staffGuideDocBtn" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener" title="Open Preservation Houston Plat &amp; Property Monitoring Guide in Google Docs (Staff Admins only)">📘 Monitoring Guide (Google Doc ↗)</a>
     <span id="cycleLabel" style="font-size:13px;color:#B8C6D3"></span>
     <button class="btn dark" id="staffAuthBtn" type="button" title="Preservation Houston Staff Admin Sign-In (Google Sheet Editor Verification &amp; Live Cloud Sync)">🔒 Staff Sign-In</button>
     <label for="reviewer">Reviewer</label>
@@ -220,16 +220,15 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
     <div class="menu" id="exportMenu">
       <button class="btn primary" id="exportBtn" aria-haspopup="true" aria-expanded="false">Save &amp; Export</button>
       <div class="menu-list hidden" role="menu">
-        <button role="menuitem" data-act="report">Download Plat Findings Report (Word .docx)<small>Summary counts, Tier 1 write-ups &amp; Tier 2/3 tables</small></button>
-        <button role="menuitem" data-act="print">Print Plat Report or save as PDF</button>
-        <button role="menuitem" data-act="csv">Download Plat Findings Log (CSV)<small>Opens in Excel; one row per researched item</small></button>
+        <button role="menuitem" data-act="print">Print Plat Report or save as PDF<small>Summary counts, Tier 1 write-ups &amp; Tier 2/3 tables</small></button>
+        <button role="menuitem" data-act="csv">Download Plat Findings Log (CSV)<small>Opens in Google Sheets or Excel; one row per researched item</small></button>
         <button role="menuitem" data-act="email">Copy email summary for Emily</button>
         <div class="sep"></div>
-        <button role="menuitem" data-act="watchlist-docx">Download Property Watchlist Dossier (Word .docx)<small>15-point checklist &amp; chronological Findings Log for selected property</small></button>
-        <button role="menuitem" data-act="watchlist-csv">Download Property Watchlist Log (CSV)<small>Opens in Excel; checklist &amp; dated findings log</small></button>
+        <button role="menuitem" data-act="watchlist-print">Print Property Watchlist Dossier or save as PDF<small>15-point checklist &amp; chronological Findings Log for selected property</small></button>
+        <button role="menuitem" data-act="watchlist-csv">Download Property Watchlist Log (CSV)<small>Opens in Google Sheets or Excel; checklist &amp; dated findings log</small></button>
         <div class="sep"></div>
         <button role="menuitem" data-act="savework">Save work file (.json)<small>Pick up later or hand off to a colleague</small></button>
-        <a role="menuitem" href="public/docs/01_Plat_Report-Monitoring_Guide_Updated.docx" download>Download Updated Plat Monitoring Guide (.docx)<small>SOP including Section K DPV Variances &amp; Atlas automation</small></a>
+        <a role="menuitem" id="exportMenuGuideLink" class="hidden" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener">Open Plat &amp; Property Monitoring Guide (Google Doc ↗)<small>SOP including Section K DPV Variances &amp; Atlas automation (Staff Admins only)</small></a>
       </div>
     </div>
   </div>
@@ -271,7 +270,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
     <div style="font-weight:600;font-size:14px">Endangered Property Multi-Agency Watchlist · 15-Point Preservation Tracker &amp; Automated Findings Log</div>
     <div class="filters">
       <button class="btn" id="addCustomWatchPropBtn">+ Add Property to Watchlist</button>
-      <button class="btn primary" id="exportWatchlistDocxBtn">Download Property Dossier (.docx)</button>
+      <button class="btn primary" id="exportWatchlistDocxBtn">Print / Save Property Dossier (PDF)</button>
       <button class="btn" id="exportWatchlistCsvBtn">Download Findings Log (.csv)</button>
     </div>
   </div>
@@ -1239,7 +1238,7 @@ $("#pickLive")?.addEventListener("click", () => loadLiveAtlasCycle(true));
 $("#pickAgenda")?.addEventListener("click", () => $("#fileAgenda").click());
 $("#pickWork")?.addEventListener("click", () => $("#fileWork").click());
 $("#addCustomWatchPropBtn")?.addEventListener("click", showAddWatchPropertyModal);
-$("#exportWatchlistDocxBtn")?.addEventListener("click", () => doAction("watchlist-docx"));
+$("#exportWatchlistDocxBtn")?.addEventListener("click", () => doAction("watchlist-print"));
 $("#exportWatchlistCsvBtn")?.addEventListener("click", () => doAction("watchlist-csv"));
 $("#fileAgenda").addEventListener("change", e => { if (e.target.files[0]) loadAgenda(e.target.files[0]); e.target.value = ""; });
 $("#fileWork").addEventListener("change", e => { if (e.target.files[0]) loadWork(e.target.files[0]); e.target.value = ""; });
@@ -1302,11 +1301,10 @@ function doAction(a){
   if (a === "agenda") return $("#fileAgenda").click();
   if (a === "work") return $("#fileWork").click();
   if (a === "history") return $("#fileHistory").click();
-  if (a === "watchlist-docx") {
+  if (a === "watchlist-print" || a === "watchlist-docx") {
     const p = getSelectedWatchProp();
     if (!p) { toast("Select a watched property first."); return; }
-    const slug = (p.propertyName || "Property").replace(/[^A-Za-z0-9]+/g, "-");
-    return download(`Property-Watchlist_${slug}.docx`, buildWatchlistDocx(p), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    return printWatchlistDossier(p);
   }
   if (a === "watchlist-csv") {
     const p = getSelectedWatchProp();
@@ -1317,8 +1315,7 @@ function doAction(a){
   if (!requireCycle()) return;
   const base = "Plat-review_PC-" + S.cycleKey;
   if (a === "csv") return download(base + "_findings.csv", "\uFEFF" + buildCsv(), "text/csv;charset=utf-8");
-  if (a === "report") return download(base + "_report.docx", buildDocx(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-  if (a === "print") return printReport();
+  if (a === "report" || a === "print") return printReport();
   if (a === "email") return showEmail();
   if (a === "savework") {
     download(base + "_work-file.json", JSON.stringify({app:"Plat Agenda Monitor", version:2, cycleKey:S.cycleKey, pcDate:S.pcDate, fileName:S.fileName, loadedAt:S.loadedAt, savedAt:new Date().toISOString(), reviewer:S.reviewer, items:S.items.map(stripPrivate), reviews:S.reviews}, null, 1), "application/json");
@@ -1550,7 +1547,46 @@ function printReport(){
   const fr = document.createElement("iframe"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(fr);
   fr.contentDocument.open(); fr.contentDocument.write(buildReport()); fr.contentDocument.close();
-  setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e) { toast("Printing is blocked here. Download the Word report instead."); } setTimeout(() => fr.remove(), 1500); }, 300);
+  setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e) { toast("Printing is blocked in this browser window."); } setTimeout(() => fr.remove(), 1500); }, 300);
+}
+function buildWatchlistReportHtml(p){
+  const log = rebuildFindingsLog(p);
+  const ck = p.checklist || [];
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Property Watchlist Dossier: ${esc(p.propertyName)}</title><style>
+    body,td,th,h1,h2,h3{font-family:Arial,Helvetica,sans-serif}body{font-size:10pt;color:#1E2B38;line-height:1.4;margin:0.5in}
+    h1{font-size:16pt;margin:0 0 4pt} h2{font-size:12.5pt;margin:16pt 0 6pt;border-bottom:1.5pt solid #1E2B38;padding-bottom:2pt}
+    .muted{color:#5C6B78;font-weight:normal}
+    table{border-collapse:collapse;width:100%;margin:4pt 0} td,th{border:0.75pt solid #C9D3DA;padding:3pt 5pt;vertical-align:top;text-align:left;font-size:9pt}
+    th{background:#EDF1F3;font-weight:bold}
+    @media print{body{margin:0.5in}}
+  </style></head><body>
+    <h1>Endangered Property Monitoring Dossier: ${esc(p.propertyName)}</h1>
+    <p class="muted">Preservation Houston · Houston Building Atlas Multi-Agency Watchlist · Prepared ${esc(new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}))}</p>
+    <h2>Property Information</h2>
+    <table>
+      <tr><th>Property Name</th><td>${esc(p.propertyName)}</td><th>Primary Address</th><td>${esc(p.address)}</td></tr>
+      <tr><th>Secondary Block Addresses</th><td>${esc((p.secondaryAddresses || []).join(", ") || "None")}</td><th>HCAD Account #</th><td>${esc(p.hcadAccount || "N/A")}</td></tr>
+      <tr><th>Year Built</th><td>${esc(p.yearBuilt || "N/A")}${p.yearRemodeled ? " / Remodeled " + esc(p.yearRemodeled) : ""}</td><th>Designation</th><td>${esc(p.designation || "None")}</td></tr>
+      <tr><th>Owner of Record</th><td>${esc(p.ownerOfRecord || "Not recorded")}</td><th>Buyer / Related Entities</th><td>${esc(p.buyerRelatedEntities || "Not recorded")}</td></tr>
+    </table>
+    ${p.notes ? `<p><b>Executive Summary &amp; Notes:</b> ${esc(p.notes)}</p>` : ""}
+    <h2>15-Point Multi-Agency Monitoring Checklist</h2>
+    <table>
+      <tr><th>Stage</th><th>Monitoring Activity</th><th>Status</th><th>Last Checked</th><th>Latest Logged Result</th></tr>
+      ${ck.map(r => `<tr><td>${esc(r.stage)}</td><td><b>${esc(r.activity)}</b></td><td>${esc(r.status)}</td><td>${esc(r.lastChecked || "-")}</td><td>${esc((r.checks && r.checks.length) ? `${r.checks[r.checks.length-1].date}: ${r.checks[r.checks.length-1].result}` : "No checks logged")}</td></tr>`).join("")}
+    </table>
+    <h2>Chronological Findings Log (${log.length} checks)</h2>
+    <table>
+      <tr><th>#</th><th>Date</th><th>Stage</th><th>Activity</th><th>Result / Finding</th></tr>
+      ${log.map(e => `<tr><td>${e.entryNo}</td><td>${esc(e.date)}</td><td>${esc(e.stage)}</td><td>${esc(e.activity)}</td><td>${esc(e.result)}</td></tr>`).join("")}
+    </table>
+  </body></html>`;
+}
+function printWatchlistDossier(p){
+  const fr = document.createElement("iframe"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(fr);
+  fr.contentDocument.open(); fr.contentDocument.write(buildWatchlistReportHtml(p)); fr.contentDocument.close();
+  setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e) { toast("Printing is blocked in this browser window."); } setTimeout(() => fr.remove(), 1500); }, 300);
 }
 function emailText(){
   const f = findings(), line = i => { const r = S.reviews[i.app] || {}; return `- ${i.app} ${i.name}${r.address ? ", " + r.address : ""}${r.yearBuilt ? " (built " + r.yearBuilt + ")" : ""}: ${(r.why || "no notes yet").replace(/\s+/g, " ").trim()}`; };
@@ -1563,7 +1599,7 @@ function emailText(){
   if (back.length) body += `Returning from earlier cycles:\n${back.map(i => `- ${i.app} ${i.name} (Tier ${i._hist.tier}, ${i._hist.cycle})`).join("\n")}\n\n`;
   const devs = [...new Set(S.items.filter(i => i._dev).map(i => i.developer))];
   if (devs.length) body += `Developers seen on earlier flagged items: ${devs.join("; ")}\n\n`;
-  body += `The Word report and CSV log are saved in the advocacy file.\n\n${S.reviewer || ""}`;
+  body += `All review notes and watchlist items are synced to the shared Preservation Houston Google Sheet and Plat & Property Monitor:\nhttps://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html\n\n${S.reviewer || ""}`;
   return body.trim();
 }
 function showEmail(){
@@ -1598,8 +1634,12 @@ function getStaffSession(){
 
 function updateStaffAuthButtonUI(){
   const btn = $("#staffAuthBtn");
-  if (!btn) return;
+  const guideBtn = $("#staffGuideDocBtn");
+  const menuGuideLink = $("#exportMenuGuideLink");
   const sess = getStaffSession();
+  if (guideBtn) guideBtn.classList.toggle("hidden", !sess);
+  if (menuGuideLink) menuGuideLink.classList.toggle("hidden", !sess);
+  if (!btn) return;
   if (sess) {
     btn.innerHTML = `&#9729; Cloud Sync: ${esc(sess.email.split("@")[0])}`;
     btn.style.background = "#1F6B43";
@@ -1654,8 +1694,9 @@ function openStaffAuthModal(){
     </div>
     <div id="sa-msg" style="font-size:12px;margin-top:8px;min-height:18px;color:var(--tier1)"></div>
     <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <a class="btn" href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit" target="_blank" rel="noopener">Open Google Sheet &#8599;</a>
+        ${sess ? `<a class="btn" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener">Monitoring Guide (Google Doc &#8599;)</a>` : ""}
         ${sess ? `<button class="btn" id="saLock" type="button" style="color:var(--tier1);border-color:#E5B4B0">Sign Out / Lock</button>` : ""}
       </div>
       <div style="display:flex;gap:8px">
