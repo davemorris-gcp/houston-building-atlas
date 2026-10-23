@@ -1890,8 +1890,12 @@ async function pullCloudSheetSync(){
     const hdr = rows[0].map(h => String(h || "").trim().toLowerCase());
     const idxStatus = hdr.indexOf("status");
     const idxHcad = hdr.indexOf("hcad_num");
+    const idxYr = hdr.indexOf("year_built");
+    const idxDesig = hdr.indexOf("historic_district");
+    const idxTier = hdr.indexOf("contributing");
     const idxType = hdr.indexOf("source_type");
     const idxCit = hdr.indexOf("source_citation");
+    const idxVer = hdr.indexOf("verified_by");
     if (idxHcad < 0 || idxCit < 0) return;
 
     let appliedPlat = 0;
@@ -1905,11 +1909,22 @@ async function pullCloudSheetSync(){
       const rawJson = String(row[idxCit] || "").trim();
       if (!rawJson.startsWith("{")) continue;
 
+      const sheetYr = idxYr >= 0 ? String(row[idxYr] || "").trim() : "";
+      const sheetDesig = idxDesig >= 0 ? String(row[idxDesig] || "").trim() : "";
+      const sheetTierRaw = idxTier >= 0 ? String(row[idxTier] || "").trim() : "";
+      const sheetTierMatch = sheetTierRaw.match(/([123])/);
+      const sheetTier = sheetTierMatch ? sheetTierMatch[1] : "";
+      const sheetReviewer = idxVer >= 0 ? String(row[idxVer] || "").trim() : "";
+
       if (sType === "PLAT_MONITOR_REVIEW" || key.startsWith("PLAT_REV:")) {
         try {
           const parsed = JSON.parse(rawJson);
           if (S && parsed.appNo && parsed.review && (!parsed.cycleKey || parsed.cycleKey === S.cycleKey)) {
-            S.reviews[parsed.appNo] = {...(S.reviews[parsed.appNo] || {}), ...parsed.review};
+            const mergedRev = {...(S.reviews[parsed.appNo] || {}), ...parsed.review};
+            if (sheetYr && sheetYr !== "0") mergedRev.yearBuilt = sheetYr;
+            if (sheetDesig) mergedRev.designation = sheetDesig;
+            if (sheetTier) mergedRev.tier = sheetTier;
+            S.reviews[parsed.appNo] = mergedRev;
             appliedPlat++;
           }
         } catch (_e) {}
@@ -1917,6 +1932,10 @@ async function pullCloudSheetSync(){
         try {
           const parsed = JSON.parse(rawJson);
           if (parsed && parsed.id && WL && Array.isArray(WL.watchedProperties)) {
+            if (sheetYr && sheetYr !== "0") parsed.yearBuilt = sheetYr;
+            if (sheetDesig) parsed.designation = sheetDesig;
+            if (sheetTier) parsed.tier = sheetTier;
+            if (sheetReviewer) parsed.updatedBy = sheetReviewer;
             const existingIdx = WL.watchedProperties.findIndex(p => p.id === parsed.id);
             if (existingIdx >= 0) {
               WL.watchedProperties[existingIdx] = {...WL.watchedProperties[existingIdx], ...parsed};
@@ -2018,6 +2037,16 @@ async function loadLiveAtlasCycle(forceReload){
     view.group = "all";
   }
   loadLiveAtlasCycle(false);
+  let lastFocusSync = Date.now();
+  const syncOnFocus = () => {
+    if (document.visibilityState === "hidden") return;
+    if (Object.keys(cloudSyncTimers).some(k => cloudSyncTimers[k])) return;
+    if (Date.now() - lastFocusSync < 12000) return;
+    lastFocusSync = Date.now();
+    pullCloudSheetSync();
+  };
+  window.addEventListener("focus", syncOnFocus);
+  document.addEventListener("visibilitychange", syncOnFocus);
 })();
 </script>
 </body>
