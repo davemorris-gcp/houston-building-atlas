@@ -30,6 +30,7 @@ export const DEFAULT_FILTER_STATE = {
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
   layers: {
     permitWatch: true,
+    platWatch: false,
     goodBrickAwards: true,
     landmarks: true,
     historicDistricts: true,
@@ -265,6 +266,7 @@ function layersMatchDefault(layers) {
 
 const LAYER_KEY_TO_SHORT = {
   permitWatch: "permit_watch",
+  platWatch: "plat_watch",
   goodBrickAwards: "good_brick",
   landmarks: "landmarks",
   historicDistricts: "historic_districts",
@@ -290,6 +292,10 @@ const SHORT_TO_LAYER_KEY = {
   permit_alerts: "permitWatch",
   demolition_watch: "permitWatch",
   endangered: "permitWatch",
+  platwatch: "platWatch",
+  plat_watch: "platWatch",
+  plats: "platWatch",
+  planning_commission: "platWatch",
   goodbrickawards: "goodBrickAwards",
   good_brick_awards: "goodBrickAwards",
   good_brick: "goodBrickAwards",

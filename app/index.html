@@ -188,6 +188,16 @@
           <span class="permit-watch-pill-badge mono" id="permit-watch-topbar-count">15</span>
         </button>
 
+        <a
+          href="plat-monitor.html"
+          class="action-pill"
+          id="btn-open-plat-monitor"
+          style="text-decoration:none;border-color:rgba(168,85,247,0.45);background:rgba(168,85,247,0.14);color:#E9D5FF;"
+          title="Open Preservation Houston Biweekly Planning Commission Plat &amp; Variance Monitor and 15-Point Property Watchlist"
+        >
+          <span>&#128203; Plat &amp; Property Monitor</span>
+        </a>
+
         <div class="topbar-more-dropdown" id="topbar-more-dropdown">
           <button
             type="button"
@@ -599,6 +609,32 @@
                 class="layer-solo-btn"
                 data-solo-layer="permitWatch"
                 title="Show only Permit &amp; Demolition Watch alerts (click again to restore)"
+              >
+                Solo
+              </button>
+            </div>
+          </div>
+
+          <div class="layer-item-row" data-layer-key="platWatch">
+            <label class="check-row layer-row-main">
+              <input type="checkbox" id="chk-layer-plat-watch" />
+              <span class="swatch-dot" style="background:#A855F7; border:1.5px solid #F3E8FF; box-shadow:0 0 7px rgba(168,85,247,0.85);"></span>
+              <span class="layer-name">Planning Commission Plats &amp; Variances (<span id="plat-watch-layer-count">53</span>)</span>
+            </label>
+            <div style="display:inline-flex;align-items:center;gap:4px;">
+              <a
+                href="plat-monitor.html"
+                class="layer-solo-btn"
+                style="text-decoration:none;border-color:rgba(168,85,247,0.45);background:rgba(168,85,247,0.14);color:#E9D5FF;"
+                title="Open Biweekly Planning Commission Plat &amp; Variance Monitor"
+              >
+                Monitor
+              </a>
+              <button
+                type="button"
+                class="layer-solo-btn"
+                data-solo-layer="platWatch"
+                title="Show only Planning Commission Plats &amp; Variances (click again to restore)"
               >
                 Solo
               </button>
@@ -2018,6 +2054,22 @@
               </button>
             </div>
             <div class="permit-watch-portal-links">
+              <a
+                href="plat-monitor.html"
+                class="action-pill"
+                style="text-decoration:none;border-color:rgba(168,85,247,0.45);background:rgba(168,85,247,0.18);color:#E9D5FF;"
+                title="Open Biweekly Planning Commission Plat &amp; Variance Monitor"
+              >
+                &#128203; Plat &amp; Variance Monitor &#8599;
+              </a>
+              <a
+                href="plat-monitor.html?tab=watchlist&amp;watch=prop-kirby-mansion"
+                class="action-pill"
+                style="text-decoration:none;border-color:rgba(248,113,113,0.45);background:rgba(239,68,68,0.18);color:#FECACA;"
+                title="Open 15-Point Multi-Agency Property Watchlist &amp; Kirby Mansion Findings Log"
+              >
+                &#127963; 15-Point Property Watchlist &#8599;
+              </a>
               <a
                 href="https://www.houstonpermittingcenter.org/sold-permits-search"
                 target="_blank"

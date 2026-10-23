@@ -166,6 +166,9 @@ export class AtlasMapController {
     this.permitAlertsFC = { type: "FeatureCollection", features: [] };
     this.permitAlertsByHcad = new Map();
     this.permitAlertsByBldId = new Map();
+    this.platWatchData = null;
+    this.platWatchFC = { type: "FeatureCollection", features: [] };
+    this.platWatchByHcad = new Map();
     this.curatedOverrides = {};
     this.sheetSyncStatus = null;
     this.overridesFC = { type: "FeatureCollection", features: [] };
@@ -238,13 +241,15 @@ export class AtlasMapController {
       manifestRes,
       overridesResult,
       permitAlertsRes,
+      platWatchRes,
     ] = await Promise.all([
       fetch("public/data/buildings.geojson?v=20261022a"),
       fetch("public/data/parcels.geojson?v=20261011c"),
       fetch("public/data/overlays.json?v=20261011u"),
       fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261022a").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261023a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261023a").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -267,6 +272,16 @@ export class AtlasMapController {
       }
     }
     this._indexPermitAlerts(permitAlertsJson);
+
+    let platWatchJson = null;
+    if (platWatchRes && platWatchRes.ok) {
+      try {
+        platWatchJson = await platWatchRes.json();
+      } catch {
+        platWatchJson = null;
+      }
+    }
+    this._indexPlatWatch(platWatchJson);
 
     this.curatedOverrides = (overridesResult && overridesResult.overrides) || {};
     this.sheetSyncStatus = (overridesResult && overridesResult.syncStatus) || null;
@@ -385,6 +400,90 @@ export class AtlasMapController {
       const prefixHcad = cleanBld.split("#")[0].trim();
       if (prefixHcad && this.permitAlertsByHcad?.has(prefixHcad)) {
         return this.permitAlertsByHcad.get(prefixHcad);
+      }
+    }
+    return null;
+  }
+
+  _indexPlatWatch(platWatchJson) {
+    this.platWatchData = platWatchJson && typeof platWatchJson === "object" ? platWatchJson : null;
+    this.platWatchByHcad = new Map();
+    const pointFeatures = [];
+    const items = Array.isArray(this.platWatchData?.items) ? this.platWatchData.items : [];
+
+    for (const item of items) {
+      if (!item) continue;
+      const enr = item.atlas_enrichment || {};
+      const hcad = String(enr.hcad_num || "").trim();
+      if (hcad && !this.platWatchByHcad.has(hcad)) {
+        this.platWatchByHcad.set(hcad, item);
+      }
+      const lon = Number(enr.lon);
+      const lat = Number(enr.lat);
+      if (Number.isFinite(lon) && Number.isFinite(lat)) {
+        const tier = String(item.tier || "none");
+        const isCritical = tier === "tier1" || item.is_variance || item.is_public_hearing;
+        pointFeatures.push({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [lon, lat],
+          },
+          properties: {
+            id: item.id || item.appNo || hcad,
+            plat_item_id: item.id || "",
+            app_no: item.appNo || "",
+            subdivision_name: item.name || "",
+            plat_type: item.type || "",
+            plat_section: item.section || "I",
+            plat_bucket: item.bucket || "check",
+            plat_tier: tier,
+            is_variance: Boolean(item.is_variance),
+            is_public_hearing: Boolean(item.is_public_hearing),
+            variance_summary: item.variance_summary || "",
+            public_hearing_date: item.public_hearing_date || "",
+            developer: item.developer || "",
+            applicant_company: item.company || "",
+            hcad_num: hcad,
+            address: enr.matched_address || item.name || "",
+            building_name: enr.building_name || item.name || "",
+            year_built: Number(enr.year_built) || null,
+            historic_district: enr.historic_district || "",
+            subdivision: enr.subdivision || item.name || "",
+            subdivision_earliest_year: Number(enr.subdivision_earliest_year) || null,
+            notes: item.notes || "",
+            severity: isCritical ? "critical" : "watch",
+            lng: lon,
+            lat: lat,
+          },
+        });
+      }
+    }
+
+    this.platWatchFC = {
+      type: "FeatureCollection",
+      features: pointFeatures,
+    };
+  }
+
+  getPlatWatchPayload() {
+    return this.platWatchData;
+  }
+
+  getPlatWatchFeatureCount() {
+    return Array.isArray(this.platWatchFC?.features) ? this.platWatchFC.features.length : 0;
+  }
+
+  getPlatWatchForBuilding({ hcadNum = "", buildingId = "" } = {}) {
+    const cleanHcad = String(hcadNum || "").trim();
+    if (cleanHcad && this.platWatchByHcad?.has(cleanHcad)) {
+      return this.platWatchByHcad.get(cleanHcad);
+    }
+    const cleanBld = String(buildingId || "").trim();
+    if (cleanBld.includes("#")) {
+      const prefixHcad = cleanBld.split("#")[0].trim();
+      if (prefixHcad && this.platWatchByHcad?.has(prefixHcad)) {
+        return this.platWatchByHcad.get(prefixHcad);
       }
     }
     return null;
@@ -966,6 +1065,10 @@ export class AtlasMapController {
     this.map.addSource("permit-watch-src", {
       type: "geojson",
       data: this.permitAlertsFC || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("plat-watch-src", {
+      type: "geojson",
+      data: this.platWatchFC || { type: "FeatureCollection", features: [] },
     });
 
     const state = this.filterStore.getState();
@@ -1926,6 +2029,73 @@ export class AtlasMapController {
         ],
         "circle-stroke-color": "#FEF2F2",
         "circle-stroke-width": 2.0,
+      },
+    });
+    this.map.addLayer({
+      id: "plat-watch-outer-glow",
+      type: "circle",
+      source: "plat-watch-src",
+      layout: { visibility: "none" },
+      paint: {
+        "circle-radius": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          13.0,
+          10.2,
+        ],
+        "circle-color": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          "#F43F5E",
+          "#8B5CF6",
+        ],
+        "circle-opacity": 0.28,
+        "circle-blur": 0.45,
+      },
+    });
+    this.map.addLayer({
+      id: "plat-watch-ring",
+      type: "circle",
+      source: "plat-watch-src",
+      layout: { visibility: "none" },
+      paint: {
+        "circle-radius": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          9.4,
+          7.6,
+        ],
+        "circle-color": "rgba(15, 23, 42, 0.0)",
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          "#FDA4AF",
+          "#C4B5FD",
+        ],
+        "circle-stroke-width": 1.6,
+        "circle-stroke-opacity": 0.9,
+      },
+    });
+    this.map.addLayer({
+      id: "plat-watch-circle",
+      type: "circle",
+      source: "plat-watch-src",
+      layout: { visibility: "none" },
+      paint: {
+        "circle-radius": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          6.2,
+          5.2,
+        ],
+        "circle-color": [
+          "case",
+          ["==", ["get", "severity"], "critical"],
+          "#F43F5E",
+          "#8B5CF6",
+        ],
+        "circle-stroke-color": "#FFF1F2",
+        "circle-stroke-width": 1.8,
       },
     });
     this.map.addLayer({
@@ -3733,6 +3903,45 @@ export class AtlasMapController {
       }
     }
 
+    // 8a3. Planning Commission Plats & Variances
+    if (allowPointMarkers && state.layers.platWatch && this.platWatchFC?.features) {
+      for (const feat of this.platWatchFC.features) {
+        const coords = feat.geometry?.coordinates;
+        if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
+        const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
+        if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+        const isCritical = feat.properties?.severity === "critical";
+        const dotColor = isCritical ? "#F43F5E" : "#8B5CF6";
+        const ringColor = isCritical ? "#FDA4AF" : "#C4B5FD";
+        const glowColor = isCritical ? "rgba(244, 63, 94, 0.30)" : "rgba(139, 92, 246, 0.26)";
+        ctx.beginPath();
+        ctx.arc(sx, sy, isCritical ? 12.5 : 10.0, 0, Math.PI * 2);
+        ctx.fillStyle = glowColor;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx, sy, isCritical ? 9.0 : 7.4, 0, Math.PI * 2);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = ringColor;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(sx, sy, isCritical ? 6.0 : 5.0, 0, Math.PI * 2);
+        ctx.fillStyle = dotColor;
+        ctx.fill();
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = "#FFF1F2";
+        ctx.stroke();
+        cs.renderedBBoxes.push({
+          minX: sx - 9,
+          minY: sy - 9,
+          maxX: sx + 9,
+          maxY: sy + 9,
+          props: feat.properties,
+          geom: feat.geometry,
+        });
+      }
+    }
+
     // 8b. Boundary Labels in 2D Canvas Mode
     const placedBoxes = [];
     const drawBoundaryLabels = (features, minZ, textColor) => {
@@ -4349,6 +4558,10 @@ export class AtlasMapController {
     setVis(
       ["permit-watch-outer-glow", "permit-watch-ring", "permit-watch-circle"],
       allowIsoMarkers && Boolean(state.layers.permitWatch)
+    );
+    setVis(
+      ["plat-watch-outer-glow", "plat-watch-ring", "plat-watch-circle"],
+      allowIsoMarkers && Boolean(state.layers.platWatch)
     );
     setVis(["landmarks-circle"], allowIsoMarkers && Boolean(state.layers.landmarks));
     setVis(["thc-markers-circle"], allowIsoMarkers && Boolean(state.layers.thcMarkers));
@@ -5762,6 +5975,7 @@ export class AtlasMapController {
       ]);
       const nonBoundaryLayers = [
         "permit-watch-circle",
+        "plat-watch-circle",
         "good-brick-circle",
         "relocated-structures-circle",
         "landmarks-circle",
@@ -5784,6 +5998,7 @@ export class AtlasMapController {
 
         if (
           (lid === "permit-watch-circle" ||
+            lid === "plat-watch-circle" ||
             lid === "landmarks-circle" ||
             lid === "good-brick-circle" ||
             lid === "relocated-structures-circle") &&
@@ -5799,6 +6014,7 @@ export class AtlasMapController {
             rendered.find(
               (bf) =>
                 bf.layer?.id !== "permit-watch-circle" &&
+                bf.layer?.id !== "plat-watch-circle" &&
                 bf.layer?.id !== "landmarks-circle" &&
                 bf.layer?.id !== "good-brick-circle" &&
                 bf.layer?.id !== "relocated-structures-circle" &&
@@ -5842,6 +6058,12 @@ export class AtlasMapController {
                   ? p.severity === "critical"
                     ? "⚠️ Demo Alert"
                     : "⚠️ Permit Watch"
+                  : lid === "plat-watch-circle"
+                  ? p.is_variance
+                    ? "📋 Sec K Variance"
+                    : p.is_public_hearing
+                    ? "📋 Public Hearing"
+                    : "📋 Plat Agenda"
                   : lid === "good-brick-circle"
                   ? "Good Brick"
                   : lid === "relocated-structures-circle"
@@ -5856,6 +6078,10 @@ export class AtlasMapController {
                   ? p.severity === "critical"
                     ? "#EF4444"
                     : "#F59E0B"
+                  : lid === "plat-watch-circle"
+                  ? p.severity === "critical"
+                    ? "#F43F5E"
+                    : "#8B5CF6"
                   : lid === "good-brick-circle"
                   ? "#95c959"
                   : lid === "relocated-structures-circle"
@@ -5916,8 +6142,32 @@ export class AtlasMapController {
         }
         seenKeys.add(bKey);
         if (p.hcad_num) seenKeys.add(`hcad:${p.hcad_num}`);
-        const bBadge = lid === "parcels-fill" ? "Tax Parcel" : "Building";
-        const bColor = lid === "parcels-fill" ? "#94a3b8" : "#fde047";
+        const bBadge =
+          lid === "permit-watch-circle"
+            ? p.severity === "critical"
+              ? "⚠️ Demo Alert"
+              : "⚠️ Permit Watch"
+            : lid === "plat-watch-circle"
+            ? p.is_variance
+              ? "📋 Sec K Variance"
+              : p.is_public_hearing
+              ? "📋 Public Hearing"
+              : "📋 Plat Agenda"
+            : lid === "parcels-fill"
+            ? "Tax Parcel"
+            : "Building";
+        const bColor =
+          lid === "permit-watch-circle"
+            ? p.severity === "critical"
+              ? "#EF4444"
+              : "#F59E0B"
+            : lid === "plat-watch-circle"
+            ? p.severity === "critical"
+              ? "#F43F5E"
+              : "#8B5CF6"
+            : lid === "parcels-fill"
+            ? "#94a3b8"
+            : "#fde047";
         stack.push({
           key: bKey,
           kind: "building",
@@ -6376,6 +6626,7 @@ export class AtlasMapController {
         lid.includes("thc-markers") ||
         lid.includes("relocated") ||
         lid.includes("permit-watch") ||
+        lid.includes("plat-watch") ||
         lid.includes("lost-houston") ||
         lid.includes("historical-waterways") ||
         lid.includes("historical-railroads");
