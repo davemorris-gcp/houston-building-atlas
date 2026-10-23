@@ -707,12 +707,52 @@ def main():
         centroid = compute_feature_centroid(feat.get("geometry"))
         p_with_geom = dict(p)
         p_with_geom["_centroid"] = centroid
+        p_with_geom["_has_footprint"] = True
         na = normalize_address(p.get("address", ""))
         if na:
             by_addr.setdefault(na, []).append(p_with_geom)
         hcad = str(p.get("hcad_num") or "").strip()
         if hcad:
             by_hcad[hcad] = p_with_geom
+
+    # Also index curated_overrides.json so campus/landmark overrides have exact polygon centroids
+    overrides_json_path = REPO_ROOT / "app" / "public" / "data" / "curated_overrides.json"
+    if overrides_json_path.exists():
+        with open(overrides_json_path, "r", encoding="utf-8") as f:
+            ov_map = json.load(f)
+        for ov_key, ov in ov_map.items():
+            if not isinstance(ov, dict) or ov.get("suppress_only"):
+                continue
+            hcad = str(ov.get("hcad_num") or ov_key).strip()
+            bid = str(ov.get("building_id") or ov.get("id") or ov_key).strip()
+            addr = ov.get("address") or ""
+            na = normalize_address(addr)
+            c = compute_feature_centroid(ov.get("geometry")) if ov.get("geometry") else None
+            if not c or (abs(c[0] - (-95.3698)) < 1e-4 and abs(c[1] - 29.7604) < 1e-4):
+                continue
+            rec = {
+                "id": bid,
+                "building_id": bid,
+                "hcad_num": hcad,
+                "address": addr,
+                "year_built": ov.get("year_built") or 0,
+                "landmark_name": ov.get("landmark_name") or ov.get("building_name") or "",
+                "building_name": ov.get("building_name") or ov.get("landmark_name") or "",
+                "historic_district": ov.get("historic_district") or "",
+                "neighborhood": ov.get("neighborhood") or "",
+                "good_brick_summary": ov.get("good_brick_summary") or "",
+                "style": ov.get("style") or "",
+                "architect": ov.get("architect") or "",
+                "owner": ov.get("owner") or "",
+                "_centroid": c,
+                "_has_footprint": True,
+            }
+            if ov_key not in by_hcad:
+                by_hcad[ov_key] = rec
+            if hcad and hcad not in by_hcad:
+                by_hcad[hcad] = rec
+            if na:
+                by_addr.setdefault(na, []).append(rec)
 
     # Also index search_index.json so all 26,419 countywide structures are covered
     if SEARCH_INDEX_JSON.exists():
@@ -724,7 +764,7 @@ def main():
             if hcad and hcad not in by_hcad:
                 addr = item.get("address") or item.get("a") or ""
                 na = normalize_address(addr)
-                lng = item.get("lng") or item.get("x") or -95.3698
+                lng = item.get("lng") or item.get("lon") or item.get("x") or -95.3698
                 lat = item.get("lat") or item.get("y") or 29.7604
                 rec = {
                     "id": item.get("id") or f"bld_{hcad}",
@@ -738,6 +778,7 @@ def main():
                     "style": item.get("style") or "",
                     "architect": item.get("architect") or "",
                     "_centroid": [round(float(lng), 6), round(float(lat), 6)],
+                    "_has_footprint": False,
                 }
                 by_hcad[hcad] = rec
                 if na:
@@ -1001,6 +1042,7 @@ def main():
             "latest_filing_date": latest_date,
             "coh_permits": structural_coh if structural_coh else dedup_coh,
             "dshs_notifications": dshs_list,
+            "_has_footprint": bool(bld.get("_has_footprint")),
         }
         alerts_list.append(alert_obj)
 
@@ -1008,6 +1050,7 @@ def main():
         key=lambda a: (
             0 if a["severity"] == "critical" else 1,
             0 if (a["landmark_name"] or a["good_brick_summary"]) else 1,
+            0 if a.get("_has_footprint") else 1,
             a["year_built"] if a["year_built"] >= 1836 else 9999,
         )
     )
@@ -1017,6 +1060,7 @@ def main():
     dedup_alerts = []
     by_norm_addr_alert = {}
     for a in alerts_list:
+        a.pop("_has_footprint", None)
         na = normalize_address(a["address"])
         if na and na in by_norm_addr_alert:
             primary = by_norm_addr_alert[na]

@@ -191,7 +191,11 @@
           "severity": "watch"
         }
       ],
-      "watchlist_id": "prop-kirby-mansion"
+      "watchlist_id": "prop-kirby-mansion",
+      "bld_area": 17676,
+      "land_area": 62500.0,
+      "stories": 3.0,
+      "subdivision": "Hadley & Franklin"
     },
     {
       "hcad_num": "0261900000007",
@@ -261,26 +265,30 @@
       ],
       "related_building_ids": [
         "bld_006541"
-      ]
+      ],
+      "bld_area": 1921,
+      "land_area": 5250.0,
+      "stories": 2.0,
+      "subdivision": "Montrose"
     },
     {
-      "hcad_num": "0082710000004",
-      "building_id": "bld_005866",
+      "hcad_num": "1487630010001",
+      "building_id": "bld_014328",
       "title": "503 SUL ROSS ST",
       "building_name": "",
       "address": "503 SUL ROSS ST",
       "year_built": 1945,
       "yr_remodel": 0,
-      "style": "",
+      "style": "Wood or Light Steel",
       "architect": "",
-      "neighborhood": "",
+      "neighborhood": "First Montrose Commons",
       "historic_district": "",
       "landmark_name": "",
       "good_brick_summary": "",
-      "owner": "",
-      "lng": -95.3698,
-      "lon": -95.3698,
-      "lat": 29.737679,
+      "owner": "501 PROPERTY INC",
+      "lng": -95.385969,
+      "lon": -95.385969,
+      "lat": 29.737665,
       "severity": "critical",
       "severity_label": "Critical Alert: Active Demolition & Sewer Disconnection Permits",
       "badge": "Demo + Sewer Disc",
@@ -333,7 +341,11 @@
       "related_building_ids": [
         "bld_005866",
         "bld_014328"
-      ]
+      ],
+      "bld_area": 2200,
+      "land_area": 15002.0,
+      "stories": 1.0,
+      "subdivision": "Monarch Community Clinical Center"
     },
     {
       "hcad_num": "osm_city_1324112262",
@@ -343,15 +355,15 @@
       "address": "5403 SAN JUAN STREET",
       "year_built": 1948,
       "yr_remodel": 0,
-      "style": "",
+      "style": "Historical / Architectural Structure",
       "architect": "",
       "neighborhood": "",
       "historic_district": "",
       "landmark_name": "",
       "good_brick_summary": "",
       "owner": "",
-      "lng": -95.3698,
-      "lon": -95.3698,
+      "lng": -95.317165,
+      "lon": -95.317165,
       "lat": 29.771776,
       "severity": "critical",
       "severity_label": "Critical Alert: City of Houston Demolition Permit Issued",
@@ -399,7 +411,7 @@
       "address": "3701 MONTROSE BLVD",
       "year_built": 1950,
       "yr_remodel": 0,
-      "style": "",
+      "style": "E",
       "architect": "",
       "neighborhood": "Montrose",
       "historic_district": "Audubon Place Historic District",
@@ -441,7 +453,11 @@
       ],
       "related_building_ids": [
         "bld_010136"
-      ]
+      ],
+      "bld_area": 3395.0,
+      "land_area": 7290.0,
+      "stories": 1.5,
+      "subdivision": "Montrose"
     },
     {
       "hcad_num": "0261910000004",
@@ -451,7 +467,7 @@
       "address": "3618 MOUNT VERNON ST",
       "year_built": 1959,
       "yr_remodel": 0,
-      "style": "",
+      "style": "Wood or Light Steel",
       "architect": "",
       "neighborhood": "Montrose",
       "historic_district": "",
@@ -496,7 +512,11 @@
       ],
       "related_building_ids": [
         "bld_006534"
-      ]
+      ],
+      "bld_area": 7068,
+      "land_area": 11250.0,
+      "stories": 2.0,
+      "subdivision": "Montrose"
     },
     {
       "hcad_num": "0011490000001",
@@ -553,7 +573,11 @@
       ],
       "related_building_ids": [
         "bld_003326"
-      ]
+      ],
+      "bld_area": 248000,
+      "land_area": 62500.0,
+      "stories": 11,
+      "subdivision": "City Hall"
     },
     {
       "hcad_num": "0010320000001",
@@ -610,13 +634,17 @@
       ],
       "related_building_ids": [
         "bld_003286"
-      ]
+      ],
+      "bld_area": 251040,
+      "land_area": 48701.0,
+      "stories": 3.0,
+      "subdivision": "Ssbb"
     },
     {
       "hcad_num": "0261670000001",
       "building_id": "bld_0261670000001",
-      "title": "3800 Montrose Blvd",
-      "building_name": "",
+      "title": "Link-Lee House",
+      "building_name": "Link-Lee House",
       "address": "3800 Montrose Blvd",
       "year_built": 1912,
       "yr_remodel": 0,
@@ -627,8 +655,8 @@
       "landmark_name": "",
       "good_brick_summary": "",
       "owner": "",
-      "lng": -95.3698,
-      "lon": -95.3698,
+      "lng": -95.391878,
+      "lon": -95.391878,
       "lat": 29.738313,
       "severity": "watch",
       "severity_label": "Active Watch: Texas DSHS Abatement Filing",
@@ -694,8 +722,8 @@
     {
       "hcad_num": "0421790000001#rice_58_lovett_hall_administration_b",
       "building_id": "0421790000001#rice_58_lovett_hall_administration_b",
-      "title": "6100 MAIN ST",
-      "building_name": "",
+      "title": "Lovett Hall",
+      "building_name": "Lovett Hall",
       "address": "6100 MAIN ST",
       "year_built": 1912,
       "yr_remodel": 0,
@@ -706,9 +734,9 @@
       "landmark_name": "",
       "good_brick_summary": "",
       "owner": "",
-      "lng": -95.3698,
-      "lon": -95.3698,
-      "lat": 29.7604,
+      "lng": -95.397826,
+      "lon": -95.397826,
+      "lat": 29.719024,
       "severity": "watch",
       "severity_label": "Active Watch: Texas DSHS Abatement Filing",
       "badge": "DSHS Abatement",
@@ -809,7 +837,11 @@
       ],
       "related_building_ids": [
         "bld_000685"
-      ]
+      ],
+      "bld_area": 1731,
+      "land_area": 11880.0,
+      "stories": 1.0,
+      "subdivision": "Houston Heights"
     },
     {
       "hcad_num": "0620910000017",
@@ -861,7 +893,11 @@
       ],
       "related_building_ids": [
         "bld_000843"
-      ]
+      ],
+      "bld_area": 1832,
+      "land_area": 5000.0,
+      "stories": 1.0,
+      "subdivision": "North Norhill"
     },
     {
       "hcad_num": "0230580000001",
@@ -871,7 +907,7 @@
       "address": "509 SUL ROSS ST",
       "year_built": 1946,
       "yr_remodel": 0,
-      "style": "",
+      "style": "Residential",
       "architect": "",
       "neighborhood": "First Montrose Commons",
       "historic_district": "First Montrose Commons Historic District",
@@ -913,7 +949,11 @@
       ],
       "related_building_ids": [
         "bld_006044"
-      ]
+      ],
+      "bld_area": 2634,
+      "land_area": 7250.0,
+      "stories": 2.0,
+      "subdivision": "Lockhart Connor & Barziza"
     },
     {
       "hcad_num": "0261740000010",
@@ -923,7 +963,7 @@
       "address": "1110 LOVETT BLVD",
       "year_built": 1958,
       "yr_remodel": 0,
-      "style": "",
+      "style": "Masonry Bearing",
       "architect": "",
       "neighborhood": "Wamm",
       "historic_district": "",
@@ -974,7 +1014,11 @@
       ],
       "related_building_ids": [
         "bld_003780"
-      ]
+      ],
+      "bld_area": 15166,
+      "land_area": 17254.0,
+      "stories": 2.0,
+      "subdivision": "Prorate 3-24-26"
     },
     {
       "hcad_num": "1212910000001",
@@ -984,7 +1028,7 @@
       "address": "3401 FANNIN ST",
       "year_built": 1967,
       "yr_remodel": 0,
-      "style": "",
+      "style": "E",
       "architect": "",
       "neighborhood": "Midtown",
       "historic_district": "",
@@ -1035,25 +1079,29 @@
       ],
       "related_building_ids": [
         "bld_004206"
-      ]
+      ],
+      "bld_area": 2225,
+      "land_area": 1521.0,
+      "stories": 1.0,
+      "subdivision": "The 3401 Fannin Condo"
     },
     {
       "hcad_num": "osm_city_44821986",
       "building_id": "osm_city_44821986#bldg_one_shell_plaza",
-      "title": "910 LOUISIANA STREET",
-      "building_name": "",
+      "title": "One Shell Plaza",
+      "building_name": "One Shell Plaza",
       "address": "910 LOUISIANA STREET",
       "year_built": 1971,
       "yr_remodel": 0,
-      "style": "",
+      "style": "modern architecture",
       "architect": "",
       "neighborhood": "",
       "historic_district": "",
       "landmark_name": "",
       "good_brick_summary": "",
       "owner": "",
-      "lng": -95.3698,
-      "lon": -95.3698,
+      "lng": -95.367664,
+      "lon": -95.367664,
       "lat": 29.759215,
       "severity": "watch",
       "severity_label": "Active Watch: Texas DSHS Abatement Filing",
@@ -1140,7 +1188,7 @@
       "address": "3509 MONTROSE BLVD",
       "year_built": 1980,
       "yr_remodel": 2004,
-      "style": "",
+      "style": "Masonry Bearing",
       "architect": "",
       "neighborhood": "Montrose",
       "historic_district": "",
@@ -1192,25 +1240,29 @@
       ],
       "related_building_ids": [
         "bld_003789"
-      ]
+      ],
+      "bld_area": 13000,
+      "land_area": 26212.0,
+      "stories": 1.0,
+      "subdivision": "Montrose"
     },
     {
       "hcad_num": "osm_city_260359937",
       "building_id": "osm_city_260359937#bldg_marathon_oil_tower",
-      "title": "5555 SAN FELIPE STREET",
-      "building_name": "",
+      "title": "Marathon Oil Tower",
+      "building_name": "Marathon Oil Tower",
       "address": "5555 SAN FELIPE STREET",
       "year_built": 1983,
       "yr_remodel": 0,
-      "style": "",
+      "style": "Historical / Architectural Structure",
       "architect": "",
       "neighborhood": "",
       "historic_district": "",
       "landmark_name": "",
       "good_brick_summary": "",
       "owner": "",
-      "lng": -95.3698,
-      "lon": -95.3698,
+      "lng": -95.472006,
+      "lon": -95.472006,
       "lat": 29.749667,
       "severity": "watch",
       "severity_label": "Active Watch: Texas DSHS Asbestos Abatement Filing",

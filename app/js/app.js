@@ -19,7 +19,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261022a";
-import { AtlasMapController } from "./mapController.js?v=20261022a";
+import { AtlasMapController } from "./mapController.js?v=20261023f";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
 import {
   applyOverrideToProperties,
@@ -266,7 +266,7 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261022a"),
+        fetch("public/data/search_index.json?v=20261023f"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
