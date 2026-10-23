@@ -7744,6 +7744,31 @@ class HoustonAtlasApp {
       });
     });
 
+    content.querySelectorAll("[data-report-site-activity]").forEach((repBtn) => {
+      repBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const repAddr = repBtn.getAttribute("data-report-address") || props.address || "";
+        const repBadge = repBtn.getAttribute("data-report-badge") || "Active Permit Watch";
+        this.openCorrectionModal(props);
+        const citeEl = document.getElementById("corr-citation");
+        const sourceTypeEl = document.getElementById("corr-source-type");
+        if (sourceTypeEl) {
+          sourceTypeEl.value = "Field Survey / Architectural Guide";
+        }
+        if (citeEl) {
+          const prefix = `[SITE ACTIVITY OBSERVATION - ${repBadge}${repAddr ? ` at ${repAddr}` : ""}] `;
+          if (!String(citeEl.value || "").startsWith("[SITE ACTIVITY OBSERVATION")) {
+            citeEl.value = prefix + (citeEl.value || "");
+          }
+          setTimeout(() => {
+            citeEl.focus();
+            citeEl.setSelectionRange(citeEl.value.length, citeEl.value.length);
+          }, 80);
+        }
+      });
+    });
+
     content.querySelectorAll("[data-inspect-lost-houston]").forEach((lhBtn) => {
       lhBtn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -10759,7 +10784,7 @@ class HoustonAtlasApp {
             &#9888; Open Active Watchlist (${totalAlertsCount} Flagged Structures)
           </button>
           <a
-            href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(alert.hcad_num || "")}"
+            href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(alert.hcad_num || "")}&address=${encodeURIComponent(alert.address || "")}&name=${encodeURIComponent(alert.building_name || "")}"
             target="_blank"
             rel="noopener"
             class="inspector-permit-watch-btn secondary"
@@ -10767,15 +10792,16 @@ class HoustonAtlasApp {
           >
             &#128203; Open 15-Point Property Tracker &#8599;
           </a>
-          <a
-            href="mailto:contact@preservationhouston.org?subject=${encodeURIComponent(
-              `Permit Watch Observation: ${alert.building_name || alert.address || alert.hcad_num}`
-            )}"
+          <button
+            type="button"
             class="inspector-permit-watch-btn secondary"
-            title="Report on-site observations or preservation updates to Preservation Houston"
+            data-report-site-activity="${alert.hcad_num || ""}"
+            data-report-address="${String(alert.address || "").replace(/"/g, "&quot;")}"
+            data-report-badge="${String(alert.badge || "Active Permit Watch").replace(/"/g, "&quot;")}"
+            title="Report on-site observations or preservation updates directly to Preservation Houston"
           >
             &#9993; Report Site Activity to PH
-          </a>
+          </button>
         </div>
       </div>
     `;
@@ -10897,7 +10923,7 @@ class HoustonAtlasApp {
               </div>
               <div class="pw-item-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
                 <a
-                  href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(al.hcad_num || "")}"
+                  href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(al.hcad_num || "")}&address=${encodeURIComponent(al.address || "")}&name=${encodeURIComponent(al.building_name || "")}"
                   target="_blank"
                   rel="noopener"
                   class="action-pill"

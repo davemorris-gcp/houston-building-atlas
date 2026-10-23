@@ -1964,6 +1964,99 @@ async function pullCloudSheetSync(){
   }
 }
 
+async function resolveWatchlistDeepLink(){
+  const params = new URLSearchParams(window.location.search);
+  const qHcad = (params.get("hcad") || "").trim();
+  const qWatch = (params.get("watch") || "").trim();
+  const qAddr = (params.get("address") || "").trim();
+  const qName = (params.get("name") || "").trim();
+  if (!qHcad && !qWatch && !qAddr) return false;
+
+  WL.watchedProperties = Array.isArray(WL.watchedProperties) ? WL.watchedProperties : [];
+  const normAddr = s => String(s || "").toUpperCase().replace(/[.,#]/g, "").replace(/\s+/g, " ").trim();
+
+  let foundWp = WL.watchedProperties.find(p => {
+    if (qWatch && String(p.id || "") === qWatch) return true;
+    const pHcad = String(p.hcadAccount || p.hcad_num || "").trim();
+    if (qHcad && (pHcad === qHcad || String(p.id || "") === "prop-watch-" + qHcad)) return true;
+    if (qAddr && normAddr(p.address) && normAddr(p.address) === normAddr(qAddr)) return true;
+    return false;
+  });
+
+  if (!foundWp && (qHcad || qAddr)) {
+    let alertMatch = null;
+    try {
+      const alResp = await fetch("public/data/active_permit_alerts.json?v=" + Date.now());
+      if (alResp.ok) {
+        const alData = await alResp.json();
+        const alerts = Array.isArray(alData.alerts) ? alData.alerts : [];
+        alertMatch = alerts.find(a =>
+          (qHcad && String(a.hcad_num || "").trim() === qHcad) ||
+          (qAddr && normAddr(a.address) === normAddr(qAddr))
+        ) || null;
+      }
+    } catch (e) {}
+
+    const addr = (alertMatch && alertMatch.address) || qAddr || qHcad;
+    const propName = (alertMatch && alertMatch.building_name) || qName || addr;
+    const hcadVal = (alertMatch && alertMatch.hcad_num) || qHcad || "";
+    const newId = hcadVal ? ("prop-watch-" + hcadVal) : ("prop-watch-" + normAddr(addr).replace(/\s+/g, "-").toLowerCase());
+    const checklist = defaultChecklistForNewProp(addr);
+
+    if (alertMatch) {
+      const coh = Array.isArray(alertMatch.coh_permits) ? alertMatch.coh_permits : [];
+      const dshs = Array.isArray(alertMatch.dshs_notifications) ? alertMatch.dshs_notifications : [];
+      if (dshs.length > 0 && checklist[5]) {
+        checklist[5].status = "Flagged";
+        checklist[5].lastChecked = dshs[0].start_date || new Date().toISOString().slice(0, 10);
+        checklist[5].checks = dshs.map(dn => ({
+          date: dn.start_date || new Date().toISOString().slice(0, 10),
+          result: `TX DSHS #${dn.notification_number || "N/A"} (${dn.work_type || "Abatement"}): ${dn.work_description || "RACM Abatement"}${dn.abatement_contractor ? " · Operator: " + dn.abatement_contractor : ""}`
+        }));
+      }
+      if (coh.length > 0 && checklist[9]) {
+        checklist[9].status = "Flagged";
+        checklist[9].lastChecked = coh[0].date || new Date().toISOString().slice(0, 10);
+        checklist[9].checks = coh.map(cp => ({
+          date: cp.date || new Date().toISOString().slice(0, 10),
+          result: `COH Sold Permit #${cp.project_no || "N/A"} (${cp.permit_type_label || cp.permit_type || "Permit"}): ${cp.use_desc || cp.permit_desc || ""}${cp.buyer ? " · Applicant: " + cp.buyer : ""}`
+        }));
+      }
+    }
+
+    foundWp = {
+      id: newId,
+      propertyName: propName,
+      address: addr,
+      secondaryAddresses: (alertMatch && Array.isArray(alertMatch.secondary_addresses)) ? alertMatch.secondary_addresses : [],
+      hcadAccount: hcadVal,
+      buildingId: (alertMatch && alertMatch.building_id) || "",
+      yearBuilt: (alertMatch && alertMatch.year_built) ? String(alertMatch.year_built) : "",
+      designation: (alertMatch && alertMatch.historic_district) || "None found",
+      ownerOfRecord: (alertMatch && alertMatch.owner) || "",
+      buyerRelatedEntities: "",
+      keyDates: {
+        monitoringStarted: new Date().toISOString().slice(0, 10)
+      },
+      notes: (alertMatch && (alertMatch.preservation_note || alertMatch.headline)) || "Flagged via Houston Building Atlas Active Permit Watch.",
+      lng: (alertMatch && alertMatch.lon) || null,
+      lat: (alertMatch && alertMatch.lat) || null,
+      tier: (alertMatch && alertMatch.severity === "critical") ? "1" : "2",
+      checklist: checklist
+    };
+    rebuildFindingsLog(foundWp);
+    WL.watchedProperties.push(foundWp);
+    persistWatchlist();
+  }
+
+  if (foundWp) {
+    view.mode = "watchlist";
+    view.selectedWatchId = foundWp.id;
+    return true;
+  }
+  return false;
+}
+
 /* ---------- Auto-Load Live Houston Building Atlas Cycle & Watchlist ---------- */
 async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
@@ -1985,15 +2078,7 @@ async function loadLiveAtlasCycle(forceReload){
         });
         persistWatchlist();
       }
-      const params = new URLSearchParams(window.location.search);
-      const qHcad = (params.get("hcad") || "").trim();
-      if (qHcad && Array.isArray(WL.watchedProperties)) {
-        const foundWp = WL.watchedProperties.find(p => String(p.hcad_num || "") === qHcad);
-        if (foundWp) {
-          view.mode = "watchlist";
-          view.selectedWatchId = foundWp.id;
-        }
-      }
+      await resolveWatchlistDeepLink();
     }
     if (platResp.ok) {
       const d = await platResp.json();
@@ -2014,6 +2099,9 @@ async function loadLiveAtlasCycle(forceReload){
       if (forceReload) toast("Loaded live pre-enriched Planning Commission cycle (" + d.cycleKey + ").");
     }
     await pullCloudSheetSync();
+    if (await resolveWatchlistDeepLink()) {
+      render();
+    }
   } catch (err) {
     console.warn("Could not auto-load live Atlas cycle:", err);
     if (!S) {
