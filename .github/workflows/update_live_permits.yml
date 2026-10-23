@@ -23,10 +23,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install poppler-utils (pdftotext for Texas DSHS PDFs)
         run: |
@@ -55,8 +55,12 @@ jobs:
           import json
           with open("app/public/data/active_permit_alerts.json") as f:
               s = json.load(f).get("summary", {})
-          print(f"{s.get(\"critical_count\", 0)} critical, {s.get(\"watch_count\", 0)} watch ({s.get(\"total_flagged_buildings\", 0)} total)")
+          c = s.get("critical_count", 0)
+          w = s.get("watch_count", 0)
+          t = s.get("total_flagged_buildings", 0)
+          print(f"{c} critical, {w} watch ({t} total)")
           ')
             git commit -m "chore(permits): automated update of Houston permits & DSHS asbestos alerts ($ALERT_SUMMARY)"
-            git push
+            git pull --rebase origin main
+            git push origin main
           fi
