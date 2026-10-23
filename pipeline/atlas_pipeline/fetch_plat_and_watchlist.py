@@ -270,12 +270,28 @@ def load_atlas_indices():
             return [f for f in raw if isinstance(f, dict)]
         return []
 
+    GENERIC_SUBDIV_KEYS = {
+        "N", "S", "E", "W", "NE", "NW", "SE", "SW", "NORTH", "SOUTH", "EAST", "WEST",
+        "ESTATES", "PARK", "PLACE", "GARDENS", "ACRES", "VILLAGE", "HEIGHTS", "SQUARE",
+        "COURT", "MANOR", "TERRACE", "OAKS", "WOODS", "HILLS", "VILLAS", "CENTER",
+        "PLAZA", "CROSSING", "COMMONS", "LANDING", "MEADOWS", "GROVE", "POINT", "POINTE",
+        "RIDGE", "VALLEY", "CREEK", "BAYOU", "RESERVE", "TRACT", "TRACTS", "BLOCK", "LOTS",
+    }
     subdiv_index: dict[str, dict] = {}
     for sub in feat_props("platted_subdivisions"):
         for key_candidate in [sub.get("name", ""), sub.get("full_name", "")]:
             nk = norm_subdivision(key_candidate)
-            if nk and (nk not in subdiv_index or (sub.get("pre_1940_count", 0) > subdiv_index[nk].get("pre_1940_count", 0))):
-                subdiv_index[nk] = sub
+            if nk and nk not in GENERIC_SUBDIV_KEYS and len(nk) >= 3:
+                if nk not in subdiv_index or (sub.get("pre_1940_count", 0) > subdiv_index[nk].get("pre_1940_count", 0)):
+                    subdiv_index[nk] = sub
+
+    snbr_index: dict[str, dict] = {}
+    for sn in feat_props("super_neighborhoods"):
+        for key_cand in [sn.get("raw_name", ""), sn.get("name", "")]:
+            nk = re.sub(r"[^A-Z0-9\s]", " ", (key_cand or "").upper())
+            nk = " ".join(nk.split())
+            if nk:
+                snbr_index[nk] = sn
 
     landmarks_by_hcad: dict[str, dict] = {}
     for lm in feat_props("landmarks"):
@@ -315,6 +331,7 @@ def load_atlas_indices():
         "street_centroids": street_centroids,
         "buildings_by_hcad": buildings_by_hcad,
         "subdiv_index": subdiv_index,
+        "snbr_index": snbr_index,
         "landmarks_by_hcad": landmarks_by_hcad,
         "good_brick_by_hcad": good_brick_by_hcad,
         "smls_by_subdiv": smls_by_subdiv,
@@ -1081,11 +1098,23 @@ def build_plat_agenda_dataset(idx: dict, scraped: dict) -> dict:
         # Match Previous/Original Subdivision against overlays.json platted_subdivisions
         sub_norm = norm_subdivision(it.get("prevSub", ""))
         sub_hit = idx["subdiv_index"].get(sub_norm)
-        if not sub_hit and sub_norm:
-            # Try prefix/substring match for historic additions
+        if not sub_hit and sub_norm and len(sub_norm) >= 6:
+            # Try prefix/token-aligned match for historic additions (require >= 6 chars and multi-token or prefix match)
             for k_sub, v_sub in idx["subdiv_index"].items():
-                if len(sub_norm) >= 5 and (sub_norm in k_sub or k_sub in sub_norm):
+                if len(k_sub) >= 6 and (
+                    k_sub.startswith(sub_norm + " ")
+                    or sub_norm.startswith(k_sub + " ")
+                    or (len(k_sub.split()) >= 2 and (sub_norm in k_sub or k_sub in sub_norm))
+                ):
                     sub_hit = v_sub
+                    break
+
+        sn_norm = " ".join(re.sub(r"[^A-Z0-9\s]", " ", (it.get("superN") or "").upper()).split())
+        sn_hit = idx.get("snbr_index", {}).get(sn_norm)
+        if not sn_hit and sn_norm:
+            for k_sn, v_sn in idx.get("snbr_index", {}).items():
+                if sn_norm in k_sn or k_sn in sn_norm:
+                    sn_hit = v_sn
                     break
 
         smls_hits = idx["smls_by_subdiv"].get(sub_norm, [])
@@ -1106,6 +1135,10 @@ def build_plat_agenda_dataset(idx: dict, scraped: dict) -> dict:
             lng = sub_hit.get("label_lng")
             lat = sub_hit.get("label_lat")
             coord_source = "subdivision"
+        if (not lng or not lat) and sn_hit:
+            lng = sn_hit.get("label_lng")
+            lat = sn_hit.get("label_lat")
+            coord_source = "super_neighborhood"
 
         # Check landmarks, Good Brick, historic district, active permits
         designations: list[str] = []
@@ -1139,10 +1172,15 @@ def build_plat_agenda_dataset(idx: dict, scraped: dict) -> dict:
             "buildingId": next((p.get("building_id") for p in matched_parcels if p.get("building_id")), ""),
             "buildingName": next((p.get("building_name") for p in matched_parcels if p.get("building_name")), ""),
             "subdivisionMatch": sub_hit.get("full_name") or sub_hit.get("name") if sub_hit else "",
+            "subdivisionId": sub_hit.get("id") if sub_hit else "",
             "subdivisionEarliestYear": sub_hit.get("earliest_year") if sub_hit else None,
             "subdivisionMedianYear": sub_hit.get("median_year") if sub_hit else None,
             "subdivisionPre1940Count": sub_hit.get("pre_1940_count") if sub_hit else 0,
             "subdivisionPre1965Count": sub_hit.get("pre_1965_count") if sub_hit else 0,
+            "superNeighborhoodMatch": sn_hit.get("name") if sn_hit else "",
+            "superNeighborhoodId": sn_hit.get("id") if sn_hit else "",
+            "superNeighborhoodEarliestYear": sn_hit.get("earliest_year") if sn_hit else None,
+            "superNeighborhoodMedianYear": sn_hit.get("median_year") if sn_hit else None,
             "designations": list(dict.fromkeys(designations)),
             "smlsProtections": [lp.get("type", "SMLS/SMBL") for lp in smls_hits[:3]],
             "hasActivePermit": bool(active_alerts),
