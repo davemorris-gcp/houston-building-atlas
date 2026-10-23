@@ -670,8 +670,31 @@ function hcadLinks(it, r){
   if (!/harris/i.test(it.county || "Harris")) return `<span class="dis">Check the ${esc(it.county)} County appraisal district</span>`;
   const rawHcad = (r && r.hcad ? r.hcad + " " : "") + (it.hcad || "");
   const ids = [...new Set(rawHcad.split(/[,;\s]+/).filter(x => /^\d{10,13}$/.test(x)).map(x => x.padStart(13, "0")))];
-  if (!ids.length) return `<a href="https://search.hcad.org/" target="_blank" rel="noopener">HCAD Property Search</a>`;
-  return ids.map((id, i) => `<a href="https://hcad.org/hcad-resources/hcad-online-toolkit/hcad-property-search/?account=${id}" target="_blank" rel="noopener">HCAD Record${ids.length>1?" "+(i+1):""}</a><a href="https://arcgis.hcad.org/HCADViewer/?accountNumber=${id}" target="_blank" rel="noopener">HCAD Map${ids.length>1?" "+(i+1):""}</a>`).join("");
+  const fallbackAddr = String((r && r.address) || (it.atlas && it.atlas.primaryAddress) || "").split(/[;,]/)[0].trim();
+  if (!ids.length) {
+    return fallbackAddr
+      ? `<button type="button" class="assist-pill" data-copy-text="${esc(fallbackAddr)}" data-copy-open-url="https://search.hcad.org/" style="padding:6px 10px;font-size:13px" title="Copies ${esc(fallbackAddr)} to your clipboard and opens HCAD Property Search">📋 Copy Address &amp; Open HCAD Search ↗</button>`
+      : `<a href="https://search.hcad.org/" target="_blank" rel="noopener">HCAD Property Search ↗</a>`;
+  }
+  return ids.map((id, i) =>
+    `<button type="button" class="assist-pill" data-copy-text="${id}" data-copy-open-url="https://search.hcad.org/" data-hcad-copy-btn="${id}" style="padding:6px 10px;font-size:13px" title="Copies ${id} to your clipboard and opens HCAD Property Search (search.hcad.org)">📋 Copy # &amp; Open HCAD Search (${id})${ids.length>1?" #"+(i+1):""} ↗</button>` +
+    `<a href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(id)}" target="_blank" rel="noopener" title="Direct link to parcel ${id} in HCAD Official GIS Parcel Viewer">🗺️ Open HCAD GIS Parcel Map (${id})${ids.length>1?" #"+(i+1):""} ↗</a>`
+  ).join("");
+}
+function watchlistHcadLinks(p){
+  if (!p) return "";
+  const rawHcad = String(p.hcadAccount || "");
+  const ids = [...new Set(rawHcad.split(/[,;\s]+/).filter(x => /^\d{10,13}$/.test(x)).map(x => x.padStart(13, "0")))];
+  const primaryAddr = String(p.address || p.propertyName || "").split(/[;,]/)[0].trim();
+  if (!ids.length) {
+    return primaryAddr
+      ? `<button type="button" class="assist-pill" data-copy-text="${esc(primaryAddr)}" data-copy-open-url="https://search.hcad.org/" style="padding:6px 10px;font-size:13px" title="Copies ${esc(primaryAddr)} to your clipboard and opens HCAD Property Search">📋 Copy Address &amp; Open HCAD Search ↗</button>`
+      : `<a href="https://search.hcad.org/" target="_blank" rel="noopener">HCAD Property Search ↗</a>`;
+  }
+  return ids.map((id, i) =>
+    `<button type="button" class="assist-pill" data-copy-text="${id}" data-copy-open-url="https://search.hcad.org/" data-hcad-copy-btn="${id}" style="padding:6px 10px;font-size:13px" title="Copies ${id} to your clipboard and opens HCAD Property Search (search.hcad.org)">📋 Copy # &amp; Open HCAD Search (${id})${ids.length>1?" #"+(i+1):""} ↗</button>` +
+    `<a href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(id)}" target="_blank" rel="noopener" title="Direct link to parcel ${id} in HCAD Official GIS Parcel Viewer">🗺️ Open HCAD GIS Parcel Map (${id})${ids.length>1?" #"+(i+1):""} ↗</a>`
+  ).join("");
 }
 function atlasMapLink(it, r){
   const at = it.atlas || {};
@@ -813,6 +836,7 @@ function renderDetail(){
       <a href="https://atlas.thc.texas.gov/" target="_blank" rel="noopener">THC Atlas</a>
       <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits</a>
     </div>
+    <div id="hcadCopyStatusBanner" style="display:none;margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12.5px;background:#e8f3ee;border:1px solid #9ccbb5;color:#175e3c;"></div>
     <dl class="facts">
       ${fact("Agenda section", it.section)}${fact("Previous/original subdivision", it.prevSub)}${fact("Super neighborhood", it.superN)}
       ${fact("Land use", it.landUse)}${fact("Acreage", it.acreage && num(it.acreage) != null ? num(it.acreage).toFixed(3) + " ac" : "")}${fact("Lots created", it.lots)}
@@ -1022,8 +1046,14 @@ function buildAssistedPortalPills(p, row, idxRow){
       addCopyOpen(`Copy "${h.primaryAddr}" & Open Comptroller`, h.primaryAddr, compUrl);
     }
   } else if (idxRow === 4 || /hcad/i.test(act)) {
-    if (p.hcadAccount) addCopyOpen(`Copy HCAD ${p.hcadAccount} & Open HCAD`, p.hcadAccount, "https://search.hcad.org/");
-    addCopyOpen(`Copy "${h.primaryAddr}"`, h.primaryAddr, "");
+    if (p.hcadAccount) {
+      const hcadIds = [...new Set(String(p.hcadAccount).split(/[,;\s]+/).filter(x => /^\d{10,13}$/.test(x)).map(x => x.padStart(13, "0")))];
+      hcadIds.forEach(id => {
+        pills.push(`<button type="button" class="assist-pill" data-copy-text="${esc(id)}" data-copy-open-url="https://search.hcad.org/" data-hcad-copy-btn="${esc(id)}" title="Copies ${esc(id)} to clipboard and opens HCAD Property Search (search.hcad.org)">📋 Copy # &amp; Open HCAD Search (${esc(id)}) ↗</button>`);
+        pills.push(`<a class="assist-pill" href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(id)}" target="_blank" rel="noopener" title="Direct link to parcel ${esc(id)} in HCAD Official GIS Parcel Viewer">🗺️ Open HCAD GIS Parcel Map (${esc(id)}) ↗</a>`);
+      });
+    }
+    addCopyOpen(`Copy "${h.primaryAddr}" & Open HCAD Search`, h.primaryAddr, "https://search.hcad.org/");
   } else if (idxRow === 7 || /pending plans|open records|ilms/i.test(act)) {
     pills.push(`<button type="button" class="assist-pill govqa" data-open-govqa-modal="1" title="Generate ready-to-paste Texas Public Information Act (GovQA) Open Records Request covering all perimeter addresses, HCAD ID, and LLCs">📄 Draft Ready-to-Send GovQA Request ↗</button>`);
     const ilmsUrl = row.additionalResourceUrl || "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp";
@@ -1148,7 +1178,7 @@ function renderWatchlistDetail(){
     <div class="meta">${esc(p.address)}${p.secondaryAddresses && p.secondaryAddresses.length ? " (Secondary block addresses: " + esc(p.secondaryAddresses.join(", ")) + ")" : ""} · HCAD ${esc(p.hcadAccount || "N/A")}${p.yearBuilt ? " · Built " + esc(p.yearBuilt) : ""}${p.yearRemodeled ? " / Remodeled " + esc(p.yearRemodeled) : ""}</div>
     <div class="links">
       ${watchlistAtlasMapLink(p)}
-      ${p.hcadAccount ? `<a href="https://hcad.org/hcad-resources/hcad-online-toolkit/hcad-property-search/?account=${encodeURIComponent(p.hcadAccount)}" target="_blank" rel="noopener">HCAD Record</a>` : ""}
+      ${watchlistHcadLinks(p)}
       <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address + ", Houston, TX")}" target="_blank" rel="noopener">Google Street View</a>
       <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits</a>
       <a href="https://www.tdlr.texas.gov/TABS/Search" target="_blank" rel="noopener">TDLR TABS Search</a>
@@ -1157,6 +1187,7 @@ function renderWatchlistDetail(){
       ${p.platPdf ? `<a href="${esc(p.platPdf)}" target="_blank" rel="noopener">Plat PDF</a>` : ""}
       ${p.noticePdf ? `<a class="notice-link" href="${esc(p.noticePdf)}" target="_blank" rel="noopener">Public Notice PDF</a>` : ""}
     </div>
+    <div id="hcadCopyStatusBanner" style="display:none;margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12.5px;background:#e8f3ee;border:1px solid #9ccbb5;color:#175e3c;"></div>
 
     <div style="margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:${staffSess ? "#e8f3ee" : "#fdf7eb"};border:1px solid ${staffSess ? "#9ccbb5" : "#e3c58e"};color:${staffSess ? "#175e3c" : "#805300"};">
       <span>${staffSess ? `☁️ <b>Authenticated Staff Session (${esc(staffSess.email)})</b>: Any checklist updates, notes, or new findings automatically save to the shared Preservation Houston Google Sheet.` : `🔒 <b>Read-Only Mode</b>: Sign in with your Google Sheet Editor email to modify the 15-point checklist or log new findings.`}</span>
@@ -1224,8 +1255,8 @@ function renderWatchlistDetail(){
                 <td><b>${esc(row.activity)}</b></td>
                 <td><div>${esc(row.whatToLookFor)}</div><div style="color:var(--muted);font-size:11.5px;margin-top:4px"><i>Timing:</i> ${esc(row.typicalTiming)}</div></td>
                 <td>
-                  ${row.resourceUrl ? `<div><a href="${esc(row.resourceUrl)}" target="_blank" rel="noopener">${esc(row.resourceLabel || "Open Portal")} ↗</a></div>` : "<span>-</span>"}
-                  ${row.additionalResourceUrl ? `<div style="margin-top:4px"><a href="${esc(row.additionalResourceUrl)}" target="_blank" rel="noopener">${esc(row.additionalResourceLabel || "Secondary Link")} ↗</a></div>` : ""}
+                  ${(idxRow === 4 || /hcad/i.test(row.activity || "")) ? "" : (row.resourceUrl ? `<div><a href="${esc(row.resourceUrl)}" target="_blank" rel="noopener">${esc(row.resourceLabel || "Open Portal")} ↗</a></div>` : "<span>-</span>")}
+                  ${(idxRow === 4 || /hcad/i.test(row.activity || "")) ? "" : (row.additionalResourceUrl ? `<div style="margin-top:4px"><a href="${esc(row.additionalResourceUrl)}" target="_blank" rel="noopener">${esc(row.additionalResourceLabel || "Secondary Link")} ↗</a></div>` : "")}
                   ${buildAssistedPortalPills(p, row, idxRow)}
                 </td>
                 <td>
@@ -1403,6 +1434,7 @@ document.addEventListener("click", async e => {
   if (copyBtn) {
     const textToCopy = copyBtn.dataset.copyText || "";
     const openUrl = copyBtn.dataset.copyOpenUrl || "";
+    const isHcadBtn = Boolean(copyBtn.dataset.hcadCopyBtn || openUrl.includes("search.hcad.org"));
     if (textToCopy) {
       try {
         await navigator.clipboard.writeText(textToCopy);
@@ -1414,10 +1446,34 @@ document.addEventListener("click", async e => {
         document.execCommand("copy");
         tmp.remove();
       }
+      if (!copyBtn.dataset.origHtml) {
+        copyBtn.dataset.origHtml = copyBtn.innerHTML;
+      }
+      copyBtn.innerHTML = isHcadBtn
+        ? `✓ Copied ${esc(textToCopy)} - Paste in HCAD Search ↗`
+        : `✓ Copied "${esc(textToCopy)}" - Paste in Portal ↗`;
+      copyBtn.style.background = "#e8f3ee";
+      copyBtn.style.borderColor = "#2a6b4e";
+      copyBtn.style.color = "#175e3c";
+      setTimeout(() => {
+        if (copyBtn.dataset.origHtml) {
+          copyBtn.innerHTML = copyBtn.dataset.origHtml;
+          copyBtn.style.background = "";
+          copyBtn.style.borderColor = "";
+          copyBtn.style.color = "";
+        }
+      }, 4500);
+    }
+    if (isHcadBtn) {
+      const banner = $("#hcadCopyStatusBanner");
+      if (banner) {
+        banner.style.display = "block";
+        banner.innerHTML = `✓ <b>Copied "${esc(textToCopy)}" to your clipboard.</b> In the <b>search.hcad.org</b> tab that just opened, click the search box and press <b>Ctrl+V</b> (or <b>⌘V</b> on Mac) to paste. <span style="color:#3b6e56">(HCAD's property search portal requires a fresh session token and does not allow direct account URLs; for a 1-click map deep link, use <b>Open HCAD GIS Parcel Map</b>.)</span>`;
+      }
     }
     if (openUrl) {
       window.open(openUrl, "_blank", "noopener");
-      toast(`Copied "${textToCopy}" to clipboard & opened portal — press Ctrl+V / Cmd+V to paste.`);
+      toast(`Copied "${textToCopy}" to clipboard and opened portal. Press Ctrl+V / Cmd+V to paste.`);
     } else {
       toast(`Copied "${textToCopy}" to clipboard.`);
     }
