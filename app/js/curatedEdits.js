@@ -133,9 +133,20 @@ export function parseOverridesFromSheetRows(rows) {
       continue;
     }
 
+    const rawSourceTypeCheck = String(row.source_type || row.evidence_source || "").trim().toUpperCase();
+    if (
+      rawSourceTypeCheck === "PLAT_MONITOR_REVIEW" ||
+      rawSourceTypeCheck === "PROPERTY_WATCHLIST_UPDATE"
+    ) {
+      continue;
+    }
+
     const rawIdField = String(
       row.building_id || row.hcad_num || row.hcad_account || row.account || row.acct || ""
     ).trim();
+    if (rawIdField.startsWith("PLAT_") || rawIdField.startsWith("WATCH_")) {
+      continue;
+    }
     const rawHcad = rawIdField.split("#")[0].replace(/\D/g, "");
     if (!rawHcad) continue;
     const hcadNum = rawHcad.length < 13 ? rawHcad.padStart(13, "0") : rawHcad;
@@ -703,9 +714,10 @@ const LS_ADMIN_SESSION_KEY = "ph_atlas_admin_session";
  * Return the active Preservation Houston Admin session if unlocked in this browser.
  */
 export function getAdminSession() {
-  if (typeof sessionStorage === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(LS_ADMIN_SESSION_KEY);
+    const raw =
+      (typeof sessionStorage !== "undefined" && sessionStorage.getItem(LS_ADMIN_SESSION_KEY)) ||
+      (typeof localStorage !== "undefined" && localStorage.getItem(LS_ADMIN_SESSION_KEY));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && parsed.authorized) return parsed;
@@ -721,6 +733,9 @@ export function getAdminSession() {
 export function clearAdminSession() {
   if (typeof sessionStorage !== "undefined") {
     sessionStorage.removeItem(LS_ADMIN_SESSION_KEY);
+  }
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem(LS_ADMIN_SESSION_KEY);
   }
 }
 
@@ -796,6 +811,9 @@ export async function authenticateAdminSession({
 
   if (typeof sessionStorage !== "undefined") {
     sessionStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(session));
+  }
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(LS_ADMIN_SESSION_KEY, JSON.stringify(session));
   }
   return { ok: true, session };
 }
