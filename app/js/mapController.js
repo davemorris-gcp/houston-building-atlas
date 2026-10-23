@@ -248,8 +248,8 @@ export class AtlasMapController {
       fetch("public/data/overlays.json?v=20261011u"),
       fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261023f").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261023f").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261023g").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261023g").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -410,19 +410,86 @@ export class AtlasMapController {
     this.platWatchByHcad = new Map();
     const pointFeatures = [];
     const items = Array.isArray(this.platWatchData?.items) ? this.platWatchData.items : [];
+    const reviews =
+      this.platWatchData?.reviews && typeof this.platWatchData.reviews === "object"
+        ? this.platWatchData.reviews
+        : {};
 
     for (const item of items) {
       if (!item) continue;
-      const enr = item.atlas_enrichment || {};
-      const hcad = String(enr.hcad_num || "").trim();
-      if (hcad && !this.platWatchByHcad.has(hcad)) {
-        this.platWatchByHcad.set(hcad, item);
+      const appKey = String(item.app || item.appNo || item.id || "").trim();
+      const rev = (appKey && reviews[appKey]) || {};
+      const at = item.atlas || item.atlas_enrichment || {};
+      const rawHcadStr = [rev.hcad || "", item.hcad || "", at.hcad_num || ""].join(" ");
+      const hcadList = Array.from(
+        new Set(
+          rawHcadStr
+            .split(/[,;\s]+/)
+            .map((s) => s.trim())
+            .filter((s) => /^\d{10,13}$/.test(s))
+            .map((s) => s.padStart(13, "0"))
+        )
+      );
+      if (appKey === "DPV-4801-NMAIN" && !hcadList.includes("0391500000001")) {
+        hcadList.push("0391500000001");
       }
-      const lon = Number(enr.lon);
-      const lat = Number(enr.lat);
+      if (appKey === "DPV-26073533" && !hcadList.includes("0012070000001")) {
+        hcadList.push("0012070000001");
+      }
+      const primaryHcad = hcadList[0] || "";
+      const lon = Number(at.lng ?? at.lon);
+      const lat = Number(at.lat);
+      const flags = Array.isArray(item._c?.flags) ? item._c.flags : [];
+      const rawTier = String(rev.tier || item.tier || "").trim();
+      const tier =
+        rawTier === "1" || rawTier === "tier1"
+          ? "tier1"
+          : rawTier === "2" || rawTier === "tier2"
+          ? "tier2"
+          : rawTier === "3" || rawTier === "tier3"
+          ? "tier3"
+          : "none";
+      const isVariance = Boolean(
+        item.is_variance || flags.includes("variance") || flags.includes("dpv")
+      );
+      const isPublicHearing = Boolean(item.is_public_hearing || flags.includes("hearing"));
+      const isCritical = tier === "tier1" || isVariance || isPublicHearing;
+      const addrStr = String(
+        rev.address || at.primaryAddress || at.matched_address || item.noticeLocation || item.name || ""
+      )
+        .split(/[;,]/)[0]
+        .trim();
+      const yrBuilt =
+        Number(at.earliestYearBuilt || at.year_built || rev.yearBuilt) || null;
+
+      const normItem = {
+        ...item,
+        id: appKey || primaryHcad,
+        appNo: appKey,
+        tier,
+        is_variance: isVariance,
+        is_public_hearing: isPublicHearing,
+        variance_summary: item.varianceSummary || item.variance_summary || "",
+        notes: rev.why || item.notes || "",
+        hcad_num: primaryHcad,
+        related_hcads: hcadList,
+        address: addrStr,
+        building_id: at.buildingId || "",
+        building_name: at.buildingName || item.name || "",
+        year_built: yrBuilt,
+        subdivision: at.subdivisionMatch || item.prevSub || "",
+        neighborhood: at.superNeighborhoodMatch || item.superN || "",
+        lng: Number.isFinite(lon) ? lon : null,
+        lat: Number.isFinite(lat) ? lat : null,
+      };
+
+      for (const hid of hcadList) {
+        if (hid && !this.platWatchByHcad.has(hid)) {
+          this.platWatchByHcad.set(hid, normItem);
+        }
+      }
+
       if (Number.isFinite(lon) && Number.isFinite(lat)) {
-        const tier = String(item.tier || "none");
-        const isCritical = tier === "tier1" || item.is_variance || item.is_public_hearing;
         pointFeatures.push({
           type: "Feature",
           geometry: {
@@ -430,28 +497,28 @@ export class AtlasMapController {
             coordinates: [lon, lat],
           },
           properties: {
-            id: item.id || item.appNo || hcad,
-            plat_item_id: item.id || "",
-            app_no: item.appNo || "",
+            id: normItem.id,
+            plat_item_id: normItem.id,
+            app_no: normItem.appNo,
             subdivision_name: item.name || "",
             plat_type: item.type || "",
             plat_section: item.section || "I",
-            plat_bucket: item.bucket || "check",
+            plat_bucket: item._c?.group || item.bucket || "check",
             plat_tier: tier,
-            is_variance: Boolean(item.is_variance),
-            is_public_hearing: Boolean(item.is_public_hearing),
-            variance_summary: item.variance_summary || "",
-            public_hearing_date: item.public_hearing_date || "",
+            is_variance: isVariance,
+            is_public_hearing: isPublicHearing,
+            variance_summary: normItem.variance_summary,
+            public_hearing_date: item.pcDateIso || item.public_hearing_date || "",
             developer: item.developer || "",
-            applicant_company: item.company || "",
-            hcad_num: hcad,
-            address: enr.matched_address || item.name || "",
-            building_name: enr.building_name || item.name || "",
-            year_built: Number(enr.year_built) || null,
-            historic_district: enr.historic_district || "",
-            subdivision: enr.subdivision || item.name || "",
-            subdivision_earliest_year: Number(enr.subdivision_earliest_year) || null,
-            notes: item.notes || "",
+            applicant_company: item.org || item.company || "",
+            hcad_num: primaryHcad,
+            address: addrStr,
+            building_name: normItem.building_name,
+            year_built: yrBuilt,
+            historic_district: item.hd || at.historic_district || "",
+            subdivision: normItem.subdivision,
+            subdivision_earliest_year: Number(at.subdivisionEarliestYear || at.subdivision_earliest_year) || null,
+            notes: normItem.notes,
             severity: isCritical ? "critical" : "watch",
             lng: lon,
             lat: lat,
@@ -4895,15 +4962,51 @@ export class AtlasMapController {
     };
   }
 
-  selectFeatureByIdOrHcad({ hcadNum = "", featureId = "", flyTo = false }) {
-    if (!featureId && !hcadNum) return false;
+  selectFeatureByIdOrHcad({
+    hcadNum = "",
+    featureId = "",
+    addressQuery = "",
+    fallbackYearBuilt = 0,
+    targetLng = null,
+    targetLat = null,
+    extraCandidateHcads = [],
+    flyTo = false,
+  }) {
+    const hasCoords = Number.isFinite(Number(targetLng)) && Number.isFinite(Number(targetLat));
+    if (!featureId && !hcadNum && !addressQuery && !hasCoords) return false;
+
+    const normAddrStr = (s) =>
+      String(s || "")
+        .toUpperCase()
+        .replace(/\./g, "")
+        .replace(/\bSTREET\b/g, "ST")
+        .replace(/\bAVENUE\b/g, "AVE")
+        .replace(/\bDRIVE\b/g, "DR")
+        .replace(/\bROAD\b/g, "RD")
+        .replace(/\bBOULEVARD\b/g, "BLVD")
+        .replace(/\bLANE\b/g, "LN")
+        .replace(/\bCOURT\b/g, "CT")
+        .replace(/\bPLACE\b/g, "PL")
+        .replace(/\bNORTH\b/g, "N")
+        .replace(/\bSOUTH\b/g, "S")
+        .replace(/\bEAST\b/g, "E")
+        .replace(/\bWEST\b/g, "W")
+        .replace(/\s+/g, " ")
+        .trim();
+    const normTargetAddr = /^\d+\s+/.test(String(addressQuery || "").trim())
+      ? normAddrStr(addressQuery)
+      : "";
 
     const alertsList = Array.isArray(this.permitAlertsPayload?.alerts)
       ? this.permitAlertsPayload.alerts
       : [];
     const matchedAlert =
       alertsList.find((al) => {
-        if (hcadNum && (al.hcad_num === hcadNum || (Array.isArray(al.related_hcads) && al.related_hcads.includes(hcadNum)))) {
+        if (
+          hcadNum &&
+          (al.hcad_num === hcadNum ||
+            (Array.isArray(al.related_hcads) && al.related_hcads.includes(hcadNum)))
+        ) {
           return true;
         }
         if (
@@ -4913,15 +5016,38 @@ export class AtlasMapController {
         ) {
           return true;
         }
+        if (normTargetAddr && al.address && normAddrStr(al.address) === normTargetAddr) {
+          return true;
+        }
         return false;
       }) || null;
+
+    let matchedPlat =
+      this.getPlatWatchForBuilding({ hcadNum, buildingId: featureId }) || null;
+    if (!matchedPlat && Array.isArray(extraCandidateHcads)) {
+      for (const eh of extraCandidateHcads) {
+        matchedPlat = this.getPlatWatchForBuilding({ hcadNum: eh });
+        if (matchedPlat) break;
+      }
+    }
+    if (!matchedPlat && normTargetAddr && this.platWatchByHcad) {
+      for (const [, pItem] of this.platWatchByHcad.entries()) {
+        if (pItem?.address && normAddrStr(pItem.address) === normTargetAddr) {
+          matchedPlat = pItem;
+          break;
+        }
+      }
+    }
 
     const candidateHcads = new Set(
       [
         hcadNum,
         hcadNum && hcadNum.includes("#") ? hcadNum.split("#")[0] : "",
+        ...(Array.isArray(extraCandidateHcads) ? extraCandidateHcads : []),
         matchedAlert?.hcad_num || "",
         ...(Array.isArray(matchedAlert?.related_hcads) ? matchedAlert.related_hcads : []),
+        matchedPlat?.hcad_num || "",
+        ...(Array.isArray(matchedPlat?.related_hcads) ? matchedPlat.related_hcads : []),
       ]
         .map((s) => String(s || "").trim())
         .filter(Boolean)
@@ -4931,6 +5057,7 @@ export class AtlasMapController {
         featureId,
         matchedAlert?.building_id || "",
         ...(Array.isArray(matchedAlert?.related_building_ids) ? matchedAlert.related_building_ids : []),
+        matchedPlat?.building_id || "",
       ]
         .map((s) => String(s || "").trim())
         .filter(Boolean)
@@ -4950,7 +5077,6 @@ export class AtlasMapController {
     if (gbMatch?.properties?.building_id) {
       candidateBldIds.add(String(gbMatch.properties.building_id));
     }
-    const targetBuildingId = gbMatch?.properties?.building_id || featureId || matchedAlert?.building_id || "";
     const ovFeatures = this.overridesFC?.features || [];
 
     const matchesCandidate = (f) => {
@@ -4958,11 +5084,17 @@ export class AtlasMapController {
       const pid = String(p.id || "").trim();
       const pbid = String(p.building_id || "").trim();
       const phcad = String(p.hcad_num || "").trim();
-      return (
+      if (
         (pid && (candidateBldIds.has(pid) || candidateHcads.has(pid))) ||
         (pbid && (candidateBldIds.has(pbid) || candidateHcads.has(pbid))) ||
         (phcad && candidateHcads.has(phcad))
-      );
+      ) {
+        return true;
+      }
+      if (normTargetAddr && p.address && normAddrStr(p.address) === normTargetAddr) {
+        return true;
+      }
+      return false;
     };
 
     let renderedTileMatch = null;
@@ -4999,7 +5131,7 @@ export class AtlasMapController {
       this.buildingsData.find(matchesCandidate) ||
       gbMatch ||
       (() => {
-        if (!featureId && !hcadNum) return null;
+        if (!featureId && !hcadNum && !normTargetAddr) return null;
         const overlayCollections = [
           ["relocated_structures", this.overlaysData?.relocated_structures?.features],
           ["thc_markers", this.overlaysData?.thc_markers?.features],
@@ -5032,90 +5164,176 @@ export class AtlasMapController {
         return null;
       })();
 
+    const effLng = Number.isFinite(Number(targetLng))
+      ? Number(targetLng)
+      : Number.isFinite(Number(matchedAlert?.lng))
+      ? Number(matchedAlert.lng)
+      : Number.isFinite(Number(matchedPlat?.lng))
+      ? Number(matchedPlat.lng)
+      : null;
+    const effLat = Number.isFinite(Number(targetLat))
+      ? Number(targetLat)
+      : Number.isFinite(Number(matchedAlert?.lat))
+      ? Number(matchedAlert.lat)
+      : Number.isFinite(Number(matchedPlat?.lat))
+      ? Number(matchedPlat.lat)
+      : null;
+
+    let tilePolygonUpgraded = false;
+    const tryUpgradeFromTiles = () => {
+      if (tilePolygonUpgraded || this.useCanvasFallback || !this.map) return false;
+      const tileLayers = [
+        "curated-overrides-extrusion",
+        "curated-overrides-fill",
+        ...(this.buildingFillLayerIds || []),
+        ...(this.buildingExtrusionLayerIds || []),
+      ].filter((id) => this.map.getLayer(id));
+      if (!tileLayers.length) return false;
+
+      const renderedAfterFly = this.map.queryRenderedFeatures({ layers: tileLayers });
+      let tileBld = renderedAfterFly.find(matchesCandidate) || null;
+
+      if (!tileBld && candidateHcads.size > 0 && Array.isArray(this.shardSourceIds)) {
+        const hcadArr = Array.from(candidateHcads);
+        for (const srcId of this.shardSourceIds) {
+          try {
+            const hits = this.map.querySourceFeatures(srcId, {
+              sourceLayer: "buildings",
+              filter: ["in", ["get", "hcad_num"], ["literal", hcadArr]],
+            });
+            const foundHit = hits.find(matchesCandidate) || hits[0] || null;
+            if (foundHit) {
+              tileBld = foundHit;
+              break;
+            }
+          } catch (_e) {}
+        }
+      }
+
+      if (!tileBld && Number.isFinite(effLng) && Number.isFinite(effLat)) {
+        const pt = this.map.project([effLng, effLat]);
+        const bbox = [
+          [pt.x - 24, pt.y - 24],
+          [pt.x + 24, pt.y + 24],
+        ];
+        const nearHits = this.map.queryRenderedFeatures(bbox, { layers: tileLayers });
+        tileBld = nearHits.find(matchesCandidate) || nearHits[0] || null;
+      }
+
+      if (tileBld) {
+        tilePolygonUpgraded = true;
+        const baseTileProps = { ...(tileBld.properties || {}) };
+        if (!baseTileProps.address && (addressQuery || matchedAlert?.address || matchedPlat?.address)) {
+          baseTileProps.address = addressQuery || matchedAlert?.address || matchedPlat?.address;
+        }
+        if (!baseTileProps.year_built && (fallbackYearBuilt || matchedAlert?.year_built || matchedPlat?.year_built)) {
+          const yr = Number(fallbackYearBuilt || matchedAlert?.year_built || matchedPlat?.year_built) || 0;
+          if (yr > 0) {
+            baseTileProps.year_built = yr;
+            baseTileProps.decade = Math.floor(yr / 10) * 10;
+          }
+        }
+        this.highlightAndInspectFeature(
+          applyOverrideToProperties(baseTileProps, this.curatedOverrides),
+          tileBld.geometry || null
+        );
+        return true;
+      }
+      return false;
+    };
+
     const schedulePostFlightTileUpgrade = () => {
       if (this.useCanvasFallback || !this.map) return;
       this.map.once("idle", () => {
-        const tileLayers = [
-          "curated-overrides-extrusion",
-          "curated-overrides-fill",
-          ...(this.buildingFillLayerIds || []),
-          ...(this.buildingExtrusionLayerIds || []),
-        ].filter((id) => this.map.getLayer(id));
-        if (!tileLayers.length) return;
-        const renderedAfterFly = this.map.queryRenderedFeatures({ layers: tileLayers });
-        let tileBld = renderedAfterFly.find(matchesCandidate) || null;
-        if (!tileBld && matchedAlert && Number.isFinite(Number(matchedAlert.lng)) && Number.isFinite(Number(matchedAlert.lat))) {
-          const pt = this.map.project([Number(matchedAlert.lng), Number(matchedAlert.lat)]);
-          const bbox = [
-            [pt.x - 18, pt.y - 18],
-            [pt.x + 18, pt.y + 18],
-          ];
-          const nearHits = this.map.queryRenderedFeatures(bbox, { layers: tileLayers });
-          tileBld = nearHits.find(matchesCandidate) || nearHits[0] || null;
-        }
-        if (tileBld) {
-          this.highlightAndInspectFeature(
-            applyOverrideToProperties(tileBld.properties || {}, this.curatedOverrides),
-            tileBld.geometry || null
-          );
-        }
+        tryUpgradeFromTiles();
       });
+      for (const delayMs of [350, 950, 1800]) {
+        setTimeout(() => {
+          tryUpgradeFromTiles();
+        }, delayMs);
+      }
     };
 
     if (!match) {
-      if (matchedAlert) {
-        const alertProps = applyOverrideToProperties(
+      const effectiveHcad =
+        matchedAlert?.hcad_num ||
+        matchedPlat?.hcad_num ||
+        hcadNum ||
+        Array.from(candidateHcads)[0] ||
+        "";
+      const effectiveAddr =
+        matchedAlert?.address ||
+        matchedPlat?.address ||
+        addressQuery ||
+        (effectiveHcad ? `HCAD ${effectiveHcad}` : "");
+      const effectiveYear =
+        Number(matchedAlert?.year_built || matchedPlat?.year_built || fallbackYearBuilt) || 0;
+
+      if (matchedAlert || matchedPlat || effectiveHcad || effectiveAddr) {
+        const initialProps = applyOverrideToProperties(
           {
-            id: matchedAlert.building_id || `pw_${matchedAlert.hcad_num || hcadNum}`,
-            building_id: matchedAlert.building_id || "",
-            hcad_num: matchedAlert.hcad_num || hcadNum,
-            address: matchedAlert.address || matchedAlert.title || "",
-            building_name: matchedAlert.building_name || matchedAlert.landmark_name || "",
-            landmark_name: matchedAlert.landmark_name || "",
-            year_built: Number(matchedAlert.year_built) || 0,
-            decade: matchedAlert.year_built ? Math.floor(Number(matchedAlert.year_built) / 10) * 10 : 0,
-            yr_remodel: Number(matchedAlert.yr_remodel) || 0,
-            style: matchedAlert.style || "",
-            architect: matchedAlert.architect || "",
-            neighborhood: matchedAlert.neighborhood || "",
-            historic_district: matchedAlert.historic_district || "",
-            good_brick_summary: matchedAlert.good_brick_summary || "",
-            owner: matchedAlert.owner || "",
-            bld_area: Number(matchedAlert.bld_area) || 0,
-            land_area: Number(matchedAlert.land_area) || 0,
-            stories: Number(matchedAlert.stories) || 1,
-            subdivision: matchedAlert.subdivision || "",
+            id:
+              matchedAlert?.building_id ||
+              matchedPlat?.building_id ||
+              featureId ||
+              (effectiveHcad ? `${effectiveHcad}#b1` : `addr_${effectiveAddr}`),
+            building_id: matchedAlert?.building_id || matchedPlat?.building_id || featureId || "",
+            hcad_num: effectiveHcad,
+            address: effectiveAddr,
+            building_name:
+              matchedAlert?.building_name ||
+              matchedAlert?.landmark_name ||
+              matchedPlat?.building_name ||
+              "",
+            landmark_name: matchedAlert?.landmark_name || "",
+            year_built: effectiveYear,
+            decade: effectiveYear ? Math.floor(effectiveYear / 10) * 10 : 0,
+            yr_remodel: Number(matchedAlert?.yr_remodel) || 0,
+            style: matchedAlert?.style || "",
+            architect: matchedAlert?.architect || "",
+            neighborhood: matchedAlert?.neighborhood || matchedPlat?.neighborhood || "",
+            historic_district: matchedAlert?.historic_district || "",
+            good_brick_summary: matchedAlert?.good_brick_summary || "",
+            owner: matchedAlert?.owner || matchedPlat?.developer || "",
+            bld_area: Number(matchedAlert?.bld_area) || 0,
+            land_area: Number(matchedAlert?.land_area) || 0,
+            stories: Number(matchedAlert?.stories) || 1,
+            subdivision: matchedAlert?.subdivision || matchedPlat?.subdivision || "",
           },
           this.curatedOverrides
         );
-        if (flyTo && Number.isFinite(Number(matchedAlert.lng)) && Number.isFinite(Number(matchedAlert.lat))) {
+        if (flyTo && Number.isFinite(effLng) && Number.isFinite(effLat)) {
           this.flyToLocation({
-            lng: Number(matchedAlert.lng),
-            lat: Number(matchedAlert.lat),
+            lng: effLng,
+            lat: effLat,
             zoom: 17.6,
           });
         }
-        this.highlightAndInspectFeature(alertProps, null);
+        const initialGeom =
+          Number.isFinite(effLng) && Number.isFinite(effLat)
+            ? { type: "Point", coordinates: [effLng, effLat] }
+            : null;
+        this.highlightAndInspectFeature(initialProps, initialGeom);
         schedulePostFlightTileUpgrade();
       }
 
-      const primaryLookupHcad = matchedAlert?.hcad_num || hcadNum;
-      if (primaryLookupHcad) {
-        fetchHcadLiveRecord(primaryLookupHcad)
+      if (effectiveHcad) {
+        fetchHcadLiveRecord(effectiveHcad)
           .then((rec) => {
-            if (!rec) return;
+            if (!rec || tilePolygonUpgraded) return;
+            const recYear = rec.yearImpr || effectiveYear;
             const synthProps = applyOverrideToProperties(
               {
-                id: matchedAlert?.building_id || `hcad_${rec.hcadNum}`,
+                id: matchedAlert?.building_id || matchedPlat?.building_id || `hcad_${rec.hcadNum}`,
                 hcad_num: rec.hcadNum,
-                address: rec.address || matchedAlert?.address || `HCAD ${rec.hcadNum}`,
-                year_built: rec.yearImpr || Number(matchedAlert?.year_built) || 0,
-                decade: rec.yearImpr ? Math.floor(rec.yearImpr / 10) * 10 : 0,
+                address: rec.address || effectiveAddr || `HCAD ${rec.hcadNum}`,
+                year_built: recYear,
+                decade: recYear ? Math.floor(recYear / 10) * 10 : 0,
                 bld_sqft: rec.bldgSqft || Number(matchedAlert?.bld_area) || 0,
                 land_sqft: rec.lotAreaSqft || Number(matchedAlert?.land_area) || 0,
                 owner: rec.owner || matchedAlert?.owner || "",
-                subdivision: rec.subdivision || matchedAlert?.subdivision || "",
-                neighborhood: matchedAlert?.neighborhood || "",
+                subdivision: rec.subdivision || matchedAlert?.subdivision || matchedPlat?.subdivision || "",
+                neighborhood: matchedAlert?.neighborhood || matchedPlat?.neighborhood || "",
                 use_category:
                   rec.stateClass && rec.stateClass.startsWith("A")
                     ? "Single-Family Residential"
@@ -5127,7 +5345,7 @@ export class AtlasMapController {
               },
               this.curatedOverrides
             );
-            if (flyTo && !matchedAlert && Array.isArray(rec.centroid)) {
+            if (flyTo && !Number.isFinite(effLng) && Array.isArray(rec.centroid)) {
               this.flyToLocation({
                 lng: rec.centroid[0],
                 lat: rec.centroid[1],
@@ -5140,7 +5358,8 @@ export class AtlasMapController {
           .catch(() => {});
         return true;
       }
-      if (matchedAlert) {
+      if (matchedAlert || matchedPlat || effectiveAddr || hasCoords) {
+        schedulePostFlightTileUpgrade();
         return true;
       }
       return false;
@@ -5306,6 +5525,9 @@ export class AtlasMapController {
     let pitch = null;
     let hcadNum = "";
     let featureId = "";
+    let addressQuery = "";
+    let fallbackYearBuilt = 0;
+    let extraCandidateHcads = [];
     if (arg1 && typeof arg1 === "object") {
       lng = Number(arg1.lng);
       lat = Number(arg1.lat);
@@ -5313,6 +5535,9 @@ export class AtlasMapController {
       if (arg1.pitch !== undefined && arg1.pitch !== null) pitch = Number(arg1.pitch);
       hcadNum = arg1.hcadNum || "";
       featureId = arg1.featureId || "";
+      addressQuery = arg1.addressQuery || "";
+      fallbackYearBuilt = Number(arg1.fallbackYearBuilt) || 0;
+      extraCandidateHcads = Array.isArray(arg1.extraCandidateHcads) ? arg1.extraCandidateHcads : [];
     } else {
       lng = Number(arg1);
       lat = Number(arg2);
@@ -5338,8 +5563,17 @@ export class AtlasMapController {
       });
     }
 
-    if (featureId || hcadNum) {
-      this.selectFeatureByIdOrHcad({ hcadNum, featureId, flyTo: false });
+    if (featureId || hcadNum || addressQuery) {
+      this.selectFeatureByIdOrHcad({
+        hcadNum,
+        featureId,
+        addressQuery,
+        fallbackYearBuilt,
+        extraCandidateHcads,
+        targetLng: lng,
+        targetLat: lat,
+        flyTo: false,
+      });
     }
   }
 

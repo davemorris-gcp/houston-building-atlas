@@ -914,12 +914,24 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.syncAnnexationToTime = patch.layers.annexations;
   }
 
-  // Optional Selected Property (`hcad` or `id` or `selected` or `bnd`)
+  // Optional Selected Property (`hcad` or `id` or `selected` or `q` or `bnd`)
   const selHcad = (mergedParams.get("hcad") || "").trim();
   const selId = (mergedParams.get("id") || mergedParams.get("selected") || "").trim();
+  const selQuery = (
+    mergedParams.get("q") ||
+    mergedParams.get("query") ||
+    mergedParams.get("address") ||
+    ""
+  ).trim();
   const selBnd = (mergedParams.get("bnd") || "").trim();
-  if (selHcad || selId) {
-    selection = { hcadNum: selHcad, featureId: selId };
+  const effectiveHcad =
+    selHcad || (/^\d{10,13}$/.test(selQuery) ? selQuery.padStart(13, "0") : "");
+  if (effectiveHcad || selId || selQuery) {
+    selection = {
+      hcadNum: effectiveHcad,
+      featureId: selId,
+      query: selQuery,
+    };
   } else if (selBnd) {
     const colonIdx = selBnd.indexOf(":");
     const bndLayer =

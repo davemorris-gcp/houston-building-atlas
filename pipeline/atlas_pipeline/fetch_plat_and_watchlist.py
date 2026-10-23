@@ -798,10 +798,10 @@ def build_plat_agenda_dataset(idx: dict, scraped: dict) -> dict:
     dpv_known_fallbacks = {
         "801 mcgowen street": {
             "app": "DPV-26073533",
-            "hcad": "0012070000001",
+            "hcad": "0060610000001",
             "address": "801 MCGOWEN ST",
-            "lng": -95.37498,
-            "lat": 29.74636,
+            "lng": -95.37551,
+            "lat": 29.74584,
             "council": "C",
             "superN": "MIDTOWN",
             "prevSub": "South Side Buffalo Bayou (Midtown)",
@@ -812,10 +812,10 @@ def build_plat_agenda_dataset(idx: dict, scraped: dict) -> dict:
         },
         "4801 n main street": {
             "app": "DPV-4801-NMAIN",
-            "hcad": "0391500000001",
+            "hcad": "0331890010001",
             "address": "4801 N MAIN ST",
-            "lng": -95.38862,
-            "lat": 29.79871,
+            "lng": -95.38401,
+            "lat": 29.79874,
             "council": "H",
             "superN": "GREATER HEIGHTS",
             "prevSub": " Houston Heights / Sunset Heights",
