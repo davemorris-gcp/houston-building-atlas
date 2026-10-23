@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plat &amp; Property Monitor · Preservation Houston &amp; Houston Building Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vellum:#EDF1F3; --panel:#FFFFFF; --ink:#1E2B38; --muted:#5C6B78; --line:#C9D3DA; --line-soft:#E1E7EB;
+  --survey:#2F5D8A; --survey-soft:#E3ECF5;
+  --t1:#B3261E; --t1-soft:#F8E4E2; --t2:#8A5E00; --t2-soft:#F6EDD6; --t3:#5F6B75; --t3-soft:#E8ECEF;
+  --ok:#1B6E3D; --ok-soft:#E1F3E8;
+  --focus:#F2B705;
+  --font:"Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--vellum);color:var(--ink);font:15px/1.5 var(--font)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+a{color:var(--survey)}
+.hidden{display:none !important}
+
+/* Header */
+header.top{background:var(--ink);color:#fff;padding:12px 24px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+header.top h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+header.top .org{font-size:12.5px;color:#B8C6D3;margin:0}
+.mode-switch{display:inline-flex;background:#131C26;border:1px solid #3D5163;border-radius:6px;padding:3px;gap:3px}
+.mode-btn{border:0;background:transparent;color:#B8C6D3;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.mode-btn[aria-selected="true"]{background:var(--survey);color:#fff}
+.mode-btn .pill{background:rgba(255,255,255,.18);padding:1px 6px;border-radius:10px;font-size:11.5px;font-variant-numeric:tabular-nums}
+header.top .cycle{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+header.top label{color:#B8C6D3;font-size:13px}
+header.top input{background:#2A3B4C;border:1px solid #3D5163;border-radius:4px;padding:5px 8px;color:#fff;width:150px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:7px 12px;cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--survey)}
+.btn.primary{background:var(--survey);border-color:var(--survey);color:#fff}
+.btn.primary:hover{background:#244B72}
+.btn.dark{background:#2A3B4C;border-color:#3D5163;color:#fff}
+.btn.dark:hover{border-color:#7EA6CE}
+.btn.danger{background:var(--t1);border-color:var(--t1);color:#fff}
+.menu{position:relative}
+.menu-list{position:absolute;right:0;top:calc(100% + 4px);background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 24px rgba(30,43,56,.18);min-width:290px;z-index:30;padding:6px}
+.menu-list button,.menu-list a{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:4px;cursor:pointer;text-decoration:none;color:var(--ink);font-size:14px}
+.menu-list button:hover,.menu-list a:hover{background:var(--survey-soft)}
+.menu-list .sep{border-top:1px solid var(--line-soft);margin:6px 0}
+.menu-list small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+
+/* Funnel */
+.funnel{display:flex;align-items:stretch;background:var(--panel);border-bottom:1px solid var(--line)}
+.stage{flex:1;padding:11px 18px;border-right:1px solid var(--line-soft);position:relative;min-width:0}
+.stage:last-child{border-right:0}
+.stage .n{font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.stage .l{font-size:12.5px;color:var(--muted)}
+.stage.t1 .n{color:var(--t1)} .stage.t2 .n{color:var(--t2)} .stage.auto .n{color:var(--survey)}
+.stage:not(:last-child)::after{content:"";position:absolute;right:-9px;top:50%;width:16px;height:16px;background:var(--panel);border-top:1px solid var(--line-soft);border-right:1px solid var(--line-soft);transform:translateY(-50%) rotate(45deg);z-index:1}
+
+/* Toolbar */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--vellum)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tab{border:1px solid transparent;background:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:13.5px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--panel);border-color:var(--line);color:var(--ink);font-weight:600}
+.tab .c{font-variant-numeric:tabular-nums;margin-left:4px;color:var(--muted);font-weight:400}
+.toolbar .filters{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.toolbar input,.toolbar select{border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:var(--panel);font-size:13.5px;max-width:220px}
+
+/* Main split */
+main{display:grid;grid-template-columns:minmax(340px,2fr) 3fr;min-height:calc(100vh - 190px)}
+.list{border-right:1px solid var(--line);overflow:auto;max-height:calc(100vh - 190px);background:var(--panel)}
+.list-empty{padding:24px;color:var(--muted)}
+.row{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line-soft);background:none;padding:10px 16px 10px 20px;cursor:pointer;position:relative}
+.row:hover{background:#F5F8FA}
+.row[aria-current="true"]{background:var(--survey-soft)}
+.row[aria-current="true"]::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--survey)}
+.row .top{display:flex;gap:8px;align-items:baseline}
+.row .nm{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .app{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.row .sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.chip{font-size:11.5px;padding:1px 7px;border-radius:10px;background:var(--t3-soft);color:#3C4750;white-space:nowrap}
+.chip.strong{background:#FBE9D0;color:#7A4300}
+.chip.critical{background:var(--t1-soft);color:var(--t1);font-weight:600}
+.chip.hearing{background:var(--survey-soft);color:var(--survey)}
+.chip.watch{background:#EDE3F6;color:#5B2F86}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.tierbadge{font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:3px}
+.tierbadge.t1{background:var(--t1);color:#fff}.tierbadge.t2{background:var(--t2);color:#fff}.tierbadge.t3{background:var(--t3);color:#fff}
+
+/* Detail */
+.detail{overflow:auto;max-height:calc(100vh - 190px);padding:22px 28px 60px}
+.detail h2{margin:0 0 2px;font-size:22px;letter-spacing:-.01em;line-height:1.25}
+.detail .meta{color:var(--muted);font-size:14px;margin-bottom:14px}
+.atlas-box{background:#F2F7FC;border:1px solid #B8D0E8;border-left:4px solid var(--survey);border-radius:6px;padding:12px 14px;margin-bottom:14px;font-size:13.5px}
+.atlas-box .atlas-head{font-weight:700;color:var(--survey);display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap}
+.atlas-box .atlas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px 14px}
+.atlas-box .kv b{color:var(--ink)}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}
+.links a,.links button,.links span.dis{font-size:13.5px;padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:var(--panel);text-decoration:none;font-weight:500;cursor:pointer}
+.links a:hover,.links button:hover{border-color:var(--survey)}
+.links a.atlas-link{background:var(--survey);border-color:var(--survey);color:#fff}
+.links a.atlas-link:hover{background:#244B72}
+.links a.notice-link{background:#FBE9D0;border-color:#E0A85A;color:#7A4300}
+.links span.dis{color:var(--muted);border-style:dashed;font-weight:400;cursor:default}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0;border:1px solid var(--line);border-radius:6px;background:var(--panel);overflow:hidden}
+.fact{padding:8px 12px;border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line-soft)}
+.fact dt{font-size:11.5px;color:var(--muted)}
+.fact dd{margin:0;font-size:13.5px;word-break:break-word}
+.why-flags{margin:16px 0 0;padding:0;list-style:none}
+.why-flags li{padding:6px 0 6px 14px;border-left:3px solid #E0A85A;margin-bottom:6px;font-size:13.5px}
+.why-flags li.crit{border-left-color:var(--t1);background:rgba(179,38,30,.04);padding:6px 10px 6px 14px;border-radius:0 4px 4px 0}
+.why-flags li b{font-weight:600}
+section.review{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px 18px}
+section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field label{font-size:13px;font-weight:600}
+.field .hint{font-size:12px;color:var(--muted);font-weight:400}
+.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:4px;padding:7px 9px;background:#fff;font-size:14px}
+.field textarea{min-height:74px;resize:vertical}
+.tierpick{display:flex;gap:6px;flex-wrap:wrap}
+.tierpick label{border:1px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:13.5px;display:flex;gap:6px;align-items:center}
+.tierpick input{margin:0}
+.tierpick label.on.t1{border-color:var(--t1);background:var(--t1-soft)}
+.tierpick label.on.t2{border-color:var(--t2);background:var(--t2-soft)}
+.tierpick label.on.t3{border-color:var(--t3);background:var(--t3-soft)}
+.tierpick label.on.t0{border-color:var(--survey);background:var(--survey-soft)}
+.saved{font-size:12px;color:var(--muted);margin-top:4px}
+.history-note{background:#F3ECFA;border:1px solid #D8C6EA;border-radius:6px;padding:10px 12px;font-size:13.5px;margin-top:12px}
+
+/* Watchlist Tracker Styles */
+.wl-card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin-bottom:18px}
+.wl-card h3{margin:0 0 10px;font-size:16px;border-bottom:1px solid var(--line-soft);padding-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.wl-progress{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.wl-stat{background:var(--vellum);border:1px solid var(--line-soft);border-radius:4px;padding:6px 12px;font-size:13px}
+.wl-stat b{font-size:16px;margin-right:4px}
+.wl-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--panel);border:1px solid var(--line)}
+.wl-table th,.wl-table td{border:1px solid var(--line-soft);padding:8px 10px;vertical-align:top;text-align:left}
+.wl-table th{background:var(--vellum);font-weight:600;color:var(--ink);font-size:12px;text-transform:uppercase;letter-spacing:.02em}
+.wl-stage{font-weight:700;color:var(--survey);font-size:12px;text-transform:uppercase}
+.status-sel{padding:3px 6px;border-radius:4px;border:1px solid var(--line);font-size:12.5px;font-weight:600}
+.status-sel.Complete{background:var(--ok-soft);color:var(--ok);border-color:#A5D9B8}
+.status-sel.Flagged{background:var(--t1-soft);color:var(--t1);border-color:#E5A5A0}
+.status-sel.InProgress{background:var(--t2-soft);color:var(--t2);border-color:#E2C684}
+.chk-list{margin:4px 0 0;padding-left:16px;font-size:12.5px}
+.chk-list li{margin-bottom:4px}
+.chk-add{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.chk-add input[type="date"]{width:130px;padding:3px 6px;font-size:12px;border:1px solid var(--line);border-radius:4px}
+.chk-add input[type="text"]{flex:1;min-width:180px;padding:3px 6px;font-size:12px;border:1px solid var(--line);border-radius:4px}
+.chk-add button{padding:3px 8px;font-size:12px}
+
+/* Start screen */
+.start{max-width:760px;margin:48px auto;padding:0 24px}
+.start h2{font-size:28px;letter-spacing:-.015em;margin:0 0 8px}
+.start p{color:#3C4750;max-width:64ch}
+.drop{margin-top:24px;border:2px dashed #9FB2C2;border-radius:8px;background:var(--panel);padding:36px 24px;text-align:center}
+.drop.over{border-color:var(--survey);background:var(--survey-soft)}
+.drop p{margin:8px auto 16px;color:var(--muted)}
+.steps{margin-top:28px;padding-left:20px;color:#3C4750}
+.steps li{margin-bottom:6px}
+.err{background:var(--t1-soft);border:1px solid #E3B3AE;color:#7A1A14;padding:10px 12px;border-radius:6px;margin-top:16px}
+
+/* Modal */
+.modal-back{position:fixed;inset:0;background:rgba(30,43,56,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal{background:var(--panel);border-radius:8px;max-width:720px;width:100%;padding:20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.modal h3{margin:0 0 10px}
+.modal textarea{width:100%;min-height:320px;border:1px solid var(--line);border-radius:4px;padding:10px;font-size:13.5px;line-height:1.45}
+.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:6px;font-size:14px;z-index:60}
+
+@media (max-width:900px){
+  main{grid-template-columns:1fr}
+  .list,.detail{max-height:none}
+  .list{border-right:0;border-bottom:1px solid var(--line);max-height:48vh}
+  .funnel{flex-wrap:wrap}.stage{flex:1 1 30%}.stage::after{display:none}
+  .grid2{grid-template-columns:1fr}
+  header.top .cycle{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <h1>
+      <span>Plat &amp; Property Monitor</span>
+    </h1>
+    <p class="org">Preservation Houston · Automated with The Houston Building Atlas</p>
+  </div>
+
+  <div class="mode-switch" role="tablist" aria-label="Workspace mode">
+    <button class="mode-btn" id="modeAgendaBtn" role="tab" aria-selected="true" data-mode="agenda">
+      Biweekly Plat &amp; Variance Review <span class="pill" id="modeAgendaCount">0</span>
+    </button>
+    <button class="mode-btn" id="modeWatchlistBtn" role="tab" aria-selected="false" data-mode="watchlist">
+      Property Watchlist (Kirby Mansion &amp; Tier 1/2) <span class="pill" id="modeWatchlistCount">0</span>
+    </button>
+  </div>
+
+  <div class="cycle" id="cycleBar">
+    <a class="btn dark" href="index.html" title="Return to interactive Houston Building Atlas map">← Back to Atlas Map</a>
+    <a class="btn dark" href="public/docs/01_Plat_Report-Monitoring_Guide_Updated.docx" download title="Download updated Preservation Houston Plat &amp; Property Monitoring Guide (.docx)">📘 Guide (.docx)</a>
+    <span id="cycleLabel" style="font-size:13px;color:#B8C6D3"></span>
+    <label for="reviewer">Reviewer</label>
+    <input id="reviewer" type="text" placeholder="Your name" autocomplete="name">
+    <div class="menu" id="loadMenu">
+      <button class="btn dark" id="loadBtn" aria-haspopup="true" aria-expanded="false">Open</button>
+      <div class="menu-list hidden" role="menu">
+        <button role="menuitem" data-act="reload-live">Reload live Houston Building Atlas cycle<small>Latest COH Plat Spreadsheet + Section K DPV Variances + Notices</small></button>
+        <div class="sep"></div>
+        <button role="menuitem" data-act="agenda">Load a new agenda spreadsheet<small>Plat Tracker export (.xlsx or .csv)</small></button>
+        <button role="menuitem" data-act="work">Open a saved work file<small>A .json file saved from this tool</small></button>
+        <div class="sep"></div>
+        <button role="menuitem" data-act="history">Add past findings for the watchlist<small>Findings CSVs from earlier cycles</small></button>
+      </div>
+    </div>
+    <div class="menu" id="exportMenu">
+      <button class="btn primary" id="exportBtn" aria-haspopup="true" aria-expanded="false">Save &amp; Export</button>
+      <div class="menu-list hidden" role="menu">
+        <button role="menuitem" data-act="report">Download Plat Findings Report (Word .docx)<small>Summary counts, Tier 1 write-ups &amp; Tier 2/3 tables</small></button>
+        <button role="menuitem" data-act="print">Print Plat Report or save as PDF</button>
+        <button role="menuitem" data-act="csv">Download Plat Findings Log (CSV)<small>Opens in Excel; one row per researched item</small></button>
+        <button role="menuitem" data-act="email">Copy email summary for Emily</button>
+        <div class="sep"></div>
+        <button role="menuitem" data-act="watchlist-docx">Download Property Watchlist Dossier (Word .docx)<small>15-point checklist &amp; chronological Findings Log for selected property</small></button>
+        <button role="menuitem" data-act="watchlist-csv">Download Property Watchlist Log (CSV)<small>Opens in Excel; checklist &amp; dated findings log</small></button>
+        <div class="sep"></div>
+        <button role="menuitem" data-act="savework">Save work file (.json)<small>Pick up later or hand off to a colleague</small></button>
+        <a role="menuitem" href="public/docs/01_Plat_Report-Monitoring_Guide_Updated.docx" download>Download Updated Plat Monitoring Guide (.docx)<small>SOP including Section K DPV Variances &amp; Atlas automation</small></a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<input type="file" id="fileAgenda" accept=".xlsx,.csv" class="hidden">
+<input type="file" id="fileWork" accept=".json" class="hidden">
+<input type="file" id="fileHistory" accept=".csv,.json" multiple class="hidden">
+
+<div id="startScreen" class="start hidden">
+  <h2>Load a Planning Commission agenda</h2>
+  <p>The Houston Building Atlas automatically fetches and enriches the latest biweekly Planning Commission Plat Spreadsheet, Section K Development Plat Variances (DPV), and Public Hearing Notices. You can also drop any Plat Tracker spreadsheet (.xlsx or .csv) or saved work file (.json) below.</p>
+  <div class="drop" id="drop">
+    <strong>Drop a spreadsheet or work file here</strong>
+    <p>.xlsx, .csv, or .json</p>
+    <button class="btn primary" id="pickLive">Load Live Pre-Enriched Atlas Agenda</button>
+    <button class="btn" id="pickAgenda">Choose .xlsx / .csv file</button>
+    <button class="btn" id="pickWork">Open saved .json work file</button>
+  </div>
+  <div id="startErr" class="err hidden" role="alert"></div>
+  <ol class="steps">
+    <li>The tool sorts every item into To check, Designated, ETJ, and Screened out, following Preservation Houston's Plat Report Monitoring Guide, and adds Section K Development Plat Variances (DPV) and Section IV Public Hearing notices from the Agenda Outline PDF.</li>
+    <li>Every item is pre-cross-referenced against 1,221,007 Harris County parcels, 5,573 historic platted subdivisions, City Landmarks, Historic Districts, Good Brick Awards, and active COH/DSHS/TDLR permits.</li>
+    <li>Switch to the Property Watchlist tab at any time to track endangered properties like the John Henry Kirby Mansion (2000 Smith St. / 530 Pierce St.) across all 15 municipal, county, and state checkpoints.</li>
+  </ol>
+</div>
+
+<div id="app">
+  <div class="funnel" id="funnel"></div>
+  <div class="toolbar" id="agendaToolbar">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="filters">
+      <input type="search" id="q" placeholder="Search name, address, subdivision, developer" aria-label="Search">
+      <select id="fNeighborhood" aria-label="Super neighborhood"></select>
+      <select id="fFlag" aria-label="Flag"></select>
+    </div>
+  </div>
+  <div class="toolbar hidden" id="watchlistToolbar">
+    <div style="font-weight:600;font-size:14px">Endangered Property Multi-Agency Watchlist · 15-Point Preservation Tracker &amp; Automated Findings Log</div>
+    <div class="filters">
+      <button class="btn" id="addCustomWatchPropBtn">+ Add Property to Watchlist</button>
+      <button class="btn primary" id="exportWatchlistDocxBtn">Download Property Dossier (.docx)</button>
+      <button class="btn" id="exportWatchlistCsvBtn">Download Findings Log (.csv)</button>
+    </div>
+  </div>
+  <main>
+    <div class="list" id="list" aria-label="Items list"></div>
+    <div class="detail" id="detail"></div>
+  </main>
+</div>
+
+<script>
+"use strict";
+/* ---------- Storage ---------- */
+const store = {
+  get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } },
+  keys(){ try{ return Object.keys(localStorage); }catch(e){ return []; } }
+};
+const PREFIX = "phpam:cycle:";
+const WL_KEY = "phpam:watchlist:v2";
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = v => { const n = parseFloat(String(v ?? "").replace(/,/g,"")); return isNaN(n) ? null : n; };
+function excelDate(v){
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  if (!isNaN(n) && n > 20000 && n < 80000) return new Date(Math.round((n - 25569) * 86400000));
+  const d = new Date(v); return isNaN(d) ? null : new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes()));
+}
+const fmtDate = d => d ? d.toLocaleDateString("en-US",{timeZone:"UTC",month:"long",day:"numeric",year:"numeric"}) : "";
+const isoDate = d => d ? d.toISOString().slice(0,10) : "unknown-date";
+function toast(msg){ const t = document.createElement("div"); t.className="toast"; t.textContent=msg; t.setAttribute("role","status"); document.body.appendChild(t); setTimeout(()=>t.remove(), 2800); }
+function download(name, content, type){
+  const blob = content instanceof Blob ? content : new Blob([content], {type});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ---------- Minimal .xlsx & .csv reader ---------- */
+async function readZip(buf){
+  const dv = new DataView(buf); let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) { if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; } }
+  if (eocd < 0) throw new Error("This file is not a valid .xlsx spreadsheet.");
+  const count = dv.getUint16(eocd + 10, true); let off = dv.getUint32(eocd + 16, true);
+  const files = {}; const dec = new TextDecoder();
+  for (let n = 0; n < count; n++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true), csize = dv.getUint32(off + 20, true);
+    const nlen = dv.getUint16(off + 28, true), elen = dv.getUint16(off + 30, true), clen = dv.getUint16(off + 32, true);
+    const lho = dv.getUint32(off + 42, true);
+    const name = dec.decode(new Uint8Array(buf, off + 46, nlen)).replace(/\\/g, "/").replace(/^\//, "");
+    files[name] = {method, csize, lho}; off += 46 + nlen + elen + clen;
+  }
+  return {
+    has: n => !!files[n],
+    names: Object.keys(files),
+    async text(n){
+      const f = files[n]; if (!f) return null;
+      const start = f.lho + 30 + dv.getUint16(f.lho + 26, true) + dv.getUint16(f.lho + 28, true);
+      const data = new Uint8Array(buf, start, f.csize);
+      if (f.method === 0) return dec.decode(data);
+      if (f.method !== 8) throw new Error("Unsupported compression in spreadsheet.");
+      const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      return dec.decode(new Uint8Array(await new Response(stream).arrayBuffer()));
+    }
+  };
+}
+const xml = s => new DOMParser().parseFromString(s, "application/xml");
+const tags = (el, name) => Array.from(el.getElementsByTagNameNS("*", name));
+const colIndex = ref => { const m = /^([A-Z]+)/.exec(ref || ""); if (!m) return -1; let n = 0; for (const ch of m[1]) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; };
+const relTarget = (base, t) => t.startsWith("/") ? t.slice(1) : base + t;
+
+async function parseXlsx(buf){
+  const z = await readZip(buf);
+  let sheetPath = null;
+  try {
+    const wb = xml(await z.text("xl/workbook.xml"));
+    const first = tags(wb, "sheet")[0];
+    const rid = first && (first.getAttribute("r:id") || first.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id"));
+    const rels = xml(await z.text("xl/_rels/workbook.xml.rels"));
+    const rel = tags(rels, "Relationship").find(r => r.getAttribute("Id") === rid);
+    if (rel) sheetPath = relTarget("xl/", rel.getAttribute("Target"));
+  } catch(e) {}
+  if (!sheetPath || !z.has(sheetPath)) sheetPath = z.names.filter(n => /^xl\/worksheets\/[^/]+\.xml$/.test(n)).sort()[0];
+  if (!sheetPath) throw new Error("No worksheet found in this spreadsheet.");
+  let shared = [];
+  if (z.has("xl/sharedStrings.xml")) shared = tags(xml(await z.text("xl/sharedStrings.xml")), "si").map(si => tags(si, "t").map(t => t.textContent).join(""));
+  const sheet = xml(await z.text(sheetPath));
+  const links = {};
+  const hl = tags(sheet, "hyperlink");
+  if (hl.length) {
+    const relsPath = sheetPath.replace(/([^/]+)$/, "_rels/$1.rels");
+    let relMap = {};
+    if (z.has(relsPath)) tags(xml(await z.text(relsPath)), "Relationship").forEach(r => relMap[r.getAttribute("Id")] = r.getAttribute("Target"));
+    hl.forEach(h => { const id = h.getAttribute("r:id") || h.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id"); if (relMap[id]) links[h.getAttribute("ref")] = relMap[id]; });
+  }
+  const grid = [];
+  tags(sheet, "row").forEach(rowEl => {
+    const row = [];
+    tags(rowEl, "c").forEach(c => {
+      const ref = c.getAttribute("r"), t = c.getAttribute("t"), idx = colIndex(ref);
+      if (idx < 0) return;
+      let val = "";
+      const v = tags(c, "v")[0];
+      if (t === "s" && v) val = shared[parseInt(v.textContent, 10)] ?? "";
+      else if (t === "inlineStr") { const is = tags(c, "is")[0]; val = is ? tags(is, "t").map(x => x.textContent).join("") : ""; }
+      else if (v) val = v.textContent;
+      if (links[ref] && !/^https?:/i.test(val)) val = links[ref];
+      row[idx] = val;
+    });
+    grid.push(row);
+  });
+  return grid;
+}
+function parseCsv(text){
+  const rows = []; let row = [], cell = "", q = false;
+  text = text.replace(/^\uFEFF/, "");
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i+1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ",") { row.push(cell); cell = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i+1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += ch;
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+const FIELDS = [
+  ["name", h => h.startsWith("subdivision name")], ["app", h => h.startsWith("app no")], ["pcDate", h => h.startsWith("pc date")],
+  ["submitted", h => h.startsWith("date submitted")], ["type", h => h.startsWith("application type")], ["special", h => h.startsWith("special request")],
+  ["section", h => h.startsWith("app location")], ["council", h => h.startsWith("council district")], ["city", h => h.startsWith("in city")],
+  ["county", h => h === "county"], ["precinct", h => h.startsWith("county precinct")], ["keymap", h => h.startsWith("key map")],
+  ["tract", h => h.startsWith("census")], ["zip", h => h.startsWith("zip")], ["isd", h => h.startsWith("school")],
+  ["prevSub", h => h.startsWith("previous")], ["tirz", h => h === "tirz"], ["mgmt", h => h.startsWith("management")],
+  ["hd", h => h.startsWith("historic district")], ["superN", h => h.startsWith("super neighborhood")], ["park", h => h.startsWith("park sector")],
+  ["thoroughfare", h => h.startsWith("major thor")], ["landUse", h => h.startsWith("land use")], ["acreage", h => h.startsWith("total acreage")],
+  ["lots", h => h.startsWith("number of lots")], ["hcad", h => h.startsWith("appraisal district")], ["developer", h => h.startsWith("developer")],
+  ["org", h => h === "organization"], ["applicant", h => h.startsWith("applicant")], ["phone", h => h.startsWith("office phone")],
+  ["pdf", h => h.includes("plat pdf") || h.startsWith("download")]
+];
+function gridToItems(grid){
+  const hIdx = grid.findIndex(r => r && r.some(c => /^app no/i.test(String(c || "").trim())));
+  if (hIdx < 0) throw new Error("This doesn't look like a Plat Tracker agenda spreadsheet: no 'App No.' column was found.");
+  const header = grid[hIdx].map(h => String(h || "").trim().toLowerCase());
+  const map = {};
+  header.forEach((h, i) => { const f = FIELDS.find(([k, test]) => !(k in map) && test(h)); if (f) map[f[0]] = i; });
+  for (const need of ["name", "app", "type"]) if (!(need in map)) throw new Error("Missing required column: " + need);
+  const items = [];
+  for (let r = hIdx + 1; r < grid.length; r++) {
+    const row = grid[r] || []; const it = {};
+    for (const k in map) it[k] = String(row[map[k]] ?? "").trim();
+    if (!it.app && !it.name) continue;
+    items.push(it);
+  }
+  if (!items.length) throw new Error("The spreadsheet has a header row but no agenda items.");
+  return items;
+}
+
+/* ---------- Screening rules ---------- */
+const typeCode = t => (/\(([A-Z0-9]+)\)\s*$/.exec(t || "") || [])[1] || "";
+const UTILITY = /lift station|water treatment|water plant|wastewater|ground water|utility|detention only/i;
+function classify(it){
+  const code = typeCode(it.type), lu = it.landUse || "", ac = num(it.acreage), lots = num(it.lots);
+  const inCity = /city/i.test(it.city) && !/^etj$/i.test(it.city);
+  const flags = [];
+  if (code === "DPV" || /dpv/i.test(it.type) || /^k\./i.test(it.section)) flags.push("dpv");
+  if (code === "C3N" || /^c\./i.test(it.section) || /^iv\./i.test(it.section)) flags.push("hearing");
+  if (/variance/i.test(it.special) || code === "DPV" || /^d\./i.test(it.section) || /^k\./i.test(it.section)) flags.push("variance");
+  if (/reconsideration/i.test(it.special) || /^f\./i.test(it.section)) flags.push("reconsider");
+  if (it.deferral) flags.push("deferred");
+  if (it.prevSub) {
+    if (ac != null && ac <= 0.35 && lots != null && lots >= 2 && lots <= 4) flags.push("split");
+    if (/unrestricted|commercial|multifamily|multi-unit/i.test(lu)) flags.push("use");
+    if (lots === 0 && !UTILITY.test(lu) && !UTILITY.test(it.name)) flags.push("reserve");
+  }
+  if (/shared driveway|pae/i.test(lu)) flags.push("shared");
+  if (/church|school|institutional/i.test(lu) || /\b(church|chapel|school|temple|mosque|synagogue|theat(er|re)|lodge)\b/i.test((it.name + " " + it.prevSub).replace(/school lands?/ig, ""))) flags.push("inst");
+  if (!inCity && ac != null && ac >= 20) flags.push("tract");
+  const at = it.atlas || {};
+  if (at.earliestYearBuilt && at.earliestYearBuilt > 0 && at.earliestYearBuilt <= 1976) flags.push("pre1976");
+  if (at.hasActivePermit) flags.push("permit");
+  if (at.smlsProtections && at.smlsProtections.length) flags.push("smls");
+
+  let group = "check", reason = "";
+  if (it.hd || (at.designations && at.designations.some(d => /historic district/i.test(d)))) { group = "designated"; reason = "In a city historic district (" + (it.hd || at.designations.join(", ")) + ")."; }
+  else if (!inCity) { group = "etj"; reason = "Outside city limits (ETJ). Skim for cemeteries, farmsteads or rural churches."; }
+  else if (code === "SP") { group = "out"; reason = "Street dedication plat."; }
+  else if (code === "GP") { group = "out"; reason = "General plan."; }
+  else if (!it.prevSub && code !== "DPV") { group = "out"; reason = "First-time plat: no previous subdivision."; }
+  else if (UTILITY.test(lu) && !/residential|commercial|unrestricted|multi/i.test(lu)) { group = "out"; reason = "Utility site."; }
+  const weight = {dpv:4, pre1976:4, permit:5, hearing:2, variance:2, reconsider:1, deferred:1, split:3, use:2, reserve:1, shared:1, inst:3, tract:1, smls:1};
+  const score = flags.reduce((s, f) => s + (weight[f] || 0), 0);
+  return {group, reason, flags, score, code, inCity};
+}
+
+const FLAG_INFO = {
+  pre1976:   ["Pre-1976 structure", "Houston Building Atlas matched an extant building constructed in or before 1976 on this parcel.", "critical"],
+  dpv:       ["Dev. Plat Variance (DPV)", "Section K Development Plat with Variance Request (omitted from Plat Tracker spreadsheets, parsed from Agenda Outline PDF).", "critical"],
+  permit:    ["Active permit / alert", "Parcel has an active demolition, sewer disconnect, or asbestos filing in the Atlas.", "critical"],
+  hearing:   ["Public hearing", "Notice goes to nearby owners and the public can speak. A chance to submit comments.", "hearing"],
+  variance:  ["Variance", "The applicant wants to depart from a Chapter 42 standard. Often lets a new building grow larger.", "strong"],
+  reconsider:["Reconsideration", "The applicant is asking the Commission to reverse a staff requirement.", ""],
+  deferred:  ["Deferred item", "Deferred from a prior Planning Commission meeting (must be acted on within 30 days).", "watch"],
+  split:     ["Lot split", "A small older lot divided into 2-4 lots. Usually one house replaced by townhouses.", "strong"],
+  use:       ["Change of use", "Replatted as unrestricted, commercial or multifamily. Signals redevelopment.", "strong"],
+  reserve:   ["Lots become a reserve", "No lots created: existing lots combined into a reserve. Can clear several older buildings.", "strong"],
+  shared:    ["Shared driveways", "Townhouse-style layout on shared drives or access easements.", ""],
+  inst:      ["Institutional", "Church, school or other community building in the land use or name.", "strong"],
+  tract:     ["Large rural tract", "Large acreage in the ETJ. Check for cemeteries and farmsteads.", ""],
+  smls:      ["SMLS / SMBL area", "Subdivision has Special Minimum Lot Size or Building Line protections nearby.", "ok"],
+  watch:     ["Seen before", "This application was flagged in an earlier cycle.", "watch"],
+  dev:       ["Developer on watchlist", "This developer was behind a Tier 1 or 2 item in an earlier cycle.", "watch"]
+};
+const GROUPS = [["check","To check"],["t1","Tier 1"],["t2","Tier 2"],["t3","Tier 3"],["designated","Designated"],["etj","ETJ"],["out","Screened out"],["all","All"]];
+const DESIGNATIONS = ["Not checked yet","None found","City Landmark","Protected Landmark","City historic district","National Register (individual)","National Register (district)","Recorded Texas Historic Landmark","State Antiquities Landmark","Good Brick Award","Other (see notes)"];
+const TIERS = [["","Not set","t0"],["1","1 - Escalate","t1"],["2","2 - Watch","t2"],["3","3 - Note","t3"]];
+
+/* ---------- State ---------- */
+let S = null;
+let WL = store.get(WL_KEY) || {watchedProperties: []};
+let history = store.get("phpam:history") || [];
+let view = {mode:"agenda", group:"check", selected:null, selectedWatchId:null, q:"", nb:"", flag:""};
+
+function cycleKeyFor(items){
+  const first = items.find(i => i.pcDateIso || i.pcDate);
+  if (first && first.pcDateIso) return {pcDate: first.pcDateIso + "T00:00:00.000Z", key: first.pcDateIso};
+  const d = excelDate(first?.pcDate);
+  return {pcDate: d ? d.toISOString() : null, key: d ? isoDate(d) : "cycle-" + Date.now()};
+}
+function startCycle(items, fileName, presetReviews, extraMeta){
+  const {pcDate, key} = extraMeta?.cycleKey ? {pcDate: extraMeta.pcDate, key: extraMeta.cycleKey} : cycleKeyFor(items);
+  const existing = store.get(PREFIX + key);
+  const mergedReviews = Object.assign({}, presetReviews || {}, existing?.reviews || {});
+  S = {
+    cycleKey: key,
+    pcDate,
+    fileName,
+    loadedAt: new Date().toISOString(),
+    items,
+    reviews: mergedReviews,
+    reviewer: existing?.reviewer || store.get("phpam:reviewer") || "Emily Ardoin"
+  };
+  prepare(); persist(); showApp();
+}
+function prepare(){
+  if (!S) return;
+  const hist = allHistory();
+  const seenApps = new Map(), devs = new Map();
+  hist.forEach(h => {
+    if (h.cycle === S.cycleKey) return;
+    if (h.app) seenApps.set(h.app, h);
+    if ((h.tier === "1" || h.tier === "2") && h.developer) devs.set(h.developer.toLowerCase(), h);
+  });
+  S.items.forEach(it => {
+    it._c = classify(it);
+    it._hist = seenApps.get(it.app) || null;
+    it._dev = it.developer && devs.get(it.developer.toLowerCase()) || null;
+    if (it._hist) { it._c.flags.push("watch"); it._c.score += 3; }
+    if (it._dev && it._dev.app !== it.app) { it._c.flags.push("dev"); it._c.score += 1; }
+  });
+}
+function persist(){
+  if (!S) return;
+  const ok = store.set(PREFIX + S.cycleKey, {
+    cycleKey:S.cycleKey, pcDate:S.pcDate, fileName:S.fileName, loadedAt:S.loadedAt,
+    items:S.items.map(stripPrivate), reviews:S.reviews, reviewer:S.reviewer
+  });
+  store.set("phpam:last", S.cycleKey);
+  return ok;
+}
+function persistWatchlist(){
+  store.set(WL_KEY, WL);
+}
+const stripPrivate = it => { const o = {}; for (const k in it) if (!k.startsWith("_")) o[k] = it[k]; return o; };
+function allHistory(){
+  const out = history.slice();
+  store.keys().filter(k => k.startsWith(PREFIX)).forEach(k => {
+    const c = store.get(k); if (!c || !c.reviews) return;
+    Object.entries(c.reviews).forEach(([app, r]) => {
+      if (!r.tier) return;
+      const it = (c.items || []).find(i => i.app === app) || {};
+      out.push({cycle:c.cycleKey, app, tier:r.tier, developer:it.developer || "", name:it.name || "", why:r.why || ""});
+    });
+  });
+  return out;
+}
+const rev = app => S.reviews[app] || (S.reviews[app] = {});
+function tierOf(it){ return (S.reviews[it.app] || {}).tier || ""; }
+function isResearched(app){
+  const r = S.reviews[app];
+  return !!(r && (r.tier || r.address || r.yearBuilt || r.why || r.sources || r.followup || (r.designation && r.designation !== DESIGNATIONS[0])));
+}
+function inGroup(it, g){
+  const t = tierOf(it);
+  if (g === "all") return true;
+  if (g === "t1" || g === "t2" || g === "t3") return t === g[1];
+  if (g === "check") return it._c.group === "check" && t !== "3";
+  return it._c.group === g;
+}
+
+/* ---------- Rendering ---------- */
+function showApp(){
+  $("#startScreen").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  $("#reviewer").value = S?.reviewer || "";
+  $("#cycleLabel").textContent = S?.pcDate ? "PC Cycle: " + fmtDate(new Date(S.pcDate)) : (S?.fileName || "");
+  if (S) {
+    const nbs = [...new Set(S.items.map(i => i.superN).filter(Boolean))].sort();
+    $("#fNeighborhood").innerHTML = '<option value="">All neighborhoods</option>' + nbs.map(n => `<option>${esc(n)}</option>`).join("");
+    const used = new Set(S.items.flatMap(i => i._c.flags));
+    $("#fFlag").innerHTML = '<option value="">All flags</option>' + Object.keys(FLAG_INFO).filter(f => used.has(f)).map(f => `<option value="${f}">${esc(FLAG_INFO[f][0])}</option>`).join("");
+  }
+  render();
+}
+function counts(){
+  const c = {}; GROUPS.forEach(([g]) => c[g] = S ? S.items.filter(i => inGroup(i, g)).length : 0);
+  c.researched = S ? S.items.filter(i => isResearched(i.app)).length : 0;
+  c.dpv = S ? S.items.filter(i => i._c.flags.includes("dpv")).length : 0;
+  return c;
+}
+function render(){
+  const c = counts();
+  $("#modeAgendaCount").textContent = S ? S.items.length : 0;
+  $("#modeWatchlistCount").textContent = (WL.watchedProperties || []).length;
+  $("#modeAgendaBtn").setAttribute("aria-selected", String(view.mode === "agenda"));
+  $("#modeWatchlistBtn").setAttribute("aria-selected", String(view.mode === "watchlist"));
+
+  if (view.mode === "watchlist") {
+    $("#agendaToolbar").classList.add("hidden");
+    $("#watchlistToolbar").classList.remove("hidden");
+    renderWatchlistFunnel();
+    renderWatchlistSidebar();
+    renderWatchlistDetail();
+    return;
+  }
+
+  $("#agendaToolbar").classList.remove("hidden");
+  $("#watchlistToolbar").classList.add("hidden");
+  $("#funnel").innerHTML = `
+    <div class="stage"><div class="n">${S ? S.items.length : 0}</div><div class="l">on the agenda (incl. ${c.dpv} DPV)</div></div>
+    <div class="stage"><div class="n">${S ? S.items.filter(i=>i._c.group==="check").length : 0}</div><div class="l">to check after screening</div></div>
+    <div class="stage auto"><div class="n">${c.researched}</div><div class="l">pre-enriched &amp; researched</div></div>
+    <div class="stage t1"><div class="n">${c.t1}</div><div class="l">Tier 1 · escalate</div></div>
+    <div class="stage t2"><div class="n">${c.t2}</div><div class="l">Tier 2 · watch</div></div>`;
+  $("#tabs").innerHTML = GROUPS.map(([g, label]) => `<button class="tab" role="tab" data-g="${g}" aria-selected="${view.group===g}">${label}<span class="c">${c[g]}</span></button>`).join("");
+  renderList(); renderDetail();
+}
+
+function filtered(){
+  if (!S) return [];
+  const q = view.q.toLowerCase();
+  return S.items.filter(it => inGroup(it, view.group))
+    .filter(it => !view.nb || it.superN === view.nb)
+    .filter(it => !view.flag || it._c.flags.includes(view.flag))
+    .filter(it => !q || [it.name, it.prevSub, it.developer, it.org, it.app, it.superN, (S.reviews[it.app]||{}).address, (it.atlas||{}).primaryAddress].join(" ").toLowerCase().includes(q))
+    .sort((a, b) => (tierRank(a) - tierRank(b)) || (b._c.score - a._c.score) || String(b.app).localeCompare(String(a.app)));
+}
+const tierRank = it => ({"1":0, "2":1, "3":3}[tierOf(it)] ?? 2);
+function chipsHtml(it, max){
+  const fl = it._c.flags.slice(0, max || 99);
+  return fl.map(f => `<span class="chip ${FLAG_INFO[f]?.[2] || ""}">${esc(FLAG_INFO[f]?.[0] || f)}</span>`).join("");
+}
+function renderList(){
+  const items = filtered();
+  if (!items.length) { $("#list").innerHTML = `<div class="list-empty">${view.group==="t1"||view.group==="t2"||view.group==="t3" ? "No items in this tier yet. Set a tier on an item in To check." : "No items match these filters."}</div>`; return; }
+  if (!view.selected || !items.some(i => i.app === view.selected)) view.selected = items[0].app;
+  $("#list").innerHTML = items.map(it => {
+    const t = tierOf(it);
+    const r = S.reviews[it.app] || {};
+    const at = it.atlas || {};
+    const yrBadge = (r.yearBuilt || at.earliestYearBuilt) ? `<span class="chip ${at.earliestYearBuilt && at.earliestYearBuilt <= 1976 ? 'critical' : ''}">Built ${esc(r.yearBuilt || at.earliestYearBuilt)}</span>` : "";
+    return `<button class="row" data-app="${esc(it.app)}" aria-current="${it.app===view.selected}">
+      <div class="top"><span class="nm">${esc(it.name || "(no name)")}</span>${t ? `<span class="tierbadge t${t}">Tier ${t}</span>` : (isResearched(it.app) ? '<span class="app">enriched</span>' : "")}<span class="app">${esc(it.app)}</span></div>
+      <div class="sub">${esc([r.address || at.primaryAddress, it.prevSub, it.superN].filter(Boolean).join(" · ") || it._c.reason)}</div>
+      <div class="chips">${yrBadge}${chipsHtml(it, 4)}</div></button>`;
+  }).join("");
+}
+function hcadLinks(it){
+  if (!/harris/i.test(it.county || "Harris")) return `<span class="dis">Check the ${esc(it.county)} County appraisal district</span>`;
+  const ids = (it.hcad || "").split(/[,;\s]+/).filter(x => /^\d{10,13}$/.test(x));
+  if (!ids.length) return `<a href="https://hcad.org" target="_blank" rel="noopener">HCAD Search</a>`;
+  return ids.map((id, i) => `<a href="https://hcad.org/hcad-resources/hcad-online-toolkit/hcad-property-search/?account=${id}" target="_blank" rel="noopener">HCAD Record${ids.length>1?" "+(i+1):""}</a><a href="https://arcgis.hcad.org/HCADViewer/?accountNumber=${id}" target="_blank" rel="noopener">HCAD Map${ids.length>1?" "+(i+1):""}</a>`).join("");
+}
+function atlasMapLink(it, r){
+  const at = it.atlas || {};
+  const firstHcad = ((it.hcad || "").split(/[,;\s]+/).find(x => /^\d{10,13}$/.test(x)) || "").padStart(13, "0");
+  if (at.buildingId || (firstHcad && firstHcad.length === 13 && at.coordSource === "parcel")) {
+    const q = encodeURIComponent(r.address || at.primaryAddress || firstHcad);
+    return `<a class="atlas-link" href="index.html?q=${q}${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=18` : ""}" target="_blank" rel="noopener">View in Houston Building Atlas Map ↗</a>`;
+  }
+  if (at.lat && at.lng) {
+    return `<a class="atlas-link" href="index.html?lat=${at.lat}&lng=${at.lng}&z=17" target="_blank" rel="noopener">Locate in Houston Building Atlas Map ↗</a>`;
+  }
+  return "";
+}
+function renderDetail(){
+  const it = S && S.items.find(i => i.app === view.selected);
+  if (!it) { $("#detail").innerHTML = '<p class="list-empty">Select an item.</p>'; return; }
+  const r = S.reviews[it.app] || {};
+  const at = it.atlas || {};
+  const rawAddr = r.address || at.primaryAddress || it.noticeLocation || "";
+  const addr = rawAddr ? encodeURIComponent(rawAddr + (/houston|tx/i.test(rawAddr) ? "" : ", Houston, TX")) : "";
+  const fact = (k, v) => v ? `<div class="fact"><dt>${k}</dt><dd>${esc(v)}</dd></div>` : "";
+  const sub = excelDate(it.submitted);
+  const flagsList = it._c.flags.map(f => {
+    let extra = "";
+    if (f === "watch" && it._hist) extra = ` Tier ${esc(it._hist.tier)} on ${esc(it._hist.cycle)}${it._hist.why ? ": " + esc(it._hist.why) : "."}`;
+    if (f === "dev" && it._dev) extra = ` Earlier item: ${esc(it._dev.name || it._dev.app)} (${esc(it._dev.cycle)}).`;
+    if (f === "pre1976" && at.earliestYearBuilt) extra = ` Parcel structure built in ${esc(at.earliestYearBuilt)} (${esc(at.primaryAddress || "HCAD match")}).`;
+    if (f === "dpv" && it.varianceSummary) extra = ` ${esc(it.varianceSummary)}`;
+    const isCrit = f === "pre1976" || f === "dpv" || f === "permit";
+    return `<li class="${isCrit ? 'crit' : ''}"><b>${esc(FLAG_INFO[f]?.[0] || f)}.</b> ${esc(FLAG_INFO[f]?.[1] || "")}${extra}</li>`;
+  }).join("");
+
+  const hasAtlasInfo = at.primaryAddress || at.earliestYearBuilt || at.subdivisionMatch || (at.designations && at.designations.length) || it.varianceSummary;
+  const alreadyWatched = (WL.watchedProperties || []).some(w => w.appNo === it.app || (it.hcad && w.hcadAccount === it.hcad));
+
+  $("#detail").innerHTML = `
+    <h2>${esc(it.name)}</h2>
+    <div class="meta">${esc(it.app)}${it.agendaItemNo ? " · Agenda Item #" + esc(it.agendaItemNo) : ""} · ${esc(it.type)}${it.special ? " · " + esc(it.special) : ""}${it.deferral ? " · " + esc(it.deferral) : ""}</div>
+    ${it._c.group !== "check" ? `<div class="history-note" style="background:var(--t3-soft);border-color:var(--line)">${esc(it._c.reason)}</div>` : ""}
+    ${hasAtlasInfo ? `
+      <div class="atlas-box">
+        <div class="atlas-head">
+          <span>Houston Building Atlas Automated Pre-Screen</span>
+          <button class="btn" id="promoteWatchBtn" data-app="${esc(it.app)}">${alreadyWatched ? "✓ On Property Watchlist (View)" : "+ Promote to Property Watchlist"}</button>
+        </div>
+        <div class="atlas-grid">
+          ${at.primaryAddress ? `<div class="kv">Parcel Address: <b>${esc(at.primaryAddress)}</b></div>` : ""}
+          ${at.earliestYearBuilt ? `<div class="kv">HCAD Year Built: <b>${esc(at.earliestYearBuilt)}</b></div>` : ""}
+          ${at.subdivisionMatch ? `<div class="kv">Historic Addition: <b>${esc(at.subdivisionMatch)}</b> (Earliest ${esc(at.subdivisionEarliestYear || "N/A")}, Median ${esc(at.subdivisionMedianYear || "N/A")})</div>` : ""}
+          ${at.designations && at.designations.length ? `<div class="kv">Designations: <b>${esc(at.designations.join(", "))}</b></div>` : ""}
+          ${at.smlsProtections && at.smlsProtections.length ? `<div class="kv">Ch. 42 Protection: <b>${esc(at.smlsProtections.join(", "))}</b></div>` : ""}
+        </div>
+        ${it.varianceSummary ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #D0E1F0"><b>Variance / Notice Summary:</b> ${esc(it.varianceSummary)}</div>` : ""}
+      </div>
+    ` : ""}
+    <div class="links">
+      ${atlasMapLink(it, r)}
+      ${/^https?:/i.test(it.pdf) ? `<a href="${esc(it.pdf)}" target="_blank" rel="noopener">Plat PDF</a>` : '<span class="dis">No plat PDF link</span>'}
+      ${/^https?:/i.test(it.noticePdf) && it.noticePdf !== it.pdf ? `<a class="notice-link" href="${esc(it.noticePdf)}" target="_blank" rel="noopener">Public Notice &amp; Site Plan PDF</a>` : ""}
+      ${hcadLinks(it)}
+      ${addr ? `<a href="https://www.google.com/maps/search/?api=1&query=${addr}" target="_blank" rel="noopener">Google Maps &amp; Street View</a>` : '<span class="dis">Add an address to open Street View</span>'}
+      <a href="https://atlas.thc.texas.gov/" target="_blank" rel="noopener">THC Atlas</a>
+      <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits</a>
+    </div>
+    <dl class="facts">
+      ${fact("Agenda section", it.section)}${fact("Previous/original subdivision", it.prevSub)}${fact("Super neighborhood", it.superN)}
+      ${fact("Land use", it.landUse)}${fact("Acreage", it.acreage && num(it.acreage) != null ? num(it.acreage).toFixed(3) + " ac" : "")}${fact("Lots created", it.lots)}
+      ${fact("Council district", it.council)}${fact("City limits", it.city)}${fact("Historic district", it.hd)}
+      ${fact("TIRZ", it.tirz)}${fact("Management district", it.mgmt)}${fact("Key Map", it.keymap)}
+      ${fact("ZIP", it.zip)}${fact("Major thoroughfare", it.thoroughfare)}${fact("HCAD account", it.hcad)}
+      ${fact("Developer", it.developer)}${fact("Applicant", [it.applicant, it.org].filter(Boolean).join(", "))}${fact("Phone", it.phone)}
+      ${fact("Submitted", sub ? fmtDate(sub) : "")}
+    </dl>
+    ${flagsList ? `<ul class="why-flags">${flagsList}</ul>` : ""}
+    <section class="review" aria-label="Your review">
+      <h3>
+        <span>Your Review</span>
+        ${r.autoEnriched ? '<span class="chip ok">Pre-filled by Houston Building Atlas (editable)</span>' : ""}
+      </h3>
+      <div class="grid2">
+        <div class="field"><label for="r-address">Address <span class="hint">from Atlas / HCAD</span></label><input id="r-address" data-k="address" value="${esc(r.address)}"></div>
+        <div class="field"><label for="r-year">Year built <span class="hint">from Atlas / HCAD</span></label><input id="r-year" data-k="yearBuilt" value="${esc(r.yearBuilt)}" inputmode="numeric"></div>
+      </div>
+      <div class="field"><label for="r-des">Designation status</label><select id="r-des" data-k="designation">${DESIGNATIONS.map(d => `<option ${ (r.designation||DESIGNATIONS[0])===d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></div>
+      <div class="field"><label>Tier</label><div class="tierpick">${TIERS.map(([v,l,cls]) => `<label class="${cls} ${(r.tier||"")===v ? "on" : ""}"><input type="radio" name="tier" value="${v}" ${(r.tier||"")===v ? "checked" : ""}>${l}</label>`).join("")}</div></div>
+      <div class="field"><label for="r-why">Why <span class="hint">2-3 sentences: what it is and why it matters, or why you dropped it</span></label><textarea id="r-why" data-k="why">${esc(r.why)}</textarea></div>
+      <div class="field"><label for="r-src">Sources <span class="hint">links or citations, one per line</span></label><textarea id="r-src" data-k="sources">${esc(r.sources)}</textarea></div>
+      <div class="field"><label for="r-fu">Follow-up <span class="hint">next check or decision needed</span></label><input id="r-fu" data-k="followup" value="${esc(r.followup)}"></div>
+      <div class="saved" id="savedNote">${r.updated ? "Saved " + new Date(r.updated).toLocaleString() : "Changes save automatically in this browser."}</div>
+    </section>`;
+}
+
+/* ---------- Watchlist Mode Rendering ---------- */
+function defaultChecklistForNewProp(addr){
+  const qAddr = encodeURIComponent((addr || "").trim() + ", Houston, TX");
+  return [
+    {id:"chk-01", stage:"Every Check", activity:"Public Notices", whatToLookFor:"Search the address, owner, and buyer names for published legal notices, such as TABC application notices.", typicalTiming:"Any stage.", resourceLabel:"Texas Public Notices", resourceUrl:"https://www.texaspublicnotices.com/", additionalResourceLabel:"COH Planning Notices", additionalResourceUrl:"https://www.houstontx.gov/planning/notices/", status:"To Do", lastChecked:"", automated:false, checks:[]},
+    {id:"chk-02", stage:"Every Check", activity:"Site Visit", whatToLookFor:"Drive by and photograph the site. Look for TABC 60-day signs, plat or variance notice signs, fencing, dumpsters, utility disconnections, and survey stakes.", typicalTiming:"Any stage. Posted signs can appear before records show up online.", resourceLabel:"Google Street View", resourceUrl:`https://www.google.com/maps/search/?api=1&query=${qAddr}`, additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:false, checks:[]},
+    {id:"chk-03", stage:"Sale & Ownership", activity:"Deed Transfers & Liens", whatToLookFor:"Search owner and buyer names for deeds, deeds of trust (these name the lender), and any recorded option or memorandum of contract.", typicalTiming:"Deeds usually record within days of closing.", resourceLabel:"HC Clerk Real Property", resourceUrl:"https://www.cclerk.hctx.net/applications/websearch/RP.aspx", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:false, checks:[]},
+    {id:"chk-04", stage:"Sale & Ownership", activity:"Corporate Entity Verification", whatToLookFor:"Look up each new LLC to find its officers, registered agent, and related entities.", typicalTiming:"As soon as a new entity name surfaces.", resourceLabel:"Comptroller Entity Search", resourceUrl:"https://comptroller.texas.gov/taxes/franchise/account-status/search", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:true, checks:[]},
+    {id:"chk-05", stage:"Sale & Ownership", activity:"HCAD Ownership & Classification", whatToLookFor:"Search the HCAD account number to confirm the owner of record and watch for changes to land use, value, or improvements.", typicalTiming:"Owner updates lag the deed by weeks to months.", resourceLabel:"HCAD Property Search", resourceUrl:"https://search.hcad.org/", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:true, checks:[]},
+    {id:"chk-06", stage:"Plans & Use", activity:"Liquor Licensing", whatToLookFor:"Search the address for pending or issued permits. Applicant records often reveal the operator, trade names, and LLCs.", typicalTiming:"After closing, once an operator has a lease or deed.", resourceLabel:"TABC Public Inquiry", resourceUrl:"https://apps.tabc.texas.gov/publicinquiry/", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:true, checks:[]},
+    {id:"chk-07", stage:"Plans & Use", activity:"Hemp Licensing", whatToLookFor:"Search the address for pending or issued permits.", typicalTiming:"After closing, once an operator has a lease or deed.", resourceLabel:"DSHS License Search", resourceUrl:"https://vo.ras.dshs.state.tx.us/datamart/login.do", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:false, checks:[]},
+    {id:"chk-08", stage:"Plans & Use", activity:"Pending Plans (Open Records & ILMS)", whatToLookFor:"Request plans, pre-app meeting records, and plan review project numbers for the address from the Houston Permitting Center.", typicalTiming:"Most useful after closing, once an architect or engineer is engaged.", resourceLabel:"Public Records (GovQA)", resourceUrl:"https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx", additionalResourceLabel:"ILMS Project Status", additionalResourceUrl:"https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp", status:"To Do", lastChecked:"", automated:false, checks:[]},
+    {id:"chk-09", stage:"Plans & Use", activity:"Replats & Variances", whatToLookFor:"Watch for replat and variance applications that include the property.", typicalTiming:"Can be filed before closing with the seller's consent.", resourceLabel:"Houston Plat Tracker", resourceUrl:"https://plattracker.powerappsportals.us/SignIn", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:true, checks:[]},
+    {id:"chk-10", stage:"Plans & Use", activity:"Accessibility Registration (TDLR TABS)", whatToLookFor:"Search the address in TABS. Registered projects list the owner, design firm, estimated cost, and scope.", typicalTiming:"Design phase, before construction starts.", resourceLabel:"TDLR Architectural Barriers", resourceUrl:"https://www.tdlr.texas.gov/TABS/", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:true, checks:[]},
+    {id:"chk-11", stage:"Plans & Use", activity:"Easements, Abandonments & TIRZ", whatToLookFor:"Check City Council agendas for street, alley, or easement abandonments next to the property.", typicalTiming:"Design phase, usually after closing.", resourceLabel:"City Secretary", resourceUrl:"https://houstontx.gov/citysec/", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:false, checks:[]},
+    {id:"chk-12", stage:"Plans & Use", activity:"Environmental Registrations", whatToLookFor:"Search the address for new regulated-entity records, such as construction stormwater coverage or storage tanks.", typicalTiming:"Shortly before construction.", resourceLabel:"TCEQ Central Registry", resourceUrl:"https://www.tceq.texas.gov/permitting/central_registry", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:false, checks:[]},
+    {id:"chk-13", stage:"Demolition Signals", activity:"Code Complaints & Dangerous Buildings", whatToLookFor:"Check the 311 map for complaints at the address (open structure, nuisance, dangerous building).", typicalTiming:"Any stage, especially while the building is vacant.", resourceLabel:"311 Service Request Viewer", resourceUrl:"https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f", additionalResourceLabel:"Community Code Enforcement", additionalResourceUrl:"https://www.houstonpermittingcenter.org/community-code-enforcement", status:"To Do", lastChecked:"", automated:true, checks:[]},
+    {id:"chk-14", stage:"Demolition Signals", activity:"Demolition & Building Permits", whatToLookFor:"Search Sold Permits by address for demolition and building permits.", typicalTiming:"Final weeks before work starts.", resourceLabel:"Houston Sold Permits", resourceUrl:"https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm", additionalResourceLabel:"Permit Activity Reports", additionalResourceUrl:"https://www.houstonpermittingcenter.org/news-events/permit-activity-reports-now-available", status:"To Do", lastChecked:"", automated:true, checks:[]},
+    {id:"chk-15", stage:"Demolition Signals", activity:"Asbestos & Demolition Notification (DSHS)", whatToLookFor:"DSHS must be notified at least 10 working days before any commercial or public building is demolished.", typicalTiming:"At least 10 working days before demolition starts.", resourceLabel:"DSHS Notifications", resourceUrl:"https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do", additionalResourceLabel:"", additionalResourceUrl:"", status:"To Do", lastChecked:"", automated:true, checks:[]}
+  ];
+}
+
+function rebuildFindingsLog(prop){
+  if (!prop || !Array.isArray(prop.checklist)) return [];
+  const log = [];
+  prop.checklist.forEach((row, idxRow) => {
+    (row.checks || []).forEach(chk => {
+      log.push({
+        date: chk.date || "",
+        stage: row.stage,
+        activity: row.activity,
+        result: chk.result || "",
+        automated: !!row.automated,
+        _order: (chk.date || "9999-99-99") + "-" + String(idxRow).padStart(2, "0")
+      });
+    });
+  });
+  log.sort((a, b) => a._order.localeCompare(b._order));
+  log.forEach((e, i) => { e.entryNo = i + 1; delete e._order; });
+  prop.findingsLog = log;
+  return log;
+}
+
+function getSelectedWatchProp(){
+  const list = WL.watchedProperties || [];
+  if (!list.length) return null;
+  if (!view.selectedWatchId || !list.some(p => p.id === view.selectedWatchId)) {
+    view.selectedWatchId = list[0].id;
+  }
+  const prop = list.find(p => p.id === view.selectedWatchId);
+  if (prop && !Array.isArray(prop.checklist)) {
+    prop.checklist = defaultChecklistForNewProp(prop.address);
+    if (prop.notes) {
+      prop.checklist[8].status = "Flagged";
+      prop.checklist[8].lastChecked = (prop.keyDates && prop.keyDates.planningCommission) || new Date().toISOString().slice(0,10);
+      prop.checklist[8].checks.push({date: prop.checklist[8].lastChecked, result: prop.notes});
+    }
+    rebuildFindingsLog(prop);
+  }
+  return prop;
+}
+
+function renderWatchlistFunnel(){
+  const list = WL.watchedProperties || [];
+  const p = getSelectedWatchProp();
+  const ck = (p && p.checklist) || [];
+  const flagged = ck.filter(r => r.status === "Flagged").length;
+  const complete = ck.filter(r => r.status === "Complete").length;
+  const inProg = ck.filter(r => r.status === "In Progress").length;
+  const totalChecks = (p && p.findingsLog ? p.findingsLog.length : 0);
+  $("#funnel").innerHTML = `
+    <div class="stage"><div class="n">${list.length}</div><div class="l">watched properties</div></div>
+    <div class="stage t1"><div class="n">${flagged}</div><div class="l">flagged risk signals (selected)</div></div>
+    <div class="stage auto"><div class="n">${complete + inProg} / ${ck.length || 15}</div><div class="l">checklist activities active/complete</div></div>
+    <div class="stage t2"><div class="n">${totalChecks}</div><div class="l">dated checks in Findings Log</div></div>`;
+}
+
+function renderWatchlistSidebar(){
+  const list = WL.watchedProperties || [];
+  if (!list.length) {
+    $("#list").innerHTML = '<div class="list-empty">No properties on the watchlist yet.</div>';
+    return;
+  }
+  getSelectedWatchProp();
+  $("#list").innerHTML = list.map(p => {
+    const t = p.tier || "1";
+    const checksCount = (p.findingsLog && p.findingsLog.length) || 0;
+    return `<button class="row" data-watch-id="${esc(p.id)}" aria-current="${p.id === view.selectedWatchId}">
+      <div class="top">
+        <span class="nm">${esc(p.propertyName || p.address)}</span>
+        <span class="tierbadge t${esc(t)}">Tier ${esc(t)}</span>
+      </div>
+      <div class="sub">${esc([p.address, p.yearBuilt ? "Built " + p.yearBuilt : "", p.hcadAccount ? "HCAD " + p.hcadAccount : ""].filter(Boolean).join(" · "))}</div>
+      <div class="chips">
+        ${p.secondaryAddresses && p.secondaryAddresses.length ? `<span class="chip critical">Perimeter: ${esc(p.secondaryAddresses[0])}</span>` : ""}
+        ${checksCount ? `<span class="chip watch">${checksCount} logged checks</span>` : ""}
+        ${p.appNo ? `<span class="chip hearing">Plat ${esc(p.appNo)}</span>` : ""}
+      </div>
+    </button>`;
+  }).join("");
+}
+
+function renderWatchlistDetail(){
+  const p = getSelectedWatchProp();
+  if (!p) {
+    $("#detail").innerHTML = '<p class="list-empty">Select a watched property.</p>';
+    return;
+  }
+  const ck = p.checklist || [];
+  const log = rebuildFindingsLog(p);
+  const cnt = st => ck.filter(r => r.status === st).length;
+  const activeDenom = ck.filter(r => r.status !== "N/A").length || 1;
+  const pct = Math.round(((cnt("Complete") + cnt("Flagged")) / activeDenom) * 100);
+  const kd = p.keyDates || {};
+
+  $("#detail").innerHTML = `
+    <h2>${esc(p.propertyName)}</h2>
+    <div class="meta">${esc(p.address)}${p.secondaryAddresses && p.secondaryAddresses.length ? " (Secondary block addresses: " + esc(p.secondaryAddresses.join(", ")) + ")" : ""} · HCAD ${esc(p.hcadAccount || "N/A")}${p.yearBuilt ? " · Built " + esc(p.yearBuilt) : ""}${p.yearRemodeled ? " / Remodeled " + esc(p.yearRemodeled) : ""}</div>
+    <div class="links">
+      ${p.lat && p.lng ? `<a class="atlas-link" href="index.html?q=${encodeURIComponent(p.address)}&lat=${p.lat}&lng=${p.lng}&z=18" target="_blank" rel="noopener">Open Dossier in Houston Building Atlas Map ↗</a>` : ""}
+      ${p.hcadAccount ? `<a href="https://hcad.org/hcad-resources/hcad-online-toolkit/hcad-property-search/?account=${encodeURIComponent(p.hcadAccount)}" target="_blank" rel="noopener">HCAD Record</a>` : ""}
+      <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address + ", Houston, TX")}" target="_blank" rel="noopener">Google Street View</a>
+      <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits</a>
+      <a href="https://www.tdlr.texas.gov/TABS/Search" target="_blank" rel="noopener">TDLR TABS Search</a>
+      ${p.platPdf ? `<a href="${esc(p.platPdf)}" target="_blank" rel="noopener">Plat PDF</a>` : ""}
+      ${p.noticePdf ? `<a class="notice-link" href="${esc(p.noticePdf)}" target="_blank" rel="noopener">Public Notice PDF</a>` : ""}
+    </div>
+
+    <div class="wl-card">
+      <h3>
+        <span>Property Information &amp; Key Dates</span>
+        <span class="chip critical">${pct}% Checklist Complete / Flagged</span>
+      </h3>
+      <dl class="facts">
+        <div class="fact"><dt>Property Name</dt><dd>${esc(p.propertyName)}</dd></div>
+        <div class="fact"><dt>Primary Address</dt><dd>${esc(p.address)}</dd></div>
+        <div class="fact"><dt>Perimeter / Block Addresses</dt><dd>${esc((p.secondaryAddresses || []).join(", ") || "None recorded")}</dd></div>
+        <div class="fact"><dt>HCAD Account #</dt><dd>${esc(p.hcadAccount || "N/A")}</dd></div>
+        <div class="fact"><dt>Designation</dt><dd>${esc(p.designation || "None")}</dd></div>
+        <div class="fact"><dt>Owner of Record</dt><dd>${esc(p.ownerOfRecord || "Not recorded")}</dd></div>
+        <div class="fact"><dt>Buyer / Related Entities</dt><dd>${esc(p.buyerRelatedEntities || "Not recorded")}</dd></div>
+        ${p.lender ? `<div class="fact"><dt>Lender / Deed of Trust</dt><dd>${esc(p.lender)}</dd></div>` : ""}
+        ${p.designFirm ? `<div class="fact"><dt>Design / Engineering Firm</dt><dd>${esc(p.designFirm)}</dd></div>` : ""}
+        <div class="fact"><dt>Monitoring Started</dt><dd>${esc(kd.monitoringStarted || "2026-09-22")}</dd></div>
+        <div class="fact"><dt>Target / Sale Closing</dt><dd>${esc(kd.targetClosing || "N/A")}</dd></div>
+        <div class="fact"><dt>Planning Commission</dt><dd>${esc(kd.planningCommission || "N/A")}</dd></div>
+        ${kd.asbestosAbatementWindow ? `<div class="fact"><dt>DSHS Abatement Window</dt><dd style="color:var(--t1);font-weight:600">${esc(kd.asbestosAbatementWindow)}</dd></div>` : ""}
+      </dl>
+      <div style="margin-top:12px">
+        <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Executive Summary &amp; Advocacy Notes</label>
+        <textarea id="wlNotesInput" style="width:100%;min-height:68px;border:1px solid var(--line);border-radius:4px;padding:8px;font-size:13.5px">${esc(p.notes || "")}</textarea>
+      </div>
+      <div class="wl-progress">
+        <div class="wl-stat"><b style="color:var(--t1)">${cnt("Flagged")}</b> Flagged</div>
+        <div class="wl-stat"><b style="color:var(--ok)">${cnt("Complete")}</b> Complete</div>
+        <div class="wl-stat"><b style="color:var(--t2)">${cnt("In Progress")}</b> In Progress</div>
+        <div class="wl-stat"><b>${cnt("To Do")}</b> To Do</div>
+        <div class="wl-stat"><b>${cnt("N/A")}</b> N/A</div>
+      </div>
+    </div>
+
+    <div class="wl-card">
+      <h3>
+        <span>15-Point Multi-Agency Monitoring Checklist</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:400">Every dated check automatically populates the chronological Findings Log below</span>
+      </h3>
+      <div style="overflow-x:auto">
+        <table class="wl-table">
+          <thead>
+            <tr>
+              <th style="width:110px">Stage</th>
+              <th style="width:180px">Monitoring Activity</th>
+              <th style="width:220px">What to Look For &amp; Timing</th>
+              <th style="width:140px">Portal Resources</th>
+              <th style="width:120px">Status</th>
+              <th>Logged Checks &amp; Add New Check</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ck.map((row, idxRow) => {
+              const stClass = (row.status || "To Do").replace(/\s+/g, "");
+              return `<tr>
+                <td><span class="wl-stage">${esc(row.stage)}</span>${row.automated ? '<br><span class="chip ok" style="margin-top:4px;display:inline-block">Atlas Auto-Sweep</span>' : ""}</td>
+                <td><b>${esc(row.activity)}</b></td>
+                <td><div>${esc(row.whatToLookFor)}</div><div style="color:var(--muted);font-size:11.5px;margin-top:4px"><i>Timing:</i> ${esc(row.typicalTiming)}</div></td>
+                <td>
+                  ${row.resourceUrl ? `<div><a href="${esc(row.resourceUrl)}" target="_blank" rel="noopener">${esc(row.resourceLabel || "Open Portal")} ↗</a></div>` : "<span>-</span>"}
+                  ${row.additionalResourceUrl ? `<div style="margin-top:4px"><a href="${esc(row.additionalResourceUrl)}" target="_blank" rel="noopener">${esc(row.additionalResourceLabel || "Secondary Link")} ↗</a></div>` : ""}
+                </td>
+                <td>
+                  <select class="status-sel ${esc(stClass)}" data-wl-idx="${idxRow}">
+                    ${["To Do","In Progress","Flagged","Complete","N/A"].map(opt => `<option value="${opt}" ${row.status===opt?"selected":""}>${opt}</option>`).join("")}
+                  </select>
+                  <div style="font-size:11px;color:var(--muted);margin-top:4px">Last: ${esc(row.lastChecked || "Not yet")}</div>
+                </td>
+                <td>
+                  ${(row.checks && row.checks.length) ? `<ul class="chk-list">${row.checks.map(c => `<li><b>${esc(c.date)}:</b> ${esc(c.result)}</li>`).join("")}</ul>` : '<div style="color:var(--muted);font-size:12px">No checks recorded yet.</div>'}
+                  <div class="chk-add">
+                    <input type="date" id="chkDate-${idxRow}" value="${new Date().toISOString().slice(0,10)}" aria-label="Check date">
+                    <input type="text" id="chkText-${idxRow}" placeholder="Record check result (e.g. No new filings)" aria-label="Check result">
+                    <button class="btn" data-add-chk="${idxRow}">+ Log</button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="wl-card">
+      <h3>
+        <span>Chronological Findings Log (${log.length} checks logged)</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:400">Compiled automatically from the 15-Point Checklist</span>
+      </h3>
+      <table class="wl-table">
+        <thead>
+          <tr>
+            <th style="width:45px">#</th>
+            <th style="width:105px">Date</th>
+            <th style="width:130px">Stage</th>
+            <th style="width:210px">Activity</th>
+            <th>Finding / Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${log.map(entry => `<tr>
+            <td>${entry.entryNo}</td>
+            <td style="white-space:nowrap;font-weight:600">${esc(entry.date)}</td>
+            <td>${esc(entry.stage)}</td>
+            <td>${esc(entry.activity)}</td>
+            <td>${esc(entry.result)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ---------- Promote Plat Item or Add Custom Property to Watchlist ---------- */
+function promoteItemToWatchlist(appNo){
+  if (!S) return;
+  const it = S.items.find(i => i.app === appNo);
+  if (!it) return;
+  const existing = (WL.watchedProperties || []).find(w => w.appNo === it.app || (it.hcad && w.hcadAccount === it.hcad));
+  if (existing) {
+    view.mode = "watchlist";
+    view.selectedWatchId = existing.id;
+    render();
+    return;
+  }
+  const r = S.reviews[it.app] || {};
+  const at = it.atlas || {};
+  const newProp = {
+    id: "plat-" + it.app,
+    propertyName: it.name,
+    address: r.address || at.primaryAddress || it.noticeLocation || it.name,
+    secondaryAddresses: [],
+    hcadAccount: it.hcad || "",
+    buildingId: at.buildingId || "",
+    yearBuilt: r.yearBuilt || at.earliestYearBuilt || "",
+    designation: r.designation || (at.designations && at.designations.join(", ")) || "None found",
+    ownerOfRecord: it.developer || "",
+    buyerRelatedEntities: [it.developer, it.applicant, it.org].filter(Boolean).join(", "),
+    keyDates: {
+      monitoringStarted: new Date().toISOString().slice(0,10),
+      planningCommission: S.cycleKey
+    },
+    notes: r.why || it.varianceSummary || `Flagged on Planning Commission cycle ${S.cycleKey} (${it.type}).`,
+    lng: at.lng || null,
+    lat: at.lat || null,
+    tier: r.tier || "1",
+    appNo: it.app,
+    section: it.section || "",
+    platPdf: it.pdf || "",
+    noticePdf: it.noticePdf || "",
+    checklist: defaultChecklistForNewProp(r.address || at.primaryAddress || it.name)
+  };
+  newProp.checklist[8].status = "Flagged";
+  newProp.checklist[8].lastChecked = S.cycleKey;
+  newProp.checklist[8].checks.push({
+    date: S.cycleKey,
+    result: `${it.app} (${it.type}, ${it.section}): ${newProp.notes}`
+  });
+  rebuildFindingsLog(newProp);
+  WL.watchedProperties = WL.watchedProperties || [];
+  WL.watchedProperties.push(newProp);
+  persistWatchlist();
+  view.mode = "watchlist";
+  view.selectedWatchId = newProp.id;
+  render();
+  toast(`Added ${it.name} to Property Watchlist.`);
+}
+
+function showAddWatchPropertyModal(){
+  const back = document.createElement("div"); back.className = "modal-back";
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true">
+    <h3>Add Endangered Property to Multi-Agency Watchlist</h3>
+    <div class="grid2">
+      <div class="field"><label>Property / Historic Name</label><input id="nw-name" placeholder="e.g. John Henry Kirby Mansion"></div>
+      <div class="field"><label>Primary Street Address</label><input id="nw-addr" placeholder="e.g. 2000 Smith St."></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Perimeter / Secondary Block Addresses</label><input id="nw-sec" placeholder="e.g. 530 Pierce St."></div>
+      <div class="field"><label>HCAD Account # (13 digits)</label><input id="nw-hcad" placeholder="e.g. 0152300000001"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Owner of Record</label><input id="nw-owner" placeholder="Current deed owner"></div>
+      <div class="field"><label>Buyer / Related LLCs</label><input id="nw-buyer" placeholder="Buyer, operator, or developer LLCs"></div>
+    </div>
+    <div class="field"><label>Initial Notes</label><textarea id="nw-notes" placeholder="Why this property is being watched..."></textarea></div>
+    <div class="actions">
+      <button class="btn" id="nwCancel">Cancel</button>
+      <button class="btn primary" id="nwSave">Create 15-Point Tracker</button>
+    </div>
+  </div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => { if (e.target === back || e.target.id === "nwCancel") back.remove(); });
+  $("#nwSave").addEventListener("click", () => {
+    const name = $("#nw-name").value.trim();
+    const addr = $("#nw-addr").value.trim();
+    if (!name && !addr) { toast("Enter a property name or address."); return; }
+    const p = {
+      id: "prop-" + Date.now(),
+      propertyName: name || addr,
+      address: addr || name,
+      secondaryAddresses: $("#nw-sec").value.split(",").map(s => s.trim()).filter(Boolean),
+      hcadAccount: $("#nw-hcad").value.trim(),
+      yearBuilt: "",
+      designation: "None",
+      ownerOfRecord: $("#nw-owner").value.trim(),
+      buyerRelatedEntities: $("#nw-buyer").value.trim(),
+      keyDates: {monitoringStarted: new Date().toISOString().slice(0,10)},
+      notes: $("#nw-notes").value.trim(),
+      tier: "1",
+      checklist: defaultChecklistForNewProp(addr || name),
+      findingsLog: []
+    };
+    WL.watchedProperties = WL.watchedProperties || [];
+    WL.watchedProperties.unshift(p);
+    persistWatchlist();
+    view.mode = "watchlist";
+    view.selectedWatchId = p.id;
+    back.remove();
+    render();
+    toast("Created 15-point Property Monitoring Tracker.");
+  });
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click", e => {
+  const modeBtn = e.target.closest(".mode-btn");
+  if (modeBtn) {
+    view.mode = modeBtn.dataset.mode;
+    render();
+    return;
+  }
+  const promoteBtn = e.target.closest("#promoteWatchBtn");
+  if (promoteBtn) {
+    promoteItemToWatchlist(promoteBtn.dataset.app);
+    return;
+  }
+  const addChkBtn = e.target.closest("[data-add-chk]");
+  if (addChkBtn) {
+    const idxRow = parseInt(addChkBtn.dataset.addChk, 10);
+    const p = getSelectedWatchProp();
+    if (!p || !p.checklist[idxRow]) return;
+    const dVal = ($("#chkDate-" + idxRow)?.value || new Date().toISOString().slice(0,10)).trim();
+    const tVal = ($("#chkText-" + idxRow)?.value || "").trim();
+    if (!tVal) { toast("Enter a check result before logging."); return; }
+    p.checklist[idxRow].checks = p.checklist[idxRow].checks || [];
+    p.checklist[idxRow].checks.push({date: dVal, result: tVal});
+    p.checklist[idxRow].lastChecked = dVal;
+    if (p.checklist[idxRow].status === "To Do") p.checklist[idxRow].status = "In Progress";
+    rebuildFindingsLog(p);
+    persistWatchlist();
+    renderWatchlistFunnel();
+    renderWatchlistSidebar();
+    renderWatchlistDetail();
+    toast("Logged check to Findings Log.");
+    return;
+  }
+  const tab = e.target.closest(".tab"); if (tab) { view.group = tab.dataset.g; view.selected = null; render(); return; }
+  const row = e.target.closest(".row");
+  if (row) {
+    if (row.dataset.watchId) {
+      view.selectedWatchId = row.dataset.watchId;
+      renderWatchlistFunnel();
+      renderWatchlistSidebar();
+      renderWatchlistDetail();
+      $("#detail").scrollTop = 0;
+      return;
+    }
+    view.selected = row.dataset.app; renderList(); renderDetail(); $("#detail").scrollTop = 0; return;
+  }
+  const menuBtn = e.target.closest("#loadBtn,#exportBtn");
+  document.querySelectorAll(".menu-list").forEach(m => { if (!menuBtn || m.parentElement !== menuBtn.parentElement) { m.classList.add("hidden"); m.parentElement.querySelector("button").setAttribute("aria-expanded","false"); } });
+  if (menuBtn) { const list = menuBtn.nextElementSibling; list.classList.toggle("hidden"); menuBtn.setAttribute("aria-expanded", String(!list.classList.contains("hidden"))); return; }
+  const act = e.target.closest("[data-act]"); if (act) { act.closest(".menu-list").classList.add("hidden"); doAction(act.dataset.act); }
+});
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") { document.querySelectorAll(".menu-list").forEach(m => m.classList.add("hidden")); const mb = document.querySelector(".modal-back"); if (mb) mb.remove(); } });
+
+$("#detail").addEventListener("input", e => {
+  const el = e.target;
+  if (view.mode === "watchlist") {
+    const p = getSelectedWatchProp();
+    if (!p) return;
+    if (el.id === "wlNotesInput") {
+      p.notes = el.value;
+      persistWatchlist();
+    }
+    return;
+  }
+  if (!S || !view.selected) return;
+  const r = rev(view.selected);
+  if (el.name === "tier") { r.tier = el.value; }
+  else if (el.dataset.k) { r[el.dataset.k] = el.value; }
+  else return;
+  r.updated = new Date().toISOString();
+  const ok = persist();
+  $("#savedNote").textContent = ok ? "Saved " + new Date().toLocaleTimeString() : "Use Save & Export > Save work file before closing.";
+  if (el.name === "tier") { render(); const radio = document.querySelector(`input[name=tier][value="${el.value}"]`); if (radio) radio.focus(); }
+  else { renderList(); }
+});
+
+$("#detail").addEventListener("change", e => {
+  const el = e.target;
+  if (view.mode === "watchlist" && el.dataset.wlIdx != null) {
+    const idxRow = parseInt(el.dataset.wlIdx, 10);
+    const p = getSelectedWatchProp();
+    if (p && p.checklist[idxRow]) {
+      p.checklist[idxRow].status = el.value;
+      persistWatchlist();
+      renderWatchlistFunnel();
+      renderWatchlistDetail();
+    }
+    return;
+  }
+  if (el.dataset && el.dataset.k === "address") { const sc = $("#detail").scrollTop; renderDetail(); $("#detail").scrollTop = sc; }
+});
+
+$("#q").addEventListener("input", e => { view.q = e.target.value; renderList(); renderDetail(); });
+$("#fNeighborhood").addEventListener("change", e => { view.nb = e.target.value; renderList(); renderDetail(); });
+$("#fFlag").addEventListener("change", e => { view.flag = e.target.value; renderList(); renderDetail(); });
+$("#reviewer").addEventListener("input", e => { if (S) { S.reviewer = e.target.value; persist(); } store.set("phpam:reviewer", e.target.value); });
+$("#pickLive")?.addEventListener("click", () => loadLiveAtlasCycle(true));
+$("#pickAgenda")?.addEventListener("click", () => $("#fileAgenda").click());
+$("#pickWork")?.addEventListener("click", () => $("#fileWork").click());
+$("#addCustomWatchPropBtn")?.addEventListener("click", showAddWatchPropertyModal);
+$("#exportWatchlistDocxBtn")?.addEventListener("click", () => doAction("watchlist-docx"));
+$("#exportWatchlistCsvBtn")?.addEventListener("click", () => doAction("watchlist-csv"));
+$("#fileAgenda").addEventListener("change", e => { if (e.target.files[0]) loadAgenda(e.target.files[0]); e.target.value = ""; });
+$("#fileWork").addEventListener("change", e => { if (e.target.files[0]) loadWork(e.target.files[0]); e.target.value = ""; });
+$("#fileHistory").addEventListener("change", e => { if (e.target.files.length) loadHistory(e.target.files); e.target.value = ""; });
+const drop = $("#drop");
+["dragenter","dragover"].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); if (drop) drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); if (ev === "dragleave" && e.relatedTarget) return; if (drop) drop.classList.remove("over"); }));
+document.addEventListener("drop", e => { const f = e.dataTransfer?.files?.[0]; if (!f) return; if (/\.json$/i.test(f.name)) loadWork(f); else loadAgenda(f); });
+
+function showError(msg){
+  if (S) { toast(msg); return; }
+  const el = $("#startErr"); if (el) { el.textContent = msg; el.classList.remove("hidden"); }
+}
+async function loadAgenda(file){
+  try {
+    let grid;
+    if (/\.csv$/i.test(file.name)) grid = parseCsv(await file.text());
+    else grid = await parseXlsx(await file.arrayBuffer());
+    startCycle(gridToItems(grid), file.name);
+    toast("Loaded spreadsheet: " + file.name);
+  } catch (err) { showError(err.message || "The spreadsheet could not be read."); }
+}
+async function loadWork(file){
+  try {
+    const d = JSON.parse(await file.text());
+    if (!d || !Array.isArray(d.items) || !d.cycleKey) throw new Error("This is not a work file saved from the Plat Agenda Monitor.");
+    S = {cycleKey:d.cycleKey, pcDate:d.pcDate, fileName:d.fileName, loadedAt:d.loadedAt, items:d.items, reviews:d.reviews || {}, reviewer:d.reviewer || store.get("phpam:reviewer") || ""};
+    prepare(); persist(); showApp(); toast("Work file opened.");
+  } catch (err) { showError(err.message || "The work file could not be read."); }
+}
+async function loadHistory(files){
+  let added = 0;
+  for (const f of files) {
+    try {
+      if (/\.json$/i.test(f.name)) {
+        const d = JSON.parse(await f.text());
+        Object.entries(d.reviews || {}).forEach(([app, r]) => { if (!r.tier) return; const it = (d.items||[]).find(i => i.app === app) || {}; history.push({cycle:d.cycleKey, app, tier:r.tier, developer:it.developer||"", name:it.name||"", why:r.why||""}); added++; });
+      } else {
+        const rows = parseCsv(await f.text()); const h = (rows[0]||[]).map(x => x.trim().toLowerCase());
+        const ix = n => h.findIndex(x => x === n);
+        const iApp = ix("app no."), iTier = ix("tier"), iDev = ix("developer"), iName = ix("subdivision name"), iPc = ix("pc date"), iWhy = ix("why");
+        if (iApp < 0) throw new Error(f.name + " is not a findings CSV from this tool.");
+        rows.slice(1).forEach(r => { if (!r[iApp]) return; history.push({cycle:r[iPc]||"earlier cycle", app:r[iApp], tier:String(r[iTier]||"").replace(/\D/g,""), developer:r[iDev]||"", name:r[iName]||"", why:r[iWhy]||""}); added++; });
+      }
+    } catch (err) { toast(err.message || ("Could not read " + f.name)); }
+  }
+  const seen = new Set(); history = history.filter(h => { const k = h.cycle + "|" + h.app; if (seen.has(k)) return false; seen.add(k); return true; });
+  store.set("phpam:history", history);
+  if (S) { prepare(); render(); }
+  toast(added ? `Added ${added} past findings to the watchlist.` : "No past findings with a tier were found.");
+}
+
+/* ---------- Exports ---------- */
+function requireCycle(){ if (!S) { showError("Load an agenda spreadsheet first."); return false; } return true; }
+function findings(){ return S.items.filter(i => isResearched(i.app)).sort((a,b) => (tierRank(a)-tierRank(b)) || String(a.app).localeCompare(String(b.app))); }
+const cycleTitle = () => S && S.pcDate ? fmtDate(new Date(S.pcDate)) : (S ? S.cycleKey : "");
+
+function doAction(a){
+  if (a === "reload-live") return loadLiveAtlasCycle(true);
+  if (a === "agenda") return $("#fileAgenda").click();
+  if (a === "work") return $("#fileWork").click();
+  if (a === "history") return $("#fileHistory").click();
+  if (a === "watchlist-docx") {
+    const p = getSelectedWatchProp();
+    if (!p) { toast("Select a watched property first."); return; }
+    const slug = (p.propertyName || "Property").replace(/[^A-Za-z0-9]+/g, "-");
+    return download(`Property-Watchlist_${slug}.docx`, buildWatchlistDocx(p), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  }
+  if (a === "watchlist-csv") {
+    const p = getSelectedWatchProp();
+    if (!p) { toast("Select a watched property first."); return; }
+    const slug = (p.propertyName || "Property").replace(/[^A-Za-z0-9]+/g, "-");
+    return download(`Property-Watchlist_${slug}_Findings.csv`, "\uFEFF" + buildWatchlistCsv(p), "text/csv;charset=utf-8");
+  }
+  if (!requireCycle()) return;
+  const base = "Plat-review_PC-" + S.cycleKey;
+  if (a === "csv") return download(base + "_findings.csv", "\uFEFF" + buildCsv(), "text/csv;charset=utf-8");
+  if (a === "report") return download(base + "_report.docx", buildDocx(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  if (a === "print") return printReport();
+  if (a === "email") return showEmail();
+  if (a === "savework") {
+    download(base + "_work-file.json", JSON.stringify({app:"Plat Agenda Monitor", version:2, cycleKey:S.cycleKey, pcDate:S.pcDate, fileName:S.fileName, loadedAt:S.loadedAt, savedAt:new Date().toISOString(), reviewer:S.reviewer, items:S.items.map(stripPrivate), reviews:S.reviews}, null, 1), "application/json");
+    toast("Work file saved.");
+  }
+}
+
+function buildCsv(){
+  const cols = [["PC date", () => S.cycleKey],["App No.", i => i.app],["Subdivision name", i => i.name],["Address", (i,r) => r.address || (i.atlas||{}).primaryAddress || ""],["Original subdivision", i => i.prevSub],
+    ["Super neighborhood", i => i.superN],["Council district", i => i.council],["Application type", i => i.type],["Agenda section", i => i.section],["Special request", i => i.special],
+    ["Land use", i => i.landUse],["Acreage", i => i.acreage],["Lots created", i => i.lots],["Developer", i => i.developer],["HCAD account", i => i.hcad],
+    ["Year built", (i,r) => r.yearBuilt || (i.atlas||{}).earliestYearBuilt || ""],["Designation", (i,r) => r.designation || ""],["Tier", (i,r) => r.tier],["Why", (i,r) => r.why],["Sources", (i,r) => r.sources],
+    ["Follow-up", (i,r) => r.followup],["Screening flags", i => i._c.flags.map(f => FLAG_INFO[f]?.[0] || f).join("; ")],["Reviewer", () => S.reviewer],["Plat PDF", i => i.pdf]];
+  const q = v => { v = String(v ?? ""); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  return [cols.map(c => q(c[0])).join(",")].concat(findings().map(i => cols.map(c => q(c[1](i, S.reviews[i.app] || {}))).join(","))).join("\r\n");
+}
+
+function buildWatchlistCsv(p){
+  const q = v => { v = String(v ?? ""); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const log = rebuildFindingsLog(p);
+  const rows = [
+    ["Property Name", p.propertyName, "Primary Address", p.address, "HCAD Account", p.hcadAccount],
+    ["Secondary Block Addresses", (p.secondaryAddresses || []).join("; "), "Owner of Record", p.ownerOfRecord, "Buyer / Entities", p.buyerRelatedEntities],
+    [],
+    ["Entry #", "Date", "Stage", "Monitoring Activity", "Result / Finding", "Automated by Atlas"]
+  ];
+  log.forEach(e => rows.push([e.entryNo, e.date, e.stage, e.activity, e.result, e.automated ? "Yes" : "Manual"]));
+  return rows.map(r => r.map(q).join(",")).join("\r\n");
+}
+
+function buildReport(){
+  const f = findings(), by = t => f.filter(i => (S.reviews[i.app]||{}).tier === t);
+  const t1 = by("1"), t2 = by("2"), t3 = by("3"), untiered = f.filter(i => !(S.reviews[i.app]||{}).tier);
+  const g = k => S.items.filter(i => i._c.group === k).length;
+  const lines = s => esc(s || "").replace(/\n/g, "<br>");
+  const block = i => { const r = S.reviews[i.app] || {}; return `
+    <h3>${esc(i.name)} <span class="muted">(${esc(i.app)})</span></h3>
+    <table class="kv">
+      <tr><th>Address</th><td>${esc(r.address || "Not recorded")}</td><th>Year built</th><td>${esc(r.yearBuilt || "Not recorded")}</td></tr>
+      <tr><th>Original subdivision</th><td>${esc(i.prevSub)}</td><th>Designation</th><td>${esc(r.designation || "Not checked")}</td></tr>
+      <tr><th>Application</th><td>${esc(i.type)}${i.special ? "; " + esc(i.special) : ""}</td><th>Agenda section</th><td>${esc(i.section)}</td></tr>
+      <tr><th>Neighborhood</th><td>${esc(i.superN)}</td><th>Council district</th><td>${esc(i.council)}</td></tr>
+      <tr><th>Land use</th><td>${esc(i.landUse)}</td><th>Acreage / lots</th><td>${esc(i.acreage && num(i.acreage) != null ? num(i.acreage).toFixed(3) : "")} ac / ${esc(i.lots)}</td></tr>
+      <tr><th>Developer</th><td colspan="3">${esc(i.developer)}</td></tr>
+    </table>
+    <p><b>Why:</b> ${lines(r.why) || "-"}</p>
+    ${r.sources ? `<p><b>Sources:</b><br>${lines(r.sources)}</p>` : ""}
+    ${r.followup ? `<p><b>Follow-up:</b> ${esc(r.followup)}</p>` : ""}
+    ${/^https?:/i.test(i.pdf) ? `<p><a href="${esc(i.pdf)}">Plat PDF</a></p>` : ""}`; };
+  const table = list => list.length ? `<table class="grid"><tr><th>App No.</th><th>Subdivision</th><th>Address</th><th>Year built</th><th>Designation</th><th>Why</th><th>Follow-up</th></tr>${list.map(i => { const r = S.reviews[i.app]||{}; return `<tr><td>${esc(i.app)}</td><td>${esc(i.name)}<br><span class="muted">${esc(i.prevSub)}</span></td><td>${esc(r.address)}</td><td>${esc(r.yearBuilt)}</td><td>${esc(r.designation||"")}</td><td>${lines(r.why)}</td><td>${esc(r.followup)}</td></tr>`; }).join("")}</table>` : "<p>None.</p>";
+  const head = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Plat review ${esc(cycleTitle())}</title>`;
+  return `${head}<style>
+    body,td,th,h1,h2,h3{font-family:Arial,Helvetica,sans-serif}body{font-size:10.5pt;color:#1E2B38;line-height:1.4;margin:0.5in}
+    h1{font-size:17pt;margin:0 0 4pt} h2{font-size:13pt;margin:18pt 0 6pt;border-bottom:1.5pt solid #1E2B38;padding-bottom:2pt}
+    h3{font-size:11pt;margin:14pt 0 4pt} .muted{color:#5C6B78;font-weight:normal}
+    table{border-collapse:collapse;width:100%;margin:4pt 0} td,th{border:0.75pt solid #C9D3DA;padding:3pt 5pt;vertical-align:top;text-align:left;font-size:9.5pt}
+    th{background:#EDF1F3;font-weight:bold} .kv th{width:18%} .summary td{border:0;padding:1pt 12pt 1pt 0;font-size:10.5pt}
+    @media print{body{margin:0.6in}}
+  </style></head><body>
+  <h1>Plat agenda review: Planning Commission, ${esc(cycleTitle())}</h1>
+  <p class="muted">Preservation Houston · Reviewed by ${esc(S.reviewer || "(reviewer not entered)")} · Prepared ${esc(new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}))} · Source file: ${esc(S.fileName || "")}</p>
+  <h2>Summary</h2>
+  <table class="summary">
+    <tr><td>Items on the agenda</td><td><b>${S.items.length}</b></td><td>Researched</td><td><b>${f.length}</b></td></tr>
+    <tr><td>To check after screening</td><td><b>${g("check")}</b></td><td>Tier 1 (escalate)</td><td><b>${t1.length}</b></td></tr>
+    <tr><td>In a city historic district</td><td><b>${g("designated")}</b></td><td>Tier 2 (watch)</td><td><b>${t2.length}</b></td></tr>
+    <tr><td>Outside city limits (ETJ)</td><td><b>${g("etj")}</b></td><td>Tier 3 (note)</td><td><b>${t3.length}</b></td></tr>
+    <tr><td>Screened out</td><td><b>${g("out")}</b></td><td></td><td></td></tr>
+  </table>
+  <h2>Tier 1: Escalate</h2>${t1.length ? t1.map(block).join("") : "<p>None this cycle.</p>"}
+  <h2>Tier 2: Watch</h2>${table(t2)}
+  <h2>Tier 3: Noted</h2>${table(t3)}
+  ${untiered.length ? `<h2>Researched, tier not set</h2>${table(untiered)}` : ""}
+  ${g("designated") ? `<h2>Items in city historic districts</h2><table class="grid"><tr><th>App No.</th><th>Subdivision</th><th>Historic district</th><th>Application</th></tr>${S.items.filter(i=>i._c.group==="designated").map(i=>`<tr><td>${esc(i.app)}</td><td>${esc(i.name)}</td><td>${esc(i.hd)}</td><td>${esc(i.type)}</td></tr>`).join("")}</table>` : ""}
+  </body></html>`;
+}
+
+/* ---------- Minimal .docx writer (real Word file, zero libraries) ---------- */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zipStore(files){
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  files.forEach(([name, text]) => {
+    const nb = enc.encode(name), data = enc.encode(text), crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(8, 0, true); lh.setUint16(10, 0, true); lh.setUint16(12, 0x21, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, nb.length, true);
+    parts.push(new Uint8Array(lh.buffer), nb, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(14, 0x21, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, nb.length, true); ch.setUint32(42, off, true);
+    central.push(new Uint8Array(ch.buffer), nb);
+    off += 30 + nb.length + data.length;
+  });
+  const csize = central.reduce((n, a) => n + a.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true); end.setUint32(12, csize, true); end.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], {type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+}
+function docxWriter(){
+  const x = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+  const links = []; const body = [];
+  const run = (t, o = {}) => {
+    const pr = (o.b ? "<w:b/>" : "") + (o.color ? `<w:color w:val="${o.color}"/>` : "") + (o.sz ? `<w:sz w:val="${o.sz}"/>` : "") + (o.u ? '<w:u w:val="single"/>' : "");
+    return String(t ?? "").split(/\r?\n/).map((ln, i) => (i ? "<w:r><w:br/></w:r>" : "") + `<w:r>${pr ? "<w:rPr>" + pr + "</w:rPr>" : ""}<w:t xml:space="preserve">${x(ln)}</w:t></w:r>`).join("");
+  };
+  const runs = items => items.map(it => typeof it === "string" ? run(it) : it.url ? link(it.t, it.url) : run(it.t, it)).join("");
+  const link = (t, url) => { links.push(url); return `<w:hyperlink r:id="rIdL${links.length}">${run(t, {color:"2F5D8A", u:true})}</w:hyperlink>`; };
+  const para = (content, style, extra = "") => `<w:p><w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ""}${extra}</w:pPr>${Array.isArray(content) ? runs(content) : run(content)}</w:p>`;
+  return {
+    h: (lvl, t) => body.push(para(t, "Heading" + lvl)),
+    p: (content, style) => body.push(para(content, style)),
+    table(rows, widths, headerRow){
+      const total = widths.reduce((a, b) => a + b, 0);
+      const cell = (c, w, hdr) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${hdr ? '<w:shd w:val="clear" w:color="auto" w:fill="EDF1F3"/>' : ""}</w:tcPr>${para(Array.isArray(c) ? c : [{t:c, b:hdr}], "TableText")}</w:tc>`;
+      body.push(`<w:tbl><w:tblPr><w:tblW w:w="${total}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>${["top","left","bottom","right","insideH","insideV"].map(b => `<w:${b} w:val="single" w:sz="4" w:color="C9D3DA"/>`).join("")}</w:tblBorders><w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${widths.map(w => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${rows.map((r, ri) => `<w:tr>${ri === 0 && headerRow ? "<w:trPr><w:tblHeader/></w:trPr>" : ""}${r.map((c, ci) => cell(c, widths[ci], (headerRow && ri === 0) || (!headerRow && ci % 2 === 0 && r.length > 2))).join("")}</w:tr>`).join("")}</w:tbl>`);
+      body.push(para("", null));
+    },
+    blob(){
+      const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+      const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body.join("")}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+      const font = '<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/>';
+      const st = (id, name, rpr, ppr) => `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr>${ppr}</w:pPr><w:rPr>${rpr}</w:rPr></w:style>`;
+      const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr>${font}<w:color w:val="1E2B38"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="100" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+        <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+        ${st("Title","Title",'<w:b/><w:sz w:val="34"/>','<w:spacing w:after="60"/>')}
+        ${st("Heading1","heading 1",'<w:b/><w:sz w:val="26"/>','<w:keepNext/><w:spacing w:before="280" w:after="100"/><w:pBdr><w:bottom w:val="single" w:sz="8" w:space="2" w:color="1E2B38"/></w:pBdr><w:outlineLvl w:val="0"/>')}
+        ${st("Heading2","heading 2",'<w:b/><w:sz w:val="22"/>','<w:keepNext/><w:spacing w:before="200" w:after="60"/><w:outlineLvl w:val="1"/>')}
+        ${st("Subtle","Subtle",'<w:color w:val="5C6B78"/><w:sz w:val="18"/>','')}
+        ${st("TableText","Table Text",'<w:sz w:val="18"/>','<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>')}
+        </w:styles>`;
+      const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${links.map((u, i) => `<Relationship Id="rIdL${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${x(u)}" TargetMode="External"/>`).join("")}</Relationships>`;
+      return zipStore([
+        ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`],
+        ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`],
+        ["word/document.xml", doc], ["word/styles.xml", styles], ["word/_rels/document.xml.rels", rels]
+      ]);
+    }
+  };
+}
+function buildDocx(){
+  const d = docxWriter(), f = findings(), R = i => S.reviews[i.app] || {};
+  const by = t => f.filter(i => R(i).tier === t), t1 = by("1"), t2 = by("2"), t3 = by("3"), untiered = f.filter(i => !R(i).tier);
+  const g = k => S.items.filter(i => i._c.group === k).length;
+  const ac = i => num(i.acreage) != null ? num(i.acreage).toFixed(3) + " ac" : "";
+  d.p(`Plat agenda review: Planning Commission, ${cycleTitle()}`, "Title");
+  d.p(`Preservation Houston · Reviewed by ${S.reviewer || "(reviewer not entered)"} · Prepared ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})} · Source file: ${S.fileName || ""}`, "Subtle");
+  d.h(1, "Summary");
+  d.table([
+    ["Items on the agenda", String(S.items.length), "Researched", String(f.length)],
+    ["To check after screening", String(g("check")), "Tier 1 (escalate)", String(t1.length)],
+    ["In a city historic district", String(g("designated")), "Tier 2 (watch)", String(t2.length)],
+    ["Outside city limits (ETJ)", String(g("etj")), "Tier 3 (noted)", String(t3.length)],
+    ["Screened out", String(g("out")), "", ""]
+  ], [3200, 1480, 3200, 1480], false);
+  d.h(1, "Tier 1: Escalate");
+  if (!t1.length) d.p("None this cycle.");
+  t1.forEach(i => {
+    const r = R(i);
+    d.h(2, `${i.name} (${i.app})`);
+    d.table([
+      ["Address", r.address || "Not recorded", "Year built", r.yearBuilt || "Not recorded"],
+      ["Original subdivision", i.prevSub, "Designation", r.designation || "Not checked"],
+      ["Application", i.type + (i.special ? "; " + i.special : ""), "Agenda section", i.section],
+      ["Neighborhood", i.superN, "Council district", i.council],
+      ["Land use", i.landUse, "Acreage / lots", `${ac(i)} / ${i.lots}`],
+      ["Developer", i.developer, "Screening flags", i._c.flags.map(k => FLAG_INFO[k]?.[0] || k).join(", ")]
+    ], [1900, 2780, 1900, 2780], false);
+    d.p([{t:"Why: ", b:true}, r.why || "-"]);
+    if (r.sources) d.p([{t:"Sources: ", b:true}, r.sources]);
+    if (r.followup) d.p([{t:"Follow-up: ", b:true}, r.followup]);
+    if (/^https?:/i.test(i.pdf)) d.p([{t:"Plat PDF", url:i.pdf}]);
+  });
+  const tierTable = (title, list) => {
+    d.h(1, title);
+    if (!list.length) { d.p("None."); return; }
+    d.table([["App No.", "Subdivision", "Address", "Built", "Designation", "Why", "Follow-up"]].concat(list.map(i => { const r = R(i); return [i.app, [{t:i.name, b:true}, "\n" + (i.prevSub || "")], r.address || "", r.yearBuilt || "", r.designation || "", r.why || "", r.followup || ""]; })),
+      [980, 1650, 1400, 620, 1300, 2330, 1080], true);
+  };
+  tierTable("Tier 2: Watch", t2);
+  tierTable("Tier 3: Noted", t3);
+  if (untiered.length) tierTable("Researched, tier not set", untiered);
+  if (g("designated")) {
+    d.h(1, "Items in city historic districts");
+    d.table([["App No.", "Subdivision", "Historic district", "Application"]].concat(S.items.filter(i => i._c.group === "designated").map(i => [i.app, i.name, i.hd, i.type])), [1100, 3000, 2400, 2860], true);
+  }
+  return d.blob();
+}
+
+function buildWatchlistDocx(p){
+  const d = docxWriter();
+  const log = rebuildFindingsLog(p);
+  d.p(`Endangered Property Monitoring Dossier: ${p.propertyName}`, "Title");
+  d.p(`Preservation Houston · Houston Building Atlas Multi-Agency Watchlist · Prepared ${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}`, "Subtle");
+  d.h(1, "Property Information");
+  d.table([
+    ["Property Name", p.propertyName || "", "Primary Address", p.address || ""],
+    ["Secondary Block Addresses", (p.secondaryAddresses || []).join(", ") || "None", "HCAD Account #", p.hcadAccount || ""],
+    ["Year Built", String(p.yearBuilt || "") + (p.yearRemodeled ? " / Remodeled " + p.yearRemodeled : ""), "Designation", p.designation || "None"],
+    ["Owner of Record", p.ownerOfRecord || "", "Buyer / Related Entities", p.buyerRelatedEntities || ""]
+  ], [2100, 2580, 2100, 2580], false);
+  if (p.notes) d.p([{t:"Executive Summary & Notes: ", b:true}, p.notes]);
+  d.h(1, "15-Point Multi-Agency Monitoring Checklist");
+  d.table(
+    [["Stage", "Monitoring Activity", "Current Status", "Last Checked", "Latest Logged Result"]].concat(
+      (p.checklist || []).map(r => [
+        r.stage,
+        r.activity,
+        r.status,
+        r.lastChecked || "-",
+        (r.checks && r.checks.length) ? `${r.checks[r.checks.length-1].date}: ${r.checks[r.checks.length-1].result}` : "No checks logged"
+      ])
+    ),
+    [1300, 1900, 1100, 1100, 3960],
+    true
+  );
+  d.h(1, `Chronological Findings Log (${log.length} checks)`);
+  d.table(
+    [["#", "Date", "Stage", "Activity", "Result / Finding"]].concat(
+      log.map(e => [String(e.entryNo), e.date, e.stage, e.activity, e.result])
+    ),
+    [500, 1200, 1500, 2000, 4160],
+    true
+  );
+  return d.blob();
+}
+
+function printReport(){
+  const fr = document.createElement("iframe"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(fr);
+  fr.contentDocument.open(); fr.contentDocument.write(buildReport()); fr.contentDocument.close();
+  setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch(e) { toast("Printing is blocked here. Download the Word report instead."); } setTimeout(() => fr.remove(), 1500); }, 300);
+}
+function emailText(){
+  const f = findings(), line = i => { const r = S.reviews[i.app] || {}; return `- ${i.app} ${i.name}${r.address ? ", " + r.address : ""}${r.yearBuilt ? " (built " + r.yearBuilt + ")" : ""}: ${(r.why || "no notes yet").replace(/\s+/g, " ").trim()}`; };
+  const t1 = f.filter(i => (S.reviews[i.app]||{}).tier === "1"), t2 = f.filter(i => (S.reviews[i.app]||{}).tier === "2");
+  const back = S.items.filter(i => i._hist);
+  let body = `Subject: Plat review - PC ${cycleTitle()}\n\n`;
+  body += `${S.items.length} items on the agenda (including Section K Development Plat Variances and Public Hearing notices); ${S.items.filter(i=>i._c.group==="check").length} left after screening; ${f.length} researched.\n\n`;
+  body += t1.length ? `Tier 1 - escalate:\n${t1.map(line).join("\n")}\n\n` : "Tier 1 - escalate: none.\n\n";
+  body += t2.length ? `Tier 2 - watch:\n${t2.map(line).join("\n")}\n\n` : "Tier 2 - watch: none.\n\n";
+  if (back.length) body += `Returning from earlier cycles:\n${back.map(i => `- ${i.app} ${i.name} (Tier ${i._hist.tier}, ${i._hist.cycle})`).join("\n")}\n\n`;
+  const devs = [...new Set(S.items.filter(i => i._dev).map(i => i.developer))];
+  if (devs.length) body += `Developers seen on earlier flagged items: ${devs.join("; ")}\n\n`;
+  body += `The Word report and CSV log are saved in the advocacy file.\n\n${S.reviewer || ""}`;
+  return body.trim();
+}
+function showEmail(){
+  const back = document.createElement("div"); back.className = "modal-back";
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="emh"><h3 id="emh">Email summary for Emily</h3><textarea id="emt">${esc(emailText())}</textarea><div class="actions"><button class="btn" id="emClose">Close</button><button class="btn primary" id="emCopy">Copy text</button></div></div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => { if (e.target === back || e.target.id === "emClose") back.remove(); });
+  $("#emCopy").addEventListener("click", async () => {
+    const t = $("#emt");
+    try { await navigator.clipboard.writeText(t.value); } catch(e) { t.select(); document.execCommand("copy"); }
+    toast("Email text copied."); back.remove();
+  });
+  $("#emt").focus();
+}
+
+/* ---------- Auto-Load Live Houston Building Atlas Cycle & Watchlist ---------- */
+async function loadLiveAtlasCycle(forceReload){
+  try {
+    const [platResp, wlResp] = await Promise.all([
+      fetch("public/data/plat_agenda_monitor.json?v=" + Date.now()),
+      fetch("public/data/property_watchlist.json?v=" + Date.now())
+    ]);
+    if (wlResp.ok) {
+      const wlData = await wlResp.json();
+      if (forceReload || !WL.watchedProperties || !WL.watchedProperties.length) {
+        WL = wlData;
+        persistWatchlist();
+      } else {
+        // Ensure Kirby Mansion is always up to date while preserving user-added watched properties
+        const existingIds = new Set(WL.watchedProperties.map(p => p.id));
+        (wlData.watchedProperties || []).forEach(p => {
+          if (!existingIds.has(p.id)) WL.watchedProperties.push(p);
+        });
+        persistWatchlist();
+      }
+      const params = new URLSearchParams(window.location.search);
+      const qHcad = (params.get("hcad") || "").trim();
+      if (qHcad && Array.isArray(WL.watchedProperties)) {
+        const foundWp = WL.watchedProperties.find(p => String(p.hcad_num || "") === qHcad);
+        if (foundWp) {
+          view.mode = "watchlist";
+          view.selectedWatchId = foundWp.id;
+        }
+      }
+    }
+    if (platResp.ok) {
+      const d = await platResp.json();
+      startCycle(d.items || [], d.fileName || "Plat-Current-Agenda-Spreadsheet.xlsx", d.reviews || {}, {
+        cycleKey: d.cycleKey,
+        pcDate: d.pcDate
+      });
+      const params = new URLSearchParams(window.location.search);
+      const qId = (params.get("id") || params.get("app") || "").trim();
+      if (qId && Array.isArray(d.items)) {
+        const foundItem = d.items.find(it => it.id === qId || it.appNo === qId);
+        if (foundItem) {
+          view.selected = foundItem.id;
+          view.group = "all";
+          render();
+        }
+      }
+      if (forceReload) toast("Loaded live pre-enriched Planning Commission cycle (" + d.cycleKey + ").");
+    }
+  } catch (err) {
+    console.warn("Could not auto-load live Atlas cycle:", err);
+    if (!S) {
+      $("#app").classList.add("hidden");
+      $("#startScreen").classList.remove("hidden");
+    }
+  }
+}
+
+(function init(){
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("tab") === "watchlist" || params.get("mode") === "watchlist") {
+    view.mode = "watchlist";
+  }
+  if (params.get("watch")) {
+    view.mode = "watchlist";
+    view.selectedWatchId = params.get("watch");
+  }
+  if (params.get("app")) {
+    view.selected = params.get("app");
+    view.group = "all";
+  }
+  loadLiveAtlasCycle(false);
+})();
+</script>
+</body>
+</html>

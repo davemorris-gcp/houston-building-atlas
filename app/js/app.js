@@ -1993,6 +1993,7 @@ class HoustonAtlasApp {
     // Overlay Layer Toggles & Per-Row Solo Buttons
     const layerCheckboxes = [
       ["chk-layer-permit-watch", "permitWatch"],
+      ["chk-layer-plat-watch", "platWatch"],
       ["chk-layer-good-brick", "goodBrickAwards"],
       ["chk-layer-landmarks", "landmarks"],
       ["chk-layer-lost-houston", "lostHouston"],
@@ -4713,6 +4714,7 @@ class HoustonAtlasApp {
     // Overlay Layer Checkboxes & Per-Row Solo State
     const mapLayerIds = {
       "chk-layer-permit-watch": state.layers.permitWatch,
+      "chk-layer-plat-watch": state.layers.platWatch,
       "chk-layer-good-brick": state.layers.goodBrickAwards,
       "chk-layer-landmarks": state.layers.landmarks,
       "chk-layer-relocated-structures": state.layers.relocatedStructures,
@@ -7380,8 +7382,17 @@ class HoustonAtlasApp {
             buildingId: props.building_id || props.id || "",
           })
         : null;
+    const activePlatItem =
+      this.mapController && typeof this.mapController.getPlatWatchForBuilding === "function"
+        ? this.mapController.getPlatWatchForBuilding({
+            hcadNum,
+            buildingId: props.building_id || props.id || "",
+          })
+        : null;
     const permitAlertCardHtml = activePermitAlert
-      ? this._buildInspectorPermitAlertCardHtml(activePermitAlert)
+      ? this._buildInspectorPermitAlertCardHtml(activePermitAlert, activePlatItem)
+      : activePlatItem
+      ? this._buildInspectorPlatWatchCardHtml(activePlatItem)
       : "";
 
     content.innerHTML = `
@@ -10568,6 +10579,11 @@ class HoustonAtlasApp {
     if (topCountEl) topCountEl.textContent = String(total);
     const layerCountEl = document.getElementById("permit-watch-layer-count");
     if (layerCountEl) layerCountEl.textContent = String(total);
+    const platLayerCountEl = document.getElementById("plat-watch-layer-count");
+    if (platLayerCountEl && this.mapController?.getPlatWatchFeatureCount) {
+      const platCnt = this.mapController.getPlatWatchFeatureCount();
+      if (platCnt > 0) platLayerCountEl.textContent = String(platCnt);
+    }
 
     const critEl = document.getElementById("pw-stat-critical");
     if (critEl) critEl.textContent = String(critCount);
@@ -10592,11 +10608,50 @@ class HoustonAtlasApp {
     }
   }
 
-  _buildInspectorPermitAlertCardHtml(alert) {
+  _buildInspectorPlatWatchCardHtml(platItem) {
+    if (!platItem) return "";
+    const isCrit =
+      platItem.tier === "tier1" || platItem.is_variance || platItem.is_public_hearing;
+    return `
+      <div class="inspector-permit-alert-card ${isCrit ? "critical" : "watch"}" style="border-color:rgba(244,63,94,0.45);background:rgba(136,19,55,0.18);">
+        <div class="inspector-permit-alert-header">
+          <span class="inspector-permit-alert-kicker">
+            &#128203; Planning Commission Plat &amp; Variance Monitor
+          </span>
+          <span class="inspector-permit-alert-badge mono">App #${platItem.appNo || "N/A"} · Sec ${platItem.section || "I"}</span>
+        </div>
+        <div class="inspector-permit-alert-headline">${platItem.name || ""} (${platItem.type || "Plat"})</div>
+        ${
+          platItem.variance_summary
+            ? `<div class="inspector-permit-alert-narrative">${platItem.variance_summary}</div>`
+            : ""
+        }
+        ${
+          platItem.notes
+            ? `<div class="inspector-permit-alert-narrative">${platItem.notes}</div>`
+            : ""
+        }
+        <div class="inspector-permit-alert-actions">
+          <a
+            href="plat-monitor.html?tab=plat&id=${encodeURIComponent(platItem.id || "")}"
+            target="_blank"
+            rel="noopener"
+            class="inspector-permit-watch-btn primary"
+          >
+            &#128203; Open in Plat &amp; Property Monitor &#8599;
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  _buildInspectorPermitAlertCardHtml(alert, platItem = null) {
     if (!alert) return "";
     const isCritical = alert.severity === "critical";
     const cohPermits = Array.isArray(alert.coh_permits) ? alert.coh_permits : [];
     const dshsFilings = Array.isArray(alert.dshs_notifications) ? alert.dshs_notifications : [];
+    const multiFilings = Array.isArray(alert.multi_agency_filings) ? alert.multi_agency_filings : [];
+    const secondaryAddrs = Array.isArray(alert.secondary_addresses) ? alert.secondary_addresses : [];
     const totalAlertsCount = Array.isArray(this.mapController?.getPermitAlertsPayload?.()?.alerts)
       ? this.mapController.getPermitAlertsPayload().alerts.length
       : 15;
@@ -10647,6 +10702,30 @@ class HoustonAtlasApp {
       )
       .join("");
 
+    const multiRowsHtml = multiFilings
+      .map(
+        (mf) => `
+        <div class="inspector-permit-filing-box" style="border-left:3px solid #A78BFA;background:rgba(139,92,246,0.11);padding:8px 10px;border-radius:6px;margin-top:6px;">
+          <div class="inspector-permit-filing-top">
+            <span class="inspector-permit-agency-tag" style="background:rgba(139,92,246,0.25);color:#DDD6FE;border:1px solid rgba(167,139,250,0.45);">${mf.agency || "State / County Filing"} · ${mf.filing_id || ""}</span>
+            <span class="mono inspector-permit-filing-date">${mf.date || ""}</span>
+          </div>
+          <div class="inspector-permit-filing-title">
+            <strong>${mf.status || "Filing"} (${mf.address_used || alert.address || ""}):</strong>
+            ${mf.title || ""}
+          </div>
+          <div class="inspector-permit-filing-meta">
+            ${mf.details ? `<span>${mf.details}</span>` : ""}
+            ${
+              mf.url
+                ? `<a href="${mf.url}" target="_blank" rel="noopener" style="color:#C4B5FD;text-decoration:underline;font-weight:600;margin-left:4px;">Source Portal &#8599;</a>`
+                : ""
+            }
+          </div>
+        </div>`
+      )
+      .join("");
+
     return `
       <div class="inspector-permit-alert-card ${isCritical ? "critical" : "watch"}" id="inspector-permit-alert-card">
         <div class="inspector-permit-alert-header">
@@ -10657,6 +10736,11 @@ class HoustonAtlasApp {
         </div>
         <div class="inspector-permit-alert-headline">${alert.headline || ""}</div>
         ${
+          secondaryAddrs.length > 0
+            ? `<div style="font-size:11px;color:#DDD6FE;margin-bottom:6px;"><strong>Block Perimeter / Secondary Addresses Monitored:</strong> <span class="mono">${secondaryAddrs.join(", ")}</span></div>`
+            : ""
+        }
+        ${
           alert.preservation_note
             ? `<div class="inspector-permit-alert-narrative">${alert.preservation_note}</div>`
             : ""
@@ -10664,8 +10748,9 @@ class HoustonAtlasApp {
         <div class="inspector-permit-filings-stack">
           ${cohRowsHtml}
           ${dshsRowsHtml}
+          ${multiRowsHtml}
         </div>
-        <div class="inspector-permit-alert-actions">
+        <div class="inspector-permit-alert-actions" style="flex-wrap:wrap;gap:6px;">
           <button
             type="button"
             class="inspector-permit-watch-btn primary"
@@ -10673,6 +10758,15 @@ class HoustonAtlasApp {
           >
             &#9888; Open Active Watchlist (${totalAlertsCount} Flagged Structures)
           </button>
+          <a
+            href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(alert.hcad_num || "")}"
+            target="_blank"
+            rel="noopener"
+            class="inspector-permit-watch-btn secondary"
+            style="border-color:rgba(167,139,250,0.5);color:#DDD6FE;"
+          >
+            &#128203; Open 15-Point Property Tracker &#8599;
+          </a>
           <a
             href="mailto:contact@preservationhouston.org?subject=${encodeURIComponent(
               `Permit Watch Observation: ${alert.building_name || alert.address || alert.hcad_num}`
@@ -10764,6 +10858,17 @@ class HoustonAtlasApp {
           )
           .join("");
 
+        const multiList = Array.isArray(al.multi_agency_filings) ? al.multi_agency_filings : [];
+        const multiSummaryHtml = multiList
+          .map(
+            (mf) => `
+            <div class="pw-item-filing" style="border-left:3px solid #A78BFA;background:rgba(139,92,246,0.11);">
+              <span class="pw-filing-pill" style="background:rgba(139,92,246,0.28);color:#DDD6FE;">${mf.agency || "State/County"} · ${mf.filing_id || ""} · ${mf.date || ""}</span>
+              <span><strong>${mf.status || "Filing"} (${mf.address_used || al.address || ""}):</strong> ${mf.title || ""}${mf.details ? ` · ${mf.details}` : ""}</span>
+            </div>`
+          )
+          .join("");
+
         return `
           <div class="permit-watch-item-card ${isCritical ? "critical" : "watch"}">
             <div class="pw-item-top">
@@ -10790,7 +10895,16 @@ class HoustonAtlasApp {
                     : ""
                 }
               </div>
-              <div class="pw-item-actions">
+              <div class="pw-item-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+                <a
+                  href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(al.hcad_num || "")}"
+                  target="_blank"
+                  rel="noopener"
+                  class="action-pill"
+                  style="text-decoration:none;border-color:rgba(167,139,250,0.45);color:#DDD6FE;"
+                >
+                  &#128203; 15-Point Tracker &#8599;
+                </a>
                 <button
                   type="button"
                   class="action-pill pw-inspect-btn"
@@ -10813,6 +10927,7 @@ class HoustonAtlasApp {
             <div class="pw-item-filings-list">
               ${cohSummaryHtml}
               ${dshsSummaryHtml}
+              ${multiSummaryHtml}
             </div>
           </div>
         `;

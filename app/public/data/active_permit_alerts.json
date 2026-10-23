@@ -31,8 +31,8 @@
       "severity": "critical",
       "severity_label": "Critical Alert: Sewer Disconnection + Asbestos Abatement",
       "badge": "Sewer Disc + Asbestos",
-      "headline": "City sewer disconnection permit (#26090093, issued 2026-10-14) paired with Texas DSHS asbestos abatement filing (#2026005825, scheduled 2026-10-27 to 2026-11-06).",
-      "preservation_note": "Built in 1894 for businessman J.S. Price and purchased by lumber magnate John Henry Kirby in 1896, the 36-room Tudor Revival mansion at 2000 Smith Street achieved its landmark appearance in a 1928 remodeling designed by architect James Ruskin Bailey (1979 Preservation Houston Good Brick Award). A City of Houston sewer disconnection permit (#26090093, 'BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') was issued October 14, 2026 to applicant Robert Camacho, followed by Texas DSHS Notification #2026005825 scheduling abatement of 5,010 sq ft of Regulated Asbestos-Containing Material (RACM) from October 27 through November 6, 2026 by operator AAR Incorporated for owner OB Texas Properties LLC (Omair Bashir). Although the mansion lacks local Protected Landmark designation, Preservation Houston is actively monitoring the property and seeking dialogue with the owner.",
+      "headline": "Multi-agency redevelopment alert: COH Sewer Disconnect (#26090093) & DSHS Asbestos Abatement (#2026005825, Oct 27 - Nov 6, 2026) at 2000 Smith St + TDLR TABS (#TABS2026022839, $2M 13,254 SF 'Braketime' C-Store) & COH Gas Station Plan Review (#26052089) at perimeter address 530 Pierce St.",
+      "preservation_note": "Built in 1894 for businessman J.S. Price and purchased by lumber magnate John Henry Kirby in 1896, the 36-room Tudor Revival mansion at 2000 Smith Street achieved its landmark appearance in a 1928 remodeling designed by architect James Ruskin Bailey (1979 Preservation Houston Good Brick Award). Cross-agency monitoring by Preservation Houston across both 2000 Smith St and perimeter block address 530 Pierce St uncovered an 8-stage redevelopment sequence: (1) Oct 2025 formation of Smith St C Store LLC and Active Sales Tax Permit #32102472084 for 'Brake Time'; (2) Apr 1, 2026 TABC liquor permit and DSHS Hemp registration; (3) May 28, 2026 Planning Commission approval of the 'Smith Street Plaza' replat into 1 unrestricted reserve; (4) June 17, 2026 TDLR Architectural Barriers registration #TABS2026022839 at 530 Pierce St for 'Braketime Smith Road' ($2,000,000, 13,254 SF convenience store designed by Heights Engineering); (5) June 24, 2026 COH Plan Review #26052089 at 530 Pierce St for a proposed gas station (submitted 8 times, returned Oct 2, 2026); (6) Sept 30 / Oct 1, 2026 Special Warranty Deed #RP-2026-399473 transferring the block to OB Texas Properties LLC (Omair Bashir) with a $7M loan from Greenberg Finance Co.; (7) Oct 13, 2026 DSHS Notification #2026005825 scheduling abatement of 5,010 SF of RACM from Oct 27 to Nov 6, 2026; and (8) Oct 14, 2026 COH Permit #26090093 ('BLD DEMO/SEWER DISC').",
       "latest_filing_date": "2026-10-14",
       "coh_permits": [
         {
@@ -99,7 +99,95 @@
       ],
       "related_building_ids": [
         "bld_004618"
-      ]
+      ],
+      "secondary_addresses": [
+        "530 PIERCE ST",
+        "2000 BRAZOS ST",
+        "500 GRAY ST"
+      ],
+      "multi_agency_filings": [
+        {
+          "date": "2026-10-14",
+          "agency": "COH Houston Permitting Center",
+          "type": "Sewer Disconnection / Demo Prep Permit",
+          "reference": "Project #26090093",
+          "address": "2000 Smith St",
+          "summary": "Plumbing permit for 'BLD DEMO/SEWER DISC' (occupant '*KIRBY MANSION') issued to contractor Robert Camacho.",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
+          "severity": "critical"
+        },
+        {
+          "date": "2026-10-13",
+          "agency": "Texas DSHS Asbestos Program",
+          "type": "Asbestos Abatement Notification",
+          "reference": "Notification #2026005825",
+          "address": "2000 Smith St",
+          "summary": "Full-containment abatement of 5,010 SF RACM and 150 LF pipe insulation scheduled Oct 27 - Nov 6, 2026 by AAR Incorporated for owner Omair Bashir.",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2451374",
+          "severity": "critical"
+        },
+        {
+          "date": "2026-10-01",
+          "agency": "Harris County Clerk Real Property",
+          "type": "Special Warranty Deed & $7M Deed of Trust",
+          "reference": "File #RP-2026-399473",
+          "address": "2000 Smith St (Block 417 SSBB)",
+          "summary": "Sale closed 9/30/2026 from Hi Tech Auto Realty LLC to OB Texas Properties LLC (Omair Bashir), financed by a $7,000,000 loan from Greenberg Finance Co.",
+          "url": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
+          "severity": "high"
+        },
+        {
+          "date": "2026-06-24",
+          "agency": "COH Permitting Center (ILMS Plan Review)",
+          "type": "Commercial Plan Review (Gas Station)",
+          "reference": "Project #26052089",
+          "address": "530 Pierce St (Perimeter Block Address)",
+          "summary": "Building plans for a proposed gas station submitted under perimeter address 530 Pierce St; submitted 8 times and returned for revisions on Oct 2, 2026.",
+          "url": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
+          "severity": "critical"
+        },
+        {
+          "date": "2026-06-17",
+          "agency": "TDLR Architectural Barriers (TABS)",
+          "type": "Commercial Accessibility Registration",
+          "reference": "TABS2026022839",
+          "address": "530 Pierce St (Perimeter Block Address)",
+          "summary": "'Braketime Smith Road': $2,000,000 new construction of a 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), designed by Heights Engineering for tenant Brake Time.",
+          "url": "https://www.tdlr.texas.gov/TABS/",
+          "severity": "critical"
+        },
+        {
+          "date": "2026-05-28",
+          "agency": "Houston Planning Commission",
+          "type": "Subdivision Replat ('Smith Street Plaza')",
+          "reference": "PC Agenda 5/28/2026",
+          "address": "2000 Smith St (Block 417 SSBB)",
+          "summary": "Planning Commission approved replat consolidating the entire 62,500 SF block into 1 unrestricted reserve (not yet recorded with County Clerk).",
+          "url": "/plat-monitor.html?tab=watchlist",
+          "severity": "high"
+        },
+        {
+          "date": "2026-04-01",
+          "agency": "Texas Alcoholic Beverage Commission (TABC) & DSHS",
+          "type": "Liquor Permit & Retail Hemp Registration",
+          "reference": "Smith St C Store LLC",
+          "address": "2000 Smith St",
+          "summary": "TABC Wine and Malt Beverage Retailer's Off-Premise Permit (BQ) issued 4/1/2026 following Feb-Mar 2026 legal notices; DSHS Retail Hemp Registration filed.",
+          "url": "https://apps.tabc.texas.gov/publicinquiry/",
+          "severity": "watch"
+        },
+        {
+          "date": "2025-10-15",
+          "agency": "Texas Comptroller of Public Accounts",
+          "type": "Entity Formation & Active Sales Tax Permit",
+          "reference": "Taxpayer #32102472084",
+          "address": "2000 Smith St",
+          "summary": "Smith St C Store LLC formed Oct 2025 by Omair Bashir (BTCM National Retail Operations LLC) with Active Sales Tax Permit for 'Brake Time' at 2000 Smith St.",
+          "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212",
+          "severity": "watch"
+        }
+      ],
+      "watchlist_id": "prop-kirby-mansion"
     },
     {
       "hcad_num": "0261900000007",
