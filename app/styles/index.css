@@ -435,11 +435,11 @@ body {
   opacity: 1;
 }
 
-/* Desktop inline vs Mobile/Compact dropdown for More Tools */
+/* Desktop & Mobile dropdown for Secondary More Tools (Export, Share, Methodology, Staff Admin) */
 .topbar-more-trigger {
-  display: none;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .more-dots-icon {
@@ -448,9 +448,54 @@ body {
 }
 
 .topbar-more-items {
+  display: none;
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  min-width: 215px;
+  background: rgba(21, 25, 28, 0.98);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border-brass);
+  border-radius: 10px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.68);
+  padding: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  z-index: 98;
+}
+
+.topbar-more-dropdown.open .topbar-more-items {
   display: flex;
-  align-items: center;
-  gap: 7px;
+}
+
+.topbar-more-dropdown.open .topbar-more-trigger {
+  border-color: var(--accent-amber);
+  background: rgba(149, 201, 89, 0.18);
+}
+
+.topbar-more-items .action-pill {
+  width: 100%;
+  height: 34px;
+  justify-content: flex-start;
+  padding: 0 11px;
+  font-size: 12px;
+}
+
+.plat-monitor-pill {
+  border-color: rgba(168, 85, 247, 0.48) !important;
+  background: rgba(168, 85, 247, 0.16) !important;
+  color: #e9d5ff !important;
+}
+
+.plat-monitor-pill:hover {
+  border-color: #c084fc !important;
+  background: rgba(168, 85, 247, 0.28) !important;
+  color: #ffffff !important;
+}
+
+.mobile-only-more-item {
+  display: none !important;
 }
 
 .segmented-group {
@@ -490,6 +535,11 @@ body {
 }
 
 .action-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-sizing: border-box;
   height: 32px;
   padding: 0 10px;
   border-radius: 8px;
@@ -498,6 +548,8 @@ body {
   color: var(--text-cream);
   font-size: 11.5px;
   font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
   cursor: pointer;
   transition: all 0.16s ease;
   white-space: nowrap;
@@ -2578,43 +2630,12 @@ body {
    Responsive Layout: Compact Desktop & Tablet (<= 1180px)
    ========================================================================== */
 @media (max-width: 1180px) {
-  .topbar-more-trigger {
-    display: inline-flex;
-  }
-
-  .topbar-more-items {
+  .basemap-trigger-prefix {
     display: none;
-    position: absolute;
-    top: calc(100% + 7px);
-    right: 0;
-    min-width: 210px;
-    background: rgba(21, 25, 28, 0.98);
-    backdrop-filter: blur(18px);
-    border: 1px solid var(--border-brass);
-    border-radius: 10px;
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.68);
-    padding: 6px;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 5px;
-    z-index: 98;
   }
 
-  .topbar-more-dropdown.open .topbar-more-items {
-    display: flex;
-  }
-
-  .topbar-more-dropdown.open .topbar-more-trigger {
-    border-color: var(--accent-amber);
-    background: rgba(149, 201, 89, 0.18);
-  }
-
-  .topbar-more-items .action-pill {
-    width: 100%;
-    height: 34px;
-    justify-content: flex-start;
-    padding: 0 11px;
-    font-size: 12px;
+  .search-wrapper {
+    min-width: 140px;
   }
 }
 
@@ -2751,6 +2772,14 @@ body {
 
   .more-trigger-label {
     display: none;
+  }
+
+  #btn-open-plat-monitor {
+    display: none;
+  }
+
+  .mobile-only-more-item {
+    display: inline-flex !important;
   }
 
   .action-pill {

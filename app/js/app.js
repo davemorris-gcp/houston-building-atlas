@@ -1854,7 +1854,7 @@ class HoustonAtlasApp {
       });
     }
 
-    document.querySelectorAll("#topbar-more-items button").forEach((btn) => {
+    document.querySelectorAll("#topbar-more-items button, #topbar-more-items a").forEach((btn) => {
       btn.addEventListener("click", () => {
         closeTopbarDropdowns();
       });
