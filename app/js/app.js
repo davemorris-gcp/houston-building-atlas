@@ -400,12 +400,13 @@ class HoustonAtlasApp {
 
   async _loadMetadataFiles() {
     try {
-      const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
+      const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
         fetch("public/data/search_index.json?v=20261024a"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
         fetch("public/data/sanborn_catalog.json?v=20261011u").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261025a").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -453,11 +454,27 @@ class HoustonAtlasApp {
       } else {
         this.sanbornCatalog = null;
       }
+      if (citydirRes && citydirRes.ok) {
+        this.citydirIndex = await citydirRes.json();
+        this.citydirAbsentSet = new Set(this.citydirIndex?.absent_through_1926 || []);
+      } else {
+        this.citydirIndex = null;
+        this.citydirAbsentSet = new Set();
+      }
       if (this.mapController?.overlaysData) {
         this._mergeCuratedOverridesIntoSearchIndex();
         this._enrichSearchIndexWithOverlayMetadata();
       }
       this._renderGlobalDatasetSummary();
+      const activeDrawer = document.getElementById("inspector-drawer");
+      if (
+        this._currentInspectedRawProps &&
+        activeDrawer &&
+        !activeDrawer.classList.contains("hidden") &&
+        !activeDrawer.classList.contains("boundary-mode")
+      ) {
+        this.renderInspectorDrawer(this._currentInspectedRawProps);
+      }
     } catch (err) {
       console.error("Failed to load metadata files:", err);
     }
@@ -7688,6 +7705,1187 @@ class HoustonAtlasApp {
     `;
   }
 
+  _escapeResearchHtml(val) {
+    return String(val ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  _pointInSingleRing(lng, lat, ring) {
+    if (!Array.isArray(ring) || ring.length < 3) return false;
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0];
+      const yi = ring[i][1];
+      const xj = ring[j][0];
+      const yj = ring[j][1];
+      const intersects =
+        yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi || 1e-12) + xi;
+      if (intersects) inside = !inside;
+    }
+    return inside;
+  }
+
+  _pointInPolygonRings(lng, lat, geom) {
+    if (!geom || !Array.isArray(geom.coordinates)) return false;
+    const testPoly = (rings) => {
+      if (!Array.isArray(rings) || rings.length === 0) return false;
+      if (!this._pointInSingleRing(lng, lat, rings[0])) return false;
+      for (let h = 1; h < rings.length; h++) {
+        if (this._pointInSingleRing(lng, lat, rings[h])) return false;
+      }
+      return true;
+    };
+    if (geom.type === "Polygon") {
+      return testPoly(geom.coordinates);
+    }
+    if (geom.type === "MultiPolygon") {
+      return geom.coordinates.some((poly) => testPoly(poly));
+    }
+    return false;
+  }
+
+  _resolveSanbornCoverageAtPoint(lng, lat, yearBuilt = 0) {
+    const boundaries = Array.isArray(this.sanbornCatalog?.volume_boundaries)
+      ? this.sanbornCatalog.volume_boundaries
+      : [];
+    const eraOrder = {
+      "1885": 1,
+      "1890": 2,
+      "1896": 3,
+      "1907": 4,
+      "1924-1929": 5,
+      "1946-1951": 6,
+    };
+    const locMap = {
+      "1885|Volume 1": "sanborn08580_001",
+      "1890|Volume 1": "sanborn08580_002",
+      "1896|Volume 1": "sanborn08580_003",
+      "1907|Volume 1": "sanborn08580_004",
+      "1907|Volume 2": "sanborn08580_005",
+      "1946-1951|Volume 11": "sanborn08580_027",
+      "1946-1951|Volume 12": "sanborn08580_028",
+      "1946-1951|Volume 15": "sanborn08580_016",
+    };
+
+    const hitsByKey = new Map();
+    if (Number.isFinite(lng) && Number.isFinite(lat)) {
+      for (const feat of boundaries) {
+        if (!feat || !feat.geometry) continue;
+        if (!this._pointInPolygonRings(lng, lat, feat.geometry)) continue;
+        const p = feat.properties || {};
+        const era = String(p.sanborn_era || p.VolYear || "").trim();
+        const title = String(p.Title || "Volume 1").trim();
+        const volYear = String(p.VolYear || era).trim();
+        const key = `${era}|${title}`;
+        if (hitsByKey.has(key)) continue;
+        const shortVol = title.replace(/^Volume\s+/i, "Vol. ");
+        const locVolId = locMap[key] || null;
+        hitsByKey.set(key, {
+          era,
+          volYear,
+          volTitle: title,
+          shortVol,
+          label:
+            era === "1885" || era === "1890" || era === "1896"
+              ? `${era} Edition`
+              : `${volYear} ${shortVol}`,
+          eraGroupLabel:
+            era === "1924-1929" || era === "1946-1951"
+              ? `${era} (${shortVol})`
+              : `${era} (${shortVol})`,
+          locVolId,
+          is1907: era === "1907",
+          order: eraOrder[era] || 99,
+        });
+      }
+    }
+
+    const hits = Array.from(hitsByKey.values()).sort(
+      (a, b) => a.order - b.order || a.volTitle.localeCompare(b.volTitle)
+    );
+    const has1907 = hits.some((h) => h.is1907);
+    const locHits = hits.filter((h) => Boolean(h.locVolId));
+    const nonLoc1924To1951 = hits.filter((h) => !h.locVolId);
+
+    const yr = Number(yearBuilt) || 0;
+    let recommendedOverlay = {
+      id: has1907 ? "sanborn_1907" : "hpl_1930",
+      label: has1907 ? "1907 Sanborn Fire Insurance Mosaic" : "1930 Houston Street Map",
+    };
+    if (has1907 && (yr === 0 || yr <= 1914)) {
+      recommendedOverlay = {
+        id: "sanborn_1907",
+        label: "1907 Sanborn Fire Insurance Mosaic",
+      };
+    } else if (yr > 0 && yr <= 1878) {
+      recommendedOverlay = {
+        id: "wood_1869",
+        label: "1869 W. E. Wood Map of Houston",
+      };
+    } else if (yr > 0 && yr <= 1915) {
+      recommendedOverlay = has1907
+        ? { id: "sanborn_1907", label: "1907 Sanborn Fire Insurance Mosaic" }
+        : { id: "whitty_1913", label: "1913 Whitty Streetcar & Ward Map" };
+    } else if (yr > 1915 && yr <= 1924) {
+      recommendedOverlay = {
+        id: "hpl_1921",
+        label: "1921 Houston Street & Subdivision Map",
+      };
+    } else if (yr > 1924 && yr <= 1935) {
+      recommendedOverlay = {
+        id: "hpl_1930",
+        label: "1930 Houston Archival Street Map",
+      };
+    } else if (yr > 1935 && yr <= 1945) {
+      recommendedOverlay = {
+        id: "hpl_1941",
+        label: "1941 Pre-WWII Houston Street Map",
+      };
+    } else if (yr > 1945 && yr <= 1956) {
+      recommendedOverlay = {
+        id: "hpl_1950",
+        label: "1950 Post-War Houston Expansion Map",
+      };
+    } else if (yr > 1956 && yr <= 1972) {
+      recommendedOverlay = {
+        id: "hpl_1963",
+        label: "1963 Space City Street & Loop Map",
+      };
+    } else if (yr > 1972) {
+      recommendedOverlay = has1907
+        ? { id: "sanborn_1907", label: "1907 Sanborn Mosaic (Earlier Site History)" }
+        : { id: "usgs_topo", label: "1915-1955 USGS Topographic Quad Mosaic" };
+    } else if (!has1907 && hits.length === 0) {
+      recommendedOverlay = {
+        id: "usgs_topo",
+        label: "1915-1955 USGS Topographic Quad Mosaic",
+      };
+    }
+
+    return {
+      hits,
+      has1907,
+      locHits,
+      nonLoc1924To1951,
+      recommendedOverlay,
+      summaryText:
+        hits.length > 0
+          ? hits.map((h) => h.label).join(" · ")
+          : "Outside 1885-1951 Sanborn Limits (Use HPL Street Maps & USGS Quads)",
+    };
+  }
+
+  _parseAddressForArchivalSearch(rawAddress, neighborhood = "", historicDistrict = "", subdivision = "") {
+    const raw = String(rawAddress || "").trim();
+    if (!raw) {
+      return {
+        hasStreetAddress: false,
+        houseNum: "",
+        streetStem: "",
+        cleanQuery: "",
+        exactCityDirUrl: "https://cdm17006.contentdm.oclc.org/digital/collection/citydir",
+        hplAllArchivesUrl: "https://cdm17006.contentdm.oclc.org/digital",
+        historicAliases: [],
+        numberingTip: "",
+      };
+    }
+
+    const upper = raw
+      .toUpperCase()
+      .replace(/[,#].*$/, "")
+      .replace(/\b(?:STE|SUITE|APT|UNIT|BLDG|FL|FLOOR)\b.*$/, "")
+      .replace(/[^A-Z0-9\s\-]/g, " ")
+      .trim();
+    const tokens = upper.split(/\s+/).filter(Boolean);
+    if (!tokens.length || !/^\d+[A-Z]?$/.test(tokens[0])) {
+      const q = raw.replace(/\s+/g, " ").trim();
+      return {
+        hasStreetAddress: false,
+        houseNum: "",
+        streetStem: q,
+        cleanQuery: q,
+        exactCityDirUrl: `https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search/searchterm/${encodeURIComponent(
+          q
+        )}/field/all/mode/exact/conn/and/order/date`,
+        hplAllArchivesUrl: `https://cdm17006.contentdm.oclc.org/digital/search/searchterm/${encodeURIComponent(
+          q
+        )}`,
+        historicAliases: [],
+        numberingTip: "",
+      };
+    }
+
+    const houseNum = tokens[0].replace(/[A-Z]+$/, "");
+    let rest = tokens.slice(1);
+    const cityTail = new Set(["HOUSTON", "TX", "TEXAS"]);
+    while (rest.length > 1 && (cityTail.has(rest[rest.length - 1]) || /^\d{5}$/.test(rest[rest.length - 1]))) {
+      rest.pop();
+    }
+    const suffixes = new Set([
+      "ST",
+      "STREET",
+      "AVE",
+      "AVENUE",
+      "BLVD",
+      "BOULEVARD",
+      "DR",
+      "DRIVE",
+      "RD",
+      "ROAD",
+      "LN",
+      "LANE",
+      "CT",
+      "COURT",
+      "PL",
+      "PLACE",
+      "PKWY",
+      "PARKWAY",
+      "WAY",
+      "CIR",
+      "CIRCLE",
+      "TRL",
+      "TRAIL",
+      "FWY",
+      "FREEWAY",
+    ]);
+    if (rest.length > 1 && suffixes.has(rest[rest.length - 1])) {
+      rest.pop();
+    }
+
+    const dirTokens = new Set(["N", "S", "E", "W", "NORTH", "SOUTH", "EAST", "WEST"]);
+    const fullWithDir = rest.join(" ");
+    let stemTokens = [...rest];
+    if (stemTokens.length > 1 && dirTokens.has(stemTokens[0])) {
+      stemTokens = stemTokens.slice(1);
+    }
+    if (stemTokens.length > 1 && dirTokens.has(stemTokens[stemTokens.length - 1])) {
+      stemTokens = stemTokens.slice(0, -1);
+    }
+
+    const toTitleCase = (s) =>
+      String(s || "")
+        .toLowerCase()
+        .replace(/\b([a-z])/g, (_, ch) => ch.toUpperCase())
+        .replace(/\b(\d+)(St|Nd|Rd|Th)\b/g, (_, d, ord) => `${d}${ord.toLowerCase()}`);
+
+    const streetStemUpper = stemTokens.join(" ");
+    const streetStem = toTitleCase(streetStemUpper);
+    const cleanQuery = `${houseNum} ${streetStem}`.trim();
+
+    const aliasMap = this.citydirIndex?.historic_streets || {};
+    const rawAliases =
+      aliasMap[fullWithDir] ||
+      aliasMap[streetStemUpper] ||
+      [];
+    const seenFor = new Set();
+    const historicAliases = [];
+    for (const item of rawAliases) {
+      if (!item || !item.former || seenFor.has(item.former)) continue;
+      if (item.former.toUpperCase() === streetStemUpper) continue;
+      seenFor.add(item.former);
+      const aliasQuery = `${houseNum} ${item.former}`.trim();
+      historicAliases.push({
+        former: item.former,
+        era: item.era || "Historic Name",
+        note: item.note || "",
+        aliasQuery,
+        cityDirUrl: `https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search/searchterm/${encodeURIComponent(
+          aliasQuery
+        )}/field/all/mode/exact/conn/and/order/date`,
+      });
+    }
+
+    const areaCtx = `${neighborhood} ${historicDistrict} ${subdivision}`.toUpperCase();
+    const isHoustonHeightsProper =
+      /\bHOUSTON\s+HEIGHTS\b/.test(String(historicDistrict || "").toUpperCase()) ||
+      /\bHOUSTON\s+HEIGHTS\b/.test(String(subdivision || "").toUpperCase());
+    let numberingTip = "";
+    if (isHoustonHeightsProper) {
+      if (/^\d+(?:ST|ND|RD|TH)$/.test(streetStemUpper)) {
+        numberingTip = `Houston Heights tip: Before Houston annexed the Heights in 1918, numbered E/W streets (${streetStem} St) were platted as "${streetStem} Ave" and early homes carried 3-digit Heights house numbers.`;
+      } else {
+        numberingTip =
+          "Houston Heights tip: Pre-1918 City Directories list the Municipality of Houston Heights in a separate section at the back of the volume (often with pre-annexation 3-digit house numbers).";
+      }
+    } else if (
+      areaCtx.includes("SIXTH WARD") ||
+      areaCtx.includes("FREEDMEN") ||
+      areaCtx.includes("FOURTH WARD") ||
+      areaCtx.includes("FIRST WARD") ||
+      areaCtx.includes("HIGH FIRST")
+    ) {
+      numberingTip =
+        "Pre-1912 numbering tip: Houston unified street house numbers around 1911-1912; for 1866-1910 directories, also search by owner surname or corner cross-streets.";
+    }
+
+    return {
+      hasStreetAddress: true,
+      houseNum,
+      streetStem,
+      cleanQuery,
+      exactCityDirUrl: `https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search/searchterm/${encodeURIComponent(
+        cleanQuery
+      )}/field/all/mode/exact/conn/and/order/date`,
+      hplAllArchivesUrl: `https://cdm17006.contentdm.oclc.org/digital/search/searchterm/${encodeURIComponent(
+        cleanQuery
+      )}`,
+      historicAliases,
+      numberingTip,
+    };
+  }
+
+  _parseHcadLegalTokens(legalDescription = "", subdivision = "") {
+    const rawLegal = String(legalDescription || "").trim();
+    const rawSub = String(subdivision || "").trim();
+    const source = rawLegal || rawSub;
+
+    let lot = "";
+    let block = "";
+    let section = "";
+
+    if (rawLegal) {
+      const lotMatch = rawLegal.match(
+        /\b(?:LTS?|LOTS?|TR|TRACT)\s+([0-9A-Z&,\-\s]+?)(?=\s+(?:BLK|BLOCK|SEC|SECT|SECTION|ABST|U\/R|R\/P|PAR)\b|$)/i
+      );
+      if (lotMatch && lotMatch[1]) {
+        lot = lotMatch[1].trim().replace(/\s+/g, " ");
+      }
+      const blkMatch = rawLegal.match(/\b(?:BLK|BLOCK)\s+([0-9A-Z\-]+)/i);
+      if (blkMatch && blkMatch[1]) {
+        block = blkMatch[1].trim();
+      }
+      const secMatch = rawLegal.match(/\b(?:SEC|SECT|SECTION)\s+([0-9A-Z\-]+)/i);
+      if (secMatch && secMatch[1]) {
+        section = secMatch[1].trim();
+      }
+    }
+
+    if (!section && rawSub) {
+      const subSecMatch = rawSub.match(/\b(?:SEC|SECT|SECTION)\s+([0-9A-Z\-]+)/i);
+      if (subSecMatch && subSecMatch[1]) {
+        section = subSecMatch[1].trim();
+      }
+    }
+
+    let addition = rawSub;
+    if (!addition && rawLegal) {
+      addition = rawLegal
+        .replace(/^\s*(?:LTS?|LOTS?|TR|TRACT)\s+[0-9A-Z&,\-\s]+?(?=\s+(?:BLK|BLOCK)\b)/i, "")
+        .replace(/^\s*(?:BLK|BLOCK)\s+[0-9A-Z\-]+\s*/i, "")
+        .trim();
+    }
+    const cleanAdditionSearch = addition
+      .replace(/\b(?:R\/P|PAR\s+R\/P|PARTIAL\s+REPLAT|REPLAT|AMENDED|U\/R)\b.*$/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return {
+      lot,
+      block,
+      section,
+      addition: addition || "",
+      cleanAdditionSearch: cleanAdditionSearch || addition || "",
+      rawLegal,
+      source,
+    };
+  }
+
+  _buildLegalCopyPillsHtml(tokens, { hcadNum = "", owner = "" } = {}) {
+    const pills = [];
+    if (tokens.cleanAdditionSearch) {
+      pills.push({
+        k: "Addition / Plat",
+        v: tokens.cleanAdditionSearch,
+        copy: tokens.cleanAdditionSearch,
+      });
+    }
+    if (tokens.section) {
+      pills.push({
+        k: "Sec",
+        v: tokens.section,
+        copy: tokens.section,
+      });
+    }
+    if (tokens.block) {
+      pills.push({
+        k: "Block",
+        v: tokens.block,
+        copy: tokens.block,
+      });
+    }
+    if (tokens.lot) {
+      pills.push({
+        k: "Lot / Tract",
+        v: tokens.lot,
+        copy: tokens.lot,
+      });
+    }
+    const cleanOwner = String(owner || "").trim();
+    if (
+      cleanOwner &&
+      cleanOwner !== "Public / Unlisted" &&
+      cleanOwner !== "Current Owner"
+    ) {
+      pills.push({
+        k: "Grantee / Owner",
+        v: cleanOwner,
+        copy: cleanOwner,
+      });
+    }
+    if (hcadNum) {
+      pills.push({
+        k: "HCAD #",
+        v: hcadNum,
+        copy: hcadNum,
+      });
+    }
+    if (pills.length === 0) {
+      return `<span class="rk-token-empty">Click parcel in HCAD GIS or County Clerk below to look up Lot &amp; Block legal description.</span>`;
+    }
+    return pills
+      .map((p) => {
+        const escCopy = this._escapeResearchHtml(p.copy);
+        const escK = this._escapeResearchHtml(p.k);
+        const escV = this._escapeResearchHtml(p.v);
+        return `<button
+          type="button"
+          class="rk-copy-pill"
+          data-rk-copy="${escCopy}"
+          title="Click to copy '${escCopy}' for pasting into Harris County Clerk search"
+        >
+          <span class="rk-copy-k">${escK}:</span>
+          <span class="rk-copy-v mono">${escV}</span>
+          <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
+        </button>`;
+      })
+      .join("");
+  }
+
+  _buildCityDirectoryResearchData(props, hcadNum, yr, addrInfo) {
+    const cleanHcad = String(hcadNum || "").trim();
+    const auditHit =
+      cleanHcad && this.citydirIndex?.by_hcad ? this.citydirIndex.by_hcad[cleanHcad] || null : null;
+    const isAuditedAbsent =
+      !auditHit && cleanHcad && this.citydirAbsentSet ? this.citydirAbsentSet.has(cleanHcad) : false;
+
+    const allVolumes = Array.isArray(this.citydirIndex?.volumes)
+      ? this.citydirIndex.volumes.filter((v) => v.primary !== false)
+      : [];
+
+    const milestoneVolumes = [];
+    if (allVolumes.length > 0) {
+      if (yr >= 1866 && yr <= 1928) {
+        let beforeVol = null;
+        let atOrAfterVol = null;
+        for (const v of allVolumes) {
+          if (v.year < yr) beforeVol = v;
+          if (v.year >= yr && !atOrAfterVol) atOrAfterVol = v;
+        }
+        if (beforeVol) {
+          milestoneVolumes.push({
+            ...beforeVol,
+            role: `Pre-Build (${beforeVol.label})`,
+          });
+        }
+        if (atOrAfterVol && (!beforeVol || atOrAfterVol.pointer !== beforeVol.pointer)) {
+          milestoneVolumes.push({
+            ...atOrAfterVol,
+            role: `First Listing Era (${atOrAfterVol.label})`,
+          });
+        }
+        const latest1926 = allVolumes[allVolumes.length - 1];
+        if (
+          latest1926 &&
+          !milestoneVolumes.some((m) => m.pointer === latest1926.pointer)
+        ) {
+          milestoneVolumes.push({
+            ...latest1926,
+            role: `1926 Criss-Cross (${latest1926.label})`,
+          });
+        }
+      } else if (yr === 0) {
+        for (const targetYr of [1907, 1915, 1926]) {
+          const found = allVolumes.find((v) => v.year === targetYr);
+          if (found) {
+            milestoneVolumes.push({
+              ...found,
+              role: `${found.label} Directory`,
+            });
+          }
+        }
+      } else if (yr > 1928) {
+        const v1926 = allVolumes[allVolumes.length - 1];
+        if (v1926) {
+          milestoneVolumes.push({
+            ...v1926,
+            role: `1926 Pre-Build Check`,
+          });
+        }
+      }
+    }
+
+    return {
+      auditHit,
+      isAuditedAbsent,
+      milestoneVolumes,
+      isPost1926Build: yr > 1926,
+      addrInfo,
+    };
+  }
+
+  _buildHouseHistoryResearchKitHtml(ctx) {
+    const {
+      title,
+      yr,
+      hcadNum,
+      sanbornInfo,
+      cityDirInfo,
+      legalTokens,
+      owner,
+      protectionEval,
+      catalogEntryForDeed,
+      archChips,
+      builderChips,
+      haifSearchTerm,
+      haifGoogleSearchUrl,
+      streetViewUrl,
+    } = ctx;
+
+    const curState = this.filterStore.getState();
+    const activeMapId = curState.layers?.historicMap ? curState.historicMapId : "";
+    const recOv = sanbornInfo.recommendedOverlay;
+    const isRecActive = activeMapId === recOv.id;
+    const is1907Active = activeMapId === "sanborn_1907";
+
+    // Step 1: Sanborn & Historical Maps
+    const sanbornBadgesHtml =
+      sanbornInfo.hits.length > 0
+        ? `<div class="rk-pill-strip">
+            ${sanbornInfo.hits
+              .map(
+                (h) =>
+                  `<span class="rk-coverage-badge ${h.locVolId ? "digitized" : "ut-pcl"}" title="${
+                    h.locVolId
+                      ? `Digitized in Library of Congress (${h.locVolId})`
+                      : `Indexed in 1924-1951 Sanborn series (UT Perry-Castaneda Library & HPL)`
+                  }">${this._escapeResearchHtml(h.label)}${h.locVolId ? " · LOC" : ""}</span>`
+              )
+              .join("")}
+          </div>`
+        : `<div class="rk-subtle-note">Parcel lies outside the 1885-1951 Sanborn Fire Insurance survey perimeter; use georeferenced 1921-1963 HPL street maps and USGS topographic quadrangles below to trace subdivision growth.</div>`;
+
+    const sanbornLocBtnsHtml = sanbornInfo.locHits
+      .map(
+        (h) =>
+          `<button
+            type="button"
+            class="rk-action-btn secondary"
+            data-rk-open-sanborn-vol="${this._escapeResearchHtml(h.locVolId)}"
+            title="Open digitized Library of Congress sheets for ${this._escapeResearchHtml(h.label)}"
+          >
+            &#128214; Browse ${this._escapeResearchHtml(h.label)} Sheets (LOC)
+          </button>`
+      )
+      .join("");
+
+    const uniqueNonLocVols = Array.from(
+      new Set(sanbornInfo.nonLoc1924To1951.map((h) => h.shortVol))
+    );
+    const utPclLinkHtml =
+      sanbornInfo.nonLoc1924To1951.length > 0
+        ? `<a
+            href="https://maps.lib.utexas.edu/maps/sanborn/texas_cities_g-i.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rk-action-btn secondary"
+            title="View digitized 1924-1951 Houston Sanborn sheets (${this._escapeResearchHtml(
+              sanbornInfo.nonLoc1924To1951.map((h) => h.label).join(", ")
+            )}) via UT Austin Perry-Castaneda Library"
+          >
+            1924-51 Sheets (${this._escapeResearchHtml(
+              uniqueNonLocVols.slice(0, 3).join(", ")
+            )}) at UT PCL &#8599;
+          </a>`
+        : "";
+
+    // Step 2: City Directories (1866-1926)
+    const hit = cityDirInfo.auditHit;
+    const addrInfo = cityDirInfo.addrInfo;
+    let cityDirAuditBannerHtml = "";
+    if (hit) {
+      const yrsList = Array.isArray(hit.y) ? hit.y : [];
+      const spanLabel =
+        yrsList.length > 1
+          ? `${yrsList[0]}-${yrsList[yrsList.length - 1]} (${yrsList.length} volumes)`
+          : `${hit.e}`;
+      const pageUrl = hit.p
+        ? `https://cdm17006.contentdm.oclc.org/digital/collection/citydir/id/${hit.p}/rec/1`
+        : addrInfo.exactCityDirUrl;
+      const flagNote =
+        hit.f === "earlier" && yr > hit.e
+          ? `Appears in directory earlier than HCAD roll`
+          : hit.f === "undated_hcad"
+          ? `Dates structure unrecorded on HCAD roll`
+          : `Confirmed in digitized HPL directories`;
+      cityDirAuditBannerHtml = `
+        <div class="rk-verified-hit-box">
+          <div class="rk-verified-hit-top">
+            <span class="rk-verified-hit-badge">&#10003; Verified 1866-1926 Directory Sighting</span>
+            <span class="rk-verified-hit-span mono">${this._escapeResearchHtml(spanLabel)}</span>
+          </div>
+          ${
+            hit.c
+              ? `<div class="rk-verified-hit-cite">${this._escapeResearchHtml(hit.c)}</div>`
+              : `<div class="rk-verified-hit-cite">${this._escapeResearchHtml(flagNote)} (Earliest volume: ${hit.e}).</div>`
+          }
+          <div class="rk-verified-hit-actions">
+            <a
+              href="${pageUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn primary small"
+            >
+              Open Earliest Scanned Page (${hit.e}) &#8599;
+            </a>
+          </div>
+        </div>
+      `;
+    } else if (cityDirInfo.isAuditedAbsent) {
+      cityDirAuditBannerHtml = `
+        <div class="rk-subtle-note">
+          <strong>Pre-Screened (1866-1926):</strong> No exact match under <code>${this._escapeResearchHtml(
+            addrInfo.cleanQuery || title
+          )}</code> in pre-1927 digitized directories${
+        yr > 1926
+          ? ` (consistent with ${yr} construction).`
+          : ` (check pre-1912 house numbering or historic street aliases below).`
+      }
+        </div>
+      `;
+    }
+
+    const aliasBtnsHtml = (addrInfo.historicAliases || [])
+      .map(
+        (al) => `
+        <div class="rk-alias-alert">
+          <div>
+            <strong>Historic Street Name (${this._escapeResearchHtml(al.era)}):</strong>
+            ${this._escapeResearchHtml(al.note)}
+          </div>
+          <a
+            href="${al.cityDirUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rk-action-btn secondary small"
+          >
+            Search &ldquo;${this._escapeResearchHtml(al.aliasQuery)}&rdquo; in 1866-1926 Directories &#8599;
+          </a>
+        </div>`
+      )
+      .join("");
+
+    const milestoneVolBtnsHtml = (cityDirInfo.milestoneVolumes || [])
+      .map(
+        (v) =>
+          `<a
+            href="https://cdm17006.contentdm.oclc.org/digital/collection/citydir/id/${v.pointer}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="rk-vol-chip"
+            title="Open ${this._escapeResearchHtml(v.title)} in HPL ContentDM"
+          >${this._escapeResearchHtml(v.role)} &#8599;</a>`
+      )
+      .join("");
+
+    const post1926NoteHtml = cityDirInfo.isPost1926Build
+      ? `<div class="rk-subtle-note">
+          <strong>Post-1926 Occupant Lookup:</strong> Copyright restricts online HPL directories after 1926. To trace ${yr}-present residents by street address, consult the print <em>Morrison &amp; Fourmy</em> and <em>Polk Criss-Cross</em> directories at HPL's <strong>Houston History Research Center (Julia Ideson Building, 550 McKinney St)</strong>.
+        </div>`
+      : "";
+
+    // Step 3: Chain of Title, Plat & Deed Lookup
+    const legalPillsHtml = this._buildLegalCopyPillsHtml(legalTokens, { hcadNum, owner });
+    const hasMirroredDeeds =
+      catalogEntryForDeed &&
+      Array.isArray(catalogEntryForDeed.documents) &&
+      catalogEntryForDeed.documents.length > 0;
+
+    // Step 4: Photos, Newspapers & Architectural Archives
+    const primaryArch =
+      Array.isArray(archChips) && archChips.length > 0
+        ? archChips[0].label
+        : Array.isArray(builderChips) && builderChips.length > 0
+        ? builderChips[0].label
+        : "";
+    const archArchiveBtnHtml = primaryArch
+      ? `<a
+          href="https://cdm17006.contentdm.oclc.org/digital/search/searchterm/${encodeURIComponent(
+            primaryArch
+          )}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rk-action-btn secondary"
+          title="Search HPL Digital Archives & Architectural Drawings for ${this._escapeResearchHtml(
+            primaryArch
+          )}"
+        >
+          HPL Drawings: ${this._escapeResearchHtml(primaryArch)} &#8599;
+        </a>`
+      : "";
+
+    // Step 5: Tailored Preservation & Block Armor Playbook
+    const pEval = protectionEval || {};
+    const needsBlockArmor = !pEval.hasSmls || !pEval.hasSmbl;
+    const missingArmorLabel =
+      !pEval.hasSmls && !pEval.hasSmbl
+        ? "Special Minimum Lot Size (SMLS) or Building Line (SMBL)"
+        : !pEval.hasSmls
+        ? "Special Minimum Lot Size (SMLS)"
+        : "Special Minimum Building Line (SMBL)";
+
+    let step5Summary = "";
+    let step5BtnsHtml = "";
+    if (pEval.demoTier === "waiver_lm") {
+      step5Summary = `This property is a City of Houston Landmark subject to the 90-day demolition waiver rule. Upgrading to a <strong>Protected Landmark (PLM)</strong> permanently removes the 90-day demolition loophole and unlocks City historic tax-exemption eligibility.`;
+      step5BtnsHtml += `
+        <a
+          href="https://www.houstontx.gov/planning/HistoricPres/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rk-action-btn primary"
+        >
+          Upgrade to Protected Landmark (COH) &#8599;
+        </a>`;
+    } else if (pEval.demoTier === "protected_plm" || pEval.demoTier === "protected_hd") {
+      step5Summary = `Protected under City of Houston Chapter 33 (${this._escapeResearchHtml(
+        pEval.demoStatus || "HAHC Review"
+      )}). Exterior alterations visible from the street require an HAHC Certificate of Appropriateness (COA); substantial rehabilitations may qualify for City tax exemptions or 25% Texas historic tax credits.`;
+      step5BtnsHtml += `
+        <a
+          href="https://www.houstontx.gov/planning/Commissions/HAHC.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rk-action-btn secondary"
+        >
+          HAHC &amp; COA Guidelines &#8599;
+        </a>
+        <a
+          href="https://www.houstontx.gov/planning/HistoricPres/docs_pdfs/hist-incentives-broch.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rk-action-btn secondary"
+        >
+          COH Historic Tax Exemption Guide (PDF) &#8599;
+        </a>`;
+    } else {
+      step5Summary =
+        yr > 0 && yr <= 1976
+          ? `Built in ${yr} without binding City demolition protection. Owners can apply for permanent <strong>Protected Landmark</strong> status, and neighbors can petition for Chapter 42 block-level lot-size and setback protections.`
+          : `No binding City historic landmark ordinance covers this parcel. Neighbors can protect block character against townhome lot-splits and front-yard encroachments using Chapter 42 petitions.`;
+      step5BtnsHtml += `
+        <a
+          href="https://www.houstontx.gov/planning/HistoricPres/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rk-action-btn secondary"
+        >
+          COH Landmark &amp; District Guide &#8599;
+        </a>`;
+    }
+
+    if (needsBlockArmor) {
+      step5BtnsHtml += `
+        <a
+          href="https://www.houstontx.gov/planning/Min-Lot_Size-Min_Bldg_Line.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rk-action-btn primary"
+          title="No active ${missingArmorLabel} detected on this block; learn how 51% of blockface owners can petition under Chapter 42"
+        >
+          Apply for Block SMLS / SMBL Armor (Ch. 42) &#8599;
+        </a>`;
+    } else {
+      step5BtnsHtml += `
+        <a
+          href="https://www.houstontx.gov/planning/Neighborhood/docs_pdfs/MLS_Brochure.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rk-action-btn secondary"
+        >
+          Ch. 42 SMLS / SMBL Rules (PDF) &#8599;
+        </a>`;
+    }
+    step5BtnsHtml += `
+      <a
+        href="https://www.preservationhouston.org/services/research"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="rk-action-btn secondary"
+      >
+        Preservation Houston Research Guide &#8599;
+      </a>`;
+
+    return `
+      <section class="research-kit-card" id="house-history-research-kit">
+        <div class="research-kit-header">
+          <div>
+            <div class="research-kit-kicker">&#128218; One-Click Archival Workflow</div>
+            <h3 class="research-kit-title">5-Step House History Research Kit</h3>
+          </div>
+          <span class="research-kit-badge">${
+            sanbornInfo.hits.length > 0
+              ? `${sanbornInfo.hits.length} Sanborn Vol${sanbornInfo.hits.length === 1 ? "" : "s"}`
+              : "Parcel Tailored"
+          }</span>
+        </div>
+        <p class="research-kit-intro">
+          Primary-source links, spatial map coverage, and copy-paste search tokens tailored to <strong>${this._escapeResearchHtml(
+            addrInfo.cleanQuery || title
+          )}</strong>${yr >= 1836 ? ` (recorded ${yr})` : ""}.
+        </p>
+
+        <!-- STEP 1: SANBORN & HISTORICAL MAPS -->
+        <div class="rk-step">
+          <div class="rk-step-head">
+            <span class="rk-step-num">1</span>
+            <span class="rk-step-title">Sanborn Fire Insurance &amp; Historical Maps</span>
+          </div>
+          ${sanbornBadgesHtml}
+          <div class="rk-btn-row">
+            <button
+              type="button"
+              class="rk-action-btn primary ${isRecActive ? "is-active" : ""}"
+              data-rk-drape-map="${this._escapeResearchHtml(recOv.id)}"
+              data-rk-drape-label="${this._escapeResearchHtml(recOv.label)}"
+              title="Toggle georeferenced ${this._escapeResearchHtml(recOv.label)} directly underneath this building on the map"
+            >
+              ${
+                isRecActive
+                  ? `&#10003; ${this._escapeResearchHtml(recOv.label)} Active (Hide)`
+                  : `&#128506; Drape ${this._escapeResearchHtml(recOv.label)}`
+              }
+            </button>
+            ${
+              sanbornInfo.has1907 && recOv.id !== "sanborn_1907"
+                ? `<button
+                    type="button"
+                    class="rk-action-btn secondary ${is1907Active ? "is-active" : ""}"
+                    data-rk-drape-map="sanborn_1907"
+                    data-rk-drape-label="1907 Sanborn Fire Insurance Mosaic"
+                    title="Drape the 1907 Sanborn Fire Insurance Mosaic to check whether an earlier structure occupied this lot in 1907"
+                  >
+                    ${is1907Active ? "&#10003; 1907 Sanborn Active (Hide)" : "Drape 1907 Sanborn"}
+                  </button>`
+                : ""
+            }
+            ${sanbornLocBtnsHtml}
+            ${utPclLinkHtml}
+          </div>
+        </div>
+
+        <!-- STEP 2: HOUSTON CITY DIRECTORIES -->
+        <div class="rk-step">
+          <div class="rk-step-head">
+            <span class="rk-step-num">2</span>
+            <span class="rk-step-title">Houston City Directories (1866-1926 Occupants &amp; Dating)</span>
+          </div>
+          ${cityDirAuditBannerHtml}
+          ${aliasBtnsHtml}
+          <div class="rk-btn-row">
+            <a
+              href="${addrInfo.exactCityDirUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn primary"
+              title="Run an exact-phrase search across all 39 digitized Houston City Directories (1866-1926) in HPL ContentDM"
+            >
+              &#128269; Search &ldquo;${this._escapeResearchHtml(
+                addrInfo.cleanQuery || title
+              )}&rdquo; in 39 Directories (1866-1926) &#8599;
+            </a>
+          </div>
+          ${
+            milestoneVolBtnsHtml
+              ? `<div class="rk-vol-strip">
+                  <span class="rk-vol-strip-label">Jump to Era Volume:</span>
+                  ${milestoneVolBtnsHtml}
+                </div>`
+              : ""
+          }
+          ${
+            addrInfo.numberingTip
+              ? `<div class="rk-subtle-note">${this._escapeResearchHtml(addrInfo.numberingTip)}</div>`
+              : ""
+          }
+          ${post1926NoteHtml}
+        </div>
+
+        <!-- STEP 3: CHAIN OF TITLE, PLAT & DEEDS -->
+        <div class="rk-step">
+          <div class="rk-step-head">
+            <span class="rk-step-num">3</span>
+            <span class="rk-step-title">Chain of Title, Subdivision Plat &amp; Deed Lookup</span>
+          </div>
+          <div class="rk-copy-bar-label">1-Click Copy Tokens for County Clerk Search:</div>
+          <div class="rk-copy-pills-wrap" id="research-kit-legal-pills">
+            ${legalPillsHtml}
+          </div>
+          <div class="rk-btn-row">
+            <a
+              href="https://www.cclerk.hctx.net/applications/websearch/RP.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn primary"
+              title="Search Grantor/Grantee deeds, deeds of trust, mechanic's liens, and restrictions at the Harris County Clerk"
+            >
+              Harris County Clerk Deeds (RP) &#8599;
+            </a>
+            <a
+              href="https://www.cclerk.hctx.net/Applications/WebSearch/MC.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn secondary"
+              title="Look up original subdivision plat maps by Addition name at the Harris County Clerk Maps & Condos portal"
+            >
+              Subdivision Plat Maps (Clerk MC) &#8599;
+            </a>
+            <a
+              href="https://www.harriscountyarchives.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn secondary"
+              title="Harris County Archives: pre-1961 deed books, historic tax assessment rolls, and commissioners court records"
+            >
+              Pre-1961 Deed Books &amp; Tax Rolls &#8599;
+            </a>
+            <a
+              href="https://www.cclerk.hctx.net/Applications/WebSearch/CourtSearch.aspx?CaseType=Probate"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn secondary"
+              title="Search Harris County Probate Court estate filings to trace inherited properties and family wills"
+            >
+              Probate &amp; Wills &#8599;
+            </a>
+            ${
+              hasMirroredDeeds
+                ? `<button
+                    type="button"
+                    class="rk-action-btn secondary"
+                    data-switch-inspector-tab="hcad"
+                    title="View mirrored subdivision deed restriction PDFs in the HCAD & Parcel tab"
+                  >
+                    Mirrored Subdivision Deed PDF (${catalogEntryForDeed.documents.length}) &rarr;
+                  </button>`
+                : ""
+            }
+          </div>
+        </div>
+
+        <!-- STEP 4: PHOTOS, NEWSPAPERS & ARCHITECTURAL ARCHIVES -->
+        <div class="rk-step">
+          <div class="rk-step-head">
+            <span class="rk-step-num">4</span>
+            <span class="rk-step-title">Photographs, Newspapers &amp; Architectural Archives</span>
+          </div>
+          <div class="rk-btn-row">
+            <a
+              href="${addrInfo.hplAllArchivesUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn primary"
+              title="Search Houston Public Library Digital Archives (HHRC historic photos, architectural drawings, oral histories & Gregory School collections)"
+            >
+              HPL Digital Archives (&ldquo;${this._escapeResearchHtml(
+                addrInfo.cleanQuery || title
+              )}&rdquo;) &#8599;
+            </a>
+            ${archArchiveBtnHtml}
+            <a
+              href="https://houstonlibrary.org/research"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn secondary"
+              title="Free access with an HPL library card to Houston Chronicle (1901+), Houston Post (1880-1995), and Houston Forward Times historical archives"
+            >
+              Chronicle &amp; Post Archives (HPL Card) &#8599;
+            </a>
+            <a
+              href="https://atlas.thc.texas.gov/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn secondary"
+              title="Texas Historical Commission Historic Sites Atlas: NRHP nominations, RTHL markers, and county architectural surveys"
+            >
+              THC Historic Sites Atlas &#8599;
+            </a>
+            ${
+              haifSearchTerm && haifGoogleSearchUrl
+                ? `<a
+                    href="${haifGoogleSearchUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="rk-action-btn secondary"
+                  >
+                    HAIF Forum Search &#8599;
+                  </a>`
+                : ""
+            }
+            <a
+              href="${streetViewUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn secondary"
+              id="btn-rk-streetview"
+            >
+              Street View Time Machine (2007+) &#8599;
+            </a>
+          </div>
+        </div>
+
+        <!-- STEP 5: PROTECT THIS PROPERTY & BLOCK -->
+        <div class="rk-step">
+          <div class="rk-step-head">
+            <span class="rk-step-num">5</span>
+            <span class="rk-step-title">Protect This Property &amp; Block${
+              needsBlockArmor ? " · Block Armor Available" : ""
+            }</span>
+          </div>
+          <p class="rk-step-copy">${step5Summary}</p>
+          <div class="rk-btn-row">
+            ${step5BtnsHtml}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  _bindResearchKitCopyPills(container) {
+    if (!container) return;
+    container.querySelectorAll("[data-rk-copy]").forEach((pill) => {
+      pill.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const val = pill.getAttribute("data-rk-copy") || "";
+        if (!val) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(val);
+        }
+        const origHtml = pill.innerHTML;
+        pill.classList.add("copied");
+        pill.innerHTML = `<span class="rk-copy-v mono">&#10003; Copied &ldquo;${this._escapeResearchHtml(
+          val
+        )}&rdquo;</span>`;
+        setTimeout(() => {
+          pill.classList.remove("copied");
+          pill.innerHTML = origHtml;
+        }, 1700);
+      });
+    });
+  }
+
+  _bindHouseHistoryResearchKitEvents(content) {
+    if (!content) return;
+    const kitEl = content.querySelector("#house-history-research-kit");
+    if (!kitEl) return;
+
+    this._bindResearchKitCopyPills(kitEl);
+
+    kitEl.querySelectorAll("[data-rk-open-sanborn-vol]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const volId = btn.getAttribute("data-rk-open-sanborn-vol") || "";
+        if (volId) {
+          this.openSanbornBrowserModal(volId);
+        }
+      });
+    });
+
+    kitEl.querySelectorAll("[data-rk-drape-map]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const mapId = btn.getAttribute("data-rk-drape-map") || "sanborn_1907";
+        const curState = this.filterStore.getState();
+        const curLayers = curState.layers || {};
+        const isAlreadyThisMap = Boolean(curLayers.historicMap) && curState.historicMapId === mapId;
+        const nextVisible = !isAlreadyThisMap;
+
+        this.filterStore.setState({
+          historicMapId: mapId,
+          layers: {
+            ...curLayers,
+            historicMap: nextVisible,
+          },
+        });
+        const selEl = document.getElementById("select-historic-map-id");
+        if (selEl && nextVisible) {
+          selEl.value = mapId;
+        }
+        const chkEl = document.getElementById("layer-historic-map");
+        if (chkEl) {
+          chkEl.checked = nextVisible;
+        }
+        const opRow = document.getElementById("historic-map-opacity-row");
+        if (opRow) {
+          opRow.classList.toggle("hidden", !nextVisible);
+        }
+
+        // Refresh button states inside the Research Kit
+        kitEl.querySelectorAll("[data-rk-drape-map]").forEach((otherBtn) => {
+          const otherId = otherBtn.getAttribute("data-rk-drape-map") || "";
+          const otherLbl = otherBtn.getAttribute("data-rk-drape-label") || "Historical Map";
+          const activeNow = nextVisible && otherId === mapId;
+          otherBtn.classList.toggle("is-active", activeNow);
+          if (otherBtn.classList.contains("primary")) {
+            otherBtn.innerHTML = activeNow
+              ? `&#10003; ${this._escapeResearchHtml(otherLbl)} Active (Hide)`
+              : `&#128506; Drape ${this._escapeResearchHtml(otherLbl)}`;
+          } else {
+            otherBtn.innerHTML = activeNow
+              ? `&#10003; 1907 Sanborn Active (Hide)`
+              : `Drape 1907 Sanborn`;
+          }
+        });
+      });
+    });
+
+    const jumpBtn = content.querySelector("#btn-jump-research-kit");
+    if (jumpBtn) {
+      jumpBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        this._switchInspectorTab("history", { scrollInWide: false });
+        setTimeout(() => {
+          const targetKit = document.getElementById("house-history-research-kit");
+          if (targetKit) {
+            targetKit.scrollIntoView({ behavior: "smooth", block: "start" });
+            targetKit.classList.add("wide-focus-pulse");
+            setTimeout(() => targetKit.classList.remove("wide-focus-pulse"), 1200);
+          }
+        }, 40);
+      });
+    }
+  }
+
+  _refreshResearchKitLegalTokens(props, rec) {
+    const pillsWrap = document.getElementById("research-kit-legal-pills");
+    if (!pillsWrap || !rec) return;
+    const hcadNum = String(props?.hcad_num || "").trim();
+    const subVal = String(rec.subdivision || props?.subdivision || "").trim();
+    const legalVal = String(rec.legalDescription || "").trim();
+    const ownerVal = String(rec.owner || props?.owner || "").trim();
+    const tokens = this._parseHcadLegalTokens(legalVal, subVal);
+    pillsWrap.innerHTML = this._buildLegalCopyPillsHtml(tokens, {
+      hcadNum,
+      owner: ownerVal,
+    });
+    this._bindResearchKitCopyPills(pillsWrap);
+  }
+
   renderInspectorDrawer(rawProps) {
     const drawer = document.getElementById("inspector-drawer");
     const content = document.getElementById("inspector-body");
@@ -7717,12 +8915,14 @@ class HoustonAtlasApp {
         "lost_houston",
       ].includes(String(rawProps.overlay_layer || ""))
     ) {
+      this._currentInspectedRawProps = null;
       drawer.classList.add("boundary-mode");
       this._syncInspectorLayoutControls();
       this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
       return;
     }
 
+    this._currentInspectedRawProps = rawProps;
     drawer.classList.remove("boundary-mode");
     this._syncInspectorLayoutControls();
 
@@ -8593,6 +9793,40 @@ class HoustonAtlasApp {
       ? this._buildInspectorPlatWatchCardHtml(activePlatItem)
       : "";
 
+    const sanbornResearchInfo = this._resolveSanbornCoverageAtPoint(effLng, effLat, yr);
+    const addrResearchInfo = this._parseAddressForArchivalSearch(
+      props.address || title,
+      nbhdVal,
+      distVal,
+      subVal
+    );
+    const cityDirResearchInfo = this._buildCityDirectoryResearchData(
+      props,
+      hcadNum,
+      yr,
+      addrResearchInfo
+    );
+    const initialLegalTokens = this._parseHcadLegalTokens(
+      props.legal_description || "",
+      subVal
+    );
+    const researchKitHtml = this._buildHouseHistoryResearchKitHtml({
+      title,
+      yr,
+      hcadNum,
+      sanbornInfo: sanbornResearchInfo,
+      cityDirInfo: cityDirResearchInfo,
+      legalTokens: initialLegalTokens,
+      owner: props.owner || "",
+      protectionEval,
+      catalogEntryForDeed,
+      archChips,
+      builderChips,
+      haifSearchTerm,
+      haifGoogleSearchUrl,
+      streetViewUrl,
+    });
+
     const historyItemCount = [
       Boolean(props.is_curated_override),
       Boolean(reportPdfUrl || landmarkCode),
@@ -8601,6 +9835,7 @@ class HoustonAtlasApp {
       Boolean(histContractObj || histBuilderVal || histCostVal || histPermitVal || wasRelocatedFlag),
       lostHoustonAtSite.length > 0,
       haifThreads.length > 0,
+      Boolean(cityDirResearchInfo.auditHit),
     ].filter(Boolean).length;
 
     const initialTab =
@@ -8723,7 +9958,7 @@ class HoustonAtlasApp {
           History${
             historyItemCount > 0
               ? ` <span class="inspector-tab-badge">${historyItemCount}</span>`
-              : ""
+              : ` <span class="inspector-tab-badge kit-badge">Kit</span>`
           }
         </button>
         <button
@@ -8879,6 +10114,14 @@ class HoustonAtlasApp {
             </div>
 
             <div class="inspector-actions">
+              <button
+                type="button"
+                class="inspector-btn research-kit-jump"
+                id="btn-jump-research-kit"
+                title="Open the 5-Step House History Research Kit (Sanborn coverage, 1866-1926 City Directories, Deeds & Block Armor)"
+              >
+                &#128218; Open 5-Step House History Research Kit &rarr;
+              </button>
               <button type="button" class="inspector-btn suggest-edit" id="btn-suggest-correction">
                 &#9998; Suggest a Date / Shape / Data Correction
               </button>
@@ -8929,6 +10172,7 @@ class HoustonAtlasApp {
                 : ""
             }
             ${haifForumHtml}
+            ${researchKitHtml}
             ${emptyHistoryFallbackHtml}
           </div>
         </div>
@@ -9139,6 +10383,7 @@ class HoustonAtlasApp {
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, props);
+    this._bindHouseHistoryResearchKitEvents(content);
 
     const btnToggleScorecard = content.querySelector("#btn-toggle-protection-scorecard");
     const scorecardEl = content.querySelector("#inspector-protection-scorecard");
@@ -9380,11 +10625,15 @@ class HoustonAtlasApp {
               const refinedSvUrl = buildStreetViewUrl(cLat, cLng);
               const btnSv = document.getElementById("btn-inspector-streetview");
               if (btnSv) btnSv.href = refinedSvUrl;
+              const btnRkSv = document.getElementById("btn-rk-streetview");
+              if (btnRkSv) btnRkSv.href = refinedSvUrl;
               if (this._activePhotoState) {
                 this._activePhotoState.streetViewUrl = refinedSvUrl;
               }
             }
           }
+
+          this._refreshResearchKitLegalTokens(props, rec);
 
           // Enrich any missing Inspector fields with live HCAD record attributes
           const ownerCell = document.getElementById("inspector-cell-owner");
@@ -10268,10 +11517,69 @@ class HoustonAtlasApp {
 
     const liveAppr = document.getElementById("hcad-live-appr")?.textContent || "";
     const liveOwner = document.getElementById("inspector-cell-owner")?.textContent || props.owner || "Public / Unlisted";
+    const liveLegalLine = document.getElementById("hcad-live-legal")?.textContent || "";
     const bldSqftText =
       Number(props.bld_area) > 0
         ? `${Number(props.bld_area).toLocaleString()} sq ft`
-        : document.getElementById("inspector-cell-bld-sqft")?.textContent || "—";
+        : document.getElementById("inspector-cell-bld-sqft")?.textContent || "-";
+
+    // Compute Archival Research & Legal Reference for printable sheet
+    let dLng = Number.isFinite(Number(props.lon ?? props.lng)) ? Number(props.lon ?? props.lng) : null;
+    let dLat = Number.isFinite(Number(props.lat)) ? Number(props.lat) : null;
+    const selG = this.mapController ? this.mapController.selectedFeatureGeometry : null;
+    if ((!Number.isFinite(dLng) || !Number.isFinite(dLat)) && selG && selG.coordinates) {
+      if (selG.type === "Point") {
+        [dLng, dLat] = selG.coordinates;
+      } else {
+        const r0 =
+          selG.type === "Polygon"
+            ? selG.coordinates[0]
+            : selG.type === "MultiPolygon" && selG.coordinates[0]
+            ? selG.coordinates[0][0]
+            : null;
+        if (Array.isArray(r0) && r0.length > 0) {
+          dLng = r0[0][0];
+          dLat = r0[0][1];
+        }
+      }
+    }
+    if (!Number.isFinite(dLng) || !Number.isFinite(dLat)) {
+      dLng = vp?.lng ?? -95.3698;
+      dLat = vp?.lat ?? 29.7604;
+    }
+    const dossierSanborn = this._resolveSanbornCoverageAtPoint(dLng, dLat, year || 0);
+    const dossierAddrInfo = this._parseAddressForArchivalSearch(
+      address,
+      props.neighborhood || "",
+      props.historic_district || ""
+    );
+    const dossierCityDir = this._buildCityDirectoryResearchData(
+      props,
+      hcadAcct,
+      year || 0,
+      dossierAddrInfo
+    );
+    const dossierLegal = this._parseHcadLegalTokens(
+      liveLegalLine,
+      props.subdivision || ""
+    );
+    const dossierLegalSummary = [
+      dossierLegal.cleanAdditionSearch ? `Subdivision: ${dossierLegal.cleanAdditionSearch}` : "",
+      dossierLegal.section ? `Sec ${dossierLegal.section}` : "",
+      dossierLegal.block ? `Blk ${dossierLegal.block}` : "",
+      dossierLegal.lot ? `Lot ${dossierLegal.lot}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ") || (props.subdivision ? String(props.subdivision) : "See HCAD & County Clerk RP");
+    const dossierCityDirSummary = dossierCityDir.auditHit
+      ? `Verified in HPL Directories (Earliest: ${dossierCityDir.auditHit.e}; ${
+          Array.isArray(dossierCityDir.auditHit.y) ? dossierCityDir.auditHit.y.length : 1
+        } digitized vol.)`
+      : dossierCityDir.isAuditedAbsent
+      ? `Absent in 1866-1926 directories (Search "${dossierAddrInfo.cleanQuery || title}")`
+      : `Search "${dossierAddrInfo.cleanQuery || title}" in HPL 1866-1926 Directories${
+          year && year > 1926 ? " + HHRC Print Criss-Cross (1927+)" : ""
+        }`;
 
     bodyEl.innerHTML = `
       <article class="dossier-sheet" id="printable-dossier-sheet">
@@ -10392,6 +11700,28 @@ class HoustonAtlasApp {
                   ? "PH Curated + HCAD"
                   : "HCAD / COH GIS"
               }</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="dossier-grid-section">
+          <div class="dossier-section-title">ARCHIVAL RESEARCH &amp; HOUSE HISTORY REFERENCE</div>
+          <div class="dossier-kv-grid">
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Platted Legal Reference</span>
+              <span class="dossier-v">${this._escapeResearchHtml(dossierLegalSummary)}</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Sanborn Atlas Coverage</span>
+              <span class="dossier-v">${this._escapeResearchHtml(dossierSanborn.summaryText)}</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">1866-1926 City Directories</span>
+              <span class="dossier-v">${this._escapeResearchHtml(dossierCityDirSummary)}</span>
+            </div>
+            <div class="dossier-kv-cell">
+              <span class="dossier-k">Primary Deeds &amp; Plats</span>
+              <span class="dossier-v">Harris County Clerk RP / MC &amp; County Archives</span>
             </div>
           </div>
         </section>
