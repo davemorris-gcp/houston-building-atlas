@@ -30,11 +30,13 @@ export const CLASSIC_EE_YEAR_STOPS = [
 export const UNKNOWN_YEAR_COLOR = "#524E4A";
 
 export const PRESERVATION_STATUS_ITEMS = [
-  { key: "Protected Landmark", label: "Protected Landmark (PLM)", color: "#E63946" },
-  { key: "Landmark", label: "Designated Landmark (LM)", color: "#F4A261" },
-  { key: "Contributing", label: "Contributing in Historic District", color: "#2A9D8F" },
-  { key: "Non-Contributing", label: "Non-Contributing in District", color: "#E76F51" },
-  { key: "Outside Historic District", label: "Outside Historic District", color: "#5E6472" },
+  { key: "plm", label: "Protected Landmark (PLM: Ch. 33 COA)", color: "#E63946" },
+  { key: "coh_hd_contributing", label: "Contributing in COH Historic District", color: "#2A9D8F" },
+  { key: "lm_waiver", label: "90-Day Waiver Landmark (LM Outside HD)", color: "#F59E0B" },
+  { key: "nrhp_eligible", label: "NRHP Tax-Credit Eligible (No Demo Ban)", color: "#C084FC" },
+  { key: "ch42_deed_armor", label: "Ch. 42 SMLS/SMBL or Deed Armor Zone", color: "#38BDF8" },
+  { key: "unprotected_pre1945", label: "Unprotected Pre-1946 Historic Structure", color: "#FB7185" },
+  { key: "standard_or_post1945", label: "Post-1945 / Non-Contributing / Standard", color: "#475569" },
 ];
 
 export const USE_CATEGORY_ITEMS = [
@@ -2556,15 +2558,31 @@ export function buildColorExpression(colorMode = "year_built", paletteStyle = "a
   if (colorMode === "preservation_status") {
     return [
       "case",
+      ["==", ["get", "protection_tier"], "plm"],
+      "#E63946",
       ["==", ["get", "landmark_type"], "Protected Landmark"],
       "#E63946",
-      ["==", ["get", "landmark_type"], "Landmark"],
-      "#F4A261",
+      ["==", ["get", "protection_tier"], "coh_hd_contributing"],
+      "#2A9D8F",
       ["==", ["get", "contributing"], "Contributing"],
       "#2A9D8F",
+      ["==", ["get", "protection_tier"], "lm_waiver"],
+      "#F59E0B",
+      ["==", ["get", "landmark_type"], "Landmark"],
+      "#F59E0B",
+      ["==", ["get", "protection_tier"], "nrhp_eligible"],
+      "#C084FC",
+      ["==", ["get", "protection_tier"], "coh_hd_noncontributing"],
+      "#64748B",
       ["==", ["get", "contributing"], "Non-Contributing"],
-      "#E76F51",
-      "#5E6472",
+      "#64748B",
+      [
+        "all",
+        [">=", ["to-number", ["get", "year_built"], 0], 1836],
+        ["<=", ["to-number", ["get", "year_built"], 0], 1945],
+      ],
+      "#FB7185",
+      "#475569",
     ];
   }
 

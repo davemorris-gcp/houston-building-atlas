@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261023f" />
+  <link rel="stylesheet" href="styles/index.css?v=20261024b" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -595,487 +595,612 @@
           </button>
         </div>
 
-        <!-- Preservation & Civic Overlay Layers -->
+        <!-- Preservation & Civic Overlay Layers (4 Thematic Accordion Categories) -->
         <div class="checkbox-stack layer-list" id="overlay-layer-list">
-          <div class="layer-item-row" data-layer-key="permitWatch">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-permit-watch" checked />
-              <span class="swatch-dot" style="background:#EF4444; border:1.5px solid #FEF08A; box-shadow:0 0 7px rgba(239,68,68,0.85);"></span>
-              <span class="layer-name">Permit &amp; Demo Watch (<span id="permit-watch-layer-count">15</span>)</span>
-            </label>
-            <div style="display:inline-flex;align-items:center;gap:4px;">
-              <button
-                type="button"
-                class="layer-solo-btn"
-                id="btn-open-permit-watch-inline"
-                style="border-color:rgba(248,113,113,0.45);background:rgba(239,68,68,0.14);color:#FECACA;"
-                title="Open Active Demolition, Sewer Disconnect &amp; DSHS Asbestos Watchlist Modal"
-              >
-                Watchlist
-              </button>
-              <button
-                type="button"
-                class="layer-solo-btn"
-                data-solo-layer="permitWatch"
-                title="Show only Permit &amp; Demolition Watch alerts (click again to restore)"
-              >
-                Solo
-              </button>
-            </div>
-          </div>
+          <!-- Category 1: Advocacy & Early Warning -->
+          <details class="layer-category-group" data-layer-group="advocacy" open>
+            <summary class="layer-category-summary">
+              <span class="layer-category-title-wrap">
+                <span class="layer-category-chevron" aria-hidden="true">&#9656;</span>
+                <span class="layer-category-title">Advocacy &amp; Early Warning</span>
+              </span>
+              <span class="layer-category-badge mono" data-group-badge="advocacy">1 active</span>
+            </summary>
+            <div class="layer-category-body">
+              <div class="layer-item-row" data-layer-key="permitWatch">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-permit-watch" checked />
+                  <span class="swatch-dot" style="background:#EF4444; border:1.5px solid #FEF08A; box-shadow:0 0 7px rgba(239,68,68,0.85);"></span>
+                  <span class="layer-name">Permit &amp; Demo Watch (<span id="permit-watch-layer-count">15</span>)</span>
+                </label>
+                <div style="display:inline-flex;align-items:center;gap:4px;">
+                  <button
+                    type="button"
+                    class="layer-solo-btn"
+                    id="btn-open-permit-watch-inline"
+                    style="border-color:rgba(248,113,113,0.45);background:rgba(239,68,68,0.14);color:#FECACA;"
+                    title="Open Active Demolition, Sewer Disconnect &amp; DSHS Asbestos Watchlist Modal"
+                  >
+                    Watchlist
+                  </button>
+                  <button
+                    type="button"
+                    class="layer-solo-btn"
+                    data-solo-layer="permitWatch"
+                    title="Show only Permit &amp; Demolition Watch alerts (click again to restore)"
+                  >
+                    Solo
+                  </button>
+                </div>
+              </div>
 
-          <div class="layer-item-row" data-layer-key="platWatch">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-plat-watch" />
-              <span class="swatch-dot" style="background:#A855F7; border:1.5px solid #F3E8FF; box-shadow:0 0 7px rgba(168,85,247,0.85);"></span>
-              <span class="layer-name">Planning Commission Plats &amp; Variances (<span id="plat-watch-layer-count">53</span>)</span>
-            </label>
-            <div style="display:inline-flex;align-items:center;gap:4px;">
-              <a
-                href="plat-monitor.html"
-                class="layer-solo-btn"
-                style="text-decoration:none;border-color:rgba(168,85,247,0.45);background:rgba(168,85,247,0.14);color:#E9D5FF;"
-                title="Open Biweekly Planning Commission Plat &amp; Variance Monitor"
-              >
-                Monitor
-              </a>
-              <button
-                type="button"
-                class="layer-solo-btn"
-                data-solo-layer="platWatch"
-                title="Show only Planning Commission Plats &amp; Variances (click again to restore)"
-              >
-                Solo
-              </button>
-            </div>
-          </div>
+              <div class="layer-item-row" data-layer-key="platWatch">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-plat-watch" />
+                  <span class="swatch-dot" style="background:#A855F7; border:1.5px solid #F3E8FF; box-shadow:0 0 7px rgba(168,85,247,0.85);"></span>
+                  <span class="layer-name">Planning Commission Plats &amp; Variances (<span id="plat-watch-layer-count">53</span>)</span>
+                </label>
+                <div style="display:inline-flex;align-items:center;gap:4px;">
+                  <a
+                    href="plat-monitor.html"
+                    class="layer-solo-btn"
+                    style="text-decoration:none;border-color:rgba(168,85,247,0.45);background:rgba(168,85,247,0.14);color:#E9D5FF;"
+                    title="Open Biweekly Planning Commission Plat &amp; Variance Monitor"
+                  >
+                    Monitor
+                  </a>
+                  <button
+                    type="button"
+                    class="layer-solo-btn"
+                    data-solo-layer="platWatch"
+                    title="Show only Planning Commission Plats &amp; Variances (click again to restore)"
+                  >
+                    Solo
+                  </button>
+                </div>
+              </div>
 
-          <div class="layer-item-row" data-layer-key="goodBrickAwards">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-good-brick" checked />
-              <span class="swatch-dot" style="background:#95C959; border:1.5px solid #F4F9EE; box-shadow:0 0 6px rgba(149,201,89,0.78);"></span>
-              <span class="layer-name">Good Brick Award Winners (359)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="goodBrickAwards"
-              title="Show only Good Brick Award Winners (click again to restore previous layers)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="landmarks">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-landmarks" checked />
-              <span class="swatch-dot" style="background:#E63946; border:1.5px solid #FFFBEB;"></span>
-              <span class="layer-name">COH Landmarks &amp; Protected (509)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="landmarks"
-              title="Show only COH Landmarks &amp; Protected Landmarks (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="historicDistricts">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-historic-districts" checked />
-              <span class="swatch-line" style="border-color:#38BDF8;"></span>
-              <span class="layer-name">COH Historic Districts (22)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="historicDistricts"
-              title="Show only City of Houston Historic Districts (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="heritageDistricts">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-heritage-districts" checked />
-              <span class="swatch-line" style="border-color:#34D399;"></span>
-              <span class="layer-name">Freedmen's Town Heritage District</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="heritageDistricts"
-              title="Show only Freedmen's Town Heritage District (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="nrhpDistricts">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-nrhp-districts" />
-              <span class="swatch-line dashed" style="border-color:#C084FC;"></span>
-              <span class="layer-name">National Register (NRHP) Districts</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="nrhpDistricts"
-              title="Show only National Register (NRHP) Districts (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="thcMarkers">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-thc-markers" />
-              <span class="swatch-dot" style="background:#C084FC;"></span>
-              <span class="layer-name">Texas Historical Markers (596)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="thcMarkers"
-              title="Show only Texas Historical Commission Markers (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="neighborhoods">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-neighborhoods" />
-              <span class="swatch-line" style="border-color:#95C959;"></span>
-              <span class="layer-name">Neighborhoods &amp; Sub-Areas (1,426)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="neighborhoods"
-              title="Show only Houston Vernacular Neighborhoods &amp; Civic Clubs (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="plattedSubdivisions">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-platted-subdivisions" />
-              <span class="swatch-line dashed" style="border-color:#22D3EE;" title="Cyan dashed = Platted Subdivision; Gold border = Full-Text Deed Restriction PDFs attached"></span>
-              <span class="layer-name">Platted Subdivisions &amp; Deeds (5,573)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="plattedSubdivisions"
-              title="Show only HCAD Platted Subdivisions &amp; Deed-Documented Additions (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="landUseProtections">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-land-use-protections" />
-              <span class="swatch-line dashed" style="border-color:#F59E0B;" title="Amber = Special Min. Lot Size (SMLS); Emerald = Special Min. Building Lines (SMBL); Rose = Conservation District"></span>
-              <span class="layer-name">Ch. 42 Lot &amp; Setback Protections (910)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="landUseProtections"
-              title="Show only Chapter 42 Special Minimum Lot Size (SMLS), Building Line (SMBL) &amp; Conservation District overlays (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="superNeighborhoods">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-super-neighborhoods" />
-              <span class="swatch-line dashed" style="border-color:#60A5FA;"></span>
-              <span class="layer-name">COH Super Neighborhoods (88)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="superNeighborhoods"
-              title="Show only City of Houston Super Neighborhoods (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="historicWards">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-historic-wards" />
-              <span class="swatch-line" style="border-color:#FB923C;"></span>
-              <span class="layer-name">Historic Wards (1839–1905)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="historicWards"
-              title="Show only Original Houston Aldermanic Wards (1839–1905, click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="historic-ward-era-row hidden" id="historic-ward-era-row" role="group" aria-label="Historic Ward Charter Era">
-            <span class="ward-era-label">Ward Charter Era:</span>
-            <div class="ward-era-pills">
-              <button type="button" class="ward-era-pill mono" data-ward-era="1839" title="1839 Original 4-Ward Charter">1839</button>
-              <button type="button" class="ward-era-pill mono" data-ward-era="1866" title="1866 Charter (Fifth Ward Created)">1866</button>
-              <button type="button" class="ward-era-pill mono" data-ward-era="1896" title="1896 Charter (Sixth Ward &amp; 9 Sq. Mi. Limits)">1896</button>
-              <button type="button" class="ward-era-pill mono active" data-ward-era="1903" title="1903–1905 Final Aldermanic Ward Charter (16 Sq. Mi. — Ward System Abolished in 1905 Commission Charter)">1903–05</button>
-            </div>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="annexations">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-annexations" />
-              <span class="swatch-line dashed" style="border-color:#F59E0B;"></span>
-              <span class="layer-name">Annexation History (1836–2020)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="annexations"
-              title="Show only Houston Annexation History by Decade (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="annexation-options-row hidden" id="annexation-options-row">
-            <div class="annexation-options-header">
-              <span class="annexation-options-kicker">Active Boundary:</span>
-              <span class="annexation-active-decade-badge mono" id="annexation-active-decade-badge">2020s City Limits</span>
-            </div>
-            <label class="check-row annexation-subcheck-row" title="Toggle the 1963 Ord. 63-1219 10-ft highway ETJ spokes and 2000s–2010s Limited-Purpose MUD Strategic Partnership Agreement (SPA) commercial retail strips">
-              <input type="checkbox" id="chk-annexation-spokes" checked />
-              <span>Include 10-ft Highway Spokes &amp; MUD Commercial Strips</span>
-            </label>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="historicalWaterways">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-waterways" />
-              <span class="swatch-line" style="border-color:#0EA5E9;" title="Cerulean = Bayous &amp; Creeks · Dashed Amber/Cyan = Buried Gullies · Dotted Violet = Pre-Channelization Oxbows"></span>
-              <span class="layer-name">Historical Waterways &amp; Gullies (114)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="historicalWaterways"
-              title="Show only Historical Waterways, Streams, Creeks, Buried Gullies &amp; Pre-Channelization Oxbows (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="annexation-options-row hidden" id="waterways-legend-row">
-            <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
-              <span><strong style="color:#38BDF8;">&#9473;&#9473;</strong> Bayous &amp; Creeks</span>
-              <span><strong style="color:#FBBF24;">&#9476;&#9476;</strong> Buried Gullies (Harris, Pecore, Slaughterpen)</span>
-              <span><strong style="color:#A78BFA;">&middot;&middot;&middot;</strong> Historic Oxbows</span>
-            </div>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="historicalRailroads">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-railroads" />
-              <span class="swatch-line dashed" style="border-color:#F59E0B;" title="Gold Cross-Tie = Pioneer Mainlines · Rose Dashed = Abandoned / Rail-Trail · Violet Dashed = Streetcars &amp; Interurban · Gold Pin = Historic Depots"></span>
-              <span class="layer-name">Historical Railroads &amp; Streetcars (58)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="historicalRailroads"
-              title="Show only Historical Railroads, Abandoned Rail-Trails, Streetcar Lines &amp; Historic Train Depots (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="annexation-options-row hidden" id="railroads-legend-row">
-            <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
-              <span><strong style="color:#F59E0B;">&#9547;&#9547;</strong> Pioneer Mainlines</span>
-              <span><strong style="color:#FB7185;">&#9476;&#9476;</strong> Abandoned / Rail-Trails</span>
-              <span><strong style="color:#C084FC;">&#9476;&#9476;</strong> Streetcars &amp; Interurban</span>
-              <span><strong style="color:#FDE047;">&#9670;</strong> Depots</span>
-            </div>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="lostHouston">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-lost-houston" checked />
-              <span class="swatch-line dashed" style="border-color:#F472B6;" title="Dashed Architectural Ghost Footprints color-coded by Sanborn Underwriters Construction Material (Pink = Brick, Yellow = Wood Frame, Blue = Stone/Concrete, Olive = Fireproof)"></span>
-              <span class="layer-name">Lost Houston: Demolished Landmarks (73)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="lostHouston"
-              title="Show only Lost Houston demolished historic structures, ballparks, depots &amp; theatres (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="annexation-options-row hidden" id="lost-houston-legend-row">
-            <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
-              <span><strong style="color:#F472B6;">&#9645;</strong> Brick (Sanborn Pink)</span>
-              <span><strong style="color:#FACC15;">&#9645;</strong> Wood Frame (Yellow)</span>
-              <span><strong style="color:#60A5FA;">&#9645;</strong> Concrete / Stone (Blue)</span>
-              <span><strong style="color:#84CC16;">&#9645;</strong> Steel / Fireproof (Olive)</span>
-              <span><strong style="color:#A8A29E;">&#9645;</strong> Iron / Truss (Gray)</span>
-            </div>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="relocatedStructures">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-relocated-structures" />
-              <span class="swatch-dot" style="background:#38BDF8; box-shadow: 0 0 6px #38BDF8;" title="Relocated Historic Structures &amp; Documented Historic Contractor Portfolio Sites"></span>
-              <span class="layer-name">Relocated &amp; Contractor Portfolio Sites (480)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="relocatedStructures"
-              title="Show only Relocated Historic Structures and HMRC Contractor Portfolio Sites (click again to restore)"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="layer-item-row" data-layer-key="historicMap">
-            <label class="check-row layer-row-main">
-              <input type="checkbox" id="chk-layer-historic-map" />
-              <span class="swatch-line" style="border-color:#D4A373;" title="Georeferenced 1907 Sanborn Fire Insurance Atlas, 1869-1950 Historic City Maps, 1937 HOLC Map, 1944/1953 Aerials &amp; USGS Quads"></span>
-              <span class="layer-name">Historical Maps &amp; Sanborn Atlases (15)</span>
-            </label>
-            <button
-              type="button"
-              class="layer-solo-btn"
-              data-solo-layer="historicMap"
-              title="Show Georeferenced Sanborn Fire Insurance Atlas or Historical Map Underlay"
-            >
-              Solo
-            </button>
-          </div>
-
-          <div class="historic-map-opacity-row hidden" id="historic-map-opacity-row">
-            <div class="historic-map-select-group">
-              <label for="select-historic-map-id" class="slider-label">
-                Historical Map Sheet / Era:
-              </label>
-              <select id="select-historic-map-id" class="full-select historic-map-select" aria-label="Select Georeferenced Historical Map or Sanborn Atlas">
-                <optgroup label="Sanborn Fire Insurance Atlases (1907)">
-                  <option value="sanborn_1907">1907 Sanborn Fire Insurance Atlas (Vols. 1 &amp; 2 Full Mosaic)</option>
-                  <option value="sanborn_1907_downtown_hires">1907 Sanborn Downtown &amp; Market Square (Hi-Res Detail)</option>
-                </optgroup>
-                <optgroup label="Historic Houston City &amp; Planning Maps (1869-1963)">
-                  <option value="wood_1869">1869 W. E. Wood Map of Houston (4th Ward &amp; Downtown)</option>
-                  <option value="whitty_1913">1913 Whitty Map of Houston (Wards &amp; Streetcars)</option>
-                  <option value="comey_1913">1913 Arthur Comey Park &amp; Bayou System Plan</option>
-                  <option value="hpl_1917">1917 Houston Map (HPL / HMRC Archival Mosaic)</option>
-                  <option value="hpl_1921">1921 Houston Street &amp; Subdivision Map (HPL)</option>
-                  <option value="planning_1929">1929 City Planning Commission Major Street Plan</option>
-                  <option value="hpl_1930">1930 Houston Map (HPL / HMRC Archival Mosaic)</option>
-                  <option value="holc_1937">1937 HOLC Neighborhood Security ("Redlining") Map</option>
-                  <option value="hpl_1941">1941 Houston Pre-WWII Street Map (HPL)</option>
-                  <option value="hpl_1950">1950 Post-War Houston Expansion Map (HPL)</option>
-                  <option value="hpl_1963">1963 Space City Street &amp; Freeway Loop Map (HPL)</option>
-                </optgroup>
-                <optgroup label="Rice University, Hermann Park &amp; South Main Archives (1930-1953)">
-                  <option value="aerial_1944">1944 Donald Buckner Illustrated Map of Rice Institute &amp; Hermann Park</option>
-                  <option value="aerial_rice_1930">1930 Aerial Photo: Rice Institute, Hermann Park &amp; South Main</option>
-                  <option value="aerial_rice_1947">1947 Aerial Photo: Rice Institute, Hermann Park &amp; Shamrock Site</option>
-                  <option value="aerial_1953">1953 Aerial Photo: Rice University, Shamrock Hotel &amp; Medical Center</option>
-                </optgroup>
-                <optgroup label="USGS Historical Topographic Quadrangles">
-                  <option value="usgs_topo">Historic USGS Topographic Quad Mosaic (1915-1955)</option>
-                </optgroup>
-              </select>
-              <div class="historic-map-citation" id="historic-map-citation-readout">
-                Georeferenced 1907 Sanborn Fire Insurance sheets (Rice University GIS/Data Center &amp; Library of Congress).
+              <div class="layer-item-row" data-layer-key="potentialHistoricDistricts">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-potential-districts" />
+                  <span class="swatch-line dashed" style="border-color:#FB923C;" title="2019 City of Houston Historic Preservation Plan Surveyed Potential Historic Districts &amp; Eligible Sites"></span>
+                  <span class="layer-name">Potential Historic Districts &amp; Sites (60)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="potentialHistoricDistricts"
+                  title="Show only 2019 Surveyed Potential Historic Districts &amp; Eligible Sites (click again to restore)"
+                >
+                  Solo
+                </button>
               </div>
             </div>
+          </details>
 
-            <div class="historic-map-slider-wrap">
-              <label for="slider-historic-map-opacity" class="slider-label">
-                Map Underlay Opacity: <strong class="mono" id="historic-map-opacity-readout">75%</strong>
-              </label>
-              <input
-                type="range"
-                id="slider-historic-map-opacity"
-                min="15"
-                max="100"
-                step="5"
-                value="75"
-              />
-            </div>
+          <!-- Category 2: Designations, Awards & Tax Credits -->
+          <details class="layer-category-group" data-layer-group="designations" open>
+            <summary class="layer-category-summary">
+              <span class="layer-category-title-wrap">
+                <span class="layer-category-chevron" aria-hidden="true">&#9656;</span>
+                <span class="layer-category-title">Designations &amp; Tax Credits</span>
+              </span>
+              <span class="layer-category-badge mono" data-group-badge="designations">4 active</span>
+            </summary>
+            <div class="layer-category-body">
+              <div class="layer-item-row" data-layer-key="goodBrickAwards">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-good-brick" checked />
+                  <span class="swatch-dot" style="background:#95C959; border:1.5px solid #F4F9EE; box-shadow:0 0 6px rgba(149,201,89,0.78);"></span>
+                  <span class="layer-name">Good Brick Award Winners (359)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="goodBrickAwards"
+                  title="Show only Good Brick Award Winners (click again to restore previous layers)"
+                >
+                  Solo
+                </button>
+              </div>
 
-            <div class="historic-map-actions-row">
-              <button
-                type="button"
-                class="historic-tool-btn"
-                id="btn-toggle-spyglass"
-                title="Reveal the selected historical map inside a movable circular spyglass lens around your cursor (press [ and ] keys to shrink or enlarge lens)"
-              >
-                &#128269; Spyglass Lens: OFF
-              </button>
-              <button
-                type="button"
-                class="historic-tool-btn accent"
-                id="btn-open-sanborn-browser"
-                title="Browse all 629 digitized Library of Congress Sanborn Fire Insurance Map sheets of Houston (1885-1955)"
-              >
-                &#128214; 629 LOC Sanborn Sheets
-              </button>
-            </div>
+              <div class="layer-item-row" data-layer-key="landmarks">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-landmarks" checked />
+                  <span class="swatch-dot" style="background:#E63946; border:1.5px solid #FFFBEB;" title="Crimson = Protected Landmark (PLM) or Landmark in COH Historic District; Amber Ring = 90-Day Waiver Vulnerable Landmark (LM outside Historic District)"></span>
+                  <span class="layer-name">COH Landmarks (509)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="landmarks"
+                  title="Show only COH Landmarks &amp; Protected Landmarks (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
 
-            <div class="historic-map-slider-wrap hidden" id="spyglass-radius-row" style="margin-top:6px;">
-              <label for="slider-spyglass-radius" class="slider-label">
-                Spyglass Lens Size (<span class="mono">[ / ]</span> keys): <strong class="mono" id="spyglass-radius-readout">152px</strong>
-              </label>
-              <input
-                type="range"
-                id="slider-spyglass-radius"
-                min="72"
-                max="360"
-                step="4"
-                value="152"
-              />
-            </div>
+              <div class="landmarks-subfilter-row" id="landmarks-filter-row" role="group" aria-label="COH Landmark Legal Protection Filter">
+                <div class="lm-filter-pills">
+                  <button
+                    type="button"
+                    class="lm-filter-pill mono active"
+                    data-lm-filter="all"
+                    title="Show all 509 designated City of Houston Landmarks and Protected Landmarks"
+                  >
+                    All 509
+                  </button>
+                  <button
+                    type="button"
+                    class="lm-filter-pill mono"
+                    data-lm-filter="protected"
+                    title="286 Protected from Demolition: 200 Protected Landmarks (PLM) + 86 Landmarks located inside a COH Historic District (HAHC COA required)"
+                  >
+                    Protected 286
+                  </button>
+                  <button
+                    type="button"
+                    class="lm-filter-pill mono warning"
+                    data-lm-filter="waiver_lm"
+                    title="223 Vulnerable Landmarks: Regular COH Landmarks (LM) located outside any COH Historic District (owner may obtain a 90-day demolition waiver under Ch. 33 § 33-250)"
+                  >
+                    90-Day Waiver 223
+                  </button>
+                </div>
+              </div>
 
-            <div class="sanborn-color-key-box" id="sanborn-color-key-box">
-              <div class="sanborn-key-header">Sanborn Underwriters Color Key (1885-1955)</div>
-              <div class="sanborn-key-grid">
-                <span class="sanborn-key-chip" title="Wood Frame Construction (Carpentry, Shiplap, Clapboard)">
-                  <i style="background:#FACC15; border-color:#854D0E;"></i> Yellow: Wood Frame
-                </span>
-                <span class="sanborn-key-chip" title="Brick or Tile Masonry Construction">
-                  <i style="background:#F472B6; border-color:#9D174D;"></i> Pink: Brick Masonry
-                </span>
-                <span class="sanborn-key-chip" title="Cut Stone, Terra Cotta, Concrete Block, or Hollow Tile">
-                  <i style="background:#60A5FA; border-color:#1E40AF;"></i> Blue: Stone / Concrete
-                </span>
-                <span class="sanborn-key-chip" title="Iron, Corrugated Metal, or Structural Steel Truss">
-                  <i style="background:#A8A29E; border-color:#44403C;"></i> Gray: Iron / Metal
-                </span>
-                <span class="sanborn-key-chip" title="Fireproof Steel Frame or Reinforced Concrete Construction">
-                  <i style="background:#84CC16; border-color:#3F6212;"></i> Olive: Fireproof Steel
-                </span>
+              <div class="layer-item-row" data-layer-key="historicDistricts">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-historic-districts" checked />
+                  <span class="swatch-line" style="border-color:#38BDF8;"></span>
+                  <span class="layer-name">COH Historic Districts (23)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="historicDistricts"
+                  title="Show only City of Houston Historic Districts (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="heritageDistricts">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-heritage-districts" checked />
+                  <span class="swatch-line" style="border-color:#34D399;"></span>
+                  <span class="layer-name">Freedmen's Town Heritage District</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="heritageDistricts"
+                  title="Show only Freedmen's Town Heritage District (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="nrhpDistricts">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-nrhp-districts" />
+                  <span class="swatch-line dashed" style="border-color:#C084FC;"></span>
+                  <span class="layer-name">National Register (NRHP) Districts (12)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="nrhpDistricts"
+                  title="Show only National Register of Historic Places (NRHP) Districts (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="nrhpProperties">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-nrhp-properties" />
+                  <span class="swatch-dot" style="background:#A855F7; border:1.5px solid #FAF5FF; box-shadow:0 0 6px rgba(168,85,247,0.7);" title="222 Extant Individual National Register Listings (eligible for 20% Federal + 25% Texas Historic Tax Credits) + 16 Demolished (Gone) NRHP Listings"></span>
+                  <span class="layer-name">National Register (NRHP) Properties (238)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="nrhpProperties"
+                  title="Show only Individual National Register of Historic Places (NRHP) Properties (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="thcMarkers">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-thc-markers" />
+                  <span class="swatch-dot" style="background:#C084FC;"></span>
+                  <span class="layer-name">Texas Historical Markers (596)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="thcMarkers"
+                  title="Show only Texas Historical Commission Markers (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="culturalDistricts">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-cultural-districts" />
+                  <span class="swatch-line dashed" style="border-color:#F472B6;" title="State-recognized Texas Commission on the Arts &amp; City of Houston Cultural Districts"></span>
+                  <span class="layer-name">Cultural Arts Districts (7)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="culturalDistricts"
+                  title="Show only Houston Cultural Arts Districts (click again to restore)"
+                >
+                  Solo
+                </button>
               </div>
             </div>
-          </div>
+          </details>
+
+          <!-- Category 3: Neighborhoods, Deeds & Ch. 42 Armor -->
+          <details class="layer-category-group" data-layer-group="landuse">
+            <summary class="layer-category-summary">
+              <span class="layer-category-title-wrap">
+                <span class="layer-category-chevron" aria-hidden="true">&#9656;</span>
+                <span class="layer-category-title">Neighborhoods, Deeds &amp; Ch. 42</span>
+              </span>
+              <span class="layer-category-badge mono is-zero" data-group-badge="landuse">0 active</span>
+            </summary>
+            <div class="layer-category-body">
+              <div class="layer-item-row" data-layer-key="landUseProtections">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-land-use-protections" />
+                  <span class="swatch-line dashed" style="border-color:#F59E0B;" title="Amber = Special Min. Lot Size (SMLS); Emerald = Special Min. Building Lines (SMBL); Rose = Conservation District"></span>
+                  <span class="layer-name">Ch. 42 Lot &amp; Setback Protections (910)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="landUseProtections"
+                  title="Show only Chapter 42 Special Minimum Lot Size (SMLS), Building Line (SMBL) &amp; Conservation District overlays (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="plattedSubdivisions">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-platted-subdivisions" />
+                  <span class="swatch-line dashed" style="border-color:#22D3EE;" title="Cyan dashed = Platted Subdivision; Gold border = Full-Text Deed Restriction PDFs attached"></span>
+                  <span class="layer-name">Platted Subdivisions &amp; Deeds (5,573)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="plattedSubdivisions"
+                  title="Show only HCAD Platted Subdivisions &amp; Deed-Documented Additions (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="neighborhoods">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-neighborhoods" />
+                  <span class="swatch-line" style="border-color:#95C959;"></span>
+                  <span class="layer-name">Neighborhoods &amp; Sub-Areas (1,387)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="neighborhoods"
+                  title="Show only Houston Vernacular Neighborhoods &amp; Civic Clubs (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="superNeighborhoods">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-super-neighborhoods" />
+                  <span class="swatch-line dashed" style="border-color:#60A5FA;"></span>
+                  <span class="layer-name">COH Super Neighborhoods (88)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="superNeighborhoods"
+                  title="Show only City of Houston Super Neighborhoods (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="historicWards">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-historic-wards" />
+                  <span class="swatch-line" style="border-color:#FB923C;"></span>
+                  <span class="layer-name">Historic Wards (1839-1905)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="historicWards"
+                  title="Show only Original Houston Aldermanic Wards (1839-1905, click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="historic-ward-era-row hidden" id="historic-ward-era-row" role="group" aria-label="Historic Ward Charter Era">
+                <span class="ward-era-label">Ward Charter Era:</span>
+                <div class="ward-era-pills">
+                  <button type="button" class="ward-era-pill mono" data-ward-era="1839" title="1839 Original 4-Ward Charter">1839</button>
+                  <button type="button" class="ward-era-pill mono" data-ward-era="1866" title="1866 Charter (Fifth Ward Created)">1866</button>
+                  <button type="button" class="ward-era-pill mono" data-ward-era="1896" title="1896 Charter (Sixth Ward &amp; 9 Sq. Mi. Limits)">1896</button>
+                  <button type="button" class="ward-era-pill mono active" data-ward-era="1903" title="1903-1905 Final Aldermanic Ward Charter (16 Sq. Mi.; Ward System Abolished in 1905 Commission Charter)">1903-05</button>
+                </div>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="annexations">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-annexations" />
+                  <span class="swatch-line dashed" style="border-color:#F59E0B;"></span>
+                  <span class="layer-name">Annexation History (1836-2020)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="annexations"
+                  title="Show only Houston Annexation History by Decade (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="annexation-options-row hidden" id="annexation-options-row">
+                <div class="annexation-options-header">
+                  <span class="annexation-options-kicker">Active Boundary:</span>
+                  <span class="annexation-active-decade-badge mono" id="annexation-active-decade-badge">2020s City Limits</span>
+                </div>
+                <label class="check-row annexation-subcheck-row" title="Toggle the 1963 Ord. 63-1219 10-ft highway ETJ spokes and 2000s-2010s Limited-Purpose MUD Strategic Partnership Agreement (SPA) commercial retail strips">
+                  <input type="checkbox" id="chk-annexation-spokes" checked />
+                  <span>Include 10-ft Highway Spokes &amp; MUD Commercial Strips</span>
+                </label>
+              </div>
+            </div>
+          </details>
+
+          <!-- Category 4: Historical Maps, Infrastructure & Lost Houston -->
+          <details class="layer-category-group" data-layer-group="archives" open>
+            <summary class="layer-category-summary">
+              <span class="layer-category-title-wrap">
+                <span class="layer-category-chevron" aria-hidden="true">&#9656;</span>
+                <span class="layer-category-title">Historical Maps &amp; Lost Houston</span>
+              </span>
+              <span class="layer-category-badge mono" data-group-badge="archives">1 active</span>
+            </summary>
+            <div class="layer-category-body">
+              <div class="layer-item-row" data-layer-key="lostHouston">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-lost-houston" checked />
+                  <span class="swatch-line dashed" style="border-color:#F472B6;" title="Dashed Architectural Ghost Footprints color-coded by Sanborn Underwriters Construction Material (Pink = Brick, Yellow = Wood Frame, Blue = Stone/Concrete, Olive = Fireproof)"></span>
+                  <span class="layer-name">Lost Houston: Demolished Landmarks (81)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="lostHouston"
+                  title="Show only Lost Houston demolished historic structures, ballparks, depots &amp; theatres (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="annexation-options-row hidden" id="lost-houston-legend-row">
+                <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
+                  <span><strong style="color:#F472B6;">&#9645;</strong> Brick (Sanborn Pink)</span>
+                  <span><strong style="color:#FACC15;">&#9645;</strong> Wood Frame (Yellow)</span>
+                  <span><strong style="color:#60A5FA;">&#9645;</strong> Concrete / Stone (Blue)</span>
+                  <span><strong style="color:#84CC16;">&#9645;</strong> Steel / Fireproof (Olive)</span>
+                  <span><strong style="color:#A8A29E;">&#9645;</strong> Iron / Truss (Gray)</span>
+                </div>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="historicMap">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-historic-map" />
+                  <span class="swatch-line" style="border-color:#D4A373;" title="Georeferenced 1907 Sanborn Fire Insurance Atlas, 1869-1963 Historic City Maps, 1937 HOLC Map, 1930-1953 Aerials &amp; USGS Quads"></span>
+                  <span class="layer-name">Historical Maps &amp; Sanborn Atlases (18)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="historicMap"
+                  title="Show Georeferenced Sanborn Fire Insurance Atlas or Historical Map Underlay"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="historic-map-opacity-row hidden" id="historic-map-opacity-row">
+                <div class="historic-map-select-group">
+                  <label for="select-historic-map-id" class="slider-label">
+                    Historical Map Sheet / Era:
+                  </label>
+                  <select id="select-historic-map-id" class="full-select historic-map-select" aria-label="Select Georeferenced Historical Map or Sanborn Atlas">
+                    <optgroup label="Sanborn Fire Insurance Atlases (1907)">
+                      <option value="sanborn_1907">1907 Sanborn Fire Insurance Atlas (Vols. 1 &amp; 2 Full Mosaic)</option>
+                      <option value="sanborn_1907_downtown_hires">1907 Sanborn Downtown &amp; Market Square (Hi-Res Detail)</option>
+                    </optgroup>
+                    <optgroup label="Historic Houston City &amp; Planning Maps (1869-1963)">
+                      <option value="wood_1869">1869 W. E. Wood Map of Houston (4th Ward &amp; Downtown)</option>
+                      <option value="whitty_1913">1913 Whitty Map of Houston (Wards &amp; Streetcars)</option>
+                      <option value="comey_1913">1913 Arthur Comey Park &amp; Bayou System Plan</option>
+                      <option value="hpl_1917">1917 Houston Map (HPL / HMRC Archival Mosaic)</option>
+                      <option value="hpl_1921">1921 Houston Street &amp; Subdivision Map (HPL)</option>
+                      <option value="planning_1929">1929 City Planning Commission Major Street Plan</option>
+                      <option value="hpl_1930">1930 Houston Map (HPL / HMRC Archival Mosaic)</option>
+                      <option value="holc_1937">1937 HOLC Neighborhood Security ("Redlining") Map</option>
+                      <option value="hpl_1941">1941 Houston Pre-WWII Street Map (HPL)</option>
+                      <option value="hpl_1950">1950 Post-War Houston Expansion Map (HPL)</option>
+                      <option value="hpl_1963">1963 Space City Street &amp; Freeway Loop Map (HPL)</option>
+                    </optgroup>
+                    <optgroup label="Rice University, Hermann Park &amp; South Main Archives (1930-1953)">
+                      <option value="aerial_1944">1944 Donald Buckner Illustrated Map of Rice Institute &amp; Hermann Park</option>
+                      <option value="aerial_rice_1930">1930 Aerial Photo: Rice Institute, Hermann Park &amp; South Main</option>
+                      <option value="aerial_rice_1947">1947 Aerial Photo: Rice Institute, Hermann Park &amp; Shamrock Site</option>
+                      <option value="aerial_1953">1953 Aerial Photo: Rice University, Shamrock Hotel &amp; Medical Center</option>
+                    </optgroup>
+                    <optgroup label="USGS Historical Topographic Quadrangles">
+                      <option value="usgs_topo">Historic USGS Topographic Quad Mosaic (1915-1955)</option>
+                    </optgroup>
+                  </select>
+                  <div class="historic-map-citation" id="historic-map-citation-readout">
+                    Georeferenced 1907 Sanborn Fire Insurance sheets (Rice University GIS/Data Center &amp; Library of Congress).
+                  </div>
+                </div>
+
+                <div class="historic-map-slider-wrap">
+                  <label for="slider-historic-map-opacity" class="slider-label">
+                    Map Underlay Opacity: <strong class="mono" id="historic-map-opacity-readout">75%</strong>
+                  </label>
+                  <input
+                    type="range"
+                    id="slider-historic-map-opacity"
+                    min="15"
+                    max="100"
+                    step="5"
+                    value="75"
+                  />
+                </div>
+
+                <div class="historic-map-actions-row">
+                  <button
+                    type="button"
+                    class="historic-tool-btn"
+                    id="btn-toggle-spyglass"
+                    title="Reveal the selected historical map inside a movable circular spyglass lens around your cursor (press [ and ] keys to shrink or enlarge lens)"
+                  >
+                    &#128269; Spyglass Lens: OFF
+                  </button>
+                  <button
+                    type="button"
+                    class="historic-tool-btn accent"
+                    id="btn-open-sanborn-browser"
+                    title="Browse all 629 digitized Library of Congress Sanborn Fire Insurance Map sheets of Houston (1885-1955)"
+                  >
+                    &#128214; 629 LOC Sanborn Sheets
+                  </button>
+                </div>
+
+                <div class="historic-map-slider-wrap hidden" id="spyglass-radius-row" style="margin-top:6px;">
+                  <label for="slider-spyglass-radius" class="slider-label">
+                    Spyglass Lens Size (<span class="mono">[ / ]</span> keys): <strong class="mono" id="spyglass-radius-readout">152px</strong>
+                  </label>
+                  <input
+                    type="range"
+                    id="slider-spyglass-radius"
+                    min="72"
+                    max="360"
+                    step="4"
+                    value="152"
+                  />
+                </div>
+
+                <div class="sanborn-color-key-box" id="sanborn-color-key-box">
+                  <div class="sanborn-key-header">Sanborn Underwriters Color Key (1885-1955)</div>
+                  <div class="sanborn-key-grid">
+                    <span class="sanborn-key-chip" title="Wood Frame Construction (Carpentry, Shiplap, Clapboard)">
+                      <i style="background:#FACC15; border-color:#854D0E;"></i> Yellow: Wood Frame
+                    </span>
+                    <span class="sanborn-key-chip" title="Brick or Tile Masonry Construction">
+                      <i style="background:#F472B6; border-color:#9D174D;"></i> Pink: Brick Masonry
+                    </span>
+                    <span class="sanborn-key-chip" title="Cut Stone, Terra Cotta, Concrete Block, or Hollow Tile">
+                      <i style="background:#60A5FA; border-color:#1E40AF;"></i> Blue: Stone / Concrete
+                    </span>
+                    <span class="sanborn-key-chip" title="Iron, Corrugated Metal, or Structural Steel Truss">
+                      <i style="background:#A8A29E; border-color:#44403C;"></i> Gray: Iron / Metal
+                    </span>
+                    <span class="sanborn-key-chip" title="Fireproof Steel Frame or Reinforced Concrete Construction">
+                      <i style="background:#84CC16; border-color:#3F6212;"></i> Olive: Fireproof Steel
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="historicalWaterways">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-waterways" />
+                  <span class="swatch-line" style="border-color:#0EA5E9;" title="Cerulean = Bayous &amp; Creeks · Dashed Amber/Cyan = Buried Gullies · Dotted Violet = Pre-Channelization Oxbows"></span>
+                  <span class="layer-name">Historical Waterways &amp; Gullies (114)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="historicalWaterways"
+                  title="Show only Historical Waterways, Streams, Creeks, Buried Gullies &amp; Pre-Channelization Oxbows (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="annexation-options-row hidden" id="waterways-legend-row">
+                <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
+                  <span><strong style="color:#38BDF8;">&#9473;&#9473;</strong> Bayous &amp; Creeks</span>
+                  <span><strong style="color:#FBBF24;">&#9476;&#9476;</strong> Buried Gullies (Harris, Pecore, Slaughterpen)</span>
+                  <span><strong style="color:#A78BFA;">&middot;&middot;&middot;</strong> Historic Oxbows</span>
+                </div>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="historicalRailroads">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-railroads" />
+                  <span class="swatch-line dashed" style="border-color:#F59E0B;" title="Gold Cross-Tie = Pioneer Mainlines · Rose Dashed = Abandoned / Rail-Trail · Violet Dashed = Streetcars &amp; Interurban · Gold Pin = Historic Depots"></span>
+                  <span class="layer-name">Historical Railroads &amp; Streetcars (61)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="historicalRailroads"
+                  title="Show only Historical Railroads, Abandoned Rail-Trails, Streetcar Lines &amp; Historic Train Depots (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="annexation-options-row hidden" id="railroads-legend-row">
+                <div style="display:flex; flex-wrap:wrap; gap:6px 10px; font-size:0.70rem; color:#CBD5E1; line-height:1.3;">
+                  <span><strong style="color:#F59E0B;">&#9547;&#9547;</strong> Pioneer Mainlines</span>
+                  <span><strong style="color:#FB7185;">&#9476;&#9476;</strong> Abandoned / Rail-Trails</span>
+                  <span><strong style="color:#C084FC;">&#9476;&#9476;</strong> Streetcars &amp; Interurban</span>
+                  <span><strong style="color:#FDE047;">&#9670;</strong> Depots</span>
+                </div>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="relocatedStructures">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-relocated-structures" />
+                  <span class="swatch-dot" style="background:#38BDF8; box-shadow: 0 0 6px #38BDF8;" title="Relocated Historic Structures &amp; Documented Historic Contractor Portfolio Sites"></span>
+                  <span class="layer-name">Relocated &amp; Contractor Portfolio Sites (480)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="relocatedStructures"
+                  title="Show only Relocated Historic Structures and HMRC Contractor Portfolio Sites (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+            </div>
+          </details>
 
           <div class="sanborn-quick-launcher-row">
             <button
@@ -1084,7 +1209,7 @@
               id="btn-open-sanborn-browser-quick"
               title="Open the Library of Congress Sanborn Fire Insurance Map Sheet Browser (14 Houston Volumes, 1885-1955, 629 High-Resolution IIIF Sheets)"
             >
-              <span>&#128214; Browse 1885–1955 Sanborn Fire Insurance Maps (629 Sheets)</span>
+              <span>&#128214; Browse 1885-1955 Sanborn Fire Insurance Maps (629 Sheets)</span>
               <span class="mono">LOC IIIF &#8599;</span>
             </button>
           </div>
@@ -1704,7 +1829,8 @@
                     <strong>Supported Parameters:</strong>
                     <code>base=light|dark|satellite|solid_dark|solid_light</code> &middot;
                     <code>buildings=off|buildings|both|parcels</code> &middot;
-                    <code>layers=good_brick,landmarks,historic_districts,heritage_districts,nrhp_districts,thc_markers,annexations,none,all</code> &middot;
+                    <code>layers=good_brick,landmarks,historic_districts,heritage_districts,nrhp_districts,nrhp_properties,potential_districts,cultural_districts,thc_markers,land_use_protections,platted_subdivisions,annexations,none,all</code> &middot;
+                    <code>lmFilter=all|protected|waiver_lm</code> &middot;
                     <code>minY=1836</code> &middot; <code>maxY=2026</code> &middot;
                     <code>color=year_built|preservation_status|use_category</code> &middot;
                     <code>3d=1</code> &middot; <code>hcad=13_DIGIT_ACCT</code> &middot; <code>sidebar=0</code>
@@ -2137,6 +2263,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261023g"></script>
+  <script type="module" src="js/app.js?v=20261024c"></script>
 </body>
 </html>

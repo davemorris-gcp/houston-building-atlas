@@ -11,16 +11,17 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261012b";
+} from "./palettes.js?v=20261024a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   buildHistoricWardFilterExpression,
+  buildLandmarksFilterExpression,
   buildLostHoustonFilterExpression,
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261022a";
+} from "./filterStore.js?v=20261024a";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
@@ -110,11 +111,32 @@ function getSanbornMaterialColors(materialKey) {
 function evaluateFeatureColor(props, colorMode, paletteStyle) {
   if (!props) return "#524E4A";
   if (colorMode === "preservation_status") {
-    if (props.landmark_type === "Protected Landmark") return "#E63946";
-    if (props.landmark_type === "Landmark") return "#F4A261";
-    if (props.contributing === "Contributing") return "#2A9D8F";
-    if (props.contributing === "Non-Contributing") return "#E76F51";
-    return "#5E6472";
+    if (props.protection_tier === "plm" || props.landmark_type === "Protected Landmark") {
+      return "#E63946";
+    }
+    if (
+      props.protection_tier === "coh_hd_contributing" ||
+      props.contributing === "Contributing"
+    ) {
+      return "#2A9D8F";
+    }
+    if (props.protection_tier === "lm_waiver" || props.landmark_type === "Landmark") {
+      return "#F59E0B";
+    }
+    if (props.protection_tier === "nrhp_eligible") {
+      return "#C084FC";
+    }
+    if (
+      props.protection_tier === "coh_hd_noncontributing" ||
+      props.contributing === "Non-Contributing"
+    ) {
+      return "#64748B";
+    }
+    const yr = Number(props.year_built) || 0;
+    if (yr >= 1836 && yr <= 1945) {
+      return "#FB7185";
+    }
+    return "#475569";
   }
   if (colorMode === "use_category") {
     const found = USE_CATEGORY_ITEMS.find((i) => i.key === props.use_category);
@@ -169,6 +191,10 @@ export class AtlasMapController {
     this.platWatchData = null;
     this.platWatchFC = { type: "FeatureCollection", features: [] };
     this.platWatchByHcad = new Map();
+    this.landmarksByHcad = new Map();
+    this.landmarksByBldId = new Map();
+    this.nrhpPropertiesByHcad = new Map();
+    this.nrhpPropertiesByBldId = new Map();
     this.curatedOverrides = {};
     this.sheetSyncStatus = null;
     this.overridesFC = { type: "FeatureCollection", features: [] };
@@ -243,9 +269,9 @@ export class AtlasMapController {
       permitAlertsRes,
       platWatchRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261022a"),
+      fetch("public/data/buildings.geojson?v=20261024a"),
       fetch("public/data/parcels.geojson?v=20261011c"),
-      fetch("public/data/overlays.json?v=20261011u"),
+      fetch("public/data/overlays.json?v=20261024a"),
       fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
       loadCuratedOverrides(),
       fetch("public/data/active_permit_alerts.json?v=20261023g").catch(() => null),
@@ -291,9 +317,86 @@ export class AtlasMapController {
     this.buildingsData = buildingsFC.features || [];
     this.parcelsData = parcelsFC.features || [];
     this.overlaysData = overlays;
+    this._indexPreservationOverlays(overlays);
     this._buildBoundarySpatialIndex();
 
     this._applyCuratedOverridesInMemory();
+  }
+
+  _indexPreservationOverlays(overlays) {
+    this.landmarksByHcad = new Map();
+    this.landmarksByBldId = new Map();
+    this.nrhpPropertiesByHcad = new Map();
+    this.nrhpPropertiesByBldId = new Map();
+
+    for (const feat of overlays?.landmarks?.features || []) {
+      const p = feat?.properties;
+      if (!p) continue;
+      const hcad = String(p.hcad_num || "").trim();
+      const bldId = String(p.building_id || "").trim();
+      if (hcad) {
+        const prev = this.landmarksByHcad.get(hcad);
+        // Prefer Protected Landmark if multiple landmark records share an HCAD parcel
+        if (!prev || p.is_protected_landmark) {
+          this.landmarksByHcad.set(hcad, p);
+        }
+      }
+      if (bldId) {
+        const prevB = this.landmarksByBldId.get(bldId);
+        if (!prevB || p.is_protected_landmark) {
+          this.landmarksByBldId.set(bldId, p);
+        }
+      }
+    }
+
+    for (const feat of overlays?.nrhp_properties?.features || []) {
+      const p = feat?.properties;
+      if (!p || p.is_demolished_nrhp) continue;
+      const hcad = String(p.hcad_num || "").trim();
+      const bldId = String(p.building_id || "").trim();
+      if (hcad && !this.nrhpPropertiesByHcad.has(hcad)) {
+        this.nrhpPropertiesByHcad.set(hcad, p);
+      }
+      if (bldId && !this.nrhpPropertiesByBldId.has(bldId)) {
+        this.nrhpPropertiesByBldId.set(bldId, p);
+      }
+    }
+  }
+
+  getLandmarkForBuilding({ hcadNum = "", buildingId = "" } = {}) {
+    const cleanBld = String(buildingId || "").trim();
+    if (cleanBld && this.landmarksByBldId?.has(cleanBld)) {
+      return this.landmarksByBldId.get(cleanBld);
+    }
+    const cleanHcad = String(hcadNum || "").trim();
+    if (cleanHcad && this.landmarksByHcad?.has(cleanHcad)) {
+      return this.landmarksByHcad.get(cleanHcad);
+    }
+    if (cleanBld.includes("#")) {
+      const prefixHcad = cleanBld.split("#")[0].trim();
+      if (prefixHcad && this.landmarksByHcad?.has(prefixHcad)) {
+        return this.landmarksByHcad.get(prefixHcad);
+      }
+    }
+    return null;
+  }
+
+  getNrhpPropertyForBuilding({ hcadNum = "", buildingId = "" } = {}) {
+    const cleanBld = String(buildingId || "").trim();
+    if (cleanBld && this.nrhpPropertiesByBldId?.has(cleanBld)) {
+      return this.nrhpPropertiesByBldId.get(cleanBld);
+    }
+    const cleanHcad = String(hcadNum || "").trim();
+    if (cleanHcad && this.nrhpPropertiesByHcad?.has(cleanHcad)) {
+      return this.nrhpPropertiesByHcad.get(cleanHcad);
+    }
+    if (cleanBld.includes("#")) {
+      const prefixHcad = cleanBld.split("#")[0].trim();
+      if (prefixHcad && this.nrhpPropertiesByHcad?.has(prefixHcad)) {
+        return this.nrhpPropertiesByHcad.get(prefixHcad);
+      }
+    }
+    return null;
   }
 
   _indexPermitAlerts(permitAlertsJson) {
@@ -1097,6 +1200,36 @@ export class AtlasMapController {
       type: "geojson",
       data: overlays.nrhp_districts || { type: "FeatureCollection", features: [] },
     });
+    this.map.addSource("potential-historic-districts-src", {
+      type: "geojson",
+      data: overlays.potential_historic_districts || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("potential-historic-districts-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.potential_historic_districts),
+    });
+    this.map.addSource("cultural-districts-src", {
+      type: "geojson",
+      data: overlays.cultural_districts || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("cultural-districts-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.cultural_districts),
+    });
+    this.map.addSource("nrhp-properties-src", {
+      type: "geojson",
+      data: overlays.nrhp_properties || { type: "FeatureCollection", features: [] },
+    });
+    const armorFeatures = [
+      ...(overlays.land_use_protections?.features || []),
+      ...(overlays.platted_subdivisions?.features || []).filter((f) =>
+        Boolean(f?.properties?.has_deed_docs)
+      ),
+    ];
+    this.map.addSource("protection-armor-zones-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: armorFeatures },
+    });
     this.map.addSource("thc-markers-src", {
       type: "geojson",
       data: overlays.thc_markers || { type: "FeatureCollection", features: [] },
@@ -1366,6 +1499,83 @@ export class AtlasMapController {
         "circle-stroke-color": "#0F172A",
         "circle-stroke-width": 2.4,
         "circle-opacity": 0.95,
+      },
+    });
+    this.map.addLayer({
+      id: "cultural-districts-fill",
+      type: "fill",
+      source: "cultural-districts-src",
+      layout: { visibility: state.layers?.culturalDistricts ? "visible" : "none" },
+      paint: { "fill-color": "#EC4899", "fill-opacity": 0.06 },
+    });
+    this.map.addLayer({
+      id: "cultural-districts-line",
+      type: "line",
+      source: "cultural-districts-src",
+      layout: { visibility: state.layers?.culturalDistricts ? "visible" : "none" },
+      paint: {
+        "line-color": "#F472B6",
+        "line-width": 2.0,
+        "line-dasharray": [4, 2],
+        "line-opacity": 0.88,
+      },
+    });
+    this.map.addLayer({
+      id: "potential-historic-districts-fill",
+      type: "fill",
+      source: "potential-historic-districts-src",
+      layout: { visibility: state.layers?.potentialHistoricDistricts ? "visible" : "none" },
+      paint: {
+        "fill-color": [
+          "case",
+          ["boolean", ["get", "already_designated_coh_hd"], false],
+          "#38BDF8",
+          "#FB923C",
+        ],
+        "fill-opacity": 0.09,
+      },
+    });
+    this.map.addLayer({
+      id: "potential-historic-districts-line",
+      type: "line",
+      source: "potential-historic-districts-src",
+      layout: { visibility: state.layers?.potentialHistoricDistricts ? "visible" : "none" },
+      paint: {
+        "line-color": [
+          "case",
+          ["boolean", ["get", "already_designated_coh_hd"], false],
+          "#38BDF8",
+          "#FB923C",
+        ],
+        "line-width": 2.1,
+        "line-dasharray": [5, 2, 1.5, 2],
+        "line-opacity": 0.92,
+      },
+    });
+    this.map.addLayer({
+      id: "protection-armor-zones-fill",
+      type: "fill",
+      source: "protection-armor-zones-src",
+      layout: {
+        visibility: state.colorMode === "preservation_status" ? "visible" : "none",
+      },
+      paint: {
+        "fill-color": "#38BDF8",
+        "fill-opacity": 0.13,
+      },
+    });
+    this.map.addLayer({
+      id: "protection-armor-zones-line",
+      type: "line",
+      source: "protection-armor-zones-src",
+      layout: {
+        visibility: state.colorMode === "preservation_status" ? "visible" : "none",
+      },
+      paint: {
+        "line-color": "#38BDF8",
+        "line-width": 1.25,
+        "line-dasharray": [2, 2],
+        "line-opacity": 0.78,
       },
     });
     this.map.addLayer({
@@ -1641,6 +1851,18 @@ export class AtlasMapController {
           paint: { "line-color": "#FDE047", "line-width": 3.2 },
         });
       }
+      // Designated / District overlay footprints for Historic Status lens over PMTiles shards
+      this.map.addLayer({
+        id: "historic-status-buildings-fill",
+        type: "fill",
+        source: "buildings-src",
+        filter: ["all", ["has", "protection_tier"], shardFilterExpr],
+        layout: {
+          visibility:
+            !state.extrude3D && state.colorMode === "preservation_status" ? "visible" : "none",
+        },
+        paint: { "fill-color": colorExpr, "fill-opacity": 0.94 },
+      });
     } else {
       this.buildingFillLayerIds = ["buildings-fill"];
       this.buildingLineLayerIds = ["buildings-line"];
@@ -1786,6 +2008,22 @@ export class AtlasMapController {
           },
         });
       }
+      this.map.addLayer({
+        id: "historic-status-buildings-extrusion",
+        type: "fill-extrusion",
+        source: "buildings-src",
+        filter: ["all", ["has", "protection_tier"], shardFilterExpr],
+        layout: {
+          visibility:
+            state.extrude3D && state.colorMode === "preservation_status" ? "visible" : "none",
+        },
+        paint: {
+          "fill-extrusion-color": colorExpr,
+          "fill-extrusion-height": extrusionHeightExpr,
+          "fill-extrusion-base": 0,
+          "fill-extrusion-opacity": 0.96,
+        },
+      });
     } else {
       this.map.addLayer({
         id: "buildings-extrusion",
@@ -1949,20 +2187,104 @@ export class AtlasMapController {
         "circle-stroke-width": 1.5,
       },
     });
+    const initLmFilter = buildLandmarksFilterExpression(state);
+    this.map.addLayer({
+      id: "nrhp-properties-glow",
+      type: "circle",
+      source: "nrhp-properties-src",
+      filter: ["!", ["boolean", ["get", "is_demolished_nrhp"], false]],
+      layout: { visibility: state.layers?.nrhpProperties ? "visible" : "none" },
+      paint: {
+        "circle-radius": 9.8,
+        "circle-color": "#A855F7",
+        "circle-opacity": 0.30,
+        "circle-blur": 0.45,
+      },
+    });
+    this.map.addLayer({
+      id: "nrhp-properties-circle",
+      type: "circle",
+      source: "nrhp-properties-src",
+      layout: { visibility: state.layers?.nrhpProperties ? "visible" : "none" },
+      paint: {
+        "circle-radius": [
+          "case",
+          ["boolean", ["get", "is_demolished_nrhp"], false],
+          4.8,
+          5.8,
+        ],
+        "circle-color": [
+          "case",
+          ["boolean", ["get", "is_demolished_nrhp"], false],
+          "#475569",
+          "#A855F7",
+        ],
+        "circle-stroke-color": [
+          "case",
+          ["boolean", ["get", "is_demolished_nrhp"], false],
+          "#CBD5E1",
+          "#FAF5FF",
+        ],
+        "circle-stroke-width": [
+          "case",
+          ["boolean", ["get", "is_demolished_nrhp"], false],
+          1.4,
+          1.8,
+        ],
+      },
+    });
+    this.map.addLayer({
+      id: "landmarks-waiver-ring",
+      type: "circle",
+      source: "landmarks-src",
+      ...(initLmFilter ? { filter: initLmFilter } : {}),
+      paint: {
+        "circle-radius": [
+          "case",
+          ["==", ["get", "protection_tier"], "lm_waiver_vulnerable"],
+          9.4,
+          0,
+        ],
+        "circle-color": "rgba(15, 23, 42, 0.0)",
+        "circle-stroke-color": "#FBBF24",
+        "circle-stroke-width": [
+          "case",
+          ["==", ["get", "protection_tier"], "lm_waiver_vulnerable"],
+          1.5,
+          0,
+        ],
+        "circle-stroke-opacity": 0.88,
+      },
+    });
     this.map.addLayer({
       id: "landmarks-circle",
       type: "circle",
       source: "landmarks-src",
+      ...(initLmFilter ? { filter: initLmFilter } : {}),
       paint: {
         "circle-radius": 6.0,
         "circle-color": [
           "case",
+          ["==", ["get", "protection_tier"], "lm_waiver_vulnerable"],
+          "#F59E0B",
           ["==", ["get", "designation"], "Protected Landmark"],
           "#E63946",
-          "#F4A261",
+          "#E63946",
         ],
-        "circle-stroke-color": "#FFFBEB",
-        "circle-stroke-width": 1.6,
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "protection_tier"], "lm_in_hd"],
+          "#2DD4BF",
+          ["==", ["get", "protection_tier"], "lm_waiver_vulnerable"],
+          "#0F172A",
+          "#FFFBEB",
+        ],
+        "circle-stroke-width": [
+          "case",
+          ["==", ["get", "protection_tier"], "lm_in_hd"],
+          2.1,
+          1.7,
+        ],
       },
     });
     this.map.addLayer({
@@ -2402,6 +2724,44 @@ export class AtlasMapController {
       paint: {
         "text-color": "#FBCFE8",
         "text-halo-color": "rgba(11, 15, 23, 0.95)",
+        "text-halo-width": 1.9,
+      },
+    });
+    this.map.addLayer({
+      id: "potential-historic-districts-label",
+      type: "symbol",
+      source: "potential-historic-districts-labels-src",
+      minzoom: 12.0,
+      layout: {
+        visibility: state.layers?.potentialHistoricDistricts ? "visible" : "none",
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 12.0, 9.8, 15.5, 12.6],
+        "text-max-width": 9,
+        "text-padding": 5,
+      },
+      paint: {
+        "text-color": "#FED7AA",
+        "text-halo-color": "rgba(11, 15, 23, 0.94)",
+        "text-halo-width": 1.9,
+      },
+    });
+    this.map.addLayer({
+      id: "cultural-districts-label",
+      type: "symbol",
+      source: "cultural-districts-labels-src",
+      minzoom: 11.2,
+      layout: {
+        visibility: state.layers?.culturalDistricts ? "visible" : "none",
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11.2, 10.2, 15.0, 13.0],
+        "text-max-width": 10,
+        "text-padding": 6,
+      },
+      paint: {
+        "text-color": "#FBCFE8",
+        "text-halo-color": "rgba(11, 15, 23, 0.94)",
         "text-halo-width": 1.9,
       },
     });
@@ -3489,7 +3849,54 @@ export class AtlasMapController {
         }
       }
 
-      // 3. NRHP, Heritage, and COH Historic Districts
+      // 3. NRHP, Heritage, COH Historic, Potential Historic, and Cultural Districts
+      if (state.layers.culturalDistricts && this.overlaysData?.cultural_districts) {
+        for (const feat of this.overlaysData.cultural_districts.features || []) {
+          drawPolygonFeature(
+            feat.geometry,
+            "rgba(236, 72, 153, 0.06)",
+            "#F472B6",
+            2.0,
+            [6, 3]
+          );
+        }
+      }
+      if (
+        state.layers.potentialHistoricDistricts &&
+        this.overlaysData?.potential_historic_districts
+      ) {
+        for (const feat of this.overlaysData.potential_historic_districts.features || []) {
+          const alreadyCoh = Boolean(feat.properties?.already_designated_coh_hd);
+          drawPolygonFeature(
+            feat.geometry,
+            alreadyCoh ? "rgba(56, 189, 248, 0.08)" : "rgba(251, 146, 60, 0.09)",
+            alreadyCoh ? "#38BDF8" : "#FB923C",
+            2.1,
+            [6, 3, 2, 3]
+          );
+        }
+      }
+      if (state.colorMode === "preservation_status") {
+        for (const feat of this.overlaysData?.land_use_protections?.features || []) {
+          drawPolygonFeature(
+            feat.geometry,
+            "rgba(56, 189, 248, 0.12)",
+            "rgba(56, 189, 248, 0.78)",
+            1.2,
+            [3, 3]
+          );
+        }
+        for (const feat of this.overlaysData?.platted_subdivisions?.features || []) {
+          if (!feat.properties?.has_deed_docs) continue;
+          drawPolygonFeature(
+            feat.geometry,
+            "rgba(56, 189, 248, 0.12)",
+            "rgba(56, 189, 248, 0.78)",
+            1.2,
+            [3, 3]
+          );
+        }
+      }
       if (state.layers.nrhpDistricts && this.overlaysData?.nrhp_districts) {
         for (const feat of this.overlaysData.nrhp_districts.features || []) {
           drawPolygonFeature(
@@ -3838,27 +4245,73 @@ export class AtlasMapController {
       }
     }
 
-    // 7. COH Designated Landmarks (LM & PLM)
-    if (allowPointMarkers && state.layers.landmarks && this.overlaysData?.landmarks) {
-      for (const feat of this.overlaysData.landmarks.features || []) {
+    // 6b. National Register (NRHP) Individual Properties (238)
+    if (allowPointMarkers && state.layers.nrhpProperties && this.overlaysData?.nrhp_properties) {
+      for (const feat of this.overlaysData.nrhp_properties.features || []) {
         const coords = feat.geometry?.coordinates;
         if (!coords) continue;
         if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
         const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
         if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
-        const isPLM = feat.properties?.designation === "Protected Landmark";
+        const isGone = Boolean(feat.properties?.is_demolished_nrhp);
+        if (!isGone) {
+          ctx.beginPath();
+          ctx.arc(sx, sy, 8.8, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(168, 85, 247, 0.28)";
+          ctx.fill();
+        }
         ctx.beginPath();
-        ctx.arc(sx, sy, 5.8, 0, Math.PI * 2);
-        ctx.fillStyle = isPLM ? "#E63946" : "#F4A261";
+        ctx.arc(sx, sy, isGone ? 4.8 : 5.8, 0, Math.PI * 2);
+        ctx.fillStyle = isGone ? "#475569" : "#A855F7";
         ctx.fill();
-        ctx.lineWidth = 1.6;
-        ctx.strokeStyle = "#FFFBEB";
+        ctx.lineWidth = isGone ? 1.4 : 1.8;
+        ctx.strokeStyle = isGone ? "#CBD5E1" : "#FAF5FF";
         ctx.stroke();
         cs.renderedBBoxes.push({
-          minX: sx - 7,
-          minY: sy - 7,
-          maxX: sx + 7,
-          maxY: sy + 7,
+          minX: sx - 8,
+          minY: sy - 8,
+          maxX: sx + 8,
+          maxY: sy + 8,
+          props: feat.properties,
+          geom: feat.geometry,
+        });
+      }
+    }
+
+    // 7. COH Designated Landmarks (PLM, LM in HD, and 90-Day Waiver Vulnerable LM)
+    if (allowPointMarkers && state.layers.landmarks && this.overlaysData?.landmarks) {
+      const lmMode = String(state.landmarkFilter || "all");
+      for (const feat of this.overlaysData.landmarks.features || []) {
+        const lp = feat.properties || {};
+        const tier = String(lp.protection_tier || "");
+        if (lmMode === "protected" && tier !== "plm" && tier !== "lm_in_hd") continue;
+        if (lmMode === "waiver_lm" && tier !== "lm_waiver_vulnerable") continue;
+        const coords = feat.geometry?.coordinates;
+        if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
+        const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
+        if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+        const isWaiver = tier === "lm_waiver_vulnerable";
+        const isLmInHd = tier === "lm_in_hd";
+        if (isWaiver) {
+          ctx.beginPath();
+          ctx.arc(sx, sy, 9.2, 0, Math.PI * 2);
+          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = "rgba(251, 191, 36, 0.88)";
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(sx, sy, 5.8, 0, Math.PI * 2);
+        ctx.fillStyle = isWaiver ? "#F59E0B" : "#E63946";
+        ctx.fill();
+        ctx.lineWidth = isLmInHd ? 2.0 : 1.6;
+        ctx.strokeStyle = isLmInHd ? "#2DD4BF" : isWaiver ? "#0F172A" : "#FFFBEB";
+        ctx.stroke();
+        cs.renderedBBoxes.push({
+          minX: sx - 8,
+          minY: sy - 8,
+          maxX: sx + 8,
+          maxY: sy + 8,
           props: feat.properties,
           geom: feat.geometry,
         });
@@ -4070,6 +4523,15 @@ export class AtlasMapController {
     if (state.layers.superNeighborhoods && this.overlaysData?.super_neighborhoods) {
       drawBoundaryLabels(this.overlaysData.super_neighborhoods.features, 10.6, "#BFDBFE");
     }
+    if (
+      state.layers.potentialHistoricDistricts &&
+      this.overlaysData?.potential_historic_districts
+    ) {
+      drawBoundaryLabels(this.overlaysData.potential_historic_districts.features, 12.2, "#FED7AA");
+    }
+    if (state.layers.culturalDistricts && this.overlaysData?.cultural_districts) {
+      drawBoundaryLabels(this.overlaysData.cultural_districts.features, 11.4, "#FBCFE8");
+    }
 
     // 9. Guided Walking Tour Route & Numbered Stop Pins
     if (this.activeTour && Array.isArray(this.activeTour.stops) && this.activeTour.stops.length > 0) {
@@ -4187,6 +4649,8 @@ export class AtlasMapController {
       p.overlay_layer === "historic_districts" ||
       p.overlay_layer === "heritage_districts" ||
       p.overlay_layer === "nrhp_districts" ||
+      p.overlay_layer === "potential_historic_districts" ||
+      p.overlay_layer === "cultural_districts" ||
       p.overlay_layer === "historical_waterways" ||
       p.overlay_layer === "historical_railroads" ||
       p.type === "Neighborhood / Historic Area" ||
@@ -4263,6 +4727,14 @@ export class AtlasMapController {
         badge = p.type_label || "Historical Waterway";
       } else if (p.overlay_layer === "historical_railroads") {
         badge = p.type_label || "Historical Railroad";
+      } else if (p.overlay_layer === "potential_historic_districts") {
+        badge = p.already_designated_coh_hd
+          ? "2019 Surveyed (Now COH Historic District)"
+          : p.survey_subtype === "eligible_site"
+          ? "2019 Surveyed NRHP-Eligible Site"
+          : "2019 Surveyed Potential Historic District";
+      } else if (p.overlay_layer === "cultural_districts") {
+        badge = "State-Recognized Cultural District";
       }
       const statParts = [];
       if (p.overlay_layer === "lost_houston") {
@@ -4347,7 +4819,14 @@ export class AtlasMapController {
     } else if (p.good_brick_summary) {
       badge = `★ ${p.good_brick_summary}`;
     } else if (p.designation) {
-      badge = p.designation;
+      badge =
+        p.protection_tier === "lm_waiver_vulnerable"
+          ? "COH Landmark (90-Day Waiver)"
+          : p.designation;
+    } else if (p.refnum) {
+      badge = p.is_demolished_nrhp
+        ? `† NRHP #${p.refnum} (Gone)`
+        : `NRHP #${p.refnum}`;
     } else if (p.marker_num) {
       badge = `THC Marker #${p.marker_num}`;
     } else if (p.type) {
@@ -4521,6 +5000,11 @@ export class AtlasMapController {
         this.map.setFilter(layerId, shardFilterExpr);
       }
     }
+    for (const hsLayerId of ["historic-status-buildings-fill", "historic-status-buildings-extrusion"]) {
+      if (this.map.getLayer(hsLayerId)) {
+        this.map.setFilter(hsLayerId, ["all", ["has", "protection_tier"], shardFilterExpr]);
+      }
+    }
 
     for (const layerId of [
       "curated-overrides-fill",
@@ -4534,12 +5018,20 @@ export class AtlasMapController {
       }
     }
 
-    for (const fillId of [...this.buildingFillLayerIds, "curated-overrides-fill"]) {
+    for (const fillId of [
+      ...this.buildingFillLayerIds,
+      "historic-status-buildings-fill",
+      "curated-overrides-fill",
+    ]) {
       if (this.map.getLayer(fillId)) {
         this.map.setPaintProperty(fillId, "fill-color", colorExpr);
       }
     }
-    for (const extId of [...this.buildingExtrusionLayerIds, "curated-overrides-extrusion"]) {
+    for (const extId of [
+      ...this.buildingExtrusionLayerIds,
+      "historic-status-buildings-extrusion",
+      "curated-overrides-extrusion",
+    ]) {
       if (this.map.getLayer(extId)) {
         this.map.setPaintProperty(extId, "fill-extrusion-color", colorExpr);
       }
@@ -4573,12 +5065,24 @@ export class AtlasMapController {
       showBuildings && !state.extrude3D
     );
     setVis(
+      ["historic-status-buildings-fill"],
+      showBuildings && !state.extrude3D && state.colorMode === "preservation_status"
+    );
+    setVis(
       [...this.buildingLineLayerIds, "curated-overrides-line"],
       showBuildings && !state.extrude3D
     );
     setVis(
       [...this.buildingExtrusionLayerIds, "curated-overrides-extrusion"],
       showBuildings && state.extrude3D
+    );
+    setVis(
+      ["historic-status-buildings-extrusion"],
+      showBuildings && state.extrude3D && state.colorMode === "preservation_status"
+    );
+    setVis(
+      ["protection-armor-zones-fill", "protection-armor-zones-line"],
+      !isoGeom && state.colorMode === "preservation_status"
     );
     const selectedPassesFilter =
       !this.selectedFeatureProps || featureMatchesFilter(this.selectedFeatureProps, state);
@@ -4630,7 +5134,14 @@ export class AtlasMapController {
       ["plat-watch-outer-glow", "plat-watch-ring", "plat-watch-circle"],
       allowIsoMarkers && Boolean(state.layers.platWatch)
     );
-    setVis(["landmarks-circle"], allowIsoMarkers && Boolean(state.layers.landmarks));
+    setVis(
+      ["landmarks-waiver-ring", "landmarks-circle"],
+      allowIsoMarkers && Boolean(state.layers.landmarks)
+    );
+    setVis(
+      ["nrhp-properties-glow", "nrhp-properties-circle"],
+      allowIsoMarkers && Boolean(state.layers.nrhpProperties)
+    );
     setVis(["thc-markers-circle"], allowIsoMarkers && Boolean(state.layers.thcMarkers));
 
     if (isoGeom && allowIsoMarkers) {
@@ -4649,6 +5160,9 @@ export class AtlasMapController {
       const lmIds = (this.overlaysData?.landmarks?.features || [])
         .filter((f) => inIso(f.geometry?.coordinates))
         .map((f) => String(f.properties?.id || f.properties?.hcad_num || ""));
+      const nrhpIds = (this.overlaysData?.nrhp_properties?.features || [])
+        .filter((f) => inIso(f.geometry?.coordinates))
+        .map((f) => String(f.properties?.id || f.properties?.refnum || ""));
       const thcNums = (this.overlaysData?.thc_markers?.features || [])
         .filter((f) => inIso(f.geometry?.coordinates))
         .map((f) => String(f.properties?.marker_num || f.properties?.id || ""));
@@ -4657,7 +5171,8 @@ export class AtlasMapController {
         .map((f) => String(f.properties?.id || f.properties?.hcad_num || ""));
 
       const gbFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", gbIds]];
-      const lmFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", lmIds]];
+      const lmFilter = buildLandmarksFilterExpression(state, lmIds);
+      const nrhpIsoFilter = ["in", ["coalesce", ["get", "id"], ["get", "refnum"], ""], ["literal", nrhpIds]];
       const thcFilter = [
         "in",
         ["to-string", ["coalesce", ["get", "marker_num"], ["get", "id"], ""]],
@@ -4666,15 +5181,33 @@ export class AtlasMapController {
       const pwFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", pwIds]];
       if (this.map.getLayer("good-brick-glow")) this.map.setFilter("good-brick-glow", gbFilter);
       if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", gbFilter);
+      if (this.map.getLayer("landmarks-waiver-ring")) this.map.setFilter("landmarks-waiver-ring", lmFilter);
       if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", lmFilter);
+      if (this.map.getLayer("nrhp-properties-glow")) {
+        this.map.setFilter("nrhp-properties-glow", [
+          "all",
+          ["!", ["boolean", ["get", "is_demolished_nrhp"], false]],
+          nrhpIsoFilter,
+        ]);
+      }
+      if (this.map.getLayer("nrhp-properties-circle")) this.map.setFilter("nrhp-properties-circle", nrhpIsoFilter);
       if (this.map.getLayer("thc-markers-circle")) this.map.setFilter("thc-markers-circle", thcFilter);
       if (this.map.getLayer("permit-watch-outer-glow")) this.map.setFilter("permit-watch-outer-glow", pwFilter);
       if (this.map.getLayer("permit-watch-ring")) this.map.setFilter("permit-watch-ring", pwFilter);
       if (this.map.getLayer("permit-watch-circle")) this.map.setFilter("permit-watch-circle", pwFilter);
     } else if (!isoGeom) {
+      const lmFilter = buildLandmarksFilterExpression(state, null);
       if (this.map.getLayer("good-brick-glow")) this.map.setFilter("good-brick-glow", null);
       if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", null);
-      if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", null);
+      if (this.map.getLayer("landmarks-waiver-ring")) this.map.setFilter("landmarks-waiver-ring", lmFilter);
+      if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", lmFilter);
+      if (this.map.getLayer("nrhp-properties-glow")) {
+        this.map.setFilter("nrhp-properties-glow", [
+          "!",
+          ["boolean", ["get", "is_demolished_nrhp"], false],
+        ]);
+      }
+      if (this.map.getLayer("nrhp-properties-circle")) this.map.setFilter("nrhp-properties-circle", null);
       if (this.map.getLayer("thc-markers-circle")) this.map.setFilter("thc-markers-circle", null);
       if (this.map.getLayer("permit-watch-outer-glow")) this.map.setFilter("permit-watch-outer-glow", null);
       if (this.map.getLayer("permit-watch-ring")) this.map.setFilter("permit-watch-ring", null);
@@ -4692,6 +5225,22 @@ export class AtlasMapController {
     setVis(
       ["nrhp-districts-fill", "nrhp-districts-line"],
       !isoGeom && Boolean(state.layers.nrhpDistricts)
+    );
+    setVis(
+      [
+        "potential-historic-districts-fill",
+        "potential-historic-districts-line",
+        "potential-historic-districts-label",
+      ],
+      !isoGeom && Boolean(state.layers?.potentialHistoricDistricts)
+    );
+    setVis(
+      [
+        "cultural-districts-fill",
+        "cultural-districts-line",
+        "cultural-districts-label",
+      ],
+      !isoGeom && Boolean(state.layers?.culturalDistricts)
     );
 
     setVis(
@@ -4871,6 +5420,8 @@ export class AtlasMapController {
         historic_districts: Boolean(state.layers?.historicDistricts),
         heritage_districts: Boolean(state.layers?.heritageDistricts),
         nrhp_districts: Boolean(state.layers?.nrhpDistricts),
+        potential_historic_districts: Boolean(state.layers?.potentialHistoricDistricts),
+        cultural_districts: Boolean(state.layers?.culturalDistricts),
         neighborhoods: Boolean(state.layers?.neighborhoods),
         platted_subdivisions: Boolean(state.layers?.plattedSubdivisions),
         land_use_protections: Boolean(state.layers?.landUseProtections),
@@ -6106,6 +6657,8 @@ export class AtlasMapController {
     indexLayer(this.overlaysData?.historic_districts, "historic_districts");
     indexLayer(this.overlaysData?.heritage_districts, "heritage_districts");
     indexLayer(this.overlaysData?.nrhp_districts, "nrhp_districts");
+    indexLayer(this.overlaysData?.potential_historic_districts, "potential_historic_districts");
+    indexLayer(this.overlaysData?.cultural_districts, "cultural_districts");
     indexLayer(this.overlaysData?.annexations, "annexations");
     indexLayer(this.overlaysData?.historical_waterways, "historical_waterways", true);
     indexLayer(this.overlaysData?.historical_railroads, "historical_railroads", true);
@@ -6142,6 +6695,13 @@ export class AtlasMapController {
       nrhpDistricts: "nrhp_districts",
       nrhp_districts: "nrhp_districts",
       "nrhp-districts-fill": "nrhp_districts",
+      potentialHistoricDistricts: "potential_historic_districts",
+      potential_historic_districts: "potential_historic_districts",
+      potential_districts: "potential_historic_districts",
+      "potential-historic-districts-fill": "potential_historic_districts",
+      culturalDistricts: "cultural_districts",
+      cultural_districts: "cultural_districts",
+      "cultural-districts-fill": "cultural_districts",
       annexations: "annexations",
       "annexations-fill": "annexations",
       historicalWaterways: "historical_waterways",
@@ -6293,12 +6853,15 @@ export class AtlasMapController {
       const BOUNDARY_FILL_LAYERS = new Set([
         "platted-subdivisions-fill",
         "land-use-protections-fill",
+        "protection-armor-zones-fill",
         "neighborhoods-fill",
         "super-neighborhoods-fill",
         "historic-wards-fill",
         "historic-districts-fill",
         "heritage-districts-fill",
         "nrhp-districts-fill",
+        "potential-historic-districts-fill",
+        "cultural-districts-fill",
         "annexations-fill",
       ]);
       const nonBoundaryLayers = [
@@ -6307,9 +6870,12 @@ export class AtlasMapController {
         "good-brick-circle",
         "relocated-structures-circle",
         "landmarks-circle",
+        "nrhp-properties-circle",
         "thc-markers-circle",
         "curated-overrides-extrusion",
         "curated-overrides-fill",
+        "historic-status-buildings-extrusion",
+        "historic-status-buildings-fill",
         ...this.buildingExtrusionLayerIds,
         ...this.buildingFillLayerIds,
         "parcels-fill",
@@ -6328,6 +6894,7 @@ export class AtlasMapController {
           (lid === "permit-watch-circle" ||
             lid === "plat-watch-circle" ||
             lid === "landmarks-circle" ||
+            (lid === "nrhp-properties-circle" && !p.is_demolished_nrhp) ||
             lid === "good-brick-circle" ||
             lid === "relocated-structures-circle") &&
           (p.hcad_num || p.building_id)
@@ -6336,6 +6903,7 @@ export class AtlasMapController {
             bf.layer?.id !== "permit-watch-circle" &&
             bf.layer?.id !== "plat-watch-circle" &&
             bf.layer?.id !== "landmarks-circle" &&
+            bf.layer?.id !== "nrhp-properties-circle" &&
             bf.layer?.id !== "good-brick-circle" &&
             bf.layer?.id !== "relocated-structures-circle" &&
             bf.layer?.id !== "thc-markers-circle";
@@ -6368,7 +6936,7 @@ export class AtlasMapController {
               this.buildingsData.find(
                 (bf) => bf.properties && bf.properties.hcad_num === p.hcad_num
               )) ||
-            rendered.find(isBuildingPolyLayer);
+            (lid !== "nrhp-properties-circle" ? rendered.find(isBuildingPolyLayer) : null);
           if (bldHit) {
             const baseBldProps = applyOverrideToProperties(
               bldHit.properties || {},
@@ -6376,7 +6944,24 @@ export class AtlasMapController {
             );
             const mergedProps = {
               ...baseBldProps,
-              landmark_name: p.landmark_name || baseBldProps.landmark_name || p.name || "",
+              landmark_name:
+                p.landmark_name ||
+                baseBldProps.landmark_name ||
+                p.resname ||
+                p.name ||
+                "",
+              designation: p.designation || baseBldProps.designation || "",
+              landmark_protection_tier:
+                lid === "landmarks-circle"
+                  ? p.protection_tier || baseBldProps.landmark_protection_tier || ""
+                  : baseBldProps.landmark_protection_tier || "",
+              landmark_pdf_url: p.pdf_url || baseBldProps.landmark_pdf_url || "",
+              nrhp_refnum: p.refnum || baseBldProps.nrhp_refnum || "",
+              nrhp_atlas_num: p.atlas_num || baseBldProps.nrhp_atlas_num || "",
+              nrhp_resname: p.resname || baseBldProps.nrhp_resname || "",
+              nrhp_thc_url: p.thc_atlas_url || baseBldProps.nrhp_thc_url || "",
+              nrhp_pdf_url: p.nomination_pdf_url || baseBldProps.nrhp_pdf_url || "",
+              nrhp_listed_date: p.listed_date || baseBldProps.nrhp_listed_date || "",
               good_brick_awards: p.good_brick_awards || baseBldProps.good_brick_awards || null,
               good_brick_summary: p.good_brick_summary || baseBldProps.good_brick_summary || "",
               good_brick_years: p.good_brick_years || baseBldProps.good_brick_years || "",
@@ -6412,7 +6997,13 @@ export class AtlasMapController {
                     ? "Relocated"
                     : "Contractor Portfolio"
                   : lid === "landmarks-circle"
-                  ? "Landmark"
+                  ? p.protection_tier === "lm_waiver_vulnerable"
+                    ? "90-Day Waiver LM"
+                    : p.designation === "Protected Landmark" || p.protection_tier === "plm"
+                    ? "Protected Landmark"
+                    : "Landmark (in HD)"
+                  : lid === "nrhp-properties-circle"
+                  ? "NRHP Listed"
                   : "Building";
               const bSwatchColor =
                 lid === "permit-watch-circle"
@@ -6429,6 +7020,12 @@ export class AtlasMapController {
                   ? mergedProps.was_relocated
                     ? "#38bdf8"
                     : "#f59e0b"
+                  : lid === "landmarks-circle"
+                  ? p.protection_tier === "lm_waiver_vulnerable"
+                    ? "#F59E0B"
+                    : "#E63946"
+                  : lid === "nrhp-properties-circle"
+                  ? "#A855F7"
                   : "#fde047";
               stack.push({
                 key: bldKey,
@@ -6451,6 +7048,38 @@ export class AtlasMapController {
             }
             continue;
           }
+        }
+
+        if (lid === "nrhp-properties-circle") {
+          const nKey = `nrhp:${p.refnum || p.id || p.resname || stack.length}`;
+          if (!seenKeys.has(nKey)) {
+            seenKeys.add(nKey);
+            const isGone = Boolean(p.is_demolished_nrhp);
+            const nBadge = isGone ? "† NRHP (Gone)" : "NRHP Site";
+            const nColor = isGone ? "#94A3B8" : "#A855F7";
+            stack.push({
+              key: nKey,
+              kind: "marker",
+              layerId: lid,
+              overlayKey: "nrhp_properties",
+              layerKey: "nrhp_properties",
+              typeBadge: nBadge,
+              badge: nBadge,
+              swatchColor: nColor,
+              color: nColor,
+              title: p.resname || p.name || `NRHP #${p.refnum || ""}`,
+              subtitle: p.refnum
+                ? `NRHP #${p.refnum}${p.listed_date ? ` (${String(p.listed_date).slice(0, 4)})` : ""}`
+                : "National Register Property",
+              props: {
+                ...p,
+                overlay_layer: "nrhp_properties",
+                is_nrhp_marker: true,
+              },
+              geometry: f.geometry || null,
+            });
+          }
+          continue;
         }
 
         if (lid === "thc-markers-circle") {
@@ -6679,6 +7308,12 @@ export class AtlasMapController {
           typeBadge: "Historic Dist",
           swatchColor: "#a855f7",
         },
+        potential_historic_districts: {
+          enabled: Boolean(state.layers?.potentialHistoricDistricts),
+          priority: 22,
+          typeBadge: "Potential HD",
+          swatchColor: "#FB923C",
+        },
         heritage_districts: {
           enabled: Boolean(state.layers?.heritageDistricts),
           priority: 25,
@@ -6690,6 +7325,12 @@ export class AtlasMapController {
           priority: 30,
           typeBadge: "NRHP Dist",
           swatchColor: "#10b981",
+        },
+        cultural_districts: {
+          enabled: Boolean(state.layers?.culturalDistricts),
+          priority: 35,
+          typeBadge: "Cultural Dist",
+          swatchColor: "#F472B6",
         },
         neighborhoods: {
           enabled: Boolean(state.layers?.neighborhoods),
@@ -6765,6 +7406,17 @@ export class AtlasMapController {
           } else {
             dynBadge = "Ch.42 Min Lot Size";
             dynSwatch = "#FBBF24";
+          }
+        } else if (entry.overlayKey === "potential_historic_districts") {
+          if (entry.props.already_designated_coh_hd) {
+            dynBadge = "2019 Survey (Now HD)";
+            dynSwatch = "#A855F7";
+          } else if (entry.props.survey_subtype === "eligible_site") {
+            dynBadge = "Eligible Site";
+            dynSwatch = "#F59E0B";
+          } else {
+            dynBadge = "Potential HD";
+            dynSwatch = "#FB923C";
           }
         }
         matchingBoundaries.push({
@@ -6964,6 +7616,7 @@ export class AtlasMapController {
         Boolean(item.overlayKey) ||
         lid.includes("good-brick") ||
         lid.includes("landmarks") ||
+        lid.includes("nrhp-properties") ||
         lid.includes("thc-markers") ||
         lid.includes("relocated") ||
         lid.includes("permit-watch") ||
@@ -7060,6 +7713,11 @@ export class AtlasMapController {
     const nhMatches = [];
     const platMatches = [];
     const protMatches = [];
+    const hdMatches = [];
+    const heritageMatches = [];
+    const nrhpDistMatches = [];
+    const potentialHdMatches = [];
+    const culturalDistMatches = [];
     let snMatch = null;
     let wardMatch1903 = null;
 
@@ -7073,6 +7731,16 @@ export class AtlasMapController {
         platMatches.push(entry);
       } else if (entry.overlayKey === "land_use_protections") {
         protMatches.push(entry);
+      } else if (entry.overlayKey === "historic_districts") {
+        hdMatches.push(entry);
+      } else if (entry.overlayKey === "heritage_districts") {
+        heritageMatches.push(entry);
+      } else if (entry.overlayKey === "nrhp_districts") {
+        nrhpDistMatches.push(entry);
+      } else if (entry.overlayKey === "potential_historic_districts") {
+        potentialHdMatches.push(entry);
+      } else if (entry.overlayKey === "cultural_districts") {
+        culturalDistMatches.push(entry);
       } else if (entry.overlayKey === "super_neighborhoods" && !snMatch) {
         snMatch = entry;
       } else if (
@@ -7087,6 +7755,11 @@ export class AtlasMapController {
     nhMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     platMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     protMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    hdMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    heritageMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    nrhpDistMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    potentialHdMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    culturalDistMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     const primaryNh = nhMatches[0]?.props?.name || "";
     const primaryPlat = platMatches[0]?.props?.name || "";
     const aliasSet = new Set();
@@ -7119,6 +7792,13 @@ export class AtlasMapController {
       platted_subdivision_id: platMatches[0]?.props?.id || "",
       platted_subdivision_props: platMatches[0]?.props || null,
       land_use_protections: protMatches.map((m) => m.props),
+      historic_district: hdMatches[0]?.props?.name || "",
+      historic_district_props: hdMatches[0]?.props || null,
+      heritage_district: heritageMatches[0]?.props?.name || "",
+      heritage_district_props: heritageMatches[0]?.props || null,
+      nrhp_districts: nrhpDistMatches.map((m) => m.props),
+      potential_historic_districts: potentialHdMatches.map((m) => m.props),
+      cultural_districts: culturalDistMatches.map((m) => m.props),
       super_neighborhood:
         snMatch?.props?.name ||
         nhMatches[0]?.props?.super_neighborhood ||
@@ -7325,7 +8005,10 @@ export class AtlasMapController {
       const isSmallBoundary =
         isLostHouston ||
         matchEntry.overlayKey === "platted_subdivisions" ||
-        matchEntry.overlayKey === "neighborhoods";
+        matchEntry.overlayKey === "neighborhoods" ||
+        matchEntry.overlayKey === "historic_districts" ||
+        matchEntry.overlayKey === "heritage_districts" ||
+        matchEntry.overlayKey === "potential_historic_districts";
       if (isPointFeature) {
         this.flyToLocation({
           lng: matchEntry.centroid[0],
@@ -7448,6 +8131,50 @@ export class AtlasMapController {
           if (Array.isArray(geoCtx.land_use_protections) && geoCtx.land_use_protections.length) {
             mergedProps._land_use_protections = geoCtx.land_use_protections;
           }
+          if (
+            (!mergedProps.historic_district ||
+              String(mergedProps.historic_district).trim().toLowerCase() === "none") &&
+            geoCtx.historic_district
+          ) {
+            mergedProps.historic_district = geoCtx.historic_district;
+          }
+          mergedProps._geo_context = geoCtx;
+        }
+      }
+      const bldIdForLookup = mergedProps.building_id || mergedProps.id || "";
+      const lmRecord = this.getLandmarkForBuilding({
+        hcadNum: mergedProps.hcad_num,
+        buildingId: bldIdForLookup,
+      });
+      if (lmRecord) {
+        mergedProps._landmark_record = lmRecord;
+        if (!mergedProps.landmark_name && lmRecord.name) {
+          mergedProps.landmark_name = lmRecord.name;
+        }
+        if (!mergedProps.landmark_type && lmRecord.designation) {
+          mergedProps.landmark_type = lmRecord.designation;
+        }
+        if (!mergedProps.landmark_pdf_url && lmRecord.pdf_url) {
+          mergedProps.landmark_pdf_url = lmRecord.pdf_url;
+        }
+      }
+      const nrhpRecord = this.getNrhpPropertyForBuilding({
+        hcadNum: mergedProps.hcad_num,
+        buildingId: bldIdForLookup,
+      });
+      if (nrhpRecord) {
+        mergedProps._nrhp_property_record = nrhpRecord;
+        if (!mergedProps.nrhp_refnum && nrhpRecord.refnum) {
+          mergedProps.nrhp_refnum = nrhpRecord.refnum;
+        }
+        if (!mergedProps.nrhp_resname && nrhpRecord.resname) {
+          mergedProps.nrhp_resname = nrhpRecord.resname;
+        }
+        if (!mergedProps.nrhp_thc_url && nrhpRecord.thc_atlas_url) {
+          mergedProps.nrhp_thc_url = nrhpRecord.thc_atlas_url;
+        }
+        if (!mergedProps.nrhp_pdf_url && nrhpRecord.nomination_pdf_url) {
+          mergedProps.nrhp_pdf_url = nrhpRecord.nomination_pdf_url;
         }
       }
     }
@@ -7644,6 +8371,8 @@ export class AtlasMapController {
       const queryLayers = [
         "curated-overrides-fill",
         "curated-overrides-extrusion",
+        "historic-status-buildings-fill",
+        "historic-status-buildings-extrusion",
         ...this.buildingFillLayerIds,
         ...this.buildingExtrusionLayerIds,
       ].filter((id) => this.map.getLayer(id));
@@ -7773,7 +8502,7 @@ export class AtlasMapController {
       String(s || "")
         .trim()
         .toLowerCase()
-        .replace(/\s+(protected\s+)?(historic|heritage|nrhp)\s+district$/i, "")
+        .replace(/\s+(protected\s+)?(historic|heritage|nrhp|cultural)\s+district(\s*\(potential\))?$/i, "")
         .replace(/\s+super\s+neighborhood$/i, "")
         .trim();
     const strippedTargetName = stripDistrictSuffix(targetName);
@@ -7891,7 +8620,8 @@ export class AtlasMapController {
         matchEntry.overlayKey === "platted_subdivisions" ||
         matchEntry.overlayKey === "neighborhoods" ||
         matchEntry.overlayKey === "historic_districts" ||
-        matchEntry.overlayKey === "heritage_districts";
+        matchEntry.overlayKey === "heritage_districts" ||
+        matchEntry.overlayKey === "potential_historic_districts";
       if (!this.useCanvasFallback && this.map && typeof this.map.fitBounds === "function") {
         try {
           this.map.fitBounds(

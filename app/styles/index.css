@@ -7742,3 +7742,412 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   4-Category Collapsible Map Layers Panel & Landmark Protection Sub-Filter
+   ========================================================================== */
+.layer-category-group {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.34);
+  overflow: hidden;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.layer-category-group[open] {
+  border-color: rgba(149, 201, 89, 0.24);
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.layer-category-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(255, 255, 255, 0.025);
+  transition: background 0.14s ease;
+}
+
+.layer-category-summary::-webkit-details-marker {
+  display: none;
+}
+
+.layer-category-summary:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.layer-category-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.layer-category-chevron {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--ph-green-light);
+  transition: transform 0.16s ease;
+  flex-shrink: 0;
+}
+
+.layer-category-group[open] .layer-category-chevron {
+  transform: rotate(90deg);
+}
+
+.layer-category-title {
+  font-size: 10.4px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-category-badge {
+  font-size: 9.8px;
+  font-weight: 700;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  background: rgba(149, 201, 89, 0.18);
+  border: 1px solid rgba(149, 201, 89, 0.42);
+  color: #d9f99d;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.layer-category-badge.is-zero {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+}
+
+.layer-category-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 5px 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.landmarks-subfilter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 6px;
+  margin-top: -1px;
+  margin-bottom: 2px;
+  padding: 4px 5px;
+  background: rgba(230, 57, 70, 0.06);
+  border: 1px dashed rgba(248, 113, 113, 0.3);
+  border-left: 2px solid #e63946;
+  border-radius: 6px;
+}
+
+.lm-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.lm-filter-pill {
+  appearance: none;
+  flex: 1 1 auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 9.6px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  padding: 3px 4px;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.14s ease;
+}
+
+.lm-filter-pill:hover {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(230, 57, 70, 0.16);
+  color: #fff;
+}
+
+.lm-filter-pill.active {
+  background: rgba(230, 57, 70, 0.28);
+  border-color: #f87171;
+  color: #fff1f2;
+  box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.32);
+}
+
+.lm-filter-pill.warning.active {
+  background: rgba(245, 158, 11, 0.26);
+  border-color: #fbbf24;
+  color: #fef3c7;
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
+}
+
+/* ==========================================================================
+   Plain-English Legal Protection & Historic Tax-Credit Scorecard (Inspector)
+   ========================================================================== */
+.protection-scorecard-card {
+  margin-bottom: 10px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.protection-scorecard-card.tier-protected {
+  border-color: rgba(45, 212, 191, 0.42);
+}
+
+.protection-scorecard-card.tier-waiver {
+  border-color: rgba(251, 191, 36, 0.46);
+}
+
+.protection-scorecard-card.tier-vulnerable {
+  border-color: rgba(251, 113, 133, 0.42);
+}
+
+.protection-scorecard-strip {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 9px 11px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: background 0.15s ease;
+}
+
+.protection-scorecard-strip:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.protection-scorecard-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.protection-scorecard-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.protection-scorecard-toggle-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ph-green-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.protection-scorecard-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.scorecard-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.scorecard-pill.tier-safe {
+  background: rgba(20, 184, 166, 0.16);
+  border-color: rgba(45, 212, 191, 0.48);
+  color: #99f6e4;
+}
+
+.scorecard-pill.tier-plm {
+  background: rgba(230, 57, 70, 0.2);
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fecdd3;
+}
+
+.scorecard-pill.tier-warn {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(251, 191, 36, 0.52);
+  color: #fde68a;
+}
+
+.scorecard-pill.tier-danger {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(251, 113, 133, 0.45);
+  color: #fecdd3;
+}
+
+.scorecard-pill.tier-credit {
+  background: rgba(168, 85, 247, 0.18);
+  border-color: rgba(192, 132, 252, 0.5);
+  color: #e9d5ff;
+}
+
+.scorecard-pill.tier-armor {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #bae6fd;
+}
+
+.scorecard-pill.tier-neutral {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.26);
+  color: #cbd5e1;
+}
+
+.protection-scorecard-details {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 11px 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 13, 22, 0.45);
+}
+
+.protection-scorecard-card.is-expanded .protection-scorecard-details {
+  display: flex;
+}
+
+@media (min-width: 901px) {
+  .inspector-drawer.wide-mode .protection-scorecard-details {
+    display: flex !important;
+  }
+  .inspector-drawer.wide-mode .protection-scorecard-toggle-hint {
+    display: none;
+  }
+  .inspector-drawer.wide-mode .protection-scorecard-strip {
+    cursor: default;
+  }
+}
+
+.scorecard-pillar {
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scorecard-pillar-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.scorecard-pillar-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.scorecard-pillar-status {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.scorecard-pillar-copy {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.44;
+  color: #cbd5e1;
+}
+
+.scorecard-pillar-copy strong {
+  color: #f1f5f9;
+}
+
+.scorecard-links-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.scorecard-link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 5px;
+  text-decoration: none;
+  background: rgba(149, 201, 89, 0.13);
+  border: 1px solid rgba(149, 201, 89, 0.38);
+  color: #d9f99d;
+  transition: all 0.14s ease;
+}
+
+.scorecard-link-pill:hover {
+  background: rgba(149, 201, 89, 0.25);
+  border-color: rgba(149, 201, 89, 0.7);
+  color: #ffffff;
+}
+
+.scorecard-link-pill.purple {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(192, 132, 252, 0.42);
+  color: #e9d5ff;
+}
+
+.scorecard-link-pill.purple:hover {
+  background: rgba(168, 85, 247, 0.28);
+  border-color: rgba(192, 132, 252, 0.75);
+  color: #ffffff;
+}
+
+.scorecard-link-pill.amber {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+}
+
+.scorecard-link-pill.amber:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: rgba(251, 191, 36, 0.8);
+  color: #ffffff;
+}

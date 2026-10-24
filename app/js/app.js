@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261012b";
+} from "./palettes.js?v=20261024a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -18,8 +18,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261023g";
-import { AtlasMapController } from "./mapController.js?v=20261023g";
+} from "./filterStore.js?v=20261024a";
+import { AtlasMapController } from "./mapController.js?v=20261024a";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
 import {
   applyOverrideToProperties,
@@ -401,7 +401,7 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261023f"),
+        fetch("public/data/search_index.json?v=20261024a"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
@@ -409,7 +409,11 @@ class HoustonAtlasApp {
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
-        if (item.is_neighborhood_entry || item.type === "lost_houston") {
+        if (
+          item.is_neighborhood_entry ||
+          item.type === "lost_houston" ||
+          item.type === "nrhp_property"
+        ) {
           if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
           if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
           if (item.overlay_layer === "historicWards") item.overlay_layer = "historic_wards";
@@ -418,6 +422,12 @@ class HoustonAtlasApp {
             item.overlay_layer = "platted_subdivisions";
           }
           if (item.overlay_layer === "lostHouston") item.overlay_layer = "lost_houston";
+          if (item.overlay_layer === "potentialHistoricDistricts") {
+            item.overlay_layer = "potential_historic_districts";
+          }
+          if (item.overlay_layer === "culturalDistricts") {
+            item.overlay_layer = "cultural_districts";
+          }
           if (!item.sublabel) {
             const alts = Array.isArray(item.alt_names) ? item.alt_names.slice(0, 3).join(", ") : "";
             item.sublabel = [alts ? `AKA: ${alts}` : "", item.address || ""]
@@ -1676,12 +1686,17 @@ class HoustonAtlasApp {
       ? item.top_subdivisions.map((s) => String(s).toLowerCase())
       : [];
     const lmCode = String(item.landmark_code || "").toLowerCase();
+    const nrhpRef = String(item.refnum || item.nrhp_refnum || "").toLowerCase();
     const isPlaceBoundary = Boolean(
       item.is_neighborhood_entry ||
         item.type === "neighborhood" ||
         item.type === "platted_subdivision" ||
         item.type === "super_neighborhood" ||
         item.type === "historic_ward" ||
+        item.type === "historic_district" ||
+        item.type === "nrhp_district" ||
+        item.type === "potential_historic_district" ||
+        item.type === "cultural_district" ||
         item.type === "historical_waterway" ||
         item.type === "historical_railroad"
     );
@@ -1719,6 +1734,7 @@ class HoustonAtlasApp {
       subdiv,
       topSubdivs.join(" "),
       lmCode ? `${lmCode} hpo #${lmCode}` : "",
+      nrhpRef ? `${nrhpRef} nrhp #${nrhpRef} national register` : "",
     ]
       .filter(Boolean)
       .join(" | ");
@@ -2131,11 +2147,14 @@ class HoustonAtlasApp {
       ["chk-layer-plat-watch", "platWatch"],
       ["chk-layer-good-brick", "goodBrickAwards"],
       ["chk-layer-landmarks", "landmarks"],
+      ["chk-layer-potential-districts", "potentialHistoricDistricts"],
       ["chk-layer-lost-houston", "lostHouston"],
       ["chk-layer-relocated-structures", "relocatedStructures"],
       ["chk-layer-historic-districts", "historicDistricts"],
       ["chk-layer-heritage-districts", "heritageDistricts"],
       ["chk-layer-nrhp-districts", "nrhpDistricts"],
+      ["chk-layer-nrhp-properties", "nrhpProperties"],
+      ["chk-layer-cultural-districts", "culturalDistricts"],
       ["chk-layer-neighborhoods", "neighborhoods"],
       ["chk-layer-platted-subdivisions", "plattedSubdivisions"],
       ["chk-layer-land-use-protections", "landUseProtections"],
@@ -2155,6 +2174,22 @@ class HoustonAtlasApp {
         });
       }
     }
+
+    document.querySelectorAll("[data-lm-filter]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const rawVal = String(btn.getAttribute("data-lm-filter") || "all");
+        const filterVal =
+          rawVal === "protected" || rawVal === "waiver_lm" ? rawVal : "all";
+        const curLayers = this.filterStore.getState().layers || {};
+        this.filterStore.setState({
+          landmarkFilter: filterVal,
+          layers: {
+            ...curLayers,
+            landmarks: true,
+          },
+        });
+      });
+    });
 
     document.querySelectorAll("[data-ward-era]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -3421,6 +3456,14 @@ class HoustonAtlasApp {
           if (placeName.includes(q)) return isPlat ? 90 : 98;
           if (altNames.some((an) => an.includes(q))) return isPlat ? 80 : 94;
           if (topSubdivs.some((sd) => sd === q || sd.includes(q))) return 88;
+          if (
+            qTokens.length >= 2 &&
+            !isPlat &&
+            qTokens.some((tok) => placeName.includes(tok) || altNames.some((an) => an.includes(tok))) &&
+            qTokens.every((tok) => `${placeName} ${altNames.join(" ")} ${cat} ${sub}`.includes(tok))
+          ) {
+            return 86;
+          }
         }
         return 0;
       }
@@ -3694,7 +3737,13 @@ class HoustonAtlasApp {
       if ((selId && itemId === selId) || (selHcad && hcad === selHcad)) {
         score += 4;
       }
-      if (item.type === "landmark" || item.type === "good_brick" || item.landmark_code || item.good_brick_years) {
+      if (
+        item.type === "landmark" ||
+        item.type === "good_brick" ||
+        item.type === "nrhp_property" ||
+        item.landmark_code ||
+        item.good_brick_years
+      ) {
         score += 8;
       }
       if (hasCustomName) score += 5;
@@ -3999,12 +4048,17 @@ class HoustonAtlasApp {
               m.type === "platted_subdivision" ||
               m.type === "super_neighborhood" ||
               m.type === "historic_ward" ||
+              m.type === "historic_district" ||
+              m.type === "nrhp_district" ||
+              m.type === "potential_historic_district" ||
+              m.type === "cultural_district" ||
               m.type === "historical_waterway" ||
               m.type === "historical_railroad"
           );
           const isLostHouston = Boolean(
             m.type === "lost_houston" || m.overlay_layer === "lost_houston"
           );
+          const isNrhpProperty = Boolean(m.type === "nrhp_property");
           const dispLabel = m.label || m.name || m.building_name || "Houston Neighborhood";
           const dispSub =
             m.sublabel ||
@@ -4026,6 +4080,8 @@ class HoustonAtlasApp {
                   ? `&#127963; ${dispLabel}`
                   : isPlace
                   ? `&#128506; ${dispLabel}`
+                  : isNrhpProperty
+                  ? `&#127963; ${dispLabel}`
                   : dispLabel
               }</span>
               <span class="search-result-cat">${m.category}</span>
@@ -4078,6 +4134,10 @@ class HoustonAtlasApp {
             chosen.type === "platted_subdivision" ||
             chosen.type === "super_neighborhood" ||
             chosen.type === "historic_ward" ||
+            chosen.type === "historic_district" ||
+            chosen.type === "nrhp_district" ||
+            chosen.type === "potential_historic_district" ||
+            chosen.type === "cultural_district" ||
             chosen.type === "historical_waterway" ||
             chosen.type === "historical_railroad"
           ) {
@@ -4093,6 +4153,10 @@ class HoustonAtlasApp {
                 ? "historical_waterways"
                 : rawLayer === "historicalRailroads"
                 ? "historical_railroads"
+                : rawLayer === "potentialHistoricDistricts"
+                ? "potential_historic_districts"
+                : rawLayer === "culturalDistricts"
+                ? "cultural_districts"
                 : rawLayer ||
                   (chosen.type === "super_neighborhood"
                     ? "super_neighborhoods"
@@ -4100,6 +4164,14 @@ class HoustonAtlasApp {
                     ? "historic_wards"
                     : chosen.type === "platted_subdivision"
                     ? "platted_subdivisions"
+                    : chosen.type === "historic_district"
+                    ? "historic_districts"
+                    : chosen.type === "nrhp_district"
+                    ? "nrhp_districts"
+                    : chosen.type === "potential_historic_district"
+                    ? "potential_historic_districts"
+                    : chosen.type === "cultural_district"
+                    ? "cultural_districts"
                     : chosen.type === "historical_waterway"
                     ? "historical_waterways"
                     : chosen.type === "historical_railroad"
@@ -4108,10 +4180,21 @@ class HoustonAtlasApp {
             if (chosen.type === "historic_ward" && chosen.era_year) {
               this.filterStore.setState({ wardEra: Number(chosen.era_year) });
             }
-            if (layerKey === "historical_waterways") {
-              this.filterStore.setLayerVisibility("historicalWaterways", true);
-            } else if (layerKey === "historical_railroads") {
-              this.filterStore.setLayerVisibility("historicalRailroads", true);
+            const layerKeyToStoreKey = {
+              historical_waterways: "historicalWaterways",
+              historical_railroads: "historicalRailroads",
+              historic_districts: "historicDistricts",
+              heritage_districts: "heritageDistricts",
+              nrhp_districts: "nrhpDistricts",
+              potential_historic_districts: "potentialHistoricDistricts",
+              cultural_districts: "culturalDistricts",
+              neighborhoods: "neighborhoods",
+              platted_subdivisions: "plattedSubdivisions",
+              super_neighborhoods: "superNeighborhoods",
+              historic_wards: "historicWards",
+            };
+            if (layerKeyToStoreKey[layerKey]) {
+              this.filterStore.setLayerVisibility(layerKeyToStoreKey[layerKey], true);
             }
             this.mapController.highlightBoundaryByIdOrName({
               id: chosen.id || "",
@@ -4121,6 +4204,62 @@ class HoustonAtlasApp {
               flyTo: true,
               inspect: true,
             });
+            return;
+          }
+
+          if (chosen.type === "nrhp_property") {
+            this.filterStore.setLayerVisibility("nrhpProperties", true);
+            this.mapController?.clearSelection?.();
+            const fullNrhpFeat = (
+              this.mapController?.overlaysData?.nrhp_properties?.features || []
+            ).find(
+              (f) =>
+                f.properties &&
+                ((chosen.id && f.properties.id === chosen.id) ||
+                  (chosen.refnum && f.properties.refnum === chosen.refnum))
+            );
+            const fullNrhpProps = fullNrhpFeat?.properties || chosen;
+            if (chosen.is_demolished_nrhp || (!chosen.hcad_num && !chosen.building_id)) {
+              this.mapController.flyToLocation({
+                lng: chosen.lon,
+                lat: chosen.lat,
+                zoom: chosen.zoom || 17.5,
+              });
+              this.renderInspectorDrawer({
+                ...fullNrhpProps,
+                overlay_layer: "nrhp_properties",
+                is_nrhp_marker: true,
+                lng: chosen.lon,
+                lat: chosen.lat,
+              });
+              return;
+            }
+            this.mapController.flyToLocation({
+              lng: chosen.lon,
+              lat: chosen.lat,
+              zoom: chosen.zoom || 17.5,
+              hcadNum: chosen.hcad_num || "",
+              featureId: chosen.building_id || "",
+            });
+            if (document.getElementById("inspector-drawer")?.classList.contains("hidden")) {
+              this.renderInspectorDrawer({
+                id: chosen.building_id || chosen.id || "",
+                building_id: chosen.building_id || "",
+                address: chosen.address || "",
+                building_name: chosen.building_name || chosen.label,
+                landmark_name: chosen.label,
+                alt_names: chosen.alt_names || [],
+                year_built: chosen.year_built || 0,
+                hcad_num: chosen.hcad_num || "",
+                historic_district: chosen.historic_district || "",
+                super_neighborhood: chosen.super_neighborhood || "",
+                nrhp_refnum: chosen.refnum || "",
+                nrhp_resname: chosen.label || "",
+                nrhp_thc_url: chosen.thc_atlas_url || "",
+                nrhp_pdf_url: chosen.nomination_pdf_url || "",
+                _nrhp_property_record: fullNrhpProps,
+              });
+            }
             return;
           }
 
@@ -4886,11 +5025,14 @@ class HoustonAtlasApp {
       "chk-layer-plat-watch": state.layers.platWatch,
       "chk-layer-good-brick": state.layers.goodBrickAwards,
       "chk-layer-landmarks": state.layers.landmarks,
+      "chk-layer-potential-districts": state.layers.potentialHistoricDistricts,
       "chk-layer-relocated-structures": state.layers.relocatedStructures,
       "chk-layer-lost-houston": state.layers.lostHouston || state.historicalSnapshotMode,
       "chk-layer-historic-districts": state.layers.historicDistricts,
       "chk-layer-heritage-districts": state.layers.heritageDistricts,
       "chk-layer-nrhp-districts": state.layers.nrhpDistricts,
+      "chk-layer-nrhp-properties": state.layers.nrhpProperties,
+      "chk-layer-cultural-districts": state.layers.culturalDistricts,
       "chk-layer-thc-markers": state.layers.thcMarkers,
       "chk-layer-neighborhoods": state.layers.neighborhoods,
       "chk-layer-platted-subdivisions": state.layers.plattedSubdivisions,
@@ -4906,6 +5048,19 @@ class HoustonAtlasApp {
       const el = document.getElementById(id);
       if (el) el.checked = Boolean(checked);
     }
+
+    const landmarksFilterRow = document.getElementById("landmarks-filter-row");
+    if (landmarksFilterRow) {
+      landmarksFilterRow.classList.toggle("hidden", !state.layers.landmarks);
+    }
+    const activeLmFilter =
+      state.landmarkFilter === "protected" || state.landmarkFilter === "waiver_lm"
+        ? state.landmarkFilter
+        : "all";
+    document.querySelectorAll("[data-lm-filter]").forEach((btn) => {
+      const val = String(btn.getAttribute("data-lm-filter") || "all");
+      btn.classList.toggle("active", val === activeLmFilter);
+    });
 
     const lostHoustonLegendRow = document.getElementById("lost-houston-legend-row");
     if (lostHoustonLegendRow) {
@@ -5032,6 +5187,40 @@ class HoustonAtlasApp {
         soloBtn.textContent = isSoloed ? "Soloed ✓" : "Solo";
       }
     });
+
+    // Update 4-category accordion active-layer count badges & auto-expand when a category activates
+    this._prevCategoryActiveCounts = this._prevCategoryActiveCounts || null;
+    const isInitialCategorySync = this._prevCategoryActiveCounts === null;
+    const nextCategoryCounts = {};
+    document.querySelectorAll("details.layer-category-group[data-layer-group]").forEach((groupEl) => {
+      const grpKey = String(groupEl.getAttribute("data-layer-group") || "");
+      let activeCount = 0;
+      groupEl.querySelectorAll(".layer-item-row[data-layer-key]").forEach((row) => {
+        const lKey = row.getAttribute("data-layer-key");
+        if (
+          Boolean(state.layers[lKey]) ||
+          (lKey === "lostHouston" && Boolean(state.historicalSnapshotMode))
+        ) {
+          activeCount += 1;
+        }
+      });
+      nextCategoryCounts[grpKey] = activeCount;
+      const badgeEl = groupEl.querySelector(`[data-group-badge="${grpKey}"]`);
+      if (badgeEl) {
+        badgeEl.textContent = `${activeCount} active`;
+        badgeEl.classList.toggle("is-zero", activeCount === 0);
+      }
+      const prevCount = isInitialCategorySync
+        ? 0
+        : Number(this._prevCategoryActiveCounts[grpKey] || 0);
+      if (
+        (isInitialCategorySync && activeCount > 0) ||
+        (!isInitialCategorySync && activeCount > prevCount)
+      ) {
+        groupEl.open = true;
+      }
+    });
+    this._prevCategoryActiveCounts = nextCategoryCounts;
   }
 
   _syncTiltControls(pitch) {
@@ -5916,6 +6105,25 @@ class HoustonAtlasApp {
     } else if (overlayLayer === "nrhp_districts") {
       badgeLabel = "National Register District (NRHP)";
       badgeColor = "#10b981";
+    } else if (overlayLayer === "potential_historic_districts") {
+      badgeLabel = rawProps.already_designated_coh_hd
+        ? "2019 Surveyed (Now Designated COH HD)"
+        : rawProps.survey_subtype === "eligible_site"
+        ? "2019 Surveyed NRHP-Eligible Site"
+        : "2019 Surveyed Potential Historic District";
+      badgeColor = rawProps.already_designated_coh_hd
+        ? "#a855f7"
+        : rawProps.survey_subtype === "eligible_site"
+        ? "#fbbf24"
+        : "#fb923c";
+    } else if (overlayLayer === "cultural_districts") {
+      badgeLabel = "State-Recognized Cultural Arts District";
+      badgeColor = "#f472b6";
+    } else if (overlayLayer === "nrhp_properties") {
+      badgeLabel = rawProps.is_demolished_nrhp
+        ? "Demolished NRHP Property (Gone)"
+        : "National Register Property (NRHP)";
+      badgeColor = rawProps.is_demolished_nrhp ? "#94a3b8" : "#c084fc";
     } else if (overlayLayer === "annexations") {
       const annexYr = rawProps.annex_year || rawProps.decade || "";
       badgeLabel = `Municipal Annexation${annexYr ? ` (${annexYr})` : ""}`;
@@ -5962,12 +6170,14 @@ class HoustonAtlasApp {
     const isLinearOrPointOverlay =
       overlayLayer === "historical_waterways" ||
       overlayLayer === "historical_railroads" ||
-      overlayLayer === "lost_houston";
+      overlayLayer === "lost_houston" ||
+      overlayLayer === "nrhp_properties";
 
     const bldCount = Number(rawProps.building_count || 0);
     const earliestYear = Number(rawProps.earliest_year || 0);
     const medianYear = Number(rawProps.median_year || 0);
     const pre1940Count = Number(rawProps.pre_1940_count || 0);
+    const pre1945Count = Number(rawProps.pre_1945_count || 0);
     const landmarkCount = Number(rawProps.landmark_count || 0);
     const goodBrickCount = Number(rawProps.good_brick_count || 0);
 
@@ -5976,6 +6186,17 @@ class HoustonAtlasApp {
       if (rawProps.address) subtitleParts.push(rawProps.address);
       if (rawProps.lifespan_label) subtitleParts.push(`Stood ${rawProps.lifespan_label}`);
       if (rawProps.sanborn_material_label) subtitleParts.push(rawProps.sanborn_material_label);
+    } else if (overlayLayer === "nrhp_properties") {
+      if (rawProps.address) subtitleParts.push(rawProps.address);
+      if (rawProps.refnum) subtitleParts.push(`NRHP #${rawProps.refnum}`);
+      if (rawProps.listed_date) subtitleParts.push(`Listed ${rawProps.listed_date}`);
+    } else if (overlayLayer === "potential_historic_districts") {
+      subtitleParts.push("COH Nov. 2019 Historic Survey");
+      if (pre1945Count > 0) subtitleParts.push(`${pre1945Count.toLocaleString()} pre-1946 structures`);
+      if (!rawProps.already_designated_coh_hd) subtitleParts.push("No Ch. 33 Demolition Ban");
+    } else if (overlayLayer === "cultural_districts") {
+      subtitleParts.push("COH & Texas Commission on the Arts");
+      if (landmarkCount > 0) subtitleParts.push(`${landmarkCount} Designated Landmarks`);
     } else if (overlayLayer === "historical_waterways") {
       if (rawProps.status) subtitleParts.push(rawProps.status);
       if (rawProps.watershed) subtitleParts.push(`Watershed: ${rawProps.watershed}`);
@@ -6517,16 +6738,124 @@ class HoustonAtlasApp {
               </div>`
             : ""
         }
+        ${
+          overlayLayer === "nrhp_properties"
+            ? `<div class="inspector-cell">
+                <span class="cell-label">National Register Ref #</span>
+                <span class="cell-value mono">${rawProps.refnum ? `#${rawProps.refnum}` : "Listed"}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Date Listed on NRHP</span>
+                <span class="cell-value mono">${rawProps.listed_date || "-"}</span>
+              </div>
+              <div class="inspector-cell full">
+                <span class="cell-label">Recorded Historic Address</span>
+                <span class="cell-value">${rawProps.address || "Houston, Harris County, TX"}</span>
+              </div>
+              <div class="inspector-cell full">
+                <span class="cell-label">Preservation &amp; Tax-Credit Legal Status</span>
+                <span class="cell-value" style="color:${rawProps.is_demolished_nrhp ? "#fda4af" : "#e9d5ff"};">${
+                  rawProps.local_protection_status ||
+                  (rawProps.is_demolished_nrhp
+                    ? "Demolished after National Register listing. Illustrates that federal NRHP status does not block private-funds demolition without local COH Chapter 33 protection."
+                    : "Listed in the National Register of Historic Places (up to 45% combined Federal + Texas historic tax credits for qualifying income-producing / nonprofit rehabilitations; no municipal demolition ban unless also protected under COH Chapter 33).")
+                }</span>
+              </div>
+              ${
+                rawProps.multiname
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Multiple Property Submission (MPS)</span>
+                      <span class="cell-value">${rawProps.multiname}</span>
+                    </div>`
+                  : ""
+              }`
+            : ""
+        }
+        ${
+          (overlayLayer === "potential_historic_districts" ||
+            overlayLayer === "historic_districts" ||
+            overlayLayer === "nrhp_districts" ||
+            overlayLayer === "cultural_districts") &&
+          (pre1945Count > 0 ||
+            Number(rawProps.smls_block_count) > 0 ||
+            Number(rawProps.smbl_block_count) > 0 ||
+            Number(rawProps.active_permit_alert_count) > 0 ||
+            Number(rawProps.active_plat_alert_count) > 0)
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Pre-1946 Historic Structures</span>
+                <span class="cell-value mono">${pre1945Count.toLocaleString()}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Ch. 42 Lot / Setback Blocks</span>
+                <span class="cell-value mono">${Number(rawProps.smls_block_count || 0)} SMLS · ${Number(rawProps.smbl_block_count || 0)} SMBL</span>
+              </div>
+              <div class="inspector-cell full">
+                <span class="cell-label">Active Demolition / Permit &amp; Plat Filings Inside Boundary</span>
+                <span class="cell-value mono" style="color:${
+                  Number(rawProps.active_permit_alert_count || 0) > 0 ? "#fda4af" : "#cbd5e1"
+                };">${Number(rawProps.active_permit_alert_count || 0)} Permit Alert${
+                  Number(rawProps.active_permit_alert_count || 0) === 1 ? "" : "s"
+                } · ${Number(rawProps.active_plat_alert_count || 0)} Replat Filing${
+                  Number(rawProps.active_plat_alert_count || 0) === 1 ? "" : "s"
+                }</span>
+              </div>`
+            : ""
+        }
         ${topSubsHtml}
         <div class="inspector-cell full">
           <span class="cell-label">Cartographic &amp; Archival Data Source</span>
-          <span class="cell-value">${rawProps.source || "City of Houston &amp; HCAD GIS"}</span>
+          <span class="cell-value">${
+            rawProps.source ||
+            (overlayLayer === "nrhp_properties"
+              ? "National Park Service & Texas Historical Commission NRHP Atlas"
+              : overlayLayer === "potential_historic_districts"
+              ? "City of Houston Planning & Development Dept. (Nov. 2019 Historic Survey)"
+              : overlayLayer === "cultural_districts"
+              ? "City of Houston Mayor's Office of Cultural Affairs & Texas Commission on the Arts"
+              : "City of Houston & HCAD GIS")
+          }</span>
         </div>
       </div>
 
       <div class="inspector-actions">
         ${
-          overlayLayer === "lost_houston"
+          overlayLayer === "nrhp_properties"
+            ? `
+              ${
+                rawProps.nomination_pdf_url
+                  ? `<a
+                      href="${rawProps.nomination_pdf_url}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inspector-btn primary"
+                      style="background:linear-gradient(135deg,#6b21a8,#9333ea);border-color:#d8b4fe;color:#faf5ff;"
+                    >
+                      &#128196; Open Scanned NRHP Nomination (PDF) &#8599;
+                    </a>`
+                  : ""
+              }
+              ${
+                rawProps.thc_atlas_url
+                  ? `<a
+                      href="${rawProps.thc_atlas_url}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inspector-btn secondary"
+                    >
+                      &#127963; Open THC Historic Sites Atlas Record &#8599;
+                    </a>`
+                  : ""
+              }
+              <a
+                href="${lostStreetViewUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inspector-btn secondary"
+              >
+                &#128065; Present-Day Site on Street View &#8599;
+              </a>
+            `
+            : overlayLayer === "lost_houston"
             ? `
               ${
                 rawProps.loc_volume_id
@@ -6566,9 +6895,23 @@ class HoustonAtlasApp {
             `
             : isLinearOrPointOverlay
             ? ""
-            : `<button
+            : `
+              ${
+                overlayLayer === "cultural_districts" && rawProps.website
+                  ? `<a
+                      href="${rawProps.website}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inspector-btn primary"
+                      style="background:linear-gradient(135deg,#9d174d,#db2777);border-color:#f9a8d4;color:#fdf2f8;"
+                    >
+                      &#127912; Open Official Cultural District Website &#8599;
+                    </a>`
+                  : ""
+              }
+              <button
                 type="button"
-                class="inspector-btn primary"
+                class="inspector-btn ${overlayLayer === "cultural_districts" && rawProps.website ? "secondary" : "primary"}"
                 id="btn-explore-boundary-buildings"
                 data-filter-chip="${name.replace(/"/g, "&quot;")}"
                 data-filter-label="${badgeLabel}: ${name.replace(/"/g, "&quot;")}"
@@ -6818,6 +7161,533 @@ class HoustonAtlasApp {
     }
   }
 
+  _evaluatePropertyProtectionAndIncentives(
+    props,
+    {
+      hcadNum = "",
+      yr = 0,
+      geoCtx = {},
+      subPropsForDeed = null,
+      catalogEntryForDeed = null,
+      landmarkCode = "",
+      reportPdfUrl = "",
+    } = {}
+  ) {
+    const cleanDistStr = (val) => {
+      const s = String(val || "").trim();
+      if (
+        !s ||
+        s.toLowerCase() === "none" ||
+        s === "Outside City District" ||
+        s === "Outside Historic District"
+      ) {
+        return "";
+      }
+      return s;
+    };
+
+    const buildingId = String(props.building_id || props.id || "").trim();
+    const lmRec =
+      props._landmark_record ||
+      (this.mapController && typeof this.mapController.getLandmarkForBuilding === "function"
+        ? this.mapController.getLandmarkForBuilding({ hcadNum, buildingId })
+        : null) ||
+      null;
+    const nrhpRec =
+      props._nrhp_property_record ||
+      (this.mapController && typeof this.mapController.getNrhpPropertyForBuilding === "function"
+        ? this.mapController.getNrhpPropertyForBuilding({ hcadNum, buildingId })
+        : null) ||
+      null;
+
+    const cohHdName =
+      cleanDistStr(props.historic_district) ||
+      cleanDistStr(lmRec?.historic_district) ||
+      cleanDistStr(geoCtx.historic_district);
+    const heritageDistName = String(geoCtx.heritage_district || "").trim();
+    const nrhpDistricts = Array.isArray(geoCtx.nrhp_districts) ? geoCtx.nrhp_districts : [];
+    const primaryNrhpDistName = String(
+      props.nrhp_district || nrhpRec?.nrhp_district || nrhpDistricts[0]?.name || ""
+    ).trim();
+    const potentialDistricts = Array.isArray(geoCtx.potential_historic_districts)
+      ? geoCtx.potential_historic_districts
+      : [];
+    const culturalDistricts = Array.isArray(geoCtx.cultural_districts)
+      ? geoCtx.cultural_districts
+      : [];
+    const landUseProtections = Array.isArray(props._land_use_protections)
+      ? props._land_use_protections
+      : Array.isArray(geoCtx.land_use_protections)
+      ? geoCtx.land_use_protections
+      : [];
+
+    const hasDeedDocs = Boolean(
+      subPropsForDeed?.has_deed_docs ||
+        (catalogEntryForDeed &&
+          Array.isArray(catalogEntryForDeed.documents) &&
+          catalogEntryForDeed.documents.length > 0)
+    );
+    const deedDocCount = Number(
+      subPropsForDeed?.deed_doc_count || catalogEntryForDeed?.documents?.length || 0
+    );
+
+    const isPlm = Boolean(
+      props.protection_tier === "plm" ||
+        props.landmark_type === "Protected Landmark" ||
+        lmRec?.is_protected_landmark ||
+        lmRec?.protection_tier === "plm"
+    );
+    const isRegularLm = Boolean(
+      !isPlm &&
+        (props.landmark_type === "Landmark" ||
+          props.protection_tier === "lm_waiver" ||
+          (lmRec && !lmRec.is_protected_landmark))
+    );
+    const contribRaw = String(props.contributing || "").trim();
+    const isNonContributingInHd = Boolean(
+      cohHdName &&
+        (contribRaw === "Non-Contributing" || props.protection_tier === "coh_hd_noncontributing")
+    );
+    const isContributingInHd = Boolean(cohHdName && !isNonContributingInHd);
+
+    const hasIndividualNrhp = Boolean(
+      (nrhpRec && !nrhpRec.is_demolished_nrhp) || String(props.nrhp_refnum || "").trim()
+    );
+    const nrhpRefnum = String(nrhpRec?.refnum || props.nrhp_refnum || "").trim();
+    const nrhpResname = String(nrhpRec?.name || props.nrhp_resname || "").trim();
+    const nrhpListedDate = String(nrhpRec?.listed_date || "").trim();
+    const nrhpMultiname = String(nrhpRec?.multiname || "").trim();
+    const nrhpThcUrl = String(nrhpRec?.thc_atlas_url || props.nrhp_thc_url || "").trim();
+    const nrhpPdfUrl = String(nrhpRec?.nomination_pdf_url || props.nrhp_pdf_url || "").trim();
+    const isEligibleInNrhpDist = Boolean(
+      primaryNrhpDistName && !isNonContributingInHd && (yr === 0 || (yr >= 1836 && yr <= 1976))
+    );
+
+    const COH_TAX_BROCHURE_URL =
+      "https://www.houstontx.gov/planning/HistoricPres/docs_pdfs/hist-incentives-broch.pdf";
+    const COH_PLM_BROCHURE_URL =
+      "https://www.houstontx.gov/planning/HistoricPres/docs_pdfs/histpres_benefits_brochure.pdf";
+    const THC_TAX_CREDIT_URL =
+      "https://thc.texas.gov/preserve/projects-and-programs/preservation-tax-incentives";
+    const NPS_TAX_CREDIT_URL = "https://www.nps.gov/subjects/taxincentives/index.htm";
+
+    // Pillar 1: Demolition & Exterior Alteration Rule (COH Chapter 33)
+    let cardTier = "";
+    let demoPillClass = "tier-neutral";
+    let demoPillLabel = "No Municipal Demo Ban";
+    let demoStatus = "No City of Houston Demolition Restriction";
+    let demoCopy = "";
+    const demoLinks = [];
+
+    if (isPlm) {
+      cardTier = "tier-protected";
+      demoPillClass = "tier-plm";
+      demoPillLabel = "Protected Landmark (PLM)";
+      demoStatus = `Permanent Protected Landmark${landmarkCode ? ` (HPO #${landmarkCode})` : ""}`;
+      demoCopy =
+        `Designated as a City of Houston <strong>Protected Landmark (PLM)</strong> under Chapter 33${
+          cohHdName ? ` within <strong>${cohHdName}</strong>` : ""
+        }. Demolition, relocation, and exterior alterations require a Certificate of Appropriateness (COA) from the Houston Archaeological and Historical Commission (HAHC). The 90-day demolition waiver does <strong>not</strong> apply.`;
+      if (reportPdfUrl) {
+        demoLinks.push({
+          label: "Landmark Designation Report (PDF)",
+          url: reportPdfUrl,
+          cls: "",
+        });
+      }
+      demoLinks.push({
+        label: "COH Chapter 33 Benefits Guide (PDF)",
+        url: COH_PLM_BROCHURE_URL,
+        cls: "",
+      });
+    } else if (isContributingInHd) {
+      cardTier = "tier-protected";
+      demoPillClass = "tier-safe";
+      demoPillLabel = "COH Historic District COA";
+      demoStatus = `Protected in ${cohHdName} (COA Required)`;
+      demoCopy =
+        `${
+          isRegularLm
+            ? "Designated City of Houston Landmark and contributing structure"
+            : "Contributing historic structure"
+        } inside <strong>${cohHdName}</strong> (Chapter 33). Exterior alterations visible from a public right-of-way, additions, relocation, and demolition require HAHC Certificate of Appropriateness (COA) approval. The 90-day waiver rule does <strong>not</strong> apply inside a COH Historic District.`;
+      demoLinks.push({
+        label: "COH Historic District & COA Guide (PDF)",
+        url: COH_PLM_BROCHURE_URL,
+        cls: "",
+      });
+    } else if (isRegularLm) {
+      cardTier = "tier-waiver";
+      demoPillClass = "tier-warn";
+      demoPillLabel = "90-Day Waiver LM (Vulnerable)";
+      demoStatus = `Non-Protected COH Landmark${landmarkCode ? ` (HPO #${landmarkCode})` : ""} - 90-Day Waiver Applies`;
+      demoCopy =
+        "Designated as a regular City of Houston <strong>Landmark (LM)</strong> located <strong>outside</strong> a COH Historic District. Under Chapter 33, if HAHC denies a demolition or relocation COA, the owner can obtain a <strong>90-day waiver certificate</strong> allowing demolition unless the owner voluntarily upgrades the property to a permanent <strong>Protected Landmark (PLM)</strong>.";
+      demoLinks.push({
+        label: "Upgrade to Protected Landmark Guide (PDF)",
+        url: COH_PLM_BROCHURE_URL,
+        cls: "amber",
+      });
+      if (reportPdfUrl) {
+        demoLinks.push({
+          label: "Landmark Report (PDF)",
+          url: reportPdfUrl,
+          cls: "",
+        });
+      }
+    } else if (isNonContributingInHd) {
+      cardTier = "tier-protected";
+      demoPillClass = "tier-armor";
+      demoPillLabel = "In COH HD (Non-Contributing)";
+      demoStatus = `Non-Contributing Parcel in ${cohHdName}`;
+      demoCopy =
+        `Located inside <strong>${cohHdName}</strong> as a non-contributing structure. While demolition of a non-contributing building is not barred, any <strong>new construction, additions, setbacks, or massing changes</strong> on this lot require HAHC Certificate of Appropriateness (COA) review under district design guidelines.`;
+    } else {
+      const isHistoricPre1946 = yr >= 1836 && yr <= 1945;
+      if (isHistoricPre1946) {
+        cardTier = "tier-vulnerable";
+        demoPillClass = "tier-danger";
+        demoPillLabel = "No City Demo Ban";
+      }
+      if (hasIndividualNrhp || primaryNrhpDistName) {
+        const nrhpLabel = hasIndividualNrhp
+          ? `National Register property (${nrhpResname || `NRHP #${nrhpRefnum}`})`
+          : `<strong>${primaryNrhpDistName}</strong> (National Register Historic District)`;
+        demoCopy =
+          `Listed in the federal ${nrhpLabel}, which unlocks major historic rehabilitation tax credits, <strong>not</strong> a municipal demolition ban. Under Houston law, NRHP listing alone does not restrict remodeling or demolition funded with private capital unless the owner designates the site as a COH Protected Landmark (PLM).`;
+      } else if (potentialDistricts.length > 0) {
+        const pot = potentialDistricts[0];
+        demoCopy =
+          `Located within <strong>${pot.name}</strong> (identified in the Nov. 2019 COH Historic Preservation Survey). Surveyed status documents historic character for future National Register tax-credit nomination or owner-initiated Chapter 33 petitioning, and provides <strong>no active demolition restriction</strong>.`;
+      } else if (heritageDistName || culturalDistricts.length > 0) {
+        const areaName = heritageDistName || culturalDistricts[0].name;
+        demoCopy =
+          `Located within <strong>${areaName}</strong>. Community Heritage and State Cultural Arts Districts support public-realm investments and cultural grants without restricting private-parcel demolition. Property owners may apply for permanent COH Protected Landmark (PLM) protection.`;
+      } else if (isHistoricPre1946) {
+        demoCopy =
+          `Pre-1946 historic structure (Built ${yr}) outside City of Houston Chapter 33 protection. Standard demolition permits require no HAHC review. The property owner may apply for permanent <strong>Protected Landmark (PLM)</strong> status, or neighborhood owners may petition for a COH Historic District.`;
+      } else {
+        demoCopy =
+          "Outside City of Houston Chapter 33 Historic Districts and not designated as a municipal Landmark. Demolition and exterior alterations follow standard Houston Building Code permitting without HAHC design review.";
+      }
+      if (yr >= 1836 && yr <= 1976) {
+        demoLinks.push({
+          label: "COH Protected Landmark Guide (PDF)",
+          url: COH_PLM_BROCHURE_URL,
+          cls: "",
+        });
+      }
+    }
+
+    // Pillar 2: Lot-Split & Setback Armor (COH Chapter 42 & Deed Restrictions)
+    let minLotSqft = 0;
+    let minSetbackFt = 0;
+    let hasConservationDist = false;
+    const ordList = [];
+    for (const lp of landUseProtections) {
+      const pt = String(lp.protection_type || "").toLowerCase();
+      if (pt === "conservation") hasConservationDist = true;
+      if (Number(lp.min_lot_sqft) > minLotSqft) minLotSqft = Number(lp.min_lot_sqft);
+      if (Number(lp.min_bldg_line_ft) > minSetbackFt) minSetbackFt = Number(lp.min_bldg_line_ft);
+      if (lp.ordinance) ordList.push(`#${lp.ordinance}`);
+    }
+
+    let armorPillClass = "tier-neutral";
+    let armorPillLabel = "No Ch. 42 SMLS / SMBL";
+    let armorStatus = "Standard Chapter 42 Subdivision Rules";
+    let armorCopy = "";
+
+    if (landUseProtections.length > 0 || hasDeedDocs) {
+      armorPillClass = "tier-armor";
+      const pillBits = [];
+      if (hasConservationDist) pillBits.push("Conservation Dist");
+      if (minLotSqft > 0) pillBits.push(`Min Lot ${minLotSqft.toLocaleString()} sf`);
+      else if (landUseProtections.some((x) => x.protection_type === "smls")) pillBits.push("Ch. 42 SMLS");
+      if (minSetbackFt > 0) pillBits.push(`${minSetbackFt}ft Setback`);
+      else if (landUseProtections.some((x) => x.protection_type === "smbl")) pillBits.push("Ch. 42 SMBL");
+      if (hasDeedDocs) pillBits.push(`Deeds (${deedDocCount} PDF)`);
+      armorPillLabel = pillBits.slice(0, 2).join(" + ") || "Ch. 42 / Deed Armor";
+
+      const statusBits = [];
+      if (minLotSqft > 0) statusBits.push(`SMLS Min Lot ${minLotSqft.toLocaleString()} sq ft`);
+      if (minSetbackFt > 0) statusBits.push(`SMBL Min Setback ${minSetbackFt} ft`);
+      if (hasConservationDist) statusBits.push("COH Conservation District");
+      if (hasDeedDocs) statusBits.push(`${deedDocCount} Recorded Deed Restriction PDF${deedDocCount === 1 ? "" : "s"}`);
+      armorStatus = statusBits.join(" · ") || "Active Chapter 42 Block Ordinance";
+
+      armorCopy =
+        `${
+          landUseProtections.length > 0
+            ? `Protected against high-density townhouse lot-splitting or setback encroachment by City of Houston Chapter 42 ordinance${
+                ordList.length ? ` (${ordList.slice(0, 3).join(", ")})` : ""
+              }. `
+            : ""
+        }${
+          hasDeedDocs
+            ? "County Clerk subdivision deed restriction PDFs are indexed on the HCAD & Parcel tab."
+            : "Chapter 42 SMLS/SMBL ordinances preserve neighborhood lot scale and front-yard setbacks for 40 years even where no Chapter 33 demolition ban applies."
+        }`;
+    } else {
+      armorCopy =
+        "No active Chapter 42 Special Minimum Lot Size (SMLS), Special Minimum Building Line (SMBL), or Conservation District ordinance detected on this block. Private subdivision deed covenants (if unindexed) may still govern use and setbacks; block homeowners can petition COH Planning for SMLS/SMBL protection.";
+    }
+
+    // Pillar 3: Historic Tax Exemptions & Rehabilitation Tax Credits
+    const eligibleCohTaxExemption = Boolean(isPlm || isRegularLm || isContributingInHd);
+    const eligibleNrhpTaxCredits = Boolean(hasIndividualNrhp || isEligibleInNrhpDist);
+    const inPotentialNrhpSurvey = Boolean(
+      !eligibleNrhpTaxCredits &&
+        potentialDistricts.length > 0 &&
+        (yr === 0 || (yr >= 1836 && yr <= 1976))
+    );
+
+    let creditPillClass = "tier-neutral";
+    let creditPillLabel = "No Active Historic Credits";
+    let creditStatus = "Not Currently Designated for Historic Tax Incentives";
+    let creditCopy = "";
+    const creditLinks = [];
+
+    if (eligibleCohTaxExemption && eligibleNrhpTaxCredits) {
+      creditPillClass = "tier-credit";
+      creditPillLabel = "COH 15-Yr Exemp + 45% Credits";
+      creditStatus = "Stackable: COH 15-Yr Property Tax Exemption + Up to 45% Fed/TX Credits";
+      creditCopy =
+        "Qualifies for both the <strong>City of Houston 15-Year Historic Site Tax Exemption</strong> (on approved rehabilitation equal to at least 25% of base building value) <strong>and</strong> up to <strong>45% in combined historic rehabilitation tax credits</strong> (20% Federal IRS + 25% Texas Historic Preservation Tax Credit for qualifying commercial, rental, or nonprofit rehabilitations).";
+    } else if (eligibleCohTaxExemption) {
+      creditPillClass = "tier-credit";
+      creditPillLabel = "COH 15-Yr Tax Exemption";
+      creditStatus = "Eligible for COH 15-Year Historic Site Tax Exemption";
+      creditCopy =
+        `Qualifying historic rehabilitation (investing at least 25% of HCAD base improvement value with HAHC approval) earns up to a <strong>15-year City of Houston ad valorem property tax exemption</strong> under Chapter 44${
+          isPlm ? ", plus historic building/plat permit fee waivers" : ""
+        }.`;
+    } else if (eligibleNrhpTaxCredits) {
+      creditPillClass = "tier-credit";
+      creditPillLabel = "Up to 45% Fed + TX Credits";
+      creditStatus = `NRHP Tax-Credit Eligible (${
+        hasIndividualNrhp ? `NRHP #${nrhpRefnum || "Listed"}` : primaryNrhpDistName
+      })`;
+      creditCopy =
+        "Qualifying rehabilitation of income-producing (commercial, residential rental, office, hospitality) or nonprofit buildings meeting Secretary of the Interior Standards is eligible for the <strong>25% Texas Historic Preservation Tax Credit</strong> (min. $5,000 QRE) and <strong>20% Federal Historic Tax Credit</strong> (45% combined).";
+    } else if (inPotentialNrhpSurvey) {
+      creditPillClass = "tier-warn";
+      creditPillLabel = "Surveyed NRHP Candidate";
+      creditStatus = `2019 Surveyed Candidate (${potentialDistricts[0].name})`;
+      creditCopy =
+        "Identified in the 2019 COH Historic Survey as potentially eligible for the National Register of Historic Places. Completing an individual or district NRHP Part 1 Determination of Eligibility with the Texas Historical Commission can unlock the <strong>25% Texas + 20% Federal</strong> historic rehabilitation tax credits.";
+    } else {
+      creditCopy =
+        yr >= 1836 && yr <= 1976
+          ? `Historic-age structure (Built ${yr}) not yet listed on the National Register or designated under COH Chapter 33. Designating as a COH Protected Landmark unlocks the 15-year City Historic Site Tax Exemption; NRHP listing unlocks 20% Federal + 25% Texas commercial/nonprofit tax credits.`
+          : "Post-1976 or undesignated parcel outside current municipal and National Register historic tax-incentive programs.";
+    }
+
+    if (eligibleCohTaxExemption || (yr >= 1836 && yr <= 1976)) {
+      creditLinks.push({
+        label: "COH 15-Yr Tax Exemption Brochure (PDF)",
+        url: COH_TAX_BROCHURE_URL,
+        cls: "",
+      });
+    }
+    if (eligibleNrhpTaxCredits || inPotentialNrhpSurvey) {
+      creditLinks.push({
+        label: "Texas 25% Tax Credit (THC)",
+        url: THC_TAX_CREDIT_URL,
+        cls: "purple",
+      });
+      creditLinks.push({
+        label: "Federal 20% Credit (NPS)",
+        url: NPS_TAX_CREDIT_URL,
+        cls: "purple",
+      });
+    }
+    if (nrhpPdfUrl) {
+      creditLinks.push({
+        label: "Scanned NRHP Nomination (PDF)",
+        url: nrhpPdfUrl,
+        cls: "purple",
+      });
+    }
+    if (nrhpThcUrl) {
+      creditLinks.push({
+        label: "THC Historic Sites Atlas",
+        url: nrhpThcUrl,
+        cls: "purple",
+      });
+    }
+
+    return {
+      cardTier,
+      demoPillClass,
+      demoPillLabel,
+      demoStatus,
+      demoCopy,
+      demoLinks,
+      armorPillClass,
+      armorPillLabel,
+      armorStatus,
+      armorCopy,
+      hasArmorDetailsOnHcadTab: Boolean(landUseProtections.length > 0 || hasDeedDocs),
+      creditPillClass,
+      creditPillLabel,
+      creditStatus,
+      creditCopy,
+      creditLinks,
+      cohHdName,
+      heritageDistName,
+      primaryNrhpDistName,
+      potentialDistricts,
+      culturalDistricts,
+      hasIndividualNrhp,
+      nrhpRefnum,
+      nrhpResname,
+      nrhpListedDate,
+      nrhpMultiname,
+      nrhpThcUrl,
+      nrhpPdfUrl,
+      isEligibleInNrhpDist,
+    };
+  }
+
+  _buildProtectionScorecardHtml(ev) {
+    if (!ev) return "";
+    const isExpanded = Boolean(this._protectionScorecardExpanded);
+    const renderLinks = (links, extraHtml = "") => {
+      if ((!links || !links.length) && !extraHtml) return "";
+      const pills = (links || [])
+        .map(
+          (l) =>
+            `<a href="${l.url}" target="_blank" rel="noopener noreferrer" class="scorecard-link-pill ${
+              l.cls || ""
+            }">${l.label} &#8599;</a>`
+        )
+        .join("");
+      return `<div class="scorecard-links-row">${pills}${extraHtml}</div>`;
+    };
+
+    const hcadJumpBtnHtml = ev.hasArmorDetailsOnHcadTab
+      ? `<button type="button" class="scorecard-link-pill" data-switch-inspector-tab="hcad" style="cursor:pointer;">Inspect Deeds &amp; Ch. 42 Ordinances &rarr;</button>`
+      : "";
+
+    return `
+      <div class="protection-scorecard-card ${ev.cardTier || ""} ${
+      isExpanded ? "is-expanded" : ""
+    }" id="inspector-protection-scorecard">
+        <button
+          type="button"
+          class="protection-scorecard-strip"
+          id="btn-toggle-protection-scorecard"
+          aria-expanded="${isExpanded ? "true" : "false"}"
+          title="Click to expand plain-English Houston Demolition, Lot-Split & Historic Tax-Credit rules for this parcel"
+        >
+          <div class="protection-scorecard-toprow">
+            <span class="protection-scorecard-kicker">&#9878; Legal Protection &amp; Tax-Credit Scorecard</span>
+            <span class="protection-scorecard-toggle-hint" id="protection-scorecard-toggle-hint">${
+              isExpanded ? "Hide Rules &#9652;" : "Plain-English Rules &#9662;"
+            }</span>
+          </div>
+          <div class="protection-scorecard-pills">
+            <span class="scorecard-pill ${ev.demoPillClass}">${ev.demoPillLabel}</span>
+            <span class="scorecard-pill ${ev.armorPillClass}">${ev.armorPillLabel}</span>
+            <span class="scorecard-pill ${ev.creditPillClass}">${ev.creditPillLabel}</span>
+          </div>
+        </button>
+        <div class="protection-scorecard-details">
+          <div class="scorecard-pillar">
+            <div class="scorecard-pillar-header">
+              <span class="scorecard-pillar-kicker">1. Demolition &amp; Exterior Rule (COH Ch. 33)</span>
+              <span class="scorecard-pillar-status">${ev.demoStatus}</span>
+            </div>
+            <p class="scorecard-pillar-copy">${ev.demoCopy}</p>
+            ${renderLinks(ev.demoLinks)}
+          </div>
+          <div class="scorecard-pillar">
+            <div class="scorecard-pillar-header">
+              <span class="scorecard-pillar-kicker">2. Lot-Split &amp; Setback Armor (Ch. 42 &amp; Deeds)</span>
+              <span class="scorecard-pillar-status">${ev.armorStatus}</span>
+            </div>
+            <p class="scorecard-pillar-copy">${ev.armorCopy}</p>
+            ${renderLinks([], hcadJumpBtnHtml)}
+          </div>
+          <div class="scorecard-pillar">
+            <div class="scorecard-pillar-header">
+              <span class="scorecard-pillar-kicker">3. Historic Tax Exemptions &amp; Rehab Credits</span>
+              <span class="scorecard-pillar-status">${ev.creditStatus}</span>
+            </div>
+            <p class="scorecard-pillar-copy">${ev.creditCopy}</p>
+            ${renderLinks(ev.creditLinks)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _buildNrhpHistoryCardHtml(ev) {
+    if (!ev || (!ev.hasIndividualNrhp && !ev.primaryNrhpDistName)) return "";
+    const heading = ev.hasIndividualNrhp
+      ? "&#127963; National Register of Historic Places (NRHP)"
+      : "&#127963; National Register Historic District (NRHP)";
+    const codeBadge = ev.nrhpRefnum
+      ? `NRHP #${ev.nrhpRefnum}`
+      : ev.isEligibleInNrhpDist
+      ? "45% Credit District"
+      : "NRHP District";
+    const summaryText = ev.hasIndividualNrhp
+      ? `Individually listed on the National Register of Historic Places as <strong>${
+          ev.nrhpResname || "Historic Resource"
+        }</strong>${ev.nrhpListedDate ? ` (Listed ${ev.nrhpListedDate})` : ""}${
+          ev.nrhpMultiname ? ` under <em>${ev.nrhpMultiname}</em>` : ""
+        }${
+          ev.primaryNrhpDistName ? `, and located within <strong>${ev.primaryNrhpDistName}</strong>` : ""
+        }. Qualifying income-producing or nonprofit rehabilitations are eligible for up to 45% in combined Federal (20%) and Texas (25%) historic preservation tax credits.`
+      : `Located within the federal <strong>${ev.primaryNrhpDistName}</strong> National Register Historic District. Contributing historic structures rehabilitated for commercial, residential rental, or nonprofit use qualify for the 20% Federal and 25% Texas Historic Preservation Tax Credits.`;
+
+    return `
+      <div class="coh-landmark-report-card" style="background:linear-gradient(135deg,rgba(168,85,247,0.14),rgba(15,23,42,0.68));border-color:rgba(192,132,252,0.42);">
+        <div class="coh-landmark-report-header">
+          <span class="coh-landmark-report-kicker" style="color:#e9d5ff;">${heading}</span>
+          <span class="coh-landmark-code-badge" style="background:rgba(168,85,247,0.24);border-color:rgba(192,132,252,0.52);color:#faf5ff;">${codeBadge}</span>
+        </div>
+        <div class="coh-landmark-report-summary">${summaryText}</div>
+        <div class="coh-landmark-report-actions">
+          ${
+            ev.nrhpPdfUrl
+              ? `<a
+                  href="${ev.nrhpPdfUrl}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="coh-landmark-pdf-btn"
+                  style="background:rgba(168,85,247,0.25);border-color:rgba(192,132,252,0.6);color:#faf5ff;"
+                >
+                  &#128196; Open Scanned NRHP Nomination Form (PDF) &#8599;
+                </a>`
+              : ""
+          }
+          ${
+            ev.nrhpThcUrl
+              ? `<a
+                  href="${ev.nrhpThcUrl}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="coh-landmark-pdf-btn secondary"
+                >
+                  Open Texas Historical Commission (THC) Atlas Record &#8599;
+                </a>`
+              : ""
+          }
+          <a
+            href="https://thc.texas.gov/preserve/projects-and-programs/preservation-tax-incentives"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="coh-landmark-pdf-btn secondary"
+          >
+            25% Texas + 20% Federal Historic Tax Credit Guide (THC) &#8599;
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
   renderInspectorDrawer(rawProps) {
     const drawer = document.getElementById("inspector-drawer");
     const content = document.getElementById("inspector-body");
@@ -6838,6 +7708,9 @@ class HoustonAtlasApp {
         "historic_districts",
         "heritage_districts",
         "nrhp_districts",
+        "potential_historic_districts",
+        "cultural_districts",
+        "nrhp_properties",
         "annexations",
         "historical_waterways",
         "historical_railroads",
@@ -7369,17 +8242,16 @@ class HoustonAtlasApp {
     )}`;
     const streetViewUrl = buildStreetViewUrl(effLat, effLng);
 
-    // Runtime fallback enrichment from spatial index for countywide shard buildings & land-use context
+    // Runtime fallback enrichment from spatial index for countywide shard buildings & preservation overlays
+    let fullGeoCtx = props._geo_context || {};
     if (
-      (!props.neighborhood ||
-        !props._platted_subdivision_props ||
-        !Array.isArray(props._land_use_protections)) &&
       Number.isFinite(effLng) &&
       Number.isFinite(effLat) &&
       this.mapController &&
       typeof this.mapController.resolveGeographicContextAtPoint === "function"
     ) {
       const geoCtx = this.mapController.resolveGeographicContextAtPoint(effLng, effLat);
+      fullGeoCtx = geoCtx || {};
       if (geoCtx.neighborhood && !props.neighborhood) props.neighborhood = geoCtx.neighborhood;
       if (
         Array.isArray(geoCtx.neighborhood_aliases) &&
@@ -7392,6 +8264,9 @@ class HoustonAtlasApp {
         props.super_neighborhood = geoCtx.super_neighborhood;
       }
       if (geoCtx.historic_ward && !props.historic_ward) props.historic_ward = geoCtx.historic_ward;
+      if (geoCtx.historic_district && (!props.historic_district || props.historic_district === "none")) {
+        props.historic_district = geoCtx.historic_district;
+      }
       if (geoCtx.platted_subdivision && !props.subdivision) {
         props.subdivision = geoCtx.platted_subdivision;
       }
@@ -7447,11 +8322,77 @@ class HoustonAtlasApp {
       isBoundary: false,
     });
 
-    const distVal = String(props.historic_district || "").trim();
+    const distVal = String(props.historic_district || "")
+      .trim()
+      .replace(/^none$/i, "");
     const isRealDistrict =
       distVal &&
       distVal !== "Outside City District" &&
       distVal !== "Outside Historic District";
+
+    const protectionEval = this._evaluatePropertyProtectionAndIncentives(props, {
+      hcadNum,
+      yr,
+      geoCtx: fullGeoCtx,
+      subPropsForDeed,
+      catalogEntryForDeed,
+      landmarkCode,
+      reportPdfUrl,
+    });
+    const protectionScorecardHtml = this._buildProtectionScorecardHtml(protectionEval);
+    const nrhpHistoryCardHtml = this._buildNrhpHistoryCardHtml(protectionEval);
+
+    const extraPreservationOverlays = [];
+    if (protectionEval.primaryNrhpDistName) {
+      extraPreservationOverlays.push({
+        badge: "NRHP Dist",
+        name: protectionEval.primaryNrhpDistName,
+        layer: "nrhp_districts",
+      });
+    }
+    for (const pot of (protectionEval.potentialDistricts || []).slice(0, 1)) {
+      if (pot.name && !pot.already_designated_coh_hd) {
+        extraPreservationOverlays.push({
+          badge: "2019 Survey",
+          name: pot.name,
+          layer: "potential_historic_districts",
+        });
+      }
+    }
+    if (protectionEval.heritageDistName) {
+      extraPreservationOverlays.push({
+        badge: "Heritage Dist",
+        name: protectionEval.heritageDistName,
+        layer: "heritage_districts",
+      });
+    }
+    for (const cd of (protectionEval.culturalDistricts || []).slice(0, 1)) {
+      if (cd.name) {
+        extraPreservationOverlays.push({
+          badge: "Cultural Dist",
+          name: cd.name,
+          layer: "cultural_districts",
+        });
+      }
+    }
+    const extraPreservationOverlaysRowHtml =
+      extraPreservationOverlays.length > 0
+        ? `<div class="inspector-cell full">
+            <span class="cell-label">Federal, Surveyed &amp; Cultural Districts</span>
+            <span class="cell-value inspector-chip-group">
+              ${extraPreservationOverlays
+                .map((ov) => {
+                  const escName = String(ov.name).replace(/"/g, "&quot;");
+                  return `<span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                    <span class="inspector-chip-note" style="font-weight:700;">${ov.badge}:</span>
+                    <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${escName}" data-boundary-layer="${ov.layer}" title="Outline ${escName} on the map">${ov.name}</button>
+                    <button type="button" class="inline-isolate-btn" data-isolate-boundary="${escName}" data-boundary-layer="${ov.layer}" title="Isolate ${escName} and its structures on the map">&#127919; Isolate</button>
+                  </span>`;
+                })
+                .join('<span class="inspector-chip-sep" aria-hidden="true">·</span>')}
+            </span>
+          </div>`
+        : "";
     const styleInfo = this._resolveStyleAndClassInfo(props);
     const styleChipsHtml = (styleInfo.chips || [])
       .map(
@@ -7655,6 +8596,7 @@ class HoustonAtlasApp {
     const historyItemCount = [
       Boolean(props.is_curated_override),
       Boolean(reportPdfUrl || landmarkCode),
+      Boolean(nrhpHistoryCardHtml),
       goodBrickAwards.length > 0,
       Boolean(histContractObj || histBuilderVal || histCostVal || histPermitVal || wasRelocatedFlag),
       lostHoustonAtSite.length > 0,
@@ -7700,6 +8642,7 @@ class HoustonAtlasApp {
     const emptyHistoryFallbackHtml =
       !verifiedBannerHtml &&
       !landmarkReportHtml &&
+      !nrhpHistoryCardHtml &&
       !goodBrickHtml &&
       !histContractHtml &&
       !lostHoustonSiteCardHtml
@@ -7820,8 +8763,10 @@ class HoustonAtlasApp {
           >
             <div class="inspector-wide-pane-header">
               <span>&#127968; Overview &amp; Architecture</span>
-              <span>Photos &amp; Key Facts</span>
+              <span>Protection, Photos &amp; Facts</span>
             </div>
+
+            ${protectionScorecardHtml}
 
             <div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${hcadNum}">
               <div class="inspector-photo-header">
@@ -7896,6 +8841,7 @@ class HoustonAtlasApp {
                   }
                 </span>
               </div>
+              ${extraPreservationOverlaysRowHtml}
               <div class="inspector-cell">
                 <span class="cell-label">Building Floor Area</span>
                 <span class="cell-value mono" id="inspector-cell-bld-sqft">${bldSqft}</span>
@@ -7973,6 +8919,7 @@ class HoustonAtlasApp {
             </div>
             ${verifiedBannerHtml}
             ${landmarkReportHtml}
+            ${nrhpHistoryCardHtml}
             ${goodBrickHtml}
             ${histContractHtml}
             ${lostHoustonSiteCardHtml}
@@ -8192,6 +9139,31 @@ class HoustonAtlasApp {
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, props);
+
+    const btnToggleScorecard = content.querySelector("#btn-toggle-protection-scorecard");
+    const scorecardEl = content.querySelector("#inspector-protection-scorecard");
+    const scorecardHintEl = content.querySelector("#protection-scorecard-toggle-hint");
+    if (btnToggleScorecard && scorecardEl) {
+      btnToggleScorecard.addEventListener("click", (e) => {
+        if (
+          drawer.classList.contains("wide-mode") &&
+          typeof window !== "undefined" &&
+          window.innerWidth > 900
+        ) {
+          return;
+        }
+        e.preventDefault();
+        const nextExpanded = !scorecardEl.classList.contains("is-expanded");
+        this._protectionScorecardExpanded = nextExpanded;
+        scorecardEl.classList.toggle("is-expanded", nextExpanded);
+        btnToggleScorecard.setAttribute("aria-expanded", nextExpanded ? "true" : "false");
+        if (scorecardHintEl) {
+          scorecardHintEl.innerHTML = nextExpanded
+            ? "Hide Rules &#9652;"
+            : "Plain-English Rules &#9662;";
+        }
+      });
+    }
 
     content.querySelectorAll("[data-open-permit-watchlist]").forEach((pwBtn) => {
       pwBtn.addEventListener("click", (e) => {
@@ -9599,11 +10571,18 @@ class HoustonAtlasApp {
         none: "Footprints: Buildings OFF",
       };
       const overlayLabels = {
+        permitWatch: "Active Permit Watch",
+        platWatch: "Plat & Replat Monitor",
         goodBrickAwards: "★ Good Brick Awards",
         landmarks: "COH Landmarks",
-        historicDistricts: "Historic Districts",
-        heritageDistricts: "Freedmen's Town",
-        nrhpDistricts: "NRHP Districts",
+        potentialHistoricDistricts: "Potential Historic Districts (60)",
+        lostHouston: "Lost Houston (110)",
+        relocatedStructures: "Relocated Structures",
+        historicDistricts: "COH Historic Districts (23)",
+        heritageDistricts: "Freedmen's Town Heritage Dist",
+        nrhpDistricts: "NRHP Districts (12)",
+        nrhpProperties: "NRHP Individual Properties (238)",
+        culturalDistricts: "Cultural Arts Districts (7)",
         neighborhoods: "Neighborhoods",
         plattedSubdivisions: "Platted Subdivisions & Deeds",
         landUseProtections: "Ch. 42 Lot & Setback Protections",
@@ -9611,7 +10590,9 @@ class HoustonAtlasApp {
         historicWards: "Historic Wards",
         thcMarkers: "THC Markers",
         annexations: "Annexation History",
-        historicMap: "Historic Topo Map",
+        historicalWaterways: "Historical Bayous & Gullies",
+        historicalRailroads: "Historical Railroads & Streetcars",
+        historicMap: "Historic Sanborn / USGS Map",
       };
 
       const pills = [
@@ -9631,6 +10612,18 @@ class HoustonAtlasApp {
         for (const lbl of activeOverlays) {
           pills.push(`<span class="share-pill-tag green">${lbl}</span>`);
         }
+      }
+      if (
+        state.layers?.landmarks &&
+        (state.landmarkFilter === "protected" || state.landmarkFilter === "waiver_lm")
+      ) {
+        pills.push(
+          `<span class="share-pill-tag accent">${
+            state.landmarkFilter === "protected"
+              ? "Landmarks: Protected (286)"
+              : "Landmarks: 90-Day Waiver (223)"
+          }</span>`
+        );
       }
 
       if (state.minYear > 1836 || state.maxYear < 2026 || state.selectedDecade !== "all") {

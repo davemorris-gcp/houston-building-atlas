@@ -27,16 +27,20 @@ export const DEFAULT_FILTER_STATE = {
   historicalSnapshotMode: false, // when true, hides structures not yet built or already demolished at maxYear
   wardEra: 1903, // 1839 | 1866 | 1896 | 1903 (1903-1905 Final Aldermanic Charter)
   showAnnexationSpokes: true, // include 1963 10-ft highway ETJ spokes & 2000s-2010s MUD SPA commercial strips
+  landmarkFilter: "all", // 'all' | 'protected' (286 PLM + LM-in-HD) | 'waiver_lm' (223 90-day waiver LMs)
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
   layers: {
     permitWatch: true,
     platWatch: false,
+    potentialHistoricDistricts: false,
     goodBrickAwards: true,
     landmarks: true,
     historicDistricts: true,
     heritageDistricts: true,
     nrhpDistricts: false,
+    nrhpProperties: false,
     thcMarkers: false,
+    culturalDistricts: false,
     neighborhoods: false,
     plattedSubdivisions: false,
     landUseProtections: false,
@@ -258,6 +262,30 @@ export function buildAnnexationFilterExpression(state) {
   return decClause;
 }
 
+/**
+ * Compile a MapLibre filter expression for the COH Landmarks layer based on `landmarkFilter`
+ * ('all' | 'protected' | 'waiver_lm') and optional isolation ID list.
+ */
+export function buildLandmarksFilterExpression(state, isoIds = null) {
+  const mode = String(state?.landmarkFilter || "all");
+  const clauses = [];
+  if (mode === "protected") {
+    clauses.push([
+      "in",
+      ["coalesce", ["get", "protection_tier"], ""],
+      ["literal", ["plm", "lm_in_hd"]],
+    ]);
+  } else if (mode === "waiver_lm") {
+    clauses.push(["==", ["coalesce", ["get", "protection_tier"], ""], "lm_waiver_vulnerable"]);
+  }
+  if (Array.isArray(isoIds)) {
+    clauses.push(["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", isoIds]]);
+  }
+  if (!clauses.length) return null;
+  if (clauses.length === 1) return clauses[0];
+  return ["all", ...clauses];
+}
+
 function layersMatchDefault(layers) {
   if (!layers) return true;
   const def = DEFAULT_FILTER_STATE.layers;
@@ -267,12 +295,15 @@ function layersMatchDefault(layers) {
 const LAYER_KEY_TO_SHORT = {
   permitWatch: "permit_watch",
   platWatch: "plat_watch",
+  potentialHistoricDistricts: "potential_districts",
   goodBrickAwards: "good_brick",
   landmarks: "landmarks",
   historicDistricts: "historic_districts",
   heritageDistricts: "heritage_districts",
   nrhpDistricts: "nrhp_districts",
+  nrhpProperties: "nrhp_properties",
   thcMarkers: "thc_markers",
+  culturalDistricts: "cultural_districts",
   neighborhoods: "neighborhoods",
   plattedSubdivisions: "platted_subdivisions",
   landUseProtections: "land_use_protections",
@@ -294,8 +325,13 @@ const SHORT_TO_LAYER_KEY = {
   endangered: "permitWatch",
   platwatch: "platWatch",
   plat_watch: "platWatch",
-  plats: "platWatch",
   planning_commission: "platWatch",
+  potentialhistoricdistricts: "potentialHistoricDistricts",
+  potential_historic_districts: "potentialHistoricDistricts",
+  potential_districts: "potentialHistoricDistricts",
+  potential_hd: "potentialHistoricDistricts",
+  phd: "potentialHistoricDistricts",
+  surveyed_districts: "potentialHistoricDistricts",
   goodbrickawards: "goodBrickAwards",
   good_brick_awards: "goodBrickAwards",
   good_brick: "goodBrickAwards",
@@ -315,10 +351,19 @@ const SHORT_TO_LAYER_KEY = {
   nrhpdistricts: "nrhpDistricts",
   nrhp_districts: "nrhpDistricts",
   nrhp: "nrhpDistricts",
+  nrhpproperties: "nrhpProperties",
+  nrhp_properties: "nrhpProperties",
+  nrhp_listings: "nrhpProperties",
+  nrhp_sites: "nrhpProperties",
+  nrhp_pts: "nrhpProperties",
   thcmarkers: "thcMarkers",
   thc_markers: "thcMarkers",
   thc: "thcMarkers",
   markers: "thcMarkers",
+  culturaldistricts: "culturalDistricts",
+  cultural_districts: "culturalDistricts",
+  cultural: "culturalDistricts",
+  arts_districts: "culturalDistricts",
   neighborhoods: "neighborhoods",
   neighborhood: "neighborhoods",
   nbhd: "neighborhoods",
@@ -616,6 +661,13 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   if (state.layers?.historicWards && Number(state.wardEra) && Number(state.wardEra) !== 1903) {
     params.set("wardEra", String(Number(state.wardEra)));
   }
+  if (
+    state.layers?.landmarks &&
+    state.landmarkFilter &&
+    state.landmarkFilter !== "all"
+  ) {
+    params.set("lmFilter", String(state.landmarkFilter));
+  }
 
   if (state.isolatedBoundary && (state.isolatedBoundary.id || state.isolatedBoundary.name)) {
     const isoLayer = state.isolatedBoundary.layerKey || "neighborhoods";
@@ -824,6 +876,18 @@ export function parseHashToState(hashString = "", searchString = "") {
     if (HISTORIC_WARD_ERAS.includes(parsedEra)) {
       patch.wardEra = parsedEra;
     }
+  }
+  const rawLmFilter = (
+    mergedParams.get("lmFilter") ||
+    mergedParams.get("landmarkFilter") ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  if (rawLmFilter === "protected" || rawLmFilter === "waiver_lm" || rawLmFilter === "all") {
+    patch.landmarkFilter = rawLmFilter;
+  } else if (rawLmFilter === "vulnerable" || rawLmFilter === "waiver") {
+    patch.landmarkFilter = "waiver_lm";
   }
 
   // Isolated Boundary (`isolate` & `isoMode`)
