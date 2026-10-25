@@ -1,0 +1,14 @@
+{
+  "name": "houston-building-atlas",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Preservation Houston | The Houston Building Atlas v2",
+  "scripts": {
+    "test:archetypes": "node scripts/build_test_archetypes.mjs",
+    "test:unit": "node tests/unit/run_all.mjs",
+    "test:e2e": "uv run --directory pipeline pytest ../tests/e2e -v",
+    "test:links": "node scripts/check_external_links.mjs",
+    "test": "node tests/unit/run_all.mjs && uv run --directory pipeline pytest ../tests/e2e -v"
+  }
+}

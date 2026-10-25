@@ -88,4 +88,18 @@ All 26 data processing scripts live under `pipeline/atlas_pipeline/` and are man
 
 ---
 
+## 5. Automated 4-Layer Verification & External Archive Link Health Monitoring
+
+Because the Houston Building Atlas links across `55` municipal, county, state, university, and archival portals (City of Houston HPO & HAHC, HCAD, Harris County Clerk, Texas Historical Commission, National Park Service, Houston Public Library ContentDM, Rice University Woodson Research Center, Library of Congress, and UT Austin Perry-Castaneda Library) while rendering `1,507,553` footprints across `22` overlay layers, every deployment and external archive dependency is verified systematically:
+
+1. **Live External Archive Link Health Report ([GitHub Issue #1](https://github.com/davemorris-gcp/houston-building-atlas/issues/1)):**
+   - Canonical status page: **[https://github.com/davemorris-gcp/houston-building-atlas/issues/1](https://github.com/davemorris-gcp/houston-building-atlas/issues/1)** (also accessible in 1 click from the Preservation Houston Moderation Google Sheet on **`Admin_Hub_&_Quick_Filter` Cell `H14`** and **`Instructions_&_Apps_Script` Row `21`**).
+   - Every Monday at `13:00 UTC` (`8:00 AM Central`) and via on-demand `workflow_dispatch`, `.github/workflows/external-link-health.yml` boots the full Playwright Headless Chromium suite across all `45` stratified property archetypes to harvest every dynamically rendered `<a href="http...">` external link, merges static HTML/JSON catalog links (`776` unique URLs), checks each link with polite per-host rate limiting and soft-404 detection (`Maintenance.aspx`, `"Page Not Found"` HTML titles), and updates [GitHub Issue #1](https://github.com/davemorris-gcp/houston-building-atlas/issues/1) in place. If any municipal or archive URL moves or breaks, the workflow automatically reopens Issue `#1` and posts an alert comment citing the exact affected UI component or JSON dataset.
+2. **Pre-Deploy Stratified CI Gate (`.github/workflows/deploy-pages.yml`):**
+   - Blocks GitHub Pages deployment unless both **Layer 1** (`node tests/unit/run_all.mjs`: schema/foreign-key integrity, WGS84 bounds, 504 mirrored UT PCL Sanborn WebP plates, 65 local deed PDFs, GitHub Pages `< 95 MB` per-file / `< 980 MB` total bundle budgets, `filterStore.js` URL state round-trips, portfolio deduplication, and `app/js/urlValidators.js` retired-URL rejection) and **Layer 2** (`uv run --directory pipeline pytest ../tests/e2e -v`: `HTTP 206 Partial Content` PMTiles range check, zero `pageerror` / `console.error` / local `>= 400` responses, global modals, Guided Chapters `1..6`, Architect/Style Portfolios, `plat-monitor.html`, and all **45 Stratified Property & Overlay Archetypes** across `15` equivalence classes `c01..c15`) pass 100%.
+3. **Remediating a Moved External Archive URL:**
+   - Update the URL template in `app/js/` or catalog entry in `app/public/data/`, add the retired path regex to `KNOWN_DEAD_URL_PATTERNS` in `app/js/urlValidators.js` so it can never regress in future commits, run `node tests/unit/run_all.mjs && node scripts/check_external_links.mjs`, and push to `main` (which automatically re-runs `.github/workflows/external-link-health.yml` and refreshes [GitHub Issue #1](https://github.com/davemorris-gcp/houston-building-atlas/issues/1)).
+
+---
+
 [← Chapter 7: Waterways, Railroads, Permits & Contractors](07-waterways-railroads-permits-and-contractors.md) | [Back to Master README](../README.md)

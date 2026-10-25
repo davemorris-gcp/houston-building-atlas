@@ -1,0 +1,1075 @@
+{
+  "generatedAt": "2026-10-25",
+  "totalClasses": 15,
+  "totalArchetypes": 45,
+  "archetypes": [
+    {
+      "archetypeId": "c01_plm_1",
+      "classId": "c01_plm",
+      "className": "COH Protected Landmark (PLM) with HPO Designation Report",
+      "targetType": "building",
+      "hcadNum": "0011470000001",
+      "id": "",
+      "name": "Julia Ideson Building",
+      "address": "550 McKinney St",
+      "lng": -95.369086,
+      "lat": 29.75893,
+      "deepLinkHash": "#hcad=0011470000001",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Protected Landmark",
+          "Permanent",
+          "LEGAL PROTECTION"
+        ],
+        "mustHaveExternalLinkDomain": "houstontx.gov"
+      }
+    },
+    {
+      "archetypeId": "c01_plm_2",
+      "classId": "c01_plm",
+      "className": "COH Protected Landmark (PLM) with HPO Designation Report",
+      "targetType": "building",
+      "hcadNum": "0052250000007",
+      "id": "",
+      "name": "Arthur H. and Katherine Spring House",
+      "address": "1808 Lubbock St",
+      "lng": -95.376037,
+      "lat": 29.765736,
+      "deepLinkHash": "#hcad=0052250000007",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Protected Landmark",
+          "Permanent",
+          "LEGAL PROTECTION"
+        ],
+        "mustHaveExternalLinkDomain": "houstontx.gov"
+      }
+    },
+    {
+      "archetypeId": "c01_plm_3",
+      "classId": "c01_plm",
+      "className": "COH Protected Landmark (PLM) with HPO Designation Report",
+      "targetType": "building",
+      "hcadNum": "0090780000008",
+      "id": "",
+      "name": "Rutherford B. H. Yates Museum, Inc.",
+      "address": "1314 Andrews St",
+      "lng": -95.380902,
+      "lat": 29.755962,
+      "deepLinkHash": "#hcad=0090780000008",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Protected Landmark",
+          "Permanent",
+          "LEGAL PROTECTION"
+        ],
+        "mustHaveExternalLinkDomain": "houstontx.gov"
+      }
+    },
+    {
+      "archetypeId": "c02_lm_in_hd_1",
+      "classId": "c02_lm_in_hd",
+      "className": "Regular COH Landmark Inside COH Historic District (LM-in-HD)",
+      "targetType": "building",
+      "hcadNum": "0010200000001",
+      "id": "",
+      "name": "Union National Bank Building",
+      "address": "220 Main St",
+      "lng": -95.360913,
+      "lat": 29.762541,
+      "deepLinkHash": "#hcad=0010200000001",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Landmark",
+          "LEGAL PROTECTION",
+          "HAHC"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c02_lm_in_hd_2",
+      "classId": "c02_lm_in_hd",
+      "className": "Regular COH Landmark Inside COH Historic District (LM-in-HD)",
+      "targetType": "building",
+      "hcadNum": "0202430000024",
+      "id": "",
+      "name": "The McTighe-Durham House",
+      "address": "848 Heights Blvd",
+      "lng": -95.397161,
+      "lat": 29.786886,
+      "deepLinkHash": "#hcad=0202430000024",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Landmark",
+          "LEGAL PROTECTION",
+          "HAHC"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c02_lm_in_hd_3",
+      "classId": "c02_lm_in_hd",
+      "className": "Regular COH Landmark Inside COH Historic District (LM-in-HD)",
+      "targetType": "building",
+      "hcadNum": "0010570000009",
+      "id": "",
+      "name": "The Rice Hotel",
+      "address": "917 Texas Ave",
+      "lng": -95.362722,
+      "lat": 29.760456,
+      "deepLinkHash": "#hcad=0010570000009",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Landmark",
+          "LEGAL PROTECTION",
+          "HAHC"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c03_waiver_lm_1",
+      "classId": "c03_waiver_lm",
+      "className": "90-Day Waiver Vulnerable Landmark (LM Outside Historic District)",
+      "targetType": "building",
+      "hcadNum": "0010810000007",
+      "id": "",
+      "name": "Gulf Building",
+      "address": "712 Main St",
+      "lng": -95.363685,
+      "lat": 29.758914,
+      "deepLinkHash": "#hcad=0010810000007",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "90-Day Waiver",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c03_waiver_lm_2",
+      "classId": "c03_waiver_lm",
+      "className": "90-Day Waiver Vulnerable Landmark (LM Outside Historic District)",
+      "targetType": "building",
+      "hcadNum": "0011370000011",
+      "id": "",
+      "name": "City National Bank Building",
+      "address": "921 Main St",
+      "lng": -95.364093,
+      "lat": 29.756956,
+      "deepLinkHash": "#hcad=0011370000011",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "90-Day Waiver",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c03_waiver_lm_3",
+      "classId": "c03_waiver_lm",
+      "className": "90-Day Waiver Vulnerable Landmark (LM Outside Historic District)",
+      "targetType": "building",
+      "hcadNum": "0302450000008",
+      "id": "",
+      "name": "The Sterling-Berry House",
+      "address": "4515 Yoakum Blvd",
+      "lng": -95.392044,
+      "lat": 29.732265,
+      "deepLinkHash": "#hcad=0302450000008",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "90-Day Waiver",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c04_hd_contributing_hahc_kit_1",
+      "classId": "c04_hd_contributing_hahc_kit",
+      "className": "COH Historic District Parcel with HAHC COA Precedents & House History Kit",
+      "targetType": "building",
+      "hcadNum": "0620820000016",
+      "id": "",
+      "name": "1119 Walling St",
+      "address": "1119 Walling St",
+      "lng": -95.386995,
+      "lat": 29.800815,
+      "deepLinkHash": "#hcad=0620820000016",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "HAHC COA PRECEDENTS",
+          "House History",
+          "Historic District"
+        ],
+        "mustHaveSelectorInPermits": ".hahc-district-precedents-card"
+      }
+    },
+    {
+      "archetypeId": "c04_hd_contributing_hahc_kit_2",
+      "classId": "c04_hd_contributing_hahc_kit",
+      "className": "COH Historic District Parcel with HAHC COA Precedents & House History Kit",
+      "targetType": "building",
+      "hcadNum": "0621100000014",
+      "id": "",
+      "name": "1127 KEY ST",
+      "address": "1127 KEY ST",
+      "lng": -95.387176,
+      "lat": 29.791789,
+      "deepLinkHash": "#hcad=0621100000014",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "HAHC COA PRECEDENTS",
+          "House History",
+          "Historic District"
+        ],
+        "mustHaveSelectorInPermits": ".hahc-district-precedents-card"
+      }
+    },
+    {
+      "archetypeId": "c04_hd_contributing_hahc_kit_3",
+      "classId": "c04_hd_contributing_hahc_kit",
+      "className": "COH Historic District Parcel with HAHC COA Precedents & House History Kit",
+      "targetType": "building",
+      "hcadNum": "0202450000023",
+      "id": "",
+      "name": "844 Cortlandt St",
+      "address": "844 Cortlandt St",
+      "lng": -95.394971,
+      "lat": 29.786757,
+      "deepLinkHash": "#hcad=0202450000023",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "HAHC COA PRECEDENTS",
+          "House History",
+          "Historic District"
+        ],
+        "mustHaveSelectorInPermits": ".hahc-district-precedents-card"
+      }
+    },
+    {
+      "archetypeId": "c05_hd_noncontributing_infill_1",
+      "classId": "c05_hd_noncontributing_infill",
+      "className": "Post-1995 Infill Parcel Inside COH Historic District",
+      "targetType": "building",
+      "hcadNum": "0210360000019",
+      "id": "bld_000031",
+      "name": "428 ARLINGTON ST",
+      "address": "428 ARLINGTON ST",
+      "lng": -95.393532,
+      "lat": 29.778858,
+      "deepLinkHash": "#hcad=0210360000019",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "HAHC COA PRECEDENTS",
+          "Historic District"
+        ],
+        "mustHaveSelectorInPermits": ".hahc-district-precedents-card"
+      }
+    },
+    {
+      "archetypeId": "c05_hd_noncontributing_infill_2",
+      "classId": "c05_hd_noncontributing_infill",
+      "className": "Post-1995 Infill Parcel Inside COH Historic District",
+      "targetType": "building",
+      "hcadNum": "0621120030001",
+      "id": "bld_000050",
+      "name": "5307 N MAIN ST",
+      "address": "5307 N MAIN ST",
+      "lng": -95.387749,
+      "lat": 29.803198,
+      "deepLinkHash": "#hcad=0621120030001",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "HAHC COA PRECEDENTS",
+          "Historic District"
+        ],
+        "mustHaveSelectorInPermits": ".hahc-district-precedents-card"
+      }
+    },
+    {
+      "archetypeId": "c05_hd_noncontributing_infill_3",
+      "classId": "c05_hd_noncontributing_infill",
+      "className": "Post-1995 Infill Parcel Inside COH Historic District",
+      "targetType": "building",
+      "hcadNum": "1388230010001",
+      "id": "bld_000054",
+      "name": "1050 YALE ST",
+      "address": "1050 YALE ST",
+      "lng": -95.398038,
+      "lat": 29.790288,
+      "deepLinkHash": "#hcad=1388230010001",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "HAHC COA PRECEDENTS",
+          "Historic District"
+        ],
+        "mustHaveSelectorInPermits": ".hahc-district-precedents-card"
+      }
+    },
+    {
+      "archetypeId": "c06_red_book_surviving_1",
+      "classId": "c06_red_book_surviving",
+      "className": "1915 Red Book of Houston Surviving Historic Structure",
+      "targetType": "building",
+      "hcadNum": "0050060000015",
+      "id": "coh_lm_072",
+      "name": "Bethel Baptist Church",
+      "address": "801 Andrews St",
+      "lng": -95.376231,
+      "lat": 29.755638,
+      "deepLinkHash": "#hcad=0050060000015",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Red Book",
+          "1915"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c06_red_book_surviving_2",
+      "classId": "c06_red_book_surviving",
+      "className": "1915 Red Book of Houston Surviving Historic Structure",
+      "targetType": "building",
+      "hcadNum": "0321670000022",
+      "id": "coh_lm_034",
+      "name": "Antioch Missionary Baptist Church",
+      "address": "500 Clay Ave",
+      "lng": -95.372064,
+      "lat": 29.756286,
+      "deepLinkHash": "#hcad=0321670000022",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Red Book",
+          "1915"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c06_red_book_surviving_3",
+      "classId": "c06_red_book_surviving",
+      "className": "1915 Red Book of Houston Surviving Historic Structure",
+      "targetType": "building",
+      "hcadNum": "0022430000017",
+      "id": "0022430000017",
+      "name": "Luckie Grade School",
+      "address": "1004 Palmer Street",
+      "lng": -95.347598,
+      "lat": 29.745709,
+      "deepLinkHash": "#hcad=0022430000017",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Red Book",
+          "1915"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c07_red_book_cleared_overlay_1",
+      "classId": "c07_red_book_cleared_overlay",
+      "className": "1915 Red Book Cleared / Freeway Right-of-Way Overlay Dossier",
+      "targetType": "overlay",
+      "overlayLayer": "red_book_1915",
+      "id": "rb1915_church_5",
+      "hcadNum": "",
+      "name": "Bee Bee Tabernacle C. M. E. Church",
+      "address": "San Felipe and Arthur",
+      "lng": -95.376911,
+      "lat": 29.758155,
+      "deepLinkHash": "#bnd=red_book_1915:rb1915_church_5",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "1915 Red Book",
+          "Red Book"
+        ],
+        "mustHaveExternalLinkDomain": "oclc.org"
+      }
+    },
+    {
+      "archetypeId": "c07_red_book_cleared_overlay_2",
+      "classId": "c07_red_book_cleared_overlay",
+      "className": "1915 Red Book Cleared / Freeway Right-of-Way Overlay Dossier",
+      "targetType": "overlay",
+      "overlayLayer": "red_book_1915",
+      "id": "rb1915_church_8",
+      "hcadNum": "",
+      "name": "Calvary Baptist Church",
+      "address": "320 Sampston Street",
+      "lng": -95.340656,
+      "lat": 29.749474,
+      "deepLinkHash": "#bnd=red_book_1915:rb1915_church_8",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "1915 Red Book",
+          "Red Book"
+        ],
+        "mustHaveExternalLinkDomain": "oclc.org"
+      }
+    },
+    {
+      "archetypeId": "c07_red_book_cleared_overlay_3",
+      "classId": "c07_red_book_cleared_overlay",
+      "className": "1915 Red Book Cleared / Freeway Right-of-Way Overlay Dossier",
+      "targetType": "overlay",
+      "overlayLayer": "red_book_1915",
+      "id": "rb1915_church_9",
+      "hcadNum": "",
+      "name": "Calvary M. E. Church",
+      "address": "Dowling Street",
+      "lng": -95.362156,
+      "lat": 29.737409,
+      "deepLinkHash": "#bnd=red_book_1915:rb1915_church_9",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "1915 Red Book",
+          "Red Book"
+        ],
+        "mustHaveExternalLinkDomain": "oclc.org"
+      }
+    },
+    {
+      "archetypeId": "c08_holc_1937_zones_1",
+      "classId": "c08_holc_1937_zones",
+      "className": "1937 HOLC Redlining & HARC Heat Watch Equity Zone Dossier",
+      "targetType": "overlay",
+      "overlayLayer": "holc_1937_zones",
+      "id": "holc_1937_d1",
+      "hcadNum": "",
+      "name": "1937 HOLC D-1 (Hazardous): Model Neighborhood Improvement Club / Crane St Woods",
+      "address": "",
+      "lng": -95.336432,
+      "lat": 29.808506,
+      "deepLinkHash": "#bnd=holc_1937_zones:holc_1937_d1",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "1937 HOLC",
+          "NARA"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c08_holc_1937_zones_2",
+      "classId": "c08_holc_1937_zones",
+      "className": "1937 HOLC Redlining & HARC Heat Watch Equity Zone Dossier",
+      "targetType": "overlay",
+      "overlayLayer": "holc_1937_zones",
+      "id": "holc_1937_a1",
+      "hcadNum": "",
+      "name": "1937 HOLC A-1 (Best): Neartown - Montrose / Fourth Ward",
+      "address": "",
+      "lng": -95.387978,
+      "lat": 29.759679,
+      "deepLinkHash": "#bnd=holc_1937_zones:holc_1937_a1",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "1937 HOLC",
+          "NARA"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c08_holc_1937_zones_3",
+      "classId": "c08_holc_1937_zones",
+      "className": "1937 HOLC Redlining & HARC Heat Watch Equity Zone Dossier",
+      "targetType": "overlay",
+      "overlayLayer": "holc_1937_zones",
+      "id": "holc_1937_c1",
+      "hcadNum": "",
+      "name": "1937 HOLC C-1 (Definitely Declining): Greater Fifth Ward / Crane St Woods",
+      "address": "",
+      "lng": -95.334947,
+      "lat": 29.790491,
+      "deepLinkHash": "#bnd=holc_1937_zones:holc_1937_c1",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "1937 HOLC",
+          "NARA"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c09_nrhp_individual_1",
+      "classId": "c09_nrhp_individual",
+      "className": "National Register (NRHP) Individual Properties (Extant & Demolished)",
+      "targetType": "overlay",
+      "overlayLayer": "nrhp_properties",
+      "id": "nrhp_84000388",
+      "hcadNum": "1233520010001",
+      "name": "Edward Albert Palmer Memorial Chapel and Autry House",
+      "address": "6221 and 6265 Main St.",
+      "lng": -95.396466,
+      "lat": 29.716202,
+      "deepLinkHash": "#bnd=nrhp_properties:nrhp_84000388",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "National Register",
+          "NRHP"
+        ],
+        "mustHaveExternalLinkDomain": "atlas.thc.texas.gov"
+      }
+    },
+    {
+      "archetypeId": "c09_nrhp_individual_2",
+      "classId": "c09_nrhp_individual",
+      "className": "National Register (NRHP) Individual Properties (Extant & Demolished)",
+      "targetType": "overlay",
+      "overlayLayer": "nrhp_properties",
+      "id": "nrhp_84001759",
+      "hcadNum": "1240560000010",
+      "name": "DePelchin Faith Home",
+      "address": "2700 Albany St.",
+      "lng": -95.382926,
+      "lat": 29.749222,
+      "deepLinkHash": "#bnd=nrhp_properties:nrhp_84001759",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "National Register",
+          "NRHP"
+        ],
+        "mustHaveExternalLinkDomain": "atlas.thc.texas.gov"
+      }
+    },
+    {
+      "archetypeId": "c09_nrhp_individual_3",
+      "classId": "c09_nrhp_individual",
+      "className": "National Register (NRHP) Individual Properties (Extant & Demolished)",
+      "targetType": "overlay",
+      "overlayLayer": "nrhp_properties",
+      "id": "nrhp_84001761",
+      "hcadNum": "",
+      "name": "Dexter House (Demolished / Gone)",
+      "address": "224 W. 17th St.",
+      "lng": -95.400648,
+      "lat": 29.800704,
+      "deepLinkHash": "#bnd=nrhp_properties:nrhp_84001761",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "National Register",
+          "NRHP"
+        ],
+        "mustHaveExternalLinkDomain": "atlas.thc.texas.gov"
+      }
+    },
+    {
+      "archetypeId": "c10_potential_and_cultural_districts_1",
+      "classId": "c10_potential_and_cultural_districts",
+      "className": "2019 Potential Historic Districts & Cultural Arts Districts",
+      "targetType": "overlay",
+      "overlayLayer": "potential_historic_districts",
+      "id": "pot_hd_01_emancipation_avenue_main_street_hist",
+      "hcadNum": "",
+      "name": "Emancipation Avenue Main Street Historic District",
+      "address": "",
+      "lng": -95.364326,
+      "lat": 29.735208,
+      "deepLinkHash": "#bnd=potential_historic_districts:pot_hd_01_emancipation_avenue_main_street_hist",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Historic",
+          "District",
+          "Structures"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c10_potential_and_cultural_districts_2",
+      "classId": "c10_potential_and_cultural_districts",
+      "className": "2019 Potential Historic Districts & Cultural Arts Districts",
+      "targetType": "overlay",
+      "overlayLayer": "potential_historic_districts",
+      "id": "pot_hd_02_brooke_smith_potential_historic_dist",
+      "hcadNum": "",
+      "name": "Brooke Smith Potential Historic District",
+      "address": "",
+      "lng": -95.373677,
+      "lat": 29.799047,
+      "deepLinkHash": "#bnd=potential_historic_districts:pot_hd_02_brooke_smith_potential_historic_dist",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Historic",
+          "District",
+          "Structures"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c10_potential_and_cultural_districts_3",
+      "classId": "c10_potential_and_cultural_districts",
+      "className": "2019 Potential Historic Districts & Cultural Arts Districts",
+      "targetType": "overlay",
+      "overlayLayer": "cultural_districts",
+      "id": "cultural_dist_01_midtown_houston",
+      "hcadNum": "",
+      "name": "Midtown Houston",
+      "address": "",
+      "lng": -95.380106,
+      "lat": 29.743398,
+      "deepLinkHash": "#bnd=cultural_districts:cultural_dist_01_midtown_houston",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Historic",
+          "District",
+          "Structures"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c11_deeds_and_ch42_1",
+      "classId": "c11_deeds_and_ch42",
+      "className": "Deed-Restricted Subdivisions & Chapter 42 SMLS/SMBL Blocks",
+      "targetType": "overlay",
+      "overlayLayer": "platted_subdivisions",
+      "id": "plat_6452_willborg",
+      "hcadNum": "",
+      "name": "Willborg",
+      "address": "",
+      "lng": -95.379156,
+      "lat": 29.789189,
+      "deepLinkHash": "#bnd=platted_subdivisions:plat_6452_willborg",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Subdivision",
+          "Lot",
+          "Ordinance",
+          "Deed"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c11_deeds_and_ch42_2",
+      "classId": "c11_deeds_and_ch42",
+      "className": "Deed-Restricted Subdivisions & Chapter 42 SMLS/SMBL Blocks",
+      "targetType": "overlay",
+      "overlayLayer": "land_use_protections",
+      "id": "smls_2006-1018_0",
+      "hcadNum": "",
+      "name": "SMLS Ord. #2006-1018 (5,500 sq ft min)",
+      "address": "",
+      "lng": -95.413905,
+      "lat": 29.713707,
+      "deepLinkHash": "#bnd=land_use_protections:smls_2006-1018_0",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Subdivision",
+          "Lot",
+          "Ordinance",
+          "Deed"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c11_deeds_and_ch42_3",
+      "classId": "c11_deeds_and_ch42",
+      "className": "Deed-Restricted Subdivisions & Chapter 42 SMLS/SMBL Blocks",
+      "targetType": "overlay",
+      "overlayLayer": "land_use_protections",
+      "id": "smbl_2006-1224_0",
+      "hcadNum": "",
+      "name": "SMBL Ord. #2006-1224 (19 ft setback)",
+      "address": "",
+      "lng": -95.32933,
+      "lat": 29.740529,
+      "deepLinkHash": "#bnd=land_use_protections:smbl_2006-1224_0",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Subdivision",
+          "Lot",
+          "Ordinance",
+          "Deed"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c12_unprotected_pre1935_1",
+      "classId": "c12_unprotected_pre1935",
+      "className": "Unprotected Pre-1935 Inner-Core Parcel (Tear-Down Vulnerability)",
+      "targetType": "building",
+      "hcadNum": "1272590000067",
+      "id": "bld_003234",
+      "name": "917 MAIN ST B1",
+      "address": "917 MAIN ST B1",
+      "lng": -95.364385,
+      "lat": 29.757116,
+      "deepLinkHash": "#hcad=1272590000067",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Outside Historic District",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c12_unprotected_pre1935_2",
+      "classId": "c12_unprotected_pre1935",
+      "className": "Unprotected Pre-1935 Inner-Core Parcel (Tear-Down Vulnerability)",
+      "targetType": "building",
+      "hcadNum": "0031150000001",
+      "id": "bld_003290",
+      "name": "0 BAKER ST",
+      "address": "0 BAKER ST",
+      "lng": -95.356478,
+      "lat": 29.763469,
+      "deepLinkHash": "#hcad=0031150000001",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Outside Historic District",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c12_unprotected_pre1935_3",
+      "classId": "c12_unprotected_pre1935",
+      "className": "Unprotected Pre-1935 Inner-Core Parcel (Tear-Down Vulnerability)",
+      "targetType": "building",
+      "hcadNum": "0031140000001",
+      "id": "bld_003293",
+      "name": "1100 BAKER ST",
+      "address": "1100 BAKER ST",
+      "lng": -95.357177,
+      "lat": 29.763758,
+      "deepLinkHash": "#hcad=0031140000001",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Outside Historic District",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c13_active_permit_watch_1",
+      "classId": "c13_active_permit_watch",
+      "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
+      "targetType": "building",
+      "hcadNum": "0152300000001",
+      "id": "bld_004618",
+      "name": "John Henry Kirby Mansion",
+      "address": "2000 SMITH ST",
+      "lng": -95.374833,
+      "lat": 29.751432,
+      "deepLinkHash": "#hcad=0152300000001",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Permit",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c13_active_permit_watch_2",
+      "classId": "c13_active_permit_watch",
+      "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
+      "targetType": "building",
+      "hcadNum": "0261900000007",
+      "id": "bld_006541",
+      "name": "3703 GRAUSTARK ST",
+      "address": "3703 GRAUSTARK ST",
+      "lng": -95.394479,
+      "lat": 29.739435,
+      "deepLinkHash": "#hcad=0261900000007",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Permit",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c13_active_permit_watch_3",
+      "classId": "c13_active_permit_watch",
+      "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
+      "targetType": "building",
+      "hcadNum": "1487630010001",
+      "id": "bld_014328",
+      "name": "503 SUL ROSS ST",
+      "address": "503 SUL ROSS ST",
+      "lng": -95.385969,
+      "lat": 29.737665,
+      "deepLinkHash": "#hcad=1487630010001",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Permit",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c14_campus_composite_override_1",
+      "classId": "c14_campus_composite_override",
+      "className": "Multi-Building Institutional Campus Sub-Structure (Composite '#' ID)",
+      "targetType": "building",
+      "hcadNum": "0421790000001",
+      "id": "0421790000001#rice_1_will_rice_college_old_dorm_o",
+      "name": "Will Rice College  -  Old Dorm",
+      "address": "6100 MAIN ST (WILL RICE COLLEGE  -  OLD DORM (ORIGINAL SOUTH HALL))",
+      "lng": -95.399132,
+      "lat": 29.716485,
+      "deepLinkHash": "#id=0421790000001%23rice_1_will_rice_college_old_dorm_o",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Built",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c14_campus_composite_override_2",
+      "classId": "c14_campus_composite_override",
+      "className": "Multi-Building Institutional Campus Sub-Structure (Composite '#' ID)",
+      "targetType": "building",
+      "hcadNum": "0421790000001",
+      "id": "0421790000001#rice_2_will_rice_college_commons",
+      "name": "Will Rice College Commons",
+      "address": "6100 MAIN ST (WILL RICE COLLEGE COMMONS)",
+      "lng": -95.398687,
+      "lat": 29.716331,
+      "deepLinkHash": "#id=0421790000001%23rice_2_will_rice_college_commons",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Built",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c14_campus_composite_override_3",
+      "classId": "c14_campus_composite_override",
+      "className": "Multi-Building Institutional Campus Sub-Structure (Composite '#' ID)",
+      "targetType": "building",
+      "hcadNum": "0421790000001",
+      "id": "0421790000001#rice_3_baker_college_historic_old_w",
+      "name": "Baker College  -  Historic Old Wing",
+      "address": "6100 MAIN ST (BAKER COLLEGE  -  HISTORIC OLD WING (ORIGINAL EAST HALL))",
+      "lng": -95.399354,
+      "lat": 29.716879,
+      "deepLinkHash": "#id=0421790000001%23rice_3_baker_college_historic_old_w",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Built",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c15_lost_houston_sanborn_1",
+      "classId": "c15_lost_houston_sanborn",
+      "className": "Lost Houston Demolished Landmark with Sanborn Atlas Plate",
+      "targetType": "overlay",
+      "overlayLayer": "lost_houston",
+      "id": "lost_republic_of_texas_capitol",
+      "hcadNum": "",
+      "name": "First Capitol of the Republic of Texas",
+      "address": "Main St at Texas Ave (NW Corner, Block 57)",
+      "lng": -95.362635,
+      "lat": 29.760369,
+      "deepLinkHash": "#bnd=lost_houston:lost_republic_of_texas_capitol",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Demolished",
+          "Sanborn"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c15_lost_houston_sanborn_2",
+      "classId": "c15_lost_houston_sanborn",
+      "className": "Lost Houston Demolished Landmark with Sanborn Atlas Plate",
+      "targetType": "overlay",
+      "overlayLayer": "lost_houston",
+      "id": "lost_capitol_hotel_1883",
+      "hcadNum": "",
+      "name": "The Capitol Hotel (1883)",
+      "address": "909 Texas Ave at Main St (NW Corner, Block 57)",
+      "lng": -95.362636,
+      "lat": 29.760416,
+      "deepLinkHash": "#bnd=lost_houston:lost_capitol_hotel_1883",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Demolished",
+          "Sanborn"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c15_lost_houston_sanborn_3",
+      "classId": "c15_lost_houston_sanborn",
+      "className": "Lost Houston Demolished Landmark with Sanborn Atlas Plate",
+      "targetType": "overlay",
+      "overlayLayer": "lost_houston",
+      "id": "lost_first_texas_white_house",
+      "hcadNum": "",
+      "name": "President Sam Houston's Executive Mansion ('First Texas White House')",
+      "address": "405 Main St at Preston Ave (Block 45)",
+      "lng": -95.361279,
+      "lat": 29.761195,
+      "deepLinkHash": "#bnd=lost_houston:lost_first_texas_white_house",
+      "expectedUi": {
+        "mustContainTextAny": [
+          "Demolished",
+          "Sanborn"
+        ]
+      }
+    }
+  ]
+}

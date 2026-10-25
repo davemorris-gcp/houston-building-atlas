@@ -6336,6 +6336,7 @@ export class AtlasMapController {
   }) {
     const hasCoords = Number.isFinite(Number(targetLng)) && Number.isFinite(Number(targetLat));
     if (!featureId && !hcadNum && !addressQuery && !hasCoords) return false;
+    const navSeq = (this._selectNavSeq = (this._selectNavSeq || 0) + 1);
 
     const normAddrStr = (s) =>
       String(s || "")
@@ -6526,12 +6527,30 @@ export class AtlasMapController {
         return null;
       })();
 
+    const matchedLm = hcadNum ? this.landmarksByHcad?.get?.(hcadNum)?.[0] || null : null;
+    const matchedHahc = hcadNum ? this.hahcFilingsByHcad?.get?.(hcadNum)?.[0] || null : null;
+    const matchedRb = hcadNum ? this.redBookByHcad?.get?.(hcadNum)?.[0] || null : null;
+    const lmCoord =
+      Array.isArray(matchedLm?._coords) && matchedLm._coords.length >= 2
+        ? matchedLm._coords
+        : null;
+    const rbCoord =
+      Array.isArray(matchedRb?._coords) && matchedRb._coords.length >= 2
+        ? matchedRb._coords
+        : null;
+
     const effLng = Number.isFinite(Number(targetLng))
       ? Number(targetLng)
       : Number.isFinite(Number(matchedAlert?.lng))
       ? Number(matchedAlert.lng)
       : Number.isFinite(Number(matchedPlat?.lng))
       ? Number(matchedPlat.lng)
+      : Number.isFinite(Number(matchedHahc?.lng))
+      ? Number(matchedHahc.lng)
+      : lmCoord && Number.isFinite(Number(lmCoord[0]))
+      ? Number(lmCoord[0])
+      : rbCoord && Number.isFinite(Number(rbCoord[0]))
+      ? Number(rbCoord[0])
       : null;
     const effLat = Number.isFinite(Number(targetLat))
       ? Number(targetLat)
@@ -6539,11 +6558,19 @@ export class AtlasMapController {
       ? Number(matchedAlert.lat)
       : Number.isFinite(Number(matchedPlat?.lat))
       ? Number(matchedPlat.lat)
+      : Number.isFinite(Number(matchedHahc?.lat))
+      ? Number(matchedHahc.lat)
+      : lmCoord && Number.isFinite(Number(lmCoord[1]))
+      ? Number(lmCoord[1])
+      : rbCoord && Number.isFinite(Number(rbCoord[1]))
+      ? Number(rbCoord[1])
       : null;
 
     let tilePolygonUpgraded = false;
     const tryUpgradeFromTiles = () => {
-      if (tilePolygonUpgraded || this.useCanvasFallback || !this.map) return false;
+      if (navSeq !== this._selectNavSeq || tilePolygonUpgraded || this.useCanvasFallback || !this.map) {
+        return false;
+      }
       const tileLayers = [
         "curated-overrides-extrusion",
         "curated-overrides-fill",
@@ -6626,10 +6653,19 @@ export class AtlasMapController {
       const effectiveAddr =
         matchedAlert?.address ||
         matchedPlat?.address ||
+        matchedHahc?.address ||
+        matchedLm?.address ||
+        matchedLm?.USER_ADDRESS ||
+        matchedRb?.modern_address ||
         addressQuery ||
         (effectiveHcad ? `HCAD ${effectiveHcad}` : "");
       const effectiveYear =
-        Number(matchedAlert?.year_built || matchedPlat?.year_built || fallbackYearBuilt) || 0;
+        Number(
+          matchedAlert?.year_built ||
+            matchedPlat?.year_built ||
+            matchedLm?.year_built ||
+            fallbackYearBuilt
+        ) || 0;
 
       if (matchedAlert || matchedPlat || effectiveHcad || effectiveAddr) {
         const initialProps = applyOverrideToProperties(
@@ -6646,15 +6682,22 @@ export class AtlasMapController {
               matchedAlert?.building_name ||
               matchedAlert?.landmark_name ||
               matchedPlat?.building_name ||
+              matchedLm?.name ||
+              matchedLm?.USER_LANDMARK ||
+              matchedRb?.name ||
               "",
-            landmark_name: matchedAlert?.landmark_name || "",
+            landmark_name: matchedAlert?.landmark_name || matchedLm?.name || matchedLm?.USER_LANDMARK || "",
             year_built: effectiveYear,
             decade: effectiveYear ? Math.floor(effectiveYear / 10) * 10 : 0,
             yr_remodel: Number(matchedAlert?.yr_remodel) || 0,
-            style: matchedAlert?.style || "",
-            architect: matchedAlert?.architect || "",
+            style: matchedAlert?.style || matchedLm?.style || "",
+            architect: matchedAlert?.architect || matchedLm?.architect || "",
             neighborhood: matchedAlert?.neighborhood || matchedPlat?.neighborhood || "",
-            historic_district: matchedAlert?.historic_district || "",
+            historic_district:
+              matchedAlert?.historic_district ||
+              matchedHahc?.historic_district ||
+              matchedLm?.historic_district ||
+              "",
             good_brick_summary: matchedAlert?.good_brick_summary || "",
             owner: matchedAlert?.owner || matchedPlat?.developer || "",
             bld_area: Number(matchedAlert?.bld_area) || 0,
@@ -6682,7 +6725,7 @@ export class AtlasMapController {
       if (effectiveHcad) {
         fetchHcadLiveRecord(effectiveHcad)
           .then((rec) => {
-            if (!rec || tilePolygonUpgraded) return;
+            if (navSeq !== this._selectNavSeq || !rec || tilePolygonUpgraded) return;
             const recYear = rec.yearImpr || effectiveYear;
             const synthProps = applyOverrideToProperties(
               {
@@ -9479,6 +9522,63 @@ export class AtlasMapController {
     return true;
   }
 
+  inspectNrhpById(nrhpId, { flyTo = true, zoom = 17.5 } = {}) {
+    const clean = String(nrhpId || "").trim().toLowerCase();
+    if (!clean) return false;
+    const feats = this.overlaysData?.nrhp_properties?.features || [];
+    const fullFeat = feats.find((f) => {
+      const p = f?.properties || {};
+      return (
+        String(p.id || "").trim().toLowerCase() === clean ||
+        String(p.refnum || "").trim().toLowerCase() === clean ||
+        `nrhp_${String(p.refnum || "").trim().toLowerCase()}` === clean
+      );
+    });
+    if (!fullFeat) return false;
+    this.clearSelection({ keepOverlapStack: false, keepBoundary: true });
+    const coords = Array.isArray(fullFeat.geometry?.coordinates)
+      ? fullFeat.geometry.coordinates
+      : null;
+    const fullProps = {
+      ...(fullFeat.properties || {}),
+      overlay_layer: "nrhp_properties",
+      is_nrhp_marker: true,
+      is_boundary_feature: true,
+    };
+    if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+      fullProps.lng = coords[0];
+      fullProps.lat = coords[1];
+    }
+    const feat = {
+      type: "Feature",
+      geometry: fullFeat.geometry,
+      properties: fullProps,
+    };
+    this.selectedBoundaryFeature = feat;
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+    } else if (this.map) {
+      const selBndSrc = this.map.getSource("selected-boundary-src");
+      if (selBndSrc) {
+        selBndSrc.setData({ type: "FeatureCollection", features: [feat] });
+      }
+    }
+    if (flyTo && Number.isFinite(fullProps.lng) && Number.isFinite(fullProps.lat)) {
+      const curZoom = this.useCanvasFallback
+        ? Number(this.canvasState?.zoom || 13)
+        : Number(this.map?.getZoom?.() || 13);
+      this.flyToLocation({
+        lng: fullProps.lng,
+        lat: fullProps.lat,
+        zoom: Math.max(curZoom, zoom),
+      });
+    }
+    if (this.onSelectFeature) {
+      this.onSelectFeature(fullProps);
+    }
+    return true;
+  }
+
   clearHighlightedBoundary() {
     this.selectedBoundaryFeature = null;
     if (this.useCanvasFallback) {
@@ -9652,6 +9752,7 @@ export class AtlasMapController {
   }
 
   clearSelection(opts = {}) {
+    this._selectNavSeq = (this._selectNavSeq || 0) + 1;
     this.selectedFeatureId = null;
     this.selectedFeatureProps = null;
     this.selectedFeatureGeometry = null;

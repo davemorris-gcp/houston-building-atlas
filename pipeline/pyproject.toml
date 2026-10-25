@@ -17,7 +17,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "playwright>=1.64.0",
     "pytest>=8.0.0",
+    "pytest-playwright>=0.10.0",
 ]
 
 [build-system]

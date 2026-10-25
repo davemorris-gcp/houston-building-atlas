@@ -1,0 +1,85 @@
+name: External Archive Link Health Monitor
+
+on:
+  schedule:
+    # Weekly every Monday at 13:00 UTC (8:00 AM Central)
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "app/js/urlValidators.js"
+      - "scripts/check_external_links.mjs"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: "external-link-health"
+  cancel-in-progress: false
+
+jobs:
+  link-health:
+    name: Crawl Harvested UI & Catalog Archive URLs + Update Issue #1
+    runs-on: ubuntu-latest
+    env:
+      CANONICAL_ISSUE_NUMBER: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up uv & Python 3.13
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install Playwright Headless Chromium
+        working-directory: pipeline
+        run: |
+          uv sync --dev
+          uv run playwright install --with-deps chromium
+
+      - name: Harvest Rendered External Links Across All 45 Stratified UI Archetypes
+        working-directory: pipeline
+        run: uv run pytest ../tests/e2e -v
+
+      - name: Crawl Live External Archive & Municipal URLs
+        run: node scripts/check_external_links.mjs --report-only
+
+      - name: Update Canonical GitHub Issue #1 with Live Link Health Report
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue edit "${CANONICAL_ISSUE_NUMBER}" \
+            --repo "${{ github.repository }}" \
+            --body-file test-results/external_link_health_report.md
+
+          BROKEN_COUNT="$(node -e "const r = require('./test-results/external_link_health_report.json'); console.log(r.summary.brokenCount || 0);")"
+          CHECKED_AT="$(node -e "const r = require('./test-results/external_link_health_report.json'); console.log(r.summary.checkedAtUtc || '');")"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [ "${BROKEN_COUNT}" -gt 0 ]; then
+            gh issue reopen "${CANONICAL_ISSUE_NUMBER}" --repo "${{ github.repository }}" || true
+            gh issue comment "${CANONICAL_ISSUE_NUMBER}" \
+              --repo "${{ github.repository }}" \
+              --body "Automated crawl at \`${CHECKED_AT}\` detected **${BROKEN_COUNT}** broken or moved external archive link(s). Review the updated table at the top of this issue and workflow run ${RUN_URL}."
+          fi
+
+      - name: Upload Link Health Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-link-health-report
+          path: test-results/
+          if-no-files-found: ignore
+
+      - name: Fail Job If Broken External Links Were Detected
+        run: |
+          node -e "const r = require('./test-results/external_link_health_report.json'); if ((r.summary.brokenCount || 0) > 0) { console.error('Broken external links detected:', r.summary.brokenCount); process.exit(1); }"

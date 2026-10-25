@@ -3,6 +3,8 @@ name: Deploy Houston Building Atlas to GitHub Pages
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -11,11 +13,56 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: "pages-${{ github.ref }}"
   cancel-in-progress: false
 
 jobs:
+  verify:
+    name: Pre-Deploy Stratified Verification (Layer 1 Unit + Layer 2 45-Archetype E2E)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up uv & Python 3.13
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Generate & verify 45 Stratified Property Archetypes
+        run: node scripts/build_test_archetypes.mjs
+
+      - name: Run Layer 1 Unit, Schema, Bundle Size & URL-Pattern Suite
+        run: node tests/unit/run_all.mjs
+
+      - name: Install Playwright Headless Chromium
+        working-directory: pipeline
+        run: |
+          uv sync --dev
+          uv run playwright install --with-deps chromium
+
+      - name: Run Layer 2 Playwright E2E Suite (Global Controls + 45 Stratified Archetypes)
+        working-directory: pipeline
+        run: uv run pytest ../tests/e2e -v
+
+      - name: Upload Harvested External URLs & Test Results Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-e2e-verification-results
+          path: test-results/
+          if-no-files-found: ignore
+
   deploy:
+    name: Deploy Verified Site to GitHub Pages
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

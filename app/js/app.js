@@ -19,7 +19,7 @@ import {
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
 } from "./filterStore.js?v=20261025i";
-import { AtlasMapController } from "./mapController.js?v=20261025i";
+import { AtlasMapController } from "./mapController.js?v=20261025k";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
@@ -74,6 +74,7 @@ class HoustonAtlasApp {
     this.timelapseTimer = null;
     this._suppressUrlUpdate = false;
     this._isRestoringHistory = false;
+    this._started = false;
     this._lastHistorySignature = null;
     this._lastHandledUrlKey = "";
     this._activePhotoState = null;
@@ -188,6 +189,15 @@ class HoustonAtlasApp {
           this.mapController.inspectHahcById(initBId, {
             flyTo: !this.initialViewport,
           });
+        } else if (
+          initBLayer === "nrhp_properties" ||
+          initBLayer === "nrhpProperties" ||
+          initBId.startsWith("nrhp_")
+        ) {
+          this.filterStore.setLayerVisibility("nrhpProperties", true);
+          this.mapController.inspectNrhpById(initBId, {
+            flyTo: !this.initialViewport,
+          });
         } else {
           const normInitLayer =
             initBLayer === "holc1937" || initBId.startsWith("holc_1937_")
@@ -225,7 +235,7 @@ class HoustonAtlasApp {
       this._refreshShareModalContent();
     });
 
-    const handleUrlChange = () => {
+    const handleUrlChange = async () => {
       const urlKey = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       if (urlKey === this._lastHandledUrlKey) return;
       this._lastHandledUrlKey = urlKey;
@@ -291,7 +301,7 @@ class HoustonAtlasApp {
 
         if (selection?.hcadNum || selection?.featureId || selection?.query) {
           this.mapController.clearHighlightedBoundary();
-          this._resolveAndSelectDeepLinkedProperty(
+          await this._resolveAndSelectDeepLinkedProperty(
             selection,
             viewport,
             Boolean(vpChangedSignificantly)
@@ -324,6 +334,15 @@ class HoustonAtlasApp {
           ) {
             this.filterStore.setLayerVisibility("hahcTracker", true);
             this.mapController.inspectHahcById(selBId, {
+              flyTo: !viewport,
+            });
+          } else if (
+            selBLayer === "nrhp_properties" ||
+            selBLayer === "nrhpProperties" ||
+            selBId.startsWith("nrhp_")
+          ) {
+            this.filterStore.setLayerVisibility("nrhpProperties", true);
+            this.mapController.inspectNrhpById(selBId, {
               flyTo: !viewport,
             });
           } else {
@@ -364,6 +383,8 @@ class HoustonAtlasApp {
 
     window.addEventListener("hashchange", handleUrlChange);
     window.addEventListener("popstate", handleUrlChange);
+    this._handleUrlChange = handleUrlChange;
+    this._started = true;
   }
 
   async _resolveAndSelectDeepLinkedProperty(selection, viewport = null, vpChangedSignificantly = false) {
@@ -458,7 +479,7 @@ class HoustonAtlasApp {
       const typedDigits = typedNum.replace(/\D/g, "");
       const typedStreetPart = normAddr(addrNumMatch[2]);
       const streetTokens = typedStreetPart.split(/\s+/).filter(Boolean);
-      if (typedDigits.length >= 1) {
+      if (typedDigits.length >= 1 && !typedDigits.startsWith("0")) {
         const shardKey = typedDigits.slice(0, 2).padEnd(2, "0");
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
@@ -4388,7 +4409,7 @@ class HoustonAtlasApp {
         .trim()
         .toUpperCase();
       const streetTokens = typedStreetPart.split(/\s+/).filter(Boolean);
-      if (typedDigits.length >= 1) {
+      if (typedDigits.length >= 1 && !typedDigits.startsWith("0")) {
         const shardKey = typedDigits.slice(0, 2).padEnd(2, "0");
         this._addressShardCache = this._addressShardCache || {};
         this._addressShardPending = this._addressShardPending || {};
@@ -15698,16 +15719,23 @@ class HoustonAtlasApp {
     }
     const basePath = window.location.pathname;
     const targetUrl = hash ? `${basePath}#${hash}` : basePath;
+    const curPathAndHash = `${window.location.pathname}${window.location.hash}`;
     const navSig = this._computeHistorySignature(state);
 
-    if (this._lastHistorySignature === null) {
-      this._lastHistorySignature = navSig;
-      window.history.replaceState({ navSig }, "", targetUrl);
-    } else if (!this._isRestoringHistory && (push || navSig !== this._lastHistorySignature)) {
-      this._lastHistorySignature = navSig;
-      window.history.pushState({ navSig }, "", targetUrl);
-    } else {
-      window.history.replaceState({ navSig }, "", targetUrl);
+    try {
+      if (this._lastHistorySignature === null) {
+        this._lastHistorySignature = navSig;
+        if (targetUrl !== curPathAndHash) {
+          window.history.replaceState({ navSig }, "", targetUrl);
+        }
+      } else if (!this._isRestoringHistory && (push || navSig !== this._lastHistorySignature)) {
+        this._lastHistorySignature = navSig;
+        window.history.pushState({ navSig }, "", targetUrl);
+      } else if (targetUrl !== curPathAndHash) {
+        window.history.replaceState({ navSig }, "", targetUrl);
+      }
+    } catch (_e) {
+      // Guard against browser history.replaceState/pushState flood throttling during rapid scrubbing
     }
     this._lastHandledUrlKey = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   }

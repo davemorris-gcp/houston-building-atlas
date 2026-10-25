@@ -171,3 +171,18 @@ uv run --directory pipeline python -m atlas_pipeline.city_directory_audit \
 ```
 
 Import the generated `cache/norhill_audit_candidates.csv` into your Google Sheet's `Pending_Submissions` tab, review the linked ContentDM directory pages, and set `status` to **`Approved`** to publish them to the live map!
+
+---
+
+## 5. Monitoring External Archive Link Health from the Google Sheet
+
+Municipal, county, state, and university archives periodically reorganize PDF folders or web portals (for example, City of Houston HPO & HAHC packet folders, Harris County Clerk `MC.aspx` plat search, Texas Historical Commission 8-digit NRHP PDFs, Houston Public Library ContentDM, and UT Austin Perry-Castaneda Library Sanborn indexes).
+
+To ensure Preservation Houston staff never encounter silent `HTTP 404` or `Maintenance.aspx` soft-404 links in the Property Inspector or Research Kit:
+
+1. **Automated Weekly CI Link Monitor ([GitHub Issue #1](https://github.com/davemorris-gcp/houston-building-atlas/issues/1)):**
+   - Every Monday at `8:00 AM Central` (`13:00 UTC`), GitHub Actions runs `.github/workflows/external-link-health.yml`, exercising all `45` stratified property archetypes in Headless Chromium and checking `776` unique external URLs across `55` domains.
+   - The workflow automatically updates **[GitHub Issue #1: External Archive Link Health Report (Automated CI Monitor)](https://github.com/davemorris-gcp/houston-building-atlas/issues/1)** with the per-domain health summary and reopens/comments on Issue `#1` if any broken or moved link is detected.
+2. **One-Click Access Inside the Moderation Google Sheet:**
+   - **`Admin_Hub_&_Quick_Filter` Tab (Cell `G14:H14` under *Quick Links & External Tools*):** Click **`🩺 Open Live External Archive Link Health Report (Issue #1) ↗`** right above the fold upon opening the workbook.
+   - **`Instructions_&_Apps_Script` Tab (Rows `20-21`, Sections `18` & `19`):** Includes **SOP 11 (Automated CI Testing & External Archive Link Health Monitor)** alongside a direct clickable **`=HYPERLINK(...)`** button to **[GitHub Issue #1](https://github.com/davemorris-gcp/houston-building-atlas/issues/1)**.

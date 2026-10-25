@@ -95,6 +95,7 @@ Because creating a high-precision historical building atlas across 1.51 million 
 - Zero-cost Google Sheets moderation backend (`Pending_Submissions` -> `Approved_Edits` live CSV hydration + `Admin_Hub_&_Quick_Filter` + 12 Saved Filter Views).
 - Live HCAD ArcGIS REST & encrypted token-brokered appraisal lookup (`hcadService.js`).
 - Pre-warmed O(1) global search index (`search_index.json`) and complete 26-script pipeline rebuild reference table.
+- Automated 4-layer verification suite (`45` stratified property archetypes across `15` equivalence classes) and live [**External Archive & Municipal Link Health Report (GitHub Issue #1)**](https://github.com/davemorris-gcp/houston-building-atlas/issues/1).
 
 ---
 
@@ -104,13 +105,13 @@ Because creating a high-precision historical building atlas across 1.51 million 
 The frontend lives in `app/` and requires zero build step or external Node bundler. Start the RFC 7233 byte-range server (`app/server.py`) so PMTiles v3 archives stream via `HTTP 206 Partial Content`:
 
 ```bash
-python3 app/server.py 8787
+python3 app/server.py --port 8787
 ```
 
 Then open **`http://localhost:8787`** in any modern browser.
 
 ### 2. Run the Geospatial Data Pipeline (`pipeline/`)
-The Python geospatial pipeline uses [`uv`](https://github.com/astral-sh/uv) (`Python 3.12+`) and `tippecanoe v2.82.0`:
+The Python geospatial pipeline uses [`uv`](https://github.com/astral-sh/uv) (`Python 3.13`) and `tippecanoe v2.82.0`:
 
 ```bash
 cd pipeline
@@ -120,6 +121,23 @@ uv sync
 uv run python -m atlas_pipeline.update_pmtiles_from_overrides
 ```
 
+### 3. Automated Testing, 45-Archetype Verification & Live External Archive Link Health
+Every pull request and push to `main` is gated by a deterministic verification pipeline (`.github/workflows/deploy-pages.yml`), paired with an automated weekly Monday external archive link crawler (`.github/workflows/external-link-health.yml`) that publishes live status to [**GitHub Issue #1: External Archive Link Health Report (Automated CI Monitor)**](https://github.com/davemorris-gcp/houston-building-atlas/issues/1) (also linked directly inside the Moderation Google Sheet on `Admin_Hub_&_Quick_Filter` Cell `H14` and `Instructions_&_Apps_Script` Row `21`):
+
+```bash
+# Regenerate the 45 Stratified Property & Overlay Archetypes (15 equivalence classes x 3)
+node scripts/build_test_archetypes.mjs
+
+# Layer 1: Fast deterministic schema, WGS84 bounds, GitHub Pages bundle size, filterStore, portfolio & dead-URL pattern unit tests (~1.3s)
+node tests/unit/run_all.mjs
+
+# Layer 2: Headless Chromium Playwright E2E suite (HTTP 206 PMTiles check, global modals, Guided Chapters 1..6, Portfolios, Plat Monitor, and all 45 archetypes across 4 inspector tabs + Wide View, harvesting rendered external URLs)
+uv run --directory pipeline pytest ../tests/e2e -v
+
+# Layer 3: Live external municipal, county, state, university & archival HTTP 200/206 + soft-404 link health crawler (776 unique URLs across 55 domains)
+node scripts/check_external_links.mjs
+```
+
 ---
 
 ## Repository Structure
@@ -127,6 +145,10 @@ uv run python -m atlas_pipeline.update_pmtiles_from_overrides
 ```text
 houston-building-atlas/
 ├── README.md                                  # Master overview, architecture & documentation index
+├── .github/workflows/
+│   ├── deploy-pages.yml                       # Pre-deploy Layer 1 + Layer 2 E2E gate & GitHub Pages deploy
+│   ├── external-link-health.yml               # Weekly Monday live link crawler updating GitHub Issue #1
+│   └── update_live_permits.yml                # Daily COH sold permits, DSHS asbestos & HAHC COA sync
 ├── docs/                                      # Comprehensive 8-chapter engineering & archival manual
 │   ├── 01-architecture-and-rendering.md
 │   ├── 02-building-footprints-and-geometry-repairs.md
@@ -136,7 +158,15 @@ houston-building-atlas/
 │   ├── 06-sanborn-maps-and-lost-houston.md
 │   ├── 07-waterways-railroads-permits-and-contractors.md
 │   ├── 08-crowdsourcing-and-admin-operations.md
+│   ├── GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md
 │   └── images/                                # 27 screenshots & raw archival source scans
+├── scripts/
+│   ├── build_test_archetypes.mjs              # Deterministically selects 45 archetypes across 15 classes
+│   └── check_external_links.mjs               # Polite per-host HTTP 200/206 & soft-404 archive crawler
+├── tests/
+│   ├── fixtures/stratified_archetypes.json    # 45 canonical Harris County property & overlay archetypes
+│   ├── unit/                                  # Layer 1 Node.js unit, schema, bundle & URL-validator tests
+│   └── e2e/                                   # Layer 2 Playwright Headless Chromium WebGL & DOM E2E suite
 ├── app/                                       # Static WebGL + PMTiles web application
 │   ├── index.html                             # Main Atlas UI, Modals, Guided Tours & Export Studio
 │   ├── server.py                              # RFC 7233 HTTP 206 Partial Content & HCAD proxy server
