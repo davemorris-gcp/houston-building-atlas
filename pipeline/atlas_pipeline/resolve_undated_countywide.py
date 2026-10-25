@@ -1006,7 +1006,7 @@ def polygon_circularity(ring: list[list[float]]) -> float:
 
 def run_resolve_undated() -> None:
     t0 = time.time()
-    repo_dir = Path(".")
+    repo_dir = Path(__file__).resolve().parents[2]
     cache_dir = repo_dir / "pipeline" / "cache"
     data_dir = repo_dir / "app" / "public" / "data"
     aligned_dir = cache_dir / "aligned_ndjson"

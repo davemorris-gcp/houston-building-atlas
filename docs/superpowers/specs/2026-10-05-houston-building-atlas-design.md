@@ -3,13 +3,13 @@
 **Date:** 2026-10-05  
 **Organization:** Preservation Houston  
 **Author:** Dave Morris (with Superpowers Architectural Design)  
-**Repository:** `houston-building-atlas`
+**Repository:** `https://github.com/davemorris-gcp/houston-building-atlas`
 
 ---
 
 ## 1. Purpose & Goals
 
-The Houston Building Atlas v2 replaces the legacy cloud GIS prototype with a zero-hosting-cost, open-source, GPU-accelerated web mapping application and reproducible geospatial data pipeline.
+The Houston Building Atlas v2 replaces Preservation Houston's legacy cloud GIS prototype with a zero-hosting-cost, open-source, GPU-accelerated web mapping application and reproducible geospatial data pipeline.
 
 ### Key Objectives
 1. **Building Footprint Polygons First:** Display actual building outlines (footprints) color-coded by structure completion year (`year_built`), with an optional toggle to display tax parcel boundaries (`parcels`).

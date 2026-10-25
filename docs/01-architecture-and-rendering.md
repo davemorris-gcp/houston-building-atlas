@@ -6,7 +6,7 @@
 
 ## 1. Replacing Google Earth Engine with a Zero-Cost Open-Source Stack
 
-The original Preservation Houston Building Atlas prototype relied on proprietary hosted cloud GIS vector and feature-view assets paired with a commercial web mapping API frontend. That architecture created three structural bottlenecks:
+The original Preservation Houston Building Atlas prototype relied on cloud-hosted Earth Engine vector and feature-view assets paired with a commercial Maps JavaScript API frontend. That architecture created three structural bottlenecks:
 
 1. **Authentication and Recurring Cloud Costs:** GEE asset serving required active Google Cloud billing, service-account token brokerage, and proprietary `FeatureView` tile quotas.
 2. **Opaque Server-Side Geometry:** Updating a single building date, splitting a merged warehouse polygon, or adding a historic overlay required re-ingesting gigabytes of shapefiles into Google's cloud pipeline.

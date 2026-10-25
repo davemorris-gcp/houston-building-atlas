@@ -34,8 +34,9 @@ def round_coords(geom_dict: dict, decimals: int = 5) -> dict:
   return {'type': geom_dict['type'], 'coordinates': _rc(geom_dict['coordinates'])}
 
 
-CACHE_DIR = 'pipeline/cache'
-DATA_DIR = 'app/public/data'
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CACHE_DIR = os.path.join(REPO_ROOT, 'pipeline', 'cache')
+DATA_DIR = os.path.join(REPO_ROOT, 'app', 'public', 'data')
 
 # Curated historical, colloquial, and constituent subdivision aliases for Houston neighborhoods
 CURATED_NEIGHBORHOOD_ALIASES: dict[str, list[str]] = {

@@ -19,12 +19,9 @@ from typing import Any
 import orjson
 from shapely.geometry import shape
 
-REPO_ROOT = Path(".")
+REPO_ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = REPO_ROOT / "pipeline" / "cache"
 DATA_DIR = REPO_ROOT / "app" / "public" / "data"
-SCRATCH_RAW_PATH = Path(
-    "pipeline/cache/raw_good_brick_awards.json"
-)
 RAW_AWARDS_CACHE_PATH = CACHE_DIR / "raw_good_brick_awards.json"
 SHARD_FOOTPRINTS_CACHE_PATH = CACHE_DIR / "good_brick_shard_footprints.json"
 RESOLVED_JSON_PATH = CACHE_DIR / "good_brick_awards_resolved.json"
@@ -2057,9 +2054,6 @@ def street_words_set(s: str) -> set[str]:
 
 
 def main() -> None:
-    if SCRATCH_RAW_PATH.exists() and not RAW_AWARDS_CACHE_PATH.exists():
-        shutil.copy2(SCRATCH_RAW_PATH, RAW_AWARDS_CACHE_PATH)
-
     raw_entries = json.loads(RAW_AWARDS_CACHE_PATH.read_text(encoding="utf-8"))
 
     # Load curated_overrides.json first (purging any prior Good Brick-only entries so re-runs are idempotent)

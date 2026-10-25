@@ -593,7 +593,7 @@ def build_instructions_rows() -> list[list]:
             "   • GIS Parcels (OpenFileGDB Parcels.gdb): https://download.hcad.org/data/GIS/Parcels.zip\n"
             "   • Real Building & Land CAMA (building_res.txt, building_other.txt, extra_features_detail1/2.txt): https://download.hcad.org/data/CAMA/<YEAR>/Real_building_land.zip\n"
             "   • Real Account & Owner CAMA (real_acct.txt, deeds.txt, permits.txt, parcel_tieback.txt): https://download.hcad.org/data/CAMA/<YEAR>/Real_acct_owner.zip\n\n"
-            "2. Run the Full Pipeline Sequence (in houston-building-atlas):\n"
+            "2. Run the Full Pipeline Sequence (from the houston-building-atlas/pipeline directory):\n"
             "   a) uv run python -m atlas_pipeline.sync_curated_edits           # Pull latest Approved_Edits from Google Sheet\n"
             "   b) uv run python -m atlas_pipeline.full_build                   # Spatial join Parcels.gdb + MSBFP2 + OSM + Tippecanoe 5 PMTiles shards\n"
             "   c) uv run python -m atlas_pipeline.resolve_undated_countywide   # 4-phase resolution so 0 buildings have year_built = 0\n"

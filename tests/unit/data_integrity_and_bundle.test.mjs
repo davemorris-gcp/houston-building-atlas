@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -263,5 +264,58 @@ test("All static external URLs across HTML, JS, and authoritative data catalogs 
     violations,
     [],
     `Found static external URL pattern violations:\n${violations.slice(0, 20).join("\n")}`
+  );
+});
+
+test("Repository contains zero internal corporate proxy URLs, workstation paths, or non-PyPI lockfile mirrors", () => {
+  const uvLockPath = path.join(REPO_ROOT, "pipeline", "uv.lock");
+  assert.ok(fs.existsSync(uvLockPath), "pipeline/uv.lock must exist");
+  const uvLockText = fs.readFileSync(uvLockPath, "utf8");
+  const lockUrls = extractHttpUrlsFromText(uvLockText);
+  assert.ok(lockUrls.length >= 25, `Expected >= 25 package URLs in pipeline/uv.lock, found ${lockUrls.length}`);
+  const nonPublicLockUrls = lockUrls.filter(
+    (u) =>
+      !u.startsWith("https://pypi.org/") &&
+      !u.startsWith("https://files.pythonhosted.org/")
+  );
+  assert.deepEqual(
+    nonPublicLockUrls,
+    [],
+    `pipeline/uv.lock contains non-public PyPI mirror/proxy URLs (use 'uv lock --no-config --default-index https://pypi.org/simple'):\n${nonPublicLockUrls.slice(0, 10).join("\n")}`
+  );
+
+  const binaryExts = new Set([".pmtiles", ".webp", ".pdf", ".png", ".jpg", ".jpeg", ".ico", ".gif", ".woff", ".woff2"]);
+  const selfRelPath = path.relative(REPO_ROOT, fileURLToPath(import.meta.url));
+  const trackedFiles = execFileSync("git", ["ls-files"], { cwd: REPO_ROOT, encoding: "utf8" })
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((s) => s && s !== selfRelPath && !binaryExts.has(path.extname(s).toLowerCase()));
+
+  const forbiddenRules = [
+    { label: "internal .goog host/proxy URL", regex: /https?:\/\/[^\s"'<>]*\.goog\b/i },
+    { label: "internal corporate domain", regex: /\b(?:corp\.google\.com|googleplex\.com|googlers\.com|internal\.google\.com|prod\.google\.com|uplink\.goog)\b/i },
+    { label: "internal package proxy or redirector", regex: /\b(?:airlock-proxy|artifact-foundry|python-3p-limited|uberproxy|grounding-api-redirect|vertexaisearch\.cloud\.google\.com)\b/i },
+    { label: "workstation or internal tool path", regex: /\/usr\/local\/google\b|\/google\/(?:bin|src|data)\b|\.gemini\/jetski\b|\b(?:gemini-agents|blaze-for-agents)\b/i },
+    { label: "legacy sandbox asset path", regex: /\bph-ee-sandbox\b/i },
+  ];
+
+  const violations = [];
+  for (const rel of trackedFiles) {
+    const full = path.join(REPO_ROOT, rel);
+    if (!fs.existsSync(full) || !fs.statSync(full).isFile()) continue;
+    const content = fs.readFileSync(full, "utf8");
+    for (const rule of forbiddenRules) {
+      const m = content.match(rule.regex);
+      if (m) {
+        violations.push(`${rel} [${rule.label}]: ${m[0]}`);
+      }
+    }
+  }
+
+  assert.ok(trackedFiles.length >= 200, `Expected to scan >= 200 tracked text files, scanned ${trackedFiles.length}`);
+  assert.deepEqual(
+    violations,
+    [],
+    `Found internal/non-public corporate references in tracked repository files:\n${violations.slice(0, 25).join("\n")}`
   );
 });

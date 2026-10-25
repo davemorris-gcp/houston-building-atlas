@@ -899,100 +899,65 @@ def select_suspect_candidates(
 def sync_findings_to_google_sheet(
     findings: list[AuditFinding],
     props_by_hcad: dict[str, dict[str, Any]],
-    spreadsheet_id: str,
-    gsheets_bin: str = "gsheets",
+    webhook_url: str,
+    synced_state_path: Path | None = None,
 ) -> int:
-    """Append newly discovered actionable findings to `Pending_Submissions` in Google Sheets."""
-    import subprocess
-    import tempfile
+    """Append newly discovered actionable findings to `Pending_Submissions` via the public Apps Script webhook."""
+    import datetime
+    import os
 
+    target_url = (webhook_url or os.environ.get("ATLAS_MODERATION_WEBHOOK_URL", "")).strip()
     actionable = [f for f in findings if is_actionable_finding(f) and f.suggested_year_built]
-    if not actionable or not Path(gsheets_bin).exists():
+    if not actionable or not target_url:
         return 0
 
-    # Read existing hcad_num values from Pending_Submissions so we never insert duplicates
-    read_cmd = [
-        gsheets_bin,
-        "readonly",
-        "read",
-        spreadsheet_id,
-        "Pending_Submissions!A:B",
-        "--json",
-    ]
-    proc = subprocess.run(read_cmd, capture_output=True, text=True, check=False)
+    state_file = synced_state_path or (Path(__file__).resolve().parents[1] / "cache" / "citydir_synced_hcads.json")
     existing_hcads: set[str] = set()
-    current_row_count = 1
-    if proc.returncode == 0 and proc.stdout.strip():
+    if state_file.exists():
         try:
-            rows = json.loads(proc.stdout)
-            current_row_count = len(rows)
-            for r in rows[1:]:
-                if len(r) > 1 and r[1]:
-                    existing_hcads.add(str(r[1]).strip().zfill(13))
+            loaded = json.loads(state_file.read_text(encoding="utf-8"))
+            if isinstance(loaded, list):
+                existing_hcads.update(str(x).strip().zfill(13) for x in loaded if x)
         except Exception:
             pass
 
-    new_rows: list[list[Any]] = []
-    for item in actionable:
-        hcad_padded = str(item.hcad_num).strip().zfill(13)
-        if hcad_padded in existing_hcads:
-            continue
-        existing_hcads.add(hcad_padded)
-        prop = props_by_hcad.get(item.hcad_num, {})
-        contributing = str(prop.get("contributing", "") or "Contributing").strip()
-        new_rows.append(
-            [
-                "Pending",
-                hcad_padded,
-                item.address,
-                int(item.suggested_year_built or 0),
-                int(item.original_hcad_year or 0),
-                item.historic_district or "Historic Core",
-                contributing,
-                item.source_type,
-                item.source_citation,
-                item.source_url,
-                "Houston City Directory Batch Auditor (1866-1926)",
-                "City Directory Batch Auditor",
-            ]
-        )
+    submitted_count = 0
+    today_iso = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    with httpx.Client(timeout=20.0, follow_redirects=True) as http_client:
+        for item in actionable:
+            hcad_padded = str(item.hcad_num).strip().zfill(13)
+            if hcad_padded in existing_hcads:
+                continue
+            prop = props_by_hcad.get(item.hcad_num, {})
+            contributing = str(prop.get("contributing", "") or "Contributing").strip()
+            payload = {
+                "status": "Pending",
+                "submitted_at": today_iso,
+                "hcad_num": hcad_padded,
+                "address": item.address,
+                "historic_district": item.historic_district or "Historic Core",
+                "contributing": contributing,
+                "hcad_year_built": int(item.original_hcad_year or 0),
+                "suggested_year_built": int(item.suggested_year_built or 0),
+                "source_type": item.source_type,
+                "source_citation": item.source_citation,
+                "source_url": item.source_url,
+                "submitter_name": "City Directory Batch Auditor (1866-1926)",
+            }
+            resp = http_client.post(
+                target_url,
+                content=json.dumps(payload),
+                headers={"Content-Type": "text/plain;charset=utf-8"},
+            )
+            if resp.status_code < 400:
+                existing_hcads.add(hcad_padded)
+                submitted_count += 1
 
-    if not new_rows:
-        return 0
+    if submitted_count > 0:
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        state_file.write_text(json.dumps(sorted(existing_hcads), indent=2), encoding="utf-8")
 
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as tmp:
-        json.dump(
-            [{"op": "append", "range": "Pending_Submissions!A1", "data": new_rows}],
-            tmp,
-        )
-        tmp_path = tmp.name
-
-    try:
-        subprocess.run(
-            [gsheets_bin, "mutate", "batch", spreadsheet_id, "-f", tmp_path, "--value-input", "RAW"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        total_rows = current_row_count + len(new_rows)
-        subprocess.run(
-            [
-                gsheets_bin,
-                "mutate",
-                "data-validation",
-                spreadsheet_id,
-                f"Pending_Submissions!A2:A{max(500, total_rows + 50)}",
-                "--values",
-                "Approved,Pending,Rejected",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    finally:
-        Path(tmp_path).unlink(missing_ok=True)
-
-    return len(new_rows)
+    return submitted_count
 
 
 def main() -> None:
@@ -1054,10 +1019,10 @@ def main() -> None:
         help="Also query adjacent house numbers (+-2, +-4) when a 1920-dated house is absent.",
     )
     parser.add_argument(
-        "--sync-sheet-id",
+        "--webhook-url",
         type=str,
         default="",
-        help="Optional Google Sheet ID to incrementally append Pending findings into Pending_Submissions.",
+        help="Optional public Google Apps Script webhook URL (or ATLAS_MODERATION_WEBHOOK_URL) to append Pending findings.",
     )
     parser.add_argument(
         "--sync-every",
@@ -1134,18 +1099,17 @@ def main() -> None:
 
             if args.sync_every > 0 and (idx % args.sync_every == 0 or idx == len(props_list)):
                 export_findings_to_csv(findings, args.output_csv)
-                if args.sync_sheet_id:
-                    added = sync_findings_to_google_sheet(
-                        findings,
-                        props_by_hcad=props_by_hcad,
-                        spreadsheet_id=args.sync_sheet_id,
+                added = sync_findings_to_google_sheet(
+                    findings,
+                    props_by_hcad=props_by_hcad,
+                    webhook_url=args.webhook_url,
+                )
+                if added > 0:
+                    total_synced += added
+                    print(
+                        f"  --> Synced +{added} new Pending row(s) via moderation webhook (total added this run: {total_synced})",
+                        flush=True,
                     )
-                    if added > 0:
-                        total_synced += added
-                        print(
-                            f"  --> Synced +{added} new Pending row(s) to Google Sheet (total added this run: {total_synced})",
-                            flush=True,
-                        )
 
         export_findings_to_csv(findings, args.output_csv)
         print(

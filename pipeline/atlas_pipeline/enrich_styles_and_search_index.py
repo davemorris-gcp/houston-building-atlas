@@ -5,7 +5,7 @@ import glob
 import json
 import os
 
-ROOT = "."
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SEARCH_INDEX_PATH = os.path.join(ROOT, "app/public/data/search_index.json")
 BUILDINGS_PATH = os.path.join(ROOT, "app/public/data/buildings.geojson")
 OVERRIDES_PATH = os.path.join(ROOT, "app/public/data/curated_overrides.json")

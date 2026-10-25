@@ -31,7 +31,7 @@ import re
 import zipfile
 from pathlib import Path
 
-ROOT_DIR = Path(".")
+ROOT_DIR = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT_DIR / "pipeline" / "cache"
 DATA_DIR = ROOT_DIR / "app" / "public" / "data"
 PERMITS_DIR = DATA_DIR / "permits"

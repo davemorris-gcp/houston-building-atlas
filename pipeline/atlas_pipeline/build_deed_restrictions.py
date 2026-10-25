@@ -19,10 +19,11 @@ import datetime
 import json
 import os
 import re
+from pathlib import Path
 from shapely.geometry import shape, mapping
 from shapely.strtree import STRtree
 
-ROOT_DIR = "."
+ROOT_DIR = str(Path(__file__).resolve().parents[2])
 CACHE_DIR = os.path.join(ROOT_DIR, "pipeline", "cache")
 DATA_DIR = os.path.join(ROOT_DIR, "app", "public", "data")
 
