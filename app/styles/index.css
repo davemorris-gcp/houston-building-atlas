@@ -8552,3 +8552,333 @@ body {
   font-size: 11px;
   color: #94a3b8;
 }
+
+/* ============================================================================
+   Priority #3: 1915 Red Book of Houston & 1937 HOLC Security Grades
+   ============================================================================ */
+.red-book-subfilter-row,
+.holc-subfilter-row {
+  margin: 2px 0 8px 22px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: rgba(15, 23, 42, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.red-book-subfilter-row.hidden,
+.holc-subfilter-row.hidden {
+  display: none !important;
+}
+
+.rb-filter-pills,
+.holc-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rb-filter-pill,
+.holc-filter-pill {
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(30, 41, 59, 0.72);
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 6.5px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.13s ease;
+}
+
+.rb-filter-pill:hover,
+.holc-filter-pill:hover {
+  border-color: rgba(248, 250, 252, 0.55);
+  color: #ffffff;
+}
+
+.rb-filter-pill.active {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(251, 191, 36, 0.78);
+  color: #fef3c7;
+}
+
+.holc-filter-pill.active {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(248, 113, 113, 0.78);
+  color: #fee2e2;
+}
+
+.holc-filter-pill[data-holc-grade="A"].active {
+  background: rgba(34, 197, 94, 0.24);
+  border-color: rgba(74, 222, 128, 0.8);
+  color: #dcfce7;
+}
+
+.holc-filter-pill[data-holc-grade="B"].active {
+  background: rgba(56, 189, 248, 0.24);
+  border-color: rgba(125, 211, 252, 0.8);
+  color: #e0f2fe;
+}
+
+.holc-filter-pill[data-holc-grade="C"].active {
+  background: rgba(250, 204, 21, 0.24);
+  border-color: rgba(253, 224, 71, 0.8);
+  color: #fef9c3;
+}
+
+.holc-filter-pill[data-holc-grade="D"].active {
+  background: rgba(239, 68, 68, 0.26);
+  border-color: rgba(248, 113, 113, 0.85);
+  color: #fee2e2;
+}
+
+.rb-survival-mini-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  font-size: 9.8px;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.rb-survival-mini-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.holc-drape-scan-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 10.5px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: rgba(212, 163, 115, 0.16);
+  border: 1px solid rgba(212, 163, 115, 0.48);
+  color: #fde68a;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  transition: all 0.13s ease;
+}
+
+.holc-drape-scan-btn:hover {
+  background: rgba(212, 163, 115, 0.28);
+  border-color: rgba(253, 230, 138, 0.8);
+  color: #ffffff;
+}
+
+.red-book-heritage-card {
+  margin: 10px 0;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: linear-gradient(155deg, rgba(120, 53, 15, 0.28), rgba(15, 23, 42, 0.88));
+  border: 1px solid rgba(245, 158, 11, 0.48);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.red-book-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.red-book-card-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fcd34d;
+}
+
+.red-book-entry-item {
+  padding: 8px 9px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.62);
+  border: 1px solid rgba(251, 191, 36, 0.24);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.red-book-entry-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fef3c7;
+  line-height: 1.3;
+}
+
+.red-book-entry-meta {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.38;
+}
+
+.red-book-photo-wrap {
+  margin: 6px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.red-book-photo-thumb {
+  width: 100%;
+  max-height: 210px;
+  object-fit: contain;
+  display: block;
+  background: #0f172a;
+}
+
+.holc-grade-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  cursor: pointer;
+}
+
+.holc-grade-chip.grade-A {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(74, 222, 128, 0.65);
+  color: #bbf7d0;
+}
+
+.holc-grade-chip.grade-B {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(125, 211, 252, 0.65);
+  color: #bae6fd;
+}
+
+.holc-grade-chip.grade-C {
+  background: rgba(250, 204, 21, 0.18);
+  border-color: rgba(253, 224, 71, 0.65);
+  color: #fef08a;
+}
+
+.holc-grade-chip.grade-D {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(248, 113, 113, 0.72);
+  color: #fecaca;
+}
+
+.holc-thermal-banner {
+  margin: 8px 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.36), rgba(30, 41, 59, 0.78));
+  border: 1px solid rgba(248, 113, 113, 0.42);
+  font-size: 11.2px;
+  line-height: 1.42;
+  color: #f1f5f9;
+}
+
+.holc-comparison-table-wrap {
+  margin-top: 8px;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.56);
+}
+
+.holc-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.2px;
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  color: #cbd5e1;
+}
+
+.holc-comparison-table th {
+  text-align: right;
+  padding: 4px 2.5px;
+  font-size: 8.8px;
+  font-weight: 700;
+  color: #94a3b8;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+  white-space: nowrap;
+}
+
+.holc-comparison-table th:first-child,
+.holc-comparison-table td:first-child {
+  text-align: left;
+  padding-left: 4px;
+}
+
+.holc-comparison-table th:last-child,
+.holc-comparison-table td:last-child {
+  padding-right: 4px;
+}
+
+.holc-comparison-table td {
+  text-align: right;
+  padding: 4px 2.5px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  white-space: nowrap;
+}
+
+.holc-comparison-table tr.is-active-grade {
+  background: rgba(255, 255, 255, 0.11);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.lost-houston-site-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.lost-houston-site-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 10.8px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  cursor: pointer;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  color: #fef3c7;
+  transition: all 0.14s ease;
+}
+
+.lost-houston-site-btn:hover {
+  background: rgba(245, 158, 11, 0.34);
+  border-color: rgba(254, 243, 199, 0.85);
+  color: #ffffff;
+}
+
+.lost-houston-site-btn.secondary {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.38);
+  color: #e2e8f0;
+}
+
+.lost-houston-site-btn.secondary:hover {
+  background: rgba(51, 65, 85, 0.9);
+  border-color: rgba(226, 232, 240, 0.72);
+  color: #ffffff;
+}
+

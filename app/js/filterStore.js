@@ -28,6 +28,8 @@ export const DEFAULT_FILTER_STATE = {
   wardEra: 1903, // 1839 | 1866 | 1896 | 1903 (1903-1905 Final Aldermanic Charter)
   showAnnexationSpokes: true, // include 1963 10-ft highway ETJ spokes & 2000s-2010s MUD SPA commercial strips
   landmarkFilter: "all", // 'all' | 'protected' (286 PLM + LM-in-HD) | 'waiver_lm' (223 90-day waiver LMs)
+  redBookCategory: "all", // 'all' | 'church' | 'school' | 'business' | 'residence'
+  holcGradeFilter: "all", // 'all' | 'A' | 'B' | 'C' | 'D'
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
   layers: {
     permitWatch: true,
@@ -41,6 +43,8 @@ export const DEFAULT_FILTER_STATE = {
     nrhpProperties: false,
     thcMarkers: false,
     culturalDistricts: false,
+    redBook1915: false,
+    holc1937: false,
     neighborhoods: false,
     plattedSubdivisions: false,
     landUseProtections: false,
@@ -286,6 +290,37 @@ export function buildLandmarksFilterExpression(state, isoIds = null) {
   return ["all", ...clauses];
 }
 
+/**
+ * Compile a MapLibre filter expression for the 1915 Red Book of Houston layer
+ * based on `redBookCategory` ('all' | 'church' | 'school' | 'business' | 'residence')
+ * and optional isolation ID list.
+ */
+export function buildRedBookFilterExpression(state, isoIds = null) {
+  const cat = String(state?.redBookCategory || "all").trim().toLowerCase();
+  const clauses = [];
+  if (cat === "church" || cat === "school" || cat === "business" || cat === "residence") {
+    clauses.push(["==", ["coalesce", ["get", "category"], ""], cat]);
+  }
+  if (Array.isArray(isoIds)) {
+    clauses.push(["in", ["coalesce", ["get", "id"], ""], ["literal", isoIds]]);
+  }
+  if (!clauses.length) return null;
+  if (clauses.length === 1) return clauses[0];
+  return ["all", ...clauses];
+}
+
+/**
+ * Compile a MapLibre filter expression for the 1937 HOLC Neighborhood Security Zones layer
+ * based on `holcGradeFilter` ('all' | 'A' | 'B' | 'C' | 'D').
+ */
+export function buildHolcZonesFilterExpression(state) {
+  const grade = String(state?.holcGradeFilter || "all").trim().toUpperCase();
+  if (grade === "A" || grade === "B" || grade === "C" || grade === "D") {
+    return ["==", ["coalesce", ["get", "holc_grade"], ""], grade];
+  }
+  return null;
+}
+
 function layersMatchDefault(layers) {
   if (!layers) return true;
   const def = DEFAULT_FILTER_STATE.layers;
@@ -304,6 +339,8 @@ const LAYER_KEY_TO_SHORT = {
   nrhpProperties: "nrhp_properties",
   thcMarkers: "thc_markers",
   culturalDistricts: "cultural_districts",
+  redBook1915: "red_book",
+  holc1937: "holc_zones",
   neighborhoods: "neighborhoods",
   plattedSubdivisions: "platted_subdivisions",
   landUseProtections: "land_use_protections",
@@ -364,6 +401,16 @@ const SHORT_TO_LAYER_KEY = {
   cultural_districts: "culturalDistricts",
   cultural: "culturalDistricts",
   arts_districts: "culturalDistricts",
+  red_book: "redBook1915",
+  redbook: "redBook1915",
+  red_book_1915: "redBook1915",
+  redbook1915: "redBook1915",
+  holc: "holc1937",
+  holc_1937: "holc1937",
+  holc1937: "holc1937",
+  holc_zones: "holc1937",
+  holc_1937_zones: "holc1937",
+  redlining: "holc1937",
   neighborhoods: "neighborhoods",
   neighborhood: "neighborhoods",
   nbhd: "neighborhoods",
@@ -668,6 +715,20 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   ) {
     params.set("lmFilter", String(state.landmarkFilter));
   }
+  if (
+    state.layers?.redBook1915 &&
+    state.redBookCategory &&
+    state.redBookCategory !== "all"
+  ) {
+    params.set("rbCat", String(state.redBookCategory));
+  }
+  if (
+    state.layers?.holc1937 &&
+    state.holcGradeFilter &&
+    state.holcGradeFilter !== "all"
+  ) {
+    params.set("holcGrade", String(state.holcGradeFilter));
+  }
 
   if (state.isolatedBoundary && (state.isolatedBoundary.id || state.isolatedBoundary.name)) {
     const isoLayer = state.isolatedBoundary.layerKey || "neighborhoods";
@@ -888,6 +949,39 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.landmarkFilter = rawLmFilter;
   } else if (rawLmFilter === "vulnerable" || rawLmFilter === "waiver") {
     patch.landmarkFilter = "waiver_lm";
+  }
+  const rawRbCat = (
+    mergedParams.get("rbCat") ||
+    mergedParams.get("redBookCategory") ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  if (
+    rawRbCat === "church" ||
+    rawRbCat === "school" ||
+    rawRbCat === "business" ||
+    rawRbCat === "residence" ||
+    rawRbCat === "all"
+  ) {
+    patch.redBookCategory = rawRbCat;
+  }
+  const rawHolcGrade = (
+    mergedParams.get("holcGrade") ||
+    mergedParams.get("holcGradeFilter") ||
+    ""
+  )
+    .trim()
+    .toUpperCase();
+  if (
+    rawHolcGrade === "A" ||
+    rawHolcGrade === "B" ||
+    rawHolcGrade === "C" ||
+    rawHolcGrade === "D"
+  ) {
+    patch.holcGradeFilter = rawHolcGrade;
+  } else if (rawHolcGrade === "ALL") {
+    patch.holcGradeFilter = "all";
   }
 
   // Isolated Boundary (`isolate` & `isoMode`)
@@ -1321,6 +1415,8 @@ export function createFilterStore(initialOverrides = {}) {
       maxYear: 2026,
       selectedDecade: "all",
       showUnknownYears: true,
+      redBookCategory: "all",
+      holcGradeFilter: "all",
       isPlaying: false,
     });
   }

@@ -16,12 +16,14 @@ import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
   buildHistoricWardFilterExpression,
+  buildHolcZonesFilterExpression,
   buildLandmarksFilterExpression,
   buildLostHoustonFilterExpression,
+  buildRedBookFilterExpression,
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261024a";
+} from "./filterStore.js?v=20261025d";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
@@ -271,7 +273,7 @@ export class AtlasMapController {
     ] = await Promise.all([
       fetch("public/data/buildings.geojson?v=20261024a"),
       fetch("public/data/parcels.geojson?v=20261011c"),
-      fetch("public/data/overlays.json?v=20261024a"),
+      fetch("public/data/overlays.json?v=20261025d"),
       fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
       loadCuratedOverrides(),
       fetch("public/data/active_permit_alerts.json?v=20261023g").catch(() => null),
@@ -328,6 +330,9 @@ export class AtlasMapController {
     this.landmarksByBldId = new Map();
     this.nrhpPropertiesByHcad = new Map();
     this.nrhpPropertiesByBldId = new Map();
+    this.redBookById = new Map();
+    this.redBookByHcad = new Map();
+    this.redBookByBldId = new Map();
 
     for (const feat of overlays?.landmarks?.features || []) {
       const p = feat?.properties;
@@ -361,6 +366,68 @@ export class AtlasMapController {
         this.nrhpPropertiesByBldId.set(bldId, p);
       }
     }
+
+    const pushRb = (mapObj, key, propsObj) => {
+      if (!key) return;
+      const arr = mapObj.get(key) || [];
+      arr.push(propsObj);
+      mapObj.set(key, arr);
+    };
+    for (const feat of overlays?.red_book_1915?.features || []) {
+      const p = feat?.properties;
+      if (!p) continue;
+      const rbId = String(p.id || "").trim();
+      if (rbId) {
+        this.redBookById.set(rbId, feat);
+      }
+      const hcad = String(p.hcad_num || "").trim();
+      const bldId = String(p.building_id || "").trim();
+      if (hcad) pushRb(this.redBookByHcad, hcad, p);
+      if (bldId) pushRb(this.redBookByBldId, bldId, p);
+    }
+    const sortRbList = (arr) =>
+      arr.sort((a, b) => {
+        const sa = a.survival_status === "surviving_era_structure" ? 0 : 1;
+        const sb = b.survival_status === "surviving_era_structure" ? 0 : 1;
+        return sa - sb;
+      });
+    for (const arr of this.redBookByHcad.values()) sortRbList(arr);
+    for (const arr of this.redBookByBldId.values()) sortRbList(arr);
+  }
+
+  getRedBookFeatureById(rbId) {
+    const clean = String(rbId || "").trim();
+    if (!clean) return null;
+    return this.redBookById?.get(clean) || null;
+  }
+
+  getRedBookEntriesForBuilding({ hcadNum = "", buildingId = "" } = {}) {
+    const out = [];
+    const seen = new Set();
+    const addAll = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const item of list) {
+        const k = String(item?.id || item?.name || "");
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        out.push(item);
+      }
+    };
+    const cleanBld = String(buildingId || "").trim();
+    const cleanHcad = String(hcadNum || "").trim();
+    if (cleanBld && this.redBookByBldId?.has(cleanBld)) {
+      addAll(this.redBookByBldId.get(cleanBld));
+    }
+    if (cleanHcad && this.redBookByHcad?.has(cleanHcad)) {
+      addAll(this.redBookByHcad.get(cleanHcad));
+    }
+    if (cleanBld.includes("#")) {
+      const prefixHcad = cleanBld.split("#")[0].trim();
+      if (prefixHcad && this.redBookByHcad?.has(prefixHcad)) {
+        addAll(this.redBookByHcad.get(prefixHcad));
+      }
+    }
+    return out;
   }
 
   getLandmarkForBuilding({ hcadNum = "", buildingId = "" } = {}) {
@@ -1216,6 +1283,18 @@ export class AtlasMapController {
       type: "geojson",
       data: this._buildLabelPointsFeatureCollection(overlays.cultural_districts),
     });
+    this.map.addSource("holc-1937-zones-src", {
+      type: "geojson",
+      data: overlays.holc_1937_zones || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("holc-1937-zones-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.holc_1937_zones),
+    });
+    this.map.addSource("red-book-1915-src", {
+      type: "geojson",
+      data: overlays.red_book_1915 || { type: "FeatureCollection", features: [] },
+    });
     this.map.addSource("nrhp-properties-src", {
       type: "geojson",
       data: overlays.nrhp_properties || { type: "FeatureCollection", features: [] },
@@ -1278,6 +1357,8 @@ export class AtlasMapController {
     const wardFilterExpr = buildHistoricWardFilterExpression(state);
     const annexFilterExpr = buildAnnexationFilterExpression(state);
     const lostHoustonFilterExpr = buildLostHoustonFilterExpression(state);
+    const holcFilterExpr = buildHolcZonesFilterExpression(state);
+    const redBookFilterExpr = buildRedBookFilterExpression(state, null);
 
     this.map.addLayer({
       id: "annexations-fill",
@@ -1345,6 +1426,53 @@ export class AtlasMapController {
         "line-color": ["coalesce", ["get", "color"], "#FB923C"],
         "line-width": 2.4,
         "line-opacity": 0.9,
+      },
+    });
+    this.map.addLayer({
+      id: "holc-1937-zones-fill",
+      type: "fill",
+      source: "holc-1937-zones-src",
+      ...(holcFilterExpr ? { filter: holcFilterExpr } : {}),
+      layout: { visibility: state.layers?.holc1937 ? "visible" : "none" },
+      paint: {
+        "fill-color": [
+          "match",
+          ["get", "holc_grade"],
+          "A",
+          "#22C55E",
+          "B",
+          "#38BDF8",
+          "C",
+          "#FACC15",
+          "D",
+          "#EF4444",
+          "#94A3B8",
+        ],
+        "fill-opacity": 0.17,
+      },
+    });
+    this.map.addLayer({
+      id: "holc-1937-zones-line",
+      type: "line",
+      source: "holc-1937-zones-src",
+      ...(holcFilterExpr ? { filter: holcFilterExpr } : {}),
+      layout: { visibility: state.layers?.holc1937 ? "visible" : "none" },
+      paint: {
+        "line-color": [
+          "match",
+          ["get", "holc_grade"],
+          "A",
+          "#4ADE80",
+          "B",
+          "#7DD3FC",
+          "C",
+          "#FDE047",
+          "D",
+          "#F87171",
+          "#CBD5E1",
+        ],
+        "line-width": 2.3,
+        "line-opacity": 0.92,
       },
     });
     this.map.addLayer({
@@ -2320,6 +2448,98 @@ export class AtlasMapController {
       },
     });
     this.map.addLayer({
+      id: "red-book-1915-glow",
+      type: "circle",
+      source: "red-book-1915-src",
+      filter: redBookFilterExpr
+        ? ["all", ["==", ["get", "survival_status"], "surviving_era_structure"], redBookFilterExpr]
+        : ["==", ["get", "survival_status"], "surviving_era_structure"],
+      layout: { visibility: state.layers?.redBook1915 ? "visible" : "none" },
+      paint: {
+        "circle-radius": 10.8,
+        "circle-color": [
+          "match",
+          ["get", "category"],
+          "church",
+          "#F59E0B",
+          "school",
+          "#38BDF8",
+          "business",
+          "#FB7185",
+          "residence",
+          "#C084FC",
+          "#F59E0B",
+        ],
+        "circle-opacity": 0.36,
+        "circle-blur": 0.45,
+      },
+    });
+    this.map.addLayer({
+      id: "red-book-1915-circle",
+      type: "circle",
+      source: "red-book-1915-src",
+      ...(redBookFilterExpr ? { filter: redBookFilterExpr } : {}),
+      layout: { visibility: state.layers?.redBook1915 ? "visible" : "none" },
+      paint: {
+        "circle-radius": [
+          "match",
+          ["get", "survival_status"],
+          "surviving_era_structure",
+          6.5,
+          "rebuilt_later_structure",
+          5.4,
+          4.8,
+        ],
+        "circle-color": [
+          "case",
+          ["==", ["get", "survival_status"], "cleared_or_row"],
+          "#334155",
+          [
+            "match",
+            ["get", "category"],
+            "church",
+            "#F59E0B",
+            "school",
+            "#38BDF8",
+            "business",
+            "#FB7185",
+            "residence",
+            "#C084FC",
+            "#F59E0B",
+          ],
+        ],
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "survival_status"], "surviving_era_structure"],
+          "#FEF3C7",
+          ["==", ["get", "survival_status"], "cleared_or_row"],
+          [
+            "match",
+            ["get", "category"],
+            "church",
+            "#F59E0B",
+            "school",
+            "#38BDF8",
+            "business",
+            "#FB7185",
+            "residence",
+            "#C084FC",
+            "#94A3B8",
+          ],
+          "#0F172A",
+        ],
+        "circle-stroke-width": [
+          "match",
+          ["get", "survival_status"],
+          "surviving_era_structure",
+          2.2,
+          "cleared_or_row",
+          1.8,
+          1.6,
+        ],
+      },
+    });
+    this.map.addLayer({
       id: "relocated-structures-glow",
       type: "circle",
       source: "relocated-structures-src",
@@ -2620,6 +2840,46 @@ export class AtlasMapController {
         "text-color": "#FDE68A",
         "text-halo-color": "rgba(11, 15, 23, 0.94)",
         "text-halo-width": 2.1,
+      },
+    });
+    this.map.addLayer({
+      id: "holc-1937-zones-label",
+      type: "symbol",
+      source: "holc-1937-zones-labels-src",
+      ...(holcFilterExpr ? { filter: holcFilterExpr } : {}),
+      minzoom: 10.8,
+      layout: {
+        visibility: state.layers?.holc1937 ? "visible" : "none",
+        "text-field": [
+          "concat",
+          "HOLC ",
+          ["coalesce", ["get", "zone_code"], ""],
+          " (",
+          ["coalesce", ["get", "grade_short"], ["get", "holc_grade"], ""],
+          ")\n",
+          ["coalesce", ["get", "area_title"], ""],
+        ],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 10.8, 10.2, 14.5, 13.5],
+        "text-max-width": 10,
+        "text-padding": 5,
+      },
+      paint: {
+        "text-color": [
+          "match",
+          ["get", "holc_grade"],
+          "A",
+          "#86EFAC",
+          "B",
+          "#BAE6FD",
+          "C",
+          "#FEF08A",
+          "D",
+          "#FECACA",
+          "#E2E8F0",
+        ],
+        "text-halo-color": "rgba(11, 15, 23, 0.94)",
+        "text-halo-width": 2.0,
       },
     });
     this.map.addLayer({
@@ -3919,7 +4179,32 @@ export class AtlasMapController {
         }
       }
 
-      // 3b. Historic Wards (1839-1905), COH Super Neighborhoods (88), and Neighborhoods (1,387)
+      // 3b. Historic Wards (1839-1905), 1937 HOLC Security Zones (47), COH Super Neighborhoods (88), and Neighborhoods (1,387)
+      if (state.layers.holc1937 && this.overlaysData?.holc_1937_zones) {
+        const activeHolcGrade = String(state.holcGradeFilter || "all").trim().toUpperCase();
+        for (const feat of this.overlaysData.holc_1937_zones.features || []) {
+          const p = feat.properties || {};
+          const g = String(p.holc_grade || "").toUpperCase();
+          if (activeHolcGrade !== "ALL" && g !== activeHolcGrade) continue;
+          const fill =
+            g === "A"
+              ? "rgba(34, 197, 94, 0.16)"
+              : g === "B"
+              ? "rgba(56, 189, 248, 0.16)"
+              : g === "C"
+              ? "rgba(250, 204, 21, 0.16)"
+              : "rgba(239, 68, 68, 0.18)";
+          const stroke =
+            g === "A"
+              ? "#4ADE80"
+              : g === "B"
+              ? "#7DD3FC"
+              : g === "C"
+              ? "#FDE047"
+              : "#F87171";
+          drawPolygonFeature(feat.geometry, fill, stroke, 2.2);
+        }
+      }
       if (state.layers.historicWards && this.overlaysData?.historic_wards) {
         const targetEra = resolveActiveWardEra(state);
         for (const feat of this.overlaysData.historic_wards.features || []) {
@@ -4273,6 +4558,54 @@ export class AtlasMapController {
           maxX: sx + 8,
           maxY: sy + 8,
           props: feat.properties,
+          geom: feat.geometry,
+        });
+      }
+    }
+
+    // 6c. 1915 Red Book of Houston (970 African American Heritage Sites)
+    if (allowPointMarkers && state.layers.redBook1915 && this.overlaysData?.red_book_1915) {
+      const rbCatFilter = String(state.redBookCategory || "all").trim().toLowerCase();
+      for (const feat of this.overlaysData.red_book_1915.features || []) {
+        const rp = feat.properties || {};
+        if (rbCatFilter !== "all" && String(rp.category || "").toLowerCase() !== rbCatFilter) {
+          continue;
+        }
+        const coords = feat.geometry?.coordinates;
+        if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
+        const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
+        if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+        const cat = String(rp.category || "residence");
+        const catColor =
+          cat === "church"
+            ? "#F59E0B"
+            : cat === "school"
+            ? "#38BDF8"
+            : cat === "business"
+            ? "#FB7185"
+            : "#C084FC";
+        const isSurviving = rp.survival_status === "surviving_era_structure";
+        const isCleared = rp.survival_status === "cleared_or_row";
+        if (isSurviving) {
+          ctx.beginPath();
+          ctx.arc(sx, sy, 9.8, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(245, 158, 11, 0.28)";
+          ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.arc(sx, sy, isSurviving ? 6.2 : isCleared ? 4.7 : 5.3, 0, Math.PI * 2);
+        ctx.fillStyle = isCleared ? "#334155" : catColor;
+        ctx.fill();
+        ctx.lineWidth = isSurviving ? 2.1 : 1.6;
+        ctx.strokeStyle = isSurviving ? "#FEF3C7" : isCleared ? catColor : "#0F172A";
+        ctx.stroke();
+        cs.renderedBBoxes.push({
+          minX: sx - 8,
+          minY: sy - 8,
+          maxX: sx + 8,
+          maxY: sy + 8,
+          props: { ...rp, overlay_layer: "red_book_1915", is_boundary_feature: true },
           geom: feat.geometry,
         });
       }
@@ -4651,6 +4984,8 @@ export class AtlasMapController {
       p.overlay_layer === "nrhp_districts" ||
       p.overlay_layer === "potential_historic_districts" ||
       p.overlay_layer === "cultural_districts" ||
+      p.overlay_layer === "holc_1937_zones" ||
+      p.overlay_layer === "red_book_1915" ||
       p.overlay_layer === "historical_waterways" ||
       p.overlay_layer === "historical_railroads" ||
       p.type === "Neighborhood / Historic Area" ||
@@ -4735,12 +5070,33 @@ export class AtlasMapController {
           : "2019 Surveyed Potential Historic District";
       } else if (p.overlay_layer === "cultural_districts") {
         badge = "State-Recognized Cultural District";
+      } else if (p.overlay_layer === "holc_1937_zones") {
+        badge = `1937 HOLC ${p.zone_code || ""} · ${p.grade_label || `Grade ${p.holc_grade || ""}`}`;
+      } else if (p.overlay_layer === "red_book_1915") {
+        badge = `1915 Red Book · ${p.category_label || "Heritage Site"}`;
       }
       const statParts = [];
       if (p.overlay_layer === "lost_houston") {
         if (p.address) statParts.push(p.address);
         if (p.architect) statParts.push(p.architect);
         if (p.replaced_by) statParts.push(`Site now: ${p.replaced_by}`);
+      } else if (p.overlay_layer === "red_book_1915") {
+        if (p.historic_address_1915) statParts.push(`1915: ${p.historic_address_1915}`);
+        if (p.subtitle) statParts.push(p.subtitle);
+        if (p.survival_label) statParts.push(p.survival_label);
+      } else if (p.overlay_layer === "holc_1937_zones") {
+        if (Number(p.building_count) > 0) {
+          statParts.push(`${Number(p.building_count).toLocaleString()} structures`);
+        }
+        if (Number(p.pre_1938_count) > 0) {
+          statParts.push(`${Number(p.pre_1938_count).toLocaleString()} pre-1938`);
+        }
+        if (Number(p.red_book_1915_count) > 0) {
+          statParts.push(`${Number(p.red_book_1915_count)} 1915 Red Book sites`);
+        }
+        if (Number.isFinite(Number(p.af_temp_f)) && Number(p.af_temp_f) > 0) {
+          statParts.push(`Heat Watch ${Number(p.af_temp_f).toFixed(1)} °F`);
+        }
       } else if (p.overlay_layer === "historical_waterways") {
         if (p.status) statParts.push(p.status);
         if (p.era_notes) statParts.push(p.era_notes);
@@ -5143,6 +5499,10 @@ export class AtlasMapController {
       allowIsoMarkers && Boolean(state.layers.nrhpProperties)
     );
     setVis(["thc-markers-circle"], allowIsoMarkers && Boolean(state.layers.thcMarkers));
+    setVis(
+      ["red-book-1915-glow", "red-book-1915-circle"],
+      allowIsoMarkers && Boolean(state.layers?.redBook1915)
+    );
 
     if (isoGeom && allowIsoMarkers) {
       const isoBBox = iso.bbox || null;
@@ -5166,12 +5526,16 @@ export class AtlasMapController {
       const thcNums = (this.overlaysData?.thc_markers?.features || [])
         .filter((f) => inIso(f.geometry?.coordinates))
         .map((f) => String(f.properties?.marker_num || f.properties?.id || ""));
+      const rbIds = (this.overlaysData?.red_book_1915?.features || [])
+        .filter((f) => inIso(f.geometry?.coordinates))
+        .map((f) => String(f.properties?.id || ""));
       const pwIds = (this.permitAlertsFC?.features || [])
         .filter((f) => inIso(f.geometry?.coordinates))
         .map((f) => String(f.properties?.id || f.properties?.hcad_num || ""));
 
       const gbFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", gbIds]];
       const lmFilter = buildLandmarksFilterExpression(state, lmIds);
+      const rbFilter = buildRedBookFilterExpression(state, rbIds);
       const nrhpIsoFilter = ["in", ["coalesce", ["get", "id"], ["get", "refnum"], ""], ["literal", nrhpIds]];
       const thcFilter = [
         "in",
@@ -5183,6 +5547,17 @@ export class AtlasMapController {
       if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", gbFilter);
       if (this.map.getLayer("landmarks-waiver-ring")) this.map.setFilter("landmarks-waiver-ring", lmFilter);
       if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", lmFilter);
+      if (this.map.getLayer("red-book-1915-glow")) {
+        this.map.setFilter(
+          "red-book-1915-glow",
+          rbFilter
+            ? ["all", ["==", ["get", "survival_status"], "surviving_era_structure"], rbFilter]
+            : ["==", ["get", "survival_status"], "surviving_era_structure"]
+        );
+      }
+      if (this.map.getLayer("red-book-1915-circle")) {
+        this.map.setFilter("red-book-1915-circle", rbFilter);
+      }
       if (this.map.getLayer("nrhp-properties-glow")) {
         this.map.setFilter("nrhp-properties-glow", [
           "all",
@@ -5197,10 +5572,22 @@ export class AtlasMapController {
       if (this.map.getLayer("permit-watch-circle")) this.map.setFilter("permit-watch-circle", pwFilter);
     } else if (!isoGeom) {
       const lmFilter = buildLandmarksFilterExpression(state, null);
+      const rbFilter = buildRedBookFilterExpression(state, null);
       if (this.map.getLayer("good-brick-glow")) this.map.setFilter("good-brick-glow", null);
       if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", null);
       if (this.map.getLayer("landmarks-waiver-ring")) this.map.setFilter("landmarks-waiver-ring", lmFilter);
       if (this.map.getLayer("landmarks-circle")) this.map.setFilter("landmarks-circle", lmFilter);
+      if (this.map.getLayer("red-book-1915-glow")) {
+        this.map.setFilter(
+          "red-book-1915-glow",
+          rbFilter
+            ? ["all", ["==", ["get", "survival_status"], "surviving_era_structure"], rbFilter]
+            : ["==", ["get", "survival_status"], "surviving_era_structure"]
+        );
+      }
+      if (this.map.getLayer("red-book-1915-circle")) {
+        this.map.setFilter("red-book-1915-circle", rbFilter);
+      }
       if (this.map.getLayer("nrhp-properties-glow")) {
         this.map.setFilter("nrhp-properties-glow", [
           "!",
@@ -5242,6 +5629,23 @@ export class AtlasMapController {
       ],
       !isoGeom && Boolean(state.layers?.culturalDistricts)
     );
+    const showHolc = !isoGeom && Boolean(state.layers?.holc1937);
+    setVis(
+      ["holc-1937-zones-fill", "holc-1937-zones-line", "holc-1937-zones-label"],
+      showHolc
+    );
+    if (showHolc) {
+      const holcFilter = buildHolcZonesFilterExpression(state);
+      for (const hLayer of [
+        "holc-1937-zones-fill",
+        "holc-1937-zones-line",
+        "holc-1937-zones-label",
+      ]) {
+        if (this.map.getLayer(hLayer)) {
+          this.map.setFilter(hLayer, holcFilter);
+        }
+      }
+    }
 
     setVis(
       ["neighborhoods-fill", "neighborhoods-line", "neighborhoods-label"],
@@ -5422,6 +5826,8 @@ export class AtlasMapController {
         nrhp_districts: Boolean(state.layers?.nrhpDistricts),
         potential_historic_districts: Boolean(state.layers?.potentialHistoricDistricts),
         cultural_districts: Boolean(state.layers?.culturalDistricts),
+        holc_1937_zones: showHolc,
+        red_book_1915: Boolean(state.layers?.redBook1915),
         neighborhoods: Boolean(state.layers?.neighborhoods),
         platted_subdivisions: Boolean(state.layers?.plattedSubdivisions),
         land_use_protections: Boolean(state.layers?.landUseProtections),
@@ -6659,6 +7065,7 @@ export class AtlasMapController {
     indexLayer(this.overlaysData?.nrhp_districts, "nrhp_districts");
     indexLayer(this.overlaysData?.potential_historic_districts, "potential_historic_districts");
     indexLayer(this.overlaysData?.cultural_districts, "cultural_districts");
+    indexLayer(this.overlaysData?.holc_1937_zones, "holc_1937_zones");
     indexLayer(this.overlaysData?.annexations, "annexations");
     indexLayer(this.overlaysData?.historical_waterways, "historical_waterways", true);
     indexLayer(this.overlaysData?.historical_railroads, "historical_railroads", true);
@@ -6702,6 +7109,15 @@ export class AtlasMapController {
       culturalDistricts: "cultural_districts",
       cultural_districts: "cultural_districts",
       "cultural-districts-fill": "cultural_districts",
+      holc1937: "holc_1937_zones",
+      holc_1937: "holc_1937_zones",
+      holc_zones: "holc_1937_zones",
+      holc_1937_zones: "holc_1937_zones",
+      "holc-1937-zones-fill": "holc_1937_zones",
+      redBook1915: "red_book_1915",
+      red_book: "red_book_1915",
+      red_book_1915: "red_book_1915",
+      "red-book-1915-circle": "red_book_1915",
       annexations: "annexations",
       "annexations-fill": "annexations",
       historicalWaterways: "historical_waterways",
@@ -6857,6 +7273,7 @@ export class AtlasMapController {
         "neighborhoods-fill",
         "super-neighborhoods-fill",
         "historic-wards-fill",
+        "holc-1937-zones-fill",
         "historic-districts-fill",
         "heritage-districts-fill",
         "nrhp-districts-fill",
@@ -6867,6 +7284,7 @@ export class AtlasMapController {
       const nonBoundaryLayers = [
         "permit-watch-circle",
         "plat-watch-circle",
+        "red-book-1915-circle",
         "good-brick-circle",
         "relocated-structures-circle",
         "landmarks-circle",
@@ -6890,6 +7308,57 @@ export class AtlasMapController {
         if (BOUNDARY_FILL_LAYERS.has(lid)) continue;
         const p = applyOverrideToProperties(f.properties || {}, this.curatedOverrides);
 
+        if (lid === "red-book-1915-circle") {
+          const fullFeat = this.getRedBookFeatureById(p.id);
+          const fullProps = fullFeat?.properties ? { ...fullFeat.properties } : { ...p };
+          const rbKey = `rb1915:${fullProps.id || fullProps.name || stack.length}`;
+          if (!seenKeys.has(rbKey)) {
+            seenKeys.add(rbKey);
+            const cat = String(fullProps.category || "residence");
+            const rbBadge =
+              cat === "church"
+                ? "1915 Church"
+                : cat === "school"
+                ? "1915 School"
+                : cat === "business"
+                ? "1915 Business"
+                : "1915 Leader / Home";
+            const rbColor =
+              cat === "church"
+                ? "#F59E0B"
+                : cat === "school"
+                ? "#38BDF8"
+                : cat === "business"
+                ? "#FB7185"
+                : "#C084FC";
+            stack.push({
+              key: rbKey,
+              kind: "marker",
+              layerId: lid,
+              overlayKey: "red_book_1915",
+              layerKey: "red_book_1915",
+              typeBadge: rbBadge,
+              badge: rbBadge,
+              swatchColor: rbColor,
+              color: rbColor,
+              title: fullProps.name || "1915 Red Book Site",
+              subtitle: [
+                fullProps.historic_address_1915 ? `1915: ${fullProps.historic_address_1915}` : "",
+                fullProps.survival_label || "",
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              props: {
+                ...fullProps,
+                overlay_layer: "red_book_1915",
+                is_boundary_feature: true,
+              },
+              geometry: fullFeat?.geometry || f.geometry || null,
+            });
+          }
+          continue;
+        }
+
         if (
           (lid === "permit-watch-circle" ||
             lid === "plat-watch-circle" ||
@@ -6902,6 +7371,7 @@ export class AtlasMapController {
           const isBuildingPolyLayer = (bf) =>
             bf.layer?.id !== "permit-watch-circle" &&
             bf.layer?.id !== "plat-watch-circle" &&
+            bf.layer?.id !== "red-book-1915-circle" &&
             bf.layer?.id !== "landmarks-circle" &&
             bf.layer?.id !== "nrhp-properties-circle" &&
             bf.layer?.id !== "good-brick-circle" &&
@@ -7191,6 +7661,50 @@ export class AtlasMapController {
         if (!b || b.props?.isTourStop) continue;
         if (point.x >= b.minX && point.x <= b.maxX && point.y >= b.minY && point.y <= b.maxY) {
           const p = applyOverrideToProperties(b.props || {}, this.curatedOverrides);
+          if (p.overlay_layer === "red_book_1915") {
+            const rbKey = `rb1915:${p.id || p.name || stack.length}`;
+            if (!seenKeys.has(rbKey)) {
+              seenKeys.add(rbKey);
+              const cat = String(p.category || "residence");
+              const rbBadge =
+                cat === "church"
+                  ? "1915 Church"
+                  : cat === "school"
+                  ? "1915 School"
+                  : cat === "business"
+                  ? "1915 Business"
+                  : "1915 Leader / Home";
+              const rbColor =
+                cat === "church"
+                  ? "#F59E0B"
+                  : cat === "school"
+                  ? "#38BDF8"
+                  : cat === "business"
+                  ? "#FB7185"
+                  : "#C084FC";
+              stack.push({
+                key: rbKey,
+                kind: "marker",
+                layerId: "red-book-1915-circle",
+                overlayKey: "red_book_1915",
+                layerKey: "red_book_1915",
+                typeBadge: rbBadge,
+                badge: rbBadge,
+                swatchColor: rbColor,
+                color: rbColor,
+                title: p.name || "1915 Red Book Site",
+                subtitle: [
+                  p.historic_address_1915 ? `1915: ${p.historic_address_1915}` : "",
+                  p.survival_label || "",
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
+                props: { ...p, overlay_layer: "red_book_1915", is_boundary_feature: true },
+                geometry: b.geom || null,
+              });
+            }
+            continue;
+          }
           const rawId = String(p.building_id || p.id || p.hcad_num || p.marker_num || "").trim();
           const bKey = `bld:${rawId || makeBuildingTitle(p)}`;
           if (seenKeys.has(bKey) || (p.hcad_num && seenKeys.has(`hcad:${p.hcad_num}`))) {
@@ -7338,6 +7852,12 @@ export class AtlasMapController {
           typeBadge: "Neighborhood",
           swatchColor: "#38bdf8",
         },
+        holc_1937_zones: {
+          enabled: Boolean(state.layers?.holc1937),
+          priority: 46,
+          typeBadge: "1937 HOLC",
+          swatchColor: "#EF4444",
+        },
         super_neighborhoods: {
           enabled: Boolean(state.layers?.superNeighborhoods),
           priority: 50,
@@ -7381,6 +7901,11 @@ export class AtlasMapController {
           const annexDecade = Number(entry.props.decade || entry.props.year || 1836);
           if (annexDecade !== activeAnnexDecade) continue;
           if (!showSpokes && entry.props.annex_subtype === "spoke_or_spa") continue;
+        } else if (entry.overlayKey === "holc_1937_zones") {
+          const activeHolc = String(state.holcGradeFilter || "all").trim().toUpperCase();
+          if (activeHolc !== "ALL" && String(entry.props.holc_grade || "").toUpperCase() !== activeHolc) {
+            continue;
+          }
         }
         const [minLng, minLat, maxLng, maxLat] = entry.bbox;
         if (lng < minLng || lng > maxLng || lat < minLat || lat > maxLat) continue;
@@ -7392,6 +7917,9 @@ export class AtlasMapController {
           const yd = entry.props.year_demolished || "?";
           dynBadge = `† Lost (${yb}-${yd})`;
           dynSwatch = getSanbornMaterialColors(entry.props.sanborn_material).color;
+        } else if (entry.overlayKey === "holc_1937_zones") {
+          dynBadge = `1937 HOLC ${entry.props.zone_code || ""} (${entry.props.grade_short || entry.props.holc_grade || ""})`;
+          dynSwatch = entry.props.color || "#EF4444";
         } else if (entry.overlayKey === "platted_subdivisions" && entry.props.has_deed_docs) {
           dynBadge = "📜 Platted Subdiv";
           dynSwatch = "#FBBF24";
@@ -7599,6 +8127,47 @@ export class AtlasMapController {
           this.onSelectFeature(feat.properties);
         }
       }
+    } else if (item.overlayKey === "red_book_1915") {
+      this.clearSelection({ keepOverlapStack: true, keepBoundary: true });
+      const fullFeat = this.getRedBookFeatureById(item.props?.id);
+      const geom = fullFeat?.geometry || item.geometry || null;
+      const fullProps = {
+        ...(fullFeat?.properties || item.props || {}),
+        overlay_layer: "red_book_1915",
+        is_boundary_feature: true,
+      };
+      if (geom) {
+        const feat = {
+          type: "Feature",
+          geometry: geom,
+          properties: fullProps,
+        };
+        this.selectedBoundaryFeature = feat;
+        if (this.useCanvasFallback) {
+          this._renderCanvas2D();
+        } else if (this.map) {
+          const selBndSrc = this.map.getSource("selected-boundary-src");
+          if (selBndSrc) {
+            selBndSrc.setData({ type: "FeatureCollection", features: [feat] });
+          }
+        }
+        const coords = Array.isArray(geom.coordinates) ? geom.coordinates : null;
+        if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+          const curZoom = this.useCanvasFallback
+            ? Number(this.canvasState?.zoom || 13)
+            : Number(this.map?.getZoom?.() || 13);
+          fullProps.lng = coords[0];
+          fullProps.lat = coords[1];
+          this.flyToLocation({
+            lng: coords[0],
+            lat: coords[1],
+            zoom: Math.max(curZoom, 17.4),
+          });
+        }
+      }
+      if (this.onSelectFeature) {
+        this.onSelectFeature(fullProps);
+      }
     } else {
       this.clearHighlightedBoundary();
       this.highlightAndInspectFeature(item.props, item.geometry || null, {
@@ -7718,6 +8287,7 @@ export class AtlasMapController {
     const nrhpDistMatches = [];
     const potentialHdMatches = [];
     const culturalDistMatches = [];
+    const holcMatches = [];
     let snMatch = null;
     let wardMatch1903 = null;
 
@@ -7741,6 +8311,8 @@ export class AtlasMapController {
         potentialHdMatches.push(entry);
       } else if (entry.overlayKey === "cultural_districts") {
         culturalDistMatches.push(entry);
+      } else if (entry.overlayKey === "holc_1937_zones") {
+        holcMatches.push(entry);
       } else if (entry.overlayKey === "super_neighborhoods" && !snMatch) {
         snMatch = entry;
       } else if (
@@ -7760,6 +8332,7 @@ export class AtlasMapController {
     nrhpDistMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     potentialHdMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     culturalDistMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
+    holcMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     const primaryNh = nhMatches[0]?.props?.name || "";
     const primaryPlat = platMatches[0]?.props?.name || "";
     const aliasSet = new Set();
@@ -7799,6 +8372,7 @@ export class AtlasMapController {
       nrhp_districts: nrhpDistMatches.map((m) => m.props),
       potential_historic_districts: potentialHdMatches.map((m) => m.props),
       cultural_districts: culturalDistMatches.map((m) => m.props),
+      holc_1937_zone: holcMatches[0]?.props || null,
       super_neighborhood:
         snMatch?.props?.name ||
         nhMatches[0]?.props?.super_neighborhood ||
@@ -8060,6 +8634,52 @@ export class AtlasMapController {
     return true;
   }
 
+  inspectRedBookById(rbId, { flyTo = true, zoom = 17.5 } = {}) {
+    const fullFeat = this.getRedBookFeatureById(rbId);
+    if (!fullFeat) return false;
+    this.clearSelection({ keepOverlapStack: false, keepBoundary: true });
+    const coords = Array.isArray(fullFeat.geometry?.coordinates)
+      ? fullFeat.geometry.coordinates
+      : null;
+    const fullProps = {
+      ...(fullFeat.properties || {}),
+      overlay_layer: "red_book_1915",
+      is_boundary_feature: true,
+    };
+    if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+      fullProps.lng = coords[0];
+      fullProps.lat = coords[1];
+    }
+    const feat = {
+      type: "Feature",
+      geometry: fullFeat.geometry,
+      properties: fullProps,
+    };
+    this.selectedBoundaryFeature = feat;
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+    } else if (this.map) {
+      const selBndSrc = this.map.getSource("selected-boundary-src");
+      if (selBndSrc) {
+        selBndSrc.setData({ type: "FeatureCollection", features: [feat] });
+      }
+    }
+    if (flyTo && Number.isFinite(fullProps.lng) && Number.isFinite(fullProps.lat)) {
+      const curZoom = this.useCanvasFallback
+        ? Number(this.canvasState?.zoom || 13)
+        : Number(this.map?.getZoom?.() || 13);
+      this.flyToLocation({
+        lng: fullProps.lng,
+        lat: fullProps.lat,
+        zoom: Math.max(curZoom, zoom),
+      });
+    }
+    if (this.onSelectFeature) {
+      this.onSelectFeature(fullProps);
+    }
+    return true;
+  }
+
   clearHighlightedBoundary() {
     this.selectedBoundaryFeature = null;
     if (this.useCanvasFallback) {
@@ -8176,6 +8796,13 @@ export class AtlasMapController {
         if (!mergedProps.nrhp_pdf_url && nrhpRecord.nomination_pdf_url) {
           mergedProps.nrhp_pdf_url = nrhpRecord.nomination_pdf_url;
         }
+      }
+      const redBookEntries = this.getRedBookEntriesForBuilding({
+        hcadNum: mergedProps.hcad_num,
+        buildingId: bldIdForLookup,
+      });
+      if (redBookEntries.length) {
+        mergedProps._red_book_entries = redBookEntries;
       }
     }
 

@@ -18,8 +18,8 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261024a";
-import { AtlasMapController } from "./mapController.js?v=20261024a";
+} from "./filterStore.js?v=20261025d";
+import { AtlasMapController } from "./mapController.js?v=20261025d";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
 import {
   applyOverrideToProperties,
@@ -126,13 +126,33 @@ class HoustonAtlasApp {
 
     if (this.initialSelection) {
       if (this.initialSelection.boundaryId) {
-        this.mapController.highlightBoundaryByIdOrName({
-          layerKey: this.initialSelection.boundaryLayer || "neighborhoods",
-          id: this.initialSelection.boundaryId,
-          name: this.initialSelection.boundaryId,
-          flyTo: !this.initialViewport,
-          inspect: true,
-        });
+        const initBLayer = String(this.initialSelection.boundaryLayer || "");
+        const initBId = String(this.initialSelection.boundaryId || "");
+        if (
+          initBLayer === "red_book_1915" ||
+          initBLayer === "redBook1915" ||
+          initBId.startsWith("rb1915_")
+        ) {
+          this.filterStore.setLayerVisibility("redBook1915", true);
+          this.mapController.inspectRedBookById(initBId, {
+            flyTo: !this.initialViewport,
+          });
+        } else {
+          const normInitLayer =
+            initBLayer === "holc1937" || initBId.startsWith("holc_1937_")
+              ? "holc_1937_zones"
+              : initBLayer || "neighborhoods";
+          if (normInitLayer === "holc_1937_zones") {
+            this.filterStore.setLayerVisibility("holc1937", true);
+          }
+          this.mapController.highlightBoundaryByIdOrName({
+            layerKey: normInitLayer,
+            id: initBId,
+            name: initBId,
+            flyTo: !this.initialViewport,
+            inspect: true,
+          });
+        }
       } else {
         await this._resolveAndSelectDeepLinkedProperty(
           this.initialSelection,
@@ -202,13 +222,33 @@ class HoustonAtlasApp {
               pitch: viewport.pitch,
             });
           }
-          this.mapController.highlightBoundaryByIdOrName({
-            layerKey: selection.boundaryLayer || "neighborhoods",
-            id: selection.boundaryId,
-            name: selection.boundaryId,
-            flyTo: !viewport,
-            inspect: true,
-          });
+          const selBLayer = String(selection.boundaryLayer || "");
+          const selBId = String(selection.boundaryId || "");
+          if (
+            selBLayer === "red_book_1915" ||
+            selBLayer === "redBook1915" ||
+            selBId.startsWith("rb1915_")
+          ) {
+            this.filterStore.setLayerVisibility("redBook1915", true);
+            this.mapController.inspectRedBookById(selBId, {
+              flyTo: !viewport,
+            });
+          } else {
+            const normSelLayer =
+              selBLayer === "holc1937" || selBId.startsWith("holc_1937_")
+                ? "holc_1937_zones"
+                : selBLayer || "neighborhoods";
+            if (normSelLayer === "holc_1937_zones") {
+              this.filterStore.setLayerVisibility("holc1937", true);
+            }
+            this.mapController.highlightBoundaryByIdOrName({
+              layerKey: normSelLayer,
+              id: selBId,
+              name: selBId,
+              flyTo: !viewport,
+              inspect: true,
+            });
+          }
         } else {
           this.mapController.clearSelection();
           document.getElementById("inspector-drawer")?.classList.add("hidden");
@@ -237,6 +277,13 @@ class HoustonAtlasApp {
     if (!selection) return;
     let hcadNum = String(selection.hcadNum || "").trim();
     let featureId = String(selection.featureId || "").trim();
+    if (!hcadNum && featureId.startsWith("rb1915_")) {
+      this.filterStore.setLayerVisibility("redBook1915", true);
+      this.mapController?.inspectRedBookById?.(featureId, {
+        flyTo: !viewport || vpChangedSignificantly,
+      });
+      return;
+    }
     const rawQuery = String(selection.query || "").trim();
     let addressQuery = rawQuery;
     let fallbackYearBuilt = 0;
@@ -274,7 +321,9 @@ class HoustonAtlasApp {
     if (Array.isArray(this.searchIndex)) {
       const normQ = normAddr(rawQuery);
       const idxHit = this.searchIndex.find((it) => {
-        if (it.is_neighborhood_entry || it.is_place_boundary) return false;
+        if (it.is_neighborhood_entry || it.is_place_boundary || it.type === "red_book_1915") {
+          return false;
+        }
         if (hcadNum && String(it.hcad_num || "").trim() === hcadNum) return true;
         if (featureId && String(it.id || "").trim() === featureId) return true;
         if (normQ && (normAddr(it.address) === normQ || normAddr(it.label) === normQ)) return true;
@@ -401,7 +450,7 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261024a"),
+        fetch("public/data/search_index.json?v=20261025d"),
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
@@ -413,7 +462,8 @@ class HoustonAtlasApp {
         if (
           item.is_neighborhood_entry ||
           item.type === "lost_houston" ||
-          item.type === "nrhp_property"
+          item.type === "nrhp_property" ||
+          item.type === "red_book_1915"
         ) {
           if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
           if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
@@ -428,6 +478,12 @@ class HoustonAtlasApp {
           }
           if (item.overlay_layer === "culturalDistricts") {
             item.overlay_layer = "cultural_districts";
+          }
+          if (item.overlay_layer === "holc1937") {
+            item.overlay_layer = "holc_1937_zones";
+          }
+          if (item.overlay_layer === "redBook1915") {
+            item.overlay_layer = "red_book_1915";
           }
           if (!item.sublabel) {
             const alts = Array.isArray(item.alt_names) ? item.alt_names.slice(0, 3).join(", ") : "";
@@ -1084,7 +1140,13 @@ class HoustonAtlasApp {
     const existingByHcad = new Map();
     for (let i = 0; i < this.searchIndex.length; i++) {
       const item = this.searchIndex[i];
-      if (item.is_neighborhood_entry || item.is_place_boundary) continue;
+      if (
+        item.is_neighborhood_entry ||
+        item.is_place_boundary ||
+        item.type === "red_book_1915"
+      ) {
+        continue;
+      }
       if (item.hcad_num) {
         existingByHcad.set(String(item.hcad_num).trim(), i);
       }
@@ -1235,6 +1297,7 @@ class HoustonAtlasApp {
     const byLabel = new Map();
     for (let i = 0; i < this.searchIndex.length; i++) {
       const item = this.searchIndex[i];
+      if (item.type === "red_book_1915") continue;
       if (item.is_neighborhood_entry || item.is_place_boundary) {
         if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
         if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
@@ -1667,7 +1730,8 @@ class HoustonAtlasApp {
     if (item._lc) return item._lc;
     const rawKey = String(item.id || item.hcad_num || item.label || "").trim();
     const key = rawKey.replace(/#fp_\d+$/, "");
-    const hcadKey = String(item.hcad_num || "").trim();
+    const rawHcadStr = String(item.hcad_num || "").trim();
+    const hcadKey = item.type === "red_book_1915" ? "" : rawHcadStr;
     const lbl = String(item.label || "").toLowerCase();
     const placeName = String(item.name || item.label || "").toLowerCase();
     const bldName = String(item.building_name || "").toLowerCase();
@@ -1679,7 +1743,7 @@ class HoustonAtlasApp {
       ? item.alt_addresses.map((s) => String(s).toLowerCase())
       : [];
     const sub = String(item.sublabel || "").toLowerCase();
-    const hcad = hcadKey.toLowerCase();
+    const hcad = rawHcadStr.toLowerCase();
     const arch = String(item.architect || "").toLowerCase();
     const builder = String(item.builder || "").toLowerCase();
     const permit = String(item.original_permit || "").toLowerCase();
@@ -1714,6 +1778,7 @@ class HoustonAtlasApp {
         item.type === "nrhp_district" ||
         item.type === "potential_historic_district" ||
         item.type === "cultural_district" ||
+        item.type === "holc_1937_zone" ||
         item.type === "historical_waterway" ||
         item.type === "historical_railroad"
     );
@@ -2172,6 +2237,8 @@ class HoustonAtlasApp {
       ["chk-layer-nrhp-districts", "nrhpDistricts"],
       ["chk-layer-nrhp-properties", "nrhpProperties"],
       ["chk-layer-cultural-districts", "culturalDistricts"],
+      ["chk-layer-red-book", "redBook1915"],
+      ["chk-layer-holc-1937", "holc1937"],
       ["chk-layer-neighborhoods", "neighborhoods"],
       ["chk-layer-platted-subdivisions", "plattedSubdivisions"],
       ["chk-layer-land-use-protections", "landUseProtections"],
@@ -2207,6 +2274,56 @@ class HoustonAtlasApp {
         });
       });
     });
+
+    document.querySelectorAll("[data-rb-cat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const rawVal = String(btn.getAttribute("data-rb-cat") || "all");
+        const validCats = ["all", "church", "school", "business", "residence"];
+        const catVal = validCats.includes(rawVal) ? rawVal : "all";
+        const curLayers = this.filterStore.getState().layers || {};
+        this.filterStore.setState({
+          redBookCategory: catVal,
+          layers: {
+            ...curLayers,
+            redBook1915: true,
+          },
+        });
+      });
+    });
+
+    document.querySelectorAll("[data-holc-grade]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const rawVal = String(btn.getAttribute("data-holc-grade") || "all").toUpperCase();
+        const gradeVal = ["A", "B", "C", "D"].includes(rawVal) ? rawVal : "all";
+        const curLayers = this.filterStore.getState().layers || {};
+        this.filterStore.setState({
+          holcGradeFilter: gradeVal,
+          layers: {
+            ...curLayers,
+            holc1937: true,
+          },
+        });
+      });
+    });
+
+    const btnDrapeHolcScan = document.getElementById("btn-drape-holc-scan");
+    if (btnDrapeHolcScan) {
+      btnDrapeHolcScan.addEventListener("click", () => {
+        const curState = this.filterStore.getState();
+        const curLayers = curState.layers || {};
+        const alreadyDraped = Boolean(
+          curLayers.historicMap && curState.historicMapId === "holc_1937"
+        );
+        this.filterStore.setState({
+          historicMapId: "holc_1937",
+          layers: {
+            ...curLayers,
+            holc1937: true,
+            historicMap: !alreadyDraped,
+          },
+        });
+      });
+    }
 
     document.querySelectorAll("[data-ward-era]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -4069,11 +4186,15 @@ class HoustonAtlasApp {
               m.type === "nrhp_district" ||
               m.type === "potential_historic_district" ||
               m.type === "cultural_district" ||
+              m.type === "holc_1937_zone" ||
               m.type === "historical_waterway" ||
               m.type === "historical_railroad"
           );
           const isLostHouston = Boolean(
             m.type === "lost_houston" || m.overlay_layer === "lost_houston"
+          );
+          const isRedBook = Boolean(
+            m.type === "red_book_1915" || m.overlay_layer === "red_book_1915"
           );
           const isNrhpProperty = Boolean(m.type === "nrhp_property");
           const dispLabel = m.label || m.name || m.building_name || "Houston Neighborhood";
@@ -4089,11 +4210,13 @@ class HoustonAtlasApp {
               .join(" • ");
           return `
           <button type="button" class="search-result-item ${
-            isPlace || isLostHouston ? "is-place-boundary-item" : ""
+            isPlace || isLostHouston || isRedBook ? "is-place-boundary-item" : ""
           }" data-idx="${i}">
             <div class="search-result-main">
               <span class="search-result-title">${
-                isLostHouston
+                isRedBook
+                  ? `&#128214; ${dispLabel}`
+                  : isLostHouston
                   ? `&#127963; ${dispLabel}`
                   : isPlace
                   ? `&#128506; ${dispLabel}`
@@ -4129,6 +4252,24 @@ class HoustonAtlasApp {
           if (typeof window !== "undefined" && window.innerWidth <= 900) {
             this._setSidebarCollapsed(true);
           }
+          if (chosen.type === "red_book_1915" || chosen.overlay_layer === "red_book_1915") {
+            const curState = this.filterStore.getState();
+            const patch = {
+              layers: {
+                ...(curState.layers || {}),
+                redBook1915: true,
+              },
+            };
+            if (curState.redBookCategory && curState.redBookCategory !== "all") {
+              patch.redBookCategory = "all";
+            }
+            this.filterStore.setState(patch);
+            this.mapController.inspectRedBookById(chosen.id, {
+              flyTo: true,
+              zoom: chosen.zoom || 17.5,
+            });
+            return;
+          }
           if (chosen.type === "lost_houston" || chosen.overlay_layer === "lost_houston") {
             this.filterStore.setLayerVisibility("lostHouston", true);
             this.mapController.highlightBoundaryByIdOrName(
@@ -4155,6 +4296,7 @@ class HoustonAtlasApp {
             chosen.type === "nrhp_district" ||
             chosen.type === "potential_historic_district" ||
             chosen.type === "cultural_district" ||
+            chosen.type === "holc_1937_zone" ||
             chosen.type === "historical_waterway" ||
             chosen.type === "historical_railroad"
           ) {
@@ -4174,6 +4316,8 @@ class HoustonAtlasApp {
                 ? "potential_historic_districts"
                 : rawLayer === "culturalDistricts"
                 ? "cultural_districts"
+                : rawLayer === "holc1937"
+                ? "holc_1937_zones"
                 : rawLayer ||
                   (chosen.type === "super_neighborhood"
                     ? "super_neighborhoods"
@@ -4189,6 +4333,8 @@ class HoustonAtlasApp {
                     ? "potential_historic_districts"
                     : chosen.type === "cultural_district"
                     ? "cultural_districts"
+                    : chosen.type === "holc_1937_zone"
+                    ? "holc_1937_zones"
                     : chosen.type === "historical_waterway"
                     ? "historical_waterways"
                     : chosen.type === "historical_railroad"
@@ -4196,6 +4342,9 @@ class HoustonAtlasApp {
                     : "neighborhoods");
             if (chosen.type === "historic_ward" && chosen.era_year) {
               this.filterStore.setState({ wardEra: Number(chosen.era_year) });
+            }
+            if (layerKey === "holc_1937_zones" && this.filterStore.getState().holcGradeFilter !== "all") {
+              this.filterStore.setState({ holcGradeFilter: "all" });
             }
             const layerKeyToStoreKey = {
               historical_waterways: "historicalWaterways",
@@ -4205,6 +4354,7 @@ class HoustonAtlasApp {
               nrhp_districts: "nrhpDistricts",
               potential_historic_districts: "potentialHistoricDistricts",
               cultural_districts: "culturalDistricts",
+              holc_1937_zones: "holc1937",
               neighborhoods: "neighborhoods",
               platted_subdivisions: "plattedSubdivisions",
               super_neighborhoods: "superNeighborhoods",
@@ -5050,6 +5200,8 @@ class HoustonAtlasApp {
       "chk-layer-nrhp-districts": state.layers.nrhpDistricts,
       "chk-layer-nrhp-properties": state.layers.nrhpProperties,
       "chk-layer-cultural-districts": state.layers.culturalDistricts,
+      "chk-layer-red-book": state.layers.redBook1915,
+      "chk-layer-holc-1937": state.layers.holc1937,
       "chk-layer-thc-markers": state.layers.thcMarkers,
       "chk-layer-neighborhoods": state.layers.neighborhoods,
       "chk-layer-platted-subdivisions": state.layers.plattedSubdivisions,
@@ -5078,6 +5230,42 @@ class HoustonAtlasApp {
       const val = String(btn.getAttribute("data-lm-filter") || "all");
       btn.classList.toggle("active", val === activeLmFilter);
     });
+
+    const redBookFilterRow = document.getElementById("red-book-filter-row");
+    if (redBookFilterRow) {
+      redBookFilterRow.classList.toggle("hidden", !state.layers.redBook1915);
+    }
+    const activeRbCat = ["church", "school", "business", "residence"].includes(
+      state.redBookCategory
+    )
+      ? state.redBookCategory
+      : "all";
+    document.querySelectorAll("[data-rb-cat]").forEach((btn) => {
+      const val = String(btn.getAttribute("data-rb-cat") || "all");
+      btn.classList.toggle("active", val === activeRbCat);
+    });
+
+    const holcFilterRow = document.getElementById("holc-grade-filter-row");
+    if (holcFilterRow) {
+      holcFilterRow.classList.toggle("hidden", !state.layers.holc1937);
+    }
+    const activeHolcGrade = ["A", "B", "C", "D"].includes(state.holcGradeFilter)
+      ? state.holcGradeFilter
+      : "all";
+    document.querySelectorAll("[data-holc-grade]").forEach((btn) => {
+      const val = String(btn.getAttribute("data-holc-grade") || "all");
+      btn.classList.toggle("active", val === activeHolcGrade);
+    });
+    const btnDrapeHolcScan = document.getElementById("btn-drape-holc-scan");
+    if (btnDrapeHolcScan) {
+      const holcScanOn = Boolean(
+        state.layers.historicMap && state.historicMapId === "holc_1937"
+      );
+      btnDrapeHolcScan.classList.toggle("active", holcScanOn);
+      btnDrapeHolcScan.innerHTML = holcScanOn
+        ? "&#10003; 1937 Original HOLC Map Scan Draped (Click to Hide)"
+        : "&#128506; Drape 1937 Original HOLC Map Scan";
+    }
 
     const lostHoustonLegendRow = document.getElementById("lost-houston-legend-row");
     if (lostHoustonLegendRow) {
@@ -6182,13 +6370,30 @@ class HoustonAtlasApp {
           : mat === "fireproof"
           ? "#a3b18a"
           : "#f472b6";
+    } else if (overlayLayer === "red_book_1915") {
+      badgeLabel = rawProps.category_label || "1915 Red Book of Houston";
+      const rbCat = String(rawProps.category || "").toLowerCase();
+      badgeColor =
+        rbCat === "church"
+          ? "#c084fc"
+          : rbCat === "school"
+          ? "#38bdf8"
+          : rbCat === "business"
+          ? "#f59e0b"
+          : "#34d399";
+    } else if (overlayLayer === "holc_1937_zones") {
+      badgeLabel = `1937 HOLC ${rawProps.zone_code || ""} · ${
+        rawProps.grade_label || "Security Area"
+      }`.trim();
+      badgeColor = String(rawProps.color || "#ef4444");
     }
 
     const isLinearOrPointOverlay =
       overlayLayer === "historical_waterways" ||
       overlayLayer === "historical_railroads" ||
       overlayLayer === "lost_houston" ||
-      overlayLayer === "nrhp_properties";
+      overlayLayer === "nrhp_properties" ||
+      overlayLayer === "red_book_1915";
 
     const bldCount = Number(rawProps.building_count || 0);
     const earliestYear = Number(rawProps.earliest_year || 0);
@@ -6239,6 +6444,27 @@ class HoustonAtlasApp {
       }
       if (Number(rawProps.min_bldg_line_ft) > 0) {
         subtitleParts.push(`Min Front Setback: ${rawProps.min_bldg_line_ft} ft`);
+      }
+    } else if (overlayLayer === "red_book_1915") {
+      if (rawProps.subtitle) subtitleParts.push(rawProps.subtitle);
+      if (rawProps.historic_address_1915) {
+        subtitleParts.push(`1915: ${rawProps.historic_address_1915}`);
+      }
+      if (rawProps.survival_label) subtitleParts.push(rawProps.survival_label);
+    } else if (overlayLayer === "holc_1937_zones") {
+      if (Number(rawProps.area_acres) > 0) {
+        subtitleParts.push(
+          `${Number(rawProps.area_acres).toLocaleString()} acres${
+            rawProps.area_sq_mi ? ` (${rawProps.area_sq_mi} sq mi)` : ""
+          }`
+        );
+      }
+      const holcTopNbhds = parseJsonList(rawProps.top_neighborhoods);
+      if (holcTopNbhds.length > 0) {
+        subtitleParts.push(holcTopNbhds.slice(0, 3).join(", "));
+      }
+      if (Number(rawProps.af_temp_f) > 0) {
+        subtitleParts.push(`HARC Heat Watch: ${Number(rawProps.af_temp_f).toFixed(1)}°F`);
       }
     }
     if (eraLabel && overlayLayer === "historic_wards") subtitleParts.push(eraLabel);
@@ -6383,12 +6609,146 @@ class HoustonAtlasApp {
       </div>
     `;
 
-    const narrativeDesc = rawProps.historic_significance || rawProps.description || "";
+    const narrativeDesc =
+      rawProps.historic_significance ||
+      rawProps.description ||
+      (overlayLayer === "holc_1937_zones" ? rawProps.appraisal_summary || "" : "");
     const lostSiteHcads = parseJsonList(rawProps.site_hcad_nums);
     const primarySiteHcad = String(rawProps.hcad_num || lostSiteHcads[0] || "").trim();
-    const lostLat = Number(rawProps.lat) || 29.7604;
-    const lostLng = Number(rawProps.lng) || -95.3698;
+    const lostLat = Number(rawProps.lat ?? rawProps.label_lat) || 29.7604;
+    const lostLng = Number(rawProps.lng ?? rawProps.lon ?? rawProps.label_lng) || -95.3698;
     const lostStreetViewUrl = buildStreetViewUrl(lostLat, lostLng);
+
+    const redBookPhotoCardHtml =
+      overlayLayer === "red_book_1915" && (rawProps.rice_photo_img_url || rawProps.rice_photo_url)
+        ? `<div class="red-book-photo-wrap">
+            ${
+              rawProps.rice_photo_img_url
+                ? `<a
+                    href="${rawProps.rice_photo_url || rawProps.rice_photo_full_url || rawProps.rice_photo_img_url}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open high-resolution 1915 Red Book plate in Rice University Woodson Research Center Digital Collections"
+                  >
+                    <img
+                      class="red-book-photo-thumb"
+                      src="${rawProps.rice_photo_img_url}"
+                      alt="1915 Red Book of Houston archival plate for ${name.replace(/"/g, "&quot;")}"
+                      loading="lazy"
+                    />
+                  </a>`
+                : ""
+            }
+            <div style="padding:7px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:10.8px;color:#fde68a;">
+              <span>&#128247; 1915 <em>Red Book of Houston</em> Plate${
+                rawProps.red_book_page ? ` (${rawProps.red_book_page})` : ""
+              } · Public Domain</span>
+              ${
+                rawProps.rice_photo_url
+                  ? `<a
+                      href="${rawProps.rice_photo_url}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style="color:#fef08a;font-weight:700;text-decoration:underline;"
+                    >Rice Woodson Archive &#8599;</a>`
+                  : ""
+              }
+            </div>
+          </div>`
+        : "";
+
+    const holcGradeSummaryList =
+      overlayLayer === "holc_1937_zones" &&
+      Array.isArray(this.mapController?.overlaysData?.holc_1937_grade_summary)
+        ? this.mapController.overlaysData.holc_1937_grade_summary
+        : [];
+    const holcThermalBannerHtml =
+      overlayLayer === "holc_1937_zones" && Number(rawProps.af_temp_f) > 0
+        ? `<div class="holc-thermal-banner">
+            <div style="font-weight:700;color:#fecaca;margin-bottom:3px;">
+              &#127777; HARC / NOAA Houston Urban Heat Watch Telemetry
+            </div>
+            <div>
+              Afternoon Mean: <strong class="mono">${Number(rawProps.af_temp_f).toFixed(1)}°F</strong>
+              ${
+                Number(rawProps.pm_temp_f) > 0
+                  ? ` · Evening Mean: <strong class="mono">${Number(rawProps.pm_temp_f).toFixed(1)}°F</strong>`
+                  : ""
+              }
+              ${
+                Number.isFinite(Number(rawProps.af_temp_delta_vs_a))
+                  ? ` · <strong class="mono" style="color:${
+                      Number(rawProps.af_temp_delta_vs_a) > 0.3 ? "#fca5a5" : "#bbf7d0"
+                    };">${
+                      Number(rawProps.af_temp_delta_vs_a) >= 0 ? "+" : ""
+                    }${Number(rawProps.af_temp_delta_vs_a).toFixed(1)}°F vs. Grade A avg</strong>`
+                  : ""
+              }
+            </div>
+          </div>`
+        : "";
+
+    const holcComparisonTableHtml =
+      overlayLayer === "holc_1937_zones" && holcGradeSummaryList.length > 0
+        ? `<div class="ph-verified-override-card" style="border-left-color:${badgeColor};margin-top:8px;">
+            <div class="ph-verified-header">
+              <span>Citywide 1937 HOLC Grade Equity Comparison (All 47 Houston Zones)</span>
+            </div>
+            <div class="holc-comparison-table-wrap">
+              <table class="holc-comparison-table">
+                <thead>
+                  <tr>
+                    <th>Grade</th>
+                    <th>Pre-38</th>
+                    <th>PLM/LM</th>
+                    <th>Ch.42</th>
+                    <th>1915 RB</th>
+                    <th>Heat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${holcGradeSummaryList
+                    .map((row) => {
+                      const rowGrade = String(row.holc_grade || row.grade || "").toUpperCase();
+                      const rowShort =
+                        row.grade_short ||
+                        (rowGrade === "A"
+                          ? "Best"
+                          : rowGrade === "B"
+                          ? "Desirable"
+                          : rowGrade === "C"
+                          ? "Declining"
+                          : "Hazardous");
+                      const isCur = rowGrade === String(rawProps.holc_grade || "").toUpperCase();
+                      const ch42 =
+                        Number(row.smls_block_count || 0) + Number(row.smbl_block_count || 0);
+                      return `<tr class="${isCur ? "is-active-grade" : ""}">
+                        <td>
+                          <span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:${
+                            row.color || "#94a3b8"
+                          };margin-right:4px;"></span>${rowGrade}·${rowShort} (${
+                        row.zone_count || 0
+                      })
+                        </td>
+                        <td>${Number(row.pre_1938_count || 0).toLocaleString()}</td>
+                        <td>${Number(row.plm_count || 0)}/${Number(
+                        row.vulnerable_lm_count || 0
+                      )}</td>
+                        <td>${ch42.toLocaleString()}</td>
+                        <td>${Number(row.red_book_1915_count || 0).toLocaleString()}</td>
+                        <td>${
+                          Number(row.mean_af_temp_f) > 0
+                            ? `${Number(row.mean_af_temp_f).toFixed(1)}°`
+                            : "-"
+                        }</td>
+                      </tr>`;
+                    })
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>`
+        : "";
 
     const lostPhotoCardHtml =
       overlayLayer === "lost_houston"
@@ -6422,7 +6782,23 @@ class HoustonAtlasApp {
         <div class="inspector-badges">
           <span class="inspector-year-pill" style="background:${badgeColor};color:#090d16;">${badgeLabel}</span>
           ${
-            overlayLayer === "lost_houston" && rawProps.lifespan_label
+            overlayLayer === "red_book_1915"
+              ? `<span class="inspector-age-pill" style="color:${
+                  rawProps.survival_status === "surviving_era_structure"
+                    ? "#fef08a"
+                    : rawProps.survival_status === "cleared_or_row"
+                    ? "#fecaca"
+                    : "#cbd5e1"
+                };border-color:${
+                  rawProps.survival_status === "surviving_era_structure"
+                    ? "rgba(250,204,21,0.55)"
+                    : rawProps.survival_status === "cleared_or_row"
+                    ? "rgba(248,113,113,0.45)"
+                    : "rgba(148,163,184,0.35)"
+                };">${rawProps.survival_label || "1915 Heritage Site"}</span>`
+              : overlayLayer === "holc_1937_zones" && Number(rawProps.area_acres) > 0
+              ? `<span class="inspector-age-pill">${Number(rawProps.area_acres).toLocaleString()} Acres</span>`
+              : overlayLayer === "lost_houston" && rawProps.lifespan_label
               ? `<span class="inspector-age-pill">Stood ${rawProps.lifespan_label} (${rawProps.lifespan_years || ""} yrs)</span>`
               : earliestYear >= 1836
               ? `<span class="inspector-age-pill">Earliest Structure: ${earliestYear}</span>`
@@ -6436,11 +6812,22 @@ class HoustonAtlasApp {
         <p class="inspector-subtitle">${subtitle}</p>
         <div class="inspector-status-banner">
           <span class="status-dot" style="background:${badgeColor};"></span>
-          <span>${rawProps.source || "City of Houston &amp; HCAD Boundary Index"}</span>
+          <span>${
+            rawProps.source ||
+            (overlayLayer === "red_book_1915"
+              ? "1915 Red Book of Houston (Sotex Pub. Co.) · Rice Woodson Research Center &amp; Spatial Studies Lab"
+              : overlayLayer === "holc_1937_zones"
+              ? "1937 HOLC Residential Security Map (NARA RG 195) · Mapping Inequality &amp; HARC Heat Watch"
+              : "City of Houston &amp; HCAD Boundary Index")
+          }</span>
         </div>
       </div>
 
+      ${redBookPhotoCardHtml}
+
       ${lostPhotoCardHtml}
+
+      ${holcThermalBannerHtml}
 
       ${isolationCardHtml}
 
@@ -6450,14 +6837,27 @@ class HoustonAtlasApp {
         narrativeDesc
           ? `<div class="ph-verified-override-card" style="border-left-color:${badgeColor};">
               <div class="ph-verified-header">
-                <span>${isLinearOrPointOverlay ? "Historical &amp; Architectural Significance" : "Geographic &amp; Historical Context"}</span>
+                <span>${
+                  overlayLayer === "holc_1937_zones"
+                    ? "1937 HOLC Appraisal &amp; Archival Provenance (NARA RG 195)"
+                    : isLinearOrPointOverlay
+                    ? "Historical &amp; Architectural Significance"
+                    : "Geographic &amp; Historical Context"
+                }</span>
               </div>
               <div class="ph-verified-citation">
                 ${narrativeDesc}
+                ${
+                  overlayLayer === "holc_1937_zones" && rawProps.nara_sheet_status
+                    ? `<div style="margin-top:6px;font-size:11px;color:#cbd5e1;"><strong>NARA Archival Note:</strong> ${rawProps.nara_sheet_status}</div>`
+                    : ""
+                }
               </div>
             </div>`
           : ""
       }
+
+      ${holcComparisonTableHtml}
 
       ${
         bldCount > 0 || earliestYear >= 1836
@@ -6756,6 +7156,257 @@ class HoustonAtlasApp {
             : ""
         }
         ${
+          overlayLayer === "red_book_1915"
+            ? `<div class="inspector-cell">
+                <span class="cell-label">1915 Red Book Address</span>
+                <span class="cell-value mono" style="color:#fde68a;">${
+                  rawProps.historic_address_1915 || "Recorded in 1915 Red Book"
+                }${
+                rawProps.addr_precision === "StreetIntersection"
+                  ? " (Intersection)"
+                  : ""
+              }</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Present-Day Address / Parcel</span>
+                <span class="cell-value mono">${
+                  rawProps.modern_address || rawProps.historic_address_1915 || "Houston, TX"
+                }</span>
+              </div>
+              <div class="inspector-cell full">
+                <span class="cell-label">2026 Site Survival &amp; Preservation Status</span>
+                <span class="cell-value" style="color:${
+                  rawProps.survival_status === "surviving_era_structure"
+                    ? "#fef08a"
+                    : rawProps.survival_status === "cleared_or_row"
+                    ? "#fda4af"
+                    : "#cbd5e1"
+                };font-weight:600;">${rawProps.survival_label || "Surveyed Site"}${
+                rawProps.landmark_designation
+                  ? ` · ${rawProps.landmark_designation}`
+                  : ""
+              }${
+                rawProps.extant_building_name &&
+                rawProps.extant_building_name.toLowerCase() !== name.toLowerCase()
+                  ? ` (${rawProps.extant_building_name})`
+                  : ""
+              }</span>
+              </div>
+              ${
+                rawProps.person_name &&
+                rawProps.person_name.toLowerCase() !== name.toLowerCase()
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">${
+                        rawProps.category === "church"
+                          ? "Pastor (1915)"
+                          : rawProps.category === "business"
+                          ? "Proprietor / Principal"
+                          : "Honoree / Resident"
+                      }</span>
+                      <span class="cell-value">${rawProps.person_name}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.occupation
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">1915 Profession / Occupation</span>
+                      <span class="cell-value">${rawProps.occupation}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.business_type
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">1915 Enterprise / Institution</span>
+                      <span class="cell-value">${rawProps.business_type}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.teaches_at
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">1915 Teaching Appointment</span>
+                      <span class="cell-value">${rawProps.teaches_at}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.church_attended
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">Church Congregation (1915)</span>
+                      <span class="cell-value">${rawProps.church_attended}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.school_attended
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">Education / Alma Mater</span>
+                      <span class="cell-value">${rawProps.school_attended}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.lodges_clubs
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Fraternal Orders, Lodges &amp; Civic Clubs (1915)</span>
+                      <span class="cell-value">${rawProps.lodges_clubs}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.birthplace || Number(rawProps.birth_year) > 1800
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">Birthplace &amp; Birth Year</span>
+                      <span class="cell-value">${[
+                        rawProps.birthplace || "",
+                        Number(rawProps.birth_year) > 1800 ? `b. ${rawProps.birth_year}` : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.married_to || rawProps.children
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">Family Recorded in 1915</span>
+                      <span class="cell-value">${[
+                        rawProps.married_to ? `Spouse: ${rawProps.married_to}` : "",
+                        rawProps.children ? `Children: ${rawProps.children}` : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.holc_1937_grade
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Subsequent 1937 HOLC Redlining Grade Assigned to Area</span>
+                      <span class="cell-value inspector-chip-group">
+                        <button
+                          type="button"
+                          class="holc-grade-chip grade-${rawProps.holc_1937_grade}"
+                          data-highlight-boundary="${String(
+                            rawProps.holc_1937_zone_id || rawProps.holc_1937_zone_code || ""
+                          ).replace(/"/g, "&quot;")}"
+                          data-boundary-layer="holc_1937_zones"
+                          title="Inspect 1937 HOLC Zone ${rawProps.holc_1937_zone_code || rawProps.holc_1937_grade} on the map"
+                        >
+                          1937 HOLC ${rawProps.holc_1937_zone_code || `Grade ${rawProps.holc_1937_grade}`} (${
+                      rawProps.holc_1937_grade === "D"
+                        ? "Hazardous / Redlined"
+                        : rawProps.holc_1937_grade === "C"
+                        ? "Definitely Declining"
+                        : rawProps.holc_1937_grade === "B"
+                        ? "Still Desirable"
+                        : "Best"
+                    }) &rarr;
+                        </button>
+                      </span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.sanborn_1907_covered || Number(rawProps.sanborn_volumes_count) > 0
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Sanborn Fire Insurance Atlas Coverage</span>
+                      <span class="cell-value">${
+                        rawProps.sanborn_1907_covered
+                          ? "Covered by Georeferenced 1907 Sanborn Mosaic"
+                          : "Covered by Archival Sanborn Volumes"
+                      }${
+                      Number(rawProps.sanborn_volumes_count) > 0
+                        ? ` (${rawProps.sanborn_volumes_count} Sanborn volume bounds)`
+                        : ""
+                    }</span>
+                    </div>`
+                  : ""
+              }`
+            : ""
+        }
+        ${
+          overlayLayer === "holc_1937_zones"
+            ? `<div class="inspector-cell">
+                <span class="cell-label">Surviving Pre-1938 Structures</span>
+                <span class="cell-value mono">${Number(
+                  rawProps.pre_1938_count || 0
+                ).toLocaleString()}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Post-1990 Redevelopment</span>
+                <span class="cell-value mono">${Number(
+                  rawProps.post_1990_count || 0
+                ).toLocaleString()}</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">COH Landmarks (PLM vs Waiver)</span>
+                <span class="cell-value mono">${Number(
+                  rawProps.plm_count || 0
+                )} Protected · ${Number(rawProps.vulnerable_lm_count || 0)} Waiver</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Ch. 42 Block Armor &amp; Deeds</span>
+                <span class="cell-value mono">${Number(
+                  rawProps.smls_block_count || 0
+                )} SMLS · ${Number(rawProps.smbl_block_count || 0)} SMBL · ${Number(
+                rawProps.deed_subdiv_count || 0
+              )} Deed</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">1915 Red Book Heritage Sites</span>
+                <span class="cell-value mono" style="color:#fde68a;">${Number(
+                  rawProps.red_book_1915_count || 0
+                ).toLocaleString()} (${Number(
+                rawProps.red_book_1915_surviving_count || 0
+              )} surviving)</span>
+              </div>
+              <div class="inspector-cell">
+                <span class="cell-label">Lost Houston &amp; Active Alerts</span>
+                <span class="cell-value mono">${Number(
+                  rawProps.lost_houston_count || 0
+                )} Lost · ${Number(rawProps.active_permit_alert_count || 0)} Permits · ${Number(
+                rawProps.active_plat_alert_count || 0
+              )} Plats</span>
+              </div>
+              ${
+                parseJsonList(rawProps.top_neighborhoods).length > 0
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Neighborhoods Intersecting ${
+                        rawProps.zone_code || "This HOLC Zone"
+                      }</span>
+                      <span class="cell-value inspector-chip-group">
+                        ${parseJsonList(rawProps.top_neighborhoods)
+                          .map(
+                            (nh) => `<button
+                              type="button"
+                              class="inspector-filter-chip"
+                              data-filter-chip="${nh.replace(/"/g, "&quot;")}"
+                              data-filter-label="Neighborhood: ${nh.replace(/"/g, "&quot;")}"
+                            >${nh} &#128269;</button>`
+                          )
+                          .join('<span class="inspector-chip-sep" aria-hidden="true">·</span>')}
+                      </span>
+                    </div>`
+                  : ""
+              }
+              ${
+                parseJsonList(rawProps.coh_historic_districts).length > 0 ||
+                parseJsonList(rawProps.nrhp_districts).length > 0
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Designated COH &amp; NRHP Historic Districts in Zone</span>
+                      <span class="cell-value">${[
+                        ...parseJsonList(rawProps.coh_historic_districts),
+                        ...parseJsonList(rawProps.nrhp_districts).map((d) => `${d} (NRHP)`),
+                      ].join(" · ")}</span>
+                    </div>`
+                  : ""
+              }`
+            : ""
+        }
+        ${
           overlayLayer === "nrhp_properties"
             ? `<div class="inspector-cell">
                 <span class="cell-label">National Register Ref #</span>
@@ -6910,6 +7561,122 @@ class HoustonAtlasApp {
                   : ""
               }
             `
+            : overlayLayer === "red_book_1915"
+            ? `
+              ${
+                primarySiteHcad
+                  ? `<button
+                      type="button"
+                      class="inspector-btn primary"
+                      id="btn-red-book-inspect-site"
+                      data-modern-hcad="${primarySiteHcad}"
+                      data-modern-bld="${String(rawProps.building_id || "").replace(/"/g, "&quot;")}"
+                      style="background:linear-gradient(135deg,#92400e,#d97706);border-color:#fde68a;color:#fffbeb;"
+                    >
+                      &#127963; ${
+                        rawProps.survival_status === "surviving_era_structure"
+                          ? `Inspect Surviving Building on Site (${rawProps.extant_year_built || "Landmark"})`
+                          : `Inspect Modern Parcel on This Site (${primarySiteHcad})`
+                      }
+                    </button>`
+                  : ""
+              }
+              ${
+                rawProps.rice_photo_url
+                  ? `<a
+                      href="${rawProps.rice_photo_url}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inspector-btn ${primarySiteHcad ? "secondary" : "primary"}"
+                    >
+                      &#128247; Open 1915 Plate at Rice Woodson Archive &#8599;
+                    </a>`
+                  : ""
+              }
+              <a
+                href="${
+                  rawProps.hpl_book_url ||
+                  "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/182"
+                }"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inspector-btn secondary"
+              >
+                &#128214; Open Digitized 1915 Red Book (HPL Archive) &#8599;
+              </a>
+              ${
+                rawProps.sanborn_1907_covered
+                  ? `<button
+                      type="button"
+                      class="inspector-btn secondary"
+                      id="btn-red-book-drape-sanborn"
+                    >
+                      &#128506; Drape 1907 Sanborn Mosaic Under Pin
+                    </button>`
+                  : ""
+              }
+              <button
+                type="button"
+                class="inspector-btn secondary"
+                id="btn-red-book-copy-citydir"
+                data-citydir-query="${String(
+                  rawProps.historic_address_1915 || rawProps.person_name || name
+                ).replace(/"/g, "&quot;")}"
+              >
+                &#128218; Copy 1915 Address &amp; Open 1866-1926 City Directories &#8599;
+              </button>
+              <a
+                href="${lostStreetViewUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inspector-btn secondary"
+              >
+                &#128065; Present-Day Site on Street View &#8599;
+              </a>
+            `
+            : overlayLayer === "holc_1937_zones"
+            ? `
+              <button
+                type="button"
+                class="inspector-btn primary"
+                id="btn-holc-drape-scan"
+                style="background:linear-gradient(135deg,#78350f,#b45309);border-color:#fde68a;color:#fffbeb;"
+              >
+                &#128506; Drape 1937 Original HOLC Map Scan Under Zone
+              </button>
+              <button
+                type="button"
+                class="inspector-btn secondary"
+                id="btn-holc-show-redbook"
+              >
+                &#128214; Overlay 1915 Red Book Heritage Sites (${Number(
+                  rawProps.red_book_1915_count || 0
+                )} in ${rawProps.zone_code || "Zone"})
+              </button>
+              ${
+                rawProps.mapping_inequality_url
+                  ? `<a
+                      href="${rawProps.mapping_inequality_url}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inspector-btn secondary"
+                    >
+                      &#127963; Open Mapping Inequality Archive (Univ. of Richmond) &#8599;
+                    </a>`
+                  : ""
+              }
+              <button
+                type="button"
+                class="inspector-btn secondary"
+                id="btn-explore-boundary-buildings"
+                data-filter-chip="${String(
+                  parseJsonList(rawProps.top_neighborhoods)[0] || name
+                ).replace(/"/g, "&quot;")}"
+                data-filter-label="${badgeLabel}: ${name.replace(/"/g, "&quot;")}"
+              >
+                &#128269; Explore Structures in ${rawProps.zone_code || name}
+              </button>
+            `
             : isLinearOrPointOverlay
             ? ""
             : `
@@ -7006,6 +7773,95 @@ class HoustonAtlasApp {
       }
     }
 
+    if (overlayLayer === "red_book_1915") {
+      const btnRbInspectSite = document.getElementById("btn-red-book-inspect-site");
+      if (btnRbInspectSite) {
+        btnRbInspectSite.addEventListener("click", () => {
+          const siteHcad = btnRbInspectSite.getAttribute("data-modern-hcad") || "";
+          const siteBld = btnRbInspectSite.getAttribute("data-modern-bld") || "";
+          if ((siteHcad || siteBld) && this.mapController) {
+            this.mapController.selectFeatureByIdOrHcad({
+              hcadNum: siteHcad,
+              featureId: siteBld,
+              flyTo: true,
+            });
+          }
+        });
+      }
+
+      const btnRbDrapeSanborn = document.getElementById("btn-red-book-drape-sanborn");
+      if (btnRbDrapeSanborn) {
+        btnRbDrapeSanborn.addEventListener("click", () => {
+          const curLayers = this.filterStore.getState().layers || {};
+          this.filterStore.setState({
+            historicMapId: "sanborn_1907",
+            layers: {
+              ...curLayers,
+              redBook1915: true,
+              historicMap: true,
+            },
+          });
+          btnRbDrapeSanborn.innerHTML = "&#10003; 1907 Sanborn Mosaic Draped";
+        });
+      }
+
+      const btnRbCopyCitydir = document.getElementById("btn-red-book-copy-citydir");
+      if (btnRbCopyCitydir) {
+        btnRbCopyCitydir.addEventListener("click", () => {
+          const q = btnRbCopyCitydir.getAttribute("data-citydir-query") || "";
+          if (q && navigator.clipboard) {
+            navigator.clipboard.writeText(q);
+          }
+          btnRbCopyCitydir.innerHTML = `&#10003; Copied "${q.slice(0, 24)}" · Opening HPL City Directories &#8599;`;
+          window.open(
+            "https://cdm17006.contentdm.oclc.org/digital/collection/citydir",
+            "_blank",
+            "noopener,noreferrer"
+          );
+        });
+      }
+    }
+
+    if (overlayLayer === "holc_1937_zones") {
+      const btnHolcDrape = document.getElementById("btn-holc-drape-scan");
+      if (btnHolcDrape) {
+        btnHolcDrape.addEventListener("click", () => {
+          const curState = this.filterStore.getState();
+          const curLayers = curState.layers || {};
+          const alreadyOn = Boolean(
+            curLayers.historicMap && curState.historicMapId === "holc_1937"
+          );
+          this.filterStore.setState({
+            historicMapId: "holc_1937",
+            layers: {
+              ...curLayers,
+              holc1937: true,
+              historicMap: !alreadyOn,
+            },
+          });
+          btnHolcDrape.innerHTML = !alreadyOn
+            ? "&#10003; 1937 Original HOLC Map Scan Draped (Click to Hide)"
+            : "&#128506; Drape 1937 Original HOLC Map Scan Under Zone";
+        });
+      }
+
+      const btnHolcShowRb = document.getElementById("btn-holc-show-redbook");
+      if (btnHolcShowRb) {
+        btnHolcShowRb.addEventListener("click", () => {
+          const curLayers = this.filterStore.getState().layers || {};
+          this.filterStore.setState({
+            redBookCategory: "all",
+            layers: {
+              ...curLayers,
+              holc1937: true,
+              redBook1915: true,
+            },
+          });
+          btnHolcShowRb.innerHTML = "&#10003; 1915 Red Book Heritage Sites Visible on Map";
+        });
+      }
+    }
+
     const boundarySpec = {
       layerKey: overlayLayer || "neighborhoods",
       id: rawProps.id || name,
@@ -7071,6 +7927,9 @@ class HoustonAtlasApp {
         const bName = bBtn.getAttribute("data-highlight-boundary") || "";
         const bLayer = bBtn.getAttribute("data-boundary-layer") || "";
         if (bName && this.mapController) {
+          if (bLayer === "holc_1937_zones") {
+            this.filterStore.setLayerVisibility("holc1937", true);
+          }
           this.mapController.highlightBoundaryByIdOrName(bName, {
             layerKey: bLayer,
             fitBounds: true,
@@ -8951,6 +9810,8 @@ class HoustonAtlasApp {
         "historical_waterways",
         "historical_railroads",
         "lost_houston",
+        "red_book_1915",
+        "holc_1937_zones",
       ].includes(String(rawProps.overlay_layer || ""))
     ) {
       this._currentInspectedRawProps = null;
@@ -9631,6 +10492,60 @@ class HoustonAtlasApp {
             </span>
           </div>`
         : "";
+
+    const holcZone = fullGeoCtx?.holc_1937_zone || null;
+    const holcContextRowHtml = holcZone
+      ? (() => {
+          const hGrade = String(holcZone.holc_grade || "C").toUpperCase();
+          const hCode = String(holcZone.zone_code || hGrade).trim();
+          const hShort = String(
+            holcZone.grade_short ||
+              (hGrade === "A"
+                ? "Best"
+                : hGrade === "B"
+                ? "Still Desirable"
+                : hGrade === "C"
+                ? "Definitely Declining"
+                : "Hazardous")
+          ).trim();
+          const hTitle = String(holcZone.area_title || holcZone.name || "").trim();
+          const hId = String(holcZone.id || hCode).replace(/"/g, "&quot;");
+          const afTemp = Number(holcZone.af_temp_f) || 0;
+          return `<div class="inspector-cell full">
+            <span class="cell-label">1937 HOLC Security Area ("Redlining" Map)</span>
+            <span class="cell-value inspector-chip-group">
+              <button
+                type="button"
+                class="holc-grade-chip grade-${hGrade}"
+                data-highlight-boundary="${hId}"
+                data-boundary-layer="holc_1937_zones"
+                data-open-boundary-dossier="1"
+                title="Open 1937 HOLC ${hCode} (${hShort}) Security Zone Dossier & Equity Scorecard"
+              >HOLC ${hCode} · Grade ${hGrade} (${hShort})</button>
+              ${hTitle ? `<span class="inspector-chip-note">${hTitle}</span>` : ""}
+              <button
+                type="button"
+                class="inspector-boundary-btn"
+                data-highlight-boundary="${hId}"
+                data-boundary-layer="holc_1937_zones"
+                title="Outline 1937 HOLC ${hCode} zone polygon on the map"
+              >Outline Zone</button>
+              <button
+                type="button"
+                class="inline-isolate-btn"
+                data-isolate-boundary="${hId}"
+                data-boundary-layer="holc_1937_zones"
+                title="Isolate 1937 HOLC ${hCode} and its structures on the map"
+              >&#127919; Isolate</button>
+              ${
+                afTemp > 0
+                  ? `<span class="inspector-chip-note" title="HARC / NOAA Houston Heat Watch measured afternoon air temperature">· ${afTemp.toFixed(1)}&deg;F Heat Watch</span>`
+                  : ""
+              }
+            </span>
+          </div>`;
+        })()
+      : "";
     const styleInfo = this._resolveStyleAndClassInfo(props);
     const styleChipsHtml = (styleInfo.chips || [])
       .map(
@@ -9808,6 +10723,132 @@ class HoustonAtlasApp {
           </div>`
         : "";
 
+    let redBookEntries =
+      this.mapController && typeof this.mapController.getRedBookEntriesForBuilding === "function"
+        ? this.mapController.getRedBookEntriesForBuilding({
+            hcadNum,
+            buildingId: props.building_id || props.id || "",
+          })
+        : [];
+    if (!redBookEntries.length && props._red_book_entries) {
+      if (Array.isArray(props._red_book_entries)) {
+        redBookEntries = props._red_book_entries;
+      } else if (
+        typeof props._red_book_entries === "string" &&
+        props._red_book_entries.trim().startsWith("[")
+      ) {
+        try {
+          redBookEntries = JSON.parse(props._red_book_entries);
+        } catch (_e) {
+          redBookEntries = [];
+        }
+      }
+    }
+
+    const redBookHistoryCardHtml =
+      redBookEntries.length > 0
+        ? `<div class="red-book-heritage-card" id="red-book-heritage-card">
+            <div class="red-book-card-header">
+              <span class="red-book-card-kicker">&#128214; 1915 Red Book of Houston Heritage${
+                redBookEntries.length > 1 ? ` (${redBookEntries.length} Entries)` : ""
+              }</span>
+              <span class="lost-houston-site-badge" style="background:rgba(245,158,11,0.22);color:#fef3c7;border-color:rgba(251,191,36,0.55);">African American Compendium</span>
+            </div>
+            ${redBookEntries
+              .map((rb) => {
+                const rbId = String(rb.id || "").replace(/"/g, "&quot;");
+                const rbName = String(rb.name || "1915 Red Book Site");
+                const rbCat = String(rb.category_label || "1915 Heritage Entry");
+                const rbSub = String(rb.subtitle || "");
+                const rbAddr1915 = String(rb.historic_address_1915 || "");
+                const rbSurv = String(rb.survival_status || "");
+                const isSurvivingEra = rbSurv === "surviving_era_structure";
+                const survBadgeText = isSurvivingEra
+                  ? "Surviving 1915-Era Structure"
+                  : "Redeveloped Parcel (1915 Site)";
+                const survBadgeStyle = isSurvivingEra
+                  ? "background:rgba(34,197,94,0.2);color:#bbf7d0;border:1px solid rgba(74,222,128,0.5);"
+                  : "background:rgba(56,189,248,0.16);color:#bae6fd;border:1px solid rgba(125,211,252,0.42);";
+                const bioBits = [];
+                if (rbAddr1915) bioBits.push(`1915 Address: <strong>${rbAddr1915}</strong>`);
+                if (rb.pastor_name && !rbSub.includes(rb.pastor_name)) {
+                  bioBits.push(`Pastor: ${rb.pastor_name}`);
+                }
+                if (rb.birthplace) {
+                  bioBits.push(
+                    `Origin: ${rb.birthplace}${rb.birth_year ? ` (b. ${rb.birth_year})` : ""}`
+                  );
+                }
+                if (rb.church_attended) bioBits.push(`Church: ${rb.church_attended}`);
+                if (rb.school_attended) bioBits.push(`School: ${rb.school_attended}`);
+                if (rb.lodges_clubs) bioBits.push(`Fraternal / Civic: ${rb.lodges_clubs}`);
+                if (rb.red_book_page) bioBits.push(`1915 Compendium: ${rb.red_book_page}`);
+                const imgUrl = String(rb.rice_photo_img_url || "").trim();
+                const detailUrl = String(rb.rice_photo_url || rb.rice_collection_url || "").trim();
+                const hplUrl = String(
+                  rb.hpl_book_url ||
+                    "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/182"
+                ).trim();
+                return `<div class="red-book-entry-item">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                    <div>
+                      <div class="red-book-entry-title">${rbName}</div>
+                      <div class="red-book-entry-meta" style="color:#fde68a;font-weight:600;">${rbCat}${
+                        rbSub ? ` · ${rbSub}` : ""
+                      }</div>
+                    </div>
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;${survBadgeStyle}">${survBadgeText}</span>
+                  </div>
+                  ${
+                    imgUrl
+                      ? `<div class="red-book-photo-wrap">
+                          <img
+                            src="${imgUrl}"
+                            alt="${rbName.replace(/"/g, "&quot;")} (1915 Red Book of Houston archival plate)"
+                            class="red-book-photo-thumb"
+                            loading="lazy"
+                          />
+                        </div>`
+                      : ""
+                  }
+                  ${
+                    bioBits.length
+                      ? `<div class="red-book-entry-meta">${bioBits.join(" · ")}</div>`
+                      : ""
+                  }
+                  <div class="lost-houston-site-actions" style="margin-top:3px;">
+                    <button
+                      type="button"
+                      class="lost-houston-site-btn"
+                      data-inspect-red-book="${rbId}"
+                    >
+                      &#128214; Open 1915 Red Book Dossier
+                    </button>
+                    ${
+                      detailUrl
+                        ? `<a
+                            href="${detailUrl}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="lost-houston-site-btn secondary"
+                            style="text-decoration:none;"
+                          >Rice Woodson Plate &#8599;</a>`
+                        : ""
+                    }
+                    <a
+                      href="${hplUrl}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="lost-houston-site-btn secondary"
+                      style="text-decoration:none;"
+                    >1915 Red Book (HPL) &#8599;</a>
+                  </div>
+                </div>`;
+              })
+              .join("")}
+          </div>`
+        : "";
+
     const initialRemodelYear = Number(props.yr_remodel || props.remodel_year) || 0;
     const initialEffYear = Number(props.eff_year_built) || 0;
 
@@ -9869,6 +10910,7 @@ class HoustonAtlasApp {
       Boolean(props.is_curated_override),
       Boolean(reportPdfUrl || landmarkCode),
       Boolean(nrhpHistoryCardHtml),
+      redBookEntries.length > 0,
       goodBrickAwards.length > 0,
       Boolean(histContractObj || histBuilderVal || histCostVal || histPermitVal || wasRelocatedFlag),
       lostHoustonAtSite.length > 0,
@@ -9916,6 +10958,7 @@ class HoustonAtlasApp {
       !verifiedBannerHtml &&
       !landmarkReportHtml &&
       !nrhpHistoryCardHtml &&
+      !redBookHistoryCardHtml &&
       !goodBrickHtml &&
       !histContractHtml &&
       !lostHoustonSiteCardHtml
@@ -10115,6 +11158,7 @@ class HoustonAtlasApp {
                 </span>
               </div>
               ${extraPreservationOverlaysRowHtml}
+              ${holcContextRowHtml}
               <div class="inspector-cell">
                 <span class="cell-label">Building Floor Area</span>
                 <span class="cell-value mono" id="inspector-cell-bld-sqft">${bldSqft}</span>
@@ -10201,6 +11245,7 @@ class HoustonAtlasApp {
             ${verifiedBannerHtml}
             ${landmarkReportHtml}
             ${nrhpHistoryCardHtml}
+            ${redBookHistoryCardHtml}
             ${goodBrickHtml}
             ${histContractHtml}
             ${lostHoustonSiteCardHtml}
@@ -10535,13 +11580,37 @@ class HoustonAtlasApp {
       });
     });
 
+    content.querySelectorAll("[data-inspect-red-book]").forEach((rbBtn) => {
+      rbBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rbId = rbBtn.getAttribute("data-inspect-red-book") || "";
+        if (rbId && this.mapController) {
+          this.filterStore.setLayerVisibility("redBook1915", true);
+          this.mapController.inspectRedBookById(rbId, { flyTo: false });
+        }
+      });
+    });
+
     content.querySelectorAll("[data-highlight-boundary]").forEach((bBtn) => {
       bBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
         const bName = bBtn.getAttribute("data-highlight-boundary") || "";
         const bLayer = bBtn.getAttribute("data-boundary-layer") || "";
+        const openDossier = bBtn.hasAttribute("data-open-boundary-dossier");
         if (bName && this.mapController) {
+          if (bLayer === "holc_1937_zones") {
+            this.filterStore.setLayerVisibility("holc1937", true);
+          }
+          if (openDossier) {
+            this.mapController.highlightBoundaryByIdOrName(bName, {
+              layerKey: bLayer,
+              fitBounds: true,
+              openInspector: true,
+            });
+            return;
+          }
           this.mapController.highlightBoundaryByIdOrName(bName, {
             layerKey: bLayer,
             fitBounds: false,
@@ -10554,6 +11623,8 @@ class HoustonAtlasApp {
                 ? "Outline Ward"
                 : bLayer === "platted_subdivisions"
                 ? "Outline Plat"
+                : bLayer === "holc_1937_zones"
+                ? "Outline Zone"
                 : "Outline";
           }, 2200);
         }
@@ -11944,6 +13015,8 @@ class HoustonAtlasApp {
         goodBrickAwards: "★ Good Brick Awards",
         landmarks: "COH Landmarks",
         potentialHistoricDistricts: "Potential Historic Districts (60)",
+        redBook1915: "1915 Red Book of Houston (970)",
+        holc1937: "1937 HOLC Security Grades (47)",
         lostHouston: "Lost Houston (110)",
         relocatedStructures: "Relocated Structures",
         historicDistricts: "COH Historic Districts (23)",
@@ -11990,6 +13063,32 @@ class HoustonAtlasApp {
             state.landmarkFilter === "protected"
               ? "Landmarks: Protected (286)"
               : "Landmarks: 90-Day Waiver (223)"
+          }</span>`
+        );
+      }
+      if (state.layers?.redBook1915 && state.redBookCategory && state.redBookCategory !== "all") {
+        const rbCatNames = {
+          church: "Churches (64)",
+          school: "Schools (12)",
+          business: "Businesses (394)",
+          residence: "Civic Leaders & Homes (500)",
+        };
+        pills.push(
+          `<span class="share-pill-tag accent">1915 Red Book: ${
+            rbCatNames[state.redBookCategory] || state.redBookCategory
+          }</span>`
+        );
+      }
+      if (state.layers?.holc1937 && state.holcGradeFilter && state.holcGradeFilter !== "all") {
+        const holcNames = {
+          A: 'Grade A "Best" (7)',
+          B: 'Grade B "Still Desirable" (14)',
+          C: 'Grade C "Definitely Declining" (15)',
+          D: 'Grade D "Hazardous" (11)',
+        };
+        pills.push(
+          `<span class="share-pill-tag accent">1937 HOLC: ${
+            holcNames[String(state.holcGradeFilter).toUpperCase()] || state.holcGradeFilter
           }</span>`
         );
       }
@@ -12457,6 +13556,18 @@ class HoustonAtlasApp {
           { val: "historic_wards::Fourth Ward", text: "Fourth Ward (1903–1905 Charter)" },
           { val: "historic_wards::Fifth Ward", text: "Fifth Ward (1903–1905 Charter)" },
           { val: "historic_wards::Sixth Ward", text: "Sixth Ward (1903–1905 Charter)" },
+        ],
+      },
+      {
+        label: "1937 HOLC Redlining Security Zones",
+        items: [
+          { val: "holc_1937_zones::holc_1937_d8", text: "HOLC D-8 (Hazardous): Fourth Ward / Freedmen's Town" },
+          { val: "holc_1937_zones::holc_1937_d5", text: "HOLC D-5 (Hazardous): Fifth Ward" },
+          { val: "holc_1937_zones::holc_1937_d10", text: "HOLC D-10 (Hazardous): Third Ward" },
+          { val: "holc_1937_zones::holc_1937_d4", text: "HOLC D-4 (Hazardous): Near Northside / Hardy Yards" },
+          { val: "holc_1937_zones::holc_1937_c9", text: "HOLC C-9 (Declining): Houston Heights / Woodland Heights" },
+          { val: "holc_1937_zones::holc_1937_b7", text: "HOLC B-7 (Still Desirable): Montrose / Museum District" },
+          { val: "holc_1937_zones::holc_1937_a1", text: "HOLC A-1 (Best): River Oaks" },
         ],
       },
       {

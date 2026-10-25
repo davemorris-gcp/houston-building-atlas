@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261025a" />
+  <link rel="stylesheet" href="styles/index.css?v=20261025e" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -842,6 +842,83 @@
                   title="Show only Houston Cultural Arts Districts (click again to restore)"
                 >
                   Solo
+                </button>
+              </div>
+            </div>
+          </details>
+
+          <!-- Category 2B: Social History, Red Book & Redlining -->
+          <details class="layer-category-group" data-layer-group="social_history" open>
+            <summary class="layer-category-summary">
+              <span class="layer-category-title-wrap">
+                <span class="layer-category-chevron" aria-hidden="true">&#9656;</span>
+                <span class="layer-category-title">Social History, Red Book &amp; Redlining</span>
+              </span>
+              <span class="layer-category-badge mono is-zero" data-group-badge="social_history">0 active</span>
+            </summary>
+            <div class="layer-category-body">
+              <div class="layer-item-row" data-layer-key="redBook1915">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-red-book" />
+                  <span class="swatch-dot" style="background:#F59E0B; border:1.5px solid #FEF3C7; box-shadow:0 0 6px rgba(245,158,11,0.75);" title="1915 Red Book of Houston: 970 geocoded African American churches (64), schools (12), Black-owned businesses (394), and civic leaders &amp; homes (500). Glowing gold ring = 29 surviving era structures."></span>
+                  <span class="layer-name">1915 Red Book of Houston (970)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="redBook1915"
+                  title="Show only 1915 Red Book of Houston African American heritage sites (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="red-book-subfilter-row hidden" id="red-book-filter-row" role="group" aria-label="1915 Red Book Category Filter">
+                <div class="rb-filter-pills">
+                  <button type="button" class="rb-filter-pill mono active" data-rb-cat="all" title="Show all 970 geocoded 1915 Red Book of Houston sites">All 970</button>
+                  <button type="button" class="rb-filter-pill mono" data-rb-cat="church" title="64 African American Churches in the 1915 Red Book">Churches 64</button>
+                  <button type="button" class="rb-filter-pill mono" data-rb-cat="school" title="12 African American Schools in the 1915 Red Book">Schools 12</button>
+                  <button type="button" class="rb-filter-pill mono" data-rb-cat="business" title="394 Black-Owned Businesses in the 1915 Red Book">Businesses 394</button>
+                  <button type="button" class="rb-filter-pill mono" data-rb-cat="residence" title="500 Civic Leaders &amp; Residences in the 1915 Red Book">Leaders 500</button>
+                </div>
+                <div class="rb-survival-mini-legend">
+                  <span><strong style="color:#FEF3C7;">&#9673;</strong> Surviving Era Structure (29)</span>
+                  <span><strong style="color:#F59E0B;">&#9679;</strong> Rebuilt Lot (323)</span>
+                  <span><strong style="color:#64748B;">&#9675;</strong> Cleared / ROW (618)</span>
+                </div>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="holc1937">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-holc-1937" />
+                  <span class="swatch-line" style="border-color:#EF4444;" title="1937 Home Owners' Loan Corporation (HOLC) Neighborhood Security Zones (47 polygons: Grade A Best, Grade B Still Desirable, Grade C Definitely Declining, Grade D Hazardous)"></span>
+                  <span class="layer-name">1937 HOLC Security Grades (47)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="holc1937"
+                  title="Show only 1937 HOLC Neighborhood Security Zones (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="holc-subfilter-row hidden" id="holc-grade-filter-row" role="group" aria-label="1937 HOLC Security Grade Filter">
+                <div class="holc-filter-pills">
+                  <button type="button" class="holc-filter-pill mono active" data-holc-grade="all" title="Show all 47 1937 HOLC Security Zones">All 47</button>
+                  <button type="button" class="holc-filter-pill mono" data-holc-grade="A" title="7 Grade A ('Best') Zones (Green)">A: Best (7)</button>
+                  <button type="button" class="holc-filter-pill mono" data-holc-grade="B" title="14 Grade B ('Still Desirable') Zones (Blue)">B: Desirable (14)</button>
+                  <button type="button" class="holc-filter-pill mono" data-holc-grade="C" title="15 Grade C ('Definitely Declining') Zones (Yellow)">C: Declining (15)</button>
+                  <button type="button" class="holc-filter-pill mono" data-holc-grade="D" title="11 Grade D ('Hazardous' / Redlined) Zones (Red)">D: Hazardous (11)</button>
+                </div>
+                <button
+                  type="button"
+                  class="holc-drape-scan-btn"
+                  id="btn-drape-holc-scan"
+                  title="Drape the georeferenced 1937 HOLC Neighborhood Security Map scan underneath the interactive vector zones"
+                >
+                  &#128506; Drape 1937 Original HOLC Map Scan
                 </button>
               </div>
             </div>
@@ -2263,6 +2340,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261025b"></script>
+  <script type="module" src="js/app.js?v=20261025d"></script>
 </body>
 </html>
