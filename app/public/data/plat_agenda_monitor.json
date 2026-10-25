@@ -1,7 +1,7 @@
 {
   "app": "Plat Agenda Monitor",
   "version": 2,
-  "generatedAt": "2026-10-24T15:08:09Z",
+  "generatedAt": "2026-10-25T15:21:00Z",
   "cycleKey": "2026-10-16",
   "pcDate": "2026-10-16T00:00:00.000Z",
   "fileName": "Plat-Current-Agenda-Spreadsheet-10-15-2026.xlsx",
@@ -10956,8 +10956,7 @@
         "superNeighborhoodEarliestYear": 1845,
         "superNeighborhoodMedianYear": 1999,
         "designations": [
-          "City Landmark",
-          "City historic district (Outside Historic District)"
+          "City Landmark"
         ],
         "smlsProtections": [],
         "hasActivePermit": false,
@@ -12546,7 +12545,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93911/OriginalFiles/091602026_Magnolia_Residential-2-MAGNOLIA_RESIDENTIAL.pdf?sv=2021-08-06&se=2051-10-05T15%3A58%3A18Z&sr=b&sp=r&sig=rZX2ju5qnl7Qzi%2FW7kJbCQ7nLivuJ2zUkeB45xeVqfQ%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.691957+00:00"
+      "updated": "2026-10-25T15:21:00.857599+00:00"
     },
     "2026-1637": {
       "address": "134 W LITTLE YORK RD",
@@ -12557,7 +12556,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93935/OriginalFiles/VISTA_EYE_CARE.pdf?sv=2021-08-06&se=2051-10-05T12%3A58%3A23Z&sr=b&sp=r&sig=OMe9DH3iy2pikuYcvxMGQ2mxxV6%2B73yjBwuhBkTSWX8%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692005+00:00"
+      "updated": "2026-10-25T15:21:00.857622+00:00"
     },
     "2026-1634": {
       "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -12568,7 +12567,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692012+00:00"
+      "updated": "2026-10-25T15:21:00.857626+00:00"
     },
     "2026-1625": {
       "address": "1508 LAWRENCE ST",
@@ -12579,7 +12578,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93921/OriginalFiles/LAWRENCE_STREET_GROVE_10-3-2026_PDF.pdf?sv=2021-08-06&se=2051-10-04T06%3A29%3A02Z&sr=b&sp=r&sig=5%2BrfeZech3AAlxQ7n7V1eFMKPQGmRYkVAIas5Mh7A4o%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692028+00:00"
+      "updated": "2026-10-25T15:21:00.857632+00:00"
     },
     "2026-1615": {
       "address": "9112 SPRING BRANCH DR; 9110 SPRING BRANCH DR",
@@ -12590,7 +12589,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93908/OriginalFiles/SPRING_BRANCH_COMPLEX-Layout1.pdf?sv=2021-08-06&se=2051-10-02T19%3A57%3A05Z&sr=b&sp=r&sig=O76LkRvquITqH6FNikfZK7dSDBP4u6QHCI9WfVFzuwQ%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692039+00:00"
+      "updated": "2026-10-25T15:21:00.857637+00:00"
     },
     "2026-1605": {
       "address": "4615 SHERMAN ST",
@@ -12601,7 +12600,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692047+00:00"
+      "updated": "2026-10-25T15:21:00.857640+00:00"
     },
     "2026-1603": {
       "address": "7528 GAINESVILLE ST",
@@ -12612,7 +12611,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93883/OriginalFiles/26148150_Tahil_Oaks_Plat.pdf?sv=2021-08-06&se=2051-10-02T16%3A04%3A11Z&sr=b&sp=r&sig=LUF2feRvQXz%2BymknEW22PjRUIqF%2FErowqOS0N2IV1fU%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692054+00:00"
+      "updated": "2026-10-25T15:21:00.857645+00:00"
     },
     "2026-1587": {
       "address": "2501 CANAL ST; 2507 CANAL ST",
@@ -12623,7 +12622,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93886/OriginalFiles/05-Refoka_Estates_at_Canal_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-02T11%3A52%3A10Z&sr=b&sp=r&sig=3X6mU%2FTN4SLbAbeflBdaFZ%2FkBde5plfmUAuJ%2FmIAfJc%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692070+00:00"
+      "updated": "2026-10-25T15:21:00.857652+00:00"
     },
     "2026-1570": {
       "address": "5603 BACHER ST",
@@ -12634,7 +12633,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93854/OriginalFiles/261061125-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A29%3A14Z&sr=b&sp=r&sig=HAQ59y4hq8lIuOQj%2BwtFqW%2B9pD5ohqNiVquvlJvGy2U%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1570-Bacher-Manor.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692081+00:00"
+      "updated": "2026-10-25T15:21:00.857658+00:00"
     },
     "2026-1557": {
       "address": "5912 HAIGHT ST",
@@ -12645,7 +12644,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93839/OriginalFiles/HAIGHT_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-09-21T02%3A15%3A32Z&sr=b&sp=r&sig=IS83YIfcJ%2F91rHw7Uy%2F1gnmzITNEhPVoLGPBIN1nZIo%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692085+00:00"
+      "updated": "2026-10-25T15:21:00.857660+00:00"
     },
     "2026-1551": {
       "address": "8841 CULLEN BLVD",
@@ -12656,7 +12655,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692088+00:00"
+      "updated": "2026-10-25T15:21:00.857662+00:00"
     },
     "2026-1533": {
       "address": "3014 WAYNE ST",
@@ -12667,7 +12666,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93812/OriginalFiles/26-0021-001.pdf?sv=2021-08-06&se=2051-09-18T17%3A36%3A36Z&sr=b&sp=r&sig=SydgDrrIpvw8GGXIGkHp4LrIzz8mIarf5lc%2FBNjDL58%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692097+00:00"
+      "updated": "2026-10-25T15:21:00.857668+00:00"
     },
     "2026-1495": {
       "address": "1131 VERA LOU ST",
@@ -12678,7 +12677,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692109+00:00"
+      "updated": "2026-10-25T15:21:00.857673+00:00"
     },
     "2026-1484": {
       "address": "1704 RONSON RD",
@@ -12689,7 +12688,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93620/OriginalFiles/26046_-_Plat.pdf?sv=2021-08-06&se=2051-09-03T18%3A45%3A52Z&sr=b&sp=r&sig=FSjt6DbInALc1fahVsGWsiepUnx6jP1skJMZjoBETe8%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692114+00:00"
+      "updated": "2026-10-25T15:21:00.857676+00:00"
     },
     "2026-1454": {
       "address": "1334 BRITTMOORE RD",
@@ -12700,7 +12699,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692122+00:00"
+      "updated": "2026-10-25T15:21:00.857679+00:00"
     },
     "2026-1440": {
       "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
@@ -12711,7 +12710,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1440/OriginalFiles/Woodway_Drive_PRELIMINARY_PLAT_OF_BAYOU_GLEN_PARTIAL_REPLAT_NO_1__92126.pdf?sv=2021-08-06&se=2051-09-22T19%3A50%3A20Z&sr=b&sp=r&sig=s6a0uknskB%2BMe0kDG%2FTTtncjnNfi8j8Qy0LCrvAUqI8%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692129+00:00"
+      "updated": "2026-10-25T15:21:00.857683+00:00"
     },
     "2026-1427": {
       "address": "604 NEYLAND ST",
@@ -12722,7 +12721,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692137+00:00"
+      "updated": "2026-10-25T15:21:00.857687+00:00"
     },
     "DPV-4": {
       "address": "Bauer Hockley Road Street Dedication and Drill Site",
@@ -12733,7 +12732,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692144+00:00"
+      "updated": "2026-10-25T15:21:00.857691+00:00"
     },
     "DPV-8": {
       "address": "Bridgeland Prairieland Village Sec 58",
@@ -12744,7 +12743,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692148+00:00"
+      "updated": "2026-10-25T15:21:00.857694+00:00"
     },
     "DPV-9": {
       "address": "City of Houston District 71 Ground Water Facility",
@@ -12755,7 +12754,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692150+00:00"
+      "updated": "2026-10-25T15:21:00.857696+00:00"
     },
     "DPV-11": {
       "address": "Esther Residences Square",
@@ -12766,7 +12765,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692153+00:00"
+      "updated": "2026-10-25T15:21:00.857698+00:00"
     },
     "DPV-12": {
       "address": "Fairbanks Landing Sec 2",
@@ -12777,7 +12776,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692155+00:00"
+      "updated": "2026-10-25T15:21:00.857700+00:00"
     },
     "DPV-14": {
       "address": "Fondren at Court Reserves Sec 1",
@@ -12788,7 +12787,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692158+00:00"
+      "updated": "2026-10-25T15:21:00.857702+00:00"
     },
     "DPV-15": {
       "address": "Generation Park East Sec 5",
@@ -12799,7 +12798,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692160+00:00"
+      "updated": "2026-10-25T15:21:00.857704+00:00"
     },
     "DPV-16": {
       "address": "Generation Park South Sec 2",
@@ -12810,7 +12809,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692163+00:00"
+      "updated": "2026-10-25T15:21:00.857706+00:00"
     },
     "DPV-18": {
       "address": "Harris County Municipal Utility District no 421 Remote Well",
@@ -12821,7 +12820,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692165+00:00"
+      "updated": "2026-10-25T15:21:00.857707+00:00"
     },
     "DPV-19": {
       "address": "Harris County WCID no 110 Wastewater Treatment Plant no 1",
@@ -12832,7 +12831,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692168+00:00"
+      "updated": "2026-10-25T15:21:00.857709+00:00"
     },
     "DPV-20": {
       "address": "Homes on Market Street",
@@ -12843,7 +12842,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692171+00:00"
+      "updated": "2026-10-25T15:21:00.857711+00:00"
     },
     "DPV-21": {
       "address": "Huffman Fire Department Station 53",
@@ -12854,7 +12853,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692173+00:00"
+      "updated": "2026-10-25T15:21:00.857713+00:00"
     },
     "DPV-23": {
       "address": "Jubilee Baethe Road Steet Dedication and Reserve Sec 3",
@@ -12865,7 +12864,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692175+00:00"
+      "updated": "2026-10-25T15:21:00.857715+00:00"
     },
     "DPV-24": {
       "address": "Jubilee Haven Boulevard Street Dedication and Reserve Sec 3",
@@ -12876,7 +12875,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692177+00:00"
+      "updated": "2026-10-25T15:21:00.857716+00:00"
     },
     "DPV-25": {
       "address": "Lockwood Street Commons",
@@ -12887,7 +12886,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692180+00:00"
+      "updated": "2026-10-25T15:21:00.857718+00:00"
     },
     "DPV-26": {
       "address": "Midline Sec 12",
@@ -12898,7 +12897,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692183+00:00"
+      "updated": "2026-10-25T15:21:00.857720+00:00"
     },
     "DPV-27": {
       "address": "Northeast Industrial",
@@ -12909,7 +12908,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692185+00:00"
+      "updated": "2026-10-25T15:21:00.857722+00:00"
     },
     "DPV-28": {
       "address": "Northwest 99 Business Park GP",
@@ -12920,7 +12919,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692187+00:00"
+      "updated": "2026-10-25T15:21:00.857723+00:00"
     },
     "DPV-29": {
       "address": "Olympia Fields Sec 6",
@@ -12931,7 +12930,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692189+00:00"
+      "updated": "2026-10-25T15:21:00.857725+00:00"
     },
     "DPV-33": {
       "address": "Virdi Brothers LLC",
@@ -12942,7 +12941,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692191+00:00"
+      "updated": "2026-10-25T15:21:00.857727+00:00"
     },
     "DPV-34": {
       "address": "White Oak Terrace Estates replat no 1",
@@ -12953,7 +12952,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692193+00:00"
+      "updated": "2026-10-25T15:21:00.857729+00:00"
     },
     "DPV-35": {
       "address": "Windmill Park Industrial Sec 1",
@@ -12964,7 +12963,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692196+00:00"
+      "updated": "2026-10-25T15:21:00.857731+00:00"
     },
     "DPV-37": {
       "address": "Bridgeland Nature Preserve Way Church",
@@ -12975,7 +12974,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692198+00:00"
+      "updated": "2026-10-25T15:21:00.857733+00:00"
     },
     "DPV-38": {
       "address": "Brittmoore Founders District partial replat no 1",
@@ -12986,7 +12985,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692200+00:00"
+      "updated": "2026-10-25T15:21:00.857734+00:00"
     },
     "DPV-40": {
       "address": "Clarewood Springs",
@@ -12997,7 +12996,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692202+00:00"
+      "updated": "2026-10-25T15:21:00.857736+00:00"
     },
     "DPV-26073533": {
       "address": "2603 MILAM ST 15",
@@ -13008,7 +13007,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692206+00:00"
+      "updated": "2026-10-25T15:21:00.857739+00:00"
     },
     "DPV-26075937": {
       "address": "1501 WICHMAN ST",
@@ -13019,7 +13018,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26075937-1501-Wichman-Street.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692210+00:00"
+      "updated": "2026-10-25T15:21:00.857742+00:00"
     },
     "DPV-2026-1442": {
       "address": "Forest Green Reserve",
@@ -13030,7 +13029,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692213+00:00"
+      "updated": "2026-10-25T15:21:00.857745+00:00"
     },
     "DPV-2026-1481": {
       "address": "Jutland Homes",
@@ -13041,7 +13040,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692215+00:00"
+      "updated": "2026-10-25T15:21:00.857747+00:00"
     },
     "DPV-2026-1502": {
       "address": "Sevilla Commercial",
@@ -13052,7 +13051,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692218+00:00"
+      "updated": "2026-10-25T15:21:00.857749+00:00"
     },
     "DPV-2026-1520": {
       "address": "Partial Replat of Sandalwood Sec 2 and 3 partial replat no 1",
@@ -13063,7 +13062,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1520-Partial-Replat-of-Sandalwood-Sec-2-and-3-prno1-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692220+00:00"
+      "updated": "2026-10-25T15:21:00.857751+00:00"
     },
     "DPV-2026-1553": {
       "address": "Denton Street Villas",
@@ -13074,7 +13073,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1553_Denton-Street-Villas_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692223+00:00"
+      "updated": "2026-10-25T15:21:00.857753+00:00"
     },
     "DPV-2026-1554": {
       "address": "Richland Drive Villas",
@@ -13085,7 +13084,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1554-Richland-Drive-Villas-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692225+00:00"
+      "updated": "2026-10-25T15:21:00.857755+00:00"
     },
     "DPV-2026-1562": {
       "address": "within the boundaries of this plat and always available for the general use of said owners and to the public for firefighters, fire fighting equipment, police and emergency vehicles of whatever nature at all times",
@@ -13096,7 +13095,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692227+00:00"
+      "updated": "2026-10-25T15:21:00.857756+00:00"
     },
     "DPV-2026-1569": {
       "address": "Kafi Commons",
@@ -13107,7 +13106,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692230+00:00"
+      "updated": "2026-10-25T15:21:00.857758+00:00"
     },
     "DPV-2026-1585": {
       "address": "Montrose Residences",
@@ -13118,7 +13117,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692232+00:00"
+      "updated": "2026-10-25T15:21:00.857760+00:00"
     },
     "DPV-2026-1621": {
       "address": "Haddick Place",
@@ -13129,7 +13128,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1621_Haddick-Place_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692234+00:00"
+      "updated": "2026-10-25T15:21:00.857762+00:00"
     },
     "DPV-2026-1639": {
       "address": "Charlesmont Corner",
@@ -13140,7 +13139,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1639_Charlesmont-Corner_PHS.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692236+00:00"
+      "updated": "2026-10-25T15:21:00.857764+00:00"
     },
     "DPV-2026-1641": {
       "address": "Wheeler Residences",
@@ -13151,7 +13150,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692239+00:00"
+      "updated": "2026-10-25T15:21:00.857766+00:00"
     },
     "DPV-2026-1650": {
       "address": "JDS Hopfe Road Sec 5 partial replat no 1",
@@ -13162,7 +13161,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1650_JDS-Hopfe-Road-Sec-5-partial-replat-no-1_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692241+00:00"
+      "updated": "2026-10-25T15:21:00.857768+00:00"
     },
     "DPV-2026-1669": {
       "address": "the intersection of Fondren Road and Court Road, bounded by Fort Bend Parkway to the west and Blueridge Road to the east",
@@ -13173,7 +13172,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692244+00:00"
+      "updated": "2026-10-25T15:21:00.857770+00:00"
     },
     "DPV-2026-1723": {
       "address": "0 CANADA DRY ST",
@@ -13184,7 +13183,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1723_ScottWetWeatherFacility.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692247+00:00"
+      "updated": "2026-10-25T15:21:00.857772+00:00"
     },
     "DPV-26080390": {
       "address": "3747 DREYFUS ST",
@@ -13195,7 +13194,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26080390_3747-Dreyfus-Street_notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692250+00:00"
+      "updated": "2026-10-25T15:21:00.857775+00:00"
     },
     "DPV-26084127": {
       "address": "6102 WALTWAY DR",
@@ -13206,7 +13205,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692253+00:00"
+      "updated": "2026-10-25T15:21:00.857777+00:00"
     },
     "DPV-26087637": {
       "address": "south of Memorial Drive and West of North Wilcrest Drive at the northwest intersection between Yorkchester Drive and Apple Tree Road",
@@ -13217,7 +13216,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692256+00:00"
+      "updated": "2026-10-25T15:21:00.857779+00:00"
     },
     "DPV-26091362": {
       "address": "13515 PERTHSHIRE RD",
@@ -13228,7 +13227,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-24T15:08:09.692259+00:00"
+      "updated": "2026-10-25T15:21:00.857781+00:00"
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-24T15:08:11Z",
+  "updatedAt": "2026-10-25T15:21:01Z",
   "primaryProperty": {
     "id": "prop-kirby-mansion",
     "propertyName": "John Henry Kirby Mansion",
@@ -244,7 +244,7 @@
         "typicalTiming": "Design phase, before construction starts. Often one of the earliest public signs of what is planned.",
         "resourceLabel": "TDLR Architectural Barriers",
         "resourceUrl": "https://www.tdlr.texas.gov/TABS/",
-        "additionalResourceLabel": "TDLR Project TABS2027004365",
+        "additionalResourceLabel": "TDLR Project TABS2026022839",
         "additionalResourceUrl": "https://www.tdlr.texas.gov/TABS/Search",
         "status": "Flagged",
         "lastChecked": "2026-10-23",
@@ -252,7 +252,7 @@
         "checks": [
           {
             "date": "2026-10-22",
-            "result": "TDLR Project #TABS2027004365 ('Lacuna Interior Finish out') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+            "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
           }
         ]
       },
@@ -572,7 +572,7 @@
         "date": "2026-10-22",
         "stage": "Plans & Use",
         "activity": "Accessibility Registration (TDLR TABS)",
-        "result": "TDLR Project #TABS2027004365 ('Lacuna Interior Finish out') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+        "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
         "automated": true,
         "entryNo": 25
       },
@@ -831,7 +831,7 @@
           "typicalTiming": "Design phase, before construction starts. Often one of the earliest public signs of what is planned.",
           "resourceLabel": "TDLR Architectural Barriers",
           "resourceUrl": "https://www.tdlr.texas.gov/TABS/",
-          "additionalResourceLabel": "TDLR Project TABS2027004365",
+          "additionalResourceLabel": "TDLR Project TABS2026022839",
           "additionalResourceUrl": "https://www.tdlr.texas.gov/TABS/Search",
           "status": "Flagged",
           "lastChecked": "2026-10-23",
@@ -839,7 +839,7 @@
           "checks": [
             {
               "date": "2026-10-22",
-              "result": "TDLR Project #TABS2027004365 ('Lacuna Interior Finish out') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+              "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
             }
           ]
         },
@@ -1159,7 +1159,7 @@
           "date": "2026-10-22",
           "stage": "Plans & Use",
           "activity": "Accessibility Registration (TDLR TABS)",
-          "result": "TDLR Project #TABS2027004365 ('Lacuna Interior Finish out') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+          "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
           "automated": true,
           "entryNo": 25
         },
