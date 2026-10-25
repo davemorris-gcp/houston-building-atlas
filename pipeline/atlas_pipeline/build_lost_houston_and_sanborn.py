@@ -416,12 +416,15 @@ def build_sanborn_catalog() -> dict:
     }
 
     existing_sheets_by_vid = {}
+    existing_ut_vols = []
     existing_catalog_path = DATA_DIR / "sanborn_catalog.json"
     if existing_catalog_path.exists():
         try:
             existing_cat = json.loads(existing_catalog_path.read_text(encoding="utf-8"))
             for ev in existing_cat.get("volumes", []):
-                if ev.get("id") and ev.get("sheets"):
+                if str(ev.get("id", "")).startswith("utpcl_"):
+                    existing_ut_vols.append(ev)
+                elif ev.get("id") and ev.get("sheets"):
                     existing_sheets_by_vid[ev["id"]] = ev["sheets"]
         except Exception:
             pass
@@ -501,10 +504,35 @@ def build_sanborn_catalog() -> dict:
         }
         if sheets:
             vol_obj["sheets"] = sheets
+        vol_obj["source"] = "loc"
         volumes.append(vol_obj)
 
+    if existing_ut_vols:
+        sort_years = {
+            "utpcl_houston_1877": 1877.0,
+            "sanborn08580_001": 1885.0,
+            "sanborn08580_002": 1890.0,
+            "sanborn08580_003": 1896.0,
+            "sanborn08580_004": 1907.1,
+            "sanborn08580_005": 1907.2,
+            "utpcl_houston_1917": 1917.0,
+            "utpcl_houston_1919": 1919.0,
+            "utpcl_houston_1924_vol2": 1924.2,
+            "utpcl_houston_1924_vol3": 1924.3,
+            "sanborn08580_015": 1946.12,
+            "utpcl_houston_1948_vol6": 1948.6,
+            "sanborn08580_027": 1950.11,
+            "sanborn08580_028": 1950.12,
+            "sanborn08580_016": 1950.15,
+            "sanborn08580_030": 1955.0,
+        }
+        volumes = sorted(
+            volumes + existing_ut_vols,
+            key=lambda x: sort_years.get(str(x.get("id", "")), 1999.0),
+        )
+
     return {
-        "title": "Library of Congress & UT PCL Digitized Houston Sanborn Fire Insurance Atlases (1885-1955)",
+        "title": "Library of Congress & UT PCL Digitized Houston Sanborn Fire Insurance Atlases (1877-1955)",
         "total_digitized_sheets": sum(v["sheet_count"] for v in volumes),
         "volumes": volumes,
         "volume_boundaries": raw.get("volume_extents", []),

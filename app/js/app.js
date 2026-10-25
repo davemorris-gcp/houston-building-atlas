@@ -405,7 +405,7 @@ class HoustonAtlasApp {
         fetch("public/data/stats_summary.json?v=20261011d"),
         fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
         fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261011u").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261025b").catch(() => null),
         fetch("public/data/citydir_index.json?v=20261025a").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
@@ -7752,6 +7752,7 @@ class HoustonAtlasApp {
       ? this.sanbornCatalog.volume_boundaries
       : [];
     const eraOrder = {
+      "1877": 0,
       "1885": 1,
       "1890": 2,
       "1896": 3,
@@ -7759,15 +7760,18 @@ class HoustonAtlasApp {
       "1924-1929": 5,
       "1946-1951": 6,
     };
-    const locMap = {
-      "1885|Volume 1": "sanborn08580_001",
-      "1890|Volume 1": "sanborn08580_002",
-      "1896|Volume 1": "sanborn08580_003",
-      "1907|Volume 1": "sanborn08580_004",
-      "1907|Volume 2": "sanborn08580_005",
-      "1946-1951|Volume 11": "sanborn08580_027",
-      "1946-1951|Volume 12": "sanborn08580_028",
-      "1946-1951|Volume 15": "sanborn08580_016",
+    const catalogMap = {
+      "1885|Volume 1": { volId: "sanborn08580_001", archive: "LOC" },
+      "1890|Volume 1": { volId: "sanborn08580_002", archive: "LOC" },
+      "1896|Volume 1": { volId: "sanborn08580_003", archive: "LOC" },
+      "1907|Volume 1": { volId: "sanborn08580_004", archive: "LOC" },
+      "1907|Volume 2": { volId: "sanborn08580_005", archive: "LOC" },
+      "1924-1929|Volume 2": { volId: "utpcl_houston_1924_vol2", archive: "UT PCL" },
+      "1924-1929|Volume 3": { volId: "utpcl_houston_1924_vol3", archive: "UT PCL" },
+      "1946-1951|Volume 6": { volId: "utpcl_houston_1948_vol6", archive: "UT PCL" },
+      "1946-1951|Volume 11": { volId: "sanborn08580_027", archive: "LOC" },
+      "1946-1951|Volume 12": { volId: "sanborn08580_028", archive: "LOC" },
+      "1946-1951|Volume 15": { volId: "sanborn08580_016", archive: "LOC" },
     };
 
     const hitsByKey = new Map();
@@ -7782,7 +7786,9 @@ class HoustonAtlasApp {
         const key = `${era}|${title}`;
         if (hitsByKey.has(key)) continue;
         const shortVol = title.replace(/^Volume\s+/i, "Vol. ");
-        const locVolId = locMap[key] || null;
+        const mapped = catalogMap[key] || null;
+        const catalogVolId = mapped ? mapped.volId : null;
+        const archive = mapped ? mapped.archive : null;
         hitsByKey.set(key, {
           era,
           volYear,
@@ -7792,14 +7798,28 @@ class HoustonAtlasApp {
             era === "1885" || era === "1890" || era === "1896"
               ? `${era} Edition`
               : `${volYear} ${shortVol}`,
-          eraGroupLabel:
-            era === "1924-1929" || era === "1946-1951"
-              ? `${era} (${shortVol})`
-              : `${era} (${shortVol})`,
-          locVolId,
+          eraGroupLabel: `${era} (${shortVol})`,
+          locVolId: catalogVolId,
+          catalogVolId,
+          archive,
           is1907: era === "1907",
-          order: eraOrder[era] || 99,
+          order: eraOrder[era] ?? 99,
         });
+        if (key === "1885|Volume 1" && !hitsByKey.has("1877|Volume 1")) {
+          hitsByKey.set("1877|Volume 1", {
+            era: "1877",
+            volYear: "1877",
+            volTitle: "Volume 1",
+            shortVol: "Vol. 1",
+            label: "1877 Edition",
+            eraGroupLabel: "1877 (Vol. 1)",
+            locVolId: "utpcl_houston_1877",
+            catalogVolId: "utpcl_houston_1877",
+            archive: "UT PCL",
+            is1907: false,
+            order: eraOrder["1877"],
+          });
+        }
       }
     }
 
@@ -7807,8 +7827,9 @@ class HoustonAtlasApp {
       (a, b) => a.order - b.order || a.volTitle.localeCompare(b.volTitle)
     );
     const has1907 = hits.some((h) => h.is1907);
-    const locHits = hits.filter((h) => Boolean(h.locVolId));
-    const nonLoc1924To1951 = hits.filter((h) => !h.locVolId);
+    const digitizedHits = hits.filter((h) => Boolean(h.catalogVolId));
+    const utPclHits = hits.filter((h) => h.archive === "UT PCL");
+    const printOnlyHits = hits.filter((h) => !h.catalogVolId);
 
     const yr = Number(yearBuilt) || 0;
     let recommendedOverlay = {
@@ -7868,13 +7889,18 @@ class HoustonAtlasApp {
     return {
       hits,
       has1907,
-      locHits,
-      nonLoc1924To1951,
+      locHits: digitizedHits,
+      digitizedHits,
+      utPclHits,
+      printOnlyHits,
+      nonLoc1924To1951: printOnlyHits,
       recommendedOverlay,
       summaryText:
         hits.length > 0
-          ? hits.map((h) => h.label).join(" · ")
-          : "Outside 1885-1951 Sanborn Limits (Use HPL Street Maps & USGS Quads)",
+          ? hits
+              .map((h) => (h.archive ? `${h.label} (${h.archive})` : `${h.label} (Print Archive)`))
+              .join(" · ")
+          : "Outside 1877-1951 Sanborn Limits (Use HPL Street Maps & USGS Quads)",
     };
   }
 
@@ -8267,49 +8293,61 @@ class HoustonAtlasApp {
             ${sanbornInfo.hits
               .map(
                 (h) =>
-                  `<span class="rk-coverage-badge ${h.locVolId ? "digitized" : "ut-pcl"}" title="${
-                    h.locVolId
-                      ? `Digitized in Library of Congress (${h.locVolId})`
-                      : `Indexed in 1924-1951 Sanborn series (UT Perry-Castaneda Library & HPL)`
-                  }">${this._escapeResearchHtml(h.label)}${h.locVolId ? " · LOC" : ""}</span>`
+                  `<span class="rk-coverage-badge ${h.catalogVolId ? "digitized" : "ut-pcl"}" title="${
+                    h.catalogVolId
+                      ? `Digitized online via ${
+                          h.archive === "UT PCL"
+                            ? "UT Austin Perry-Castaneda Library"
+                            : "Library of Congress"
+                        } (${this._escapeResearchHtml(h.catalogVolId)}) - click Browse Sheets below`
+                      : `In-archive 1924-1951 Sanborn volume (consult print or microfilm edition at HPL Julia Ideson Building or UT Austin Dolph Briscoe Center)`
+                  }">${this._escapeResearchHtml(h.label)}${
+                    h.archive ? ` · ${this._escapeResearchHtml(h.archive)}` : " · Print Archive"
+                  }</span>`
               )
               .join("")}
           </div>`
-        : `<div class="rk-subtle-note">Parcel lies outside the 1885-1951 Sanborn Fire Insurance survey perimeter; use georeferenced 1921-1963 HPL street maps and USGS topographic quadrangles below to trace subdivision growth.</div>`;
+        : `<div class="rk-subtle-note">Parcel lies outside the 1877-1951 Sanborn Fire Insurance survey perimeter; use georeferenced 1921-1963 HPL street maps and USGS topographic quadrangles below to trace subdivision growth.</div>`;
 
-    const sanbornLocBtnsHtml = sanbornInfo.locHits
+    const digitizedList = sanbornInfo.digitizedHits || sanbornInfo.locHits || [];
+    const sanbornLocBtnsHtml = digitizedList
       .map(
         (h) =>
           `<button
             type="button"
             class="rk-action-btn secondary"
-            data-rk-open-sanborn-vol="${this._escapeResearchHtml(h.locVolId)}"
-            title="Open digitized Library of Congress sheets for ${this._escapeResearchHtml(h.label)}"
+            data-rk-open-sanborn-vol="${this._escapeResearchHtml(h.catalogVolId || h.locVolId)}"
+            title="Open digitized ${this._escapeResearchHtml(
+              h.archive || "LOC"
+            )} sheets (including Street Index &amp; Graphic Key Map) for ${this._escapeResearchHtml(
+              h.label
+            )}"
           >
-            &#128214; Browse ${this._escapeResearchHtml(h.label)} Sheets (LOC)
+            &#128214; Browse ${this._escapeResearchHtml(h.label)} Sheets (${this._escapeResearchHtml(
+              h.archive || "LOC"
+            )})
           </button>`
       )
       .join("");
 
-    const uniqueNonLocVols = Array.from(
-      new Set(sanbornInfo.nonLoc1924To1951.map((h) => h.shortVol))
-    );
-    const utPclLinkHtml =
-      sanbornInfo.nonLoc1924To1951.length > 0
-        ? `<a
-            href="https://maps.lib.utexas.edu/maps/sanborn/texas_cities_g-i.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="rk-action-btn secondary"
-            title="View digitized 1924-1951 Houston Sanborn sheets (${this._escapeResearchHtml(
-              sanbornInfo.nonLoc1924To1951.map((h) => h.label).join(", ")
-            )}) via UT Austin Perry-Castaneda Library"
-          >
-            1924-51 Sheets (${this._escapeResearchHtml(
-              uniqueNonLocVols.slice(0, 3).join(", ")
-            )}) at UT PCL &#8599;
-          </a>`
-        : "";
+    const utHitLabels = (sanbornInfo.utPclHits || []).map((h) => h.label);
+    const hasUtOrPrint1924 =
+      utHitLabels.length > 0 || (sanbornInfo.printOnlyHits || []).length > 0;
+    const utPclLinkHtml = hasUtOrPrint1924
+      ? `<a
+          href="https://maps.lib.utexas.edu/maps/sanborn/h.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rk-action-btn secondary"
+          title="Open UT Austin Perry-Castaneda Library Houston Sanborn Map Index (719 digitized JPEG sheets from 1877 to 1950)"
+        >
+          ${
+            utHitLabels.length > 0
+              ? `UT PCL Source Scans (${this._escapeResearchHtml(utHitLabels.slice(0, 2).join(", "))}) &#8599;`
+              : `UT PCL Houston Sanborn Index &#8599;`
+          }
+        </a>`
+      : "";
 
     // Step 2: City Directories (1866-1926)
     const hit = cityDirInfo.auditHit;
@@ -13124,10 +13162,14 @@ class HoustonAtlasApp {
     const volumes = Array.isArray(this.sanbornCatalog?.volumes)
       ? this.sanbornCatalog.volumes
       : [];
+    const totalSheetsCount =
+      Number(this.sanbornCatalog?.total_digitized_sheets) ||
+      volumes.reduce((acc, v) => acc + (Number(v.sheet_count) || 0), 0) ||
+      878;
     if (selectVol && selectVol.options.length <= 1 && volumes.length > 0) {
       selectVol.innerHTML =
-        `<option value="featured">★ Featured Historic Sheets Across All Editions (1885-1950)</option>` +
-        `<option value="all">All ${volumes.length} Digitized Volumes (626 Sheets Total)</option>` +
+        `<option value="featured">★ Featured Historic Sheets Across All Editions (1877-1955)</option>` +
+        `<option value="all">All ${volumes.length} Digitized Volumes (${totalSheetsCount} Sheets Total)</option>` +
         volumes
           .map(
             (v) =>
@@ -13141,14 +13183,19 @@ class HoustonAtlasApp {
       if (selectVol) selectVol.value = initialVolId;
       if (inputFilter) inputFilter.value = "";
       const targetVol = volumes.find((v) => v.id === initialVolId);
-      if (targetVol && Array.isArray(targetVol.sheets)) {
+      if (targetVol && Array.isArray(targetVol.sheets) && targetVol.sheets.length > 0) {
+        const rawCode = initialSheetCode ? String(initialSheetCode).trim() : "";
         const paddedCode =
-          initialSheetCode && /^\d+$/.test(String(initialSheetCode))
-            ? String(Number(initialSheetCode)).padStart(4, "0")
-            : String(initialSheetCode || "");
+          rawCode && /^\d+$/.test(rawCode)
+            ? String(Number(rawCode)).padStart(4, "0")
+            : rawCode;
         const matchedSheet =
-          targetVol.sheets.find((s) => paddedCode && String(s.code) === paddedCode) ||
-          targetVol.sheets.find((s) => initialSp && Number(s.sp) === Number(initialSp));
+          (rawCode &&
+            targetVol.sheets.find(
+              (s) => String(s.code) === rawCode || String(s.code) === paddedCode
+            )) ||
+          (initialSp && targetVol.sheets.find((s) => Number(s.sp) === Number(initialSp))) ||
+          targetVol.sheets[0];
         if (matchedSheet) {
           this._activeSanbornSheetRec = { key: `${initialVolId}__${matchedSheet.sp}` };
         }
@@ -13167,8 +13214,20 @@ class HoustonAtlasApp {
     }
   }
 
-  _formatSanbornSheetTag(code, sp) {
+  _formatSanbornSheetTag(code, sp, source = "loc") {
     const codeStr = String(code || "").trim();
+    const isUt = source === "ut_pcl";
+    if (isUt) {
+      if (/^\d+k\d*$/i.test(codeStr)) return "Key Map (UT PCL)";
+      if (/^\d+i\d*$/i.test(codeStr)) return "Street Index (UT PCL)";
+      if (/^\d+t$/i.test(codeStr)) return "Title Sheet (UT PCL)";
+      if (/^v[12]-\d+$/i.test(codeStr)) {
+        const [vp, sn] = codeStr.split("-");
+        return `${vp.toUpperCase()} Sheet ${sn} (UT PCL)`;
+      }
+      if (/^\d+$/.test(codeStr)) return `Sheet ${Number(codeStr)} (UT PCL)`;
+      return `Plate ${sp} (UT PCL)`;
+    }
     if (/^\d+$/.test(codeStr)) {
       const n = Number(codeStr);
       if (n === 0) return `Key Map (LOC p.${sp})`;
@@ -13192,19 +13251,38 @@ class HoustonAtlasApp {
     const btnLoc = document.getElementById("btn-sanborn-open-loc-viewer");
     const btnJpg = document.getElementById("btn-sanborn-open-hires-jpg");
 
+    const isUt = rec.source === "ut_pcl";
     const previewUrl = rec.previewUrl || rec.thumbUrl;
     const hiresUrl = rec.hiresUrl || previewUrl;
-    const sheetTag = this._formatSanbornSheetTag(rec.code, rec.sheetNum);
+    const sheetTag = this._formatSanbornSheetTag(rec.code, rec.sheetNum, rec.source);
 
     if (titleEl) titleEl.textContent = rec.label;
     if (subEl) subEl.textContent = `${rec.volTitle} · Published ${rec.date} · ${sheetTag}`;
-    if (btnLoc) btnLoc.href = rec.locSheetUrl;
-    if (btnJpg) btnJpg.href = hiresUrl;
+    if (btnLoc) {
+      btnLoc.href = rec.locSheetUrl;
+      btnLoc.innerHTML = isUt
+        ? "Open UT PCL Houston Index &#8599;"
+        : "Open Full Zoomable Sheet on LOC.gov &#8599;";
+      btnLoc.title = isUt
+        ? "Open UT Austin Perry-Castaneda Library Houston Sanborn Map Index (h.html)"
+        : "Open interactive zoomable IIIF sheet viewer on Library of Congress (loc.gov)";
+    }
+    if (btnJpg) {
+      btnJpg.href = hiresUrl;
+      btnJpg.innerHTML = isUt
+        ? "Full 3800px UT PCL Scan (.JPG) &#8599;"
+        : "Hi-Res Scan (.JPG) &#8599;";
+      btnJpg.title = isUt
+        ? "Open full 3800x4676 archival JPEG scan directly from UT Austin Perry-Castaneda Library"
+        : "Open high-resolution 2000px JPEG scan directly from Library of Congress IIIF server";
+    }
     if (stageEl) {
-      // Display the already-cached thumbnail (pct:12.5, ~806x956px) immediately so the preview pane is never blank,
-      // then seamlessly upgrade to the pre-cached high-resolution plate (pct:25, ~1612x1912px) once loaded.
       stageEl.innerHTML = `
-        <a href="${hiresUrl}" target="_blank" rel="noopener noreferrer" title="Click to open high-resolution IIIF scan in a new tab">
+        <a href="${hiresUrl}" target="_blank" rel="noopener noreferrer" title="${
+          isUt
+            ? "Click to open full 3800px archival JPEG scan at UT Austin Perry-Castaneda Library in a new tab"
+            : "Click to open high-resolution IIIF scan in a new tab"
+        }">
           <img id="sanborn-preview-stage-img" src="${rec.thumbUrl}" alt="${rec.label.replace(/"/g, "&quot;")}" loading="eager" />
         </a>
       `;
@@ -13219,8 +13297,11 @@ class HoustonAtlasApp {
       }
     }
     if (footerEl) {
+      const archiveAttribution = isUt
+        ? `UT Austin Perry-Castaneda Library / Dolph Briscoe Center for American History (${rec.volId})`
+        : `Library of Congress Geography &amp; Map Division (${rec.volId})`;
       footerEl.innerHTML = `
-        <strong>Library of Congress Geography &amp; Map Division (${rec.volId})</strong> ·
+        <strong>${archiveAttribution}</strong> ·
         Color Key: <span style="color:#fde047;">Yellow = Wood Frame</span>,
         <span style="color:#f472b6;">Pink = Brick Masonry</span>,
         <span style="color:#60a5fa;">Blue = Stone / Concrete</span>,
@@ -13246,10 +13327,14 @@ class HoustonAtlasApp {
       ? this.sanbornCatalog.volumes
       : [];
     if (!volumes.length) {
-      grid.innerHTML = `<div style="padding:18px;color:var(--text-secondary);">Loading Library of Congress Sanborn catalog...</div>`;
+      grid.innerHTML = `<div style="padding:18px;color:var(--text-secondary);">Loading Houston Sanborn catalog...</div>`;
       return;
     }
 
+    const totalSheetsCount =
+      Number(this.sanbornCatalog?.total_digitized_sheets) ||
+      volumes.reduce((acc, v) => acc + (Number(v.sheet_count) || 0), 0) ||
+      878;
     const selectedVolId = selectVol ? selectVol.value || "featured" : "featured";
     const filterQ = String(inputFilter?.value || "")
       .trim()
@@ -13257,14 +13342,18 @@ class HoustonAtlasApp {
 
     const buildSheetRecordFromVerified = (vol, shObj) => {
       const sp = Number(shObj.sp) || 1;
+      const source = shObj.source || vol.source || (String(vol.id).startsWith("utpcl_") ? "ut_pcl" : "loc");
       const locSheetUrl =
         shObj.loc_url ||
-        `${String(
-          vol.loc_resource_url || vol.loc_url || "https://www.loc.gov/collections/sanborn-maps/"
-        ).replace(/\/?$/, "/")}?sp=${sp}`;
+        (source === "ut_pcl"
+          ? vol.loc_url || "https://maps.lib.utexas.edu/maps/sanborn/h.html"
+          : `${String(
+              vol.loc_resource_url || vol.loc_url || "https://www.loc.gov/collections/sanborn-maps/"
+            ).replace(/\/?$/, "/")}?sp=${sp}`);
       return {
         key: `${vol.id}__${sp}`,
         volId: vol.id,
+        source,
         era: vol.era,
         date: vol.date,
         volTitle: vol.title,
@@ -13316,13 +13405,23 @@ class HoustonAtlasApp {
 
     if (metaBar) {
       if (selectedVolObj) {
+        const isUtVol =
+          selectedVolObj.source === "ut_pcl" || String(selectedVolObj.id).startsWith("utpcl_");
         metaBar.innerHTML = `
           <div>
             <strong>${selectedVolObj.title}</strong> · Published ${selectedVolObj.date} ·
-            <strong>${selectedVolObj.sheet_count}</strong> digitized plates in Library of Congress Geography &amp; Map Division
+            <strong>${selectedVolObj.sheet_count}</strong> digitized plates via ${
+              isUtVol
+                ? "UT Austin Perry-Castaneda Library (Dolph Briscoe Center)"
+                : "Library of Congress Geography &amp; Map Division"
+            }
           </div>
           <a href="${selectedVolObj.loc_url}" target="_blank" rel="noopener noreferrer" class="action-pill subtle">
-            Open Full Volume at Library of Congress (loc.gov) &#8599;
+            ${
+              isUtVol
+                ? "Open UT PCL Houston Sanborn Index (h.html) &#8599;"
+                : "Open Full Volume at Library of Congress (loc.gov) &#8599;"
+            }
           </a>
         `;
       } else {
@@ -13330,12 +13429,17 @@ class HoustonAtlasApp {
           <div>
             Showing <strong>${items.length}</strong> ${
           selectedVolId === "featured" && !filterQ ? "curated highlight sheets" : "matching sheets"
-        } across <strong>${volumes.length} Library of Congress Houston Sanborn Volumes (1885-1950, 626 sheets total)</strong>.
-            Click any sheet on the left to inspect its high-resolution IIIF plate.
+        } across <strong>${volumes.length} Library of Congress &amp; UT PCL Houston Sanborn Volumes (1877-1955, ${totalSheetsCount} sheets total)</strong>.
+            Click any sheet on the left to inspect its high-resolution plate.
           </div>
-          <a href="https://www.loc.gov/collections/sanborn-maps/?fa=location:texas%7Clocation:houston" target="_blank" rel="noopener noreferrer" class="action-pill subtle">
-            LOC Houston Sanborn Archive &#8599;
-          </a>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="https://www.loc.gov/collections/sanborn-maps/?fa=location:texas%7Clocation:houston" target="_blank" rel="noopener noreferrer" class="action-pill subtle">
+              LOC Houston Archive &#8599;
+            </a>
+            <a href="https://maps.lib.utexas.edu/maps/sanborn/h.html" target="_blank" rel="noopener noreferrer" class="action-pill subtle">
+              UT PCL Houston Index &#8599;
+            </a>
+          </div>
         `;
       }
     }
@@ -13360,7 +13464,7 @@ class HoustonAtlasApp {
             />
           </div>
           <div class="sanborn-sheet-label">${it.label}</div>
-          <div class="mono" style="font-size:10px;color:#94a3b8;">${it.date} · ${this._formatSanbornSheetTag(it.code, it.sheetNum)}</div>
+          <div class="mono" style="font-size:10px;color:#94a3b8;">${it.date} · ${this._formatSanbornSheetTag(it.code, it.sheetNum, it.source)}</div>
         </button>`
       )
       .join("");
