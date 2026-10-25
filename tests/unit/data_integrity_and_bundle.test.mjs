@@ -9,6 +9,7 @@ import {
   extractHttpUrlsFromText,
   validateExternalAtlasUrl,
 } from "../../app/js/urlValidators.js";
+import { parseHashToState } from "../../app/js/filterStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -318,4 +319,120 @@ test("Repository contains zero internal corporate proxy URLs, workstation paths,
     [],
     `Found internal/non-public corporate references in tracked repository files:\n${violations.slice(0, 25).join("\n")}`
   );
+});
+
+test("Historic subdivision de-replatting reconstructs pre-replat parent footprints and calibrates Harris County plat years", () => {
+  const overlays = readDataJson("overlays.json");
+  const searchIndex = readDataJson("search_index.json");
+  const plats = overlays.platted_subdivisions?.features || [];
+  assert.ok(plats.length >= 4500, `Expected >= 4,500 platted subdivisions, found ${plats.length}`);
+
+  const byId = new Map(plats.map((f) => [f.properties.id, f]));
+
+  const countInteriorHoles = (geom) => {
+    if (!geom || !Array.isArray(geom.coordinates)) return 0;
+    if (geom.type === "Polygon") {
+      return Math.max(0, geom.coordinates.length - 1);
+    }
+    if (geom.type === "MultiPolygon") {
+      return geom.coordinates.reduce(
+        (acc, polyCoords) => acc + Math.max(0, polyCoords.length - 1),
+        0
+      );
+    }
+    return 0;
+  };
+
+  // 1. Fairview Addition (c. 1893, Harris County Deed Records Vol. 69, Pg. 368, HCAD 014-053)
+  const fairview = byId.get("plat_1908_fairview");
+  assert.ok(fairview, "plat_1908_fairview must exist in overlays.platted_subdivisions");
+  const fProps = fairview.properties;
+  assert.equal(fProps.is_historic_plat, true);
+  assert.equal(fProps.estimated_plat_year, 1893);
+  assert.equal(fProps.plat_year_label, "c. 1893");
+  assert.equal(fProps.deed_citation, "Harris County Deed Records Vol. 69, Pg. 368");
+  assert.equal(fProps.record_series, "Pre-1905 Harris County Deed Records (DR)");
+  assert.ok(
+    fProps.reconstructed_acres > fProps.surviving_acres + 2.0,
+    `Expected Fairview reconstructed_acres (${fProps.reconstructed_acres}) > surviving_acres (${fProps.surviving_acres}) + 2.0`
+  );
+  assert.ok(
+    fProps.healed_replat_count >= 25,
+    `Expected Fairview healed_replat_count >= 25, got ${fProps.healed_replat_count}`
+  );
+  assert.equal(
+    countInteriorHoles(fairview.geometry),
+    0,
+    "Expected reconstructed Fairview Addition polygon to have 0 interior replat doughnut holes"
+  );
+  assert.equal(
+    fProps.bracey_1922_url,
+    "https://cdm17006.contentdm.oclc.org/digital/collection/books/id/21604"
+  );
+
+  // 2. Iconic Montrose, Heights, and inner-loop historic parent additions
+  const expectedHistoricPlats = [
+    { id: "plat_3791_montrose", year: 1911, zeroHoles: false, minHealed: 50 },
+    { id: "plat_2751_hyde_park", year: 1895, zeroHoles: true, minHealed: 40 },
+    { id: "plat_2756_hyde_park_main", year: 1923, zeroHoles: true, minHealed: 80 },
+    { id: "plat_6366_westmoreland", year: 1902, zeroHoles: true, minHealed: 5 },
+    { id: "plat_0272_avondale", year: 1907, zeroHoles: true, minHealed: 12 },
+    { id: "plat_1316_courtlandt_place", year: 1906, zeroHoles: true, minHealed: 0 },
+    { id: "plat_6592_woodland_heights", year: 1907, zeroHoles: true, minHealed: 5 },
+    { id: "plat_3902_norhill", year: 1920, zeroHoles: true, minHealed: 1 },
+    { id: "plat_2683_houston_heights", year: 1892, zeroHoles: false, minHealed: 500 },
+    { id: "plat_1725_eastwood", year: 1911, zeroHoles: true, minHealed: 4 },
+  ];
+  for (const exp of expectedHistoricPlats) {
+    const feat = byId.get(exp.id);
+    assert.ok(feat, `${exp.id} must exist in overlays.platted_subdivisions`);
+    const p = feat.properties;
+    assert.equal(p.is_historic_plat, true, `${exp.id} must have is_historic_plat === true`);
+    assert.equal(p.estimated_plat_year, exp.year, `${exp.id} expected year ${exp.year}, got ${p.estimated_plat_year}`);
+    assert.ok(
+      p.reconstructed_acres >= p.surviving_acres,
+      `${exp.id} reconstructed_acres (${p.reconstructed_acres}) must be >= surviving_acres (${p.surviving_acres})`
+    );
+    assert.ok(
+      p.healed_replat_count >= exp.minHealed,
+      `${exp.id} expected healed_replat_count >= ${exp.minHealed}, got ${p.healed_replat_count}`
+    );
+    if (exp.zeroHoles) {
+      assert.equal(
+        countInteriorHoles(feat.geometry),
+        0,
+        `${exp.id} expected 0 interior replat doughnut holes`
+      );
+    }
+  }
+
+  // 3. Absorbed modern townhome cutouts and ROW/alley cadastral artifacts are suppressed
+  for (const suppressedId of [
+    "plat_1909_fairview_collective",
+    "plat_1502_dedicated_per_plat",
+    "plat_0006_aband_alley",
+    "plat_0007_abandon_alley",
+  ]) {
+    assert.equal(
+      byId.has(suppressedId),
+      false,
+      `Expected ${suppressedId} to be suppressed from overlays.platted_subdivisions`
+    );
+    assert.equal(
+      searchIndex.some((row) => row.id === suppressedId),
+      false,
+      `Expected ${suppressedId} to be suppressed from search_index.json`
+    );
+  }
+
+  // 4. Search index & URL deep-link resolution for Fairview Addition
+  const fvSearchRow = searchIndex.find((row) => row.id === "plat_1908_fairview");
+  assert.ok(fvSearchRow, "plat_1908_fairview must exist in search_index.json");
+  assert.match(fvSearchRow.building_name, /Fairview.*1893/i);
+  assert.match(fvSearchRow.address, /Deed Records Vol\. 69, Pg\. 368/i);
+
+  const parsedUrl = parseHashToState("plats=1&bnd=plats:plat_1908_fairview");
+  assert.equal(parsedUrl.patch.layers?.plattedSubdivisions, true);
+  assert.equal(parsedUrl.selection?.boundaryLayer, "plattedSubdivisions");
+  assert.equal(parsedUrl.selection?.boundaryId, "plat_1908_fairview");
 });

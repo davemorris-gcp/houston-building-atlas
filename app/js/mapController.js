@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261025m";
+} from "./palettes.js?v=20261025n";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -24,12 +24,12 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261025f";
+} from "./filterStore.js?v=20261025n";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261025m";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
+} from "./curatedEdits.js?v=20261025n";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261025n";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -5418,10 +5418,13 @@ export class AtlasMapController {
       if (p.overlay_layer === "lost_houston") {
         badge = `† Lost Houston (${p.year_built}-${p.year_demolished})`;
       } else if (p.overlay_layer === "platted_subdivisions") {
+        const platYrLbl = p.plat_year_label ? `Platted ${p.plat_year_label}` : "";
         if (p.has_deed_docs) {
           badge = `📜 Deed Restrictions + Plat (${p.deed_doc_count || 1} PDF${
             Number(p.deed_doc_count) === 1 ? "" : "s"
-          })`;
+          }${platYrLbl ? ` · ${platYrLbl}` : ""})`;
+        } else if (p.is_historic_plat && platYrLbl) {
+          badge = `Historic Plat (${platYrLbl})`;
         } else {
           badge = p.plat_citation || (p.vol_page ? `HCAD Plat (Vol ${p.vol_page})` : "Platted Subdivision");
         }
@@ -5509,8 +5512,19 @@ export class AtlasMapController {
           statParts.push(`Min Setback ${p.min_bldg_line_ft} ft`);
         }
       } else {
-        if (p.overlay_layer === "platted_subdivisions" && p.plat_citation && p.has_deed_docs) {
-          statParts.push(p.plat_citation);
+        if (p.overlay_layer === "platted_subdivisions") {
+          const shortCit = String(p.deed_citation || p.plat_citation || "")
+            .replace(/^Harris County\s+/i, "")
+            .trim();
+          if (shortCit && (p.has_deed_docs || p.is_historic_plat)) {
+            statParts.push(shortCit);
+          }
+          if (Number(p.healed_replat_count) > 0) {
+            const ac = Number(p.reconstructed_acres) || 0;
+            statParts.push(
+              `${ac > 0 ? `${ac.toFixed(1)} ac · ` : ""}${Number(p.healed_replat_count)} replats healed`
+            );
+          }
         }
         if (Number(p.building_count) > 0) {
           statParts.push(`${Number(p.building_count).toLocaleString()} structures`);
@@ -5518,7 +5532,7 @@ export class AtlasMapController {
         if (Number(p.earliest_year) >= 1836) {
           statParts.push(`Earliest ${p.earliest_year}`);
         }
-        if (Number(p.median_year) >= 1836) {
+        if (Number(p.median_year) >= 1836 && Number(p.healed_replat_count || 0) === 0) {
           statParts.push(`Median ${p.median_year}`);
         }
         if (Number(p.smls_min_sqft) > 0) {
@@ -9143,6 +9157,13 @@ export class AtlasMapController {
     holcMatches.sort((a, b) => a.areaDeg2 - b.areaDeg2);
     const primaryNh = nhMatches[0]?.props?.name || "";
     const primaryPlat = platMatches[0]?.props?.name || "";
+    const historicParentMatch =
+      platMatches.find(
+        (m) =>
+          Boolean(m.props?.is_historic_plat) ||
+          (Number(m.props?.estimated_plat_year) >= 1836 &&
+            Number(m.props?.estimated_plat_year) <= 1965)
+      ) || null;
     const aliasSet = new Set();
     const aliasList = [];
     const addAlias = (val) => {
@@ -9172,6 +9193,9 @@ export class AtlasMapController {
       platted_subdivision: primaryPlat,
       platted_subdivision_id: platMatches[0]?.props?.id || "",
       platted_subdivision_props: platMatches[0]?.props || null,
+      historic_parent_plat: historicParentMatch?.props?.name || "",
+      historic_parent_plat_id: historicParentMatch?.props?.id || "",
+      historic_parent_plat_props: historicParentMatch?.props || null,
       land_use_protections: protMatches.map((m) => m.props),
       historic_district: hdMatches[0]?.props?.name || "",
       historic_district_props: hdMatches[0]?.props || null,

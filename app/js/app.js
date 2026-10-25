@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261025m";
+} from "./palettes.js?v=20261025n";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -18,14 +18,14 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261025m";
-import { AtlasMapController } from "./mapController.js?v=20261025m";
+} from "./filterStore.js?v=20261025n";
+import { AtlasMapController } from "./mapController.js?v=20261025n";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261025m";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261025m";
+} from "./guidedChaptersAndPortfolios.js?v=20261025n";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261025n";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -39,7 +39,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261025m";
+} from "./curatedEdits.js?v=20261025n";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -49,7 +49,7 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261025m";
+} from "./photoService.js?v=20261025n";
 
 class HoustonAtlasApp {
   constructor() {
@@ -209,9 +209,13 @@ class HoustonAtlasApp {
           const normInitLayer =
             initBLayer === "holc1937" || initBId.startsWith("holc_1937_")
               ? "holc_1937_zones"
+              : initBLayer === "plattedSubdivisions" || initBId.startsWith("plat_")
+              ? "platted_subdivisions"
               : initBLayer || "neighborhoods";
           if (normInitLayer === "holc_1937_zones") {
             this.filterStore.setLayerVisibility("holc1937", true);
+          } else if (normInitLayer === "platted_subdivisions") {
+            this.filterStore.setLayerVisibility("plattedSubdivisions", true);
           }
           this.mapController.highlightBoundaryByIdOrName({
             layerKey: normInitLayer,
@@ -356,9 +360,13 @@ class HoustonAtlasApp {
             const normSelLayer =
               selBLayer === "holc1937" || selBId.startsWith("holc_1937_")
                 ? "holc_1937_zones"
+                : selBLayer === "plattedSubdivisions" || selBId.startsWith("plat_")
+                ? "platted_subdivisions"
                 : selBLayer || "neighborhoods";
             if (normSelLayer === "holc_1937_zones") {
               this.filterStore.setLayerVisibility("holc1937", true);
+            } else if (normSelLayer === "platted_subdivisions") {
+              this.filterStore.setLayerVisibility("plattedSubdivisions", true);
             }
             this.mapController.highlightBoundaryByIdOrName({
               layerKey: normSelLayer,
@@ -6627,12 +6635,33 @@ class HoustonAtlasApp {
 
     const hasDocs = docs.length > 0;
     const hasProtections = prots.length > 0 || smlsCount > 0 || smblCount > 0;
+    const platYearLabel = String(
+      subProps?.plat_year_label ||
+        (catalogEntry?.plat_year ? String(catalogEntry.plat_year) : "") ||
+        (Number(subProps?.estimated_plat_year) >= 1836 ? `c. ${subProps.estimated_plat_year}` : "")
+    ).trim();
+    const platYearBasis = String(subProps?.plat_year_basis || "").trim();
+    const recordSeries = String(subProps?.record_series || "").trim();
+    const healedReplatCount = Number(subProps?.healed_replat_count || 0);
+    const survivingAcres = Number(subProps?.surviving_acres || 0);
+    const reconstructedAcres = Number(subProps?.reconstructed_acres || 0);
+    const sampleHealedReplats = Array.isArray(subProps?.sample_healed_replats)
+      ? subProps.sample_healed_replats.filter(Boolean)
+      : [];
+    const archivalLookupNote = String(subProps?.archival_lookup_note || "").trim();
+    const bracey1922Url = String(subProps?.bracey_1922_url || "").trim();
 
     let badgeText = "HCAD Plat Record";
     let badgeClass = "cyan";
     if (hasDocs) {
       badgeText = `${docs.length} Full-Text Deed PDF${docs.length === 1 ? "" : "s"}`;
       badgeClass = "gold";
+    } else if (healedReplatCount > 0 && platYearLabel) {
+      badgeText = `Platted ${platYearLabel} · ${healedReplatCount} Replats Healed`;
+      badgeClass = "amber";
+    } else if (platYearLabel && subProps?.is_historic_plat) {
+      badgeText = `Historic Plat (${platYearLabel})`;
+      badgeClass = "cyan";
     } else if (hasProtections) {
       badgeText = "Ch. 42 Protected";
       badgeClass = "amber";
@@ -6881,6 +6910,57 @@ class HoustonAtlasApp {
           })
         : "";
 
+    const historicPlatReconstructionHtml =
+      healedReplatCount > 0 || archivalLookupNote
+        ? `<div class="deed-covenant-section" style="margin-top:8px;">
+            <div class="deed-subhead">
+              <span>Historic Plat Provenance &amp; Pre-Replat Reconstruction</span>
+              ${
+                platYearLabel
+                  ? `<span class="deed-plat-year-pill mono">Platted ${platYearLabel}</span>`
+                  : ""
+              }
+            </div>
+            ${
+              healedReplatCount > 0
+                ? `<div class="deed-covenant-notes" style="margin-top:4px;color:#fde68a;">
+                    <strong>De-Replatted Historic Footprint:</strong> ${
+                      reconstructedAcres > 0 && survivingAcres > 0
+                        ? `Reconstructed <strong>${reconstructedAcres.toFixed(
+                            1
+                          )} acres</strong> from <strong>${survivingAcres.toFixed(
+                            1
+                          )} surviving un-replatted HCAD acres</strong> by healing <strong>${healedReplatCount} modern infill replat cutout${
+                            healedReplatCount === 1 ? "" : "s"
+                          }</strong> back into the original addition perimeter.`
+                        : `Healed <strong>${healedReplatCount} modern infill replat cutout${
+                            healedReplatCount === 1 ? "" : "s"
+                          }</strong> back into the original addition perimeter.`
+                    }
+                    ${
+                      sampleHealedReplats.length > 0
+                        ? `<div style="margin-top:4px;font-size:11px;color:#cbd5e1;"><strong>Sample Absorbed Modern Replats:</strong> ${sampleHealedReplats
+                            .slice(0, 10)
+                            .join(", ")}${
+                            healedReplatCount > sampleHealedReplats.slice(0, 10).length
+                              ? ` (+${healedReplatCount - sampleHealedReplats.slice(0, 10).length} more)`
+                              : ""
+                          }</div>`
+                        : ""
+                    }
+                  </div>`
+                : ""
+            }
+            ${
+              archivalLookupNote
+                ? `<div class="deed-covenant-notes" style="margin-top:6px;">
+                    <strong>County Title &amp; Plat Lookup Tip:</strong> ${archivalLookupNote}
+                  </div>`
+                : ""
+            }
+          </div>`
+        : "";
+
     return `
       <div class="deed-restrictions-card ${hasDocs ? "has-docs" : ""}">
         <div class="deed-card-header">
@@ -6893,7 +6973,30 @@ class HoustonAtlasApp {
             subName
               ? `<div class="deed-citation-row">
                   <span class="deed-cit-label">Platted Subdivision:</span>
-                  <span class="deed-cit-val"><strong>${subName}</strong></span>
+                  <span class="deed-cit-val"><strong>${subName}</strong>${
+                    subProps?.full_name &&
+                    String(subProps.full_name).toUpperCase() !== String(subName).toUpperCase()
+                      ? ` <span class="mono" style="font-size:11px;opacity:0.82;">(${subProps.full_name})</span>`
+                      : ""
+                  }</span>
+                </div>`
+              : ""
+          }
+          ${
+            platYearLabel
+              ? `<div class="deed-citation-row">
+                  <span class="deed-cit-label">Original Plat Date:</span>
+                  <span class="deed-cit-val"><strong>${platYearLabel}</strong>${
+                    platYearBasis ? ` <span style="font-size:11px;opacity:0.85;">· ${platYearBasis}</span>` : ""
+                  }</span>
+                </div>`
+              : ""
+          }
+          ${
+            recordSeries
+              ? `<div class="deed-citation-row">
+                  <span class="deed-cit-label">Clerk Record Series:</span>
+                  <span class="deed-cit-val">${recordSeries}</span>
                 </div>`
               : ""
           }
@@ -6908,7 +7011,7 @@ class HoustonAtlasApp {
           ${
             deedCitation
               ? `<div class="deed-citation-row">
-                  <span class="deed-cit-label">Deed Covenant Filing:</span>
+                  <span class="deed-cit-label">Root Deed / Filing:</span>
                   <span class="deed-cit-val">${deedCitation}</span>
                 </div>`
               : ""
@@ -6929,6 +7032,7 @@ class HoustonAtlasApp {
           }
         </div>
 
+        ${historicPlatReconstructionHtml}
         ${covenantGridHtml}
         ${docsHtml}
         ${protectionsHtml}
@@ -6944,6 +7048,20 @@ class HoustonAtlasApp {
             >
               &#127963; Copy Plat Name &amp; Search County Clerk Archive &#8599;
             </button>
+            ${
+              bracey1922Url
+                ? `<a
+                    href="${bracey1922Url}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="deed-action-btn clerk-btn"
+                    style="text-decoration:none;text-align:center;"
+                    title="Open digitized 1922 Bracey's Block Maps of the City of Houston in the Houston Public Library Digital Archive showing original pre-replat addition names, lots, and blocks"
+                  >
+                    &#128506; Open 1922 Bracey's Block Maps of Houston (HPL Archive) &#8599;
+                  </a>`
+                : ""
+            }
             <button
               type="button"
               class="deed-action-btn contrib-btn"
@@ -7047,8 +7165,11 @@ class HoustonAtlasApp {
       if (rawProps.has_deed_docs) {
         badgeLabel = `📜 Deed-Documented Subdivision (${rawProps.deed_doc_count || 1} PDF${
           Number(rawProps.deed_doc_count) === 1 ? "" : "s"
-        })`;
+        }${rawProps.plat_year_label ? ` · Platted ${rawProps.plat_year_label}` : ""})`;
         badgeColor = "#fbbf24";
+      } else if (rawProps.is_historic_plat && rawProps.plat_year_label) {
+        badgeLabel = `Historic Subdivision Plat (${rawProps.plat_year_label})`;
+        badgeColor = "#2dd4bf";
       } else {
         badgeLabel = "HCAD Platted Subdivision";
         badgeColor = "#2dd4bf";
@@ -7218,7 +7339,12 @@ class HoustonAtlasApp {
       }
       if (rawProps.status) subtitleParts.push(rawProps.status);
     } else if (overlayLayer === "platted_subdivisions") {
-      if (rawProps.plat_citation) {
+      if (rawProps.plat_year_label) {
+        subtitleParts.push(`Platted ${rawProps.plat_year_label}`);
+      }
+      if (rawProps.deed_citation && rawProps.is_historic_plat && !rawProps.has_deed_docs) {
+        subtitleParts.push(rawProps.deed_citation);
+      } else if (rawProps.plat_citation) {
         subtitleParts.push(rawProps.plat_citation);
       } else {
         if (volPage) subtitleParts.push(`Plat Vol-Page: ${volPage}`);
@@ -7599,6 +7725,12 @@ class HoustonAtlasApp {
               ? `<span class="inspector-age-pill">${Number(rawProps.area_acres).toLocaleString()} Acres</span>`
               : overlayLayer === "lost_houston" && rawProps.lifespan_label
               ? `<span class="inspector-age-pill">Stood ${rawProps.lifespan_label} (${rawProps.lifespan_years || ""} yrs)</span>`
+              : overlayLayer === "platted_subdivisions" && Number(rawProps.healed_replat_count) > 0
+              ? `<span class="inspector-age-pill" style="color:#fde68a;border-color:rgba(250,204,21,0.45);">${
+                  Number(rawProps.reconstructed_acres) > 0
+                    ? `${Number(rawProps.reconstructed_acres).toFixed(1)} ac Reconstructed · `
+                    : ""
+                }${Number(rawProps.healed_replat_count)} Replats Healed</span>`
               : earliestYear >= 1836
               ? `<span class="inspector-age-pill">Earliest Structure: ${earliestYear}</span>`
               : rawProps.charter_year
@@ -8818,6 +8950,8 @@ class HoustonAtlasApp {
         if (bName && this.mapController) {
           if (bLayer === "holc_1937_zones") {
             this.filterStore.setLayerVisibility("holc1937", true);
+          } else if (bLayer === "platted_subdivisions") {
+            this.filterStore.setLayerVisibility("plattedSubdivisions", true);
           }
           this.mapController.highlightBoundaryByIdOrName(bName, {
             layerKey: bLayer,
@@ -9867,14 +10001,66 @@ class HoustonAtlasApp {
     };
   }
 
-  _buildLegalCopyPillsHtml(tokens, { hcadNum = "", owner = "" } = {}) {
+  _formatHistoricPlatDisplayName(platProps) {
+    if (!platProps) return "";
+    const baseName = String(platProps.name || "").trim();
+    const rawFull = String(platProps.full_name || "").trim();
+    if (
+      baseName &&
+      rawFull &&
+      /\bADDITION\b/i.test(rawFull) &&
+      !/\bADDITION\b/i.test(baseName)
+    ) {
+      return `${baseName} Addition`;
+    }
+    return baseName || rawFull;
+  }
+
+  _buildLegalCopyPillsHtml(
+    tokens,
+    { hcadNum = "", owner = "", historicParentPlat = null } = {}
+  ) {
     const pills = [];
+    const parentDisplayName = this._formatHistoricPlatDisplayName(historicParentPlat);
+    const normCleanAdd = String(tokens.cleanAdditionSearch || "")
+      .toUpperCase()
+      .replace(/\b(?:ADDITION|SUBDIVISION)\b/g, "")
+      .replace(/[^A-Z0-9]+/g, "")
+      .trim();
+    const normParentAdd = String(parentDisplayName || "")
+      .toUpperCase()
+      .replace(/\b(?:ADDITION|SUBDIVISION)\b/g, "")
+      .replace(/[^A-Z0-9]+/g, "")
+      .trim();
+
+    if (parentDisplayName && normParentAdd && normParentAdd !== normCleanAdd) {
+      pills.push({
+        k: "Original Historic Plat",
+        v: parentDisplayName,
+        copy: parentDisplayName,
+      });
+    }
     if (tokens.cleanAdditionSearch) {
       pills.push({
-        k: "Addition / Plat",
+        k: normParentAdd && normParentAdd !== normCleanAdd ? "Modern HCAD Replat" : "Addition / Plat",
         v: tokens.cleanAdditionSearch,
         copy: tokens.cleanAdditionSearch,
       });
+    }
+    if (historicParentPlat) {
+      const rootCite = String(
+        historicParentPlat.deed_citation || historicParentPlat.plat_citation || ""
+      )
+        .replace(/^Harris County\s+/i, "")
+        .split("·")[0]
+        .trim();
+      if (rootCite) {
+        pills.push({
+          k: "Root Plat Record",
+          v: rootCite,
+          copy: rootCite,
+        });
+      }
     }
     if (tokens.section) {
       pills.push({
@@ -10021,6 +10207,9 @@ class HoustonAtlasApp {
       owner,
       protectionEval,
       catalogEntryForDeed,
+      historicParentPlat,
+      isReplattedFromHistoricParent,
+      subVal,
       archChips,
       builderChips,
       haifSearchTerm,
@@ -10193,11 +10382,55 @@ class HoustonAtlasApp {
       : "";
 
     // Step 3: Chain of Title, Plat & Deed Lookup
-    const legalPillsHtml = this._buildLegalCopyPillsHtml(legalTokens, { hcadNum, owner });
+    const legalPillsHtml = this._buildLegalCopyPillsHtml(legalTokens, {
+      hcadNum,
+      owner,
+      historicParentPlat,
+    });
     const hasMirroredDeeds =
       catalogEntryForDeed &&
       Array.isArray(catalogEntryForDeed.documents) &&
       catalogEntryForDeed.documents.length > 0;
+
+    const parentPlatDisplayName = this._formatHistoricPlatDisplayName(historicParentPlat);
+    const parentPlatYearLabel = String(
+      historicParentPlat?.plat_year_label ||
+        (Number(historicParentPlat?.estimated_plat_year) >= 1836
+          ? `c. ${historicParentPlat.estimated_plat_year}`
+          : "")
+    ).trim();
+    const parentPlatRootCite = String(
+      historicParentPlat?.deed_citation || historicParentPlat?.plat_citation || ""
+    ).trim();
+    const parentPlatEstYear = Number(historicParentPlat?.estimated_plat_year) || 0;
+    const parentBraceyUrl = String(historicParentPlat?.bracey_1922_url || "").trim();
+    const historicParentStep3NoteHtml =
+      historicParentPlat && parentPlatDisplayName
+        ? `<div class="rk-subtle-note" style="margin-bottom:8px;">
+            <strong>${
+              isReplattedFromHistoricParent
+                ? "Underlying Pre-Replat Addition:"
+                : "Original Historic Addition:"
+            }</strong>
+            <strong>${this._escapeResearchHtml(parentPlatDisplayName)}</strong>${
+            parentPlatYearLabel ? ` (Platted ${this._escapeResearchHtml(parentPlatYearLabel)})` : ""
+          }${
+            parentPlatRootCite ? ` · ${this._escapeResearchHtml(parentPlatRootCite)}` : ""
+          }.${
+            isReplattedFromHistoricParent && subVal
+              ? ` Modern HCAD lists this parcel under the later replat <code>${this._escapeResearchHtml(
+                  subVal
+                )}</code>; check the modern replat sheet's subtitle recital ("being a replat of Lots X-Y, Block Z of ${this._escapeResearchHtml(
+                  parentPlatDisplayName
+                )}") to bridge back to the original block and lot numbers.`
+              : ""
+          }${
+            parentPlatEstYear > 0 && parentPlatEstYear <= 1904
+              ? ` Because Harris County did not open dedicated Map Record (MR) books until 1905, look up the original plat in pre-1905 <strong>Harris County Deed Records (DR)</strong> rather than the Clerk's modern Map index.`
+              : ""
+          }
+          </div>`
+        : "";
 
     // Step 4: Photos, Newspapers & Architectural Archives
     const primaryArch =
@@ -10415,6 +10648,7 @@ class HoustonAtlasApp {
             <span class="rk-step-num">3</span>
             <span class="rk-step-title">Chain of Title, Subdivision Plat &amp; Deed Lookup</span>
           </div>
+          ${historicParentStep3NoteHtml}
           <div class="rk-copy-bar-label">1-Click Copy Tokens for County Clerk Search:</div>
           <div class="rk-copy-pills-wrap" id="research-kit-legal-pills">
             ${legalPillsHtml}
@@ -10438,6 +10672,19 @@ class HoustonAtlasApp {
             >
               Subdivision Plat Maps (Clerk MC) &#8599;
             </a>
+            ${
+              parentBraceyUrl
+                ? `<a
+                    href="${this._escapeResearchHtml(parentBraceyUrl)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="rk-action-btn secondary"
+                    title="Open digitized 1922 Bracey's Block Maps of Houston in the Houston Public Library Digital Archive showing original pre-replat addition boundaries, blocks, and lot numbers"
+                  >
+                    1922 Bracey's Block Maps (HPL) &#8599;
+                  </a>`
+                : ""
+            }
             <a
               href="https://www.harriscountyarchives.com/"
               target="_blank"
@@ -11333,8 +11580,27 @@ class HoustonAtlasApp {
     const wardVal = String(props.historic_ward || "").trim();
     const subVal = String(props.subdivision || "").trim();
 
+    const historicParentPlat = fullGeoCtx?.historic_parent_plat_props || null;
+    const _normPlatToken = (s) =>
+      String(s || "")
+        .toUpperCase()
+        .replace(/\b(?:ADDITION|SUBDIVISION|SEC|SECTION)\b\s*\d*/g, "")
+        .replace(/[^A-Z0-9]+/g, "")
+        .trim();
+    const normSubVal = _normPlatToken(subVal);
+    const normHistParentName = _normPlatToken(historicParentPlat?.name || "");
+    const normHistParentFull = _normPlatToken(historicParentPlat?.full_name || "");
+    const isReplattedFromHistoricParent = Boolean(
+      historicParentPlat &&
+        (normHistParentName || normHistParentFull) &&
+        (!normSubVal ||
+          (normSubVal !== normHistParentName && normSubVal !== normHistParentFull))
+    );
+
     const subPropsForDeed =
-      props._platted_subdivision_props || this._resolvePlattedSubdivisionProps(subVal);
+      props._platted_subdivision_props ||
+      this._resolvePlattedSubdivisionProps(subVal) ||
+      historicParentPlat;
     const catalogEntryForDeed = this._resolveDeedCatalogEntry(
       subPropsForDeed || {
         name: subVal,
@@ -11348,10 +11614,78 @@ class HoustonAtlasApp {
       landUseProtections: Array.isArray(props._land_use_protections)
         ? props._land_use_protections
         : [],
-      rawSubdivisionName: subVal,
+      rawSubdivisionName: subVal || this._formatHistoricPlatDisplayName(historicParentPlat),
       neighborhoodName: nbhdVal,
       isBoundary: false,
     });
+
+    const historicParentPlatRowHtml = historicParentPlat
+      ? (() => {
+          const pName = this._formatHistoricPlatDisplayName(historicParentPlat);
+          const pId = String(historicParentPlat.id || pName).replace(/"/g, "&quot;");
+          const pEscName = pName.replace(/"/g, "&quot;");
+          const pYearLbl = String(
+            historicParentPlat.plat_year_label ||
+              (Number(historicParentPlat.estimated_plat_year) >= 1836
+                ? `c. ${historicParentPlat.estimated_plat_year}`
+                : "")
+          ).trim();
+          const pCite = String(
+            historicParentPlat.deed_citation || historicParentPlat.plat_citation || ""
+          )
+            .replace(/^Harris County\s+/i, "")
+            .split("·")[0]
+            .trim();
+          const healedCnt = Number(historicParentPlat.healed_replat_count) || 0;
+          return `<div class="inspector-cell full">
+            <span class="cell-label">${
+              isReplattedFromHistoricParent
+                ? "Original Historic Parent Plat (Pre-Replat)"
+                : "Historic Subdivision Plat"
+            }</span>
+            <span class="cell-value inspector-chip-group">
+              <button
+                type="button"
+                class="inspector-filter-chip"
+                data-highlight-boundary="${pId}"
+                data-boundary-layer="platted_subdivisions"
+                data-open-boundary-dossier="1"
+                title="Open reconstructed ${pEscName} Boundary Dossier (${
+                  pYearLbl ? `Platted ${this._escapeHtmlAttr(pYearLbl)}` : "Historic Plat"
+                })"
+              >${pName}${pYearLbl ? ` · ${pYearLbl}` : ""} &#128220;</button>
+              <button
+                type="button"
+                class="inspector-boundary-btn"
+                data-highlight-boundary="${pId}"
+                data-boundary-layer="platted_subdivisions"
+                title="Outline reconstructed pre-replat boundary of ${pEscName} on the map"
+              >Outline Historic Plat</button>
+              <button
+                type="button"
+                class="inline-isolate-btn"
+                data-isolate-boundary="${pId}"
+                data-boundary-layer="platted_subdivisions"
+                title="Isolate reconstructed ${pEscName} and all structures inside its historic footprint"
+              >&#127919; Isolate</button>
+              ${
+                pCite
+                  ? `<span class="inspector-chip-note">${this._escapeHtmlAttr(pCite)}${
+                      healedCnt > 0 ? ` · ${healedCnt} replats healed` : ""
+                    }</span>`
+                  : ""
+              }
+              ${
+                isReplattedFromHistoricParent && subVal
+                  ? `<span class="inspector-chip-note" style="width:100%;margin-top:2px;">Modern HCAD parcel replatted as &ldquo;${this._escapeHtmlAttr(
+                      subVal
+                    )}&rdquo;; originally platted within ${this._escapeHtmlAttr(pName)}.</span>`
+                  : ""
+              }
+            </span>
+          </div>`;
+        })()
+      : "";
 
     const distVal = String(props.historic_district || "")
       .trim()
@@ -11926,6 +12260,9 @@ class HoustonAtlasApp {
       owner: props.owner || "",
       protectionEval,
       catalogEntryForDeed,
+      historicParentPlat,
+      isReplattedFromHistoricParent,
+      subVal,
       archChips,
       builderChips,
       haifSearchTerm,
@@ -12247,6 +12584,7 @@ class HoustonAtlasApp {
                 </span>
               </div>
               ${extraPreservationOverlaysRowHtml}
+              ${historicParentPlatRowHtml}
               ${holcContextRowHtml}
               <div class="inspector-cell">
                 <span class="cell-label">Building Floor Area</span>
@@ -12478,6 +12816,7 @@ class HoustonAtlasApp {
                   }
                 </span>
               </div>
+              ${isReplattedFromHistoricParent ? historicParentPlatRowHtml : ""}
               ${
                 neighborhoodAliases.length > 0
                   ? `<div class="inspector-cell full">
@@ -12716,6 +13055,8 @@ class HoustonAtlasApp {
         if (bName && this.mapController) {
           if (bLayer === "holc_1937_zones") {
             this.filterStore.setLayerVisibility("holc1937", true);
+          } else if (bLayer === "platted_subdivisions") {
+            this.filterStore.setLayerVisibility("plattedSubdivisions", true);
           }
           if (openDossier) {
             this.mapController.highlightBoundaryByIdOrName(bName, {
