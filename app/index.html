@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261025e" />
+  <link rel="stylesheet" href="styles/index.css?v=20261025i" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -222,6 +222,33 @@
 
             <button
               type="button"
+              class="action-pill"
+              id="btn-more-hahc-tracker"
+              title="Open Monthly Houston Archaeological &amp; Historical Commission (HAHC) COA &amp; Designation Precedent Docket"
+            >
+              &#127963; HAHC COA &amp; Designation Docket
+            </button>
+
+            <button
+              type="button"
+              class="action-pill"
+              id="btn-more-city-chapters"
+              title="Launch 6 Guided Visual Chapters: How Houston Was Built (1836-2026)"
+            >
+              &#128214; How Houston Was Built (6 Chapters)
+            </button>
+
+            <button
+              type="button"
+              class="action-pill"
+              id="btn-more-portfolios"
+              title="Explore Architect, Master Builder &amp; Architectural Style Map Portfolios across Harris County"
+            >
+              &#127959; Architect &amp; Style Portfolios
+            </button>
+
+            <button
+              type="button"
               class="action-pill export-studio-pill"
               id="btn-open-export-studio"
               title="Export high-resolution PNG screenshots or custom Vector SVG files for prints, posters, T-shirts, and coasters"
@@ -256,7 +283,26 @@
     </header>
 
     <!-- Curated Historic Neighborhood Tour Bar -->
-    <nav class="tour-bar" aria-label="Curated Historic Neighborhoods">
+    <nav class="tour-bar" aria-label="Curated Historic Neighborhoods and Guided Stories">
+      <div class="tour-feature-launchers">
+        <button
+          type="button"
+          class="tour-pill feature-story-pill"
+          id="btn-open-city-chapters"
+          title="Launch 6 interactive visual chapters showing how bayous, railroads, streetcars, redlining, annexation spokes, and preservation ordinances shaped Houston (1836-2026)"
+        >
+          &#128214; How Houston Was Built (6)
+        </button>
+        <button
+          type="button"
+          class="tour-pill feature-portfolio-pill"
+          id="btn-open-portfolios-quick"
+          title="Light up all extant and demolished Lost Houston works by master architects, builders, or architectural styles across Harris County"
+        >
+          &#127959; Architects &amp; Styles
+        </button>
+      </div>
+      <span class="tour-bar-divider" aria-hidden="true"></span>
       <span class="tour-bar-label">Explore Historic Core:</span>
       <div class="tour-pills" id="tour-pills"></div>
     </nav>
@@ -329,6 +375,118 @@
         </div>
       </div>
     </div>
+
+    <!-- Priority #4A: Guided Citywide Visual Chapters ("How Houston Was Built") -->
+    <section
+      class="city-chapters-card hidden"
+      id="city-chapters-card"
+      aria-label="How Houston Was Built: Guided Visual Chapters"
+    >
+      <div class="city-chapters-header">
+        <div class="city-chapters-step-tabs" id="city-chapters-step-tabs" role="tablist" aria-label="Chapters 1 to 6"></div>
+        <div class="city-chapters-nav-btns">
+          <button type="button" class="tour-step-btn" id="btn-chapter-prev" title="Previous Chapter">
+            &#9664; Prev
+          </button>
+          <button type="button" class="tour-step-btn primary" id="btn-chapter-next" title="Next Chapter">
+            Next &#9654;
+          </button>
+          <button
+            type="button"
+            class="tour-banner-close"
+            id="btn-exit-city-chapters"
+            title="Exit Guided Chapters and restore your previous map view"
+            aria-label="Exit Guided Chapters"
+          >&times;</button>
+        </div>
+      </div>
+      <div class="city-chapters-body">
+        <div class="city-chapters-kicker-row">
+          <span class="city-chapters-kicker mono" id="city-chapter-kicker"></span>
+          <span class="city-chapters-era-badge mono" id="city-chapter-era"></span>
+        </div>
+        <h3 class="city-chapters-title" id="city-chapter-title"></h3>
+        <p class="city-chapters-narrative" id="city-chapter-narrative"></p>
+        <div class="city-chapters-takeaway" id="city-chapter-takeaway"></div>
+        <div class="city-chapters-sites-wrap">
+          <span class="city-chapters-sites-label">Inspect Exemplar Sites:</span>
+          <div class="city-chapters-sites" id="city-chapter-sites"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Priority #4B: Architect, Builder & Architectural Style Map Portfolio Monograph Card -->
+    <section
+      class="portfolio-monograph-card hidden"
+      id="portfolio-monograph-card"
+      aria-label="Architect, Builder and Style Map Portfolio"
+    >
+      <div class="portfolio-card-top">
+        <div class="portfolio-preset-row">
+          <label for="portfolio-preset-select" class="portfolio-preset-label">Portfolio:</label>
+          <select id="portfolio-preset-select" class="portfolio-preset-select"></select>
+        </div>
+        <div class="portfolio-top-actions">
+          <button
+            type="button"
+            class="tour-step-btn subtle"
+            id="btn-portfolio-fit-all"
+            title="Zoom map to fit all works in this portfolio"
+          >
+            Fit All
+          </button>
+          <button
+            type="button"
+            class="tour-banner-close"
+            id="btn-exit-portfolio"
+            title="Exit Portfolio Mode"
+            aria-label="Exit Portfolio Mode"
+          >&times;</button>
+        </div>
+      </div>
+
+      <div class="portfolio-bio-block">
+        <div class="portfolio-title-row">
+          <h3 class="portfolio-title" id="portfolio-card-title"></h3>
+          <span class="portfolio-lifespan-badge mono" id="portfolio-card-lifespan"></span>
+        </div>
+        <div class="portfolio-role-line" id="portfolio-card-role"></div>
+        <p class="portfolio-bio-text" id="portfolio-card-bio"></p>
+      </div>
+
+      <div class="portfolio-stats-grid" id="portfolio-stats-grid">
+        <div class="portfolio-stat-cell extant">
+          <span class="portfolio-stat-val mono" id="portfolio-stat-extant">0</span>
+          <span class="portfolio-stat-lbl">Extant</span>
+        </div>
+        <div class="portfolio-stat-cell lost">
+          <span class="portfolio-stat-val mono" id="portfolio-stat-lost">0</span>
+          <span class="portfolio-stat-lbl">Lost Houston</span>
+        </div>
+        <div class="portfolio-stat-cell">
+          <span class="portfolio-stat-val mono" id="portfolio-stat-span">-</span>
+          <span class="portfolio-stat-lbl">Career / Era</span>
+        </div>
+        <div class="portfolio-stat-cell">
+          <span class="portfolio-stat-val mono" id="portfolio-stat-honors">0</span>
+          <span class="portfolio-stat-lbl">Landmarks / GB</span>
+        </div>
+      </div>
+
+      <div class="portfolio-subfilter-row" role="tablist" aria-label="Filter Portfolio Works">
+        <button type="button" class="portfolio-subfilter-pill active" data-portfolio-filter="all">
+          All (<span id="portfolio-pill-all">0</span>)
+        </button>
+        <button type="button" class="portfolio-subfilter-pill" data-portfolio-filter="extant">
+          Extant (<span id="portfolio-pill-extant">0</span>)
+        </button>
+        <button type="button" class="portfolio-subfilter-pill lost" data-portfolio-filter="lost">
+          &#8224; Lost Houston (<span id="portfolio-pill-lost">0</span>)
+        </button>
+      </div>
+
+      <div class="portfolio-works-list" id="portfolio-works-list"></div>
+    </section>
 
     <!-- Left Archival Control & Analytics Dock -->
     <aside class="atlas-sidebar" id="atlas-sidebar">
@@ -656,6 +814,56 @@
                     title="Show only Planning Commission Plats &amp; Variances (click again to restore)"
                   >
                     Solo
+                  </button>
+                </div>
+              </div>
+
+              <div class="layer-item-row" data-layer-key="hahcTracker">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-hahc-tracker" />
+                  <span class="swatch-dot" style="background:#14B8A6; border:1.5px solid #FFE4E6; box-shadow:0 0 7px rgba(20,184,166,0.85);" title="Rose = Active HAHC Agenda; Red = Demolition / Relocation COA; Violet = Landmark Designation; Amber = Denied / COR; Teal = Approved COA Precedent"></span>
+                  <span class="layer-name">HAHC COA &amp; Designations (<span id="hahc-layer-count">283</span>)</span>
+                </label>
+                <div style="display:inline-flex;align-items:center;gap:4px;">
+                  <button
+                    type="button"
+                    class="layer-solo-btn"
+                    id="btn-open-hahc-inline"
+                    style="border-color:rgba(20,184,166,0.48);background:rgba(20,184,166,0.16);color:#99F6E4;"
+                    title="Open Searchable Monthly HAHC COA &amp; Designation Precedent Docket Modal"
+                  >
+                    Docket
+                  </button>
+                  <button
+                    type="button"
+                    class="layer-solo-btn"
+                    data-solo-layer="hahcTracker"
+                    title="Show only HAHC COA &amp; Designation filings (click again to restore)"
+                  >
+                    Solo
+                  </button>
+                </div>
+              </div>
+
+              <div class="landmarks-subfilter-row hidden" id="hahc-filter-row" role="group" aria-label="HAHC COA Application &amp; Outcome Filter">
+                <div class="lm-filter-pills">
+                  <button type="button" class="lm-filter-pill mono active" data-hahc-filter="all">
+                    All 283
+                  </button>
+                  <button type="button" class="lm-filter-pill mono" data-hahc-filter="active_agenda" title="October 8, 2026 Active HAHC Public Hearing Agenda">
+                    Oct '26 Agenda (13)
+                  </button>
+                  <button type="button" class="lm-filter-pill mono" data-hahc-filter="demolition_relocation" title="Demolition or Relocation Certificate of Appropriateness Filings">
+                    Demo / Reloc (16)
+                  </button>
+                  <button type="button" class="lm-filter-pill mono" data-hahc-filter="addition_new" title="Addition, Alteration &amp; New Construction COA Precedents">
+                    Additions &amp; New
+                  </button>
+                  <button type="button" class="lm-filter-pill mono" data-hahc-filter="designation" title="Protected Landmark &amp; Landmark Designation Filings">
+                    Landmarks (7)
+                  </button>
+                  <button type="button" class="lm-filter-pill mono" data-hahc-filter="denied_or_cor" title="COAs Denied or Issued a Certificate of Remediation (COR)">
+                    Denied / COR
                   </button>
                 </div>
               </div>
@@ -2311,6 +2519,15 @@
               >
                 &#127963; 15-Point Property Watchlist &#8599;
               </a>
+              <button
+                type="button"
+                class="action-pill"
+                id="btn-pw-open-hahc-modal"
+                style="border-color:rgba(20,184,166,0.45);background:rgba(20,184,166,0.18);color:#99F6E4;"
+                title="Open Monthly HAHC Certificate of Appropriateness (COA) &amp; Landmark Designation Docket"
+              >
+                &#127963; HAHC COA &amp; Designation Docket
+              </button>
               <a
                 href="https://www.houstonpermittingcenter.org/sold-permits-search"
                 target="_blank"
@@ -2336,10 +2553,127 @@
         </div>
       </div>
     </div>
+
+    <!-- Priority #5: Monthly HAHC (Houston Archaeological & Historical Commission) COA & Designation Docket Modal -->
+    <div class="modal-backdrop hidden" id="hahc-tracker-modal" role="dialog" aria-modal="true" aria-labelledby="hahc-tracker-modal-title">
+      <div class="modal-card permit-watch-modal-card hahc-modal-card">
+        <div class="modal-header">
+          <div>
+            <span class="brand-kicker" style="color:#5EEAD4;">&#127963; City of Houston Chapter 33 Historic Preservation Commission</span>
+            <h2 class="modal-title" id="hahc-tracker-modal-title">HAHC COA &amp; Designation Precedent Docket (2024-2026)</h2>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button
+              type="button"
+              class="action-pill"
+              id="btn-hahc-enable-map-layer"
+              style="border-color:rgba(20,184,166,0.48);background:rgba(20,184,166,0.2);color:#CCFBF1;"
+              title="Enable the HAHC COA &amp; Designations map overlay"
+            >
+              &#127758; Show All 283 on Map
+            </button>
+            <button type="button" class="icon-btn" id="btn-close-hahc-modal" aria-label="Close HAHC COA Docket Modal">
+              &times;
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-body permit-watch-modal-body">
+          <div class="hahc-active-cycle-banner" id="hahc-active-cycle-banner"></div>
+
+          <div class="permit-watch-summary-strip" id="hahc-summary-strip">
+            <div class="permit-watch-stat-box critical">
+              <span class="permit-watch-stat-label">Oct 8, 2026 Agenda Parcels</span>
+              <span class="permit-watch-stat-val mono" id="hahc-stat-active">13</span>
+            </div>
+            <div class="permit-watch-stat-box">
+              <span class="permit-watch-stat-label">Total COA &amp; Landmark Filings</span>
+              <span class="permit-watch-stat-val mono" id="hahc-stat-total">403</span>
+            </div>
+            <div class="permit-watch-stat-box">
+              <span class="permit-watch-stat-label">Approved / Approved w/ Cond.</span>
+              <span class="permit-watch-stat-val mono" id="hahc-stat-approved">305</span>
+            </div>
+            <div class="permit-watch-stat-box watch">
+              <span class="permit-watch-stat-label">Denied / COR / Demo Review</span>
+              <span class="permit-watch-stat-val mono" id="hahc-stat-denied">78</span>
+            </div>
+          </div>
+
+          <div class="hahc-modal-controls">
+            <div class="hahc-modal-filters-top">
+              <div class="hahc-control-group">
+                <label for="hahc-modal-district-select">Historic District:</label>
+                <select id="hahc-modal-district-select" class="form-input hahc-select">
+                  <option value="all">All COH Historic Districts &amp; Landmarks</option>
+                </select>
+              </div>
+              <div class="hahc-control-group hahc-search-group">
+                <label for="hahc-modal-search">Search Address / Type / Outcome:</label>
+                <input
+                  type="search"
+                  id="hahc-modal-search"
+                  class="form-input"
+                  placeholder="e.g. Cortlandt, Walling, Windows, Addition, COR, Demolition..."
+                />
+              </div>
+            </div>
+
+            <div class="permit-watch-filter-bar" style="margin-top:8px;">
+              <div class="permit-watch-filter-pills" id="hahc-modal-category-pills" role="tablist" aria-label="Filter HAHC Filings">
+                <button type="button" class="permit-watch-filter-pill active" data-hahc-modal-cat="all">
+                  All Filings (<span id="hahc-mpill-all">403</span>)
+                </button>
+                <button type="button" class="permit-watch-filter-pill critical" data-hahc-modal-cat="active_agenda">
+                  Oct 8, 2026 Agenda (<span id="hahc-mpill-active">15</span>)
+                </button>
+                <button type="button" class="permit-watch-filter-pill" data-hahc-modal-cat="addition_alteration">
+                  Additions &amp; Alterations (<span id="hahc-mpill-add">298</span>)
+                </button>
+                <button type="button" class="permit-watch-filter-pill" data-hahc-modal-cat="new_construction">
+                  New Construction (<span id="hahc-mpill-new">80</span>)
+                </button>
+                <button type="button" class="permit-watch-filter-pill watch" data-hahc-modal-cat="demolition_relocation">
+                  Demo / Relocation (<span id="hahc-mpill-demo">18</span>)
+                </button>
+                <button type="button" class="permit-watch-filter-pill" data-hahc-modal-cat="designation">
+                  Landmarks (<span id="hahc-mpill-desig">7</span>)
+                </button>
+                <button type="button" class="permit-watch-filter-pill watch" data-hahc-modal-cat="denied_or_cor">
+                  Denied / COR (<span id="hahc-mpill-denied">60</span>)
+                </button>
+              </div>
+              <div class="permit-watch-portal-links">
+                <a
+                  href="https://www.houstontx.gov/planning/Commissions/HAHC.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="action-pill subtle"
+                  title="Open Official City of Houston HAHC Agendas, Staff Reports &amp; Action Minutes Portal"
+                >
+                  COH HAHC Official Portal &#8599;
+                </a>
+                <a
+                  href="https://www.houstontx.gov/planning/HistoricPres/District_Reference.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="action-pill subtle"
+                  title="Open City of Houston Historic District Design Guidelines"
+                >
+                  District Design Guidelines &#8599;
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="permit-watch-list" id="hahc-modal-list"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261025d"></script>
+  <script type="module" src="js/app.js?v=20261025i"></script>
 </body>
 </html>

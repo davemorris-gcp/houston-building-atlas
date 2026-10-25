@@ -15,6 +15,7 @@ import {
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
+  buildHahcFilterExpression,
   buildHistoricWardFilterExpression,
   buildHolcZonesFilterExpression,
   buildLandmarksFilterExpression,
@@ -23,7 +24,7 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261025d";
+} from "./filterStore.js?v=20261025f";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
@@ -168,6 +169,7 @@ export class AtlasMapController {
     onViewportStats,
     onPitchChange,
     onSelectTourStop,
+    onSelectPortfolioWork,
     onOverlapStackChange,
     onIsolationChange,
   }) {
@@ -177,6 +179,7 @@ export class AtlasMapController {
     this.onViewportStats = onViewportStats;
     this.onPitchChange = onPitchChange || null;
     this.onSelectTourStop = onSelectTourStop || null;
+    this.onSelectPortfolioWork = onSelectPortfolioWork || null;
     this.onOverlapStackChange = onOverlapStackChange || null;
     this.onIsolationChange = onIsolationChange || null;
     this.map = null;
@@ -193,6 +196,11 @@ export class AtlasMapController {
     this.platWatchData = null;
     this.platWatchFC = { type: "FeatureCollection", features: [] };
     this.platWatchByHcad = new Map();
+    this.hahcTrackerData = null;
+    this.hahcById = new Map();
+    this.hahcFilingsByHcad = new Map();
+    this.hahcDistrictPrecedents = {};
+    this.hahcDistrictPrecedentsNorm = new Map();
     this.landmarksByHcad = new Map();
     this.landmarksByBldId = new Map();
     this.nrhpPropertiesByHcad = new Map();
@@ -216,6 +224,9 @@ export class AtlasMapController {
     this.activeTourStopIndex = -1;
     this.tourFocusMode = "all";
     this.tourStopMarkers = [];
+    this.portfolioWorks = [];
+    this.activePortfolioWorkIndex = -1;
+    this.portfolioMarkers = [];
     this.isReady = false;
   }
 
@@ -270,14 +281,16 @@ export class AtlasMapController {
       overridesResult,
       permitAlertsRes,
       platWatchRes,
+      hahcTrackerRes,
     ] = await Promise.all([
       fetch("public/data/buildings.geojson?v=20261024a"),
       fetch("public/data/parcels.geojson?v=20261011c"),
-      fetch("public/data/overlays.json?v=20261025d"),
+      fetch("public/data/overlays.json?v=20261025f"),
       fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
       loadCuratedOverrides(),
       fetch("public/data/active_permit_alerts.json?v=20261023g").catch(() => null),
       fetch("public/data/plat_agenda_monitor.json?v=20261023g").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261025f").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -311,6 +324,15 @@ export class AtlasMapController {
     }
     this._indexPlatWatch(platWatchJson);
 
+    let hahcTrackerJson = null;
+    if (hahcTrackerRes && hahcTrackerRes.ok) {
+      try {
+        hahcTrackerJson = await hahcTrackerRes.json();
+      } catch {
+        hahcTrackerJson = null;
+      }
+    }
+
     this.curatedOverrides = (overridesResult && overridesResult.overrides) || {};
     this.sheetSyncStatus = (overridesResult && overridesResult.syncStatus) || null;
 
@@ -320,6 +342,7 @@ export class AtlasMapController {
     this.parcelsData = parcelsFC.features || [];
     this.overlaysData = overlays;
     this._indexPreservationOverlays(overlays);
+    this._indexHahcTracker(hahcTrackerJson, overlays);
     this._buildBoundarySpatialIndex();
 
     this._applyCuratedOverridesInMemory();
@@ -722,6 +745,106 @@ export class AtlasMapController {
       if (prefixHcad && this.platWatchByHcad?.has(prefixHcad)) {
         return this.platWatchByHcad.get(prefixHcad);
       }
+    }
+    return null;
+  }
+
+  _normalizeHahcDistrictKey(rawName) {
+    return String(rawName || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+historic\s+district$/i, "")
+      .replace(/\s+hd$/i, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  _indexHahcTracker(hahcJson, overlays) {
+    this.hahcTrackerData = hahcJson && typeof hahcJson === "object" ? hahcJson : null;
+    this.hahcById = new Map();
+    this.hahcFilingsByHcad = new Map();
+    this.hahcDistrictPrecedents =
+      this.hahcTrackerData?.district_precedents &&
+      typeof this.hahcTrackerData.district_precedents === "object"
+        ? this.hahcTrackerData.district_precedents
+        : {};
+    this.hahcDistrictPrecedentsNorm = new Map();
+    for (const [distName, summary] of Object.entries(this.hahcDistrictPrecedents)) {
+      const norm = this._normalizeHahcDistrictKey(distName);
+      if (norm) {
+        this.hahcDistrictPrecedentsNorm.set(norm, summary);
+      }
+    }
+
+    for (const feat of overlays?.hahc_coa_filings?.features || []) {
+      const fid = String(feat?.properties?.id || "").trim();
+      if (fid) {
+        this.hahcById.set(fid, feat);
+      }
+      const hcad = String(feat?.properties?.hcad_num || "").trim();
+      if (hcad && !this.hahcById.has(hcad)) {
+        this.hahcById.set(hcad, feat);
+      }
+    }
+
+    const filings = Array.isArray(this.hahcTrackerData?.filings)
+      ? this.hahcTrackerData.filings
+      : [];
+    for (const f of filings) {
+      const hcad = String(f?.hcad_num || "").trim();
+      if (!hcad) continue;
+      if (!this.hahcFilingsByHcad.has(hcad)) {
+        this.hahcFilingsByHcad.set(hcad, []);
+      }
+      this.hahcFilingsByHcad.get(hcad).push(f);
+    }
+    for (const list of this.hahcFilingsByHcad.values()) {
+      list.sort((a, b) =>
+        String(b.meeting_date || "").localeCompare(String(a.meeting_date || ""))
+      );
+    }
+  }
+
+  getHahcTrackerPayload() {
+    return this.hahcTrackerData;
+  }
+
+  getHahcFeatureCount() {
+    return Array.isArray(this.overlaysData?.hahc_coa_filings?.features)
+      ? this.overlaysData.hahc_coa_filings.features.length
+      : 0;
+  }
+
+  getHahcFeatureById(id) {
+    const clean = String(id || "").trim();
+    if (!clean) return null;
+    return this.hahcById?.get(clean) || null;
+  }
+
+  getHahcFilingsForBuilding({ hcadNum = "", buildingId = "" } = {}) {
+    const cleanHcad = String(hcadNum || "").trim();
+    if (cleanHcad && this.hahcFilingsByHcad?.has(cleanHcad)) {
+      return this.hahcFilingsByHcad.get(cleanHcad);
+    }
+    const cleanBld = String(buildingId || "").trim();
+    if (cleanBld.includes("#")) {
+      const prefixHcad = cleanBld.split("#")[0].trim();
+      if (prefixHcad && this.hahcFilingsByHcad?.has(prefixHcad)) {
+        return this.hahcFilingsByHcad.get(prefixHcad);
+      }
+    }
+    return [];
+  }
+
+  getHahcDistrictPrecedents(historicDistrictName = "") {
+    const raw = String(historicDistrictName || "").trim();
+    if (!raw) return null;
+    if (this.hahcDistrictPrecedents && this.hahcDistrictPrecedents[raw]) {
+      return this.hahcDistrictPrecedents[raw];
+    }
+    const norm = this._normalizeHahcDistrictKey(raw);
+    if (norm && this.hahcDistrictPrecedentsNorm?.has(norm)) {
+      return this.hahcDistrictPrecedentsNorm.get(norm);
     }
     return null;
   }
@@ -1349,6 +1472,14 @@ export class AtlasMapController {
       type: "geojson",
       data: this.platWatchFC || { type: "FeatureCollection", features: [] },
     });
+    this.map.addSource("hahc-coa-src", {
+      type: "geojson",
+      data: overlays.hahc_coa_filings || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("portfolio-works-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
 
     const state = this.filterStore.getState();
     const colorExpr = buildColorExpression(state.colorMode, state.paletteStyle);
@@ -1359,6 +1490,7 @@ export class AtlasMapController {
     const lostHoustonFilterExpr = buildLostHoustonFilterExpression(state);
     const holcFilterExpr = buildHolcZonesFilterExpression(state);
     const redBookFilterExpr = buildRedBookFilterExpression(state, null);
+    const hahcFilterExpr = buildHahcFilterExpression(state, null);
 
     this.map.addLayer({
       id: "annexations-fill",
@@ -2705,6 +2837,139 @@ export class AtlasMapController {
         ],
         "circle-stroke-color": "#FFF1F2",
         "circle-stroke-width": 1.8,
+      },
+    });
+    this.map.addLayer({
+      id: "hahc-coa-glow",
+      type: "circle",
+      source: "hahc-coa-src",
+      ...(hahcFilterExpr ? { filter: hahcFilterExpr } : {}),
+      layout: { visibility: state.layers?.hahcTracker ? "visible" : "none" },
+      paint: {
+        "circle-radius": [
+          "case",
+          ["boolean", ["get", "has_active_agenda"], false],
+          13.5,
+          ["boolean", ["get", "has_demolition_relocation"], false],
+          12.5,
+          10.2,
+        ],
+        "circle-color": [
+          "case",
+          ["boolean", ["get", "has_active_agenda"], false],
+          "#F43F5E",
+          ["boolean", ["get", "has_demolition_relocation"], false],
+          "#EF4444",
+          ["boolean", ["get", "has_designation"], false],
+          "#A855F7",
+          ["boolean", ["get", "has_denied_or_cor"], false],
+          "#F59E0B",
+          "#14B8A6",
+        ],
+        "circle-opacity": 0.32,
+        "circle-blur": 0.45,
+      },
+    });
+    this.map.addLayer({
+      id: "hahc-coa-circle",
+      type: "circle",
+      source: "hahc-coa-src",
+      ...(hahcFilterExpr ? { filter: hahcFilterExpr } : {}),
+      layout: { visibility: state.layers?.hahcTracker ? "visible" : "none" },
+      paint: {
+        "circle-radius": [
+          "case",
+          ["boolean", ["get", "has_active_agenda"], false],
+          6.8,
+          ["boolean", ["get", "has_demolition_relocation"], false],
+          6.4,
+          5.5,
+        ],
+        "circle-color": [
+          "case",
+          ["boolean", ["get", "has_active_agenda"], false],
+          "#F43F5E",
+          ["boolean", ["get", "has_demolition_relocation"], false],
+          "#EF4444",
+          ["boolean", ["get", "has_designation"], false],
+          "#A855F7",
+          ["boolean", ["get", "has_denied_or_cor"], false],
+          "#F59E0B",
+          "#14B8A6",
+        ],
+        "circle-stroke-color": [
+          "case",
+          ["boolean", ["get", "has_active_agenda"], false],
+          "#FFE4E6",
+          ["boolean", ["get", "has_designation"], false],
+          "#F3E8FF",
+          "#0F172A",
+        ],
+        "circle-stroke-width": [
+          "case",
+          ["boolean", ["get", "has_active_agenda"], false],
+          2.2,
+          1.8,
+        ],
+      },
+    });
+    this.map.addLayer({
+      id: "portfolio-works-glow",
+      type: "circle",
+      source: "portfolio-works-src",
+      paint: {
+        "circle-radius": [
+          "case",
+          ["boolean", ["get", "is_active"], false],
+          16.5,
+          12.0,
+        ],
+        "circle-color": [
+          "case",
+          ["boolean", ["get", "is_lost"], false],
+          "#F472B6",
+          "#FBBF24",
+        ],
+        "circle-opacity": [
+          "case",
+          ["boolean", ["get", "is_active"], false],
+          0.52,
+          0.34,
+        ],
+        "circle-blur": 0.45,
+      },
+    });
+    this.map.addLayer({
+      id: "portfolio-works-circle",
+      type: "circle",
+      source: "portfolio-works-src",
+      paint: {
+        "circle-radius": [
+          "case",
+          ["boolean", ["get", "is_active"], false],
+          8.8,
+          6.8,
+        ],
+        "circle-color": [
+          "case",
+          ["boolean", ["get", "is_lost"], false],
+          "#EC4899",
+          "#F59E0B",
+        ],
+        "circle-stroke-color": [
+          "case",
+          ["boolean", ["get", "is_active"], false],
+          "#FFFFFF",
+          ["boolean", ["get", "is_lost"], false],
+          "#FDE047",
+          "#FEF3C7",
+        ],
+        "circle-stroke-width": [
+          "case",
+          ["boolean", ["get", "is_active"], false],
+          2.6,
+          2.0,
+        ],
       },
     });
     this.map.addLayer({
@@ -4611,6 +4876,104 @@ export class AtlasMapController {
       }
     }
 
+    // 6d. HAHC COA & Designation Tracker (283 Parcels / 403 Filings)
+    if (allowPointMarkers && state.layers.hahcTracker && this.overlaysData?.hahc_coa_filings) {
+      const hf = String(state.hahcFilter || "all").trim().toLowerCase();
+      for (const feat of this.overlaysData.hahc_coa_filings.features || []) {
+        const hp = feat.properties || {};
+        if (hf === "active_agenda" && !hp.has_active_agenda) continue;
+        if (hf === "demolition_relocation" && !hp.has_demolition_relocation) continue;
+        if (hf === "designation" && !hp.has_designation) continue;
+        if (hf === "denied_or_cor" && !hp.has_denied_or_cor) continue;
+        if (hf === "addition_new" && (hp.has_demolition_relocation || hp.has_designation)) continue;
+        const coords = feat.geometry?.coordinates;
+        if (!coords) continue;
+        if (isoGeom && !isPointInIsolated(coords[0], coords[1])) continue;
+        const [sx, sy] = this._lngLatToScreen(coords[0], coords[1], width, height);
+        if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+        const cColor = hp.has_active_agenda
+          ? "#F43F5E"
+          : hp.has_demolition_relocation
+          ? "#EF4444"
+          : hp.has_designation
+          ? "#A855F7"
+          : hp.has_denied_or_cor
+          ? "#F59E0B"
+          : "#14B8A6";
+        ctx.beginPath();
+        ctx.arc(sx, sy, hp.has_active_agenda ? 10.5 : 8.5, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(20, 184, 166, 0.22)";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx, sy, hp.has_active_agenda ? 6.4 : 5.4, 0, Math.PI * 2);
+        ctx.fillStyle = cColor;
+        ctx.fill();
+        ctx.lineWidth = hp.has_active_agenda ? 2.1 : 1.7;
+        ctx.strokeStyle = hp.has_active_agenda ? "#FFE4E6" : "#0F172A";
+        ctx.stroke();
+        cs.renderedBBoxes.push({
+          minX: sx - 8,
+          minY: sy - 8,
+          maxX: sx + 8,
+          maxY: sy + 8,
+          props: { ...hp, overlay_layer: "hahc_coa_filings", is_boundary_feature: true },
+          geom: feat.geometry,
+        });
+      }
+    }
+
+    // 6e. Architect / Builder / Style Map Portfolio Works
+    if (Array.isArray(this.portfolioWorks) && this.portfolioWorks.length > 0) {
+      const showNums = this.portfolioWorks.length <= 60;
+      for (let i = 0; i < this.portfolioWorks.length; i++) {
+        const w = this.portfolioWorks[i];
+        if (!Number.isFinite(w.lng) || !Number.isFinite(w.lat)) continue;
+        const [sx, sy] = this._lngLatToScreen(w.lng, w.lat, width, height);
+        if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
+        const isAct = i === this.activePortfolioWorkIndex;
+        const outerR = showNums ? (isAct ? 16 : 13.5) : isAct ? 12.5 : 9.2;
+        const innerR = showNums ? (isAct ? 11.5 : 9.8) : isAct ? 7.6 : 6.0;
+        ctx.beginPath();
+        ctx.arc(sx, sy, outerR, 0, Math.PI * 2);
+        ctx.fillStyle = w.isLost ? "rgba(244, 63, 94, 0.34)" : "rgba(251, 191, 36, 0.34)";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx, sy, innerR, 0, Math.PI * 2);
+        ctx.fillStyle = w.isLost ? "#BE123C" : "#D97706";
+        ctx.fill();
+        ctx.lineWidth = isAct ? 2.4 : 1.8;
+        ctx.strokeStyle = isAct ? "#FFFFFF" : w.isLost ? "#FECDD3" : "#FEF3C7";
+        ctx.stroke();
+        if (showNums) {
+          ctx.save();
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "700 9.5px ui-monospace, SFMono-Regular, Menlo, monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(w.isLost ? `†${i + 1}` : String(i + 1), sx, sy + 0.5);
+          ctx.restore();
+        }
+        cs.renderedBBoxes.push({
+          minX: sx - innerR - 2,
+          minY: sy - innerR - 2,
+          maxX: sx + innerR + 2,
+          maxY: sy + innerR + 2,
+          props: {
+            id: w.id,
+            name: w.title,
+            address: w.address,
+            year_built: w.yearBuilt,
+            year_demolished: w.yearDemolished || 0,
+            is_lost: Boolean(w.isLost),
+            portfolio_index: i,
+            overlay_layer: "portfolio_work",
+            is_boundary_feature: true,
+          },
+          geom: { type: "Point", coordinates: [w.lng, w.lat] },
+        });
+      }
+    }
+
     // 7. COH Designated Landmarks (PLM, LM in HD, and 90-Day Waiver Vulnerable LM)
     if (allowPointMarkers && state.layers.landmarks && this.overlaysData?.landmarks) {
       const lmMode = String(state.landmarkFilter || "all");
@@ -4986,6 +5349,8 @@ export class AtlasMapController {
       p.overlay_layer === "cultural_districts" ||
       p.overlay_layer === "holc_1937_zones" ||
       p.overlay_layer === "red_book_1915" ||
+      p.overlay_layer === "hahc_coa_filings" ||
+      p.overlay_layer === "portfolio_work" ||
       p.overlay_layer === "historical_waterways" ||
       p.overlay_layer === "historical_railroads" ||
       p.type === "Neighborhood / Historic Area" ||
@@ -5074,6 +5439,16 @@ export class AtlasMapController {
         badge = `1937 HOLC ${p.zone_code || ""} · ${p.grade_label || `Grade ${p.holc_grade || ""}`}`;
       } else if (p.overlay_layer === "red_book_1915") {
         badge = `1915 Red Book · ${p.category_label || "Heritage Site"}`;
+      } else if (p.overlay_layer === "hahc_coa_filings") {
+        badge = p.has_active_agenda
+          ? `HAHC Active Agenda (${p.latest_meeting_date || "Oct 8, 2026"})`
+          : `HAHC COA & Designations (${Number(p.filings_count) || 1} filing${
+              Number(p.filings_count) === 1 ? "" : "s"
+            })`;
+      } else if (p.overlay_layer === "portfolio_work") {
+        badge = p.is_lost
+          ? `Portfolio Work · Demolished (${p.year_built || "?"}-${p.year_demolished || "?"})`
+          : `Portfolio Work · Extant (${p.year_built || "Undated"})`;
       }
       const statParts = [];
       if (p.overlay_layer === "lost_houston") {
@@ -5084,6 +5459,14 @@ export class AtlasMapController {
         if (p.historic_address_1915) statParts.push(`1915: ${p.historic_address_1915}`);
         if (p.subtitle) statParts.push(p.subtitle);
         if (p.survival_label) statParts.push(p.survival_label);
+      } else if (p.overlay_layer === "hahc_coa_filings") {
+        if (p.historic_district) statParts.push(`${p.historic_district} HD`);
+        if (p.latest_app_type) statParts.push(p.latest_app_type);
+        if (p.latest_outcome_detail) statParts.push(String(p.latest_outcome_detail).slice(0, 72));
+      } else if (p.overlay_layer === "portfolio_work") {
+        if (p.address) statParts.push(p.address);
+        if (p.architect) statParts.push(p.architect);
+        if (p.style) statParts.push(p.style);
       } else if (p.overlay_layer === "holc_1937_zones") {
         if (Number(p.building_count) > 0) {
           statParts.push(`${Number(p.building_count).toLocaleString()} structures`);
@@ -5503,6 +5886,10 @@ export class AtlasMapController {
       ["red-book-1915-glow", "red-book-1915-circle"],
       allowIsoMarkers && Boolean(state.layers?.redBook1915)
     );
+    setVis(
+      ["hahc-coa-glow", "hahc-coa-circle"],
+      allowIsoMarkers && Boolean(state.layers?.hahcTracker)
+    );
 
     if (isoGeom && allowIsoMarkers) {
       const isoBBox = iso.bbox || null;
@@ -5529,6 +5916,9 @@ export class AtlasMapController {
       const rbIds = (this.overlaysData?.red_book_1915?.features || [])
         .filter((f) => inIso(f.geometry?.coordinates))
         .map((f) => String(f.properties?.id || ""));
+      const hahcIds = (this.overlaysData?.hahc_coa_filings?.features || [])
+        .filter((f) => inIso(f.geometry?.coordinates))
+        .map((f) => String(f.properties?.id || ""));
       const pwIds = (this.permitAlertsFC?.features || [])
         .filter((f) => inIso(f.geometry?.coordinates))
         .map((f) => String(f.properties?.id || f.properties?.hcad_num || ""));
@@ -5536,6 +5926,7 @@ export class AtlasMapController {
       const gbFilter = ["in", ["coalesce", ["get", "id"], ["get", "hcad_num"], ""], ["literal", gbIds]];
       const lmFilter = buildLandmarksFilterExpression(state, lmIds);
       const rbFilter = buildRedBookFilterExpression(state, rbIds);
+      const hahcFilter = buildHahcFilterExpression(state, hahcIds);
       const nrhpIsoFilter = ["in", ["coalesce", ["get", "id"], ["get", "refnum"], ""], ["literal", nrhpIds]];
       const thcFilter = [
         "in",
@@ -5558,6 +5949,12 @@ export class AtlasMapController {
       if (this.map.getLayer("red-book-1915-circle")) {
         this.map.setFilter("red-book-1915-circle", rbFilter);
       }
+      if (this.map.getLayer("hahc-coa-glow")) {
+        this.map.setFilter("hahc-coa-glow", hahcFilter);
+      }
+      if (this.map.getLayer("hahc-coa-circle")) {
+        this.map.setFilter("hahc-coa-circle", hahcFilter);
+      }
       if (this.map.getLayer("nrhp-properties-glow")) {
         this.map.setFilter("nrhp-properties-glow", [
           "all",
@@ -5573,6 +5970,7 @@ export class AtlasMapController {
     } else if (!isoGeom) {
       const lmFilter = buildLandmarksFilterExpression(state, null);
       const rbFilter = buildRedBookFilterExpression(state, null);
+      const hahcFilter = buildHahcFilterExpression(state, null);
       if (this.map.getLayer("good-brick-glow")) this.map.setFilter("good-brick-glow", null);
       if (this.map.getLayer("good-brick-circle")) this.map.setFilter("good-brick-circle", null);
       if (this.map.getLayer("landmarks-waiver-ring")) this.map.setFilter("landmarks-waiver-ring", lmFilter);
@@ -5587,6 +5985,12 @@ export class AtlasMapController {
       }
       if (this.map.getLayer("red-book-1915-circle")) {
         this.map.setFilter("red-book-1915-circle", rbFilter);
+      }
+      if (this.map.getLayer("hahc-coa-glow")) {
+        this.map.setFilter("hahc-coa-glow", hahcFilter);
+      }
+      if (this.map.getLayer("hahc-coa-circle")) {
+        this.map.setFilter("hahc-coa-circle", hahcFilter);
       }
       if (this.map.getLayer("nrhp-properties-glow")) {
         this.map.setFilter("nrhp-properties-glow", [
@@ -5828,6 +6232,7 @@ export class AtlasMapController {
         cultural_districts: Boolean(state.layers?.culturalDistricts),
         holc_1937_zones: showHolc,
         red_book_1915: Boolean(state.layers?.redBook1915),
+        hahc_coa_filings: Boolean(state.layers?.hahcTracker),
         neighborhoods: Boolean(state.layers?.neighborhoods),
         platted_subdivisions: Boolean(state.layers?.plattedSubdivisions),
         land_use_protections: Boolean(state.layers?.landUseProtections),
@@ -6475,6 +6880,159 @@ export class AtlasMapController {
     }
   }
 
+  clearPortfolioWorks() {
+    this.portfolioWorks = [];
+    this.activePortfolioWorkIndex = -1;
+    if (Array.isArray(this.portfolioMarkers)) {
+      for (const m of this.portfolioMarkers) {
+        try {
+          m.remove();
+        } catch (_e) {}
+      }
+    }
+    this.portfolioMarkers = [];
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+      return;
+    }
+    if (this.map) {
+      const pSrc = this.map.getSource("portfolio-works-src");
+      if (pSrc) {
+        pSrc.setData({ type: "FeatureCollection", features: [] });
+      }
+    }
+  }
+
+  setPortfolioWorks(works = [], activeIndex = -1, { fit = false } = {}) {
+    if (Array.isArray(this.portfolioMarkers)) {
+      for (const m of this.portfolioMarkers) {
+        try {
+          m.remove();
+        } catch (_e) {}
+      }
+    }
+    this.portfolioMarkers = [];
+    const validWorks = Array.isArray(works)
+      ? works.filter((w) => Number.isFinite(Number(w?.lng)) && Number.isFinite(Number(w?.lat)))
+      : [];
+    this.portfolioWorks = validWorks;
+    this.activePortfolioWorkIndex = activeIndex;
+
+    if (this.useCanvasFallback) {
+      if (fit && validWorks.length > 0 && this.canvasState) {
+        let minLng = Infinity;
+        let maxLng = -Infinity;
+        let minLat = Infinity;
+        let maxLat = -Infinity;
+        for (const w of validWorks) {
+          minLng = Math.min(minLng, Number(w.lng));
+          maxLng = Math.max(maxLng, Number(w.lng));
+          minLat = Math.min(minLat, Number(w.lat));
+          maxLat = Math.max(maxLat, Number(w.lat));
+        }
+        this.canvasState.lng = (minLng + maxLng) / 2;
+        this.canvasState.lat = (minLat + maxLat) / 2;
+        const span = Math.max(maxLng - minLng, maxLat - minLat);
+        this.canvasState.zoom = span < 0.015 ? 15.2 : span < 0.06 ? 13.4 : span < 0.16 ? 11.9 : 10.8;
+      }
+      this._renderCanvas2D();
+      return;
+    }
+
+    if (!this.map) return;
+    const pSrc = this.map.getSource("portfolio-works-src");
+    if (pSrc) {
+      pSrc.setData({
+        type: "FeatureCollection",
+        features: validWorks.map((w, idx) => ({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [Number(w.lng), Number(w.lat)],
+          },
+          properties: {
+            id: String(w.id || idx),
+            name: w.title || w.address || "Portfolio Work",
+            address: w.address || "",
+            architect: w.architect || "",
+            style: w.style || "",
+            year_built: Number(w.yearBuilt) || 0,
+            year_demolished: Number(w.yearDemolished) || 0,
+            is_lost: Boolean(w.isLost),
+            is_active: idx === activeIndex,
+            portfolio_index: idx,
+          },
+        })),
+      });
+    }
+
+    if (validWorks.length > 0 && validWorks.length <= 60 && window.maplibregl && window.maplibregl.Marker) {
+      for (let i = 0; i < validWorks.length; i++) {
+        const w = validWorks[i];
+        const isActive = i === activeIndex;
+        const pinBtn = document.createElement("button");
+        pinBtn.type = "button";
+        pinBtn.className = `portfolio-map-pin mono${w.isLost ? " is-lost" : ""}${
+          isActive ? " active" : ""
+        }`;
+        const yrText = w.isLost
+          ? `${w.yearBuilt || "?"}-${w.yearDemolished || "?"}`
+          : w.yearBuilt || "Undated";
+        pinBtn.title = `${i + 1}. ${w.title} (${yrText})${w.isLost ? " [Lost Houston]" : ""}`;
+        pinBtn.setAttribute("aria-label", pinBtn.title);
+        pinBtn.innerHTML = `<span class="portfolio-map-pin-num">${w.isLost ? `†${i + 1}` : i + 1}</span>`;
+        pinBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof this.onSelectPortfolioWork === "function") {
+            this.onSelectPortfolioWork(i);
+          }
+        });
+        const marker = new window.maplibregl.Marker({
+          element: pinBtn,
+          anchor: "center",
+        })
+          .setLngLat([Number(w.lng), Number(w.lat)])
+          .addTo(this.map);
+        this.portfolioMarkers.push(marker);
+      }
+    }
+
+    if (fit && validWorks.length > 0) {
+      if (validWorks.length === 1) {
+        this.flyToLocation({
+          lng: Number(validWorks[0].lng),
+          lat: Number(validWorks[0].lat),
+          zoom: 16.5,
+        });
+      } else {
+        let minLng = Infinity;
+        let maxLng = -Infinity;
+        let minLat = Infinity;
+        let maxLat = -Infinity;
+        for (const w of validWorks) {
+          minLng = Math.min(minLng, Number(w.lng));
+          maxLng = Math.max(maxLng, Number(w.lng));
+          minLat = Math.min(minLat, Number(w.lat));
+          maxLat = Math.max(maxLat, Number(w.lat));
+        }
+        try {
+          this.map.fitBounds(
+            [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ],
+            {
+              padding: { top: 84, right: 380, bottom: 260, left: 84 },
+              maxZoom: 15.8,
+              duration: 1050,
+            }
+          );
+        } catch (_e) {}
+      }
+    }
+  }
+
   flyToLocation(arg1, arg2, arg3 = 16.5) {
     let lng;
     let lat;
@@ -7118,6 +7676,12 @@ export class AtlasMapController {
       red_book: "red_book_1915",
       red_book_1915: "red_book_1915",
       "red-book-1915-circle": "red_book_1915",
+      hahcTracker: "hahc_coa_filings",
+      hahc_coa: "hahc_coa_filings",
+      hahc: "hahc_coa_filings",
+      coa: "hahc_coa_filings",
+      hahc_coa_filings: "hahc_coa_filings",
+      "hahc-coa-circle": "hahc_coa_filings",
       annexations: "annexations",
       "annexations-fill": "annexations",
       historicalWaterways: "historical_waterways",
@@ -7282,8 +7846,10 @@ export class AtlasMapController {
         "annexations-fill",
       ]);
       const nonBoundaryLayers = [
+        "portfolio-works-circle",
         "permit-watch-circle",
         "plat-watch-circle",
+        "hahc-coa-circle",
         "red-book-1915-circle",
         "good-brick-circle",
         "relocated-structures-circle",
@@ -7307,6 +7873,95 @@ export class AtlasMapController {
         const lid = f.layer?.id || "";
         if (BOUNDARY_FILL_LAYERS.has(lid)) continue;
         const p = applyOverrideToProperties(f.properties || {}, this.curatedOverrides);
+
+        if (lid === "portfolio-works-circle") {
+          const pIdx = Number(p.portfolio_index);
+          const pwKey = `pw:${p.id || pIdx}`;
+          if (!seenKeys.has(pwKey)) {
+            seenKeys.add(pwKey);
+            const pwBadge = p.is_lost ? "† Portfolio (Lost)" : "Portfolio Work";
+            const pwColor = p.is_lost ? "#EC4899" : "#F59E0B";
+            stack.push({
+              key: pwKey,
+              kind: "marker",
+              layerId: lid,
+              overlayKey: "portfolio_work",
+              layerKey: "portfolio_work",
+              typeBadge: pwBadge,
+              badge: pwBadge,
+              swatchColor: pwColor,
+              color: pwColor,
+              title: p.name || p.address || "Portfolio Work",
+              subtitle: [
+                p.year_built ? `Built ${p.year_built}` : "",
+                p.is_lost && p.year_demolished ? `Demolished ${p.year_demolished}` : "",
+                p.address || "",
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              props: {
+                ...p,
+                overlay_layer: "portfolio_work",
+                is_boundary_feature: true,
+              },
+              geometry: f.geometry || null,
+            });
+          }
+          continue;
+        }
+
+        if (lid === "hahc-coa-circle") {
+          const fullFeat = this.getHahcFeatureById(p.id || p.hcad_num);
+          const fullProps = fullFeat?.properties ? { ...fullFeat.properties } : { ...p };
+          const hKey = `hahc:${fullProps.id || fullProps.hcad_num || stack.length}`;
+          if (!seenKeys.has(hKey)) {
+            seenKeys.add(hKey);
+            const hBadge = fullProps.has_active_agenda
+              ? "HAHC Active Agenda"
+              : fullProps.has_demolition_relocation
+              ? "HAHC Demo/Reloc"
+              : fullProps.has_designation
+              ? "HAHC Landmark Filing"
+              : fullProps.has_denied_or_cor
+              ? "HAHC Denied / COR"
+              : "HAHC COA Precedent";
+            const hColor = fullProps.has_active_agenda
+              ? "#F43F5E"
+              : fullProps.has_demolition_relocation
+              ? "#EF4444"
+              : fullProps.has_designation
+              ? "#A855F7"
+              : fullProps.has_denied_or_cor
+              ? "#F59E0B"
+              : "#14B8A6";
+            stack.push({
+              key: hKey,
+              kind: "marker",
+              layerId: lid,
+              overlayKey: "hahc_coa_filings",
+              layerKey: "hahc_coa_filings",
+              typeBadge: hBadge,
+              badge: hBadge,
+              swatchColor: hColor,
+              color: hColor,
+              title: fullProps.address || fullProps.landmark_name || "HAHC COA Filing",
+              subtitle: [
+                fullProps.historic_district ? `${fullProps.historic_district} HD` : "",
+                fullProps.latest_app_type || "",
+                fullProps.latest_meeting_date || "",
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              props: {
+                ...fullProps,
+                overlay_layer: "hahc_coa_filings",
+                is_boundary_feature: true,
+              },
+              geometry: fullFeat?.geometry || f.geometry || null,
+            });
+          }
+          continue;
+        }
 
         if (lid === "red-book-1915-circle") {
           const fullFeat = this.getRedBookFeatureById(p.id);
@@ -7369,8 +8024,10 @@ export class AtlasMapController {
           (p.hcad_num || p.building_id)
         ) {
           const isBuildingPolyLayer = (bf) =>
+            bf.layer?.id !== "portfolio-works-circle" &&
             bf.layer?.id !== "permit-watch-circle" &&
             bf.layer?.id !== "plat-watch-circle" &&
+            bf.layer?.id !== "hahc-coa-circle" &&
             bf.layer?.id !== "red-book-1915-circle" &&
             bf.layer?.id !== "landmarks-circle" &&
             bf.layer?.id !== "nrhp-properties-circle" &&
@@ -7661,6 +8318,56 @@ export class AtlasMapController {
         if (!b || b.props?.isTourStop) continue;
         if (point.x >= b.minX && point.x <= b.maxX && point.y >= b.minY && point.y <= b.maxY) {
           const p = applyOverrideToProperties(b.props || {}, this.curatedOverrides);
+          if (p.overlay_layer === "portfolio_work") {
+            const pwKey = `pw:${p.id || p.portfolio_index}`;
+            if (!seenKeys.has(pwKey)) {
+              seenKeys.add(pwKey);
+              const pwBadge = p.is_lost ? "† Portfolio (Lost)" : "Portfolio Work";
+              const pwColor = p.is_lost ? "#EC4899" : "#F59E0B";
+              stack.push({
+                key: pwKey,
+                kind: "marker",
+                layerId: "portfolio-works-circle",
+                overlayKey: "portfolio_work",
+                layerKey: "portfolio_work",
+                typeBadge: pwBadge,
+                badge: pwBadge,
+                swatchColor: pwColor,
+                color: pwColor,
+                title: p.name || p.address || "Portfolio Work",
+                subtitle: p.address || "",
+                props: { ...p, overlay_layer: "portfolio_work", is_boundary_feature: true },
+                geometry: b.geom || null,
+              });
+            }
+            continue;
+          }
+          if (p.overlay_layer === "hahc_coa_filings") {
+            const hKey = `hahc:${p.id || p.hcad_num || stack.length}`;
+            if (!seenKeys.has(hKey)) {
+              seenKeys.add(hKey);
+              const hBadge = p.has_active_agenda ? "HAHC Active Agenda" : "HAHC COA Precedent";
+              const hColor = p.has_active_agenda ? "#F43F5E" : "#14B8A6";
+              stack.push({
+                key: hKey,
+                kind: "marker",
+                layerId: "hahc-coa-circle",
+                overlayKey: "hahc_coa_filings",
+                layerKey: "hahc_coa_filings",
+                typeBadge: hBadge,
+                badge: hBadge,
+                swatchColor: hColor,
+                color: hColor,
+                title: p.address || p.landmark_name || "HAHC COA Filing",
+                subtitle: [p.historic_district ? `${p.historic_district} HD` : "", p.latest_app_type || ""]
+                  .filter(Boolean)
+                  .join(" · "),
+                props: { ...p, overlay_layer: "hahc_coa_filings", is_boundary_feature: true },
+                geometry: b.geom || null,
+              });
+            }
+            continue;
+          }
           if (p.overlay_layer === "red_book_1915") {
             const rbKey = `rb1915:${p.id || p.name || stack.length}`;
             if (!seenKeys.has(rbKey)) {
@@ -8134,6 +8841,52 @@ export class AtlasMapController {
       const fullProps = {
         ...(fullFeat?.properties || item.props || {}),
         overlay_layer: "red_book_1915",
+        is_boundary_feature: true,
+      };
+      if (geom) {
+        const feat = {
+          type: "Feature",
+          geometry: geom,
+          properties: fullProps,
+        };
+        this.selectedBoundaryFeature = feat;
+        if (this.useCanvasFallback) {
+          this._renderCanvas2D();
+        } else if (this.map) {
+          const selBndSrc = this.map.getSource("selected-boundary-src");
+          if (selBndSrc) {
+            selBndSrc.setData({ type: "FeatureCollection", features: [feat] });
+          }
+        }
+        const coords = Array.isArray(geom.coordinates) ? geom.coordinates : null;
+        if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+          const curZoom = this.useCanvasFallback
+            ? Number(this.canvasState?.zoom || 13)
+            : Number(this.map?.getZoom?.() || 13);
+          fullProps.lng = coords[0];
+          fullProps.lat = coords[1];
+          this.flyToLocation({
+            lng: coords[0],
+            lat: coords[1],
+            zoom: Math.max(curZoom, 17.4),
+          });
+        }
+      }
+      if (this.onSelectFeature) {
+        this.onSelectFeature(fullProps);
+      }
+    } else if (item.overlayKey === "portfolio_work") {
+      const pIdx = Number(item.props?.portfolio_index);
+      if (Number.isFinite(pIdx) && typeof this.onSelectPortfolioWork === "function") {
+        this.onSelectPortfolioWork(pIdx);
+      }
+    } else if (item.overlayKey === "hahc_coa_filings") {
+      this.clearSelection({ keepOverlapStack: true, keepBoundary: true });
+      const fullFeat = this.getHahcFeatureById(item.props?.id || item.props?.hcad_num);
+      const geom = fullFeat?.geometry || item.geometry || null;
+      const fullProps = {
+        ...(fullFeat?.properties || item.props || {}),
+        overlay_layer: "hahc_coa_filings",
         is_boundary_feature: true,
       };
       if (geom) {
@@ -8644,6 +9397,52 @@ export class AtlasMapController {
     const fullProps = {
       ...(fullFeat.properties || {}),
       overlay_layer: "red_book_1915",
+      is_boundary_feature: true,
+    };
+    if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {
+      fullProps.lng = coords[0];
+      fullProps.lat = coords[1];
+    }
+    const feat = {
+      type: "Feature",
+      geometry: fullFeat.geometry,
+      properties: fullProps,
+    };
+    this.selectedBoundaryFeature = feat;
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+    } else if (this.map) {
+      const selBndSrc = this.map.getSource("selected-boundary-src");
+      if (selBndSrc) {
+        selBndSrc.setData({ type: "FeatureCollection", features: [feat] });
+      }
+    }
+    if (flyTo && Number.isFinite(fullProps.lng) && Number.isFinite(fullProps.lat)) {
+      const curZoom = this.useCanvasFallback
+        ? Number(this.canvasState?.zoom || 13)
+        : Number(this.map?.getZoom?.() || 13);
+      this.flyToLocation({
+        lng: fullProps.lng,
+        lat: fullProps.lat,
+        zoom: Math.max(curZoom, zoom),
+      });
+    }
+    if (this.onSelectFeature) {
+      this.onSelectFeature(fullProps);
+    }
+    return true;
+  }
+
+  inspectHahcById(hahcId, { flyTo = true, zoom = 17.5 } = {}) {
+    const fullFeat = this.getHahcFeatureById(hahcId);
+    if (!fullFeat) return false;
+    this.clearSelection({ keepOverlapStack: false, keepBoundary: true });
+    const coords = Array.isArray(fullFeat.geometry?.coordinates)
+      ? fullFeat.geometry.coordinates
+      : null;
+    const fullProps = {
+      ...(fullFeat.properties || {}),
+      overlay_layer: "hahc_coa_filings",
       is_boundary_feature: true,
     };
     if (coords && Number.isFinite(coords[0]) && Number.isFinite(coords[1])) {

@@ -30,10 +30,12 @@ export const DEFAULT_FILTER_STATE = {
   landmarkFilter: "all", // 'all' | 'protected' (286 PLM + LM-in-HD) | 'waiver_lm' (223 90-day waiver LMs)
   redBookCategory: "all", // 'all' | 'church' | 'school' | 'business' | 'residence'
   holcGradeFilter: "all", // 'all' | 'A' | 'B' | 'C' | 'D'
+  hahcFilter: "all", // 'all' | 'active_agenda' | 'demolition_relocation' | 'addition_new' | 'designation' | 'denied_or_cor'
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
   layers: {
     permitWatch: true,
     platWatch: false,
+    hahcTracker: false,
     potentialHistoricDistricts: false,
     goodBrickAwards: true,
     landmarks: true,
@@ -321,6 +323,32 @@ export function buildHolcZonesFilterExpression(state) {
   return null;
 }
 
+/**
+ * Compile a MapLibre filter expression for the HAHC COA & Designation Tracker layer.
+ */
+export function buildHahcFilterExpression(state, isoIds = null) {
+  const f = String(state?.hahcFilter || "all").trim().toLowerCase();
+  const clauses = [];
+  if (f === "active_agenda") {
+    clauses.push(["==", ["boolean", ["get", "has_active_agenda"], false], true]);
+  } else if (f === "demolition_relocation") {
+    clauses.push(["==", ["boolean", ["get", "has_demolition_relocation"], false], true]);
+  } else if (f === "designation") {
+    clauses.push(["==", ["boolean", ["get", "has_designation"], false], true]);
+  } else if (f === "denied_or_cor") {
+    clauses.push(["==", ["boolean", ["get", "has_denied_or_cor"], false], true]);
+  } else if (f === "addition_new") {
+    clauses.push(["!", ["boolean", ["get", "has_demolition_relocation"], false]]);
+    clauses.push(["!", ["boolean", ["get", "has_designation"], false]]);
+  }
+  if (Array.isArray(isoIds)) {
+    clauses.push(["in", ["coalesce", ["get", "id"], ""], ["literal", isoIds]]);
+  }
+  if (!clauses.length) return null;
+  if (clauses.length === 1) return clauses[0];
+  return ["all", ...clauses];
+}
+
 function layersMatchDefault(layers) {
   if (!layers) return true;
   const def = DEFAULT_FILTER_STATE.layers;
@@ -330,6 +358,7 @@ function layersMatchDefault(layers) {
 const LAYER_KEY_TO_SHORT = {
   permitWatch: "permit_watch",
   platWatch: "plat_watch",
+  hahcTracker: "hahc_coa",
   potentialHistoricDistricts: "potential_districts",
   goodBrickAwards: "good_brick",
   landmarks: "landmarks",
@@ -363,6 +392,12 @@ const SHORT_TO_LAYER_KEY = {
   platwatch: "platWatch",
   plat_watch: "platWatch",
   planning_commission: "platWatch",
+  hahctracker: "hahcTracker",
+  hahc_tracker: "hahcTracker",
+  hahc_coa: "hahcTracker",
+  hahc: "hahcTracker",
+  coa: "hahcTracker",
+  hahc_coa_filings: "hahcTracker",
   potentialhistoricdistricts: "potentialHistoricDistricts",
   potential_historic_districts: "potentialHistoricDistricts",
   potential_districts: "potentialHistoricDistricts",
@@ -653,6 +688,8 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     selectedId = "",
     selectedFeatureId = "",
     selectedBoundary = null,
+    activeChapterId = "",
+    activePortfolio = null,
     collapseSidebar = false,
     humanReadable = false,
   } = options;
@@ -729,6 +766,21 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   ) {
     params.set("holcGrade", String(state.holcGradeFilter));
   }
+  if (
+    state.layers?.hahcTracker &&
+    state.hahcFilter &&
+    state.hahcFilter !== "all"
+  ) {
+    params.set("hahcFilter", String(state.hahcFilter));
+  }
+
+  if (activeChapterId) {
+    params.set("chapter", String(activeChapterId).trim());
+  }
+  if (activePortfolio && activePortfolio.query) {
+    const pKind = activePortfolio.kind === "style" ? "style" : "architect";
+    params.set("portfolio", `${pKind}:${String(activePortfolio.query).trim()}`);
+  }
 
   if (state.isolatedBoundary && (state.isolatedBoundary.id || state.isolatedBoundary.name)) {
     const isoLayer = state.isolatedBoundary.layerKey || "neighborhoods";
@@ -780,6 +832,9 @@ export function buildShareableUrl(state, viewport = null, options = {}) {
     includeViewport: options.includeViewport !== false,
     selectedHcad: options.selectedHcad || "",
     selectedFeatureId: options.selectedFeatureId || options.selectedId || "",
+    selectedBoundary: options.selectedBoundary || null,
+    activeChapterId: options.activeChapterId || "",
+    activePortfolio: options.activePortfolio || null,
     collapseSidebar: Boolean(options.collapseSidebar),
     humanReadable: true,
   });
@@ -983,6 +1038,23 @@ export function parseHashToState(hashString = "", searchString = "") {
   } else if (rawHolcGrade === "ALL") {
     patch.holcGradeFilter = "all";
   }
+  const rawHahcFilter = (
+    mergedParams.get("hahcFilter") ||
+    mergedParams.get("hahc_filter") ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  if (
+    rawHahcFilter === "active_agenda" ||
+    rawHahcFilter === "demolition_relocation" ||
+    rawHahcFilter === "addition_new" ||
+    rawHahcFilter === "designation" ||
+    rawHahcFilter === "denied_or_cor" ||
+    rawHahcFilter === "all"
+  ) {
+    patch.hahcFilter = rawHahcFilter;
+  }
 
   // Isolated Boundary (`isolate` & `isoMode`)
   const rawIsolate = (mergedParams.get("isolate") || "").trim();
@@ -1115,7 +1187,28 @@ export function parseHashToState(hashString = "", searchString = "") {
     collapseSidebar = false;
   }
 
-  return { patch, viewport, selection, collapseSidebar };
+  const activeChapterId = (mergedParams.get("chapter") || "").trim();
+  const rawPortfolio = (mergedParams.get("portfolio") || "").trim();
+  let activePortfolio = null;
+  if (rawPortfolio) {
+    const cIdx = rawPortfolio.indexOf(":");
+    if (cIdx > 0) {
+      const pKind = rawPortfolio.slice(0, cIdx).trim().toLowerCase() === "style" ? "style" : "architect";
+      const pQuery = rawPortfolio.slice(cIdx + 1).trim();
+      if (pQuery) activePortfolio = { kind: pKind, query: pQuery };
+    } else {
+      activePortfolio = { kind: "architect", query: rawPortfolio };
+    }
+  }
+
+  return {
+    patch,
+    viewport,
+    selection,
+    collapseSidebar,
+    activeChapterId,
+    activePortfolio,
+  };
 }
 
 /**
@@ -1417,6 +1510,7 @@ export function createFilterStore(initialOverrides = {}) {
       showUnknownYears: true,
       redBookCategory: "all",
       holcGradeFilter: "all",
+      hahcFilter: "all",
       isPlaying: false,
     });
   }

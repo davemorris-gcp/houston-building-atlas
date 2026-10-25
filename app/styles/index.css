@@ -8882,3 +8882,739 @@ body {
   color: #ffffff;
 }
 
+/* ==========================================================================
+   Priority #4A & #4B: Guided Visual Chapters ("How Houston Was Built")
+   & Architect / Builder / Architectural Style Map Portfolios
+   ========================================================================== */
+.tour-feature-launchers {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tour-bar-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+.tour-pill.feature-story-pill {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(217, 119, 6, 0.16));
+  border-color: rgba(251, 191, 36, 0.58);
+  color: #fef3c7;
+  font-weight: 700;
+}
+
+.tour-pill.feature-story-pill:hover,
+.tour-pill.feature-story-pill.active {
+  background: rgba(245, 158, 11, 0.38);
+  border-color: #fde047;
+  color: #ffffff;
+}
+
+.tour-pill.feature-portfolio-pill {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(56, 189, 248, 0.15));
+  border-color: rgba(45, 212, 191, 0.52);
+  color: #ccfbf1;
+  font-weight: 700;
+}
+
+.tour-pill.feature-portfolio-pill:hover,
+.tour-pill.feature-portfolio-pill.active {
+  background: rgba(20, 184, 166, 0.36);
+  border-color: #5eead4;
+  color: #ffffff;
+}
+
+.city-chapters-card,
+.portfolio-monograph-card {
+  position: absolute;
+  top: 112px;
+  left: 396px;
+  width: min(455px, calc(100vw - 786px));
+  max-height: calc(100dvh - 134px);
+  z-index: 28;
+  background: rgba(15, 20, 29, 0.96);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(251, 191, 36, 0.48);
+  border-radius: 11px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.62);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.portfolio-monograph-card {
+  border-color: rgba(45, 212, 191, 0.48);
+}
+
+.atlas-shell.sidebar-collapsed .city-chapters-card,
+.atlas-shell.sidebar-collapsed .portfolio-monograph-card {
+  left: 16px;
+  width: min(490px, calc(100vw - 396px));
+}
+
+.city-chapters-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.city-chapters-step-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.city-chapter-tab-btn {
+  width: 26px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.14s ease;
+}
+
+.city-chapter-tab-btn:hover {
+  border-color: rgba(251, 191, 36, 0.72);
+  color: #ffffff;
+}
+
+.city-chapter-tab-btn.active {
+  background: #f59e0b;
+  border-color: #fef3c7;
+  color: #0f172a;
+}
+
+.city-chapters-nav-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.city-chapters-body {
+  padding: 11px 13px 13px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.city-chapters-kicker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.city-chapters-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fcd34d;
+}
+
+.city-chapters-era-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  color: #fef3c7;
+}
+
+.city-chapters-title {
+  margin: 0;
+  font-family: var(--font-serif, "Fraunces", serif);
+  font-size: 16.5px;
+  line-height: 1.25;
+  color: #ffffff;
+}
+
+.city-chapters-narrative {
+  margin: 0;
+  font-size: 12.2px;
+  line-height: 1.48;
+  color: #e2e8f0;
+}
+
+.city-chapters-takeaway {
+  font-size: 11.4px;
+  line-height: 1.42;
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: rgba(30, 41, 59, 0.78);
+  border-left: 3px solid #f59e0b;
+  color: #fef3c7;
+}
+
+.city-chapters-sites-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+}
+
+.city-chapters-sites-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.city-chapters-sites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.city-chapter-site-btn {
+  appearance: none;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: rgba(245, 158, 11, 0.14);
+  color: #fef3c7;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.city-chapter-site-btn:hover {
+  background: rgba(245, 158, 11, 0.32);
+  border-color: #fde047;
+  color: #ffffff;
+}
+
+/* Architect, Builder & Style Portfolio Card */
+.portfolio-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 11px;
+  background: rgba(20, 184, 166, 0.11);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.portfolio-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.portfolio-preset-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5eead4;
+  flex-shrink: 0;
+}
+
+.portfolio-preset-select {
+  flex: 1;
+  min-width: 0;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(45, 212, 191, 0.42);
+  border-radius: 6px;
+  color: #f8fafc;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 7px;
+}
+
+.portfolio-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.portfolio-bio-block {
+  padding: 9px 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.portfolio-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.portfolio-title {
+  margin: 0;
+  font-family: var(--font-serif, "Fraunces", serif);
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.portfolio-lifespan-badge {
+  font-size: 10.5px;
+  color: #99f6e4;
+  background: rgba(20, 184, 166, 0.16);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  padding: 1.5px 6px;
+  border-radius: 999px;
+}
+
+.portfolio-role-line {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fcd34d;
+}
+
+.portfolio-bio-text {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.44;
+  color: #cbd5e1;
+}
+
+.portfolio-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.portfolio-stat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.portfolio-stat-cell.extant .portfolio-stat-val {
+  color: #fde047;
+}
+
+.portfolio-stat-cell.lost .portfolio-stat-val {
+  color: #f472b6;
+}
+
+.portfolio-stat-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.portfolio-stat-lbl {
+  font-size: 9.8px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.portfolio-subfilter-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.portfolio-subfilter-pill {
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(30, 41, 59, 0.65);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3.5px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.portfolio-subfilter-pill.active {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #fbbf24;
+  color: #ffffff;
+}
+
+.portfolio-subfilter-pill.lost.active {
+  background: rgba(236, 72, 153, 0.25);
+  border-color: #f472b6;
+  color: #ffffff;
+}
+
+.portfolio-works-list {
+  overflow-y: auto;
+  max-height: 230px;
+  padding: 6px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.portfolio-work-row {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(30, 41, 59, 0.48);
+  border-radius: 7px;
+  padding: 6px 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  transition: all 0.12s ease;
+  color: #f1f5f9;
+}
+
+.portfolio-work-row:hover {
+  background: rgba(51, 65, 85, 0.72);
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+.portfolio-work-row.active {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #fbbf24;
+}
+
+.portfolio-work-row.is-lost {
+  border-left: 3px solid #ec4899;
+}
+
+.portfolio-work-num {
+  min-width: 24px;
+  height: 20px;
+  border-radius: 5px;
+  background: rgba(245, 158, 11, 0.22);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  color: #fef3c7;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.portfolio-work-row.is-lost .portfolio-work-num {
+  background: rgba(236, 72, 153, 0.22);
+  border-color: rgba(244, 114, 182, 0.52);
+  color: #fbcfe8;
+}
+
+.portfolio-work-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+}
+
+.portfolio-work-title-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.portfolio-work-title {
+  font-size: 11.8px;
+  font-weight: 700;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio-work-year {
+  font-size: 10.5px;
+  color: #fde68a;
+  flex-shrink: 0;
+}
+
+.portfolio-work-row.is-lost .portfolio-work-year {
+  color: #f9a8d4;
+}
+
+.portfolio-work-sub {
+  font-size: 10.8px;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio-map-pin {
+  appearance: none;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #f59e0b;
+  border: 2px solid #fef3c7;
+  color: #0f172a;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+  transition: transform 0.12s ease;
+}
+
+.portfolio-map-pin:hover,
+.portfolio-map-pin.active {
+  transform: scale(1.18);
+  background: #fde047;
+  border-color: #ffffff;
+  z-index: 8;
+}
+
+.portfolio-map-pin.is-lost {
+  background: #db2777;
+  border-color: #fde047;
+  color: #ffffff;
+}
+
+.portfolio-dropdown-cta {
+  width: 100%;
+  appearance: none;
+  border: 1px solid rgba(45, 212, 191, 0.5);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.24), rgba(245, 158, 11, 0.16));
+  color: #ccfbf1;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 7px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  margin-bottom: 6px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.portfolio-dropdown-cta:hover {
+  background: rgba(20, 184, 166, 0.36);
+  border-color: #5eead4;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Priority #5: HAHC COA & Designation Docket Modal & Inspector Precedent Cards
+   ========================================================================== */
+#hahc-filter-row .lm-filter-pills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+#hahc-filter-row .lm-filter-pill {
+  font-size: 9.8px;
+  padding: 4px 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hahc-active-cycle-banner {
+  padding: 10px 13px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.16), rgba(20, 184, 166, 0.13));
+  border: 1px solid rgba(244, 63, 94, 0.42);
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #f1f5f9;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.hahc-cycle-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hahc-modal-controls {
+  margin-bottom: 10px;
+}
+
+.hahc-modal-filters-top {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(240px, 1.3fr);
+  gap: 10px;
+}
+
+.hahc-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hahc-control-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.hahc-outcome-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6.5px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.hahc-outcome-badge.pending_agenda {
+  background: rgba(244, 63, 94, 0.24);
+  border: 1px solid rgba(251, 113, 133, 0.58);
+  color: #ffe4e6;
+}
+
+.hahc-outcome-badge.approved {
+  background: rgba(16, 185, 129, 0.22);
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  color: #d1fae5;
+}
+
+.hahc-outcome-badge.approved_with_conditions {
+  background: rgba(20, 184, 166, 0.22);
+  border: 1px solid rgba(45, 212, 191, 0.5);
+  color: #ccfbf1;
+}
+
+.hahc-outcome-badge.denied_or_cor {
+  background: rgba(245, 158, 11, 0.24);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  color: #fef3c7;
+}
+
+.hahc-outcome-badge.deferred {
+  background: rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.42);
+  color: #e2e8f0;
+}
+
+.hahc-docket-card,
+.hahc-district-precedents-card {
+  padding: 10px 11px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(45, 212, 191, 0.36);
+  border-left: 3.5px solid #14b8a6;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.hahc-docket-card.has-active-agenda {
+  border-color: rgba(251, 113, 133, 0.52);
+  border-left-color: #f43f5e;
+  background: linear-gradient(180deg, rgba(244, 63, 94, 0.14), rgba(15, 23, 42, 0.78));
+}
+
+.hahc-precedent-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.hahc-prec-stat {
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hahc-prec-stat-val {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.hahc-prec-stat-lbl {
+  font-size: 9.8px;
+  color: #94a3b8;
+}
+
+.hahc-neighbor-example-btn {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.55);
+  color: #f1f5f9;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.12s ease;
+}
+
+.hahc-neighbor-example-btn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(45, 212, 191, 0.55);
+}
+
+@media (max-width: 900px) {
+  .city-chapters-card,
+  .portfolio-monograph-card,
+  .atlas-shell.sidebar-collapsed .city-chapters-card,
+  .atlas-shell.sidebar-collapsed .portfolio-monograph-card {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 46dvh;
+  }
+
+  .hahc-modal-filters-top {
+    grid-template-columns: 1fr;
+  }
+}
+
+
