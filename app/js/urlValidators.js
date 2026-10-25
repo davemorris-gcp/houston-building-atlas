@@ -99,6 +99,7 @@ export const BROWSER_CHALLENGE_PROTECTED_HOSTS = new Set([
   "www.tdlr.texas.gov",
   "tdlr.texas.gov",
   "web.archive.org",
+  "texashistory.unt.edu",
 ]);
 
 /**

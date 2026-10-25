@@ -207,6 +207,8 @@ async function fetchOnce(url, method, timeoutMs = 16000) {
   }
 }
 
+const hostTcpDropCount = new Map();
+
 async function probeUrl(entry) {
   const { url } = entry;
   const patternCheck = validateExternalAtlasUrl(url);
@@ -222,9 +224,31 @@ async function probeUrl(entry) {
   }
 
   const host = patternCheck.host;
-  const isWafHost = BROWSER_CHALLENGE_PROTECTED_HOSTS.has(host);
+  const isWafHost = BROWSER_CHALLENGE_PROTECTED_HOSTS.has(host) || host.endsWith(".texas.gov");
 
-  let res = await fetchOnce(url, "HEAD", 14000);
+  if (isWafHost && (hostTcpDropCount.get(host) || 0) >= 2) {
+    return {
+      ...entry,
+      host,
+      category: "WAF_PROTECTED",
+      status: 0,
+      finalUrl: url,
+      detail: "Browser JS/WAF or datacenter firewall challenge (TCP drop fast-path); URL syntax verified via urlValidators.js",
+    };
+  }
+
+  let res = await fetchOnce(url, "HEAD", isWafHost ? 8000 : 14000);
+  if (isWafHost && res.status === 0) {
+    hostTcpDropCount.set(host, (hostTcpDropCount.get(host) || 0) + 1);
+    return {
+      ...entry,
+      host,
+      category: "WAF_PROTECTED",
+      status: 0,
+      finalUrl: url,
+      detail: "Browser JS/WAF or datacenter firewall challenge (timeout); URL syntax verified via urlValidators.js",
+    };
+  }
   // Fall back to GET when HEAD is unsupported/blocked or when checking HTML soft-404s
   if (
     !res.ok ||
@@ -234,13 +258,16 @@ async function probeUrl(entry) {
     res.status === 501 ||
     res.contentType.includes("text/html")
   ) {
-    res = await fetchOnce(url, "GET", 18000);
+    res = await fetchOnce(url, "GET", isWafHost ? 10000 : 18000);
   }
 
-  // One retry on transient network timeout or 5xx
-  if (res.status === 0 || res.status >= 500) {
+  // One retry on transient network timeout or 5xx (skip redundant retry on known WAF TCP drops)
+  if ((res.status === 0 && !isWafHost) || res.status >= 500) {
     await sleep(1400);
-    res = await fetchOnce(url, "GET", 20000);
+    res = await fetchOnce(url, "GET", 16000);
+  }
+  if (isWafHost && res.status === 0) {
+    hostTcpDropCount.set(host, (hostTcpDropCount.get(host) || 0) + 1);
   }
 
   // Soft-404 checks on final URL and HTML <title>
