@@ -64,6 +64,18 @@ export const KNOWN_DEAD_URL_PATTERNS = [
     reason:
       "Retired Project Row Houses /cultural-district path returns HTTP 404; use https://projectrowhouses.org/.",
   },
+  {
+    id: "tsha_nonexistent_subdivision_or_spring_slug",
+    regex: /tshaonline\.org\/handbook\/entries\/(?:broadacres-historic-district|oak-forest-tx-harris-county|beauchamp-springs)(?:\/|$)/i,
+    reason:
+      "Non-existent TSHA Handbook slug (HTTP 404); use verified THC NRHP PDF, COH Super Neighborhood 13, or TSHA white-oak-bayou.",
+  },
+  {
+    id: "txrrhistory_tower_014_missing_page",
+    regex: /txrrhistory\.com\/towers\/014\/014\.htm/i,
+    reason:
+      "txrrhistory.com does not have a dedicated /towers/014/014.htm page (HTTP 404); use http://www.txrrhistory.com/towers/index.htm.",
+  },
 ];
 
 /**
@@ -84,6 +96,9 @@ export const BROWSER_CHALLENGE_PROTECTED_HOSTS = new Set([
   "www.theaterdistricthouston.org",
   "theaterdistricthouston.org",
   "vo.ras.dshs.state.tx.us",
+  "www.tdlr.texas.gov",
+  "tdlr.texas.gov",
+  "web.archive.org",
 ]);
 
 /**

@@ -636,7 +636,7 @@ CURATED_DEED_CATALOG = {
         "citations": [
             {"label": "Clerk File #RP-2022-305552 (PDF)", "url": "public/deeds/boulevard-oaks/Broadacres-2022-Amended-Restrictions.pdf"},
             {"label": "BHOA Summary Sheet (PDF)", "url": "public/deeds/boulevard-oaks/Broadacres-Original-Restrictions.pdf"},
-            {"label": "TSHA Broadacres", "url": "https://www.tshaonline.org/handbook/entries/broadacres-historic-district"},
+            {"label": "NRHP Nomination #80004130 (Broadacres HD)", "url": "https://atlas.thc.texas.gov/NR/pdfs/80004130/80004130.pdf"},
         ],
         "documents": [
             {
@@ -1206,7 +1206,7 @@ CURATED_DEED_CATALOG = {
         "citations": [
             {"label": "Sec. 1 #379388 (PDF)", "url": "public/deeds/oak-forest/Oak-Forest-Sec-01-Restrictions.pdf"},
             {"label": "OFHA Deed Archive", "url": "https://www.ofha.org/Deed-Restriction-Documents"},
-            {"label": "TSHA Oak Forest", "url": "https://www.tshaonline.org/handbook/entries/oak-forest-tx-harris-county"},
+            {"label": "COH Super Neighborhood 13 (Oak Forest)", "url": "https://www.houstontx.gov/superneighborhoods/13.html"},
         ],
         "documents": [
             {

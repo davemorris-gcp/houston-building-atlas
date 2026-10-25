@@ -343,8 +343,28 @@ async function runPoolByHost(entries, globalConcurrency = 10) {
   }
 
   const results = new Array(interleaved.length);
-  const hostLastTouch = new Map();
+  const hostQueues = new Map();
   let cursor = 0;
+
+  async function runSerializedForHost(host, fn) {
+    const minSpacingMs = host === "web.archive.org" ? 750 : 200;
+    const prevChain = hostQueues.get(host) || Promise.resolve(0);
+    let release;
+    const currentGate = new Promise((resolve) => {
+      release = resolve;
+    });
+    hostQueues.set(host, currentGate);
+    const lastFinishedAt = await prevChain;
+    const elapsed = Date.now() - lastFinishedAt;
+    if (elapsed < minSpacingMs) {
+      await sleep(minSpacingMs - elapsed);
+    }
+    try {
+      return await fn();
+    } finally {
+      release(Date.now());
+    }
+  }
 
   async function worker() {
     while (true) {
@@ -357,13 +377,7 @@ async function runPoolByHost(entries, globalConcurrency = 10) {
       } catch (_e) {
         // ignore
       }
-      const prev = hostLastTouch.get(host) || 0;
-      const elapsed = Date.now() - prev;
-      if (elapsed < 180) {
-        await sleep(180 - elapsed);
-      }
-      hostLastTouch.set(host, Date.now());
-      results[idx] = await probeUrl(item);
+      results[idx] = await runSerializedForHost(host, () => probeUrl(item));
     }
   }
 

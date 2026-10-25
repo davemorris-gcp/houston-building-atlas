@@ -164,8 +164,8 @@ test("Guided Chapters & Portfolio Engine builds deduplicated extant + Lost Houst
   }
 });
 
-test("urlValidators rejects all 9 known retired/broken municipal & archive URL patterns and accepts canonical replacements", () => {
-  assert.equal(KNOWN_DEAD_URL_PATTERNS.length, 9);
+test("urlValidators rejects all 11 known retired/broken municipal & archive URL patterns and accepts canonical replacements", () => {
+  assert.equal(KNOWN_DEAD_URL_PATTERNS.length, 11);
 
   const badUrls = [
     "https://maps.lib.utexas.edu/maps/sanborn/texas_cities_g-i.html",
@@ -176,6 +176,8 @@ test("urlValidators rejects all 9 known retired/broken municipal & archive URL p
     "http://digital.houstonlibrary.org/cdm/ref/collection/books/id/28",
     "https://atlas.thc.texas.gov/NR/pdfs/6001063/6001063.pdf",
     "https://projectrowhouses.org/cultural-district",
+    "https://www.tshaonline.org/handbook/entries/broadacres-historic-district",
+    "http://www.txrrhistory.com/towers/014/014.htm",
     "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=undefined",
     "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=12345",
     "https://atlas.thc.texas.gov/Details/84000388",
