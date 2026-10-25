@@ -291,9 +291,10 @@ async function probeUrl(entry) {
     };
   }
 
-  // Browser-challenge WAF protected portals (Cloudflare / Anubis JS PoW / Struts JSESSIONID) returning 403/500/503/429
+  // Browser-challenge WAF protected portals (Cloudflare / Anubis JS PoW / Struts JSESSIONID / Texas DIR datacenter firewall)
+  // Note: HTTP 404 is NEVER exempted here, so moved/deleted .texas.gov or archive paths are still caught when reachable.
   if (
-    isWafHost &&
+    (isWafHost || host.endsWith(".texas.gov")) &&
     (res.status === 403 || res.status === 500 || res.status === 503 || res.status === 429 || res.status === 0)
   ) {
     return {
@@ -302,7 +303,7 @@ async function probeUrl(entry) {
       category: "WAF_PROTECTED",
       status: res.status,
       finalUrl: res.finalUrl,
-      detail: `Browser JS/WAF challenge (HTTP ${res.status || "timeout"}); URL syntax verified via urlValidators.js`,
+      detail: `Browser JS/WAF or datacenter firewall challenge (HTTP ${res.status || "timeout"}); URL syntax verified via urlValidators.js`,
     };
   }
 
@@ -347,7 +348,7 @@ async function runPoolByHost(entries, globalConcurrency = 10) {
   let cursor = 0;
 
   async function runSerializedForHost(host, fn) {
-    const minSpacingMs = host === "web.archive.org" ? 750 : 200;
+    const minSpacingMs = host === "web.archive.org" ? 650 : 60;
     const prevChain = hostQueues.get(host) || Promise.resolve(0);
     let release;
     const currentGate = new Promise((resolve) => {
