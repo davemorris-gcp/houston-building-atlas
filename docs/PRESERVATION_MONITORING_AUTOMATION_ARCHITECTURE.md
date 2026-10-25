@@ -1,11 +1,13 @@
 # Preservation Houston Monitoring Automation Architecture & Policy Guide
 
-**Last Updated:** October 23, 2026  
+**Last Updated:** October 25, 2026  
 **Related Codebase Components:**
 - [`pipeline/atlas_pipeline/fetch_plat_and_watchlist.py`](../pipeline/atlas_pipeline/fetch_plat_and_watchlist.py) (Biweekly Planning Commission Agenda, Section K DPV Variances, Public Hearing Notices & Multi-Agency Watchlist Pipeline)
 - [`pipeline/atlas_pipeline/fetch_live_permits.py`](../pipeline/atlas_pipeline/fetch_live_permits.py) (Daily COH Sold Permits & TX DSHS Asbestos/Demolition Notification Harvester)
+- [`pipeline/atlas_pipeline/fetch_hahc_tracker.py`](../pipeline/atlas_pipeline/fetch_hahc_tracker.py) (Monthly HAHC COA & Landmark Designation Docket Harvester)
 - [`.github/workflows/update_live_permits.yml`](../.github/workflows/update_live_permits.yml) (Daily Scheduled GitHub Actions Runner)
 - [`app/plat-monitor.html`](../app/plat-monitor.html) (Plat & Property Monitor Web Application with Live Google Sheet Two-Way Cloud Sync)
+- [`docs/10-sources-integrations-and-curation-workflows.md`](10-sources-integrations-and-curation-workflows.md) & [**GitHub Issue #1 (Live External Archive Link Health Report)**](https://github.com/davemorris-gcp/houston-building-atlas/issues/1)
 
 ---
 
@@ -78,23 +80,23 @@ Out of the 15 monitoring points in the Endangered Property Watchlist, **8 points
 
 ---
 
-## 4. Policy-Compliant Assisted Workflow Solutions (Zero Scraping / Zero ToS Violations)
+## 4. Shipped Policy-Compliant Assisted Workflow Controls in `app/plat-monitor.html` (Zero Scraping / Zero ToS Violations)
 
-Because we must strictly respect government portal boundaries (no bypassing logins, CAPTCHAs, or ASP.NET session walls) and website Terms of Service (no scraping `texaspublicnotices.com`, `LoopNet`, `Crexi`, or Google Street View), the cleanest architecture is **Human-in-the-Loop Assisted Launchers**:
+Because we strictly respect government portal boundaries (no bypassing logins, CAPTCHAs, or ASP.NET session walls) and website Terms of Service (no scraping `texaspublicnotices.com`, `LoopNet`, `Crexi`, or Google Street View), `app/plat-monitor.html` implements five **Human-in-the-Loop Assisted Launchers**:
 
-1. **One-Click Copy & Launch Pills on Every Non-Automated Checklist Row (`#1`, `#3`, `#7`, `#8`, `#11`, `#12`):**
-   - Instead of making the reviewer re-type `2000 SMITH ST`, `530 PIERCE ST`, `2026 SMITH REALTY LLC`, or `SMITH ST C STORE LLC` into five different legacy government forms, each checklist card in the 15-Point Watchlist can provide **1-Click Copy & Open** pills (`Copy '2000 SMITH ST' & Open Portal`, `Copy '530 PIERCE ST'`, `Copy '2026 SMITH REALTY LLC'`, `Copy HCAD 0152300000001`).
+1. **One-Click Copy & Launch Pills on Every Non-Automated Checklist Row (`buildAssistedPortalPills` on `#1`, `#3`, `#7`, `#8`, `#11`, `#12`):**
+   - Instead of making the reviewer re-type `2000 SMITH ST`, `530 PIERCE ST`, `2026 SMITH REALTY LLC`, or `SMITH ST C STORE LLC` into five different legacy government forms, each checklist card in the 15-Point Watchlist renders **1-Click Copy & Open** pills (`Copy '2000 SMITH ST' & Open Portal`, `Copy '530 PIERCE ST'`, `Copy '2026 SMITH REALTY LLC'`, `Copy HCAD 0152300000001`).
    - Clicking a pill copies the exact search string to the system clipboard (`navigator.clipboard.writeText`) and opens the official government search page in a new browser tab so the reviewer only has to press `Ctrl+V` / `Cmd+V` and `Enter`.
-2. **One-Click Texas Public Information Act (GovQA) Open Records Request Generator (Check #8):**
-   - Because unissued architectural plans and rejected plan reviews require a formal Texas Public Information Act (TPIA) request on `houstontx.govqa.us`, a **Generate GovQA Open Records Request** button automatically composes a ready-to-paste TPIA request naming:
+2. **One-Click Texas Public Information Act (GovQA) Open Records Request Generator (`openGovQaRequestModal` on Check #8):**
+   - Because unissued architectural plans and rejected plan reviews require a formal Texas Public Information Act (TPIA) request on `houstontx.govqa.us`, clicking **Generate GovQA Open Records Request** opens `#govqaModal` with a ready-to-paste TPIA request naming:
      - Every perimeter street address on the block (`2000 Smith St`, `530 Pierce St`, `514 Pierce St`, `2019 Brazos St`),
      - The HCAD account number and legal description (`Block 442 SSBB`),
      - Every known owner/tenant LLC (`2026 Smith Realty LLC`, `Smith St C Store LLC`), and
      - Any known ILMS Project Numbers (`#26052089`).
 3. **Direct Deep-Linking for Known 8-Digit COH ILMS Project Numbers (Check #8):**
    - Once a reviewer discovers an 8-digit ILMS Plan Review project number (from a site placard, TABS registration, or GovQA response), storing that `ilmsProjectNo` on the watchlist property unlocks direct lookup on `pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp`.
-4. **One-Click `Mark Checked (No New Activity)` Timestamp Button:**
-   - Every checklist item (`#1` through `#15`) can have a 1-click **`Mark Checked`** button that stamps the current calendar date (`Checked YYYY-MM-DD by [Reviewer] - No new filings`) and syncs immediately to the shared Google Sheet (`Plat_&_Watchlist_Sync`), turning a 15-minute manual logging chore into a 30-second clipboard-assisted pass.
-5. **Pass 2 Missing-HCAD Assisted Resolver (Subdivision Polygon + Cross-Street Map):**
-   - When a Planning Commission plat row in the City's Excel spreadsheet has a blank Column Z (`HCAD Account No.`), the pipeline automatically highlights the `Previous/Original Subdivision` polygon on the Houston Building Atlas map, reports the historic addition's earliest and median build year, and opens the Plat PDF alongside the Atlas map so the reviewer can click the exact corner parcel in 10 seconds and lock in its HCAD ID for all future cycles.
+4. **One-Click `✓ Mark Checked` Timestamp Button (`[data-quick-check]`):**
+   - Every checklist item (`#1` through `#15`) includes a 1-click **`✓ Mark Checked`** button that stamps the calendar date (`Checked YYYY-MM-DD by [Reviewer] - No new filings`) and syncs immediately to the shared Google Sheet (`Plat_&_Watchlist_Sync`), turning a 15-minute manual logging chore into a 30-second clipboard-assisted pass.
+5. **Pass 2 Missing-HCAD Assisted Resolver (`buildMissingHcadHelperBox`):**
+   - When a Planning Commission plat row in the City's Excel spreadsheet has a blank Column Z (`HCAD Account No.`), `buildMissingHcadHelperBox()` automatically highlights the `Previous/Original Subdivision` age metrics, provides 1-click links to the Plat PDF, HCAD GIS viewer, and the Houston Building Atlas map (`?hcad=` / subdivision view) so the reviewer can click the exact corner parcel in 10 seconds and lock in its HCAD ID for all future cycles.
 

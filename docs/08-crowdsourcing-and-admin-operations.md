@@ -1,6 +1,6 @@
 # Chapter 8: Crowdsourced Moderation Pipeline, Live HCAD API & Admin Operations
 
-[← Chapter 7: Waterways, Railroads, Permits & Contractors](07-waterways-railroads-permits-and-contractors.md) | [Back to Master README](../README.md)
+[← Chapter 7: Waterways, Railroads, Permits & Contractors](07-waterways-railroads-permits-and-contractors.md) | [Back to Master README](../README.md) | [Next: Chapter 9 - Preservation Practice, Research Kit, Social History & HAHC →](09-preservation-practice-social-history-and-hahc.md)
 
 ---
 
@@ -24,17 +24,17 @@ From any building's Inspector Panel, users or researchers can click:
 2. **One-Click Staff Approval (`Admin_Hub_&_Quick_Filter` & `Approved_Edits`):**
    - Preservation Houston staff review incoming submissions using the workbook's **`Admin_Hub_&_Quick_Filter`** dashboard or any of the **12 Saved Filter Views** (*Pending Date Corrections*, *Footprint & Geometry Errors*, *Submissions with Archival Photos*, *City Directory Citations*, *Sanborn Map Citations*, etc.).
    - Changing a row's `Status` dropdown to **`Approved`** triggers an `onEdit(e)` Google Apps Script hook that copies the verified record into the published **`Approved_Edits`** tab.
-3. **Live Client-Side CSV Hydration (`csvUrl` in `config.js`) & Offline Bundling:**
-   - On startup, the atlas fetches the published `Approved_Edits` CSV endpoint (`cache: "no-store"`), parses approved overrides in memory, and applies them on top of both `buildings.geojson` and the 5 countywide PMTiles shards in real time.
-   - Staff with an unlocked **Staff Admin** session (`#btn-admin-unlock`) can also click **Approve & Apply Directly** inside the map UI to push verified corrections straight into `Approved_Edits` and `curated_overrides.json`.
+3. **Live Client-Side CSV Hydration (`curatedEdits.js`) & Offline Bundling:**
+   - On startup, `app/js/curatedEdits.js` fetches the published `Approved_Edits` CSV endpoint (`cache: "no-store"`), parses approved overrides in memory, and applies them on top of both `buildings.geojson` and the 5 countywide PMTiles shards in real time.
+   - Staff with an unlocked **Staff Admin** session (`#btn-toggle-admin-auth`) can also click **Approve & Publish Live (Admin)** inside the map UI to push verified corrections straight into `Approved_Edits`.
 
 ---
 
-## 2. Live HCAD Property Appraisal & Token-Brokered API Integration (`hcadService.js`)
+## 2. Live HCAD Property Appraisal & Token-Brokered API Integration (`hcadLink.js`)
 
 While the countywide PMTiles shards and `permits_<prefix3>.json` files bundle HCAD structural dates, square footages, land uses, and permit histories for instant offline rendering, researchers often need to inspect **live, current-year HCAD ownership, legal descriptions, land/improvement appraised values, and building sub-area breakdowns**.
 
-`app/js/hcadService.js` implements a resilient multi-tier live HCAD lookup service when the user clicks **Fetch Live HCAD Appraisal Record** in the Inspector Panel:
+`app/js/hcadLink.js` implements a resilient multi-tier live HCAD lookup service when the user clicks **Fetch Live HCAD Appraisal Record** in the Inspector Panel:
 1. **Tier 1 - HCAD Public ArcGIS REST FeatureServer (`arcweb.hcad.org`):**
    - Queries HCAD's live public parcel & account summary layer by 13-digit `HCAD_NUM`, returning current owner name, mailing address, legal description (`lgl_1..4`), state property class, land area, total building area, market value, and appraised value.
 2. **Tier 2 - Encrypted Token Handshake with `api.hcad.org` (`server.py` Proxy):**
@@ -64,27 +64,30 @@ Instead, the atlas uses a two-stage search architecture (`app/public/data/search
 
 ## 4. Complete Data Pipeline Rebuild Checklist (`pipeline/atlas_pipeline/`)
 
-All 26 data processing scripts live under `pipeline/atlas_pipeline/` and are managed with `uv` (`Python 3.12+`, `pyogrio`, `shapely`, `pyproj`, `numpy`, `scipy`, `pillow`). To run a full rebuild or incremental update:
+All 38 data processing scripts (`39` Python modules including `__init__.py`) live under `pipeline/atlas_pipeline/` and are managed with `uv` (`Python 3.13`, `pyogrio`, `shapely`, `pyproj`, `numpy`, `scipy`, `pillow`). To run a full rebuild or incremental update:
 
 | Pipeline Script | Primary Input Sources | Output Artifacts Updated | Purpose |
 | :--- | :--- | :--- | :--- |
-| `ingest.py` / `build_countywide_shards.py` | HCAD `Parcels.gdb`, CAMA `.txt` tables, OSM Overpass, Microsoft `MSBFP2` | Raw quadrant GeoJSONs | Spatial join of 1.85M footprints to 1.55M HCAD parcels (`EPSG:2278 -> EPSG:4326`). |
+| `ingest.py`, `spatial_join.py`, `full_build.py` | HCAD `Parcels.gdb`, CAMA `.txt` tables, OSM Overpass, Microsoft `MSBFP2` | Raw quadrant GeoJSONs, `buildings.geojson` | Spatial join of 1.85M footprints to 1.55M HCAD parcels (`EPSG:2278 -> EPSG:4326`). |
 | `recover_dropped_footprints.py` | `Parcels.gdb` (`MultiPolygon` sub-parts), OSM Overpass | Quadrant GeoJSONs, `buildings.geojson` | Recovers 6,315 footprints on multi-block `MultiPolygon` parcels (`301 St Joseph Pkwy`) and performs 2-stage `STRtree` deduplication. |
 | `fix_polygon_orientations.py` | `Parcels.gdb`, Quadrant GeoJSONs | 5 `.pmtiles` shards, `buildings.geojson` | Replaces 155,497 cardinal fallback boxes with `shapely.oriented_envelope` rotated footprints (`-34.65°` Borden Survey grid) and fixes 5,609 `ring[0]` party-wall shifts. |
 | `fix_warehouse_district.py` | HCAD sub-buildings, OSM, aerial survey | `curated_overrides.json`, `buildings.geojson` | Removes 420m Elysian Viaduct bridge deck from `902 Hardy St`, splits `Last Concert Café & Richey-Fant House`, suppresses transit canopies. |
 | `fix_industrial_multi_footprints.py` | OSM `man_made=storage_tank`, Esri `World_Basemap_v2` MVT tiles | 5 `.pmtiles` shards, `curated_overrides.json` | Restores 4,746 multi-building industrial footprints and extracts 7,292 circular refinery storage tanks (`12,038` total footprints). |
 | `enrich_institutions.py` | Rice GIS, TSU GIS, UH GIS, Hermann Park / Zoo / Heritage Society | `buildings.geojson`, `curated_overrides.json` | Splits tax-exempt super-parcels into 525 individually dated campus buildings (excluding Rice `Covered Walkway` roofs). |
 | `resolve_undated_countywide.py` | HCAD `extra_features`, `parcel_tieback`, `permits`, `deeds`, `subd_code` | 5 `.pmtiles` shards, `curated_overrides.json` | 4-phase resolution bringing all 43,983 undated (`year_built == 0`) footprints to 100.00% dated coverage with `year_source` provenance. |
-| `city_directory_audit.py` | HPL ContentDM (`cdm17006.contentdm.oclc.org`, `1866-1926` directories) | `curated_overrides.json` | Audits 3,176 rounded-decade properties using `^exact^and` phrase matching and browser `User-Agent` headers. |
-| `good_brick_awards.py` | Preservation Houston Good Brick Archive (`1979-2026`) | `overlays.json` (`good_brick_awards`) | Filters 460 raw entries to 359 place-based awards (`339` sites) and snaps coordinates onto verified building footprints. |
+| `city_directory_audit.py` & `build_house_history_index.py` | HPL ContentDM (`cdm17006.contentdm.oclc.org`, `39` directories `1866-1926`) | `curated_overrides.json`, `citydir_index.json` | Audits rounded-decade properties via `^exact^and` matching and builds `citydir_index.json` (`2,859` OCR sightings, `4,682` absences, `16` street renamings). |
+| `good_brick_awards.py` | Preservation Houston Good Brick Archive (`1979-2026`) | `overlays.json` (`good_brick_awards`) | Filters 460 raw entries to 359 place-based awards (`338` snapped sites) onto verified building footprints. |
 | `crawl_landmark_reports.py` & `apply_landmark_report_enrichments.py` | `archaeology.houstontx.gov` (`var mydata`) + Wayback CDX API | `overlays.json`, `curated_overrides.json`, `buildings.geojson` | Links 448 of 509 COH Landmarks to official HPO Designation Report PDFs, fixes 11 HPO filename typos, fills +140 dates and +144 styles. |
-| `crawl_haif_forum.py`, `apply_haif_enrichments.py`, `enrich_building_names.py` | Wayback CDX (`29,467` HAIF threads) + `media.invisioncic.com` | `haif_index.json`, `building_photos.json`, `search_index.json` | Links 7,741 footprints to 3,385 HAIF threads, populates `building_name` + `alt_names` (`4,833` HCADs), fixes URL-escaped UTF-8 and slash slugs. |
+| `build_preservation_layers.py` | COH HPO Landmarks (`PLM` vs. `Waiver LM`), 2019 COH Plan, THC/NPS NRHP, TCA | `overlays.json` (`landmarks`, `potential_historic_districts`, `nrhp_properties`, `cultural_districts`) | Classifies `200` `PLM` + `86` `LM-in-HD` + `223` `90-Day Waiver LM`, adds `60` Potential HDs, `238` Individual NRHPs (`16` `"Gone"`), and `7` Cultural Arts Districts. |
+| `crawl_haif_forum.py`, `apply_haif_enrichments.py`, `enrich_building_names.py`, `enrich_styles_and_search_index.py`, `seed_building_photos.py` | Wayback CDX (`29,467` HAIF threads), `media.invisioncic.com`, Wikimedia, HPO | `haif_index.json`, `building_photos.json`, `search_index.json` | Links `5,576` HAIF threads, populates `building_name` + `alt_names`, seeds `288` curated photos, and compiles the `25,914`-entry `search_index.json`. |
 | `extract_peter_brown_geopdf.py` & `build_neighborhoods.py` | 2009 Peter Brown GeoPDF (`/OC2`, `/OC13`, `/OC4`), COH GIS | `overlays.json` (`neighborhoods`, `historic_wards`, `annexations`) | Extracts 661 Peter Brown neighborhoods (`1,387` total), fixes 11 COH GIS typos, reconstructs 1839-1905 Charter Wards, separates 1963 highway spokes. |
-| `build_deed_restrictions.py` | `Sub_poly.zip`, `Parcels.gdb`, `real_acct.txt` (`lgl_2`+`lgl_3`), COH Ch. 42 | `overlays.json` (`subdivisions`), `deed_restrictions_catalog.json` | Synthesizes 5,573 platted subdivisions, fixes WHCA `BELTZ -> Belt 3` & `lgl_3` bugs, links 65 local deed PDFs + 910 SMLS/SMBL/Conservation zones. |
-| `build_lost_houston_and_sanborn.py` | LOC Sanborn IIIF API (`626` sheets), historical surveys | `sanborn_catalog.json`, `overlays.json` (`lost_houston`) | Indexes 10 Sanborn volumes (`1885-1955`) at cached `pct:12.5`/`pct:25` scales and maps 73 demolished landmarks fitted to `-34.65°` Borden Survey parcels. |
-| `build_waterways_and_railroads.py` | USGS NHD, HCFCD (`M3` basins), TNRIS, FraN, TxDOT, 1869-1954 maps | `overlays.json` (`waterways`, `railroads`, `rail_depots`) | Builds 218 open bayous/creeks + 7 buried historic gullies (`1,896.8 km`), 80 rail/streetcar corridors, and 14 historic rail depots. |
-| `build_permits_and_contractors.py` | HCAD `permits.txt` (`1.3M`), `building_res.txt`, HMRC ContentDM (`T.G.C.A.`) | `permits/permits_<prefix3>.json` (`152` shards), `overlays.json` | Builds 152 permit shards (`1.26M` accounts), extracts 1917-1929 HMRC contractor monographs & T.G.C.A. awards, filters `permit_type=15` (`OMITTED IMPS`). |
-| `update_pmtiles_from_overrides.py` & `split_pmtiles_quadrants.py` | Quadrant GeoJSONs, `curated_overrides.json`, `tippecanoe v2.82.0` | `houston_buildings_{nw_w,nw_e,ne,sw,se}.pmtiles` | Compiles the 5 Zoom-11 tile-aligned PMTiles shards (`< 80 MB` each, `1,507,553` footprints, zero dropped buildings at `z >= 12`). |
+| `build_deed_restrictions.py` | `Sub_poly.zip`, `Parcels.gdb`, `real_acct.txt` (`lgl_2`+`lgl_3`), COH Ch. 42 | `overlays.json` (`platted_subdivisions`, `land_use_protections`), `deed_restrictions_catalog.json` | Synthesizes 5,573 platted subdivisions, fixes WHCA `BELTZ -> Belt 3` & `lgl_3` bugs, links 65 local deed PDFs + 910 SMLS/SMBL/Conservation zones. |
+| `build_lost_houston_and_sanborn.py`, `lost_houston_catalog*.py`, `build_ut_pcl_sanborn.py` | LOC Sanborn IIIF (`626` sheets) + UT Austin PCL (`252` sheets), historical surveys | `sanborn_catalog.json`, `public/data/sanborn_ut/` (`504` WebPs), `overlays.json` (`lost_houston`) | Indexes `16` Sanborn volumes (`1877-1955`, `878` sheets), mirrors `504` UT PCL WebP plates (solving Anubis PoW), and maps `81` demolished landmarks. |
+| `build_social_history_layers.py` | Rice Woodson Research Center (`1915 Red Book` FeatureServer + Quartex), *Mapping Inequality* v3.0 (`1937 HOLC`), HARC Heat Watch | `overlays.json` (`red_book_1915`, `holc_1937_zones`, `holc_1937_grade_summary`) | Maps `970` *1915 Red Book* African American sites (`29` surviving, `85` Quartex plates) and `47` 1937 HOLC redlining zones with heat & protection equity stats. |
+| `build_waterways_and_railroads.py` | USGS NHD, HCFCD (`M3` basins), TNRIS, FraN, TxDOT, 1869-1954 maps | `overlays.json` (`historical_waterways`, `historical_railroads`) | Builds `1,957` waterway features (`218` open bayous/creeks + `7` buried gullies + White Oak oxbows), `61` rail/streetcar corridors, and `14` historic depots. |
+| `build_permits_and_contractors.py` | HCAD `permits.txt` (`1.3M`), `building_res.txt`, HMRC ContentDM (`T.G.C.A.`) | `permits/permits_<prefix3>.json` (`152` shards), `overlays.json` (`relocated_structures`) | Builds 152 permit shards (`1.26M` accounts), extracts 1917-1929 HMRC contractor monographs & *T.G.C.A.* awards, filters `permit_type=15` (`OMITTED IMPS`). |
+| `fetch_live_permits.py`, `fetch_plat_and_watchlist.py`, `fetch_hahc_tracker.py` | COH WebFOCUS/Sold Permits, TX DSHS Asbestos, COH Planning `.xlsx`/PDFs, `data.texas.gov` Socrata, TDLR TABS, COH 311, COH `HAHC.html` | `active_permit_alerts.json`, `plat_agenda_monitor.json`, `property_watchlist.json`, `hahc_coa_tracker.json`, `overlays.json` | Automated daily/biweekly/monthly ingestion for `18` active demo/asbestos alerts, Planning Commission plats & Section K DPV variances, `60` watched properties, and `403` HAHC COA filings. |
+| `sync_curated_edits.py`, `setup_admin_sheet.py`, `tile_builder.py`, `cli.py`, `schema.py`, `fetch_data.py` | Google Sheet `Approved_Edits` CSV, Quadrant GeoJSONs, `curated_overrides.json`, `tippecanoe v2.82.0` | `curated_overrides.json`, `houston_buildings_{nw_w,nw_e,ne,sw,se}.pmtiles` | Syncs Google Sheet edits into Git, configures the 9-tab Admin Google Sheet, and compiles the 5 Zoom-11 tile-aligned PMTiles shards (`< 80 MB` each). |
 
 ---
 
@@ -102,4 +105,4 @@ Because the Houston Building Atlas links across `55` municipal, county, state, u
 
 ---
 
-[← Chapter 7: Waterways, Railroads, Permits & Contractors](07-waterways-railroads-permits-and-contractors.md) | [Back to Master README](../README.md)
+[← Chapter 7: Waterways, Railroads, Permits & Contractors](07-waterways-railroads-permits-and-contractors.md) | [Back to Master README](../README.md) | [Next: Chapter 9 - Preservation Practice, Research Kit, Social History & HAHC →](09-preservation-practice-social-history-and-hahc.md)

@@ -1,4 +1,4 @@
-# Chapter 6: Library of Congress Sanborn Fire Insurance Atlases, Historical Map Spyglass & Lost Houston
+# Chapter 6: Library of Congress & UT Austin PCL Sanborn Fire Insurance Atlases, Historical Map Spyglass & Lost Houston
 
 [← Chapter 5: Neighborhoods, Wards, Subdivisions & Deeds](05-neighborhoods-wards-subdivisions-and-deeds.md) | [Back to Master README](../README.md) | [Next: Chapter 7 - Waterways, Railroads, Permits & Contractors →](07-waterways-railroads-permits-and-contractors.md)
 
@@ -12,7 +12,7 @@ To allow researchers to compare extant footprints directly against historical ca
 | :---: | :---: |
 | *Interactive Spyglass Lens Comparing 1869 W. E. Wood Map to Extant Buildings* | *Library of Congress 1907 Sanborn Fire Insurance Atlas Sheet 1 (Downtown / Allen's Landing)* |
 
-### 1.1 Solving the Spyglass Lens Zoom-Offset & 3D Perspective Math (`map.js`)
+### 1.1 Solving the Spyglass Lens Zoom-Offset & 3D Perspective Math (`mapController.js`)
 The Spyglass Lens renders a circular magnifying portal over the WebGL canvas using an HTML5 2D overlay canvas (`#spyglass-canvas`). Two subtle coordinate-projection mismatches were diagnosed and fixed:
 1. **Why the Spyglass Initially Looked Zoomed-Out (`512 px` vs. `256 px` World Size):**
    - Standard slippy-map tile math defines world size at zoom 0 as `256 pixels` ($256 \times 2^z$). However, MapLibre GL JS renders camera zoom levels using a **`512-pixel` world size at zoom 0** ($512 \times 2^z$), which is exactly $2\times$ larger (+1 zoom level) than a standard `256 px` raster tile pyramid!
@@ -23,11 +23,13 @@ The Spyglass Lens renders a circular magnifying portal over the WebGL canvas usi
 
 ---
 
-## 2. Library of Congress Sanborn Fire Insurance Atlases (`1885-1955`, `626` IIIF Sheets)
+## 2. Digitized Sanborn Fire Insurance Atlases (`1877-1955`, `16` Volumes, `878` Sheets across LOC & UT Austin PCL)
 
-Between 1885 and 1955, the **Sanborn Map Company** surveyed Houston block by block to assess fire insurance underwriting risk, recording building footprints, construction materials (**Yellow** = wood frame, **Pink** = brick, **Blue** = stone/concrete, **Gray** = iron/tin), roof composition, story heights, fire walls, and historic street numbers (including pre-1911 address numbers before Houston's citywide street renumbering ordinance).
+Between 1877 and 1955, the **Sanborn Map Company** surveyed Houston block by block to assess fire insurance underwriting risk, recording building footprints, construction materials (**Yellow** = wood frame, **Pink** = brick, **Blue** = stone/concrete, **Gray** = iron/tin), roof composition, story heights, fire walls, and historic street numbers (including pre-1911 address numbers before Houston's citywide street renumbering ordinance).
 
-`pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py` indexes **626 high-resolution digitized sheets across 10 Library of Congress Sanborn volumes (`1885`, `1890`, `1896`, `1907 Vol. 1`, `1907 Vol. 2`, `1924-1950 Vol. 1-4`, `1924-1955`)** in `app/public/data/sanborn_catalog.json` (`791 KB`).
+`pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py` and `build_ut_pcl_sanborn.py` index **`878` high-resolution digitized sheets across `16` Houston Sanborn volumes (`1877-1955`)** in `app/public/data/sanborn_catalog.json`:
+- **`10` Library of Congress (`LOC`) Volumes (`1885`, `1890`, `1896`, `1907 Vol. 1`, `1907 Vol. 2`, `1924-1950 Vol. 1-4`, `1924-1955` - `626` IIIF Sheets)**; and
+- **`6` University of Texas at Austin Perry-Castaneda Library (`UT PCL`) Volumes (`1877`, `1917`, `1919`, `1924 Vol. 2`, `1924 Vol. 3`, `1948 Vol. 6` - `252` Sheets mirrored locally as `504` optimized WebP plates in `app/public/data/sanborn_ut/` so inline views never hit UT's cross-origin Anubis PoW challenge; see [Chapter 9, Section 3.2](09-preservation-practice-social-history-and-hahc.md#32-expanding-sanborn-fire-insurance-coverage-from-10-loc-volumes-to-16-volumes-1877-1955-878-sheets))**.
 
 ### Four Library of Congress (`loc.gov`) IIIF & Metadata Pitfalls Solved
 
@@ -46,13 +48,13 @@ Between 1885 and 1955, the **Sanborn Map Company** surveyed Houston block by blo
 
 ---
 
-## 3. Lost Houston: 73 Surveyed Demolished Landmarks (`1837-2006`)
+## 3. Lost Houston: 81 Surveyed Demolished Landmarks (`1837-2006`)
 
 Over the past 190 years, Houston has demolished scores of architectural landmarks - from the **1837 First Capitol of the Republic of Texas** and **1883 Capitol Hotel** on the Rice Hotel site, to the **1884 Cotton Exchange annotations**, **1901 Binz Building**, **1904 Carnegie Library**, **1910 City Auditorium**, **1911 Galveston-Houston Electric Interurban Terminal**, **1923 Majestic Theatre** (John Eberson's atmospheric masterpiece), **1926 Lamar Hotel**, and **1928 Shamrock Hotel**.
 
 ![Lost Houston Demolished Landmarks in Downtown (The Capitol Hotel, 1883-1912)](images/06_lost_houston_capitol_hotel.jpg)
 
-`pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py` constructs `lost_houston.geojson` (**73 surveyed demolished landmarks**), rendered with Sanborn Underwriters material-colored dashed outlines (**Pink** = Brick/Masonry, **Blue** = Stone/Terra Cotta/Concrete, **Amber** = Wood Frame, **Slate** = Cast Iron/Steel) and `† Landmark Name (Built-Demolished)` labels.
+`pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py` (together with `lost_houston_catalog.py` and `lost_houston_catalog_2.py`) constructs `overlays.json` (`lost_houston`: **81 surveyed demolished landmarks**, complemented by **16 demolished `"Gone"` National Register properties** in `nrhp_properties`), rendered with Sanborn Underwriters material-colored dashed outlines (**Pink** = Brick/Masonry, **Blue** = Stone/Terra Cotta/Concrete, **Amber** = Wood Frame, **Slate** = Cast Iron/Steel) and `† Landmark Name (Built-Demolished)` labels.
 
 ### 3.1 Fixing the `-34.65°` Borden Survey Grid Rotation & Parcel Fitting (`fit_rect_in_parcel`)
 When generating the surveyed footprints for demolished Downtown structures (`build_lost_houston_and_sanborn.py`), two geometric problems had to be solved:

@@ -1582,7 +1582,7 @@
               <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
             </div>
             <div>
-              <span class="brand-kicker">Preservation Houston • Technical Notes</span>
+              <span class="brand-kicker">Preservation Houston &bull; Reference &amp; Methodology</span>
               <h2 class="modal-title">About The Houston Building Atlas</h2>
             </div>
           </div>
@@ -1592,40 +1592,66 @@
         </div>
         <div class="modal-body">
           <p>
-            <strong>The Houston Building Atlas</strong> is an interactive historical cartography project created by
-            <a href="https://www.preservationhouston.org" target="_blank" rel="noopener">Preservation Houston</a>
-            to help residents, historians, architects, and urban planners explore how Houston's neighborhoods took shape from 1836 to the present.
+            <strong>The Houston Building Atlas</strong> is an open-source historical cartography, house-history research, and preservation advocacy platform created by
+            <a href="https://www.preservationhouston.org" target="_blank" rel="noopener noreferrer">Preservation Houston</a>.
+            It maps <strong>1,507,553 dated structures (1823-2026)</strong> across Harris County alongside <strong>22 preservation, social-history, and civic overlays</strong>, <strong>18 georeferenced historical maps (1869-1969)</strong>, and automated early-warning feeds for endangered historic buildings.
           </p>
 
-          <h3>Where Does the Data Come From?</h3>
+          <h3>Key Capabilities</h3>
           <ul>
             <li>
-              <strong>Harris Central Appraisal District (HCAD):</strong> Tax parcel boundaries, earliest structure completion year (<code>Yr_Impr</code> / <code>date_erect</code>), remodel year, total building square footage, land area, and land use classification.
+              <strong>4-Tab Property Inspector &amp; 3-Pillar Legal Protection Scorecard:</strong> Click any building to inspect its <em>Overview</em>, <em>History</em>, <em>Permits</em>, and <em>HCAD &amp; Parcel</em> tabs (expandable to a 2-column <strong>Wide View</strong> on desktop or a <strong>Printable Property Sheet</strong>), including plain-English Chapter 33 demolition rules, Chapter 42 / deed lot-split armor, and City, State (25%), and Federal (20%) historic tax-credit eligibility.
             </li>
             <li>
-              <strong>Preservation Houston Good Brick Awards (1979–2026):</strong> All 359 site-based Good Brick Award, Martha Peterson Award, Stewart Title Award, and Pier &amp; Beam Future Landmark Award recipients since 1979, linked to HCAD parcels with award year(s), recipient, and project citation.
+              <strong>One-Click 5-Step House History Research Kit:</strong> Pre-matches every parcel to <strong>16 digitized Sanborn Fire Insurance Atlas volumes (1877-1955, 878 sheets)</strong> across the Library of Congress and UT Austin Perry-Castaneda Library, <strong>39 Houston City Directories (1866-1926)</strong> with historic street-name equivalences, <strong>65 mirrored Subdivision Deed Restriction PDFs</strong>, 1917-1929 contractor records, and <strong>1.30M HCAD building permits</strong>.
             </li>
             <li>
-              <strong>City of Houston Planning &amp; Development (Historic Preservation Office):</strong> Authoritative Historic District parcel inventories (<code>Contributing</code> vs. <code>Non-Contributing</code> status), Designated Landmarks (<code>LM</code>), Protected Landmarks (<code>PLM</code>), Heritage Districts, National Register Districts, and Decade-by-Decade Annexation Boundaries.
+              <strong>Guided Citywide Chapters, Portfolios &amp; Export Studio:</strong> Explore 6 interactive chapters (<em>"How Houston Was Built"</em>), click any Architect, Builder, or Style pill to highlight their countywide extant and demolished portfolio, use the draggable <strong>Spyglass Lens</strong> over 1869-1969 maps, or export true vector <code>.SVG</code> and high-resolution print artwork for any neighborhood or historic district.
             </li>
             <li>
-              <strong>OpenStreetMap &amp; Architectural Footprint Synthesis:</strong> Observed building footprint polygons spatially joined to HCAD tax parcels, supplemented by oriented architectural footprints derived from parcel geometry and CAMA building floor area.
-            </li>
-            <li>
-              <strong>Texas Historical Commission (THC):</strong> Official state historical markers across Harris County.
+              <strong>Automated Preservation Early-Warning &amp; Commission Trackers:</strong> Tracks daily <strong>City of Houston Demolition / Sewer Disconnect Permits</strong> and <strong>Texas DSHS 10-day Advance Asbestos Filings</strong>, monthly <strong>HAHC Certificates of Appropriateness (403 filings / 283 parcels)</strong>, and biweekly Planning Commission replats, variances, and a 15-point watchlist in the companion <a href="plat-monitor.html">Plat &amp; Property Monitor</a>.
             </li>
           </ul>
 
-          <h3>Things to Keep in Mind</h3>
+          <h3>Primary Archival, Municipal &amp; Geospatial Sources (32 Datasets)</h3>
           <ul>
             <li>
-              <strong>Oldest Structure Rule:</strong> When more than one structure exists on a property, the property is dated and color-coded based on the <em>oldest recorded structure</em> on the site, cross-referenced against City of Houston landmark records.
+              <strong>Harris Central Appraisal District (HCAD) &amp; Building Footprints:</strong> 1.55M tax parcels (<code>Parcels.gdb</code>), CAMA structural/remodel/permit tables (100.00% dated coverage with explicit <code>year_source</code> provenance badges), OpenStreetMap, Microsoft Building Footprints v2, Esri vector footprints, and university/park campus GIS inventories (Rice, UH, TSU, Hermann Park, Heritage Society).
             </li>
             <li>
-              <strong>Appraisal Date Limitations:</strong> HCAD completion dates are compiled for tax appraisal purposes and may be approximate for 19th- and early 20th-century structures.
+              <strong>Preservation Designations &amp; Awards:</strong> 509 City of Houston Landmarks (200 Protected Landmarks <code>PLM</code>, 86 <code>LM-in-HD</code>, and 223 vulnerable <code>90-Day Waiver Landmarks</code>, linked to 448 official HPO Designation Report PDFs), 23 COH Historic Districts, Freedmen's Town Heritage District, 60 Surveyed Potential Historic Districts (2019 COH Plan), 12 NRHP Districts, 238 Individual NRHP Properties (including 16 demolished <em>"Gone"</em> sites), 596 Texas Historical Markers, 7 Cultural Arts Districts, and 359 Preservation Houston Good Brick Awards (1979-2026).
             </li>
             <li>
-              <strong>Preservation Houston Curated Archival Overrides:</strong> Verified completion dates from Houston City Directories, Sanborn maps, historic deeds, and City building permits override rounded HCAD tax appraisal estimates via a live Google Sheet maintained by Preservation Houston.
+              <strong>Sanborn Atlases, City Directories, Contractors &amp; HAIF:</strong> Library of Congress IIIF Sanborn sheets (626 sheets) + UT Austin PCL Sanborn volumes (252 sheets mirrored locally), Houston Public Library ContentDM City Directories (1866-1926) &amp; HMRC <em>T.G.C.A. Monthly Bulletin</em> / Russell Brown Co. contractor archives, 81 surveyed <em>Lost Houston</em> demolished landmarks (1837-2006), 5,576 linked Houston Architecture Info Forum (HAIF) threads, and Wikimedia Commons / HABS photography.
+            </li>
+            <li>
+              <strong>Social History, Neighborhoods &amp; Infrastructure:</strong> Rice University Woodson Research Center <strong>1915 <em>Red Book of Houston</em></strong> (970 African American heritage sites + 85 digitized plates), University of Richmond <em>Mapping Inequality</em> <strong>1937 HOLC Redlining Zones</strong> (47 zones + HARC/NOAA Urban Heat Watch metrics), 2009 Peter Brown GeoPDF neighborhoods (1,387 boundaries), authentic 1839-1905 Municipal Charter Wards, 1836-2020 Annexation boundaries, 5,573 Platted Subdivisions, 910 Chapter 42 SMLS/SMBL/Conservation zones, 1,957 Historical Waterways, Oxbows &amp; Buried Gullies, and 61 Railroad &amp; 1891-1938 Electric Streetcar corridors.
+            </li>
+          </ul>
+
+          <h3>How the Public &amp; Researchers Can Contribute</h3>
+          <ul>
+            <li>
+              <strong>Suggest Verified Dates, Names, Architects, Photos &amp; Deed PDFs:</strong> Click <strong>&#9998; Suggest Correction</strong> on any property (no login required) to submit archival date citations, historical building names / <code>AKA</code> aliases, architect or contractor credits, public archive photo URLs, or subdivision deed restriction links. Submissions preview immediately in your browser and enter Preservation Houston's moderated review queue before going live.
+            </li>
+            <li>
+              <strong>Flag Footprint Errors &amp; On-Site Demolition Activity:</strong> Use the correction modal to flag missing, merged, or mis-oriented roof polygons against Zoom-20 satellite imagery, or click <strong>Report Site Activity to PH</strong> to alert advocacy staff to physical TABC/replat signage, fencing, or demolition equipment on historic sites.
+            </li>
+          </ul>
+
+          <h3>Methodology Notes &amp; Full Documentation</h3>
+          <ul>
+            <li>
+              <strong>Oldest Structure Rule &amp; Appraisal Limitations:</strong> Multi-structure parcels reflect the oldest verified structure on site (or individually decomposed campus/sub-building footprints). Rounded HCAD tax-roll dates (such as <code>1920</code> or <code>1930</code>) are continuously refined via City Directory, Sanborn, permit, and community audits.
+            </li>
+            <li>
+              <strong>Statutory Protection Distinction:</strong> Under COH Code Ch. 33 Sec. 33-250, the 223 standard City Landmarks (<code>LM</code>) outside Historic Districts carry only a 90-day demolition waiver delay, and federal National Register (NRHP) listing alone does not restrict private-owner demolition. Only Protected Landmarks (<code>PLM</code>) and COH Historic District parcels require binding HAHC demolition review.
+            </li>
+            <li>
+              <strong>Documentation Manual &amp; External Archive Link Health:</strong> Read the complete 10-chapter engineering, data-source, third-party integration, and public/staff curation manual on
+              <a href="https://github.com/davemorris-gcp/houston-building-atlas/tree/main/docs" target="_blank" rel="noopener noreferrer">GitHub Documentation (10 Chapters) &#8599;</a>
+              and view live weekly monitoring across all 55 linked municipal and archival domains in
+              <a href="https://github.com/davemorris-gcp/houston-building-atlas/issues/1" target="_blank" rel="noopener noreferrer">External Archive Link Health Report (Issue #1) &#8599;</a>.
             </li>
           </ul>
         </div>
