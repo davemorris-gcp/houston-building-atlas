@@ -44,13 +44,17 @@ def infer_subforum_from_slug(slug: str, existing_subforum: str) -> str:
     return "Architecture & Development"
 
 
+from audit_historical_accuracy import is_polluted_haif_building_name
+
+
 def extract_clean_building_name_from_haif_title(title: str, addr_str: str) -> str:
     """
     If a HAIF thread title is formatted like:
       "Peden Iron Works At 700 N. San Jacinto St."
       "Auditorium Grocery Building At 1011 Mcgowen St"
       "Moderne At Yale 1020 Yale St"
-    extract the building/project name before "At <addr>".
+    extract the building/project name before "At <addr>", filtering out
+    real-estate listings, parking lots, proposed/speculative titles, and generic nouns.
     """
     if not title:
         return ""
@@ -58,7 +62,11 @@ def extract_clean_building_name_from_haif_title(title: str, addr_str: str) -> st
     m = re.split(r"\s+\bat\s+\d{2,5}\b", t, maxsplit=1, flags=re.I)
     if len(m) == 2 and len(m[0].strip()) >= 4:
         cand = m[0].strip(" -:,")
-        if not cand.isdigit() and not re.match(r"^(demo|demolition|new|proposed|future|question|help)\b", cand, re.I):
+        if (
+            not cand.isdigit()
+            and not re.match(r"^(demo|demolition|new|proposed|future|question|help)\b", cand, re.I)
+            and not is_polluted_haif_building_name(cand)[0]
+        ):
             return cand
     return ""
 
@@ -339,6 +347,19 @@ def main():
             for img_url in rec["photos"][:2]:
                 if img_url in existing_urls:
                     continue
+                low_img = img_url.lower()
+                if any(
+                    bad_tok in low_img
+                    for bad_tok in (
+                        "android-chrome-",
+                        "favicon",
+                        "apple-touch-icon",
+                        "mstile-",
+                        "safari-pinned-tab",
+                        "site_logo",
+                    )
+                ):
+                    continue
                 # Extract year from monthly_YYYY_MM or monthly_MM_YYYY in URL if present
                 yr = 2015
                 m1 = re.search(r"monthly_(20\d\d)_\d\d", img_url)
@@ -354,7 +375,7 @@ def main():
                     "thumb_url": img_url,
                     "year": yr,
                     "era_label": f"{yr} (HAIF Archive)",
-                    "caption": f"{rec['title']} — Photograph shared on the Houston Architecture Info Forum ({rec['subforum']}).",
+                    "caption": f"{rec['title']} - Photograph shared on the Houston Architecture Info Forum ({rec['subforum']}).",
                     "source": "Houston Architecture Info Forum (HAIF)",
                     "source_url": rec["url"],
                     "license": "HAIF Community Archive"

@@ -357,7 +357,7 @@ WATERWAY_HISTORICAL_DOSSIERS = {
         "waterway_type": "creek",
         "status": "Partially Culverted & Open Historic Creek (Gus Wortham Park / Wayside)",
         "watershed": "Brays Bayou Watershed",
-        "era_notes": "1908 Houston Country Club Course · 1913 Eastwood · 1923 Idylwood",
+        "era_notes": "1908 Houston Country Club Course · 1913 Eastwood · 1923 Country Club Estates · 1928 Idylwood",
         "historic_significance": (
             "Flows east from the Third Ward / University of Houston area through the historic 1908 Houston Country Club "
             "(now Gus Wortham Park Golf Course, Houston's oldest 18-hole golf course) where its natural bluffs and ravines "
@@ -369,10 +369,11 @@ WATERWAY_HISTORICAL_DOSSIERS = {
         "waterway_type": "creek",
         "status": "Preserved Wooded Spring-Fed Creek & Nature Corridor",
         "watershed": "Buffalo Bayou Watershed",
-        "era_notes": "1880s Dan Japhet Homestead · Emilie Street & Japhet Street Ravine",
+        "era_notes": "1890 Isidore & Dan Japhet Homestead · Emile Street & Japhet Street Ravine",
         "historic_significance": (
-            "Historic spring-fed creek on the south edge of Fifth Ward near Emilie and Japhet Streets that flows through "
-            "a deep wooded ravine directly into Buffalo Bayou east of Downtown."
+            "Historic spring-fed creek on the south edge of Fifth Ward near Emile and Japhet Streets (on farmland acquired "
+            "by Isidore Japhet in April 1890 and subdivided by his son Dan A. Japhet) that flows through a deep wooded "
+            "ravine directly into Buffalo Bayou east of Downtown."
         ),
     },
     "Poor Farm Ditch": {
@@ -493,14 +494,14 @@ WATERWAY_HISTORICAL_DOSSIERS = {
     "Slaughterpen Bayou": {
         "alt_names": ["Slaughterpen Gully", "East End / Harrisburg Buried Bayou"],
         "waterway_type": "buried_gully",
-        "status": "Buried in Municipal Storm Sewer (PWE Storm Culvert)",
-        "watershed": "Buffalo Bayou / Ship Channel Watershed",
-        "era_notes": "1860s–1900s East End Cattle Slaughterhouses · Buried 1920s–1940s",
+        "status": "Buried in Municipal Storm Sewer (PWE Storm Culvert / HCFCD Unit D103-00-00)",
+        "watershed": "Brays Bayou Watershed (HCFCD Unit D103-00-00)",
+        "era_notes": "1860s-1900s East End Cattle Slaughterhouses · Buried 1920s-1940s",
         "historic_significance": (
-            "Once an open tidal bayou and ravine on Houston's East Side named for the 19th-century cattle pens and "
-            "slaughterhouses that lined its banks near Buffalo Bayou. As Second Ward, Eastwood, and Magnolia Park "
-            "industrialized, Slaughterpen Bayou was enclosed in underground municipal storm culverts (still tracked by "
-            "name as 'Slaughterpen Bayou - Storm Sewer' in City of Houston Public Works GIS)."
+            "Once an open ravine and bayou tributary on Houston's East Side named for 19th-century cattle pens and "
+            "slaughterhouses, draining south across the East End, Eastwood, and the 1908 Houston Country Club tract into "
+            "Brays Bayou. As the East End urbanized, Slaughterpen Bayou was enclosed in underground municipal storm "
+            "culverts (tracked as HCFCD Unit D103-00-00 and 'Slaughterpen Bayou - Storm Sewer' in City of Houston Public Works GIS)."
         ),
     },
     "City Ditch": {
@@ -731,10 +732,11 @@ CURATED_BURIED_GULLIES_AND_OXBOWS = [
         "waterway_type": "buried_gully",
         "status": "Buried Historic Spring & Ravine (Culverted 1920s-1930s; Lower Mouth Under I-45 North Freeway)",
         "watershed": "White Oak Bayou Watershed",
-        "era_notes": "1840s John Beauchamp Tract · 1870s H. Beltz Germantown · 1894 Beauchamp Springs Plat · 1921/1929/1930 Houston Maps",
+        "era_notes": "1838 Thomas D. Beauchamp Tract · 1870s H. Beltz Germantown · 1894 Beauchamp Springs Plat · 1921/1929/1930 Houston Maps",
         "historic_significance": (
-            "One of 19th-century Houston's best-known natural mineral springs and wooded excursion hollows, named for early "
-            "settler John Beauchamp on the northern bluff of White Oak Bayou. Fed by two spring branches in Woodland Heights - "
+            "One of 19th-century Houston's best-known natural mineral springs and wooded excursion hollows, named for Kentucky-born "
+            "pioneer Thomas D. Beauchamp, who purchased the tract on the northern bluff of White Oak Bayou from the Allen brothers in 1838. "
+            "Fed by two spring branches in Woodland Heights - "
             "a western perennial spring rising near Euclid and Byrne (formerly White Oak St) east of Helen Street, and a northern "
             "ravine branch descending between Beauchamp and Morrison streets from Omar and Highland - the stream cut diagonally "
             "southeast across Florence, Beauchamp, and Morrison streets and ran down the east side of Park Place into White Oak "
@@ -806,14 +808,14 @@ CURATED_BURIED_GULLIES_AND_OXBOWS = [
         "waterway_type": "buried_gully",
         "status": "Buried Historic Ravine & Park Swale (Upper Reach Culverted; Lower Swale in Stude Park)",
         "watershed": "White Oak Bayou Watershed",
-        "era_notes": "1891 Houston Heights · 1910 Stude Subdivision · 1914 Stude Park Donation · 1921/1929/1930 Houston Maps",
+        "era_notes": "1891 Houston Heights · 1910 Stude Subdivision · 1915 Stude Park Donation · 1921/1929/1930 Houston Maps",
         "historic_significance": (
             "Prominent natural tributary ravine on the eastern edge of the Houston Heights documented on the 1915 USGS topo quad "
             "and the 1921, 1929, and 1930 Houston maps. Rising near E. 8 1/2 Street and Beverly Street just west of Studewood, "
             "the stream wound south-southeast across 8th, 7 1/2, 7th, 6 1/2, and 6th (White Oak Drive) before following the "
-            "diagonal curve of Threlkeld Street through Stude Park (donated by Alfonso and Hingia Stude in 1914) into White Oak "
-            "Bayou. The ravine topography explains why Threlkeld Street curves diagonally off the grid and why the half-numbered "
-            "streets dead-end between Beverly and Studewood."
+            "diagonal curve of Threlkeld Street through Stude Park (established in 1915 after the Stude family donated 22.4 acres "
+            "along White Oak Bayou to the City of Houston) into White Oak Bayou. The ravine topography explains why Threlkeld "
+            "Street curves diagonally off the grid and why the half-numbered streets dead-end between Beverly and Studewood."
         ),
         "source_label": "1915 USGS Topo Quad & 1921, 1929, 1930 Georeferenced Houston Maps",
         "surveyed_coords": [
@@ -848,10 +850,7 @@ CURATED_BURIED_GULLIES_AND_OXBOWS = [
             "Before the U.S. Army Corps of Engineers and HCFCD excavated the straightened concrete flood-control channel "
             "(HCFCD Unit E100-00-00) in the 1960s, White Oak Bayou wound through four deep horseshoe oxbow loops between "
             "historic Olivewood Cemetery (MKT Railroad crossing), Stude Park, the Taylor Street bridge, the high bluff at "
-            "N. Sabine and Ridge streets in Woodland Heights, and the Mattie/Maud street peninsula west of Houston Avenue. "
-            "Why this segment was previously missing: our 1903 Ward boundary oxbow extractor only traced the First/Fifth Ward "
-            "boundary, which turned north up Little White Oak Bayou at Hogg Park and never followed White Oak Bayou west of "
-            "Houston Avenue."
+            "N. Sabine and Ridge streets in Woodland Heights, and the Mattie and Maud street peninsula west of Houston Avenue."
         ),
         "source_label": "1921, 1929 & 1930 Georeferenced Houston Maps & 1915 USGS Houston Topo Quad",
         "surveyed_coords": [
@@ -1016,19 +1015,19 @@ TXDOT_SUBDIV_TO_HISTORICAL_RR = {
         ),
     },
     "MYKAWA": {
-        "name": "Gulf, Colorado & Santa Fe Railway (GC&SF - 'The Santa Fe', 1880)",
-        "historic_company": "Gulf, Colorado & Santa Fe Railway (1873 / Houston Line 1880) · Atchison, Topeka & Santa Fe Ry.",
+        "name": "Gulf, Colorado & Santa Fe Railway (GC&SF - 'The Santa Fe', 1883 Houston Line)",
+        "historic_company": "Gulf, Colorado & Santa Fe Railway (Chartered 1873 / Houston Line May 1, 1883) · Atchison, Topeka & Santa Fe Ry. (1886)",
         "charter_year": 1873,
-        "opened_year": 1880,
+        "opened_year": 1883,
         "modern_operator": "BNSF Railway (Mykawa Subdivision)",
         "rail_type": "mainline",
         "status": "Active Historic Mainline",
         "route_summary": "East End / New South Yard south along Mykawa Road past Hobby Airport & Pearland to Alvin and Galveston",
         "historic_significance": (
-            "Originally organized by Galveston merchants in 1873 to bypass Houston's yellow fever quarantines, the Gulf, "
-            "Colorado & Santa Fe built a branch from Alvin north into Houston along Mykawa Road in 1880–1882 after acquiring "
-            "the Atchison, Topeka & Santa Fe backing. Mykawa Road and the surrounding rice-farming settlement were named "
-            "in 1906 for Japanese agriculturalist Shinpei Mykawa along the Santa Fe tracks."
+            "Originally chartered by Galveston merchants in May 1873 to bypass Houston's yellow fever quarantines, the Gulf, "
+            "Colorado & Santa Fe completed its 25-mile branch from Alvin north into Houston along Mykawa Road on May 1, 1883, "
+            "and joined the Atchison, Topeka & Santa Fe system in April 1886. Mykawa Road and the surrounding rice-farming "
+            "settlement were named in 1906 for Japanese agriculturalist Shinpei Mykawa along the Santa Fe tracks."
         ),
     },
     "HOUSTON (BNSF)": {
@@ -1172,7 +1171,7 @@ TXDOT_SUBDIV_TO_HISTORICAL_RR = {
         ),
     },
     "TERMINAL-PASSENGER": {
-        "name": "H&TC / Southern Pacific Grand Central Station & Amtrak Passenger Approach (1856–Present)",
+        "name": "H&TC / Southern Pacific Grand Central Station & Amtrak Passenger Approach (1856-Present)",
         "historic_company": "Houston & Texas Central Railway (1856) · Southern Pacific Lines ('Sunset Limited' & 'Sunbeam')",
         "charter_year": 1856,
         "opened_year": 1860,
@@ -1183,8 +1182,196 @@ TXDOT_SUBDIV_TO_HISTORICAL_RR = {
         "historic_significance": (
             "For over a century, Houston's primary west-side passenger train approach ran along this corridor into "
             "Grand Central Station at Franklin and Washington Avenues (site of the 1886 Victorian depot and 1934 Art Moderne "
-            "terminal). In 1959–1960, Southern Pacific relocated passenger service half a mile west along this track to the "
+            "terminal). In 1959-1960, Southern Pacific relocated passenger service half a mile west along this track to the "
             "902 Washington Ave station (now Houston's Amtrak station) and sold the terminal site for the main U.S. Post Office."
+        ),
+    },
+    "SMITHVILLE": {
+        "name": "Missouri-Kansas-Texas Railroad ('The Katy' Mainline, 1893)",
+        "historic_company": "Missouri, Kansas & Texas Railway Co. of Texas ('The Katy', Chartered 1892 / Opened April 1893)",
+        "charter_year": 1892,
+        "opened_year": 1893,
+        "modern_operator": "Union Pacific Railroad (Smithville / Katy Corridor, Acquired 1988)",
+        "rail_type": "mainline",
+        "status": "Active Historic Mainline (Former MKT 'Katy' Western Approach)",
+        "route_summary": "Katy & Brookshire east along Katy Road into Eureka Junction",
+        "historic_significance": (
+            "Completed into Houston in April 1893 by the Missouri-Kansas-Texas Railroad ('The Katy'), giving Houston direct "
+            "rail service northwest through Katy, Sealy, and Smithville toward Austin, Waco, and St. Louis until Union Pacific "
+            "absorbed the MKT in 1988."
+        ),
+    },
+    "HOUSTON WEST BELT TRK#1": {
+        "name": "Houston Belt & Terminal Railway - West Belt Mainline Track 1 (1907)",
+        "historic_company": "Houston Belt & Terminal Railway (Chartered Aug. 31, 1905 by Santa Fe, Rock Island, T&BV & StLB&M)",
+        "charter_year": 1905,
+        "opened_year": 1907,
+        "modern_operator": "Union Pacific / BNSF Joint Belt Line (Houston West Belt Track 1)",
+        "rail_type": "mainline",
+        "status": "Active Historic Belt Railway (Opened 1907-1908)",
+        "route_summary": "Houston Belt & Terminal West Belt loop connecting T&BV / Santa Fe / Union Station approaches",
+        "historic_significance": (
+            "Chartered August 31, 1905 and opened in 1907-1908 by four trunk railroads (Gulf, Colorado & Santa Fe; Rock Island; "
+            "Trinity & Brazos Valley; and St. Louis, Brownsville & Mexico) as a joint belt railway and rival terminal network "
+            "to Southern Pacific, feeding Union Station."
+        ),
+    },
+    "HOUSTON WEST BELT TRK#2": {
+        "name": "Houston Belt & Terminal Railway - West Belt Mainline Track 2 (1907)",
+        "historic_company": "Houston Belt & Terminal Railway (Chartered Aug. 31, 1905 by Santa Fe, Rock Island, T&BV & StLB&M)",
+        "charter_year": 1905,
+        "opened_year": 1907,
+        "modern_operator": "Union Pacific / BNSF Joint Belt Line (Houston West Belt Track 2)",
+        "rail_type": "mainline",
+        "status": "Active Historic Belt Railway (Opened 1907-1908)",
+        "route_summary": "Houston Belt & Terminal West Belt double-track freight and passenger transfer corridor",
+        "historic_significance": (
+            "Companion main track of the Houston Belt & Terminal Railway (chartered August 31, 1905; opened 1907-1908), built "
+            "by the Santa Fe, Rock Island, T&BV, and StLB&M syndicate to link north-south trunk lines around Houston."
+        ),
+    },
+    "EAST BELT LEAD": {
+        "name": "Houston Belt & Terminal Railway - East Belt Corridor (1907)",
+        "historic_company": "Houston Belt & Terminal Railway (Chartered Aug. 31, 1905)",
+        "charter_year": 1905,
+        "opened_year": 1907,
+        "modern_operator": "Union Pacific / BNSF Joint Belt Line (East Belt Lead)",
+        "rail_type": "mainline",
+        "status": "Active Historic Belt Railway (Opened 1907-1908)",
+        "route_summary": "East Side HB&T industrial belt connecting Fifth Ward, East End, and South Yard junctions",
+        "historic_significance": (
+            "Eastern industrial and interchange leg of the Houston Belt & Terminal Railway (chartered August 31, 1905; "
+            "opened 1907-1908), linking Union Station and East End yards to Ship Channel and Gulf Coast lines."
+        ),
+    },
+    "HARRISBURG LEAD": {
+        "name": "Buffalo Bayou, Brazos & Colorado / GH&SA Pioneer Harrisburg Line (1853)",
+        "historic_company": "Buffalo Bayou, Brazos & Colorado Ry. (Chartered Feb. 11, 1850 / Opened Aug. 1853) · GH&SA (1870)",
+        "charter_year": 1850,
+        "opened_year": 1853,
+        "modern_operator": "Union Pacific Railroad (Harrisburg Lead)",
+        "rail_type": "mainline",
+        "status": "Active Pioneer Texas Railroad Corridor (First Operating Railroad in Texas, 1853)",
+        "route_summary": "Historic Harrisburg docks and East End industrial lead along the original 1853 BBB&C alignment",
+        "historic_significance": (
+            "Part of Gen. Sidney Sherman's pioneer Buffalo Bayou, Brazos & Colorado Railway (chartered February 11, 1850; "
+            "first 20 miles from Harrisburg to Stafford's Point opened August 1853), the oldest operating railroad alignment "
+            "in Texas and later core of the Galveston, Harrisburg & San Antonio / Southern Pacific Sunset Route."
+        ),
+    },
+    "BAYTOWN": {
+        "name": "Dayton-Goose Creek Railway / Baytown Oilfield Branch (1918)",
+        "historic_company": "Dayton-Goose Creek Railway (Chartered 1917 / Opened 1918) · Texas & New Orleans RR (Leased 1926)",
+        "charter_year": 1917,
+        "opened_year": 1918,
+        "modern_operator": "Union Pacific Railroad (Baytown Subdivision)",
+        "rail_type": "mainline",
+        "status": "Active Historic Oilfield & Petrochemical Branch",
+        "route_summary": "East Harris County branch serving Goose Creek oilfield and Humble Oil's Baytown Refinery",
+        "historic_significance": (
+            "Chartered in 1917 by Ross S. Sterling and opened in 1918 as the Dayton-Goose Creek Railway to haul drilling "
+            "equipment and crude oil from the booming Goose Creek oilfield and Humble Oil's Baytown Refinery; leased to "
+            "Southern Pacific's Texas & New Orleans Railroad in 1926."
+        ),
+    },
+    "CEDAR BAYOU": {
+        "name": "Cedar Bayou & Goose Creek Industrial Rail Branch (1918 / 1970)",
+        "historic_company": "Dayton-Goose Creek Ry. (1918) · Southern Pacific / Texas & New Orleans Cedar Bayou Spur",
+        "charter_year": 1917,
+        "opened_year": 1918,
+        "modern_operator": "Union Pacific Railroad (Cedar Bayou Branch)",
+        "rail_type": "mainline",
+        "status": "Active Industrial & Petrochemical Branch",
+        "route_summary": "Baytown and Cedar Bayou industrial corridor east of the San Jacinto River",
+        "historic_significance": (
+            "Developed off the 1918 Dayton-Goose Creek / Southern Pacific Baytown network and expanded in the late 1960s "
+            "to serve steel and petrochemical complexes along Cedar Bayou."
+        ),
+    },
+    "CEDAR BAYOU INDUSTRIAL LEAD": {
+        "name": "Cedar Bayou & Goose Creek Industrial Rail Branch (1918 / 1970)",
+        "historic_company": "Dayton-Goose Creek Ry. (1918) · Southern Pacific / Texas & New Orleans Cedar Bayou Spur",
+        "charter_year": 1917,
+        "opened_year": 1918,
+        "modern_operator": "Union Pacific Railroad (Cedar Bayou Industrial Lead)",
+        "rail_type": "mainline",
+        "status": "Active Industrial & Petrochemical Branch",
+        "route_summary": "Baytown and Cedar Bayou industrial corridor east of the San Jacinto River",
+        "historic_significance": (
+            "Developed off the 1918 Dayton-Goose Creek / Southern Pacific Baytown network and expanded in the late 1960s "
+            "to serve steel and petrochemical complexes along Cedar Bayou."
+        ),
+    },
+    "BARBOURS CUT INDUSTRIAL LEAD": {
+        "name": "Port of Houston Barbours Cut Container Terminal Rail Lead (1977)",
+        "historic_company": "Southern Pacific Transportation Co. & Port of Houston Authority (Opened 1977)",
+        "charter_year": 1977,
+        "opened_year": 1977,
+        "modern_operator": "Union Pacific / PTRA (Barbours Cut Industrial Lead)",
+        "rail_type": "mainline",
+        "status": "Active Modern Container Port Intermodal Lead (Opened 1977)",
+        "route_summary": "Strang Yard (La Porte) east to Port of Houston Barbours Cut Container Terminal at Morgan's Point",
+        "historic_significance": (
+            "Constructed for the 1977 opening of the Port of Houston's Barbours Cut Container Terminal at Morgan's Point, "
+            "marking Houston's transition to containerized intermodal shipping."
+        ),
+    },
+    "JACINTO PORT INDUSTRY LEAD": {
+        "name": "JacintoPort Ship Channel Terminal Industrial Lead (1988)",
+        "historic_company": "Missouri Pacific / Union Pacific Railroad & JacintoPort Terminal (Opened 1988-1989)",
+        "charter_year": 1988,
+        "opened_year": 1988,
+        "modern_operator": "Union Pacific Railroad (Jacinto Port Industry Lead)",
+        "rail_type": "mainline",
+        "status": "Active Ship Channel Marine Terminal Lead (Opened 1988)",
+        "route_summary": "North bank of the Houston Ship Channel serving JacintoPort marine cargo terminal",
+        "historic_significance": (
+            "Late-20th-century marine terminal spur constructed in 1988-1989 to connect JacintoPort on the north bank of "
+            "the Houston Ship Channel to the trunk freight rail network."
+        ),
+    },
+    "U.S. STEEL INDUSTRIAL LEAD": {
+        "name": "Cedar Point / U.S. Steel Baytown Texas Works Industrial Lead (1970)",
+        "historic_company": "Southern Pacific Transportation Co. (Cedar Point Spur for U.S. Steel Texas Works, 1970)",
+        "charter_year": 1969,
+        "opened_year": 1970,
+        "modern_operator": "Union Pacific Railroad (U.S. Steel / Cedar Point Industrial Lead)",
+        "rail_type": "mainline",
+        "status": "Active Heavy Industrial Spur (Opened 1970)",
+        "route_summary": "East Baytown spur to Cedar Point industrial complex (former U.S. Steel Texas Works)",
+        "historic_significance": (
+            "Constructed in 1969-1970 by Southern Pacific to serve U.S. Steel's Baytown Texas Works plate and pipe mill "
+            "at Cedar Point east of Baytown."
+        ),
+    },
+    "CASEY": {
+        "name": "Trinity & Brazos Valley ('The Boll Weevil') / Burlington-Rock Island Mainline (1907)",
+        "historic_company": "Trinity & Brazos Valley Ry. (Chartered 1902 / Houston Entry 1907) · Burlington-Rock Island RR (1930)",
+        "charter_year": 1902,
+        "opened_year": 1907,
+        "modern_operator": "BNSF Railway (Casey Subdivision)",
+        "rail_type": "mainline",
+        "status": "Active Historic Mainline (Former Sam Houston Zephyr Route)",
+        "route_summary": "North Harris County BNSF corridor via Casey & Tomball toward Teague, Waxahachie, and Dallas",
+        "historic_significance": (
+            "Completed into Houston in 1907 as the Trinity & Brazos Valley Railway ('The Boll Weevil') and reorganized in "
+            "1930 as the Burlington-Rock Island Railroad, where Texas's first streamlined diesel passenger train, the "
+            "Sam Houston Zephyr, inaugurated service between Houston and Dallas-Fort Worth on October 1, 1936."
+        ),
+    },
+    "GALVESTON": {
+        "name": "Gulf, Colorado & Santa Fe Railway - Galveston & Houston Mainline (1875 / 1883)",
+        "historic_company": "Gulf, Colorado & Santa Fe Railway (Chartered May 1873 · Galveston-Alvin 1875-1877 · Houston Line May 1, 1883)",
+        "charter_year": 1873,
+        "opened_year": 1883,
+        "modern_operator": "BNSF Railway (Galveston Subdivision)",
+        "rail_type": "mainline",
+        "status": "Active Historic Santa Fe Mainline",
+        "route_summary": "South Harris & Galveston County Santa Fe mainline connecting Alvin, Houston, and Galveston Island",
+        "historic_significance": (
+            "Chartered by Galveston civic leaders in May 1873 and built inland across Galveston Bay in 1875-1877, with "
+            "its 25-mile Houston branch opening from Alvin into Houston on May 1, 1883 before joining the Atchison, "
+            "Topeka & Santa Fe system in April 1886."
         ),
     },
 }
@@ -1385,19 +1572,19 @@ CURATED_ABANDONED_RAILS_AND_STREETCARS = [
     },
     {
         "id": "rail_studewood_norhill_streetcar",
-        "name": "Studewood & Norhill Electric Streetcar Line (Route #4, 1910–1938)",
+        "name": "Studewood & Norhill Electric Streetcar Line (Route #4, 1914-1938)",
         "historic_company": "Houston Electric Company (Stone & Webster - Route #4 Studewood)",
-        "charter_year": 1910,
-        "opened_year": 1910,
+        "charter_year": 1914,
+        "opened_year": 1914,
         "modern_operator": "Removed 1938 (Preserved along White Oak Dr, Usener St & Studewood St through Woodland Heights & Norhill)",
         "rail_type": "streetcar_interurban",
-        "status": "Historic Electric Streetcar Line (1910–1938)",
+        "status": "Historic Electric Streetcar Line (1914-1938)",
         "route_summary": "Houston Avenue west along White Oak Drive & Usener Street across Stude Park, then due north up Studewood Street along the western border of Woodland Heights and Norhill to 20th/30th Streets",
         "historic_significance": (
             "Operated by the Houston Electric Company as the Studewood Line (Route #4), this streetcar branched west off "
             "Houston Avenue along White Oak Drive and Usener Street above Stude Park and ran north up Studewood Street, "
             "providing direct streetcar service along the western edge of Woodland Heights, Norhill (1920), and North Norhill "
-            "(1924) and fostering the historic corner commercial districts at Studewood & White Oak and Studewood & 11th/14th."
+            "(1923) and fostering the historic corner commercial districts at Studewood & White Oak and Studewood & 11th/14th."
         ),
         "osm_streetcar_legs": [
             {
@@ -1578,7 +1765,7 @@ CURATED_HISTORIC_DEPOTS = [
         "historic_company": "Houston & Texas Central Railway · Southern Pacific Lines (Sunset Route & Sunbeam)",
         "charter_year": 1856,
         "opened_year": 1886,
-        "modern_operator": "Demolished 1960 for Barbara Jordan Post Office (Now POST Houston, 401/901 Franklin Ave)",
+        "modern_operator": "Demolished 1960 for Barbara Jordan Post Office (Now POST Houston, 401 Franklin St)",
         "rail_type": "depot",
         "status": "Historic Passenger Terminal Site (1886 Victorian Depot · 1934 Art Moderne Terminal · Demolished 1960)",
         "route_summary": "Washington Ave & Franklin Ave on the south bank of White Oak Bayou",
@@ -1715,37 +1902,37 @@ CURATED_HISTORIC_DEPOTS = [
     },
     {
         "id": "depot_tower_134_pierce_jct",
-        "name": "Pierce Junction & Interlocker Tower 134 (1856 / 1880 - First Railroad Junction in Texas)",
+        "name": "Pierce Junction (1856 - First Railroad Junction in Texas) & Interlocker Tower 134 (1929)",
         "historic_company": "Buffalo Bayou, Brazos & Colorado Ry. (1853) · Houston Tap & Brazoria Ry. (1856) · GH&SA & I&GN",
         "charter_year": 1856,
         "opened_year": 1856,
         "modern_operator": "Union Pacific Railroad (Almeda Road & Glidden Subdivision Crossing, South Houston)",
         "rail_type": "depot",
-        "status": "Historic Birthplace of Texas Railroad Junctions (Established Oct. 1856)",
+        "status": "Historic Birthplace of Texas Railroad Junctions (Established Oct. 1856; Tower 134 Commissioned 1929)",
         "route_summary": "Almeda Road at the BBB&C / GH&SA Sunset Route crossing (6.5 miles south of Downtown)",
         "historic_significance": (
             "The first railroad junction in Texas, created in October 1856 when the municipal Houston Tap Railroad built "
             "south from Houston along Almeda Road to 'tap' the 1853 Buffalo Bayou, Brazos & Colorado Railway. Later named "
             "for GH&SA president and Arcola sugar planter Thomas W. Peirce ('Pierce Junction'), it was also the point (at "
             "nearby 'Stella', 1,000 feet west) where the 1880 GH&SA line diverged north alongside Almeda Road toward Blodgett "
-            "and Montrose."
+            "and Montrose. The Railroad Commission of Texas commissioned Interlocker Tower 134 at the GH&SA and I&GN diamond on March 27, 1929."
         ),
         "coords": [-95.39606, 29.67198],
     },
     {
         "id": "depot_tower_26",
-        "name": "Tower 26 Historic Railroad Interlocking Junction (1906 - H&TC, T&NO & HE&WT Crossing)",
+        "name": "Tower 26 Historic Railroad Interlocking Junction (1903 - H&TC, T&NO & HE&WT Crossing)",
         "historic_company": "Texas Railroad Commission Interlocker #26 (Southern Pacific / H&TC / T&NO / HE&WT 'Rabbit')",
-        "charter_year": 1902,
-        "opened_year": 1906,
+        "charter_year": 1901,
+        "opened_year": 1903,
         "modern_operator": "Union Pacific Englewood / Hardy Junction (West St & Carr St, Fifth Ward)",
         "rail_type": "depot",
-        "status": "Historic Railroad Diamond & Interlocking Junction (Commissioned 1906)",
+        "status": "Historic Railroad Diamond & Interlocking Junction (Authorized Sept. 29, 1903; Tower Stood 1903-2001)",
         "route_summary": "Carr St & West St just west of Englewood Yard in Fifth Ward",
         "historic_significance": (
-            "Commissioned by the Railroad Commission of Texas in 1902–1906, Tower 26 controlled one of the most famous "
-            "and heavily trafficked railroad junctions in the Southwest, where the H&TC, T&NO, HE&WT ('The Rabbit'), and "
-            "HB&T lines converged on the eastern edge of Fifth Ward."
+            "Authorized for operation by the Railroad Commission of Texas on September 29, 1903, Tower 26 controlled one of the "
+            "busiest railroad junctions in the Southwest, where the H&TC, T&NO, HE&WT ('The Rabbit'), and later HB&T lines "
+            "converged on the eastern edge of Fifth Ward."
         ),
         "coords": [-95.3359, 29.7766],
     },
@@ -1767,18 +1954,19 @@ CURATED_HISTORIC_DEPOTS = [
     },
     {
         "id": "depot_chaney_junction",
-        "name": "Chaney Junction (1860s–1890s H&TC, GH&SA & T&NO West Loop Junction - Tower 108)",
-        "historic_company": "Houston & Texas Central Ry. · Galveston, Harrisburg & San Antonio Ry. · Texas & New Orleans RR",
+        "name": "Chaney Junction & Interlocker Tower 14 Site (1880-1915 GH&SA & H&TC West Junction)",
+        "historic_company": "Houston & Texas Central Ry. · Galveston, Harrisburg & San Antonio Ry. (RCT Interlocker Tower 14, 1903-1915)",
         "charter_year": 1856,
         "opened_year": 1880,
         "modern_operator": "Union Pacific Railroad (Washington Ave & Studemont / Sawyer Yards)",
         "rail_type": "depot",
-        "status": "Active Historic Railroad Wye & Junction",
+        "status": "Active Historic Railroad Wye & Former RCT Tower 14 Junction",
         "route_summary": "Washington Ave & Sawyer/Studemont between Old Sixth Ward and Sawyer Yards",
         "historic_significance": (
-            "Historic railroad wye where the 1880–1915 GH&SA line through Montrose met the 1856 H&TC mainline, splitting "
+            "Historic railroad wye and former Railroad Commission of Texas Interlocker Tower 14 (authorized July 15, 1903; "
+            "retired November 17, 1915) where the 1880-1915 GH&SA line through Montrose met the 1856 H&TC mainline, splitting "
             "trains between the passenger approach into Grand Central Station along White Oak Bayou and the northern freight "
-            "bypass loop to Hardy Street Shops and Englewood Yard."
+            "loop toward Hardy Street Shops and Englewood Yard."
         ),
         "coords": [-95.3886, 29.7712],
     },
@@ -1791,6 +1979,8 @@ def normalize_waterway_name(raw_name: str) -> str:
     s = re.sub(r"\s+", " ", raw_name.strip())
     # Strip USGS NHD tidal suffixes
     s = re.sub(r"\s+(Above Tidal|Tidal)$", "", s, flags=re.IGNORECASE)
+    if s.lower() == "jackson bayon":
+        return "Jackson Bayou"
     if s.lower() == "little white oak" or s.lower() == "little whiteoak bayou":
         return "Little White Oak Bayou"
     if s.lower() == "whiteoak bayou":
@@ -1987,13 +2177,27 @@ def build_waterways_collection() -> list:
         else:
             wtype = "creek"
 
-        default_status = (
-            "Buried / Enclosed in Municipal Storm Culvert"
-            if wtype == "buried_gully"
-            else ("Major Historic Bayou & Drainage Corridor" if wtype == "bayou" else "Historic Stream, Creek & Tributary")
-        )
+        nm_low = nm.lower()
+        if "canal" in nm_low:
+            display_noun = "water supply canal"
+            default_status = "Water Supply & Drainage Canal"
+        elif "lake" in nm_low or "reservoir" in nm_low:
+            display_noun = "reservoir and waterway"
+            default_status = "Reservoir & Drainage Waterway"
+        elif "river" in nm_low:
+            display_noun = "river"
+            default_status = "Major Regional River & Drainage Corridor"
+        elif wtype == "buried_gully":
+            display_noun = "buried gully"
+            default_status = "Buried / Enclosed in Municipal Storm Culvert"
+        elif wtype == "bayou":
+            display_noun = "bayou"
+            default_status = "Major Historic Bayou & Drainage Corridor"
+        else:
+            display_noun = "creek"
+            default_status = "Historic Stream, Creek & Tributary"
         default_sig = (
-            f"{nm} is a historic {wtype.replace('_', ' ')} in the Houston / Harris County drainage network "
+            f"{nm} is a {display_noun} in the Houston / Harris County drainage network "
             f"({length_mi:.1f} miles mapped across USGS National Hydrography and City of Houston archives)."
         )
 
@@ -2511,16 +2715,16 @@ def build_railroads_collection() -> list:
             key = "rr_ptra"
         elif abrv == "BNSF":
             meta = {
-                "name": f"Gulf, Colorado & Santa Fe / Burlington-Rock Island Line ({subdiv or 'Houston Corridor'})",
-                "historic_company": "Gulf, Colorado & Santa Fe Ry. (1880) · Trinity & Brazos Valley Ry. (1907)",
-                "charter_year": 1880,
-                "opened_year": 1882,
+                "name": f"BNSF Railway Houston Corridor ({subdiv or 'Industrial Lead'})",
+                "historic_company": "Gulf, Colorado & Santa Fe Ry. · Trinity & Brazos Valley Ry. (BNSF Predecessors)",
+                "charter_year": None,
+                "opened_year": None,
                 "modern_operator": "BNSF Railway",
                 "rail_type": "mainline",
-                "status": "Active Historic Freight & Industrial Line",
+                "status": "Active Freight & Industrial Rail Line",
                 "route_summary": f"Houston BNSF Corridor ({subdiv or 'Industrial Lead'})",
                 "historic_significance": (
-                    "Historic Santa Fe (GC&SF) and Burlington-Rock Island (T&BV) rail corridor serving greater Houston."
+                    "Freight and industrial rail corridor operated by BNSF Railway across greater Houston."
                 ),
             }
             key = f"bnsf_{subdiv or 'other'}"
@@ -2528,17 +2732,16 @@ def build_railroads_collection() -> list:
             label_sub = subdiv.title() if subdiv and subdiv != "#N\\A" else "Industrial Lead"
             is_abandoned = "abandon" in status_raw.lower() or "inactive" in status_raw.lower()
             meta = {
-                "name": f"Southern Pacific / MoPac Historic {label_sub}",
-                "historic_company": "Southern Pacific (T&NO / H&TC / GH&SA) & Missouri Pacific (I&GN / StLB&M)",
-                "charter_year": 1880,
-                "opened_year": 1895,
+                "name": f"Union Pacific {label_sub} Rail Corridor",
+                "historic_company": f"{attr.get('RR_COMPANY') or 'Union Pacific Railroad'} ({label_sub})",
+                "charter_year": None,
+                "opened_year": None,
                 "modern_operator": f"{attr.get('RR_COMPANY') or 'Union Pacific'} ({label_sub})",
                 "rail_type": "abandoned_trail" if is_abandoned else "mainline",
-                "status": "Inactive / Abandoned Rail Lead" if is_abandoned else "Active Historic Industrial Rail Lead",
+                "status": "Inactive / Abandoned Rail Lead" if is_abandoned else "Active Industrial & Port Rail Lead",
                 "route_summary": f"Houston {label_sub} rail corridor",
                 "historic_significance": (
-                    f"Historic rail lead ({label_sub}) constructed during the expansion of Houston's 19th- and "
-                    f"20th-century industrial and port rail network."
+                    f"Industrial and port freight rail lead ({label_sub}) serving Houston and Ship Channel facilities."
                 ),
             }
             key = f"up_{subdiv or 'other'}"

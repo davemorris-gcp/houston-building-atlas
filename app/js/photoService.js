@@ -98,6 +98,12 @@ function indexPhotoRecord(index, raw, sourceTier = 'curated') {
     }
   };
 
+  const isHaifForumPhoto = /\b(haif|houston architecture(?: info)? forum)\b/i.test(
+    `${raw.credit || ''} ${raw.attribution || ''} ${raw.source || ''} ${raw.era_label || ''}`
+  );
+  const resolvedSourceTier = raw.source_tier || sourceTier;
+  const isVerifiedCurated = resolvedSourceTier === 'curated' && !isHaifForumPhoto;
+
   const item = {
     ...raw,
     thumb_url: raw.thumb_url || raw.image_url,
@@ -107,7 +113,15 @@ function indexPhotoRecord(index, raw, sourceTier = 'curated') {
     era_label:
       raw.era_label ||
       (raw.photo_year ? `${raw.photo_year} Archival Photo` : 'Community Archival Photo'),
-    source_tier: raw.source_tier || sourceTier,
+    source_tier: resolvedSourceTier,
+    provenance_tier: isVerifiedCurated ? 1 : isHaifForumPhoto ? 4 : 2,
+    match_method: isHaifForumPhoto ? 'auto_forum' : resolvedSourceTier,
+    is_unverified_auto: Boolean(isHaifForumPhoto),
+    provenance_badge: isVerifiedCurated
+      ? 'Verified Archival Photo'
+      : isHaifForumPhoto
+      ? 'Unverified Forum Photo · HAIF'
+      : 'Community Contributed Photo',
   };
   index.allPhotos.push(item);
 
@@ -167,7 +181,7 @@ export async function loadCuratedPhotosIndex() {
       allPhotos: [],
     };
     try {
-      const resp = await fetch('./public/data/building_photos.json?v=20261011u');
+      const resp = await fetch('./public/data/building_photos.json?v=20261025m');
       if (resp.ok) {
         const data = await resp.json();
         const photos = Array.isArray(data?.photos) ? data.photos : [];
@@ -276,6 +290,113 @@ function parseCommonsYear(title, ext) {
 
 const LS_HIDDEN_PHOTOS_KEY = 'ph_atlas_hidden_photos';
 
+// Global moderator-approved photo rejections (synced from Google Sheet `Approved_Edits`)
+// and registered Houston landmark names/parcels for cross-landmark photo exclusion.
+const globallyRejectedPhotoKeys = new Map(); // key -> Set<hcadNum | '*'>
+const knownLandmarkExclusions = []; // { hcadNum, nameLower, addressKey }
+
+export function clearRegisteredPhotoExclusions() {
+  globallyRejectedPhotoKeys.clear();
+  knownLandmarkExclusions.length = 0;
+  liveCommonsCache.clear();
+}
+
+export function registerGloballyRejectedPhotos(records = []) {
+  if (!Array.isArray(records)) return;
+  for (const rec of records) {
+    const url = String(rec?.photoUrl || rec?.photo_url || rec?.url || '').trim();
+    if (!url) continue;
+    const hcad = String(rec?.hcadNum || rec?.hcad_num || '').replace(/\D/g, '') || '*';
+    for (const k of [url, extractFilenameKey(url)].filter(Boolean)) {
+      const set = globallyRejectedPhotoKeys.get(k) || new Set();
+      set.add(hcad);
+      globallyRejectedPhotoKeys.set(k, set);
+    }
+  }
+  liveCommonsCache.clear();
+}
+
+export function isPhotoGloballyRejected(imageUrl, hcadNum = '') {
+  if (!imageUrl) return false;
+  const cleanHcad = String(hcadNum || '').split('#')[0].replace(/\D/g, '');
+  for (const k of [imageUrl, extractFilenameKey(imageUrl)].filter(Boolean)) {
+    const scopes = globallyRejectedPhotoKeys.get(k);
+    if (!scopes) continue;
+    if (scopes.has('*') || (cleanHcad && scopes.has(cleanHcad))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function registerKnownLandmarksForPhotoExclusion(entries = []) {
+  if (!Array.isArray(entries)) return;
+  const seen = new Set(knownLandmarkExclusions.map((e) => `${e.hcadNum}|${e.nameLower}`));
+  for (const entry of entries) {
+    const rawName = String(entry?.name || entry?.landmark_name || entry?.building_name || '')
+      .replace(/\s*\([^)]*\)\s*/g, ' ')
+      .replace(/^the\s+/i, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+    const hcad = String(entry?.hcad_num || entry?.hcadNum || '').split('#')[0].replace(/\D/g, '');
+    if (!rawName || rawName.length < 9 || !hcad) continue;
+    // Require at least 2 meaningful words and skip street-address-like names ("House at 1802 Harvard")
+    const words = rawName.split(/\s+/).filter((w) => w.length >= 3);
+    if (words.length < 2 || /^(house|building|structure|commercial|residence)\s+(at|on)\b/.test(rawName)) {
+      continue;
+    }
+    const dedupKey = `${hcad}|${rawName}`;
+    if (seen.has(dedupKey)) continue;
+    seen.add(dedupKey);
+    knownLandmarkExclusions.push({
+      hcadNum: hcad,
+      nameLower: rawName,
+      addressKey: normalizeAddressKey(entry?.address || ''),
+    });
+  }
+  liveCommonsCache.clear();
+}
+
+function extractExplicitStreetAddresses(text) {
+  const results = [];
+  if (!text) return results;
+  const re =
+    /\b(\d{3,5})\s+(?:(n|s|e|w|north|south|east|west)\.?\s+)?([a-z0-9]{2,22}(?:\s+[a-z0-9]{2,18})?)\s+(st|street|ave|avenue|blvd|boulevard|dr|drive|rd|road|ln|lane|ct|court|pl|place|pkwy|parkway)\b/gi;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const num = Number(m[1]);
+    // Skip years (1836-2026) followed by words that accidentally end in a suffix-like token unless clearly a street
+    const streetCore = String(m[3] || '')
+      .toUpperCase()
+      .replace(/\b(HOUSTON|TEXAS|TX|HISTORIC|BUILT|CIRCA|IN|AT|ON|OF|THE|AND)\b/g, '')
+      .trim();
+    if (!streetCore || streetCore.length < 3 || /^\d+$/.test(streetCore)) continue;
+    results.push({ num, streetCore });
+  }
+  return results;
+}
+
+function parseTargetAddressTokens(address, altAddresses = []) {
+  const list = [address, ...(Array.isArray(altAddresses) ? altAddresses : [])].filter(Boolean);
+  const parsed = [];
+  for (const raw of list) {
+    for (const part of String(raw).split(/[\/;|]/)) {
+      const norm = normalizeAddressKey(part);
+      const m = norm.match(/^(\d{2,5})(?:\s+\d{2,5})?\s+(?:(?:N|S|E|W)\s+)?([A-Z0-9]+(?:\s+[A-Z0-9]+)?)/);
+      if (m) {
+        const streetCore = m[2]
+          .replace(/\b(ST|AVE|BLVD|DR|RD|LN|CT|PL|PKWY|FWY|CIR|WAY)\b/g, '')
+          .trim();
+        if (streetCore) {
+          parsed.push({ num: Number(m[1]), streetCore });
+        }
+      }
+    }
+  }
+  return parsed;
+}
+
 export function getHiddenPhotoKeys() {
   if (typeof localStorage === 'undefined') return new Set();
   try {
@@ -329,34 +450,43 @@ function extractTitleStemKey(title) {
  *
  * Returns `{ usable: boolean, score: number }`.
  */
-function evaluateCommonsCandidate(page, {
+export function evaluateCommonsCandidate(page, {
+  hcadNum = '',
   landmarkName = '',
   address = '',
+  altAddresses = [],
   useCategory = '',
   sourceType = 'geosearch', // 'search' | 'geosearch'
 } = {}) {
   const title = String(page?.title || '');
   const lowerTitle = title.toLowerCase();
   const ii = page?.imageinfo?.[0];
-  if (!ii?.url) return { usable: false, score: -100 };
+  if (!ii?.url) return { usable: false, score: -100, rejectReason: 'missing_url' };
 
   // Support standard web bitmaps AND archival .tif/.tiff masters (Library of Congress HABS/HAER/Highsmith)
   // whenever Wikimedia Commons provides a rendered .jpg thumburl.
   const isStandardBitmap = /\.(jpg|jpeg|png|webp)$/i.test(lowerTitle);
   const isArchivalTiff = /\.(tif|tiff)$/i.test(lowerTitle) && Boolean(ii.thumburl);
   if (!isStandardBitmap && !isArchivalTiff) {
-    return { usable: false, score: -100 };
+    return { usable: false, score: -100, rejectReason: 'unsupported_format' };
   }
 
-  if (isPhotoHidden(ii.thumburl || ii.url) || isPhotoHidden(ii.url)) {
-    return { usable: false, score: -100 };
+  const cleanHcad = String(hcadNum || '').split('#')[0].replace(/\D/g, '');
+  if (
+    isPhotoHidden(ii.thumburl || ii.url) ||
+    isPhotoHidden(ii.url) ||
+    isPhotoGloballyRejected(ii.thumburl || ii.url, cleanHcad) ||
+    isPhotoGloballyRejected(ii.url, cleanHcad)
+  ) {
+    return { usable: false, score: -100, rejectReason: 'hidden_or_rejected' };
   }
 
   const ext = ii.extmetadata || {};
   const rawDesc = stripHtml(ext?.ImageDescription?.value || '');
   const rawCats = stripHtml(ext?.Categories?.value || '');
   const rawObj = stripHtml(ext?.ObjectName?.value || '');
-  const combinedText = `${title.replace(/_/g, ' ')} | ${rawObj} | ${rawDesc} | ${rawCats}`.toLowerCase();
+  const titleAndObjectText = `${title.replace(/^File:/i, '').replace(/_/g, ' ')} | ${rawObj}`.toLowerCase();
+  const combinedText = `${titleAndObjectText} | ${rawDesc} | ${rawCats}`.toLowerCase();
 
   // 1. Hard graphic / non-photo exclusions
   const bannedGraphicTokens = [
@@ -442,7 +572,70 @@ function evaluateCommonsCandidate(page, {
     }
   }
 
-  // 3. Determine if the target property is a Park / Plaza / Bayou / Cultural Landscape
+  // 3. Cross-Parcel Street Address & Cross-Landmark Entity Hard Exclusions (Phase C):
+  //    Prevent adjacent or across-the-street Wikimedia Commons photos from attaching to the wrong parcel.
+  const cleanTargetLandmark = String(landmarkName || '')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/^the\s+/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  const targetMatchesPhotoName =
+    Boolean(cleanTargetLandmark && cleanTargetLandmark.length >= 6 && combinedText.includes(cleanTargetLandmark));
+
+  const targetAddrs = parseTargetAddressTokens(address, altAddresses);
+  if (targetAddrs.length > 0 && !targetMatchesPhotoName) {
+    const candidateAddrs = extractExplicitStreetAddresses(`${title.replace(/_/g, ' ')} | ${rawObj} | ${rawDesc}`);
+    if (candidateAddrs.length > 0) {
+      const anyAddrMatchesTarget = candidateAddrs.some((ca) =>
+        targetAddrs.some(
+          (ta) =>
+            (ca.streetCore.includes(ta.streetCore) || ta.streetCore.includes(ca.streetCore)) &&
+            Math.abs(ca.num - ta.num) <= 10
+        )
+      );
+      if (!anyAddrMatchesTarget) {
+        return {
+          usable: false,
+          score: -100,
+          rejectReason: 'conflicting_street_address',
+        };
+      }
+    }
+  }
+
+  if (knownLandmarkExclusions.length > 0 && !targetMatchesPhotoName) {
+    for (const other of knownLandmarkExclusions) {
+      if (cleanHcad && other.hcadNum === cleanHcad) continue;
+      if (cleanTargetLandmark && (other.nameLower.includes(cleanTargetLandmark) || cleanTargetLandmark.includes(other.nameLower))) {
+        continue;
+      }
+      if (titleAndObjectText.includes(other.nameLower)) {
+        return {
+          usable: false,
+          score: -100,
+          rejectReason: 'depicts_different_landmark',
+        };
+      }
+    }
+  }
+
+  // Reject broad citywide skyline / freeway / intersection panoramas on blind single-parcel geosearch
+  if (
+    sourceType === 'geosearch' &&
+    !targetMatchesPhotoName &&
+    /\b(houston skyline|downtown houston skyline|aerial view of downtown|panorama of downtown|freeway interchange)\b/i.test(
+      titleAndObjectText
+    )
+  ) {
+    return {
+      usable: false,
+      score: -100,
+      rejectReason: 'broad_skyline_panorama',
+    };
+  }
+
+  // 4. Determine if the target property is a Park / Plaza / Bayou / Cultural Landscape
   const contextStr = `${landmarkName} ${address} ${useCategory}`.toLowerCase();
   const isLandscapeContext =
     /\b(park|plaza|square|garden|bayou|greenway|arboretum|conservancy|cemetery|esplanade|promenade|trail)\b/i.test(
@@ -521,7 +714,7 @@ function evaluateCommonsCandidate(page, {
   };
 }
 
-function formatCommonsPageToPhoto(page, relevanceScore = 0) {
+function formatCommonsPageToPhoto(page, relevanceScore = 0, sourceType = 'geosearch') {
   const ii = page.imageinfo[0];
   const ext = ii.extmetadata || {};
   const cleanTitle = String(page.title || '')
@@ -555,6 +748,12 @@ function formatCommonsPageToPhoto(page, relevanceScore = 0) {
     else eraLabel = `${year} Contemporary`;
   }
 
+  const matchMethod = sourceType === 'search' ? 'auto_name' : 'auto_gps';
+  const provenanceBadge =
+    sourceType === 'search'
+      ? 'Unverified Automated Name Match · Wikimedia'
+      : 'Unverified Nearby GPS Match · Wikimedia';
+
   return {
     photo_year: year,
     era_label: eraLabel,
@@ -568,6 +767,10 @@ function formatCommonsPageToPhoto(page, relevanceScore = 0) {
       `https://commons.wikimedia.org/wiki/${encodeURIComponent(page.title)}`,
     is_primary: false,
     source_tier: 'commons_live',
+    provenance_tier: 4,
+    match_method: matchMethod,
+    is_unverified_auto: true,
+    provenance_badge: provenanceBadge,
     relevance_score: relevanceScore,
     _stem: extractTitleStemKey(page.title),
   };
@@ -582,14 +785,19 @@ function formatCommonsPageToPhoto(page, relevanceScore = 0) {
 export async function fetchCommonsPhotos({
   lat,
   lng,
+  hcadNum = '',
   landmarkName = '',
   address = '',
+  altAddresses = [],
   useCategory = '',
   radiusMeters = 60,
 }) {
-  const cacheKey = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}|${normalizeKey(landmarkName)}|${normalizeAddressKey(address)}`;
+  const cleanHcad = String(hcadNum || '').split('#')[0].replace(/\D/g, '');
+  const cacheKey = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}|${cleanHcad}|${normalizeKey(landmarkName)}|${normalizeAddressKey(address)}`;
   if (liveCommonsCache.has(cacheKey)) {
-    return liveCommonsCache.get(cacheKey).filter((p) => !isPhotoHidden(p.image_url));
+    return liveCommonsCache
+      .get(cacheKey)
+      .filter((p) => !isPhotoHidden(p.image_url) && !isPhotoGloballyRejected(p.image_url, cleanHcad));
   }
 
   const candidates = [];
@@ -600,8 +808,10 @@ export async function fetchCommonsPhotos({
     const pages = Object.values(pagesObj);
     for (const page of pages) {
       const { usable, score } = evaluateCommonsCandidate(page, {
+        hcadNum: cleanHcad,
         landmarkName,
         address,
+        altAddresses,
         useCategory,
         sourceType,
       });
@@ -609,14 +819,14 @@ export async function fetchCommonsPhotos({
       const fileKey = extractFilenameKey(page?.imageinfo?.[0]?.url || page.title);
       if (seenFiles.has(fileKey)) continue;
       seenFiles.add(fileKey);
-      candidates.push(formatCommonsPageToPhoto(page, score));
+      candidates.push(formatCommonsPageToPhoto(page, score, sourceType));
     }
   };
 
   const cleanLandmark = String(landmarkName || '').trim();
   const primaryLandmarkName = cleanLandmark
     .replace(/\s*\([^)]*\)\s*/g, ' ')
-    .split(/\s+(?:&|\/|—|--)\s+/)[0]
+    .split(/\s+(?:&|\/|--|-)\s+/)[0]
     .replace(/\s+/g, ' ')
     .trim();
   const isGenericTitle =
@@ -651,7 +861,7 @@ export async function fetchCommonsPhotos({
 
     // 2. Coordinate GeoSearch SECOND (only when needed, and strictly filtered for architecture/landscape)
     if (candidates.length < 5 && Number.isFinite(lat) && Number.isFinite(lng)) {
-      const effectiveRadius = isGenericTitle ? Math.min(radiusMeters, 28) : Math.min(radiusMeters, 60);
+      const effectiveRadius = isGenericTitle ? Math.min(radiusMeters, 22) : Math.min(radiusMeters, 55);
       const geoParams = new URLSearchParams({
         action: 'query',
         generator: 'geosearch',
@@ -700,13 +910,15 @@ export async function resolveBuildingPhotos({
   hcadNum = '',
   landmarkName = '',
   address = '',
+  altAddresses = [],
   useCategory = '',
   lat = null,
   lng = null,
 }) {
+  const cleanHcad = String(hcadNum || '').split('#')[0].replace(/\D/g, '');
   const curated = await getCuratedBuildingPhotos({
     buildingId,
-    hcadNum,
+    hcadNum: cleanHcad,
     landmarkName,
     address,
   });
@@ -716,7 +928,7 @@ export async function resolveBuildingPhotos({
   const combined = [];
 
   for (const item of curated) {
-    if (isPhotoHidden(item.image_url)) continue;
+    if (isPhotoHidden(item.image_url) || isPhotoGloballyRejected(item.image_url, cleanHcad)) continue;
     const key = extractFilenameKey(item.image_url);
     if (key) seenFiles.add(key);
     const stem = extractTitleStemKey(item.source_url || item.image_url);
@@ -730,13 +942,15 @@ export async function resolveBuildingPhotos({
     const commons = await fetchCommonsPhotos({
       lat,
       lng,
+      hcadNum: cleanHcad,
       landmarkName,
       address,
+      altAddresses,
       useCategory,
-      radiusMeters: combined.length > 0 ? 35 : 45,
+      radiusMeters: combined.length > 0 ? 30 : 42,
     });
     for (const item of commons) {
-      if (isPhotoHidden(item.image_url)) continue;
+      if (isPhotoHidden(item.image_url) || isPhotoGloballyRejected(item.image_url, cleanHcad)) continue;
       const key = extractFilenameKey(item.image_url);
       if (key && seenFiles.has(key)) continue;
       if (item._stem && seenStems.has(item._stem)) continue;

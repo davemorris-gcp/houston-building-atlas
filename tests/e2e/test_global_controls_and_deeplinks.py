@@ -168,3 +168,51 @@ def test_plat_monitor_agenda_and_watchlist(
         detail_txt = page.locator("#detail").text_content() or ""
         assert "MR.aspx" not in detail_txt, "plat-monitor.html must never link to retired Harris County Clerk MR.aspx"
         url_harvester.harvest_from_locator(page.locator("#detail"), f"plat_monitor:watchlist_{idx}")
+
+
+def test_historical_provenance_citations_and_flagging(
+    guarded_page: Any,
+    atlas_base_url: str,
+    url_harvester: Any,
+) -> None:
+    page = guarded_page
+
+    # 1. Guided Chapter 3: Verify Will Hogg / Varner Realty Co. Norhill prose, primary-source citation pills, and 1-click Flag Error button
+    page.goto(f"{atlas_base_url}/index.html#chapter=streetcar_suburbs_and_deeds", wait_until="domcontentloaded")
+    _wait_for_atlas_ready(page)
+    page.wait_for_selector("#city-chapters-card:not(.hidden)", timeout=10000)
+    chapter_body = page.locator("#city-chapter-narrative").text_content() or ""
+    assert "Will Hogg" in chapter_body and "Varner Realty" in chapter_body
+    assert "Russell Brown's Norhill" not in chapter_body
+    assert page.locator("#city-chapter-citations .narrative-citation-pill").count() >= 1
+    assert page.locator('#city-chapter-citations [data-quick-flag="narrative"]').count() == 1
+    url_harvester.harvest_from_locator(page.locator("#city-chapter-citations"), "chapter3:citations")
+    page.click("#btn-exit-city-chapters")
+
+    # 2. HCAD Rounded-Decade Estimate + 1926 City Directory Contradiction Banner (#hcad=1383000010001, 711 Heights Blvd A, HCAD 1920)
+    page.evaluate(
+        """async () => {
+            window.location.hash = '#hcad=1383000010001';
+            await window.atlasApp._handleUrlChange();
+        }"""
+    )
+    page.wait_for_selector("#inspector-drawer:not(.hidden)", timeout=10000)
+    page.wait_for_selector("#inspector-citydir-contradiction-banner", timeout=10000)
+    insp_txt = page.locator("#inspector-body").text_content() or ""
+    assert "c. 1920 (HCAD Est.)" in insp_txt
+    assert "Rounded Decade Estimate" in insp_txt
+    assert page.locator("#inspector-body .evidentiary-tier-badge").count() >= 1
+
+    # 3. Curated Landmark Photo Provenance Pill + 1-Click 'Wrong Building' Flag Button (#hcad=0010330000018, 310 Main St Sweeney & Coombs Building)
+    page.evaluate(
+        """async () => {
+            window.location.hash = '#hcad=0010330000018';
+            await window.atlasApp._handleUrlChange();
+        }"""
+    )
+    page.wait_for_function(
+        """() => (document.getElementById('inspector-body')?.text_content || document.getElementById('inspector-body')?.innerText || '').includes('310 MAIN')""",
+        timeout=10000,
+    )
+    page.wait_for_selector("#inspector-body .photo-provenance-pill", timeout=15000)
+    assert page.locator('#inspector-body [data-action="flag-wrong-photo"]').count() >= 1

@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261024a";
+} from "./palettes.js?v=20261025m";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -18,32 +18,38 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261025i";
-import { AtlasMapController } from "./mapController.js?v=20261025k";
+} from "./filterStore.js?v=20261025m";
+import { AtlasMapController } from "./mapController.js?v=20261025m";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261025i";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
+} from "./guidedChaptersAndPortfolios.js?v=20261025m";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261025m";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
+  classifyFieldEvidentiaryTier,
   clearAdminSession,
   formatSuggestionsAsCsv,
   getAdminSession,
   getLocalPendingSuggestions,
+  isClaimSuppressed,
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
-} from "./curatedEdits.js?v=20261012b";
+  submitQuickFlagReport,
+} from "./curatedEdits.js?v=20261025m";
 import {
   buildStreetViewUrl,
+  clearRegisteredPhotoExclusions,
   hideBuildingPhoto,
   loadCuratedPhotosIndex,
+  registerGloballyRejectedPhotos,
+  registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261012b";
+} from "./photoService.js?v=20261025m";
 
 class HoustonAtlasApp {
   constructor() {
@@ -145,6 +151,7 @@ class HoustonAtlasApp {
       loadCuratedPhotosIndex(),
     ]);
 
+    this._syncPhotoExclusionRegistries();
     this._syncPermitWatchCounts();
     this._syncHahcCounts();
     this._mergeCuratedOverridesIntoSearchIndex();
@@ -576,12 +583,12 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261025i"),
-        fetch("public/data/stats_summary.json?v=20261011d"),
-        fetch("public/data/haif_index.json?v=20261011d").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261011d").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261025b").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261025a").catch(() => null),
+        fetch("public/data/search_index.json?v=20261025m"),
+        fetch("public/data/stats_summary.json?v=20261025m"),
+        fetch("public/data/haif_index.json?v=20261025m").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261025m").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261025m").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261025m").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -668,6 +675,228 @@ class HoustonAtlasApp {
     } catch (err) {
       console.error("Failed to load metadata files:", err);
     }
+  }
+
+  _syncPhotoExclusionRegistries() {
+    clearRegisteredPhotoExclusions();
+    const rejectedPhotos = this.mapController?.globalRejections?.rejectedPhotos || [];
+    if (rejectedPhotos.length > 0) {
+      registerGloballyRejectedPhotos(rejectedPhotos);
+    }
+    const landmarkEntries = [];
+    const overlays = this.mapController?.overlaysData;
+    if (overlays) {
+      for (const f of overlays.landmarks?.features || []) {
+        if (f?.properties) landmarkEntries.push(f.properties);
+      }
+      for (const f of overlays.good_brick_awards?.features || []) {
+        if (f?.properties) landmarkEntries.push(f.properties);
+      }
+    }
+    const ovMap = this.mapController?.curatedOverrides || {};
+    for (const ov of Object.values(ovMap)) {
+      if (ov && !ov.suppress_only) landmarkEntries.push(ov);
+    }
+    if (landmarkEntries.length > 0) {
+      registerKnownLandmarksForPhotoExclusion(landmarkEntries);
+    }
+  }
+
+  _getActiveWebhookUrl() {
+    return (
+      document.getElementById("admin-webhook-url")?.value?.trim() ||
+      this.mapController?.sheetSyncStatus?.webhookUrl ||
+      ""
+    );
+  }
+
+  _showQuickFlagToast(message) {
+    if (typeof document === "undefined") return;
+    let toast = document.getElementById("quick-flag-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "quick-flag-toast";
+      toast.className = "quick-flag-toast";
+      toast.setAttribute("role", "status");
+      toast.setAttribute("aria-live", "polite");
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.opacity = "1";
+    toast.classList.remove("hidden");
+    if (this._quickFlagToastTimer) {
+      clearTimeout(this._quickFlagToastTimer);
+    }
+    this._quickFlagToastTimer = setTimeout(() => {
+      if (toast) {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.classList.add("hidden"), 240);
+      }
+    }, 3800);
+  }
+
+  _escapeHtmlAttr(val) {
+    return String(val ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  _parseCitationsArray(raw) {
+    let list = raw;
+    if (typeof list === "string") {
+      const s = list.trim();
+      if (s.startsWith("[")) {
+        try {
+          list = JSON.parse(s);
+        } catch (_e) {
+          list = [];
+        }
+      } else {
+        list = [];
+      }
+    }
+    if (!Array.isArray(list)) return [];
+    const out = [];
+    for (const item of list) {
+      if (!item) continue;
+      if (typeof item === "string") {
+        const clean = item.trim();
+        if (clean) out.push({ label: clean, url: "" });
+      } else if (typeof item === "object") {
+        const label = String(item.label || item.title || item.source || "").trim();
+        const url = String(item.url || item.href || "").trim();
+        if (label) out.push({ label, url });
+      }
+    }
+    return out;
+  }
+
+  _buildNarrativeCitationsHtml({
+    citations = [],
+    contextId = "",
+    contextTitle = "",
+    excerpt = "",
+    compact = false,
+  } = {}) {
+    const parsed = this._parseCitationsArray(citations);
+    if (!parsed.length && !contextId && !contextTitle) return "";
+    const pillsHtml = parsed
+      .map((c) => {
+        const escLabel = this._escapeHtmlAttr(c.label);
+        if (c.url && /^https?:\/\//i.test(c.url)) {
+          const escUrl = this._escapeHtmlAttr(c.url);
+          return `<a
+            href="${escUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="narrative-citation-pill"
+            title="Open primary archival source: ${escLabel}"
+          >${escLabel} &#8599;</a>`;
+        }
+        return `<span class="narrative-citation-pill" title="Primary archival citation">${escLabel}</span>`;
+      })
+      .join("");
+
+    const flagBtnHtml =
+      contextId || contextTitle
+        ? `<button
+            type="button"
+            class="quick-flag-btn"
+            data-quick-flag="narrative"
+            data-flag-context-id="${this._escapeHtmlAttr(contextId)}"
+            data-flag-context-title="${this._escapeHtmlAttr(contextTitle)}"
+            data-flag-excerpt="${this._escapeHtmlAttr(String(excerpt || "").slice(0, 180))}"
+            title="Report a historical error, conflation, or misattribution in this narrative for Preservation Houston review"
+          >&#9873; Flag Error</button>`
+        : "";
+
+    return `<div class="narrative-citations-bar"${compact ? ' style="margin-top:5px;"' : ""}>
+      ${parsed.length ? '<span class="narrative-citations-label">Sources:</span>' : ""}
+      ${pillsHtml}
+      ${flagBtnHtml}
+    </div>`;
+  }
+
+  _renderNarrativeCitationsBar(containerEl, opts = {}) {
+    if (!containerEl) return;
+    const html = this._buildNarrativeCitationsHtml(opts);
+    containerEl.innerHTML = html;
+    containerEl.classList.toggle("hidden", !html);
+    this._bindQuickFlagEvents(containerEl);
+  }
+
+  _bindQuickFlagEvents(containerEl, contextProps = null) {
+    if (!containerEl) return;
+    containerEl.querySelectorAll("[data-quick-flag]").forEach((btn) => {
+      if (btn.dataset.flagBound === "1") return;
+      btn.dataset.flagBound = "1";
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (btn.classList.contains("flagged")) return;
+
+        const flagType = btn.getAttribute("data-quick-flag") || "claim";
+        const hcadNum =
+          btn.getAttribute("data-flag-hcad") ||
+          String(contextProps?.hcad_num || contextProps?.id || "").trim();
+        const address =
+          btn.getAttribute("data-flag-address") ||
+          String(contextProps?.address || "").trim();
+        const district =
+          btn.getAttribute("data-flag-district") ||
+          String(contextProps?.historic_district || "").trim();
+        const field = btn.getAttribute("data-flag-field") || "";
+        const disputedValue =
+          btn.getAttribute("data-flag-value") ||
+          btn.getAttribute("data-flag-excerpt") ||
+          "";
+        const provenance = btn.getAttribute("data-flag-provenance") || "";
+        const contextId = btn.getAttribute("data-flag-context-id") || "";
+        const contextTitle = btn.getAttribute("data-flag-context-title") || "";
+        const currentYearBuilt =
+          Number(btn.getAttribute("data-flag-year") || contextProps?.year_built) || 0;
+        const shouldSuppress = btn.getAttribute("data-flag-suppress") !== "false";
+
+        btn.classList.add("flagged");
+        btn.innerHTML = "&#10003; Flagged";
+
+        await submitQuickFlagReport(
+          {
+            flagType,
+            hcad_num: hcadNum,
+            address,
+            historic_district: district,
+            field,
+            disputed_value: disputedValue,
+            provenance,
+            context_id: contextId,
+            context_title: contextTitle,
+            current_year_built: currentYearBuilt,
+            suppressLocally: shouldSuppress,
+          },
+          this._getActiveWebhookUrl()
+        );
+
+        if (flagType === "narrative") {
+          this._showQuickFlagToast(
+            `Flagged "${contextTitle || "narrative blurb"}" for Preservation Houston historical review.`
+          );
+        } else if (shouldSuppress && (field === "building_name" || field === "architect")) {
+          this._showQuickFlagToast(
+            `Hidden unverified ${field.replace("_", " ")} "${disputedValue}" locally and queued for Preservation Houston moderation.`
+          );
+          if (this._currentInspectedRawProps) {
+            this.renderInspectorDrawer(this._currentInspectedRawProps);
+          }
+        } else {
+          this._showQuickFlagToast(
+            `Flagged ${field || "record"} "${disputedValue}" for Preservation Houston archival review.`
+          );
+        }
+      });
+    });
   }
 
   _normalizeAddressForHaifLookup(addr) {
@@ -828,14 +1057,22 @@ class HoustonAtlasApp {
     };
 
     const candidatePrimaries = [];
+    const candidateSources = [];
     const candidateAlts = [];
-    let resolvedSource = String(props.name_source || "").trim();
+    const globalRej = this.mapController?.globalRejections || null;
+    const suppressKey = hcad || rawId;
 
-    const addPrimary = (nm, src = "") => {
+    const addPrimary = (nm, src = "", isVerifiedOverride = false) => {
       const c = cleanNameStr(nm);
       if (!c || isStreetAddrOnly(c)) return;
+      if (
+        !isVerifiedOverride &&
+        isClaimSuppressed({ hcadNum: suppressKey, field: "building_name", value: c }, globalRej)
+      ) {
+        return;
+      }
       candidatePrimaries.push(c);
-      if (src && !resolvedSource) resolvedSource = src;
+      candidateSources.push(String(src || "").trim());
     };
 
     const addAltList = (arr) => {
@@ -856,15 +1093,22 @@ class HoustonAtlasApp {
       if (Array.isArray(parsed)) {
         for (const item of parsed) {
           const c = cleanNameStr(item);
-          if (c && !isStreetAddrOnly(c)) candidateAlts.push(c);
+          if (
+            c &&
+            !isStreetAddrOnly(c) &&
+            !isClaimSuppressed({ hcadNum: suppressKey, field: "building_name", value: c }, globalRej)
+          ) {
+            candidateAlts.push(c);
+          }
         }
       }
     };
 
     // 1. Direct feature properties
-    addPrimary(props.building_name, props.name_source || "");
-    addPrimary(props.landmark_name, props.name_source || "");
-    addPrimary(props.name, props.name_source || "");
+    const isVerifiedOv = Boolean(props.is_curated_override);
+    addPrimary(props.building_name, props.name_source || "", isVerifiedOv);
+    addPrimary(props.landmark_name, props.name_source || "", isVerifiedOv);
+    addPrimary(props.name, props.name_source || "", isVerifiedOv);
     addAltList(props.alt_names);
 
     // 2. O(1) indexed lookup in overlaysData.landmarks & good_brick_awards
@@ -922,6 +1166,9 @@ class HoustonAtlasApp {
 
     const primaryName = candidatePrimaries[0] || rawAddr || "Houston Historic Structure";
     const hasCustomBuildingName = Boolean(candidatePrimaries.length > 0);
+    let resolvedSource = hasCustomBuildingName
+      ? candidateSources[0] || String(props.name_source || "").trim()
+      : "";
     if (!resolvedSource && hasCustomBuildingName) {
       resolvedSource =
         props.landmark_report_url || props.landmark_code
@@ -932,6 +1179,14 @@ class HoustonAtlasApp {
           ? "Preservation Houston Curated Archive"
           : "Archival & Community Inventory";
     }
+    const nameEvidentiaryTier = hasCustomBuildingName
+      ? classifyFieldEvidentiaryTier({
+          field: "building_name",
+          value: primaryName,
+          sourceLabel: resolvedSource,
+          isCuratedOverride: Boolean(props.is_curated_override),
+        })
+      : null;
 
     // Deduplicate alternate names (including any secondary primary candidates that differ from primaryName)
     const allAltCandidates = [...candidatePrimaries.slice(1), ...candidateAlts];
@@ -967,6 +1222,7 @@ class HoustonAtlasApp {
       primaryName,
       altNames: altNames.slice(0, 5),
       nameSource: resolvedSource,
+      nameEvidentiaryTier,
       hasCustomBuildingName,
     };
   }
@@ -1215,6 +1471,9 @@ class HoustonAtlasApp {
       .map((s) => s.trim())
       .filter(Boolean);
 
+    const globalRej = this.mapController?.globalRejections || null;
+    const suppressKey = String(props.hcad_num || props.building_id || props.id || "").trim();
+
     const chips = [];
     for (const part of parts) {
       const cleaned = part.replace(/,\s*(?:architects?|builders?|bldr|consulting)\b.*$/i, "").trim();
@@ -1222,6 +1481,12 @@ class HoustonAtlasApp {
       const core = m ? m[1].trim() : cleaned;
       const note = m ? m[2].trim() : "";
       if (!core) continue;
+      if (
+        !props.is_curated_override &&
+        isClaimSuppressed({ hcadNum: suppressKey, field: "architect", value: core }, globalRej)
+      ) {
+        continue;
+      }
       chips.push({
         label: core,
         query: core,
@@ -3531,6 +3796,7 @@ class HoustonAtlasApp {
         if (statusText) statusText.textContent = "Syncing Google Sheet...";
 
         const syncStatus = await this.mapController.reloadCuratedOverrides(csvUrl);
+        this._syncPhotoExclusionRegistries();
         this._mergeCuratedOverridesIntoSearchIndex();
         this._enrichSearchIndexWithOverlayMetadata();
 
@@ -5353,6 +5619,13 @@ class HoustonAtlasApp {
       }
     }
     if (bannerDesc) bannerDesc.textContent = tour.description;
+    this._renderNarrativeCitationsBar(document.getElementById("tour-banner-citations"), {
+      citations: tour.citations || [],
+      contextId: `tour_${tour.id}`,
+      contextTitle: `${tour.name} (${tour.era})`,
+      excerpt: tour.description || "",
+      compact: true,
+    });
     if (banner) banner.classList.remove("hidden");
 
     if (controlsEl && dotsEl) {
@@ -5416,6 +5689,16 @@ class HoustonAtlasApp {
       stepBadge.classList.remove("hidden");
     }
     if (bannerDesc) bannerDesc.textContent = stop.story;
+    this._renderNarrativeCitationsBar(document.getElementById("tour-banner-citations"), {
+      citations:
+        Array.isArray(stop.citations) && stop.citations.length > 0
+          ? stop.citations
+          : tour.citations || [],
+      contextId: `tour_${tour.id}_stop_${idx + 1}`,
+      contextTitle: `${tour.name} - Stop ${idx + 1}: ${stop.title}`,
+      excerpt: stop.story || "",
+      compact: true,
+    });
 
     if (dotsEl) {
       dotsEl.querySelectorAll(".tour-stop-dot").forEach((dotBtn, i) => {
@@ -5957,7 +6240,7 @@ class HoustonAtlasApp {
 
     const oldestEl = document.getElementById("stat-viewport-oldest");
     if (oldestEl) {
-      oldestEl.textContent = stats.oldestYear ? `${stats.oldestYear}` : "—";
+      oldestEl.textContent = stats.oldestYear ? `${stats.oldestYear}` : "-";
     }
 
     const contribEl = document.getElementById("stat-viewport-contributing");
@@ -6587,6 +6870,16 @@ class HoustonAtlasApp {
     }
 
     const clerkCopyQuery = subName || platCitation || "";
+    const deedCitationsHtml =
+      catalogEntry && Array.isArray(catalogEntry.citations) && catalogEntry.citations.length > 0
+        ? this._buildNarrativeCitationsHtml({
+            citations: catalogEntry.citations,
+            contextId: `deed_${catalogEntry.subdivision_name || subName}`,
+            contextTitle: `Deed Restrictions: ${subName || catalogEntry.subdivision_name}`,
+            excerpt: cov?.notes || deedCitation || platCitation,
+            compact: true,
+          })
+        : "";
 
     return `
       <div class="deed-restrictions-card ${hasDocs ? "has-docs" : ""}">
@@ -6639,6 +6932,7 @@ class HoustonAtlasApp {
         ${covenantGridHtml}
         ${docsHtml}
         ${protectionsHtml}
+        ${deedCitationsHtml}
 
         <div class="deed-clerk-footer">
           <div class="deed-clerk-actions">
@@ -6667,6 +6961,7 @@ class HoustonAtlasApp {
 
   _bindDeedRestrictionsCardEvents(container, contextProps) {
     if (!container) return;
+    this._bindQuickFlagEvents(container, contextProps);
 
     container.querySelectorAll("[data-copy-clerk-query]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -6910,7 +7205,17 @@ class HoustonAtlasApp {
       if (Number(rawProps.length_miles) > 0) subtitleParts.push(`${rawProps.length_miles} mi mapped`);
     } else if (overlayLayer === "historical_railroads") {
       if (rawProps.historic_company) subtitleParts.push(rawProps.historic_company);
-      if (rawProps.charter_year) subtitleParts.push(`Opened/Chartered ${rawProps.charter_year}`);
+      if (
+        rawProps.charter_year &&
+        rawProps.opened_year &&
+        String(rawProps.charter_year) !== String(rawProps.opened_year)
+      ) {
+        subtitleParts.push(`Chartered ${rawProps.charter_year} · Opened ${rawProps.opened_year}`);
+      } else if (rawProps.opened_year) {
+        subtitleParts.push(`Opened ${rawProps.opened_year}`);
+      } else if (rawProps.charter_year) {
+        subtitleParts.push(`Chartered ${rawProps.charter_year}`);
+      }
       if (rawProps.status) subtitleParts.push(rawProps.status);
     } else if (overlayLayer === "platted_subdivisions") {
       if (rawProps.plat_citation) {
@@ -7396,6 +7701,12 @@ class HoustonAtlasApp {
                     ? `<div style="margin-top:6px;font-size:11px;color:#cbd5e1;"><strong>NARA Archival Note:</strong> ${rawProps.nara_sheet_status}</div>`
                     : ""
                 }
+                ${this._buildNarrativeCitationsHtml({
+                  citations: rawProps.citations,
+                  contextId: `${overlayLayer}_${rawProps.id || name}`,
+                  contextTitle: `${badgeLabel}: ${name}`,
+                  excerpt: narrativeDesc,
+                })}
               </div>
             </div>`
           : ""
@@ -7536,10 +7847,18 @@ class HoustonAtlasApp {
             : ""
         }
         ${
-          overlayLayer === "historical_railroads" && rawProps.charter_year
+          overlayLayer === "historical_railroads" && (rawProps.charter_year || rawProps.opened_year)
             ? `<div class="inspector-cell">
-                <span class="cell-label">Charter / Opening Era</span>
-                <span class="cell-value mono">${rawProps.charter_year}</span>
+                <span class="cell-label">Charter &amp; Opening Era</span>
+                <span class="cell-value mono">${
+                  rawProps.charter_year &&
+                  rawProps.opened_year &&
+                  String(rawProps.charter_year) !== String(rawProps.opened_year)
+                    ? `Chartered ${rawProps.charter_year} · Opened ${rawProps.opened_year}`
+                    : rawProps.opened_year
+                    ? `Opened ${rawProps.opened_year}`
+                    : `Chartered ${rawProps.charter_year}`
+                }</span>
               </div>`
             : ""
         }
@@ -8261,6 +8580,7 @@ class HoustonAtlasApp {
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, rawProps);
+    this._bindQuickFlagEvents(content, rawProps);
 
     if (overlayLayer === "lost_houston") {
       this._populateInspectorPhotos({
@@ -10414,16 +10734,44 @@ class HoustonAtlasApp {
 
     const yr = Number(props.year_built) || 0;
     const currentYear = 2026;
+    const hcadNumPre = String(props.hcad_num || "").trim();
+    const hasCityDirHitPre = Boolean(
+      hcadNumPre && this.citydirIndex?.by_hcad && this.citydirIndex.by_hcad[hcadNumPre]
+    );
+    const isAuditedAbsent1926 = Boolean(
+      !hasCityDirHitPre &&
+        hcadNumPre &&
+        this.citydirAbsentSet &&
+        this.citydirAbsentSet.has(hcadNumPre)
+    );
     const isCircaEst =
       props.year_source === "subdivision_median" || props.year_source === "blockface_median";
+    const isRoundedHcadDecade = Boolean(
+      !props.is_curated_override &&
+        !props.year_source &&
+        yr >= 1890 &&
+        yr <= 1950 &&
+        yr % 10 === 0
+    );
+    const isCityDirContradicted = Boolean(
+      !props.is_curated_override && isAuditedAbsent1926 && yr >= 1836 && yr <= 1925
+    );
     const ageText =
       yr >= 1836
-        ? isCircaEst
+        ? isRoundedHcadDecade
+          ? `~${currentYear - yr} yrs (HCAD Est.)`
+          : isCircaEst
           ? `~${currentYear - yr} yrs old (Est.)`
           : `${currentYear - yr} yrs old`
         : "Date unrecorded in HCAD";
     const yearDisplay =
-      yr >= 1836 ? (isCircaEst ? `Circa ${yr}` : `Built ${yr}`) : "Undated / Vacant";
+      yr >= 1836
+        ? isRoundedHcadDecade
+          ? `c. ${yr} (HCAD Est.)`
+          : isCircaEst
+          ? `Circa ${yr}`
+          : `Built ${yr}`
+        : "Undated / Vacant";
     const yearColor = getYearColorHex(yr, this.filterStore.getState().paletteStyle);
 
     const YEAR_SOURCE_LABELS = {
@@ -10434,12 +10782,26 @@ class HoustonAtlasApp {
       campus_contiguity: "Institutional Campus / THC Historical Marker Record",
       hcad_permit: "HCAD Structural Building Permit Record (permits.txt)",
       hcad_deed: "HCAD Historical Deed Record (deeds.txt)",
-      subdivision_median: "Circa Estimate — HCAD Subdivision / Street Median",
-      blockface_median: "Circa Estimate — Nearest Block-Face Structure Median",
+      subdivision_median: "Circa Estimate - HCAD Subdivision / Street Median",
+      blockface_median: "Circa Estimate - Nearest Block-Face Structure Median",
     };
     const yearProvenanceLabel = props.is_curated_override
       ? `Verified by ${props.verified_by || "Preservation Houston"} (${props.source_type || "Archival Record"})`
-      : YEAR_SOURCE_LABELS[props.year_source] || "HCAD Real Property Building Record (date_erected / yr_impr)";
+      : isRoundedHcadDecade
+      ? "HCAD Appraisal Roll - Rounded Decade Estimate (unverified exact year)"
+      : YEAR_SOURCE_LABELS[props.year_source] ||
+        "HCAD Real Property Building Record (date_erected / yr_impr)";
+    const yearEvidentiaryTier =
+      yr >= 1836
+        ? classifyFieldEvidentiaryTier({
+            field: "year_built",
+            value: String(yr),
+            sourceLabel: yearProvenanceLabel,
+            isCuratedOverride: Boolean(props.is_curated_override),
+            isRoundedHcadDecade,
+            isCityDirContradicted,
+          })
+        : null;
 
     const nameInfo = this._resolveBuildingNameAndAliases(props);
     const title = nameInfo.primaryName || "Houston Historic Structure";
@@ -11153,6 +11515,27 @@ class HoustonAtlasApp {
       .join('<span class="inspector-chip-sep" title="Specific Use › Broad Category" aria-hidden="true">&#8250;</span>');
 
     const archChips = this._resolveArchitectChips(props);
+    const archSourceLabel = String(
+      props.architect_source ||
+        (props.is_curated_override
+          ? props.source_type || "Preservation Houston Curated Archive"
+          : reportPdfUrl || landmarkCode
+          ? "COH Landmark Designation Report"
+          : goodBrickAwards.length > 0
+          ? "Preservation Houston Good Brick Award"
+          : props.architect && /haif|forum/i.test(String(props.name_source || ""))
+          ? "Houston Architecture Forum (HAIF)"
+          : "Published Architectural Survey")
+    ).trim();
+    const archEvidentiaryTier =
+      archChips.length > 0
+        ? classifyFieldEvidentiaryTier({
+            field: "architect",
+            value: String(props.architect || ""),
+            sourceLabel: archSourceLabel,
+            isCuratedOverride: Boolean(props.is_curated_override),
+          })
+        : null;
     const archChipsHtml = archChips
       .map(
         (c) =>
@@ -11186,17 +11569,60 @@ class HoustonAtlasApp {
       )
       .join('<span class="inspector-chip-sep" aria-hidden="true">·</span>');
 
+    const nameTier = nameInfo.nameEvidentiaryTier;
+    const heroNameProvenanceHtml =
+      nameTier && nameTier.requiresFlagBadge
+        ? `<div class="evidentiary-tier-row">
+            <span class="evidentiary-tier-badge tier-4" title="${this._escapeHtmlAttr(
+              nameInfo.nameSource || nameTier.tierLabel
+            )}">&#9888; ${this._escapeHtmlAttr(nameTier.shortBadge)}</span>
+            <button
+              type="button"
+              class="quick-flag-btn"
+              data-quick-flag="claim"
+              data-flag-field="building_name"
+              data-flag-value="${this._escapeHtmlAttr(title)}"
+              data-flag-provenance="${this._escapeHtmlAttr(nameInfo.nameSource || nameTier.shortBadge)}"
+              title="Flag this automated building name as incorrect; hides immediately and queues for Preservation Houston review"
+            >&#9873; Flag Name</button>
+          </div>`
+        : "";
+
     const buildingNamesGridRowHtml =
       nameInfo.hasCustomBuildingName || nameInfo.altNames.length > 0
         ? `<div class="inspector-cell full">
             <span class="cell-label">Building Name &amp; Historical Aliases</span>
             <span class="cell-value">
               <div class="inspector-name-dossier">
-                <div class="inspector-primary-name-line">
+                <div class="inspector-primary-name-line" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
                   <strong>${title}</strong>
+                  ${
+                    nameTier
+                      ? `<span class="evidentiary-tier-badge tier-${nameTier.tier}">${
+                          nameTier.tier === 1
+                            ? "&#10003; "
+                            : nameTier.tier === 4
+                            ? "&#9888; "
+                            : ""
+                        }${this._escapeHtmlAttr(nameTier.shortBadge)}</span>`
+                      : ""
+                  }
                   ${
                     nameInfo.nameSource
                       ? `<span class="inspector-name-source-pill">${nameInfo.nameSource}</span>`
+                      : ""
+                  }
+                  ${
+                    nameTier && nameTier.requiresFlagBadge
+                      ? `<button
+                          type="button"
+                          class="quick-flag-btn"
+                          data-quick-flag="claim"
+                          data-flag-field="building_name"
+                          data-flag-value="${this._escapeHtmlAttr(title)}"
+                          data-flag-provenance="${this._escapeHtmlAttr(nameInfo.nameSource || "")}"
+                          title="Flag this automated building name as incorrect"
+                        >&#9873; Flag</button>`
                       : ""
                   }
                 </div>
@@ -11278,6 +11704,13 @@ class HoustonAtlasApp {
                         ? `<div class="lost-houston-site-desc">${lh.historic_significance}</div>`
                         : ""
                     }
+                    ${this._buildNarrativeCitationsHtml({
+                      citations: lh.citations,
+                      contextId: `lost_houston_${lh.id || lh.name}`,
+                      contextTitle: `Lost Houston: ${lh.name}`,
+                      excerpt: lh.historic_significance || "",
+                      compact: true,
+                    })}
                     <div class="lost-houston-site-actions">
                       <button
                         type="button"
@@ -11575,6 +12008,35 @@ class HoustonAtlasApp {
           </div>`
         : "";
 
+    const cityDirContradictionBannerHtml = isCityDirContradicted
+      ? `<div class="archival-contradiction-banner" id="inspector-citydir-contradiction-banner">
+          <div>
+            <strong>&#9888; Archival Date Contradiction Detected:</strong>
+            HCAD lists <strong>${
+              isRoundedHcadDecade ? `c. ${yr} (rounded decade estimate)` : yr
+            }</strong>, whereas digitized 1866-1926 Houston City Directories record this address as absent or unimproved through 1926 (likely built c. 1927-1935, or numbered under an earlier street address).
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+            <button
+              type="button"
+              class="quick-flag-btn"
+              data-open-correction-history="1"
+              title="Open the archival correction form to submit a verified completion year"
+            >&#9998; Suggest Verified Year</button>
+            <button
+              type="button"
+              class="quick-flag-btn"
+              data-quick-flag="claim"
+              data-flag-field="year_built"
+              data-flag-value="${yr}"
+              data-flag-provenance="${this._escapeHtmlAttr(yearProvenanceLabel)}"
+              data-flag-suppress="false"
+              title="Queue this HCAD vs. 1926 City Directory date discrepancy for Preservation Houston archival review"
+            >&#9873; Flag HCAD Year</button>
+          </div>
+        </div>`
+      : "";
+
     content.innerHTML = `
       ${overlapStackHtml}
       <div class="inspector-hero">
@@ -11603,6 +12065,7 @@ class HoustonAtlasApp {
           }
         </div>
         <h2 class="inspector-title" id="inspector-property-title">${title}</h2>
+        ${heroNameProvenanceHtml}
         ${akaHeroHtml}
         <p class="inspector-subtitle">${subtitle}</p>
         <div class="inspector-status-banner">
@@ -11612,6 +12075,7 @@ class HoustonAtlasApp {
       </div>
 
       ${compactAlertBannerHtml}
+      ${cityDirContradictionBannerHtml}
 
       <div class="inspector-tabs-bar" role="tablist" aria-label="Property Record Sections">
         <button
@@ -11718,6 +12182,33 @@ class HoustonAtlasApp {
                       <span class="cell-label">Architect (COH / Archival Record)</span>
                       <span class="cell-value inspector-chip-group">
                         ${archChipsHtml}
+                        ${
+                          archEvidentiaryTier
+                            ? `<span class="evidentiary-tier-badge tier-${archEvidentiaryTier.tier}" title="${this._escapeHtmlAttr(
+                                archSourceLabel
+                              )}">${
+                                archEvidentiaryTier.tier === 1
+                                  ? "&#10003; "
+                                  : archEvidentiaryTier.tier === 4
+                                  ? "&#9888; "
+                                  : ""
+                              }${this._escapeHtmlAttr(archEvidentiaryTier.shortBadge)}</span>`
+                            : ""
+                        }
+                        ${
+                          !props.is_curated_override
+                            ? `<button
+                                type="button"
+                                class="quick-flag-btn"
+                                data-quick-flag="claim"
+                                data-flag-field="architect"
+                                data-flag-value="${this._escapeHtmlAttr(archChips[0].label)}"
+                                data-flag-provenance="${this._escapeHtmlAttr(archSourceLabel)}"
+                                data-flag-suppress="${archEvidentiaryTier?.requiresFlagBadge ? "true" : "false"}"
+                                title="Report an incorrect architect attribution for Preservation Houston review"
+                              >&#9873; Flag</button>`
+                            : ""
+                        }
                       </span>
                     </div>`
                   : ""
@@ -11783,7 +12274,22 @@ class HoustonAtlasApp {
               </div>
               <div class="inspector-cell full">
                 <span class="cell-label">Construction Date Provenance</span>
-                <span class="cell-value">${yearProvenanceLabel}</span>
+                <span class="cell-value" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
+                  <span>${yearProvenanceLabel}</span>
+                  ${
+                    yearEvidentiaryTier
+                      ? `<span class="evidentiary-tier-badge tier-${
+                          yearEvidentiaryTier.isContradicted ? 4 : yearEvidentiaryTier.tier
+                        }">${
+                          yearEvidentiaryTier.tier === 1
+                            ? "&#10003; "
+                            : yearEvidentiaryTier.isContradicted || yearEvidentiaryTier.tier === 4
+                            ? "&#9888; "
+                            : ""
+                        }${this._escapeHtmlAttr(yearEvidentiaryTier.shortBadge)}</span>`
+                      : ""
+                  }
+                </span>
               </div>
               <div class="inspector-cell full">
                 <span class="cell-label">Land Use Classification</span>
@@ -12066,6 +12572,7 @@ class HoustonAtlasApp {
 
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, props);
+    this._bindQuickFlagEvents(content, props);
     this._bindHouseHistoryResearchKitEvents(content);
 
     const btnToggleScorecard = content.querySelector("#btn-toggle-protection-scorecard");
@@ -12666,11 +13173,19 @@ class HoustonAtlasApp {
     const requestToken = `${hcadNum}|${props.building_id || props.id || ""}|${Date.now()}`;
     this._latestPhotoRequestToken = requestToken;
 
+    const allAltAddrs = [
+      props.address || "",
+      ...(Array.isArray(props.alt_addresses) ? props.alt_addresses : []),
+    ]
+      .map((a) => String(a || "").trim())
+      .filter(Boolean);
+
     const photos = await resolveBuildingPhotos({
       buildingId: props.building_id || props.id || "",
       hcadNum,
       landmarkName: props.landmark_name || props.name || "",
       address: props.address || "",
+      altAddresses: allAltAddrs,
       useCategory: props.use_category || "",
       lat,
       lng,
@@ -12681,6 +13196,10 @@ class HoustonAtlasApp {
     this._activePhotoState = {
       title,
       subtitle,
+      hcadNum: hcadNum || "",
+      buildingId: props.building_id || props.id || "",
+      address: props.address || subtitle || "",
+      historicDistrict: props.historic_district || "",
       streetViewUrl,
       photos,
       activeIndex: 0,
@@ -12962,6 +13481,30 @@ class HoustonAtlasApp {
       </div>
       <div class="photo-caption-box">
         <div class="photo-caption-text">${current.caption || state.title}</div>
+        <div class="photo-provenance-row">
+          <span class="photo-provenance-pill ${
+            current.is_unverified_auto ? "unverified" : "verified"
+          }" title="${this._escapeHtmlAttr(
+            current.is_unverified_auto
+              ? "Automated geographic or name match - click 'Wrong Building' if this photo depicts a neighboring building or modern replacement"
+              : "Curated archival photograph matched to this landmark or parcel"
+          )}">
+            ${current.is_unverified_auto ? "&#9888;" : "&#10003;"} ${
+              current.provenance_badge ||
+              (current.is_unverified_auto
+                ? "Unverified Automated Match"
+                : "Verified Archival Photo")
+            }
+          </span>
+          <button
+            type="button"
+            class="quick-flag-btn"
+            data-action="flag-wrong-photo"
+            title="Report that this photograph depicts the wrong building or a modern replacement; hides immediately and queues for Preservation Houston moderation"
+          >
+            &#9873; Wrong Building
+          </button>
+        </div>
         <div class="photo-meta-row">
           <span>${current.credit || current.attribution || "Public Domain / Wikimedia Commons"}</span>
           <span class="photo-meta-actions" style="display:inline-flex;align-items:center;gap:10px;">
@@ -12976,7 +13519,7 @@ class HoustonAtlasApp {
               type="button"
               class="photo-hide-btn"
               data-action="hide-photo"
-              title="Hide this photograph if it does not depict the building or landscape"
+              title="Hide this photograph locally in your browser"
               style="background:transparent;border:none;color:var(--text-muted,#9aa4ad);font-size:11px;cursor:pointer;padding:2px 4px;opacity:0.75;"
             >
               &#10005; Hide Photo
@@ -13059,6 +13602,38 @@ class HoustonAtlasApp {
         state.nowIndex = Math.max(0, state.photos.length - 1);
         if (state.photos.length < 2) state.compareMode = false;
         this._syncPhotoViews();
+      });
+    });
+
+    containerEl.querySelectorAll('[data-action="flag-wrong-photo"]').forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (!current?.image_url) return;
+        const flaggedUrl = current.image_url;
+        hideBuildingPhoto(flaggedUrl);
+        state.photos = (state.photos || []).filter((p) => p.image_url !== flaggedUrl);
+        state.activeIndex = Math.max(0, Math.min(state.activeIndex, state.photos.length - 1));
+        state.thenIndex = 0;
+        state.nowIndex = Math.max(0, state.photos.length - 1);
+        if (state.photos.length < 2) state.compareMode = false;
+        this._syncPhotoViews();
+
+        await submitQuickFlagReport(
+          {
+            flagType: "photo",
+            hcad_num: state.hcadNum || state.buildingId || "",
+            address: state.address || state.title || "",
+            historic_district: state.historicDistrict || "",
+            photo_url: flaggedUrl,
+            source_url: current.source_url || flaggedUrl,
+            photo_caption: current.caption || current.era_label || "",
+            provenance: current.provenance_badge || current.source_tier || "",
+          },
+          this._getActiveWebhookUrl()
+        );
+        this._showQuickFlagToast(
+          "Photo hidden immediately and flagged as 'Wrong Building' for Preservation Houston moderation."
+        );
       });
     });
   }
@@ -13189,12 +13764,19 @@ class HoustonAtlasApp {
         ? this._activePhotoState.photos
         : [];
     if (photos.length === 0) {
+      const dossierAltAddrs = [
+        props.address || "",
+        ...(Array.isArray(props.alt_addresses) ? props.alt_addresses : []),
+      ]
+        .map((a) => String(a || "").trim())
+        .filter(Boolean);
       photos =
         (await resolveBuildingPhotos({
           buildingId: props.building_id || props.id || "",
           hcadNum: hcadAcct,
           landmarkName: title,
           address: props.address || "",
+          altAddresses: dossierAltAddrs,
         })) || [];
     }
     const primaryPhoto = photos[0] || null;
@@ -13338,7 +13920,7 @@ class HoustonAtlasApp {
                     <img src="${primaryPhoto.image_url || primaryPhoto.url}" alt="${title}" loading="eager" />
                   </div>
                   <figcaption>
-                    <strong>${primaryPhoto.era_label || primaryPhoto.photo_year || "Archival View"}</strong> — ${
+                    <strong>${primaryPhoto.era_label || primaryPhoto.photo_year || "Archival View"}</strong> - ${
                       primaryPhoto.caption || title
                     } <em>(${primaryPhoto.source_credit || primaryPhoto.credit || "Preservation Houston Archive"})</em>
                   </figcaption>
@@ -13355,7 +13937,7 @@ class HoustonAtlasApp {
                           <img src="${secondaryPhoto.image_url || secondaryPhoto.url}" alt="${title} comparison" loading="eager" />
                         </div>
                         <figcaption>
-                          <strong>${secondaryPhoto.era_label || secondaryPhoto.photo_year || "Comparison View"}</strong> — ${
+                          <strong>${secondaryPhoto.era_label || secondaryPhoto.photo_year || "Comparison View"}</strong> - ${
                             secondaryPhoto.caption || title
                           } <em>(${secondaryPhoto.source_credit || secondaryPhoto.credit || "Archival / Street View"})</em>
                         </figcaption>
@@ -13450,7 +14032,7 @@ class HoustonAtlasApp {
                   .map(
                     (a) =>
                       `<p class="dossier-note-para"><strong>★ Good Brick Award (${a.award_year}):</strong> ${
-                        a.recipient ? `<em>${a.recipient}</em> — ` : ""
+                        a.recipient ? `<em>${a.recipient}</em> - ` : ""
                       }${a.reason || a.raw_description || "Recognized for excellence in historic preservation."}</p>`
                   )
                   .join("")}
@@ -15811,6 +16393,12 @@ class HoustonAtlasApp {
     if (takeawayEl) {
       takeawayEl.innerHTML = `<strong>Map Lens Tip:</strong> ${chapter.keyTakeaway || ""}`;
     }
+    this._renderNarrativeCitationsBar(document.getElementById("city-chapter-citations"), {
+      citations: chapter.citations || [],
+      contextId: `chapter_${chapter.id}`,
+      contextTitle: `${chapter.kicker || `Chapter ${chapter.chapterNum}`}: ${chapter.title}`,
+      excerpt: chapter.narrative || "",
+    });
 
     if (tabsEl) {
       tabsEl.innerHTML = CITY_HISTORY_CHAPTERS.map(
@@ -16083,6 +16671,12 @@ class HoustonAtlasApp {
     }
     if (roleEl) roleEl.textContent = bio.role || "";
     if (bioEl) bioEl.textContent = bio.summary || "";
+    this._renderNarrativeCitationsBar(document.getElementById("portfolio-card-citations"), {
+      citations: bio.citations || [],
+      contextId: `portfolio_${cleanKind}_${dataset.query}`,
+      contextTitle: `Portfolio: ${bio.title || dataset.query}`,
+      excerpt: bio.summary || "",
+    });
     if (statExtant) statExtant.textContent = String(st.extantCount);
     if (statLost) statLost.textContent = String(st.demolishedCount);
     if (statSpan) {

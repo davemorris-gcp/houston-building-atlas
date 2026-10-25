@@ -15,6 +15,13 @@
 const LS_SHEET_CSV_URL_KEY = "ph_atlas_sheet_csv_url";
 const LS_WEBHOOK_URL_KEY = "ph_atlas_submission_webhook_url";
 const LS_PENDING_SUGGESTIONS_KEY = "ph_atlas_pending_suggestions";
+const LS_HIDDEN_CLAIMS_KEY = "ph_atlas_hidden_claims";
+
+export const FLAG_SOURCE_TYPES = new Set([
+  "PHOTO_MISATTRIBUTION_FLAG",
+  "CLAIM_DISPUTE_FLAG",
+  "NARRATIVE_ERROR_FLAG",
+]);
 
 /**
  * Convert a standard Google Sheets browser URL (`.../spreadsheets/d/<ID>/edit...`)
@@ -136,7 +143,8 @@ export function parseOverridesFromSheetRows(rows) {
     const rawSourceTypeCheck = String(row.source_type || row.evidence_source || "").trim().toUpperCase();
     if (
       rawSourceTypeCheck === "PLAT_MONITOR_REVIEW" ||
-      rawSourceTypeCheck === "PROPERTY_WATCHLIST_UPDATE"
+      rawSourceTypeCheck === "PROPERTY_WATCHLIST_UPDATE" ||
+      FLAG_SOURCE_TYPES.has(rawSourceTypeCheck)
     ) {
       continue;
     }
@@ -144,7 +152,12 @@ export function parseOverridesFromSheetRows(rows) {
     const rawIdField = String(
       row.building_id || row.hcad_num || row.hcad_account || row.account || row.acct || ""
     ).trim();
-    if (rawIdField.startsWith("PLAT_") || rawIdField.startsWith("WATCH_")) {
+    if (
+      rawIdField.startsWith("PLAT_") ||
+      rawIdField.startsWith("WATCH_") ||
+      rawIdField.startsWith("FLAG_") ||
+      rawIdField.startsWith("NARRATIVE_")
+    ) {
       continue;
     }
     const rawHcad = rawIdField.split("#")[0].replace(/\D/g, "");
@@ -249,6 +262,251 @@ export function parseOverridesFromSheetRows(rows) {
   return overrides;
 }
 
+/**
+ * Parse approved flag/rejection rows (`PHOTO_MISATTRIBUTION_FLAG`, `CLAIM_DISPUTE_FLAG`,
+ * `NARRATIVE_ERROR_FLAG`) from the published `Approved_Edits` CSV so that once a
+ * Preservation Houston administrator marks a flag row `Approved`, the rejected
+ * automated photo or unverified claim is suppressed globally for all visitors.
+ */
+export function parseGlobalRejectionsFromSheetRows(rows) {
+  const rejectedPhotos = [];
+  const rejectedClaims = [];
+  const flaggedNarratives = [];
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const status = String(row.status || row.review_status || "approved")
+      .trim()
+      .toLowerCase();
+    if (status && !["approved", "verified", "live", "active", "yes"].includes(status)) {
+      continue;
+    }
+    const sourceType = String(row.source_type || row.evidence_source || "")
+      .trim()
+      .toUpperCase();
+    if (!FLAG_SOURCE_TYPES.has(sourceType)) continue;
+
+    const rawIdField = String(
+      row.building_id || row.hcad_num || row.hcad_account || row.account || ""
+    ).trim();
+    const rawHcadDigits = rawIdField.split("#")[0].replace(/\D/g, "");
+    const hcadNum =
+      rawHcadDigits.length >= 10 && rawHcadDigits.length <= 13
+        ? rawHcadDigits.padStart(13, "0")
+        : "";
+    const citation = String(row.source_citation || row.notes || "").trim();
+
+    if (sourceType === "PHOTO_MISATTRIBUTION_FLAG") {
+      const photoUrl = String(row.photo_url || row.source_url || "").trim();
+      if (photoUrl) {
+        rejectedPhotos.push({
+          hcadNum,
+          photoUrl,
+          citation,
+        });
+      }
+    } else if (sourceType === "CLAIM_DISPUTE_FLAG") {
+      const fieldMatch = citation.match(/\[DISPUTED FIELD:\s*([^\]]+)\]/i);
+      const valMatch = citation.match(/\[DISPUTED VALUE:\s*([^\]]+)\]/i);
+      const field = fieldMatch ? fieldMatch[1].trim().toLowerCase() : "building_name";
+      const disputedValue = valMatch
+        ? valMatch[1].trim()
+        : String(row.building_name || row.architect || "").trim();
+      if (hcadNum || disputedValue) {
+        rejectedClaims.push({
+          hcadNum,
+          field,
+          disputedValue,
+          citation,
+        });
+      }
+    } else if (sourceType === "NARRATIVE_ERROR_FLAG") {
+      flaggedNarratives.push({
+        contextId: rawIdField || String(row.address || "").trim(),
+        citation,
+      });
+    }
+  }
+
+  return {
+    rejectedPhotos,
+    rejectedClaims,
+    flaggedNarratives,
+  };
+}
+
+/**
+ * Classify a displayed property attribute (`building_name`, `year_built`, `architect`, `style`)
+ * into the Atlas 4-Tier Evidentiary Provenance model:
+ *   Tier 1: Verified Primary Record (COH Landmark Report, Good Brick, NRHP, THC, City Directory, Sanborn, Deed/Permit)
+ *   Tier 2: Published Survey (PH Curated Archive, AIA Guide, HMRC Contractor Archive, 1980 Historic Survey)
+ *   Tier 3: HCAD Appraisal Roll / Rounded Decade Estimate
+ *   Tier 4: Unverified Automated Match (HAIF forum scrape, OpenStreetMap/Wikidata unverified tag)
+ */
+export function classifyFieldEvidentiaryTier({
+  field = "",
+  value = "",
+  sourceLabel = "",
+  isCuratedOverride = false,
+  isRoundedHcadDecade = false,
+  isCityDirContradicted = false,
+} = {}) {
+  const src = String(sourceLabel || "").trim();
+  const srcLower = src.toLowerCase();
+
+  const isTier4Auto =
+    srcLower.includes("haif") ||
+    srcLower.includes("houston architecture forum") ||
+    srcLower.includes("houston architecture info forum") ||
+    srcLower.includes("openstreetmap") ||
+    srcLower.includes("wikidata") ||
+    srcLower.includes("automated");
+
+  if (isTier4Auto) {
+    return {
+      tier: 4,
+      tierLabel: "Tier 4 · Unverified Automated Match",
+      shortBadge: srcLower.includes("haif") || srcLower.includes("forum")
+        ? "Unverified Automated Match · HAIF"
+        : "Unverified Automated Match",
+      requiresFlagBadge: true,
+      isContradicted: false,
+    };
+  }
+
+  const isTier1Primary =
+    srcLower.includes("landmark") ||
+    srcLower.includes("good brick") ||
+    srcLower.includes("city directory") ||
+    srcLower.includes("morrison") ||
+    srcLower.includes("sanborn") ||
+    srcLower.includes("national register") ||
+    srcLower.includes("nrhp") ||
+    srcLower.includes("texas historical commission") ||
+    srcLower.includes("thc") ||
+    srcLower.includes("habs") ||
+    srcLower.includes("building permit") ||
+    srcLower.includes("deed") ||
+    srcLower.includes("plat") ||
+    srcLower.includes("archival review");
+
+  if (isTier1Primary) {
+    return {
+      tier: 1,
+      tierLabel: "Tier 1 · Verified Primary Record",
+      shortBadge: "Verified Primary Record",
+      requiresFlagBadge: false,
+      isContradicted: false,
+    };
+  }
+
+  if (
+    isCuratedOverride ||
+    srcLower.includes("preservation houston") ||
+    srcLower.includes("hmrc") ||
+    srcLower.includes("aia") ||
+    srcLower.includes("survey") ||
+    srcLower.includes("t.g.c.a")
+  ) {
+    return {
+      tier: 2,
+      tierLabel: "Tier 2 · Published Architectural Survey",
+      shortBadge: "Published Survey",
+      requiresFlagBadge: false,
+      isContradicted: false,
+    };
+  }
+
+  if (field === "year_built" && isRoundedHcadDecade) {
+    return {
+      tier: 3,
+      tierLabel: "Tier 3 · HCAD Rounded Decade Estimate",
+      shortBadge: isCityDirContradicted ? "HCAD Est. · Contradicted by 1926 Dir." : "HCAD Est.",
+      requiresFlagBadge: false,
+      isContradicted: Boolean(isCityDirContradicted),
+    };
+  }
+
+  return {
+    tier: 3,
+    tierLabel: "Tier 3 · HCAD Appraisal Roll",
+    shortBadge: isCityDirContradicted ? "HCAD Roll · Contradicted by 1926 Dir." : "HCAD Roll",
+    requiresFlagBadge: false,
+    isContradicted: Boolean(isCityDirContradicted),
+  };
+}
+
+export function getLocallyHiddenClaims() {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LS_HIDDEN_CLAIMS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_e) {
+    return [];
+  }
+}
+
+export function hideDisputedClaimLocally({ hcadNum = "", field = "", value = "" } = {}) {
+  if (typeof localStorage === "undefined") return;
+  const cleanHcad = String(hcadNum || "").trim();
+  const cleanField = String(field || "").trim().toLowerCase();
+  const cleanValue = String(value || "").trim().toLowerCase();
+  if (!cleanField || (!cleanHcad && !cleanValue)) return;
+
+  const list = getLocallyHiddenClaims();
+  const exists = list.some(
+    (item) =>
+      item.hcadNum === cleanHcad &&
+      item.field === cleanField &&
+      item.value === cleanValue
+  );
+  if (!exists) {
+    list.unshift({ hcadNum: cleanHcad, field: cleanField, value: cleanValue });
+    try {
+      localStorage.setItem(LS_HIDDEN_CLAIMS_KEY, JSON.stringify(list.slice(0, 300)));
+    } catch (_e) {
+      // Ignore storage quota warnings
+    }
+  }
+}
+
+export function isClaimSuppressed(
+  { hcadNum = "", field = "", value = "" } = {},
+  globalRejections = null
+) {
+  const cleanHcad = String(hcadNum || "").split("#")[0].trim();
+  const cleanField = String(field || "").trim().toLowerCase();
+  const cleanValue = String(value || "").trim().toLowerCase();
+  if (!cleanValue) return false;
+
+  for (const item of getLocallyHiddenClaims()) {
+    if (
+      item.field === cleanField &&
+      item.value === cleanValue &&
+      (!item.hcadNum || !cleanHcad || item.hcadNum === cleanHcad)
+    ) {
+      return true;
+    }
+  }
+
+  const globalList = globalRejections?.rejectedClaims;
+  if (Array.isArray(globalList)) {
+    for (const item of globalList) {
+      const itemField = String(item.field || "").trim().toLowerCase();
+      const itemVal = String(item.disputedValue || "").trim().toLowerCase();
+      const itemHcad = String(item.hcadNum || "").trim();
+      if (
+        (!itemField || itemField === cleanField) &&
+        (!itemVal || itemVal === cleanValue) &&
+        (!itemHcad || !cleanHcad || itemHcad === cleanHcad)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function isObsoleteRestrictedSheetUrl(url) {
   const s = String(url || "").trim();
   if (!s) return false;
@@ -273,7 +531,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261011c", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261025m", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -307,6 +565,11 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   const activeWebhookUrl = (storedWebhookUrl || baseConfig.submissionWebhookUrl || "").trim();
 
   const mergedOverrides = { ...baseConfig.overrides };
+  let mergedRejections = {
+    rejectedPhotos: [],
+    rejectedClaims: [],
+    flaggedNarratives: [],
+  };
   let sheetSyncStatus = {
     connected: Boolean(activeSheetCsvUrl || activeWebhookUrl),
     csvUrl: activeSheetCsvUrl,
@@ -319,6 +582,12 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   const syncedHcads = new Set();
   const applyCsvText = (csvText) => {
     const rows = parseCsvToObjects(csvText);
+    const parsedRejections = parseGlobalRejectionsFromSheetRows(rows);
+    mergedRejections = {
+      rejectedPhotos: [...mergedRejections.rejectedPhotos, ...parsedRejections.rejectedPhotos],
+      rejectedClaims: [...mergedRejections.rejectedClaims, ...parsedRejections.rejectedClaims],
+      flaggedNarratives: [...mergedRejections.flaggedNarratives, ...parsedRejections.flaggedNarratives],
+    };
     const sheetOverrides = parseOverridesFromSheetRows(rows);
     for (const [hcadNum, ov] of Object.entries(sheetOverrides)) {
       syncedHcads.add(hcadNum);
@@ -384,6 +653,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
 
   return {
     overrides: mergedOverrides,
+    globalRejections: mergedRejections,
     syncStatus: sheetSyncStatus,
   };
 }
@@ -651,6 +921,123 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
   return {
     ok: true,
     webhookDelivered,
+    record,
+  };
+}
+
+/**
+ * 1-Click Quick Flag reporter for:
+ *   - `flagType: "photo"` (`PHOTO_MISATTRIBUTION_FLAG` - wrong building / misattributed Wikimedia or forum photo)
+ *   - `flagType: "claim"` (`CLAIM_DISPUTE_FLAG` - disputed automated building name, architect, or rounded HCAD year)
+ *   - `flagType: "narrative"` (`NARRATIVE_ERROR_FLAG` - historical narrative blurb error on a chapter, tour, or overlay)
+ *
+ * Immediately suppresses unverified claims locally in the user's browser and posts a structured
+ * moderation row to the Preservation Houston Google Sheet (`Pending_Submissions`, or `Approved_Edits`
+ * if an unlocked PH Admin explicitly passes `autoApproveIfAdmin: true`).
+ */
+export async function submitQuickFlagReport(payload = {}, webhookUrl = "") {
+  const flagType = String(payload.flagType || "claim").trim().toLowerCase();
+  const hcadNum = String(payload.hcad_num || payload.hcadNum || "").trim();
+  const address = String(payload.address || "").trim();
+  const district = String(payload.historic_district || payload.district || "").trim();
+  const field = String(payload.field || "").trim().toLowerCase();
+  const disputedValue = String(payload.disputed_value || payload.disputedValue || "").trim();
+  const provenance = String(payload.provenance || "").trim();
+  const photoUrl = String(payload.photo_url || payload.photoUrl || "").trim();
+  const photoCaption = String(payload.photo_caption || payload.photoCaption || "").trim();
+  const contextId = String(payload.context_id || payload.contextId || "").trim();
+  const contextTitle = String(payload.context_title || payload.contextTitle || "").trim();
+  const note = String(payload.note || "").trim();
+
+  let sourceType = "CLAIM_DISPUTE_FLAG";
+  const citationParts = [];
+
+  if (flagType === "photo") {
+    sourceType = "PHOTO_MISATTRIBUTION_FLAG";
+    citationParts.push("[1-CLICK PHOTO FLAG: Wrong Building / Misattributed Photo]");
+    if (provenance) citationParts.push(`[PHOTO PROVENANCE: ${provenance}]`);
+    if (photoCaption) citationParts.push(`[CAPTION: ${photoCaption.slice(0, 140)}]`);
+  } else if (flagType === "narrative") {
+    sourceType = "NARRATIVE_ERROR_FLAG";
+    citationParts.push(`[1-CLICK NARRATIVE FLAG: ${contextTitle || contextId || "Historical Blurb"}]`);
+    if (disputedValue) citationParts.push(`[EXCERPT: ${disputedValue.slice(0, 160)}]`);
+  } else {
+    sourceType = "CLAIM_DISPUTE_FLAG";
+    if (field) citationParts.push(`[DISPUTED FIELD: ${field}]`);
+    if (disputedValue) citationParts.push(`[DISPUTED VALUE: ${disputedValue}]`);
+    if (provenance) citationParts.push(`[PROVENANCE: ${provenance}]`);
+    if (payload.suppressLocally !== false && field && disputedValue) {
+      hideDisputedClaimLocally({ hcadNum, field, value: disputedValue });
+    }
+  }
+  if (note) {
+    citationParts.push(`[USER NOTE: ${note}]`);
+  }
+
+  const adminSession = getAdminSession();
+  const isAdminDirect = Boolean(adminSession?.authorized && payload.autoApproveIfAdmin);
+
+  const record = {
+    ...(isAdminDirect
+      ? {
+          action: "admin_approve",
+          status: "Approved",
+          verified_by: adminSession.email || "Preservation Houston Admin Flag",
+          admin_email: adminSession.email || "",
+          google_id_token: adminSession.googleIdToken || "",
+          admin_passkey: adminSession.adminPasskey || "",
+        }
+      : {
+          status: "Pending",
+        }),
+    submitted_at: new Date().toISOString().slice(0, 19).replace("T", " "),
+    hcad_num: hcadNum || (contextId ? `NARRATIVE_${contextId}` : "FLAG_REPORT"),
+    address: address || contextTitle || "Narrative / Map Feature",
+    building_name: flagType === "claim" && field === "building_name" ? disputedValue : contextTitle,
+    historic_district: district,
+    hcad_year_built: Number(payload.current_year_built) || 0,
+    suggested_year_built: 0,
+    bld_style: "",
+    architect: flagType === "claim" && field === "architect" ? disputedValue : "",
+    source_type: sourceType,
+    source_citation: citationParts.join(" | "),
+    source_url: String(payload.source_url || photoUrl || "").trim(),
+    photo_url: photoUrl,
+    photo_caption: photoCaption,
+    submitter_name: String(payload.submitter_name || (adminSession?.email || "1-Click Map Flag")).trim(),
+    submitter_email: String(payload.submitter_email || "").trim(),
+  };
+
+  const existing = getLocalPendingSuggestions();
+  existing.unshift(record);
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(LS_PENDING_SUGGESTIONS_KEY, JSON.stringify(existing.slice(0, 200)));
+    } catch (_e) {
+      // Ignore storage quota warnings
+    }
+  }
+
+  let webhookDelivered = false;
+  const targetUrl = String(webhookUrl || "").trim();
+  if (targetUrl) {
+    try {
+      await fetch(targetUrl, {
+        method: "POST",
+        mode: isAdminDirect ? "cors" : "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(record),
+      });
+      webhookDelivered = true;
+    } catch (err) {
+      console.warn("Quick-flag webhook delivery warning (saved locally):", err);
+    }
+  }
+
+  return {
+    ok: true,
+    webhookDelivered,
+    approvedGlobally: isAdminDirect && webhookDelivered,
     record,
   };
 }

@@ -337,7 +337,7 @@ WARD_METADATA = {
         'name': 'First Ward',
         'color': '#38BDF8',
         'alt_names': ['High First Ward', 'First Ward Arts District', 'Sawyer Yards', 'Germantown'],
-        'description': 'Northwest quadrant of original 1839-1905 Houston, north of Congress Ave / Buffalo Bayou and west of Main St (established 1839; final aldermanic boundary 1903-1905).',
+        'description': 'Northwest ward of 1839-1905 Houston, north of Congress Ave and Buffalo Bayou and west of Main St and Little White Oak Bayou (established Jan. 28, 1839; Sixth Ward carved from western portion in 1876; final aldermanic boundary 1903-1905).',
     },
     'SECOND': {
         'name': 'Second Ward',
@@ -1089,7 +1089,7 @@ def main() -> None:
   accumulate_tree_stats(all_ward_tree, ward_features, ward_stats, 'id')
   accumulate_tree_stats(ps_tree, platted_subs, plat_stats, 'id')
 
-  def attach_stats(feat_props, st):
+  def attach_stats(feat_props, st, append_subdivisions_to_alt_names=True):
     yrs = st['years']
     feat_props['building_count'] = len(yrs)
     if yrs:
@@ -1108,9 +1108,10 @@ def main() -> None:
     top_subs = [s for s, _ in st['subs'].most_common(8)]
     feat_props['top_subdivisions'] = top_subs
     existing_alts = list(feat_props.get('alt_names') or [])
-    for s in top_subs[:5]:
-      if s.upper() != feat_props['name'].upper() and s not in existing_alts:
-        existing_alts.append(s)
+    if append_subdivisions_to_alt_names:
+      for s in top_subs[:5]:
+        if s.upper() != feat_props['name'].upper() and s not in existing_alts:
+          existing_alts.append(s)
     feat_props['alt_names'] = existing_alts[:16]
 
   for feat in vernacular_nbhds:
@@ -1118,7 +1119,7 @@ def main() -> None:
   for feat in super_nbhds:
     attach_stats(feat['properties'], sn_stats[feat['properties']['id']])
   for feat in ward_features:
-    attach_stats(feat['properties'], ward_stats[feat['properties']['id']])
+    attach_stats(feat['properties'], ward_stats[feat['properties']['id']], append_subdivisions_to_alt_names=False)
 
   filtered_platted_subs = []
   for feat in platted_subs:

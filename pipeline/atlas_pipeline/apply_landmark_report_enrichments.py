@@ -115,7 +115,16 @@ def main():
     hcad_resolved_by_addr = 0
     photos_added = 0
 
+    raw_demod_objids = {
+        (r.get("attributes") or r.get("properties") or {}).get("OBJECTID")
+        for r in coh_raw
+        if str((r.get("attributes") or r.get("properties") or {}).get("USER_DEMOD") or "").strip().upper() == "Y"
+        or "DEMOLISHED" in str((r.get("attributes") or r.get("properties") or {}).get("USER_SITE_NAME") or "").upper()
+    }
+
     for enr in enriched:
+        if enr.get("objectid") in raw_demod_objids or "DEMOLISHED" in str(enr.get("name") or "").upper():
+            continue
         hcad = str(enr.get("hcad_num") or "").strip()
         if not re.match(r"^[0-9]{13}$", hcad):
             na = norm_addr(enr.get("address"))
@@ -133,12 +142,21 @@ def main():
         auth_yr = gis_yr or pdf_yr
 
         blds = blds_by_hcad.get(hcad, [])
-        curr_b_yr = int(blds[0]["properties"].get("year_built") or 0) if blds else 0
+        target_blds = blds
+        if len(blds) > 1 and enr.get("address"):
+            enr_na = norm_addr(enr.get("address"))
+            addr_matched = [
+                b for b in blds
+                if norm_addr(b.get("properties", {}).get("address")) == enr_na
+            ]
+            if addr_matched:
+                target_blds = addr_matched
+        curr_b_yr = int(target_blds[0]["properties"].get("year_built") or 0) if target_blds else 0
         ov = overrides.get(hcad)
 
         if pdf_url:
             hcad_pdf_links_added += 1
-            for b in blds:
+            for b in target_blds:
                 b["properties"]["landmark_report_url"] = pdf_url
                 if lm_code:
                     b["properties"]["landmark_code"] = lm_code
@@ -162,13 +180,13 @@ def main():
             or (gis_yr and curr_b_yr and abs(gis_yr - curr_b_yr) >= 3)
         ):
             best_geom = None
-            if blds:
+            if target_blds:
                 best_b = max(
-                    blds,
+                    target_blds,
                     key=lambda x: geom_area(x.get("geometry")),
                 )
                 best_geom = best_b.get("geometry")
-                for b in blds:
+                for b in target_blds:
                     b["properties"]["original_hcad_year"] = curr_b_yr
                     b["properties"]["year_built"] = auth_yr
                     b["properties"]["is_curated_override"] = True
@@ -204,12 +222,12 @@ def main():
                 if p_url not in existing_photo_urls:
                     photos_list.append({
                         "hcad_num": hcad,
-                        "building_id": blds[0]["properties"].get("id", hcad) if blds else hcad,
+                        "building_id": target_blds[0]["properties"].get("id", hcad) if target_blds else hcad,
                         "landmark_name": enr["name"],
                         "address": enr["address"],
                         "photo_year": None,
                         "era_label": "COH Landmark Archive",
-                        "caption": f"{enr['name']} ({enr['address']}) — Official City of Houston Landmark Designation Archive photograph ({lm_code or 'HAHC'}).",
+                        "caption": f"{enr['name']} ({enr['address']}) - Official City of Houston Landmark Designation Archive photograph ({lm_code or 'HAHC'}).",
                         "image_url": p_url,
                         "thumb_url": p_url,
                         "credit": "City of Houston Historic Preservation Office (HAHC)",

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-09",
+  "generated_at": "2026-10-25",
   "total_subdivisions": 30,
   "total_mirrored_pdfs": 65,
   "subdivisions": {
@@ -10,8 +10,8 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1907,
       "vol_page": "037-266",
-      "plat_citation": "Map Book Vol. 2, Pg. 33 & Vol. 295, Pg. 373 \u00b7 HCAD Plat Code 037-266",
-      "deed_citation": "Harris County Clerk Instrument #32892 \u00b7 Renewed & Restated Restrictions",
+      "plat_citation": "Map Book Vol. 2, Pg. 33 · HCAD Subdiv. Code 037-266",
+      "deed_citation": "Harris County Film Code #199-30-1556 (Restated Restrictions) · Original Filing #32892",
       "covenant_summary": {
         "allowed_use": "Residential only (incidental non-public home office allowed; no commercial, retail, clinic, or hotel use)",
         "min_lot_size": "Max 1 single-family residence per 2,500 sq ft of lot area (no duplexes, apartments, or multi-family)",
@@ -19,15 +19,25 @@
         "side_rear_setback": "Min 3 ft from side and rear property lines for any structure exceeding 1 story",
         "max_height": "Max 3 stories and 40 ft above ground level",
         "plan_review": "WHCA plan review not required (COH HAHC Certificate of Appropriateness required inside Historic District)",
-        "notes": "Platted in 1907 by the William A. Wilson Realty Co. along the Houston Electric Co. streetcar line."
+        "notes": "Platted in October 1907 by the William A. Wilson Realty Co. along the Houston Electric Co. streetcar line (certain perimeter/commercial lots in Blocks 1, 2, 10, 25, 31, 32, 43, 44, and 45 are excluded from the restated residential declaration)."
       },
+      "citations": [
+        {
+          "label": "Harris County Film Code #199-30-1556 (PDF)",
+          "url": "public/deeds/woodland-heights/Woodland-Heights-Official.pdf"
+        },
+        {
+          "label": "COH Historic Districts",
+          "url": "https://www.houstontx.gov/planning/HistoricPres/District_Reference.html"
+        }
+      ],
       "documents": [
         {
           "title": "Woodland Heights Deed Restrictions (Official Recorded Copy)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Woodland-Heights-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Woodland-Heights-Official.pdf",
-          "clerk_file": "Map Vol. 2, Pg. 33 / Vol. 295, Pg. 373"
+          "clerk_file": "Film Code #199-30-1556 (Map Vol. 2, Pg. 33)"
         },
         {
           "title": "Woodland Heights Deed Restrictions (Searchable Transcribed Text)",
@@ -45,24 +55,34 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1909,
       "vol_page": "037-311",
-      "plat_citation": "Map Book Vol. 3, Pg. 38 & Vol. 37, Pgs. 311\u2013317 \u00b7 HCAD Plat Code 037-311",
-      "deed_citation": "Harris County Clerk Instrument #68874 \u00b7 Joint Annex/Willborg/Hermosa Court Declaration",
+      "plat_citation": "Map Book Vol. 3, Pg. 38 · HCAD Subdiv. Code 037-311",
+      "deed_citation": "Harris County Clerk File #N545550 (Film Code 015-58-0155) · Joint Annex, Willborg & Hermosa Court Declaration",
       "covenant_summary": {
-        "allowed_use": "Strictly single-family residential only (no commercial, professional, clinic, duplex, or hotel use)",
-        "min_lot_size": "Max 1 single-family residence per 2,500 sq ft of lot area",
+        "allowed_use": "Residential only (incidental non-public home office allowed; 'Residence' includes house, townhouse, condo, apartment, or garage apartment subject to 1 unit per 2,500 sq ft density cap; no commercial, clinic, or hotel use)",
+        "min_lot_size": "Max 1 residential unit per 2,500 sq ft of lot area",
         "front_setback": "Min 15 ft from street property line or 45 ft from street centerline (whichever is greater)",
         "side_rear_setback": "Min 3 ft from side and rear property lines",
         "max_height": "Max 3 stories and 40 ft above ground level",
         "plan_review": "WHCA plan review not required (COH HAHC COA required if inside Historic District)",
-        "notes": "Jointly restricted with Willborg and Hermosa Court subdivisions."
+        "notes": "Jointly restricted with Willborg and Hermosa Court subdivisions under Clerk File #N545550."
       },
+      "citations": [
+        {
+          "label": "Clerk File #N545550 (PDF)",
+          "url": "public/deeds/woodland-heights/Woodland-Heights-Annex-Official.pdf"
+        },
+        {
+          "label": "WHCA Land Use Archive",
+          "url": "https://www.woodland-heights.org/land-use"
+        }
+      ],
       "documents": [
         {
           "title": "Woodland Heights Annex Deed Restrictions (Official Recorded Copy)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Woodland-Heights-Annex-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Woodland-Heights-Annex-Official.pdf",
-          "clerk_file": "Map Vol. 3, Pg. 38 / HCAD 037-311"
+          "clerk_file": "Clerk File #N545550 / Film Code 015-58-0155"
         },
         {
           "title": "Woodland Heights Annex Deed Restrictions (Searchable Text)",
@@ -80,24 +100,34 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1910,
       "vol_page": "037-308",
-      "plat_citation": "Map Book Vol. 37, Pg. 308 \u00b7 HCAD Plat Code 037-308",
-      "deed_citation": "Joint Willborg / Woodland Heights Annex / Hermosa Court Declaration",
+      "plat_citation": "HCAD Subdiv. Code 037-308",
+      "deed_citation": "Harris County Clerk File #N545550 (Film Code 015-58-0155) · Joint Annex, Willborg & Hermosa Court Declaration",
       "covenant_summary": {
-        "allowed_use": "Strictly single-family residential only (no commercial, retail, duplex, or apartment use)",
-        "min_lot_size": "Max 1 single-family residence per 2,500 sq ft of lot area",
+        "allowed_use": "Residential only (incidental non-public home office allowed; 'Residence' includes house, townhouse, condo, apartment, or garage apartment subject to 1 unit per 2,500 sq ft density cap; no commercial, clinic, or hotel use)",
+        "min_lot_size": "Max 1 residential unit per 2,500 sq ft of lot area",
         "front_setback": "Min 15 ft from street property line or 45 ft from street centerline (whichever is greater)",
         "side_rear_setback": "Min 3 ft from side and rear property lines",
         "max_height": "Max 3 stories and 40 ft above ground level",
         "plan_review": "WHCA plan review not required",
-        "notes": "Covered under the joint Declaration of Restrictions for Woodland Heights Annex, Willborg, and Hermosa Court."
+        "notes": "Covered under the joint 1992 Declaration of Restrictions (#N545550) for Woodland Heights Annex, Willborg, and Hermosa Court."
       },
+      "citations": [
+        {
+          "label": "Clerk File #N545550 (PDF)",
+          "url": "public/deeds/woodland-heights/Willborg-Official.pdf"
+        },
+        {
+          "label": "WHCA Land Use Archive",
+          "url": "https://www.woodland-heights.org/land-use"
+        }
+      ],
       "documents": [
         {
           "title": "Willborg Subdivision Deed Restrictions (Official Recorded Copy)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Willborg-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Willborg-Official.pdf",
-          "clerk_file": "HCAD 037-308"
+          "clerk_file": "Clerk File #N545550 / Film Code 015-58-0155"
         },
         {
           "title": "Willborg Subdivision Deed Restrictions (Searchable Text)",
@@ -115,24 +145,34 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1911,
       "vol_page": "037-105",
-      "plat_citation": "Map Book Vol. 37, Pg. 105 & Vol. 58, Pg. 5 \u00b7 HCAD Plat Code 037-105",
-      "deed_citation": "Joint Hermosa Court / Woodland Heights Annex / Willborg Declaration",
+      "plat_citation": "HCAD Subdiv. Codes 037-105 & 058-005",
+      "deed_citation": "Harris County Clerk File #N545550 (Film Code 015-58-0155) · Joint Annex, Willborg & Hermosa Court Declaration",
       "covenant_summary": {
-        "allowed_use": "Strictly single-family residential only (no commercial, duplex, or multi-family use)",
-        "min_lot_size": "Max 1 single-family residence per 2,500 sq ft of lot area",
+        "allowed_use": "Residential only (incidental non-public home office allowed; 'Residence' includes house, townhouse, condo, apartment, or garage apartment subject to 1 unit per 2,500 sq ft density cap; no commercial, clinic, or hotel use)",
+        "min_lot_size": "Max 1 residential unit per 2,500 sq ft of lot area",
         "front_setback": "Min 15 ft from street property line or 45 ft from street centerline (whichever is greater)",
         "side_rear_setback": "Min 3 ft from side and rear property lines",
         "max_height": "Max 3 stories and 40 ft above ground level",
         "plan_review": "WHCA plan review not required",
-        "notes": "Covered under the joint Declaration of Restrictions for Hermosa Court, Woodland Heights Annex, and Willborg."
+        "notes": "Covered under the joint 1992 Declaration of Restrictions (#N545550) for Hermosa Court, Woodland Heights Annex, and Willborg."
       },
+      "citations": [
+        {
+          "label": "Clerk File #N545550 (PDF)",
+          "url": "public/deeds/woodland-heights/Hermosa-Court-Official.pdf"
+        },
+        {
+          "label": "WHCA Land Use Archive",
+          "url": "https://www.woodland-heights.org/land-use"
+        }
+      ],
       "documents": [
         {
           "title": "Hermosa Court Deed Restrictions (Official Recorded Copy)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Hermosa-Court-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Hermosa-Court-Official.pdf",
-          "clerk_file": "HCAD 037-105 / 058-005"
+          "clerk_file": "Clerk File #N545550 / Film Code 015-58-0155"
         },
         {
           "title": "Hermosa Court Deed Restrictions (Searchable Text)",
@@ -150,24 +190,34 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1903,
       "vol_page": "037-296",
-      "plat_citation": "Map Book Vol. 1, Pg. 60 & Vol. 195, Pg. 376 \u00b7 HCAD Plat Code 037-296",
-      "deed_citation": "Joint Highland Park & Rodgers Addition Declaration of Restrictions",
+      "plat_citation": "Map Book Vol. 1, Pg. 60 & Deed Vol. 195, Pg. 376 · HCAD Subdiv. Code 037-296",
+      "deed_citation": "Harris County Clerk File #T056649 (Film Code 513-39-0760) · Joint Highland Park & Rodgers Declaration",
       "covenant_summary": {
-        "allowed_use": "Residential only (incidental home office allowed; no commercial, duplex, or apartment use)",
-        "min_lot_size": "Max 1 single-family residence per 2,500 sq ft of lot area",
+        "allowed_use": "Residential only (incidental non-public home office allowed; 'Residence' includes house, townhouse, condo, apartment, or garage apartment subject to 1 unit per 2,500 sq ft density cap; no commercial use)",
+        "min_lot_size": "Max 1 residential unit per 2,500 sq ft of lot area",
         "front_setback": "Min 10 ft from street property line; no front-yard parking off driveway",
         "side_rear_setback": "Min 3 ft from side and rear property lines",
         "max_height": "Max 3 stories and 40 ft above ground level",
         "plan_review": "WHCA plan review not required",
-        "notes": "Adjoining 1903 subdivisions recorded in Map Book Vol. 1, Pg. 60."
+        "notes": "Adjoining 1903 subdivisions recorded in Map Book Vol. 1, Pg. 60 and jointly restricted under Clerk File #T056649."
       },
+      "citations": [
+        {
+          "label": "Clerk File #T056649 (PDF)",
+          "url": "public/deeds/woodland-heights/Highland-Park-Official.pdf"
+        },
+        {
+          "label": "WHCA Land Use Archive",
+          "url": "https://www.woodland-heights.org/land-use"
+        }
+      ],
       "documents": [
         {
           "title": "Highland Park Deed Restrictions (Official Recorded Copy)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Highland-Park-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Highland-Park-Official.pdf",
-          "clerk_file": "Map Vol. 1, Pg. 60"
+          "clerk_file": "Clerk File #T056649 / Film Code 513-39-0760"
         },
         {
           "title": "Highland Park Deed Restrictions (Searchable Text)",
@@ -185,24 +235,34 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1903,
       "vol_page": "030-139",
-      "plat_citation": "Map Book Vol. 1, Pg. 60 & Vol. 195, Pg. 376 \u00b7 HCAD Plat Code 030-139",
-      "deed_citation": "Recorded 6/18/1903 \u00b7 Joint Highland Park & Rodgers Addition Declaration",
+      "plat_citation": "Map Book Vol. 1, Pg. 60 & Deed Vol. 195, Pg. 376 · HCAD Subdiv. Code 030-139",
+      "deed_citation": "Harris County Clerk File #T056649 (Film Code 513-39-0760) · Joint Highland Park & Rodgers Declaration",
       "covenant_summary": {
-        "allowed_use": "Residential only (incidental home office allowed; no commercial, duplex, or apartment use)",
-        "min_lot_size": "Max 1 single-family residence per 2,500 sq ft of lot area",
+        "allowed_use": "Residential only (incidental non-public home office allowed; 'Residence' includes house, townhouse, condo, apartment, or garage apartment subject to 1 unit per 2,500 sq ft density cap; no commercial use)",
+        "min_lot_size": "Max 1 residential unit per 2,500 sq ft of lot area",
         "front_setback": "Min 10 ft from street property line; no front-yard parking off driveway",
         "side_rear_setback": "Min 3 ft from side and rear property lines",
         "max_height": "Max 3 stories and 40 ft above ground level",
         "plan_review": "WHCA plan review not required",
-        "notes": "Platted June 18, 1903 in Map Book Vol. 1, Pg. 60 alongside Highland Park."
+        "notes": "Platted June 18, 1903 in Map Book Vol. 1, Pg. 60 alongside Highland Park and jointly restricted under Clerk File #T056649."
       },
+      "citations": [
+        {
+          "label": "Clerk File #T056649 (PDF)",
+          "url": "public/deeds/woodland-heights/Rodgers-Official.pdf"
+        },
+        {
+          "label": "WHCA Land Use Archive",
+          "url": "https://www.woodland-heights.org/land-use"
+        }
+      ],
       "documents": [
         {
           "title": "Rodgers Addition Deed Restrictions (Official Recorded Copy)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Rodgers-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Rodgers-Official.pdf",
-          "clerk_file": "Map Vol. 1, Pg. 60"
+          "clerk_file": "Clerk File #T056649 / Film Code 513-39-0760"
         },
         {
           "title": "Rodgers Addition Deed Restrictions (Searchable Text)",
@@ -220,8 +280,8 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1922,
       "vol_page": "051-373",
-      "plat_citation": "Map Book Vol. 51, Pg. 373 \u00b7 HCAD Plat Code 051-373",
-      "deed_citation": "Harris County Real Property Records Vol. 493, Pg. 66",
+      "plat_citation": "Deed Records Vol. 493, Pg. 66 · HCAD Subdiv. Code 051-373",
+      "deed_citation": "Harris County Clerk File #T467865 (Film Code 521-61-1334) · Original Dedication Vol. 493, Pg. 66",
       "covenant_summary": {
         "allowed_use": "Residential only (1 primary single-family residence + optional 1 secondary garage apartment)",
         "min_lot_size": "Max 1 primary residence per 5,000 sq ft (with secondary unit, total density <= 1 unit per 2,500 sq ft)",
@@ -231,13 +291,23 @@
         "plan_review": "WHCA plan review not required",
         "notes": "Residences may not face Julian Street or Michaux Street."
       },
+      "citations": [
+        {
+          "label": "Clerk File #T467865 (PDF)",
+          "url": "public/deeds/woodland-heights/Woodson-Place-Official.pdf"
+        },
+        {
+          "label": "WHCA Land Use Archive",
+          "url": "https://www.woodland-heights.org/land-use"
+        }
+      ],
       "documents": [
         {
           "title": "Woodson Place Deed Restrictions (Official Recorded Copy)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Woodson-Place-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Woodson-Place-Official.pdf",
-          "clerk_file": "Deed Vol. 493, Pg. 66"
+          "clerk_file": "Clerk File #T467865 / Film Code 521-61-1334"
         },
         {
           "title": "Woodson Place Deed Restrictions (Searchable Text)",
@@ -255,8 +325,8 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1923,
       "vol_page": "061-192",
-      "plat_citation": "Map Book Vol. 7, Pgs. 22 & 70 \u00b7 HCAD Plat Code 061-192",
-      "deed_citation": "Deed Records Vol. 524, Pg. 416 \u00b7 Clerk Files #L812728, #20090471789 & #RP-2017-45903",
+      "plat_citation": "Map Book Vol. 7, Pgs. 22 & 70 · HCAD Subdiv. Code 061-192",
+      "deed_citation": "Deed Records Vol. 524, Pg. 416 · Clerk Files #L812728, #20090471789 & #RP-2017-45903",
       "covenant_summary": {
         "allowed_use": "Single-family residential on interior blocks; restricted light commercial/professional on designated edge lots (Block 19) subject to Ch. 30 noise limits",
         "min_lot_size": "Single-family residential lot protections per 1989 Declaration and 2009/2017 Amendments",
@@ -266,6 +336,16 @@
         "plan_review": "WHCA plan review not required (COH HAHC COA required inside Norhill Historic District)",
         "notes": "Includes 1989 Restated Restrictions, 2009 Modification (#20090471789), and 2017 First Amendment (#RP-2017-45903)."
       },
+      "citations": [
+        {
+          "label": "Clerk File #20090471789 (PDF)",
+          "url": "public/deeds/woodland-heights/Woodland-Terrace-2009-10-15-Modified.pdf"
+        },
+        {
+          "label": "Clerk File #RP-2017-45903 (PDF)",
+          "url": "public/deeds/woodland-heights/RP-2017-45903-Woodland-Terrace-First-Amendment.pdf"
+        }
+      ],
       "documents": [
         {
           "title": "Woodland Terrace 2009 Modified Deed Restrictions (#20090471789)",
@@ -311,31 +391,45 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1920,
       "vol_page": "062-075",
-      "plat_citation": "Map Book Vol. 6, Pg. 3 \u00b7 HCAD Plat Code 062-075",
-      "deed_citation": "Harris County Clerk Instrument #81062 \u00b7 Norhill Addition Restrictions",
+      "plat_citation": "Map Book Vol. 6, Pg. 3 (Filing #81062) · HCAD Subdiv. Code 062-075",
+      "deed_citation": "Harris County Clerk File #20150276464 (2015 Amended Restrictions) & #H009467 (1981 Renewal)",
       "covenant_summary": {
-        "allowed_use": "Single-family residential only",
+        "allowed_use": "Single-family residential on interior lots; retail or commercial business permitted on 12 designated corner lots (Lots 1-3 Blk 1, Lots 24-26 Blk 4, Lots 1-3 Blk 18, Lots 10-12 Blk 24)",
         "min_lot_size": "1 single-family residence per platted residential lot",
-        "front_setback": "Per recorded Norhill Addition building lines (Map Book Vol. 6, Pg. 3)",
-        "side_rear_setback": "Standard residential side/rear setbacks per Norhill covenants",
+        "front_setback": "Min 20 ft front residential setback; garages and outbuildings min 60 ft from front street line on interior lots",
+        "side_rear_setback": "Min 3 ft from interior side/rear lot lines; 20 ft side-street setback on west/east-facing corner lots",
         "max_height": "2-story historic bungalow / cottage scale (also regulated by COH Norhill Historic District)",
-        "plan_review": "REQUIRED: Architectural plans must be submitted to the Woodland Heights Civic Association (WHCA) for review, plus COH HAHC Certificate of Appropriateness",
-        "notes": "Developed beginning in 1920 by William A. Wilson; requires formal WHCA architectural plan submission."
+        "plan_review": "Architectural plans submitted to the Norhill Committee (or WHCA if no Norhill Committee is active), plus COH HAHC Certificate of Appropriateness",
+        "notes": "Platted in October 1920 (Map Book Vol. 6, Pg. 3) by William C. 'Will' Hogg and the Varner Realty Company; restated June 25, 2015 under Clerk File #20150276464."
       },
+      "citations": [
+        {
+          "label": "Clerk File #20150276464 (2015 PDF)",
+          "url": "public/deeds/woodland-heights/Norhill-Official.pdf"
+        },
+        {
+          "label": "Clerk File #H009467 (1981 Renewal PDF)",
+          "url": "public/deeds/woodland-heights/Norhill-Historical.pdf"
+        },
+        {
+          "label": "COH Norhill Historic District",
+          "url": "https://www.houstontx.gov/planning/HistoricPres/District_Reference.html"
+        }
+      ],
       "documents": [
         {
-          "title": "Norhill Addition Deed Restrictions (Official Recorded Copy)",
+          "title": "Norhill Addition 2015 Amended & Extended Deed Restrictions (#20150276464)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Norhill-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Norhill-Official.pdf",
-          "clerk_file": "Map Vol. 6, Pg. 3 / #81062"
+          "clerk_file": "Clerk File #20150276464 (Filed 06/25/2015)"
         },
         {
-          "title": "Norhill Addition Historical 1920s Deed Restrictions",
+          "title": "Norhill Addition 1981 Renewed Historical Deed Restrictions (#H009467)",
           "doc_type": "historical",
           "local_url": "public/deeds/woodland-heights/Norhill-Historical.pdf",
           "external_url": "https://www.woodland-heights.org/s/Norhill-Historical.pdf",
-          "clerk_file": "Original 1920s Instrument"
+          "clerk_file": "Clerk File #H009467 / Film Code 187-83-2046 (1981)"
         }
       ]
     },
@@ -344,33 +438,43 @@
       "subdivision_name": "East Norhill",
       "civic_association": "Woodland Heights Civic Association",
       "civic_association_url": "https://www.woodland-heights.org/land-use",
-      "plat_year": 1923,
+      "plat_year": 1924,
       "vol_page": "062-113",
-      "plat_citation": "Map Book Vol. 6, Pg. 65 \u00b7 HCAD Plat Code 062-113",
-      "deed_citation": "Harris County Clerk Instrument #154530 \u00b7 Norhill Addition Restrictions",
+      "plat_citation": "Map Book Vol. 6, Pg. 65 (Filing #154530) · HCAD Subdiv. Code 062-113",
+      "deed_citation": "Harris County Clerk Filing #154530 (1924 Plat) · Adjacent Norhill Reference (#20150276464 / #H009467)",
       "covenant_summary": {
-        "allowed_use": "Single-family residential only",
+        "allowed_use": "Single-family residential",
         "min_lot_size": "1 single-family residence per platted residential lot",
         "front_setback": "Per recorded East Norhill plat building lines (Map Book Vol. 6, Pg. 65)",
-        "side_rear_setback": "Standard residential side/rear setbacks per Norhill covenants",
+        "side_rear_setback": "Standard residential side/rear setbacks and COH Norhill Historic District guidelines",
         "max_height": "Historic residential scale (also in COH Norhill Historic District)",
-        "plan_review": "REQUIRED: Architectural plans must be submitted to WHCA for review, plus COH HAHC Certificate of Appropriateness",
-        "notes": "Eastern section of the Norhill Addition (Map Book Vol. 6, Pg. 65)."
+        "plan_review": "COH HAHC Certificate of Appropriateness required inside Norhill Historic District (check WHCA / Norhill Committee applicability)",
+        "notes": "Eastern section of Norhill (292 lots, Map Book Vol. 6, Pg. 65, Filing #154530), opened in June 1924 by Varner Realty Company. Adjacent original Norhill Addition restrictions (#20150276464 / #H009467) linked for neighborhood reference."
       },
+      "citations": [
+        {
+          "label": "Adjacent Norhill #20150276464 (PDF)",
+          "url": "public/deeds/woodland-heights/Norhill-Official.pdf"
+        },
+        {
+          "label": "COH Norhill Historic District",
+          "url": "https://www.houstontx.gov/planning/HistoricPres/District_Reference.html"
+        }
+      ],
       "documents": [
         {
-          "title": "Norhill Addition Deed Restrictions (Official Recorded Copy)",
+          "title": "Adjacent Norhill Addition (Vol. 6, Pg. 3) Reference Restrictions (#20150276464)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Norhill-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Norhill-Official.pdf",
-          "clerk_file": "Map Vol. 6, Pg. 65 / #154530"
+          "clerk_file": "Reference: Clerk File #20150276464 (Norhill Vol. 6, Pg. 3)"
         },
         {
-          "title": "Norhill Addition Historical 1920s Deed Restrictions",
+          "title": "Adjacent Norhill Addition 1981 Renewal Reference (#H009467)",
           "doc_type": "historical",
           "local_url": "public/deeds/woodland-heights/Norhill-Historical.pdf",
           "external_url": "https://www.woodland-heights.org/s/Norhill-Historical.pdf",
-          "clerk_file": "Original 1920s Instrument"
+          "clerk_file": "Reference: Clerk File #H009467 (Norhill Vol. 6, Pg. 3)"
         }
       ]
     },
@@ -379,26 +483,36 @@
       "subdivision_name": "North Norhill",
       "civic_association": "Proctor Plaza Neighborhood Association / WHCA",
       "civic_association_url": "https://www.woodland-heights.org/land-use",
-      "plat_year": 1924,
+      "plat_year": 1923,
       "vol_page": "062-112",
-      "plat_citation": "Plat Film #649-238 \u00b7 HCAD Plat Code 062-112",
-      "deed_citation": "Harris County Clerk File #20120495481 \u00b7 Norhill Addition Historical Covenants",
+      "plat_citation": "Plat Film #649-238 · HCAD Subdiv. Code 062-112",
+      "deed_citation": "North Norhill 1923 Varner Realty Co. Plat · Adjacent Norhill Reference (#H009467)",
       "covenant_summary": {
         "allowed_use": "Single-family residential",
         "min_lot_size": "Standard 5,000 sq ft residential lots (plus COH Norhill Historic District protections)",
         "front_setback": "Per recorded North Norhill building lines and COH Norhill Historic District design guidelines",
-        "side_rear_setback": "Min 3\u20135 ft residential side/rear setbacks",
+        "side_rear_setback": "Min 3 to 5 ft residential side/rear setbacks",
         "max_height": "Regulated by COH Norhill Historic District Certificate of Appropriateness",
         "plan_review": "COH HAHC Certificate of Appropriateness required inside Norhill Historic District",
-        "notes": "Northern section of the Norhill Addition north of Pecore Street."
+        "notes": "Northern section of Norhill north of Pecore Street, opened in May 1923 by Varner Realty Company (555 lots). Adjacent original Norhill Addition restrictions (#H009467) linked for historical reference."
       },
+      "citations": [
+        {
+          "label": "Adjacent Norhill #H009467 (PDF)",
+          "url": "public/deeds/woodland-heights/Norhill-Historical.pdf"
+        },
+        {
+          "label": "COH Norhill Historic District",
+          "url": "https://www.houstontx.gov/planning/HistoricPres/District_Reference.html"
+        }
+      ],
       "documents": [
         {
-          "title": "Norhill Historical Deed Restrictions Reference",
+          "title": "Adjacent Norhill Addition 1981 Renewal Reference (#H009467)",
           "doc_type": "historical",
           "local_url": "public/deeds/woodland-heights/Norhill-Historical.pdf",
           "external_url": "https://www.woodland-heights.org/s/Norhill-Historical.pdf",
-          "clerk_file": "HCAD 062-112"
+          "clerk_file": "Reference: Clerk File #H009467 (Norhill Vol. 6, Pg. 3)"
         }
       ]
     },
@@ -409,24 +523,34 @@
       "civic_association_url": "https://www.woodland-heights.org/land-use",
       "plat_year": 1921,
       "vol_page": "056-113",
-      "plat_citation": "HCAD Plat Code 056-113",
-      "deed_citation": "Norhill Addition Deed Restrictions",
+      "plat_citation": "HCAD Subdiv. Code 056-113",
+      "deed_citation": "Norhill Park 1921 Subdivision · Adjacent Norhill Reference (#20150276464)",
       "covenant_summary": {
-        "allowed_use": "Single-family residential only",
+        "allowed_use": "Single-family residential",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per recorded Norhill plat building lines",
+        "front_setback": "Per recorded Norhill Park plat building lines",
         "side_rear_setback": "Standard residential side/rear setbacks",
         "max_height": "Historic residential scale",
-        "plan_review": "REQUIRED: Architectural plans must be submitted to WHCA for review",
-        "notes": "Part of the Norhill Addition covered by WHCA plan review requirements."
+        "plan_review": "Check parcel-specific covenants and COH HAHC COA applicability",
+        "notes": "Adjacent 1921 Norhill Park subdivision; original Norhill Addition restrictions (#20150276464) linked for neighborhood reference."
       },
+      "citations": [
+        {
+          "label": "Adjacent Norhill #20150276464 (PDF)",
+          "url": "public/deeds/woodland-heights/Norhill-Official.pdf"
+        },
+        {
+          "label": "WHCA Land Use Archive",
+          "url": "https://www.woodland-heights.org/land-use"
+        }
+      ],
       "documents": [
         {
-          "title": "Norhill Addition Deed Restrictions (Official Recorded Copy)",
+          "title": "Adjacent Norhill Addition (Vol. 6, Pg. 3) Reference Restrictions (#20150276464)",
           "doc_type": "official",
           "local_url": "public/deeds/woodland-heights/Norhill-Official.pdf",
           "external_url": "https://www.woodland-heights.org/s/Norhill-Official.pdf",
-          "clerk_file": "HCAD 056-113"
+          "clerk_file": "Reference: Clerk File #20150276464 (Norhill Vol. 6, Pg. 3)"
         }
       ]
     },
@@ -437,8 +561,8 @@
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
       "plat_year": 1923,
       "vol_page": "053-039",
-      "plat_citation": "Plat Film #672-025 \u00b7 HCAD Plat Code 053-039",
-      "deed_citation": "Harris County Clerk Instrument #108866 \u00b7 2022 Amended & Restated Restrictions",
+      "plat_citation": "Deed Records Vol. 526, Pg. 497 (1923 Plat) · Replat Film #672-025 · HCAD Subdiv. Code 053-039",
+      "deed_citation": "Harris County Clerk File #RP-2022-305552 (2022 Amended Restrictions) · Original Plat & Dedication Vol. 526, Pg. 497 (#108866)",
       "covenant_summary": {
         "allowed_use": "Strictly single-family residential estates only",
         "min_lot_size": "Large estate lots (1 single-family residence per platted estate lot; no subdivision of lots)",
@@ -446,22 +570,36 @@
         "side_rear_setback": "Generous estate side and rear setbacks per 1923/2022 Broadacres Covenants",
         "max_height": "Estate residential height & massing limits",
         "plan_review": "Broadacres Architectural Control Committee approval + COH HAHC COA (Broadacres Historic District)",
-        "notes": "Developed in 1923 by E. H. Fleming with landscape architecture by Hare & Hare and homes by William Ward Watkin, John Staub, and Birdsall Briscoe."
+        "notes": "Organized in 1922 and platted in 1923 by Capt. James A. Baker and James A. Baker Jr. with master site planning and entry portals by William Ward Watkin and residences by Watkin, John F. Staub, and Birdsall P. Briscoe."
       },
+      "citations": [
+        {
+          "label": "Clerk File #RP-2022-305552 (PDF)",
+          "url": "public/deeds/boulevard-oaks/Broadacres-2022-Amended-Restrictions.pdf"
+        },
+        {
+          "label": "BHOA Summary Sheet (PDF)",
+          "url": "public/deeds/boulevard-oaks/Broadacres-Original-Restrictions.pdf"
+        },
+        {
+          "label": "TSHA Broadacres",
+          "url": "https://www.tshaonline.org/handbook/entries/broadacres-historic-district"
+        }
+      ],
       "documents": [
         {
-          "title": "Broadacres 2022 Amended & Restated Deed Restrictions",
+          "title": "Broadacres 2022 Amended & Restated Deed Restrictions (#RP-2022-305552)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Broadacres-2022-Amended-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/BroadacresCurrent%20-%202022.06.13%20Amended%20and%20Restated%20Restriction%20for%20Broadacres%20Subdivision.pdf",
-          "clerk_file": "2022 Restated Instrument"
+          "clerk_file": "Clerk File #RP-2022-305552 (Recorded 06/13/2022)"
         },
         {
-          "title": "Broadacres Original 1923 Deed Restrictions",
-          "doc_type": "historical",
+          "title": "Broadacres Deed Restrictions & Architectural Summary Sheet",
+          "doc_type": "searchable",
           "local_url": "public/deeds/boulevard-oaks/Broadacres-Original-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/Broadacres.pdf",
-          "clerk_file": "Instrument #108866 (1923)"
+          "clerk_file": "BHOA Summary (Ref. #RP-2022-305552)"
         }
       ]
     },
@@ -470,33 +608,43 @@
       "subdivision_name": "Edgemont",
       "civic_association": "Edgemont Civic Association / Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1924,
+      "plat_year": 1923,
       "vol_page": "053-033",
-      "plat_citation": "Map Book Vol. 534, Pg. 286 \u00b7 HCAD Plat Code 053-033",
-      "deed_citation": "Harris County Map Records Vol. 534, Pg. 286 \u00b7 2008 & 2012 Dedicatory Instruments",
+      "plat_citation": "Deed Records Vol. 534, Pg. 286 & Vol. 572, Pgs. 491-492 · HCAD Subdiv. Code 053-033",
+      "deed_citation": "Harris County Clerk Files #20080519363 (2008 Restated Restrictions) & #20110542736 (2011 Dedicatory Instruments)",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot along North & South Boulevards",
         "front_setback": "Per recorded Edgemont plat building lines along tree-lined esplanades",
-        "side_rear_setback": "Per Edgemont 2008 Restated Restrictions",
+        "side_rear_setback": "Per Edgemont 2008 Restated Restrictions (#20080519363)",
         "max_height": "2-to-3 story historic residential scale (COH Boulevard Oaks Historic District)",
         "plan_review": "Edgemont Civic Association architectural review + COH HAHC Certificate of Appropriateness",
-        "notes": "Core subdivision of Boulevard Oaks along North Boulevard and South Boulevard."
+        "notes": "Platted in 1923 by The Guardian Trust Company as the first subdivision of Boulevard Oaks along North and South Boulevards."
       },
+      "citations": [
+        {
+          "label": "Clerk File #20080519363 (PDF)",
+          "url": "public/deeds/boulevard-oaks/Edgemont-2008-Restrictions.pdf"
+        },
+        {
+          "label": "Clerk File #20110542736 (PDF)",
+          "url": "public/deeds/boulevard-oaks/Edgemont-2012-Dedicatory-Instruments.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Edgemont 2012 Recorded Dedicatory Instruments",
+          "title": "Edgemont Recorded Dedicatory Instruments (#20110542736)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Edgemont-2012-Dedicatory-Instruments.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/EDGEMONTDEDICATORYINSTRUMENTSasfiled12282012.pdf",
-          "clerk_file": "Filed 12/28/2012"
+          "clerk_file": "Clerk File #20110542736 (Recorded 12/28/2011)"
         },
         {
-          "title": "Edgemont 2008 Restated Deed Restrictions",
+          "title": "Edgemont 2008 Restated Deed Restrictions (#20080519363)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Edgemont-2008-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/Edgemont_08272008forWeb.pdf",
-          "clerk_file": "Filed 08/27/2008"
+          "clerk_file": "Clerk File #20080519363 (Recorded 10/16/2008)"
         }
       ]
     },
@@ -505,26 +653,36 @@
       "subdivision_name": "North Edgemont",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1926,
+      "plat_year": 1924,
       "vol_page": "056-283",
-      "plat_citation": "Plat Film #364-128 \u00b7 HCAD Plat Code 056-283",
-      "deed_citation": "North Edgemont Recorded Deed Restrictions & New Construction Guidelines",
+      "plat_citation": "Deed Records Vol. 557, Pg. 77 · HCAD Subdiv. Code 056-283",
+      "deed_citation": "Harris County Clerk File #E941368 (Film Code 152-07-1226) · North Edgemont Restrictions",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family dwelling per platted lot",
         "front_setback": "Per recorded North Edgemont building lines and New Construction Guidelines",
-        "side_rear_setback": "Per North Edgemont Deed Restrictions",
+        "side_rear_setback": "Per North Edgemont Deed Restrictions (#E941368)",
         "max_height": "Residential scale per North Edgemont Guidelines & Boulevard Oaks Historic District",
         "plan_review": "Architectural review + COH HAHC Certificate of Appropriateness",
-        "notes": "Includes dedicated Deed Restriction Guidelines for New Construction."
+        "notes": "Platted in Deed Records Vol. 557, Pg. 77 (c. 1924); includes dedicated Deed Restriction Guidelines for New Construction."
       },
+      "citations": [
+        {
+          "label": "Clerk File #E941368 (PDF)",
+          "url": "public/deeds/boulevard-oaks/North-Edgemont-Restrictions.pdf"
+        },
+        {
+          "label": "Design Guidelines (PDF)",
+          "url": "public/deeds/boulevard-oaks/North-Edgemont-Design-Guidelines.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "North Edgemont Recorded Deed Restrictions",
+          "title": "North Edgemont Recorded Deed Restrictions (#E941368)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/North-Edgemont-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/NorthEdgmt.pdf",
-          "clerk_file": "HCAD 056-283"
+          "clerk_file": "Clerk File #E941368 / Film Code 152-07-1226"
         },
         {
           "title": "North Edgemont Guidelines for New Construction",
@@ -540,26 +698,32 @@
       "subdivision_name": "West Edgemont",
       "civic_association": "Edgemont Civic Association / Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1926,
+      "plat_year": 1925,
       "vol_page": "056-251",
-      "plat_citation": "Plat Film #671-167 \u00b7 HCAD Plat Code 056-251",
-      "deed_citation": "West Edgemont 2008 Restated Deed Restrictions",
+      "plat_citation": "Deed Records Vol. 572, Pg. 2 & Pgs. 155-156 · Replat Film #671-167 · HCAD Subdiv. Code 056-251",
+      "deed_citation": "Harris County Clerk File #20080519364 · West Edgemont 2008 Restated Restrictions",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
         "front_setback": "Per recorded West Edgemont plat building lines (Milford, Banks, Vassar)",
-        "side_rear_setback": "Per 2008 West Edgemont Restrictions",
+        "side_rear_setback": "Per 2008 West Edgemont Restrictions (#20080519364)",
         "max_height": "Historic residential scale",
         "plan_review": "Edgemont Civic Association architectural review",
-        "notes": "Covers West Edgemont blocks along Milford, Banks, and Vassar Streets."
+        "notes": "Platted in Deed Records Vol. 572, Pg. 2 & Pgs. 155-156 (c. 1925) along Milford, Banks, and Vassar Streets."
       },
+      "citations": [
+        {
+          "label": "Clerk File #20080519364 (PDF)",
+          "url": "public/deeds/boulevard-oaks/West-Edgemont-2008-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "West Edgemont 2008 Restated Deed Restrictions",
+          "title": "West Edgemont 2008 Restated Deed Restrictions (#20080519364)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/West-Edgemont-2008-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/W_Edgemont_08282008_for_web.pdf",
-          "clerk_file": "Filed 08/28/2008"
+          "clerk_file": "Clerk File #20080519364 (Recorded 10/16/2008)"
         }
       ]
     },
@@ -568,26 +732,32 @@
       "subdivision_name": "Ormond Place",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1923,
+      "plat_year": 1924,
       "vol_page": "053-041",
-      "plat_citation": "Plat Film #674-842 \u00b7 HCAD Plat Code 053-041",
-      "deed_citation": "Harris County Clerk Instrument #129128 \u00b7 1923 Ormond Place Restrictions",
+      "plat_citation": "Original Filing #129128 · Replat Film #674-842 · HCAD Subdiv. Code 053-041",
+      "deed_citation": "Harris County Film Code #122-92-1286 (Renewed Ormond Place Restrictions) · Original Filing #129128",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per 1923 Recorded Plat and Ormond Place Covenants",
+        "front_setback": "Per 1924 Recorded Plat and Ormond Place Covenants",
         "side_rear_setback": "Standard residential side/rear setbacks",
         "max_height": "2-to-3 story residential scale",
         "plan_review": "Ormond Place / BOCA Architectural Control Committee",
-        "notes": "Platted in 1923 in Boulevard Oaks."
+        "notes": "Platted in 1924 in Boulevard Oaks; restrictions renewed under Film Code #122-92-1286."
       },
+      "citations": [
+        {
+          "label": "Film Code #122-92-1286 (PDF)",
+          "url": "public/deeds/boulevard-oaks/Ormond-Place-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Ormond Place Deed Restrictions (Clean Reference Copy)",
+          "title": "Ormond Place Renewed Deed Restrictions (Film Code #122-92-1286)",
           "doc_type": "searchable",
           "local_url": "public/deeds/boulevard-oaks/Ormond-Place-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/Ormond-2clean.pdf",
-          "clerk_file": "Instrument #129128"
+          "clerk_file": "Film Code #122-92-1286"
         }
       ]
     },
@@ -596,33 +766,43 @@
       "subdivision_name": "West Ormond Place",
       "civic_association": "Cresmere-West Ormond Civic Association / BOCA",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1925,
+      "plat_year": 1931,
       "vol_page": "065-029",
-      "plat_citation": "HCAD Plat Code 065-029",
-      "deed_citation": "1987 West Ormond Restrictions & 2004 Cresmere-West Ormond Modification",
+      "plat_citation": "Deed Records Vol. 855, Pg. 725 · HCAD Subdiv. Code 065-029",
+      "deed_citation": "Harris County Clerk Files #K948159 (1987) & #Y104895 (2004) · Original 1937 Restrictions Vol. 1041, Pg. 8",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per recorded West Ormond Place building lines",
+        "front_setback": "Per recorded West Ormond Place building lines (Deed Vol. 855, Pg. 725)",
         "side_rear_setback": "Per 1987/2004 Cresmere-West Ormond Covenants",
         "max_height": "Residential scale per CWOCA Architectural Guidelines",
         "plan_review": "Cresmere-West Ormond Civic Association (CWOCA) ARC Review",
-        "notes": "Jointly administered with Cresmere Place by CWOCA."
+        "notes": "Platted in Deed Records Vol. 855, Pg. 725 (c. 1931) and jointly restricted with Cresmere Place on Feb. 22, 1937 (Deed Vol. 1041, Pg. 8)."
       },
+      "citations": [
+        {
+          "label": "Clerk File #K948159 (1987 PDF)",
+          "url": "public/deeds/boulevard-oaks/West-Ormond-Place-1987-Restrictions.pdf"
+        },
+        {
+          "label": "Clerk File #Y104895 (2004 PDF)",
+          "url": "public/deeds/boulevard-oaks/Cresmere-West-Ormond-2004-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "West Ormond Place 1987 Recorded Deed Restrictions",
+          "title": "West Ormond Place 1987 Recorded Deed Restrictions (#K948159)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/West-Ormond-Place-1987-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/WestOrmond-1987.pdf",
-          "clerk_file": "1987 Filing"
+          "clerk_file": "Clerk File #K948159 / Film Code 071-74-1598 (01/30/1987)"
         },
         {
-          "title": "Cresmere & West Ormond 2004 Modified Restrictions",
+          "title": "Cresmere & West Ormond 2004 Modified Restrictions (#Y104895)",
           "doc_type": "amendment",
           "local_url": "public/deeds/boulevard-oaks/Cresmere-West-Ormond-2004-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/Cresmere-WestOrmond-2004nosigs.pdf",
-          "clerk_file": "2004 Modification"
+          "clerk_file": "Clerk File #Y104895 / Film Code 596-62-0804 (12/03/2004)"
         }
       ]
     },
@@ -631,26 +811,32 @@
       "subdivision_name": "Cresmere Place",
       "civic_association": "Cresmere-West Ormond Civic Association / BOCA",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1925,
+      "plat_year": 1936,
       "vol_page": "066-039",
-      "plat_citation": "Plat Film #635-111 \u00b7 HCAD Plat Code 066-039",
-      "deed_citation": "Harris County Clerk File #20130182619 \u00b7 2004 Cresmere-West Ormond Restrictions",
+      "plat_citation": "Deed Records Vol. 998, Pg. 193 · Replat Film #635-111 · HCAD Subdiv. Code 066-039",
+      "deed_citation": "Harris County Clerk File #Y104895 (2004 Modified Restrictions) · Original 1937 Restrictions Vol. 1041, Pg. 8",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per recorded Cresmere Place building lines",
-        "side_rear_setback": "Per CWOCA Deed Restrictions",
+        "front_setback": "Per recorded Cresmere Place building lines (Deed Vol. 998, Pg. 193)",
+        "side_rear_setback": "Per CWOCA Deed Restrictions (#Y104895)",
         "max_height": "Residential scale per CWOCA Architectural Guidelines",
         "plan_review": "Cresmere-West Ormond Civic Association (CWOCA) ARC Review",
-        "notes": "Jointly administered with West Ormond Place by CWOCA."
+        "notes": "Platted in 1936 (Deed Records Vol. 998, Pg. 193) and jointly administered with West Ormond Place by CWOCA."
       },
+      "citations": [
+        {
+          "label": "Clerk File #Y104895 (2004 PDF)",
+          "url": "public/deeds/boulevard-oaks/Cresmere-West-Ormond-2004-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Cresmere & West Ormond 2004 Restated Restrictions",
+          "title": "Cresmere & West Ormond 2004 Modified Restrictions (#Y104895)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Cresmere-West-Ormond-2004-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/Cresmere-WestOrmond-2004nosigs.pdf",
-          "clerk_file": "Clerk File #20130182619"
+          "clerk_file": "Clerk File #Y104895 / Film Code 596-62-0804 (12/03/2004)"
         }
       ]
     },
@@ -659,26 +845,32 @@
       "subdivision_name": "Vassar Place",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1924,
+      "plat_year": 1936,
       "vol_page": "065-108",
-      "plat_citation": "HCAD Plat Code 065-108",
-      "deed_citation": "Harris County Clerk Instrument #87641",
+      "plat_citation": "Deed Records Vol. 1031 (1936 Dedication) · HCAD Subdiv. Code 065-108",
+      "deed_citation": "Harris County Deed Records Vol. 1031 (Executed Dec. 29, 1936; Recorded Jan. 6, 1937)",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per Vassar Place recorded plat building lines",
+        "front_setback": "25 ft from Vassar Street property line; 10 ft side-street setback along Hazard and Wilton Streets",
         "side_rear_setback": "Standard residential side/rear setbacks",
         "max_height": "2-to-3 story residential scale",
         "plan_review": "Vassar Place / BOCA Architectural Control",
-        "notes": "Historic 1924 subdivision within Boulevard Oaks."
+        "notes": "Restricted by Ben Taub on December 29, 1936 (recorded January 6, 1937 in Deed Records Vol. 1031; historical 1936 racial clause is void and unenforceable under federal and Texas law)."
       },
+      "citations": [
+        {
+          "label": "Deed Records Vol. 1031 (1937 PDF)",
+          "url": "public/deeds/boulevard-oaks/Vassar-Place-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Vassar Place Deed Restrictions",
+          "title": "Vassar Place 1936-1937 Recorded Deed Restrictions (Deed Vol. 1031)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Vassar-Place-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/VassarPl-1.pdf",
-          "clerk_file": "Instrument #87641"
+          "clerk_file": "Deed Records Vol. 1031 (Recorded 01/06/1937)"
         }
       ]
     },
@@ -687,26 +879,32 @@
       "subdivision_name": "Vassar Court",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1926,
+      "plat_year": 1938,
       "vol_page": "065-109",
-      "plat_citation": "HCAD Plat Code 065-109",
-      "deed_citation": "Vassar Court Recorded Deed Restrictions",
+      "plat_citation": "Map Book Vol. 15 (Clerk File #166457) · Prior Tract Vol. 998, Pg. 417 DR · HCAD Subdiv. Code 065-109",
+      "deed_citation": "Harris County Clerk File #166457 (Recorded July 14, 1938, Map Records Vol. 15)",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per recorded Vassar Court building lines",
+        "front_setback": "Per recorded Vassar Court building lines (Map Records Vol. 15)",
         "side_rear_setback": "Standard residential setbacks",
         "max_height": "Historic residential scale",
         "plan_review": "BOCA Architectural Review",
-        "notes": "Enclave within Boulevard Oaks."
+        "notes": "Dedicated and replatted as Block 1 of Vassar Courts by W. E. White on April 27, 1938 (recorded July 14, 1938 under Clerk File #166457)."
       },
+      "citations": [
+        {
+          "label": "Clerk File #166457 (1938 PDF)",
+          "url": "public/deeds/boulevard-oaks/Vassar-Court-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Vassar Court Deed Restrictions",
+          "title": "Vassar Court 1938 Dedication & Deed Restrictions (#166457)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Vassar-Court-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/VassarCt-1.pdf",
-          "clerk_file": "Vassar Court Covenants"
+          "clerk_file": "Clerk File #166457 / Map Records Vol. 15 (07/14/1938)"
         }
       ]
     },
@@ -715,26 +913,32 @@
       "subdivision_name": "Chevy Chase",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1925,
+      "plat_year": 1928,
       "vol_page": "060-065",
-      "plat_citation": "Plat Film #521-278 \u00b7 HCAD Plat Code 060-065",
-      "deed_citation": "Harris County Clerk File #RP-2022-435533",
+      "plat_citation": "Map Book Vol. 9, Pg. 50 · Replat Film #521-278 · HCAD Subdiv. Code 060-065",
+      "deed_citation": "Deed Records Vol. 777, Pg. 277 (Dec. 17, 1928) & Vol. 2398, Pg. 350 (May 17, 1951 Extension)",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per Chevy Chase recorded plat building lines",
+        "front_setback": "Per Chevy Chase recorded plat building lines (Map Book Vol. 9, Pg. 50)",
         "side_rear_setback": "Standard residential setbacks",
         "max_height": "Historic residential scale",
         "plan_review": "Chevy Chase / BOCA Architectural Control",
-        "notes": "1925 Boulevard Oaks subdivision with renewed 2022 filing (#RP-2022-435533)."
+        "notes": "Replatted and restricted in 1928 (Map Book Vol. 9, Pg. 50; Deed Records Vol. 777, Pg. 277), with restrictions extended May 17, 1951 in Deed Records Vol. 2398, Pg. 350."
       },
+      "citations": [
+        {
+          "label": "Deed Vol. 2398, Pg. 350 (1951 PDF)",
+          "url": "public/deeds/boulevard-oaks/Chevy-Chase-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Chevy Chase Addition Deed Restrictions",
+          "title": "Chevy Chase Addition 1951 Extended Deed Restrictions (Vol. 2398, Pg. 350)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Chevy-Chase-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/ChevyChase.pdf",
-          "clerk_file": "Clerk File #RP-2022-435533"
+          "clerk_file": "Deed Records Vol. 2398, Pg. 350 (1951 Extension of 1928 Vol. 777, Pg. 277)"
         }
       ]
     },
@@ -743,26 +947,32 @@
       "subdivision_name": "Cherokee",
       "civic_association": "Cherokee Civic Club / Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1926,
+      "plat_year": 1924,
       "vol_page": "054-139",
-      "plat_citation": "HCAD Plat Code 054-139",
-      "deed_citation": "2023 Recorded Cherokee Civic Club Deed Restrictions",
+      "plat_citation": "Deed Records Vol. 538, Pg. 442 (Original Plat) & Vol. 655, Pg. 298 (1926 Revised Plat) · HCAD Subdiv. Code 054-139",
+      "deed_citation": "Harris County Clerk File #RP-2023-316842 (Recorded Aug. 18, 2023)",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
         "front_setback": "Per Cherokee Addition recorded building lines",
-        "side_rear_setback": "Per 2023 Restated Cherokee Restrictions",
+        "side_rear_setback": "Per 2023 Restated Cherokee Restrictions (#RP-2023-316842)",
         "max_height": "Residential scale per 2023 Cherokee Restrictions",
         "plan_review": "Cherokee Civic Club Architectural Control Committee",
-        "notes": "Updated and recorded in 2023 by the Cherokee Civic Club."
+        "notes": "Platted in Deed Records Vol. 538, Pg. 442 (revised 1926 in Vol. 655, Pg. 298); updated and recorded August 18, 2023 under Clerk File #RP-2023-316842."
       },
+      "citations": [
+        {
+          "label": "Clerk File #RP-2023-316842 (PDF)",
+          "url": "public/deeds/boulevard-oaks/Cherokee-2023-Recorded-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Cherokee 2023 Recorded Deed Restrictions",
+          "title": "Cherokee 2023 Recorded Deed Restrictions (#RP-2023-316842)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Cherokee-2023-Recorded-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/Cherokee%202023%20Restrictions%20(Recorded)-c.pdf",
-          "clerk_file": "2023 Recorded Filing"
+          "clerk_file": "Clerk File #RP-2023-316842 (Recorded 08/18/2023)"
         }
       ]
     },
@@ -771,26 +981,32 @@
       "subdivision_name": "Ranch Estates",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1928,
+      "plat_year": 1946,
       "vol_page": "073-121",
-      "plat_citation": "Map Book Vol. 22, Pg. 68 \u00b7 HCAD Plat Code 073-121",
-      "deed_citation": "Harris County Clerk Instrument #325719",
+      "plat_citation": "Map Book Vol. 22, Pg. 68 (Filing #325719) · HCAD Subdiv. Code 073-121",
+      "deed_citation": "Harris County Clerk File #330584 · Deed Records Vol. 1446, Pgs. 350-351 (May 23, 1946)",
       "covenant_summary": {
-        "allowed_use": "Single-family residential only",
-        "min_lot_size": "1 single-family residence per platted lot",
+        "allowed_use": "Single-family residential on interior lots (min 1,300 sq ft ground floor); duplexes with garage apartments permitted on Lots 35, 36, and 72",
+        "min_lot_size": "1 single-family residence per platted interior lot (duplex permitted on Lots 35, 36, 72)",
         "front_setback": "Per recorded Ranch Estates building lines (Map Book Vol. 22, Pg. 68)",
-        "side_rear_setback": "Per Ranch Estates Deed Restrictions",
+        "side_rear_setback": "Per Ranch Estates 1946 Deed Restrictions (#330584)",
         "max_height": "Residential scale",
         "plan_review": "Ranch Estates / BOCA Architectural Control",
-        "notes": "Recorded in Map Book Vol. 22, Pg. 68."
+        "notes": "Platted and restricted in May 1946 by Richmond Lumber & Building Company (Map Book Vol. 22, Pg. 68; Deed Records Vol. 1446, Pgs. 350-351; historical 1946 racial clause is void under federal and Texas law)."
       },
+      "citations": [
+        {
+          "label": "Clerk File #330584 (1946 PDF)",
+          "url": "public/deeds/boulevard-oaks/Ranch-Estates-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Ranch Estates Deed Restrictions",
+          "title": "Ranch Estates 1946 Recorded Deed Restrictions (#330584)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Ranch-Estates-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/RanchEst.pdf",
-          "clerk_file": "Map Vol. 22, Pg. 68 / #325719"
+          "clerk_file": "Clerk File #330584 / Deed Vol. 1446, Pg. 350 (1946)"
         }
       ]
     },
@@ -799,26 +1015,32 @@
       "subdivision_name": "Sunset Place",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1924,
+      "plat_year": 1927,
       "vol_page": "063-083",
-      "plat_citation": "Plat Film #660-051 \u00b7 HCAD Plat Code 063-083",
-      "deed_citation": "Harris County Clerk File #RP-2021-632351 & Nov. 13, 2024 Restrictions",
+      "plat_citation": "Deed Records Vol. 725, Pg. 370 · Replat Film #660-051 · HCAD Subdiv. Code 063-083",
+      "deed_citation": "Harris County Clerk File #RP-2024-423389 (Nov. 13, 2024) · Original Restrictions Vol. 791, Pg. 205",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per Sunset Place recorded building lines",
-        "side_rear_setback": "Per 2024 Sunset Place Restrictive Covenants",
+        "front_setback": "Per Sunset Place recorded building lines (Deed Vol. 725, Pg. 370)",
+        "side_rear_setback": "Per 2024 Sunset Place Restrictive Covenants (#RP-2024-423389)",
         "max_height": "Residential scale per 2024 Sunset Place Restrictions",
         "plan_review": "Sunset Place / BOCA Architectural Control",
-        "notes": "Updated and restated November 13, 2024."
+        "notes": "Originally dedicated in Deed Records Vol. 725, Pg. 370 (c. 1927); restated November 13, 2024 under Clerk File #RP-2024-423389."
       },
+      "citations": [
+        {
+          "label": "Clerk File #RP-2024-423389 (PDF)",
+          "url": "public/deeds/boulevard-oaks/Sunset-Place-2024-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Sunset Place 2024 Recorded Deed Restrictions",
+          "title": "Sunset Place 2024 Recorded Deed Restrictions (#RP-2024-423389)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Sunset-Place-2024-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/Sunset%20PlaceRestrictions_13Nov2024.pdf",
-          "clerk_file": "Filed 11/13/2024"
+          "clerk_file": "Clerk File #RP-2024-423389 (Recorded 11/13/2024)"
         }
       ]
     },
@@ -827,26 +1049,32 @@
       "subdivision_name": "Wroxton Court",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1928,
+      "plat_year": 1936,
       "vol_page": "066-103",
-      "plat_citation": "Map Book Vol. 119, Pg. 757 \u00b7 HCAD Plat Code 066-103",
-      "deed_citation": "Harris County Deed Records Vol. 998, Pg. 244",
+      "plat_citation": "Deed Records Vol. 998, Pg. 244 (Filing #119757) · HCAD Subdiv. Code 066-103",
+      "deed_citation": "Harris County Clerk File #H123519 (Film Code 194-85-1860) · Original Plat Vol. 998, Pg. 244",
       "covenant_summary": {
-        "allowed_use": "Single-family residential only",
-        "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per Wroxton Court recorded plat building lines",
-        "side_rear_setback": "Per Wroxton Court Deed Records Vol. 998, Pg. 244",
+        "allowed_use": "Residential (originally restricted primarily to two-family duplex residences and single-family dwellings)",
+        "min_lot_size": "1 duplex or single-family residential building per platted lot",
+        "front_setback": "Per Wroxton Court recorded plat building lines (Deed Vol. 998, Pg. 244)",
+        "side_rear_setback": "Per Wroxton Court Deed Restrictions (#H123519)",
         "max_height": "Historic residential scale",
         "plan_review": "Wroxton Court / BOCA Architectural Control",
-        "notes": "Recorded in Harris County Deed Records Vol. 998, Pg. 244."
+        "notes": "Platted in 1936 in Harris County Deed Records Vol. 998, Pg. 244 and renewed under Clerk File #H123519 as a historic duplex enclave."
       },
+      "citations": [
+        {
+          "label": "Clerk File #H123519 (PDF)",
+          "url": "public/deeds/boulevard-oaks/Wroxton-Court-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Wroxton Court Recorded Deed Restrictions",
+          "title": "Wroxton Court Renewed Deed Restrictions (#H123519)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Wroxton-Court-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/WroxtonCourt.pdf",
-          "clerk_file": "Deed Vol. 998, Pg. 244"
+          "clerk_file": "Clerk File #H123519 / Film Code 194-85-1860"
         }
       ]
     },
@@ -855,54 +1083,66 @@
       "subdivision_name": "Greenbriar",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1926,
+      "plat_year": 1936,
       "vol_page": "067-015",
-      "plat_citation": "Map Book Vol. 5, Pg. 12 \u00b7 HCAD Plat Code 067-015",
-      "deed_citation": "Harris County Deed Records Vol. 998, Pg. 411 \u00b7 2018 Recorded Restrictions",
+      "plat_citation": "Deed Records Vol. 998, Pg. 411 · HCAD Subdiv. Code 067-015",
+      "deed_citation": "Harris County Clerk File #RP-2018-530021 (Nov. 26, 2018) · Original Plat Vol. 998, Pg. 411",
       "covenant_summary": {
         "allowed_use": "Single-family residential only",
         "min_lot_size": "1 single-family residence per platted lot",
-        "front_setback": "Per Greenbriar Addition building lines (Map Book Vol. 5, Pg. 12)",
-        "side_rear_setback": "Per 2018 Recorded Greenbriar Addition Restrictions",
+        "front_setback": "Per Greenbriar Addition recorded building lines (Deed Records Vol. 998, Pg. 411)",
+        "side_rear_setback": "Per 2018 Recorded Greenbriar Addition Restrictions (#RP-2018-530021)",
         "max_height": "Residential scale",
         "plan_review": "Greenbriar Addition / BOCA Architectural Control",
-        "notes": "Restated and recorded November 26, 2018."
+        "notes": "Platted in 1936 (Deed Records Vol. 998, Pg. 411); restated and recorded November 26, 2018 under Clerk File #RP-2018-530021."
       },
+      "citations": [
+        {
+          "label": "Clerk File #RP-2018-530021 (PDF)",
+          "url": "public/deeds/boulevard-oaks/Greenbriar-Addition-2018-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Greenbriar Addition 2018 Recorded Deed Restrictions",
+          "title": "Greenbriar Addition 2018 Recorded Deed Restrictions (#RP-2018-530021)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Greenbriar-Addition-2018-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/GREENBRIAR%20ADDITION%20RECORDED%20DEED%20RESTRICTIONS%2011-26-2018%20TXT.pdf",
-          "clerk_file": "Deed Vol. 998, Pg. 411 / 2018 Filing"
+          "clerk_file": "Clerk File #RP-2018-530021 (Recorded 11/26/2018)"
         }
       ]
     },
-    "plat_2520_hermann_park": {
-      "subdivision_id": "plat_2520_hermann_park",
-      "subdivision_name": "Hermann Hospital Estates",
+    "plat_2517_herman_hospital_estate": {
+      "subdivision_id": "plat_2517_herman_hospital_estate",
+      "subdivision_name": "Herman Hospital Estate",
       "civic_association": "Boulevard Oaks Civic Association",
       "civic_association_url": "https://www.boulevardoaks.org/DeedLibrary/BOCADeedRestrictions.htm",
-      "plat_year": 1925,
-      "vol_page": "039-156",
-      "plat_citation": "Map Book Vol. 5, Pg. 53 \u00b7 HCAD Plat Code 039-156",
-      "deed_citation": "Harris County Clerk Instrument #198027 \u00b7 Hermann Hospital Estate Restrictions",
+      "plat_year": 1938,
+      "vol_page": "",
+      "plat_citation": "14.94-Acre Tract at NW Corner of Bissonnet & Greenbriar Streets (Deed Records Pg. 477, Filing #164382)",
+      "deed_citation": "Harris County Clerk File #164382 (June 1938 Warranty Deed & Covenants, Deed Records Pgs. 477-480)",
       "covenant_summary": {
-        "allowed_use": "Single-family residential only",
-        "min_lot_size": "1 single-family residence per platted estate lot",
-        "front_setback": "Per Hermann Hospital Estates recorded plat building lines (Map Book Vol. 5, Pg. 53)",
-        "side_rear_setback": "Standard estate residential setbacks",
-        "max_height": "Historic residential scale (Boulevard Oaks Historic District)",
-        "plan_review": "BOCA Architectural Control + COH HAHC Certificate of Appropriateness",
-        "notes": "Developed by the George H. Hermann Estate in 1925 adjacent to Broadacres and North/South Boulevards."
+        "allowed_use": "1938 deed permitted single-family, duplex, or up to four-family apartment dwellings on residential lots and retail/business uses along Bissonnet Street (initial 15-year covenant term expired 1953)",
+        "min_lot_size": "Per subsequent replats of the 14.94-acre Bissonnet Corporation tract",
+        "front_setback": "Per 1938 Hermann Hospital Estate deed covenants and subsequent section plats",
+        "side_rear_setback": "Standard residential setbacks per subsequent section replats",
+        "max_height": "Historic residential scale",
+        "plan_review": "Check subsequent section replat covenants (outside COH Boulevard Oaks Historic District unless within boundary)",
+        "notes": "Conveyed in June 1938 (Clerk File #164382) by Trustees of the Hermann Hospital Estate to Bissonnet Corporation at the northwest corner of Bissonnet and Greenbriar Streets."
       },
+      "citations": [
+        {
+          "label": "Clerk File #164382 (1938 PDF)",
+          "url": "public/deeds/boulevard-oaks/Hermann-Hospital-Estates-Restrictions.pdf"
+        }
+      ],
       "documents": [
         {
-          "title": "Hermann Hospital Estates Recorded Deed Restrictions",
+          "title": "Hermann Hospital Estate 1938 Warranty Deed & Covenants (#164382)",
           "doc_type": "official",
           "local_url": "public/deeds/boulevard-oaks/Hermann-Hospital-Estates-Restrictions.pdf",
           "external_url": "https://www.boulevardoaks.org/DeedLibrary/HermannHEst-1.pdf",
-          "clerk_file": "Map Vol. 5, Pg. 53 / #198027"
+          "clerk_file": "Clerk File #164382 / Deed Records Pgs. 477-480 (June 1938)"
         }
       ]
     },
@@ -913,24 +1153,34 @@
       "civic_association_url": "https://www.idylwood.org/",
       "plat_year": 1928,
       "vol_page": "062-204",
-      "plat_citation": "Map Book Vol. 9, Pg. 8 \u00b7 HCAD Plat Code 062-204",
-      "deed_citation": "Harris County Clerk Instrument #330080 \u00b7 Amended & Restated Idylwood Restrictions",
+      "plat_citation": "Map Book Vol. 9, Pg. 8 · HCAD Subdiv. Code 062-204",
+      "deed_citation": "Harris County Clerk File #RP-2017-341800 (Recorded July 31, 2017) · Original Restrictions Deed Records Vol. 1081, Pg. 285",
       "covenant_summary": {
-        "allowed_use": "Strictly single-family residential only",
+        "allowed_use": "Single-family residential on interior lots; neighborhood retail/commercial permitted on designated Community Store Lots (Lots 1-3, Block 1 at 6606 Lawndale St)",
         "min_lot_size": "1 single-family dwelling per platted lot across Idylwood Sections",
         "front_setback": "25 ft to 30 ft front building line per section plat",
         "side_rear_setback": "Residential side/rear setbacks per Idylwood Civic Club Covenants",
         "max_height": "2-story residential scale",
         "plan_review": "Idylwood Civic Club Architectural Control Committee",
-        "notes": "Platted in 1928 along Lawndale and Wayside bordering Villa de Matel and Spurlock Park."
+        "notes": "Platted beginning in 1928 by developer John A. Embry with curvilinear landscape planning by Hare & Hare along Country Club Bayou, Villa de Matel, and Spurlock Park."
       },
+      "citations": [
+        {
+          "label": "Clerk File #RP-2017-341800 (PDF)",
+          "url": "public/deeds/idylwood/Idylwood-Deed-Restrictions.pdf"
+        },
+        {
+          "label": "Idylwood Civic Club",
+          "url": "https://www.idylwood.org/"
+        }
+      ],
       "documents": [
         {
-          "title": "Idylwood Amended & Restated Deed Restrictions (Official PDF)",
+          "title": "Idylwood 2017 Amended & Restated Deed Restrictions (#RP-2017-341800)",
           "doc_type": "official",
           "local_url": "public/deeds/idylwood/Idylwood-Deed-Restrictions.pdf",
           "external_url": "https://www.idylwood.org/home/wp-content/uploads/2023/12/Idlywood-DeedRestrictions.pdf",
-          "clerk_file": "Map Vol. 9, Pg. 8 / #330080"
+          "clerk_file": "Clerk File #RP-2017-341800 (Recorded 07/31/2017)"
         },
         {
           "title": "Idylwood Civic Club Bylaws",
@@ -948,143 +1198,157 @@
       "civic_association_url": "https://www.ofha.org/Deed-Restriction-Documents",
       "plat_year": 1946,
       "vol_page": "073-099",
-      "plat_citation": "Plat Film #683-612 \u00b7 HCAD Plat Code 073-099 (Sections 1\u201318)",
-      "deed_citation": "Harris County Clerk Instrument #850385 (Sections 1\u201318 Recorded Covenants)",
+      "plat_citation": "Section 1 Plat Filing #365522 · Replat Film #683-612 · HCAD Subdiv. Code 073-099 (Sections 1-18)",
+      "deed_citation": "Harris County Clerk Instruments #379388 (Sec. 1, Deed Vol. 1559, Pg. 387) through #1521330 (Sec. 17) & #1412655 (Sec. 18)",
       "covenant_summary": {
-        "allowed_use": "Single-family residential only across all 18 sections",
-        "min_lot_size": "1 single-family residence per platted lot (typically 7,000\u20139,000+ sq ft)",
+        "allowed_use": "Single-family residential across residential lots in Sections 1-18",
+        "min_lot_size": "1 single-family residence per platted lot (typically 7,000 to 9,000+ sq ft)",
         "front_setback": "25 ft front building line (with section-specific corner lot side street setbacks)",
         "side_rear_setback": "Min 5 ft interior side setback; garage setback per section plat",
         "max_height": "2-story single-family residential height limit",
         "plan_review": "Oak Forest Homeowners Association (OFHA) Architectural / Deed Restriction Committee",
-        "notes": "Developed beginning in 1946 by Frank W. Sharp across 18 platted sections; all 18 section restrictions are archived below."
+        "notes": "Developed beginning in August 1946 by Frank W. Sharp's Oak Forest Corporation (Sections 1-16), with Sections 17-18 platted in 1955-1956 by Cribbs/Busse/Draper and Oak Forest Center Corporation; all 18 recorded section instruments are archived below."
       },
+      "citations": [
+        {
+          "label": "Sec. 1 #379388 (PDF)",
+          "url": "public/deeds/oak-forest/Oak-Forest-Sec-01-Restrictions.pdf"
+        },
+        {
+          "label": "OFHA Deed Archive",
+          "url": "https://www.ofha.org/Deed-Restriction-Documents"
+        },
+        {
+          "label": "TSHA Oak Forest",
+          "url": "https://www.tshaonline.org/handbook/entries/oak-forest-tx-harris-county"
+        }
+      ],
       "documents": [
         {
           "title": "Oak Forest Section 01 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-01-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 1"
+          "clerk_file": "Instrument #379388 (Deed Vol. 1559, Pg. 387)"
         },
         {
           "title": "Oak Forest Section 02 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-02-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 2"
+          "clerk_file": "Instrument #469872 (Deed Vol. 1711, Pg. 635)"
         },
         {
           "title": "Oak Forest Section 03 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-03-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 3"
+          "clerk_file": "Instrument #548544 (Deed Vol. 1848, Pg. 696)"
         },
         {
           "title": "Oak Forest Section 04 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-04-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 4"
+          "clerk_file": "Instrument #589314 (Deed Vol. 1906, Pg. 173)"
         },
         {
           "title": "Oak Forest Section 05 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-05-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 5"
+          "clerk_file": "Instrument #663414 (Deed Vol. 2006, Pg. 37)"
         },
         {
           "title": "Oak Forest Section 06 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-06-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 6"
+          "clerk_file": "Instrument #663415 (Deed Vol. 2006, Pg. 44)"
         },
         {
           "title": "Oak Forest Section 07 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-07-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 7"
+          "clerk_file": "Instrument #692761 (Deed Vol. 2046, Pg. 440)"
         },
         {
           "title": "Oak Forest Section 08 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-08-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 8"
+          "clerk_file": "Instrument #782464 (Deed Vol. 2166, Pg. 166)"
         },
         {
           "title": "Oak Forest Section 09 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-09-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 9"
+          "clerk_file": "Instrument #757310 (Deed Vol. 2131, Pg. 412)"
         },
         {
           "title": "Oak Forest Section 10 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-10-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 10"
+          "clerk_file": "Instrument #842900 (Deed Vol. 2231, Pg. 542)"
         },
         {
           "title": "Oak Forest Section 11 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-11-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 11"
+          "clerk_file": "Instrument #850385 (Deed Vol. 2241, Pg. 377)"
         },
         {
           "title": "Oak Forest Section 12 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-12-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 12"
+          "clerk_file": "Instrument #873665 (Deed Vol. 2270, Pg. 705)"
         },
         {
           "title": "Oak Forest Section 13 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-13-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 13"
+          "clerk_file": "Instrument #971261 (Deed Vol. 2394, Pg. 142)"
         },
         {
           "title": "Oak Forest Section 14 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-14-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 14"
+          "clerk_file": "Instrument #1097530 (Deed Vol. 2551, Pg. 47)"
         },
         {
           "title": "Oak Forest Section 15 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-15-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 15"
+          "clerk_file": "Instrument #1145716 (Deed Vol. 2612, Pg. 53)"
         },
         {
           "title": "Oak Forest Section 16 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-16-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 16"
+          "clerk_file": "Instrument #1143615 (Deed Vol. 2609, Pg. 425)"
         },
         {
           "title": "Oak Forest Section 17 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-17-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 17"
+          "clerk_file": "Instrument #1521330 (Deed Vol. 3082, Pg. 128)"
         },
         {
           "title": "Oak Forest Section 18 Deed Restrictions (Searchable PDF)",
           "doc_type": "searchable",
           "local_url": "public/deeds/oak-forest/Oak-Forest-Sec-18-Restrictions.pdf",
           "external_url": "https://www.ofha.org/Deed-Restriction-Documents",
-          "clerk_file": "Oak Forest Section 18"
+          "clerk_file": "Instrument #1412655 (Deed Vol. 2948, Pg. 379)"
         }
       ]
     }
@@ -1117,7 +1381,7 @@
     "SUNSET PLACE": "plat_5655_sunset_place",
     "WROXTON COURT": "plat_6646_wroxton_court",
     "GREENBRIAR": "plat_2283_greenbriar",
-    "HERMANN HOSPITAL ESTATES": "plat_2520_hermann_park",
+    "HERMAN HOSPITAL ESTATE": "plat_2517_herman_hospital_estate",
     "IDYLWOOD": "plat_2762_idylwood",
     "OAK FOREST": "plat_4019_oak_forest"
   }

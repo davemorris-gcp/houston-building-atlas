@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261025i" />
+  <link rel="stylesheet" href="styles/index.css?v=20261025m" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -39,11 +39,11 @@
           target="_blank"
           rel="noopener"
           class="ph-brand-logo-badge"
-          title="Preservation Houston — history in progress"
+          title="Preservation Houston - history in progress"
         >
           <img
             src="public/assets/ph-logo-white.png"
-            alt="Preservation Houston — history in progress"
+            alt="Preservation Houston - history in progress"
             class="ph-logo-img"
           />
         </a>
@@ -316,6 +316,7 @@
             <span class="tour-banner-step-badge hidden mono" id="tour-banner-step-badge"></span>
           </div>
           <span id="tour-banner-desc"></span>
+          <div class="narrative-citations-bar hidden" id="tour-banner-citations"></div>
         </div>
         <button
           type="button"
@@ -408,6 +409,7 @@
         <h3 class="city-chapters-title" id="city-chapter-title"></h3>
         <p class="city-chapters-narrative" id="city-chapter-narrative"></p>
         <div class="city-chapters-takeaway" id="city-chapter-takeaway"></div>
+        <div class="narrative-citations-bar hidden" id="city-chapter-citations"></div>
         <div class="city-chapters-sites-wrap">
           <span class="city-chapters-sites-label">Inspect Exemplar Sites:</span>
           <div class="city-chapters-sites" id="city-chapter-sites"></div>
@@ -452,6 +454,7 @@
         </div>
         <div class="portfolio-role-line" id="portfolio-card-role"></div>
         <p class="portfolio-bio-text" id="portfolio-card-bio"></p>
+        <div class="narrative-citations-bar hidden" id="portfolio-card-citations"></div>
       </div>
 
       <div class="portfolio-stats-grid" id="portfolio-stats-grid">
@@ -500,19 +503,19 @@
       <section class="panel-card metrics-strip">
         <div class="metric-box">
           <span class="metric-label">Structures in View</span>
-          <span class="metric-value mono" id="stat-viewport-count">—</span>
+          <span class="metric-value mono" id="stat-viewport-count">-</span>
         </div>
         <div class="metric-box">
           <span class="metric-label">Earliest in View</span>
-          <span class="metric-value mono" id="stat-viewport-oldest">—</span>
+          <span class="metric-value mono" id="stat-viewport-oldest">-</span>
         </div>
         <div class="metric-box">
           <span class="metric-label">Contributing</span>
-          <span class="metric-value mono" id="stat-viewport-contributing">—</span>
+          <span class="metric-value mono" id="stat-viewport-contributing">-</span>
         </div>
         <div class="metric-box">
           <span class="metric-label">Landmarks</span>
-          <span class="metric-value mono" id="stat-viewport-landmarks">—</span>
+          <span class="metric-value mono" id="stat-viewport-landmarks">-</span>
         </div>
       </section>
 
@@ -1622,7 +1625,7 @@
               <strong>Preservation Designations &amp; Awards:</strong> 509 City of Houston Landmarks (200 Protected Landmarks <code>PLM</code>, 86 <code>LM-in-HD</code>, and 223 vulnerable <code>90-Day Waiver Landmarks</code>, linked to 448 official HPO Designation Report PDFs), 23 COH Historic Districts, Freedmen's Town Heritage District, 60 Surveyed Potential Historic Districts (2019 COH Plan), 12 NRHP Districts, 238 Individual NRHP Properties (including 16 demolished <em>"Gone"</em> sites), 596 Texas Historical Markers, 7 Cultural Arts Districts, and 359 Preservation Houston Good Brick Awards (1979-2026).
             </li>
             <li>
-              <strong>Sanborn Atlases, City Directories, Contractors &amp; HAIF:</strong> Library of Congress IIIF Sanborn sheets (626 sheets) + UT Austin PCL Sanborn volumes (252 sheets mirrored locally), Houston Public Library ContentDM City Directories (1866-1926) &amp; HMRC <em>T.G.C.A. Monthly Bulletin</em> / Russell Brown Co. contractor archives, 81 surveyed <em>Lost Houston</em> demolished landmarks (1837-2006), 5,576 linked Houston Architecture Info Forum (HAIF) threads, and Wikimedia Commons / HABS photography.
+              <strong>Sanborn Atlases, City Directories, Contractors &amp; HAIF:</strong> Library of Congress IIIF Sanborn sheets (626 sheets) + UT Austin PCL Sanborn volumes (252 sheets mirrored locally), Houston Public Library ContentDM City Directories (1866-1926) &amp; HMRC <em>T.G.C.A. Monthly Bulletin</em> / Russell Brown Co. contractor archives, 74 verified demolished <em>Lost Houston</em> landmarks (1837-2006), 5,576 linked Houston Architecture Info Forum (HAIF) threads, and Wikimedia Commons / HABS photography.
             </li>
             <li>
               <strong>Social History, Neighborhoods &amp; Infrastructure:</strong> Rice University Woodson Research Center <strong>1915 <em>Red Book of Houston</em></strong> (970 African American heritage sites + 85 digitized plates), University of Richmond <em>Mapping Inequality</em> <strong>1937 HOLC Redlining Zones</strong> (47 zones + HARC/NOAA Urban Heat Watch metrics), 2009 Peter Brown GeoPDF neighborhoods (1,387 boundaries), authentic 1839-1905 Municipal Charter Wards, 1836-2020 Annexation boundaries, 5,573 Platted Subdivisions, 910 Chapter 42 SMLS/SMBL/Conservation zones, 1,957 Historical Waterways, Oxbows &amp; Buried Gullies, and 61 Railroad &amp; 1891-1938 Electric Streetcar corridors.
@@ -1635,6 +1638,9 @@
               <strong>Suggest Verified Dates, Names, Architects, Photos &amp; Deed PDFs:</strong> Click <strong>&#9998; Suggest Correction</strong> on any property (no login required) to submit archival date citations, historical building names / <code>AKA</code> aliases, architect or contractor credits, public archive photo URLs, or subdivision deed restriction links. Submissions preview immediately in your browser and enter Preservation Houston's moderated review queue before going live.
             </li>
             <li>
+              <strong>1-Click Flagging on Unverified Photos, Automated Claims &amp; Narratives:</strong> Automated Wikimedia Commons / HAIF photographs and Tier-4 unverified claims display an amber warning badge alongside a 1-click <strong>&#9873; Wrong Building</strong> or <strong>&#9873; Flag</strong> button, and guided chapter, tour, portfolio, and overlay narratives include clickable primary-source citations plus a <strong>&#9873; Flag Error</strong> button. Flagged items hide immediately in your browser and enter Preservation Houston's moderation queue for global suppression or correction across all visitors.
+            </li>
+            <li>
               <strong>Flag Footprint Errors &amp; On-Site Demolition Activity:</strong> Use the correction modal to flag missing, merged, or mis-oriented roof polygons against Zoom-20 satellite imagery, or click <strong>Report Site Activity to PH</strong> to alert advocacy staff to physical TABC/replat signage, fencing, or demolition equipment on historic sites.
             </li>
           </ul>
@@ -1642,7 +1648,7 @@
           <h3>Methodology Notes &amp; Full Documentation</h3>
           <ul>
             <li>
-              <strong>Oldest Structure Rule &amp; Appraisal Limitations:</strong> Multi-structure parcels reflect the oldest verified structure on site (or individually decomposed campus/sub-building footprints). Rounded HCAD tax-roll dates (such as <code>1920</code> or <code>1930</code>) are continuously refined via City Directory, Sanborn, permit, and community audits.
+              <strong>4-Tier Evidentiary Provenance &amp; HCAD Rounded-Decade Estimates:</strong> Claims are badged across four evidentiary tiers (Tier 1 Statutory/Archival Primary Records, Tier 2 Preservation Houston Curated Overrides, Tier 3 Municipal Tax/GIS Appraisals, and Tier 4 Unverified Automated Enrichments). Un-overridden HCAD appraisal dates rounded to exact decades between 1890 and 1950 display explicitly as estimates (for example, <code>c. 1920 (HCAD Est.)</code>), and parcels proven unimproved through the 1926 Houston City Directory display an archival contradiction notice when HCAD lists a pre-1926 date.
             </li>
             <li>
               <strong>Statutory Protection Distinction:</strong> Under COH Code Ch. 33 Sec. 33-250, the 223 standard City Landmarks (<code>LM</code>) outside Historic Districts carry only a 90-day demolition waiver delay, and federal National Register (NRHP) listing alone does not restrict private-owner demolition. Only Protected Landmarks (<code>PLM</code>) and COH Historic District parcels require binding HAHC demolition review.
@@ -1742,7 +1748,7 @@
             </div>
 
             <div class="form-field">
-              <label for="corr-building-name">Building Name &amp; Historical / Colloquial Aliases <span class="opt-hint">(Optional — separate multiple names with <code>/</code> or <code>;</code>)</span></label>
+              <label for="corr-building-name">Building Name &amp; Historical / Colloquial Aliases <span class="opt-hint">(Optional - separate multiple names with <code>/</code> or <code>;</code>)</span></label>
               <input
                 type="text"
                 id="corr-building-name"
@@ -2280,10 +2286,10 @@
               <div class="export-control-section">
                 <span class="export-section-label">3. Ink &amp; Color Palette</span>
                 <div class="export-preset-pills" id="export-theme-pills" role="group" aria-label="Color and Ink Palette">
-                  <button type="button" class="export-pill active" data-export-theme="stencil_white" title="Pure crisp white ink — ideal for dark T-shirts, slate coasters, or screenprinting">
+                  <button type="button" class="export-pill active" data-export-theme="stencil_white" title="Pure crisp white ink - ideal for dark T-shirts, slate coasters, or screenprinting">
                     White Ink (Dark Shirt)
                   </button>
-                  <button type="button" class="export-pill" data-export-theme="stencil_black" title="Pure black architectural linework — ideal for light T-shirts, laser-engraved coasters, or pen plotters">
+                  <button type="button" class="export-pill" data-export-theme="stencil_black" title="Pure black architectural linework - ideal for light T-shirts, laser-engraved coasters, or pen plotters">
                     Black Ink (Light / Laser)
                   </button>
                   <button type="button" class="export-pill" data-export-theme="ph_emerald" title="Preservation Houston signature archival green &amp; gold">
@@ -2700,6 +2706,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261025l"></script>
+  <script type="module" src="js/app.js?v=20261025m"></script>
 </body>
 </html>

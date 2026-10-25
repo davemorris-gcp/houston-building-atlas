@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261024a";
+} from "./palettes.js?v=20261025m";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -28,7 +28,7 @@ import {
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261012b";
+} from "./curatedEdits.js?v=20261025m";
 import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261012b";
 
 const BASEMAP_TILES = {
@@ -40,7 +40,7 @@ const BASEMAP_TILES = {
     labelTiles: [
       "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
     ],
-    attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors",
+    attribution: "Tiles &copy; Esri - Esri, HERE, Garmin, OpenStreetMap contributors",
   },
   warm_parchment: {
     maxZoom: 16,
@@ -50,7 +50,7 @@ const BASEMAP_TILES = {
     labelTiles: [
       "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
     ],
-    attribution: "Tiles &copy; Esri &mdash; Esri, HERE, Garmin, OpenStreetMap contributors",
+    attribution: "Tiles &copy; Esri - Esri, HERE, Garmin, OpenStreetMap contributors",
   },
   satellite: {
     maxZoom: 18,
@@ -60,7 +60,7 @@ const BASEMAP_TILES = {
     labelTiles: [
       "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
     ],
-    attribution: "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics",
+    attribution: "Tiles &copy; Esri - Source: Esri, Maxar, Earthstar Geographics",
   },
   historic_topo: {
     maxZoom: 15,
@@ -283,9 +283,9 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261024a"),
+      fetch("public/data/buildings.geojson?v=20261025m"),
       fetch("public/data/parcels.geojson?v=20261011c"),
-      fetch("public/data/overlays.json?v=20261025f"),
+      fetch("public/data/overlays.json?v=20261025m"),
       fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
       loadCuratedOverrides(),
       fetch("public/data/active_permit_alerts.json?v=20261023g").catch(() => null),
@@ -334,6 +334,10 @@ export class AtlasMapController {
     }
 
     this.curatedOverrides = (overridesResult && overridesResult.overrides) || {};
+    this.globalRejections = (overridesResult && overridesResult.globalRejections) || {
+      rejectedPhotos: [],
+      rejectedClaims: [],
+    };
     this.sheetSyncStatus = (overridesResult && overridesResult.syncStatus) || null;
 
     this.buildingsFC = buildingsFC;
@@ -1006,6 +1010,10 @@ export class AtlasMapController {
   async reloadCuratedOverrides(customSheetCsvUrl = null) {
     const res = await loadCuratedOverrides(customSheetCsvUrl);
     this.curatedOverrides = res.overrides || {};
+    this.globalRejections = res.globalRejections || {
+      rejectedPhotos: [],
+      rejectedClaims: [],
+    };
     this.sheetSyncStatus = res.syncStatus || null;
     this._refreshCuratedOverridesSource();
     return this.sheetSyncStatus;
@@ -5486,7 +5494,11 @@ export class AtlasMapController {
         if (Number(p.length_miles) > 0) statParts.push(`${p.length_miles} mi mapped`);
       } else if (p.overlay_layer === "historical_railroads") {
         if (p.historic_company) statParts.push(p.historic_company);
-        if (p.charter_year) statParts.push(`Opened/Chartered ${p.charter_year}`);
+        if (p.charter_year && p.opened_year && p.opened_year !== p.charter_year) {
+          statParts.push(`Chartered ${p.charter_year} · Opened ${p.opened_year}`);
+        } else if (p.opened_year || p.charter_year) {
+          statParts.push(`Opened ${p.opened_year || p.charter_year}`);
+        }
         if (p.status) statParts.push(p.status);
       } else if (p.overlay_layer === "land_use_protections") {
         if (p.ordinance) statParts.push(`Ord. #${p.ordinance}`);

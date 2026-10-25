@@ -51,8 +51,8 @@ export const USE_CATEGORY_ITEMS = [
 export const CURATED_TOURS = [
   {
     "id": "good_brick_highlights",
-    "name": "\u2605 Good Brick Highlights",
-    "era": "1979\u20132026",
+    "name": "★ Good Brick Highlights",
+    "era": "1979-2026",
     "center": [
       -95.36443,
       29.75998
@@ -97,9 +97,15 @@ export const CURATED_TOURS = [
         "lat": 29.75908,
         "zoom": 17.6,
         "pitch": 48,
-        "story": "One block east at 712 Main Street\u2014Houston's tallest skyscraper from 1929 to 1963 (Alfred C. Finn, Kenneth Franzheim & J.E.R. Carpenter; Good Brick Awards in 1991 & 2016).",
+        "story": "One block east at 712 Main Street, Houston's tallest skyscraper from 1929 to 1963 (Alfred C. Finn, Kenneth Franzheim & J.E.R. Carpenter; Good Brick Award 1987 & President's Award 2004).",
         "street_lng": -95.36367,
-        "street_lat": 29.75865
+        "street_lat": 29.75865,
+        "citations": [
+          {
+            "label": "COH Landmark Report 02L097 (Gulf Building)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/02L097_Gulf_Bldg_712_Main.pdf"
+          }
+        ]
       },
       {
         "title": "Magnolia Hotel (1926 Houston Post-Dispatch Building)",
@@ -136,7 +142,7 @@ export const CURATED_TOURS = [
         "lat": 29.7611,
         "zoom": 17.5,
         "pitch": 45,
-        "story": "Two blocks north at 301 Fannin Street\u2014Beaux-Arts Texas pink granite and terra-cotta courthouse by Lang & Witchell, returned to its 1910 grandeur (2012 Good Brick Award).",
+        "story": "Two blocks north at 301 Fannin Street, Beaux-Arts Texas pink granite and terra-cotta courthouse by Lang & Witchell, returned to its 1910 grandeur (2012 Good Brick Award).",
         "street_lng": -95.36011,
         "street_lat": 29.7614
       }
@@ -326,12 +332,22 @@ export const CURATED_TOURS = [
         -95.36011,
         29.7614
       ]
+    ],
+    "citations": [
+      {
+        "label": "Preservation Houston: Good Brick Awards (1979-Present)",
+        "url": "https://www.preservationhouston.org/awards"
+      },
+      {
+        "label": "COH Landmark Report 02L097 (Gulf Building)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/02L097_Gulf_Bldg_712_Main.pdf"
+      }
     ]
   },
   {
     "id": "art_deco_skyline",
     "name": "Art Deco & Moderne",
-    "era": "1926\u20131940",
+    "era": "1926-1940",
     "center": [
       -95.36442,
       29.759
@@ -355,7 +371,7 @@ export const CURATED_TOURS = [
         "street_lat": 29.76046
       },
       {
-        "title": "Niels & Mellie Esperson Buildings (808\u2013815 Travis St)",
+        "title": "Niels & Mellie Esperson Buildings (808-815 Travis St)",
         "year": 1927,
         "hcad_num": "0010910000015",
         "building_id": "osm_city_510322923#bldg_niels_esperson_building",
@@ -376,7 +392,7 @@ export const CURATED_TOURS = [
         "lat": 29.75908,
         "zoom": 17.6,
         "pitch": 50,
-        "story": "One block east on Main Street\u2014a 36-story Art Deco setback skyscraper modeled on Eliel Saarinen's Tribune Tower design with a soaring Deco banking hall.",
+        "story": "One block east on Main Street, a 36-story Art Deco setback skyscraper modeled on Eliel Saarinen's Tribune Tower design with a soaring Deco banking hall.",
         "street_lng": -95.36367,
         "street_lat": 29.75865
       },
@@ -402,7 +418,7 @@ export const CURATED_TOURS = [
         "lat": 29.7578,
         "zoom": 17.6,
         "pitch": 48,
-        "story": "Three blocks east on Texas Avenue\u2014a 22-story stepped-pyramid Mayan Art Deco skyscraper designed by Anglo-American architect Alfred C. Bossom (2020 Good Brick Award).",
+        "story": "Three blocks east on Texas Avenue, a 22-story stepped-pyramid Mayan Art Deco skyscraper designed by Anglo-American architect Alfred C. Bossom (2020 Good Brick Award).",
         "street_lng": -95.3594,
         "street_lat": 29.75805
       },
@@ -645,12 +661,22 @@ export const CURATED_TOURS = [
         -95.35963,
         29.7588
       ]
+    ],
+    "citations": [
+      {
+        "label": "NRHP Houston City Hall (#90001476)",
+        "url": "https://atlas.thc.texas.gov/Details/2090001476"
+      },
+      {
+        "label": "COH Landmark Report 02L097 (Gulf Building)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/02L097_Gulf_Bldg_712_Main.pdf"
+      }
     ]
   },
   {
     "id": "old_sixth_ward",
     "name": "Old Sixth Ward",
-    "era": "1850s\u20131912",
+    "era": "1850s-1912",
     "center": [
       -95.37795,
       29.76615
@@ -658,10 +684,10 @@ export const CURATED_TOURS = [
     "zoom": 16.6,
     "pitch": 35,
     "walkMiles": 0.4,
-    "description": "A compact 0.5-mile walking loop through Houston's oldest intact historic neighborhood along Lubbock, Kane, and Decatur Streets.",
+    "description": "A compact 0.4-mile walking loop through Houston's oldest intact historic neighborhood along Lubbock, Kane, and Decatur Streets.",
     "stops": [
       {
-        "title": "Heinrich & Hannah Guese House (1817 Lubbock St)",
+        "title": "Heinrich & Hannah Guese House (1819 Lubbock St)",
         "year": 1850,
         "hcad_num": "0052240000015",
         "building_id": "bld_003952",
@@ -669,9 +695,15 @@ export const CURATED_TOURS = [
         "lat": 29.76531,
         "zoom": 18,
         "pitch": 35,
-        "story": "Dating to c. 1850\u20131870 on Lubbock Street, one of the earliest surviving mid-19th-century vernacular cottages in the Old Sixth Ward (Protected Landmark).",
+        "story": "Dating to c. 1850-1860 at 1819 Lubbock Street, one of the earliest surviving pre-Civil War vernacular cottages in the Old Sixth Ward (Protected Landmark).",
         "street_lng": -95.37683,
-        "street_lat": 29.7655
+        "street_lat": 29.7655,
+        "citations": [
+          {
+            "label": "COH Protected Landmark Report 06PL23 (Guese House)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL23_1819_Lubbock_Heinrich_%26_Hannah_Guese_House.pdf"
+          }
+        ]
       },
       {
         "title": "Kinney-Morrow 1876 Cottage (1817 Kane St)",
@@ -682,7 +714,7 @@ export const CURATED_TOURS = [
         "lat": 29.76603,
         "zoom": 18,
         "pitch": 35,
-        "story": "One block north on Kane Street\u2014an authentic 1876 Victorian cottage with jigsaw porch brackets recognized with a 2011 Good Brick Award.",
+        "story": "One block north on Kane Street, an authentic 1876 Victorian cottage with jigsaw porch brackets recognized with a 2011 Good Brick Award.",
         "street_lng": -95.37683,
         "street_lat": 29.76624
       },
@@ -695,7 +727,7 @@ export const CURATED_TOURS = [
         "lat": 29.76678,
         "zoom": 18,
         "pitch": 35,
-        "story": "One block northwest on Decatur Street\u2014built c. 1868 as one of the earliest surviving Reconstruction-era cottages in the district (1994 Good Brick Award).",
+        "story": "One block northwest on Decatur Street, built c. 1868 as one of the earliest surviving Reconstruction-era cottages in the district (1994 Good Brick Award).",
         "street_lng": -95.37767,
         "street_lat": 29.76697
       },
@@ -872,12 +904,22 @@ export const CURATED_TOURS = [
         -95.37928,
         29.76622
       ]
+    ],
+    "citations": [
+      {
+        "label": "NRHP Old Sixth Ward Historic District (#78002944)",
+        "url": "https://atlas.thc.texas.gov/Details/2078002944"
+      },
+      {
+        "label": "COH Protected Landmark Report 06PL23 (Guese House)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/06PL23_1819_Lubbock_Heinrich_%26_Hannah_Guese_House.pdf"
+      }
     ]
   },
   {
     "id": "houston_heights",
     "name": "Houston Heights",
-    "era": "1891\u20131926",
+    "era": "1891-1925",
     "center": [
       -95.39727,
       29.79651
@@ -902,16 +944,22 @@ export const CURATED_TOURS = [
       },
       {
         "title": "Heights Branch Library (1302 Heights Blvd)",
-        "year": 1926,
+        "year": 1925,
         "hcad_num": "0201660000034",
         "building_id": "bld_002046",
         "lng": -95.39723,
         "lat": 29.79472,
         "zoom": 17.8,
         "pitch": 35,
-        "story": "Two blocks northeast on the esplanade\u2014a 1926 Italian Renaissance Revival neighborhood library designed by architect James M. Glover.",
+        "story": "Two blocks northeast on the esplanade, an Italian Renaissance Revival branch library built in 1925 (opened March 1926) and designed by architect J. M. Glover.",
         "street_lng": -95.39763,
-        "street_lat": 29.79471
+        "street_lat": 29.79471,
+        "citations": [
+          {
+            "label": "COH Landmark Report 04L120 (Heights Branch Library)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/04L120_Heights_Library_1302_Heights_Blvd.pdf"
+          }
+        ]
       },
       {
         "title": "Borgstrom House (1401 Cortlandt St)",
@@ -922,7 +970,7 @@ export const CURATED_TOURS = [
         "lat": 29.79648,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "Two blocks north and one block east on Cortlandt Street\u2014an ornate 1902 Queen Anne cottage with Eastlake spindlework by architect R. D. Steele.",
+        "story": "Two blocks north and one block east on Cortlandt Street, an ornate 1902 Queen Anne cottage with Eastlake spindlework by architect R. D. Steele.",
         "street_lng": -95.39543,
         "street_lat": 29.79649
       },
@@ -940,7 +988,7 @@ export const CURATED_TOURS = [
         "street_lat": 29.79693
       },
       {
-        "title": "Heights First Baptist Sanctuary (1548 Heights Blvd)",
+        "title": "Houston Heights Church of Christ (1548 Heights Blvd)",
         "year": 1924,
         "hcad_num": "0201360000032",
         "building_id": "bld_001112",
@@ -948,9 +996,15 @@ export const CURATED_TOURS = [
         "lat": 29.79969,
         "zoom": 17.8,
         "pitch": 35,
-        "story": "One block north at 16th and Heights Boulevard, a 1924 Neo-Georgian sanctuary by Alfred C. Finn honored with a 2025 Good Brick Award.",
+        "story": "One block north at 16th and Heights Boulevard, a 1924-1925 Classical Revival sanctuary designed by Alfred C. Finn for Houston Heights Church of Christ (now The Church at 1548 Heights; 2025 Good Brick Award).",
         "street_lng": -95.39773,
-        "street_lat": 29.79968
+        "street_lat": 29.79968,
+        "citations": [
+          {
+            "label": "COH Protected Landmark Report 08PL65 (1548 Heights Blvd)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL65_Hts_Church_of_Christ_1548_Heights.pdf"
+          }
+        ]
       },
       {
         "title": "1605 Heights Boulevard Historic Residence",
@@ -1139,12 +1193,26 @@ export const CURATED_TOURS = [
         -95.39802,
         29.80034
       ]
+    ],
+    "citations": [
+      {
+        "label": "TSHA Handbook of Texas: Houston Heights",
+        "url": "https://www.tshaonline.org/handbook/entries/houston-heights-tx"
+      },
+      {
+        "label": "COH Landmark Report 04L120 (Heights Branch Library)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/04L120_Heights_Library_1302_Heights_Blvd.pdf"
+      },
+      {
+        "label": "COH Protected Landmark Report 08PL65 (1548 Heights Blvd)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/08PL65_Hts_Church_of_Christ_1548_Heights.pdf"
+      }
     ]
   },
   {
     "id": "freedmens_town",
     "name": "Freedmen's Town",
-    "era": "1865\u20131927",
+    "era": "1865-1926",
     "center": [
       -95.3789,
       29.7555
@@ -1176,22 +1244,28 @@ export const CURATED_TOURS = [
         "lat": 29.75692,
         "zoom": 18,
         "pitch": 35,
-        "story": "Three blocks west on Saulnier Street\u2014an intact Fourth Ward historic cottage recognized with a Preservation Houston Good Brick Award in 2001.",
+        "story": "Three blocks west on Saulnier Street, an intact Fourth Ward historic cottage recognized with a Preservation Houston Good Brick Award in 2001.",
         "street_lng": -95.37917,
         "street_lat": 29.75706
       },
       {
-        "title": "Freedmen's Town Historic Houses (1108 Victor St)",
-        "year": 1895,
+        "title": "Freedmen's Town Protected Landmark Cottages (1110 Victor St)",
+        "year": 1910,
         "hcad_num": "0050150000011",
         "building_id": "bld_004828",
         "lng": -95.37947,
         "lat": 29.75442,
         "zoom": 18,
         "pitch": 35,
-        "story": "Two blocks south on Victor Street\u2014rare surviving c. 1895 Victorian shotgun and folk cottages preserved as City of Houston Protected Landmarks.",
+        "story": "Two blocks south on Block 58 (1110 Victor, 1113 Cleveland, and 1505-1507 Cushing Streets), early-20th-century vernacular cottages and duplexes built c. 1910-1925 and preserved as City of Houston Protected Landmarks.",
         "street_lng": -95.37947,
-        "street_lat": 29.75392
+        "street_lat": 29.75392,
+        "citations": [
+          {
+            "label": "COH Protected Landmark Report 10PL95 (1110 Victor St)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/10PL95_House_at_1110_Victor_St.pdf"
+          }
+        ]
       },
       {
         "title": "The Gregory School (1300 Victor St)",
@@ -1202,9 +1276,15 @@ export const CURATED_TOURS = [
         "lat": 29.75421,
         "zoom": 17.8,
         "pitch": 35,
-        "story": "One block west on Victor Street\u2014built in 1926 (Hedrick & Gottlieb) as Houston's first public school for African American students; now the African American Library at the Gregory School.",
+        "story": "One block west on Victor Street, erected in 1926 (Hedrick & Gottlieb) for Gregory School, tracing its roots to the 1870 Freedmen's Bureau Gregory Institute (joined Houston public schools in 1876); now the African American Library at the Gregory School (2010 Good Brick Award).",
         "street_lng": -95.38049,
-        "street_lat": 29.75391
+        "street_lat": 29.75391,
+        "citations": [
+          {
+            "label": "TSHA Handbook of Texas: Fourth Ward, Houston",
+            "url": "https://www.tshaonline.org/handbook/entries/fourth-ward-houston"
+          }
+        ]
       },
       {
         "title": "Rutherford B. H. Yates House (1314 Andrews St)",
@@ -1215,22 +1295,34 @@ export const CURATED_TOURS = [
         "lat": 29.75596,
         "zoom": 18,
         "pitch": 35,
-        "story": "One block north on handmade-brick Andrews Street\u20141912 home of printer and civic leader Rutherford B. H. Yates (son of Rev. Jack Yates; 1996 Good Brick Award).",
+        "story": "One block north on handmade-brick Andrews Street, the c. 1912 home of printer and civic leader Rutherford B. H. Yates (son of Rev. Jack Yates; 1997 Good Brick Award).",
         "street_lng": -95.3809,
-        "street_lat": 29.75577
+        "street_lat": 29.75577,
+        "citations": [
+          {
+            "label": "Preservation Houston Good Brick Archive (1997 Award)",
+            "url": "https://www.preservationhouston.org/awards"
+          }
+        ]
       },
       {
         "title": "Reverend Ned P. Pullum House (1319 Andrews St)",
-        "year": 1927,
+        "year": 1898,
         "hcad_num": "0050210000005",
         "building_id": "bld_004904",
         "lng": -95.38121,
         "lat": 29.75565,
         "zoom": 18,
         "pitch": 35,
-        "story": "Directly across Andrews Street\u2014built in 1927 for Fourth Ward minister, brickyard owner, and civic leader Rev. Ned P. Pullum (Protected Landmark).",
+        "story": "Directly across Andrews Street, built c. 1898 for Fourth Ward minister, brickyard owner, pharmacist, and civic leader Rev. Ned P. Pullum (Protected Landmark).",
         "street_lng": -95.38121,
-        "street_lat": 29.75577
+        "street_lat": 29.75577,
+        "citations": [
+          {
+            "label": "COH Protected Landmark Report 07PL44 (Rev. Ned P. Pullum House)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/07PL44_Rev_Ned_P_Pullum_House_1319_Andrews.pdf"
+          }
+        ]
       }
     ],
     "routeCoords": [
@@ -1434,12 +1526,26 @@ export const CURATED_TOURS = [
         -95.38121,
         29.75577
       ]
+    ],
+    "citations": [
+      {
+        "label": "NRHP Freedmen's Town Historic District (#85000118)",
+        "url": "https://atlas.thc.texas.gov/Details/2085000118"
+      },
+      {
+        "label": "TSHA Handbook of Texas: Fourth Ward, Houston",
+        "url": "https://www.tshaonline.org/handbook/entries/fourth-ward-houston"
+      },
+      {
+        "label": "COH Protected Landmark Report 07PL44 (Rev. Ned P. Pullum House)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/07PL44_Rev_Ned_P_Pullum_House_1319_Andrews.pdf"
+      }
     ]
   },
   {
     "id": "downtown_1836",
     "name": "1836 Townsite & Market Sq",
-    "era": "1836\u20131917",
+    "era": "1836-1917",
     "center": [
       -95.36125,
       29.76185
@@ -1458,12 +1564,12 @@ export const CURATED_TOURS = [
         "lat": 29.76265,
         "zoom": 17.7,
         "pitch": 42,
-        "story": "Platted as 'Congress Square' in the Allen Brothers' 1836 survey and site of four 19th-century Houston City Halls (1996 & 2011 Good Brick Awards).",
+        "story": "Platted as 'Congress Square' in the Allen Brothers' 1836 survey and site of four successive Houston City Halls and Market Houses between 1841 and 1904 (1996 & 2011 Good Brick Awards).",
         "street_lng": -95.36267,
         "street_lat": 29.76304
       },
       {
-        "title": "Hermann Lofts (1917 Hermann Estate Building, 204 Travis St)",
+        "title": "Hermann Estate & W. L. Foley Buildings (204-218 Travis St)",
         "year": 1917,
         "hcad_num": "0010190000020",
         "building_id": "bld_003445",
@@ -1471,9 +1577,15 @@ export const CURATED_TOURS = [
         "lat": 29.76316,
         "zoom": 17.8,
         "pitch": 42,
-        "story": "Facing Market Square on Travis Street, a Renaissance Revival commercial block associated with architect Eugene T. Heiner (1996 & 1998 Good Brick Awards).",
+        "story": "Facing Market Square on Travis Street, pairing Louis A. Glover's eight-story 1917 Neoclassical Hermann Estate Building (204 Travis; 1998 Good Brick Award) with Eugene T. Heiner's three-story 1889 Renaissance Revival W. L. Foley Dry Goods Building next door (214 Travis; 1996 Good Brick Award).",
         "street_lng": -95.36144,
-        "street_lat": 29.76302
+        "street_lat": 29.76302,
+        "citations": [
+          {
+            "label": "COH Protected Landmark Report 14PL118 (204 Travis St)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/14PL118_204_Travis.pdf"
+          }
+        ]
       },
       {
         "title": "Kiam Building (320 Main St)",
@@ -1484,7 +1596,7 @@ export const CURATED_TOURS = [
         "lat": 29.76178,
         "zoom": 17.8,
         "pitch": 42,
-        "story": "One block south at Main and Preston\u2014erected in 1893 by merchant Ed Kiam as one of Houston's earliest steel-skeleton commercial buildings (1981 Good Brick Award).",
+        "story": "One block south at Main and Preston, erected in 1893 by merchant Ed Kiam (architect H. C. Holland) as a five-story Romanesque Revival masonry commercial landmark famed for early electric lighting and passenger elevator service (1981 Good Brick Award).",
         "street_lng": -95.3613,
         "street_lat": 29.76164
       },
@@ -1497,7 +1609,7 @@ export const CURATED_TOURS = [
         "lat": 29.76164,
         "zoom": 17.9,
         "pitch": 42,
-        "story": "One block east at Fannin and Preston\u2014built c. 1858\u20131860, the oldest surviving commercial building on its original site in Downtown Houston (1984 Good Brick Award).",
+        "story": "One block north and east at Fannin and Congress, originally erected c. 1857-1860 with an early cast-iron storefront and reconstructed in 1990 using its salvaged original cast-iron columns and lintels after a 1988 collapse (1984 & 1992 Good Brick Awards).",
         "street_lng": -95.36075,
         "street_lat": 29.76116
       },
@@ -1523,7 +1635,7 @@ export const CURATED_TOURS = [
         "lat": 29.76054,
         "zoom": 17.6,
         "pitch": 45,
-        "story": "Three blocks west at Main and Texas\u2014erected by William Marsh Rice's estate in 1913 on the exact corner where the 1837 Capitol of the Republic of Texas stood.",
+        "story": "Three blocks west at Main and Texas, erected by William Marsh Rice's estate in 1913 on the exact corner where the 1837 Capitol of the Republic of Texas stood.",
         "street_lng": -95.36297,
         "street_lat": 29.76021
       }
@@ -1681,12 +1793,22 @@ export const CURATED_TOURS = [
         -95.36297,
         29.76021
       ]
+    ],
+    "citations": [
+      {
+        "label": "NRHP Main Street / Market Square Historic District (#83003796)",
+        "url": "https://atlas.thc.texas.gov/Details/2083003796"
+      },
+      {
+        "label": "COH Protected Landmark Report 14PL118 (204 Travis St)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/14PL118_204_Travis.pdf"
+      }
     ]
   },
   {
     "id": "avondale_montrose",
     "name": "Avondale & Courtlandt",
-    "era": "1906\u20131925",
+    "era": "1906-1925",
     "center": [
       -95.38522,
       29.74475
@@ -1718,7 +1840,7 @@ export const CURATED_TOURS = [
         "lat": 29.74389,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "Midway down the esplanade\u2014a 1912 Prairie Style mansion designed by Olle Lorehn and Birdsall P. Briscoe.",
+        "story": "Midway down the esplanade, a 1912 Prairie Style mansion designed by Olle Lorehn and Birdsall P. Briscoe.",
         "street_lng": -95.38482,
         "street_lat": 29.74359
       },
@@ -1757,9 +1879,15 @@ export const CURATED_TOURS = [
         "lat": 29.74519,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "One block north in the Avondale East Historic District, a 1917 Prairie Style residence by the Russell Brown Company (Protected Landmark).",
+        "story": "One block north on Avondale Street between the Avondale East and Avondale West Historic Districts, a 1917 Prairie Style residence by the Russell Brown Company (Protected Landmark).",
         "street_lng": -95.38562,
-        "street_lat": 29.74547
+        "street_lat": 29.74547,
+        "citations": [
+          {
+            "label": "COH Protected Landmark Report 11PL100 (Edward Weil House)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/11PL100_Edward_Weil_House_308_Avondale.pdf"
+          }
+        ]
       },
       {
         "title": "Martha Perlitz House (503 Avondale St)",
@@ -1770,7 +1898,7 @@ export const CURATED_TOURS = [
         "lat": 29.74564,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "Two blocks west on Avondale Street\u2014a 1912 residence by Alonzo N. Dawson honored with a 2025 Preservation Houston Good Brick Award.",
+        "story": "Two blocks west on Avondale Street, a 1912 residence by Alonzo N. Dawson honored with a 2025 Preservation Houston Good Brick Award.",
         "street_lng": -95.38762,
         "street_lat": 29.74542
       }
@@ -1904,12 +2032,22 @@ export const CURATED_TOURS = [
         -95.38762,
         29.74542
       ]
+    ],
+    "citations": [
+      {
+        "label": "NRHP Courtlandt Place Historic District (#79002956)",
+        "url": "https://atlas.thc.texas.gov/Details/2079002956"
+      },
+      {
+        "label": "COH Protected Landmark Report 11PL100 (Edward Weil House)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/11PL100_Edward_Weil_House_308_Avondale.pdf"
+      }
     ]
   },
   {
     "id": "boulevard_oaks",
-    "name": "Boulevard Oaks",
-    "era": "1924\u20131952",
+    "name": "Broadacres & Shadow Lawn",
+    "era": "1924-1968",
     "center": [
       -95.39587,
       29.72628
@@ -1917,7 +2055,7 @@ export const CURATED_TOURS = [
     "zoom": 16.3,
     "pitch": 30,
     "walkMiles": 1.2,
-    "description": "A 0.7-mile walk beneath the live-oak canopies of North Boulevard, South Boulevard, Shadow Lawn, and Waverly Court.",
+    "description": "A 1.2-mile walk beneath the live-oak canopies of Broadacres (North and South Boulevards), Institute Lane, Shadow Lawn, and Waverly Court.",
     "stops": [
       {
         "title": "Joseph A. Tennant House (1505 North Blvd)",
@@ -1933,17 +2071,23 @@ export const CURATED_TOURS = [
         "street_lat": 29.72789
       },
       {
-        "title": "5306 Institute Lane Residence",
-        "year": 1938,
+        "title": "Ned A. Eppes House (5322 Institute Ln) & Paseur House (5306 Institute Ln)",
+        "year": 1926,
         "hcad_num": "1240700020001",
         "building_id": "bld_007582",
         "lng": -95.39741,
         "lat": 29.72488,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "Two blocks south on Institute Lane, a 1938 City of Houston Landmark and 2008 Good Brick Award recipient.",
+        "story": "Two blocks south on Institute Lane, pairing the 1926 Renaissance Revival Ned A. Eppes House at 5322 Institute Lane (COH Landmark & NRHP) with CRS president Herb Paseur's 1968 modernist residence next door at 5306 Institute Lane (2008 Good Brick Award).",
         "street_lng": -95.39712,
-        "street_lat": 29.72488
+        "street_lat": 29.72488,
+        "citations": [
+          {
+            "label": "COH Landmark Report 96LD39 (Ned A. Eppes House, 5322 Institute Ln)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/96LD39_5322_Institute_Ned_A_Eppes_House.pdf"
+          }
+        ]
       },
       {
         "title": "1405 South Boulevard Historic Residence",
@@ -1954,7 +2098,7 @@ export const CURATED_TOURS = [
         "lat": 29.7262,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "North onto tree-lined South Boulevard, an early 1924 Boulevard Oaks Historic District residence recognized with a 2008 Good Brick Award.",
+        "story": "North onto tree-lined South Boulevard, an early 1924 Broadacres Historic District residence recognized with a 2008 Good Brick Award.",
         "street_lng": -95.39714,
         "street_lat": 29.72652
       },
@@ -1967,7 +2111,7 @@ export const CURATED_TOURS = [
         "lat": 29.72619,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "One block east under the live-oak arch of South Boulevard\u2014a 1926 John F. Staub estate residence and historic carriage house honored with a 2014 Good Brick Award.",
+        "story": "One block east under the live-oak arch of South Boulevard, a 1926 John F. Staub estate residence and historic carriage house honored with a 2014 Good Brick Award.",
         "street_lng": -95.39509,
         "street_lat": 29.72654
       },
@@ -1980,7 +2124,7 @@ export const CURATED_TOURS = [
         "lat": 29.72563,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "Just off the eastern end of South Boulevard on tranquil Shadow Lawn Circle, a 1929 Colonial Revival residence (2019 Good Brick Award).",
+        "story": "Just off the eastern end of South Boulevard on tranquil Shadow Lawn Street in the Shadow Lawn Historic District, a 1929 Colonial Revival residence (2019 Good Brick Award).",
         "street_lng": -95.39434,
         "street_lat": 29.72535
       },
@@ -1993,7 +2137,7 @@ export const CURATED_TOURS = [
         "lat": 29.72582,
         "zoom": 17.9,
         "pitch": 35,
-        "story": "One block east on Waverly Court\u2014a 1952 modernist residence designed by Astrodome co-architect Seth Irvin (S.I.) Morris for his own family (2026 Good Brick Award).",
+        "story": "One block east on Waverly Court, a 1952 modernist residence designed by Astrodome co-architect Seth Irvin (S.I.) Morris for his own family (2026 Good Brick Award).",
         "street_lng": -95.39325,
         "street_lat": 29.72581
       }
@@ -2255,12 +2399,22 @@ export const CURATED_TOURS = [
         -95.39325,
         29.72581
       ]
+    ],
+    "citations": [
+      {
+        "label": "NRHP Broadacres Historic District (#80004132)",
+        "url": "https://atlas.thc.texas.gov/Details/2080004132"
+      },
+      {
+        "label": "COH Landmark Report 96LD39 (Ned A. Eppes House, 5322 Institute Ln)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/96LD39_5322_Institute_Ned_A_Eppes_House.pdf"
+      }
     ]
   },
   {
     "id": "glenbrook_valley",
     "name": "Glenbrook Valley",
-    "era": "1953\u20131960",
+    "era": "1953-1960",
     "center": [
       -95.27505,
       29.6763
@@ -2268,7 +2422,7 @@ export const CURATED_TOURS = [
     "zoom": 16.7,
     "pitch": 28,
     "walkMiles": 0.7,
-    "description": "A 0.4-mile walk along Santa Elena Street, Glen Valley Drive, Stony Dell Court, and Glenview Drive in Texas's largest post-WWII Mid-Century Modern district.",
+    "description": "A 0.7-mile walk along Santa Elena Street, Glen Valley Drive, Stony Dell Court, and Glenview Drive in Texas's first post-WWII Mid-Century Modern municipal historic district.",
     "stops": [
       {
         "title": "Muscanere House (7843 Santa Elena St)",
@@ -2310,7 +2464,7 @@ export const CURATED_TOURS = [
         "street_lat": 29.67611
       },
       {
-        "title": "8111 Glen Valley Drive (1953 Parade of Homes Era)",
+        "title": "8111 Glen Valley Drive (1953 First-Section Ranch)",
         "year": 1953,
         "hcad_num": "0812870000020",
         "building_id": "bld_008956",
@@ -2318,9 +2472,15 @@ export const CURATED_TOURS = [
         "lat": 29.67634,
         "zoom": 18,
         "pitch": 32,
-        "story": "Around the corner on Glen Valley Drive\u2014built during developer Fred McManis Jr.'s inaugural 1953 Parade of Homes opening of Glenbrook Valley.",
+        "story": "Around the corner on Glen Valley Drive, built in 1953 as developer Fred McManis Jr. opened Glenbrook Valley ahead of its acclaimed 1954 Houston Parade of Homes showcase.",
         "street_lng": -95.27526,
-        "street_lat": 29.67633
+        "street_lat": 29.67633,
+        "citations": [
+          {
+            "label": "COH Landmark Report 12L271 (Muscanere House & Glenbrook Valley)",
+            "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/12L271_Muscanere_House_7843_Santa_Elena.pdf"
+          }
+        ]
       },
       {
         "title": "7919 Glenview Drive Good Brick Ranch",
@@ -2529,9 +2689,16 @@ export const CURATED_TOURS = [
         -95.27382,
         29.67497
       ]
+    ],
+    "citations": [
+      {
+        "label": "COH Landmark Report 12L271 (Muscanere House & Glenbrook Valley)",
+        "url": "https://www.houstontx.gov/planning/HistoricPres/landmarks/12L271_Muscanere_House_7843_Santa_Elena.pdf"
+      }
     ]
   }
 ];
+
 
 /**
  * Return a hex color for a single building year (or decade) under the chosen palette style.

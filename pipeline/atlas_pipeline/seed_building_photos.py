@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 SEED_PHOTOS = [
-    # 1. The Gulf Building (712 Main St — 1929 Art Deco skyscraper & Good Brick Winner)
+    # 1. The Gulf Building (712 Main St - 1929 Art Deco skyscraper & Good Brick Winner)
     {
         "hcad_num": "0010810000007",
         "building_id": "bld_004281",
@@ -46,10 +46,10 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons / WhisperToMe",
         "source_url": "https://commons.wikimedia.org/wiki/File:The_Gulf_Building_Houston_Texas.jpg",
     },
-    # 2. Niels & Mellie Esperson Building (808 Travis St — 1927 Italian Renaissance Tower)
+    # 2. Niels & Mellie Esperson Building (808 Travis St - 1927 Italian Renaissance Tower)
     {
         "hcad_num": "0010910000015",
-        "building_id": "osm_city_510322923#bldg_niels_esperson_building",
+        "building_id": "bld_003246",
         "landmark_name": "Niels and Mellie Esperson Building",
         "address": "808 TRAVIS ST",
         "photo_year": 1926,
@@ -62,7 +62,7 @@ SEED_PHOTOS = [
     },
     {
         "hcad_num": "0010910000015",
-        "building_id": "osm_city_510322923#bldg_niels_esperson_building",
+        "building_id": "bld_003246",
         "landmark_name": "Niels and Mellie Esperson Building",
         "address": "808 TRAVIS ST",
         "photo_year": 1927,
@@ -75,7 +75,7 @@ SEED_PHOTOS = [
     },
     {
         "hcad_num": "0010910000015",
-        "building_id": "osm_city_510322923#bldg_niels_esperson_building",
+        "building_id": "bld_003246",
         "landmark_name": "Niels and Mellie Esperson Building",
         "address": "808 TRAVIS ST",
         "photo_year": 1995,
@@ -88,7 +88,7 @@ SEED_PHOTOS = [
     },
     {
         "hcad_num": "0010910000015",
-        "building_id": "osm_city_510322923#bldg_niels_esperson_building",
+        "building_id": "bld_003246",
         "landmark_name": "Niels and Mellie Esperson Building",
         "address": "808 TRAVIS ST",
         "photo_year": 2013,
@@ -99,7 +99,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons",
         "source_url": "https://commons.wikimedia.org/wiki/File:Neils-Esperson_Building_Houston_Texas.jpg",
     },
-    # 3. 1910 Harris County Courthouse (301 Fannin St — 2012 Good Brick Winner)
+    # 3. 1910 Harris County Courthouse (301 Fannin St - 2012 Good Brick Winner)
     {
         "hcad_num": "0010310000001",
         "building_id": "bld_003285",
@@ -139,7 +139,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (CC BY-SA 3.0)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Harris_County_1910_Courthouse_Restored_Houston_Texas.jpg",
     },
-    # 4. The Rice Hotel (909 Texas Ave — 1913 Landmark & 1999 Good Brick Winner)
+    # 4. The Rice Hotel (909 Texas Ave - 1913 Landmark & 1999 Good Brick Winner)
     {
         "hcad_num": "0010570000009",
         "building_id": "bld_003226",
@@ -179,7 +179,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (2024)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Post_Rice_Lofts,_aka_Rice_Hotel,_Houston.jpg",
     },
-    # 5. Union Station / Daikin Park (501 Crawford St — 1911 Terminal & Good Brick Winner)
+    # 5. Union Station / Daikin Park (501 Crawford St - 1911 Terminal & Good Brick Winner)
     {
         "hcad_num": "0011020000001",
         "building_id": "0011020000001",
@@ -219,7 +219,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (2020)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Union_Station_--_Houston.jpg",
     },
-    # 6. Houston City Hall (901 Bagby St — 1939 Art Moderne Landmark)
+    # 6. Houston City Hall (901 Bagby St - 1939 Art Moderne Landmark)
     {
         "hcad_num": "0011490000001",
         "building_id": "0011490000001",
@@ -246,7 +246,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons / Michael Barera (2022)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Houston_May_2022_34_(Houston_City_Hall).jpg",
     },
-    # 7. Julia Ideson Building (550 McKinney St — 1926 Ralph Adams Cram Landmark & Good Brick Winner)
+    # 7. Julia Ideson Building (550 McKinney St - 1926 Ralph Adams Cram Landmark & Good Brick Winner)
     {
         "hcad_num": "0011470000001",
         "building_id": "bld_003423",
@@ -273,7 +273,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons / Michael Barera (2022)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Houston_May_2022_33_(Houston_Public_Library_Julia_Ideson_Building).jpg",
     },
-    # 8. Kellum-Noble House (212 Dallas St, Sam Houston Park — Built 1847, Houston's Oldest Brick House on Original Site)
+    # 8. Kellum-Noble House (212 Dallas St, Sam Houston Park - Built 1847, Houston's Oldest Brick House on Original Site)
     {
         "hcad_num": "0400030000014",
         "building_id": "0400030000014#shp_44632292_the_kellum_noble_house",
@@ -300,7 +300,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (CC BY-SA 3.0)",
         "source_url": "https://commons.wikimedia.org/wiki/File:KellumNobleSamHoustonPark.jpg",
     },
-    # 9. Lovett Hall — Rice University (6100 Main St — 1912 Cram, Goodhue & Ferguson Landmark)
+    # 9. Lovett Hall - Rice University (6100 Main St - 1912 Cram, Goodhue & Ferguson Landmark)
     {
         "hcad_num": "0421790000001",
         "building_id": "0421790000001#rice_58_lovett_hall_administration_b",
@@ -327,7 +327,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (2018)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Rice_University_Sally_Port.jpg",
     },
-    # 10. NRG Astrodome (8400 Kirby Dr — 1965 "Eighth Wonder of the World")
+    # 10. NRG Astrodome (8400 Kirby Dr - 1965 "Eighth Wonder of the World")
     {
         "hcad_num": "0440930000004",
         "building_id": "osm_city_119420928#bldg_nrg_astrodome",
@@ -367,23 +367,23 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (2018)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Sunrise_on_the_Houston_Astrodome.jpg",
     },
-    # 11. 1940 Air Terminal Museum (8325 Travelair St — Joseph Finger Art Deco Terminal & Good Brick Winner)
+    # 11. 1940 Air Terminal Museum (8325 Travelair St - Joseph Finger Art Deco Terminal & Good Brick Winner)
     {
-        "hcad_num": "0432070000001",
-        "building_id": "0690030030001",
+        "hcad_num": "0432280000011",
+        "building_id": "bld_010687",
         "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
         "address": "8325 TRAVELAIR ST",
-        "photo_year": 1940,
-        "era_label": "c. 1940 Original Terminal",
-        "caption": "Joseph Finger's Art Deco Houston Municipal Airport Terminal (opened 1940), featuring stepped massing, curved glass block bays, and cast-stone aviation reliefs.",
+        "photo_year": 2008,
+        "era_label": "2008 Restored Terminal",
+        "caption": "2008 photograph of Joseph Finger's Art Deco Houston Municipal Airport Terminal (opened 1940), featuring stepped massing, curved glass block bays, and cast-stone aviation reliefs.",
         "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d2/1940sAirTerminalMuseumHobby.JPG",
         "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/1940sAirTerminalMuseumHobby.JPG/960px-1940sAirTerminalMuseumHobby.JPG",
-        "credit": "Wikimedia Commons / Public Domain",
+        "credit": "Wikimedia Commons / Public Domain (2008)",
         "source_url": "https://commons.wikimedia.org/wiki/File:1940sAirTerminalMuseumHobby.JPG",
     },
     {
-        "hcad_num": "0432070000001",
-        "building_id": "0690030030001",
+        "hcad_num": "0432280000011",
+        "building_id": "bld_010687",
         "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
         "address": "8325 TRAVELAIR ST",
         "photo_year": 2014,
@@ -395,8 +395,8 @@ SEED_PHOTOS = [
         "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Winged_Mercury%22_bas-relief_atop_the_entrance_to_the_1940_Air_Terminal_Museum,_designed_by_architect_Joseph_Finger_(who_also_designed_Houston%27s_City_Hall)_and_housed_in_the_original_art-deco_LCCN2014632542.tif",
     },
     {
-        "hcad_num": "0432070000001",
-        "building_id": "0690030030001",
+        "hcad_num": "0432280000011",
+        "building_id": "bld_010687",
         "landmark_name": "1940 Air Terminal Museum (Houston Municipal Air Terminal)",
         "address": "8325 TRAVELAIR ST",
         "photo_year": 2020,
@@ -407,9 +407,9 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (CC BY-SA 4.0)",
         "source_url": "https://commons.wikimedia.org/wiki/File:1940_Air_Terminal_Museum.jpg",
     },
-    # 12. Pennzoil Place (711 Louisiana St — 1975 Philip Johnson & John Burgee Modernist Landmark)
+    # 12. Pennzoil Place (711 Louisiana St - 1975 Philip Johnson & John Burgee Modernist Landmark)
     {
-        "hcad_num": "0010380000001",
+        "hcad_num": "0010830000001",
         "building_id": "osm_city_580965929#bldg_pennzoil_place",
         "landmark_name": "Pennzoil Place",
         "address": "711 LOUISIANA ST",
@@ -422,7 +422,7 @@ SEED_PHOTOS = [
         "source_url": "https://commons.wikimedia.org/wiki/File:Pennzoil_Place,_Houston,_Texas_LCCN2011630051.tif",
     },
     {
-        "hcad_num": "0010380000001",
+        "hcad_num": "0010830000001",
         "building_id": "osm_city_580965929#bldg_pennzoil_place",
         "landmark_name": "Pennzoil Place",
         "address": "711 LOUISIANA ST",
@@ -434,10 +434,10 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (2013)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Pennzoil_Place_in_Houston_-_Dec_2013.JPG",
     },
-    # 13. Christ Church Cathedral (1117 Texas Ave — 1893 Gothic Revival Landmark on 1839 Site)
+    # 13. Christ Church Cathedral (1117 Texas Ave - 1893 Gothic Revival Landmark on 1839 Site)
     {
         "hcad_num": "0010550000006",
-        "building_id": "0010550000006",
+        "building_id": "bld_003318",
         "landmark_name": "Christ Church Cathedral",
         "address": "1117 TEXAS AVE",
         "photo_year": 2010,
@@ -461,7 +461,7 @@ SEED_PHOTOS = [
         "credit": "Wikimedia Commons (2026)",
         "source_url": "https://commons.wikimedia.org/wiki/File:Christ_Church_Cathedral_In_Houston.jpg",
     },
-    # 14. Lund House & Modern Print Shop (301 E 5th St — c. 1896 NRHP Queen Anne Cottage & 2026 Good Brick Winner)
+    # 14. Lund House & Modern Print Shop (301 E 5th St - c. 1896 NRHP Queen Anne Cottage & 2026 Good Brick Winner)
     {
         "hcad_num": "0210200000029",
         "building_id": "bld_000475",
@@ -469,7 +469,7 @@ SEED_PHOTOS = [
         "address": "301 E 5TH ST",
         "photo_year": 2010,
         "era_label": "2010 NRHP Documentation",
-        "caption": "The Lund House (c. 1896) at 301 E. 5th St. in the Houston Heights South Historic District — a Queen Anne Victorian cottage listed in the National Register of Historic Places (#83004470) and restored alongside the 1927 Modern Print Shop by Donna and Jim Bennett (2026 Good Brick Award).",
+        "caption": "The Lund House (c. 1896) at 301 E. 5th St. in the Houston Heights South Historic District - a Queen Anne Victorian cottage listed in the National Register of Historic Places (#83004470) and restored alongside the 1927 Modern Print Shop by Donna and Jim Bennett (2026 Good Brick Award).",
         "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Lund_House.jpg",
         "thumb_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Lund_House.jpg/1280px-Lund_House.jpg",
         "credit": "Ed Uthman / Wikimedia Commons (CC BY 3.0)",

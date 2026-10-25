@@ -922,6 +922,14 @@ def main() -> None:
 
     for i, feat in enumerate(coh_hd_features):
         p = feat["properties"]
+        if p.get("name") == "Courtland Place Historic District":
+            p["name"] = "Courtlandt Place Historic District"
+            alts = list(p.get("alt_names") or [])
+            if "Courtland Place Historic District" not in alts:
+                alts.append("Courtland Place Historic District")
+            p["alt_names"] = alts
+            p.pop("id", None)
+            p.pop("description", None)
         geom = coh_hd_geoms[i]
         rep = geom.representative_point()
         if not p.get("id"):
@@ -939,6 +947,19 @@ def main() -> None:
                 "City of Houston's 15-year Historic Site Tax Exemption upon approved rehabilitation."
             )
         feat["geometry"] = round_coords(mapping(geom), 5)
+
+    for i, feat in enumerate(heritage_features):
+        p = feat["properties"]
+        if not p.get("id"):
+            p["id"] = f"coh_her_{i + 1:02d}_{slugify(p.get('name', 'heritage_district'))[:36]}"
+        if not p.get("description") and "Freedmen" in (p.get("name") or ""):
+            p["description"] = (
+                "Freedmen's Town Heritage District was designated by Houston City Council under Chapter 33, "
+                "Article VII of the Code of Ordinances to recognize and protect the historic cultural landscape "
+                "and public-realm heritage infrastructure of Freedmen's Town in Fourth Ward, founded by emancipated "
+                "African Americans after Juneteenth 1865 and famous for the hand-laid brick streets along Andrews "
+                "and Wilson Streets financed and laid by Black residents in 1914 under Rev. Ned P. Pullum."
+            )
 
     for i, feat in enumerate(nrhp_dist_features):
         p = feat["properties"]

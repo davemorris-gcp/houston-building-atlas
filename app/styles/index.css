@@ -1,5 +1,5 @@
 /* ==========================================================================
-   The Houston Building Atlas v2 — Preservation Houston
+   The Houston Building Atlas v2 - Preservation Houston
    Preservation Houston Brand Identity & Cartographic Design System
    ========================================================================== */
 
@@ -9615,6 +9615,187 @@ body {
   .hahc-modal-filters-top {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================================================
+   Historical Accuracy, 4-Tier Evidentiary Provenance, Citations & 1-Click Flags
+   ============================================================================ */
+
+.narrative-citations-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.narrative-citations-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-right: 2px;
+}
+
+.narrative-citation-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.3;
+  color: #cbd5e1;
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  text-decoration: none;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+a.narrative-citation-pill:hover {
+  background: rgba(45, 212, 191, 0.16);
+  border-color: rgba(45, 212, 191, 0.55);
+  color: #f8fafc;
+}
+
+.quick-flag-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.quick-flag-btn:hover {
+  background: rgba(245, 158, 11, 0.28);
+  border-color: rgba(251, 191, 36, 0.75);
+  color: #fef3c7;
+}
+
+.quick-flag-btn.flagged {
+  color: #94a3b8;
+  background: rgba(51, 65, 85, 0.45);
+  border-color: rgba(148, 163, 184, 0.3);
+  cursor: default;
+}
+
+.evidentiary-tier-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.evidentiary-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1.5px 6.5px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.evidentiary-tier-badge.tier-1 {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.38);
+}
+
+.evidentiary-tier-badge.tier-2 {
+  color: #5eead4;
+  background: rgba(20, 184, 166, 0.14);
+  border: 1px solid rgba(20, 184, 166, 0.38);
+}
+
+.evidentiary-tier-badge.tier-3 {
+  color: #cbd5e1;
+  background: rgba(100, 116, 139, 0.18);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+}
+
+.evidentiary-tier-badge.tier-4 {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.48);
+}
+
+.archival-contradiction-banner {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.13);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fef3c7;
+  font-size: 11px;
+  line-height: 1.42;
+}
+
+.archival-contradiction-banner strong {
+  color: #fbbf24;
+}
+
+.photo-provenance-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.photo-provenance-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9.8px;
+  font-weight: 600;
+}
+
+.photo-provenance-pill.verified {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.38);
+}
+
+.photo-provenance-pill.unverified {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.48);
+}
+
+.quick-flag-toast {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  z-index: 9999;
+  max-width: 360px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.48);
+  color: #f8fafc;
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
 }
 
 
