@@ -40,15 +40,12 @@ jobs:
           python-version: "3.13"
           enable-cache: true
 
-      - name: Install Playwright Headless Chromium
-        working-directory: pipeline
-        run: |
-          uv sync --dev
-          uv run playwright install --with-deps chromium
+      - name: Set up Playwright Headless Chromium
+        uses: ./.github/actions/setup-playwright-e2e
 
       - name: Harvest Rendered External Links Across All 45 Stratified UI Archetypes
         working-directory: pipeline
-        run: uv run pytest ../tests/e2e -v
+        run: uv run --no-sync pytest ../tests/e2e -n auto -v
 
       - name: Crawl Live External Archive & Municipal URLs
         run: node scripts/check_external_links.mjs --report-only

@@ -2,19 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-
-def _wait_for_atlas_ready(page: Any) -> None:
-    page.wait_for_function(
-        """() => Boolean(
-            window.atlasApp &&
-            window.atlasApp._started === true &&
-            window.atlasApp.mapController &&
-            window.atlasApp.mapController.overlaysData &&
-            Array.isArray(window.atlasApp.searchIndex) &&
-            window.atlasApp.searchIndex.length > 1000
-        )""",
-        timeout=30000,
-    )
+from conftest import wait_for_atlas_ready as _wait_for_atlas_ready
 
 
 def test_cold_boot_preset_and_global_modals(
@@ -74,14 +62,14 @@ def test_cold_boot_preset_and_global_modals(
     page.wait_for_selector("#share-modal", state="hidden", timeout=5000)
 
 
-def test_cold_boot_guided_chapters_and_portfolios(
+def test_cold_boot_guided_chapters(
     guarded_page: Any,
     atlas_base_url: str,
     url_harvester: Any,
 ) -> None:
     page = guarded_page
 
-    # 1. Cold-boot into Guided Chapter #1 ("How Houston Was Built")
+    # Cold-boot into Guided Chapter #1 ("How Houston Was Built")
     page.goto(f"{atlas_base_url}/index.html#chapter=bayous_and_two_grids", wait_until="domcontentloaded")
     _wait_for_atlas_ready(page)
     page.wait_for_selector("#city-chapters-card:not(.hidden)", timeout=10000)
@@ -99,7 +87,15 @@ def test_cold_boot_guided_chapters_and_portfolios(
     page.click("#btn-exit-city-chapters")
     page.wait_for_selector("#city-chapters-card", state="hidden", timeout=5000)
 
-    # 2. Cold-boot into Architect Portfolio: Alfred C. Finn
+
+def test_cold_boot_architect_and_style_portfolios(
+    guarded_page: Any,
+    atlas_base_url: str,
+    url_harvester: Any,
+) -> None:
+    page = guarded_page
+
+    # Cold-boot into Architect Portfolio: Alfred C. Finn
     page.goto(f"{atlas_base_url}/index.html#portfolio=architect:Alfred%20C.%20Finn", wait_until="domcontentloaded")
     _wait_for_atlas_ready(page)
     page.wait_for_selector("#portfolio-monograph-card:not(.hidden)", timeout=10000)

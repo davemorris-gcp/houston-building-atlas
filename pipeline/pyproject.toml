@@ -20,7 +20,11 @@ dev = [
     "playwright>=1.64.0",
     "pytest>=8.0.0",
     "pytest-playwright>=0.10.0",
+    "pytest-xdist>=3.6.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["../tests/e2e"]
 
 [build-system]
 requires = ["hatchling"]

@@ -7,8 +7,8 @@
   "scripts": {
     "test:archetypes": "node scripts/build_test_archetypes.mjs",
     "test:unit": "node tests/unit/run_all.mjs",
-    "test:e2e": "uv run --directory pipeline pytest ../tests/e2e -v",
+    "test:e2e": "uv run --directory pipeline pytest ../tests/e2e -n auto -v",
     "test:links": "node scripts/check_external_links.mjs",
-    "test": "node tests/unit/run_all.mjs && uv run --directory pipeline pytest ../tests/e2e -v"
+    "test": "node tests/unit/run_all.mjs && uv run --directory pipeline pytest ../tests/e2e -n auto -v"
   }
 }

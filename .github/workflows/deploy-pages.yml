@@ -41,15 +41,12 @@ jobs:
       - name: Run Layer 1 Unit, Schema, Bundle Size & URL-Pattern Suite
         run: node tests/unit/run_all.mjs
 
-      - name: Install Playwright Headless Chromium
-        working-directory: pipeline
-        run: |
-          uv sync --dev
-          uv run playwright install --with-deps chromium
+      - name: Set up Playwright Headless Chromium
+        uses: ./.github/actions/setup-playwright-e2e
 
       - name: Run Layer 2 Playwright E2E Suite (Global Controls + 45 Stratified Archetypes)
         working-directory: pipeline
-        run: uv run pytest ../tests/e2e -v
+        run: uv run --no-sync pytest ../tests/e2e -n auto -v
 
       - name: Upload Harvested External URLs & Test Results Artifact
         if: always()

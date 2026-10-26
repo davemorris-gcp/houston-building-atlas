@@ -1,0 +1,24 @@
+name: Set up Playwright Headless Chromium for Layer 2 E2E
+description: Caches and installs headless Chromium shell and dev-only Python test dependencies for Layer 2 Playwright E2E suites.
+runs:
+  using: composite
+  steps:
+    - name: Cache Playwright Headless Chromium Binary
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-shell-${{ hashFiles('pipeline/uv.lock') }}
+
+    - name: Install Playwright Headless Chromium
+      working-directory: pipeline
+      shell: bash
+      run: |
+        # Layer 2 E2E spawns stdlib app/server.py and does not import atlas_pipeline geospatial C extensions.
+        uv sync --only-group dev --no-install-project
+        uv run --no-sync playwright install --only-shell chromium
+        # GitHub ubuntu-latest runners typically pre-install all shared libraries needed by chrome-headless-shell;
+        # probe via ldd to avoid a ~20s apt-get update unless a required .so is missing or ldd itself fails.
+        SHELL_BIN="$(find ~/.cache/ms-playwright -name chrome-headless-shell -type f 2>/dev/null | head -n 1 || true)"
+        if [ -z "${SHELL_BIN}" ] || ! LD_OUT="$(ldd "${SHELL_BIN}" 2>&1)" || printf '%s\n' "${LD_OUT}" | grep -q "not found"; then
+          uv run --no-sync playwright install-deps chromium
+        fi

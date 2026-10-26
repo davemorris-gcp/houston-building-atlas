@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import base64
 import json
+import os
 import re
 import socket
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +21,50 @@ APP_DIR = REPO_ROOT / "app"
 SERVER_SCRIPT = APP_DIR / "server.py"
 TEST_RESULTS_DIR = REPO_ROOT / "test-results"
 HARVESTED_URLS_PATH = TEST_RESULTS_DIR / "harvested_external_urls.json"
+
+DEFAULT_E2E_VIEWPORT: dict[str, int] = {"width": 1440, "height": 900}
+
+TRANSPARENT_1X1_PNG: bytes = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+)
+
+OPENFREEMAP_PLANET_TILEJSON: bytes = json.dumps(
+    {
+        "tilejson": "3.0.0",
+        "tiles": ["https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf"],
+        "vector_layers": [{"id": "transportation"}],
+        "minzoom": 0,
+        "maxzoom": 14,
+    }
+).encode("utf-8")
+
+_UNPKG_MEM_CACHE: dict[str, tuple[str, bytes]] = {}
+EXTERNAL_URL_ROUTE_RE = re.compile(r"^https?://(?!(?:127\.0\.0\.1|localhost)(?::|/|$))", re.I)
+_CORS_HEADERS: dict[str, str] = {"Access-Control-Allow-Origin": "*"}
+
+_EXACT_HOST_STUBS: dict[str, tuple[str, bytes]] = {
+    "fonts.googleapis.com": ("text/css; charset=utf-8", b""),
+    "fonts.gstatic.com": ("font/woff2", b""),
+    # plat-monitor.html pullCloudSheetSync() fetches CSV rows from Apps Script on script.google.com
+    "script.google.com": ("text/csv; charset=utf-8", b"hcad_num,status\n"),
+}
+
+_RASTER_HOST_SUFFIXES: tuple[str, ...] = (
+    "arcgisonline.com",
+    "tiles.arcgis.com",
+    "upload.wikimedia.org",
+    "loc.gov",
+    "davidrumsey.com",
+    "utexas.edu",
+)
+
+_GIS_JSON_HOST_SUFFIXES: tuple[str, ...] = (
+    "arcweb.hcad.org",
+    "api.hcad.org",
+    "mycity.houstontx.gov",
+    "mycity2.houstontx.gov",
+    "gis.hctx.net",
+)
 
 DEAD_URL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("ut_pcl_sanborn_grouped_index", re.compile(r"maps\.lib\.utexas\.edu/maps/sanborn/texas_cities_", re.I)),
@@ -41,6 +89,21 @@ DEAD_URL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
+def wait_for_atlas_ready(page: Any, timeout_ms: int = 30000) -> None:
+    """Waits until AtlasApp has initialized MapLibre, loaded overlaysData, and indexed searchIndex."""
+    page.wait_for_function(
+        """() => Boolean(
+            window.atlasApp &&
+            window.atlasApp._started === true &&
+            window.atlasApp.mapController &&
+            window.atlasApp.mapController.overlaysData &&
+            Array.isArray(window.atlasApp.searchIndex) &&
+            window.atlasApp.searchIndex.length > 1000
+        )""",
+        timeout=timeout_ms,
+    )
+
+
 def validate_harvested_url(url: str) -> tuple[bool, str]:
     clean = (url or "").strip()
     if not clean.startswith(("http://", "https://")):
@@ -63,6 +126,137 @@ def _pick_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
         return int(s.getsockname()[1])
+
+
+def configure_fast_e2e_context(context: Any, base_url: str) -> None:
+    """Stubs external third-party tile/API traffic while passing local 127.0.0.1 assets and caching unpkg CDN bundles in RAM."""
+
+    def _handle_route(route: Any) -> None:
+        url = route.request.url
+        if url.startswith(base_url):
+            route.continue_()
+            return
+
+        parsed = urllib.parse.urlsplit(url)
+        host = (parsed.hostname or "").lower()
+        path = parsed.path.lower()
+        query = parsed.query.lower()
+        res_type = route.request.resource_type
+
+        if host == "unpkg.com":
+            cached = _UNPKG_MEM_CACHE.get(url)
+            if cached is None:
+                try:
+                    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        body = resp.read()
+                        upstream_ct = resp.headers.get("Content-Type")
+                    default_ct = (
+                        "text/css; charset=utf-8"
+                        if path.endswith(".css")
+                        else "application/javascript; charset=utf-8"
+                    )
+                    cached = (upstream_ct or default_ct, body)
+                    _UNPKG_MEM_CACHE[url] = cached
+                except Exception:
+                    route.continue_()
+                    return
+            route.fulfill(
+                status=200,
+                content_type=cached[0],
+                headers={**_CORS_HEADERS, "Cache-Control": "public, max-age=31536000"},
+                body=cached[1],
+            )
+            return
+
+        if host in _EXACT_HOST_STUBS:
+            ct, body = _EXACT_HOST_STUBS[host]
+            route.fulfill(status=200, content_type=ct, headers=_CORS_HEADERS, body=body)
+            return
+
+        if host == "tiles.openfreemap.org":
+            if "/planet" in path and not path.endswith(".pbf"):
+                route.fulfill(
+                    status=200,
+                    content_type="application/json; charset=utf-8",
+                    headers=_CORS_HEADERS,
+                    body=OPENFREEMAP_PLANET_TILEJSON,
+                )
+            else:
+                route.fulfill(
+                    status=200,
+                    content_type="application/x-protobuf",
+                    headers=_CORS_HEADERS,
+                    body=b"",
+                )
+            return
+
+        if host == "docs.google.com" and path.startswith("/spreadsheets"):
+            route.fulfill(
+                status=200,
+                content_type="text/csv; charset=utf-8",
+                headers=_CORS_HEADERS,
+                body=b"hcad_num,status\n",
+            )
+            return
+
+        if host == "commons.wikimedia.org" and path.startswith("/w/api.php"):
+            route.fulfill(
+                status=200,
+                content_type="application/json; charset=utf-8",
+                headers=_CORS_HEADERS,
+                body=b'{"batchcomplete":"","query":{"pages":{}}}',
+            )
+            return
+
+        # Evaluate explicit ArcGIS / REST JSON query intent before host-level raster fallbacks
+        if path.endswith("/query") or "f=json" in query or "f=geojson" in query:
+            route.fulfill(
+                status=200,
+                content_type="application/json; charset=utf-8",
+                headers=_CORS_HEADERS,
+                body=b'{"features":[]}',
+            )
+            return
+
+        if (
+            res_type in ("image", "media")
+            or "/mapserver/tile/" in path
+            or "/imageserver/" in path
+            or "f=image" in query
+            or "service=wms" in query
+            or path.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif"))
+            or host.endswith(_RASTER_HOST_SUFFIXES)
+        ):
+            route.fulfill(
+                status=200,
+                content_type="image/png",
+                headers=_CORS_HEADERS,
+                body=TRANSPARENT_1X1_PNG,
+            )
+            return
+
+        if host.endswith(_GIS_JSON_HOST_SUFFIXES):
+            route.fulfill(
+                status=200,
+                content_type="application/json; charset=utf-8",
+                headers=_CORS_HEADERS,
+                body=b'{"features":[]}',
+            )
+            return
+
+        if res_type in ("script", "stylesheet"):
+            route.abort("blockedbyclient")
+            return
+
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            headers=_CORS_HEADERS,
+            body=b"{}",
+        )
+
+    context.route(EXTERNAL_URL_ROUTE_RE, _handle_route)
 
 
 @pytest.fixture(scope="session")
@@ -128,53 +322,116 @@ def atlas_base_url() -> str:
 class ExternalUrlHarvester:
     """Collects and deduplicates all external HTTP(S) links rendered across Playwright E2E tests."""
 
+    MAX_SOURCES_PER_URL = 10
+
     def __init__(self) -> None:
         self.by_url: dict[str, dict[str, Any]] = {}
 
     def record(self, url: str, source: str, label: str = "") -> None:
         clean = (url or "").strip()
-        if not clean.startswith(("http://", "https://")):
+        if not EXTERNAL_URL_ROUTE_RE.match(clean):
             return
-        if clean.startswith("http://127.0.0.1") or clean.startswith("http://localhost"):
-            return
+        clean_label = (label or "").strip()[:120]
         entry = self.by_url.get(clean)
         if entry is None:
             self.by_url[clean] = {
                 "url": clean,
                 "firstSeenIn": source,
-                "sampleLabel": (label or "").strip()[:120],
-                "sources": [source],
+                "sampleLabel": clean_label,
+                "sources": [source] if source else [],
             }
         else:
-            if source not in entry["sources"] and len(entry["sources"]) < 10:
+            if not entry["sampleLabel"] and clean_label:
+                entry["sampleLabel"] = clean_label
+            if (
+                source
+                and source not in entry["sources"]
+                and len(entry["sources"]) < self.MAX_SOURCES_PER_URL
+            ):
                 entry["sources"].append(source)
 
+    def merge_payload(self, data: dict[str, Any]) -> None:
+        for item in data.get("urls", []):
+            url = (item.get("url") or "").strip()
+            if not url:
+                continue
+            sources = list(item.get("sources") or [])
+            first_source = item.get("firstSeenIn") or (sources[0] if sources else "")
+            self.record(url, first_source, item.get("sampleLabel", ""))
+            for src in sources:
+                self.record(url, src)
+
     def harvest_from_locator(self, locator: Any, source: str) -> list[str]:
-        anchors: list[dict[str, str]] = locator.evaluate(
-            """(root) => Array.from(root.querySelectorAll('a[href]')).map(a => ({
-                href: a.getAttribute('href') || '',
-                resolved: a.href || '',
-                text: (a.textContent || a.title || '').trim()
-            }))"""
+        _, urls = self.harvest_text_and_urls(locator, source)
+        return urls
+
+    def harvest_text_and_urls(self, locator: Any, source: str) -> tuple[str, list[str]]:
+        snap: dict[str, Any] = locator.evaluate(
+            """(root) => ({
+                text: root.innerText || '',
+                anchors: Array.from(root.querySelectorAll('a[href]')).map(a => ({
+                    href: a.getAttribute('href') || '',
+                    resolved: a.href || '',
+                    text: (a.textContent || a.title || '').trim()
+                }))
+            })"""
         )
         urls: list[str] = []
-        for a in anchors:
-            href = a.get("resolved") or a.get("href") or ""
-            if href.startswith(("http://", "https://")) and not href.startswith("http://127.0.0.1"):
+        for a in snap.get("anchors") or []:
+            href = (a.get("resolved") or a.get("href") or "").strip()
+            if EXTERNAL_URL_ROUTE_RE.match(href):
                 ok, reason = validate_harvested_url(href)
                 assert ok, f"[{source}] Invalid external URL rendered in DOM: {reason}"
                 self.record(href, source, a.get("text", ""))
                 urls.append(href)
-        return urls
+        return snap.get("text") or "", urls
 
-    def write_json(self) -> None:
-        TEST_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    def write_to(self, out_path: Path) -> None:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
         items = sorted(self.by_url.values(), key=lambda x: x["url"])
         payload = {
             "totalUniqueExternalUrls": len(items),
             "urls": items,
         }
-        HARVESTED_URLS_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        out_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    def write_json(self) -> None:
+        worker_id = os.environ.get("PYTEST_XDIST_WORKER")
+        out_path = (
+            TEST_RESULTS_DIR / f".harvested_urls_{worker_id}.json"
+            if worker_id
+            else HARVESTED_URLS_PATH
+        )
+        self.write_to(out_path)
+
+
+def pytest_configure(config: Any) -> None:
+    if not hasattr(config, "workerinput") and TEST_RESULTS_DIR.exists():
+        HARVESTED_URLS_PATH.unlink(missing_ok=True)
+        for stale_shard in TEST_RESULTS_DIR.glob(".harvested_urls_*.json"):
+            stale_shard.unlink(missing_ok=True)
+
+
+def pytest_sessionfinish(session: Any, exitstatus: int) -> None:
+    if hasattr(session.config, "workerinput") or not TEST_RESULTS_DIR.exists():
+        return
+    shards = sorted(TEST_RESULTS_DIR.glob(".harvested_urls_*.json"))
+    if not shards:
+        return
+    merged = ExternalUrlHarvester()
+    for shard_path in shards:
+        try:
+            data = json.loads(shard_path.read_text(encoding="utf-8"))
+            merged.merge_payload(data)
+        except (OSError, json.JSONDecodeError) as exc:
+            warnings.warn(
+                f"Failed to merge harvested URL shard {shard_path.name}: {exc}",
+                stacklevel=1,
+            )
+        finally:
+            shard_path.unlink(missing_ok=True)
+
+    merged.write_to(HARVESTED_URLS_PATH)
 
 
 @pytest.fixture(scope="session")
@@ -222,7 +479,8 @@ def attach_error_monitors(page: Any, base_url: str) -> tuple[list[str], list[str
 
 @pytest.fixture
 def guarded_page(page: Any, atlas_base_url: str) -> Any:
-    page.set_viewport_size({"width": 1440, "height": 900})
+    configure_fast_e2e_context(page.context, atlas_base_url)
+    page.set_viewport_size(DEFAULT_E2E_VIEWPORT)
     page_errors, console_errors, local_http_errors = attach_error_monitors(page, atlas_base_url)
     yield page
     assert not page_errors, f"Uncaught JS pageerror(s): {page_errors}"
