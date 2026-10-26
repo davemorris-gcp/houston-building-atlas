@@ -1,7 +1,7 @@
 {
   "app": "Plat Agenda Monitor",
   "version": 2,
-  "generatedAt": "2026-10-25T15:21:00Z",
+  "generatedAt": "2026-10-26T18:01:04Z",
   "cycleKey": "2026-10-16",
   "pcDate": "2026-10-16T00:00:00.000Z",
   "fileName": "Plat-Current-Agenda-Spreadsheet-10-15-2026.xlsx",
@@ -76,7 +76,7 @@
         "subdivisionId": "plat_2545_highland",
         "subdivisionEarliestYear": 1902,
         "subdivisionMedianYear": 1920,
-        "subdivisionPre1940Count": 31,
+        "subdivisionPre1940Count": 30,
         "subdivisionPre1965Count": 31,
         "superNeighborhoodMatch": "Acres Homes",
         "superNeighborhoodId": "snbr_6",
@@ -1434,17 +1434,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.29497,
-        "lat": 29.83781,
+        "lng": -95.29703,
+        "lat": 29.838,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "ROSEWOOD ESTATES SEC 2",
         "subdivisionId": "plat_4967_rosewood_estates",
         "subdivisionEarliestYear": 1930,
-        "subdivisionMedianYear": 1952,
+        "subdivisionMedianYear": 1954,
         "subdivisionPre1940Count": 24,
-        "subdivisionPre1965Count": 401,
+        "subdivisionPre1965Count": 398,
         "superNeighborhoodMatch": "Trinity / Houston Gardens",
         "superNeighborhoodId": "snbr_48",
         "superNeighborhoodEarliestYear": 1900,
@@ -1510,17 +1510,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.43233,
-        "lat": 29.85559,
+        "lng": -95.43775,
+        "lat": 29.85571,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "HIGHLAND HEIGHTS ANNEX NO 2",
         "subdivisionId": "plat_2563_highland_heights_annex",
         "subdivisionEarliestYear": 1920,
-        "subdivisionMedianYear": 1966,
+        "subdivisionMedianYear": 2001,
         "subdivisionPre1940Count": 153,
-        "subdivisionPre1965Count": 728,
+        "subdivisionPre1965Count": 742,
         "superNeighborhoodMatch": "Acres Homes",
         "superNeighborhoodId": "snbr_6",
         "superNeighborhoodEarliestYear": 1895,
@@ -1586,16 +1586,16 @@
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
         "lng": -95.3468,
-        "lat": 29.81593,
+        "lat": 29.81592,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "HUNTINGTON PLACE",
         "subdivisionId": "plat_2740_huntington_place",
         "subdivisionEarliestYear": 1925,
-        "subdivisionMedianYear": 1946,
-        "subdivisionPre1940Count": 46,
-        "subdivisionPre1965Count": 419,
+        "subdivisionMedianYear": 1947,
+        "subdivisionPre1940Count": 42,
+        "subdivisionPre1965Count": 407,
         "superNeighborhoodMatch": "Eastex - Jensen Area",
         "superNeighborhoodId": "snbr_46",
         "superNeighborhoodEarliestYear": 1900,
@@ -1674,7 +1674,7 @@
         "subdivisionEarliestYear": 1945,
         "subdivisionMedianYear": 1953,
         "subdivisionPre1940Count": 0,
-        "subdivisionPre1965Count": 89,
+        "subdivisionPre1965Count": 84,
         "superNeighborhoodMatch": "Northside/northline",
         "superNeighborhoodId": "snbr_45",
         "superNeighborhoodEarliestYear": 1900,
@@ -1903,9 +1903,9 @@
         "subdivisionMatch": "HIGHLAND HEIGHTS ANNEX NO 2",
         "subdivisionId": "plat_2563_highland_heights_annex",
         "subdivisionEarliestYear": 1920,
-        "subdivisionMedianYear": 1966,
+        "subdivisionMedianYear": 2001,
         "subdivisionPre1940Count": 153,
-        "subdivisionPre1965Count": 728,
+        "subdivisionPre1965Count": 742,
         "superNeighborhoodMatch": "Acres Homes",
         "superNeighborhoodId": "snbr_6",
         "superNeighborhoodEarliestYear": 1895,
@@ -2053,8 +2053,8 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.27634,
-        "lat": 29.85241,
+        "lng": -95.27633,
+        "lat": 29.85165,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
@@ -2062,8 +2062,8 @@
         "subdivisionId": "plat_5894_townley_place",
         "subdivisionEarliestYear": 1918,
         "subdivisionMedianYear": 1995,
-        "subdivisionPre1940Count": 9,
-        "subdivisionPre1965Count": 85,
+        "subdivisionPre1940Count": 8,
+        "subdivisionPre1965Count": 84,
         "superNeighborhoodMatch": "East Houston",
         "superNeighborhoodId": "snbr_49",
         "superNeighborhoodEarliestYear": 1918,
@@ -2351,7 +2351,7 @@
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
         "lng": -95.33762,
-        "lat": 29.77236,
+        "lat": 29.77244,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
@@ -2359,8 +2359,8 @@
         "subdivisionId": "plat_5683_sydnor",
         "subdivisionEarliestYear": 1910,
         "subdivisionMedianYear": 1935,
-        "subdivisionPre1940Count": 99,
-        "subdivisionPre1965Count": 157,
+        "subdivisionPre1940Count": 98,
+        "subdivisionPre1965Count": 156,
         "superNeighborhoodMatch": "Greater Fifth Ward",
         "superNeighborhoodId": "snbr_55",
         "superNeighborhoodEarliestYear": 1880,
@@ -2586,12 +2586,12 @@
         "coordSource": "parcel",
         "buildingId": "",
         "buildingName": "",
-        "subdivisionMatch": "HERKIMER IN THE HEIGHTS",
-        "subdivisionId": "plat_2515_herkimer_in_the_heights",
-        "subdivisionEarliestYear": 1930,
-        "subdivisionMedianYear": 1930,
-        "subdivisionPre1940Count": 2,
-        "subdivisionPre1965Count": 2,
+        "subdivisionMatch": "",
+        "subdivisionId": "",
+        "subdivisionEarliestYear": null,
+        "subdivisionMedianYear": null,
+        "subdivisionPre1940Count": 0,
+        "subdivisionPre1965Count": 0,
         "superNeighborhoodMatch": "Greater Heights",
         "superNeighborhoodId": "snbr_15",
         "superNeighborhoodEarliestYear": 1875,
@@ -2730,17 +2730,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.38887,
-        "lat": 29.81028,
+        "lng": -95.39071,
+        "lat": 29.81042,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "SUNSET HEIGHTS",
         "subdivisionId": "plat_5652_sunset_heights",
         "subdivisionEarliestYear": 1901,
-        "subdivisionMedianYear": 1950,
-        "subdivisionPre1940Count": 613,
-        "subdivisionPre1965Count": 855,
+        "subdivisionMedianYear": 1984,
+        "subdivisionPre1940Count": 591,
+        "subdivisionPre1965Count": 847,
         "superNeighborhoodMatch": "Greater Heights",
         "superNeighborhoodId": "snbr_15",
         "superNeighborhoodEarliestYear": 1875,
@@ -3267,9 +3267,9 @@
         "subdivisionMatch": "SPRING BRANCH GARDENS",
         "subdivisionId": "plat_5470_spring_branch_gardens",
         "subdivisionEarliestYear": 1930,
-        "subdivisionMedianYear": 1967,
-        "subdivisionPre1940Count": 18,
-        "subdivisionPre1965Count": 70,
+        "subdivisionMedianYear": 2013,
+        "subdivisionPre1940Count": 14,
+        "subdivisionPre1965Count": 63,
         "superNeighborhoodMatch": "Spring Branch Central",
         "superNeighborhoodId": "snbr_85",
         "superNeighborhoodEarliestYear": 1920,
@@ -3344,9 +3344,9 @@
         "subdivisionMatch": "GATEWOOD SEC 1",
         "subdivisionId": "plat_2138_gatewood",
         "subdivisionEarliestYear": 1920,
-        "subdivisionMedianYear": 1973,
+        "subdivisionMedianYear": 1974,
         "subdivisionPre1940Count": 2,
-        "subdivisionPre1965Count": 102,
+        "subdivisionPre1965Count": 99,
         "superNeighborhoodMatch": "",
         "superNeighborhoodId": "",
         "superNeighborhoodEarliestYear": null,
@@ -3713,17 +3713,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.12265,
-        "lat": 29.53694,
+        "lng": -95.12063,
+        "lat": 29.53677,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "WEBSTER",
         "subdivisionId": "plat_6228_webster",
         "subdivisionEarliestYear": 1920,
-        "subdivisionMedianYear": 1972,
+        "subdivisionMedianYear": 1973,
         "subdivisionPre1940Count": 6,
-        "subdivisionPre1965Count": 43,
+        "subdivisionPre1965Count": 41,
         "superNeighborhoodMatch": "Clear Lake",
         "superNeighborhoodId": "snbr_81",
         "superNeighborhoodEarliestYear": 1955,
@@ -4025,8 +4025,8 @@
         "subdivisionId": "plat_4032_oak_lawn",
         "subdivisionEarliestYear": 1900,
         "subdivisionMedianYear": 1938,
-        "subdivisionPre1940Count": 290,
-        "subdivisionPre1965Count": 394,
+        "subdivisionPre1940Count": 272,
+        "subdivisionPre1965Count": 389,
         "superNeighborhoodMatch": "Second Ward",
         "superNeighborhoodId": "snbr_63",
         "superNeighborhoodEarliestYear": 1895,
@@ -4182,8 +4182,8 @@
         "subdivisionId": "plat_2681_houston_harbor",
         "subdivisionEarliestYear": 1915,
         "subdivisionMedianYear": 1948,
-        "subdivisionPre1940Count": 124,
-        "subdivisionPre1965Count": 1321,
+        "subdivisionPre1940Count": 114,
+        "subdivisionPre1965Count": 1279,
         "superNeighborhoodMatch": "Denver Harbor / Port Houston",
         "superNeighborhoodId": "snbr_56",
         "superNeighborhoodEarliestYear": 1900,
@@ -4692,17 +4692,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.47756,
-        "lat": 29.81852,
+        "lng": -95.47757,
+        "lat": 29.81853,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "SAUER ADDITION",
         "subdivisionId": "plat_5111_sauer",
         "subdivisionEarliestYear": 1930,
-        "subdivisionMedianYear": 1967,
+        "subdivisionMedianYear": 1974,
         "subdivisionPre1940Count": 5,
-        "subdivisionPre1965Count": 50,
+        "subdivisionPre1965Count": 45,
         "superNeighborhoodMatch": "Spring Branch West",
         "superNeighborhoodId": "snbr_10",
         "superNeighborhoodEarliestYear": 1899,
@@ -4917,17 +4917,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.40861,
-        "lat": 29.78594,
+        "lng": -95.37368,
+        "lat": 29.78904,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
-        "subdivisionMatch": "HEIGHTS PLACE",
-        "subdivisionId": "plat_2489_heights_place",
+        "subdivisionMatch": "HEIGHTS ABBEY CONDO ADDITION",
+        "subdivisionId": "plat_2482_heights_abbey_condo",
         "subdivisionEarliestYear": 1920,
-        "subdivisionMedianYear": 1920,
-        "subdivisionPre1940Count": 2,
-        "subdivisionPre1965Count": 2,
+        "subdivisionMedianYear": 1925,
+        "subdivisionPre1940Count": 3,
+        "subdivisionPre1965Count": 3,
         "superNeighborhoodMatch": "Acres Homes",
         "superNeighborhoodId": "snbr_6",
         "superNeighborhoodEarliestYear": 1895,
@@ -4990,8 +4990,8 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.38769,
-        "lat": 29.82556,
+        "lng": -95.38771,
+        "lat": 29.82597,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
@@ -4999,8 +4999,8 @@
         "subdivisionId": "plat_6433_whitney_place",
         "subdivisionEarliestYear": 1930,
         "subdivisionMedianYear": 1950,
-        "subdivisionPre1940Count": 51,
-        "subdivisionPre1965Count": 439,
+        "subdivisionPre1940Count": 45,
+        "subdivisionPre1965Count": 436,
         "superNeighborhoodMatch": "Independence Heights",
         "superNeighborhoodId": "snbr_13",
         "superNeighborhoodEarliestYear": 1900,
@@ -5231,9 +5231,9 @@
         "subdivisionMatch": "PARKHURST ESTATES SECTION 1",
         "subdivisionId": "plat_4275_parkhurst_estates",
         "subdivisionEarliestYear": 1928,
-        "subdivisionMedianYear": 1951,
-        "subdivisionPre1940Count": 4,
-        "subdivisionPre1965Count": 309,
+        "subdivisionMedianYear": 1952,
+        "subdivisionPre1940Count": 3,
+        "subdivisionPre1965Count": 307,
         "superNeighborhoodMatch": "East Houston",
         "superNeighborhoodId": "snbr_49",
         "superNeighborhoodEarliestYear": 1918,
@@ -5386,8 +5386,8 @@
         "subdivisionId": "plat_3381_lubbock_grove",
         "subdivisionEarliestYear": 1903,
         "subdivisionMedianYear": 1940,
-        "subdivisionPre1940Count": 4,
-        "subdivisionPre1965Count": 41,
+        "subdivisionPre1940Count": 5,
+        "subdivisionPre1965Count": 43,
         "superNeighborhoodMatch": "Second Ward",
         "superNeighborhoodId": "snbr_63",
         "superNeighborhoodEarliestYear": 1895,
@@ -5455,17 +5455,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.43233,
-        "lat": 29.85559,
+        "lng": -95.43775,
+        "lat": 29.85571,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "HIGHLAND HEIGHTS ANNEX NO 2",
         "subdivisionId": "plat_2563_highland_heights_annex",
         "subdivisionEarliestYear": 1920,
-        "subdivisionMedianYear": 1966,
+        "subdivisionMedianYear": 2001,
         "subdivisionPre1940Count": 153,
-        "subdivisionPre1965Count": 728,
+        "subdivisionPre1965Count": 742,
         "superNeighborhoodMatch": "Acres Homes",
         "superNeighborhoodId": "snbr_6",
         "superNeighborhoodEarliestYear": 1895,
@@ -5683,16 +5683,16 @@
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
         "lng": -95.42661,
-        "lat": 29.81851,
+        "lat": 29.81852,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "GARDEN HOME ADDITION",
         "subdivisionId": "plat_2117_garden_home",
         "subdivisionEarliestYear": 1926,
-        "subdivisionMedianYear": 1969,
-        "subdivisionPre1940Count": 2,
-        "subdivisionPre1965Count": 23,
+        "subdivisionMedianYear": 1990,
+        "subdivisionPre1940Count": 1,
+        "subdivisionPre1965Count": 20,
         "superNeighborhoodMatch": "Central Northwest",
         "superNeighborhoodId": "snbr_12",
         "superNeighborhoodEarliestYear": 1914,
@@ -5758,17 +5758,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.2564,
-        "lat": 29.63899,
+        "lng": -95.25331,
+        "lat": 29.63973,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "EASTHAVEN",
         "subdivisionId": "plat_1714_easthaven",
         "subdivisionEarliestYear": 1910,
-        "subdivisionMedianYear": 1974,
-        "subdivisionPre1940Count": 30,
-        "subdivisionPre1965Count": 285,
+        "subdivisionMedianYear": 1975,
+        "subdivisionPre1940Count": 31,
+        "subdivisionPre1965Count": 286,
         "superNeighborhoodMatch": "Greater Hobby Area",
         "superNeighborhoodId": "snbr_78",
         "superNeighborhoodEarliestYear": 1900,
@@ -5844,8 +5844,8 @@
         "subdivisionId": "plat_2625_holleman",
         "subdivisionEarliestYear": 1928,
         "subdivisionMedianYear": 2008,
-        "subdivisionPre1940Count": 15,
-        "subdivisionPre1965Count": 51,
+        "subdivisionPre1940Count": 14,
+        "subdivisionPre1965Count": 50,
         "superNeighborhoodMatch": "Settegast",
         "superNeighborhoodId": "snbr_50",
         "superNeighborhoodEarliestYear": 1874,
@@ -5925,9 +5925,9 @@
         "subdivisionMatch": "EAST HOUSTON",
         "subdivisionId": "plat_1695_east_houston",
         "subdivisionEarliestYear": 1926,
-        "subdivisionMedianYear": 1980,
-        "subdivisionPre1940Count": 27,
-        "subdivisionPre1965Count": 166,
+        "subdivisionMedianYear": 1989,
+        "subdivisionPre1940Count": 24,
+        "subdivisionPre1965Count": 157,
         "superNeighborhoodMatch": "Settegast",
         "superNeighborhoodId": "snbr_50",
         "superNeighborhoodEarliestYear": 1874,
@@ -6387,7 +6387,7 @@
         "subdivisionEarliestYear": 1930,
         "subdivisionMedianYear": 1948,
         "subdivisionPre1940Count": 7,
-        "subdivisionPre1965Count": 55,
+        "subdivisionPre1965Count": 53,
         "superNeighborhoodMatch": "Greater Fifth Ward",
         "superNeighborhoodId": "snbr_55",
         "superNeighborhoodEarliestYear": 1880,
@@ -6541,9 +6541,9 @@
         "subdivisionMatch": "WAVERLY FARMS",
         "subdivisionId": "plat_6218_waverly_farms",
         "subdivisionEarliestYear": 1930,
-        "subdivisionMedianYear": 1981,
-        "subdivisionPre1940Count": 4,
-        "subdivisionPre1965Count": 29,
+        "subdivisionMedianYear": 1984,
+        "subdivisionPre1940Count": 3,
+        "subdivisionPre1965Count": 26,
         "superNeighborhoodMatch": "",
         "superNeighborhoodId": "",
         "superNeighborhoodEarliestYear": null,
@@ -6610,7 +6610,7 @@
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
         "lng": -95.3231,
-        "lat": 29.78982,
+        "lat": 29.78947,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
@@ -6618,8 +6618,8 @@
         "subdivisionId": "plat_0247_augusta",
         "subdivisionEarliestYear": 1918,
         "subdivisionMedianYear": 1945,
-        "subdivisionPre1940Count": 146,
-        "subdivisionPre1965Count": 401,
+        "subdivisionPre1940Count": 139,
+        "subdivisionPre1965Count": 392,
         "superNeighborhoodMatch": "Greater Fifth Ward",
         "superNeighborhoodId": "snbr_55",
         "superNeighborhoodEarliestYear": 1880,
@@ -6685,8 +6685,8 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.3575,
-        "lat": 29.68806,
+        "lng": -95.358,
+        "lat": 29.68684,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
@@ -6694,8 +6694,8 @@
         "subdivisionId": "plat_2049_foster_place",
         "subdivisionEarliestYear": 1930,
         "subdivisionMedianYear": 1950,
-        "subdivisionPre1940Count": 53,
-        "subdivisionPre1965Count": 680,
+        "subdivisionPre1940Count": 52,
+        "subdivisionPre1965Count": 682,
         "superNeighborhoodMatch": "Greater OST / South Union",
         "superNeighborhoodId": "snbr_68",
         "superNeighborhoodEarliestYear": 1910,
@@ -6912,8 +6912,8 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.3575,
-        "lat": 29.68806,
+        "lng": -95.358,
+        "lat": 29.68684,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
@@ -6921,8 +6921,8 @@
         "subdivisionId": "plat_2049_foster_place",
         "subdivisionEarliestYear": 1930,
         "subdivisionMedianYear": 1950,
-        "subdivisionPre1940Count": 53,
-        "subdivisionPre1965Count": 680,
+        "subdivisionPre1940Count": 52,
+        "subdivisionPre1965Count": 682,
         "superNeighborhoodMatch": "Greater OST / South Union",
         "superNeighborhoodId": "snbr_68",
         "superNeighborhoodEarliestYear": 1910,
@@ -7220,17 +7220,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.27268,
-        "lat": 29.62938,
+        "lng": -95.27262,
+        "lat": 29.61818,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "HOUSTON SKYSCRAPER SHADOWS SEC 1",
         "subdivisionId": "plat_2693_houston_skyscraper_shadows",
         "subdivisionEarliestYear": 1900,
-        "subdivisionMedianYear": 1984,
-        "subdivisionPre1940Count": 28,
-        "subdivisionPre1965Count": 266,
+        "subdivisionMedianYear": 1986,
+        "subdivisionPre1940Count": 26,
+        "subdivisionPre1965Count": 258,
         "superNeighborhoodMatch": "Greater Hobby Area",
         "superNeighborhoodId": "snbr_78",
         "superNeighborhoodEarliestYear": 1900,
@@ -7309,9 +7309,9 @@
         "subdivisionMatch": "BROOKHAVEN",
         "subdivisionId": "plat_0766_brookhaven",
         "subdivisionEarliestYear": 1920,
-        "subdivisionMedianYear": 1945,
+        "subdivisionMedianYear": 1946,
         "subdivisionPre1940Count": 120,
-        "subdivisionPre1965Count": 236,
+        "subdivisionPre1965Count": 232,
         "superNeighborhoodMatch": "Sunnyside",
         "superNeighborhoodId": "snbr_71",
         "superNeighborhoodEarliestYear": 1900,
@@ -7377,17 +7377,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.48984,
-        "lat": 29.73059,
+        "lng": -95.48983,
+        "lat": 29.73056,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "GLENHAVEN ESTATES SEC 2",
         "subdivisionId": "plat_2199_glenhaven_estates",
         "subdivisionEarliestYear": 1946,
-        "subdivisionMedianYear": 1972,
+        "subdivisionMedianYear": 1977,
         "subdivisionPre1940Count": 0,
-        "subdivisionPre1965Count": 20,
+        "subdivisionPre1965Count": 17,
         "superNeighborhoodMatch": "Mid West",
         "superNeighborhoodId": "snbr_20",
         "superNeighborhoodEarliestYear": 1910,
@@ -7698,7 +7698,7 @@
         "subdivisionId": "plat_2545_highland",
         "subdivisionEarliestYear": 1902,
         "subdivisionMedianYear": 1920,
-        "subdivisionPre1940Count": 31,
+        "subdivisionPre1940Count": 30,
         "subdivisionPre1965Count": 31,
         "superNeighborhoodMatch": "Acres Homes",
         "superNeighborhoodId": "snbr_6",
@@ -8153,7 +8153,7 @@
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
         "lng": -95.36476,
-        "lat": 29.79596,
+        "lat": 29.79595,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
@@ -8162,7 +8162,7 @@
         "subdivisionEarliestYear": 1920,
         "subdivisionMedianYear": 1940,
         "subdivisionPre1940Count": 21,
-        "subdivisionPre1965Count": 39,
+        "subdivisionPre1965Count": 37,
         "superNeighborhoodMatch": "Near Northside",
         "superNeighborhoodId": "snbr_51",
         "superNeighborhoodEarliestYear": 1882,
@@ -8229,17 +8229,17 @@
         "primaryAddress": "",
         "earliestYearBuilt": 0,
         "allYearsBuilt": [],
-        "lng": -95.36641,
-        "lat": 29.73112,
+        "lng": -95.37552,
+        "lat": 29.74195,
         "coordSource": "subdivision",
         "buildingId": "",
         "buildingName": "",
         "subdivisionMatch": "HOLMAN OUTLOT 61",
         "subdivisionId": "plat_2647_holman_outlot",
         "subdivisionEarliestYear": 1890,
-        "subdivisionMedianYear": 1950,
-        "subdivisionPre1940Count": 319,
-        "subdivisionPre1965Count": 588,
+        "subdivisionMedianYear": 1999,
+        "subdivisionPre1940Count": 321,
+        "subdivisionPre1965Count": 597,
         "superNeighborhoodMatch": "Greater Third Ward",
         "superNeighborhoodId": "snbr_67",
         "superNeighborhoodEarliestYear": 1890,
@@ -8788,9 +8788,9 @@
         "subdivisionMatch": "HAHL'S SUBURBAN FARMS SUBD F",
         "subdivisionId": "plat_2378_hahls_suburban_farms",
         "subdivisionEarliestYear": 1940,
-        "subdivisionMedianYear": 1970,
+        "subdivisionMedianYear": 1973,
         "subdivisionPre1940Count": 0,
-        "subdivisionPre1965Count": 15,
+        "subdivisionPre1965Count": 10,
         "superNeighborhoodMatch": "Fairbanks / Northwest Crossing",
         "superNeighborhoodId": "snbr_4",
         "superNeighborhoodEarliestYear": 1925,
@@ -8942,8 +8942,8 @@
         "subdivisionId": "plat_4247_park_place",
         "subdivisionEarliestYear": 1910,
         "subdivisionMedianYear": 1940,
-        "subdivisionPre1940Count": 398,
-        "subdivisionPre1965Count": 726,
+        "subdivisionPre1940Count": 358,
+        "subdivisionPre1965Count": 705,
         "superNeighborhoodMatch": "Park Place",
         "superNeighborhoodId": "snbr_74",
         "superNeighborhoodEarliestYear": 1900,
@@ -12545,7 +12545,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93911/OriginalFiles/091602026_Magnolia_Residential-2-MAGNOLIA_RESIDENTIAL.pdf?sv=2021-08-06&se=2051-10-05T15%3A58%3A18Z&sr=b&sp=r&sig=rZX2ju5qnl7Qzi%2FW7kJbCQ7nLivuJ2zUkeB45xeVqfQ%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857599+00:00"
+      "updated": "2026-10-26T18:01:04.807516+00:00"
     },
     "2026-1637": {
       "address": "134 W LITTLE YORK RD",
@@ -12556,7 +12556,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93935/OriginalFiles/VISTA_EYE_CARE.pdf?sv=2021-08-06&se=2051-10-05T12%3A58%3A23Z&sr=b&sp=r&sig=OMe9DH3iy2pikuYcvxMGQ2mxxV6%2B73yjBwuhBkTSWX8%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857622+00:00"
+      "updated": "2026-10-26T18:01:04.807584+00:00"
     },
     "2026-1634": {
       "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -12567,7 +12567,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857626+00:00"
+      "updated": "2026-10-26T18:01:04.807602+00:00"
     },
     "2026-1625": {
       "address": "1508 LAWRENCE ST",
@@ -12578,7 +12578,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93921/OriginalFiles/LAWRENCE_STREET_GROVE_10-3-2026_PDF.pdf?sv=2021-08-06&se=2051-10-04T06%3A29%3A02Z&sr=b&sp=r&sig=5%2BrfeZech3AAlxQ7n7V1eFMKPQGmRYkVAIas5Mh7A4o%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857632+00:00"
+      "updated": "2026-10-26T18:01:04.807626+00:00"
     },
     "2026-1615": {
       "address": "9112 SPRING BRANCH DR; 9110 SPRING BRANCH DR",
@@ -12589,7 +12589,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93908/OriginalFiles/SPRING_BRANCH_COMPLEX-Layout1.pdf?sv=2021-08-06&se=2051-10-02T19%3A57%3A05Z&sr=b&sp=r&sig=O76LkRvquITqH6FNikfZK7dSDBP4u6QHCI9WfVFzuwQ%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857637+00:00"
+      "updated": "2026-10-26T18:01:04.807645+00:00"
     },
     "2026-1605": {
       "address": "4615 SHERMAN ST",
@@ -12600,7 +12600,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857640+00:00"
+      "updated": "2026-10-26T18:01:04.807660+00:00"
     },
     "2026-1603": {
       "address": "7528 GAINESVILLE ST",
@@ -12611,7 +12611,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93883/OriginalFiles/26148150_Tahil_Oaks_Plat.pdf?sv=2021-08-06&se=2051-10-02T16%3A04%3A11Z&sr=b&sp=r&sig=LUF2feRvQXz%2BymknEW22PjRUIqF%2FErowqOS0N2IV1fU%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857645+00:00"
+      "updated": "2026-10-26T18:01:04.807674+00:00"
     },
     "2026-1587": {
       "address": "2501 CANAL ST; 2507 CANAL ST",
@@ -12622,7 +12622,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93886/OriginalFiles/05-Refoka_Estates_at_Canal_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-02T11%3A52%3A10Z&sr=b&sp=r&sig=3X6mU%2FTN4SLbAbeflBdaFZ%2FkBde5plfmUAuJ%2FmIAfJc%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857652+00:00"
+      "updated": "2026-10-26T18:01:04.807711+00:00"
     },
     "2026-1570": {
       "address": "5603 BACHER ST",
@@ -12633,7 +12633,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93854/OriginalFiles/261061125-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A29%3A14Z&sr=b&sp=r&sig=HAQ59y4hq8lIuOQj%2BwtFqW%2B9pD5ohqNiVquvlJvGy2U%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1570-Bacher-Manor.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857658+00:00"
+      "updated": "2026-10-26T18:01:04.807733+00:00"
     },
     "2026-1557": {
       "address": "5912 HAIGHT ST",
@@ -12644,7 +12644,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93839/OriginalFiles/HAIGHT_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-09-21T02%3A15%3A32Z&sr=b&sp=r&sig=IS83YIfcJ%2F91rHw7Uy%2F1gnmzITNEhPVoLGPBIN1nZIo%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857660+00:00"
+      "updated": "2026-10-26T18:01:04.807739+00:00"
     },
     "2026-1551": {
       "address": "8841 CULLEN BLVD",
@@ -12655,7 +12655,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857662+00:00"
+      "updated": "2026-10-26T18:01:04.807745+00:00"
     },
     "2026-1533": {
       "address": "3014 WAYNE ST",
@@ -12666,7 +12666,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93812/OriginalFiles/26-0021-001.pdf?sv=2021-08-06&se=2051-09-18T17%3A36%3A36Z&sr=b&sp=r&sig=SydgDrrIpvw8GGXIGkHp4LrIzz8mIarf5lc%2FBNjDL58%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857668+00:00"
+      "updated": "2026-10-26T18:01:04.807758+00:00"
     },
     "2026-1495": {
       "address": "1131 VERA LOU ST",
@@ -12677,7 +12677,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857673+00:00"
+      "updated": "2026-10-26T18:01:04.807776+00:00"
     },
     "2026-1484": {
       "address": "1704 RONSON RD",
@@ -12688,7 +12688,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93620/OriginalFiles/26046_-_Plat.pdf?sv=2021-08-06&se=2051-09-03T18%3A45%3A52Z&sr=b&sp=r&sig=FSjt6DbInALc1fahVsGWsiepUnx6jP1skJMZjoBETe8%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857676+00:00"
+      "updated": "2026-10-26T18:01:04.807785+00:00"
     },
     "2026-1454": {
       "address": "1334 BRITTMOORE RD",
@@ -12699,7 +12699,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857679+00:00"
+      "updated": "2026-10-26T18:01:04.807795+00:00"
     },
     "2026-1440": {
       "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
@@ -12710,7 +12710,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1440/OriginalFiles/Woodway_Drive_PRELIMINARY_PLAT_OF_BAYOU_GLEN_PARTIAL_REPLAT_NO_1__92126.pdf?sv=2021-08-06&se=2051-09-22T19%3A50%3A20Z&sr=b&sp=r&sig=s6a0uknskB%2BMe0kDG%2FTTtncjnNfi8j8Qy0LCrvAUqI8%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857683+00:00"
+      "updated": "2026-10-26T18:01:04.807806+00:00"
     },
     "2026-1427": {
       "address": "604 NEYLAND ST",
@@ -12721,7 +12721,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857687+00:00"
+      "updated": "2026-10-26T18:01:04.807817+00:00"
     },
     "DPV-4": {
       "address": "Bauer Hockley Road Street Dedication and Drill Site",
@@ -12732,7 +12732,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857691+00:00"
+      "updated": "2026-10-26T18:01:04.807828+00:00"
     },
     "DPV-8": {
       "address": "Bridgeland Prairieland Village Sec 58",
@@ -12743,7 +12743,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857694+00:00"
+      "updated": "2026-10-26T18:01:04.807834+00:00"
     },
     "DPV-9": {
       "address": "City of Houston District 71 Ground Water Facility",
@@ -12754,7 +12754,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857696+00:00"
+      "updated": "2026-10-26T18:01:04.807838+00:00"
     },
     "DPV-11": {
       "address": "Esther Residences Square",
@@ -12765,7 +12765,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857698+00:00"
+      "updated": "2026-10-26T18:01:04.807842+00:00"
     },
     "DPV-12": {
       "address": "Fairbanks Landing Sec 2",
@@ -12776,7 +12776,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857700+00:00"
+      "updated": "2026-10-26T18:01:04.807846+00:00"
     },
     "DPV-14": {
       "address": "Fondren at Court Reserves Sec 1",
@@ -12787,7 +12787,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857702+00:00"
+      "updated": "2026-10-26T18:01:04.807850+00:00"
     },
     "DPV-15": {
       "address": "Generation Park East Sec 5",
@@ -12798,7 +12798,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857704+00:00"
+      "updated": "2026-10-26T18:01:04.807855+00:00"
     },
     "DPV-16": {
       "address": "Generation Park South Sec 2",
@@ -12809,7 +12809,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857706+00:00"
+      "updated": "2026-10-26T18:01:04.807859+00:00"
     },
     "DPV-18": {
       "address": "Harris County Municipal Utility District no 421 Remote Well",
@@ -12820,7 +12820,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857707+00:00"
+      "updated": "2026-10-26T18:01:04.807863+00:00"
     },
     "DPV-19": {
       "address": "Harris County WCID no 110 Wastewater Treatment Plant no 1",
@@ -12831,7 +12831,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857709+00:00"
+      "updated": "2026-10-26T18:01:04.807867+00:00"
     },
     "DPV-20": {
       "address": "Homes on Market Street",
@@ -12842,7 +12842,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857711+00:00"
+      "updated": "2026-10-26T18:01:04.807871+00:00"
     },
     "DPV-21": {
       "address": "Huffman Fire Department Station 53",
@@ -12853,7 +12853,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857713+00:00"
+      "updated": "2026-10-26T18:01:04.807875+00:00"
     },
     "DPV-23": {
       "address": "Jubilee Baethe Road Steet Dedication and Reserve Sec 3",
@@ -12864,7 +12864,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857715+00:00"
+      "updated": "2026-10-26T18:01:04.807878+00:00"
     },
     "DPV-24": {
       "address": "Jubilee Haven Boulevard Street Dedication and Reserve Sec 3",
@@ -12875,7 +12875,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857716+00:00"
+      "updated": "2026-10-26T18:01:04.807882+00:00"
     },
     "DPV-25": {
       "address": "Lockwood Street Commons",
@@ -12886,7 +12886,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857718+00:00"
+      "updated": "2026-10-26T18:01:04.807886+00:00"
     },
     "DPV-26": {
       "address": "Midline Sec 12",
@@ -12897,7 +12897,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857720+00:00"
+      "updated": "2026-10-26T18:01:04.807889+00:00"
     },
     "DPV-27": {
       "address": "Northeast Industrial",
@@ -12908,7 +12908,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857722+00:00"
+      "updated": "2026-10-26T18:01:04.807893+00:00"
     },
     "DPV-28": {
       "address": "Northwest 99 Business Park GP",
@@ -12919,7 +12919,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857723+00:00"
+      "updated": "2026-10-26T18:01:04.807897+00:00"
     },
     "DPV-29": {
       "address": "Olympia Fields Sec 6",
@@ -12930,7 +12930,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857725+00:00"
+      "updated": "2026-10-26T18:01:04.807900+00:00"
     },
     "DPV-33": {
       "address": "Virdi Brothers LLC",
@@ -12941,7 +12941,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857727+00:00"
+      "updated": "2026-10-26T18:01:04.807904+00:00"
     },
     "DPV-34": {
       "address": "White Oak Terrace Estates replat no 1",
@@ -12952,7 +12952,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857729+00:00"
+      "updated": "2026-10-26T18:01:04.807907+00:00"
     },
     "DPV-35": {
       "address": "Windmill Park Industrial Sec 1",
@@ -12963,7 +12963,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857731+00:00"
+      "updated": "2026-10-26T18:01:04.807911+00:00"
     },
     "DPV-37": {
       "address": "Bridgeland Nature Preserve Way Church",
@@ -12974,7 +12974,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857733+00:00"
+      "updated": "2026-10-26T18:01:04.807915+00:00"
     },
     "DPV-38": {
       "address": "Brittmoore Founders District partial replat no 1",
@@ -12985,7 +12985,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857734+00:00"
+      "updated": "2026-10-26T18:01:04.807919+00:00"
     },
     "DPV-40": {
       "address": "Clarewood Springs",
@@ -12996,7 +12996,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857736+00:00"
+      "updated": "2026-10-26T18:01:04.807923+00:00"
     },
     "DPV-26073533": {
       "address": "2603 MILAM ST 15",
@@ -13007,7 +13007,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857739+00:00"
+      "updated": "2026-10-26T18:01:04.807930+00:00"
     },
     "DPV-26075937": {
       "address": "1501 WICHMAN ST",
@@ -13018,7 +13018,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26075937-1501-Wichman-Street.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857742+00:00"
+      "updated": "2026-10-26T18:01:04.807936+00:00"
     },
     "DPV-2026-1442": {
       "address": "Forest Green Reserve",
@@ -13029,7 +13029,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857745+00:00"
+      "updated": "2026-10-26T18:01:04.807941+00:00"
     },
     "DPV-2026-1481": {
       "address": "Jutland Homes",
@@ -13040,7 +13040,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857747+00:00"
+      "updated": "2026-10-26T18:01:04.807946+00:00"
     },
     "DPV-2026-1502": {
       "address": "Sevilla Commercial",
@@ -13051,7 +13051,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857749+00:00"
+      "updated": "2026-10-26T18:01:04.807950+00:00"
     },
     "DPV-2026-1520": {
       "address": "Partial Replat of Sandalwood Sec 2 and 3 partial replat no 1",
@@ -13062,7 +13062,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1520-Partial-Replat-of-Sandalwood-Sec-2-and-3-prno1-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857751+00:00"
+      "updated": "2026-10-26T18:01:04.807954+00:00"
     },
     "DPV-2026-1553": {
       "address": "Denton Street Villas",
@@ -13073,7 +13073,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1553_Denton-Street-Villas_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857753+00:00"
+      "updated": "2026-10-26T18:01:04.807958+00:00"
     },
     "DPV-2026-1554": {
       "address": "Richland Drive Villas",
@@ -13084,7 +13084,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1554-Richland-Drive-Villas-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857755+00:00"
+      "updated": "2026-10-26T18:01:04.807962+00:00"
     },
     "DPV-2026-1562": {
       "address": "within the boundaries of this plat and always available for the general use of said owners and to the public for firefighters, fire fighting equipment, police and emergency vehicles of whatever nature at all times",
@@ -13095,7 +13095,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857756+00:00"
+      "updated": "2026-10-26T18:01:04.807966+00:00"
     },
     "DPV-2026-1569": {
       "address": "Kafi Commons",
@@ -13106,7 +13106,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857758+00:00"
+      "updated": "2026-10-26T18:01:04.807970+00:00"
     },
     "DPV-2026-1585": {
       "address": "Montrose Residences",
@@ -13117,7 +13117,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857760+00:00"
+      "updated": "2026-10-26T18:01:04.807973+00:00"
     },
     "DPV-2026-1621": {
       "address": "Haddick Place",
@@ -13128,7 +13128,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1621_Haddick-Place_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857762+00:00"
+      "updated": "2026-10-26T18:01:04.807977+00:00"
     },
     "DPV-2026-1639": {
       "address": "Charlesmont Corner",
@@ -13139,7 +13139,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1639_Charlesmont-Corner_PHS.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857764+00:00"
+      "updated": "2026-10-26T18:01:04.807981+00:00"
     },
     "DPV-2026-1641": {
       "address": "Wheeler Residences",
@@ -13150,7 +13150,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857766+00:00"
+      "updated": "2026-10-26T18:01:04.807985+00:00"
     },
     "DPV-2026-1650": {
       "address": "JDS Hopfe Road Sec 5 partial replat no 1",
@@ -13161,7 +13161,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1650_JDS-Hopfe-Road-Sec-5-partial-replat-no-1_PH.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857768+00:00"
+      "updated": "2026-10-26T18:01:04.807989+00:00"
     },
     "DPV-2026-1669": {
       "address": "the intersection of Fondren Road and Court Road, bounded by Fort Bend Parkway to the west and Blueridge Road to the east",
@@ -13172,7 +13172,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857770+00:00"
+      "updated": "2026-10-26T18:01:04.807994+00:00"
     },
     "DPV-2026-1723": {
       "address": "0 CANADA DRY ST",
@@ -13183,7 +13183,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1723_ScottWetWeatherFacility.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857772+00:00"
+      "updated": "2026-10-26T18:01:04.807998+00:00"
     },
     "DPV-26080390": {
       "address": "3747 DREYFUS ST",
@@ -13194,7 +13194,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26080390_3747-Dreyfus-Street_notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857775+00:00"
+      "updated": "2026-10-26T18:01:04.808003+00:00"
     },
     "DPV-26084127": {
       "address": "6102 WALTWAY DR",
@@ -13205,7 +13205,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857777+00:00"
+      "updated": "2026-10-26T18:01:04.808008+00:00"
     },
     "DPV-26087637": {
       "address": "south of Memorial Drive and West of North Wilcrest Drive at the northwest intersection between Yorkchester Drive and Apple Tree Road",
@@ -13216,7 +13216,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857779+00:00"
+      "updated": "2026-10-26T18:01:04.808012+00:00"
     },
     "DPV-26091362": {
       "address": "13515 PERTHSHIRE RD",
@@ -13227,7 +13227,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-10-25T15:21:00.857781+00:00"
+      "updated": "2026-10-26T18:01:04.808017+00:00"
     }
   }
 }

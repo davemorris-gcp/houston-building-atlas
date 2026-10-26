@@ -1,13 +1,13 @@
 {
-  "updated_at": "2026-10-25T15:20:38Z",
-  "generated_at": "2026-10-25T15:20:38Z",
+  "updated_at": "2026-10-26T18:00:39Z",
+  "generated_at": "2026-10-26T18:00:39Z",
   "lookback_days": 45,
   "summary": {
-    "total_flagged_buildings": 24,
+    "total_flagged_buildings": 21,
     "critical_count": 10,
-    "watch_count": 14,
-    "coh_permits_matched": 21,
-    "dshs_notifications_matched": 16
+    "watch_count": 11,
+    "coh_permits_matched": 19,
+    "dshs_notifications_matched": 12
   },
   "alerts": [
     {
@@ -725,85 +725,6 @@
       ]
     },
     {
-      "hcad_num": "1382870010001",
-      "building_id": "1382870010001",
-      "title": "Link-Lee Mansion (UST Administration)",
-      "building_name": "Link-Lee Mansion (UST Administration)",
-      "address": "3800 MONTROSE BLVD",
-      "year_built": 1912,
-      "yr_remodel": 0,
-      "style": "",
-      "architect": "Sanguinet & Staats",
-      "neighborhood": "",
-      "historic_district": "",
-      "landmark_name": "Link-Lee Mansion (UST Administration)",
-      "good_brick_summary": "",
-      "owner": "",
-      "lng": -95.39164,
-      "lon": -95.39164,
-      "lat": 29.738201,
-      "severity": "watch",
-      "severity_label": "Active Watch: Texas DSHS Abatement Filing",
-      "badge": "DSHS Abatement",
-      "headline": "Texas DSHS abatement notification (#2026004956) scheduled 2026-09-12 to 2026-09-13.",
-      "preservation_note": "",
-      "latest_filing_date": "2026-08-21",
-      "coh_permits": [],
-      "dshs_notifications": [
-        {
-          "notification_number": "2026004956",
-          "facility_name": "University of St Thomas",
-          "raw_address": "3800 Montrose Blvd HOUSTON HARRIS TX 77006",
-          "norm_address": "3800 MONTROSE BLVD",
-          "start_date": "2026-09-12",
-          "end_date": "2026-09-13",
-          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2436254",
-          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=232775",
-          "filing_date": "2026-08-21",
-          "work_type": "Abatement",
-          "start_date_pretty": "Sep 07, 2026",
-          "end_date_pretty": "Sep 08, 2026",
-          "work_hours": "7:00 AM to 4:00 PM",
-          "reported_building_age": "40 years",
-          "reported_sqft": "45000 square feet",
-          "reported_floors": 2,
-          "survey_date": "Aug 22, 2022",
-          "racm_linear_ft": 15,
-          "racm_sqft": 0,
-          "work_description": "All work will be performed in a regulated area. Removal will be glove bag method using decontamination unit. all debris will be double bagged, labeled, manifested, and disposed in an EPA approved landfill.",
-          "contractor_license": "800763",
-          "abatement_contractor": "A&M ENVIRONMENTAL LLC",
-          "contractor_address": "101 MAIN STREET, PASADENA, TX 77506",
-          "tceq_permit": "261-B",
-          "disposal_site": "McCarty Road Landfill"
-        }
-      ],
-      "related_hcads": [
-        "1382870010001",
-        "0261670000001",
-        "0440970000170",
-        "0261800000011",
-        "0440970000231",
-        "0261800000001",
-        "1497300010001",
-        "1488720010001",
-        "1466090010001",
-        "0261810000001"
-      ],
-      "related_building_ids": [
-        "1382870010001",
-        "bld_0261670000001",
-        "0440970000170#ust_256264834_link_lee_mansion_ust_cul",
-        "0261800000011#ust_20380690_baylor_college_of_medici",
-        "0440970000231#ust_51815682_baylor_college_of_medici",
-        "0261800000001#ust_428097001_annunciation_greek_ortho",
-        "1497300010001#ust_51730612_tirr_memorial_hermann_th",
-        "1488720010001#ust_87657067_the_rothko_chapel",
-        "1466090010001#ust_51812681_children_s_memorial_herm",
-        "0261810000001#ust_425224061_chapel_of_st_basil_unive"
-      ]
-    },
-    {
       "hcad_num": "0011490000001",
       "building_id": "bld_003326",
       "title": "Houston City Hall and Hermann Square",
@@ -1087,67 +1008,6 @@
       ]
     },
     {
-      "hcad_num": "0261740000010",
-      "building_id": "bld_003780",
-      "title": "1110 LOVETT BLVD",
-      "building_name": "",
-      "address": "1110 LOVETT BLVD",
-      "year_built": 1958,
-      "yr_remodel": 0,
-      "style": "",
-      "architect": "",
-      "neighborhood": "Wamm",
-      "historic_district": "",
-      "landmark_name": "",
-      "good_brick_summary": "",
-      "owner": "PRESBYTERY NEW CONVENANT",
-      "lng": -95.393059,
-      "lon": -95.393059,
-      "lat": 29.743669,
-      "severity": "watch",
-      "severity_label": "Active Watch: Texas DSHS Abatement Filing",
-      "badge": "DSHS Abatement",
-      "headline": "Texas DSHS abatement notification (#2026005229) scheduled 2026-09-22 to 2026-09-25.",
-      "preservation_note": "",
-      "latest_filing_date": "2026-09-08",
-      "coh_permits": [],
-      "dshs_notifications": [
-        {
-          "notification_number": "2026005229",
-          "facility_name": "Vacant Office Building",
-          "raw_address": "1110 Lovett Boulevard HOUSTON HARRIS TX 77057",
-          "norm_address": "1110 LOVETT BLVD",
-          "start_date": "2026-09-22",
-          "end_date": "2026-09-25",
-          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2440928",
-          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=233605",
-          "filing_date": "2026-09-08",
-          "work_type": "Abatement",
-          "start_date_pretty": "Sep 22, 2026",
-          "end_date_pretty": "Sep 25, 2026",
-          "work_hours": "7:00 AM to 5:30 PM",
-          "reported_building_age": "45 years",
-          "reported_sqft": "30000 square feet",
-          "reported_floors": 2,
-          "survey_date": "Jan 09, 2026",
-          "racm_linear_ft": 0,
-          "racm_sqft": 300,
-          "work_description": "Removal of approximately 300 square feet of asbestos-containing Exterior Windows Glaze using NESHAP Methods. The work practices and engineer control to be used inside building by the windows is double critical barrier wall, HEPA Vacuum inside regulated area. Proper PPE and respirators. wet methods and air monitoring by others. Asbestos-containing materials it will be transporter and dispose to the appropriated regulated landfill",
-          "contractor_license": "801066",
-          "abatement_contractor": "ABATEMENT SPECIALISTS LLC",
-          "contractor_address": "1421 Upland Drive, HOUSTON, TX 77043",
-          "tceq_permit": "261-B",
-          "disposal_site": "BFI McCarty Landfill"
-        }
-      ],
-      "related_hcads": [
-        "0261740000010"
-      ],
-      "related_building_ids": [
-        "bld_003780"
-      ]
-    },
-    {
       "hcad_num": "0532780000005",
       "building_id": "0532780000005",
       "title": "2101 NASA PKY",
@@ -1233,67 +1093,6 @@
       ],
       "related_building_ids": [
         "0532780000005"
-      ]
-    },
-    {
-      "hcad_num": "1212910000001",
-      "building_id": "bld_004206",
-      "title": "3401 FANNIN ST",
-      "building_name": "",
-      "address": "3401 FANNIN ST",
-      "year_built": 1967,
-      "yr_remodel": 0,
-      "style": "",
-      "architect": "",
-      "neighborhood": "Midtown",
-      "historic_district": "",
-      "landmark_name": "",
-      "good_brick_summary": "",
-      "owner": "PROTESTANT EPISCOPAL",
-      "lng": -95.377035,
-      "lon": -95.377035,
-      "lat": 29.739472,
-      "severity": "watch",
-      "severity_label": "Active Watch: Texas DSHS Abatement Filing",
-      "badge": "DSHS Abatement",
-      "headline": "Texas DSHS abatement notification (#2026005177) scheduled 2026-09-17 to 2026-09-18.",
-      "preservation_note": "",
-      "latest_filing_date": "2026-09-03",
-      "coh_permits": [],
-      "dshs_notifications": [
-        {
-          "notification_number": "2026005177",
-          "facility_name": "LOTS CHURCH BUILDING",
-          "raw_address": "3401 FANNIN STREET HOUSTON HARRIS TX 77004",
-          "norm_address": "3401 FANNIN ST",
-          "start_date": "2026-09-17",
-          "end_date": "2026-09-18",
-          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2439831",
-          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=233428",
-          "filing_date": "2026-09-03",
-          "work_type": "Abatement",
-          "start_date_pretty": "Sep 17, 2026",
-          "end_date_pretty": "Sep 18, 2026",
-          "work_hours": "7:00 AM to 5:30 PM",
-          "reported_building_age": "59 years",
-          "reported_sqft": "8000 square feet",
-          "reported_floors": 2,
-          "survey_date": "Jun 10, 2026",
-          "racm_linear_ft": 0,
-          "racm_sqft": 300,
-          "work_description": "REMOVAL OF 300 SQ FT OF ACM POPCORN CEILING TEXTURE UNDER FULL CONTAINMENT VIA SCRAPING REMOVAL METHOD",
-          "contractor_license": "800493",
-          "abatement_contractor": "ARROW SERVICES INC",
-          "contractor_address": "11811 NORTH FREEWAY, STE. 480, HOUSTON, TX 77060",
-          "tceq_permit": "261-B",
-          "disposal_site": "BFI MCCARTY LANDFILL"
-        }
-      ],
-      "related_hcads": [
-        "1212910000001"
-      ],
-      "related_building_ids": [
-        "bld_004206"
       ]
     },
     {
@@ -1494,16 +1293,10 @@
         }
       ],
       "related_hcads": [
-        "0421790000001#rice_58_lovett_hall_administration_b",
-        "0421790000001#rice_62_mechanical_laboratory_campan",
-        "0421790000001#rice_51_howard_keck_hall_original_ch",
-        "0440980000065#rice_13_raymond_and_susan_brochstein"
+        "0421790000001#rice_58_lovett_hall_administration_b"
       ],
       "related_building_ids": [
-        "0421790000001#rice_58_lovett_hall_administration_b",
-        "0421790000001#rice_62_mechanical_laboratory_campan",
-        "0421790000001#rice_51_howard_keck_hall_original_ch",
-        "0440980000065#rice_13_raymond_and_susan_brochstein"
+        "0421790000001#rice_58_lovett_hall_administration_b"
       ]
     },
     {
@@ -1594,8 +1387,7 @@
         }
       ],
       "related_hcads": [
-        "osm_city_44821986",
-        "osm_city_44821986#bldg_one_shell_plaza"
+        "osm_city_44821986"
       ],
       "related_building_ids": [
         "osm_city_44821986#bldg_one_shell_plaza"
@@ -1625,44 +1417,7 @@
       "headline": "Texas DSHS asbestos abatement notification (#2026005222) scheduled 2026-09-22 to 2026-12-31.",
       "preservation_note": "",
       "latest_filing_date": "2026-09-29",
-      "coh_permits": [
-        {
-          "project_no": "26078426",
-          "date": "2026-09-10",
-          "permit_type": "13",
-          "permit_type_label": "Building Pmt",
-          "permit_desc": "Building Pmt",
-          "use_desc": "DEMO OF INTERIOR NON-LOAD BEARING NON-FI",
-          "fcc_group": "Non-Residential Alteration",
-          "owner_occupant": "*5555 SAN FELIPE",
-          "buyer": "BRYANT MICHELE",
-          "buyer_address": "3663 BRIARPARK 77042",
-          "valuation": "$ 150,000",
-          "job_address": "5555 SAN FELIPE ST FL 30 77056",
-          "is_sewer_disconnect": false,
-          "is_garage_only": false,
-          "is_structural_demo": false,
-          "is_interior_only": true
-        },
-        {
-          "project_no": "26078427",
-          "date": "2026-09-10",
-          "permit_type": "13",
-          "permit_type_label": "Building Pmt",
-          "permit_desc": "Building Pmt",
-          "use_desc": "DEMO OF INTERIOR NON-LOAD BEARING NON-FI",
-          "fcc_group": "Non-Residential Alteration",
-          "owner_occupant": "*5555 SAN FELIPE",
-          "buyer": "BRYANT MICHELE",
-          "buyer_address": "3663 BRIARPARK 77042",
-          "valuation": "$ 150,000",
-          "job_address": "5555 SAN FELIPE ST FL 31 77056",
-          "is_sewer_disconnect": false,
-          "is_garage_only": false,
-          "is_structural_demo": false,
-          "is_interior_only": true
-        }
-      ],
+      "coh_permits": [],
       "dshs_notifications": [
         {
           "notification_number": "2026005222",
@@ -1688,31 +1443,6 @@
           "contractor_address": "1780 ROUGHNECK DR, HUMBLE, TX 77338",
           "tceq_permit": "261-B",
           "disposal_site": "McCarty Landfill"
-        },
-        {
-          "notification_number": "2026005268",
-          "facility_name": "Office Building",
-          "raw_address": "5555 San Felipe Street HOUSTON HARRIS TX 77056",
-          "norm_address": "5555 SAN FELIPE ST",
-          "start_date": "2026-09-10",
-          "end_date": "2026-09-10",
-          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2441553",
-          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=233711",
-          "filing_date": "2026-09-10",
-          "work_type": "Abatement",
-          "start_date_pretty": "Sep 10, 2026",
-          "end_date_pretty": "Sep 10, 2026",
-          "work_hours": "6:00 PM to 3:00 AM",
-          "reported_building_age": "43 years",
-          "reported_sqft": "1164707 square feet",
-          "reported_floors": 41,
-          "survey_date": "Sep 08, 2026",
-          "work_description": "Removal of vinyl floor tile and associated black mastic by use of RFCI methods in two regulated work areas (barrier tape, proper signage posted and use of proper PPE) and removal of mirrors and associated black mastic in regulated work areas (barrier tape, proper signage posted and use of proper PPE) from the restrooms on Levels 30 and 31.",
-          "contractor_license": "801070",
-          "abatement_contractor": "SITEK OMNI SERVICES LLC",
-          "contractor_address": "1780 ROUGHNECK DR, HUMBLE, TX 77338",
-          "tceq_permit": "261-B",
-          "disposal_site": "McCarty Road Landfill"
         },
         {
           "notification_number": "2026005618",
@@ -1742,8 +1472,7 @@
         }
       ],
       "related_hcads": [
-        "osm_city_260359937",
-        "osm_city_260359937#bldg_marathon_oil_tower"
+        "osm_city_260359937"
       ],
       "related_building_ids": [
         "osm_city_260359937#bldg_marathon_oil_tower"
