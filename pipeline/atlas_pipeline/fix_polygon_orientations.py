@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import subprocess
 import time
 from collections import defaultdict
@@ -43,7 +42,7 @@ import orjson
 import pyogrio.raw
 import shapely
 from pyproj import Transformer
-from shapely.geometry import MultiPolygon, Point, Polygon, mapping, shape
+from shapely.geometry import Point, Polygon
 from shapely.strtree import STRtree
 
 SPLIT_LON_EAST = -95.361328125
@@ -747,6 +746,18 @@ def run_fix_polygon_orientations() -> None:
     ov_fixed_cnt = 0
     updated_override_centroids: dict[str, tuple[float, float]] = {}
 
+    from atlas_pipeline.repair_cross_parcel_aux_overrides import run_repair
+
+    repair_stats = run_repair(
+        cache_dir=cache_dir,
+        data_dir=data_dir,
+        aligned_dir=aligned_dir,
+        recompile_pmtiles=False,
+    )
+    if repair_stats.get("purged", 0) > 0:
+        overrides_doc = json.loads(overrides_path.read_text(encoding="utf-8"))
+        overrides_map = overrides_doc.get("overrides", overrides_doc)
+
     for k, rec in overrides_map.items():
         g = rec.get("geometry")
         if not g or g.get("type") != "Polygon":
@@ -765,7 +776,7 @@ def run_fix_polygon_orientations() -> None:
             updated_override_centroids[k] = (round(float(rp.x), 6), round(float(rp.y), 6))
             updated_override_centroids[hcad] = (round(float(rp.x), 6), round(float(rp.y), 6))
 
-    overrides_path.write_text(json.dumps(overrides_doc, indent=2), encoding="utf-8")
+    overrides_path.write_text(json.dumps(overrides_doc, separators=(",", ":")), encoding="utf-8")
     print(f"   Updated {ov_fixed_cnt} cardinal-box overrides in curated_overrides.json.")
 
     blds_fixed_cnt = 0

@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261026a";
+} from "./palettes.js?v=20261026b";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -24,12 +24,12 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261026a";
+} from "./filterStore.js?v=20261026b";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261026a";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261026a";
+} from "./curatedEdits.js?v=20261026b";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261026b";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -286,7 +286,7 @@ export class AtlasMapController {
       fetch("public/data/buildings.geojson?v=20261025m"),
       fetch("public/data/parcels.geojson?v=20261011c"),
       fetch("public/data/overlays.json?v=20261025m"),
-      fetch("public/data/pmtiles_manifest.json?v=20261011c").catch(() => null),
+      fetch("public/data/pmtiles_manifest.json?v=20261026b").catch(() => null),
       loadCuratedOverrides(),
       fetch("public/data/active_permit_alerts.json?v=20261023g").catch(() => null),
       fetch("public/data/plat_agenda_monitor.json?v=20261023g").catch(() => null),

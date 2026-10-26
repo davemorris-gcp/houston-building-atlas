@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261026a";
+} from "./palettes.js?v=20261026b";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -18,19 +18,19 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261026a";
-import { AtlasMapController } from "./mapController.js?v=20261026a";
+} from "./filterStore.js?v=20261026b";
+import { AtlasMapController } from "./mapController.js?v=20261026b";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261026a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261026a";
+} from "./guidedChaptersAndPortfolios.js?v=20261026b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261026b";
 import {
-  decodeCompactDeedChain,
+  buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261026a";
+} from "./clerkSearchHelpers.js?v=20261026b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -44,7 +44,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261026a";
+} from "./curatedEdits.js?v=20261026b";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -54,7 +54,7 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261026a";
+} from "./photoService.js?v=20261026b";
 
 class HoustonAtlasApp {
   constructor() {
@@ -10131,74 +10131,27 @@ class HoustonAtlasApp {
   _populateResearchKitDeedChain(hcadNum, permitShardRec) {
     const box = document.getElementById("research-kit-deed-chain");
     if (!box) return;
-    const cleanHcad = String(hcadNum || "").trim();
-    if (!cleanHcad || box.getAttribute("data-hcad-num") !== cleanHcad) return;
-
-    const chainItems = decodeCompactDeedChain(permitShardRec?.d || "");
-    if (!Array.isArray(chainItems) || chainItems.length === 0) {
+    const view = buildResearchKitDeedChainView(
+      hcadNum,
+      box.getAttribute("data-hcad-num"),
+      permitShardRec
+    );
+    if (view.ignore) return;
+    if (view.hidden) {
       box.classList.add("hidden");
+      box.classList.remove("is-empty-cama");
       box.innerHTML = "";
       return;
     }
 
-    const pillsHtml = chainItems
-      .map((item) => {
-        const dateTag = item.date
-          ? `<span class="rk-deed-date-tag">${this._escapeResearchHtml(item.date)}</span>`
-          : "";
-        if (item.kind === "vol_page" && item.pageValue) {
-          const escVol = this._escapeResearchHtml(item.copyValue);
-          const escPg = this._escapeResearchHtml(item.pageValue);
-          return `<button
-            type="button"
-            class="rk-copy-pill deed-fileno"
-            data-rk-copy="${escVol}"
-            title="Pre-1961 Bound Deed Book transfer (${this._escapeResearchHtml(
-              item.date || "Archival"
-            )}): click to copy Volume '${escVol}' (Page '${escPg}')"
-          >
-            ${dateTag}
-            <span class="rk-copy-k">Deed Vol/Pg:</span>
-            <span class="rk-copy-v mono">${this._escapeResearchHtml(item.displayValue)}</span>
-            <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
-          </button>`;
-        }
-        const escCopy = this._escapeResearchHtml(item.copyValue);
-        const escLbl = this._escapeResearchHtml(item.clerkBoxLabel);
-        const escVal = this._escapeResearchHtml(item.displayValue);
-        const portalHint =
-          item.portal === "probate"
-            ? "Paste into Harris County Probate Court Search"
-            : `Paste '${item.copyValue}' alone into the '${item.clerkBoxLabel}' box on Harris County Clerk RP and press Search`;
-        return `<button
-          type="button"
-          class="rk-copy-pill deed-fileno"
-          data-rk-copy="${escCopy}"
-          title="${this._escapeResearchHtml(portalHint)}"
-        >
-          ${dateTag}
-          <span class="rk-copy-k">${escLbl}:</span>
-          <span class="rk-copy-v mono">${escVal}</span>
-          <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
-        </button>`;
-      })
-      .join("");
+    box.innerHTML = view.html;
+    if (view.isEmptyCama) {
+      box.classList.add("is-empty-cama");
+      box.classList.remove("hidden");
+      return;
+    }
 
-    box.innerHTML = `
-      <div class="rk-deed-chain-head">
-        <span class="rk-deed-chain-title">&#128220; Recorded Deed Transfers (1-Click Clerk File Number)</span>
-        <span class="rk-deed-chain-count">${chainItems.length} Recorded ${
-          chainItems.length === 1 ? "Filing" : "Filings"
-        }</span>
-      </div>
-      <div class="rk-clerk-hint">
-        <strong>Fastest lookup:</strong> copy any single <strong>File Number</strong> below, paste it alone into the top-left <strong>File Number</strong> box on County Clerk Deeds (RP), and click Search. Open the oldest deed to read the prior Grantor (seller) name.
-      </div>
-      <div class="rk-copy-pills-wrap">
-        ${pillsHtml}
-      </div>
-    `;
-    box.classList.remove("hidden");
+    box.classList.remove("is-empty-cama", "hidden");
     this._bindResearchKitCopyPills(box);
   }
 
@@ -13446,7 +13399,7 @@ class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261026a`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261026b`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -17889,8 +17842,10 @@ class HoustonAtlasApp {
   }
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  const app = new HoustonAtlasApp();
-  window.atlasApp = app;
-  app.start();
-});
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("DOMContentLoaded", () => {
+    const app = new HoustonAtlasApp();
+    window.atlasApp = app;
+    app.start();
+  });
+}

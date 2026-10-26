@@ -8597,6 +8597,11 @@ body {
   gap: 5px;
 }
 
+.rk-deed-chain-box.is-empty-cama {
+  background: rgba(15, 23, 42, 0.46);
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
 .rk-deed-chain-head {
   display: flex;
   align-items: center;
@@ -8612,6 +8617,10 @@ body {
   letter-spacing: 0.01em;
 }
 
+.rk-deed-chain-box.is-empty-cama .rk-deed-chain-title {
+  color: #cbd5e1;
+}
+
 .rk-deed-chain-count {
   font-family: var(--font-mono);
   font-size: 9.5px;
@@ -8621,6 +8630,19 @@ body {
   background: rgba(149, 201, 89, 0.18);
   border: 1px solid rgba(149, 201, 89, 0.4);
   color: #ecfccb;
+}
+
+.rk-deed-chain-count.is-muted {
+  background: rgba(100, 116, 139, 0.2);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
+}
+
+.rk-deed-scope-note {
+  font-size: 9.8px;
+  line-height: 1.38;
+  color: #94a3b8;
+  margin-top: 1px;
 }
 
 .rk-clerk-hint {

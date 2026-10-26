@@ -6,8 +6,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  buildResearchKitDeedChainView,
   cleanClerkSubdivisionDesc,
   decodeCompactDeedChain,
+  describeDeedChainCoverage,
   extractLegalSubdivisionFromLines,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
@@ -406,7 +408,146 @@ test("Python enrich_deed_chains normalizes all Harris County Clerk eras and repa
   }
 });
 
-test("ES module and stylesheet ?v= cache-busting query strings stay synchronized across app/", () => {
+test("describeDeedChainCoverage summarizes empty pre-2004 HCAD coverage, singular 1-filing, and plural multi-filing chains across Key St accounts", () => {
+  // Given real permits_062.json records for 1115-1133 Key St plus non-array boundary inputs.
+  const shard062Path = path.join(
+    REPO_ROOT,
+    "app",
+    "public",
+    "data",
+    "permits",
+    "permits_062.json"
+  );
+  const shard062 = JSON.parse(fs.readFileSync(shard062Path, "utf8"));
+
+  // When evaluating 0-filing pre-2004 accounts (1133 Key St / 0621100000013 and 1119 Key St / 0621100000016).
+  const empty1133 = describeDeedChainCoverage(
+    decodeCompactDeedChain(shard062["0621100000013"]?.d || "")
+  );
+  const empty1119 = describeDeedChainCoverage(
+    decodeCompactDeedChain(shard062["0621100000016"]?.d || "")
+  );
+  const nonArrayFallback = describeDeedChainCoverage(null);
+
+  // Then empty accounts return transparent mid-2004 database cutover guidance.
+  assert.equal(empty1133.hasRecordedFilings, false);
+  assert.equal(empty1133.count, 0);
+  assert.equal(empty1133.title, "Recorded Deed Transfers (HCAD Bulk Index)");
+  assert.equal(empty1133.countLabel, "No Post-2004 HCAD Sales");
+  assert.equal(empty1133.scopeNote, "");
+  assert.match(empty1133.emptyExplanation, /mid-2004 database cutover/);
+  assert.match(empty1133.emptyExplanation, /1-Click Copy Tokens/);
+  assert.match(empty1133.emptyExplanation, /1961-present/);
+  assert.equal(empty1119.hasRecordedFilings, false);
+  assert.equal(empty1119.countLabel, "No Post-2004 HCAD Sales");
+  assert.equal(nonArrayFallback.hasRecordedFilings, false);
+  assert.equal(nonArrayFallback.count, 0);
+
+  // When evaluating singular 1-filing account 1115 Key St (0621100000017), plural accounts 1121 Key St (0621100000015) & 1127 Key St (0621100000014), and a pre-2004 HCAD backfill chain.
+  const single1115 = describeDeedChainCoverage(
+    decodeCompactDeedChain(shard062["0621100000017"]?.d || "")
+  );
+  const triple1121 = describeDeedChainCoverage(
+    decodeCompactDeedChain(shard062["0621100000015"]?.d || "")
+  );
+  const six1127 = describeDeedChainCoverage(
+    decodeCompactDeedChain(shard062["0621100000014"]?.d || "")
+  );
+  const pre2004Backfill = describeDeedChainCoverage(
+    decodeCompactDeedChain("19930413:P202281")
+  );
+
+  // Then singular vs plural count labels and post-2004 vs partial-backfill scope notes are returned accurately.
+  assert.equal(single1115.hasRecordedFilings, true);
+  assert.equal(single1115.count, 1);
+  assert.equal(single1115.countLabel, "1 Recorded Filing");
+  assert.equal(single1115.title, "Recorded Deed Transfers (1-Click Clerk File Number)");
+  assert.match(single1115.scopeNote, /post-mid-2004 ownership sales only/);
+  assert.equal(single1115.emptyExplanation, "");
+  assert.equal(triple1121.count, 3);
+  assert.equal(triple1121.countLabel, "3 Recorded Filings");
+  assert.equal(six1127.count, 6);
+  assert.equal(six1127.countLabel, "6 Recorded Filings");
+  assert.match(pre2004Backfill.scopeNote, /partial pre-2004 backfill/);
+});
+
+test("buildResearchKitDeedChainView renders isEmptyCama for 0-row parcels, .rk-deed-scope-note for recorded filings, and hides non-parcel features", () => {
+  // 1. Pre-2004 parcel with 0 HCAD deeds.txt rows (1133 Key St / 0621100000013) produces visible isEmptyCama explanation.
+  const emptyView = buildResearchKitDeedChainView("0621100000013", "0621100000013", { yr: 1930 });
+  assert.equal(emptyView.ignore, false);
+  assert.equal(emptyView.hidden, false);
+  assert.equal(emptyView.isEmptyCama, true);
+  assert.equal(emptyView.count, 0);
+  assert.match(emptyView.html, /No Post-2004 HCAD Sales/);
+  assert.match(emptyView.html, /rk-deed-chain-count is-muted/);
+  assert.match(emptyView.html, /mid-2004 database cutover/);
+
+  // 2. Post-2004 parcel with recorded deeds (1115 Key St / 0621100000017) renders pills + .rk-deed-scope-note.
+  const post2004View = buildResearchKitDeedChainView("0621100000017", "0621100000017", {
+    d: "20171121:R2017-512003",
+  });
+  assert.equal(post2004View.ignore, false);
+  assert.equal(post2004View.hidden, false);
+  assert.equal(post2004View.isEmptyCama, false);
+  assert.equal(post2004View.count, 1);
+  assert.match(post2004View.html, /1 Recorded Filing/);
+  assert.match(post2004View.html, /data-rk-copy="RP-2017-512003"/);
+  assert.match(post2004View.html, /class="rk-deed-scope-note"/);
+  assert.match(post2004View.html, /post-mid-2004 ownership sales only/);
+
+  // 3. Stale async callback for a previous parcel returns ignore=true.
+  const staleView = buildResearchKitDeedChainView("0621100000013", "0621100000017", { yr: 1930 });
+  assert.equal(staleView.ignore, true);
+  assert.equal(staleView.html, "");
+
+  // 4. Non-parcel, demolished, empty, and all-zero HCAD features return hidden=true with isEmptyCama=false.
+  for (const nonParcelHcad of ["", "Demolished", "0000000000000", "1423010010001#aux_1"]) {
+    const nonParcelView = buildResearchKitDeedChainView(nonParcelHcad, nonParcelHcad, null);
+    assert.equal(nonParcelView.ignore, false);
+    assert.equal(
+      nonParcelView.hidden,
+      true,
+      `Expected non-parcel HCAD '${nonParcelHcad}' to remain hidden`
+    );
+    assert.equal(nonParcelView.isEmptyCama, false);
+    assert.equal(nonParcelView.html, "");
+  }
+});
+
+test("curated_overrides.json purges cross-parcel 0621100000014#aux_1, re-keys Discovery Green #aux_4 with contributing status, and stays compact", () => {
+  const overridesPath = path.join(REPO_ROOT, "app", "public", "data", "curated_overrides.json");
+  const rawBytes = fs.statSync(overridesPath).size;
+  const rawText = fs.readFileSync(overridesPath, "utf8");
+  const doc = JSON.parse(rawText);
+  const overrides = doc.overrides || doc;
+
+  assert.ok(
+    rawBytes < 8 * 1024 * 1024,
+    `Expected compact curated_overrides.json (< 8 MB) for uncached initial load, got ${(
+      rawBytes /
+      (1024 * 1024)
+    ).toFixed(2)} MB`
+  );
+  assert.equal("0621100000014#aux_1" in overrides, false);
+  assert.ok(overrides["0621100000014"], "Primary 0621100000014 override must remain intact");
+  assert.equal(overrides["0621100000014"].address, "1127 KEY ST");
+  assert.equal(overrides["0621100000014"].year_built, 1928);
+  assert.equal("1319030010003#aux_1" in overrides, false);
+  assert.ok(overrides["1319030010001#aux_4"], "Discovery Green re-keyed #aux_4 override must exist");
+  assert.equal(overrides["1319030010001#aux_4"].contributing, "Outside Historic District");
+
+  const validContrib = new Set(["Contributing", "Non-Contributing", "Outside Historic District"]);
+  for (const [k, rec] of Object.entries(overrides)) {
+    if (k.includes("#aux_") && rec && rec.geometry && !rec.suppress_only) {
+      assert.ok(
+        validContrib.has(rec.contributing),
+        `Expected explicit contributing status on ${k}, got ${JSON.stringify(rec.contributing)}`
+      );
+    }
+  }
+});
+
+test("ES module, stylesheet, curated_overrides, permits, and pmtiles_manifest ?v= cache-busters stay synchronized across app/", () => {
   const versionedFiles = [
     "app/index.html",
     "app/js/app.js",
@@ -422,25 +563,50 @@ test("ES module and stylesheet ?v= cache-busting query strings stay synchronized
       versions.add(m[1]);
     }
   }
+
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "pmtiles_manifest.json"), "utf8")
+  );
+  versions.add(manifest.cache_bust);
+
+  const curatedEditsTxt = fs.readFileSync(path.join(REPO_ROOT, "app", "js", "curatedEdits.js"), "utf8");
+  const curatedMatch = curatedEditsTxt.match(/curated_overrides\.json\?v=([0-9A-Za-z._\-]+)/);
+  assert.ok(curatedMatch, "curatedEdits.js must carry ?v= cache-buster on curated_overrides.json");
+  versions.add(curatedMatch[1]);
+
+  const mapCtrlTxt = fs.readFileSync(path.join(REPO_ROOT, "app", "js", "mapController.js"), "utf8");
+  const manifestFetchMatch = mapCtrlTxt.match(/pmtiles_manifest\.json\?v=([0-9A-Za-z._\-]+)/);
+  assert.ok(manifestFetchMatch, "mapController.js must carry ?v= cache-buster on pmtiles_manifest.json");
+  versions.add(manifestFetchMatch[1]);
+
+  const appTxt = fs.readFileSync(path.join(REPO_ROOT, "app", "js", "app.js"), "utf8");
+  const permitsFetchMatch = appTxt.match(/permits_\$\{prefix3\}\.json\?v=([0-9A-Za-z._\-]+)/);
+  assert.ok(permitsFetchMatch, "app.js must carry ?v= cache-buster on permits shard fetch");
+  versions.add(permitsFetchMatch[1]);
+
   assert.equal(
     versions.size,
     1,
-    `Expected a single synchronized ?v= cache-buster across ES modules and CSS, found: ${[
+    `Expected single synchronized ?v= cache-buster across app/ and pmtiles_manifest.json, found: ${[
       ...versions,
     ].join(", ")}`
   );
+  assert.match([...versions][0], /^\d{8}[a-z]?$/);
 });
 
-test("Modified Clerk search, UI, and deed chain files contain zero em-dash characters", () => {
+test("Modified Clerk search, UI, override repair, and deed chain files contain zero em-dash characters", () => {
   const filesToCheck = [
     "app/index.html",
     "app/js/app.js",
     "app/js/clerkSearchHelpers.js",
+    "app/js/curatedEdits.js",
     "app/js/hcadLink.js",
     "app/js/mapController.js",
     "app/styles/index.css",
     "pipeline/atlas_pipeline/enrich_deed_chains.py",
     "pipeline/atlas_pipeline/build_permits_and_contractors.py",
+    "pipeline/atlas_pipeline/fix_polygon_orientations.py",
+    "pipeline/atlas_pipeline/repair_cross_parcel_aux_overrides.py",
     "tests/unit/clerk_search_and_deed_chains.test.mjs",
   ];
   for (const rel of filesToCheck) {

@@ -212,3 +212,108 @@ def test_historical_provenance_citations_and_flagging(
     )
     page.wait_for_selector("#inspector-body .photo-provenance-pill", timeout=15000)
     assert page.locator('#inspector-body [data-action="flag-wrong-photo"]').count() >= 1
+
+
+def _select_hcad_and_wait_for_deed_chain(
+    page: Any,
+    hcad_num: str,
+    *,
+    expect_empty_cama: bool,
+) -> None:
+    page.evaluate(
+        """async (hcad) => {
+            window.location.hash = `#hcad=${hcad}`;
+            await window.atlasApp._handleUrlChange();
+        }""",
+        hcad_num,
+    )
+    page.wait_for_function(
+        """({ hcad, expectEmpty }) => {
+            const box = document.getElementById('research-kit-deed-chain');
+            return Boolean(
+                box &&
+                box.getAttribute('data-hcad-num') === hcad &&
+                !box.classList.contains('hidden') &&
+                box.classList.contains('is-empty-cama') === expectEmpty
+            );
+        }""",
+        arg={"hcad": hcad_num, "expectEmpty": expect_empty_cama},
+        timeout=10000,
+    )
+
+
+def test_key_street_deed_coverage_and_restored_neighbor_footprints(
+    guarded_page: Any,
+    atlas_base_url: str,
+    url_harvester: Any,
+) -> None:
+    page = guarded_page
+
+    # 1. 1133 Key St (0621100000013): 0 post-mid-2004 HCAD deeds -> visible .is-empty-cama explanation
+    page.goto(f"{atlas_base_url}/index.html#hcad=0621100000013", wait_until="domcontentloaded")
+    _wait_for_atlas_ready(page)
+    page.wait_for_selector("#inspector-drawer:not(.hidden)", timeout=10000)
+    page.locator("#btn-jump-research-kit").click()
+    page.wait_for_selector("#research-kit-deed-chain.is-empty-cama:not(.hidden)", timeout=10000)
+    deed_empty_txt = page.locator("#research-kit-deed-chain").text_content() or ""
+    assert "No Post-2004 HCAD Sales" in deed_empty_txt
+    assert "mid-2004 database cutover" in deed_empty_txt
+    url_harvester.harvest_from_locator(page.locator("#inspector-body"), "key_st:1133_empty_cama")
+
+    # 2. 1127 Key St (0621100000014): curated 1928 override intact + 6 filings + .rk-deed-scope-note
+    _select_hcad_and_wait_for_deed_chain(page, "0621100000014", expect_empty_cama=False)
+    insp_1127 = page.locator("#inspector-body").text_content() or ""
+    assert "1127 KEY ST" in insp_1127.upper()
+    assert "1928" in insp_1127
+    hist_tab = page.locator('#inspector-body [data-inspector-tab="history"]')
+    if hist_tab.get_attribute("aria-selected") != "true":
+        hist_tab.click()
+    page.wait_for_selector("#research-kit-deed-chain .rk-deed-scope-note", timeout=10000)
+    deed_1127_txt = page.locator("#research-kit-deed-chain").text_content() or ""
+    assert "6 Recorded Filings" in deed_1127_txt
+    assert "post-mid-2004 ownership sales only" in deed_1127_txt
+    assert page.locator('#research-kit-deed-chain [data-rk-copy="RP-2019-149789"]').count() == 1
+
+    # 3. 1121 Key St (0621100000015): restored 1926 neighbor footprint (not swallowed by 0621100000014#aux_1) + 3 filings
+    _select_hcad_and_wait_for_deed_chain(page, "0621100000015", expect_empty_cama=False)
+    insp_1121 = page.locator("#inspector-body").text_content() or ""
+    assert "1121 KEY ST" in insp_1121.upper()
+    assert "1926" in insp_1121
+    hist_tab = page.locator('#inspector-body [data-inspector-tab="history"]')
+    if hist_tab.get_attribute("aria-selected") != "true":
+        hist_tab.click()
+    page.wait_for_selector("#research-kit-deed-chain .rk-deed-scope-note", timeout=10000)
+    deed_1121_txt = page.locator("#research-kit-deed-chain").text_content() or ""
+    assert "3 Recorded Filings" in deed_1121_txt
+
+    # 4. 1119 Key St (0621100000016): second 0-row parcel transitions cleanly back to visible .is-empty-cama
+    _select_hcad_and_wait_for_deed_chain(page, "0621100000016", expect_empty_cama=True)
+    hist_tab = page.locator('#inspector-body [data-inspector-tab="history"]')
+    if hist_tab.get_attribute("aria-selected") != "true":
+        hist_tab.click()
+    page.wait_for_selector("#research-kit-deed-chain.is-empty-cama:not(.hidden)", timeout=10000)
+
+    # 5. 1115 Key St (0621100000017): singular '1 Recorded Filing' + scope note
+    _select_hcad_and_wait_for_deed_chain(page, "0621100000017", expect_empty_cama=False)
+    assert "1 Recorded Filing" in (page.locator("#research-kit-deed-chain").text_content() or "")
+
+    # 6. Non-parcel feature (#bnd=nrhp_properties:nrhp_84001761): deed chain box stays hidden or absent
+    page.evaluate(
+        """async () => {
+            window.location.hash = '#bnd=nrhp_properties:nrhp_84001761';
+            await window.atlasApp._handleUrlChange();
+        }"""
+    )
+    page.wait_for_function(
+        """() => (document.getElementById('inspector-body')?.textContent || '').includes('84001761')""",
+        timeout=10000,
+    )
+    non_parcel_visible = page.evaluate(
+        """() => {
+            const box = document.getElementById('research-kit-deed-chain');
+            return Boolean(box && !box.classList.contains('hidden'));
+        }"""
+    )
+    assert non_parcel_visible is False
+
+

@@ -287,7 +287,11 @@ test("Repository contains zero internal corporate proxy URLs, workstation paths,
 
   const binaryExts = new Set([".pmtiles", ".webp", ".pdf", ".png", ".jpg", ".jpeg", ".ico", ".gif", ".woff", ".woff2"]);
   const selfRelPath = path.relative(REPO_ROOT, fileURLToPath(import.meta.url));
-  const trackedFiles = execFileSync("git", ["ls-files"], { cwd: REPO_ROOT, encoding: "utf8" })
+  const trackedFiles = execFileSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard"],
+    { cwd: REPO_ROOT, encoding: "utf8" }
+  )
     .split("\n")
     .map((s) => s.trim())
     .filter((s) => s && s !== selfRelPath && !binaryExts.has(path.extname(s).toLowerCase()));

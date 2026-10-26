@@ -217,3 +217,254 @@ def test_deduplicate_geojsonseq_shard_resolves_overlaps_and_compound_polygons(tm
     ]
     assert set(kept_ids) == {"house_a_1890", "house_b_1920"}
 
+
+def test_identify_cross_parcel_aux_overrides_flags_only_neighbor_swallowing_aux_polygons():
+    import numpy as np
+    import shapely
+    from pyproj import Transformer
+    from atlas_pipeline.repair_cross_parcel_aux_overrides import (
+        get_quadrant,
+        identify_cross_parcel_aux_overrides,
+        wgs84_geom_to_2278,
+    )
+
+    # Given two adjacent synthetic North Norhill parcels in EPSG:4326 projected to EPSG:2278:
+    # Lot 14 (0621100000014 / 1127 KEY ST) on the west, Lot 15 (0621100000015 / 1121 KEY ST) on the east.
+    tf_to_2278 = Transformer.from_crs("EPSG:4326", "EPSG:2278", always_xy=True)
+    lot14_4326 = {
+        "type": "Polygon",
+        "coordinates": [[
+            [-95.38730, 29.79165],
+            [-95.38712, 29.79165],
+            [-95.38712, 29.79185],
+            [-95.38730, 29.79185],
+            [-95.38730, 29.79165],
+        ]],
+    }
+    lot15_4326 = {
+        "type": "Polygon",
+        "coordinates": [[
+            [-95.38712, 29.79165],
+            [-95.38694, 29.79165],
+            [-95.38694, 29.79185],
+            [-95.38712, 29.79185],
+            [-95.38712, 29.79165],
+        ]],
+    }
+    parcel_geoms = np.asarray(
+        [
+            wgs84_geom_to_2278(lot14_4326, tf_to_2278),
+            wgs84_geom_to_2278(lot15_4326, tf_to_2278),
+        ],
+        dtype=object,
+    )
+    parcel_hcads = np.asarray(["0621100000014", "0621100000015"], dtype=object)
+    parcel_tree = shapely.STRtree(parcel_geoms)
+
+    overrides_map = {
+        # Primary override on Lot 14 (must never be flagged even if eave crosses slightly)
+        "0621100000014": {
+            "hcad_num": "0621100000014",
+            "address": "1127 KEY ST",
+            "year_built": 1928,
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-95.38727, 29.79169],
+                    [-95.38714, 29.79169],
+                    [-95.38714, 29.79179],
+                    [-95.38727, 29.79179],
+                    [-95.38727, 29.79169],
+                ]],
+            },
+        },
+        # Cross-parcel #aux_1 tagged to Lot 14 whose interior sits inside neighbor Lot 15 (1121 KEY ST)
+        "0621100000014#aux_1": {
+            "hcad_num": "0621100000014",
+            "address": "1127 KEY ST",
+            "year_built": 1928,
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-95.38713, 29.79170],
+                    [-95.38697, 29.79170],
+                    [-95.38697, 29.79181],
+                    [-95.38713, 29.79181],
+                    [-95.38713, 29.79170],
+                ]],
+            },
+        },
+        # Legitimate detached garage #aux_2 whose interior sits inside Lot 14
+        "0621100000014#aux_2": {
+            "hcad_num": "0621100000014",
+            "address": "1127 KEY ST",
+            "year_built": 1928,
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [[
+                    [-95.38728, 29.79180],
+                    [-95.38722, 29.79180],
+                    [-95.38722, 29.79184],
+                    [-95.38728, 29.79184],
+                    [-95.38728, 29.79180],
+                ]],
+            },
+        },
+        # Unindexed / geometry-free #aux_3 entry (ignored safely)
+        "0621100000014#aux_3": {"hcad_num": "0621100000014"},
+    }
+
+    # When scanning overrides_map for cross-parcel #aux_ entries.
+    mismatches = identify_cross_parcel_aux_overrides(
+        overrides_map, parcel_tree, parcel_hcads, tf_to_2278
+    )
+
+    # Then only the neighbor-swallowing #aux_1 polygon is flagged, mapped to 0621100000015 in nw_e.
+    assert mismatches == [
+        ("0621100000014#aux_1", "0621100000014", "0621100000015", 1)
+    ]
+    assert get_quadrant(-95.38704, 29.79176) == "nw_e"
+    assert get_quadrant(-95.75, 29.95) == "nw_w"
+    assert get_quadrant(-95.20, 29.95) == "ne"
+    assert get_quadrant(-95.45, 29.65) == "sw"
+    assert get_quadrant(-95.20, 29.65) == "se"
+
+
+def test_reconcile_cross_parcel_overrides_and_quadrant_features():
+    from pyproj import Transformer
+    from atlas_pipeline.repair_cross_parcel_aux_overrides import (
+        reconcile_cross_parcel_overrides,
+        reconcile_quadrant_features,
+    )
+
+    tf_to_2278 = Transformer.from_crs("EPSG:4326", "EPSG:2278", always_xy=True)
+    poly_neighbor_1121 = {
+        "type": "Polygon",
+        "coordinates": [[
+            [-95.38710, 29.79170],
+            [-95.38698, 29.79170],
+            [-95.38698, 29.79180],
+            [-95.38710, 29.79180],
+            [-95.38710, 29.79170],
+        ]],
+    }
+    poly_neighbor_retag = {
+        "type": "Polygon",
+        "coordinates": [[
+            [-95.38685, 29.79170],
+            [-95.38673, 29.79170],
+            [-95.38673, 29.79180],
+            [-95.38685, 29.79180],
+            [-95.38685, 29.79170],
+        ]],
+    }
+    poly_discovery_pavilion = {
+        "type": "Polygon",
+        "coordinates": [[
+            [-95.35950, 29.75320],
+            [-95.35935, 29.75320],
+            [-95.35935, 29.75335],
+            [-95.35950, 29.75335],
+            [-95.35950, 29.75320],
+        ]],
+    }
+
+    overrides_map = {
+        "1319030010001": {
+            "hcad_num": "1319030010001",
+            "address": "1500 MCKINNEY ST",
+            "building_name": "Discovery Green",
+            "year_built": 2008,
+            "use_category": "Civic / Institutional",
+        },
+        "1319030010003#aux_1": {
+            "hcad_num": "1319030010003",
+            "year_built": 2008,
+            "stories": 1.0,
+            "height_m": 4.0,
+            "historic_district": "",
+            "contributing": "Outside Historic District",
+            "geometry": poly_discovery_pavilion,
+        },
+        "0621100000014#aux_1": {
+            "hcad_num": "0621100000014",
+            "address": "1127 KEY ST",
+            "year_built": 1928,
+            "geometry": poly_neighbor_1121,
+        },
+        "0621100000017#aux_1": {
+            "hcad_num": "0621100000017",
+            "address": "1115 KEY ST",
+            "year_built": 1930,
+            "geometry": poly_neighbor_retag,
+        },
+    }
+    mismatches = [
+        ("1319030010003#aux_1", "1319030010003", "1319030010001", 0),
+        ("0621100000014#aux_1", "0621100000014", "0621100000015", 1),
+        ("0621100000017#aux_1", "0621100000017", "0621100000016", 2),
+    ]
+    parcel_addrs = ["1500 MCKINNEY ST", "1121 KEY ST", "1119 KEY ST"]
+    parcel_yrs = [2008, 1926, 1930]
+    parcel_areas = [400000.0, 5000.0, 5000.0]
+    cama_by_hcad = {
+        "0621100000015": {
+            "site_addr_1": "1121 KEY ST",
+            "bldg_year": 1926,
+            "bld_ar": 2042,
+            "land_ar": 5000,
+            "state_class": "A1",
+            "remodel_year": 2022,
+        },
+        "0621100000016": {
+            "site_addr_1": "1119 KEY ST",
+            "bldg_year": 1930,
+            "bld_ar": 1480,
+            "land_ar": 5000,
+            "state_class": "A1",
+        },
+    }
+    bgeo_by_hcad = {
+        "0621100000015": {
+            "historic_district": "Norhill Historic District",
+            "contributing": "Contributing",
+        }
+    }
+
+    purged, rekeyed, pending_by_quad = reconcile_cross_parcel_overrides(
+        overrides_map=overrides_map,
+        mismatches=mismatches,
+        parcel_addrs=parcel_addrs,
+        parcel_yrs=parcel_yrs,
+        parcel_areas=parcel_areas,
+        cama_by_hcad=cama_by_hcad,
+        bgeo_by_hcad=bgeo_by_hcad,
+        tf_to_2278=tf_to_2278,
+    )
+
+    assert len(purged) == 3
+    assert rekeyed == [("1319030010003#aux_1", "1319030010001#aux_1")]
+    rekeyed_rec = overrides_map["1319030010001#aux_1"]
+    assert rekeyed_rec["id"] == "1319030010001#aux_1"
+    assert rekeyed_rec["building_id"] == "1319030010001#aux_1"
+    assert rekeyed_rec["contributing"] == "Outside Historic District"
+    assert rekeyed_rec["historic_district"] == ""
+
+    shard_features = [
+        {
+            "type": "Feature",
+            "geometry": poly_neighbor_retag,
+            "properties": {"id": "0621100000017", "hcad_num": "0621100000017", "year_built": 1930},
+        }
+    ]
+    retagged, restored = reconcile_quadrant_features(shard_features, pending_by_quad["nw_e"])
+    assert retagged == 1
+    assert restored == 1
+    by_hcad = {f["properties"]["hcad_num"]: f["properties"] for f in shard_features}
+    assert by_hcad["0621100000016"]["address"] == "1119 KEY ST"
+    assert by_hcad["0621100000015"]["address"] == "1121 KEY ST"
+    assert by_hcad["0621100000015"]["year_built"] == 1926
+    assert by_hcad["0621100000015"]["contributing"] == "Contributing"
+
+
+

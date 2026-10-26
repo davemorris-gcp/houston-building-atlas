@@ -623,3 +623,134 @@ export function decodeCompactDeedChain(compactStr = "") {
   }
   return items;
 }
+
+function _escapeClerkHtml(val) {
+  return String(val ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Summarize HCAD CAMA deeds.txt coverage for Step 3 Recorded Deed Transfers so properties
+ * whose last ownership change predates HCAD's mid-2004 database cutover display a transparent
+ * explanation rather than an unexplained blank gap.
+ */
+export function describeDeedChainCoverage(chainItems = []) {
+  const list = Array.isArray(chainItems) ? chainItems : [];
+  if (list.length > 0) {
+    const hasPre2004 = list.some(
+      (it) => /^\d{4}/.test(String(it?.date || "")) && Number(String(it.date).slice(0, 4)) < 2004
+    );
+    return {
+      hasRecordedFilings: true,
+      count: list.length,
+      title: "Recorded Deed Transfers (1-Click Clerk File Number)",
+      countLabel: `${list.length} Recorded ${list.length === 1 ? "Filing" : "Filings"}`,
+      scopeNote: hasPre2004
+        ? "HCAD's public deed index primarily covers post-mid-2004 ownership sales (with partial pre-2004 backfill) and omits mortgages (D/T), liens (M/L), and releases. For complete 1961-present history, search using the 1-Click Copy Tokens right below."
+        : "HCAD's public deed index covers post-mid-2004 ownership sales only. For pre-2004 deeds, mortgages (D/T), liens (M/L), and releases, search using the 1-Click Copy Tokens right below.",
+      emptyExplanation: "",
+    };
+  }
+  return {
+    hasRecordedFilings: false,
+    count: 0,
+    title: "Recorded Deed Transfers (HCAD Bulk Index)",
+    countLabel: "No Post-2004 HCAD Sales",
+    scopeNote: "",
+    emptyExplanation:
+      "HCAD's public deed table only indexes title-transferring sales recorded after its mid-2004 database cutover (and omits mortgages, liens, and releases). Use the 1-Click Copy Tokens right below (paste Subdivision or Description + Lot + Block, or Grantee) on Harris County Clerk Deeds (RP) to view all 1961-present recorded instruments.",
+  };
+}
+
+/**
+ * Pure, DOM-free view-model and HTML builder for the Step 3 Recorded Deed Transfers box.
+ * Returns { ignore, hidden, isEmptyCama, count, html }.
+ */
+export function buildResearchKitDeedChainView(hcadNum, activeBoxHcadNum, permitShardRec) {
+  const cleanHcad = String(hcadNum || "").trim();
+  if (String(activeBoxHcadNum || "").trim() !== cleanHcad) {
+    return { ignore: true, hidden: false, isEmptyCama: false, count: 0, html: "" };
+  }
+  if (!/^(?!0+$)\d{10,13}$/.test(cleanHcad)) {
+    return { ignore: false, hidden: true, isEmptyCama: false, count: 0, html: "" };
+  }
+
+  const chainItems = decodeCompactDeedChain(permitShardRec?.d || "");
+  const coverage = describeDeedChainCoverage(chainItems);
+  if (!coverage.hasRecordedFilings) {
+    const html = `
+        <div class="rk-deed-chain-head">
+          <span class="rk-deed-chain-title">&#128220; ${_escapeClerkHtml(coverage.title)}</span>
+          <span class="rk-deed-chain-count is-muted">${_escapeClerkHtml(coverage.countLabel)}</span>
+        </div>
+        <div class="rk-clerk-hint">
+          ${_escapeClerkHtml(coverage.emptyExplanation)}
+        </div>
+      `;
+    return { ignore: false, hidden: false, isEmptyCama: true, count: 0, html };
+  }
+
+  const pillsHtml = chainItems
+    .map((item) => {
+      const dateTag = item.date
+        ? `<span class="rk-deed-date-tag">${_escapeClerkHtml(item.date)}</span>`
+        : "";
+      if (item.kind === "vol_page" && item.pageValue) {
+        const escVol = _escapeClerkHtml(item.copyValue);
+        const escPg = _escapeClerkHtml(item.pageValue);
+        return `<button
+            type="button"
+            class="rk-copy-pill deed-fileno"
+            data-rk-copy="${escVol}"
+            title="Pre-1961 Bound Deed Book transfer (${_escapeClerkHtml(
+              item.date || "Archival"
+            )}): click to copy Volume '${escVol}' (Page '${escPg}')"
+          >
+            ${dateTag}
+            <span class="rk-copy-k">Deed Vol/Pg:</span>
+            <span class="rk-copy-v mono">${_escapeClerkHtml(item.displayValue)}</span>
+            <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
+          </button>`;
+      }
+      const escCopy = _escapeClerkHtml(item.copyValue);
+      const escLbl = _escapeClerkHtml(item.clerkBoxLabel);
+      const escVal = _escapeClerkHtml(item.displayValue);
+      const portalHint =
+        item.portal === "probate"
+          ? "Paste into Harris County Probate Court Search"
+          : `Paste '${item.copyValue}' alone into the '${item.clerkBoxLabel}' box on Harris County Clerk RP and press Search`;
+      return `<button
+          type="button"
+          class="rk-copy-pill deed-fileno"
+          data-rk-copy="${escCopy}"
+          title="${_escapeClerkHtml(portalHint)}"
+        >
+          ${dateTag}
+          <span class="rk-copy-k">${escLbl}:</span>
+          <span class="rk-copy-v mono">${escVal}</span>
+          <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
+        </button>`;
+    })
+    .join("");
+
+  const html = `
+      <div class="rk-deed-chain-head">
+        <span class="rk-deed-chain-title">&#128220; ${_escapeClerkHtml(coverage.title)}</span>
+        <span class="rk-deed-chain-count">${_escapeClerkHtml(coverage.countLabel)}</span>
+      </div>
+      <div class="rk-clerk-hint">
+        <strong>Fastest lookup:</strong> copy any single <strong>File Number</strong> below, paste it alone into the top-left <strong>File Number</strong> box on County Clerk Deeds (RP), and click Search. Open the oldest deed to read the prior Grantor (seller) name.
+      </div>
+      <div class="rk-copy-pills-wrap">
+        ${pillsHtml}
+      </div>
+      <div class="rk-deed-scope-note">
+        ${_escapeClerkHtml(coverage.scopeNote)}
+      </div>
+    `;
+  return { ignore: false, hidden: false, isEmptyCama: false, count: coverage.count, html };
+}
