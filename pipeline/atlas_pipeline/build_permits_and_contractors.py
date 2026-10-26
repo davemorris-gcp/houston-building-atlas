@@ -2274,9 +2274,25 @@ def main():
         shards[acct[:3]][acct] = rec
         kept_accts += 1
 
-    for prefix3, shard_dict in shards.items():
+    # Preserve existing top-level "d" recorded deed chain strings (authored by enrich_deed_chains.py;
+    # distinct from nested rec["p"][i]["d"] permit descriptions) so full permit rebuilds never wipe deeds.
+    existing_shard_files = {p.stem.replace("permits_", ""): p for p in PERMITS_DIR.glob("permits_*.json")}
+    for prefix3 in set(shards.keys()) | set(existing_shard_files.keys()):
+        shard_dict = shards[prefix3]
         shard_file = PERMITS_DIR / f"permits_{prefix3}.json"
-        shard_file.write_text(json.dumps(shard_dict, separators=(",", ":")))
+        if shard_file.exists():
+            try:
+                prev_data = json.loads(shard_file.read_text(encoding="utf-8"))
+                for acct, prev_rec in prev_data.items():
+                    if isinstance(prev_rec, dict) and prev_rec.get("d"):
+                        if acct in shard_dict:
+                            shard_dict[acct]["d"] = prev_rec["d"]
+                        else:
+                            shard_dict[acct] = {"d": prev_rec["d"]}
+            except Exception:
+                pass
+        if shard_dict:
+            shard_file.write_text(json.dumps(shard_dict, separators=(",", ":")), encoding="utf-8")
 
     print(f"Wrote {len(shards)} permit shard files covering {kept_accts:,} HCAD accounts.")
 

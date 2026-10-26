@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261025n";
+} from "./palettes.js?v=20261026a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -24,12 +24,12 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261025n";
+} from "./filterStore.js?v=20261026a";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261025n";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261025n";
+} from "./curatedEdits.js?v=20261026a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261026a";
 
 const BASEMAP_TILES = {
   dark_archival: {

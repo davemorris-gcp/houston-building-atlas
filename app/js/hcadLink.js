@@ -11,6 +11,11 @@
  * authenticated with a time-based MD5 Basic token.
  */
 
+import {
+  extractLegalSubdivisionFromLines,
+  splitHcadLegalLines,
+} from "./clerkSearchHelpers.js?v=20261026a";
+
 const HCAD_EXTERNAL_ACCESS_URL =
   "https://api.hcad.org/propertysearch/ExternalAccess/AccountDetails";
 const HCAD_CLIENT_ID = "aR847wAP6cWQpdzF";
@@ -287,6 +292,14 @@ export async function fetchHcadLiveRecord(accountNumber) {
     }
   }
 
+  const legalLines = pubAttrs.legal_lines
+    ? splitHcadLegalLines(pubAttrs.legal_lines)
+    : [];
+  const marketNeighborhood =
+    (pubAttrs.subdivision || resAttrs.dscr || "").trim() || null;
+  const legalSubdivision =
+    extractLegalSubdivisionFromLines(legalLines) || null;
+
   const record = {
     hcadNum: cleanAcct,
     owner: (pubAttrs.owner || resAttrs.CurrOwner || "").trim() || null,
@@ -307,14 +320,11 @@ export async function fetchHcadLiveRecord(accountNumber) {
     marketVal: pubAttrs.mkt_val != null ? Number(pubAttrs.mkt_val) : null,
     imprVal: pubAttrs.impr_val != null ? Number(pubAttrs.impr_val) : null,
     landVal: pubAttrs.land_val != null ? Number(pubAttrs.land_val) : null,
-    subdivision: (pubAttrs.subdivision || resAttrs.dscr || "").trim() || null,
-    legalDescription: pubAttrs.legal_lines
-      ? String(pubAttrs.legal_lines)
-          .split("|")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .join(" · ")
-      : null,
+    legalLines,
+    legalSubdivision,
+    marketNeighborhood,
+    subdivision: legalSubdivision || marketNeighborhood,
+    legalDescription: legalLines.length > 0 ? legalLines.join(" · ") : null,
     geometry,
     centroid,
     gisParcelUrl: `https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(cleanAcct)}`,

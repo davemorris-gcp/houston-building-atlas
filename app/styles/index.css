@@ -8553,6 +8553,104 @@ body {
   color: #94a3b8;
 }
 
+.rk-copy-pill.hcad-only {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #cbd5e1;
+}
+
+.rk-copy-pill.hcad-only .rk-copy-k {
+  color: #94a3b8;
+}
+
+.rk-copy-pill.deed-fileno {
+  background: rgba(149, 201, 89, 0.13);
+  border-color: rgba(149, 201, 89, 0.42);
+  color: #ecfccb;
+}
+
+.rk-copy-pill.deed-fileno:hover {
+  background: rgba(149, 201, 89, 0.25);
+  border-color: rgba(161, 207, 104, 0.8);
+  color: #ffffff;
+}
+
+.rk-copy-pill.deed-fileno .rk-copy-k {
+  color: #bef264;
+}
+
+.rk-deed-date-tag {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: #94a3b8;
+  padding-right: 2px;
+}
+
+.rk-deed-chain-box {
+  margin: 0 0 8px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(149, 201, 89, 0.34);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rk-deed-chain-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rk-deed-chain-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #d9f99d;
+  letter-spacing: 0.01em;
+}
+
+.rk-deed-chain-count {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  background: rgba(149, 201, 89, 0.18);
+  border: 1px solid rgba(149, 201, 89, 0.4);
+  color: #ecfccb;
+}
+
+.rk-clerk-hint {
+  font-size: 10.5px;
+  line-height: 1.42;
+  color: #94a3b8;
+  margin-bottom: 3px;
+}
+
+.rk-clerk-hint strong {
+  color: #cbd5e1;
+}
+
+.rk-clerk-codes-note {
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  font-size: 10px;
+  line-height: 1.42;
+  color: #94a3b8;
+}
+
+.rk-clerk-codes-note code {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: #bae6fd;
+}
+
 /* ============================================================================
    Priority #3: 1915 Red Book of Houston & 1937 HOLC Security Grades
    ============================================================================ */

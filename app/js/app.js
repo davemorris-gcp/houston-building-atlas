@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261025n";
+} from "./palettes.js?v=20261026a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -18,14 +18,19 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261025n";
-import { AtlasMapController } from "./mapController.js?v=20261025n";
+} from "./filterStore.js?v=20261026a";
+import { AtlasMapController } from "./mapController.js?v=20261026a";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261025n";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261025n";
+} from "./guidedChaptersAndPortfolios.js?v=20261026a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261026a";
+import {
+  decodeCompactDeedChain,
+  formatClerkPartyTokens,
+  parseClerkLegalTokens,
+} from "./clerkSearchHelpers.js?v=20261026a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -39,7 +44,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261025n";
+} from "./curatedEdits.js?v=20261026a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -49,7 +54,7 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261025n";
+} from "./photoService.js?v=20261026a";
 
 class HoustonAtlasApp {
   constructor() {
@@ -9945,62 +9950,6 @@ class HoustonAtlasApp {
     };
   }
 
-  _parseHcadLegalTokens(legalDescription = "", subdivision = "") {
-    const rawLegal = String(legalDescription || "").trim();
-    const rawSub = String(subdivision || "").trim();
-    const source = rawLegal || rawSub;
-
-    let lot = "";
-    let block = "";
-    let section = "";
-
-    if (rawLegal) {
-      const lotMatch = rawLegal.match(
-        /\b(?:LTS?|LOTS?|TR|TRACT)\s+([0-9A-Z&,\-\s]+?)(?=\s+(?:BLK|BLOCK|SEC|SECT|SECTION|ABST|U\/R|R\/P|PAR)\b|$)/i
-      );
-      if (lotMatch && lotMatch[1]) {
-        lot = lotMatch[1].trim().replace(/\s+/g, " ");
-      }
-      const blkMatch = rawLegal.match(/\b(?:BLK|BLOCK)\s+([0-9A-Z\-]+)/i);
-      if (blkMatch && blkMatch[1]) {
-        block = blkMatch[1].trim();
-      }
-      const secMatch = rawLegal.match(/\b(?:SEC|SECT|SECTION)\s+([0-9A-Z\-]+)/i);
-      if (secMatch && secMatch[1]) {
-        section = secMatch[1].trim();
-      }
-    }
-
-    if (!section && rawSub) {
-      const subSecMatch = rawSub.match(/\b(?:SEC|SECT|SECTION)\s+([0-9A-Z\-]+)/i);
-      if (subSecMatch && subSecMatch[1]) {
-        section = subSecMatch[1].trim();
-      }
-    }
-
-    let addition = rawSub;
-    if (!addition && rawLegal) {
-      addition = rawLegal
-        .replace(/^\s*(?:LTS?|LOTS?|TR|TRACT)\s+[0-9A-Z&,\-\s]+?(?=\s+(?:BLK|BLOCK)\b)/i, "")
-        .replace(/^\s*(?:BLK|BLOCK)\s+[0-9A-Z\-]+\s*/i, "")
-        .trim();
-    }
-    const cleanAdditionSearch = addition
-      .replace(/\b(?:R\/P|PAR\s+R\/P|PARTIAL\s+REPLAT|REPLAT|AMENDED|U\/R)\b.*$/i, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    return {
-      lot,
-      block,
-      section,
-      addition: addition || "",
-      cleanAdditionSearch: cleanAdditionSearch || addition || "",
-      rawLegal,
-      source,
-    };
-  }
-
   _formatHistoricPlatDisplayName(platProps) {
     if (!platProps) return "";
     const baseName = String(platProps.name || "").trim();
@@ -10016,57 +9965,44 @@ class HoustonAtlasApp {
     return baseName || rawFull;
   }
 
-  _buildLegalCopyPillsHtml(
-    tokens,
-    { hcadNum = "", owner = "", historicParentPlat = null } = {}
-  ) {
+  _buildLegalCopyPillsHtml(tokens, { hcadNum = "", owner = "" } = {}) {
     const pills = [];
-    const parentDisplayName = this._formatHistoricPlatDisplayName(historicParentPlat);
-    const normCleanAdd = String(tokens.cleanAdditionSearch || "")
-      .toUpperCase()
-      .replace(/\b(?:ADDITION|SUBDIVISION)\b/g, "")
-      .replace(/[^A-Z0-9]+/g, "")
-      .trim();
-    const normParentAdd = String(parentDisplayName || "")
-      .toUpperCase()
-      .replace(/\b(?:ADDITION|SUBDIVISION)\b/g, "")
-      .replace(/[^A-Z0-9]+/g, "")
-      .trim();
+    const subDesc = String(tokens.subdivisionDesc || tokens.cleanAdditionSearch || "").trim();
+    const histDesc = String(tokens.historicParentDesc || "").trim();
 
-    if (parentDisplayName && normParentAdd && normParentAdd !== normCleanAdd) {
+    if (tokens.hasDistinctHistoricParent && histDesc) {
       pills.push({
-        k: "Original Historic Plat",
-        v: parentDisplayName,
-        copy: parentDisplayName,
+        k: "Original Plat (Subdivision / Desc)",
+        v: histDesc,
+        copy: histDesc,
+        tip: `Click to copy '${histDesc}' for the 'Subdivision or Description' box on County Clerk RP (pre-replat historic deeds)`,
       });
     }
-    if (tokens.cleanAdditionSearch) {
+    if (subDesc) {
       pills.push({
-        k: normParentAdd && normParentAdd !== normCleanAdd ? "Modern HCAD Replat" : "Addition / Plat",
-        v: tokens.cleanAdditionSearch,
-        copy: tokens.cleanAdditionSearch,
+        k:
+          tokens.hasDistinctHistoricParent && histDesc
+            ? "Modern Replat (Subdivision / Desc)"
+            : "Subdivision or Description",
+        v: subDesc,
+        copy: subDesc,
+        tip: `Click to copy '${subDesc}' for the 'Subdivision or Description' box on Harris County Clerk RP`,
       });
-    }
-    if (historicParentPlat) {
-      const rootCite = String(
-        historicParentPlat.deed_citation || historicParentPlat.plat_citation || ""
-      )
-        .replace(/^Harris County\s+/i, "")
-        .split("·")[0]
-        .trim();
-      if (rootCite) {
-        pills.push({
-          k: "Root Plat Record",
-          v: rootCite,
-          copy: rootCite,
-        });
-      }
     }
     if (tokens.section) {
       pills.push({
-        k: "Sec",
+        k: "Section",
         v: tokens.section,
         copy: tokens.section,
+        tip: `Click to copy '${tokens.section}' for the 'Section' box on Harris County Clerk RP`,
+      });
+    }
+    if (tokens.lot) {
+      pills.push({
+        k: "Lot",
+        v: tokens.lotDisplay || tokens.lot,
+        copy: tokens.lot,
+        tip: `Click to copy '${tokens.lot}' for the 'Lot' box on Harris County Clerk RP`,
       });
     }
     if (tokens.block) {
@@ -10074,32 +10010,96 @@ class HoustonAtlasApp {
         k: "Block",
         v: tokens.block,
         copy: tokens.block,
+        tip: `Click to copy '${tokens.block}' for the 'Block' box on Harris County Clerk RP`,
       });
     }
-    if (tokens.lot) {
+    if (tokens.unit) {
       pills.push({
-        k: "Lot / Tract",
-        v: tokens.lot,
-        copy: tokens.lot,
+        k: "Unit",
+        v: tokens.unit,
+        copy: tokens.unit,
+        tip: `Click to copy '${tokens.unit}' for the 'Unit' box on Harris County Clerk RP`,
       });
     }
-    const cleanOwner = String(owner || "").trim();
-    if (
-      cleanOwner &&
-      cleanOwner !== "Public / Unlisted" &&
-      cleanOwner !== "Current Owner"
-    ) {
+    if (tokens.tract) {
       pills.push({
-        k: "Grantee / Owner",
-        v: cleanOwner,
-        copy: cleanOwner,
+        k: "Tract",
+        v: tokens.tractDisplay || tokens.tract,
+        copy: tokens.tract,
+        tip: `Click to copy '${tokens.tract}' for the separate 'Tract' box on Harris County Clerk RP`,
       });
     }
+    if (tokens.reserve) {
+      pills.push({
+        k: "Reserve",
+        v: tokens.reserve,
+        copy: tokens.reserve,
+        tip: `Click to copy '${tokens.reserve}' for the 'Reserve' box on Harris County Clerk RP`,
+      });
+    }
+    if (tokens.abstract) {
+      const abstDisplay = tokens.abstractSurvey
+        ? `${tokens.abstract} (${tokens.abstractSurvey})`
+        : tokens.abstract;
+      pills.push({
+        k: "Abstract",
+        v: abstDisplay,
+        copy: tokens.abstract,
+        tip: `Click to copy numeric Texas GLO Abstract '${tokens.abstract}' for the 'Abstract' box on Harris County Clerk RP`,
+      });
+    }
+    if (tokens.outlot) {
+      pills.push({
+        k: "Outlot",
+        v: tokens.outlot,
+        copy: tokens.outlot,
+        tip: `Click to copy '${tokens.outlot}' for the 'Outlot' box on Harris County Clerk RP`,
+      });
+    }
+
+    const rootCite = tokens.rootPlatCitation || {};
+    if (rootCite.volume && rootCite.page) {
+      const seriesTag = rootCite.series ? ` (${rootCite.series.replace(/\s*\(.*\)/, "")})` : "";
+      pills.push({
+        k: `Plat Vol${seriesTag}`,
+        v: rootCite.volume,
+        copy: rootCite.volume,
+        tip: `Original subdivision plat Volume ${rootCite.volume}, Page ${rootCite.page}${
+          rootCite.series ? ` in Harris County ${rootCite.series}` : ""
+        }`,
+      });
+      pills.push({
+        k: "Plat Page",
+        v: rootCite.page,
+        copy: rootCite.page,
+        tip: `Original subdivision plat Page ${rootCite.page} (Volume ${rootCite.volume})`,
+      });
+    } else if (rootCite.instrument) {
+      pills.push({
+        k: "Root Plat File #",
+        v: rootCite.instrument,
+        copy: rootCite.instrument,
+        tip: `Original subdivision dedication Clerk File / Instrument #${rootCite.instrument}`,
+      });
+    }
+
+    const partyTokens = formatClerkPartyTokens(owner);
+    for (const pt of partyTokens) {
+      pills.push({
+        k: pt.label,
+        v: pt.display,
+        copy: pt.copy,
+        tip: `Pre-formatted 'Last Name First - No Punctuation' ('${pt.copy}') for Harris County Clerk Grantee / Grantor search`,
+      });
+    }
+
     if (hcadNum) {
       pills.push({
-        k: "HCAD #",
+        k: "HCAD # (Tax/GIS)",
         v: hcadNum,
         copy: hcadNum,
+        cls: "hcad-only",
+        tip: `13-digit HCAD Account # (${hcadNum}) for HCAD Search & GIS (note: County Clerk RP does not index by HCAD #)`,
       });
     }
     if (pills.length === 0) {
@@ -10110,11 +10110,15 @@ class HoustonAtlasApp {
         const escCopy = this._escapeResearchHtml(p.copy);
         const escK = this._escapeResearchHtml(p.k);
         const escV = this._escapeResearchHtml(p.v);
+        const escTip = this._escapeResearchHtml(
+          p.tip || `Click to copy '${p.copy}' for pasting into Harris County Clerk search`
+        );
+        const extraCls = p.cls ? ` ${p.cls}` : "";
         return `<button
           type="button"
-          class="rk-copy-pill"
+          class="rk-copy-pill${extraCls}"
           data-rk-copy="${escCopy}"
-          title="Click to copy '${escCopy}' for pasting into Harris County Clerk search"
+          title="${escTip}"
         >
           <span class="rk-copy-k">${escK}:</span>
           <span class="rk-copy-v mono">${escV}</span>
@@ -10122,6 +10126,80 @@ class HoustonAtlasApp {
         </button>`;
       })
       .join("");
+  }
+
+  _populateResearchKitDeedChain(hcadNum, permitShardRec) {
+    const box = document.getElementById("research-kit-deed-chain");
+    if (!box) return;
+    const cleanHcad = String(hcadNum || "").trim();
+    if (!cleanHcad || box.getAttribute("data-hcad-num") !== cleanHcad) return;
+
+    const chainItems = decodeCompactDeedChain(permitShardRec?.d || "");
+    if (!Array.isArray(chainItems) || chainItems.length === 0) {
+      box.classList.add("hidden");
+      box.innerHTML = "";
+      return;
+    }
+
+    const pillsHtml = chainItems
+      .map((item) => {
+        const dateTag = item.date
+          ? `<span class="rk-deed-date-tag">${this._escapeResearchHtml(item.date)}</span>`
+          : "";
+        if (item.kind === "vol_page" && item.pageValue) {
+          const escVol = this._escapeResearchHtml(item.copyValue);
+          const escPg = this._escapeResearchHtml(item.pageValue);
+          return `<button
+            type="button"
+            class="rk-copy-pill deed-fileno"
+            data-rk-copy="${escVol}"
+            title="Pre-1961 Bound Deed Book transfer (${this._escapeResearchHtml(
+              item.date || "Archival"
+            )}): click to copy Volume '${escVol}' (Page '${escPg}')"
+          >
+            ${dateTag}
+            <span class="rk-copy-k">Deed Vol/Pg:</span>
+            <span class="rk-copy-v mono">${this._escapeResearchHtml(item.displayValue)}</span>
+            <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
+          </button>`;
+        }
+        const escCopy = this._escapeResearchHtml(item.copyValue);
+        const escLbl = this._escapeResearchHtml(item.clerkBoxLabel);
+        const escVal = this._escapeResearchHtml(item.displayValue);
+        const portalHint =
+          item.portal === "probate"
+            ? "Paste into Harris County Probate Court Search"
+            : `Paste '${item.copyValue}' alone into the '${item.clerkBoxLabel}' box on Harris County Clerk RP and press Search`;
+        return `<button
+          type="button"
+          class="rk-copy-pill deed-fileno"
+          data-rk-copy="${escCopy}"
+          title="${this._escapeResearchHtml(portalHint)}"
+        >
+          ${dateTag}
+          <span class="rk-copy-k">${escLbl}:</span>
+          <span class="rk-copy-v mono">${escVal}</span>
+          <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
+        </button>`;
+      })
+      .join("");
+
+    box.innerHTML = `
+      <div class="rk-deed-chain-head">
+        <span class="rk-deed-chain-title">&#128220; Recorded Deed Transfers (1-Click Clerk File Number)</span>
+        <span class="rk-deed-chain-count">${chainItems.length} Recorded ${
+          chainItems.length === 1 ? "Filing" : "Filings"
+        }</span>
+      </div>
+      <div class="rk-clerk-hint">
+        <strong>Fastest lookup:</strong> copy any single <strong>File Number</strong> below, paste it alone into the top-left <strong>File Number</strong> box on County Clerk Deeds (RP), and click Search. Open the oldest deed to read the prior Grantor (seller) name.
+      </div>
+      <div class="rk-copy-pills-wrap">
+        ${pillsHtml}
+      </div>
+    `;
+    box.classList.remove("hidden");
+    this._bindResearchKitCopyPills(box);
   }
 
   _buildCityDirectoryResearchData(props, hcadNum, yr, addrInfo) {
@@ -10385,7 +10463,6 @@ class HoustonAtlasApp {
     const legalPillsHtml = this._buildLegalCopyPillsHtml(legalTokens, {
       hcadNum,
       owner,
-      historicParentPlat,
     });
     const hasMirroredDeeds =
       catalogEntryForDeed &&
@@ -10649,9 +10726,20 @@ class HoustonAtlasApp {
             <span class="rk-step-title">Chain of Title, Subdivision Plat &amp; Deed Lookup</span>
           </div>
           ${historicParentStep3NoteHtml}
-          <div class="rk-copy-bar-label">1-Click Copy Tokens for County Clerk Search:</div>
+          <div
+            class="rk-deed-chain-box hidden"
+            id="research-kit-deed-chain"
+            data-hcad-num="${this._escapeResearchHtml(hcadNum)}"
+          ></div>
+          <div class="rk-copy-bar-label">1-Click Copy Tokens (Exact County Clerk RP Box Labels):</div>
+          <div class="rk-clerk-hint">
+            For full Lot &amp; Block history (1961-present), paste <strong>Subdivision or Description</strong> + <strong>Lot</strong> + <strong>Block</strong> together (leave unused boxes blank). Grantee names are pre-formatted <em>Last Name First, No Punctuation</em>.
+          </div>
           <div class="rk-copy-pills-wrap" id="research-kit-legal-pills">
             ${legalPillsHtml}
+          </div>
+          <div class="rk-clerk-codes-note">
+            <strong>Clerk Type Filter Codes:</strong> <code>W/D</code> Warranty Deed (sale) &middot; <code>M/L</code> Mechanic&rsquo;s Lien (historic builder contract) &middot; <code>D/T</code> Deed of Trust (mortgage) &middot; <code>REL</code> Release &middot; <code>REST</code> Restrictions. Pre-1961 bound Vol/Page deed books are held at Harris County Archives.
           </div>
           <div class="rk-btn-row">
             <a
@@ -10908,10 +10996,27 @@ class HoustonAtlasApp {
     const pillsWrap = document.getElementById("research-kit-legal-pills");
     if (!pillsWrap || !rec) return;
     const hcadNum = String(props?.hcad_num || "").trim();
-    const subVal = String(rec.subdivision || props?.subdivision || "").trim();
-    const legalVal = String(rec.legalDescription || "").trim();
+    if (
+      this._activeInspectorLegalCtx &&
+      this._activeInspectorLegalCtx.hcadNum === hcadNum
+    ) {
+      this._activeInspectorLegalCtx.liveHcadRec = rec;
+    }
+    const ctx =
+      this._activeInspectorLegalCtx &&
+      this._activeInspectorLegalCtx.hcadNum === hcadNum
+        ? this._activeInspectorLegalCtx
+        : {};
     const ownerVal = String(rec.owner || props?.owner || "").trim();
-    const tokens = this._parseHcadLegalTokens(legalVal, subVal);
+    const tokens = parseClerkLegalTokens({
+      legalLines: rec.legalLines,
+      legalDescription: rec.legalDescription || props?.legal_description || "",
+      legalSubdivision: rec.legalSubdivision || "",
+      subdivision: props?.subdivision || rec.legalSubdivision || rec.subdivision || "",
+      marketNeighborhood: rec.marketNeighborhood || "",
+      historicParentPlat: ctx.historicParentPlat || null,
+      subProps: ctx.subProps || null,
+    });
     pillsWrap.innerHTML = this._buildLegalCopyPillsHtml(tokens, {
       hcadNum,
       owner: ownerVal,
@@ -12246,10 +12351,17 @@ class HoustonAtlasApp {
       yr,
       addrResearchInfo
     );
-    const initialLegalTokens = this._parseHcadLegalTokens(
-      props.legal_description || "",
-      subVal
-    );
+    this._activeInspectorLegalCtx = {
+      hcadNum,
+      historicParentPlat,
+      subProps: subPropsForDeed,
+    };
+    const initialLegalTokens = parseClerkLegalTokens({
+      legalDescription: props.legal_description || "",
+      subdivision: subVal,
+      historicParentPlat,
+      subProps: subPropsForDeed,
+    });
     const researchKitHtml = this._buildHouseHistoryResearchKitHtml({
       title,
       yr,
@@ -13334,7 +13446,7 @@ class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261022a`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261026a`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -13344,12 +13456,13 @@ class HoustonAtlasApp {
   }
 
   async _populateInspectorPermits(props, hcadNum) {
+    const rec = hcadNum ? await this._fetchPermitRecord(hcadNum) : null;
+    this._populateResearchKitDeedChain(hcadNum, rec);
+
     const card = document.getElementById("inspector-permits-card");
     const badge = document.getElementById("inspector-permits-badge");
     const body = document.getElementById("inspector-permits-body");
     if (!card || !body) return;
-
-    const rec = hcadNum ? await this._fetchPermitRecord(hcadNum) : null;
     if (card.getAttribute("data-hcad-num") !== String(hcadNum || "")) return;
 
     // Update Remodel / Effective Year cell in the main grid if shard has richer data
@@ -14198,15 +14311,34 @@ class HoustonAtlasApp {
       year || 0,
       dossierAddrInfo
     );
-    const dossierLegal = this._parseHcadLegalTokens(
-      liveLegalLine,
-      props.subdivision || ""
-    );
+    const activeCtx =
+      this._activeInspectorLegalCtx &&
+      this._activeInspectorLegalCtx.hcadNum === String(hcadAcct || "").trim()
+        ? this._activeInspectorLegalCtx
+        : {};
+    const liveRec = activeCtx.liveHcadRec || null;
+    const cleanedLiveLegalLine = String(liveLegalLine || "")
+      .split("·")
+      .map((s) => s.trim())
+      .filter((s) => s && !/^(?:State\s+Class|Grade)\b/i.test(s))
+      .join(" · ");
+    const dossierLegal = parseClerkLegalTokens({
+      legalLines: liveRec?.legalLines,
+      legalDescription:
+        liveRec?.legalDescription || cleanedLiveLegalLine || props.legal_description || "",
+      legalSubdivision: liveRec?.legalSubdivision || "",
+      subdivision:
+        props.subdivision || liveRec?.legalSubdivision || liveRec?.subdivision || "",
+      marketNeighborhood: liveRec?.marketNeighborhood || "",
+      historicParentPlat: activeCtx.historicParentPlat || null,
+      subProps: activeCtx.subProps || null,
+    });
     const dossierLegalSummary = [
       dossierLegal.cleanAdditionSearch ? `Subdivision: ${dossierLegal.cleanAdditionSearch}` : "",
       dossierLegal.section ? `Sec ${dossierLegal.section}` : "",
       dossierLegal.block ? `Blk ${dossierLegal.block}` : "",
       dossierLegal.lot ? `Lot ${dossierLegal.lot}` : "",
+      dossierLegal.tract ? `Tract ${dossierLegal.tract}` : "",
     ]
       .filter(Boolean)
       .join(" · ") || (props.subdivision ? String(props.subdivision) : "See HCAD & County Clerk RP");
