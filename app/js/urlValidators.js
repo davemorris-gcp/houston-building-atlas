@@ -98,6 +98,10 @@ export const BROWSER_CHALLENGE_PROTECTED_HOSTS = new Set([
   "vo.ras.dshs.state.tx.us",
   "www.tdlr.texas.gov",
   "tdlr.texas.gov",
+  "www.bizapedia.com",
+  "bizapedia.com",
+  "direct.sos.state.tx.us",
+  "houston.novusagenda.com",
   "web.archive.org",
   "texashistory.unt.edu",
 ]);

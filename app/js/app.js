@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261026b";
+} from "./palettes.js?v=20261027a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -18,19 +18,19 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261026b";
-import { AtlasMapController } from "./mapController.js?v=20261026b";
+} from "./filterStore.js?v=20261027a";
+import { AtlasMapController } from "./mapController.js?v=20261027a";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261026b";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261026b";
+} from "./guidedChaptersAndPortfolios.js?v=20261027a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261027a";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261026b";
+} from "./clerkSearchHelpers.js?v=20261027a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -44,7 +44,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261026b";
+} from "./curatedEdits.js?v=20261027a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -54,7 +54,7 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261026b";
+} from "./photoService.js?v=20261027a";
 
 class HoustonAtlasApp {
   constructor() {
@@ -13399,7 +13399,7 @@ class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261026b`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261027a`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);

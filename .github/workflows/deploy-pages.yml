@@ -44,6 +44,12 @@ jobs:
       - name: Set up Playwright Headless Chromium
         uses: ./.github/actions/setup-playwright-e2e
 
+      - name: Run Layer 1B Python Pipeline Unit Suite
+        working-directory: pipeline
+        run: |
+          uv sync --dev
+          uv run --no-sync pytest tests -v
+
       - name: Run Layer 2 Playwright E2E Suite (Global Controls + 45 Stratified Archetypes)
         working-directory: pipeline
         run: uv run --no-sync pytest ../tests/e2e -n auto -v

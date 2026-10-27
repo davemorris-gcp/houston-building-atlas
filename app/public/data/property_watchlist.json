@@ -1,8 +1,12 @@
 {
-  "updatedAt": "2026-10-27T17:09:19Z",
+  "updatedAt": "2026-10-27T16:56:26Z",
+  "lastAutoSweepAt": "2026-10-27T16:56:26Z",
+  "autoSweepSchedule": "Daily at 7:00 AM CT",
+  "automatedAgencyCount": 8,
   "primaryProperty": {
     "id": "prop-kirby-mansion",
     "propertyName": "John Henry Kirby Mansion",
+    "platProjectName": "Smith Street Plaza",
     "address": "2000 Smith St.",
     "secondaryAddresses": [
       "530 Pierce St.",
@@ -10,11 +14,17 @@
       "500 Gray St."
     ],
     "hcadAccount": "0152300000001",
+    "legalDescription": "TRS 1-16 BLK 417 SSBB",
     "buildingId": "bld_004618",
     "yearBuilt": 1894,
     "yearRemodeled": 1928,
     "architect": "James Ruskin Bailey (1928 Tudor Revival remodel)",
     "designation": "1979 Good Brick Award (No City Protected Landmark designation)",
+    "neighborhood": "Midtown",
+    "trackerStatus": "Active / High Priority",
+    "threatCategory": "Significant Building Threatened",
+    "reportedBy": "Paul Homeyer",
+    "phPastActions": "Contacted listing broker and new owner Omair Bashir; monitoring October 27 - November 6, 2026 asbestos abatement window.",
     "ownerOfRecord": "OB Texas Properties LLC (acquired 9/30/2026 from Hi Tech Auto Realty LLC)",
     "buyerRelatedEntities": "Omair Bashir / OB Texas Properties LLC / Smith St C Store LLC / BTCM National Retail Operations LLC (Brake Time)",
     "lender": "Greenberg Finance Co. ($7,000,000 loan recorded 10/1/2026)",
@@ -27,16 +37,49 @@
       "expectedDemolition": "Imminent risk following Nov 6, 2026 abatement window",
       "tdlrScheduledConstruction": "2026-09-01 to 2027-09-01"
     },
+    "searchTerms": {
+      "entities": [
+        "Smith St C Store LLC",
+        "OB Texas Properties LLC",
+        "BTCM National Retail Operations LLC",
+        "Hi Tech Auto Realty LLC",
+        "Greenberg Finance Co."
+      ],
+      "dbas": [
+        "Brake Time",
+        "Braketime Smith Road"
+      ],
+      "officers": [
+        "Omair Bashir",
+        "Munir Ishaq"
+      ],
+      "legalKeywords": [
+        "417",
+        "SSBB",
+        "HADLEY",
+        "Smith Street Plaza"
+      ],
+      "altAddresses": [
+        "530 Pierce St.",
+        "2000 Brazos St.",
+        "500 Gray St."
+      ],
+      "projectNumbers": [
+        "26052089",
+        "26090093"
+      ]
+    },
     "notes": "Sale closed effective 9/30/2026 (recorded 10/1/2026, Special Warranty Deed #RP-2026-399473). Multi-agency filings across 2000 Smith St and perimeter block address 530 Pierce St reveal plans for a $2M, 13,254 SF 'Brake Time' convenience store and gas station (TDLR #TABS2026022839, COH Plan Review #26052089). Emailed Omair Bashir, who responded positively about meeting to discuss plans.",
     "lng": -95.374833,
     "lat": 29.751432,
     "tier": "1",
+    "tierConfirmed": true,
     "checklist": [
       {
         "id": "chk-01",
         "stage": "Every Check",
         "activity": "Public Notices",
-        "whatToLookFor": "Search the address, owner, and buyer names for published legal notices, such as TABC application notices.",
+        "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
         "typicalTiming": "Any stage.",
         "resourceLabel": "Texas Public Notices",
         "resourceUrl": "https://www.texaspublicnotices.com/",
@@ -68,10 +111,10 @@
         "id": "chk-02",
         "stage": "Every Check",
         "activity": "Site Visit",
-        "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance notice signs, fencing, dumpsters, utility disconnections, and survey stakes.",
+        "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
         "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
         "resourceLabel": "Google Street View",
-        "resourceUrl": "https://www.google.com/maps/search/?api=1&query=2000+Smith+St,+Houston,+TX",
+        "resourceUrl": "https://www.google.com/maps/search/?api=1&query=2000+Smith+St.%2C+Houston%2C+TX",
         "additionalResourceLabel": "",
         "additionalResourceUrl": "",
         "status": "In Progress",
@@ -92,8 +135,8 @@
         "id": "chk-03",
         "stage": "Sale & Ownership",
         "activity": "Deed Transfers & Liens",
-        "whatToLookFor": "Search owner and buyer names for deeds, deeds of trust (these name the lender), and any recorded option or memorandum of contract.",
-        "typicalTiming": "Deeds usually record within days of closing. A recorded option or contract memo can appear before closing.",
+        "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
+        "typicalTiming": "Deeds usually record within days of closing.",
         "resourceLabel": "HC Clerk Real Property",
         "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
         "additionalResourceLabel": "",
@@ -112,12 +155,12 @@
         "id": "chk-04",
         "stage": "Sale & Ownership",
         "activity": "Corporate Entity Verification",
-        "whatToLookFor": "Look up each new LLC to find its officers, registered agent, and related entities.",
+        "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
         "typicalTiming": "As soon as a new entity name surfaces.",
         "resourceLabel": "Comptroller Entity Search",
         "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
-        "additionalResourceLabel": "Socrata Active Sales Tax (jrea-zgmq)",
-        "additionalResourceUrl": "https://data.texas.gov/resource/jrea-zgmq.json?$q=2000%20SMITH",
+        "additionalResourceLabel": "Bizapedia Entity Lookup",
+        "additionalResourceUrl": "https://www.bizapedia.com/",
         "status": "Complete",
         "lastChecked": "2026-10-23",
         "automated": true,
@@ -130,14 +173,15 @@
             "date": "2026-10-05",
             "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212"
           }
-        ]
+        ],
+        "lastAutoSweepAt": "2026-10-27T16:56:26Z"
       },
       {
         "id": "chk-05",
         "stage": "Sale & Ownership",
         "activity": "HCAD Ownership & Classification",
-        "whatToLookFor": "Search the HCAD account number to confirm the owner of record and watch for changes to land use, value, or improvements.",
-        "typicalTiming": "Owner updates lag the deed by weeks to months. Values and classifications update yearly.",
+        "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
+        "typicalTiming": "Owner updates lag the deed by weeks to months.",
         "resourceLabel": "HCAD Property Search",
         "resourceUrl": "https://search.hcad.org/",
         "additionalResourceLabel": "HCAD GIS Parcel Map",
@@ -149,19 +193,36 @@
           {
             "date": "2026-10-23",
             "result": "HCAD Account 0152300000001 (Tracts 1-16, Block 417 SSBB, 62,500 SF full city block bounded by Smith, Pierce, Brazos, and Gray); deed transfer to OB Texas Properties LLC closed 9/30/2026"
+          },
+          {
+            "date": "2026-10-27",
+            "result": "[AUTO-SWEEP] HCAD Account 0152300000001 (2000 SMITH ST): Owner HI TECH AUTO REALTY LLC, Class F1 (Market $6414729, Impr $1727229, Land $4687500), Legal: LTS 1 2 3 & 4 BLK 12|HADLEY & FRANKLIN.",
+            "source": "auto-sweep",
+            "automated": true,
+            "checkId": "chk-05",
+            "agencyRecordId": "hcad:0152300000001:HI TECH AUTO REALTY LLC:F1:1727229",
+            "adverse": false,
+            "links": [
+              {
+                "label": "HCAD Map (0152300000001)",
+                "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001"
+              }
+            ],
+            "discoveredAt": "2026-10-27"
           }
-        ]
+        ],
+        "lastAutoSweepAt": "2026-10-27T16:56:26Z"
       },
       {
         "id": "chk-06",
         "stage": "Plans & Use",
         "activity": "Liquor Licensing",
-        "whatToLookFor": "Search the address for pending or issued permits. Applicant records often reveal the operator, trade names, and LLCs, and show the intended use.",
-        "typicalTiming": "After closing, once an operator has a lease or deed. Can appear earlier if an operator has a deal with the seller or buyer.",
+        "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
+        "typicalTiming": "Often filed months before construction or demolition permits.",
         "resourceLabel": "TABC Public Inquiry",
         "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
-        "additionalResourceLabel": "TABC Open Data (7hf9-qc9f)",
-        "additionalResourceUrl": "https://data.texas.gov/resource/7hf9-qc9f.json?$q=2000%20SMITH",
+        "additionalResourceLabel": "",
+        "additionalResourceUrl": "",
         "status": "Complete",
         "lastChecked": "2026-10-07",
         "automated": true,
@@ -173,15 +234,32 @@
           {
             "date": "2026-10-07",
             "result": "Submitted public records request for application materials, including site plan; denied due to confidentiality"
+          },
+          {
+            "date": "2026-04-01",
+            "result": "[AUTO-SWEEP] TABC License #200183169 (BQ, Active): Smith St C Store LLC (DBA Brake Time) at 2000 Smith St.",
+            "source": "auto-sweep",
+            "automated": true,
+            "checkId": "chk-06",
+            "agencyRecordId": "tabc-active:200183169",
+            "adverse": false,
+            "links": [
+              {
+                "label": "TABC Public Inquiry",
+                "url": "https://apps.tabc.texas.gov/publicinquiry/"
+              }
+            ],
+            "discoveredAt": "2026-10-27"
           }
-        ]
+        ],
+        "lastAutoSweepAt": "2026-10-27T16:56:26Z"
       },
       {
         "id": "chk-07",
         "stage": "Plans & Use",
         "activity": "Hemp Licensing",
-        "whatToLookFor": "Search the address for pending or issued permits. Applicant records often reveal the operator, trade names, and LLCs, and show the intended use.",
-        "typicalTiming": "After closing, once an operator has a lease or deed.",
+        "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
+        "typicalTiming": "After closing or lease execution for convenience-store operators.",
         "resourceLabel": "DSHS License Search",
         "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
         "additionalResourceLabel": "",
@@ -200,8 +278,8 @@
         "id": "chk-08",
         "stage": "Plans & Use",
         "activity": "Pending Plans (Open Records & ILMS)",
-        "whatToLookFor": "Request plans, pre-app meeting records, and plan review project numbers for the address (and perimeter block addresses) from the Houston Permitting Center. Track project numbers in ILMS.",
-        "typicalTiming": "Most useful after closing, once an architect or engineer is engaged.",
+        "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+        "typicalTiming": "Design and plan-review phase after closing.",
         "resourceLabel": "Public Records (GovQA)",
         "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
         "additionalResourceLabel": "ILMS Project Status",
@@ -220,12 +298,12 @@
         "id": "chk-09",
         "stage": "Plans & Use",
         "activity": "Replats & Variances",
-        "whatToLookFor": "Watch for replat and variance applications (including Section K Development Plat Variances) that include the property.",
-        "typicalTiming": "Can be filed before closing with the seller's consent. Common during due diligence and design.",
-        "resourceLabel": "Houston Plat Tracker",
-        "resourceUrl": "https://plattracker.powerappsportals.us/SignIn",
-        "additionalResourceLabel": "Atlas Plat & Variance Monitor",
-        "additionalResourceUrl": "/plat-monitor.html",
+        "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
+        "typicalTiming": "Can be filed before closing with seller consent or during design.",
+        "resourceLabel": "COH Biweekly Plat Reports",
+        "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
+        "additionalResourceLabel": "COH Planning Notices",
+        "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
         "status": "Complete",
         "lastChecked": "2026-10-23",
         "automated": true,
@@ -234,36 +312,42 @@
             "date": "2026-09-22",
             "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)"
           }
-        ]
+        ],
+        "lastAutoSweepAt": "2026-10-27T16:56:26Z"
       },
       {
         "id": "chk-10",
         "stage": "Plans & Use",
         "activity": "Accessibility Registration (TDLR TABS)",
-        "whatToLookFor": "Search the address (and secondary block addresses) in TDLR TABS. Registered projects list the owner, design firm, estimated cost, and scope (renovation or new construction). Required for commercial projects over $50,000.",
-        "typicalTiming": "Design phase, before construction starts. Often one of the earliest public signs of what is planned.",
-        "resourceLabel": "TDLR Architectural Barriers",
-        "resourceUrl": "https://www.tdlr.texas.gov/TABS/",
-        "additionalResourceLabel": "TDLR Project TABS2027004510",
-        "additionalResourceUrl": "https://www.tdlr.texas.gov/TABS/Search",
+        "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
+        "typicalTiming": "Design phase, often months before building or demolition permits.",
+        "resourceLabel": "TDLR TABS Search",
+        "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
+        "additionalResourceLabel": "",
+        "additionalResourceUrl": "",
         "status": "Flagged",
         "lastChecked": "2026-10-23",
         "automated": true,
         "checks": [
           {
             "date": "2026-10-22",
-            "result": "TDLR Project #TABS2027004510 ('MIDLINE BEAMER ROAD STREETSCAPE PHASE 2') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+            "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road', Harris County 2101) registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munir Ishaq, P.E.), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+          },
+          {
+            "date": "2026-10-22",
+            "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
           }
-        ]
+        ],
+        "lastAutoSweepAt": "2026-10-27T16:56:26Z"
       },
       {
         "id": "chk-11",
         "stage": "Plans & Use",
         "activity": "Easements, Abandonments & TIRZ",
-        "whatToLookFor": "Check City Council agendas for street, alley, or easement abandonments next to the property. Check Midtown TIRZ / Midtown Redevelopment Authority agendas.",
+        "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
         "typicalTiming": "Design phase, usually after closing.",
-        "resourceLabel": "City Secretary",
-        "resourceUrl": "https://houstontx.gov/citysec/",
+        "resourceLabel": "City Council Agendas (NovusAgenda)",
+        "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
         "additionalResourceLabel": "Midtown Redevelopment Authority",
         "additionalResourceUrl": "https://midtownhouston.com/affiliated-organizations/mra/",
         "status": "To Do",
@@ -275,14 +359,14 @@
         "id": "chk-12",
         "stage": "Plans & Use",
         "activity": "Environmental Registrations",
-        "whatToLookFor": "Search the address for new regulated-entity records, such as construction stormwater coverage or underground petroleum storage tanks (PST).",
-        "typicalTiming": "Shortly before construction. Most useful for gas stations and larger sites.",
+        "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
+        "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
         "resourceLabel": "TCEQ Central Registry",
         "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
         "additionalResourceLabel": "",
         "additionalResourceUrl": "",
         "status": "In Progress",
-        "lastChecked": "2026-10-20",
+        "lastChecked": "2026-10-26",
         "automated": false,
         "checks": [
           {
@@ -300,6 +384,10 @@
           {
             "date": "2026-10-20",
             "result": "no new results"
+          },
+          {
+            "date": "2026-10-26",
+            "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
           }
         ]
       },
@@ -307,8 +395,8 @@
         "id": "chk-13",
         "stage": "Demolition Signals",
         "activity": "Code Complaints & Dangerous Buildings",
-        "whatToLookFor": "Check the 311 map for complaints at the address (open structure, nuisance, dangerous building). A dangerous building case can lead to a demolition order.",
-        "typicalTiming": "Any stage, especially while the building is vacant.",
+        "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
+        "typicalTiming": "Any stage, especially while a structure is vacant.",
         "resourceLabel": "311 Service Request Viewer",
         "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
         "additionalResourceLabel": "Community Code Enforcement",
@@ -316,18 +404,19 @@
         "status": "N/A",
         "lastChecked": "2026-10-23",
         "automated": true,
-        "checks": []
+        "checks": [],
+        "lastAutoSweepAt": "2026-10-27T16:56:26Z"
       },
       {
         "id": "chk-14",
         "stage": "Demolition Signals",
         "activity": "Demolition & Building Permits",
-        "whatToLookFor": "Search Sold Permits by address (2000 Smith St & 530 Pierce St) for demolition, sewer disconnect, and building permits.",
-        "typicalTiming": "Final weeks before work starts.",
+        "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
+        "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
         "resourceLabel": "Houston Sold Permits",
         "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
-        "additionalResourceLabel": "Permit Activity Reports",
-        "additionalResourceUrl": "https://www.houstonpermittingcenter.org/news-events/permit-activity-reports-now-available",
+        "additionalResourceLabel": "",
+        "additionalResourceUrl": "",
         "status": "Flagged",
         "lastChecked": "2026-10-23",
         "automated": true,
@@ -344,14 +433,15 @@
             "date": "2026-10-14",
             "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St"
           }
-        ]
+        ],
+        "lastAutoSweepAt": "2026-10-27T16:56:26Z"
       },
       {
         "id": "chk-15",
         "stage": "Demolition Signals",
         "activity": "Asbestos & Demolition Notification (DSHS)",
-        "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished, even if no asbestos is present.",
-        "typicalTiming": "At least 10 working days (about two weeks) before abatement or demolition starts.",
+        "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
+        "typicalTiming": "At least 10 working days before abatement or demolition starts.",
         "resourceLabel": "DSHS Notifications",
         "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
         "additionalResourceLabel": "DSHS Notification #2026005825",
@@ -372,224 +462,315 @@
             "date": "2026-10-13",
             "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)"
           }
-        ]
+        ],
+        "lastAutoSweepAt": "2026-10-27T16:56:26Z"
       }
     ],
     "findingsLog": [
       {
+        "date": "2026-04-01",
+        "stage": "Plans & Use",
+        "activity": "Liquor Licensing",
+        "checkId": "chk-06",
+        "result": "[AUTO-SWEEP] TABC License #200183169 (BQ, Active): Smith St C Store LLC (DBA Brake Time) at 2000 Smith St.",
+        "automated": true,
+        "source": "auto-sweep",
+        "agencyRecordId": "tabc-active:200183169",
+        "links": [
+          {
+            "label": "TABC Public Inquiry",
+            "url": "https://apps.tabc.texas.gov/publicinquiry/"
+          }
+        ],
+        "entryNo": 1
+      },
+      {
         "date": "2026-09-22",
         "stage": "Every Check",
         "activity": "Public Notices",
+        "checkId": "chk-01",
         "result": "3 notices from February - March 2026 related to TABC permit",
         "automated": false,
-        "entryNo": 1
+        "entryNo": 2
       },
       {
         "date": "2026-09-22",
         "stage": "Sale & Ownership",
         "activity": "Corporate Entity Verification",
+        "checkId": "chk-04",
         "result": "Smith St C Store LLC (formed Oct 2025, Active Sales Tax Permit #32102472084 for 'Brake Time' at 2000 Smith St); BTCM National Retail Operations LLC",
-        "automated": true,
-        "entryNo": 2
-      },
-      {
-        "date": "2026-09-22",
-        "stage": "Plans & Use",
-        "activity": "Liquor Licensing",
-        "result": "TABC permit for 2000 Smith under Smith St C Store LLC issued 4/1/26",
         "automated": true,
         "entryNo": 3
       },
       {
         "date": "2026-09-22",
         "stage": "Plans & Use",
-        "activity": "Hemp Licensing",
-        "result": "'Retail Hemp Registration' for Smith St C Store LLC at 2000 Smith (applied Feb-Mar 2026)",
-        "automated": false,
+        "activity": "Liquor Licensing",
+        "checkId": "chk-06",
+        "result": "TABC permit for 2000 Smith under Smith St C Store LLC issued 4/1/26",
+        "automated": true,
         "entryNo": 4
       },
       {
         "date": "2026-09-22",
         "stage": "Plans & Use",
-        "activity": "Replats & Variances",
-        "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)",
-        "automated": true,
+        "activity": "Hemp Licensing",
+        "checkId": "chk-07",
+        "result": "'Retail Hemp Registration' for Smith St C Store LLC at 2000 Smith (applied Feb-Mar 2026)",
+        "automated": false,
         "entryNo": 5
       },
       {
         "date": "2026-09-22",
         "stage": "Plans & Use",
-        "activity": "Environmental Registrations",
-        "result": "old/irrelevant results. RN for location: RN101872331",
-        "automated": false,
+        "activity": "Replats & Variances",
+        "checkId": "chk-09",
+        "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)",
+        "automated": true,
         "entryNo": 6
       },
       {
         "date": "2026-09-22",
-        "stage": "Demolition Signals",
-        "activity": "Demolition & Building Permits",
-        "result": "no demo permit",
-        "automated": true,
+        "stage": "Plans & Use",
+        "activity": "Environmental Registrations",
+        "checkId": "chk-12",
+        "result": "old/irrelevant results. RN for location: RN101872331",
+        "automated": false,
         "entryNo": 7
       },
       {
         "date": "2026-09-22",
         "stage": "Demolition Signals",
-        "activity": "Asbestos & Demolition Notification (DSHS)",
-        "result": "no results",
+        "activity": "Demolition & Building Permits",
+        "checkId": "chk-14",
+        "result": "no demo permit",
         "automated": true,
         "entryNo": 8
+      },
+      {
+        "date": "2026-09-22",
+        "stage": "Demolition Signals",
+        "activity": "Asbestos & Demolition Notification (DSHS)",
+        "checkId": "chk-15",
+        "result": "no results",
+        "automated": true,
+        "entryNo": 9
       },
       {
         "date": "2026-10-05",
         "stage": "Every Check",
         "activity": "Public Notices",
+        "checkId": "chk-01",
         "result": "no new results",
-        "automated": false,
-        "entryNo": 9
-      },
-      {
-        "date": "2026-10-05",
-        "stage": "Sale & Ownership",
-        "activity": "Deed Transfers & Liens",
-        "result": "Special Warranty Deed (#RP-2026-399473) & Deed of Trust ($7M loan from Greenberg Finance Co.) dated 9/30/2026 and recorded 10/1/2026 to OB Texas Properties LLC (Omair Bashir)",
         "automated": false,
         "entryNo": 10
       },
       {
         "date": "2026-10-05",
         "stage": "Sale & Ownership",
+        "activity": "Deed Transfers & Liens",
+        "checkId": "chk-03",
+        "result": "Special Warranty Deed (#RP-2026-399473) & Deed of Trust ($7M loan from Greenberg Finance Co.) dated 9/30/2026 and recorded 10/1/2026 to OB Texas Properties LLC (Omair Bashir)",
+        "automated": false,
+        "entryNo": 11
+      },
+      {
+        "date": "2026-10-05",
+        "stage": "Sale & Ownership",
         "activity": "Corporate Entity Verification",
+        "checkId": "chk-04",
         "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212",
         "automated": true,
-        "entryNo": 11
+        "entryNo": 12
       },
       {
         "date": "2026-10-05",
         "stage": "Plans & Use",
         "activity": "Environmental Registrations",
+        "checkId": "chk-12",
         "result": "no new results",
         "automated": false,
-        "entryNo": 12
-      },
-      {
-        "date": "2026-10-05",
-        "stage": "Demolition Signals",
-        "activity": "Demolition & Building Permits",
-        "result": "no demo permit",
-        "automated": true,
         "entryNo": 13
       },
       {
         "date": "2026-10-05",
         "stage": "Demolition Signals",
-        "activity": "Asbestos & Demolition Notification (DSHS)",
-        "result": "no results",
+        "activity": "Demolition & Building Permits",
+        "checkId": "chk-14",
+        "result": "no demo permit",
         "automated": true,
         "entryNo": 14
+      },
+      {
+        "date": "2026-10-05",
+        "stage": "Demolition Signals",
+        "activity": "Asbestos & Demolition Notification (DSHS)",
+        "checkId": "chk-15",
+        "result": "no results",
+        "automated": true,
+        "entryNo": 15
       },
       {
         "date": "2026-10-07",
         "stage": "Every Check",
         "activity": "Site Visit",
+        "checkId": "chk-02",
         "result": "Reported by Paul Homeyer: new 'For Information' banner from Greenberg & Company",
         "automated": false,
-        "entryNo": 15
+        "entryNo": 16
       },
       {
         "date": "2026-10-07",
         "stage": "Plans & Use",
         "activity": "Liquor Licensing",
+        "checkId": "chk-06",
         "result": "Submitted public records request for application materials, including site plan; denied due to confidentiality",
         "automated": true,
-        "entryNo": 16
+        "entryNo": 17
       },
       {
         "date": "2026-10-09",
         "stage": "Every Check",
         "activity": "Public Notices",
+        "checkId": "chk-01",
         "result": "no new results",
         "automated": false,
-        "entryNo": 17
+        "entryNo": 18
       },
       {
         "date": "2026-10-09",
         "stage": "Plans & Use",
         "activity": "Environmental Registrations",
+        "checkId": "chk-12",
         "result": "OB Texas Properties is registered as a customer since 10/9/2020, but no affiliated regulated entities. CN605820570",
         "automated": false,
-        "entryNo": 18
+        "entryNo": 19
       },
       {
         "date": "2026-10-13",
         "stage": "Demolition Signals",
         "activity": "Asbestos & Demolition Notification (DSHS)",
+        "checkId": "chk-15",
         "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)",
         "automated": true,
-        "entryNo": 19
+        "entryNo": 20
       },
       {
         "date": "2026-10-14",
         "stage": "Every Check",
         "activity": "Site Visit",
+        "checkId": "chk-02",
         "result": "Called Greenberg & Company. Took message; have not called back",
         "automated": false,
-        "entryNo": 20
+        "entryNo": 21
       },
       {
         "date": "2026-10-14",
         "stage": "Demolition Signals",
         "activity": "Demolition & Building Permits",
+        "checkId": "chk-14",
         "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St",
         "automated": true,
-        "entryNo": 21
+        "entryNo": 22
       },
       {
         "date": "2026-10-20",
         "stage": "Every Check",
         "activity": "Public Notices",
+        "checkId": "chk-01",
         "result": "no results",
         "automated": false,
-        "entryNo": 22
+        "entryNo": 23
       },
       {
         "date": "2026-10-20",
         "stage": "Plans & Use",
         "activity": "Environmental Registrations",
+        "checkId": "chk-12",
         "result": "no new results",
-        "automated": false,
-        "entryNo": 23
-      },
-      {
-        "date": "2026-10-22",
-        "stage": "Plans & Use",
-        "activity": "Pending Plans (Open Records & ILMS)",
-        "result": "COH Plan Review Project #26052089 filed under perimeter block address 530 Pierce St on 6/24/2026 for a proposed gas station; plans submitted 8 times and returned for revisions 10/2/2026",
         "automated": false,
         "entryNo": 24
       },
       {
         "date": "2026-10-22",
         "stage": "Plans & Use",
-        "activity": "Accessibility Registration (TDLR TABS)",
-        "result": "TDLR Project #TABS2027004510 ('MIDLINE BEAMER ROAD STREETSCAPE PHASE 2') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
-        "automated": true,
+        "activity": "Pending Plans (Open Records & ILMS)",
+        "checkId": "chk-08",
+        "result": "COH Plan Review Project #26052089 filed under perimeter block address 530 Pierce St on 6/24/2026 for a proposed gas station; plans submitted 8 times and returned for revisions 10/2/2026",
+        "automated": false,
         "entryNo": 25
+      },
+      {
+        "date": "2026-10-22",
+        "stage": "Plans & Use",
+        "activity": "Accessibility Registration (TDLR TABS)",
+        "checkId": "chk-10",
+        "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road', Harris County 2101) registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munir Ishaq, P.E.), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+        "automated": true,
+        "entryNo": 26
+      },
+      {
+        "date": "2026-10-22",
+        "stage": "Plans & Use",
+        "activity": "Accessibility Registration (TDLR TABS)",
+        "checkId": "chk-10",
+        "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+        "automated": true,
+        "entryNo": 27
       },
       {
         "date": "2026-10-23",
         "stage": "Sale & Ownership",
         "activity": "HCAD Ownership & Classification",
+        "checkId": "chk-05",
         "result": "HCAD Account 0152300000001 (Tracts 1-16, Block 417 SSBB, 62,500 SF full city block bounded by Smith, Pierce, Brazos, and Gray); deed transfer to OB Texas Properties LLC closed 9/30/2026",
         "automated": true,
-        "entryNo": 26
+        "entryNo": 28
+      },
+      {
+        "date": "2026-10-26",
+        "stage": "Plans & Use",
+        "activity": "Environmental Registrations",
+        "checkId": "chk-12",
+        "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found.",
+        "automated": false,
+        "entryNo": 29
+      },
+      {
+        "date": "2026-10-27",
+        "stage": "Sale & Ownership",
+        "activity": "HCAD Ownership & Classification",
+        "checkId": "chk-05",
+        "result": "[AUTO-SWEEP] HCAD Account 0152300000001 (2000 SMITH ST): Owner HI TECH AUTO REALTY LLC, Class F1 (Market $6414729, Impr $1727229, Land $4687500), Legal: LTS 1 2 3 & 4 BLK 12|HADLEY & FRANKLIN.",
+        "automated": true,
+        "source": "auto-sweep",
+        "agencyRecordId": "hcad:0152300000001:HI TECH AUTO REALTY LLC:F1:1727229",
+        "links": [
+          {
+            "label": "HCAD Map (0152300000001)",
+            "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001"
+          }
+        ],
+        "entryNo": 30
       }
-    ]
+    ],
+    "appNo": "",
+    "sourcePlatApp": "",
+    "architectEngineer": "Heights Engineering (Munir Ishaq, P.E.)",
+    "pcMeetingDate": "",
+    "sourceCycleKey": "",
+    "hearingDateIso": "",
+    "documents": [],
+    "driveLinks": [],
+    "updatedAt": "2026-10-26T23:11:29.256Z",
+    "lastAutoSweepAt": "2026-10-27T16:56:26Z",
+    "autoSweepSchedule": "Daily at 7:00 AM CT"
   },
   "watchedProperties": [
     {
       "id": "prop-kirby-mansion",
       "propertyName": "John Henry Kirby Mansion",
+      "platProjectName": "Smith Street Plaza",
       "address": "2000 Smith St.",
       "secondaryAddresses": [
         "530 Pierce St.",
@@ -597,11 +778,17 @@
         "500 Gray St."
       ],
       "hcadAccount": "0152300000001",
+      "legalDescription": "TRS 1-16 BLK 417 SSBB",
       "buildingId": "bld_004618",
       "yearBuilt": 1894,
       "yearRemodeled": 1928,
       "architect": "James Ruskin Bailey (1928 Tudor Revival remodel)",
       "designation": "1979 Good Brick Award (No City Protected Landmark designation)",
+      "neighborhood": "Midtown",
+      "trackerStatus": "Active / High Priority",
+      "threatCategory": "Significant Building Threatened",
+      "reportedBy": "Paul Homeyer",
+      "phPastActions": "Contacted listing broker and new owner Omair Bashir; monitoring October 27 - November 6, 2026 asbestos abatement window.",
       "ownerOfRecord": "OB Texas Properties LLC (acquired 9/30/2026 from Hi Tech Auto Realty LLC)",
       "buyerRelatedEntities": "Omair Bashir / OB Texas Properties LLC / Smith St C Store LLC / BTCM National Retail Operations LLC (Brake Time)",
       "lender": "Greenberg Finance Co. ($7,000,000 loan recorded 10/1/2026)",
@@ -614,16 +801,49 @@
         "expectedDemolition": "Imminent risk following Nov 6, 2026 abatement window",
         "tdlrScheduledConstruction": "2026-09-01 to 2027-09-01"
       },
+      "searchTerms": {
+        "entities": [
+          "Smith St C Store LLC",
+          "OB Texas Properties LLC",
+          "BTCM National Retail Operations LLC",
+          "Hi Tech Auto Realty LLC",
+          "Greenberg Finance Co."
+        ],
+        "dbas": [
+          "Brake Time",
+          "Braketime Smith Road"
+        ],
+        "officers": [
+          "Omair Bashir",
+          "Munir Ishaq"
+        ],
+        "legalKeywords": [
+          "417",
+          "SSBB",
+          "HADLEY",
+          "Smith Street Plaza"
+        ],
+        "altAddresses": [
+          "530 Pierce St.",
+          "2000 Brazos St.",
+          "500 Gray St."
+        ],
+        "projectNumbers": [
+          "26052089",
+          "26090093"
+        ]
+      },
       "notes": "Sale closed effective 9/30/2026 (recorded 10/1/2026, Special Warranty Deed #RP-2026-399473). Multi-agency filings across 2000 Smith St and perimeter block address 530 Pierce St reveal plans for a $2M, 13,254 SF 'Brake Time' convenience store and gas station (TDLR #TABS2026022839, COH Plan Review #26052089). Emailed Omair Bashir, who responded positively about meeting to discuss plans.",
       "lng": -95.374833,
       "lat": 29.751432,
       "tier": "1",
+      "tierConfirmed": true,
       "checklist": [
         {
           "id": "chk-01",
           "stage": "Every Check",
           "activity": "Public Notices",
-          "whatToLookFor": "Search the address, owner, and buyer names for published legal notices, such as TABC application notices.",
+          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
           "typicalTiming": "Any stage.",
           "resourceLabel": "Texas Public Notices",
           "resourceUrl": "https://www.texaspublicnotices.com/",
@@ -655,10 +875,10 @@
           "id": "chk-02",
           "stage": "Every Check",
           "activity": "Site Visit",
-          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance notice signs, fencing, dumpsters, utility disconnections, and survey stakes.",
+          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
           "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
           "resourceLabel": "Google Street View",
-          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=2000+Smith+St,+Houston,+TX",
+          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=2000+Smith+St.%2C+Houston%2C+TX",
           "additionalResourceLabel": "",
           "additionalResourceUrl": "",
           "status": "In Progress",
@@ -679,8 +899,8 @@
           "id": "chk-03",
           "stage": "Sale & Ownership",
           "activity": "Deed Transfers & Liens",
-          "whatToLookFor": "Search owner and buyer names for deeds, deeds of trust (these name the lender), and any recorded option or memorandum of contract.",
-          "typicalTiming": "Deeds usually record within days of closing. A recorded option or contract memo can appear before closing.",
+          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
+          "typicalTiming": "Deeds usually record within days of closing.",
           "resourceLabel": "HC Clerk Real Property",
           "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
           "additionalResourceLabel": "",
@@ -699,12 +919,12 @@
           "id": "chk-04",
           "stage": "Sale & Ownership",
           "activity": "Corporate Entity Verification",
-          "whatToLookFor": "Look up each new LLC to find its officers, registered agent, and related entities.",
+          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
           "typicalTiming": "As soon as a new entity name surfaces.",
           "resourceLabel": "Comptroller Entity Search",
           "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
-          "additionalResourceLabel": "Socrata Active Sales Tax (jrea-zgmq)",
-          "additionalResourceUrl": "https://data.texas.gov/resource/jrea-zgmq.json?$q=2000%20SMITH",
+          "additionalResourceLabel": "Bizapedia Entity Lookup",
+          "additionalResourceUrl": "https://www.bizapedia.com/",
           "status": "Complete",
           "lastChecked": "2026-10-23",
           "automated": true,
@@ -717,14 +937,15 @@
               "date": "2026-10-05",
               "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212"
             }
-          ]
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
         },
         {
           "id": "chk-05",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
-          "whatToLookFor": "Search the HCAD account number to confirm the owner of record and watch for changes to land use, value, or improvements.",
-          "typicalTiming": "Owner updates lag the deed by weeks to months. Values and classifications update yearly.",
+          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
+          "typicalTiming": "Owner updates lag the deed by weeks to months.",
           "resourceLabel": "HCAD Property Search",
           "resourceUrl": "https://search.hcad.org/",
           "additionalResourceLabel": "HCAD GIS Parcel Map",
@@ -736,19 +957,36 @@
             {
               "date": "2026-10-23",
               "result": "HCAD Account 0152300000001 (Tracts 1-16, Block 417 SSBB, 62,500 SF full city block bounded by Smith, Pierce, Brazos, and Gray); deed transfer to OB Texas Properties LLC closed 9/30/2026"
+            },
+            {
+              "date": "2026-10-27",
+              "result": "[AUTO-SWEEP] HCAD Account 0152300000001 (2000 SMITH ST): Owner HI TECH AUTO REALTY LLC, Class F1 (Market $6414729, Impr $1727229, Land $4687500), Legal: LTS 1 2 3 & 4 BLK 12|HADLEY & FRANKLIN.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-05",
+              "agencyRecordId": "hcad:0152300000001:HI TECH AUTO REALTY LLC:F1:1727229",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "HCAD Map (0152300000001)",
+                  "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
             }
-          ]
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
         },
         {
           "id": "chk-06",
           "stage": "Plans & Use",
           "activity": "Liquor Licensing",
-          "whatToLookFor": "Search the address for pending or issued permits. Applicant records often reveal the operator, trade names, and LLCs, and show the intended use.",
-          "typicalTiming": "After closing, once an operator has a lease or deed. Can appear earlier if an operator has a deal with the seller or buyer.",
+          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
+          "typicalTiming": "Often filed months before construction or demolition permits.",
           "resourceLabel": "TABC Public Inquiry",
           "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
-          "additionalResourceLabel": "TABC Open Data (7hf9-qc9f)",
-          "additionalResourceUrl": "https://data.texas.gov/resource/7hf9-qc9f.json?$q=2000%20SMITH",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
           "status": "Complete",
           "lastChecked": "2026-10-07",
           "automated": true,
@@ -760,15 +998,32 @@
             {
               "date": "2026-10-07",
               "result": "Submitted public records request for application materials, including site plan; denied due to confidentiality"
+            },
+            {
+              "date": "2026-04-01",
+              "result": "[AUTO-SWEEP] TABC License #200183169 (BQ, Active): Smith St C Store LLC (DBA Brake Time) at 2000 Smith St.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-06",
+              "agencyRecordId": "tabc-active:200183169",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "TABC Public Inquiry",
+                  "url": "https://apps.tabc.texas.gov/publicinquiry/"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
             }
-          ]
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
         },
         {
           "id": "chk-07",
           "stage": "Plans & Use",
           "activity": "Hemp Licensing",
-          "whatToLookFor": "Search the address for pending or issued permits. Applicant records often reveal the operator, trade names, and LLCs, and show the intended use.",
-          "typicalTiming": "After closing, once an operator has a lease or deed.",
+          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
+          "typicalTiming": "After closing or lease execution for convenience-store operators.",
           "resourceLabel": "DSHS License Search",
           "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
           "additionalResourceLabel": "",
@@ -787,8 +1042,8 @@
           "id": "chk-08",
           "stage": "Plans & Use",
           "activity": "Pending Plans (Open Records & ILMS)",
-          "whatToLookFor": "Request plans, pre-app meeting records, and plan review project numbers for the address (and perimeter block addresses) from the Houston Permitting Center. Track project numbers in ILMS.",
-          "typicalTiming": "Most useful after closing, once an architect or engineer is engaged.",
+          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+          "typicalTiming": "Design and plan-review phase after closing.",
           "resourceLabel": "Public Records (GovQA)",
           "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
           "additionalResourceLabel": "ILMS Project Status",
@@ -807,12 +1062,12 @@
           "id": "chk-09",
           "stage": "Plans & Use",
           "activity": "Replats & Variances",
-          "whatToLookFor": "Watch for replat and variance applications (including Section K Development Plat Variances) that include the property.",
-          "typicalTiming": "Can be filed before closing with the seller's consent. Common during due diligence and design.",
-          "resourceLabel": "Houston Plat Tracker",
-          "resourceUrl": "https://plattracker.powerappsportals.us/SignIn",
-          "additionalResourceLabel": "Atlas Plat & Variance Monitor",
-          "additionalResourceUrl": "/plat-monitor.html",
+          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
+          "typicalTiming": "Can be filed before closing with seller consent or during design.",
+          "resourceLabel": "COH Biweekly Plat Reports",
+          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
+          "additionalResourceLabel": "COH Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
           "status": "Complete",
           "lastChecked": "2026-10-23",
           "automated": true,
@@ -821,36 +1076,42 @@
               "date": "2026-09-22",
               "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)"
             }
-          ]
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
         },
         {
           "id": "chk-10",
           "stage": "Plans & Use",
           "activity": "Accessibility Registration (TDLR TABS)",
-          "whatToLookFor": "Search the address (and secondary block addresses) in TDLR TABS. Registered projects list the owner, design firm, estimated cost, and scope (renovation or new construction). Required for commercial projects over $50,000.",
-          "typicalTiming": "Design phase, before construction starts. Often one of the earliest public signs of what is planned.",
-          "resourceLabel": "TDLR Architectural Barriers",
-          "resourceUrl": "https://www.tdlr.texas.gov/TABS/",
-          "additionalResourceLabel": "TDLR Project TABS2027004510",
-          "additionalResourceUrl": "https://www.tdlr.texas.gov/TABS/Search",
+          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
+          "typicalTiming": "Design phase, often months before building or demolition permits.",
+          "resourceLabel": "TDLR TABS Search",
+          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
           "status": "Flagged",
           "lastChecked": "2026-10-23",
           "automated": true,
           "checks": [
             {
               "date": "2026-10-22",
-              "result": "TDLR Project #TABS2027004510 ('MIDLINE BEAMER ROAD STREETSCAPE PHASE 2') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+              "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road', Harris County 2101) registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munir Ishaq, P.E.), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+            },
+            {
+              "date": "2026-10-22",
+              "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
             }
-          ]
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
         },
         {
           "id": "chk-11",
           "stage": "Plans & Use",
           "activity": "Easements, Abandonments & TIRZ",
-          "whatToLookFor": "Check City Council agendas for street, alley, or easement abandonments next to the property. Check Midtown TIRZ / Midtown Redevelopment Authority agendas.",
+          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
           "typicalTiming": "Design phase, usually after closing.",
-          "resourceLabel": "City Secretary",
-          "resourceUrl": "https://houstontx.gov/citysec/",
+          "resourceLabel": "City Council Agendas (NovusAgenda)",
+          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
           "additionalResourceLabel": "Midtown Redevelopment Authority",
           "additionalResourceUrl": "https://midtownhouston.com/affiliated-organizations/mra/",
           "status": "To Do",
@@ -862,14 +1123,14 @@
           "id": "chk-12",
           "stage": "Plans & Use",
           "activity": "Environmental Registrations",
-          "whatToLookFor": "Search the address for new regulated-entity records, such as construction stormwater coverage or underground petroleum storage tanks (PST).",
-          "typicalTiming": "Shortly before construction. Most useful for gas stations and larger sites.",
+          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
+          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
           "resourceLabel": "TCEQ Central Registry",
           "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
           "additionalResourceLabel": "",
           "additionalResourceUrl": "",
           "status": "In Progress",
-          "lastChecked": "2026-10-20",
+          "lastChecked": "2026-10-26",
           "automated": false,
           "checks": [
             {
@@ -887,6 +1148,10 @@
             {
               "date": "2026-10-20",
               "result": "no new results"
+            },
+            {
+              "date": "2026-10-26",
+              "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
             }
           ]
         },
@@ -894,8 +1159,8 @@
           "id": "chk-13",
           "stage": "Demolition Signals",
           "activity": "Code Complaints & Dangerous Buildings",
-          "whatToLookFor": "Check the 311 map for complaints at the address (open structure, nuisance, dangerous building). A dangerous building case can lead to a demolition order.",
-          "typicalTiming": "Any stage, especially while the building is vacant.",
+          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
+          "typicalTiming": "Any stage, especially while a structure is vacant.",
           "resourceLabel": "311 Service Request Viewer",
           "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
           "additionalResourceLabel": "Community Code Enforcement",
@@ -903,18 +1168,19 @@
           "status": "N/A",
           "lastChecked": "2026-10-23",
           "automated": true,
-          "checks": []
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
         },
         {
           "id": "chk-14",
           "stage": "Demolition Signals",
           "activity": "Demolition & Building Permits",
-          "whatToLookFor": "Search Sold Permits by address (2000 Smith St & 530 Pierce St) for demolition, sewer disconnect, and building permits.",
-          "typicalTiming": "Final weeks before work starts.",
+          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
+          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
           "resourceLabel": "Houston Sold Permits",
           "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
-          "additionalResourceLabel": "Permit Activity Reports",
-          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/news-events/permit-activity-reports-now-available",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
           "status": "Flagged",
           "lastChecked": "2026-10-23",
           "automated": true,
@@ -931,14 +1197,15 @@
               "date": "2026-10-14",
               "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St"
             }
-          ]
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
         },
         {
           "id": "chk-15",
           "stage": "Demolition Signals",
           "activity": "Asbestos & Demolition Notification (DSHS)",
-          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished, even if no asbestos is present.",
-          "typicalTiming": "At least 10 working days (about two weeks) before abatement or demolition starts.",
+          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
+          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
           "resourceLabel": "DSHS Notifications",
           "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
           "additionalResourceLabel": "DSHS Notification #2026005825",
@@ -959,987 +1226,2059 @@
               "date": "2026-10-13",
               "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)"
             }
-          ]
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
         }
       ],
       "findingsLog": [
         {
+          "date": "2026-04-01",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "checkId": "chk-06",
+          "result": "[AUTO-SWEEP] TABC License #200183169 (BQ, Active): Smith St C Store LLC (DBA Brake Time) at 2000 Smith St.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "tabc-active:200183169",
+          "links": [
+            {
+              "label": "TABC Public Inquiry",
+              "url": "https://apps.tabc.texas.gov/publicinquiry/"
+            }
+          ],
+          "entryNo": 1
+        },
+        {
           "date": "2026-09-22",
           "stage": "Every Check",
           "activity": "Public Notices",
+          "checkId": "chk-01",
           "result": "3 notices from February - March 2026 related to TABC permit",
           "automated": false,
-          "entryNo": 1
+          "entryNo": 2
         },
         {
           "date": "2026-09-22",
           "stage": "Sale & Ownership",
           "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
           "result": "Smith St C Store LLC (formed Oct 2025, Active Sales Tax Permit #32102472084 for 'Brake Time' at 2000 Smith St); BTCM National Retail Operations LLC",
-          "automated": true,
-          "entryNo": 2
-        },
-        {
-          "date": "2026-09-22",
-          "stage": "Plans & Use",
-          "activity": "Liquor Licensing",
-          "result": "TABC permit for 2000 Smith under Smith St C Store LLC issued 4/1/26",
           "automated": true,
           "entryNo": 3
         },
         {
           "date": "2026-09-22",
           "stage": "Plans & Use",
-          "activity": "Hemp Licensing",
-          "result": "'Retail Hemp Registration' for Smith St C Store LLC at 2000 Smith (applied Feb-Mar 2026)",
-          "automated": false,
+          "activity": "Liquor Licensing",
+          "checkId": "chk-06",
+          "result": "TABC permit for 2000 Smith under Smith St C Store LLC issued 4/1/26",
+          "automated": true,
           "entryNo": 4
         },
         {
           "date": "2026-09-22",
           "stage": "Plans & Use",
-          "activity": "Replats & Variances",
-          "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)",
-          "automated": true,
+          "activity": "Hemp Licensing",
+          "checkId": "chk-07",
+          "result": "'Retail Hemp Registration' for Smith St C Store LLC at 2000 Smith (applied Feb-Mar 2026)",
+          "automated": false,
           "entryNo": 5
         },
         {
           "date": "2026-09-22",
           "stage": "Plans & Use",
-          "activity": "Environmental Registrations",
-          "result": "old/irrelevant results. RN for location: RN101872331",
-          "automated": false,
+          "activity": "Replats & Variances",
+          "checkId": "chk-09",
+          "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)",
+          "automated": true,
           "entryNo": 6
         },
         {
           "date": "2026-09-22",
-          "stage": "Demolition Signals",
-          "activity": "Demolition & Building Permits",
-          "result": "no demo permit",
-          "automated": true,
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "checkId": "chk-12",
+          "result": "old/irrelevant results. RN for location: RN101872331",
+          "automated": false,
           "entryNo": 7
         },
         {
           "date": "2026-09-22",
           "stage": "Demolition Signals",
-          "activity": "Asbestos & Demolition Notification (DSHS)",
-          "result": "no results",
+          "activity": "Demolition & Building Permits",
+          "checkId": "chk-14",
+          "result": "no demo permit",
           "automated": true,
           "entryNo": 8
+        },
+        {
+          "date": "2026-09-22",
+          "stage": "Demolition Signals",
+          "activity": "Asbestos & Demolition Notification (DSHS)",
+          "checkId": "chk-15",
+          "result": "no results",
+          "automated": true,
+          "entryNo": 9
         },
         {
           "date": "2026-10-05",
           "stage": "Every Check",
           "activity": "Public Notices",
+          "checkId": "chk-01",
           "result": "no new results",
-          "automated": false,
-          "entryNo": 9
-        },
-        {
-          "date": "2026-10-05",
-          "stage": "Sale & Ownership",
-          "activity": "Deed Transfers & Liens",
-          "result": "Special Warranty Deed (#RP-2026-399473) & Deed of Trust ($7M loan from Greenberg Finance Co.) dated 9/30/2026 and recorded 10/1/2026 to OB Texas Properties LLC (Omair Bashir)",
           "automated": false,
           "entryNo": 10
         },
         {
           "date": "2026-10-05",
           "stage": "Sale & Ownership",
+          "activity": "Deed Transfers & Liens",
+          "checkId": "chk-03",
+          "result": "Special Warranty Deed (#RP-2026-399473) & Deed of Trust ($7M loan from Greenberg Finance Co.) dated 9/30/2026 and recorded 10/1/2026 to OB Texas Properties LLC (Omair Bashir)",
+          "automated": false,
+          "entryNo": 11
+        },
+        {
+          "date": "2026-10-05",
+          "stage": "Sale & Ownership",
           "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
           "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212",
           "automated": true,
-          "entryNo": 11
+          "entryNo": 12
         },
         {
           "date": "2026-10-05",
           "stage": "Plans & Use",
           "activity": "Environmental Registrations",
+          "checkId": "chk-12",
           "result": "no new results",
           "automated": false,
-          "entryNo": 12
-        },
-        {
-          "date": "2026-10-05",
-          "stage": "Demolition Signals",
-          "activity": "Demolition & Building Permits",
-          "result": "no demo permit",
-          "automated": true,
           "entryNo": 13
         },
         {
           "date": "2026-10-05",
           "stage": "Demolition Signals",
-          "activity": "Asbestos & Demolition Notification (DSHS)",
-          "result": "no results",
+          "activity": "Demolition & Building Permits",
+          "checkId": "chk-14",
+          "result": "no demo permit",
           "automated": true,
           "entryNo": 14
+        },
+        {
+          "date": "2026-10-05",
+          "stage": "Demolition Signals",
+          "activity": "Asbestos & Demolition Notification (DSHS)",
+          "checkId": "chk-15",
+          "result": "no results",
+          "automated": true,
+          "entryNo": 15
         },
         {
           "date": "2026-10-07",
           "stage": "Every Check",
           "activity": "Site Visit",
+          "checkId": "chk-02",
           "result": "Reported by Paul Homeyer: new 'For Information' banner from Greenberg & Company",
           "automated": false,
-          "entryNo": 15
+          "entryNo": 16
         },
         {
           "date": "2026-10-07",
           "stage": "Plans & Use",
           "activity": "Liquor Licensing",
+          "checkId": "chk-06",
           "result": "Submitted public records request for application materials, including site plan; denied due to confidentiality",
           "automated": true,
-          "entryNo": 16
+          "entryNo": 17
         },
         {
           "date": "2026-10-09",
           "stage": "Every Check",
           "activity": "Public Notices",
+          "checkId": "chk-01",
           "result": "no new results",
           "automated": false,
-          "entryNo": 17
+          "entryNo": 18
         },
         {
           "date": "2026-10-09",
           "stage": "Plans & Use",
           "activity": "Environmental Registrations",
+          "checkId": "chk-12",
           "result": "OB Texas Properties is registered as a customer since 10/9/2020, but no affiliated regulated entities. CN605820570",
           "automated": false,
-          "entryNo": 18
+          "entryNo": 19
         },
         {
           "date": "2026-10-13",
           "stage": "Demolition Signals",
           "activity": "Asbestos & Demolition Notification (DSHS)",
+          "checkId": "chk-15",
           "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)",
           "automated": true,
-          "entryNo": 19
+          "entryNo": 20
         },
         {
           "date": "2026-10-14",
           "stage": "Every Check",
           "activity": "Site Visit",
+          "checkId": "chk-02",
           "result": "Called Greenberg & Company. Took message; have not called back",
           "automated": false,
-          "entryNo": 20
+          "entryNo": 21
         },
         {
           "date": "2026-10-14",
           "stage": "Demolition Signals",
           "activity": "Demolition & Building Permits",
+          "checkId": "chk-14",
           "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St",
           "automated": true,
-          "entryNo": 21
+          "entryNo": 22
         },
         {
           "date": "2026-10-20",
           "stage": "Every Check",
           "activity": "Public Notices",
+          "checkId": "chk-01",
           "result": "no results",
           "automated": false,
-          "entryNo": 22
+          "entryNo": 23
         },
         {
           "date": "2026-10-20",
           "stage": "Plans & Use",
           "activity": "Environmental Registrations",
+          "checkId": "chk-12",
           "result": "no new results",
-          "automated": false,
-          "entryNo": 23
-        },
-        {
-          "date": "2026-10-22",
-          "stage": "Plans & Use",
-          "activity": "Pending Plans (Open Records & ILMS)",
-          "result": "COH Plan Review Project #26052089 filed under perimeter block address 530 Pierce St on 6/24/2026 for a proposed gas station; plans submitted 8 times and returned for revisions 10/2/2026",
           "automated": false,
           "entryNo": 24
         },
         {
           "date": "2026-10-22",
           "stage": "Plans & Use",
-          "activity": "Accessibility Registration (TDLR TABS)",
-          "result": "TDLR Project #TABS2027004510 ('MIDLINE BEAMER ROAD STREETSCAPE PHASE 2') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
-          "automated": true,
+          "activity": "Pending Plans (Open Records & ILMS)",
+          "checkId": "chk-08",
+          "result": "COH Plan Review Project #26052089 filed under perimeter block address 530 Pierce St on 6/24/2026 for a proposed gas station; plans submitted 8 times and returned for revisions 10/2/2026",
+          "automated": false,
           "entryNo": 25
+        },
+        {
+          "date": "2026-10-22",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "checkId": "chk-10",
+          "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road', Harris County 2101) registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munir Ishaq, P.E.), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+          "automated": true,
+          "entryNo": 26
+        },
+        {
+          "date": "2026-10-22",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "checkId": "chk-10",
+          "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+          "automated": true,
+          "entryNo": 27
         },
         {
           "date": "2026-10-23",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
+          "checkId": "chk-05",
           "result": "HCAD Account 0152300000001 (Tracts 1-16, Block 417 SSBB, 62,500 SF full city block bounded by Smith, Pierce, Brazos, and Gray); deed transfer to OB Texas Properties LLC closed 9/30/2026",
           "automated": true,
-          "entryNo": 26
+          "entryNo": 28
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "checkId": "chk-12",
+          "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found.",
+          "automated": false,
+          "entryNo": 29
+        },
+        {
+          "date": "2026-10-27",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "checkId": "chk-05",
+          "result": "[AUTO-SWEEP] HCAD Account 0152300000001 (2000 SMITH ST): Owner HI TECH AUTO REALTY LLC, Class F1 (Market $6414729, Impr $1727229, Land $4687500), Legal: LTS 1 2 3 & 4 BLK 12|HADLEY & FRANKLIN.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "hcad:0152300000001:HI TECH AUTO REALTY LLC:F1:1727229",
+          "links": [
+            {
+              "label": "HCAD Map (0152300000001)",
+              "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001"
+            }
+          ],
+          "entryNo": 30
         }
-      ]
+      ],
+      "appNo": "",
+      "sourcePlatApp": "",
+      "architectEngineer": "Heights Engineering (Munir Ishaq, P.E.)",
+      "pcMeetingDate": "",
+      "sourceCycleKey": "",
+      "hearingDateIso": "",
+      "documents": [],
+      "driveLinks": [],
+      "updatedAt": "2026-10-26T23:11:29.256Z",
+      "lastAutoSweepAt": "2026-10-27T16:56:26Z",
+      "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
-      "id": "plat-2026-1734",
-      "propertyName": "Iglesia Apostoles y Profetas Libres",
-      "address": "14310 BAIAMONTE ST",
+      "id": "plat-2026-1585",
+      "appNo": "2026-1585",
+      "sourcePlatApp": "2026-1585",
+      "sourceCycleKey": "2026-10-29",
+      "propertyName": "1226 W CLAY ST",
+      "platProjectName": "Montrose Residences",
+      "address": "1226 W CLAY ST",
       "secondaryAddresses": [],
-      "hcadAccount": "0590210100036",
+      "hcadAccount": "0231440000010",
+      "legalDescription": "Montrose / West Clay",
       "buildingId": "",
-      "yearBuilt": 1950,
+      "yearBuilt": 1930,
+      "yearRemodeled": null,
+      "architect": "",
       "designation": "None found",
-      "ownerOfRecord": "CGEA|Planning + Design",
-      "buyerRelatedEntities": "CGEA|Planning + Design, Carlos G Espinoza, CGEA|Planning + Design",
+      "neighborhood": "NEARTOWN - MONTROSE",
+      "trackerStatus": "Active / High Priority",
+      "threatCategory": "Significant Building Threatened",
+      "ownerOfRecord": "See HCAD Property Search",
+      "buyerRelatedEntities": "",
+      "lender": "",
+      "designFirm": "",
+      "pcMeetingDate": "2026-10-29",
+      "hearingDateIso": "2026-11-12",
       "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
+        "monitoringStarted": "2026-10-27",
+        "targetClosing": "",
+        "planningCommission": "2026-10-29",
+        "publicHearingDate": "2026-11-12",
+        "asbestosAbatementWindow": "",
+        "expectedDemolition": "",
+        "tdlrScheduledConstruction": ""
       },
-      "notes": "Atlas matched HCAD parcel at 14310 BAIAMONTE ST (built 1950) in Main Street Gardens.",
-      "lng": -95.50031,
-      "lat": 29.63181,
-      "tier": "2",
-      "appNo": "2026-1734",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94038/OriginalFiles/10192026_IglesiaApostolesyProfetasLibres.pdf?sv=2021-08-06&se=2051-10-19T15%3A44%3A37Z&sr=b&sp=r&sig=kHuyorLFncblxT3WEMdqlEc%2B21JzMc2%2FA75V5WzmSdg%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1733",
-      "propertyName": "Oasis Residences",
-      "address": "7111 BAUMAN RD",
-      "secondaryAddresses": [],
-      "hcadAccount": "0382120120005",
-      "buildingId": "",
-      "yearBuilt": 1946,
-      "designation": "None found",
-      "ownerOfRecord": "Mx4 Builders. LLC",
-      "buyerRelatedEntities": "Mx4 Builders. LLC, Amanda Rabius, Windrose",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 7111 BAUMAN RD with a standing structure built in 1946 in OASIS RESIDENCES. Proposed land use is Unrestricted.",
-      "lng": -95.37186,
-      "lat": 29.8251,
-      "tier": "2",
-      "appNo": "2026-1733",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93598/OriginalFiles/20261019-PLAT-OASIS_RESIDENCES-57821-P138408_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-19T15%3A37%3A43Z&sr=b&sp=r&sig=9MRYpPQ8n4eM0KTNNjejqjVfAOy5F%2F6NTuJazaZVyww%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1716",
-      "propertyName": "Thompson Heights",
-      "address": "1816 THOMPSON ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0342120000004",
-      "buildingId": "",
-      "yearBuilt": 1941,
-      "designation": "None found",
-      "ownerOfRecord": "CE Engineers & Development Consultants, Inc.",
-      "buyerRelatedEntities": "CE Engineers & Development Consultants, Inc., Melissa Lopez, CE Engineers & Development Consultants, INC",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 1816 THOMPSON ST with a standing structure built in 1941 in Spencer Addition.",
-      "lng": -95.40413,
-      "lat": 29.77636,
+      "notes": "Atlas matched HCAD parcel at 1226 W CLAY ST with a standing structure built in 1930 in Montrose / West Clay. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
+      "lng": -95.39412,
+      "lat": 29.75498,
       "tier": "1",
-      "appNo": "2026-1716",
-      "section": "D. Variances",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94027/OriginalFiles/261063125-Model.pdf?sv=2021-08-06&se=2051-10-19T13%3A38%3A41Z&sr=b&sp=r&sig=TF43byiCA%2FceMXRmsxdGXbD61HZh93lPxOT1%2BSbQT7I%3D",
-      "noticePdf": ""
+      "tierConfirmed": true,
+      "checklist": [
+        {
+          "id": "chk-01",
+          "stage": "Every Check",
+          "activity": "Public Notices",
+          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
+          "typicalTiming": "Any stage.",
+          "resourceLabel": "Texas Public Notices",
+          "resourceUrl": "https://www.texaspublicnotices.com/",
+          "additionalResourceLabel": "Houston Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-02",
+          "stage": "Every Check",
+          "activity": "Site Visit",
+          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
+          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
+          "resourceLabel": "Google Street View",
+          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=1226+W+CLAY+ST%2C+Houston%2C+TX",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-03",
+          "stage": "Sale & Ownership",
+          "activity": "Deed Transfers & Liens",
+          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
+          "typicalTiming": "Deeds usually record within days of closing.",
+          "resourceLabel": "HC Clerk Real Property",
+          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-04",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
+          "typicalTiming": "As soon as a new entity name surfaces.",
+          "resourceLabel": "Comptroller Entity Search",
+          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
+          "additionalResourceLabel": "Bizapedia Entity Lookup",
+          "additionalResourceUrl": "https://www.bizapedia.com/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-05",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
+          "typicalTiming": "Owner updates lag the deed by weeks to months.",
+          "resourceLabel": "HCAD Property Search",
+          "resourceUrl": "https://search.hcad.org/",
+          "additionalResourceLabel": "HCAD GIS Parcel Map",
+          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0231440000010",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-06",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
+          "typicalTiming": "Often filed months before construction or demolition permits.",
+          "resourceLabel": "TABC Public Inquiry",
+          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-07",
+          "stage": "Plans & Use",
+          "activity": "Hemp Licensing",
+          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
+          "typicalTiming": "After closing or lease execution for convenience-store operators.",
+          "resourceLabel": "DSHS License Search",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-08",
+          "stage": "Plans & Use",
+          "activity": "Pending Plans (Open Records & ILMS)",
+          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+          "typicalTiming": "Design and plan-review phase after closing.",
+          "resourceLabel": "Public Records (GovQA)",
+          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
+          "additionalResourceLabel": "ILMS Project Status",
+          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-09",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
+          "typicalTiming": "Can be filed before closing with seller consent or during design.",
+          "resourceLabel": "COH Biweekly Plat Reports",
+          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
+          "additionalResourceLabel": "COH Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "Flagged",
+          "lastChecked": "2026-10-29",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-29",
+              "result": "Confirmed from 2026-10-29 Planning Commission Agenda (2026-1585 - Class 3 Replat with Public Hearing Notice (C3N)): Atlas matched HCAD parcel at 1226 W CLAY ST with a standing structure built in 1930 in Montrose / West Clay.",
+              "links": [
+                {
+                  "label": "Public Hearing Notice PDF",
+                  "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
+                }
+              ],
+              "source": "plat-seed"
+            },
+            {
+              "date": "2026-10-15",
+              "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1585: 'Montrose Residences' (Class 3 Replat with Public Hearing Notice (C3N), IV. Establish Public Hearing Date (Nov 12, 2026)), Public Hearing 2026-11-12.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-09",
+              "agencyRecordId": "coh-plat:2026-10-15:2026-1585",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "Public Hearing Notice PDF",
+                  "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            },
+            {
+              "date": "2026-10-29",
+              "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1585: 'Montrose Residences' (Class 3 Replat with Public Hearing Notice (C3N), C. Public Hearing Notice Posted (Hearing: Nov 12, 2026)), Public Hearing 2026-11-12.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-09",
+              "agencyRecordId": "coh-plat:2026-10-29:2026-1585",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "Public Hearing Notice PDF",
+                  "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-10",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
+          "typicalTiming": "Design phase, often months before building or demolition permits.",
+          "resourceLabel": "TDLR TABS Search",
+          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "Flagged",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2023-02-28",
+              "result": "[AUTO-SWEEP] TDLR TABS #TABS2023012959 (HARLOW) at 1220 W. CLAY STREET 1226 W. CLAY STREET Houston, TX 77019: $282,000 Renovation/Alteration (CONVERT AND REMODEL FORMER RESIDENTIAL INTO COMMERCIAL RESTAURANT AND LOUNGE), Owner JEFF BARATI.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-10",
+              "agencyRecordId": "tdlr-tabs:TABS2023012959",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "TDLR TABS (TABS2023012959)",
+                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2023012959"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-11",
+          "stage": "Plans & Use",
+          "activity": "Easements, Abandonments & TIRZ",
+          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
+          "typicalTiming": "Design phase, usually after closing.",
+          "resourceLabel": "City Council Agendas (NovusAgenda)",
+          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-12",
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
+          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
+          "resourceLabel": "TCEQ Central Registry",
+          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-13",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
+          "typicalTiming": "Any stage, especially while a structure is vacant.",
+          "resourceLabel": "311 Service Request Viewer",
+          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
+          "additionalResourceLabel": "Community Code Enforcement",
+          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-14",
+          "stage": "Demolition Signals",
+          "activity": "Demolition & Building Permits",
+          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
+          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
+          "resourceLabel": "Houston Sold Permits",
+          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-15",
+          "stage": "Demolition Signals",
+          "activity": "Asbestos & Demolition Notification (DSHS)",
+          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
+          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
+          "resourceLabel": "DSHS Notifications",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        }
+      ],
+      "findingsLog": [
+        {
+          "date": "2023-02-28",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "checkId": "chk-10",
+          "result": "[AUTO-SWEEP] TDLR TABS #TABS2023012959 (HARLOW) at 1220 W. CLAY STREET 1226 W. CLAY STREET Houston, TX 77019: $282,000 Renovation/Alteration (CONVERT AND REMODEL FORMER RESIDENTIAL INTO COMMERCIAL RESTAURANT AND LOUNGE), Owner JEFF BARATI.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "tdlr-tabs:TABS2023012959",
+          "links": [
+            {
+              "label": "TDLR TABS (TABS2023012959)",
+              "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2023012959"
+            }
+          ],
+          "entryNo": 1
+        },
+        {
+          "date": "2026-10-15",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "checkId": "chk-09",
+          "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1585: 'Montrose Residences' (Class 3 Replat with Public Hearing Notice (C3N), IV. Establish Public Hearing Date (Nov 12, 2026)), Public Hearing 2026-11-12.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "coh-plat:2026-10-15:2026-1585",
+          "links": [
+            {
+              "label": "Public Hearing Notice PDF",
+              "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
+            }
+          ],
+          "entryNo": 2
+        },
+        {
+          "date": "2026-10-29",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "checkId": "chk-09",
+          "result": "Confirmed from 2026-10-29 Planning Commission Agenda (2026-1585 - Class 3 Replat with Public Hearing Notice (C3N)): Atlas matched HCAD parcel at 1226 W CLAY ST with a standing structure built in 1930 in Montrose / West Clay.",
+          "automated": true,
+          "source": "plat-seed",
+          "links": [
+            {
+              "label": "Public Hearing Notice PDF",
+              "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
+            }
+          ],
+          "entryNo": 3
+        },
+        {
+          "date": "2026-10-29",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "checkId": "chk-09",
+          "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1585: 'Montrose Residences' (Class 3 Replat with Public Hearing Notice (C3N), C. Public Hearing Notice Posted (Hearing: Nov 12, 2026)), Public Hearing 2026-11-12.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "coh-plat:2026-10-29:2026-1585",
+          "links": [
+            {
+              "label": "Public Hearing Notice PDF",
+              "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
+            }
+          ],
+          "entryNo": 4
+        }
+      ],
+      "architectEngineer": "",
+      "reportedBy": "",
+      "phPastActions": "",
+      "searchTerms": {
+        "entities": [],
+        "dbas": [],
+        "officers": [],
+        "legalKeywords": [],
+        "altAddresses": [],
+        "projectNumbers": []
+      },
+      "documents": [],
+      "driveLinks": [],
+      "lastAutoSweepAt": "2026-10-27T16:56:26Z",
+      "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
-      "id": "plat-2026-1715",
-      "propertyName": "Fifth Ward Senior Housing Addition",
-      "address": "1702 SAKOWITZ ST",
+      "id": "prop-1792765948557",
+      "propertyName": "Park Place Methodist Church",
+      "address": "3827 Broadway St",
       "secondaryAddresses": [],
-      "hcadAccount": "0120630000001, 0120630000003, 1237500010001",
-      "buildingId": "",
-      "yearBuilt": 1920,
-      "designation": "None found",
-      "ownerOfRecord": "Ward, Getz & Associates, LLC",
-      "buyerRelatedEntities": "Ward, Getz & Associates, LLC, David Hernandez, Windrose",
+      "hcadAccount": "0283120000009",
+      "ilmsProjectNo": "",
+      "yearBuilt": "",
+      "designation": "None",
+      "ownerOfRecord": "Park Place Methodist Church",
+      "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
+        "monitoringStarted": "2026-10-23"
       },
-      "notes": "Atlas matched HCAD parcel at 1702 SAKOWITZ ST with a standing structure built in 1920 in Denver Addition, and Lionforce Subdivision. Proposed land use is Unrestricted.",
-      "lng": -95.31339,
-      "lat": 29.77776,
+      "notes": "A new gas station development has been proposed for the property. A replat application was deferred twice and then withdrawn. Council Member Martinez requested a review of the proposal against neighborhood deed restrictions. Legal Department found that the lots are restricted to residential and cannot be replatted into an unrestricted reserve. The building appears to cover 2 lots. Next steps are unknown. Reveille Park Place Neighborhood Association would like the building to remain with a community-oriented use. Joe Wilson (Glenbrook Valley president) also wants the building to remain.",
       "tier": "1",
-      "appNo": "2026-1715",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93975/OriginalFiles/20261015-PLAT-FIFTH_WARD_SENIOR_HOUSING_ADDITION-60977-P140293_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T21%3A23%3A26Z&sr=b&sp=r&sig=BiphpEAVGyYDoe0fX%2B1rGNobScTk6lq%2B35vqNfZ62EI%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1704",
-      "propertyName": "Hardy Park Plaza",
-      "address": "2107 HARDY ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0230120000010",
-      "buildingId": "",
-      "yearBuilt": 1926,
-      "designation": "None found",
-      "ownerOfRecord": "New Era Development & Land Services",
-      "buyerRelatedEntities": "New Era Development & Land Services, Nahom Tesfa, New Era Development & Land Services",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
+      "checklist": [
+        {
+          "id": "chk-01",
+          "stage": "Every Check",
+          "activity": "Public Notices",
+          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
+          "typicalTiming": "Any stage.",
+          "resourceLabel": "Texas Public Notices",
+          "resourceUrl": "https://www.texaspublicnotices.com/",
+          "additionalResourceLabel": "Houston Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-02",
+          "stage": "Every Check",
+          "activity": "Site Visit",
+          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
+          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
+          "resourceLabel": "Google Street View",
+          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=3827+Broadway+St%2C+Houston%2C+TX",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-03",
+          "stage": "Sale & Ownership",
+          "activity": "Deed Transfers & Liens",
+          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
+          "typicalTiming": "Deeds usually record within days of closing.",
+          "resourceLabel": "HC Clerk Real Property",
+          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "In Progress",
+          "lastChecked": "2026-10-26",
+          "automated": false,
+          "checks": [
+            {
+              "date": "2026-10-26",
+              "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
+            }
+          ]
+        },
+        {
+          "id": "chk-04",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
+          "typicalTiming": "As soon as a new entity name surfaces.",
+          "resourceLabel": "Comptroller Entity Search",
+          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
+          "additionalResourceLabel": "Bizapedia Entity Lookup",
+          "additionalResourceUrl": "https://www.bizapedia.com/",
+          "status": "In Progress",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2025-08-15",
+              "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32100987570: BROADWAY ST C STORE LLC (DBA BRAKE TIME) at 3827 BROADWAY ST.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-04",
+              "agencyRecordId": "comptroller-sales:32100987570:1",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "Comptroller #32100987570",
+                  "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32100987570"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-05",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
+          "typicalTiming": "Owner updates lag the deed by weeks to months.",
+          "resourceLabel": "HCAD Property Search",
+          "resourceUrl": "https://search.hcad.org/",
+          "additionalResourceLabel": "HCAD GIS Parcel Map",
+          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0283120000009",
+          "status": "In Progress",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-27",
+              "result": "[AUTO-SWEEP] HCAD Account 0283120000009 (3827 BROADWAY ST): Owner PARK PLACE METHODISTCHURCH, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 THRU 6|BLK 44|PARK PLACE.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-05",
+              "agencyRecordId": "hcad:0283120000009:PARK PLACE METHODISTCHURCH:XV:0",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "HCAD Map (0283120000009)",
+                  "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0283120000009"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-06",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
+          "typicalTiming": "Often filed months before construction or demolition permits.",
+          "resourceLabel": "TABC Public Inquiry",
+          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-07",
+          "stage": "Plans & Use",
+          "activity": "Hemp Licensing",
+          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
+          "typicalTiming": "After closing or lease execution for convenience-store operators.",
+          "resourceLabel": "DSHS License Search",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-08",
+          "stage": "Plans & Use",
+          "activity": "Pending Plans (Open Records & ILMS)",
+          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+          "typicalTiming": "Design and plan-review phase after closing.",
+          "resourceLabel": "Public Records (GovQA)",
+          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
+          "additionalResourceLabel": "ILMS Project Status",
+          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-09",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
+          "typicalTiming": "Can be filed before closing with seller consent or during design.",
+          "resourceLabel": "COH Biweekly Plat Reports",
+          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
+          "additionalResourceLabel": "COH Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-10",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
+          "typicalTiming": "Design phase, often months before building or demolition permits.",
+          "resourceLabel": "TDLR TABS Search",
+          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-11",
+          "stage": "Plans & Use",
+          "activity": "Easements, Abandonments & TIRZ",
+          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
+          "typicalTiming": "Design phase, usually after closing.",
+          "resourceLabel": "City Council Agendas (NovusAgenda)",
+          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-12",
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
+          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
+          "resourceLabel": "TCEQ Central Registry",
+          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-13",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
+          "typicalTiming": "Any stage, especially while a structure is vacant.",
+          "resourceLabel": "311 Service Request Viewer",
+          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
+          "additionalResourceLabel": "Community Code Enforcement",
+          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-14",
+          "stage": "Demolition Signals",
+          "activity": "Demolition & Building Permits",
+          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
+          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
+          "resourceLabel": "Houston Sold Permits",
+          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-15",
+          "stage": "Demolition Signals",
+          "activity": "Asbestos & Demolition Notification (DSHS)",
+          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
+          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
+          "resourceLabel": "DSHS Notifications",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        }
+      ],
+      "updatedAt": "2026-10-26T23:56:22.599Z",
+      "updatedBy": "Emily Ardoin",
+      "appNo": "",
+      "sourcePlatApp": "",
+      "designFirm": "",
+      "architectEngineer": "",
+      "legalDescription": "",
+      "trackerStatus": "Active / High Priority",
+      "threatCategory": "",
+      "neighborhood": "",
+      "reportedBy": "",
+      "phPastActions": "",
+      "platProjectName": "",
+      "pcMeetingDate": "",
+      "sourceCycleKey": "",
+      "hearingDateIso": "",
+      "searchTerms": {
+        "entities": [],
+        "dbas": [],
+        "officers": [],
+        "legalKeywords": [],
+        "altAddresses": [],
+        "projectNumbers": []
       },
-      "notes": "Atlas matched HCAD parcel at 2107 HARDY ST with a standing structure built in 1926 in LITTLE ADDITION. Proposed replat divides 0.1148000000 ac into 2 lots (Landscape or Open Space; Single Family Residential (Shared Driveways)).",
-      "lng": -95.35165,
-      "lat": 29.78091,
-      "tier": "1",
-      "appNo": "2026-1704",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94003/OriginalFiles/HARDY_PARK_PLAZA-Layout1.pdf?sv=2021-08-06&se=2051-10-19T02%3A09%3A19Z&sr=b&sp=r&sig=rturBQbC4pwqv5CuJwjjtOinRL0qnTiaAFLRX5QkSxQ%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1697",
-      "propertyName": "Visual Creators Estate at McDaniel",
-      "address": "719 MCDANIEL ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0651060050025",
-      "buildingId": "",
-      "yearBuilt": 1945,
-      "designation": "None found",
-      "ownerOfRecord": "CE Engineers & Development Consultants, Inc.",
-      "buyerRelatedEntities": "CE Engineers & Development Consultants, Inc., Melissa Lopez, CE Engineers & Development Consultants, INC",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 719 MCDANIEL ST with a standing structure built in 1945 in Stratton Place. Proposed replat divides 0.2686000000 ac into 3 lots (Residential Guest Parking; Single Family Residential (Shared Driveways)).",
-      "lng": -95.36236,
-      "lat": 29.83162,
-      "tier": "2",
-      "appNo": "2026-1697",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94016/OriginalFiles/261067125-Model.pdf?sv=2021-08-06&se=2051-10-16T22%3A18%3A40Z&sr=b&sp=r&sig=umfcdWECm%2BH7N5vdOHWcg5ABVuGWsoTGIOE7ytRn8yM%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1687",
-      "propertyName": "Ferrari of Houston",
-      "address": "6100 SOUTHWEST FWY; 3410 E GREENRIDGE DR",
-      "secondaryAddresses": [],
-      "hcadAccount": "0690440070234; 0690440070218",
-      "buildingId": "",
-      "yearBuilt": 1973,
-      "designation": "None found",
-      "ownerOfRecord": "Ward, Getz & Associates, LLC",
-      "buyerRelatedEntities": "Ward, Getz & Associates, LLC, Amanda Rabius, Windrose",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 6100 SOUTHWEST FWY; 3410 E GREENRIDGE DR (built 1973) in Glenhaven Estates Section 2.",
-      "lng": -95.48743,
-      "lat": 29.72677,
-      "tier": "2",
-      "appNo": "2026-1687",
-      "section": "A. Consent",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93994/OriginalFiles/20261016-PLAT-FERRARI_OF_HOUSTON-60690-P136126_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T18%3A04%3A38Z&sr=b&sp=r&sig=mNaezvO9Dh7YpVeR0xfUyPN440%2FDxhXOo0ARjwW24XM%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1674",
-      "propertyName": "Brittmoore Founders District partial replat no 1",
-      "address": "1256 BRITTMOORE RD",
-      "secondaryAddresses": [],
-      "hcadAccount": "1425880010001",
-      "buildingId": "",
-      "yearBuilt": 1970,
-      "designation": "None found",
-      "ownerOfRecord": "Puma Development",
-      "buyerRelatedEntities": "Puma Development, Michael Haworth, The Pinnell Group, LLC",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 1256 BRITTMOORE RD (built 1970) in Brittmoore Founders District.",
-      "lng": -95.5693,
-      "lat": 29.79369,
-      "tier": "2",
-      "appNo": "2026-1674",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93963/OriginalFiles/BRITTMOORE_FOUNDERS_DISTRICT_PARTIAL_REPLAT_NO_1.pdf?sv=2021-08-06&se=2051-10-15T17%3A30%3A57Z&sr=b&sp=r&sig=6aWlinb72X2%2BbjW4y5UvpxpyBThc4klcRUJjtQomTM0%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1671",
-      "propertyName": "Houston Heights partial replat no 33",
-      "address": "239 W  20TH ST; 235 W  20TH ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0200820000001,0200820000051",
-      "buildingId": "0200820000001",
-      "yearBuilt": 1959,
-      "designation": "None found",
-      "ownerOfRecord": "Kimko Realty Corporation",
-      "buyerRelatedEntities": "Kimko Realty Corporation, Cathy Fontenot, Pape-Dawson",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 239 W  20TH ST; 235 W  20TH ST with a standing structure built in 1959 in Houston Heights. Proposed land use is Commercial.",
-      "lng": -95.40012,
-      "lat": 29.80479,
-      "tier": "2",
-      "appNo": "2026-1671",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93960/OriginalFiles/PL43271-000.pdf?sv=2021-08-06&se=2051-10-16T15%3A22%3A04Z&sr=b&sp=r&sig=nsmfyW84pK1yDBZ9essmqegWceuASQvK1yy1KK9J%2BrM%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1634",
-      "propertyName": "Aurora Fields",
-      "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0600750000011, 0600750000012, \t0600750000013",
-      "buildingId": "",
-      "yearBuilt": 1948,
-      "designation": "None found",
-      "ownerOfRecord": "To be determined",
-      "buyerRelatedEntities": "To be determined, Stephanie Mendoza, SEM SERVICES",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 1804 MANSFIELD ST; 1814 MANSFIELD ST (built 1948) in highland heights annex no 5.",
-      "lng": -95.43757,
-      "lat": 29.85264,
-      "tier": "2",
-      "appNo": "2026-1634",
-      "section": "A. Consent",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1587",
-      "propertyName": "Refokas Estates at Canal Street",
-      "address": "2501 CANAL ST; 2507 CANAL ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0231000000006, 0231000000007",
-      "buildingId": "",
-      "yearBuilt": 1925,
-      "designation": "None found",
-      "ownerOfRecord": "CAS Consultants, LLC",
-      "buyerRelatedEntities": "CAS Consultants, LLC, Juan Castillo, CAS Consultants, LLC",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 2501 CANAL ST; 2507 CANAL ST with a standing structure built in 1925 in Lubbock Grove. Proposed land use is Commercial.",
-      "lng": -95.34493,
-      "lat": 29.75718,
-      "tier": "1",
-      "appNo": "2026-1587",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93886/OriginalFiles/05-Refoka_Estates_at_Canal_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-02T11%3A52%3A10Z&sr=b&sp=r&sig=3X6mU%2FTN4SLbAbeflBdaFZ%2FkBde5plfmUAuJ%2FmIAfJc%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1570",
-      "propertyName": "Bacher Manor",
-      "address": "5603 BACHER ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0381770000024",
-      "buildingId": "",
-      "yearBuilt": 1933,
-      "designation": "None found",
-      "ownerOfRecord": "CE Engineers & Development Consultants, Inc.",
-      "buyerRelatedEntities": "CE Engineers & Development Consultants, Inc., Melissa Lopez, CE Engineers & Development Consultants, INC",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 5603 BACHER ST with a standing structure built in 1933 in Holleman's Addition. The applicant is requesting a variance for a 5\u2019 side building line on the south side of the property, along an undeveloped local street.",
-      "lng": -95.27768,
-      "lat": 29.81229,
-      "tier": "1",
-      "appNo": "2026-1570",
-      "section": "D. Variances",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1570/OriginalFiles/261061125-Model_REV.pdf?sv=2021-08-06&se=2051-10-20T19%3A43%3A19Z&sr=b&sp=r&sig=G9ocyMmNgHm%2FyMvaHn%2FO9NIAzALvNpym0GqoWQYJRjY%3D",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1570-Bacher-Manor.pdf"
-    },
-    {
-      "id": "plat-2026-1569",
-      "propertyName": "Kafi Commons",
-      "address": "4710 W ALABAMA ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0780870010001",
-      "buildingId": "",
-      "yearBuilt": 1956,
-      "designation": "None found",
-      "ownerOfRecord": "Climax Builders & Designers",
-      "buyerRelatedEntities": "Climax Builders & Designers, JP Anders, Windrose",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 4710 W ALABAMA ST with a standing structure built in 1956 in Greenwood Addition. Proposed land use is Unrestricted.",
-      "lng": -95.45628,
-      "lat": 29.73833,
-      "tier": "1",
-      "appNo": "2026-1569",
-      "section": "C. Public Hearing",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf"
-    },
-    {
-      "id": "plat-2026-1502",
-      "propertyName": "Sevilla Commercial",
-      "address": "8017 HOMESTEAD RD",
-      "secondaryAddresses": [],
-      "hcadAccount": "0731100150467; 0731100150468;",
-      "buildingId": "",
-      "yearBuilt": 1950,
-      "designation": "None found",
-      "ownerOfRecord": "Franklin Sevilla",
-      "buyerRelatedEntities": "Franklin Sevilla, Paul Coyne, Tetra Land Services",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 8017 HOMESTEAD RD with a standing structure built in 1950 in Pelham Place Sec 2. Proposed land use is Commercial.",
-      "lng": -95.30232,
-      "lat": 29.8356,
-      "tier": "1",
-      "appNo": "2026-1502",
-      "section": "C. Public Hearing",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf"
-    },
-    {
-      "id": "plat-2026-1427",
-      "propertyName": "Neyland Manors",
-      "address": "604 NEYLAND ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0661100030002",
-      "buildingId": "",
-      "yearBuilt": 1948,
-      "designation": "None found",
-      "ownerOfRecord": "Hart Custom Homes LLC",
-      "buyerRelatedEntities": "Hart Custom Homes LLC, Joyce Owens, Owens Management Systems, LLC",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Atlas matched HCAD parcel at 604 NEYLAND ST with a standing structure built in 1948 in Oxford Place. Proposed replat divides 0.1694000000 ac into 2 lots (Single Family Residential (Public Street)).",
-      "lng": -95.39165,
-      "lat": 29.82565,
-      "tier": "2",
-      "appNo": "2026-1427",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D",
-      "noticePdf": ""
+      "documents": [],
+      "driveLinks": [],
+      "findingsLog": [
+        {
+          "date": "2025-08-15",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
+          "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32100987570: BROADWAY ST C STORE LLC (DBA BRAKE TIME) at 3827 BROADWAY ST.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "comptroller-sales:32100987570:1",
+          "links": [
+            {
+              "label": "Comptroller #32100987570",
+              "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32100987570"
+            }
+          ],
+          "entryNo": 1
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Sale & Ownership",
+          "activity": "Deed Transfers & Liens",
+          "checkId": "chk-03",
+          "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found.",
+          "automated": false,
+          "entryNo": 2
+        },
+        {
+          "date": "2026-10-27",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "checkId": "chk-05",
+          "result": "[AUTO-SWEEP] HCAD Account 0283120000009 (3827 BROADWAY ST): Owner PARK PLACE METHODISTCHURCH, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 THRU 6|BLK 44|PARK PLACE.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "hcad:0283120000009:PARK PLACE METHODISTCHURCH:XV:0",
+          "links": [
+            {
+              "label": "HCAD Map (0283120000009)",
+              "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0283120000009"
+            }
+          ],
+          "entryNo": 3
+        }
+      ],
+      "tierConfirmed": true,
+      "lastAutoSweepAt": "2026-10-27T16:56:26Z",
+      "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
       "id": "plat-DPV-26073533",
+      "appNo": "DPV-26073533",
+      "sourcePlatApp": "DPV-26073533",
+      "sourceCycleKey": "2026-10-29",
       "propertyName": "801 McGowen Street",
-      "address": "2603 MILAM ST 15",
+      "platProjectName": "801 McGowen Street",
+      "address": "801 MCGOWEN ST",
       "secondaryAddresses": [],
-      "hcadAccount": "0060610000001",
+      "hcadAccount": "0012070000001",
+      "legalDescription": "South Side Buffalo Bayou (Midtown)",
       "buildingId": "bld_003724",
-      "yearBuilt": 1922,
+      "yearBuilt": "ca. 1941 (subdiv.)",
+      "yearRemodeled": null,
+      "architect": "",
       "designation": "None found",
-      "ownerOfRecord": "",
+      "neighborhood": "MIDTOWN",
+      "trackerStatus": "Active / High Priority",
+      "threatCategory": "Setback / Walkable Realm Variance",
+      "ownerOfRecord": "See HCAD Property Search",
       "buyerRelatedEntities": "Jessica Rubio",
+      "lender": "",
+      "designFirm": "Jessica Rubio",
+      "pcMeetingDate": "2026-10-29",
+      "hearingDateIso": "2026-10-15",
       "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
+        "monitoringStarted": "2026-10-16",
+        "planningCommission": "2026-10-16"
       },
       "notes": "Section K Development Plat Variance (DPV-26073533) in MIDTOWN. The applicant is requesting to allow auto-related uses in the pedestrian realm along McGowen Street for a new convenience store, fuel canopy, and retail shell building.",
       "lng": -95.37577,
       "lat": 29.74613,
       "tier": "1",
-      "appNo": "DPV-26073533",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf"
-    },
-    {
-      "id": "plat-DPV-26075937",
-      "propertyName": "1501 Wichman Street",
-      "address": "1501 WICHMAN ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0352750130042",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "Eric Hughes",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
+      "tierConfirmed": true,
+      "checklist": [
+        {
+          "id": "chk-01",
+          "stage": "Every Check",
+          "activity": "Public Notices",
+          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
+          "typicalTiming": "Any stage.",
+          "resourceLabel": "Texas Public Notices",
+          "resourceUrl": "https://www.texaspublicnotices.com/",
+          "additionalResourceLabel": "Houston Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-02",
+          "stage": "Every Check",
+          "activity": "Site Visit",
+          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
+          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
+          "resourceLabel": "Google Street View",
+          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=801+MCGOWEN+ST%2C+Houston%2C+TX",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-03",
+          "stage": "Sale & Ownership",
+          "activity": "Deed Transfers & Liens",
+          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
+          "typicalTiming": "Deeds usually record within days of closing.",
+          "resourceLabel": "HC Clerk Real Property",
+          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-04",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
+          "typicalTiming": "As soon as a new entity name surfaces.",
+          "resourceLabel": "Comptroller Entity Search",
+          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
+          "additionalResourceLabel": "Bizapedia Entity Lookup",
+          "additionalResourceUrl": "https://www.bizapedia.com/",
+          "status": "In Progress",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-05-09",
+              "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32102590166: 801 STORE LLC (DBA INTIME MIDTOWN) at 801 MCGOWEN ST.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-04",
+              "agencyRecordId": "comptroller-sales:32102590166:2",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "Comptroller #32102590166",
+                  "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32102590166"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-05",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
+          "typicalTiming": "Owner updates lag the deed by weeks to months.",
+          "resourceLabel": "HCAD Property Search",
+          "resourceUrl": "https://search.hcad.org/",
+          "additionalResourceLabel": "HCAD GIS Parcel Map",
+          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0012070000001",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-06",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
+          "typicalTiming": "Often filed months before construction or demolition permits.",
+          "resourceLabel": "TABC Public Inquiry",
+          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "In Progress",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-06-08",
+              "result": "[AUTO-SWEEP] TABC License #200199120 (Q, Active): 801 Store LLC (DBA InTime Midtown) at 801 McGowen St.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-06",
+              "agencyRecordId": "tabc-active:200199120",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "TABC Public Inquiry",
+                  "url": "https://apps.tabc.texas.gov/publicinquiry/"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-07",
+          "stage": "Plans & Use",
+          "activity": "Hemp Licensing",
+          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
+          "typicalTiming": "After closing or lease execution for convenience-store operators.",
+          "resourceLabel": "DSHS License Search",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-08",
+          "stage": "Plans & Use",
+          "activity": "Pending Plans (Open Records & ILMS)",
+          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+          "typicalTiming": "Design and plan-review phase after closing.",
+          "resourceLabel": "Public Records (GovQA)",
+          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
+          "additionalResourceLabel": "ILMS Project Status",
+          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-09",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
+          "typicalTiming": "Can be filed before closing with seller consent or during design.",
+          "resourceLabel": "COH Biweekly Plat Reports",
+          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
+          "additionalResourceLabel": "COH Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "Flagged",
+          "lastChecked": "2026-10-29",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-29",
+              "result": "Confirmed from 2026-10-29 Planning Commission Agenda (DPV-26073533 - Development Plat Variance (DPV)): Section K Development Plat Variance (DPV-26073533) in MIDTOWN. The applicant is requesting to allow auto-related uses in the pedestrian realm along McGowen Street for a new convenience store, fuel canopy, and retail shell building.",
+              "links": [
+                {
+                  "label": "Public Hearing Notice PDF",
+                  "url": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf"
+                }
+              ],
+              "source": "plat-seed"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-10",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
+          "typicalTiming": "Design phase, often months before building or demolition permits.",
+          "resourceLabel": "TDLR TABS Search",
+          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "Flagged",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-08-21",
+              "result": "[AUTO-SWEEP] TDLR TABS #TABS2026028486 (SHELL BUILDING) at 801 MCGOWEN Houston, TX 77006: $300,000 New Construction (NEW CONSTRUCTION OF 4508 SHELL BLDG), Owner 801 BUSINESS LLC, Design Firm TN ASSOCIATES INC.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-10",
+              "agencyRecordId": "tdlr-tabs:TABS2026028486",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "TDLR TABS (TABS2026028486)",
+                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2026028486"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            },
+            {
+              "date": "2026-08-21",
+              "result": "[AUTO-SWEEP] TDLR TABS #TABS2026028478 (C STORE WITH GAS STATION) at 801 MCGOWEN SUITE A Houston, TX 77006: $1,000,000 New Construction (NEW CONSTRUCTION OF 4512 SF CONVENIENCE STORE AND GAS STATION), Owner 801 BUSINESS LLC, Design Firm TN ASSOCIATES INC.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-10",
+              "agencyRecordId": "tdlr-tabs:TABS2026028478",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "TDLR TABS (TABS2026028478)",
+                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2026028478"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-11",
+          "stage": "Plans & Use",
+          "activity": "Easements, Abandonments & TIRZ",
+          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
+          "typicalTiming": "Design phase, usually after closing.",
+          "resourceLabel": "City Council Agendas (NovusAgenda)",
+          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-12",
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
+          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
+          "resourceLabel": "TCEQ Central Registry",
+          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-13",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
+          "typicalTiming": "Any stage, especially while a structure is vacant.",
+          "resourceLabel": "311 Service Request Viewer",
+          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
+          "additionalResourceLabel": "Community Code Enforcement",
+          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-14",
+          "stage": "Demolition Signals",
+          "activity": "Demolition & Building Permits",
+          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
+          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
+          "resourceLabel": "Houston Sold Permits",
+          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-15",
+          "stage": "Demolition Signals",
+          "activity": "Asbestos & Demolition Notification (DSHS)",
+          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
+          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
+          "resourceLabel": "DSHS Notifications",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        }
+      ],
+      "findingsLog": [
+        {
+          "date": "2026-05-09",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
+          "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32102590166: 801 STORE LLC (DBA INTIME MIDTOWN) at 801 MCGOWEN ST.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "comptroller-sales:32102590166:2",
+          "links": [
+            {
+              "label": "Comptroller #32102590166",
+              "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32102590166"
+            }
+          ],
+          "entryNo": 1
+        },
+        {
+          "date": "2026-06-08",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "checkId": "chk-06",
+          "result": "[AUTO-SWEEP] TABC License #200199120 (Q, Active): 801 Store LLC (DBA InTime Midtown) at 801 McGowen St.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "tabc-active:200199120",
+          "links": [
+            {
+              "label": "TABC Public Inquiry",
+              "url": "https://apps.tabc.texas.gov/publicinquiry/"
+            }
+          ],
+          "entryNo": 2
+        },
+        {
+          "date": "2026-08-21",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "checkId": "chk-10",
+          "result": "[AUTO-SWEEP] TDLR TABS #TABS2026028486 (SHELL BUILDING) at 801 MCGOWEN Houston, TX 77006: $300,000 New Construction (NEW CONSTRUCTION OF 4508 SHELL BLDG), Owner 801 BUSINESS LLC, Design Firm TN ASSOCIATES INC.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "tdlr-tabs:TABS2026028486",
+          "links": [
+            {
+              "label": "TDLR TABS (TABS2026028486)",
+              "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2026028486"
+            }
+          ],
+          "entryNo": 3
+        },
+        {
+          "date": "2026-08-21",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "checkId": "chk-10",
+          "result": "[AUTO-SWEEP] TDLR TABS #TABS2026028478 (C STORE WITH GAS STATION) at 801 MCGOWEN SUITE A Houston, TX 77006: $1,000,000 New Construction (NEW CONSTRUCTION OF 4512 SF CONVENIENCE STORE AND GAS STATION), Owner 801 BUSINESS LLC, Design Firm TN ASSOCIATES INC.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "tdlr-tabs:TABS2026028478",
+          "links": [
+            {
+              "label": "TDLR TABS (TABS2026028478)",
+              "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2026028478"
+            }
+          ],
+          "entryNo": 4
+        },
+        {
+          "date": "2026-10-29",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "checkId": "chk-09",
+          "result": "Confirmed from 2026-10-29 Planning Commission Agenda (DPV-26073533 - Development Plat Variance (DPV)): Section K Development Plat Variance (DPV-26073533) in MIDTOWN. The applicant is requesting to allow auto-related uses in the pedestrian realm along McGowen Street for a new convenience store, fuel canopy, and retail shell building.",
+          "automated": true,
+          "source": "plat-seed",
+          "links": [
+            {
+              "label": "Public Hearing Notice PDF",
+              "url": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf"
+            }
+          ],
+          "entryNo": 5
+        }
+      ],
+      "architectEngineer": "Jessica Rubio",
+      "reportedBy": "",
+      "phPastActions": "",
+      "searchTerms": {
+        "entities": [],
+        "dbas": [],
+        "officers": [],
+        "legalKeywords": [],
+        "altAddresses": [],
+        "projectNumbers": []
       },
-      "notes": "Section K Development Plat Variance (DPV-26075937) in WASHINGTON AVENUE COALITION / MEMORIAL PARK. The applicant is requesting a 5-foot building line in lieu of the city ordinance 10-foot garage building line along East 2nd Street, a local street, for a new single-family residence.",
-      "lng": -95.39341,
-      "lat": 29.77464,
-      "tier": "2",
-      "appNo": "DPV-26075937",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/DPV-26075937-1501-Wichman-Street.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/DPV-26075937-1501-Wichman-Street.pdf"
+      "documents": [],
+      "driveLinks": [],
+      "updatedAt": "2026-10-23T15:20:00Z",
+      "lastAutoSweepAt": "2026-10-27T16:56:26Z",
+      "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
-      "id": "plat-DPV-2026-1442",
-      "propertyName": "Forest Green Reserve",
-      "address": "Forest Green Reserve",
+      "id": "prop-1792765566494",
+      "propertyName": "802 Lovett Blvd",
+      "address": "802 Lovett Blvd",
       "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
+      "hcadAccount": "0261520000021",
+      "ilmsProjectNo": "",
       "yearBuilt": "",
-      "designation": "None found",
+      "designation": "None",
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
+        "monitoringStarted": "2026-10-23"
       },
-      "notes": "Section K Development Plat Variance (DPV-2026-1442) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1442",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1553",
-      "propertyName": "Denton Street Villas",
-      "address": "Denton Street Villas",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1553) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1553",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1553_Denton-Street-Villas_PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1553_Denton-Street-Villas_PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1562",
-      "propertyName": "Highland Heights Green partial replat no 1",
-      "address": "within the boundaries of this plat and always available for the general use of said owners and to the public for firefighters, fire fighting equipment, police and emergency vehicles of whatever nature at all times",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1562) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1562",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1585",
-      "propertyName": "Montrose Residences",
-      "address": "Montrose Residences",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1585) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1585",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1621",
-      "propertyName": "Haddick Place",
-      "address": "Haddick Place",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1621) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1621",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1621_Haddick-Place_PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1621_Haddick-Place_PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1639",
-      "propertyName": "Charlesmont Corner",
-      "address": "Charlesmont Corner",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1639) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1639",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1639_Charlesmont-Corner_PHS.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1639_Charlesmont-Corner_PHS.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1641",
-      "propertyName": "Wheeler Residences",
-      "address": "Wheeler Residences",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1641) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1641",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1650",
-      "propertyName": "JDS Hopfe Road Sec 5 partial replat no 1",
-      "address": "JDS Hopfe Road Sec 5 partial replat no 1",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1650) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1650",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1650_JDS-Hopfe-Road-Sec-5-partial-replat-no-1_PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1650_JDS-Hopfe-Road-Sec-5-partial-replat-no-1_PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1669",
-      "propertyName": "Fondren at Court Reserves GP",
-      "address": "the intersection of Fondren Road and Court Road, bounded by Fort Bend Parkway to the west and Blueridge Road to the east",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1669) in Houston. The applicant is requesting a special exception to allow an intersection spacing of approximately 3,133 feet along Court Road, a major thoroughfare, between Fondren Road and Blue Ridge Road by not providing a north-south public street and to allow a reduced centerline radius of 1,800-feet for Fondren Road, a major thoroughfare.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1669",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1701",
-      "propertyName": "Grace Lane Estates",
-      "address": "5926 and 5930 Grace Lane, Houston, TX 77021",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1701) in Houston. The applicant is requesting a variance to exceed 1,400' intersection spacing along a local street by not providing an east-west street through the property.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1701",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1723",
-      "propertyName": "Scott Wet Weather Facility",
-      "address": "0 CANADA DRY ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1723) in Houston.",
-      "lng": -95.33302,
-      "lat": 29.72437,
-      "tier": "2",
-      "appNo": "DPV-2026-1723",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1723_ScottWetWeatherFacility.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1723_ScottWetWeatherFacility.pdf"
-    },
-    {
-      "id": "plat-DPV-26080390",
-      "propertyName": "3747 Dreyfus Street A and B",
-      "address": "3747 DREYFUS ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0391930200024",
-      "buildingId": "",
-      "yearBuilt": 1950,
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-26080390) in Houston. The applicant is requesting a 5-foot building line in lieu of the ordinance required 10-foot building line along Nathan Street, an undeveloped street, as well as to not dedicate 5 feet of right-of-way to Nathan and Dreyfus Streets, for a new duplex.",
-      "lng": -95.36635,
-      "lat": 29.68774,
+      "notes": "",
       "tier": "1",
-      "appNo": "DPV-26080390",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26080390_3747-Dreyfus-Street_notice.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26080390_3747-Dreyfus-Street_notice.pdf"
-    },
-    {
-      "id": "plat-DPV-26084127",
-      "propertyName": "6102 Waltway Drive",
-      "address": "6102 WALTWAY DR",
-      "secondaryAddresses": [],
-      "hcadAccount": "0812420000020",
-      "buildingId": "",
-      "yearBuilt": 1954,
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
+      "checklist": [
+        {
+          "id": "chk-01",
+          "stage": "Every Check",
+          "activity": "Public Notices",
+          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
+          "typicalTiming": "Any stage.",
+          "resourceLabel": "Texas Public Notices",
+          "resourceUrl": "https://www.texaspublicnotices.com/",
+          "additionalResourceLabel": "Houston Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-02",
+          "stage": "Every Check",
+          "activity": "Site Visit",
+          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
+          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
+          "resourceLabel": "Google Street View",
+          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=802+Lovett+Blvd%2C+Houston%2C+TX",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "In Progress",
+          "lastChecked": "2026-10-26",
+          "automated": false,
+          "checks": [
+            {
+              "date": "2026-10-26",
+              "result": "Listed on Loopnet, price not disclosed"
+            }
+          ]
+        },
+        {
+          "id": "chk-03",
+          "stage": "Sale & Ownership",
+          "activity": "Deed Transfers & Liens",
+          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
+          "typicalTiming": "Deeds usually record within days of closing.",
+          "resourceLabel": "HC Clerk Real Property",
+          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-04",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
+          "typicalTiming": "As soon as a new entity name surfaces.",
+          "resourceLabel": "Comptroller Entity Search",
+          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
+          "additionalResourceLabel": "Bizapedia Entity Lookup",
+          "additionalResourceUrl": "https://www.bizapedia.com/",
+          "status": "In Progress",
+          "lastChecked": "2026-10-26",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-26",
+              "result": "Tanglewood Marketing Inc: Owner per HCAD. Filed 10/3/1996. Mailing address: 3302 La Salle. Registered Agent: Michael J Clark, 3910 W Main."
+            },
+            {
+              "date": "2012-07-11",
+              "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32033610117: ONIT, INC. at 802 LOVETT BLVD.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-04",
+              "agencyRecordId": "comptroller-sales:32033610117:1",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "Comptroller #32033610117",
+                  "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32033610117"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            },
+            {
+              "date": "2018-05-16",
+              "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32065948690: SISO ENGINEERING LLC at 802 LOVETT BLVD.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-04",
+              "agencyRecordId": "comptroller-sales:32065948690:1",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "Comptroller #32065948690",
+                  "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32065948690"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            },
+            {
+              "date": "2024-03-08",
+              "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32093363623: CLARK INVESTIGATION PLLC at 802 LOVETT BLVD.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-04",
+              "agencyRecordId": "comptroller-sales:32093363623:1",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "Comptroller #32093363623",
+                  "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32093363623"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-05",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
+          "typicalTiming": "Owner updates lag the deed by weeks to months.",
+          "resourceLabel": "HCAD Property Search",
+          "resourceUrl": "https://search.hcad.org/",
+          "additionalResourceLabel": "HCAD GIS Parcel Map",
+          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0261520000021",
+          "status": "In Progress",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-27",
+              "result": "[AUTO-SWEEP] HCAD Account 0261520000021 (802 LOVETT BLVD): Owner TANGLEWOOD MARKETING INC, Class F1 (Market $3300513, Impr $603533, Land $2696980), Legal: LTS 22 & 23 & TR 21 BLK 26|MONTROSE.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-05",
+              "agencyRecordId": "hcad:0261520000021:TANGLEWOOD MARKETING INC:F1:603533",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "HCAD Map (0261520000021)",
+                  "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0261520000021"
+                }
+              ],
+              "discoveredAt": "2026-10-27"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-06",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
+          "typicalTiming": "Often filed months before construction or demolition permits.",
+          "resourceLabel": "TABC Public Inquiry",
+          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "In Progress",
+          "lastChecked": "2026-10-26",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-26",
+              "result": "no records found"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-07",
+          "stage": "Plans & Use",
+          "activity": "Hemp Licensing",
+          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
+          "typicalTiming": "After closing or lease execution for convenience-store operators.",
+          "resourceLabel": "DSHS License Search",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-08",
+          "stage": "Plans & Use",
+          "activity": "Pending Plans (Open Records & ILMS)",
+          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+          "typicalTiming": "Design and plan-review phase after closing.",
+          "resourceLabel": "Public Records (GovQA)",
+          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
+          "additionalResourceLabel": "ILMS Project Status",
+          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-09",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
+          "typicalTiming": "Can be filed before closing with seller consent or during design.",
+          "resourceLabel": "COH Biweekly Plat Reports",
+          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
+          "additionalResourceLabel": "COH Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-10",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
+          "typicalTiming": "Design phase, often months before building or demolition permits.",
+          "resourceLabel": "TDLR TABS Search",
+          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "In Progress",
+          "lastChecked": "2026-10-26",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-26",
+              "result": "no results"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-11",
+          "stage": "Plans & Use",
+          "activity": "Easements, Abandonments & TIRZ",
+          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
+          "typicalTiming": "Design phase, usually after closing.",
+          "resourceLabel": "City Council Agendas (NovusAgenda)",
+          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-12",
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
+          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
+          "resourceLabel": "TCEQ Central Registry",
+          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "In Progress",
+          "lastChecked": "2026-10-26",
+          "automated": false,
+          "checks": [
+            {
+              "date": "2026-10-26",
+              "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
+            }
+          ]
+        },
+        {
+          "id": "chk-13",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
+          "typicalTiming": "Any stage, especially while a structure is vacant.",
+          "resourceLabel": "311 Service Request Viewer",
+          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
+          "additionalResourceLabel": "Community Code Enforcement",
+          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
+          "status": "In Progress",
+          "lastChecked": "2026-10-26",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-26",
+              "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-14",
+          "stage": "Demolition Signals",
+          "activity": "Demolition & Building Permits",
+          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
+          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
+          "resourceLabel": "Houston Sold Permits",
+          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "In Progress",
+          "lastChecked": "2026-10-26",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-26",
+              "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        },
+        {
+          "id": "chk-15",
+          "stage": "Demolition Signals",
+          "activity": "Asbestos & Demolition Notification (DSHS)",
+          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
+          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
+          "resourceLabel": "DSHS Notifications",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-27T16:56:26Z"
+        }
+      ],
+      "updatedAt": "2026-10-26T23:33:10.950Z",
+      "updatedBy": "Emily Ardoin",
+      "appNo": "",
+      "sourcePlatApp": "",
+      "designFirm": "",
+      "architectEngineer": "",
+      "legalDescription": "",
+      "trackerStatus": "Active / High Priority",
+      "threatCategory": "",
+      "neighborhood": "",
+      "reportedBy": "",
+      "phPastActions": "",
+      "platProjectName": "",
+      "pcMeetingDate": "",
+      "sourceCycleKey": "",
+      "hearingDateIso": "",
+      "searchTerms": {
+        "entities": [],
+        "dbas": [],
+        "officers": [],
+        "legalKeywords": [],
+        "altAddresses": [],
+        "projectNumbers": []
       },
-      "notes": "Section K Development Plat Variance (DPV-26084127) in Houston. The applicant is requesting a 10-foot building line along W.",
-      "lng": -95.42324,
-      "lat": 29.79321,
-      "tier": "1",
-      "appNo": "DPV-26084127",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf"
-    },
-    {
-      "id": "plat-DPV-26087637",
-      "propertyName": "403 Yorkchester Road",
-      "address": "south of Memorial Drive and West of North Wilcrest Drive at the northwest intersection between Yorkchester Drive and Apple Tree Road",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-26087637) in Houston. The applicant is requesting a 14-foot building line in lieu of the city ordinance 20-foot garage building line along Apple Tree Road, a local street, for a new single-family residence.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-26087637",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf"
-    },
-    {
-      "id": "plat-DPV-26091362",
-      "propertyName": "13515 Perthshire Road",
-      "address": "13515 PERTHSHIRE RD",
-      "secondaryAddresses": [],
-      "hcadAccount": "0961080000014",
-      "buildingId": "",
-      "yearBuilt": 1966,
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-30",
-        "planningCommission": "2026-10-30"
-      },
-      "notes": "Section K Development Plat Variance (DPV-26091362) in Houston. The applicant is requesting an 11-foot building line in lieu of the city ordinance 20-foot garage building line along Glenchester Drive, a local street, for a new single-family residence.",
-      "lng": -95.57943,
-      "lat": 29.77461,
-      "tier": "1",
-      "appNo": "DPV-26091362",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf"
+      "documents": [],
+      "driveLinks": [],
+      "findingsLog": [
+        {
+          "date": "2012-07-11",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
+          "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32033610117: ONIT, INC. at 802 LOVETT BLVD.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "comptroller-sales:32033610117:1",
+          "links": [
+            {
+              "label": "Comptroller #32033610117",
+              "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32033610117"
+            }
+          ],
+          "entryNo": 1
+        },
+        {
+          "date": "2018-05-16",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
+          "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32065948690: SISO ENGINEERING LLC at 802 LOVETT BLVD.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "comptroller-sales:32065948690:1",
+          "links": [
+            {
+              "label": "Comptroller #32065948690",
+              "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32065948690"
+            }
+          ],
+          "entryNo": 2
+        },
+        {
+          "date": "2024-03-08",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
+          "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32093363623: CLARK INVESTIGATION PLLC at 802 LOVETT BLVD.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "comptroller-sales:32093363623:1",
+          "links": [
+            {
+              "label": "Comptroller #32093363623",
+              "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32093363623"
+            }
+          ],
+          "entryNo": 3
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Every Check",
+          "activity": "Site Visit",
+          "checkId": "chk-02",
+          "result": "Listed on Loopnet, price not disclosed",
+          "automated": false,
+          "entryNo": 4
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
+          "result": "Tanglewood Marketing Inc: Owner per HCAD. Filed 10/3/1996. Mailing address: 3302 La Salle. Registered Agent: Michael J Clark, 3910 W Main.",
+          "automated": true,
+          "entryNo": 5
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "checkId": "chk-06",
+          "result": "no records found",
+          "automated": true,
+          "entryNo": 6
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "checkId": "chk-10",
+          "result": "no results",
+          "automated": true,
+          "entryNo": 7
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "checkId": "chk-12",
+          "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found.",
+          "automated": false,
+          "entryNo": 8
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "checkId": "chk-13",
+          "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found.",
+          "automated": true,
+          "entryNo": 9
+        },
+        {
+          "date": "2026-10-26",
+          "stage": "Demolition Signals",
+          "activity": "Demolition & Building Permits",
+          "checkId": "chk-14",
+          "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found.",
+          "automated": true,
+          "entryNo": 10
+        },
+        {
+          "date": "2026-10-27",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "checkId": "chk-05",
+          "result": "[AUTO-SWEEP] HCAD Account 0261520000021 (802 LOVETT BLVD): Owner TANGLEWOOD MARKETING INC, Class F1 (Market $3300513, Impr $603533, Land $2696980), Legal: LTS 22 & 23 & TR 21 BLK 26|MONTROSE.",
+          "automated": true,
+          "source": "auto-sweep",
+          "agencyRecordId": "hcad:0261520000021:TANGLEWOOD MARKETING INC:F1:603533",
+          "links": [
+            {
+              "label": "HCAD Map (0261520000021)",
+              "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0261520000021"
+            }
+          ],
+          "entryNo": 11
+        }
+      ],
+      "tierConfirmed": true,
+      "lastAutoSweepAt": "2026-10-27T16:56:26Z",
+      "autoSweepSchedule": "Daily at 7:00 AM CT"
     }
   ]
 }

@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261026b";
+} from "./palettes.js?v=20261027a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -24,12 +24,18 @@ import {
   featureMatchesFilter,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261026b";
+} from "./filterStore.js?v=20261027a";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261026b";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261026b";
+} from "./curatedEdits.js?v=20261027a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261027a";
+import {
+  buildUnifiedParcelCollection,
+  collectMinBuildingYearsByHcad,
+  HCAD_PUBLIC_EXPORT_TILE_URL,
+  HcadViewportParcelClient,
+} from "./hcadViewportParcels.js?v=20261027a";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -187,7 +193,12 @@ export class AtlasMapController {
     this.useCanvasFallback = false;
     this.canvasState = null;
     this.buildingsData = [];
+    this.pilotParcelsData = [];
     this.parcelsData = [];
+    this.hcadViewportParcels = new HcadViewportParcelClient();
+    this._dynamicParcelDebounceTimer = null;
+    this._lastParcelRenderMode = "";
+    this._lastDynamicParcelHydrationSig = "";
     this.overlaysData = null;
     this.permitAlertsData = null;
     this.permitAlertsFC = { type: "FeatureCollection", features: [] };
@@ -286,10 +297,10 @@ export class AtlasMapController {
       fetch("public/data/buildings.geojson?v=20261025m"),
       fetch("public/data/parcels.geojson?v=20261011c"),
       fetch("public/data/overlays.json?v=20261025m"),
-      fetch("public/data/pmtiles_manifest.json?v=20261026b").catch(() => null),
+      fetch("public/data/pmtiles_manifest.json?v=20261027a").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261023g").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261023g").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261027a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261027a").catch(() => null),
       fetch("public/data/hahc_coa_tracker.json?v=20261025f").catch(() => null),
     ]);
 
@@ -343,7 +354,8 @@ export class AtlasMapController {
     this.buildingsFC = buildingsFC;
     this.parcelsFC = parcelsFC;
     this.buildingsData = buildingsFC.features || [];
-    this.parcelsData = parcelsFC.features || [];
+    this.pilotParcelsData = parcelsFC.features || [];
+    this.parcelsData = this.pilotParcelsData;
     this.overlaysData = overlays;
     this._indexPreservationOverlays(overlays);
     this._indexHahcTracker(hahcTrackerJson, overlays);
@@ -705,7 +717,7 @@ export class AtlasMapController {
             is_variance: isVariance,
             is_public_hearing: isPublicHearing,
             variance_summary: normItem.variance_summary,
-            public_hearing_date: item.pcDateIso || item.public_hearing_date || "",
+            public_hearing_date: item.hearingDateIso || item.public_hearing_date || item.pcDateIso || "",
             developer: item.developer || "",
             applicant_company: item.org || item.company || "",
             hcad_num: primaryHcad,
@@ -1022,6 +1034,8 @@ export class AtlasMapController {
   _refreshCuratedOverridesSource() {
     this._applyCuratedOverridesInMemory();
     this._captureDynamicOverrideGeometries();
+    this._lastDynamicParcelHydrationSig = "";
+    this._rehydrateCachedDynamicParcelsIfChanged();
     if (this.map && this.map.getSource("curated-overrides-src")) {
       this.map.getSource("curated-overrides-src").setData(this.overridesFC);
     }
@@ -1201,6 +1215,9 @@ export class AtlasMapController {
             layout: {
               visibility: state.basemap === "dark_archival" ? "visible" : "none",
             },
+            paint: {
+              "raster-opacity": ["interpolate", ["linear"], ["zoom"], 11.8, 0.95, 12.8, 0.0],
+            },
           },
           {
             id: "basemap-light-labels-layer",
@@ -1209,6 +1226,9 @@ export class AtlasMapController {
             layout: {
               visibility: state.basemap === "warm_parchment" ? "visible" : "none",
             },
+            paint: {
+              "raster-opacity": ["interpolate", ["linear"], ["zoom"], 11.8, 0.95, 12.8, 0.0],
+            },
           },
           {
             id: "basemap-satellite-labels-layer",
@@ -1216,6 +1236,9 @@ export class AtlasMapController {
             source: "basemap-satellite-labels",
             layout: {
               visibility: state.basemap === "satellite" ? "visible" : "none",
+            },
+            paint: {
+              "raster-opacity": ["interpolate", ["linear"], ["zoom"], 11.8, 0.95, 12.8, 0.0],
             },
           },
         ],
@@ -1337,6 +1360,13 @@ export class AtlasMapController {
     this.map.addSource("buildings-src", { type: "geojson", data: this.buildingsFC });
     this.map.addSource("curated-overrides-src", { type: "geojson", data: this.overridesFC });
     this.map.addSource("parcels-src", { type: "geojson", data: this.parcelsFC });
+    this.map.addSource("hcad-parcels-raster-src", {
+      type: "raster",
+      tiles: [HCAD_PUBLIC_EXPORT_TILE_URL],
+      tileSize: 512,
+      minzoom: 13.8,
+      maxzoom: 19,
+    });
     this.map.addSource("annexations-src", {
       type: "geojson",
       tolerance: 0.05,
@@ -2050,19 +2080,44 @@ export class AtlasMapController {
         "line-opacity": 0.72,
       },
     });
+    const initShowParcelsFill = state.renderMode === "parcels";
+    const initShowParcelsLine = state.renderMode === "both" || state.renderMode === "parcels";
+    this.map.addLayer({
+      id: "hcad-parcels-raster-layer",
+      type: "raster",
+      source: "hcad-parcels-raster-src",
+      minzoom: 13.8,
+      layout: { visibility: initShowParcelsLine ? "visible" : "none" },
+      paint: { "raster-opacity": 0.56 },
+    });
     this.map.addLayer({
       id: "parcels-fill",
       type: "fill",
       source: "parcels-src",
       filter: filterExpr,
+      layout: { visibility: initShowParcelsFill ? "visible" : "none" },
       paint: { "fill-color": colorExpr, "fill-opacity": 0.78 },
+    });
+    // Near-transparent unfiltered interactive hit surface for vacant lots (year_built == 0)
+    // and yards in Both / Parcels modes so countywide 13-digit HCAD numbers resolve on click.
+    this.map.addLayer({
+      id: "parcels-hit-fill",
+      type: "fill",
+      source: "parcels-src",
+      minzoom: 14.5,
+      layout: { visibility: initShowParcelsLine ? "visible" : "none" },
+      paint: { "fill-color": "#94A3B8", "fill-opacity": 0.005 },
     });
     this.map.addLayer({
       id: "parcels-line",
       type: "line",
       source: "parcels-src",
-      filter: filterExpr,
-      paint: { "line-color": "#94A3B8", "line-width": 0.6, "line-opacity": 0.42 },
+      layout: { visibility: initShowParcelsLine ? "visible" : "none" },
+      paint: {
+        "line-color": "#94A3B8",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 13, 0.55, 16, 1.05],
+        "line-opacity": 0.56,
+      },
     });
 
     this.buildingFillLayerIds = [];
@@ -2254,6 +2309,57 @@ export class AtlasMapController {
       source: "selected-feature-src",
       layout: { visibility: state.extrude3D ? "none" : "visible" },
       paint: { "line-color": "#FDE047", "line-width": 3.5 },
+    });
+
+    // Crisp vector street-name labels positioned strictly ABOVE 2D parcel/building/override fills
+    // and BELOW 3D fill-extrusion volumes, with theme-aware contrast halos across z = 12..19.5.
+    const initLightBg =
+      state.basemap === "solid_light" || state.basemap === "warm_parchment";
+    const initNoMap =
+      state.basemap === "solid_dark" || state.basemap === "solid_light";
+    this.map.addLayer({
+      id: "vector-street-labels",
+      type: "symbol",
+      source: "openfreemap-vector",
+      "source-layer": "transportation_name",
+      minzoom: 12.0,
+      layout: {
+        visibility: initNoMap ? "none" : "visible",
+        "symbol-placement": "line",
+        "symbol-spacing": 290,
+        "text-font": ["Noto Sans Bold"],
+        "text-field": [
+          "coalesce",
+          ["get", "name:latin"],
+          ["get", "name"],
+          ["get", "name_en"],
+          ["get", "ref"],
+          "",
+        ],
+        "text-size": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          12,
+          9.6,
+          14.5,
+          11.4,
+          17.5,
+          13.6,
+        ],
+        "text-letter-spacing": 0.05,
+        "text-max-angle": 35,
+        "text-rotation-alignment": "map",
+        "text-pitch-alignment": "viewport",
+      },
+      paint: {
+        "text-color": initLightBg ? "#1E293B" : "#E2E8F0",
+        "text-halo-color": initLightBg
+          ? "rgba(248, 245, 238, 0.94)"
+          : "rgba(11, 15, 23, 0.94)",
+        "text-halo-width": 2.1,
+        "text-halo-blur": 0.35,
+      },
     });
 
     // 3D Fill-Extrusion Layers (rendered above 2D ground lines so 3D volumes occlude ground paths)
@@ -3496,15 +3602,121 @@ export class AtlasMapController {
 
     this.map.on("moveend", () => {
       this._captureDynamicOverrideGeometries();
+      this._scheduleDynamicViewportParcels({ fetchNetwork: true, immediate: false });
       this._refreshSelectionAfterViewportChange();
       this.computeViewportHistogram();
     });
 
     this.map.on("idle", () => {
       this._captureDynamicOverrideGeometries();
+      this._rehydrateCachedDynamicParcelsIfChanged();
       this._refreshSelectionAfterViewportChange();
       this.computeViewportHistogram();
     });
+  }
+
+  _collectViewportBuildingYearsByHcad() {
+    const map = new Map();
+    collectMinBuildingYearsByHcad(this.buildingsData, map);
+    collectMinBuildingYearsByHcad(this.overridesFC?.features || [], map);
+    if (this.map && Array.isArray(this.shardSourceIds)) {
+      for (const srcId of this.shardSourceIds) {
+        try {
+          const hits = this.map.querySourceFeatures(srcId, {
+            sourceLayer: "buildings",
+          });
+          collectMinBuildingYearsByHcad(hits, map);
+        } catch (_e) {
+          // Shard vector tiles may still be streaming
+        }
+      }
+    }
+    return map;
+  }
+
+  _applyUnifiedDynamicParcelsToSource(rawDynamicFeatures) {
+    const buildingYearsByHcad = this._collectViewportBuildingYearsByHcad();
+    const unified = buildUnifiedParcelCollection({
+      pilotFeatures: this.pilotParcelsData,
+      dynamicRawFeatures: rawDynamicFeatures,
+      buildingYearsByHcad,
+      curatedOverrides: this.curatedOverrides,
+      applyOverrideFn: applyOverrideToProperties,
+    });
+    let datedDynamicCount = 0;
+    for (const f of unified.features) {
+      if (f?.properties?.is_dynamic_hcad_parcel && Number(f.properties.year_built) >= 1836) {
+        datedDynamicCount += 1;
+      }
+    }
+    const sig = `${this.hcadViewportParcels._lastViewportKey}::${rawDynamicFeatures.length}::${datedDynamicCount}::${Object.keys(this.curatedOverrides || {}).length}`;
+    if (sig === this._lastDynamicParcelHydrationSig) {
+      return;
+    }
+    this._lastDynamicParcelHydrationSig = sig;
+    this.parcelsFC = unified;
+    this.parcelsData = unified.features;
+    const src = this.map?.getSource?.("parcels-src");
+    if (src && typeof src.setData === "function") {
+      src.setData(unified);
+    }
+  }
+
+  _rehydrateCachedDynamicParcelsIfChanged() {
+    if (!this.map || this.useCanvasFallback) return;
+    const state = this.filterStore.getState();
+    if (state.renderMode !== "both" && state.renderMode !== "parcels") return;
+    const rawFeatures = this.hcadViewportParcels.getLastRawFeatures();
+    if (!Array.isArray(rawFeatures) || rawFeatures.length === 0) return;
+    this._applyUnifiedDynamicParcelsToSource(rawFeatures);
+  }
+
+  _scheduleDynamicViewportParcels({ fetchNetwork = true, immediate = false } = {}) {
+    if (this._dynamicParcelDebounceTimer) {
+      clearTimeout(this._dynamicParcelDebounceTimer);
+      this._dynamicParcelDebounceTimer = null;
+    }
+    if (!this.map || this.useCanvasFallback) return;
+    const state = this.filterStore.getState();
+    const wantsParcels = state.renderMode === "both" || state.renderMode === "parcels";
+    if (!wantsParcels) {
+      this.hcadViewportParcels.cancelPending();
+      return;
+    }
+    if (!fetchNetwork) {
+      this._rehydrateCachedDynamicParcelsIfChanged();
+      return;
+    }
+    const runFetch = async () => {
+      this._dynamicParcelDebounceTimer = null;
+      if (!this.map || this.useCanvasFallback) return;
+      const curState = this.filterStore.getState();
+      if (curState.renderMode !== "both" && curState.renderMode !== "parcels") return;
+      const zoom = Number(this.map.getZoom() || 0);
+      if (zoom < this.hcadViewportParcels.minFetchZoom) return;
+      const bounds = this.map.getBounds?.();
+      if (!bounds) return;
+      try {
+        const res = await this.hcadViewportParcels.fetchForViewport({
+          west: bounds.getWest(),
+          south: bounds.getSouth(),
+          east: bounds.getEast(),
+          north: bounds.getNorth(),
+          zoom,
+        });
+        if (res && !res.aborted && Array.isArray(res.features)) {
+          this._applyUnifiedDynamicParcelsToSource(res.features);
+        }
+      } catch (_err) {
+        // Silent fallback: HCAD raster boundary layer & Pilot Core GeoJSON remain active
+      }
+    };
+
+    if (immediate) {
+      runFetch();
+    } else {
+      this._dynamicParcelDebounceTimer = setTimeout(runFetch, 240);
+    }
   }
 
   _initSpyglassOverlay() {
@@ -5601,6 +5813,8 @@ export class AtlasMapController {
         p.annex_subtype === "spoke_or_spa"
           ? "Highway Spoke / MUD Limited-Purpose"
           : "Full-Purpose City Boundary";
+    } else if (p.is_tax_parcel && p.hcad_num) {
+      badge = `Tax Parcel · HCAD #${p.hcad_num}`;
     } else {
       badge = p.use_category || "Undated Parcel";
     }
@@ -5611,6 +5825,8 @@ export class AtlasMapController {
         ? ` • ${p.historic_district}`
         : p.neighborhood
         ? ` • ${p.neighborhood}`
+        : p.is_tax_parcel && p.hcad_num && !badge.includes(p.hcad_num)
+        ? ` • HCAD #${p.hcad_num}`
         : "";
     const subtitle =
       (p.address && p.address !== title ? `${p.address}${locSuffix}` : "") ||
@@ -5697,6 +5913,23 @@ export class AtlasMapController {
         isNoMap ? "none" : "visible"
       );
     }
+    if (this.map.getLayer("vector-street-labels")) {
+      this.map.setLayoutProperty(
+        "vector-street-labels",
+        "visibility",
+        isNoMap ? "none" : "visible"
+      );
+      this.map.setPaintProperty(
+        "vector-street-labels",
+        "text-color",
+        isLightBg ? "#1E293B" : "#E2E8F0"
+      );
+      this.map.setPaintProperty(
+        "vector-street-labels",
+        "text-halo-color",
+        isLightBg ? "rgba(248, 245, 238, 0.94)" : "rgba(11, 15, 23, 0.94)"
+      );
+    }
     if (this.map.getLayer("platted-subdivisions-line")) {
       this.map.setPaintProperty("platted-subdivisions-line", "line-color", [
         "case",
@@ -5776,7 +6009,6 @@ export class AtlasMapController {
       "curated-overrides-line",
       "curated-overrides-extrusion",
       "parcels-fill",
-      "parcels-line",
     ]) {
       if (this.map.getLayer(layerId)) {
         this.map.setFilter(layerId, filterExpr);
@@ -5863,7 +6095,16 @@ export class AtlasMapController {
       this._updateSelectedFeature3DSource(state);
     }
     setVis(["parcels-fill"], showParcelsFill);
-    setVis(["parcels-line"], showParcelsLine);
+    setVis(["parcels-line", "parcels-hit-fill", "hcad-parcels-raster-layer"], showParcelsLine);
+
+    const prevParcelMode = this._lastParcelRenderMode;
+    this._lastParcelRenderMode = state.renderMode;
+    const prevShowParcels = prevParcelMode === "both" || prevParcelMode === "parcels";
+    if (!prevShowParcels && showParcelsLine) {
+      this._scheduleDynamicViewportParcels({ fetchNetwork: true, immediate: true });
+    } else if (!showParcelsLine) {
+      this.hcadViewportParcels.cancelPending();
+    }
 
     const showLostHouston =
       !isoGeom &&
@@ -7932,6 +8173,7 @@ export class AtlasMapController {
         ...this.buildingExtrusionLayerIds,
         ...this.buildingFillLayerIds,
         "parcels-fill",
+        "parcels-hit-fill",
       ].filter((id) => this.map.getLayer(id));
 
       const rendered = nonBoundaryLayers.length
@@ -8308,6 +8550,7 @@ export class AtlasMapController {
         }
         seenKeys.add(bKey);
         if (p.hcad_num) seenKeys.add(`hcad:${p.hcad_num}`);
+        const isParcelLayer = lid === "parcels-fill" || lid === "parcels-hit-fill";
         const bBadge =
           lid === "permit-watch-circle"
             ? p.severity === "critical"
@@ -8319,7 +8562,7 @@ export class AtlasMapController {
               : p.is_public_hearing
               ? "📋 Public Hearing"
               : "📋 Plat Agenda"
-            : lid === "parcels-fill"
+            : isParcelLayer
             ? "Tax Parcel"
             : "Building";
         const bColor =
@@ -8331,7 +8574,7 @@ export class AtlasMapController {
             ? p.severity === "critical"
               ? "#F43F5E"
               : "#8B5CF6"
-            : lid === "parcels-fill"
+            : isParcelLayer
             ? "#94a3b8"
             : "#fde047";
         stack.push({
@@ -8346,7 +8589,11 @@ export class AtlasMapController {
           color: bColor,
           title: makeBuildingTitle(p),
           subtitle:
-            Number(p.year_built) >= 1836 ? `Built ${p.year_built}` : p.address || "",
+            Number(p.year_built) >= 1836
+              ? `Built ${p.year_built}${isParcelLayer && p.hcad_num ? ` · HCAD #${p.hcad_num}` : ""}`
+              : [p.address || "", isParcelLayer && p.hcad_num ? `HCAD #${p.hcad_num}` : ""]
+                  .filter(Boolean)
+                  .join(" · "),
           props: p,
           geometry: f.geometry || null,
         });

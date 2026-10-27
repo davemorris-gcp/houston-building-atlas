@@ -550,9 +550,11 @@ test("curated_overrides.json purges cross-parcel 0621100000014#aux_1, re-keys Di
 test("ES module, stylesheet, curated_overrides, permits, and pmtiles_manifest ?v= cache-busters stay synchronized across app/", () => {
   const versionedFiles = [
     "app/index.html",
+    "app/plat-monitor.html",
     "app/js/app.js",
     "app/js/mapController.js",
     "app/js/hcadLink.js",
+    "app/js/watchlistSyncHelpers.js",
   ];
   const versions = new Set();
   const re = /(?:styles\/index\.css|\.js)\?v=([0-9A-Za-z._\-]+)/g;
@@ -597,14 +599,19 @@ test("ES module, stylesheet, curated_overrides, permits, and pmtiles_manifest ?v
 test("Modified Clerk search, UI, override repair, and deed chain files contain zero em-dash characters", () => {
   const filesToCheck = [
     "app/index.html",
+    "app/plat-monitor.html",
     "app/js/app.js",
     "app/js/clerkSearchHelpers.js",
     "app/js/curatedEdits.js",
     "app/js/hcadLink.js",
+    "app/js/hcadViewportParcels.js",
     "app/js/mapController.js",
+    "app/js/platMonitorHelpers.js",
+    "app/js/watchlistSyncHelpers.js",
     "app/styles/index.css",
     "pipeline/atlas_pipeline/enrich_deed_chains.py",
     "pipeline/atlas_pipeline/build_permits_and_contractors.py",
+    "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
     "pipeline/atlas_pipeline/fix_polygon_orientations.py",
     "pipeline/atlas_pipeline/repair_cross_parcel_aux_overrides.py",
     "tests/unit/clerk_search_and_deed_chains.test.mjs",

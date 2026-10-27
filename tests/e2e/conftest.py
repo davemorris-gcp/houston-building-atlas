@@ -32,7 +32,7 @@ OPENFREEMAP_PLANET_TILEJSON: bytes = json.dumps(
     {
         "tilejson": "3.0.0",
         "tiles": ["https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf"],
-        "vector_layers": [{"id": "transportation"}],
+        "vector_layers": [{"id": "transportation"}, {"id": "transportation_name"}],
         "minzoom": 0,
         "maxzoom": 14,
     }
