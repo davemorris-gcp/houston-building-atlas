@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import threading
 from http.server import HTTPServer
@@ -198,8 +199,9 @@ def test_frontend_es_modules_via_node() -> None:
 
     console.log(JSON.stringify({ ok: true, tours: CURATED_TOURS.length, legendCount: getLegendItems('year_built').length }));
     """
+    node_bin = shutil.which("node") or "node"
     proc = subprocess.run(
-        ["/usr/bin/node", "--input-type=module", "-e", node_script],
+        [node_bin, "--input-type=module", "-e", node_script],
         cwd=str(APP_DIR),
         capture_output=True,
         text=True,
