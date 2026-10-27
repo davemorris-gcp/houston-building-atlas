@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-26T18:01:12Z",
+  "updatedAt": "2026-10-27T17:09:19Z",
   "primaryProperty": {
     "id": "prop-kirby-mansion",
     "propertyName": "John Henry Kirby Mansion",
@@ -244,7 +244,7 @@
         "typicalTiming": "Design phase, before construction starts. Often one of the earliest public signs of what is planned.",
         "resourceLabel": "TDLR Architectural Barriers",
         "resourceUrl": "https://www.tdlr.texas.gov/TABS/",
-        "additionalResourceLabel": "TDLR Project TABS2027004409",
+        "additionalResourceLabel": "TDLR Project TABS2027004510",
         "additionalResourceUrl": "https://www.tdlr.texas.gov/TABS/Search",
         "status": "Flagged",
         "lastChecked": "2026-10-23",
@@ -252,7 +252,7 @@
         "checks": [
           {
             "date": "2026-10-22",
-            "result": "TDLR Project #TABS2027004409 ('Lufkin Dollar General') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+            "result": "TDLR Project #TABS2027004510 ('MIDLINE BEAMER ROAD STREETSCAPE PHASE 2') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
           }
         ]
       },
@@ -572,7 +572,7 @@
         "date": "2026-10-22",
         "stage": "Plans & Use",
         "activity": "Accessibility Registration (TDLR TABS)",
-        "result": "TDLR Project #TABS2027004409 ('Lufkin Dollar General') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+        "result": "TDLR Project #TABS2027004510 ('MIDLINE BEAMER ROAD STREETSCAPE PHASE 2') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
         "automated": true,
         "entryNo": 25
       },
@@ -831,7 +831,7 @@
           "typicalTiming": "Design phase, before construction starts. Often one of the earliest public signs of what is planned.",
           "resourceLabel": "TDLR Architectural Barriers",
           "resourceUrl": "https://www.tdlr.texas.gov/TABS/",
-          "additionalResourceLabel": "TDLR Project TABS2027004409",
+          "additionalResourceLabel": "TDLR Project TABS2027004510",
           "additionalResourceUrl": "https://www.tdlr.texas.gov/TABS/Search",
           "status": "Flagged",
           "lastChecked": "2026-10-23",
@@ -839,7 +839,7 @@
           "checks": [
             {
               "date": "2026-10-22",
-              "result": "TDLR Project #TABS2027004409 ('Lufkin Dollar General') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+              "result": "TDLR Project #TABS2027004510 ('MIDLINE BEAMER ROAD STREETSCAPE PHASE 2') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
             }
           ]
         },
@@ -1159,7 +1159,7 @@
           "date": "2026-10-22",
           "stage": "Plans & Use",
           "activity": "Accessibility Registration (TDLR TABS)",
-          "result": "TDLR Project #TABS2027004409 ('Lufkin Dollar General') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+          "result": "TDLR Project #TABS2027004510 ('MIDLINE BEAMER ROAD STREETSCAPE PHASE 2') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
           "automated": true,
           "entryNo": 25
         },
@@ -1174,51 +1174,219 @@
       ]
     },
     {
-      "id": "plat-2026-1661",
-      "propertyName": "Magnolia Residential",
-      "address": "2426 WALCOTT LN",
+      "id": "plat-2026-1734",
+      "propertyName": "Iglesia Apostoles y Profetas Libres",
+      "address": "14310 BAIAMONTE ST",
       "secondaryAddresses": [],
-      "hcadAccount": "0162680030016",
+      "hcadAccount": "0590210100036",
       "buildingId": "",
-      "yearBuilt": 1954,
+      "yearBuilt": 1950,
       "designation": "None found",
       "ownerOfRecord": "CGEA|Planning + Design",
       "buyerRelatedEntities": "CGEA|Planning + Design, Carlos G Espinoza, CGEA|Planning + Design",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
-      "notes": "Atlas matched HCAD parcel at 2426 WALCOTT LN with a standing structure built in 1954 in Highland Acres Home Annex no 2. Proposed replat divides 0.2189000000 ac into 3 lots (Single Family Residential (Public Street)).",
-      "lng": -95.44804,
-      "lat": 29.86551,
+      "notes": "Atlas matched HCAD parcel at 14310 BAIAMONTE ST (built 1950) in Main Street Gardens.",
+      "lng": -95.50031,
+      "lat": 29.63181,
       "tier": "2",
-      "appNo": "2026-1661",
+      "appNo": "2026-1734",
       "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93911/OriginalFiles/091602026_Magnolia_Residential-2-MAGNOLIA_RESIDENTIAL.pdf?sv=2021-08-06&se=2051-10-05T15%3A58%3A18Z&sr=b&sp=r&sig=rZX2ju5qnl7Qzi%2FW7kJbCQ7nLivuJ2zUkeB45xeVqfQ%3D",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94038/OriginalFiles/10192026_IglesiaApostolesyProfetasLibres.pdf?sv=2021-08-06&se=2051-10-19T15%3A44%3A37Z&sr=b&sp=r&sig=kHuyorLFncblxT3WEMdqlEc%2B21JzMc2%2FA75V5WzmSdg%3D",
       "noticePdf": ""
     },
     {
-      "id": "plat-2026-1637",
-      "propertyName": "Vista Eye Care",
-      "address": "134 W LITTLE YORK RD",
+      "id": "plat-2026-1733",
+      "propertyName": "Oasis Residences",
+      "address": "7111 BAUMAN RD",
       "secondaryAddresses": [],
-      "hcadAccount": "0780850010001",
+      "hcadAccount": "0382120120005",
+      "buildingId": "",
+      "yearBuilt": 1946,
+      "designation": "None found",
+      "ownerOfRecord": "Mx4 Builders. LLC",
+      "buyerRelatedEntities": "Mx4 Builders. LLC, Amanda Rabius, Windrose",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Atlas matched HCAD parcel at 7111 BAUMAN RD with a standing structure built in 1946 in OASIS RESIDENCES. Proposed land use is Unrestricted.",
+      "lng": -95.37186,
+      "lat": 29.8251,
+      "tier": "2",
+      "appNo": "2026-1733",
+      "section": "B. Replats",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93598/OriginalFiles/20261019-PLAT-OASIS_RESIDENCES-57821-P138408_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-19T15%3A37%3A43Z&sr=b&sp=r&sig=9MRYpPQ8n4eM0KTNNjejqjVfAOy5F%2F6NTuJazaZVyww%3D",
+      "noticePdf": ""
+    },
+    {
+      "id": "plat-2026-1716",
+      "propertyName": "Thompson Heights",
+      "address": "1816 THOMPSON ST",
+      "secondaryAddresses": [],
+      "hcadAccount": "0342120000004",
+      "buildingId": "",
+      "yearBuilt": 1941,
+      "designation": "None found",
+      "ownerOfRecord": "CE Engineers & Development Consultants, Inc.",
+      "buyerRelatedEntities": "CE Engineers & Development Consultants, Inc., Melissa Lopez, CE Engineers & Development Consultants, INC",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Atlas matched HCAD parcel at 1816 THOMPSON ST with a standing structure built in 1941 in Spencer Addition.",
+      "lng": -95.40413,
+      "lat": 29.77636,
+      "tier": "1",
+      "appNo": "2026-1716",
+      "section": "D. Variances",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94027/OriginalFiles/261063125-Model.pdf?sv=2021-08-06&se=2051-10-19T13%3A38%3A41Z&sr=b&sp=r&sig=TF43byiCA%2FceMXRmsxdGXbD61HZh93lPxOT1%2BSbQT7I%3D",
+      "noticePdf": ""
+    },
+    {
+      "id": "plat-2026-1715",
+      "propertyName": "Fifth Ward Senior Housing Addition",
+      "address": "1702 SAKOWITZ ST",
+      "secondaryAddresses": [],
+      "hcadAccount": "0120630000001, 0120630000003, 1237500010001",
+      "buildingId": "",
+      "yearBuilt": 1920,
+      "designation": "None found",
+      "ownerOfRecord": "Ward, Getz & Associates, LLC",
+      "buyerRelatedEntities": "Ward, Getz & Associates, LLC, David Hernandez, Windrose",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Atlas matched HCAD parcel at 1702 SAKOWITZ ST with a standing structure built in 1920 in Denver Addition, and Lionforce Subdivision. Proposed land use is Unrestricted.",
+      "lng": -95.31339,
+      "lat": 29.77776,
+      "tier": "1",
+      "appNo": "2026-1715",
+      "section": "B. Replats",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93975/OriginalFiles/20261015-PLAT-FIFTH_WARD_SENIOR_HOUSING_ADDITION-60977-P140293_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T21%3A23%3A26Z&sr=b&sp=r&sig=BiphpEAVGyYDoe0fX%2B1rGNobScTk6lq%2B35vqNfZ62EI%3D",
+      "noticePdf": ""
+    },
+    {
+      "id": "plat-2026-1704",
+      "propertyName": "Hardy Park Plaza",
+      "address": "2107 HARDY ST",
+      "secondaryAddresses": [],
+      "hcadAccount": "0230120000010",
+      "buildingId": "",
+      "yearBuilt": 1926,
+      "designation": "None found",
+      "ownerOfRecord": "New Era Development & Land Services",
+      "buyerRelatedEntities": "New Era Development & Land Services, Nahom Tesfa, New Era Development & Land Services",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Atlas matched HCAD parcel at 2107 HARDY ST with a standing structure built in 1926 in LITTLE ADDITION. Proposed replat divides 0.1148000000 ac into 2 lots (Landscape or Open Space; Single Family Residential (Shared Driveways)).",
+      "lng": -95.35165,
+      "lat": 29.78091,
+      "tier": "1",
+      "appNo": "2026-1704",
+      "section": "B. Replats",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94003/OriginalFiles/HARDY_PARK_PLAZA-Layout1.pdf?sv=2021-08-06&se=2051-10-19T02%3A09%3A19Z&sr=b&sp=r&sig=rturBQbC4pwqv5CuJwjjtOinRL0qnTiaAFLRX5QkSxQ%3D",
+      "noticePdf": ""
+    },
+    {
+      "id": "plat-2026-1697",
+      "propertyName": "Visual Creators Estate at McDaniel",
+      "address": "719 MCDANIEL ST",
+      "secondaryAddresses": [],
+      "hcadAccount": "0651060050025",
+      "buildingId": "",
+      "yearBuilt": 1945,
+      "designation": "None found",
+      "ownerOfRecord": "CE Engineers & Development Consultants, Inc.",
+      "buyerRelatedEntities": "CE Engineers & Development Consultants, Inc., Melissa Lopez, CE Engineers & Development Consultants, INC",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Atlas matched HCAD parcel at 719 MCDANIEL ST with a standing structure built in 1945 in Stratton Place. Proposed replat divides 0.2686000000 ac into 3 lots (Residential Guest Parking; Single Family Residential (Shared Driveways)).",
+      "lng": -95.36236,
+      "lat": 29.83162,
+      "tier": "2",
+      "appNo": "2026-1697",
+      "section": "B. Replats",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94016/OriginalFiles/261067125-Model.pdf?sv=2021-08-06&se=2051-10-16T22%3A18%3A40Z&sr=b&sp=r&sig=umfcdWECm%2BH7N5vdOHWcg5ABVuGWsoTGIOE7ytRn8yM%3D",
+      "noticePdf": ""
+    },
+    {
+      "id": "plat-2026-1687",
+      "propertyName": "Ferrari of Houston",
+      "address": "6100 SOUTHWEST FWY; 3410 E GREENRIDGE DR",
+      "secondaryAddresses": [],
+      "hcadAccount": "0690440070234; 0690440070218",
+      "buildingId": "",
+      "yearBuilt": 1973,
+      "designation": "None found",
+      "ownerOfRecord": "Ward, Getz & Associates, LLC",
+      "buyerRelatedEntities": "Ward, Getz & Associates, LLC, Amanda Rabius, Windrose",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Atlas matched HCAD parcel at 6100 SOUTHWEST FWY; 3410 E GREENRIDGE DR (built 1973) in Glenhaven Estates Section 2.",
+      "lng": -95.48743,
+      "lat": 29.72677,
+      "tier": "2",
+      "appNo": "2026-1687",
+      "section": "A. Consent",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93994/OriginalFiles/20261016-PLAT-FERRARI_OF_HOUSTON-60690-P136126_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T18%3A04%3A38Z&sr=b&sp=r&sig=mNaezvO9Dh7YpVeR0xfUyPN440%2FDxhXOo0ARjwW24XM%3D",
+      "noticePdf": ""
+    },
+    {
+      "id": "plat-2026-1674",
+      "propertyName": "Brittmoore Founders District partial replat no 1",
+      "address": "1256 BRITTMOORE RD",
+      "secondaryAddresses": [],
+      "hcadAccount": "1425880010001",
       "buildingId": "",
       "yearBuilt": 1970,
       "designation": "None found",
-      "ownerOfRecord": "Cross Legacy Enterprises, LLC",
-      "buyerRelatedEntities": "Cross Legacy Enterprises, LLC, Sean Conley, Conley Land Services, LLC",
+      "ownerOfRecord": "Puma Development",
+      "buyerRelatedEntities": "Puma Development, Michael Haworth, The Pinnell Group, LLC",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
-      "notes": "Atlas matched HCAD parcel at 134 W LITTLE YORK RD (built 1970) in York Meadows.",
-      "lng": -95.4003,
-      "lat": 29.87013,
+      "notes": "Atlas matched HCAD parcel at 1256 BRITTMOORE RD (built 1970) in Brittmoore Founders District.",
+      "lng": -95.5693,
+      "lat": 29.79369,
       "tier": "2",
-      "appNo": "2026-1637",
-      "section": "A. Consent",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93935/OriginalFiles/VISTA_EYE_CARE.pdf?sv=2021-08-06&se=2051-10-05T12%3A58%3A23Z&sr=b&sp=r&sig=OMe9DH3iy2pikuYcvxMGQ2mxxV6%2B73yjBwuhBkTSWX8%3D",
+      "appNo": "2026-1674",
+      "section": "B. Replats",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93963/OriginalFiles/BRITTMOORE_FOUNDERS_DISTRICT_PARTIAL_REPLAT_NO_1.pdf?sv=2021-08-06&se=2051-10-15T17%3A30%3A57Z&sr=b&sp=r&sig=6aWlinb72X2%2BbjW4y5UvpxpyBThc4klcRUJjtQomTM0%3D",
+      "noticePdf": ""
+    },
+    {
+      "id": "plat-2026-1671",
+      "propertyName": "Houston Heights partial replat no 33",
+      "address": "239 W  20TH ST; 235 W  20TH ST",
+      "secondaryAddresses": [],
+      "hcadAccount": "0200820000001,0200820000051",
+      "buildingId": "0200820000001",
+      "yearBuilt": 1959,
+      "designation": "None found",
+      "ownerOfRecord": "Kimko Realty Corporation",
+      "buyerRelatedEntities": "Kimko Realty Corporation, Cathy Fontenot, Pape-Dawson",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Atlas matched HCAD parcel at 239 W  20TH ST; 235 W  20TH ST with a standing structure built in 1959 in Houston Heights. Proposed land use is Commercial.",
+      "lng": -95.40012,
+      "lat": 29.80479,
+      "tier": "2",
+      "appNo": "2026-1671",
+      "section": "B. Replats",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93960/OriginalFiles/PL43271-000.pdf?sv=2021-08-06&se=2051-10-16T15%3A22%3A04Z&sr=b&sp=r&sig=nsmfyW84pK1yDBZ9essmqegWceuASQvK1yy1KK9J%2BrM%3D",
       "noticePdf": ""
     },
     {
@@ -1233,8 +1401,8 @@
       "ownerOfRecord": "To be determined",
       "buyerRelatedEntities": "To be determined, Stephanie Mendoza, SEM SERVICES",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Atlas matched HCAD parcel at 1804 MANSFIELD ST; 1814 MANSFIELD ST (built 1948) in highland heights annex no 5.",
       "lng": -95.43757,
@@ -1243,78 +1411,6 @@
       "appNo": "2026-1634",
       "section": "A. Consent",
       "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1625",
-      "propertyName": "Lawrence Street Grove",
-      "address": "1508 LAWRENCE ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0391140000404",
-      "buildingId": "",
-      "yearBuilt": 1930,
-      "designation": "None found",
-      "ownerOfRecord": "TOMO Development, LLC",
-      "buyerRelatedEntities": "TOMO Development, LLC, Kevin Kolb, Total Surveyors, Inc.",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Atlas matched HCAD parcel at 1508 LAWRENCE ST with a standing structure built in 1930 in The Heights Annex. Proposed replat divides 0.1125000000 ac into 2 lots (Single Family Residential (Public Street)).",
-      "lng": -95.40747,
-      "lat": 29.7983,
-      "tier": "1",
-      "appNo": "2026-1625",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93921/OriginalFiles/LAWRENCE_STREET_GROVE_10-3-2026_PDF.pdf?sv=2021-08-06&se=2051-10-04T06%3A29%3A02Z&sr=b&sp=r&sig=5%2BrfeZech3AAlxQ7n7V1eFMKPQGmRYkVAIas5Mh7A4o%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1615",
-      "propertyName": "Spring Branch Complex",
-      "address": "9112 SPRING BRANCH DR; 9110 SPRING BRANCH DR",
-      "secondaryAddresses": [],
-      "hcadAccount": "0651040000030, 0651040000029, 0651040000031",
-      "buildingId": "",
-      "yearBuilt": 1970,
-      "designation": "None found",
-      "ownerOfRecord": "Palais Homes",
-      "buyerRelatedEntities": "Palais Homes, Chris Garcia, DVJ GROUP",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Atlas matched HCAD parcel at 9112 SPRING BRANCH DR; 9110 SPRING BRANCH DR (built 1970) in Spring Branch Gardens.",
-      "lng": -95.51346,
-      "lat": 29.80366,
-      "tier": "2",
-      "appNo": "2026-1615",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93908/OriginalFiles/SPRING_BRANCH_COMPLEX-Layout1.pdf?sv=2021-08-06&se=2051-10-02T19%3A57%3A05Z&sr=b&sp=r&sig=O76LkRvquITqH6FNikfZK7dSDBP4u6QHCI9WfVFzuwQ%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1603",
-      "propertyName": "Tahil Oaks",
-      "address": "7528 GAINESVILLE ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0180780000014",
-      "buildingId": "",
-      "yearBuilt": 1950,
-      "designation": "None found",
-      "ownerOfRecord": "Sera Investments LLC",
-      "buyerRelatedEntities": "Sera Investments LLC, Shahnawaz Ghanchi, MOMENTUM EGINEERING",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Atlas matched HCAD parcel at 7528 GAINESVILLE ST with a standing structure built in 1950 in Houston Harbor Addition. Proposed land use is Commercial.",
-      "lng": -95.29218,
-      "lat": 29.78535,
-      "tier": "2",
-      "appNo": "2026-1603",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93883/OriginalFiles/26148150_Tahil_Oaks_Plat.pdf?sv=2021-08-06&se=2051-10-02T16%3A04%3A11Z&sr=b&sp=r&sig=LUF2feRvQXz%2BymknEW22PjRUIqF%2FErowqOS0N2IV1fU%3D",
       "noticePdf": ""
     },
     {
@@ -1329,8 +1425,8 @@
       "ownerOfRecord": "CAS Consultants, LLC",
       "buyerRelatedEntities": "CAS Consultants, LLC, Juan Castillo, CAS Consultants, LLC",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Atlas matched HCAD parcel at 2501 CANAL ST; 2507 CANAL ST with a standing structure built in 1925 in Lubbock Grove. Proposed land use is Commercial.",
       "lng": -95.34493,
@@ -1353,8 +1449,8 @@
       "ownerOfRecord": "CE Engineers & Development Consultants, Inc.",
       "buyerRelatedEntities": "CE Engineers & Development Consultants, Inc., Melissa Lopez, CE Engineers & Development Consultants, INC",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Atlas matched HCAD parcel at 5603 BACHER ST with a standing structure built in 1933 in Holleman's Addition. The applicant is requesting a variance for a 5\u2019 side building line on the south side of the property, along an undeveloped local street.",
       "lng": -95.27768,
@@ -1362,104 +1458,56 @@
       "tier": "1",
       "appNo": "2026-1570",
       "section": "D. Variances",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93854/OriginalFiles/261061125-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A29%3A14Z&sr=b&sp=r&sig=HAQ59y4hq8lIuOQj%2BwtFqW%2B9pD5ohqNiVquvlJvGy2U%3D",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1570/OriginalFiles/261061125-Model_REV.pdf?sv=2021-08-06&se=2051-10-20T19%3A43%3A19Z&sr=b&sp=r&sig=G9ocyMmNgHm%2FyMvaHn%2FO9NIAzALvNpym0GqoWQYJRjY%3D",
       "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1570-Bacher-Manor.pdf"
     },
     {
-      "id": "plat-2026-1533",
-      "propertyName": "Altosvilla",
-      "address": "3014 WAYNE ST",
+      "id": "plat-2026-1569",
+      "propertyName": "Kafi Commons",
+      "address": "4710 W ALABAMA ST",
       "secondaryAddresses": [],
-      "hcadAccount": "0393450000006",
-      "buildingId": "",
-      "yearBuilt": 1940,
-      "designation": "None found",
-      "ownerOfRecord": "Altos Construction",
-      "buyerRelatedEntities": "Altos Construction, Jason Barringer, South Texas Surveying Associates, Inc.",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Atlas matched HCAD parcel at 3014 WAYNE ST with a standing structure built in 1940 in Grant Park. Proposed replat divides 0.1262000000 ac into 2 lots (Single Family Residential (Shared Driveways)).",
-      "lng": -95.32553,
-      "lat": 29.7886,
-      "tier": "2",
-      "appNo": "2026-1533",
-      "section": "B. Replats",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93812/OriginalFiles/26-0021-001.pdf?sv=2021-08-06&se=2051-09-18T17%3A36%3A36Z&sr=b&sp=r&sig=SydgDrrIpvw8GGXIGkHp4LrIzz8mIarf5lc%2FBNjDL58%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1495",
-      "propertyName": "Amplified Properties",
-      "address": "1131 VERA LOU ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0650100070010",
-      "buildingId": "",
-      "yearBuilt": 1942,
-      "designation": "None found",
-      "ownerOfRecord": "Amplified Properties",
-      "buyerRelatedEntities": "Amplified Properties, Paul Coyne, Tetra Land Services",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
-      "lng": -95.36147,
-      "lat": 29.67483,
-      "tier": "1",
-      "appNo": "2026-1495",
-      "section": "C. Public Hearing",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1484",
-      "propertyName": "Ronson Landing",
-      "address": "1704 RONSON RD",
-      "secondaryAddresses": [],
-      "hcadAccount": "0791290030051",
-      "buildingId": "",
-      "yearBuilt": 1953,
-      "designation": "None found",
-      "ownerOfRecord": "Newmark Homes Houston LLC",
-      "buyerRelatedEntities": "Newmark Homes Houston LLC, Karla Martinez, Pioneer Engineering, LLC",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Atlas matched HCAD parcel at 1704 RONSON RD with a standing structure built in 1953 in Replat of Spring Oaks.",
-      "lng": -95.49889,
-      "lat": 29.80014,
-      "tier": "1",
-      "appNo": "2026-1484",
-      "section": "C. Public Hearing",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93620/OriginalFiles/26046_-_Plat.pdf?sv=2021-08-06&se=2051-09-03T18%3A45%3A52Z&sr=b&sp=r&sig=FSjt6DbInALc1fahVsGWsiepUnx6jP1skJMZjoBETe8%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-2026-1440",
-      "propertyName": "Bayou Glen partial replat no 1",
-      "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
-      "secondaryAddresses": [],
-      "hcadAccount": "0770090010001; 0770090010002;",
+      "hcadAccount": "0780870010001",
       "buildingId": "",
       "yearBuilt": 1956,
       "designation": "None found",
-      "ownerOfRecord": "Brickmoon Design",
-      "buyerRelatedEntities": "Brickmoon Design, Mario Colina, Probstfeld & Associates, Inc.",
+      "ownerOfRecord": "Climax Builders & Designers",
+      "buyerRelatedEntities": "Climax Builders & Designers, JP Anders, Windrose",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
-      "notes": "Atlas matched HCAD parcel at 5218 WOODWAY DR; 5214 WOODWAY DR with a standing structure built in 1956 in Bayou Glen.",
-      "lng": -95.46915,
-      "lat": 29.76359,
+      "notes": "Atlas matched HCAD parcel at 4710 W ALABAMA ST with a standing structure built in 1956 in Greenwood Addition. Proposed land use is Unrestricted.",
+      "lng": -95.45628,
+      "lat": 29.73833,
       "tier": "1",
-      "appNo": "2026-1440",
+      "appNo": "2026-1569",
       "section": "C. Public Hearing",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1440/OriginalFiles/Woodway_Drive_PRELIMINARY_PLAT_OF_BAYOU_GLEN_PARTIAL_REPLAT_NO_1__92126.pdf?sv=2021-08-06&se=2051-09-22T19%3A50%3A20Z&sr=b&sp=r&sig=s6a0uknskB%2BMe0kDG%2FTTtncjnNfi8j8Qy0LCrvAUqI8%3D",
-      "noticePdf": ""
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D",
+      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf"
+    },
+    {
+      "id": "plat-2026-1502",
+      "propertyName": "Sevilla Commercial",
+      "address": "8017 HOMESTEAD RD",
+      "secondaryAddresses": [],
+      "hcadAccount": "0731100150467; 0731100150468;",
+      "buildingId": "",
+      "yearBuilt": 1950,
+      "designation": "None found",
+      "ownerOfRecord": "Franklin Sevilla",
+      "buyerRelatedEntities": "Franklin Sevilla, Paul Coyne, Tetra Land Services",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Atlas matched HCAD parcel at 8017 HOMESTEAD RD with a standing structure built in 1950 in Pelham Place Sec 2. Proposed land use is Commercial.",
+      "lng": -95.30232,
+      "lat": 29.8356,
+      "tier": "1",
+      "appNo": "2026-1502",
+      "section": "C. Public Hearing",
+      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D",
+      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf"
     },
     {
       "id": "plat-2026-1427",
@@ -1473,8 +1521,8 @@
       "ownerOfRecord": "Hart Custom Homes LLC",
       "buyerRelatedEntities": "Hart Custom Homes LLC, Joyce Owens, Owens Management Systems, LLC",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Atlas matched HCAD parcel at 604 NEYLAND ST with a standing structure built in 1948 in Oxford Place. Proposed replat divides 0.1694000000 ac into 2 lots (Single Family Residential (Public Street)).",
       "lng": -95.39165,
@@ -1483,606 +1531,6 @@
       "appNo": "2026-1427",
       "section": "B. Replats",
       "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-4",
-      "propertyName": "Bauer Hockley Road Street Dedication and Drill Site",
-      "address": "Bauer Hockley Road Street Dedication and Drill Site",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-4) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-4",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-8",
-      "propertyName": "Bridgeland Prairieland Village Sec 58",
-      "address": "Bridgeland Prairieland Village Sec 58",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-8) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-8",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-9",
-      "propertyName": "City of Houston District 71 Ground Water Facility",
-      "address": "City of Houston District 71 Ground Water Facility",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-9) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-9",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-11",
-      "propertyName": "Esther Residences Square",
-      "address": "Esther Residences Square",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-11) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-11",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-12",
-      "propertyName": "Fairbanks Landing Sec 2",
-      "address": "Fairbanks Landing Sec 2",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-12) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-12",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-14",
-      "propertyName": "Fondren at Court Reserves Sec 1",
-      "address": "Fondren at Court Reserves Sec 1",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-14) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-14",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-15",
-      "propertyName": "Generation Park East Sec 5",
-      "address": "Generation Park East Sec 5",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-15) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-15",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-16",
-      "propertyName": "Generation Park South Sec 2",
-      "address": "Generation Park South Sec 2",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-16) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-16",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-18",
-      "propertyName": "Harris County Municipal Utility District no 421 Remote Well",
-      "address": "Harris County Municipal Utility District no 421 Remote Well",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-18) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-18",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-19",
-      "propertyName": "Harris County WCID no 110 Wastewater Treatment Plant no 1",
-      "address": "Harris County WCID no 110 Wastewater Treatment Plant no 1",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-19) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-19",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-20",
-      "propertyName": "Homes on Market Street",
-      "address": "Homes on Market Street",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-20) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-20",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-21",
-      "propertyName": "Huffman Fire Department Station 53",
-      "address": "Huffman Fire Department Station 53",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-21) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-21",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-23",
-      "propertyName": "Jubilee Baethe Road Steet Dedication and Reserve Sec 3",
-      "address": "Jubilee Baethe Road Steet Dedication and Reserve Sec 3",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-23) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-23",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-24",
-      "propertyName": "Jubilee Haven Boulevard Street Dedication and Reserve Sec 3",
-      "address": "Jubilee Haven Boulevard Street Dedication and Reserve Sec 3",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-24) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-24",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-25",
-      "propertyName": "Lockwood Street Commons",
-      "address": "Lockwood Street Commons",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-25) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-25",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-26",
-      "propertyName": "Midline Sec 12",
-      "address": "Midline Sec 12",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-26) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-26",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-27",
-      "propertyName": "Northeast Industrial",
-      "address": "Northeast Industrial",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-27) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-27",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-28",
-      "propertyName": "Northwest 99 Business Park GP",
-      "address": "Northwest 99 Business Park GP",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-28) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-28",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-29",
-      "propertyName": "Olympia Fields Sec 6",
-      "address": "Olympia Fields Sec 6",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-29) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-29",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-33",
-      "propertyName": "Virdi Brothers LLC",
-      "address": "Virdi Brothers LLC",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-33) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-33",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-34",
-      "propertyName": "White Oak Terrace Estates replat no 1",
-      "address": "White Oak Terrace Estates replat no 1",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-34) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-34",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-35",
-      "propertyName": "Windmill Park Industrial Sec 1",
-      "address": "Windmill Park Industrial Sec 1",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-35) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-35",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-37",
-      "propertyName": "Bridgeland Nature Preserve Way Church",
-      "address": "Bridgeland Nature Preserve Way Church",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-37) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-37",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-38",
-      "propertyName": "Brittmoore Founders District partial replat no 1",
-      "address": "Brittmoore Founders District partial replat no 1",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-38) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-38",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
-      "noticePdf": ""
-    },
-    {
-      "id": "plat-DPV-40",
-      "propertyName": "Clarewood Springs",
-      "address": "Clarewood Springs",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-40) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-40",
-      "section": "K. Development Plat Variances",
-      "platPdf": "",
       "noticePdf": ""
     },
     {
@@ -2097,8 +1545,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "Jessica Rubio",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-26073533) in MIDTOWN. The applicant is requesting to allow auto-related uses in the pedestrian realm along McGowen Street for a new convenience store, fuel canopy, and retail shell building.",
       "lng": -95.37577,
@@ -2121,8 +1569,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "Eric Hughes",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-26075937) in WASHINGTON AVENUE COALITION / MEMORIAL PARK. The applicant is requesting a 5-foot building line in lieu of the city ordinance 10-foot garage building line along East 2nd Street, a local street, for a new single-family residence.",
       "lng": -95.39341,
@@ -2145,8 +1593,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1442) in Houston.",
       "lng": null,
@@ -2156,78 +1604,6 @@
       "section": "K. Development Plat Variances",
       "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf",
       "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1481",
-      "propertyName": "Jutland Homes",
-      "address": "Jutland Homes",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1481) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1481",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1502",
-      "propertyName": "Sevilla Commercial",
-      "address": "Sevilla Commercial",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1502) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1502",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1520",
-      "propertyName": "Partial Replat of Sandalwood Sec 2 and 3 partial replat no 1",
-      "address": "Partial Replat of Sandalwood Sec 2 and 3 partial replat no 1",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1520) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1520",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1520-Partial-Replat-of-Sandalwood-Sec-2-and-3-prno1-PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1520-Partial-Replat-of-Sandalwood-Sec-2-and-3-prno1-PH.pdf"
     },
     {
       "id": "plat-DPV-2026-1553",
@@ -2241,8 +1617,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1553) in Houston.",
       "lng": null,
@@ -2252,30 +1628,6 @@
       "section": "K. Development Plat Variances",
       "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1553_Denton-Street-Villas_PH.pdf",
       "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1553_Denton-Street-Villas_PH.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1554",
-      "propertyName": "Richland Drive Villas",
-      "address": "Richland Drive Villas",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1554) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1554",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1554-Richland-Drive-Villas-PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1554-Richland-Drive-Villas-PH.pdf"
     },
     {
       "id": "plat-DPV-2026-1562",
@@ -2289,8 +1641,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1562) in Houston.",
       "lng": null,
@@ -2300,30 +1652,6 @@
       "section": "K. Development Plat Variances",
       "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
       "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf"
-    },
-    {
-      "id": "plat-DPV-2026-1569",
-      "propertyName": "Kafi Commons",
-      "address": "Kafi Commons",
-      "secondaryAddresses": [],
-      "hcadAccount": "",
-      "buildingId": "",
-      "yearBuilt": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
-      },
-      "notes": "Section K Development Plat Variance (DPV-2026-1569) in Houston.",
-      "lng": null,
-      "lat": null,
-      "tier": "2",
-      "appNo": "DPV-2026-1569",
-      "section": "K. Development Plat Variances",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf"
     },
     {
       "id": "plat-DPV-2026-1585",
@@ -2337,8 +1665,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1585) in Houston.",
       "lng": null,
@@ -2361,8 +1689,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1621) in Houston.",
       "lng": null,
@@ -2385,8 +1713,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1639) in Houston.",
       "lng": null,
@@ -2409,8 +1737,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1641) in Houston.",
       "lng": null,
@@ -2433,8 +1761,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1650) in Houston.",
       "lng": null,
@@ -2457,8 +1785,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1669) in Houston. The applicant is requesting a special exception to allow an intersection spacing of approximately 3,133 feet along Court Road, a major thoroughfare, between Fondren Road and Blue Ridge Road by not providing a north-south public street and to allow a reduced centerline radius of 1,800-feet for Fondren Road, a major thoroughfare.",
       "lng": null,
@@ -2468,6 +1796,30 @@
       "section": "K. Development Plat Variances",
       "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
       "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf"
+    },
+    {
+      "id": "plat-DPV-2026-1701",
+      "propertyName": "Grace Lane Estates",
+      "address": "5926 and 5930 Grace Lane, Houston, TX 77021",
+      "secondaryAddresses": [],
+      "hcadAccount": "",
+      "buildingId": "",
+      "yearBuilt": "",
+      "designation": "None found",
+      "ownerOfRecord": "",
+      "buyerRelatedEntities": "",
+      "keyDates": {
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
+      },
+      "notes": "Section K Development Plat Variance (DPV-2026-1701) in Houston. The applicant is requesting a variance to exceed 1,400' intersection spacing along a local street by not providing an east-west street through the property.",
+      "lng": null,
+      "lat": null,
+      "tier": "2",
+      "appNo": "DPV-2026-1701",
+      "section": "K. Development Plat Variances",
+      "platPdf": "https://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
+      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf"
     },
     {
       "id": "plat-DPV-2026-1723",
@@ -2481,8 +1833,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-2026-1723) in Houston.",
       "lng": -95.33302,
@@ -2505,8 +1857,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-26080390) in Houston. The applicant is requesting a 5-foot building line in lieu of the ordinance required 10-foot building line along Nathan Street, an undeveloped street, as well as to not dedicate 5 feet of right-of-way to Nathan and Dreyfus Streets, for a new duplex.",
       "lng": -95.36635,
@@ -2529,8 +1881,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-26084127) in Houston. The applicant is requesting a 10-foot building line along W.",
       "lng": -95.42324,
@@ -2553,8 +1905,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-26087637) in Houston. The applicant is requesting a 14-foot building line in lieu of the city ordinance 20-foot garage building line along Apple Tree Road, a local street, for a new single-family residence.",
       "lng": null,
@@ -2577,8 +1929,8 @@
       "ownerOfRecord": "",
       "buyerRelatedEntities": "",
       "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "planningCommission": "2026-10-16"
+        "monitoringStarted": "2026-10-30",
+        "planningCommission": "2026-10-30"
       },
       "notes": "Section K Development Plat Variance (DPV-26091362) in Houston. The applicant is requesting an 11-foot building line in lieu of the city ordinance 20-foot garage building line along Glenchester Drive, a local street, for a new single-family residence.",
       "lng": -95.57943,
