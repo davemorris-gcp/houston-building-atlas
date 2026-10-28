@@ -6,7 +6,7 @@ import argparse
 import time
 from pathlib import Path
 
-from atlas_pipeline.fetch_data import fetch_core_parcels_and_footprints, fetch_full_hcad_parcels
+from atlas_pipeline.fetch_data import fetch_core_parcels_and_footprints
 from atlas_pipeline.spatial_join import join_footprints_to_parcels
 from atlas_pipeline.tile_builder import write_atlas_bundle
 
@@ -17,9 +17,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=("core", "full"),
+        choices=("core", "full", "campuses"),
         default="core",
-        help="Pipeline mode: 'core' (Historic Houston Core + Landmarks + Districts + OSM Footprints) or 'full' (Harris County bulk HCAD).",
+        help=(
+            "Pipeline mode: 'core' (Historic Houston Core + Landmarks + Districts + OSM Footprints), "
+            "'full' (Harris County bulk HCAD), or 'campuses' (Campus & school dating/situs hydration)."
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -61,6 +64,10 @@ def main() -> None:
             parcels=valid_parcels,
             overlays=overlays,
         )
+    elif args.mode == "campuses":
+        from atlas_pipeline.fix_campus_anomalies_and_schools import run_campus_and_school_fixes
+
+        stats = run_campus_and_school_fixes(args.cache_dir, args.output_dir, compile_pmtiles=True)
     else:
         from atlas_pipeline.full_build import run_full_county_build
 

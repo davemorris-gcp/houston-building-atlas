@@ -2,11 +2,252 @@
 
 from __future__ import annotations
 
+import datetime
+import json
 import math
+import re
+import shutil
+import subprocess
+import time
+from pathlib import Path
 from typing import Any
 
 MIN_VALID_YEAR = 1836
 MAX_VALID_YEAR = 2027
+MAX_VALID_CAMA_DATE_YEAR = 2026
+ACTIVE_CACHE_BUST = "20261027b"
+QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
+
+INFERRED_FALLBACK_YEAR_SOURCES: frozenset[str] = frozenset({
+    "hcad_permit",
+    "campus_contiguity",
+    "adjacent_owner",
+    "hcad_extra_feature",
+    "hcad_tieback",
+    "hcad_deed",
+    "subdivision_median",
+    "blockface_median",
+})
+
+AUTHORITATIVE_YEAR_SOURCES: frozenset[str] = frozenset({
+    "",
+    "hcad_cama",
+    "curated_landmark",
+    "good_brick_award",
+    "archival",
+})
+
+VALID_CONTRIBUTING_VALUES: frozenset[str] = frozenset({
+    "Contributing",
+    "Non-Contributing",
+    "Outside Historic District",
+    "Tax-Exempt Campus Structure",
+})
+
+_RE_MDY_DATE = re.compile(
+    r"^(\d{1,2})/(\d{1,2})/(\d{4})(?:[\sT].*)?$"
+)
+_RE_YMD_DATE = re.compile(
+    r"^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[\sT].*)?$"
+)
+
+
+def is_hcad_null_date_sentinel(year: int, month: int, day: int) -> bool:
+    """Return True when (year, month, day) is an HCAD Microsoft COM/OLE/SQL null-date sentinel.
+
+    HCAD CAMA tabular exports (permits.txt, deeds.txt, real_acct.txt splt_dt/new_own_dt)
+    serialize null Microsoft COM/OLE Automation VT_DATE / Access / Excel serial-0 dates as
+    12/30/1899 (or 12/31/1899), and SQL Server DATETIME / Lotus-Excel epoch defaults as
+    01/01/1900 or 01/02/1900. Genuine non-sentinel 1900 calendar dates (e.g. 06/15/1900)
+    are preserved.
+    """
+    if month <= 0 or day <= 0:
+        return True
+    if year == 1899:
+        return True
+    if year == 1900 and month == 1 and day in (1, 2):
+        return True
+    return False
+
+
+def normalize_hcad_date(
+    date_str: Any,
+    fallback_yr_str: Any = None,
+    *,
+    allow_fallback: bool = True,
+    min_year: int = MIN_VALID_YEAR,
+    max_year: int = MAX_VALID_CAMA_DATE_YEAR,
+) -> tuple[str | None, int]:
+    """Parse an HCAD date string into (iso_yyyy_mm_dd_or_none, valid_year_or_0).
+
+    Rejects SQL/OLE null-date sentinels (year 1899, 01/01/1900, 01/02/1900, 00/00/0000,
+    invalid calendar dates, and years outside [min_year, max_year]).
+
+    Source-specific fallback rules:
+      - deeds.txt passes allow_fallback=True with clerk_yr, which records the County Clerk
+        instrument filing year when dos is a 12/30/1899 null sentinel.
+      - permits.txt passes allow_fallback=False because permits.txt yr stores the HCAD
+        appraisal tax-roll cycle year (e.g. 2008 or 2025) rather than permit issuance year.
+    """
+    s = "" if date_str is None else str(date_str).strip()
+    if s and s not in ("0", "00/00/0000", "0000-00-00"):
+        y_int = m_int = d_int = 0
+        matched = False
+        m_mdy = _RE_MDY_DATE.match(s)
+        if m_mdy:
+            m_int, d_int, y_int = int(m_mdy.group(1)), int(m_mdy.group(2)), int(m_mdy.group(3))
+            matched = True
+        else:
+            m_ymd = _RE_YMD_DATE.match(s)
+            if m_ymd:
+                y_int, m_int, d_int = int(m_ymd.group(1)), int(m_ymd.group(2)), int(m_ymd.group(3))
+                matched = True
+
+        if matched and not is_hcad_null_date_sentinel(y_int, m_int, d_int):
+            if min_year <= y_int <= max_year:
+                try:
+                    dt_obj = datetime.date(y_int, m_int, d_int)
+                    return dt_obj.isoformat(), y_int
+                except ValueError:
+                    pass
+
+    if allow_fallback and fallback_yr_str is not None:
+        fb_yr = normalize_year(fallback_yr_str)
+        if fb_yr != 1899 and min_year <= fb_yr <= max_year:
+            return None, fb_yr
+
+    return None, 0
+
+
+def parse_hcad_date_year(
+    date_str: Any,
+    fallback_yr_str: Any = None,
+    *,
+    allow_fallback: bool = True,
+    min_year: int = MIN_VALID_YEAR,
+    max_year: int = MAX_VALID_CAMA_DATE_YEAR,
+) -> int:
+    """Return the validated integer year in [min_year, max_year] for an HCAD date field, or 0."""
+    _, yr = normalize_hcad_date(
+        date_str,
+        fallback_yr_str,
+        allow_fallback=allow_fallback,
+        min_year=min_year,
+        max_year=max_year,
+    )
+    return yr
+
+
+def write_compact_json(path: Path | str, payload: Any) -> None:
+    """Serialize payload as single-line compact UTF-8 JSON to keep data bundles within budget."""
+    target = Path(path)
+    tmp_path = target.with_name(f"{target.name}.tmp")
+    serialized = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    tmp_path.write_text(serialized, encoding="utf-8")
+    tmp_path.replace(target)
+
+
+def sanitize_atlas_text(val: str) -> str:
+    """Normalize typography so public JSON artifacts contain zero U+2014 em-dashes."""
+    return val.replace(" \u2014 ", " - ").replace("\u2014", "-")
+
+
+def compile_quadrant_pmtiles(
+    shard_dir: Path,
+    output_dir: Path,
+    quad_names: tuple[str, ...] = QUAD_NAMES,
+) -> tuple[list[str], int]:
+    """Compile quadrant .geojsonseq shards into Web Mercator PMTiles v3 archives in parallel via Tippecanoe."""
+    tippecanoe_bin = shutil.which("tippecanoe") or "/tmp/tippecanoe/tippecanoe"
+    if not Path(tippecanoe_bin).exists():
+        tippecanoe_bin = str(Path.home() / ".local" / "bin" / "tippecanoe")
+
+    print("-> Compiling 5 Web Mercator tile-aligned PMTiles v3 archives in parallel via Tippecanoe...")
+    t_tip = time.time()
+    procs: list[tuple[str, subprocess.Popen[bytes], Path]] = []
+    for q in quad_names:
+        in_seq = shard_dir / f"buildings_{q}.geojsonseq"
+        out_pmtiles = output_dir / f"houston_buildings_{q}.pmtiles"
+        cmd = [
+            tippecanoe_bin,
+            "-o",
+            str(out_pmtiles),
+            "--force",
+            "-l",
+            "buildings",
+            "-Z",
+            "10",
+            "-z",
+            "15",
+            "--hilbert",
+            "--read-parallel",
+            "--drop-densest-as-needed",
+            "--extend-zooms-if-still-dropping",
+            "--maximum-tile-bytes=2500000",
+            "--maximum-tile-features=400000",
+            "--simplification=2",
+            str(in_seq),
+        ]
+        procs.append((q, subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE), out_pmtiles))
+
+    shard_files: list[str] = []
+    total_pmtiles_bytes = 0
+    for q, proc, out_pmtiles in procs:
+        _, stderr = proc.communicate()
+        if proc.returncode != 0:
+            raise RuntimeError(
+                f"Tippecanoe failed for quadrant {q}: {stderr.decode('utf-8', errors='replace')}"
+            )
+        sz = out_pmtiles.stat().st_size
+        total_pmtiles_bytes += sz
+        shard_files.append(out_pmtiles.name)
+        print(f"   Compiled {out_pmtiles.name}: {sz / (1024 * 1024):.1f} MB")
+    print(f"-> Tippecanoe compilation finished in {time.time() - t_tip:.1f}s.")
+    return shard_files, total_pmtiles_bytes
+
+
+def normalize_override_record(key: str, record: dict[str, Any]) -> dict[str, Any]:
+    """Enforce integer decade, canonical IDs, clean typography, and valid contributing enum on an override record."""
+    out = dict(record)
+    for fld, fval in list(out.items()):
+        if isinstance(fval, str) and "\u2014" in fval:
+            out[fld] = sanitize_atlas_text(fval)
+        elif isinstance(fval, list) and any(isinstance(x, str) and "\u2014" in x for x in fval):
+            out[fld] = [sanitize_atlas_text(x) if isinstance(x, str) else x for x in fval]
+
+    clean_key = str(key).strip()
+    raw_prefix = clean_key.split("#")[0].strip()
+    hcad = str(out.get("hcad_num") or (raw_prefix if raw_prefix.isdigit() else "")).strip()
+    if hcad:
+        out["hcad_num"] = hcad
+    if not out.get("id"):
+        out["id"] = clean_key
+    if "#" in clean_key and not out.get("building_id"):
+        out["building_id"] = clean_key
+
+    yr = normalize_year(out.get("year_built"))
+    if yr >= MIN_VALID_YEAR:
+        out["year_built"] = yr
+        out["decade"] = compute_decade(yr)
+    elif "decade" in out:
+        raw_dec = out.get("decade")
+        if isinstance(raw_dec, str):
+            dec_digits = re.sub(r"\D", "", raw_dec)
+            out["decade"] = int(dec_digits) if len(dec_digits) == 4 else 0
+        elif isinstance(raw_dec, (int, float)):
+            out["decade"] = int(raw_dec)
+        else:
+            out["decade"] = 0
+
+    contrib = str(out.get("contributing") or "").strip()
+    if contrib == "NonContributing":
+        contrib = "Non-Contributing"
+    if contrib not in VALID_CONTRIBUTING_VALUES:
+        out["contributing"] = "Outside Historic District"
+    else:
+        out["contributing"] = contrib
+
+    return out
 
 
 def normalize_year(raw_val: Any) -> int:

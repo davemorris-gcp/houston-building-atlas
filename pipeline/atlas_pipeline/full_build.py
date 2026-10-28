@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import csv
 import io
-import math
-import os
 import pickle
 import re
-import subprocess
 import time
 import zipfile
 from collections import Counter, defaultdict
@@ -29,7 +25,9 @@ from atlas_pipeline.fetch_data import (
     fetch_arcgis_geojson_paginated,
 )
 from atlas_pipeline.schema import (
+    ACTIVE_CACHE_BUST,
     classify_use_category,
+    compile_quadrant_pmtiles,
     compute_decade,
     estimate_stories_and_height,
     normalize_year,
@@ -765,54 +763,30 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
     total_buildings = dedup_total
     print(f"   Completed spatial overlap deduplication in {time.time() - t_dedup:.1f}s: {total_buildings:,} unique structures.")
 
+    campus_stats: dict[str, Any] | None = None
+    if (output_dir / "search_index.json").exists() and (output_dir / "curated_overrides.json").exists():
+        from atlas_pipeline.fix_campus_anomalies_and_schools import run_campus_and_school_fixes
+
+        campus_stats = run_campus_and_school_fixes(
+            cache_dir,
+            output_dir,
+            compile_pmtiles=False,
+            shard_dir=ndjson_dir,
+        )
+        total_buildings = int(campus_stats.get("total_buildings", total_buildings))
+
     # 5. Compile each quadrant's GeoJSONSeq into a <85 MB PMTiles v3 archive using Tippecanoe in parallel
-    tippecanoe_bin = "/tmp/tippecanoe/tippecanoe"
-    if not Path(tippecanoe_bin).exists():
-        tippecanoe_bin = str(Path.home() / ".local" / "bin" / "tippecanoe")
-
-    print("-> Compiling 5 Web Mercator tile-aligned PMTiles v3 archives in parallel via Tippecanoe...")
-    t_tip = time.time()
-    procs: list[tuple[str, subprocess.Popen[bytes], Path]] = []
-    for q in quad_names:
-        in_seq = ndjson_dir / f"buildings_{q}.geojsonseq"
-        out_pmtiles = output_dir / f"houston_buildings_{q}.pmtiles"
-        cmd = [
-            tippecanoe_bin,
-            "-o",
-            str(out_pmtiles),
-            "--force",
-            "-l",
-            "buildings",
-            "-Z",
-            "10",
-            "-z",
-            "15",
-            "--hilbert",
-            "--read-parallel",
-            "--drop-densest-as-needed",
-            "--extend-zooms-if-still-dropping",
-            "--maximum-tile-bytes=2500000",
-            "--maximum-tile-features=400000",
-            "--simplification=2",
-            str(in_seq),
-        ]
-        procs.append((q, subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE), out_pmtiles))
-
-    shard_files: list[str] = []
-    total_pmtiles_bytes = 0
-    for q, proc, out_pmtiles in procs:
-        _, stderr = proc.communicate()
-        if proc.returncode != 0:
-            raise RuntimeError(f"Tippecanoe failed for quadrant {q}: {stderr.decode('utf-8', errors='replace')}")
-        sz = out_pmtiles.stat().st_size
-        total_pmtiles_bytes += sz
-        shard_files.append(out_pmtiles.name)
-        print(f"   Compiled {out_pmtiles.name}: {sz / (1024 * 1024):.1f} MB")
+    shard_files, total_pmtiles_bytes = compile_quadrant_pmtiles(
+        ndjson_dir,
+        output_dir,
+        tuple(quad_names),
+    )
 
     # Also include the core houston_atlas.pmtiles (which has historic core parcels + buildings) in the manifest
     manifest = {
         "version": 2,
         "mode": "full_county",
+        "cache_bust": ACTIVE_CACHE_BUST,
         "total_buildings": total_buildings,
         "building_shards": shard_files,
         "core_pmtiles": "houston_atlas.pmtiles",
@@ -823,24 +797,39 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
     ordered_decades = {str(d): decade_counter.get(str(d), 0) for d in range(1830, 2030, 10)}
     ordered_decades["unknown"] = decade_counter.get("unknown", 0)
 
-    stats_summary = {
+    stats_summary: dict[str, Any] = {
         "total_buildings": total_buildings,
-        "dated_buildings": dated_count,
+        "dated_buildings": int(campus_stats["dated_buildings"]) if campus_stats else dated_count,
         "observed_footprints": observed_fp_count,
-        "earliest_year": earliest_year if earliest_year != 9999 else 1836,
-        "latest_year": latest_year if latest_year != 0 else 2026,
+        "earliest_year": (
+            int(campus_stats["earliest_year"])
+            if campus_stats
+            else (earliest_year if earliest_year != 9999 else 1836)
+        ),
+        "latest_year": (
+            int(campus_stats["latest_year"])
+            if campus_stats
+            else (latest_year if latest_year != 0 else 2026)
+        ),
         "total_landmarks": len(overlays.get("landmarks", [])),
         "total_historic_districts": len(overlays.get("historic_districts", [])),
         "total_heritage_districts": len(overlays.get("heritage_districts", [])),
         "total_nrhp_districts": len(overlays.get("nrhp_districts", [])),
         "total_thc_markers": len(overlays.get("thc_markers", [])),
-        "decade_counts": ordered_decades,
-        "contributing_counts": dict(contrib_counter),
-        "use_category_counts": dict(use_counter),
-        "top_historic_districts": dict(district_counter.most_common(25)),
+        "decade_counts": campus_stats["decade_counts"] if campus_stats else ordered_decades,
+        "contributing_counts": campus_stats["contributing_counts"] if campus_stats else dict(contrib_counter),
+        "use_category_counts": campus_stats["use_category_counts"] if campus_stats else dict(use_counter),
+        "top_historic_districts": (
+            campus_stats["top_historic_districts"]
+            if campus_stats
+            else dict(district_counter.most_common(25))
+        ),
         "pmtiles_size_bytes": total_pmtiles_bytes,
         "pmtiles_shards": shard_files,
     }
+    if campus_stats and "year_source_counts" in campus_stats:
+        stats_summary["year_source_counts"] = campus_stats["year_source_counts"]
     (output_dir / "stats_summary.json").write_bytes(orjson.dumps(stats_summary, option=orjson.OPT_INDENT_2))
+
     print(f"=== Full Harris County Build Complete in {time.time() - t_start:.1f}s ===")
     return stats_summary

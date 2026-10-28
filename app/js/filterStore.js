@@ -3,6 +3,29 @@
  * for The Houston Building Atlas v2.
  */
 
+export function normalizeComparableAddress(raw) {
+  return String(raw || "")
+    .toUpperCase()
+    .replace(/[.,#]/g, " ")
+    .replace(/\bSTREET\b/g, "ST")
+    .replace(/\bAVENUE\b/g, "AVE")
+    .replace(/\bBOULEVARD\b/g, "BLVD")
+    .replace(/\bDRIVE\b/g, "DR")
+    .replace(/\bROAD\b/g, "RD")
+    .replace(/\bLANE\b/g, "LN")
+    .replace(/\bCOURT\b/g, "CT")
+    .replace(/\bPLACE\b/g, "PL")
+    .replace(/\bPARKWAY\b|\bPKY\b/g, "PKWY")
+    .replace(/\bFREEWAY\b/g, "FWY")
+    .replace(/\bHIGHWAY\b/g, "HWY")
+    .replace(/\bNORTH\b/g, "N")
+    .replace(/\bSOUTH\b/g, "S")
+    .replace(/\bEAST\b/g, "E")
+    .replace(/\bWEST\b/g, "W")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export const DEFAULT_FILTER_STATE = {
   colorMode: "year_built", // 'year_built' | 'preservation_status' | 'use_category'
   paletteStyle: "archival", // 'archival' | 'classic_ee'
@@ -860,6 +883,16 @@ export function parseHashToState(hashString = "", searchString = "") {
     for (const [k, v] of sp.entries()) {
       mergedParams.set(k, v);
     }
+  }
+  if (
+    cleanSearch &&
+    cleanHash &&
+    !cleanHash.includes("=") &&
+    /^[A-Za-z0-9_.-]+$/.test(cleanHash) &&
+    /^\d{10,13}$/.test(String(mergedParams.get("id") || "").trim())
+  ) {
+    mergedParams.set("id", `${String(mergedParams.get("id")).trim()}#${cleanHash}`);
+    mergedParams.delete(cleanHash);
   }
 
   const patch = {};

@@ -8,29 +8,30 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261027a";
+} from "./palettes.js?v=20261027b";
 import {
   buildShareableUrl,
   createFilterStore,
   HISTORIC_WARD_ERAS,
+  normalizeComparableAddress,
   parseHashToState,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261027a";
-import { AtlasMapController } from "./mapController.js?v=20261027a";
+} from "./filterStore.js?v=20261027b";
+import { AtlasMapController } from "./mapController.js?v=20261027b";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261027a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261027a";
+} from "./guidedChaptersAndPortfolios.js?v=20261027b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261027b";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261027a";
+} from "./clerkSearchHelpers.js?v=20261027b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -44,7 +45,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261027a";
+} from "./curatedEdits.js?v=20261027b";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -54,9 +55,9 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261027a";
+} from "./photoService.js?v=20261027b";
 
-class HoustonAtlasApp {
+export class HoustonAtlasApp {
   constructor() {
     this._hadInitialUrlParams = Boolean(
       (window.location.hash && window.location.hash.length > 1) ||
@@ -428,6 +429,7 @@ class HoustonAtlasApp {
     const rawQuery = String(selection.query || "").trim();
     let addressQuery = rawQuery;
     let fallbackYearBuilt = 0;
+    let fallbackBuildingName = "";
     const extraCandidateHcads = [];
     let targetLng = Number.isFinite(Number(viewport?.lng)) ? Number(viewport.lng) : null;
     let targetLat = Number.isFinite(Number(viewport?.lat)) ? Number(viewport.lat) : null;
@@ -439,56 +441,91 @@ class HoustonAtlasApp {
       }
     }
 
-    const normAddr = (s) =>
-      String(s || "")
-        .toUpperCase()
-        .replace(/\./g, "")
-        .replace(/\bSTREET\b/g, "ST")
-        .replace(/\bAVENUE\b/g, "AVE")
-        .replace(/\bDRIVE\b/g, "DR")
-        .replace(/\bROAD\b/g, "RD")
-        .replace(/\bBOULEVARD\b/g, "BLVD")
-        .replace(/\bLANE\b/g, "LN")
-        .replace(/\bCOURT\b/g, "CT")
-        .replace(/\bPLACE\b/g, "PL")
-        .replace(/\bNORTH\b/g, "N")
-        .replace(/\bSOUTH\b/g, "S")
-        .replace(/\bEAST\b/g, "E")
-        .replace(/\bWEST\b/g, "W")
-        .replace(/\s+/g, " ")
-        .trim();
+    const normAddr = normalizeComparableAddress;
 
-    // 1. Check searchIndex for matching HCAD, featureId, or street address
+    // 1. Check searchIndex for matching featureId/building_id first, then HCAD or street address
     if (Array.isArray(this.searchIndex)) {
       const normQ = normAddr(rawQuery);
-      const idxHit = this.searchIndex.find((it) => {
-        if (
+      const isSelectableSearchItem = (it) =>
+        !(
           it.is_neighborhood_entry ||
           it.is_place_boundary ||
           it.type === "red_book_1915" ||
           it.type === "hahc_coa"
-        ) {
+        );
+      const exactIdHit = featureId
+        ? this.searchIndex.find(
+            (it) =>
+              isSelectableSearchItem(it) &&
+              (String(it.id || "").trim() === featureId ||
+                String(it.building_id || "").trim() === featureId)
+          )
+        : null;
+      const idxHit =
+        exactIdHit ||
+        this.searchIndex.find((it) => {
+          if (!isSelectableSearchItem(it)) return false;
+          if (featureId && featureId.includes("#")) {
+            const itEntity = String(it.building_id || it.id || "").trim();
+            if (itEntity.includes("#") && itEntity !== featureId) return false;
+          }
+          if (!featureId && hcadNum && String(it.hcad_num || "").trim() === hcadNum) return true;
+          if (normQ && (normAddr(it.address) === normQ || normAddr(it.label) === normQ)) return true;
+          if (hcadNum && !featureId.includes("#") && String(it.hcad_num || "").trim() === hcadNum) {
+            return true;
+          }
           return false;
-        }
-        if (hcadNum && String(it.hcad_num || "").trim() === hcadNum) return true;
-        if (featureId && String(it.id || "").trim() === featureId) return true;
-        if (normQ && (normAddr(it.address) === normQ || normAddr(it.label) === normQ)) return true;
-        return false;
-      });
+        });
       if (idxHit) {
         if (!hcadNum && idxHit.hcad_num) hcadNum = String(idxHit.hcad_num).trim();
         if (idxHit.hcad_num && String(idxHit.hcad_num).trim() !== hcadNum) {
           extraCandidateHcads.push(String(idxHit.hcad_num).trim());
         }
-        if (!featureId && idxHit.id) featureId = String(idxHit.id).trim();
+        const hitBldId = String(idxHit.building_id || "").trim();
+        const hitId = String(idxHit.id || "").trim();
+        if (hitBldId && (!featureId || featureId.startsWith("school_"))) {
+          featureId = hitBldId;
+        } else if (!featureId && hitId && !hitId.startsWith("school_")) {
+          featureId = hitId;
+        }
         if (!addressQuery && idxHit.address) addressQuery = String(idxHit.address).trim();
         if (Number(idxHit.year_built) >= 1836) fallbackYearBuilt = Number(idxHit.year_built);
+        if (!fallbackBuildingName) {
+          fallbackBuildingName = String(
+            idxHit.building_name || (hitId.startsWith("school_") ? idxHit.label : "") || ""
+          ).trim();
+        }
         if (!Number.isFinite(targetLng) && Number.isFinite(Number(idxHit.lon ?? idxHit.lng))) {
           targetLng = Number(idxHit.lon ?? idxHit.lng);
         }
         if (!Number.isFinite(targetLat) && Number.isFinite(Number(idxHit.lat))) {
           targetLat = Number(idxHit.lat);
         }
+      }
+    }
+
+    // 1b. Also check curatedOverrides directly for #<slug> deep links (including auxiliary skip_search_index buildings)
+    const directOv =
+      (featureId && this.mapController?.curatedOverrides?.[featureId]) ||
+      (!featureId && hcadNum && this.mapController?.curatedOverrides?.[hcadNum]) ||
+      null;
+    if (directOv) {
+      const ovHcad = String(
+        directOv.hcad_num || (featureId.includes("#") ? featureId.split("#")[0] : "")
+      ).trim();
+      if (!hcadNum && ovHcad) hcadNum = ovHcad;
+      if (!addressQuery && directOv.address) addressQuery = String(directOv.address).trim();
+      if (!fallbackYearBuilt && Number(directOv.year_built) >= 1836) {
+        fallbackYearBuilt = Number(directOv.year_built);
+      }
+      if (!fallbackBuildingName && (directOv.building_name || directOv.landmark_name)) {
+        fallbackBuildingName = String(directOv.building_name || directOv.landmark_name).trim();
+      }
+      if (!Number.isFinite(targetLng) && Number.isFinite(Number(directOv.lon ?? directOv.lng))) {
+        targetLng = Number(directOv.lon ?? directOv.lng);
+      }
+      if (!Number.isFinite(targetLat) && Number.isFinite(Number(directOv.lat))) {
+        targetLat = Number(directOv.lat);
       }
     }
 
@@ -504,7 +541,7 @@ class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261027b`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -513,25 +550,46 @@ class HoustonAtlasApp {
         const shardData = this._addressShardCache[shardKey] || {};
         let bestRow = null;
         let bestStreet = "";
+        let bestRowScore = -Infinity;
         for (const [stName, rows] of Object.entries(shardData)) {
           const normSt = normAddr(stName);
           if (streetTokens.length > 0 && !streetTokens.every((tok) => normSt.includes(tok))) {
             continue;
           }
+          const exactSt = normSt === typedStreetPart;
           for (const row of rows) {
-            if (String(row[0]).toUpperCase() === typedNum) {
+            if (String(row[0]).toUpperCase() !== typedNum) continue;
+            const rYr = Number(row[3]) || 0;
+            const rHcad = String(row[4] || "").trim();
+            const rName = String(row[5] || "").trim();
+            const rBldId = String(row[6] || "").trim();
+            let rowScore = exactSt ? 100 : 40;
+            if (rHcad.length === 13) rowScore += 20;
+            if (rYr >= 1836) rowScore += 10;
+            if (rBldId) {
+              if (rBldId.endsWith("_main") || rBldId.endsWith("#b1")) {
+                rowScore += 15;
+              } else if (/(?:_aux_|_shop_|_shed_|_portable)/i.test(rBldId)) {
+                rowScore -= 5;
+              } else {
+                rowScore += 10;
+              }
+            }
+            if (rName) rowScore += 5;
+            if (rowScore > bestRowScore) {
+              bestRowScore = rowScore;
               bestRow = row;
               bestStreet = normSt;
-              if (normSt === typedStreetPart) break;
             }
           }
-          if (bestRow && bestStreet === typedStreetPart) break;
         }
         if (bestRow) {
           const shardLon = Number(bestRow[1]);
           const shardLat = Number(bestRow[2]);
           const shardYr = Number(bestRow[3]) || 0;
           const shardHcad = String(bestRow[4] || "").trim();
+          const shardBldName = String(bestRow[5] || "").trim();
+          const shardBldId = String(bestRow[6] || "").trim();
           const shardAddr = `${bestRow[0]} ${bestStreet}`.replace(/\s+/g, " ").trim();
           if (shardHcad) {
             if (!hcadNum) {
@@ -540,6 +598,8 @@ class HoustonAtlasApp {
               extraCandidateHcads.push(shardHcad);
             }
           }
+          if (!featureId && shardBldId) featureId = shardBldId;
+          if (!fallbackBuildingName && shardBldName) fallbackBuildingName = shardBldName;
           if (!addressQuery) addressQuery = shardAddr;
           if (!fallbackYearBuilt && shardYr >= 1836) fallbackYearBuilt = shardYr;
           if (!Number.isFinite(targetLng) && Number.isFinite(shardLon)) targetLng = shardLon;
@@ -558,6 +618,7 @@ class HoustonAtlasApp {
         featureId,
         addressQuery,
         fallbackYearBuilt,
+        fallbackBuildingName,
         extraCandidateHcads,
       });
     } else {
@@ -566,6 +627,7 @@ class HoustonAtlasApp {
         featureId,
         addressQuery,
         fallbackYearBuilt,
+        fallbackBuildingName,
         extraCandidateHcads,
         targetLng,
         targetLat,
@@ -596,12 +658,12 @@ class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261025m"),
-        fetch("public/data/stats_summary.json?v=20261025m"),
-        fetch("public/data/haif_index.json?v=20261025m").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261025m").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261025m").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261025m").catch(() => null),
+        fetch("public/data/search_index.json?v=20261027b"),
+        fetch("public/data/stats_summary.json?v=20261027b"),
+        fetch("public/data/haif_index.json?v=20261027b").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261027b").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261027b").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261027b").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -1549,7 +1611,11 @@ class HoustonAtlasApp {
         (item) => !item.hcad_num || !suppressedHcads.has(String(item.hcad_num).trim())
       );
     }
+    const existingByEntityId = new Map();
     const existingByHcad = new Map();
+    const coordsByHcad = new Map();
+    const schoolIdxsByBuildingId = new Map();
+    const schoolIdxsByHcad = new Map();
     for (let i = 0; i < this.searchIndex.length; i++) {
       const item = this.searchIndex[i];
       if (
@@ -1560,20 +1626,61 @@ class HoustonAtlasApp {
       ) {
         continue;
       }
-      if (item.hcad_num) {
-        existingByHcad.set(String(item.hcad_num).trim(), i);
+      const itemId = String(item.id || "").trim();
+      const itemBldId = String(item.building_id || "").trim();
+      const itemHcad = String(item.hcad_num || "").trim();
+      if (
+        itemHcad &&
+        !coordsByHcad.has(itemHcad) &&
+        Number.isFinite(Number(item.lon)) &&
+        Number.isFinite(Number(item.lat))
+      ) {
+        coordsByHcad.set(itemHcad, { lon: Number(item.lon), lat: Number(item.lat) });
       }
-      if (item.id && !existingByHcad.has(String(item.id).trim())) {
-        existingByHcad.set(String(item.id).trim(), i);
+      if (itemId.startsWith("school_")) {
+        if (itemBldId) {
+          const list = schoolIdxsByBuildingId.get(itemBldId) || [];
+          list.push(i);
+          schoolIdxsByBuildingId.set(itemBldId, list);
+        }
+        if (itemHcad) {
+          const list = schoolIdxsByHcad.get(itemHcad) || [];
+          list.push(i);
+          schoolIdxsByHcad.set(itemHcad, list);
+        }
+        continue;
+      }
+      const entityKey = itemBldId || itemId;
+      if (entityKey) {
+        existingByEntityId.set(entityKey, i);
+      }
+      if (itemId && !existingByEntityId.has(itemId)) {
+        existingByEntityId.set(itemId, i);
+      }
+      const isSubBuildingItem =
+        (entityKey.includes("#") && !entityKey.endsWith("#b1")) ||
+        Boolean(item.is_building_override);
+      if (!isSubBuildingItem && itemHcad) {
+        existingByHcad.set(itemHcad, i);
       }
     }
 
-    for (const [hcad, ov] of Object.entries(ovMap)) {
+    for (const [ovKeyRaw, ov] of Object.entries(ovMap)) {
       if (!ov || ov.suppress_only) continue;
-      const existingIdx = existingByHcad.get(hcad) ?? (ov.hcad_num ? existingByHcad.get(String(ov.hcad_num).trim()) : undefined);
+      const ovKey = String(ovKeyRaw || "").trim();
+      if (!ovKey) continue;
+      const isSubBuildingOv = ovKey.includes("#") || Boolean(ov.is_building_override);
+      const cleanHcad = String(
+        ov.hcad_num || (ovKey.includes("#") ? ovKey.split("#")[0] : ovKey)
+      ).trim();
+      const existingIdx = isSubBuildingOv
+        ? existingByEntityId.get(ovKey)
+        : existingByEntityId.get(ovKey) ??
+          (cleanHcad ? existingByHcad.get(cleanHcad) : undefined);
       const existingItem = existingIdx !== undefined ? this.searchIndex[existingIdx] : null;
-      let lon = ov.lon ?? ov.lng ?? existingItem?.lon ?? -95.38718;
-      let lat = ov.lat ?? existingItem?.lat ?? 29.79175;
+      const hcadFallbackCoords = cleanHcad ? coordsByHcad.get(cleanHcad) : null;
+      let lon = ov.lon ?? ov.lng ?? existingItem?.lon ?? hcadFallbackCoords?.lon ?? -95.38718;
+      let lat = ov.lat ?? existingItem?.lat ?? hcadFallbackCoords?.lat ?? 29.79175;
       if (ov.geometry && ov.geometry.coordinates && ov.geometry.coordinates[0]?.[0]) {
         const ring =
           ov.geometry.type === "Polygon"
@@ -1583,6 +1690,13 @@ class HoustonAtlasApp {
           lon = ring[0][0];
           lat = ring[0][1];
         }
+      }
+      if (
+        cleanHcad &&
+        !coordsByHcad.has(cleanHcad) &&
+        (ov.lon !== undefined || ov.lng !== undefined || ov.geometry)
+      ) {
+        coordsByHcad.set(cleanHcad, { lon: Number(lon), lat: Number(lat) });
       }
       const ovStyle = String(ov.style || ov.bld_style || "").trim();
       const preserveExistingStyle =
@@ -1617,18 +1731,29 @@ class HoustonAtlasApp {
       const akaSnippet =
         altNames.length > 0 ? `AKA: ${altNames.slice(0, 2).join(", ")} • ` : "";
 
-      const primaryAddr = String(existingItem?.address || ov.address || "").trim();
+      const cleanExistingAddr = /^0\s+/.test(String(existingItem?.address || "").trim())
+        ? ""
+        : String(existingItem?.address || "").trim();
+      const cleanOvAddr = /^0\s+/.test(String(ov.address || "").trim())
+        ? ""
+        : String(ov.address || "").trim();
+      const primaryAddr = String(
+        (isSubBuildingOv ? cleanOvAddr || cleanExistingAddr : cleanOvAddr || cleanExistingAddr) ||
+          ov.address ||
+          existingItem?.address ||
+          ""
+      ).trim();
       const rawAltAddrs = [
         ...(Array.isArray(existingItem?.alt_addresses) ? existingItem.alt_addresses : []),
         ...(Array.isArray(ov.alt_addresses) ? ov.alt_addresses : []),
-        ov.address || "",
-        existingItem?.address || "",
+        cleanOvAddr,
+        cleanExistingAddr,
       ];
       const seenAddrLow = new Set(primaryAddr ? [primaryAddr.toLowerCase()] : []);
       const altAddresses = [];
       for (const a of rawAltAddrs) {
         const cleanA = String(a || "").trim();
-        if (!cleanA) continue;
+        if (!cleanA || /^0\s+/.test(cleanA)) continue;
         const lowA = cleanA.toLowerCase();
         if (!seenAddrLow.has(lowA)) {
           seenAddrLow.add(lowA);
@@ -1646,12 +1771,17 @@ class HoustonAtlasApp {
 
       const mergedBuilder = ov.builder || existingItem?.builder || "";
       const bldrSnippet = mergedBuilder ? ` • Built by ${mergedBuilder}` : "";
+      const canonicalBldId = String(
+        ov.building_id || (isSubBuildingOv ? ovKey : existingItem?.building_id || "")
+      ).trim();
 
       const entry = {
         type: "building",
-        id: ov.id || existingItem?.id || `ov_${hcad}`,
-        hcad_num: ov.hcad_num || hcad,
-        label: primaryBldName || primaryAddr || ov.address || existingItem?.label || `HCAD ${hcad}`,
+        id: ov.id || (isSubBuildingOv ? ovKey : existingItem?.id || `ov_${cleanHcad}`),
+        ...(canonicalBldId ? { building_id: canonicalBldId } : {}),
+        ...(isSubBuildingOv ? { is_building_override: true } : {}),
+        hcad_num: cleanHcad,
+        label: primaryBldName || primaryAddr || ov.address || existingItem?.label || `HCAD ${cleanHcad}`,
         address: primaryAddr || ov.address || "",
         ...(altAddresses.length > 0 ? { alt_addresses: altAddresses } : {}),
         building_name: primaryBldName,
@@ -1696,16 +1826,82 @@ class HoustonAtlasApp {
           ...existingItem,
           ...entry,
         };
-      } else {
+      } else if (!ov.skip_search_index) {
         const newIdx = this.searchIndex.push(entry) - 1;
-        existingByHcad.set(hcad, newIdx);
-        if (entry.hcad_num) existingByHcad.set(String(entry.hcad_num).trim(), newIdx);
+        existingByEntityId.set(ovKey, newIdx);
+        if (canonicalBldId) existingByEntityId.set(canonicalBldId, newIdx);
+        if (!isSubBuildingOv && cleanHcad) {
+          existingByHcad.set(cleanHcad, newIdx);
+        }
+      }
+
+      // Propagate verified year/architect/numbered situs non-destructively to linked school_* entries
+      const linkedSchoolIdxs = isSubBuildingOv
+        ? schoolIdxsByBuildingId.get(ovKey) || []
+        : [
+            ...(schoolIdxsByBuildingId.get(ovKey) || []),
+            ...(cleanHcad
+              ? (schoolIdxsByHcad.get(cleanHcad) || []).filter(
+                  (sIdx) => !String(this.searchIndex[sIdx]?.building_id || "").includes("#")
+                )
+              : []),
+          ];
+      for (const sIdx of linkedSchoolIdxs) {
+        const sItem = this.searchIndex[sIdx];
+        if (!sItem) continue;
+        if (Number(ov.year_built) >= 1836) {
+          sItem.year_built = Number(ov.year_built);
+        }
+        if (ov.architect && !sItem.architect) {
+          sItem.architect = ov.architect;
+        }
+        if ((ov.bld_style || ov.style) && !sItem.bld_style) {
+          sItem.bld_style = ov.bld_style || ov.style;
+        }
+        if (cleanOvAddr && (!sItem.address || /^0\s+/.test(String(sItem.address).trim()))) {
+          sItem.address = cleanOvAddr;
+        }
       }
     }
+
+    const multiEntityHcads = new Set();
+    const hcadItemCount = new Map();
+    for (const [ovKeyRaw, ov] of Object.entries(ovMap)) {
+      if (!ov || ov.suppress_only) continue;
+      const ovKey = String(ovKeyRaw || "").trim();
+      if (ovKey.includes("#") && !ovKey.endsWith("#b1")) {
+        const h = String(ov.hcad_num || ovKey.split("#")[0]).trim();
+        if (h) multiEntityHcads.add(h);
+      }
+    }
+    for (const item of this.searchIndex) {
+      if (
+        !item ||
+        item.is_neighborhood_entry ||
+        item.is_place_boundary ||
+        item.type === "red_book_1915" ||
+        item.type === "hahc_coa"
+      ) {
+        continue;
+      }
+      const h = String(item.hcad_num || "").trim();
+      if (!h) continue;
+      const eKey = String(item.building_id || item.id || "").trim();
+      if (eKey.includes("#") && !eKey.endsWith("#b1")) {
+        multiEntityHcads.add(h);
+      }
+      const nextCnt = (hcadItemCount.get(h) || 0) + 1;
+      hcadItemCount.set(h, nextCnt);
+      if (nextCnt >= 2) {
+        multiEntityHcads.add(h);
+      }
+    }
+    this._multiEntityHcads = multiEntityHcads;
   }
 
   _enrichSearchIndexWithOverlayMetadata() {
     if (!this.mapController) return;
+    const byEntityId = new Map();
     const byHcad = new Map();
     const byLabel = new Map();
     for (let i = 0; i < this.searchIndex.length; i++) {
@@ -1724,7 +1920,14 @@ class HoustonAtlasApp {
         }
         continue;
       }
-      if (item.hcad_num) byHcad.set(String(item.hcad_num).trim(), item);
+      const itemId = String(item.id || "").trim();
+      const entityKey = String(item.building_id || itemId).trim();
+      if (!itemId.startsWith("school_") && entityKey) {
+        byEntityId.set(entityKey, item);
+      }
+      if (!itemId.startsWith("school_") && !entityKey.includes("#") && item.hcad_num) {
+        byHcad.set(String(item.hcad_num).trim(), item);
+      }
       if (item.label) byLabel.set(String(item.label).trim().toLowerCase(), item);
     }
 
@@ -1732,6 +1935,7 @@ class HoustonAtlasApp {
     for (const feat of this.mapController.buildingsData || []) {
       const p = feat.properties || {};
       const hcad = String(p.hcad_num || "").trim();
+      const featEntityKey = String(p.building_id || p.id || "").trim();
       const ring =
         feat.geometry?.type === "Polygon"
           ? feat.geometry.coordinates?.[0]
@@ -1739,7 +1943,8 @@ class HoustonAtlasApp {
           ? feat.geometry.coordinates?.[0]?.[0]
           : null;
       const target =
-        (hcad && byHcad.get(hcad)) ||
+        (featEntityKey && byEntityId.get(featEntityKey)) ||
+        (!featEntityKey.includes("#") && hcad && byHcad.get(hcad)) ||
         (p.landmark_name && byLabel.get(String(p.landmark_name).toLowerCase()));
       if (target) {
         if (p.id && String(target.id || "").startsWith("ov_")) target.id = p.id;
@@ -2141,7 +2346,7 @@ class HoustonAtlasApp {
 
   _getSearchLowercaseCache(item) {
     if (item._lc) return item._lc;
-    const rawKey = String(item.id || item.hcad_num || item.label || "").trim();
+    const rawKey = String(item.id || item.building_id || item.hcad_num || item.label || "").trim();
     const key = rawKey.replace(/#fp_\d+$/, "");
     const rawHcadStr = String(item.hcad_num || "").trim();
     const hcadKey =
@@ -4513,6 +4718,15 @@ class HoustonAtlasApp {
         score += 8;
       }
       if (hasCustomName) score += 5;
+      const subBldKey = String(item.building_id || item.id || "");
+      if (subBldKey.includes("#")) {
+        const subOv = this.mapController?.curatedOverrides?.[subBldKey];
+        if (/(?:_main(?:_\d+)?|#b1)$/i.test(subBldKey)) {
+          score += 4;
+        } else if (subOv?.skip_search_index || /(?:_aux(?:_\d+)?|_shop_\d+|_shed_\d+|_portable)/i.test(subBldKey)) {
+          score -= 10;
+        }
+      }
 
       return score;
     };
@@ -4532,7 +4746,7 @@ class HoustonAtlasApp {
 
     for (const cand of liveCandidates) {
       const p = cand.props || {};
-      const rawKey = String(p.id || p.building_id || p.hcad_num || "").trim();
+      const rawKey = String(p.building_id || p.id || p.hcad_num || "").trim();
       const key = rawKey.replace(/#fp_\d+$/, "");
       const hcadKey = String(p.hcad_num || "").trim();
       if ((key && seenKeys.has(key)) || (hcadKey && !key.includes("#") && seenKeys.has(hcadKey))) {
@@ -4581,6 +4795,7 @@ class HoustonAtlasApp {
       const synthItem = {
         type: "building",
         id: key || p.id || p.building_id || "",
+        building_id: String(p.building_id || (key.includes("#") ? key : "")).trim(),
         hcad_num: String(p.hcad_num || "").trim(),
         label: nameInfo.primaryName || primaryAddr || `HCAD ${p.hcad_num}`,
         address: primaryAddr,
@@ -4652,13 +4867,28 @@ class HoustonAtlasApp {
     }
 
     // Second: Check full citywide searchIndex
-    const vp = this.mapController?.getCurrentViewport
+    const rawMapBounds = this.mapController?.map?.getBounds?.() || null;
+    const vp = rawMapBounds
+      ? {
+          west: Number(rawMapBounds.getWest()),
+          east: Number(rawMapBounds.getEast()),
+          south: Number(rawMapBounds.getSouth()),
+          north: Number(rawMapBounds.getNorth()),
+        }
+      : this.mapController?.getCurrentViewport
       ? this.mapController.getCurrentViewport()
       : null;
+    const seenLinkedAddrs = new Set();
+    for (const m of scoredMatches) {
+      const mAddr = String(m.item?.address || "").replace(/\s+/g, " ").trim().toUpperCase();
+      if (mAddr && (m.item?.hcad_num || m.item?.building_id)) seenLinkedAddrs.add(mAddr);
+      if (m.item?.building_id) seenKeys.add(String(m.item.building_id).trim());
+    }
     for (const item of this.searchIndex) {
       const lc = this._getSearchLowercaseCache(item);
       const { key, hcadKey } = lc;
-      if ((key && seenKeys.has(key)) || (hcadKey && !key.includes("#") && seenKeys.has(hcadKey))) {
+      const isSubEntity = Boolean(key && (key.includes("#") || key.startsWith("school_")));
+      if ((key && seenKeys.has(key)) || (hcadKey && !isSubEntity && seenKeys.has(hcadKey))) {
         continue;
       }
       const inVp = Boolean(
@@ -4673,12 +4903,15 @@ class HoustonAtlasApp {
       const sc = scoreCandidate(item, inVp);
       if (sc > 0) {
         if (key) seenKeys.add(key);
-        if (hcadKey && !key.includes("#")) seenKeys.add(hcadKey);
+        if (item.building_id) seenKeys.add(String(item.building_id).trim());
+        if (hcadKey && !isSubEntity) seenKeys.add(hcadKey);
+        const itemAddr = String(item.address || "").replace(/\s+/g, " ").trim().toUpperCase();
+        if (itemAddr && (item.hcad_num || item.building_id)) seenLinkedAddrs.add(itemAddr);
         scoredMatches.push({ item, score: sc });
       }
     }
 
-    //Third: Lazy-load and match countywide street address shards (1.22M Harris County addresses)
+    // Third: Lazy-load and match countywide street address shards (1.22M Harris County addresses)
     // whenever the query begins with a street number (e.g. "1407 Enid", "3000 Caroline", "413 E 13th").
     const addrNumMatch = qAddr.match(/^(\d+[a-z]?)(?:\s+(.*))?$/i);
     if (addrNumMatch) {
@@ -4694,7 +4927,7 @@ class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261027b`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -4718,6 +4951,9 @@ class HoustonAtlasApp {
             ) {
               continue;
             }
+            const hasLinkedRowForNum = rows.some(
+              (r) => String(r[0]) === typedNum && Boolean(String(r[4] || "").trim() || String(r[6] || "").trim())
+            );
             for (const row of rows) {
               const hnum = String(row[0]);
               const exactNum = hnum === typedNum;
@@ -4728,12 +4964,18 @@ class HoustonAtlasApp {
               const yr = Number(row[3]) || 0;
               const hcad = String(row[4] || "");
               const bldName = String(row[5] || "");
-              if (hcad && seenKeys.has(hcad)) continue;
+              const rowBldId = String(row[6] || "").trim();
               const fullAddr = `${hnum} ${normStName}`;
-              const addrId = hcad || `addr_${fullAddr}`;
+              if (!hcad && !rowBldId && (seenLinkedAddrs.has(fullAddr.toUpperCase()) || (exactNum && hasLinkedRowForNum))) {
+                continue;
+              }
+              const dedupKey = rowBldId || hcad;
+              if (dedupKey && seenKeys.has(dedupKey)) continue;
+              const addrId = rowBldId || hcad || `addr_${fullAddr}`;
               if (seenKeys.has(addrId)) continue;
               seenKeys.add(addrId);
-              if (hcad) seenKeys.add(hcad);
+              if (hcad && !rowBldId) seenKeys.add(hcad);
+              if (hcad || rowBldId) seenLinkedAddrs.add(fullAddr.toUpperCase());
 
               let sc = exactNum ? 118 : 92;
               if (streetTokens.length > 0) {
@@ -4744,12 +4986,19 @@ class HoustonAtlasApp {
                 }
               }
               if (bldName) sc += 4;
+              if (hcad.length === 13 && yr >= 1836) sc += 3;
+              if (rowBldId.endsWith("_main")) {
+                sc += 2;
+              } else if (/(?:_aux_|_shop_|_shed_|_portable)/i.test(rowBldId)) {
+                sc -= 8;
+              }
 
               scoredMatches.push({
                 score: sc,
                 item: {
                   type: "building",
-                  id: hcad ? `${hcad}#b1` : addrId,
+                  id: rowBldId || (hcad ? `${hcad}#b1` : addrId),
+                  building_id: rowBldId,
                   hcad_num: hcad,
                   label: bldName ? `${bldName} (${fullAddr})` : fullAddr,
                   building_name: bldName,
@@ -5147,12 +5396,20 @@ class HoustonAtlasApp {
             return;
           }
 
+          const chosenIdStr = String(chosen.id || "").trim();
+          const targetFeatureId = String(
+            chosen.building_id || (!chosenIdStr.startsWith("school_") ? chosenIdStr : "") || ""
+          ).trim();
           this.mapController.flyToLocation({
             lng: chosen.lon,
             lat: chosen.lat,
             zoom: chosen.zoom || 17.2,
             hcadNum: chosen.hcad_num || "",
-            featureId: chosen.id || "",
+            featureId: targetFeatureId || chosenIdStr,
+            addressQuery: chosen.address || "",
+            fallbackYearBuilt: Number(chosen.year_built) || 0,
+            fallbackBuildingName:
+              chosen.building_name || (chosenIdStr.startsWith("school_") ? chosen.label : "") || "",
           });
           if (
             (chosen.type === "building" ||
@@ -5160,7 +5417,11 @@ class HoustonAtlasApp {
               chosen.type === "good_brick") &&
             document.getElementById("inspector-drawer")?.classList.contains("hidden")
           ) {
-            this.renderInspectorDrawer({
+            const baseDrawerProps = {
+              id: targetFeatureId || chosenIdStr || chosen.hcad_num || "",
+              building_id: String(
+                chosen.building_id || (targetFeatureId.includes("#") ? targetFeatureId : "")
+              ).trim(),
               address: chosen.address || "",
               alt_addresses: chosen.alt_addresses || [],
               building_name: chosen.building_name || chosen.label,
@@ -5195,7 +5456,12 @@ class HoustonAtlasApp {
               landmark_code: chosen.landmark_code || "",
               landmark_report_url: chosen.landmark_report_url || "",
               landmark_summary: chosen.landmark_summary || "",
-            });
+            };
+            const hydratedDrawerProps = applyOverrideToProperties(
+              baseDrawerProps,
+              this.mapController?.curatedOverrides || {}
+            );
+            this.renderInspectorDrawer(hydratedDrawerProps);
           }
         }
       });
@@ -13374,10 +13640,11 @@ class HoustonAtlasApp {
     if (btnShare) {
       btnShare.addEventListener("click", () => {
         const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+        const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(props);
         const url = buildShareableUrl(this.filterStore.getState(), vp, {
           includeViewport: true,
-          selectedHcad: hcadNum,
-          selectedFeatureId: !hcadNum ? props.id || "" : "",
+          selectedHcad,
+          selectedFeatureId,
           useQueryString: true,
         });
         if (navigator.clipboard) {
@@ -13399,7 +13666,7 @@ class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261027a`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261027b`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -14159,10 +14426,11 @@ class HoustonAtlasApp {
     const hasRealHcad = hcadAcct && !hcadAcct.startsWith("PH-") && !hcadAcct.startsWith("DEMO-");
 
     const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+    const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(props);
     const shareUrl = buildShareableUrl(this.filterStore.getState(), vp, {
       includeViewport: true,
-      selectedHcad: hcadAcct,
-      selectedFeatureId: !hcadAcct && props.id ? String(props.id) : "",
+      selectedHcad,
+      selectedFeatureId,
       useQueryString: true,
     });
 
@@ -14559,8 +14827,7 @@ class HoustonAtlasApp {
     const state = this.filterStore.getState();
     const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
     const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
-    const selectedHcad = selProps?.hcad_num ? String(selProps.hcad_num).trim() : "";
-    const selectedFeatureId = !selectedHcad && selProps?.id ? String(selProps.id).trim() : "";
+    const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(selProps);
 
     const chkViewport = document.getElementById("chk-share-include-viewport");
     const chkSelection = document.getElementById("chk-share-include-selection");
@@ -16648,10 +16915,25 @@ class HoustonAtlasApp {
     });
   }
 
+  _getSelectionUrlIds(selProps) {
+    if (!selProps) {
+      return { selectedHcad: "", selectedFeatureId: "" };
+    }
+    const rawBldId = String(selProps.building_id || selProps.id || "").trim();
+    const selectedHcad = selProps.hcad_num ? String(selProps.hcad_num).trim() : "";
+    const isMultiEntityParcel = Boolean(
+      selectedHcad && this._multiEntityHcads && this._multiEntityHcads.has(selectedHcad)
+    );
+    if (rawBldId.includes("#") && (!rawBldId.endsWith("#b1") || isMultiEntityParcel)) {
+      return { selectedHcad: "", selectedFeatureId: rawBldId };
+    }
+    const selectedFeatureId = !selectedHcad && selProps.id ? String(selProps.id).trim() : "";
+    return { selectedHcad, selectedFeatureId };
+  }
+
   _computeHistorySignature(state) {
     const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
-    const selectedHcad = selProps?.hcad_num ? String(selProps.hcad_num).trim() : "";
-    const selectedFeatureId = !selectedHcad && selProps?.id ? String(selProps.id).trim() : "";
+    const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(selProps);
     const selBnd = this.mapController?.selectedBoundaryFeature?.properties || null;
     const bndLayer = selBnd?.overlay_layer || "neighborhoods";
     const bndTarget = selBnd?.id || selBnd?.name || selBnd?.era_label || "";
@@ -16688,8 +16970,7 @@ class HoustonAtlasApp {
       ? this.lastViewportStats.viewport
       : null;
     const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
-    const selectedHcad = selProps?.hcad_num ? String(selProps.hcad_num).trim() : "";
-    const selectedFeatureId = !selectedHcad && selProps?.id ? String(selProps.id).trim() : "";
+    const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(selProps);
     const selBnd = this.mapController?.selectedBoundaryFeature?.properties || null;
     const selectedBoundary =
       !selectedHcad && !selectedFeatureId && selBnd && (selBnd.id || selBnd.name || selBnd.era_label)

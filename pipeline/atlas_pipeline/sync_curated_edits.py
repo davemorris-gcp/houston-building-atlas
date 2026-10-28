@@ -15,14 +15,57 @@ import argparse
 import csv
 import io
 import json
+import re
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from atlas_pipeline.schema import (
+    compute_decade,
+    normalize_override_record,
+    write_compact_json,
+)
+
+_SKIP_SOURCE_TYPES = frozenset({
+    "PLAT_MONITOR_REVIEW",
+    "PROPERTY_WATCHLIST_UPDATE",
+    "BUILDING_FLAG",
+    "DATA_FLAG",
+})
+_SKIP_ID_PREFIXES = ("PLAT_", "WATCH_", "FLAG_", "NARRATIVE_")
+
 
 def normalize_hcad(raw: Any) -> str:
     return "".join(ch for ch in str(raw or "") if ch.isalnum())
+
+
+def parse_override_target(norm_row: dict[str, str]) -> tuple[str, str, bool]:
+    """Parse canonical (override_key, clean_13digit_hcad_num, is_sub_building) from a CSV row."""
+    raw_bld = str(norm_row.get("building_id") or "").strip()
+    raw_hcad = str(
+        norm_row.get("hcad_num")
+        or norm_row.get("hcad_account")
+        or norm_row.get("account")
+        or norm_row.get("acct")
+        or ""
+    ).strip()
+    raw_id_field = raw_bld if "#" in raw_bld else (raw_hcad if "#" in raw_hcad else (raw_bld or raw_hcad))
+    if not raw_id_field or raw_id_field.startswith(_SKIP_ID_PREFIXES):
+        return ("", "", False)
+
+    hcad_part, sep, slug_part = raw_id_field.partition("#")
+    raw_digits = "".join(ch for ch in hcad_part if ch.isdigit())
+    if not raw_digits and raw_hcad:
+        raw_digits = "".join(ch for ch in raw_hcad.partition("#")[0] if ch.isdigit())
+    if not raw_digits:
+        return ("", "", False)
+
+    hcad_num = raw_digits.zfill(13) if len(raw_digits) < 13 else raw_digits
+    slug = re.sub(r"[^A-Za-z0-9_#-]", "", slug_part.strip())
+    if sep and slug:
+        return (f"{hcad_num}#{slug}", hcad_num, True)
+    return (hcad_num, hcad_num, False)
 
 
 def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
@@ -34,38 +77,63 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
         status = norm_row.get("status", "approved").lower()
         if status and status not in {"approved", "verified", "live", "published", "true", "1"}:
             continue
-        hcad_num = normalize_hcad(
-            norm_row.get("hcad_num") or norm_row.get("hcad_account") or norm_row.get("account")
-        )
+        raw_src_type = norm_row.get("source_type", "").strip().upper()
+        if raw_src_type in _SKIP_SOURCE_TYPES:
+            continue
+
+        override_key, hcad_num, is_sub = parse_override_target(norm_row)
         if not hcad_num:
             continue
         try:
-            year_built = int(norm_row.get("year_built") or norm_row.get("verified_year_built") or 0)
+            raw_yr = (
+                norm_row.get("year_built")
+                or norm_row.get("verified_year_built")
+                or norm_row.get("suggested_year_built")
+                or norm_row.get("corrected_year")
+                or 0
+            )
+            year_built = int(round(float(raw_yr)))
         except ValueError:
             continue
         if not (1800 <= year_built <= 2035):
             continue
 
-        orig_raw = norm_row.get("original_hcad_year") or norm_row.get("hcad_year") or ""
+        orig_raw = (
+            norm_row.get("original_hcad_year")
+            or norm_row.get("hcad_year")
+            or norm_row.get("hcad_year_built")
+            or norm_row.get("current_year_built")
+            or ""
+        )
         orig_year = int(orig_raw) if orig_raw.isdigit() else None
 
-        approved.append(
-            {
-                "hcad_num": hcad_num,
-                "address": norm_row.get("address", ""),
-                "year_built": year_built,
-                "decade": f"{(year_built // 10) * 10}s",
-                "original_hcad_year": orig_year,
-                "historic_district": norm_row.get("historic_district", ""),
-                "contributing": norm_row.get("contributing", ""),
-                "source_type": norm_row.get("source_type", "Houston City Directory"),
-                "source_citation": norm_row.get("source_citation", ""),
-                "source_url": norm_row.get("source_url", ""),
-                "verified_by": norm_row.get("verified_by", "Preservation Houston Archival Review"),
-                "verified_date": norm_row.get("verified_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
-                "notes": norm_row.get("notes", ""),
-            }
-        )
+        parsed_rec: dict[str, Any] = {
+            "override_key": override_key,
+            "id": override_key,
+            "hcad_num": hcad_num,
+            "address": norm_row.get("address", ""),
+            "year_built": year_built,
+            "decade": compute_decade(year_built),
+            "original_hcad_year": orig_year,
+            "historic_district": norm_row.get("historic_district", ""),
+            "contributing": norm_row.get("contributing", ""),
+            "source_type": norm_row.get("source_type", "Houston City Directory"),
+            "source_citation": norm_row.get("source_citation", ""),
+            "source_url": norm_row.get("source_url", ""),
+            "verified_by": norm_row.get("verified_by", "Preservation Houston Archival Review"),
+            "verified_date": norm_row.get("verified_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+            "notes": norm_row.get("notes", ""),
+        }
+        if norm_row.get("building_name"):
+            parsed_rec["building_name"] = norm_row["building_name"]
+        if norm_row.get("architect"):
+            parsed_rec["architect"] = norm_row["architect"]
+        if is_sub:
+            parsed_rec["building_id"] = override_key
+            parsed_rec["is_building_override"] = True
+            parsed_rec["keep_shard_footprints"] = True
+            parsed_rec["replace_parcel_shards"] = False
+        approved.append(parsed_rec)
     return approved
 
 
@@ -101,10 +169,11 @@ def sync_curated_overrides(
 
     if csv_text:
         for row in parse_approved_csv_rows(csv_text):
-            hcad = row["hcad_num"]
-            prev = overrides_map.get(hcad, {})
-            merged = {**prev, **{k: v for k, v in row.items() if v not in ("", None)}}
-            overrides_map[hcad] = merged
+            ov_key = str(row.get("override_key") or row["hcad_num"]).strip()
+            clean_row = {k: v for k, v in row.items() if k != "override_key" and v not in ("", None)}
+            prev = overrides_map.get(ov_key, {})
+            merged = {**prev, **clean_row}
+            overrides_map[ov_key] = merged
 
     # Enrich geometry and baseline properties from buildings.geojson if present
     updated_buildings_count = 0
@@ -112,15 +181,23 @@ def sync_curated_overrides(
         buildings_fc = json.loads(buildings_path.read_text(encoding="utf-8"))
         for feat in buildings_fc.get("features", []):
             props = feat.get("properties", {})
+            feat_bid = str(props.get("building_id") or props.get("id") or "").strip()
             hcad = normalize_hcad(props.get("hcad_num"))
-            if hcad and hcad in overrides_map:
-                ov = overrides_map[hcad]
+            matched_key = ""
+            if feat_bid and feat_bid in overrides_map:
+                matched_key = feat_bid
+            elif hcad and hcad in overrides_map and not overrides_map[hcad].get("is_building_override"):
+                matched_key = hcad
+
+            if matched_key:
+                ov = overrides_map[matched_key]
+                is_sub = "#" in matched_key or bool(ov.get("is_building_override"))
                 if not ov.get("original_hcad_year"):
                     ov["original_hcad_year"] = props.get("year_built")
                 if not ov.get("address"):
                     ov["address"] = props.get("address", "")
                 if not ov.get("id"):
-                    ov["id"] = props.get("id", f"curated_{hcad}")
+                    ov["id"] = matched_key if is_sub else props.get("id", f"curated_{matched_key}")
                 if not ov.get("historic_district"):
                     ov["historic_district"] = props.get("historic_district", "")
                 if not ov.get("contributing"):
@@ -129,25 +206,31 @@ def sync_curated_overrides(
                     ov["use_category"] = props.get("use_category", "Residential")
                 if not ov.get("preservation_status"):
                     ov["preservation_status"] = props.get("preservation_status", "Historic District Contributing")
-                if not ov.get("geometry") and feat.get("geometry"):
+                if not ov.get("keep_shard_footprints") and not ov.get("geometry") and feat.get("geometry"):
                     ov["geometry"] = feat["geometry"]
 
                 # Apply override to buildings.geojson feature as well
-                props["original_hcad_year"] = ov["original_hcad_year"]
-                props["year_built"] = int(ov["year_built"])
-                props["decade"] = f"{(int(ov['year_built']) // 10) * 10}s"
+                ov_norm = normalize_override_record(matched_key, ov)
+                overrides_map[matched_key] = ov_norm
+                props["original_hcad_year"] = ov_norm["original_hcad_year"]
+                props["year_built"] = int(ov_norm["year_built"])
+                props["decade"] = compute_decade(int(ov_norm["year_built"]))
                 props["is_curated_override"] = True
-                props["source_type"] = ov.get("source_type", "Houston City Directory")
-                props["source_citation"] = ov.get("source_citation", "")
-                props["source_url"] = ov.get("source_url", "")
-                props["verified_by"] = ov.get("verified_by", "Preservation Houston Archival Review")
+                props["source_type"] = ov_norm.get("source_type", "Houston City Directory")
+                props["source_citation"] = ov_norm.get("source_citation", "")
+                props["source_url"] = ov_norm.get("source_url", "")
+                props["verified_by"] = ov_norm.get("verified_by", "Preservation Houston Archival Review")
                 updated_buildings_count += 1
 
-        buildings_path.write_text(json.dumps(buildings_fc, separators=(",", ":")), encoding="utf-8")
+        write_compact_json(buildings_path, buildings_fc)
+
+    for k in list(overrides_map.keys()):
+        if isinstance(overrides_map[k], dict):
+            overrides_map[k] = normalize_override_record(k, overrides_map[k])
 
     existing_doc["updatedAt"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     existing_doc["overrides"] = overrides_map
-    overrides_path.write_text(json.dumps(existing_doc, indent=2), encoding="utf-8")
+    write_compact_json(overrides_path, existing_doc)
 
     return {
         "total_overrides": len(overrides_map),

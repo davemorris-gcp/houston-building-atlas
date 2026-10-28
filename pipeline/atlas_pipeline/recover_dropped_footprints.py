@@ -369,7 +369,7 @@ def run_recover_dropped_footprints() -> None:
                     f.write(b"\x1e" + orjson.dumps(rf) + b"\n")
         print(f"   Shard buildings_{q}.geojsonseq: appended +{len(rec_list):,} recovered footprints.")
 
-    # Collect all 5 building footprints for 1274570010001 (301 St Joseph Pkwy — Camden City Centre)
+    # Collect all 5 building footprints for 1274570010001 (301 St Joseph Pkwy - Camden City Centre)
     with open(aligned_dir / "buildings_sw.geojsonseq", "rb") as f:
         for line in f:
             line = line.lstrip(b"\x1e").strip()
@@ -405,7 +405,9 @@ def run_recover_dropped_footprints() -> None:
                 "coordinates": [[r] for r in camden_rings],
             },
         }
-        overrides_path.write_text(json.dumps(overrides_doc, indent=2), encoding="utf-8")
+        from atlas_pipeline.schema import write_compact_json
+
+        write_compact_json(overrides_path, overrides_doc)
         print("   Updated curated_overrides.json with MultiPolygon override for 1274570010001 (Camden City Centre).")
 
     # Update buildings.geojson with core_recovered_features

@@ -22,7 +22,7 @@ Performs a comprehensive multi-tier enrichment across Houston:
      landmark, and Museum District institution (`1917–2023`).
 5. University of St. Thomas (UST), The Menil Collection Campus & Texas Medical Center (TMC):
    - Pulls separated building polygons across UST, the Menil Campus, and TMC (`1912–2018`).
-6. Sam Houston Park (`0400030000014`, `1100 BAGBY ST`) — The Heritage Society Historic Houses:
+6. Sam Houston Park (`0400030000014`, `1100 BAGBY ST`) - The Heritage Society Historic Houses:
    - Separates and dates all 11 historic 19th-century and museum structures (`1823–1968`).
 7. Citywide Undated (`year_built = 0`) Buildings Across Houston:
    - Queries OpenStreetMap Overpass across all of Houston (`29.52,-95.78,30.11,-95.01`) for
@@ -92,7 +92,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory; constructed 1912 as part of the original Mechanical Laboratory complex.",
     },
     "old will rice": {
-        "name": "Will Rice College — Old Dorm (Original South Hall)",
+        "name": "Will Rice College - Old Dorm (Original South Hall)",
         "year_built": 1912,
         "architect": "Cram, Goodhue & Ferguson",
         "style": "Mediterranean Revival",
@@ -110,7 +110,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory & 1915 Houston City Directory; completed 1914 as the Physics Building and Amphitheatre.",
     },
     "old wing baker college": {
-        "name": "Baker College — Historic Old Wing (Original East Hall)",
+        "name": "Baker College - Historic Old Wing (Original East Hall)",
         "year_built": 1915,
         "architect": "Cram, Goodhue & Ferguson / William Ward Watkin",
         "style": "Mediterranean Revival",
@@ -119,7 +119,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory & 1916 Houston City Directory; completed 1915 as East Hall.",
     },
     "old hanszen college": {
-        "name": "Hanszen College — Historic Old Section (Original West Hall)",
+        "name": "Hanszen College - Historic Old Section (Original West Hall)",
         "year_built": 1916,
         "architect": "Cram, Goodhue & Ferguson / William Ward Watkin",
         "style": "Mediterranean Revival",
@@ -236,7 +236,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory; constructed 1957 for the inauguration of Baker College.",
     },
     "new wing baker college": {
-        "name": "Baker College — 1957 Residential Wing",
+        "name": "Baker College - 1957 Residential Wing",
         "year_built": 1957,
         "architect": "Staub, Rather & Howze",
         "style": "Mid-Century Modern",
@@ -272,7 +272,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory; constructed 1957.",
     },
     "new hanszen college": {
-        "name": "Hanszen College — New Wing",
+        "name": "Hanszen College - New Wing",
         "year_built": 1957,
         "architect": "MacKie & Kamrath (2022 wing replacement by Henning Larsen / Kirksey)",
         "style": "Mid-Century Modern / Contemporary Mass Timber",
@@ -290,7 +290,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory; constructed 1957.",
     },
     "jones college north": {
-        "name": "Mary Gibbs Jones College — North Building",
+        "name": "Mary Gibbs Jones College - North Building",
         "year_built": 1957,
         "architect": "Lloyd & Morgan",
         "style": "Mid-Century Modern",
@@ -299,7 +299,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory; constructed 1957 as the first women's residential college at Rice.",
     },
     "jones college south": {
-        "name": "Mary Gibbs Jones College — South Building",
+        "name": "Mary Gibbs Jones College - South Building",
         "year_built": 1957,
         "architect": "Lloyd & Morgan",
         "style": "Mid-Century Modern",
@@ -398,7 +398,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory; completed 1965.",
     },
     "brown college tower": {
-        "name": "Margarett Root Brown College — Residential Tower",
+        "name": "Margarett Root Brown College - Residential Tower",
         "year_built": 1965,
         "architect": "F.J. MacKie Jr. (MacKie & Kamrath)",
         "style": "Mid-Century Modern",
@@ -848,7 +848,7 @@ RICE_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Rice University Architectural Inventory; completed 2009.",
     },
     "new will rice": {
-        "name": "Will Rice College — New Dorm",
+        "name": "Will Rice College - New Dorm",
         "year_built": 2010,
         "architect": "Richter Architects",
         "style": "Contemporary Brick",
@@ -1299,7 +1299,7 @@ UH_BUILDING_METADATA: dict[str, dict[str, Any]] = {
         "citation": "University of Houston Campus Facilities Inventory; original south wing opened 1974, north wing 1985.",
     },
     "conrad n. hilton college of hotel and resaurant management 2": {
-        "name": "Conrad N. Hilton College — North Wing & Hotel",
+        "name": "Conrad N. Hilton College - North Wing & Hotel",
         "year_built": 1985,
         "architect": "Golemon & Rolfe",
         "style": "Late Modern Hospitality Complex",
@@ -2214,7 +2214,7 @@ ZOO_HERMANN_MUSEUM_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Houston Zoo Master Inventory; opened 2005.",
     },
     "giraffe barn": {
-        "name": "African Forest — Giraffe Barn (Houston Zoo)",
+        "name": "African Forest - Giraffe Barn (Houston Zoo)",
         "year_built": 2010,
         "architect": "CLR Design / Houston Zoo",
         "style": "Zoological Habitat Barn",
@@ -2223,7 +2223,7 @@ ZOO_HERMANN_MUSEUM_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Houston Zoo Master Inventory; Phase I of the African Forest opened Dec 2010.",
     },
     "giraffee feeding": {
-        "name": "African Forest — Giraffe Feeding Platform (Houston Zoo)",
+        "name": "African Forest - Giraffe Feeding Platform (Houston Zoo)",
         "year_built": 2010,
         "architect": "CLR Design / Houston Zoo",
         "style": "Zoological Viewing Pavilion",
@@ -2232,7 +2232,7 @@ ZOO_HERMANN_MUSEUM_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Houston Zoo Master Inventory; opened Dec 2010.",
     },
     "masihara pavilion": {
-        "name": "African Forest — Masihara Pavilion (Houston Zoo)",
+        "name": "African Forest - Masihara Pavilion (Houston Zoo)",
         "year_built": 2010,
         "architect": "CLR Design / Houston Zoo",
         "style": "East African Cultural Pavilion",
@@ -2241,7 +2241,7 @@ ZOO_HERMANN_MUSEUM_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Houston Zoo Master Inventory; opened Dec 2010.",
     },
     "shani market": {
-        "name": "African Forest — Shani Market (Houston Zoo)",
+        "name": "African Forest - Shani Market (Houston Zoo)",
         "year_built": 2010,
         "architect": "CLR Design / Houston Zoo",
         "style": "African Forest Village Pavilion",
@@ -2250,7 +2250,7 @@ ZOO_HERMANN_MUSEUM_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Houston Zoo Master Inventory; opened Dec 2010.",
     },
     "karamu outpost": {
-        "name": "African Forest — Karamu Outpost (Houston Zoo)",
+        "name": "African Forest - Karamu Outpost (Houston Zoo)",
         "year_built": 2010,
         "architect": "CLR Design / Houston Zoo",
         "style": "Zoological Dining & Viewing Outpost",
@@ -2533,7 +2533,7 @@ UST_MENIL_TMC_METADATA: dict[str, dict[str, Any]] = {
         "citation": "Established 1986 within the Memorial Hermann–Texas Medical Center campus.",
     },
     "bcm alkek building": {
-        "name": "Baylor College of Medicine — Alkek Graduate School Building",
+        "name": "Baylor College of Medicine - Alkek Graduate School Building",
         "year_built": 1988,
         "architect": "BCM Facilities",
         "style": "Late Modern Biomedical Tower",
@@ -2827,7 +2827,7 @@ CURATED_CITYWIDE_HCAD_OVERRIDES: dict[str, dict[str, Any]] = {
         "citation": "Constructed 1909–1910 at 1320 Main Street, designed by Sanguinet & Staats.",
     },
     "1238970010001": {
-        "landmark_name": "One Main Building — University of Houston-Downtown (Merchants & Manufacturers Building)",
+        "landmark_name": "One Main Building - University of Houston-Downtown (Merchants & Manufacturers Building)",
         "address": "1 MAIN ST",
         "year_built": 1930,
         "architect": "G.E.B. Zimmermann (Engineering by Robert J. Cummins)",
@@ -2836,7 +2836,7 @@ CURATED_CITYWIDE_HCAD_OVERRIDES: dict[str, dict[str, Any]] = {
         "citation": "National Register of Historic Places & City of Houston Protected Landmark; completed 1930 as the Merchants and Manufacturers (M&M) Building, the largest building in Houston until 1963; home of UH-Downtown since 1974.",
     },
     "0030840000001": {
-        "landmark_name": "One Main Building Annex — University of Houston-Downtown",
+        "landmark_name": "One Main Building Annex - University of Houston-Downtown",
         "address": "1 MAIN ST",
         "year_built": 1930,
         "architect": "G.E.B. Zimmermann",
@@ -2954,7 +2954,7 @@ CURATED_CITYWIDE_HCAD_OVERRIDES: dict[str, dict[str, Any]] = {
         "citation": "Established 1898 as one of the two original public schools of the municipality of Houston Heights; brick building expanded 1912 and 1929.",
     },
     "0202440000002": {
-        "landmark_name": "Harvard Elementary School — Cortlandt Wing",
+        "landmark_name": "Harvard Elementary School - Cortlandt Wing",
         "address": "843 CORTLANDT ST",
         "year_built": 1929,
         "architect": "Houston Independent School District",
@@ -4001,7 +4001,9 @@ def run_all_enrichments(curated_json_path: Path) -> dict[str, int]:
         overrides, cache_dir, buildings_geojson_path
     )
 
-    curated_json_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    from atlas_pipeline.schema import write_compact_json
+
+    write_compact_json(curated_json_path, data)
     return {
         "rice": rice_cnt,
         "tsu": tsu_cnt,

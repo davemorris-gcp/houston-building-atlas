@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261027a";
+} from "./palettes.js?v=20261027b";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -22,20 +22,21 @@ import {
   buildLostHoustonFilterExpression,
   buildRedBookFilterExpression,
   featureMatchesFilter,
+  normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261027a";
+} from "./filterStore.js?v=20261027b";
 import {
   applyOverrideToProperties,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261027a";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261027a";
+} from "./curatedEdits.js?v=20261027b";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261027b";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
   HCAD_PUBLIC_EXPORT_TILE_URL,
   HcadViewportParcelClient,
-} from "./hcadViewportParcels.js?v=20261027a";
+} from "./hcadViewportParcels.js?v=20261027b";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -294,14 +295,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261025m"),
-      fetch("public/data/parcels.geojson?v=20261011c"),
-      fetch("public/data/overlays.json?v=20261025m"),
-      fetch("public/data/pmtiles_manifest.json?v=20261027a").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261027b"),
+      fetch("public/data/parcels.geojson?v=20261027b"),
+      fetch("public/data/overlays.json?v=20261027b"),
+      fetch("public/data/pmtiles_manifest.json?v=20261027b").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261027a").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261027a").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261025f").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261027b").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261027b").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261027b").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1327,7 +1328,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261009a";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261027b";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -6596,6 +6597,7 @@ export class AtlasMapController {
     featureId = "",
     addressQuery = "",
     fallbackYearBuilt = 0,
+    fallbackBuildingName = "",
     targetLng = null,
     targetLat = null,
     extraCandidateHcads = [],
@@ -6605,24 +6607,7 @@ export class AtlasMapController {
     if (!featureId && !hcadNum && !addressQuery && !hasCoords) return false;
     const navSeq = (this._selectNavSeq = (this._selectNavSeq || 0) + 1);
 
-    const normAddrStr = (s) =>
-      String(s || "")
-        .toUpperCase()
-        .replace(/\./g, "")
-        .replace(/\bSTREET\b/g, "ST")
-        .replace(/\bAVENUE\b/g, "AVE")
-        .replace(/\bDRIVE\b/g, "DR")
-        .replace(/\bROAD\b/g, "RD")
-        .replace(/\bBOULEVARD\b/g, "BLVD")
-        .replace(/\bLANE\b/g, "LN")
-        .replace(/\bCOURT\b/g, "CT")
-        .replace(/\bPLACE\b/g, "PL")
-        .replace(/\bNORTH\b/g, "N")
-        .replace(/\bSOUTH\b/g, "S")
-        .replace(/\bEAST\b/g, "E")
-        .replace(/\bWEST\b/g, "W")
-        .replace(/\s+/g, " ")
-        .trim();
+    const normAddrStr = normalizeComparableAddress;
     const normTargetAddr = /^\d+\s+/.test(String(addressQuery || "").trim())
       ? normAddrStr(addressQuery)
       : "";
@@ -6669,10 +6654,14 @@ export class AtlasMapController {
       }
     }
 
+    const cleanFeatureId = String(featureId || "").trim().startsWith("school_")
+      ? ""
+      : String(featureId || "").trim();
     const candidateHcads = new Set(
       [
         hcadNum,
         hcadNum && hcadNum.includes("#") ? hcadNum.split("#")[0] : "",
+        cleanFeatureId && cleanFeatureId.includes("#") ? cleanFeatureId.split("#")[0] : "",
         ...(Array.isArray(extraCandidateHcads) ? extraCandidateHcads : []),
         matchedAlert?.hcad_num || "",
         ...(Array.isArray(matchedAlert?.related_hcads) ? matchedAlert.related_hcads : []),
@@ -6684,13 +6673,13 @@ export class AtlasMapController {
     );
     const candidateBldIds = new Set(
       [
-        featureId,
+        cleanFeatureId,
         matchedAlert?.building_id || "",
         ...(Array.isArray(matchedAlert?.related_building_ids) ? matchedAlert.related_building_ids : []),
         matchedPlat?.building_id || "",
       ]
         .map((s) => String(s || "").trim())
-        .filter(Boolean)
+        .filter((s) => Boolean(s) && !s.startsWith("school_"))
     );
 
     const gbFeatures = this.overlaysData?.good_brick_awards?.features || [];
@@ -6700,23 +6689,40 @@ export class AtlasMapController {
         return (
           (p.id && candidateBldIds.has(String(p.id))) ||
           (p.building_id && candidateBldIds.has(String(p.building_id))) ||
-          (p.hcad_num && candidateHcads.has(String(p.hcad_num)))
+          (!cleanFeatureId.includes("#") && p.hcad_num && candidateHcads.has(String(p.hcad_num)))
         );
       }) || null;
 
     if (gbMatch?.properties?.building_id) {
       candidateBldIds.add(String(gbMatch.properties.building_id));
     }
+    const hasExplicitSubBuildingId = Array.from(candidateBldIds).some((bid) => bid.includes("#"));
     const ovFeatures = this.overridesFC?.features || [];
 
-    const matchesCandidate = (f) => {
+    const matchesExactBuildingId = (f) => {
+      if (candidateBldIds.size === 0) return false;
+      const p = f?.properties || {};
+      const pid = String(p.id || "").trim();
+      const pbid = String(p.building_id || "").trim();
+      return Boolean((pid && candidateBldIds.has(pid)) || (pbid && candidateBldIds.has(pbid)));
+    };
+
+    const hasConflictingSubId = (f) => {
+      if (!hasExplicitSubBuildingId) return false;
+      const p = f?.properties || {};
+      const fbid = String(p.building_id || p.id || "").trim();
+      return Boolean(fbid && fbid.includes("#") && !candidateBldIds.has(fbid));
+    };
+
+    const matchesParcelOrAddressFallback = (f) => {
+      if (hasConflictingSubId(f)) return false;
       const p = f?.properties || {};
       const pid = String(p.id || "").trim();
       const pbid = String(p.building_id || "").trim();
       const phcad = String(p.hcad_num || "").trim();
       if (
-        (pid && (candidateBldIds.has(pid) || candidateHcads.has(pid))) ||
-        (pbid && (candidateBldIds.has(pbid) || candidateHcads.has(pbid))) ||
+        (pid && candidateHcads.has(pid)) ||
+        (pbid && candidateHcads.has(pbid)) ||
         (phcad && candidateHcads.has(phcad))
       ) {
         return true;
@@ -6727,17 +6733,19 @@ export class AtlasMapController {
       return false;
     };
 
-    let renderedTileMatch = null;
+    const matchesCandidate = (f) => matchesExactBuildingId(f) || matchesParcelOrAddressFallback(f);
+
+    let rendered = [];
+    let shardHitsAll = [];
     if (!this.useCanvasFallback && this.map) {
       const tileLayers = [
         ...(this.buildingFillLayerIds || []),
         ...(this.buildingExtrusionLayerIds || []),
       ].filter((id) => this.map.getLayer(id));
       if (tileLayers.length > 0) {
-        const rendered = this.map.queryRenderedFeatures({ layers: tileLayers });
-        renderedTileMatch = rendered.find(matchesCandidate) || null;
+        rendered = this.map.queryRenderedFeatures({ layers: tileLayers });
       }
-      if (!renderedTileMatch && candidateHcads.size > 0 && Array.isArray(this.shardSourceIds)) {
+      if (candidateHcads.size > 0 && Array.isArray(this.shardSourceIds)) {
         const hcadArr = Array.from(candidateHcads);
         for (const srcId of this.shardSourceIds) {
           try {
@@ -6745,20 +6753,36 @@ export class AtlasMapController {
               sourceLayer: "buildings",
               filter: ["in", ["get", "hcad_num"], ["literal", hcadArr]],
             });
-            const foundHit = hits.find(matchesCandidate) || hits[0] || null;
-            if (foundHit) {
-              renderedTileMatch = foundHit;
-              break;
+            if (Array.isArray(hits) && hits.length > 0) {
+              shardHitsAll.push(...hits);
             }
           } catch (_e) {}
         }
       }
     }
 
+    // Pass 1: exact sub-building / building_id resolution across all feature sources
+    const exactMatch =
+      candidateBldIds.size > 0
+        ? ovFeatures.find(matchesExactBuildingId) ||
+          rendered.find(matchesExactBuildingId) ||
+          shardHitsAll.find(matchesExactBuildingId) ||
+          this.buildingsData.find(matchesExactBuildingId) ||
+          null
+        : null;
+
+    // Pass 2: parcel hcad_num or normalized situs fallback (guarding against sibling # sub-buildings)
+    const fallbackTileMatch =
+      rendered.find(matchesParcelOrAddressFallback) ||
+      shardHitsAll.find(matchesParcelOrAddressFallback) ||
+      (!hasExplicitSubBuildingId ? shardHitsAll[0] : null) ||
+      null;
+
     const match =
-      ovFeatures.find(matchesCandidate) ||
-      renderedTileMatch ||
-      this.buildingsData.find(matchesCandidate) ||
+      exactMatch ||
+      ovFeatures.find(matchesParcelOrAddressFallback) ||
+      fallbackTileMatch ||
+      this.buildingsData.find(matchesParcelOrAddressFallback) ||
       gbMatch ||
       (() => {
         if (!featureId && !hcadNum && !normTargetAddr) return null;
@@ -6847,9 +6871,8 @@ export class AtlasMapController {
       if (!tileLayers.length) return false;
 
       const renderedAfterFly = this.map.queryRenderedFeatures({ layers: tileLayers });
-      let tileBld = renderedAfterFly.find(matchesCandidate) || null;
-
-      if (!tileBld && candidateHcads.size > 0 && Array.isArray(this.shardSourceIds)) {
+      const postFlyShardHits = [];
+      if (candidateHcads.size > 0 && Array.isArray(this.shardSourceIds)) {
         const hcadArr = Array.from(candidateHcads);
         for (const srcId of this.shardSourceIds) {
           try {
@@ -6857,28 +6880,48 @@ export class AtlasMapController {
               sourceLayer: "buildings",
               filter: ["in", ["get", "hcad_num"], ["literal", hcadArr]],
             });
-            const foundHit = hits.find(matchesCandidate) || hits[0] || null;
-            if (foundHit) {
-              tileBld = foundHit;
-              break;
+            if (Array.isArray(hits) && hits.length > 0) {
+              postFlyShardHits.push(...hits);
             }
           } catch (_e) {}
         }
       }
-
-      if (!tileBld && Number.isFinite(effLng) && Number.isFinite(effLat)) {
+      let nearHits = [];
+      if (Number.isFinite(effLng) && Number.isFinite(effLat)) {
         const pt = this.map.project([effLng, effLat]);
         const bbox = [
           [pt.x - 24, pt.y - 24],
           [pt.x + 24, pt.y + 24],
         ];
-        const nearHits = this.map.queryRenderedFeatures(bbox, { layers: tileLayers });
-        tileBld = nearHits.find(matchesCandidate) || nearHits[0] || null;
+        nearHits = this.map.queryRenderedFeatures(bbox, { layers: tileLayers });
+      }
+
+      // Pass 1: exact sub-building / building_id match across rendered, source, and proximity hits
+      let tileBld =
+        candidateBldIds.size > 0
+          ? renderedAfterFly.find(matchesExactBuildingId) ||
+            postFlyShardHits.find(matchesExactBuildingId) ||
+            nearHits.find(matchesExactBuildingId) ||
+            null
+          : null;
+
+      // Pass 2: parcel or proximity fallback (excluding conflicting sibling # sub-buildings)
+      if (!tileBld) {
+        tileBld =
+          renderedAfterFly.find(matchesParcelOrAddressFallback) ||
+          postFlyShardHits.find(matchesParcelOrAddressFallback) ||
+          nearHits.find(matchesParcelOrAddressFallback) ||
+          nearHits.find((f) => !hasConflictingSubId(f)) ||
+          (!hasExplicitSubBuildingId ? postFlyShardHits[0] : null) ||
+          null;
       }
 
       if (tileBld) {
         tilePolygonUpgraded = true;
         const baseTileProps = { ...(tileBld.properties || {}) };
+        if (!baseTileProps.building_name && fallbackBuildingName) {
+          baseTileProps.building_name = fallbackBuildingName;
+        }
         if (!baseTileProps.address && (addressQuery || matchedAlert?.address || matchedPlat?.address)) {
           baseTileProps.address = addressQuery || matchedAlert?.address || matchedPlat?.address;
         }
@@ -6940,9 +6983,9 @@ export class AtlasMapController {
             id:
               matchedAlert?.building_id ||
               matchedPlat?.building_id ||
-              featureId ||
+              cleanFeatureId ||
               (effectiveHcad ? `${effectiveHcad}#b1` : `addr_${effectiveAddr}`),
-            building_id: matchedAlert?.building_id || matchedPlat?.building_id || featureId || "",
+            building_id: matchedAlert?.building_id || matchedPlat?.building_id || cleanFeatureId || "",
             hcad_num: effectiveHcad,
             address: effectiveAddr,
             building_name:
@@ -6952,6 +6995,7 @@ export class AtlasMapController {
               matchedLm?.name ||
               matchedLm?.USER_LANDMARK ||
               matchedRb?.name ||
+              fallbackBuildingName ||
               "",
             landmark_name: matchedAlert?.landmark_name || matchedLm?.name || matchedLm?.USER_LANDMARK || "",
             year_built: effectiveYear,
@@ -6996,9 +7040,20 @@ export class AtlasMapController {
             const recYear = rec.yearImpr || effectiveYear;
             const synthProps = applyOverrideToProperties(
               {
-                id: matchedAlert?.building_id || matchedPlat?.building_id || `hcad_${rec.hcadNum}`,
+                id:
+                  matchedAlert?.building_id ||
+                  matchedPlat?.building_id ||
+                  cleanFeatureId ||
+                  `hcad_${rec.hcadNum}`,
+                building_id:
+                  matchedAlert?.building_id || matchedPlat?.building_id || cleanFeatureId || "",
                 hcad_num: rec.hcadNum,
-                address: rec.address || effectiveAddr || `HCAD ${rec.hcadNum}`,
+                ...(fallbackBuildingName ? { building_name: fallbackBuildingName } : {}),
+                address:
+                  (hasExplicitSubBuildingId && effectiveAddr ? effectiveAddr : "") ||
+                  (/^0\s+/.test(String(rec.address || "").trim()) ? "" : rec.address) ||
+                  effectiveAddr ||
+                  `HCAD ${rec.hcadNum}`,
                 year_built: recYear,
                 decade: recYear ? Math.floor(recYear / 10) * 10 : 0,
                 bld_sqft: rec.bldgSqft || Number(matchedAlert?.bld_area) || 0,
@@ -7024,7 +7079,10 @@ export class AtlasMapController {
                 zoom: 17.2,
               });
             }
-            this.highlightAndInspectFeature(synthProps, rec.geometry || null);
+            this.highlightAndInspectFeature(
+              synthProps,
+              hasExplicitSubBuildingId ? null : rec.geometry || null
+            );
             schedulePostFlightTileUpgrade();
           })
           .catch(() => {});
@@ -7038,6 +7096,9 @@ export class AtlasMapController {
     }
 
     const mergedProps = applyOverrideToProperties(match.properties || {}, this.curatedOverrides);
+    if (!mergedProps.building_name && fallbackBuildingName) {
+      mergedProps.building_name = fallbackBuildingName;
+    }
     if (gbMatch && gbMatch.properties) {
       mergedProps.good_brick_awards =
         gbMatch.properties.good_brick_awards || mergedProps.good_brick_awards || null;
@@ -7352,6 +7413,7 @@ export class AtlasMapController {
     let featureId = "";
     let addressQuery = "";
     let fallbackYearBuilt = 0;
+    let fallbackBuildingName = "";
     let extraCandidateHcads = [];
     if (arg1 && typeof arg1 === "object") {
       lng = Number(arg1.lng);
@@ -7362,6 +7424,7 @@ export class AtlasMapController {
       featureId = arg1.featureId || "";
       addressQuery = arg1.addressQuery || "";
       fallbackYearBuilt = Number(arg1.fallbackYearBuilt) || 0;
+      fallbackBuildingName = String(arg1.fallbackBuildingName || "").trim();
       extraCandidateHcads = Array.isArray(arg1.extraCandidateHcads) ? arg1.extraCandidateHcads : [];
     } else {
       lng = Number(arg1);
@@ -7394,6 +7457,7 @@ export class AtlasMapController {
         featureId,
         addressQuery,
         fallbackYearBuilt,
+        fallbackBuildingName,
         extraCandidateHcads,
         targetLng: lng,
         targetLat: lat,
@@ -7418,7 +7482,7 @@ export class AtlasMapController {
         });
         if (byId) return byId.geometry;
       }
-      if (targetHcad) {
+      if (targetHcad && !targetBldId.includes("#")) {
         const byHcad = features.find(
           (f) => f.properties && f.properties.hcad_num === targetHcad && isPoly(f.geometry)
         );
@@ -10882,6 +10946,7 @@ export class AtlasMapController {
           if (p.suppress_only) continue;
           const key = this._getCanonicalBuildingKey(p);
           if (key) {
+            if (this.curatedOverrides?.[key]?.skip_search_index) continue;
             if (seenKeys.has(key)) continue;
             seenKeys.add(key);
           }

@@ -236,9 +236,11 @@ def main():
                     existing_photo_urls.add(p_url)
                     photos_added += 1
 
+    from atlas_pipeline.schema import write_compact_json
+
     overrides_doc["overrides"] = overrides
-    overrides_path.write_text(json.dumps(overrides_doc, indent=2))
-    buildings_path.write_text(json.dumps(buildings_doc, separators=(",", ":")))
+    write_compact_json(overrides_path, overrides_doc)
+    write_compact_json(buildings_path, buildings_doc)
     photos_doc["photos"] = photos_list
     photos_path.write_text(json.dumps(photos_doc, indent=2))
 

@@ -1,9 +1,10 @@
 """Enrich search_index.json, buildings.geojson, and curated_overrides.json with complete Architectural Style, HCAD Building Class (bld_style), Land Use (use_category / landuse_desc), and verified year_built metadata."""
 
-from collections import Counter
 import glob
 import json
 import os
+
+from atlas_pipeline.schema import write_compact_json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SEARCH_INDEX_PATH = os.path.join(ROOT, "app/public/data/search_index.json")
@@ -128,54 +129,74 @@ def main():
     if int(p.get("year_built") or 0) >= 1820 and not rec.get("year_built"):
       rec["year_built"] = int(p["year_built"])
 
-  # 2. Scan buildings.geojson for metadata by HCAD
+  # 2. Scan buildings.geojson for metadata by building_id and HCAD
+  bldg_meta_by_id = {}
   bldg_meta_by_hcad = {}
+
+  def _merge_feat_meta(dest: dict, p: dict, bs: str, st: str, uc: str, lu: str, yr: int) -> None:
+    if is_specific_style(st) and not is_specific_style(dest.get("style")):
+      dest["style"] = st
+    if is_specific_style(bs) and not is_specific_style(dest.get("bld_style")):
+      dest["bld_style"] = bs
+    elif bs in SINGLE_LETTER_GRADES and not dest.get("hcad_grade"):
+      dest["hcad_grade"] = bs
+    if p.get("hcad_grade") and not dest.get("hcad_grade"):
+      dest["hcad_grade"] = str(p["hcad_grade"]).strip()
+    if uc and not dest.get("use_category"):
+      dest["use_category"] = uc
+    if lu and not dest.get("landuse_desc"):
+      dest["landuse_desc"] = lu
+    if p.get("architect") and not dest.get("architect"):
+      dest["architect"] = str(p["architect"]).strip()
+    if yr >= 1820 and not dest.get("year_built"):
+      dest["year_built"] = yr
+    if p.get("address") and not dest.get("address"):
+      dest["address"] = str(p["address"]).strip()
+    if p.get("historic_district") and not dest.get("historic_district"):
+      d = str(p["historic_district"]).strip()
+      if d not in ("Outside City District", "Outside Historic District"):
+        dest["historic_district"] = d
+
   for feat in buildings_fc.get("features", []):
     p = feat.get("properties") or {}
     hcad = str(p.get("hcad_num") or "").strip()
-    if not hcad:
-      continue
-    rec = bldg_meta_by_hcad.setdefault(hcad, {})
+    bid = str(p.get("building_id") or p.get("id") or "").strip()
     st = str(p.get("style") or "").strip()
     bs = str(p.get("bld_style") or "").strip()
-    if is_specific_style(st) and not is_specific_style(rec.get("style")):
-      rec["style"] = st
-    if is_specific_style(bs) and not is_specific_style(rec.get("bld_style")):
-      rec["bld_style"] = bs
-    elif bs in SINGLE_LETTER_GRADES and not rec.get("hcad_grade"):
-      rec["hcad_grade"] = bs
-    if p.get("hcad_grade") and not rec.get("hcad_grade"):
-      rec["hcad_grade"] = str(p["hcad_grade"]).strip()
-    if p.get("use_category") and not rec.get("use_category"):
-      rec["use_category"] = str(p["use_category"]).strip()
-    if p.get("landuse_desc") and not rec.get("landuse_desc"):
-      rec["landuse_desc"] = str(p["landuse_desc"]).strip()
-    if p.get("architect") and not rec.get("architect"):
-      rec["architect"] = str(p["architect"]).strip()
-    if int(p.get("year_built") or 0) >= 1820 and not rec.get("year_built"):
-      rec["year_built"] = int(p["year_built"])
-    if p.get("address") and not rec.get("address"):
-      rec["address"] = str(p["address"]).strip()
-    if p.get("historic_district") and not rec.get("historic_district"):
-      d = str(p["historic_district"]).strip()
-      if d not in ("Outside City District", "Outside Historic District"):
-        rec["historic_district"] = d
+    uc = str(p.get("use_category") or "").strip()
+    lu = str(p.get("landuse_desc") or "").strip()
+    yr = int(p.get("year_built") or 0)
+    if bid:
+      _merge_feat_meta(bldg_meta_by_id.setdefault(bid, {}), p, bs, st, uc, lu, yr)
+    if hcad:
+      _merge_feat_meta(bldg_meta_by_hcad.setdefault(hcad, {}), p, bs, st, uc, lu, yr)
 
   # 3. Scan countywide shards for HCAD structural class (bld_style), use_category, landuse_desc, year_built
   target_hcads = set()
+  target_ids = set()
   for item in search_index:
     h = str(item.get("hcad_num") or "").strip()
     if h:
       target_hcads.add(h)
+    for id_field in ("building_id", "id"):
+      v_id = str(item.get(id_field) or "").strip()
+      if v_id:
+        target_ids.add(v_id)
   for feat in buildings_fc.get("features", []):
-    h = str((feat.get("properties") or {}).get("hcad_num") or "").strip()
+    fp = feat.get("properties") or {}
+    h = str(fp.get("hcad_num") or "").strip()
     if h:
       target_hcads.add(h)
+    v_id = str(fp.get("building_id") or fp.get("id") or "").strip()
+    if v_id:
+      target_ids.add(v_id)
   for k, ov in overrides.items():
+    target_ids.add(str(k).strip())
     h = str(ov.get("hcad_num") or k.split("#")[0]).strip()
     if h:
       target_hcads.add(h)
 
+  shard_meta_by_id = {}
   shard_meta_by_hcad = {}
   class_representatives = {}
 
@@ -188,30 +209,17 @@ def main():
         feat = json.loads(s)
         p = feat.get("properties") or {}
         hcad = str(p.get("hcad_num") or "").strip()
+        fid = str(p.get("building_id") or p.get("id") or "").strip()
         bs = str(p.get("bld_style") or "").strip()
         st = str(p.get("style") or "").strip()
         uc = str(p.get("use_category") or "").strip()
         lu = str(p.get("landuse_desc") or "").strip()
         yr = int(p.get("year_built") or 0)
 
+        if fid and fid in target_ids:
+          _merge_feat_meta(shard_meta_by_id.setdefault(fid, {}), p, bs, st, uc, lu, yr)
         if hcad in target_hcads:
-          rec = shard_meta_by_hcad.setdefault(hcad, {})
-          if is_specific_style(bs) and not is_specific_style(
-              rec.get("bld_style")
-          ):
-            rec["bld_style"] = bs
-          elif bs in SINGLE_LETTER_GRADES and not rec.get("hcad_grade"):
-            rec["hcad_grade"] = bs
-          if is_specific_style(st) and not is_specific_style(rec.get("style")):
-            rec["style"] = st
-          if uc and not rec.get("use_category"):
-            rec["use_category"] = uc
-          if lu and not rec.get("landuse_desc"):
-            rec["landuse_desc"] = lu
-          if yr >= 1820 and not rec.get("year_built"):
-            rec["year_built"] = yr
-          if p.get("address") and not rec.get("address"):
-            rec["address"] = str(p["address"]).strip()
+          _merge_feat_meta(shard_meta_by_hcad.setdefault(hcad, {}), p, bs, st, uc, lu, yr)
 
         if is_specific_style(bs) and bs not in ("Residential",):
           reps = class_representatives.setdefault(bs, [])
@@ -278,15 +286,30 @@ def main():
     hcad = str(item.get("hcad_num") or "").strip()
     if hcad:
       existing_hcads_in_si.add(hcad)
+    item_id = str(item.get("id") or "").strip()
+    entity_id = str(item.get("building_id") or item_id).strip()
+    is_school = item_id.startswith("school_")
+    is_sub_building = "#" in entity_id
     lbl_lower = str(item.get("label") or "").strip().lower()
-    ov = overrides.get(item.get("id") or "") or overrides.get(hcad) or {}
+
+    ov = overrides.get(entity_id) or overrides.get(item_id)
+    if not ov and hcad and not is_sub_building:
+      cand_ov = overrides.get(hcad)
+      if cand_ov and not cand_ov.get("is_building_override"):
+        ov = cand_ov
+    ov = ov or {}
+
     lm = (
-        landmark_meta_by_hcad.get(hcad)
+        (landmark_meta_by_hcad.get(hcad) if not is_sub_building else None)
         or landmark_meta_by_name.get(lbl_lower)
         or {}
     )
-    bm = bldg_meta_by_hcad.get(hcad, {})
-    sm = shard_meta_by_hcad.get(hcad, {})
+    bm = bldg_meta_by_id.get(entity_id) or (
+        bldg_meta_by_hcad.get(hcad, {}) if not is_sub_building else {}
+    )
+    sm = shard_meta_by_id.get(entity_id) or (
+        shard_meta_by_hcad.get(hcad, {}) if not is_sub_building else {}
+    )
 
     # Resolve year_built
     yr = (
@@ -304,6 +327,7 @@ def main():
         or ov.get("architect")
         or lm.get("architect")
         or bm.get("architect")
+        or sm.get("architect")
         or ""
     )
     if arch and arch.strip().lower() not in ("unknown", "none", "n/a", "null"):
@@ -336,15 +360,15 @@ def main():
         or ""
     )
     struct_bs = (
-        (sm.get("bld_style") if is_specific_style(sm.get("bld_style")) else "")
+        (
+            ov.get("bld_style")
+            if is_specific_style(ov.get("bld_style"))
+            else ""
+        )
+        or (sm.get("bld_style") if is_specific_style(sm.get("bld_style")) else "")
         or (
             bm.get("bld_style")
             if is_specific_style(bm.get("bld_style"))
-            else ""
-        )
-        or (
-            ov.get("bld_style")
-            if is_specific_style(ov.get("bld_style"))
             else ""
         )
         or ""
@@ -363,9 +387,10 @@ def main():
       item["hcad_grade"] = grade
 
     uc = (
-        bm.get("use_category")
-        or sm.get("use_category")
+        (item.get("use_category") if is_school else "")
         or ov.get("use_category")
+        or bm.get("use_category")
+        or sm.get("use_category")
         or item.get("use_category")
         or "Residential"
     )
@@ -409,14 +434,23 @@ def main():
     if lm_code:
       item["landmark_code"] = lm_code
 
-    # Ensure sublabel cleanly displays address / district / style or building class / year built
+    # Preserve authoritative school street addresses over '0 <STREET>' parcel situs fallbacks
+    raw_item_addr = str(item.get("address") or "").strip()
     addr = (
-        ov.get("address")
+        (raw_item_addr if (is_school and raw_item_addr and not raw_item_addr.startswith("0 ")) else "")
+        or ov.get("address")
         or lm.get("address")
         or bm.get("address")
         or sm.get("address")
+        or raw_item_addr
         or ""
     )
+    if addr and (
+        not raw_item_addr
+        or (raw_item_addr.startswith("0 ") and not addr.startswith("0 "))
+    ):
+      item["address"] = addr
+
     disp_style = item.get("style") or item.get("bld_style") or ""
     if disp_style in ("Residential", "Historical / Architectural Structure"):
       disp_style = ""
@@ -426,7 +460,10 @@ def main():
         and addr.lower() != str(item.get("label") or "").strip().lower()
     ):
       parts.append(addr)
-    if dist:
+    school_cat = str(item.get("category") or "").strip() if is_school else ""
+    if is_school and school_cat and not school_cat.startswith("Built "):
+      parts.append(school_cat)
+    elif dist:
       parts.append(dist)
     elif uc:
       parts.append(uc)
@@ -439,20 +476,23 @@ def main():
     if parts:
       item["sublabel"] = " • ".join(parts)
 
-    if yr >= 1820 and (
-        not item.get("category")
-        or item.get("category")
-        in (
-            "Contributing",
-            "Non-Contributing",
-            "Outside Historic District",
-            "Residential",
+    if (
+        not is_school
+        and yr >= 1820
+        and (
+            not item.get("category")
+            or item.get("category")
+            in (
+                "Contributing",
+                "Non-Contributing",
+                "Outside Historic District",
+                "Residential",
+            )
         )
     ):
       item["category"] = f"Built {yr}"
 
-  with open(SEARCH_INDEX_PATH, "w") as f:
-    json.dump(search_index, f, separators=(",", ":"))
+  write_compact_json(SEARCH_INDEX_PATH, search_index)
   print(f"Saved {len(search_index)} clean items to search_index.json.")
 
 

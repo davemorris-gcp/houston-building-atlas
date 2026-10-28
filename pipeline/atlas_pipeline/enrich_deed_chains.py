@@ -23,6 +23,8 @@ import re
 import zipfile
 from pathlib import Path
 
+from atlas_pipeline.schema import MAX_VALID_YEAR, normalize_hcad_date
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = REPO_ROOT / "pipeline" / "cache"
 APP_DIR = REPO_ROOT / "app"
@@ -60,29 +62,16 @@ RE_VOL_PAGE = re.compile(
 
 def parse_dos_yyyymmdd(raw_dos: str, raw_yr: str) -> str:
     """Normalize HCAD date of sale (MM/DD/YYYY or YYYY-MM-DD) to 8-digit YYYYMMDD."""
-    s = (raw_dos or "").strip()
-    if s:
-        if "/" in s:
-            parts = s.split("/")
-            if len(parts) == 3:
-                mm, dd, yyyy = parts[0].strip(), parts[1].strip(), parts[2].strip()[:4]
-                if yyyy.isdigit() and mm.isdigit() and dd.isdigit():
-                    y_int = int(yyyy)
-                    if 1836 <= y_int <= 2030:
-                        return f"{y_int:04d}{int(mm):02d}{int(dd):02d}"
-        elif "-" in s:
-            parts = s.split("-")
-            if len(parts) >= 3:
-                yyyy, mm, dd = parts[0].strip(), parts[1].strip(), parts[2].strip()[:2]
-                if yyyy.isdigit() and mm.isdigit() and dd.isdigit():
-                    y_int = int(yyyy)
-                    if 1836 <= y_int <= 2030:
-                        return f"{y_int:04d}{int(mm):02d}{int(dd):02d}"
-    yr_s = (raw_yr or "").strip()
-    if yr_s.isdigit():
-        y_int = int(yr_s)
-        if 1836 <= y_int <= 2030:
-            return f"{y_int:04d}0000"
+    iso_dt, yr = normalize_hcad_date(
+        raw_dos,
+        raw_yr,
+        allow_fallback=True,
+        max_year=MAX_VALID_YEAR,
+    )
+    if iso_dt:
+        return iso_dt.replace("-", "")
+    if yr > 0:
+        return f"{yr:04d}0000"
     return "00000000"
 
 

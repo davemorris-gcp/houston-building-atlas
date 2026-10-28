@@ -8,7 +8,6 @@ import json
 import math
 import pickle
 import re
-import subprocess
 import time
 import zipfile
 from collections import Counter, defaultdict
@@ -20,7 +19,18 @@ import orjson
 import shapely
 from shapely.strtree import STRtree
 
-from atlas_pipeline.schema import compute_decade, normalize_year
+from atlas_pipeline.schema import (
+    INFERRED_FALLBACK_YEAR_SOURCES,
+    MAX_VALID_CAMA_DATE_YEAR,
+    MIN_VALID_YEAR,
+    QUAD_NAMES,
+    compile_quadrant_pmtiles,
+    compute_decade,
+    normalize_override_record,
+    normalize_year,
+    parse_hcad_date_year,
+    write_compact_json,
+)
 
 
 # ============================================================================
@@ -50,7 +60,7 @@ PHASE1_CURATED_LANDMARKS: dict[str, tuple[int, str, str, str]] = {
     ),
     "0201660000034": (
         1926,
-        "Houston Public Library — Heights Branch",
+        "Houston Public Library - Heights Branch",
         "Italian Renaissance Revival",
         "City of Houston Protected Landmark & NRHP (1302 Heights Blvd); designed by J.M. Glover, opened March 1926.",
     ),
@@ -245,13 +255,13 @@ PHASE1_CURATED_LANDMARKS: dict[str, tuple[int, str, str, str]] = {
     ),
     "1245760010001": (
         2003,
-        "Lone Star College — CyFair",
+        "Lone Star College - CyFair",
         "Community College Campus",
         "Lone Star College CyFair main campus at 9191 Barker Cypress Rd, opened 2003.",
     ),
     "0471620000005": (
         1973,
-        "Lone Star College — North Harris",
+        "Lone Star College - North Harris",
         "Community College Campus",
         "Lone Star College North Harris campus at 2700 W.W. Thorne Dr, opened 1973.",
     ),
@@ -963,6 +973,434 @@ STRUCTURAL_FEATURE_KEYWORDS = (
 )
 
 
+INSTITUTIONAL_OWNER_KEYWORDS: tuple[str, ...] = (
+    "ISD",
+    "I S D",
+    "CISD",
+    "SCHOOL",
+    "COLLEGE",
+    "UNIVERSITY",
+    "CHURCH",
+    "DIOCESE",
+    "BAPTIST",
+    "METHODIST",
+    "CATHOLIC",
+    "HOSPITAL",
+    "CHEMICAL",
+    "REFINING",
+    "EXXON",
+    "SHELL",
+    "CHEVRON",
+    "LYONDELL",
+    "EQUISTAR",
+    "VALERO",
+    "KINDER",
+)
+
+# Restrict institutional contiguity to 350m (down from 800m) so unimproved school/college
+# reserves cannot jump across multiple city blocks to peripheral acquired lots.
+CAMPUS_CONTIGUITY_MAX_DIST_M = 350.0
+ADJACENT_OWNER_MAX_DIST_M = 250.0
+SAME_ADDRESS_MAX_DIST_M = 400.0
+MIN_INSTITUTIONAL_CONTIGUITY_YEAR = 1945
+
+
+def is_institutional_owner(norm_own: str) -> bool:
+    """Return True if normalized owner matches an ISD, college, church, hospital, or plant."""
+    up = (norm_own or "").upper()
+    return any(k in up for k in INSTITUTIONAL_OWNER_KEYWORDS)
+
+
+def is_valid_authoritative_donor(
+    year_built: int,
+    year_source: str,
+    bld_area: float,
+    has_curated_override: bool = False,
+) -> bool:
+    """Return True only when a parcel can safely donate its chronology to neighboring parcels.
+
+    Why both predicates are mandatory:
+      1. HCAD frequently retains pre-war residential yr_impr values (e.g., 1926-1935) on
+         demolished house lots (bld_ar == 0) acquired by school districts or colleges for
+         parking and campus expansion. Requiring bld_area > 0 (unless backed by a curated
+         historical override) prevents demolished lots from poisoning campus_contiguity.
+      2. Re-running chronology resolution against already-populated .geojsonseq shards must
+         exclude previously inferred fallback tiers (hcad_permit, campus_contiguity, etc.)
+         so stale heuristic dates never self-propagate across consecutive runs.
+    """
+    if not (MIN_VALID_YEAR <= int(year_built or 0) <= MAX_VALID_CAMA_DATE_YEAR):
+        return False
+    src = (year_source or "").strip()
+    if src in INFERRED_FALLBACK_YEAR_SOURCES:
+        return False
+    if float(bld_area or 0.0) <= 0.0 and not has_curated_override:
+        return False
+    return True
+
+
+def seed_authoritative_dated_parcels(
+    shard_features: Any,
+    cama_lookup: dict[str, tuple[int, int, int, str, str, str]],
+    curated_hcads: set[str] | frozenset[str] | None = None,
+) -> tuple[dict[str, int], dict[str, tuple[float, float]]]:
+    """Seed (dated_parcel_year, dated_parcel_coord) strictly from authoritative active donors."""
+    curated = curated_hcads or frozenset()
+    dated_parcel_year: dict[str, int] = {}
+    dated_parcel_coord: dict[str, tuple[float, float]] = {}
+
+    for feat in shard_features:
+        props = feat.get("properties") or {}
+        hcad = str(props.get("hcad_num") or "").strip()
+        if not hcad:
+            continue
+        yr = int(props.get("year_built") or 0)
+        src = str(props.get("year_source") or "").strip()
+        cama_row = cama_lookup.get(hcad)
+        bld_ar = float(cama_row[2]) if cama_row is not None else float(props.get("bld_area") or 0.0)
+        if not is_valid_authoritative_donor(yr, src, bld_ar, has_curated_override=(hcad in curated)):
+            continue
+        if hcad not in dated_parcel_year or yr < dated_parcel_year[hcad]:
+            dated_parcel_year[hcad] = yr
+            geom = feat.get("geometry") or {}
+            coords = geom.get("coordinates") or []
+            if coords and coords[0]:
+                ring = coords[0]
+                if isinstance(ring[0][0], list):
+                    ring = ring[0]
+                dated_parcel_coord[hcad] = (float(ring[0][0]), float(ring[0][1]))
+
+    for hcad, cval in cama_lookup.items():
+        if hcad not in dated_parcel_year and is_valid_authoritative_donor(
+            int(cval[0] or 0),
+            "hcad_cama",
+            float(cval[2] or 0.0),
+            has_curated_override=(hcad in curated),
+        ):
+            dated_parcel_year[hcad] = int(cval[0])
+
+    return dated_parcel_year, dated_parcel_coord
+
+
+def resolve_contiguity_candidate(
+    ulon: float,
+    ulat: float,
+    norm_own: str,
+    st_num: str,
+    st_name: str,
+    addr_to_dated: dict[tuple[str, str], list[tuple[int, float, float, str]]],
+    owner_to_dated: dict[str, list[tuple[int, float, float, str]]],
+    exclude_acct: str = "",
+) -> dict[str, Any] | None:
+    """Resolve an undated parcel from authoritative same-address or contiguous same-owner donors."""
+    cos_lat = math.cos(math.radians(ulat))
+
+    if st_num and st_name and (st_num, st_name) in addr_to_dated:
+        best_d = 999999.0
+        best_yr = 0
+        best_acct = ""
+        for yr, dlon, dlat, dacct in addr_to_dated[(st_num, st_name)]:
+            if dacct == exclude_acct:
+                continue
+            dist_m = math.hypot((ulon - dlon) * 111320.0 * cos_lat, (ulat - dlat) * 110540.0)
+            if dist_m <= SAME_ADDRESS_MAX_DIST_M and dist_m < best_d:
+                best_d = dist_m
+                best_yr = yr
+                best_acct = dacct
+        if best_yr >= MIN_VALID_YEAR:
+            return {
+                "year_built": best_yr,
+                "year_source": "adjacent_owner",
+                "landmark_name": "",
+                "bld_style": "",
+                "notes": f"Same street address as adjacent dated parcel {best_acct} ({best_yr}, {best_d:.0f}m)",
+            }
+
+    if norm_own and norm_own in owner_to_dated:
+        is_inst = is_institutional_owner(norm_own)
+        max_dist = CAMPUS_CONTIGUITY_MAX_DIST_M if is_inst else ADJACENT_OWNER_MAX_DIST_M
+        best_d = 999999.0
+        best_yr = 0
+        best_acct = ""
+        for yr, dlon, dlat, dacct in owner_to_dated[norm_own]:
+            if dacct == exclude_acct:
+                continue
+            # Prevent pre-war residential bungalow dates (< 1945) on acquired peripheral lots
+            # from propagating onto modern institutional ISD/college/church campus reserves.
+            if is_inst and yr < MIN_INSTITUTIONAL_CONTIGUITY_YEAR:
+                continue
+            dist_m = math.hypot((ulon - dlon) * 111320.0 * cos_lat, (ulat - dlat) * 110540.0)
+            if dist_m <= max_dist and dist_m < best_d:
+                best_d = dist_m
+                best_yr = yr
+                best_acct = dacct
+        if best_yr >= MIN_VALID_YEAR:
+            src = "campus_contiguity" if is_inst else "adjacent_owner"
+            return {
+                "year_built": best_yr,
+                "year_source": src,
+                "landmark_name": "",
+                "bld_style": "",
+                "notes": f"Contiguous same-owner parcel {best_acct} ({best_yr}, {best_d:.0f}m)",
+            }
+
+    return None
+
+
+def resolve_permit_deed_spatial_fallback(
+    *,
+    permit_candidates: list[tuple[int, str]] | None = None,
+    earliest_deed_year: int = 0,
+    state_class: str = "",
+    local_era: int = 0,
+    nn_median: int = 0,
+    market_median: int = 0,
+) -> dict[str, Any]:
+    """Resolve Phase 2D/4 chronology fallback (hcad_permit -> hcad_deed -> subdivision_median -> blockface_median).
+
+    Enforces MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR uniformly across all pipeline stages
+    after parse_hcad_date_year has rejected SQL/OLE null-date sentinels.
+    """
+    if permit_candidates:
+        valid_permits = [
+            (pyr, dscr)
+            for pyr, dscr in permit_candidates
+            if MIN_VALID_YEAR <= pyr <= MAX_VALID_CAMA_DATE_YEAR
+        ]
+        if valid_permits:
+            valid_permits.sort(key=lambda x: x[0])
+            best_yr, p_dscr = valid_permits[0]
+            return {
+                "year_built": best_yr,
+                "year_source": "hcad_permit",
+                "landmark_name": "",
+                "bld_style": "",
+                "notes": f"HCAD Building Permit ({best_yr}): {p_dscr[:60]}",
+            }
+
+    valid_deed_yr = (
+        earliest_deed_year
+        if MIN_VALID_YEAR <= earliest_deed_year <= MAX_VALID_CAMA_DATE_YEAR
+        else 0
+    )
+    st_cls = (state_class or "").strip().upper()
+    if valid_deed_yr:
+        ref_era = local_era or nn_median or valid_deed_yr
+        if st_cls in ("C1", "C2") and valid_deed_yr >= 2016 and ref_era >= 1995:
+            return {
+                "year_built": valid_deed_yr,
+                "year_source": "hcad_deed",
+                "landmark_name": "",
+                "bld_style": "",
+                "notes": f"HCAD Deed record on newly developed parcel ({valid_deed_yr})",
+            }
+        if valid_deed_yr <= ref_era + 12:
+            return {
+                "year_built": valid_deed_yr,
+                "year_source": "hcad_deed",
+                "landmark_name": "",
+                "bld_style": "",
+                "notes": f"Earliest HCAD Deed / Split date ({valid_deed_yr})",
+            }
+
+    if local_era and MIN_VALID_YEAR <= local_era <= MAX_VALID_CAMA_DATE_YEAR:
+        return {
+            "year_built": local_era,
+            "year_source": "subdivision_median",
+            "landmark_name": "",
+            "bld_style": "",
+            "notes": f"Circa {local_era} (HCAD Subdivision / Street Median)",
+        }
+
+    valid_nn = nn_median if MIN_VALID_YEAR <= nn_median <= MAX_VALID_CAMA_DATE_YEAR else 0
+    valid_mkt = market_median if MIN_VALID_YEAR <= market_median <= MAX_VALID_CAMA_DATE_YEAR else 0
+    fallback_yr = valid_nn or valid_mkt or valid_deed_yr or 1975
+    return {
+        "year_built": fallback_yr,
+        "year_source": "blockface_median",
+        "landmark_name": "",
+        "bld_style": "",
+        "notes": f"Circa {fallback_yr} (Nearest Block-Face Structure Median)",
+    }
+
+
+def re_resolve_synthetic_shard_features(
+    shard_features: list[dict[str, Any]],
+    cama_lookup: dict[str, tuple[int, int, int, str, str, str]],
+    acct_meta: dict[str, dict[str, str]],
+    *,
+    permits_by_acct: dict[str, list[tuple[str, str, str]]] | None = None,
+    deeds_by_acct: dict[str, list[tuple[str, str]]] | None = None,
+    tiebacks: dict[str, list[str]] | None = None,
+    curated_landmarks: dict[str, tuple[int, str, str, str]] | None = None,
+) -> list[dict[str, Any]]:
+    """Pure, dependency-injected chronology resolver over synthetic shard + CAMA fixtures.
+
+    Used by unit tests (and mirrored by countywide batch execution) to verify idempotent
+    donor seeding, SQL/OLE date-sentinel rejection, bld_ar == 0 exclusion, < 1945 & 350m
+    campus_contiguity bounds, and 100% [1836, 2026] completeness across consecutive runs.
+    """
+    curated_map = curated_landmarks or {}
+    curated_hcads = set(curated_map.keys())
+    dated_parcel_year, dated_parcel_coord = seed_authoritative_dated_parcels(
+        shard_features, cama_lookup, curated_hcads
+    )
+
+    target_hcads: set[str] = set()
+    parcel_coords: dict[str, tuple[float, float]] = dict(dated_parcel_coord)
+    for feat in shard_features:
+        props = feat.get("properties") or {}
+        hcad = str(props.get("hcad_num") or "").strip()
+        if not hcad:
+            continue
+        geom = feat.get("geometry") or {}
+        coords = geom.get("coordinates") or []
+        if coords and coords[0] and hcad not in parcel_coords:
+            ring = coords[0]
+            if isinstance(ring[0][0], list):
+                ring = ring[0]
+            parcel_coords[hcad] = (float(ring[0][0]), float(ring[0][1]))
+        yr = int(props.get("year_built") or 0)
+        src = str(props.get("year_source") or "").strip()
+        if yr < MIN_VALID_YEAR or src in INFERRED_FALLBACK_YEAR_SOURCES:
+            if hcad not in dated_parcel_year or hcad in curated_map:
+                target_hcads.add(hcad)
+
+    resolved: dict[str, dict[str, Any]] = {}
+    for hcad in sorted(target_hcads):
+        if hcad in curated_map:
+            cyr, lm_name, style, notes = curated_map[hcad]
+            resolved[hcad] = {
+                "year_built": cyr,
+                "year_source": "curated_landmark",
+                "landmark_name": lm_name,
+                "bld_style": style,
+                "notes": notes,
+            }
+            dated_parcel_year[hcad] = cyr
+            if hcad in parcel_coords:
+                dated_parcel_coord[hcad] = parcel_coords[hcad]
+
+    tb_map = tiebacks or {}
+    for hcad in sorted(target_hcads):
+        if hcad in resolved:
+            continue
+        best_yr = 0
+        best_rel = ""
+        for rel in tb_map.get(hcad, ()):
+            ryr = dated_parcel_year.get(rel, 0)
+            if ryr >= MIN_VALID_YEAR and (best_yr == 0 or ryr < best_yr):
+                best_yr = ryr
+                best_rel = rel
+        if best_yr >= MIN_VALID_YEAR:
+            resolved[hcad] = {
+                "year_built": best_yr,
+                "year_source": "hcad_tieback",
+                "landmark_name": "",
+                "bld_style": "",
+                "notes": f"Linked to HCAD master/related account {best_rel} ({best_yr})",
+            }
+
+    owner_to_dated: dict[str, list[tuple[int, float, float, str]]] = defaultdict(list)
+    addr_to_dated: dict[tuple[str, str], list[tuple[int, float, float, str]]] = defaultdict(list)
+    subdiv_to_dated: dict[str, list[int]] = defaultdict(list)
+    all_authoritative_years: list[int] = []
+
+    for acct, dyr in sorted(dated_parcel_year.items()):
+        if not (MIN_VALID_YEAR <= dyr <= MAX_VALID_CAMA_DATE_YEAR):
+            continue
+        all_authoritative_years.append(dyr)
+        meta = acct_meta.get(acct, {})
+        norm_own = normalize_owner(meta.get("owner", ""))
+        st_num, st_name = normalize_street(meta.get("address", ""))
+        coord = dated_parcel_coord.get(acct)
+        if coord:
+            if norm_own and norm_own not in GENERIC_OWNERS:
+                owner_to_dated[norm_own].append((dyr, coord[0], coord[1], acct))
+            if st_num and st_name:
+                addr_to_dated[(st_num, st_name)].append((dyr, coord[0], coord[1], acct))
+        lgl2 = (meta.get("lgl2") or "").strip()
+        if len(lgl2) >= 4:
+            subdiv_to_dated[lgl2].append(dyr)
+
+    for hcad in sorted(target_hcads):
+        if hcad in resolved:
+            continue
+        ucoord = parcel_coords.get(hcad)
+        if not ucoord:
+            continue
+        meta = acct_meta.get(hcad, {})
+        cand = resolve_contiguity_candidate(
+            ucoord[0],
+            ucoord[1],
+            normalize_owner(meta.get("owner", "")),
+            *normalize_street(meta.get("address", "")),
+            addr_to_dated=addr_to_dated,
+            owner_to_dated=owner_to_dated,
+            exclude_acct=hcad,
+        )
+        if cand is not None:
+            resolved[hcad] = cand
+
+    p_map = permits_by_acct or {}
+    d_map = deeds_by_acct or {}
+    for hcad in sorted(target_hcads):
+        if hcad in resolved:
+            continue
+        valid_permits: list[tuple[int, str]] = []
+        for dt_str, tax_yr_str, dscr in p_map.get(hcad, ()):
+            pyr = parse_hcad_date_year(dt_str, tax_yr_str, allow_fallback=False)
+            if MIN_VALID_YEAR <= pyr <= MAX_VALID_CAMA_DATE_YEAR:
+                valid_permits.append((pyr, dscr))
+
+        meta = acct_meta.get(hcad, {})
+        earliest_deed = 0
+        for dos_str, clerk_yr_str in d_map.get(hcad, ()):
+            dyr = parse_hcad_date_year(dos_str, clerk_yr_str, allow_fallback=True)
+            if dyr and (earliest_deed == 0 or dyr < earliest_deed):
+                earliest_deed = dyr
+        for fld in ("splt_dt", "new_own_dt"):
+            syr = parse_hcad_date_year(meta.get(fld, ""), allow_fallback=False)
+            if syr and (earliest_deed == 0 or syr < earliest_deed):
+                earliest_deed = syr
+
+        lgl2 = (meta.get("lgl2") or "").strip()
+        sub_yrs = subdiv_to_dated.get(lgl2, [])
+        sub_med = int(round(float(np.median(sub_yrs)))) if sub_yrs else 0
+        nn_med = int(round(float(np.median(all_authoritative_years)))) if all_authoritative_years else 1975
+
+        resolved[hcad] = resolve_permit_deed_spatial_fallback(
+            permit_candidates=valid_permits,
+            earliest_deed_year=earliest_deed,
+            state_class=str(meta.get("state_class") or meta.get("st_cls") or ""),
+            local_era=sub_med,
+            nn_median=nn_med,
+        )
+
+    out_features: list[dict[str, Any]] = []
+    for feat in shard_features:
+        f_copy = json.loads(json.dumps(feat))
+        props = f_copy.setdefault("properties", {})
+        hcad = str(props.get("hcad_num") or "").strip()
+        yr = int(props.get("year_built") or 0)
+        src = str(props.get("year_source") or "").strip()
+        if (yr < MIN_VALID_YEAR or src in INFERRED_FALLBACK_YEAR_SOURCES) and hcad in resolved:
+            rinfo = resolved[hcad]
+            new_yr = int(rinfo["year_built"])
+            props["year_built"] = new_yr
+            props["decade"] = compute_decade(new_yr)
+            props["year_source"] = rinfo["year_source"]
+            if rinfo.get("landmark_name"):
+                props["landmark_name"] = rinfo["landmark_name"]
+            if rinfo.get("bld_style"):
+                props["bld_style"] = rinfo["bld_style"]
+        final_yr = int(props.get("year_built") or 0)
+        if not (MIN_VALID_YEAR <= final_yr <= MAX_VALID_CAMA_DATE_YEAR):
+            raise ValueError(f"Completeness invariant violated on {hcad}: year_built={final_yr}")
+        out_features.append(f_copy)
+
+    return out_features
+
+
 def normalize_owner(raw: str) -> str:
     s = re.sub(r"\s+", " ", (raw or "").upper().strip())
     s = re.sub(r"\b(INC|LLC|LP|LTD|CORP|CORPORATION|CO|TR|TRUST|ET AL)\b\.?", "", s)
@@ -1022,6 +1460,97 @@ def run_resolve_undated() -> None:
     with open(cache_dir / "cama_2026_compact.pkl", "rb") as f:
         cama_lookup: dict[str, tuple[int, int, int, str, str, str]] = pickle.load(f)
     print(f"-> Loaded {len(cama_lookup):,} CAMA accounts.")
+
+    # 2b. Scan aligned_ndjson shards upfront to seed authoritative donors AND augment undated_by_hcad
+    #     with any undated or inferred-fallback shard parcels absent from the static inventory CSV.
+    print("-> Scanning aligned_ndjson shards for parcel centroids, authoritative donors, and undated targets...")
+    quad_names = QUAD_NAMES
+    dated_parcel_year: dict[str, int] = {}
+    dated_parcel_coord: dict[str, tuple[float, float]] = {}
+    undated_parcel_coord: dict[str, tuple[float, float]] = {}
+
+    for hcad, r in undated_by_hcad.items():
+        try:
+            undated_parcel_coord[hcad] = (float(r["lon"]), float(r["lat"]))
+        except Exception:
+            pass
+
+    curated_donor_hcads = set(PHASE1_CURATED_LANDMARKS.keys())
+    overrides_seed_path = data_dir / "curated_overrides.json"
+    if overrides_seed_path.exists():
+        try:
+            ov_seed_data = orjson.loads(overrides_seed_path.read_bytes())
+            for ok, ov_rec in (ov_seed_data.get("overrides") or {}).items():
+                oh = str(ov_rec.get("hcad_num") or ok.split("#")[0]).strip()
+                if oh:
+                    curated_donor_hcads.add(oh)
+        except Exception:
+            pass
+
+    dynamic_undated_candidates: dict[str, dict[str, Any]] = {}
+    for q in quad_names:
+        seq_path = aligned_dir / f"buildings_{q}.geojsonseq"
+        with open(seq_path, "rb") as f:
+            for line in f:
+                if line.startswith(b"\x1e"):
+                    line = line[1:]
+                if not line:
+                    continue
+                feat = orjson.loads(line)
+                props = feat["properties"]
+                hcad = str(props.get("hcad_num") or "").strip()
+                if not hcad:
+                    continue
+                yr = int(props.get("year_built") or 0)
+                src = str(props.get("year_source") or "").strip()
+                cama_row = cama_lookup.get(hcad)
+                bld_ar = float(cama_row[2]) if cama_row is not None else float(props.get("bld_area") or 0.0)
+                ring = feat["geometry"]["coordinates"][0]
+                if isinstance(ring[0][0], list):
+                    ring = ring[0]
+                pt_lon, pt_lat = float(ring[0][0]), float(ring[0][1])
+
+                if is_valid_authoritative_donor(
+                    yr,
+                    src,
+                    bld_ar,
+                    has_curated_override=(hcad in curated_donor_hcads),
+                ):
+                    if hcad not in dated_parcel_year or yr < dated_parcel_year[hcad]:
+                        dated_parcel_year[hcad] = yr
+                        dated_parcel_coord[hcad] = (pt_lon, pt_lat)
+                elif (yr < MIN_VALID_YEAR or (src in INFERRED_FALLBACK_YEAR_SOURCES and hcad not in curated_donor_hcads)):
+                    if hcad not in undated_by_hcad and hcad not in dynamic_undated_candidates:
+                        use_cat = str(props.get("use_category") or "")
+                        st_cls_val = str(cama_row[3] if cama_row is not None else "")
+                        dynamic_undated_candidates[hcad] = {
+                            "hcad_num": hcad,
+                            "lon": str(pt_lon),
+                            "lat": str(pt_lat),
+                            "owner": str(props.get("owner") or ""),
+                            "address": str(props.get("address") or ""),
+                            "state_class": st_cls_val,
+                            "use_category": use_cat,
+                            "strategy_tier": "Tier 2" if use_cat == "Civic / Institutional" else "Tier 3",
+                        }
+
+    for hcad, cval in cama_lookup.items():
+        if hcad not in dated_parcel_year and is_valid_authoritative_donor(
+            int(cval[0] or 0),
+            "hcad_cama",
+            float(cval[2] or 0.0),
+            has_curated_override=(hcad in curated_donor_hcads),
+        ):
+            dated_parcel_year[hcad] = int(cval[0])
+
+    added_dyn_targets = 0
+    for hcad, dyn_row in dynamic_undated_candidates.items():
+        if hcad not in dated_parcel_year and hcad not in undated_by_hcad:
+            undated_by_hcad[hcad] = dyn_row
+            undated_parcel_coord[hcad] = (float(dyn_row["lon"]), float(dyn_row["lat"]))
+            added_dyn_targets += 1
+    if added_dyn_targets:
+        print(f"   Augmented undated target set with {added_dyn_targets:,} shard parcels outside {inv_path.name}.")
 
     # Track resolved parcels: hcad_num -> {year_built, year_source, landmark_name, bld_style, notes}
     resolved: dict[str, dict[str, Any]] = {}
@@ -1162,53 +1691,16 @@ def run_resolve_undated() -> None:
     print(f"   [Phase 2A] Resolved {p2a_count:,} parcels via HCAD extra_features_detail1/2 ({time.time() - t_p2:.1f}s).")
 
     # ========================================================================
-    # PHASE 2B: HCAD Parcel Tieback + Parse real_acct.txt for Address/Owner/Subdivision
+    # PHASE 2B: HCAD Parcel Tieback + Seed Phase 1 Authoritative Donors
     # ========================================================================
     t_p2b = time.time()
     tiebacks: dict[str, list[str]] = defaultdict(list)
 
-    # Also build spatial + tabular indexes from real_acct.txt and aligned_ndjson
-    # First, scan aligned_ndjson to get (lon, lat) centroids and years of all 1.51M footprints!
-    print("-> Scanning aligned_ndjson shards for parcel centroids and dated structure locations...")
-    quad_names = ("nw_w", "nw_e", "ne", "sw", "se")
-    dated_parcel_year: dict[str, int] = {}
-    dated_parcel_coord: dict[str, tuple[float, float]] = {}
-    undated_parcel_coord: dict[str, tuple[float, float]] = {}
-
-    for hcad, r in undated_by_hcad.items():
-        try:
-            undated_parcel_coord[hcad] = (float(r["lon"]), float(r["lat"]))
-        except Exception:
-            pass
-
-    for q in quad_names:
-        seq_path = aligned_dir / f"buildings_{q}.geojsonseq"
-        with open(seq_path, "rb") as f:
-            for line in f:
-                if line.startswith(b"\x1e"):
-                    line = line[1:]
-                if not line:
-                    continue
-                feat = orjson.loads(line)
-                props = feat["properties"]
-                hcad = props.get("hcad_num") or ""
-                yr = int(props.get("year_built") or 0)
-                if yr >= 1836 and hcad:
-                    if hcad not in dated_parcel_year or yr < dated_parcel_year[hcad]:
-                        dated_parcel_year[hcad] = yr
-                        ring = feat["geometry"]["coordinates"][0]
-                        if isinstance(ring[0][0], list):
-                            ring = ring[0]
-                        dated_parcel_coord[hcad] = (float(ring[0][0]), float(ring[0][1]))
-
-    # Include cama_lookup and Phase 1/2A resolved years in dated_parcel_year
-    for hcad, cval in cama_lookup.items():
-        if cval[0] >= 1836 and hcad not in dated_parcel_year:
-            dated_parcel_year[hcad] = cval[0]
     for hcad, rinfo in resolved.items():
-        dated_parcel_year[hcad] = rinfo["year_built"]
-        if hcad in undated_parcel_coord:
-            dated_parcel_coord[hcad] = undated_parcel_coord[hcad]
+        if rinfo.get("year_source") not in INFERRED_FALLBACK_YEAR_SOURCES:
+            dated_parcel_year[hcad] = rinfo["year_built"]
+            if hcad in undated_parcel_coord:
+                dated_parcel_coord[hcad] = undated_parcel_coord[hcad]
 
     with zipfile.ZipFile(cache_dir / "Real_acct_owner.zip", "r") as zf:
         if "parcel_tieback.txt" in zf.namelist():
@@ -1248,7 +1740,6 @@ def run_resolve_undated() -> None:
                 "bld_style": "",
                 "notes": f"Linked to HCAD master/related account {best_rel} ({best_yr})",
             }
-            dated_parcel_year[hcad] = best_yr
             p2b_count += 1
 
     print(f"   [Phase 2B] Resolved {p2b_count:,} parcels via HCAD parcel_tieback.txt ({time.time() - t_p2b:.1f}s).")
@@ -1337,76 +1828,34 @@ def run_resolve_undated() -> None:
 
     print(f"   Parsed real_acct.txt metadata in {time.time() - t_acct:.1f}s.")
 
-    # Phase 2C: Spatial Same-Owner & Same-Address Contiguity (<= 250m for same owner, <= 400m for same address)
+    # Phase 2C & 3A: Spatial Same-Address (<= 400m), Same-Owner (<= 250m), and Campus Contiguity (<= 350m, >= 1945)
     p2c_count = 0
     p3_campus_count = 0
     for hcad, r in undated_by_hcad.items():
         if hcad in resolved:
             continue
         meta = undated_meta.get(hcad, {})
-        norm_own = meta.get("norm_own") or normalize_owner(r["owner"])
-        st_num, st_name = normalize_street(meta.get("addr1") or r["address"])
+        norm_own = meta.get("norm_own") or normalize_owner(str(r.get("owner") or ""))
+        st_num, st_name = normalize_street(meta.get("addr1") or str(r.get("address") or ""))
         ucoord = undated_parcel_coord.get(hcad)
         if not ucoord:
             continue
-        ulon, ulat = ucoord
-        cos_lat = math.cos(math.radians(ulat))
-
-        # 1. Exact street number + street name match within 400m
-        if st_num and st_name and (st_num, st_name) in addr_to_dated:
-            best_d = 999999.0
-            best_yr = 0
-            best_acct = ""
-            for yr, dlon, dlat, dacct in addr_to_dated[(st_num, st_name)]:
-                dist_m = math.hypot((ulon - dlon) * 111320.0 * cos_lat, (ulat - dlat) * 110540.0)
-                if dist_m <= 400.0 and dist_m < best_d:
-                    best_d = dist_m
-                    best_yr = yr
-                    best_acct = dacct
-            if best_yr >= 1836:
-                resolved[hcad] = {
-                    "year_built": best_yr,
-                    "year_source": "adjacent_owner",
-                    "landmark_name": "",
-                    "bld_style": "",
-                    "notes": f"Same street address as adjacent dated parcel {best_acct} ({best_yr}, {best_d:.0f}m)",
-                }
+        cand = resolve_contiguity_candidate(
+            ucoord[0],
+            ucoord[1],
+            norm_own,
+            st_num,
+            st_name,
+            addr_to_dated=addr_to_dated,
+            owner_to_dated=owner_to_dated,
+            exclude_acct=hcad,
+        )
+        if cand is not None:
+            resolved[hcad] = cand
+            if cand["year_source"] == "campus_contiguity":
+                p3_campus_count += 1
+            else:
                 p2c_count += 1
-                continue
-
-        # 2. Same normalized owner within 250m (or within 600m for institutional campuses / ISDs / Churches / Industrial)
-        if norm_own and norm_own in owner_to_dated:
-            is_inst = any(
-                k in norm_own
-                for k in ("ISD", "I S D", "SCHOOL", "COLLEGE", "UNIVERSITY", "CHURCH", "DIOCESE", "BAPTIST", "METHODIST", "CATHOLIC", "HOSPITAL", "CHEMICAL", "REFINING", "EXXON", "SHELL", "CHEVRON", "LYONDELL", "EQUISTAR", "VALERO", "KINDER")
-            )
-            max_dist = 800.0 if is_inst else 250.0
-            best_d = 999999.0
-            best_yr = 0
-            best_acct = ""
-            for yr, dlon, dlat, dacct in owner_to_dated[norm_own]:
-                # Do not propagate pre-war residential bungalow dates (< 1945) onto institutional university/church campus tracts
-                if is_inst and yr < 1945:
-                    continue
-                dist_m = math.hypot((ulon - dlon) * 111320.0 * cos_lat, (ulat - dlat) * 110540.0)
-                if dist_m <= max_dist and dist_m < best_d:
-                    best_d = dist_m
-                    best_yr = yr
-                    best_acct = dacct
-            if best_yr >= 1836:
-                src = "campus_contiguity" if is_inst else "adjacent_owner"
-                resolved[hcad] = {
-                    "year_built": best_yr,
-                    "year_source": src,
-                    "landmark_name": "",
-                    "bld_style": "",
-                    "notes": f"Contiguous same-owner parcel {best_acct} ({best_yr}, {best_d:.0f}m)",
-                }
-                if is_inst:
-                    p3_campus_count += 1
-                else:
-                    p2c_count += 1
-                continue
 
     print(
         f"   [Phase 2C & 3A] Resolved {p2c_count:,} adjacent same-owner/same-address parcels and {p3_campus_count:,} contiguous institutional campus parcels."
@@ -1436,13 +1885,12 @@ def run_resolve_undated() -> None:
                     acct = parts[i_acct].strip()
                     if acct not in undated_by_hcad or acct in resolved:
                         continue
-                    yr = 0
+                    # Reject SQL/OLE null-date sentinels (e.g. 12/30/1899 on 30,253 permit rows)
+                    # without falling back to permits.txt yr, which records appraisal roll cycle year.
                     dt_str = parts[i_dt].strip()
-                    if len(dt_str) >= 10 and dt_str[-4:].isdigit():
-                        yr = int(dt_str[-4:])
-                    if not (1836 <= yr <= 2026) and len(parts) > i_yr:
-                        yr = normalize_year(parts[i_yr])
-                    if 1836 <= yr <= 2026:
+                    tax_yr_str = parts[i_yr].strip() if len(parts) > i_yr else None
+                    yr = parse_hcad_date_year(dt_str, tax_yr_str, allow_fallback=False)
+                    if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
                         tp_d = parts[i_tp_dscr].strip() if len(parts) > i_tp_dscr else ""
                         dscr = parts[i_dscr].strip() if len(parts) > i_dscr else ""
                         permit_years[acct].append((yr, tp_d or dscr))
@@ -1492,7 +1940,7 @@ def run_resolve_undated() -> None:
             for hcad, r in undated_by_hcad.items():
                 if hcad in resolved:
                     continue
-                if not r["strategy_tier"].startswith("Tier 2"):
+                if not str(r.get("strategy_tier") or "").startswith("Tier 2"):
                     continue
                 ucoord = undated_parcel_coord.get(hcad)
                 if not ucoord:
@@ -1533,27 +1981,23 @@ def run_resolve_undated() -> None:
                     acct = parts[i_acct].strip()
                     if acct not in undated_by_hcad or acct in resolved:
                         continue
-                    yr = 0
                     dos = parts[i_dos].strip()
-                    if len(dos) >= 10 and dos[-4:].isdigit():
-                        yr = int(dos[-4:])
-                    if not (1836 <= yr <= 2026) and len(parts) > i_cyr:
-                        yr = normalize_year(parts[i_cyr])
-                    if 1836 <= yr <= 2026:
+                    cyr_str = parts[i_cyr].strip() if len(parts) > i_cyr else None
+                    yr = parse_hcad_date_year(dos, cyr_str, allow_fallback=True)
+                    if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
                         if acct not in deed_earliest or yr < deed_earliest[acct]:
                             deed_earliest[acct] = yr
 
-    # Also check splt_dt and new_own_dt from real_acct.txt
+    # Also check splt_dt and new_own_dt from real_acct.txt (rejecting SQL/OLE null-date sentinels)
     for acct, meta in undated_meta.items():
         if acct in resolved:
             continue
         for dt_field in ("splt_dt", "new_own_dt"):
             val = meta.get(dt_field, "")
-            if len(val) >= 10 and val[-4:].isdigit():
-                yr = int(val[-4:])
-                if 1836 <= yr <= 2026:
-                    if acct not in deed_earliest or yr < deed_earliest[acct]:
-                        deed_earliest[acct] = yr
+            yr = parse_hcad_date_year(val, allow_fallback=False)
+            if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
+                if acct not in deed_earliest or yr < deed_earliest[acct]:
+                    deed_earliest[acct] = yr
 
     # Precompute median years for (zip_cd, st_name), lgl2 subdivision, Neighborhood_Code, and Market_Area_1
     street_median: dict[tuple[str, str], int] = {
@@ -1623,54 +2067,20 @@ def run_resolve_undated() -> None:
 
         deed_yr = deed_earliest.get(hcad, 0)
         st_cls = (r.get("state_class") or "").strip()
-
-        # If parcel is recent vacant-coded new construction (C1/C2) with a 2018-2026 deed, or if deed_yr
-        # aligns with or predates the subdivision/block era (within 12 years), use the deed year!
-        if deed_yr >= 1836:
-            ref_era = local_era or nn_median or deed_yr
-            if st_cls in ("C1", "C2") and deed_yr >= 2016 and ref_era >= 1995:
-                resolved[hcad] = {
-                    "year_built": deed_yr,
-                    "year_source": "hcad_deed",
-                    "landmark_name": "",
-                    "bld_style": "",
-                    "notes": f"HCAD Deed record on newly developed parcel ({deed_yr})",
-                }
-                p4_deed_count += 1
-                continue
-            if deed_yr <= ref_era + 12:
-                resolved[hcad] = {
-                    "year_built": deed_yr,
-                    "year_source": "hcad_deed",
-                    "landmark_name": "",
-                    "bld_style": "",
-                    "notes": f"Earliest HCAD Deed / Split date ({deed_yr})",
-                }
-                p4_deed_count += 1
-                continue
-
-        # Otherwise use Subdivision / Street / Neighborhood median if available
-        if local_era and 1836 <= local_era <= 2026:
-            resolved[hcad] = {
-                "year_built": local_era,
-                "year_source": "subdivision_median",
-                "landmark_name": "",
-                "bld_style": "",
-                "notes": f"Circa {local_era} (HCAD Subdivision / Street Median)",
-            }
+        fb_res = resolve_permit_deed_spatial_fallback(
+            earliest_deed_year=deed_yr,
+            state_class=st_cls,
+            local_era=int(local_era or 0),
+            nn_median=int(nn_median or 0),
+            market_median=int(mkt_median.get(meta.get("mkt", "")) or 0),
+        )
+        resolved[hcad] = fb_res
+        if fb_res["year_source"] == "hcad_deed":
+            p4_deed_count += 1
+        elif fb_res["year_source"] == "subdivision_median":
             p4_subdiv_count += 1
-            continue
-
-        # Fallback to k-Nearest Block-Face Structure Median
-        fallback_yr = nn_median or mkt_median.get(meta.get("mkt", "")) or deed_yr or 1975
-        resolved[hcad] = {
-            "year_built": fallback_yr,
-            "year_source": "blockface_median",
-            "landmark_name": "",
-            "bld_style": "",
-            "notes": f"Circa {fallback_yr} (Nearest Block-Face Structure Median)",
-        }
-        p4_blockface_count += 1
+        else:
+            p4_blockface_count += 1
 
     print(
         f"   [Phase 4] Resolved {p4_deed_count:,} via HCAD Deeds, {p4_subdiv_count:,} via Subdivision/Street Median, and {p4_blockface_count:,} via Block-Face k-NN Median ({time.time() - t_p4:.1f}s)."
@@ -1714,22 +2124,26 @@ def run_resolve_undated() -> None:
         if not r:
             continue
         if hcad not in overrides_map:
-            overrides_map[hcad] = {
-                "id": hcad,
-                "building_id": hcad,
-                "hcad_num": hcad,
-                "address": r.get("address", ""),
-                "historic_district": r.get("historic_district", ""),
-                "year_built": yr,
-                "decade": compute_decade(yr),
-                "original_hcad_year": 0,
-                "bld_style": style,
-                "landmark_name": lm_name,
-                "source_type": "Preservation Houston Landmark & Institutional Inventory",
-                "source_citation": notes,
-                "verified_by": "Preservation Houston",
-                "updated_at": "2026-10-06",
-            }
+            overrides_map[hcad] = normalize_override_record(
+                hcad,
+                {
+                    "id": hcad,
+                    "building_id": hcad,
+                    "hcad_num": hcad,
+                    "address": r.get("address", ""),
+                    "historic_district": r.get("historic_district", ""),
+                    "contributing": "Outside Historic District",
+                    "year_built": yr,
+                    "decade": compute_decade(yr),
+                    "original_hcad_year": 0,
+                    "bld_style": style,
+                    "landmark_name": lm_name,
+                    "source_type": "Preservation Houston Landmark & Institutional Inventory",
+                    "source_citation": notes,
+                    "verified_by": "Preservation Houston",
+                    "updated_at": "2026-10-06",
+                },
+            )
             added_overrides += 1
         if lm_name and hcad not in existing_search_hcads:
             try:
@@ -1751,8 +2165,8 @@ def run_resolve_undated() -> None:
             except Exception:
                 pass
 
-    overrides_path.write_text(json.dumps(overrides_data, indent=2), encoding="utf-8")
-    search_index_path.write_text(json.dumps(search_index, indent=2), encoding="utf-8")
+    write_compact_json(overrides_path, overrides_data)
+    write_compact_json(search_index_path, search_index)
     print(f"-> Added {added_overrides} Phase 1 curated overrides to curated_overrides.json and search_index.json.")
 
     # ========================================================================
@@ -1807,7 +2221,8 @@ def run_resolve_undated() -> None:
                 hcad = str(props.get("hcad_num") or "").strip()
                 yr = int(props.get("year_built") or 0)
 
-                if yr < 1836 and hcad in resolved:
+                existing_src = str(props.get("year_source") or "").strip()
+                if (yr < MIN_VALID_YEAR or existing_src in INFERRED_FALLBACK_YEAR_SOURCES) and hcad in resolved:
                     rinfo = resolved[hcad]
                     yr = int(rinfo["year_built"])
                     props["year_built"] = yr
@@ -1867,6 +2282,12 @@ def run_resolve_undated() -> None:
                 elif yr >= 1836:
                     source_counter[props.get("year_source") or "hcad_cama"] += 1
 
+                # Enforce terminal completeness invariant so 100.00% of footprints carry valid years
+                if not (MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR):
+                    raise ValueError(
+                        f"Completeness invariant violated on {hcad} in {seq_path.name}: year_built={yr}"
+                    )
+
                 # Accumulate countywide stats
                 total_buildings += 1
                 q_total += 1
@@ -1904,49 +2325,11 @@ def run_resolve_undated() -> None:
     # ========================================================================
     # Recompile all 5 PMTiles Shards in Parallel via Tippecanoe
     # ========================================================================
-    tippecanoe_bin = "/tmp/tippecanoe/tippecanoe"
-    if not Path(tippecanoe_bin).exists():
-        tippecanoe_bin = str(Path.home() / ".local" / "bin" / "tippecanoe")
-
-    print("-> Compiling 5 Web Mercator tile-aligned PMTiles v3 archives in parallel via Tippecanoe...")
-    t_tip = time.time()
-    procs: list[tuple[str, subprocess.Popen[bytes], Path]] = []
-    for q in quad_names:
-        in_seq = aligned_dir / f"buildings_{q}.geojsonseq"
-        out_pmtiles = data_dir / f"houston_buildings_{q}.pmtiles"
-        cmd = [
-            tippecanoe_bin,
-            "-o",
-            str(out_pmtiles),
-            "--force",
-            "-l",
-            "buildings",
-            "-Z",
-            "10",
-            "-z",
-            "15",
-            "--hilbert",
-            "--read-parallel",
-            "--drop-densest-as-needed",
-            "--extend-zooms-if-still-dropping",
-            "--maximum-tile-bytes=2500000",
-            "--maximum-tile-features=400000",
-            "--simplification=2",
-            str(in_seq),
-        ]
-        procs.append((q, subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE), out_pmtiles))
-
-    shard_files: list[str] = []
-    total_pmtiles_bytes = 0
-    for q, proc, out_pmtiles in procs:
-        _, stderr = proc.communicate()
-        if proc.returncode != 0:
-            raise RuntimeError(f"Tippecanoe failed for quadrant {q}: {stderr.decode('utf-8', errors='replace')}")
-        sz = out_pmtiles.stat().st_size
-        total_pmtiles_bytes += sz
-        shard_files.append(out_pmtiles.name)
-        print(f"   Compiled {out_pmtiles.name}: {sz / (1024 * 1024):.1f} MB")
-    print(f"-> Tippecanoe compilation finished in {time.time() - t_tip:.1f}s.")
+    shard_files, total_pmtiles_bytes = compile_quadrant_pmtiles(
+        aligned_dir,
+        data_dir,
+        quad_names,
+    )
 
     # ========================================================================
     # Update stats_summary.json

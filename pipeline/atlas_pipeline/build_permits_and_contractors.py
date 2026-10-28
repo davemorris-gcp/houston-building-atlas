@@ -26,10 +26,11 @@ Sources integrated:
 
 import collections
 import json
-import os
 import re
 import zipfile
 from pathlib import Path
+
+from atlas_pipeline.schema import normalize_hcad_date, write_compact_json
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT_DIR / "pipeline" / "cache"
@@ -1586,24 +1587,23 @@ def build_hcad_permits_and_cama_index(target_hcads: set):
             ptype = row[i_ptype].strip()
             pdesc = row[i_pdesc].strip()
             dt = row[i_date].strip()  # MM/DD/YYYY
+            iso_dt_parsed, _ = normalize_hcad_date(dt, allow_fallback=False)
+            iso_dt = iso_dt_parsed or ""
+            display_dt = iso_dt or "Undated"
 
             is_omitted_imps = "OMITTED IMPS" in dscr.upper()
             if ptype == "15" and not is_omitted_imps:
                 relocated_accts[acct] = {
                     "reason": "City of Houston Moved Structure Permit",
-                    "note": f"{dt}: {dscr or pdesc} (Permit #{pid})",
+                    "note": f"{display_dt}: {dscr or pdesc} (Permit #{pid})",
                     "permit_id": pid,
-                    "permit_date": dt,
+                    "permit_date": iso_dt,
                 }
 
             if is_omitted_imps:
                 cat_label, cat_code = ("HCAD Omitted Improvement Assessment", "add")
             else:
                 cat_label, cat_code = PERMIT_TYPE_CATEGORY.get(ptype, (pdesc or "Building Permit", "other"))
-            # Convert MM/DD/YYYY to YYYY-MM-DD for clean chronological sorting
-            iso_dt = dt
-            if len(dt) == 10 and dt[2] == "/" and dt[5] == "/":
-                iso_dt = f"{dt[6:10]}-{dt[0:2]}-{dt[3:5]}"
 
             if len(permits_by_acct[acct]) < 25:
                 permits_by_acct[acct].append({
@@ -2221,11 +2221,11 @@ def main():
                 })
 
     # Write updated core JSON files
-    buildings_path.write_text(json.dumps(buildings_fc, separators=(",", ":")))
-    overrides_path.write_text(json.dumps(overrides_data, indent=2))
-    overlays_path.write_text(json.dumps(overlays_data, separators=(",", ":")))
-    photos_path.write_text(json.dumps(photos_data, indent=2))
-    search_path.write_text(json.dumps(search_data, separators=(",", ":")))
+    write_compact_json(buildings_path, buildings_fc)
+    write_compact_json(overrides_path, overrides_data)
+    write_compact_json(overlays_path, overlays_data)
+    photos_path.write_text(json.dumps(photos_data, indent=2), encoding="utf-8")
+    write_compact_json(search_path, search_data)
     print("Updated buildings.geojson, curated_overrides.json, overlays.json, building_photos.json, and search_index.json")
 
     # -----------------------------------------------------------------------

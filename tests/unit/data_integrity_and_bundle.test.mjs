@@ -440,3 +440,166 @@ test("Historic subdivision de-replatting reconstructs pre-replat parent footprin
   assert.equal(parsedUrl.selection?.boundaryLayer, "plattedSubdivisions");
   assert.equal(parsedUrl.selection?.boundaryId, "plat_1908_fairview");
 });
+
+test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary campus # overrides, and uniform cache-buster parity", () => {
+  const ovPath = path.join(DATA_DIR, "curated_overrides.json");
+  const rawOv = fs.readFileSync(ovPath, "utf8");
+  const ovBytes = Buffer.byteLength(rawOv, "utf8");
+  assert.ok(
+    ovBytes < 8_000_000,
+    `curated_overrides.json (${ovBytes} bytes) must stay below 8,000,000-byte GitHub Pages budget`
+  );
+  assert.equal(
+    rawOv.trimEnd().includes("\n"),
+    false,
+    "curated_overrides.json must remain single-line compact JSON"
+  );
+
+  const ovDoc = JSON.parse(rawOv);
+  const overrides = ovDoc.overrides || ovDoc;
+  const validContributing = new Set([
+    "Contributing",
+    "Non-Contributing",
+    "Outside Historic District",
+    "Tax-Exempt Campus Structure",
+  ]);
+
+  const splitCampusHcads = new Set([
+    "1223580020001",
+    "1468640010001",
+    "0451440030163",
+    "0500610000001",
+    "0500620000001",
+    "0500580000001",
+    "0500500000006",
+    "1378920010001",
+    "0451440050245",
+    "0410210010510",
+  ]);
+  const campusCountsByHcad = new Map();
+
+  for (const [key, rec] of Object.entries(overrides)) {
+    if (!rec || typeof rec !== "object") continue;
+    if ("decade" in rec && rec.decade !== null && rec.decade !== undefined) {
+      assert.equal(
+        typeof rec.decade === "number" && Number.isInteger(rec.decade),
+        true,
+        `Override ${key} has non-integer decade: ${JSON.stringify(rec.decade)}`
+      );
+    }
+    if ("contributing" in rec && rec.contributing !== null && rec.contributing !== undefined) {
+      assert.equal(
+        validContributing.has(rec.contributing),
+        true,
+        `Override ${key} has invalid contributing value: ${JSON.stringify(rec.contributing)}`
+      );
+    }
+
+    const prefix = key.split("#")[0];
+    if (splitCampusHcads.has(prefix)) {
+      assert.equal(
+        key.includes("#"),
+        true,
+        `Split campus parcel ${prefix} must use #<slug> sub-building keys, found bare key ${key}`
+      );
+      assert.equal(
+        Boolean(rec.geometry),
+        false,
+        `Shard-primary campus override ${key} must not embed duplicate GeoJSON geometry`
+      );
+      assert.equal(rec.is_building_override, true, `${key} must set is_building_override === true`);
+      assert.equal(rec.keep_shard_footprints, true, `${key} must set keep_shard_footprints === true`);
+      assert.equal(rec.replace_parcel_shards, false, `${key} must set replace_parcel_shards === false`);
+      assert.equal(
+        Number.isFinite(Number(rec.lon)) && Number.isFinite(Number(rec.lat)),
+        true,
+        `Shard-primary campus override ${key} must carry finite lon/lat coordinates for #id= deep-link flight`
+      );
+      campusCountsByHcad.set(prefix, (campusCountsByHcad.get(prefix) || 0) + 1);
+    }
+  }
+
+  for (const hcad of splitCampusHcads) {
+    assert.ok(
+      (campusCountsByHcad.get(hcad) || 0) >= 1,
+      `Expected at least 1 #<slug> override on campus parcel ${hcad}`
+    );
+  }
+
+  // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, HTML entrypoints, ES module imports, and static public/data fetches
+  const manifest = readDataJson("pmtiles_manifest.json");
+  const expectedVer = String(manifest.cache_bust || "").trim();
+  assert.equal(expectedVer, "20261027b", `Expected pmtiles_manifest.json cache_bust === '20261027b'`);
+
+  const sourceFiles = [
+    path.join(APP_DIR, "index.html"),
+    path.join(APP_DIR, "plat-monitor.html"),
+    ...fs
+      .readdirSync(path.join(APP_DIR, "js"))
+      .filter((f) => f.endsWith(".js"))
+      .map((f) => path.join(APP_DIR, "js", f)),
+  ];
+
+  const verMatches = [];
+  for (const file of sourceFiles) {
+    const rel = path.relative(REPO_ROOT, file);
+    const content = fs.readFileSync(file, "utf8");
+
+    // 1. Every ?v=<token> literal must match manifest.cache_bust
+    for (const m of content.matchAll(/\?v=([A-Za-z0-9._-]+)/g)) {
+      verMatches.push(m[1]);
+      assert.equal(
+        m[1],
+        expectedVer,
+        `Stale cache-buster '?v=${m[1]}' in ${rel} (expected '?v=${expectedVer}')`
+      );
+    }
+
+    // 2. Every relative ES module import must carry ?v=<expectedVer>
+    for (const m of content.matchAll(/\bfrom\s+["'](\.[^"']+)["']/g)) {
+      assert.equal(
+        m[1].endsWith(`?v=${expectedVer}`),
+        true,
+        `Relative ES module import '${m[1]}' in ${rel} is missing '?v=${expectedVer}'`
+      );
+    }
+
+    // 3. Every fetch(...) of public/data/ JSON/GeoJSON (except dynamic export_cache/ previews or dynamic + cacheQ) must carry ?v=<expectedVer>
+    for (const m of content.matchAll(/fetch\(\s*[`"'](\.?\/?public\/data\/[^`"']+\.(?:json|geojson)[^`"']*)[`"']/g)) {
+      const urlStr = m[1];
+      if (urlStr.includes("export_cache/")) continue;
+      const afterIdx = (m.index || 0) + m[0].length;
+      const trailing = content.slice(afterIdx, afterIdx + 24);
+      if (/^\s*\+\s*cacheQ\b/.test(trailing)) continue;
+      assert.equal(
+        urlStr.includes(`?v=${expectedVer}`),
+        true,
+        `Data fetch '${urlStr}' in ${rel} is missing cache-buster '?v=${expectedVer}'`
+      );
+    }
+  }
+  assert.ok(verMatches.length >= 40, `Expected >= 40 verified ?v=${expectedVer} tokens, found ${verMatches.length}`);
+
+  // Typography hygiene: zero U+2014 em-dashes in curated_overrides.json, search_index.json, and all address_shards/*.json
+  assert.equal(
+    rawOv.includes("\u2014"),
+    false,
+    "curated_overrides.json must contain zero U+2014 em-dashes"
+  );
+  const rawSearchIndex = fs.readFileSync(path.join(DATA_DIR, "search_index.json"), "utf8");
+  assert.equal(
+    rawSearchIndex.includes("\u2014"),
+    false,
+    "search_index.json must contain zero U+2014 em-dashes"
+  );
+  const addrShardsDir = path.join(DATA_DIR, "address_shards");
+  for (const fn of fs.readdirSync(addrShardsDir)) {
+    if (!fn.endsWith(".json")) continue;
+    const shardRaw = fs.readFileSync(path.join(addrShardsDir, fn), "utf8");
+    assert.equal(
+      shardRaw.includes("\u2014"),
+      false,
+      `address_shards/${fn} must contain zero U+2014 em-dashes`
+    );
+  }
+});
