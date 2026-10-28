@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261027b";
+} from "./palettes.js?v=20261028a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -25,18 +25,19 @@ import {
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261027b";
+} from "./filterStore.js?v=20261028a";
 import {
   applyOverrideToProperties,
+  isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261027b";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261027b";
+} from "./curatedEdits.js?v=20261028a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261028a";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
   HCAD_PUBLIC_EXPORT_TILE_URL,
   HcadViewportParcelClient,
-} from "./hcadViewportParcels.js?v=20261027b";
+} from "./hcadViewportParcels.js?v=20261028a";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -295,14 +296,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261027b"),
-      fetch("public/data/parcels.geojson?v=20261027b"),
-      fetch("public/data/overlays.json?v=20261027b"),
-      fetch("public/data/pmtiles_manifest.json?v=20261027b").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261028a"),
+      fetch("public/data/parcels.geojson?v=20261028a"),
+      fetch("public/data/overlays.json?v=20261028a"),
+      fetch("public/data/pmtiles_manifest.json?v=20261028a").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261027b").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261027b").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261027b").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261028a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261028a").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261028a").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -354,7 +355,8 @@ export class AtlasMapController {
 
     this.buildingsFC = buildingsFC;
     this.parcelsFC = parcelsFC;
-    this.buildingsData = buildingsFC.features || [];
+    this._rawBuildingsData = [...(buildingsFC.features || [])];
+    this.buildingsData = [...this._rawBuildingsData];
     this.pilotParcelsData = parcelsFC.features || [];
     this.parcelsData = this.pilotParcelsData;
     this.overlaysData = overlays;
@@ -877,8 +879,11 @@ export class AtlasMapController {
       if (!ov) continue;
       if (ov.suppress_only) {
         suppressedIds.add(ovKey);
-        const hcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
-        if (hcad) suppressedHcads.add(hcad);
+        const isSubBuilding = ovKey.includes("#") || Boolean(ov.is_building_override);
+        if (!isSubBuilding) {
+          const hcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
+          if (hcad) suppressedHcads.add(hcad);
+        }
       }
       if (Array.isArray(ov.suppress_shard_hcads)) {
         for (const sh of ov.suppress_shard_hcads) {
@@ -890,19 +895,29 @@ export class AtlasMapController {
       }
     }
 
-    if (suppressedHcads.size > 0 || suppressedIds.size > 0) {
-      this.buildingsData = this.buildingsData.filter((feat) => {
-        const featId = String(feat.properties?.id || "").trim();
-        const bldId = String(feat.properties?.building_id || "").trim();
-        const hcad = String(feat.properties?.hcad_num || "").trim();
-        if (featId && suppressedIds.has(featId)) return false;
-        if (bldId && suppressedIds.has(bldId)) return false;
-        if (hcad && suppressedHcads.has(hcad)) return false;
-        return true;
-      });
-      if (this.buildingsFC) {
-        this.buildingsFC.features = this.buildingsData;
-      }
+    if (Array.isArray(this.buildingsData) && !this.buildingsData._derivedFromRaw) {
+      this._rawBuildingsData = [...this.buildingsData];
+    }
+    const sourceBuildings = this._rawBuildingsData || this.buildingsData || [];
+    const nextBuildings =
+      suppressedHcads.size > 0 || suppressedIds.size > 0
+        ? sourceBuildings.filter((feat) => {
+            const featId = String(feat.properties?.id || "").trim();
+            const bldId = String(feat.properties?.building_id || "").trim();
+            const hcad = String(feat.properties?.hcad_num || "").trim();
+            if (featId && suppressedIds.has(featId)) return false;
+            if (bldId && suppressedIds.has(bldId)) return false;
+            if (hcad && suppressedHcads.has(hcad)) return false;
+            return true;
+          })
+        : [...sourceBuildings];
+    Object.defineProperty(nextBuildings, "_derivedFromRaw", {
+      value: true,
+      enumerable: false,
+    });
+    this.buildingsData = nextBuildings;
+    if (this.buildingsFC) {
+      this.buildingsFC.features = this.buildingsData;
     }
 
     const putOverrideFeature = (baseKey, geom, props) => {
@@ -950,9 +965,13 @@ export class AtlasMapController {
       }
     }
 
-    for (const feat of this.parcelsData) {
-      const hcad = String(feat.properties?.hcad_num || "").trim();
-      if (hcad && ovMap[hcad] && !ovMap[hcad].is_building_override && !ovMap[hcad].suppress_only) {
+    const parcelTargets = new Set([
+      ...(this.pilotParcelsData || []),
+      ...(this.parcelsData || []),
+    ]);
+    for (const feat of parcelTargets) {
+      const hcad = String(feat?.properties?.hcad_num || "").trim();
+      if (hcad && ovMap[hcad] && !ovMap[hcad].is_building_override) {
         feat.properties = applyOverrideToProperties(feat.properties, ovMap);
       }
     }
@@ -1039,6 +1058,12 @@ export class AtlasMapController {
     this._rehydrateCachedDynamicParcelsIfChanged();
     if (this.map && this.map.getSource("curated-overrides-src")) {
       this.map.getSource("curated-overrides-src").setData(this.overridesFC);
+    }
+    if (this.map && this.map.getSource("buildings-src") && this.buildingsFC) {
+      this.map.getSource("buildings-src").setData(this.buildingsFC);
+    }
+    if (this.map && this.map.getSource("parcels-src") && this.parcelsFC) {
+      this.map.getSource("parcels-src").setData(this.parcelsFC);
     }
     this.syncWithState(this.filterStore.getState());
     this.computeViewportHistogram();
@@ -1328,7 +1353,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261027b";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261028a";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -3448,6 +3473,7 @@ export class AtlasMapController {
 
   _buildShardLayerFilter(baseFilterExpr) {
     const hcadSet = new Set();
+    const subBuildingIdSet = new Set();
     for (const f of this.overridesFC?.features || []) {
       const p = f.properties || {};
       if (p.keep_shard_footprints) continue;
@@ -3464,9 +3490,15 @@ export class AtlasMapController {
     }
     for (const [ovKey, ov] of Object.entries(this.curatedOverrides || {})) {
       if (!ov || ov.keep_shard_footprints) continue;
-      // Only suppress a shard HCAD before dynamic geometry capture if it is an explicit suppress_only entry
-      // or already has baked-in geometry in curatedOverrides.
-      if (ov.suppress_only || (ov.geometry && (!ov.is_building_override || ov.replace_parcel_shards))) {
+      const isSubBuilding = ovKey.includes("#") || Boolean(ov.is_building_override);
+      if (ov.suppress_only) {
+        if (isSubBuilding) {
+          subBuildingIdSet.add(ovKey);
+        } else {
+          const primaryHcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
+          if (primaryHcad && /^\d+$/.test(primaryHcad)) hcadSet.add(primaryHcad);
+        }
+      } else if (ov.geometry && (!isSubBuilding || ov.replace_parcel_shards)) {
         const primaryHcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
         if (primaryHcad && /^\d+$/.test(primaryHcad)) hcadSet.add(primaryHcad);
       }
@@ -3478,12 +3510,23 @@ export class AtlasMapController {
       }
     }
     const overriddenHcads = Array.from(hcadSet);
-    if (!overriddenHcads.length) return baseFilterExpr;
-    return [
-      "all",
-      baseFilterExpr,
-      ["!", ["in", ["get", "hcad_num"], ["literal", overriddenHcads]]],
-    ];
+    const suppressedSubIds = Array.from(subBuildingIdSet);
+    if (!overriddenHcads.length && !suppressedSubIds.length) return baseFilterExpr;
+    const clauses = ["all", baseFilterExpr];
+    if (overriddenHcads.length > 0) {
+      clauses.push(["!", ["in", ["get", "hcad_num"], ["literal", overriddenHcads]]]);
+    }
+    if (suppressedSubIds.length > 0) {
+      clauses.push([
+        "!",
+        [
+          "in",
+          ["coalesce", ["get", "building_id"], ["get", "id"], ""],
+          ["literal", suppressedSubIds],
+        ],
+      ]);
+    }
+    return clauses;
   }
 
   _captureDynamicOverrideGeometries() {
@@ -3618,15 +3661,15 @@ export class AtlasMapController {
 
   _collectViewportBuildingYearsByHcad() {
     const map = new Map();
-    collectMinBuildingYearsByHcad(this.buildingsData, map);
-    collectMinBuildingYearsByHcad(this.overridesFC?.features || [], map);
+    collectMinBuildingYearsByHcad(this.buildingsData, map, this.curatedOverrides);
+    collectMinBuildingYearsByHcad(this.overridesFC?.features || [], map, this.curatedOverrides);
     if (this.map && Array.isArray(this.shardSourceIds)) {
       for (const srcId of this.shardSourceIds) {
         try {
           const hits = this.map.querySourceFeatures(srcId, {
             sourceLayer: "buildings",
           });
-          collectMinBuildingYearsByHcad(hits, map);
+          collectMinBuildingYearsByHcad(hits, map, this.curatedOverrides);
         } catch (_e) {
           // Shard vector tiles may still be streaming
         }
@@ -5815,7 +5858,9 @@ export class AtlasMapController {
           ? "Highway Spoke / MUD Limited-Purpose"
           : "Full-Purpose City Boundary";
     } else if (p.is_tax_parcel && p.hcad_num) {
-      badge = `Tax Parcel · HCAD #${p.hcad_num}`;
+      badge = p.is_demolished_vacant
+        ? `Vacant Lot (Demolished) · HCAD #${p.hcad_num}`
+        : `Tax Parcel · HCAD #${p.hcad_num}`;
     } else {
       badge = p.use_category || "Undated Parcel";
     }
@@ -6697,7 +6742,18 @@ export class AtlasMapController {
       candidateBldIds.add(String(gbMatch.properties.building_id));
     }
     const hasExplicitSubBuildingId = Array.from(candidateBldIds).some((bid) => bid.includes("#"));
-    const ovFeatures = this.overridesFC?.features || [];
+    const isNotSuppressedFeature = (f) => {
+      const p = f?.properties || {};
+      return (
+        !isEntitySuppressedByOverrides(this.curatedOverrides, {
+          buildingId: p.building_id,
+          featureId: p.id,
+          hcadNum: p.hcad_num,
+        }) && !applyOverrideToProperties(p, this.curatedOverrides).suppress_only
+      );
+    };
+    const ovFeatures = (this.overridesFC?.features || []).filter(isNotSuppressedFeature);
+    const buildingsPool = (this.buildingsData || []).filter(isNotSuppressedFeature);
 
     const matchesExactBuildingId = (f) => {
       if (candidateBldIds.size === 0) return false;
@@ -6743,7 +6799,9 @@ export class AtlasMapController {
         ...(this.buildingExtrusionLayerIds || []),
       ].filter((id) => this.map.getLayer(id));
       if (tileLayers.length > 0) {
-        rendered = this.map.queryRenderedFeatures({ layers: tileLayers });
+        rendered = this.map
+          .queryRenderedFeatures({ layers: tileLayers })
+          .filter(isNotSuppressedFeature);
       }
       if (candidateHcads.size > 0 && Array.isArray(this.shardSourceIds)) {
         const hcadArr = Array.from(candidateHcads);
@@ -6754,7 +6812,11 @@ export class AtlasMapController {
               filter: ["in", ["get", "hcad_num"], ["literal", hcadArr]],
             });
             if (Array.isArray(hits) && hits.length > 0) {
-              shardHitsAll.push(...hits);
+              for (const h of hits) {
+                if (isNotSuppressedFeature(h)) {
+                  shardHitsAll.push(h);
+                }
+              }
             }
           } catch (_e) {}
         }
@@ -6767,7 +6829,7 @@ export class AtlasMapController {
         ? ovFeatures.find(matchesExactBuildingId) ||
           rendered.find(matchesExactBuildingId) ||
           shardHitsAll.find(matchesExactBuildingId) ||
-          this.buildingsData.find(matchesExactBuildingId) ||
+          buildingsPool.find(matchesExactBuildingId) ||
           null
         : null;
 
@@ -6782,7 +6844,7 @@ export class AtlasMapController {
       exactMatch ||
       ovFeatures.find(matchesParcelOrAddressFallback) ||
       fallbackTileMatch ||
-      this.buildingsData.find(matchesParcelOrAddressFallback) ||
+      buildingsPool.find(matchesParcelOrAddressFallback) ||
       gbMatch ||
       (() => {
         if (!featureId && !hcadNum && !normTargetAddr) return null;
@@ -6870,7 +6932,9 @@ export class AtlasMapController {
       ].filter((id) => this.map.getLayer(id));
       if (!tileLayers.length) return false;
 
-      const renderedAfterFly = this.map.queryRenderedFeatures({ layers: tileLayers });
+      const renderedAfterFly = this.map
+        .queryRenderedFeatures({ layers: tileLayers })
+        .filter(isNotSuppressedFeature);
       const postFlyShardHits = [];
       if (candidateHcads.size > 0 && Array.isArray(this.shardSourceIds)) {
         const hcadArr = Array.from(candidateHcads);
@@ -6881,7 +6945,11 @@ export class AtlasMapController {
               filter: ["in", ["get", "hcad_num"], ["literal", hcadArr]],
             });
             if (Array.isArray(hits) && hits.length > 0) {
-              postFlyShardHits.push(...hits);
+              for (const h of hits) {
+                if (isNotSuppressedFeature(h)) {
+                  postFlyShardHits.push(h);
+                }
+              }
             }
           } catch (_e) {}
         }
@@ -6893,7 +6961,9 @@ export class AtlasMapController {
           [pt.x - 24, pt.y - 24],
           [pt.x + 24, pt.y + 24],
         ];
-        nearHits = this.map.queryRenderedFeatures(bbox, { layers: tileLayers });
+        nearHits = this.map
+          .queryRenderedFeatures(bbox, { layers: tileLayers })
+          .filter(isNotSuppressedFeature);
       }
 
       // Pass 1: exact sub-building / building_id match across rendered, source, and proximity hits
@@ -6960,6 +7030,21 @@ export class AtlasMapController {
         hcadNum ||
         Array.from(candidateHcads)[0] ||
         "";
+      const isTargetSuppressed =
+        candidateBldIds.size > 0
+          ? Array.from(candidateBldIds).every((bid) =>
+              isEntitySuppressedByOverrides(this.curatedOverrides, {
+                buildingId: bid,
+                hcadNum: effectiveHcad,
+              })
+            )
+          : isEntitySuppressedByOverrides(this.curatedOverrides, {
+              featureId: cleanFeatureId,
+              hcadNum: effectiveHcad,
+            });
+      if (isTargetSuppressed) {
+        return false;
+      }
       const effectiveAddr =
         matchedAlert?.address ||
         matchedPlat?.address ||

@@ -12,12 +12,12 @@ import {
   parseClerkLegalTokens,
   formatClerkPartyTokens,
   cleanClerkSubdivisionDesc,
-} from "./clerkSearchHelpers.js?v=20261027b";
+} from "./clerkSearchHelpers.js?v=20261028a";
 import {
   THREAT_CATEGORIES,
   parseHcadAccountList,
   hasHumanDossierContributions,
-} from "./platMonitorHelpers.js?v=20261027b";
+} from "./platMonitorHelpers.js?v=20261028a";
 
 export const TRACKER_STATUSES = [
   "Active / High Priority",

@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261027b";
+} from "./palettes.js?v=20261028a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -19,33 +19,40 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261027b";
-import { AtlasMapController } from "./mapController.js?v=20261027b";
+} from "./filterStore.js?v=20261028a";
+import { AtlasMapController } from "./mapController.js?v=20261028a";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261027b";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261027b";
+} from "./guidedChaptersAndPortfolios.js?v=20261028a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261028a";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261027b";
+} from "./clerkSearchHelpers.js?v=20261028a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
   classifyFieldEvidentiaryTier,
   clearAdminSession,
+  DEMOLISHED_REPLACED_ISSUE,
+  DEMOLISHED_VACANT_ISSUE,
   formatSuggestionsAsCsv,
   getAdminSession,
   getLocalPendingSuggestions,
   isClaimSuppressed,
+  isDemolishedVacantOverrideInput,
+  isEntitySuppressedByOverrides,
+  MAX_VALID_YEAR,
+  mergeOverrideRecord,
+  MIN_VALID_YEAR,
   saveGoogleSheetEndpoints,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261027b";
+} from "./curatedEdits.js?v=20261028a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -55,7 +62,12 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261027b";
+} from "./photoService.js?v=20261028a";
+
+const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
+  "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
+const VACANT_FOOTPRINT_NOTES_PLACEHOLDER =
+  "Optional: note approximate demolition timeframe or current lot condition (e.g. 'House demolished; lot currently grass / vacant').";
 
 export class HoustonAtlasApp {
   constructor() {
@@ -505,10 +517,18 @@ export class HoustonAtlasApp {
     }
 
     // 1b. Also check curatedOverrides directly for #<slug> deep links (including auxiliary skip_search_index buildings)
-    const directOv =
+    const rawDirectOv =
       (featureId && this.mapController?.curatedOverrides?.[featureId]) ||
       (!featureId && hcadNum && this.mapController?.curatedOverrides?.[hcadNum]) ||
       null;
+    const directOv =
+      rawDirectOv &&
+      !isEntitySuppressedByOverrides(this.mapController?.curatedOverrides, {
+        buildingId: featureId,
+        hcadNum: hcadNum || rawDirectOv.hcad_num || "",
+      })
+        ? rawDirectOv
+        : null;
     if (directOv) {
       const ovHcad = String(
         directOv.hcad_num || (featureId.includes("#") ? featureId.split("#")[0] : "")
@@ -541,7 +561,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261027b`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261028a`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -563,6 +583,7 @@ export class HoustonAtlasApp {
             const rHcad = String(row[4] || "").trim();
             const rName = String(row[5] || "").trim();
             const rBldId = String(row[6] || "").trim();
+            if (this._isSuppressedByCuratedOverride?.(rBldId, rHcad)) continue;
             let rowScore = exactSt ? 100 : 40;
             if (rHcad.length === 13) rowScore += 20;
             if (rYr >= 1836) rowScore += 10;
@@ -636,6 +657,13 @@ export class HoustonAtlasApp {
     }
   }
 
+  _isSuppressedByCuratedOverride(buildingId = "", hcadNum = "") {
+    return isEntitySuppressedByOverrides(this.mapController?.curatedOverrides, {
+      buildingId,
+      hcadNum,
+    });
+  }
+
   _setSidebarCollapsed(collapsed) {
     const sidebar = document.getElementById("atlas-sidebar");
     const shell = document.querySelector(".atlas-shell");
@@ -658,12 +686,12 @@ export class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261027b"),
-        fetch("public/data/stats_summary.json?v=20261027b"),
-        fetch("public/data/haif_index.json?v=20261027b").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261027b").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261027b").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261027b").catch(() => null),
+        fetch("public/data/search_index.json?v=20261028a"),
+        fetch("public/data/stats_summary.json?v=20261028a"),
+        fetch("public/data/haif_index.json?v=20261028a").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261028a").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261028a").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261028a").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -1601,15 +1629,43 @@ export class HoustonAtlasApp {
   _mergeCuratedOverridesIntoSearchIndex() {
     const ovMap = (this.mapController && this.mapController.curatedOverrides) || {};
     const suppressedHcads = new Set();
+    const suppressedEntityIds = new Set();
     for (const [k, ov] of Object.entries(ovMap)) {
       if (ov && ov.suppress_only) {
-        suppressedHcads.add(String(ov.hcad_num || k).trim());
+        const cleanK = String(k || "").trim();
+        if (cleanK) suppressedEntityIds.add(cleanK);
+        if (cleanK.includes("#") || ov.is_building_override) {
+          if (ov.building_id) suppressedEntityIds.add(String(ov.building_id).trim());
+        } else {
+          const cleanH = String(ov.hcad_num || cleanK).trim();
+          if (cleanH) suppressedHcads.add(cleanH);
+        }
       }
     }
-    if (suppressedHcads.size > 0) {
-      this.searchIndex = this.searchIndex.filter(
-        (item) => !item.hcad_num || !suppressedHcads.has(String(item.hcad_num).trim())
-      );
+    if (suppressedHcads.size > 0 || suppressedEntityIds.size > 0) {
+      this.searchIndex = this.searchIndex.filter((item) => {
+        const itemId = String(item.id || "").trim();
+        const itemBldId = String(item.building_id || "").trim();
+        if (
+          (itemId && suppressedEntityIds.has(itemId)) ||
+          (itemBldId && suppressedEntityIds.has(itemBldId))
+        ) {
+          return false;
+        }
+        if (
+          item.is_neighborhood_entry ||
+          item.is_place_boundary ||
+          item.type === "lost_houston" ||
+          item.type === "red_book_1915" ||
+          item.type === "hahc_coa"
+        ) {
+          return true;
+        }
+        if (item.hcad_num && suppressedHcads.has(String(item.hcad_num).trim())) {
+          return false;
+        }
+        return true;
+      });
     }
     const existingByEntityId = new Map();
     const existingByHcad = new Map();
@@ -3712,6 +3768,7 @@ export class HoustonAtlasApp {
         const feedbackEl = document.getElementById("corr-submit-feedback");
         const payload = {
           address: document.getElementById("corr-address")?.value || "",
+          building_name: document.getElementById("corr-building-name")?.value || "",
           hcad_num: document.getElementById("corr-hcad-num")?.value || "",
           current_year_built: document.getElementById("corr-current-year")?.value || "",
           suggested_year_built: document.getElementById("corr-suggested-year")?.value || "",
@@ -3721,17 +3778,39 @@ export class HoustonAtlasApp {
           builder: document.getElementById("corr-builder")?.value || "",
           permit_info: document.getElementById("corr-permit-info")?.value || "",
           source_citation: document.getElementById("corr-citation")?.value || "",
+          footprint_issue: document.getElementById("corr-footprint-issue")?.value || "",
+          footprint_notes: document.getElementById("corr-footprint-notes")?.value || "",
+          satellite_url: this._activeCorrectionSatelliteUrl || "",
           photo_url: document.getElementById("corr-photo-url")?.value || "",
           photo_year: document.getElementById("corr-photo-year")?.value || "",
           photo_caption: document.getElementById("corr-photo-caption")?.value || "",
         };
 
-        if (!payload.suggested_year_built) {
+        const rawSuggYr = String(payload.suggested_year_built || "").trim();
+        const isDemolishedVacant = isDemolishedVacantOverrideInput({
+          yearRaw: rawSuggYr,
+          footprintIssue: payload.footprint_issue,
+          footprintNotes: payload.footprint_notes,
+          sourceType: payload.source_type,
+          sourceCitation: payload.source_citation,
+        });
+        const yrNum = rawSuggYr !== "" ? Number(rawSuggYr) : NaN;
+        const isValidStandingYear =
+          Number.isFinite(yrNum) &&
+          Number.isInteger(yrNum) &&
+          yrNum >= MIN_VALID_YEAR &&
+          yrNum <= MAX_VALID_YEAR;
+
+        if (!isDemolishedVacant && !isValidStandingYear) {
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built (1836–2026) before approving.</strong>`;
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built between ${MIN_VALID_YEAR} and ${MAX_VALID_YEAR}, or enter <code>0</code> / select "Building demolished - lot currently vacant" to hide a demolished building footprint.</strong>`;
             feedbackEl.classList.remove("hidden");
           }
           return;
+        }
+
+        if (isDemolishedVacant && !String(payload.footprint_notes).trim()) {
+          payload.footprint_notes = "Building demolished; lot currently vacant.";
         }
 
         const webhookUrl =
@@ -3761,35 +3840,66 @@ export class HoustonAtlasApp {
             const ovKey = res.overrideKey || res.override.building_id || res.override.id || res.override.hcad_num;
             const existingOv =
               this.mapController.curatedOverrides[ovKey] ||
-              this.mapController.curatedOverrides[res.override.hcad_num] ||
+              (!res.override.is_building_override
+                ? this.mapController.curatedOverrides[res.override.hcad_num]
+                : null) ||
               {};
-            this.mapController.curatedOverrides[ovKey] = {
-              ...existingOv,
-              ...res.override,
-              geometry:
-                existingOv.geometry ||
-                this.mapController.selectedFeatureGeometry ||
-                null,
-            };
+            const canUseSelectedBuildingGeom =
+              !this.mapController.selectedFeatureProps?.is_tax_parcel &&
+              !this.mapController.selectedFeatureProps?.is_boundary_feature &&
+              this.mapController.selectedFeatureGeometry?.type !== "Point";
+            const selectedBuildingGeom = canUseSelectedBuildingGeom
+              ? this.mapController.selectedFeatureGeometry
+              : null;
+            const rawBuildingsPool =
+              this.mapController._rawBuildingsData || this.mapController.buildingsData || [];
+            const baselineBldFeat = rawBuildingsPool.find((f) => {
+              const p = f?.properties || {};
+              if (res.override.is_building_override || ovKey.includes("#")) {
+                return String(p.building_id || p.id || "") === ovKey;
+              }
+              return String(p.hcad_num || "") === String(res.override.hcad_num || "");
+            });
+            const fallbackGeometry =
+              selectedBuildingGeom || baselineBldFeat?.geometry || null;
+
+            this.mapController.curatedOverrides[ovKey] = mergeOverrideRecord(
+              existingOv,
+              res.override,
+              {
+                overrideKey: ovKey,
+                fallbackGeometry,
+              }
+            );
             this.mapController._refreshCuratedOverridesSource();
             this._mergeCuratedOverridesIntoSearchIndex();
             this._enrichSearchIndexWithOverlayMetadata();
-            if (this.mapController.selectedFeatureProps) {
+            if (res.override.suppress_only) {
+              this.mapController.clearSelection?.();
+            } else if (this.mapController.selectedFeatureProps) {
+              const nextGeom =
+                this.mapController.curatedOverrides[ovKey]?.geometry ||
+                fallbackGeometry ||
+                this.mapController.selectedFeatureGeometry;
               this.mapController.highlightAndInspectFeature(
                 this.mapController.selectedFeatureProps,
-                this.mapController.selectedFeatureGeometry
+                nextGeom
               );
             }
           }
 
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>&#10003; Published Live (Admin Approved)!</strong> <strong>${payload.address || payload.hcad_num}</strong> is now set to <strong>Built ${payload.suggested_year_built} ✓</strong> on the live map and dispatched to the Google Sheet.`;
+            if (res.override?.suppress_only) {
+              feedbackEl.innerHTML = `<strong>&#10003; Published Live (Admin Approved)!</strong> <strong>${payload.address || payload.hcad_num}</strong> is now marked <strong>Demolished / Lot Currently Vacant &#10003;</strong> (ghost building footprint hidden on the live map) and dispatched to the Google Sheet.`;
+            } else {
+              feedbackEl.innerHTML = `<strong>&#10003; Published Live (Admin Approved)!</strong> <strong>${payload.address || payload.hcad_num}</strong> is now set to <strong>Built ${payload.suggested_year_built} &#10003;</strong> on the live map and dispatched to the Google Sheet.`;
+            }
             feedbackEl.classList.remove("hidden");
           }
         } catch (err) {
           btnAdminApproveDirect.disabled = false;
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>✕ Admin Approval Error:</strong> ${err.message || err}`;
+            feedbackEl.innerHTML = `<strong>&#10005; Admin Approval Error:</strong> ${err.message || err}`;
             feedbackEl.classList.remove("hidden");
           }
         }
@@ -3801,28 +3911,49 @@ export class HoustonAtlasApp {
     }
 
     const footprintSelectEl = document.getElementById("corr-footprint-issue");
-    const footprintNotesWrapEl = document.getElementById("corr-footprint-notes-wrap");
     const footprintNotesEl = document.getElementById("corr-footprint-notes");
-    const footprintBoxEl = document.getElementById("corr-footprint-box");
+    const corrSuggYrEl = document.getElementById("corr-suggested-year");
+
     if (footprintSelectEl) {
-      footprintSelectEl.addEventListener("change", () => {
-        const hasIssue = Boolean(footprintSelectEl.value);
-        if (footprintNotesWrapEl) {
-          footprintNotesWrapEl.classList.toggle("hidden", !hasIssue);
-        }
-        if (footprintBoxEl) {
-          footprintBoxEl.classList.toggle("active", hasIssue);
-        }
-        if (footprintNotesEl) {
-          footprintNotesEl.required = hasIssue;
-          if (hasIssue) {
-            setTimeout(() => footprintNotesEl.focus(), 40);
+      footprintSelectEl.addEventListener("change", () =>
+        (this._syncFootprintIssueUi || HoustonAtlasApp.prototype._syncFootprintIssueUi).call(
+          this,
+          true
+        )
+      );
+    }
+    if (corrSuggYrEl) {
+      corrSuggYrEl.addEventListener("input", () => {
+        const val = String(corrSuggYrEl.value || "").trim();
+        if (
+          val === "0" &&
+          footprintSelectEl &&
+          (!footprintSelectEl.value || footprintSelectEl.value === DEMOLISHED_REPLACED_ISSUE)
+        ) {
+          footprintSelectEl.value = DEMOLISHED_VACANT_ISSUE;
+          (this._syncFootprintIssueUi || HoustonAtlasApp.prototype._syncFootprintIssueUi).call(
+            this,
+            false
+          );
+        } else if (
+          footprintSelectEl &&
+          footprintSelectEl.value === DEMOLISHED_VACANT_ISSUE &&
+          val !== "" &&
+          val !== "0"
+        ) {
+          const yrNum = Number(val);
+          if (
+            Number.isFinite(yrNum) &&
+            Number.isInteger(yrNum) &&
+            yrNum >= MIN_VALID_YEAR &&
+            yrNum <= MAX_VALID_YEAR
+          ) {
+            footprintSelectEl.value = DEMOLISHED_REPLACED_ISSUE;
+            (this._syncFootprintIssueUi || HoustonAtlasApp.prototype._syncFootprintIssueUi).call(
+              this,
+              false
+            );
           }
-        }
-        const sourceTypeEl = document.getElementById("corr-source-type");
-        const suggYrEl = document.getElementById("corr-suggested-year");
-        if (hasIssue && sourceTypeEl && (!suggYrEl || !suggYrEl.value)) {
-          sourceTypeEl.value = "Aerial / Satellite Imagery";
         }
       });
     }
@@ -3871,7 +4002,40 @@ export class HoustonAtlasApp {
           submitter_email: document.getElementById("corr-submitter-email")?.value || "",
         };
 
-        const hasYearChange = Boolean(String(payload.suggested_year_built).trim());
+        const rawSuggYr = String(payload.suggested_year_built).trim();
+        const isDemolishedVacant = isDemolishedVacantOverrideInput({
+          yearRaw: rawSuggYr,
+          footprintIssue: payload.footprint_issue,
+          footprintNotes: payload.footprint_notes,
+          sourceType: payload.source_type,
+          sourceCitation: payload.source_citation,
+        });
+        if (rawSuggYr !== "" && !isDemolishedVacant) {
+          const yrNum = Number(rawSuggYr);
+          if (
+            !Number.isFinite(yrNum) ||
+            !Number.isInteger(yrNum) ||
+            yrNum < MIN_VALID_YEAR ||
+            yrNum > MAX_VALID_YEAR
+          ) {
+            if (feedbackEl) {
+              feedbackEl.innerHTML = `<strong>Please enter a construction year between ${MIN_VALID_YEAR} and ${MAX_VALID_YEAR}, or enter <code>0</code> to mark the building demolished and the lot currently vacant.</strong>`;
+              feedbackEl.classList.remove("hidden");
+            }
+            if (corrSuggYrEl) corrSuggYrEl.focus();
+            return;
+          }
+        }
+        if (isDemolishedVacant) {
+          if (!String(payload.footprint_issue).trim()) {
+            payload.footprint_issue = DEMOLISHED_VACANT_ISSUE;
+          }
+          if (!String(payload.footprint_notes).trim()) {
+            payload.footprint_notes = "Building demolished; lot currently vacant.";
+          }
+        }
+
+        const hasYearChange = rawSuggYr !== "" || isDemolishedVacant;
         const hasNameUpdate = Boolean(parsedPrimaryBldName);
         const hasBuilderOrPermit = Boolean(
           String(payload.builder).trim() || String(payload.permit_info).trim()
@@ -3895,13 +4059,18 @@ export class HoustonAtlasApp {
           !hasDeedContribution
         ) {
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built, Building Name / Alias, Builder / Contractor, Subdivision Deed Restriction PDF / Clerk File #, select a Building Footprint Issue, or provide historical notes before submitting.</strong>`;
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built (or <code>0</code> if demolished &amp; vacant), Building Name / Alias, Builder / Contractor, Subdivision Deed Restriction PDF / Clerk File #, select a Building Footprint Issue, or provide historical notes before submitting.</strong>`;
             feedbackEl.classList.remove("hidden");
           }
           return;
         }
 
-        if (hasFootprintReport && !String(payload.footprint_notes).trim() && !hasCitation) {
+        if (
+          hasFootprintReport &&
+          !isDemolishedVacant &&
+          !String(payload.footprint_notes).trim() &&
+          !hasCitation
+        ) {
           if (feedbackEl) {
             feedbackEl.innerHTML = `<strong>Please briefly describe the building shape or orientation error as you see it so our moderators know what to fix.</strong>`;
             feedbackEl.classList.remove("hidden");
@@ -3950,7 +4119,9 @@ export class HoustonAtlasApp {
                 payload.deed_subdivision || "Subdivision"
               }${payload.deed_clerk_file ? ` · ${payload.deed_clerk_file}` : ""}) has been queued for archival PDF mirroring.`
             : "";
-          const summaryDesc = hasFootprintReport && hasYearChange
+          const summaryDesc = isDemolishedVacant
+            ? `Demolished / Lot Currently Vacant (<em>hide ghost footprint · Year 0</em>)`
+            : hasFootprintReport && hasYearChange
             ? `Year Built <strong>${payload.suggested_year_built}</strong> + Footprint Report (<em>${payload.footprint_issue || "Shape/Orientation"}</em>)`
             : hasFootprintReport
             ? `Footprint Shape / Orientation Report (<em>${payload.footprint_issue || "Geometry Issue"}</em>)`
@@ -4927,7 +5098,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261027b`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261028a`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -4951,9 +5122,13 @@ export class HoustonAtlasApp {
             ) {
               continue;
             }
-            const hasLinkedRowForNum = rows.some(
-              (r) => String(r[0]) === typedNum && Boolean(String(r[4] || "").trim() || String(r[6] || "").trim())
-            );
+            const hasLinkedRowForNum = rows.some((r) => {
+              if (String(r[0]) !== typedNum) return false;
+              const rH = String(r[4] || "").trim();
+              const rB = String(r[6] || "").trim();
+              if (!rH && !rB) return false;
+              return !this._isSuppressedByCuratedOverride?.(rB, rH);
+            });
             for (const row of rows) {
               const hnum = String(row[0]);
               const exactNum = hnum === typedNum;
@@ -4965,6 +5140,7 @@ export class HoustonAtlasApp {
               const hcad = String(row[4] || "");
               const bldName = String(row[5] || "");
               const rowBldId = String(row[6] || "").trim();
+              if (this._isSuppressedByCuratedOverride?.(rowBldId, hcad)) continue;
               const fullAddr = `${hnum} ${normStName}`;
               if (!hcad && !rowBldId && (seenLinkedAddrs.has(fullAddr.toUpperCase()) || (exactNum && hasLinkedRowForNum))) {
                 continue;
@@ -5501,6 +5677,62 @@ export class HoustonAtlasApp {
     return count > 0 ? [sumLng / count, sumLat / count] : [NaN, NaN];
   }
 
+  _syncFootprintIssueUi(autoFocusNotes = false) {
+    const footprintSelectEl = document.getElementById("corr-footprint-issue");
+    if (!footprintSelectEl) return;
+    const footprintNotesWrapEl = document.getElementById("corr-footprint-notes-wrap");
+    const footprintNotesEl = document.getElementById("corr-footprint-notes");
+    const footprintNotesLblEl = document.getElementById("lbl-corr-footprint-notes");
+    const footprintBoxEl = document.getElementById("corr-footprint-box");
+    const corrSuggYrEl = document.getElementById("corr-suggested-year");
+    const sourceTypeEl = document.getElementById("corr-source-type");
+    const issueVal = footprintSelectEl.value;
+    const hasIssue = Boolean(issueVal);
+    const isVacantChoice = issueVal === DEMOLISHED_VACANT_ISSUE;
+    if (footprintNotesWrapEl) {
+      footprintNotesWrapEl.classList.toggle("hidden", !hasIssue);
+    }
+    if (footprintBoxEl) {
+      footprintBoxEl.classList.toggle("active", hasIssue);
+    }
+    if (footprintNotesLblEl) {
+      footprintNotesLblEl.textContent = isVacantChoice
+        ? "Notes on Demolished Building / Vacant Lot (Optional)"
+        : "Describe the Shape or Orientation Error *";
+    }
+    if (footprintNotesEl) {
+      footprintNotesEl.required = hasIssue && !isVacantChoice;
+      footprintNotesEl.placeholder = isVacantChoice
+        ? VACANT_FOOTPRINT_NOTES_PLACEHOLDER
+        : DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER;
+      if (hasIssue && autoFocusNotes && !isVacantChoice) {
+        setTimeout(() => footprintNotesEl.focus(), 40);
+      }
+    }
+    if (isVacantChoice) {
+      if (corrSuggYrEl) {
+        corrSuggYrEl.value = "0";
+      }
+      if (sourceTypeEl && sourceTypeEl.value === "Houston City Directory") {
+        sourceTypeEl.value = "Aerial / Satellite Imagery";
+      }
+    } else if (issueVal === DEMOLISHED_REPLACED_ISSUE) {
+      if (corrSuggYrEl && String(corrSuggYrEl.value || "").trim() === "0") {
+        corrSuggYrEl.value = "";
+      }
+      if (sourceTypeEl && (!corrSuggYrEl || !corrSuggYrEl.value)) {
+        sourceTypeEl.value = "Aerial / Satellite Imagery";
+      }
+    } else {
+      if (!hasIssue && corrSuggYrEl && String(corrSuggYrEl.value || "").trim() === "0") {
+        corrSuggYrEl.value = "";
+      }
+      if (hasIssue && sourceTypeEl && (!corrSuggYrEl || !corrSuggYrEl.value)) {
+        sourceTypeEl.value = "Aerial / Satellite Imagery";
+      }
+    }
+  }
+
   openCorrectionModal(props, opts = {}) {
     const modal = document.getElementById("correction-modal");
     if (!modal || !props) return;
@@ -5549,8 +5781,15 @@ export class HoustonAtlasApp {
           : props.hcad_num || "";
       hcadEl.value = bldKey;
     }
+    const isAlreadyVacant = Boolean(props.is_demolished_vacant || props.suppress_only);
     if (currYrEl) currYrEl.value = props.original_hcad_year || props.year_built || "";
-    if (suggYrEl) suggYrEl.value = props.is_curated_override ? props.year_built : "";
+    if (suggYrEl) {
+      suggYrEl.value = isAlreadyVacant
+        ? "0"
+        : props.is_curated_override && Number(props.year_built) >= MIN_VALID_YEAR
+        ? props.year_built
+        : "";
+    }
     if (distEl) distEl.value = props.historic_district || "";
     if (styleEl) styleEl.value = props.architect || props.bld_style || "";
     if (builderEl) builderEl.value = props.builder || "";
@@ -5562,14 +5801,19 @@ export class HoustonAtlasApp {
         "";
     }
     if (citeEl) citeEl.value = props.source_citation || "";
-    if (sourceTypeEl) sourceTypeEl.value = "Houston City Directory";
-    if (footprintSelectEl) footprintSelectEl.value = "";
+    if (sourceTypeEl) {
+      sourceTypeEl.value = isAlreadyVacant ? "Aerial / Satellite Imagery" : "Houston City Directory";
+    }
+    if (footprintSelectEl) {
+      footprintSelectEl.value = isAlreadyVacant ? DEMOLISHED_VACANT_ISSUE : "";
+    }
     if (footprintNotesEl) {
       footprintNotesEl.value = "";
-      footprintNotesEl.required = false;
     }
-    if (footprintNotesWrapEl) footprintNotesWrapEl.classList.add("hidden");
-    if (footprintBoxEl) footprintBoxEl.classList.remove("active");
+    (this._syncFootprintIssueUi || HoustonAtlasApp.prototype._syncFootprintIssueUi).call(
+      this,
+      false
+    );
     if (photoUrlEl) photoUrlEl.value = "";
     if (photoYearEl) photoYearEl.value = "";
     if (photoCapEl) photoCapEl.value = "";
@@ -11327,6 +11571,8 @@ export class HoustonAtlasApp {
     const isCityDirContradicted = Boolean(
       !props.is_curated_override && isAuditedAbsent1926 && yr >= 1836 && yr <= 1925
     );
+    const isDemolishedVacantParcel = Boolean(props.is_demolished_vacant || props.suppress_only);
+    const origDemolishedYr = Number(props.original_hcad_year) || 0;
     const ageText =
       yr >= 1836
         ? isRoundedHcadDecade
@@ -11334,6 +11580,10 @@ export class HoustonAtlasApp {
           : isCircaEst
           ? `~${currentYear - yr} yrs old (Est.)`
           : `${currentYear - yr} yrs old`
+        : isDemolishedVacantParcel
+        ? origDemolishedYr >= 1836
+          ? `Building demolished · Formerly ${origDemolishedYr}`
+          : "Building demolished · Lot currently vacant"
         : "Date unrecorded in HCAD";
     const yearDisplay =
       yr >= 1836
@@ -11342,6 +11592,8 @@ export class HoustonAtlasApp {
           : isCircaEst
           ? `Circa ${yr}`
           : `Built ${yr}`
+        : isDemolishedVacantParcel
+        ? "Vacant Lot (Demolished)"
         : "Undated / Vacant";
     const yearColor = getYearColorHex(yr, this.filterStore.getState().paletteStyle);
 
@@ -13666,7 +13918,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261027b`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261028a`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);

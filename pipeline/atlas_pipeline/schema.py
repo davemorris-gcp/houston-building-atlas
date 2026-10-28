@@ -15,8 +15,98 @@ from typing import Any
 MIN_VALID_YEAR = 1836
 MAX_VALID_YEAR = 2027
 MAX_VALID_CAMA_DATE_YEAR = 2026
-ACTIVE_CACHE_BUST = "20261027b"
+MAX_STANDING_OVERRIDE_YEAR = 2035
+ACTIVE_CACHE_BUST = "20261028a"
 QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
+
+DEMOLISHED_VACANT_ISSUE = "Building demolished - lot currently vacant"
+DEMOLISHED_REPLACED_ISSUE = "Building demolished & replaced by newer structure"
+DEMOLISHED_VACANT_CITATION_TAG = "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT]"
+
+_EXPLICIT_VACANT_YEAR_TOKENS: frozenset[str] = frozenset({
+    "0",
+    "vacant",
+    "vacant lot",
+    "demolished",
+    "none",
+    "n/a",
+})
+_RE_DEMOLISHED_VACANT_TEXT = re.compile(
+    r"\[demolished\s*/\s*vacant\s+lot"
+    r"|demolished\s*[-:/]?\s*lot\s+currently\s+vacant"
+    r"|vacant\s+lot\s*\(hide\s+footprint\)"
+    r"|\bsuppress_only\b",
+    re.IGNORECASE,
+)
+_RE_LEGACY_DEMOLISHED_ISSUE = re.compile(
+    r"building\s+demolished\s+or\s+replaced",
+    re.IGNORECASE,
+)
+_RE_VACANT_LOT_CUE = re.compile(
+    r"\bvacant\b|\bcleared\b|\bempty\s+lot\b|\bno\s+replacement\b",
+    re.IGNORECASE,
+)
+
+
+def is_demolished_vacant_marker(
+    year_raw: Any = None,
+    *,
+    footprint_issue: str = "",
+    footprint_notes: str = "",
+    source_type: str = "",
+    source_citation: str = "",
+    suppress_only: bool | None = None,
+) -> bool:
+    """Return True when an override/submission marks a demolished structure on a currently vacant lot.
+
+    Supports both entry paths requested by curators:
+      1. Explicit `0` or `"Vacant"` / `"Demolished"` in `year_built` / `suggested_year_built`
+         (unless `suppress_only=False` is explicitly asserted on a non-vacant payload).
+      2. Selecting `"Building demolished - lot currently vacant"` (or `[DEMOLISHED / VACANT LOT]`
+         in `source_type` / `source_citation`, or legacy `"Building demolished or replaced"` with
+         blank/`0` year and `"vacant"` in notes/citation), even when Google Apps Script `doPost`
+         normalizes `0` to `""` in the sheet's `year_built` column.
+
+    Never returns True when a valid replacement construction year (`MIN_VALID_YEAR..MAX_STANDING_OVERRIDE_YEAR`)
+    is supplied unless `suppress_only=True` is explicitly set.
+    """
+    if suppress_only is True:
+        return True
+
+    raw_str = "" if year_raw is None else str(year_raw).strip()
+    low_yr = raw_str.lower()
+    if low_yr in _EXPLICIT_VACANT_YEAR_TOKENS:
+        if suppress_only is False and low_yr == "0":
+            return False
+        return True
+
+    parsed_yr = 0
+    if raw_str:
+        try:
+            fval = float(raw_str)
+            if not math.isfinite(fval):
+                return False
+            parsed_yr = int(round(fval))
+        except (ValueError, TypeError):
+            return False
+
+    if MIN_VALID_YEAR <= parsed_yr <= MAX_STANDING_OVERRIDE_YEAR:
+        return False
+    if parsed_yr != 0:
+        return False
+
+    combined_meta = " | ".join(
+        s for s in (footprint_issue, source_type, source_citation) if s
+    )
+    if _RE_DEMOLISHED_VACANT_TEXT.search(combined_meta):
+        return True
+
+    issue_and_src = f"{footprint_issue} | {source_type}"
+    notes_and_cite = f"{footprint_notes} | {source_citation}"
+    if _RE_LEGACY_DEMOLISHED_ISSUE.search(issue_and_src) and _RE_VACANT_LOT_CUE.search(notes_and_cite):
+        return True
+
+    return False
 
 INFERRED_FALLBACK_YEAR_SOURCES: frozenset[str] = frozenset({
     "hcad_permit",
@@ -225,19 +315,25 @@ def normalize_override_record(key: str, record: dict[str, Any]) -> dict[str, Any
     if "#" in clean_key and not out.get("building_id"):
         out["building_id"] = clean_key
 
-    yr = normalize_year(out.get("year_built"))
-    if yr >= MIN_VALID_YEAR:
-        out["year_built"] = yr
-        out["decade"] = compute_decade(yr)
-    elif "decade" in out:
-        raw_dec = out.get("decade")
-        if isinstance(raw_dec, str):
-            dec_digits = re.sub(r"\D", "", raw_dec)
-            out["decade"] = int(dec_digits) if len(dec_digits) == 4 else 0
-        elif isinstance(raw_dec, (int, float)):
-            out["decade"] = int(raw_dec)
-        else:
-            out["decade"] = 0
+    if bool(out.get("suppress_only")):
+        out["suppress_only"] = True
+        out["year_built"] = 0
+        out["decade"] = 0
+        out.pop("geometry", None)
+    else:
+        yr = normalize_year(out.get("year_built"))
+        if yr >= MIN_VALID_YEAR:
+            out["year_built"] = yr
+            out["decade"] = compute_decade(yr)
+        elif "decade" in out:
+            raw_dec = out.get("decade")
+            if isinstance(raw_dec, str):
+                dec_digits = re.sub(r"\D", "", raw_dec)
+                out["decade"] = int(dec_digits) if len(dec_digits) == 4 else 0
+            elif isinstance(raw_dec, (int, float)):
+                out["decade"] = int(raw_dec)
+            else:
+                out["decade"] = 0
 
     contrib = str(out.get("contributing") or "").strip()
     if contrib == "NonContributing":

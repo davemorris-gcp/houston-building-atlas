@@ -71,11 +71,35 @@ function doPost(e) {
     var nameParts = rawBldName ? rawBldName.split(/[;|\\/]/).map(function(s) { return s.trim(); }).filter(Boolean) : [];
     var primaryName = nameParts.length > 0 ? nameParts[0] : '';
     var altNames = nameParts.length > 1 ? nameParts.slice(1).join('; ') : String(payload.alt_names || '').trim();
+    var rawSourceType = String(payload.source_type || 'Houston City Directory').trim();
+    var isNonYearFlag = /(?:_FLAG|PLAT_MONITOR_REVIEW|PROPERTY_WATCHLIST_UPDATE)$/i.test(rawSourceType);
+    var rawSuggestedYear = payload.suggested_year_built !== undefined && payload.suggested_year_built !== null && String(payload.suggested_year_built).trim() !== ''
+      ? String(payload.suggested_year_built).trim()
+      : (payload.year_built !== undefined && payload.year_built !== null ? String(payload.year_built).trim() : '');
+    var parsedSuggestedYr = (rawSuggestedYear !== '' && isFinite(Number(rawSuggestedYear))) ? Math.round(Number(rawSuggestedYear)) : NaN;
+    var hasValidStandingYr = isFinite(parsedSuggestedYr) && parsedSuggestedYr >= 1836 && parsedSuggestedYr <= 2035;
+    var isZeroOrBlankYr = (rawSuggestedYear === '' || parsedSuggestedYr === 0);
+    var footprintIssueStr = String(payload.footprint_issue || '');
+    var footprintNotesStr = String(payload.footprint_notes || payload.notes || '');
+    var citationStr = String(payload.source_citation || '');
+    var combinedVacantMeta = [footprintIssueStr, rawSourceType, citationStr].join(' | ');
+    var legacyIssueAndSrc = footprintIssueStr + ' | ' + rawSourceType;
+    var legacyNotesAndCite = footprintNotesStr + ' | ' + citationStr;
+    var hasVacantMetaCue =
+      /(\\[demolished\\s*\\/\\s*vacant\\s+lot|demolished\\s*[-:\\/]?\\s*lot\\s+currently\\s+vacant|vacant\\s+lot\\s*\\(hide\\s+footprint\\)|\\bsuppress_only\\b)/i.test(combinedVacantMeta) ||
+      (/building\\s+demolished\\s+or\\s+replaced/i.test(legacyIssueAndSrc) && /\\bvacant\\b|\\bcleared\\b|\\bempty\\s+lot\\b|\\bno\\s+replacement\\b/i.test(legacyNotesAndCite));
+    var isVacantSuppress = !isNonYearFlag && (
+      payload.suppress_only === true ||
+      (payload.suppress_only !== false && rawSuggestedYear === '0') ||
+      /^vacant(\\s+lot)?$|^demolished$|^none$|^n\\/a$/i.test(rawSuggestedYear) ||
+      (!hasValidStandingYr && isZeroOrBlankYr && hasVacantMetaCue)
+    );
+    var sheetYearVal = isNonYearFlag ? '' : (isVacantSuppress ? 0 : (hasValidStandingYr ? parsedSuggestedYr : ''));
     var row = [
       finalStatus,
       String(payload.hcad_num || '').trim(),
       String(payload.address || '').trim(),
-      Number(payload.suggested_year_built || payload.year_built || 0) || '',
+      sheetYearVal,
       Number(payload.hcad_year_built || payload.original_hcad_year || 0) || '',
       String(payload.historic_district || '').trim(),
       String(payload.contributing || '').trim(),

@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261027b" />
+  <link rel="stylesheet" href="styles/index.css?v=20261028a" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -1735,7 +1735,7 @@
             Submit historical evidence for a <strong>construction date / architect correction</strong>, or flag a <strong>building footprint shape / orientation error</strong> where our polygon doesn't match the roof on satellite imagery. All public submissions enter Preservation Houston's <strong>Pending Review Queue</strong>.
           </p>
 
-          <form id="form-property-correction" class="correction-form">
+          <form id="form-property-correction" class="correction-form" novalidate>
             <div class="form-row-2col">
               <div class="form-field">
                 <label for="corr-address">Property Address</label>
@@ -1764,14 +1764,14 @@
                 <input type="number" id="corr-current-year" name="current_year_built" placeholder="e.g. 1920" class="form-input mono" />
               </div>
               <div class="form-field">
-                <label for="corr-suggested-year" id="lbl-corr-suggested-year">Corrected Year Built <span class="opt-hint">(if changing year)</span></label>
+                <label for="corr-suggested-year" id="lbl-corr-suggested-year">Corrected Year Built <span class="opt-hint">(1836-2026, or <code>0</code> if vacant)</span></label>
                 <input
                   type="number"
                   id="corr-suggested-year"
                   name="suggested_year_built"
-                  min="1836"
+                  min="0"
                   max="2026"
-                  placeholder="e.g. 1928"
+                  placeholder="e.g. 1928 (or 0 if vacant)"
                   class="form-input mono highlight-input"
                 />
               </div>
@@ -1806,11 +1806,12 @@
                 <option value="Merged with adjacent building(s)">Merged with adjacent building(s)</option>
                 <option value="Overlapping / conflicting polygons">Overlapping / conflicting polygons</option>
                 <option value="Shifted / offset from satellite roof">Shifted / offset from satellite roof</option>
-                <option value="Building demolished or replaced">Building demolished or replaced</option>
+                <option value="Building demolished - lot currently vacant">Building demolished - lot currently vacant (hide footprint)</option>
+                <option value="Building demolished &amp; replaced by newer structure">Building demolished &amp; replaced by newer structure</option>
                 <option value="Other footprint / geometry issue">Other footprint / geometry issue</option>
               </select>
               <div class="form-field corr-footprint-notes-wrap hidden" id="corr-footprint-notes-wrap">
-                <label for="corr-footprint-notes">Describe the Shape or Orientation Error *</label>
+                <label for="corr-footprint-notes" id="lbl-corr-footprint-notes">Describe the Shape or Orientation Error *</label>
                 <textarea
                   id="corr-footprint-notes"
                   name="footprint_notes"
@@ -2706,6 +2707,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261027b"></script>
+  <script type="module" src="js/app.js?v=20261028a"></script>
 </body>
 </html>

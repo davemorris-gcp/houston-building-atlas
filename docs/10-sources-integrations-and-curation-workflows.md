@@ -150,7 +150,7 @@ Anyone - homeowners, neighborhood historians, architects, students, or field vol
 - **Photographs:** Expand **`📷 Contribute a Historic or Present-Day Photograph`** in `#correction-modal` and paste a direct public image URL (Wikimedia Commons, HPL Digital Archives, Portal to Texas History, etc.), photograph year/era (`c. 1935`), and archive credit. (If an automated Wikimedia image on a parcel is off-topic, any user can also click **`✕ Hide Photo`** locally and submit a better archival photo URL.)
 - **Subdivision Deed Restrictions:** Expand **`📜 Contribute a Subdivision Deed Restriction PDF or Clerk File #`** and share a civic association deed PDF link or Harris County Clerk File / Film Code number (e.g., `Clerk File #T699546`) so staff can mirror and index it into `app/public/deeds/`.
 
-### 5.4 Flagging Building Footprint Shape, Rotation, or Missing-Structure Errors
+### 5.4 Flagging Building Footprint Shape, Rotation, Demolished/Vacant Lots, or Missing-Structure Errors
 1. Click **`✎ Suggest Correction`** (or **`📐 Report Missing or Wrong Footprint`**), then click **`Inspect Roof in Satellite View ↗`** to view the parcel at Zoom 20 on aerial imagery.
 2. Under **`📐 Building Footprint Shape or Orientation Issue`**, select the exact geometry defect:
    - *Wrong building shape / Generic rectangular box*
@@ -159,8 +159,9 @@ Anyone - homeowners, neighborhood historians, architects, students, or field vol
    - *Merged with adjacent building(s)*
    - *Overlapping / conflicting polygons*
    - *Shifted / offset from satellite roof*
-   - *Building demolished or replaced*
-3. Add a 1-sentence description (e.g., *"Only the rear garage apartment is outlined; the 1924 L-shaped bungalow fronting Key St is missing"*) and submit. The row is automatically tagged **`📐 Footprint / Geometry Issue`** in the admin workbook.
+   - *Building demolished - lot currently vacant (hide footprint)* (auto-fills `0` in **Corrected Year Built**; free-text notes are optional - upon staff approval or **Staff Admin -> Publish Live**, the ghost building footprint is hidden immediately via `suppress_only: true` and the parcel renders as a vacant `year_built: 0` lot in Parcels view)
+   - *Building demolished & replaced by newer structure* (enter the replacement building's `1836-2026` construction year in **Corrected Year Built** and briefly note the replacement structure)
+3. Add a 1-sentence description when reporting shape/orientation or replacement defects (e.g., *"Only the rear garage apartment is outlined; the 1924 L-shaped bungalow fronting Key St is missing"*) and submit. (You can also type `0` directly into **Corrected Year Built** as a standard numeric code to mark a demolished building on a currently vacant lot.) The row is automatically tagged **`📐 Footprint / Geometry Issue`** in the admin workbook.
 
 ### 5.5 Reporting Physical Site Demolition Signals (`[SITE ACTIVITY OBSERVATION]`)
 - If you walk or drive past an older building and spot **wooden TABC 60-day liquor signs, blue/white replat or variance signs, commercial broker/leasing banners, temporary chain-link demolition fencing, roll-off dumpsters, asbestos warning tape, or utility disconnect paint markings** (which appear days or weeks before digital permits post online):

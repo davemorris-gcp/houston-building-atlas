@@ -4,6 +4,8 @@
  * minimum-age enricher for The Houston Building Atlas.
  */
 
+import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261028a";
+
 export const HCAD_PUBLIC_QUERY_URL =
   "https://arcweb.hcad.org/server/rest/services/public/public_query/MapServer/0/query";
 
@@ -84,13 +86,31 @@ export function quantizeViewportBbox(bounds, stepDeg = 0.004) {
  * @param {Map<string, object>} [targetMap]
  * @returns {Map<string, { year_built: number, landmark_name: string, historic_district: string, contributing: string, use_category: string, building_count: number }>}
  */
-export function collectMinBuildingYearsByHcad(buildingFeatures, targetMap = new Map()) {
+export function collectMinBuildingYearsByHcad(
+  buildingFeatures,
+  targetMap = new Map(),
+  curatedOverrides = null
+) {
   if (!buildingFeatures) return targetMap;
+  const ovMap =
+    curatedOverrides && typeof curatedOverrides === "object"
+      ? curatedOverrides.overrides || curatedOverrides
+      : null;
   for (const feat of buildingFeatures) {
     const p = feat?.properties;
     if (!p || p.suppress_only) continue;
     const hcad = normalizeHcad13(p.hcad_num || p.HCAD_NUM);
     if (!hcad) continue;
+    if (
+      ovMap &&
+      isEntitySuppressedByOverrides(ovMap, {
+        buildingId: p.building_id,
+        featureId: p.id,
+        hcadNum: hcad,
+      })
+    ) {
+      continue;
+    }
     const yr = Number(p.year_built) || 0;
     const validYr = yr >= 1836 && yr <= 2030 ? yr : 0;
     let rec = targetMap.get(hcad);
@@ -161,35 +181,35 @@ export function enrichParcelFeature(
     curatedOverrides && typeof curatedOverrides === "object"
       ? curatedOverrides.overrides || curatedOverrides
       : null;
-  const directOv =
-    ovMap &&
-    ovMap[hcad] &&
-    !ovMap[hcad].is_building_override &&
-    !ovMap[hcad].suppress_only
-      ? ovMap[hcad]
-      : null;
+  const parcelOv =
+    ovMap && ovMap[hcad] && !ovMap[hcad].is_building_override ? ovMap[hcad] : null;
+  const isDemolishedVacantParcel = Boolean(parcelOv?.suppress_only);
+  const directOv = !isDemolishedVacantParcel ? parcelOv : null;
 
   const ovYear = Number(directOv?.year_built) || 0;
   const shardYear = Number(shardInfo?.year_built) || 0;
   const rawYear = Number(rp.year_built || rp.yr_impr) || 0;
 
   let resolvedYear = 0;
-  if (ovYear >= 1836) {
-    resolvedYear = ovYear;
-  } else if (shardYear >= 1836) {
-    resolvedYear = shardYear;
-  } else if (rawYear >= 1836) {
-    resolvedYear = rawYear;
+  if (!isDemolishedVacantParcel) {
+    if (ovYear >= 1836) {
+      resolvedYear = ovYear;
+    } else if (shardYear >= 1836) {
+      resolvedYear = shardYear;
+    } else if (rawYear >= 1836) {
+      resolvedYear = rawYear;
+    }
   }
 
   const stateClass = String(rp.state_class || "").trim();
-  const address = String(directOv?.address || rp.address || "").trim();
-  const owner = String(directOv?.owner || rp.owner || "").trim();
+  const address = String(parcelOv?.address || rp.address || "").trim();
+  const owner = String(parcelOv?.owner || rp.owner || "").trim();
   const subdivision = String(rp.subdivision || "").trim();
-  const useCategory =
-    directOv?.use_category ||
-    shardInfo?.use_category ||
-    mapHcadStateClassToUseCategory(stateClass, resolvedYear);
+  const useCategory = isDemolishedVacantParcel
+    ? "Vacant / Exempt"
+    : directOv?.use_category ||
+      shardInfo?.use_category ||
+      mapHcadStateClassToUseCategory(stateClass, resolvedYear);
 
   let props = {
     id: `parcel_${hcad}`,
@@ -207,10 +227,11 @@ export function enrichParcelFeature(
           : Math.floor(resolvedYear / 10) * 10
         : 0,
     use_category: useCategory,
-    landmark_name: directOv?.landmark_name || shardInfo?.landmark_name || "",
-    historic_district: directOv?.historic_district || shardInfo?.historic_district || "",
-    contributing: directOv?.contributing || shardInfo?.contributing || "",
-    building_count: shardInfo?.building_count || 0,
+    landmark_name: parcelOv?.landmark_name || shardInfo?.landmark_name || "",
+    historic_district: parcelOv?.historic_district || shardInfo?.historic_district || "",
+    contributing: parcelOv?.contributing || shardInfo?.contributing || "",
+    building_count: isDemolishedVacantParcel ? 0 : shardInfo?.building_count || 0,
+    ...(isDemolishedVacantParcel ? { is_demolished_vacant: true } : {}),
     is_tax_parcel: true,
     is_dynamic_hcad_parcel: true,
   };

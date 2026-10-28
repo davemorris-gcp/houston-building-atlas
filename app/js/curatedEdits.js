@@ -23,6 +23,117 @@ export const FLAG_SOURCE_TYPES = new Set([
   "NARRATIVE_ERROR_FLAG",
 ]);
 
+export const MIN_VALID_YEAR = 1836;
+export const MAX_VALID_YEAR = 2026;
+export const MAX_STANDING_OVERRIDE_YEAR = 2035;
+
+export const DEMOLISHED_VACANT_ISSUE = "Building demolished - lot currently vacant";
+export const DEMOLISHED_REPLACED_ISSUE = "Building demolished & replaced by newer structure";
+export const DEMOLISHED_VACANT_CITATION_TAG = "[DEMOLISHED / VACANT LOT - HIDE FOOTPRINT]";
+
+const EXPLICIT_VACANT_YEAR_TOKENS = new Set([
+  "0",
+  "vacant",
+  "vacant lot",
+  "demolished",
+  "none",
+  "n/a",
+]);
+
+const RE_DEMOLISHED_VACANT_TEXT =
+  /\[demolished\s*\/\s*vacant\s+lot|demolished\s*[-:/]?\s*lot\s+currently\s+vacant|vacant\s+lot\s*\(hide\s+footprint\)|\bsuppress_only\b/i;
+const RE_LEGACY_DEMOLISHED_ISSUE = /building\s+demolished\s+or\s+replaced/i;
+const RE_VACANT_LOT_CUE = /\bvacant\b|\bcleared\b|\bempty\s+lot\b|\bno\s+replacement\b/i;
+
+function cleanHcadPrefixFromKey(raw) {
+  const prefix = String(raw || "").split("#")[0].trim();
+  return /^\d+$/.test(prefix) ? prefix : "";
+}
+
+/**
+ * Canonical suppression predicate enforcing consistent OR-precedence:
+ * returns true if any matching sub-building / feature ID is `suppress_only`,
+ * OR if a whole-parcel override (`!is_building_override`) for the 13-digit
+ * `hcad_num` is `suppress_only`.
+ */
+export function isEntitySuppressedByOverrides(
+  overridesMap,
+  { buildingId = "", featureId = "", hcadNum = "" } = {}
+) {
+  const ovMap = overridesMap?.overrides || overridesMap;
+  if (!ovMap || typeof ovMap !== "object") return false;
+  const cleanBid = String(buildingId || "").trim();
+  const cleanFid = String(featureId || "").trim();
+  const inferredHcad =
+    cleanHcadPrefixFromKey(hcadNum) ||
+    cleanHcadPrefixFromKey(cleanBid) ||
+    cleanHcadPrefixFromKey(cleanFid);
+
+  if (cleanBid && ovMap[cleanBid]?.suppress_only) return true;
+  if (cleanFid && ovMap[cleanFid]?.suppress_only) return true;
+  if (
+    inferredHcad &&
+    ovMap[inferredHcad] &&
+    !ovMap[inferredHcad].is_building_override &&
+    ovMap[inferredHcad].suppress_only
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Return true when an override row or submission payload marks a demolished structure
+ * whose lot is currently vacant (hiding the ghost building footprint while leaving
+ * the parcel clickable as a vacant lot).
+ */
+export function isDemolishedVacantOverrideInput({
+  yearRaw = "",
+  footprintIssue = "",
+  footprintNotes = "",
+  sourceType = "",
+  sourceCitation = "",
+  suppressOnly = null,
+} = {}) {
+  if (suppressOnly === true) return true;
+
+  const rawStr = yearRaw === null || yearRaw === undefined ? "" : String(yearRaw).trim();
+  const lowYr = rawStr.toLowerCase();
+  if (EXPLICIT_VACANT_YEAR_TOKENS.has(lowYr)) {
+    if (suppressOnly === false && lowYr === "0") return false;
+    return true;
+  }
+
+  let parsedYr = 0;
+  if (rawStr !== "") {
+    const num = Number(rawStr);
+    parsedYr = Number.isFinite(num) ? Math.round(num) : NaN;
+  }
+  if (
+    Number.isFinite(parsedYr) &&
+    parsedYr >= MIN_VALID_YEAR &&
+    parsedYr <= MAX_STANDING_OVERRIDE_YEAR
+  ) {
+    return false;
+  }
+  if (parsedYr !== 0) {
+    return false;
+  }
+
+  const combinedMeta = [footprintIssue, sourceType, sourceCitation].filter(Boolean).join(" | ");
+  if (RE_DEMOLISHED_VACANT_TEXT.test(combinedMeta)) {
+    return true;
+  }
+
+  const issueAndSrc = `${footprintIssue} | ${sourceType}`;
+  const notesAndCite = `${footprintNotes} | ${sourceCitation}`;
+  if (RE_LEGACY_DEMOLISHED_ISSUE.test(issueAndSrc) && RE_VACANT_LOT_CUE.test(notesAndCite)) {
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Convert a standard Google Sheets browser URL (`.../spreadsheets/d/<ID>/edit...`)
  * into a direct CORS-friendly CSV export URL if the user pasted an edit link.
@@ -51,11 +162,11 @@ export function normalizeGoogleSheetCsvUrl(rawUrl) {
 }
 
 /**
- * Compute normalized atlas decade (1840 for 1836–1849, otherwise floor(year/10)*10).
+ * Compute normalized atlas decade (1840 for 1836-1849, otherwise floor(year/10)*10).
  */
 export function computeNormalizedDecade(yearBuilt) {
   const yr = Number(yearBuilt) || 0;
-  if (yr < 1836 || yr > 2030) return 0;
+  if (yr < MIN_VALID_YEAR || yr > MAX_STANDING_OVERRIDE_YEAR) return 0;
   if (yr < 1850) return 1840;
   return Math.floor(yr / 10) * 10;
 }
@@ -144,6 +255,9 @@ export function parseOverridesFromSheetRows(rows) {
     if (
       rawSourceTypeCheck === "PLAT_MONITOR_REVIEW" ||
       rawSourceTypeCheck === "PROPERTY_WATCHLIST_UPDATE" ||
+      rawSourceTypeCheck === "BUILDING_FLAG" ||
+      rawSourceTypeCheck === "DATA_FLAG" ||
+      rawSourceTypeCheck.endsWith("_FLAG") ||
       FLAG_SOURCE_TYPES.has(rawSourceTypeCheck)
     ) {
       continue;
@@ -168,16 +282,46 @@ export function parseOverridesFromSheetRows(rows) {
       ? `${hcadNum}#${rawIdField.split("#").slice(1).join("#")}`
       : hcadNum;
 
-    const yrRaw = Number(
-      row.year_built || row.verified_year_built || row.suggested_year_built || row.corrected_year || 0
-    );
-    const yearBuilt = yrRaw >= 1830 && yrRaw <= 2030 ? Math.round(yrRaw) : 0;
+    let rawYearField = "";
+    for (const yrCol of ["year_built", "verified_year_built", "suggested_year_built", "corrected_year"]) {
+      if (row[yrCol] !== undefined && row[yrCol] !== null && String(row[yrCol]).trim() !== "") {
+        rawYearField = String(row[yrCol]).trim();
+        break;
+      }
+    }
+    const rawCitationForSuppress = String(
+      row.source_citation || row.directory_evidence || row.notes || ""
+    ).trim();
+    const rawSuppressCell = String(row.suppress_only ?? "").trim().toLowerCase();
+    const explicitSuppressOnly =
+      row.suppress_only === true || ["true", "1", "yes"].includes(rawSuppressCell)
+        ? true
+        : row.suppress_only === false || ["false", "0", "no"].includes(rawSuppressCell)
+        ? false
+        : null;
+    const isSuppressOnly = isDemolishedVacantOverrideInput({
+      yearRaw: rawYearField,
+      footprintIssue: String(row.footprint_issue || "").trim(),
+      footprintNotes: String(row.footprint_notes || row.notes || "").trim(),
+      sourceType: String(row.source_type || row.evidence_source || "").trim(),
+      sourceCitation: rawCitationForSuppress,
+      suppressOnly: explicitSuppressOnly,
+    });
+
+    const yrRaw = rawYearField !== "" ? Number(rawYearField) : 0;
+    const yearBuilt = isSuppressOnly
+      ? 0
+      : Number.isFinite(yrRaw) &&
+        yrRaw >= MIN_VALID_YEAR &&
+        yrRaw <= MAX_STANDING_OVERRIDE_YEAR
+      ? Math.round(yrRaw)
+      : 0;
     const origYrRaw = Number(
       row.original_hcad_year || row.hcad_year_built || row.current_year_built || 0
     );
 
     let geometry = null;
-    if (row.geometry_geojson) {
+    if (!isSuppressOnly && row.geometry_geojson) {
       try {
         geometry = JSON.parse(row.geometry_geojson);
       } catch (_e) {
@@ -229,11 +373,12 @@ export function parseOverridesFromSheetRows(rows) {
       building_id: overrideKey,
       hcad_num: hcadNum,
       is_building_override: hasBuildingSuffix,
+      suppress_only: Boolean(isSuppressOnly),
       address: rawAddress.toUpperCase(),
       historic_district: String(row.historic_district || row.district || "").trim(),
       contributing: String(row.contributing || row.contributing_status || "").trim(),
       year_built: yearBuilt,
-      decade: computeNormalizedDecade(yearBuilt),
+      decade: isSuppressOnly ? 0 : computeNormalizedDecade(yearBuilt),
       original_hcad_year: origYrRaw >= 1830 ? Math.round(origYrRaw) : 0,
       bld_style: rawStyle,
       architect: String(row.architect || "").trim(),
@@ -531,7 +676,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261027b", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261028a", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -591,24 +736,9 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
     const sheetOverrides = parseOverridesFromSheetRows(rows);
     for (const [hcadNum, ov] of Object.entries(sheetOverrides)) {
       syncedHcads.add(hcadNum);
-      const existing = mergedOverrides[hcadNum] || {};
-      const merged = { ...existing };
-      for (const [k, v] of Object.entries(ov)) {
-        if (k === "geometry") continue;
-        if (Array.isArray(v)) {
-          if (v.length > 0) merged[k] = v;
-        } else if (typeof v === "number") {
-          if (v > 0 || !(k in existing)) merged[k] = v;
-        } else if (typeof v === "string") {
-          if (v !== "" || !(k in existing)) merged[k] = v;
-        } else if (v !== null && v !== undefined) {
-          merged[k] = v;
-        }
-      }
-      merged.geometry = ov.geometry || existing.geometry || null;
-      merged.good_brick_awards = existing.good_brick_awards || null;
-      merged.good_brick_summary = existing.good_brick_summary || "";
-      mergedOverrides[hcadNum] = merged;
+      mergedOverrides[hcadNum] = mergeOverrideRecord(mergedOverrides[hcadNum] || {}, ov, {
+        overrideKey: hcadNum,
+      });
     }
     sheetSyncStatus.sheetRowCount = syncedHcads.size;
     sheetSyncStatus.totalOverrideCount = Object.keys(mergedOverrides).length;
@@ -679,32 +809,131 @@ export function saveGoogleSheetEndpoints({ csvUrl, webhookUrl }) {
 }
 
 /**
+ * Merge an incoming sheet or Staff Admin override record onto an existing override record,
+ * handling `suppress_only` footprint clearing, `_pre_suppress_geometry` stashing,
+ * and replacement-structure revival (`>= MIN_VALID_YEAR`).
+ */
+export function mergeOverrideRecord(
+  existingOv = {},
+  incomingOv = {},
+  { overrideKey = "", fallbackGeometry = null } = {}
+) {
+  const key = String(
+    overrideKey || incomingOv.building_id || incomingOv.id || incomingOv.hcad_num || ""
+  ).trim();
+  const isSub =
+    key.includes("#") ||
+    Boolean(incomingOv.is_building_override || existingOv.is_building_override);
+  const merged = { ...existingOv };
+  for (const [k, v] of Object.entries(incomingOv)) {
+    if (k === "geometry") continue;
+    if (Array.isArray(v)) {
+      if (v.length > 0 || !(k in existingOv)) merged[k] = v;
+    } else if (typeof v === "number") {
+      if (v > 0 || !(k in existingOv)) merged[k] = v;
+    } else if (typeof v === "string") {
+      if (v !== "" || !(k in existingOv)) merged[k] = v;
+    } else if (v !== null && v !== undefined) {
+      merged[k] = v;
+    }
+  }
+
+  if (incomingOv.suppress_only) {
+    const stashedGeom =
+      existingOv.geometry || existingOv._pre_suppress_geometry || fallbackGeometry || null;
+    delete merged._pre_suppress_geometry;
+    return {
+      ...merged,
+      ...(stashedGeom ? { _pre_suppress_geometry: stashedGeom } : {}),
+      suppress_only: true,
+      year_built: 0,
+      decade: 0,
+      geometry: null,
+      keep_shard_footprints: false,
+      good_brick_awards:
+        incomingOv.good_brick_awards || existingOv.good_brick_awards || null,
+      good_brick_summary:
+        incomingOv.good_brick_summary || existingOv.good_brick_summary || "",
+    };
+  }
+
+  const incomingYr = Number(incomingOv.year_built) || 0;
+  const isRevived = incomingYr >= MIN_VALID_YEAR;
+  if (isRevived) {
+    merged.suppress_only = false;
+    merged.year_built = incomingYr;
+    merged.decade = computeNormalizedDecade(incomingYr);
+  }
+  const restoredGeom =
+    incomingOv.geometry ||
+    existingOv.geometry ||
+    existingOv._pre_suppress_geometry ||
+    fallbackGeometry ||
+    null;
+  delete merged._pre_suppress_geometry;
+
+  if (isSub && !incomingOv.geometry && !existingOv.geometry && !existingOv._pre_suppress_geometry) {
+    merged.keep_shard_footprints = true;
+    if (merged.replace_parcel_shards === undefined) {
+      merged.replace_parcel_shards = false;
+    }
+    merged.geometry = null;
+  } else {
+    if (!isSub && isRevived && merged.keep_shard_footprints === false && existingOv.suppress_only) {
+      delete merged.keep_shard_footprints;
+    }
+    merged.geometry = restoredGeom;
+  }
+
+  merged.good_brick_awards =
+    incomingOv.good_brick_awards || existingOv.good_brick_awards || null;
+  merged.good_brick_summary =
+    incomingOv.good_brick_summary || existingOv.good_brick_summary || "";
+  return merged;
+}
+
+/**
  * Merge curated override fields onto a feature's properties object if its `id` (`building_id`)
- * or `hcad_num` matches.
+ * or `hcad_num` matches. Enforces OR-precedence so whole-parcel `suppress_only: true`
+ * dominates any pre-existing `<hcad>#<slug>` sub-building record.
  */
 export function applyOverrideToProperties(props, overridesMap) {
   if (!props || !overridesMap) return props;
   const bldId = String(props.building_id || "").trim();
   const featId = String(props.id || "").trim();
-  const hcadNum = String(props.hcad_num || "").trim();
+  const hcadNum =
+    String(props.hcad_num || "").trim() ||
+    cleanHcadPrefixFromKey(bldId) ||
+    cleanHcadPrefixFromKey(featId);
+
+  const parcelOv =
+    hcadNum && overridesMap[hcadNum] && !overridesMap[hcadNum].is_building_override
+      ? overridesMap[hcadNum]
+      : null;
 
   let ov = null;
-  if (bldId && overridesMap[bldId]) {
+  if (parcelOv?.suppress_only) {
+    ov = parcelOv;
+  } else if (bldId && overridesMap[bldId]) {
     ov = overridesMap[bldId];
   } else if (featId && overridesMap[featId]) {
     ov = overridesMap[featId];
-  } else if (
-    hcadNum &&
-    overridesMap[hcadNum] &&
-    !overridesMap[hcadNum].is_building_override
-  ) {
-    ov = overridesMap[hcadNum];
+  } else if (parcelOv) {
+    ov = parcelOv;
   }
   if (!ov) return props;
 
   const origYear = Number(ov.original_hcad_year) || Number(props.year_built) || 0;
-  const verifiedYear = Number(ov.year_built) || Number(props.year_built) || 0;
+  const isSuppressOnly = Boolean(ov.suppress_only);
+  const verifiedYear = isSuppressOnly
+    ? 0
+    : Number(ov.year_built) || Number(props.year_built) || 0;
   const isGbPoint = Boolean(props.is_good_brick);
+  const isTaxParcel =
+    Boolean(props.is_tax_parcel) || /^p(?:cl|arcel)_/i.test(String(props.id || ""));
+  const priorNonVacantUse =
+    props._pre_vacant_use_category ||
+    (props.use_category && props.use_category !== "Vacant / Exempt" ? props.use_category : "");
 
   const primaryAddr = (isGbPoint && props.address) || ov.address || props.address || "";
   const rawAltAddrs = [
@@ -725,27 +954,47 @@ export function applyOverrideToProperties(props, overridesMap) {
     }
   }
 
+  const { _pre_vacant_use_category: _droppedStash, ...cleanBaseProps } = props;
   return {
-    ...props,
-    id: isGbPoint ? props.id : ov.id || props.id || hcadNum,
-    building_id: ov.building_id || ov.id || props.building_id || "",
+    ...cleanBaseProps,
+    id: isGbPoint || isTaxParcel ? props.id : ov.id || props.id || hcadNum,
+    building_id: isTaxParcel ? "" : ov.building_id || ov.id || props.building_id || "",
     hcad_num: ov.hcad_num || hcadNum,
     year_built: verifiedYear,
-    decade: computeNormalizedDecade(verifiedYear) || props.decade || 0,
+    decade: isSuppressOnly ? 0 : computeNormalizedDecade(verifiedYear) || props.decade || 0,
     original_hcad_year: origYear,
     is_curated_override: Boolean(
-      ov.source_type || ov.source_citation || ov.year_built || props.is_curated_override
+      isSuppressOnly ||
+        ov.source_type ||
+        ov.source_citation ||
+        ov.year_built ||
+        props.is_curated_override
     ),
     is_building_override: Boolean(ov.is_building_override),
     replace_parcel_shards: Boolean(ov.replace_parcel_shards),
-    keep_shard_footprints: Boolean(ov.keep_shard_footprints),
-    suppress_only: Boolean(ov.suppress_only),
+    keep_shard_footprints: isSuppressOnly ? false : Boolean(ov.keep_shard_footprints),
+    suppress_only: isTaxParcel ? false : isSuppressOnly,
+    ...(isTaxParcel
+      ? {
+          is_tax_parcel: true,
+          is_demolished_vacant: isSuppressOnly,
+          ...(isSuppressOnly && priorNonVacantUse
+            ? { _pre_vacant_use_category: priorNonVacantUse }
+            : {}),
+        }
+      : {}),
     suppress_shard_hcads: Array.isArray(ov.suppress_shard_hcads)
       ? ov.suppress_shard_hcads
       : Array.isArray(props.suppress_shard_hcads)
       ? props.suppress_shard_hcads
       : [],
-    use_category: ov.use_category || props.use_category || "Residential",
+    use_category:
+      isTaxParcel && isSuppressOnly
+        ? "Vacant / Exempt"
+        : ov.use_category ||
+          (isTaxParcel && props.is_demolished_vacant ? priorNonVacantUse : props.use_category) ||
+          priorNonVacantUse ||
+          "Residential",
     stories: Number(ov.stories) || Number(props.stories) || 1,
     height_m: Number(ov.height_m) || Number(props.height_m) || 4.5,
     address: primaryAddr,
@@ -825,14 +1074,46 @@ export function applyOverrideToProperties(props, overridesMap) {
 }
 
 /**
- * Submit an end-user property data correction suggestion for moderator review.
- * Never mutates the live public dataset directly; posts with `status: "Pending"`
- * to the configured Google Sheet Apps Script webhook and stores a local copy.
+ * Normalize a property correction or Staff Admin override form payload so public suggestions
+ * (`submitCorrectionSuggestion`) and 1-click Staff Admin approvals (`submitAdminApprovedOverride`)
+ * share identical alias splitting, empty-vs-zero year handling, `source_type` composition,
+ * and structured `source_citation` tags.
  */
-export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
+export function normalizeCorrectionSubmission(payload = {}) {
   const footprintIssue = String(payload.footprint_issue || "").trim();
   const footprintNotes = String(payload.footprint_notes || "").trim();
-  const suggestedBldName = String(payload.building_name || "").trim();
+  const rawBldNameField = String(payload.building_name || "").trim();
+  let primaryBuildingName = "";
+  const splitAltNames = [];
+  if (rawBldNameField) {
+    const parts = rawBldNameField
+      .split(/\s*[|;]\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    primaryBuildingName = parts[0] || "";
+    for (const alt of parts.slice(1)) {
+      if (!splitAltNames.includes(alt)) splitAltNames.push(alt);
+    }
+  }
+  if (Array.isArray(payload.alt_names)) {
+    for (const alt of payload.alt_names) {
+      const cleanAlt = String(alt || "").trim();
+      if (cleanAlt && cleanAlt !== primaryBuildingName && !splitAltNames.includes(cleanAlt)) {
+        splitAltNames.push(cleanAlt);
+      }
+    }
+  } else if (typeof payload.alt_names === "string" && payload.alt_names.trim()) {
+    for (const alt of payload.alt_names.split(/\s*[|;]\s*/)) {
+      const cleanAlt = alt.trim();
+      if (cleanAlt && cleanAlt !== primaryBuildingName && !splitAltNames.includes(cleanAlt)) {
+        splitAltNames.push(cleanAlt);
+      }
+    }
+  }
+  const combinedDisplayBldName = [primaryBuildingName, ...splitAltNames]
+    .filter(Boolean)
+    .join(" | ");
+
   const suggestedBuilder = String(payload.builder || "").trim();
   const suggestedPermitInfo = String(payload.permit_info || "").trim();
   const rawCitation = String(payload.source_citation || "").trim();
@@ -840,18 +1121,46 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
   const satelliteUrl = String(payload.satellite_url || "").trim();
 
   const currentYr = Number(payload.current_year_built) || 0;
-  const suggestedYr = Number(payload.suggested_year_built) || currentYr || 0;
+  const rawSuggStr = String(payload.suggested_year_built ?? "").trim();
+  const explicitSuppress =
+    payload.suppress_only === true ? true : payload.suppress_only === false ? false : null;
+  const isDemolishedVacant = isDemolishedVacantOverrideInput({
+    yearRaw: payload.suggested_year_built,
+    footprintIssue,
+    footprintNotes,
+    sourceType: rawSourceType,
+    sourceCitation: rawCitation,
+    suppressOnly: explicitSuppress,
+  });
 
-  // Format source_type & source_citation so Footprint/Shape reports and Building Name suggestions stand out clearly
-  const effectiveSourceType = footprintIssue
-    ? rawCitation && Number(payload.suggested_year_built) && Number(payload.suggested_year_built) !== currentYr
-      ? `${rawSourceType} + Footprint Issue (${footprintIssue})`
-      : `Footprint Issue: ${footprintIssue}`
+  const effectiveFootprintIssue =
+    isDemolishedVacant && !footprintIssue ? DEMOLISHED_VACANT_ISSUE : footprintIssue;
+
+  const parsedSuggYr = rawSuggStr !== "" ? Number(rawSuggStr) : NaN;
+  const hasPositiveSuggestedYr =
+    Number.isFinite(parsedSuggYr) && parsedSuggYr >= MIN_VALID_YEAR;
+  const suggestedYr = isDemolishedVacant
+    ? 0
+    : hasPositiveSuggestedYr
+    ? Math.round(parsedSuggYr)
+    : currentYr >= MIN_VALID_YEAR
+    ? currentYr
+    : "";
+
+  const effectiveSourceType = effectiveFootprintIssue
+    ? !isDemolishedVacant &&
+      hasPositiveSuggestedYr &&
+      (Math.round(parsedSuggYr) !== currentYr || Boolean(rawCitation))
+      ? `${rawSourceType} + Footprint Issue (${effectiveFootprintIssue})`
+      : `Footprint Issue: ${effectiveFootprintIssue}`
     : rawSourceType;
 
   const citationParts = [];
-  if (suggestedBldName) {
-    citationParts.push(`[BUILDING NAME / HISTORICAL ALIAS]: ${suggestedBldName}`);
+  if (isDemolishedVacant && !rawCitation.includes(DEMOLISHED_VACANT_CITATION_TAG)) {
+    citationParts.push(DEMOLISHED_VACANT_CITATION_TAG);
+  }
+  if (combinedDisplayBldName) {
+    citationParts.push(`[BUILDING NAME / HISTORICAL ALIAS]: ${combinedDisplayBldName}`);
   }
   if (suggestedBuilder) {
     citationParts.push(`[BUILDER / CONTRACTOR]: ${suggestedBuilder}`);
@@ -859,10 +1168,13 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
   if (suggestedPermitInfo) {
     citationParts.push(`[PERMIT / CONTRACT RECORD]: ${suggestedPermitInfo}`);
   }
-  if (footprintIssue || footprintNotes) {
+  if (effectiveFootprintIssue || footprintNotes) {
+    const defaultNote = isDemolishedVacant
+      ? "Building demolished; lot currently vacant."
+      : "Flagged for building footprint review.";
     citationParts.push(
-      `[FOOTPRINT / SHAPE ISSUE - ${footprintIssue || "Geometry Error"}]: ${
-        footprintNotes || "Flagged for building footprint review."
+      `[FOOTPRINT / SHAPE ISSUE - ${effectiveFootprintIssue || "Geometry Error"}]: ${
+        footprintNotes || defaultNote
       }`
     );
   }
@@ -870,24 +1182,53 @@ export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
     citationParts.push(rawCitation);
   }
 
+  return {
+    primaryBuildingName,
+    altNames: splitAltNames,
+    combinedDisplayBldName,
+    suggestedBuilder,
+    suggestedPermitInfo,
+    currentYr,
+    suggestedYr,
+    isDemolishedVacant: Boolean(isDemolishedVacant),
+    effectiveFootprintIssue,
+    effectiveFootprintNotes:
+      footprintNotes ||
+      (isDemolishedVacant ? "Building demolished; lot currently vacant." : ""),
+    effectiveSourceType,
+    effectiveSourceCitation: citationParts.join(" | "),
+    effectiveSourceUrl: String(payload.source_url || satelliteUrl || "").trim(),
+  };
+}
+
+/**
+ * Submit an end-user property data correction suggestion for moderator review.
+ * Never mutates the live public dataset directly; posts with `status: "Pending"`
+ * to the configured Google Sheet Apps Script webhook and stores a local copy.
+ */
+export async function submitCorrectionSuggestion(payload, webhookUrl = "") {
+  const norm = normalizeCorrectionSubmission(payload);
+
   const record = {
     status: "Pending",
     submitted_at: new Date().toISOString().slice(0, 19).replace("T", " "),
     hcad_num: String(payload.hcad_num || "").trim(),
     address: String(payload.address || "").trim(),
-    building_name: suggestedBldName,
+    building_name: norm.primaryBuildingName,
+    ...(norm.altNames.length ? { alt_names: norm.altNames.join("; ") } : {}),
     historic_district: String(payload.historic_district || "").trim(),
-    hcad_year_built: currentYr,
-    suggested_year_built: suggestedYr,
+    hcad_year_built: norm.currentYr,
+    suggested_year_built: norm.suggestedYr,
+    suppress_only: norm.isDemolishedVacant,
     bld_style: String(payload.bld_style || "").trim(),
     architect: String(payload.architect || "").trim(),
-    builder: suggestedBuilder,
-    permit_info: suggestedPermitInfo,
-    source_type: effectiveSourceType,
-    source_citation: citationParts.join(" | "),
-    source_url: String(payload.source_url || satelliteUrl || "").trim(),
-    footprint_issue: footprintIssue,
-    footprint_notes: footprintNotes,
+    builder: norm.suggestedBuilder,
+    permit_info: norm.suggestedPermitInfo,
+    source_type: norm.effectiveSourceType,
+    source_citation: norm.effectiveSourceCitation,
+    source_url: norm.effectiveSourceUrl,
+    footprint_issue: norm.effectiveFootprintIssue,
+    footprint_notes: norm.effectiveFootprintNotes,
     photo_url: String(payload.photo_url || "").trim(),
     photo_year: payload.photo_year ? Number(payload.photo_year) || String(payload.photo_year).trim() : "",
     photo_caption: String(payload.photo_caption || "").trim(),
@@ -1216,21 +1557,31 @@ export async function submitAdminApprovedOverride(payload, webhookUrl = "") {
     throw new Error("Admin session required to publish approved overrides.");
   }
 
+  const norm = normalizeCorrectionSubmission(payload);
+  const resolvedYearBuilt = norm.isDemolishedVacant ? 0 : Number(norm.suggestedYr) || 0;
+
   const record = {
     action: "admin_approve",
     status: "Approved",
     submitted_at: new Date().toISOString().slice(0, 10),
     hcad_num: String(payload.hcad_num || "").trim(),
     address: String(payload.address || "").trim().toUpperCase(),
+    building_name: norm.primaryBuildingName,
+    ...(norm.altNames.length ? { alt_names: norm.altNames.join("; ") } : {}),
     historic_district: String(payload.historic_district || "").trim(),
     contributing: String(payload.contributing || "").trim(),
-    hcad_year_built: Number(payload.current_year_built) || 0,
-    suggested_year_built: Number(payload.suggested_year_built) || 0,
+    hcad_year_built: norm.currentYr,
+    suggested_year_built: norm.suggestedYr,
+    suppress_only: norm.isDemolishedVacant,
     bld_style: String(payload.bld_style || "").trim(),
     architect: String(payload.architect || "").trim(),
-    source_type: String(payload.source_type || "Houston City Directory").trim(),
-    source_citation: String(payload.source_citation || "").trim(),
-    source_url: String(payload.source_url || "").trim(),
+    builder: norm.suggestedBuilder,
+    permit_info: norm.suggestedPermitInfo,
+    footprint_issue: norm.effectiveFootprintIssue,
+    footprint_notes: norm.effectiveFootprintNotes,
+    source_type: norm.effectiveSourceType,
+    source_citation: norm.effectiveSourceCitation,
+    source_url: norm.effectiveSourceUrl,
     verified_by: session.email || "Preservation Houston Archival Review",
     admin_email: session.email || "",
     google_id_token: session.googleIdToken || "",
@@ -1267,11 +1618,17 @@ export async function submitAdminApprovedOverride(payload, webhookUrl = "") {
       building_id: isBuildingOverride ? rawKey : "",
       hcad_num: cleanHcadNum,
       is_building_override: isBuildingOverride,
+      suppress_only: norm.isDemolishedVacant,
+      ...(norm.isDemolishedVacant ? { geometry: null } : {}),
       address: record.address,
+      ...(norm.primaryBuildingName ? { building_name: norm.primaryBuildingName } : {}),
+      ...(norm.altNames.length ? { alt_names: norm.altNames } : {}),
+      ...(norm.suggestedBuilder ? { builder: norm.suggestedBuilder } : {}),
+      ...(norm.suggestedPermitInfo ? { original_permit: norm.suggestedPermitInfo } : {}),
       historic_district: record.historic_district,
       contributing: record.contributing,
-      year_built: record.suggested_year_built,
-      decade: computeNormalizedDecade(record.suggested_year_built),
+      year_built: resolvedYearBuilt,
+      decade: norm.isDemolishedVacant ? 0 : computeNormalizedDecade(resolvedYearBuilt),
       original_hcad_year: record.hcad_year_built,
       bld_style: record.bld_style,
       architect: record.architect,

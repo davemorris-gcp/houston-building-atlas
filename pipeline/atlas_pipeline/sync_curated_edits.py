@@ -22,7 +22,10 @@ from pathlib import Path
 from typing import Any
 
 from atlas_pipeline.schema import (
+    MAX_STANDING_OVERRIDE_YEAR,
+    MIN_VALID_YEAR,
     compute_decade,
+    is_demolished_vacant_marker,
     normalize_override_record,
     write_compact_json,
 )
@@ -32,6 +35,9 @@ _SKIP_SOURCE_TYPES = frozenset({
     "PROPERTY_WATCHLIST_UPDATE",
     "BUILDING_FLAG",
     "DATA_FLAG",
+    "PHOTO_MISATTRIBUTION_FLAG",
+    "CLAIM_DISPUTE_FLAG",
+    "NARRATIVE_ERROR_FLAG",
 })
 _SKIP_ID_PREFIXES = ("PLAT_", "WATCH_", "FLAG_", "NARRATIVE_")
 
@@ -78,25 +84,46 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
         if status and status not in {"approved", "verified", "live", "published", "true", "1"}:
             continue
         raw_src_type = norm_row.get("source_type", "").strip().upper()
-        if raw_src_type in _SKIP_SOURCE_TYPES:
+        if raw_src_type in _SKIP_SOURCE_TYPES or raw_src_type.endswith("_FLAG"):
             continue
 
         override_key, hcad_num, is_sub = parse_override_target(norm_row)
         if not hcad_num:
             continue
-        try:
-            raw_yr = (
-                norm_row.get("year_built")
-                or norm_row.get("verified_year_built")
-                or norm_row.get("suggested_year_built")
-                or norm_row.get("corrected_year")
-                or 0
-            )
-            year_built = int(round(float(raw_yr)))
-        except ValueError:
-            continue
-        if not (1800 <= year_built <= 2035):
-            continue
+
+        raw_yr_str = ""
+        for yr_col in ("year_built", "verified_year_built", "suggested_year_built", "corrected_year"):
+            cand = norm_row.get(yr_col, "")
+            if cand != "":
+                raw_yr_str = cand
+                break
+
+        raw_sup_str = norm_row.get("suppress_only", "").strip().lower()
+        explicit_sup: bool | None = (
+            True
+            if raw_sup_str in {"true", "1", "yes"}
+            else False
+            if raw_sup_str in {"false", "0", "no"}
+            else None
+        )
+        is_suppress_only = is_demolished_vacant_marker(
+            raw_yr_str,
+            footprint_issue=norm_row.get("footprint_issue", ""),
+            footprint_notes=norm_row.get("footprint_notes") or norm_row.get("notes", ""),
+            source_type=norm_row.get("source_type", ""),
+            source_citation=norm_row.get("source_citation", ""),
+            suppress_only=explicit_sup,
+        )
+
+        if is_suppress_only:
+            year_built = 0
+        else:
+            try:
+                year_built = int(round(float(raw_yr_str or 0)))
+            except ValueError:
+                continue
+            if not (MIN_VALID_YEAR <= year_built <= MAX_STANDING_OVERRIDE_YEAR):
+                continue
 
         orig_raw = (
             norm_row.get("original_hcad_year")
@@ -113,7 +140,7 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
             "hcad_num": hcad_num,
             "address": norm_row.get("address", ""),
             "year_built": year_built,
-            "decade": compute_decade(year_built),
+            "decade": 0 if is_suppress_only else compute_decade(year_built),
             "original_hcad_year": orig_year,
             "historic_district": norm_row.get("historic_district", ""),
             "contributing": norm_row.get("contributing", ""),
@@ -123,6 +150,7 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
             "verified_by": norm_row.get("verified_by", "Preservation Houston Archival Review"),
             "verified_date": norm_row.get("verified_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
             "notes": norm_row.get("notes", ""),
+            "suppress_only": bool(is_suppress_only),
         }
         if norm_row.get("building_name"):
             parsed_rec["building_name"] = norm_row["building_name"]
@@ -131,8 +159,9 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
         if is_sub:
             parsed_rec["building_id"] = override_key
             parsed_rec["is_building_override"] = True
-            parsed_rec["keep_shard_footprints"] = True
-            parsed_rec["replace_parcel_shards"] = False
+            if not is_suppress_only:
+                parsed_rec["keep_shard_footprints"] = True
+                parsed_rec["replace_parcel_shards"] = False
         approved.append(parsed_rec)
     return approved
 
@@ -173,12 +202,30 @@ def sync_curated_overrides(
             clean_row = {k: v for k, v in row.items() if k != "override_key" and v not in ("", None)}
             prev = overrides_map.get(ov_key, {})
             merged = {**prev, **clean_row}
+            if row.get("suppress_only"):
+                merged["suppress_only"] = True
+                merged["year_built"] = 0
+                merged["decade"] = 0
+                merged["keep_shard_footprints"] = False
+                merged.pop("geometry", None)
+            elif int(row.get("year_built") or 0) >= MIN_VALID_YEAR:
+                merged["suppress_only"] = False
+                if (
+                    "#" not in ov_key
+                    and not bool(merged.get("is_building_override"))
+                    and merged.get("keep_shard_footprints") is False
+                ):
+                    merged.pop("keep_shard_footprints", None)
+                if ("#" in ov_key or bool(merged.get("is_building_override"))) and not merged.get("geometry"):
+                    merged["keep_shard_footprints"] = True
+                    merged.setdefault("replace_parcel_shards", False)
             overrides_map[ov_key] = merged
 
     # Enrich geometry and baseline properties from buildings.geojson if present
     updated_buildings_count = 0
     if buildings_path.exists():
         buildings_fc = json.loads(buildings_path.read_text(encoding="utf-8"))
+        kept_features: list[dict[str, Any]] = []
         for feat in buildings_fc.get("features", []):
             props = feat.get("properties", {})
             feat_bid = str(props.get("building_id") or props.get("id") or "").strip()
@@ -206,6 +253,13 @@ def sync_curated_overrides(
                     ov["use_category"] = props.get("use_category", "Residential")
                 if not ov.get("preservation_status"):
                     ov["preservation_status"] = props.get("preservation_status", "Historic District Contributing")
+
+                if ov.get("suppress_only"):
+                    ov.pop("geometry", None)
+                    overrides_map[matched_key] = normalize_override_record(matched_key, ov)
+                    updated_buildings_count += 1
+                    continue
+
                 if not ov.get("keep_shard_footprints") and not ov.get("geometry") and feat.get("geometry"):
                     ov["geometry"] = feat["geometry"]
 
@@ -222,6 +276,9 @@ def sync_curated_overrides(
                 props["verified_by"] = ov_norm.get("verified_by", "Preservation Houston Archival Review")
                 updated_buildings_count += 1
 
+            kept_features.append(feat)
+
+        buildings_fc["features"] = kept_features
         write_compact_json(buildings_path, buildings_fc)
 
     for k in list(overrides_map.keys()):

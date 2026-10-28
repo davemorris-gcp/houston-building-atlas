@@ -67,7 +67,7 @@ The Preservation Houston Moderation & Admin Google Sheet (*Houston Building Atla
 | **A** | `status` | `Pending`, `Approved`, `Needs Info`, or `Rejected` (Data Validation dropdown) | `Approved` |
 | **B** | `hcad_num` | **13-character text string** HCAD Account Number (*never format as plain number; ~45% start with `0`*) | `0621100000014` |
 | **C** | `address` | Street address | `1127 KEY ST` |
-| **D** | `year_built` | Verified construction year (`1823-2026`, or blank if name/photo/footprint-only edit) | `1928` |
+| **D** | `year_built` | Verified construction year (`1836-2026`), **`0` / `Vacant` if demolished & lot currently vacant** (hides ghost building footprint live via `suppress_only: true`), or blank if name/photo/shape-only edit | `1928` |
 | **E** | `original_hcad_year` | Original HCAD CAMA year built | `1920` |
 | **F** | `historic_district` | Enclosing Historic District name (optional) | `Norhill Historic District` |
 | **G** | `contributing` | `Contributing` / `Noncontributing` (optional) | `Contributing` |
