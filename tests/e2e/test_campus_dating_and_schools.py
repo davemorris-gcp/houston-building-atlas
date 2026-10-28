@@ -123,12 +123,12 @@ def test_cyfair_shared_parcel_search_and_distinct_sub_building_selection(
     assert "7900 N ELDRIDGE PKWY" in cy_txt.upper()
     url_harvester.harvest_from_locator(page.locator("#inspector-body"), "it4:cypress_ridge_hs")
 
-    # Wait for regional PMTiles shard features on 1223580020001 to finish rendering at zoom 15.6 covering full parcel
+    # Wait for regional PMTiles shard features on 1223580020001 to finish rendering across both z15 tiles
     page.evaluate(
         """() => {
             const map = window.atlasApp.mapController.map;
             map.stop();
-            map.jumpTo({ center: [-95.6042, 29.8906], zoom: 15.5, pitch: 0, bearing: 0 });
+            map.jumpTo({ center: [-95.60448, 29.88972], zoom: 15.3, pitch: 0, bearing: 0 });
         }"""
     )
     page.wait_for_function(
@@ -143,9 +143,9 @@ def test_cyfair_shared_parcel_search_and_distinct_sub_building_selection(
                     ids.add(String(p.building_id || p.id || ''));
                 }
             }
-            return ids.size >= 15;
+            return ids.size === 19;
         }""",
-        timeout=15000,
+        timeout=20000,
     )
     cy_parcel_audit = page.evaluate(
         """() => {
