@@ -334,6 +334,7 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     )
 
     # IT-4: Explicit Confirm Tier & Add to Watchlist workflow + two-way Tier 3 downgrade soft-archive vs hard-remove
+    page.select_option("#cycleSelect", "2026-10-15")
     page.locator("#tabs button, #tabs .tab", has_text="To check").first.click()
     page.wait_for_selector("#list .row", timeout=10000)
 
@@ -395,6 +396,7 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     page.unroute("**/spreadsheets/d/**/pub*")
 
     # Switch to Tier 3 tab, re-select target_occ, promote again, add human research, then downgrade to Tier 3 -> soft-archived ("Archived (Tier 3)")
+    page.select_option("#cycleSelect", "2026-10-15")
     page.locator('#tabs [data-g="t3"]').click()
     target_row_t3 = page.locator(f'#list .row[data-occ="{target_occ}"]')
     assert target_row_t3.count() == 1
@@ -424,7 +426,7 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     page.click("#modeWatchlistBtn")
     page.select_option("#wlStatusFilter", "Archived (Tier 3)")
     assert page.locator("#list .row").count() >= 1
-    page.locator("#list .row").first.click()
+    page.locator(f'#list .row[data-watch-id="plat-{target_app}"]').click()
     assert "Preservation Test Holdings LLC" in page.locator("#detail").inner_text()
 
 

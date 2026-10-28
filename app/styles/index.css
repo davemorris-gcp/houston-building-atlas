@@ -7465,6 +7465,10 @@ body {
   padding: 16px;
 }
 
+.permit-watch-modal-body > * {
+  flex-shrink: 0;
+}
+
 .permit-watch-intro-banner {
   padding: 10px 13px;
   border-radius: 9px;
@@ -9968,7 +9972,7 @@ a.narrative-citation-pill:hover {
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.78);
   border: 1px solid rgba(251, 191, 36, 0.32);
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .pw-annual-benchmarks-summary {
