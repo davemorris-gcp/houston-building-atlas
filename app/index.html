@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261028a" />
+  <link rel="stylesheet" href="styles/index.css?v=20261028b" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -791,6 +791,24 @@
                     title="Show only Permit &amp; Demolition Watch alerts (click again to restore)"
                   >
                     Solo
+                  </button>
+                </div>
+              </div>
+
+              <div class="landmarks-subfilter-row permit-watch-annual-subrow" id="permit-watch-annual-subrow" role="group" aria-label="Annual and 2026 YTD Demolition Permit Totals">
+                <div class="pw-sidebar-bench-row">
+                  <span class="pw-sidebar-bench-stat" title="2026 Year-to-Date City of Houston structural building demolition permits (Types SD + 4D)">2026 YTD Demos: <strong class="mono" id="pw-sidebar-ytd-count">1,755</strong></span>
+                  <span class="pw-sidebar-bench-sep">&middot;</span>
+                  <span class="pw-sidebar-bench-stat" title="2025 full calendar year City of Houston structural building demolition permits (Types SD + 4D)">2025: <strong class="mono" id="pw-sidebar-2025-count">2,187</strong></span>
+                  <span class="pw-sidebar-bench-sep">&middot;</span>
+                  <span class="pw-sidebar-bench-stat" title="2026 YTD main residential structures approved for demolition by HAHC in designated Historic Districts">HAHC Main Approved: <strong class="mono" id="pw-sidebar-hahc-count" style="color:#6EE7B7;">0</strong></span>
+                  <button
+                    type="button"
+                    class="layer-solo-btn pw-sidebar-bench-btn"
+                    id="btn-open-demo-benchmarks-sidebar"
+                    title="Open 2020-2025 calendar-year and 2026 YTD demolition permit tables (City of Houston, HCAD Countywide &amp; HAHC)"
+                  >
+                    &#128202; 2020-26 Stats
                   </button>
                 </div>
               </div>
@@ -2523,6 +2541,30 @@
             </div>
           </div>
 
+          <details class="permit-watch-annual-benchmarks" id="pw-annual-benchmarks-details">
+            <summary class="pw-annual-benchmarks-summary">
+              <div class="pw-annual-summary-left">
+                <span class="pw-annual-chevron" aria-hidden="true">&#9656;</span>
+                <span class="pw-annual-title">&#128202; Annual &amp; 2026 YTD Demolition Permit Benchmarks (2020 - 2026 Grant &amp; Report Stats)</span>
+              </div>
+              <div class="pw-annual-summary-pills">
+                <span class="pw-annual-pill crit">2026 YTD COH: <strong class="mono" id="pw-bench-pill-ytd">1,755</strong></span>
+                <span class="pw-annual-pill warn">2025 COH: <strong class="mono" id="pw-bench-pill-2025">2,187</strong></span>
+                <span class="pw-annual-pill">2025 Countywide: <strong class="mono" id="pw-bench-pill-hcad">2,791</strong></span>
+                <span class="pw-annual-pill ok">2026 HAHC Main Approved: <strong class="mono" id="pw-bench-pill-hahc">0</strong></span>
+                <button
+                  type="button"
+                  class="action-pill pw-copy-grant-btn"
+                  id="btn-copy-grant-demo-stats"
+                  title="Copy 2020-2026 YTD demolition permit statistics for grant applications or annual reports"
+                >
+                  &#128203; Copy Grant Stats
+                </button>
+              </div>
+            </summary>
+            <div class="pw-annual-benchmarks-body" id="pw-annual-benchmarks-body"></div>
+          </details>
+
           <div class="permit-watch-filter-bar">
             <div class="permit-watch-filter-pills" role="tablist" aria-label="Filter Watchlist Alerts by Severity">
               <button type="button" class="permit-watch-filter-pill active" data-pw-filter="all">
@@ -2707,6 +2749,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261028a"></script>
+  <script type="module" src="js/app.js?v=20261028b"></script>
 </body>
 </html>

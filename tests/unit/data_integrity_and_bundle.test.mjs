@@ -529,7 +529,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, HTML entrypoints, ES module imports, and static public/data fetches
   const manifest = readDataJson("pmtiles_manifest.json");
   const expectedVer = String(manifest.cache_bust || "").trim();
-  assert.equal(expectedVer, "20261028a", `Expected pmtiles_manifest.json cache_bust === '20261028a'`);
+  assert.equal(expectedVer, "20261028b", `Expected pmtiles_manifest.json cache_bust === '20261028b'`);
 
   const sourceFiles = [
     path.join(APP_DIR, "index.html"),

@@ -768,3 +768,89 @@ def test_it9_and_rp6_three_way_cloud_sheet_reconciliation_legacy_hydration_and_d
     snow_txt = page.locator("#snowballCard").inner_text()
     assert "Smith St C Store LLC" in snow_txt
     assert "Brake Time" in snow_txt
+
+
+def test_annual_demolition_benchmarks_option_a_and_option_b_e2e(
+    page: Any,
+    atlas_base_url: str,
+) -> None:
+    """E2E verification of Option A (plat-monitor.html) and Option B (index.html) Annual (2020-2025) & 2026 YTD Demolition Permit Benchmarks."""
+    page.context.grant_permissions(["clipboard-read", "clipboard-write"])
+
+    # --- Option A: Plat & Property Monitor Workstation (plat-monitor.html) ---
+    page.goto(f"{atlas_base_url}/plat-monitor.html", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    page.wait_for_function("() => Boolean(window.__permitAlertsPayload)", timeout=10000)
+
+    assert page.locator("#hdrDemoYtdCount").inner_text().strip() == "1,755"
+    demo_stage = page.locator("#funnel .stage.demo-stage")
+    assert "1,755 / 2,187" in demo_stage.inner_text()
+    assert demo_stage.get_attribute("aria-expanded") == "false"
+
+    # Toggle drawer open via #toggleDemoBenchmarksBtn
+    page.locator("#toggleDemoBenchmarksBtn").click()
+    drawer = page.locator("#demoBenchmarksDrawer")
+    assert not drawer.evaluate("el => el.classList.contains('hidden')")
+    assert page.locator("#toggleDemoBenchmarksBtn").get_attribute("aria-expanded") == "true"
+    assert demo_stage.get_attribute("aria-expanded") == "true"
+
+    drawer_txt = drawer.inner_text()
+    for token in ("1,755", "1,676", "2,187", "2,066", "2,380", "2,287", "2,791", "2,096", "155"):
+        assert token in drawer_txt, f"Missing expected benchmark metric {token} in #demoBenchmarksDrawer"
+
+    # Keyboard Enter/Space toggle and Escape close on .stage.demo-stage
+    demo_stage.focus()
+    page.keyboard.press("Enter")
+    assert drawer.evaluate("el => el.classList.contains('hidden')")
+    assert demo_stage.get_attribute("aria-expanded") == "false"
+    page.keyboard.press(" ")
+    assert not drawer.evaluate("el => el.classList.contains('hidden')")
+
+    # Copy grant summary from drawer button
+    page.locator("#copyDemoBenchmarksBtn").click()
+    clip_text = page.evaluate("() => navigator.clipboard.readText()")
+    assert "HOUSTON BUILDING ATLAS - DEMOLITION & PRESERVATION BENCHMARKS" in clip_text
+    assert "1,755 structural demolition permits across 1,676 unique addresses" in clip_text
+    assert "\u2014" not in clip_text
+
+    # Close with Escape key
+    page.keyboard.press("Escape")
+    assert drawer.evaluate("el => el.classList.contains('hidden')")
+
+    # Switch to Watchlist mode and verify .stage.demo-stage remains in #funnel
+    page.locator("#modeWatchlistBtn").click()
+    assert "1,755 / 2,187" in page.locator("#funnel .stage.demo-stage").inner_text()
+
+    # --- Option B: Main Map Sidebar & Active Permit Watchlist Modal (index.html) ---
+    page.goto(f"{atlas_base_url}/index.html", wait_until="domcontentloaded")
+    _wait_for_atlas_ready(page)
+
+    assert page.locator("#pw-sidebar-ytd-count").inner_text().strip() == "1,755"
+    assert page.locator("#pw-sidebar-2025-count").inner_text().strip() == "2,187"
+    assert page.locator("#pw-sidebar-hahc-count").inner_text().strip() == "0"
+
+    # Clicking #btn-open-demo-benchmarks-sidebar opens #permit-watch-modal and expands <details id="pw-annual-benchmarks-details">
+    page.locator("#btn-open-demo-benchmarks-sidebar").click()
+    modal = page.locator("#permit-watch-modal")
+    assert not modal.evaluate("el => el.classList.contains('hidden')")
+    details = page.locator("#pw-annual-benchmarks-details")
+    assert details.evaluate("el => el.open === true")
+
+    assert page.locator("#pw-bench-pill-ytd").inner_text().strip() == "1,755"
+    assert page.locator("#pw-bench-pill-2025").inner_text().strip() == "2,187"
+    assert page.locator("#pw-bench-pill-hcad").inner_text().strip() == "2,791"
+    assert page.locator("#pw-bench-pill-hahc").inner_text().strip() == "0"
+
+    body_txt = page.locator("#pw-annual-benchmarks-body").inner_text()
+    for token in ("1,755", "1,676", "2,187", "2,380", "2,791", "2,096", "155"):
+        assert token in body_txt, f"Missing expected benchmark metric {token} in #pw-annual-benchmarks-body"
+
+    # Rapid double-click on #btn-copy-grant-demo-stats preserves dataset.origHtml and copies grant text
+    copy_btn = page.locator("#btn-copy-grant-demo-stats")
+    copy_btn.click()
+    copy_btn.click()
+    assert "Copied Grant Stats" in copy_btn.inner_text()
+    assert "Copy Grant Stats" in copy_btn.evaluate("el => el.dataset.origHtml || ''")
+    modal_clip = page.evaluate("() => navigator.clipboard.readText()")
+    assert modal_clip == clip_text
+

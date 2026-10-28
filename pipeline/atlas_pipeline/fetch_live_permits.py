@@ -21,6 +21,7 @@ app/public/data/active_permit_alerts.json for the Atlas UI.
 import argparse
 import ast
 import concurrent.futures
+import copy
 import datetime
 import http.cookiejar
 import io
@@ -43,6 +44,157 @@ ALERTS_OUTPUT_JSON = REPO_ROOT / "app" / "public" / "data" / "active_permit_aler
 COH_WFSERVLET_URL = "http://cohtora.houstontx.gov/ibi_apps/WFServlet"
 HPC_SOLD_PERMITS_PAGE = "https://www.houstonpermittingcenter.org/sold-permits-search"
 DSHS_BASE_URL = "https://vo.ras.dshs.state.tx.us/datamart"
+
+DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS: dict = {
+    "updated_through": "2026-10-28",
+    "coh_structural_demolitions": [
+        {
+            "period": "2026 YTD",
+            "date_range": "Jan 1 - Oct 28, 2026",
+            "total_permits": 1755,
+            "unique_addresses": 1676,
+            "standard_demo_sd": 1519,
+            "dangerous_bldg_4d": 236,
+            "residential_1_2_fam": 1349,
+            "commercial_multifam": 288,
+            "garage_accessory": 118,
+            "historic_index_matched": 42,
+            "pre_1940_matched": 27,
+            "sewer_disconnect_permits": 1829,
+        },
+        {
+            "period": "2025",
+            "date_range": "Jan 1 - Dec 31, 2025",
+            "total_permits": 2187,
+            "unique_addresses": 2066,
+            "standard_demo_sd": 2021,
+            "dangerous_bldg_4d": 166,
+            "residential_1_2_fam": 1680,
+            "commercial_multifam": 356,
+            "garage_accessory": 151,
+            "historic_index_matched": 60,
+            "pre_1940_matched": 33,
+            "sewer_disconnect_permits": 2156,
+        },
+        {
+            "period": "2024",
+            "date_range": "Jan 1 - Dec 31, 2024",
+            "total_permits": 2380,
+            "unique_addresses": 2287,
+            "standard_demo_sd": 2220,
+            "dangerous_bldg_4d": 160,
+            "residential_1_2_fam": 1848,
+            "commercial_multifam": 322,
+            "garage_accessory": 210,
+            "historic_index_matched": 47,
+            "pre_1940_matched": 31,
+            "sewer_disconnect_permits": 2150,
+        },
+    ],
+    "hcad_countywide_demolitions": [
+        {
+            "year": 2025,
+            "total_permits": 2791,
+            "unique_parcels": 2464,
+            "residential_type_13": 2287,
+            "commercial_type_33": 479,
+            "general_type_43": 25,
+            "coh_agency_061": 2136,
+        },
+        {
+            "year": 2024,
+            "total_permits": 2869,
+            "unique_parcels": 2596,
+            "residential_type_13": 2452,
+            "commercial_type_33": 405,
+            "general_type_43": 12,
+            "coh_agency_061": 2251,
+        },
+        {
+            "year": 2023,
+            "total_permits": 2592,
+            "unique_parcels": 2393,
+            "residential_type_13": 2218,
+            "commercial_type_33": 365,
+            "general_type_43": 9,
+            "coh_agency_061": 1999,
+        },
+        {
+            "year": 2022,
+            "total_permits": 2566,
+            "unique_parcels": 2323,
+            "residential_type_13": 2208,
+            "commercial_type_33": 269,
+            "general_type_43": 89,
+            "coh_agency_061": 2074,
+        },
+        {
+            "year": 2021,
+            "total_permits": 2416,
+            "unique_parcels": 2249,
+            "residential_type_13": 2159,
+            "commercial_type_33": 232,
+            "general_type_43": 25,
+            "coh_agency_061": 1918,
+        },
+        {
+            "year": 2020,
+            "total_permits": 2096,
+            "unique_parcels": 1975,
+            "residential_type_13": 1897,
+            "commercial_type_33": 185,
+            "general_type_43": 14,
+            "coh_agency_061": 1610,
+        },
+    ],
+    "hahc_historic_district_demolitions": [
+        {
+            "period": "2026 YTD",
+            "total_coa_filings": 155,
+            "demo_reloc_filings": 8,
+            "main_res_approved": 0,
+            "main_res_denied": 2,
+            "accessory_or_partial_approved": 5,
+            "summary_note": "0 main residential structures approved for demolition (2 denied at 202 E 31st 1/2 St & 528 Columbia St; 4 garages/carports & 1 accessory relocation approved)",
+        },
+        {
+            "period": "2025",
+            "total_coa_filings": 136,
+            "demo_reloc_filings": 7,
+            "main_res_approved": 2,
+            "main_res_denied": 3,
+            "accessory_or_partial_approved": 2,
+            "summary_note": "3 main residential demolitions/relocations denied (1138 Fugate St, 918 Columbia St, 1108 E 16th St); 2 residential demolitions approved (1207 Tulane St, 11 Montglen Ct); 1 garage & 1 partial rear addition approved",
+        },
+        {
+            "period": "2024",
+            "total_coa_filings": 112,
+            "demo_reloc_filings": 2,
+            "main_res_approved": 0,
+            "main_res_denied": 1,
+            "accessory_or_partial_approved": 1,
+            "summary_note": "0 main residential structures approved for demolition (1 house demolition denied at 1120 E 14th St; 1 garage demolition approved at 1031 E 16th St)",
+        },
+    ],
+}
+
+
+def build_annual_demolition_benchmarks(existing_benchmarks: dict | None = None) -> dict:
+    """Resolve annual demolition benchmarks with per-table fallback to defaults."""
+    base = copy.deepcopy(DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS)
+    if not isinstance(existing_benchmarks, dict):
+        return base
+    if existing_benchmarks.get("updated_through"):
+        base["updated_through"] = str(existing_benchmarks["updated_through"])
+    for key in (
+        "coh_structural_demolitions",
+        "hcad_countywide_demolitions",
+        "hahc_historic_district_demolitions",
+    ):
+        val = existing_benchmarks.get(key)
+        if isinstance(val, list) and len(val) > 0:
+            base[key] = copy.deepcopy(val)
+    return base
 
 
 def make_ssl_context():
@@ -1076,6 +1228,16 @@ def main():
                 by_norm_addr_alert[na] = a
     alerts_list = dedup_alerts
 
+    existing_benchmarks = None
+    if ALERTS_OUTPUT_JSON.exists():
+        try:
+            with open(ALERTS_OUTPUT_JSON, "r", encoding="utf-8") as f:
+                existing_benchmarks = json.load(f).get("annual_benchmarks")
+        except Exception:
+            existing_benchmarks = None
+
+    annual_benchmarks = build_annual_demolition_benchmarks(existing_benchmarks)
+
     now_iso = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     alerts_payload = {
         "updated_at": now_iso,
@@ -1088,6 +1250,7 @@ def main():
             "coh_permits_matched": sum(len(a["coh_permits"]) for a in alerts_list),
             "dshs_notifications_matched": sum(len(a["dshs_notifications"]) for a in alerts_list),
         },
+        "annual_benchmarks": annual_benchmarks,
         "alerts": alerts_list,
     }
 

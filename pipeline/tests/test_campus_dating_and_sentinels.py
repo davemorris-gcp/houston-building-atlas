@@ -427,7 +427,7 @@ def test_modularity_single_source_of_truth_and_cli_registration() -> None:
             f"{mod_name} must import {expected_symbol} from atlas_pipeline.schema"
         )
 
-    assert ACTIVE_CACHE_BUST == "20261028a"
+    assert ACTIVE_CACHE_BUST == "20261028b"
     assert len(CAMPUS_SPLIT_HCADS) == 10
     assert "1223580020001" in CAMPUS_SPLIT_HCADS
     assert "0451440030163" in CAMPUS_SPLIT_HCADS

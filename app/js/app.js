@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261028a";
+} from "./palettes.js?v=20261028b";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -19,19 +19,19 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261028a";
-import { AtlasMapController } from "./mapController.js?v=20261028a";
+} from "./filterStore.js?v=20261028b";
+import { AtlasMapController } from "./mapController.js?v=20261028b";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261028a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261028a";
+} from "./guidedChaptersAndPortfolios.js?v=20261028b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261028b";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261028a";
+} from "./clerkSearchHelpers.js?v=20261028b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -52,7 +52,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261028a";
+} from "./curatedEdits.js?v=20261028b";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -62,7 +62,12 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261028a";
+} from "./photoService.js?v=20261028b";
+import {
+  DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
+  formatDemolitionBenchmarksGrantText,
+  resolveAnnualDemolitionBenchmarks,
+} from "./platMonitorHelpers.js?v=20261028b";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -156,6 +161,7 @@ export class HoustonAtlasApp {
     this._populatePortfolioPresetSelect();
     this._renderLegend();
     this._syncControlsFromState(this.filterStore.getState());
+    this._syncPermitWatchCounts();
 
     if (this.initialCollapseSidebar !== null) {
       this._setSidebarCollapsed(this.initialCollapseSidebar);
@@ -561,7 +567,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261028a`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261028b`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -686,12 +692,12 @@ export class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261028a"),
-        fetch("public/data/stats_summary.json?v=20261028a"),
-        fetch("public/data/haif_index.json?v=20261028a").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261028a").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261028a").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261028a").catch(() => null),
+        fetch("public/data/search_index.json?v=20261028b"),
+        fetch("public/data/stats_summary.json?v=20261028b"),
+        fetch("public/data/haif_index.json?v=20261028b").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261028b").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261028b").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261028b").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -3118,7 +3124,44 @@ export class HoustonAtlasApp {
       btnOpenPermitWatchInline.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.openPermitWatchModal("all");
+        this.openPermitWatchModal("all", false);
+      });
+    }
+    const btnOpenDemoBenchmarksSidebar = document.getElementById(
+      "btn-open-demo-benchmarks-sidebar"
+    );
+    if (btnOpenDemoBenchmarksSidebar) {
+      btnOpenDemoBenchmarksSidebar.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openPermitWatchModal("all", true);
+      });
+    }
+    const btnCopyGrantDemoStats = document.getElementById("btn-copy-grant-demo-stats");
+    if (btnCopyGrantDemoStats) {
+      btnCopyGrantDemoStats.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const payload = this.mapController?.getPermitAlertsPayload?.();
+        const txt = formatDemolitionBenchmarksGrantText(payload);
+        try {
+          await navigator.clipboard.writeText(txt);
+        } catch (_err) {
+          const ta = document.createElement("textarea");
+          ta.value = txt;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+        if (!btnCopyGrantDemoStats.dataset.origHtml) {
+          btnCopyGrantDemoStats.dataset.origHtml = btnCopyGrantDemoStats.innerHTML;
+        }
+        const origHtml = btnCopyGrantDemoStats.dataset.origHtml;
+        btnCopyGrantDemoStats.innerHTML = "&#10003; Copied Grant Stats";
+        setTimeout(() => {
+          btnCopyGrantDemoStats.innerHTML = origHtml;
+        }, 2500);
       });
     }
     const permitWatchModal = document.getElementById("permit-watch-modal");
@@ -5098,7 +5141,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261028a`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261028b`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -13918,7 +13961,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261028a`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261028b`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -16790,6 +16833,169 @@ export class HoustonAtlasApp {
       const dtStr = String(payload.generated_at).slice(0, 10);
       updatedBadge.textContent = `Updated ${dtStr} · Daily Sync`;
     }
+
+    const b = resolveAnnualDemolitionBenchmarks(payload);
+    const def = DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS;
+    const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
+    const cohYtd =
+      (b.coh_structural_demolitions || [])[0] || def.coh_structural_demolitions[0];
+    const coh25 =
+      (b.coh_structural_demolitions || [])[1] || def.coh_structural_demolitions[1];
+    const hcad25 =
+      (b.hcad_countywide_demolitions || [])[0] || def.hcad_countywide_demolitions[0];
+    const hahc26 =
+      (b.hahc_historic_district_demolitions || [])[0] ||
+      def.hahc_historic_district_demolitions[0];
+
+    const sbYtd = document.getElementById("pw-sidebar-ytd-count");
+    if (sbYtd) sbYtd.textContent = fmt(cohYtd.total_permits ?? def.coh_structural_demolitions[0].total_permits);
+    const sb25 = document.getElementById("pw-sidebar-2025-count");
+    if (sb25) sb25.textContent = fmt(coh25.total_permits ?? def.coh_structural_demolitions[1].total_permits);
+    const sbHahc = document.getElementById("pw-sidebar-hahc-count");
+    if (sbHahc) sbHahc.textContent = fmt(hahc26.main_res_approved ?? 0);
+
+    const pillYtd = document.getElementById("pw-bench-pill-ytd");
+    if (pillYtd) pillYtd.textContent = fmt(cohYtd.total_permits ?? def.coh_structural_demolitions[0].total_permits);
+    const pill25 = document.getElementById("pw-bench-pill-2025");
+    if (pill25) pill25.textContent = fmt(coh25.total_permits ?? def.coh_structural_demolitions[1].total_permits);
+    const pillHcad = document.getElementById("pw-bench-pill-hcad");
+    if (pillHcad) pillHcad.textContent = fmt(hcad25.total_permits ?? def.hcad_countywide_demolitions[0].total_permits);
+    const pillHahc = document.getElementById("pw-bench-pill-hahc");
+    if (pillHahc) pillHahc.textContent = fmt(hahc26.main_res_approved ?? 0);
+
+    this._renderPermitWatchAnnualBenchmarks(payload);
+  }
+
+  _renderPermitWatchAnnualBenchmarks(payload = null) {
+    const bodyEl = document.getElementById("pw-annual-benchmarks-body");
+    if (!bodyEl) return;
+    const resolvedPayload = payload || this.mapController?.getPermitAlertsPayload?.();
+    const b = resolveAnnualDemolitionBenchmarks(resolvedPayload);
+    const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
+    const escHtml = (v) =>
+      String(v ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    const cohRows = b.coh_structural_demolitions || [];
+    const hcadRows = b.hcad_countywide_demolitions || [];
+    const hahcRows = b.hahc_historic_district_demolitions || [];
+
+    bodyEl.innerHTML = `
+      <div class="pw-bench-tables-grid">
+        <div class="pw-bench-table-card">
+          <div class="pw-bench-table-title">1. City of Houston Permitting Center (Structural Building Demolitions, 2024 - 2026 YTD)</div>
+          <div class="pw-bench-table-sub">Sold structural building demolition permits (Permit Type SD Standard Demolition + Permit Type 4D Dangerous Building Demolition), excluding non-structural interior remodel permits.</div>
+          <div class="pw-bench-table-scroll">
+            <table class="pw-bench-table">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th>Total Demos</th>
+                  <th>Unique Addrs</th>
+                  <th>Std (SD)</th>
+                  <th>Dgr Bldg (4D)</th>
+                  <th>Res (1-2 Fam)</th>
+                  <th>Comm / Multi</th>
+                  <th>Garage / Acc</th>
+                  <th>Historic Index (Pre-1940)</th>
+                  <th>Sewer Discs</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${cohRows
+                  .map(
+                    (r) => `
+                  <tr>
+                    <td><strong>${escHtml(r.period)}</strong> <span class="pw-bench-range">(${escHtml(r.date_range)})</span></td>
+                    <td class="mono"><strong>${fmt(r.total_permits)}</strong></td>
+                    <td class="mono">${fmt(r.unique_addresses)}</td>
+                    <td class="mono">${fmt(r.standard_demo_sd)}</td>
+                    <td class="mono">${fmt(r.dangerous_bldg_4d)}</td>
+                    <td class="mono">${fmt(r.residential_1_2_fam)}</td>
+                    <td class="mono">${fmt(r.commercial_multifam)}</td>
+                    <td class="mono">${fmt(r.garage_accessory)}</td>
+                    <td class="mono">${fmt(r.historic_index_matched)} (${fmt(r.pre_1940_matched)})</td>
+                    <td class="mono">${fmt(r.sewer_disconnect_permits)}</td>
+                  </tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pw-bench-table-title" style="margin-top:12px;">3. HAHC Demolition &amp; Relocation COA Decisions in Designated Historic Districts (2024 - 2026 YTD)</div>
+          <div class="pw-bench-table-scroll">
+            <table class="pw-bench-table">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th>Total COAs</th>
+                  <th>Demo / Reloc COAs</th>
+                  <th>Main Res Approved</th>
+                  <th>Main Res Denied</th>
+                  <th>Accessory / Partial Approved</th>
+                  <th style="text-align:left;">Outcome Breakdown</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${hahcRows
+                  .map(
+                    (r) => `
+                  <tr>
+                    <td><strong>${escHtml(r.period)}</strong></td>
+                    <td class="mono">${fmt(r.total_coa_filings)}</td>
+                    <td class="mono"><strong>${fmt(r.demo_reloc_filings)}</strong></td>
+                    <td class="mono" style="color:${r.main_res_approved === 0 ? "#6EE7B7" : "#FCA5A5"};font-weight:700;">${fmt(r.main_res_approved)}</td>
+                    <td class="mono" style="font-weight:700;">${fmt(r.main_res_denied)}</td>
+                    <td class="mono">${fmt(r.accessory_or_partial_approved)}</td>
+                    <td style="text-align:left;white-space:normal;min-width:210px;color:#CBD5E1;font-size:11px;">${escHtml(r.summary_note)}</td>
+                  </tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pw-bench-table-card">
+          <div class="pw-bench-table-title">2. HCAD Countywide Permit Roll (All of Harris County, 2020 - 2025 Calendar Years)</div>
+          <div class="pw-bench-table-sub">Countywide HCAD CAMA permit archive (Real_acct_owner.zip -> permits.txt) across Permit Types 13 (Residential Demo), 33 (Commercial Demo), and 43 (General Demo). Note: HCAD batch-loads current-year City of Houston (061) permits during winter roll prep; use Table 1 for 2026 YTD.</div>
+          <div class="pw-bench-table-scroll">
+            <table class="pw-bench-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Countywide Total</th>
+                  <th>Unique Parcels</th>
+                  <th>Res Demo (13)</th>
+                  <th>Comm Demo (33)</th>
+                  <th>Gen Demo (43)</th>
+                  <th>City of Houston (061)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${hcadRows
+                  .map(
+                    (r) => `
+                  <tr>
+                    <td><strong>${escHtml(r.year)}</strong></td>
+                    <td class="mono"><strong>${fmt(r.total_permits)}</strong></td>
+                    <td class="mono">${fmt(r.unique_parcels)}</td>
+                    <td class="mono">${fmt(r.residential_type_13)}</td>
+                    <td class="mono">${fmt(r.commercial_type_33)}</td>
+                    <td class="mono">${fmt(r.general_type_43)}</td>
+                    <td class="mono">${fmt(r.coh_agency_061)}</td>
+                  </tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   _buildInspectorPlatWatchCardHtml(platItem) {
@@ -16980,11 +17186,19 @@ export class HoustonAtlasApp {
     `;
   }
 
-  openPermitWatchModal(filterSeverity = "all") {
+  openPermitWatchModal(filterSeverity = "all", expandBenchmarks = false) {
     const modal = document.getElementById("permit-watch-modal");
     if (!modal) return;
     this._syncPermitWatchCounts();
     modal.classList.remove("hidden");
+
+    const benchDetails = document.getElementById("pw-annual-benchmarks-details");
+    if (benchDetails && expandBenchmarks) {
+      benchDetails.open = true;
+      setTimeout(() => {
+        benchDetails.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 60);
+    }
 
     modal.querySelectorAll("[data-pw-filter]").forEach((btn) => {
       const sev = btn.getAttribute("data-pw-filter") || "all";

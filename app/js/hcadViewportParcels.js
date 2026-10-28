@@ -4,7 +4,7 @@
  * minimum-age enricher for The Houston Building Atlas.
  */
 
-import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261028a";
+import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261028b";
 
 export const HCAD_PUBLIC_QUERY_URL =
   "https://arcweb.hcad.org/server/rest/services/public/public_query/MapServer/0/query";

@@ -16,7 +16,7 @@ MIN_VALID_YEAR = 1836
 MAX_VALID_YEAR = 2027
 MAX_VALID_CAMA_DATE_YEAR = 2026
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261028a"
+ACTIVE_CACHE_BUST = "20261028b"
 QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
 
 DEMOLISHED_VACANT_ISSUE = "Building demolished - lot currently vacant"

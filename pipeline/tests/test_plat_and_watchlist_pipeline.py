@@ -942,3 +942,82 @@ def test_rp7_graceful_per_agency_timeout_degradation_and_alert_scripts(monkeypat
         compile_cmd = f"import py_compile; py_compile.compile({str(target)!r}, doraise=True)"
         subprocess.run([sys.executable, "-S", "-c", compile_cmd], check=True, cwd=str(REPO_ROOT))
 
+
+def test_annual_demolition_benchmarks_schema_and_js_parity() -> None:
+    """Verify annual_benchmarks in fetch_live_permits.py, active_permit_alerts.json, and JS parity."""
+    from atlas_pipeline import fetch_live_permits as flp
+
+    assert hasattr(flp, "DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS")
+    assert hasattr(flp, "build_annual_demolition_benchmarks")
+
+    default_bench = flp.DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS
+    built_bench = flp.build_annual_demolition_benchmarks(None)
+    assert built_bench == default_bench
+    assert built_bench is not default_bench
+
+    # Partial existing benchmarks must preserve non-empty custom tables and backfill missing/empty tables from DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS
+    custom_coh_row = {
+        **default_bench["coh_structural_demolitions"][0],
+        "total_permits": 1999,
+    }
+    partial_built = flp.build_annual_demolition_benchmarks({
+        "updated_through": "2026-11-01",
+        "coh_structural_demolitions": [custom_coh_row],
+        "hcad_countywide_demolitions": [],
+    })
+    assert partial_built["updated_through"] == "2026-11-01"
+    assert len(partial_built["coh_structural_demolitions"]) == 1
+    assert partial_built["coh_structural_demolitions"][0]["total_permits"] == 1999
+    assert len(partial_built["hcad_countywide_demolitions"]) == 6
+    assert len(partial_built["hahc_historic_district_demolitions"]) == 3
+
+    alerts_path = REPO_ROOT / "app" / "public" / "data" / "active_permit_alerts.json"
+    alerts_raw = alerts_path.read_text(encoding="utf-8")
+    assert "\u2014" not in alerts_raw, "active_permit_alerts.json must not contain U+2014 em-dashes"
+    alerts_data = json.loads(alerts_raw)
+
+    bench = alerts_data.get("annual_benchmarks")
+    assert isinstance(bench, dict), "active_permit_alerts.json must include annual_benchmarks"
+
+    coh = bench.get("coh_structural_demolitions")
+    assert isinstance(coh, list) and len(coh) == 3
+    by_period = {row["period"]: row for row in coh}
+    assert by_period["2026 YTD"]["total_permits"] == 1755
+    assert by_period["2026 YTD"]["unique_addresses"] == 1676
+    assert by_period["2025"]["total_permits"] == 2187
+    assert by_period["2025"]["unique_addresses"] == 2066
+    assert by_period["2024"]["total_permits"] == 2380
+    assert by_period["2024"]["unique_addresses"] == 2287
+
+    hcad = bench.get("hcad_countywide_demolitions")
+    assert isinstance(hcad, list) and len(hcad) == 6
+    assert [row["year"] for row in hcad] == [2025, 2024, 2023, 2022, 2021, 2020]
+    assert hcad[0]["total_permits"] == 2791
+    assert hcad[0]["unique_parcels"] == 2464
+    assert hcad[-1]["year"] == 2020
+    assert hcad[-1]["total_permits"] == 2096
+
+    hahc = bench.get("hahc_historic_district_demolitions")
+    assert isinstance(hahc, list) and len(hahc) == 3
+    hahc_by_period = {row["period"]: row for row in hahc}
+    assert set(hahc_by_period.keys()) == {"2026 YTD", "2025", "2024"}
+    assert hahc_by_period["2026 YTD"]["main_res_approved"] == 0
+    assert hahc_by_period["2026 YTD"]["main_res_denied"] == 2
+    assert hahc_by_period["2024"]["main_res_approved"] == 0
+
+    node_code = """
+    import { DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS } from './app/js/platMonitorHelpers.js';
+    console.log(JSON.stringify(DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS));
+    """
+    proc = subprocess.run(
+        ["node", "--input-type=module", "-e", node_code],
+        cwd=str(REPO_ROOT),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    js_bench = json.loads(proc.stdout.strip())
+    assert js_bench == default_bench
+    assert js_bench == bench
+
+
