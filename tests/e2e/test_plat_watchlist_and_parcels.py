@@ -901,13 +901,23 @@ def test_activity_it1_morning_briefing_layout_sweep_health_ledger_filters_and_ex
     assert not page.locator("#watchlistToolbar").is_visible()
     assert page.locator("#funnel .stage").count() == 6
 
-    # 2. Unread badge alignment & healthy 8/8 sweep status without false warnings
+    # 2. Unread badge alignment & sweep health telemetry matching live committed snapshot
+    data_dir = Path(__file__).resolve().parents[2] / "app" / "public" / "data"
+    live_wl_doc = json.loads((data_dir / "property_watchlist.json").read_text(encoding="utf-8"))
+    live_sh = live_wl_doc.get("lastSweepHealth") or {}
+    live_ok = int(live_sh.get("succeededAgencies", 8))
+    live_tot = int(live_sh.get("totalAgencies", 8))
+    live_failed = list(live_sh.get("failedAgencies") or [])
+
     mode_cnt = page.locator("#modeActivityCount").inner_text().strip()
     unread_cnt = page.locator("#actCntUnread").inner_text().strip()
     assert mode_cnt == unread_cnt and int(mode_cnt) > 0
     sweep_txt = page.locator("#activitySweepHealthBadge").inner_text()
-    assert "8/8" in sweep_txt
-    assert page.locator("[data-degraded-sweep-banner='1']").count() == 0
+    assert f"{live_ok}/{live_tot}" in sweep_txt
+    if not live_failed:
+        assert page.locator("[data-degraded-sweep-banner='1']").count() == 0
+    else:
+        assert page.locator("[data-degraded-sweep-banner='1']").count() == 1
 
     # 3. Multi-day quiet sweep compaction expand/collapse
     quiet_rows = page.locator("#list .act-quiet-row")
@@ -963,11 +973,54 @@ def test_activity_it1_morning_briefing_layout_sweep_health_ledger_filters_and_ex
     page.click("#copyActivityBriefingBtn")
     briefing_clip = page.evaluate("() => navigator.clipboard.readText()")
     assert "Preservation Houston - Plat & Property Monitor Briefing" in briefing_clip
-    assert "8/8 agencies OK" in briefing_clip
+    assert f"{live_ok}/{live_tot} agencies OK" in briefing_clip
     assert "\u2014" not in briefing_clip
 
-    # 7. Mock degraded sweep payload (`7/8`, `chk-10` TDLR failed) -> surfaces degraded badge, banner, & ledger pill
-    data_dir = Path(__file__).resolve().parents[2] / "app" / "public" / "data"
+    # 7a. Deterministic clean 8/8 mock verifies zero false degraded warnings even if live cron had an upstream portal outage
+    healthy_doc = json.loads((data_dir / "monitor_activity_log.json").read_text(encoding="utf-8"))
+    healthy_wl = json.loads((data_dir / "property_watchlist.json").read_text(encoding="utf-8"))
+    for sh_obj in (healthy_doc["lastSweepHealth"], healthy_wl["lastSweepHealth"]):
+        sh_obj["succeededAgencies"] = 8
+        sh_obj["failedAgencies"] = []
+        sh_obj["allOk"] = True
+        for ag_meta in (sh_obj.get("agencies") or {}).values():
+            ag_meta["status"] = "ok"
+            ag_meta["ok"] = True
+            ag_meta["failedPropertyCount"] = 0
+            ag_meta["error"] = ""
+    healthy_doc["events"] = [
+        e for e in healthy_doc.get("events", []) if e.get("kind") != "watchlist_sweep_degraded"
+    ]
+    if healthy_doc.get("dailyRuns"):
+        healthy_doc["dailyRuns"][0]["succeededAgencies"] = 8
+        healthy_doc["dailyRuns"][0]["failedAgencies"] = []
+        healthy_doc["dailyRuns"][0]["allOk"] = True
+    healthy_json = json.dumps(healthy_doc)
+    healthy_wl_json = json.dumps(healthy_wl)
+    page.route(
+        "**/data/monitor_activity_log.json*",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            body=healthy_json,
+        ),
+    )
+    page.route(
+        "**/data/property_watchlist.json*",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            body=healthy_wl_json,
+        ),
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    assert "8/8" in page.locator("#activitySweepHealthBadge").inner_text()
+    assert page.locator("[data-degraded-sweep-banner='1']").count() == 0
+    page.unroute("**/data/monitor_activity_log.json*")
+    page.unroute("**/data/property_watchlist.json*")
+
+    # 7b. Mock degraded sweep payload (`7/8`, `chk-10` TDLR failed) -> surfaces degraded badge, banner, & ledger pill
     degraded_doc = json.loads((data_dir / "monitor_activity_log.json").read_text(encoding="utf-8"))
     degraded_wl = json.loads((data_dir / "property_watchlist.json").read_text(encoding="utf-8"))
     tdlr_err = {
