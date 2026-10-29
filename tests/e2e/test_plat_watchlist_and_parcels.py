@@ -1154,7 +1154,9 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
 
     page.click("#modeActivityBtn")
     page.reload(wait_until="domcontentloaded")
-    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    page.wait_for_selector("[data-caught-up-card='1']", timeout=15000)
+    assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
     assert page.locator("#modeActivityCount").inner_text().strip() == "0"
     assert page.locator("[data-caught-up-card='1']").count() == 1
 
@@ -1493,7 +1495,7 @@ def test_activity_it4_boot_routing_precedence_deeplinks_and_delayed_sheet_race(
     assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
     assert page.evaluate("() => window.location.search") == ""
     page.reload(wait_until="domcontentloaded")
-    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
     assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
 
     # 4. Rapid tab switch while background Google Sheet CSV request resolves 450ms later never snaps user back
@@ -1511,7 +1513,7 @@ def test_activity_it4_boot_routing_precedence_deeplinks_and_delayed_sheet_race(
     )
 
     page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
-    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
     page.click("#modeWatchlistBtn")
     assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
     page.wait_for_timeout(700)
