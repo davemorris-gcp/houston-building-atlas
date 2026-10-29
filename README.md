@@ -1,9 +1,9 @@
 # Preservation Houston | The Houston Building Atlas (v2)
 
-**An Open-Source, GPU-Accelerated Historical Cartography, Preservation Advocacy & Architectural Archive of `1,507,553` dated structures across Harris County, Texas (`1823-2026`).**
+**An Open-Source, GPU-Accelerated Historical Cartography, Preservation Advocacy & Architectural Archive of `1,507,897` dated structures across Harris County, Texas (`1823-2026`).**
 
 - **Live Web Application:** [`https://davemorris-gcp.github.io/houston-building-atlas/`](https://davemorris-gcp.github.io/houston-building-atlas/)
-- **Companion Biweekly Plat & 15-Point Property Monitor:** [`https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html`](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html)
+- **Companion 3-Mode Monitor (`What's New & Daily Log`, `Biweekly Plat Review` & `15-Point Watchlist`):** [`https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html`](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html)
 - **Live External Archive & Municipal Link Health Monitor (`55` Domains / `776` URLs):** [**GitHub Issue #1**](https://github.com/davemorris-gcp/houston-building-atlas/issues/1)
 
 ![The Houston Building Atlas - 408 Marshall St Archival Dossier & Chronological Map](docs/images/07_contractor_dossier_408_marshall.jpg)
@@ -12,9 +12,9 @@
 
 ## Overview
 
-**The Houston Building Atlas v2** replaces Preservation Houston's legacy cloud GIS prototype with a self-contained, zero-cost web application built on **MapLibre GL JS v4.7.1**, **PMTiles v3.2.0**, and a **39-script geospatial & archival Python pipeline** (`pipeline/atlas_pipeline/`).
+**The Houston Building Atlas v2** replaces Preservation Houston's legacy cloud GIS prototype with a self-contained, zero-cost web application built on **MapLibre GL JS v4.7.1**, **PMTiles v3.2.0**, and a **44-script geospatial & archival Python pipeline** (`pipeline/atlas_pipeline/`).
 
-Every building footprint in Harris County (`1,507,553` countywide structures across 5 Zoom-11 tile-aligned `.pmtiles` shards with `100.00%` dated coverage and `0` undated buildings, plus `18,734` curated inner-core structures in `buildings.geojson` and `2,171` verified overrides) is paired with **4-Tier Evidentiary Provenance Badges** (explicitly labeling `3,047` Historic Core HCAD rounded-decade estimates as `c. 1920 (HCAD Est.)` and flagging 1926 City Directory contradictions), 1-click public misattribution flagging (`⚑ Wrong Building`, `⚑ Flag`, `⚑ Flag Error`), plain-English Chapter 33/42 legal protection rules, a 1-click 5-Step House History Research Kit (`16` Sanborn volumes / `878` sheets `1877-1955` + `39` digitized Houston City Directories `1866-1926`), `22` preservation and social-history overlays (`1915 Red Book of Houston`, `1937 HOLC Redlining`), and automated daily/biweekly/monthly early-warning feeds for demolition permits, asbestos filings, HAHC Certificates of Appropriateness, and Planning Commission replats/variances.
+Every building footprint in Harris County (`1,507,897` countywide structures across 5 Zoom-11 tile-aligned `.pmtiles` shards with `100.00%` dated coverage and `0` undated buildings, plus `18,734` curated inner-core structures in `buildings.geojson`, `2,216` verified overrides, countywide live HCAD tax-parcel rendering, and live address search across ~325,000 unimproved vacant lots) is paired with **4-Tier Evidentiary Provenance Badges** (explicitly labeling `3,047` Historic Core HCAD rounded-decade estimates as `c. 1920 (HCAD Est.)` and flagging 1926 City Directory contradictions), 1-click public misattribution flagging (`⚑ Wrong Building`, `⚑ Flag`, `⚑ Flag Error`), plain-English Chapter 33/42 legal protection rules, a 1-click 5-Step House History Research Kit (`16` Sanborn volumes / `878` sheets `1877-1955` + `39` digitized Houston City Directories `1866-1926`), `22` preservation and social-history overlays (`1915 Red Book of Houston`, `1937 HOLC Redlining`), annual (`2020-2025`) & `2026 YTD` demolition permit benchmarks, and automated daily/biweekly/monthly early-warning feeds wrapped inside a 3-mode Companion Monitor (`What's New & Daily Log` 90-day Central Time ledger, `Biweekly Plat Review`, and `15-Point Property Watchlist`).
 
 ```mermaid
 flowchart TD
@@ -25,16 +25,16 @@ flowchart TD
         S4["Civic Geography & Live Early-Warning Feeds:\n• 2009 Peter Brown GeoPDF (1,387 neighborhoods)\n• 1839-1905 Charter Wards & 1836-2020 Annexations\n• 5,573 Subdivisions, 65 Deed PDFs & 910 Ch. 42 Zones\n• 1,957 Waterways/Gullies/Oxbows & 61 Rail/Streetcar Lines\n• Daily COH Demo Permits + TX DSHS Asbestos + Monthly HAHC\n• Biweekly COH Plats/DPV Variances + 8-Agency Watchlist APIs"]
     end
 
-    subgraph Pipeline["39-Script Geospatial & Archival Pipeline (pipeline/atlas_pipeline/)"]
+    subgraph Pipeline["44-Script Geospatial & Archival Pipeline (pipeline/atlas_pipeline/)"]
         P1["Spatial Join, MultiPolygon Recovery,\n2-Stage STRtree Deduplication &\n-34.65 deg Borden Survey Orientation Repair"]
-        P2["4-Phase Countywide Undated Resolution\n(43,983 -> 0 Undated; 100.00% Coverage),\nCampus Decomposition, Cross-Dataset Contradiction Audit\n& Social-History Audits"]
-        P3["Zoom-11 Web Mercator Tile-Aligned Sharding\n(tippecanoe v2.82.0 --hilbert -Z10 -z15)\n& Daily GitHub Actions Permit/Plat/HAHC Sync"]
+        P2["4-Phase Countywide Undated Resolution\n(43,983 -> 0 Undated; 100.00% Coverage),\nCampus & 679/688 School Decomposition, Contradiction Audit\n& Social-History Audits"]
+        P3["Zoom-11 Web Mercator Tile-Aligned Sharding\n(tippecanoe v2.82.0 --hilbert -Z10 -z15),\nDaily GitHub Actions Permit/Plat/HAHC Sync &\n90-Day America/Chicago Activity Ledger"]
     end
 
     subgraph App["Zero-Cost Static Web Applications on GitHub Pages (app/)"]
         A1["5 PMTiles v3 Shards (<80 MB each) + buildings.geojson (18,734)\n+ 504 Mirrored UT PCL Sanborn WebP Plates + 65 Deed PDFs"]
-        A2["152 Permit Shards + overlays.json (22 layers) + citydir_index.json\n+ sanborn_catalog.json + hahc_coa_tracker.json + haif_index.json"]
-        A3["Main Atlas (index.html): 2D/3D WebGL, 4-Tab Wide/Mobile Inspector,\n3-Pillar Protection Scorecard, 5-Step Research Kit, 6 Guided Chapters,\nArchitect/Style Portfolios, Spyglass (1869-1969) & SVG Export Studio\n+ Companion Plat & 15-Point Property Monitor (plat-monitor.html)"]
+        A2["152 Permit Shards + overlays.json (22 layers) + citydir_index.json\n+ sanborn_catalog.json + hahc_coa_tracker.json + monitor_activity_log.json"]
+        A3["Main Atlas (index.html): 2D/3D WebGL, Live HCAD Parcels & Vacant-Lot Search,\n4-Tab Inspector, Scorecard, Research Kit, 6 Chapters, Portfolios & SVG Studio\n+ 3-Mode Companion Monitor (plat-monitor.html: What's New & Daily Log,\nBiweekly Plat Review & 15-Point Property Watchlist)"]
     end
 
     S1 & S2 --> P1
@@ -109,8 +109,8 @@ To ensure engineering architecture, archival methodology, third-party server dep
 
 ### [Chapter 8: Crowdsourced Moderation Pipeline, Live HCAD API & Admin Operations](docs/08-crowdsourcing-and-admin-operations.md)
 - Zero-cost 10-tab Google Sheets moderation backend (`Pending_Submissions` -> `Approved_Edits` live CSV hydration + `Historical_Audit_Queue` (`250` prioritized contradictions) + `Admin_Hub_&_Quick_Filter` + 12 Saved Filter Views + `🔒 Staff Admin` mode), **4-Tier Evidentiary Provenance System**, and 1-click public misattribution flagging (`⚑ Wrong Building`, `⚑ Flag`, `⚑ Flag Error`).
-- Live HCAD ArcGIS REST & encrypted token-brokered appraisal lookup (`hcadLink.js`).
-- Pre-warmed O(1) global search index (`search_index.json`, `25,915` entries) and complete **39-script pipeline rebuild reference table**.
+- Live HCAD ArcGIS REST appraisal lookup, countywide viewport parcels, & live vacant-lot address search (`hcadLink.js`, `hcadViewportParcels.js`).
+- Pre-warmed O(1) global search index (`search_index.json`, `25,329` entries) and complete **44-script pipeline rebuild reference table**.
 - Automated 4-layer verification suite (`45` stratified property archetypes across `15` equivalence classes) and live [**External Archive & Municipal Link Health Report (GitHub Issue #1)**](https://github.com/davemorris-gcp/houston-building-atlas/issues/1).
 
 ### [Chapter 9: Preservation Practice Stack, House History Research Kit, Social History Equity Layers, Guided Chapters & HAHC COA Tracker](docs/09-preservation-practice-social-history-and-hahc.md)
@@ -158,10 +158,13 @@ Every pull request and push to `main` is gated by a deterministic verification p
 # Regenerate the 45 Stratified Property & Overlay Archetypes (15 equivalence classes x 3)
 node scripts/build_test_archetypes.mjs
 
-# Layer 1: Fast deterministic schema, WGS84 bounds, GitHub Pages bundle size, filterStore, portfolio & dead-URL pattern unit tests (~1.3s)
+# Layer 1: Fast deterministic schema, WGS84 bounds, GitHub Pages bundle size, Activity Log, Plat/Watchlist & URL-validator unit tests (60 tests)
 node tests/unit/run_all.mjs
 
-# Layer 2: Headless Chromium Playwright E2E suite (HTTP 206 PMTiles check, global modals, Guided Chapters 1..6, Portfolios, Plat Monitor, and all 45 archetypes across 4 inspector tabs + Wide View, harvesting rendered external URLs)
+# Layer 1B: Python pipeline tests (schema, multi-cycle Excel layouts, historical PH-* backfill, Page-3 DPV parser, campus sentinels & Activity Log diffs; 121 tests)
+uv run --directory pipeline pytest tests -v
+
+# Layer 2: Headless Chromium Playwright E2E suite (HTTP 206 PMTiles check, global modals, Guided Chapters 1..6, Portfolios, 3-Mode Plat Monitor, live vacant-lot search, and all 45 archetypes across 4 inspector tabs + Wide View; 40 tests)
 uv run --directory pipeline pytest ../tests/e2e -v
 
 # Layer 3: Live external municipal, county, state, university & archival HTTP 200/206 + soft-404 link health crawler (776 unique URLs across 55 domains)
@@ -203,7 +206,7 @@ houston-building-atlas/
 │   └── e2e/                                   # Layer 2 Playwright Headless Chromium WebGL & DOM E2E suite
 ├── app/                                       # Zero-build static WebGL + PMTiles web applications
 │   ├── index.html                             # Main Atlas UI, 4-Tab Inspector, Research Kit & Modals
-│   ├── plat-monitor.html                      # Biweekly Planning Commission Plat & 15-Point Watchlist App
+│   ├── plat-monitor.html                      # 3-Mode Companion Monitor (What's New & Daily Log, Plat Review & Watchlist)
 │   ├── server.py                              # Local RFC 7233 HTTP 206 Partial Content & HCAD proxy server
 │   ├── css/styles.css                         # Preservation Houston Archival Dark/Light design system
 │   ├── js/
@@ -215,17 +218,22 @@ houston-building-atlas/
 │   │   ├── guidedChaptersAndPortfolios.js     # 6 Guided Citywide Chapters & Architect/Style Portfolio mode (with primary citations)
 │   │   ├── photoService.js                    # Multi-source archival photo resolver, cross-parcel exclusion & provenance scorer
 │   │   ├── hcadLink.js                        # Live HCAD ArcGIS REST & encrypted token appraisal client
+│   │   ├── hcadViewportParcels.js             # Countywide HCAD viewport parcels, Residential_Grade joins & live vacant-lot search
+│   │   ├── clerkSearchHelpers.js              # Harris County Clerk RP.aspx / MC.aspx legal block & subdivision helpers
+│   │   ├── platMonitorHelpers.js              # Multi-HCAD Lookup Ages, agenda classification, developer watch & demo stats
+│   │   ├── watchlistSyncHelpers.js            # Ownership-partitioned 3-way Watchlist cloud reconciliation & deletion tombstones
+│   │   ├── activityLogHelpers.js              # Cross-stream Activity Log IDs, 90d ledger compaction & live browser delta sync
 │   │   └── urlValidators.js                   # Canonical external URL validator & retired-pattern blocker
 │   └── public/
 │       ├── deeds/                             # 65 mirrored full-text searchable deed restriction PDFs
 │       └── data/
-│           ├── houston_buildings_nw_w.pmtiles # Far NW Shard (390,992 footprints, 78.5 MB)
-│           ├── houston_buildings_nw_e.pmtiles # Near NW Shard (299,221 footprints, 64.5 MB)
-│           ├── houston_buildings_ne.pmtiles   # NE Shard (247,550 footprints, 51.8 MB)
-│           ├── houston_buildings_sw.pmtiles   # SW Shard (314,327 footprints, 66.1 MB)
-│           ├── houston_buildings_se.pmtiles   # SE Shard (255,463 footprints, 55.6 MB)
+│           ├── houston_buildings_nw_w.pmtiles # Far NW Shard (<80 MB, Zoom-11 Web Mercator tile-aligned)
+│           ├── houston_buildings_nw_e.pmtiles # Near NW Shard (<70 MB, Zoom-11 Web Mercator tile-aligned)
+│           ├── houston_buildings_ne.pmtiles   # NE Shard (<55 MB, Zoom-11 Web Mercator tile-aligned)
+│           ├── houston_buildings_sw.pmtiles   # SW Shard (<70 MB, Zoom-11 Web Mercator tile-aligned)
+│           ├── houston_buildings_se.pmtiles   # SE Shard (<60 MB, Zoom-11 Web Mercator tile-aligned)
 │           ├── buildings.geojson              # 18,734 deeply curated inner-core footprints
-│           ├── curated_overrides.json         # 2,171 verified archival overrides & multi-building keys
+│           ├── curated_overrides.json         # 2,216 verified archival overrides & multi-building keys
 │           ├── overlays.json                  # 22 vector overlays (Landmarks, HDs, Red Book, HOLC, HAHC, 74 Lost Houston, etc.)
 │           ├── sanborn_catalog.json           # 16 Sanborn volumes / 878 sheets (1877-1955, LOC + UT PCL)
 │           ├── sanborn_ut/                    # 504 mirrored UT Austin PCL Sanborn WebP thumbnails & plates
@@ -234,13 +242,14 @@ houston-building-atlas/
 │           ├── deed_restrictions_catalog.json # 3-tier deed restrictions (30 digests, 65 PDFs) & Ch. 42 catalog
 │           ├── hahc_coa_tracker.json          # 403 monthly HAHC COA & Designation filings across 283 parcels
 │           ├── active_permit_alerts.json      # Daily rolling 45-day COH Demo/Sewer & TX DSHS Asbestos alerts
-│           ├── plat_agenda_monitor.json       # Biweekly Planning Commission Plats, Section K DPVs & Notices
-│           ├── property_watchlist.json        # 60 watched historic properties across 15 multi-agency checks
+│           ├── plat_agenda_monitor.json       # Biweekly Planning Commission Plats, Section K DPVs & Public Hearing Notices
+│           ├── property_watchlist.json        # 27 staff-confirmed watched properties across 15 multi-agency checks
+│           ├── monitor_activity_log.json      # 90-day America/Chicago Daily Run Ledger & 4-stream change history
 │           ├── haif_index.json                # 5,576 HAIF architecture threads linked to parcels & addresses
 │           ├── building_photos.json           # 279 curated HABS, HPO, HMRC, HAIF & Wikimedia photos
-│           ├── search_index.json              # 25,915 pre-compiled global autocomplete entries
+│           ├── search_index.json              # 25,329 pre-compiled global autocomplete entries
 │           └── permits/                       # 152 on-demand HCAD permit shards (permits_001..152.json)
-└── pipeline/                                  # 39-script geospatial & archival Python pipeline (uv / Python 3.13)
+└── pipeline/                                  # 44-script geospatial & archival Python pipeline (uv / Python 3.13)
     ├── pyproject.toml
     └── atlas_pipeline/
 ```

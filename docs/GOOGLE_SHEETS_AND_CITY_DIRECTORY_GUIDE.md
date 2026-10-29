@@ -1,7 +1,7 @@
-# Zero-Cost Google Sheets Curation, 9-Tab Moderation Workbook & City Directory Batch Auditor
+# Zero-Cost Google Sheets Curation, 10-Tab Moderation Workbook & City Directory Batch Auditor
 
-**Last Updated:** October 25, 2026  
-**Related Documentation:** [Chapter 8 - Crowdsourced Moderation Pipeline](08-crowdsourcing-and-admin-operations.md) | [Chapter 10 - Master Sources, Integrations & Curation Playbooks](10-sources-integrations-and-curation-workflows.md)
+**Last Updated:** October 29, 2026  
+**Related Documentation:** [Chapter 8 - Crowdsourced Moderation Pipeline](08-crowdsourcing-and-admin-operations.md) | [Chapter 10 - Master Sources, Integrations & Curation Playbooks](10-sources-integrations-and-curation-workflows.md) | [Preservation Monitoring Automation Architecture](PRESERVATION_MONITORING_AUTOMATION_ARCHITECTURE.md)
 
 This guide explains how **Preservation Houston** administrators manage property date, name, style, architect, photograph, and footprint overrides (such as **`1127 Key St`**, built **`1928`** per Houston City Directories vs. HCAD's rounded placeholder **`1920`**), triage public field observations (`[SITE ACTIVITY OBSERVATION]`), synchronize the Biweekly Planning Commission Plat & 15-Point Property Monitor (`plat-monitor.html`), and run the polite **Houston City Directory (`1866-1926`) Batch Auditor** - all with **$0/month hosting cost** and **no proprietary backend database server to maintain**.
 
@@ -42,21 +42,22 @@ This guide explains how **Preservation Houston** administrators manage property 
 
 ---
 
-## 2. Complete 9-Tab Workbook Architecture
+## 2. Complete 10-Tab Workbook Architecture
 
-The Preservation Houston Moderation & Admin Google Sheet (*Houston Building Atlas - Curated Overrides & Moderation*) is organized into **9 purpose-built tabs** provisioned by [`pipeline/atlas_pipeline/setup_admin_sheet.py`](../pipeline/atlas_pipeline/setup_admin_sheet.py):
+The Preservation Houston Moderation & Admin Google Sheet (*Houston Building Atlas - Curated Overrides & Moderation*) is organized into **10 purpose-built tabs** provisioned by [`pipeline/atlas_pipeline/setup_admin_sheet.py`](../pipeline/atlas_pipeline/setup_admin_sheet.py) and [`pipeline/atlas_pipeline/audit_historical_accuracy.py`](../pipeline/atlas_pipeline/audit_historical_accuracy.py):
 
 | Tab # | Tab Name | Role & Access |
 | :---: | :--- | :--- |
-| **0** | **`Admin_Hub_&_Quick_Filter`** | Executive telemetry dashboard (`COUNTIF`/`COUNTIFS` queue counters), 1-click Quick Links (`Live Atlas`, `Biweekly Plat Monitor`, `Plat Monitoring Guide Doc`, `HPL City Directories`, `HCAD`, `HAIF`, `HPO`, `Good Brick`, `Standalone TPIA Sheet`, `Published CSV`, and **GitHub Issue #1 External Link Health Report**), plus an interactive `QUERY` filter workbench (`Row 18` dropdowns). |
-| **1** | **`Pending_Submissions`** | Primary moderation ledger (`Columns A:V`). Receives all public crowdsourced corrections, footprint bug reports, `[SITE ACTIVITY OBSERVATION]` alerts, City Directory batch candidates, and direct Staff Admin approvals. Includes **12 Pre-Built Saved Filter Views** (`Data -> Filter views`) so multiple admins can triage simultaneously without colliding. |
+| **0** | **`Admin_Hub_&_Quick_Filter`** | Executive telemetry dashboard (`COUNTIF`/`COUNTIFS` queue counters), 1-click Quick Links (`Live Atlas`, `Biweekly Plat Monitor`, `Plat Monitoring Guide Doc`, `HPL City Directories`, `HCAD`, `HAIF`, `HPO`, `Good Brick`, `Standalone TPIA Sheet`, `Published CSV`, `Historical_Audit_Queue`, and **GitHub Issue #1 External Link Health Report**), plus an interactive `QUERY` filter workbench (`Row 18` dropdowns). |
+| **1** | **`Pending_Submissions`** | Primary moderation ledger (`Columns A:V`). Receives all public crowdsourced corrections, footprint bug reports (including `Building demolished - lot currently vacant`), `[SITE ACTIVITY OBSERVATION]` alerts, 1-click `PHOTO_MISATTRIBUTION_FLAG` / `CLAIM_DISPUTE_FLAG` / `NARRATIVE_ERROR_FLAG` tickets, City Directory batch candidates, and direct Staff Admin approvals. Includes **12 Pre-Built Saved Filter Views** (`Data -> Filter views`) so multiple admins can triage simultaneously without colliding. |
 | **2** | **`Approved_Edits`** | Live formula-filtered view (`=IFERROR(FILTER(...))`) exposing **only** rows where `status = "Approved"` (excluding submitter PII/notes in `L:N`). Published as a read-only CSV consumed on page load by `app/js/curatedEdits.js`. |
 | **3** | **`Instructions_&_Apps_Script`** | Complete in-sheet Administrator Manual (`SOP 1` through `SOP 13`), critical data-integrity guardrails, the private **Sheet Editor Admin Passkey in Cell `B6`** (*never move Cell `B6` and never keep the Sheet Restricted-off*), and the canonical Google Apps Script `Code.gs` source. |
 | **4** | **`Good_Brick_Awards`** | Master ledger of Preservation Houston Good Brick, Martha Peterson, Stewart Title, and Pier & Beam awards (`1979-2026`, `359` place-based awards across `338` sites), consumed by `good_brick_awards.py`. |
-| **5** | **`Building_Photos`** | Curated historical and modern architectural photography ledger (`288` photos across HABS, HPO, HMRC, HAIF, Wikimedia Commons, and approved community submissions), synced via `seed_building_photos.py`. |
+| **5** | **`Building_Photos`** | Curated historical and modern architectural photography ledger (`279` verified photos across HABS, HPO, HMRC, HAIF, Wikimedia Commons, and approved community submissions), synced via `seed_building_photos.py`. |
 | **6** | **`Missing_Landmark_PDFs_TPIA`** | Tracks the `61` post-2016 City of Houston Designated Landmarks missing official HPO Designation Report PDFs on `archaeology.houstontx.gov` (paired with a standalone shareable TPIA request Google Sheet). |
-| **7** | **`Plat_&_Watchlist_Sync`** | Two-way cloud sync ledger for [`app/plat-monitor.html`](../app/plat-monitor.html), storing staff biweekly Plat Reviews (`PLAT_REV:...`) and 15-Point Endangered Property Watchlist findings (`WATCH_PROP:...`). |
-| **8** | **`PC_Agenda_Current_Cycle`** | Automated snapshot mirror of the active biweekly Houston Planning Commission plat & Section K Development Plat Variance (`DPV`) cycle. |
+| **7** | **`Plat_&_Watchlist_Sync`** | Two-way cloud sync ledger for [`app/plat-monitor.html`](../app/plat-monitor.html), storing staff biweekly Plat Reviews (`PLAT_REV:<cycle>:<app>`, carrying 9-field cross-cycle provenance via `carriedFields` & `humanEditedFields`) and human-confirmed 15-Point Endangered Property Watchlist dossiers (`WATCH_PROP:<id>`, reconciled with daily 8-agency `[AUTO-SWEEP]` findings via field-level ownership partitioning, preserving `broker`, lossless ISO `loggedAt`/`statusChangedAt`/`archivedAt` timestamps for `What's New & Daily Log`, and timestamped `REMOVED_WATCHLIST_TOMBSTONE` / `REMOVED_TIER3_TOMBSTONE` deletions). |
+| **8** | **`PC_Agenda_Current_Cycle`** | Automated snapshot mirror of the active biweekly Houston Planning Commission plat, Section I.K Development Plat Variance (`DPV`), and Section III/IV Public Hearing cycle. |
+| **9** | **`Historical_Audit_Queue`** | Top `250` prioritized cross-dataset contradictions (`SUSPECTED_UNMARKED_LANDMARK_DEMOLITION`, `ARCHITECT_CAREER_WINDOW_CHECK`, `LANDMARK_VS_ATLAS_YEAR_MISMATCH`, `CITY_DIRECTORY_EARLIER_THAN_HCAD`, `CITY_DIRECTORY_ABSENT_THROUGH_1926`) generated by `audit_historical_accuracy.py` for structured staff verification. |
 
 ---
 
