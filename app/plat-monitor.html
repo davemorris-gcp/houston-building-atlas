@@ -407,6 +407,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="filters">
       <input type="search" id="q" placeholder="Search name, address, subdivision, developer" aria-label="Search">
+      <select id="fAgendaPresence" aria-label="Meeting agenda status"></select>
       <select id="fNeighborhood" aria-label="Super neighborhood"></select>
       <select id="fFlag" aria-label="Flag"></select>
       <select id="fThreat" aria-label="Threat category"></select>
@@ -414,7 +415,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
   </div>
   <div class="toolbar hidden" id="watchlistToolbar">
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <input type="search" id="wlSearchInput" placeholder="Filter address, name, entity, HCAD..." aria-label="Filter watched properties" style="width:210px">
+      <input type="search" id="wlSearchInput" placeholder="Filter address, name, entity, broker, HCAD..." aria-label="Filter watched properties" style="width:235px">
       <select id="wlStatusFilter" aria-label="Filter watchlist by tracker status"></select>
       <select id="wlThreatFilter" aria-label="Filter watchlist by threat category"></select>
     </div>
@@ -455,26 +456,41 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 <script type="module">
 import {
   THREAT_CATEGORIES,
+  CARRY_FORWARD_REVIEW_FIELDS,
+  HCAD_PUBLIC_QUERY_OUT_FIELDS,
+  HCAD_RESIDENTIAL_GRADE_OUT_FIELDS,
   excelSerialToIso,
   extractHearingDateIso,
   formatShortUsDate,
   formatLongUsDate,
   parseHcadAccountList,
   resolveMultiParcelBuildingTier,
+  computeGeoJsonCentroid,
+  resolveParcelsMetadataFromSources,
   classifyPlatItem,
   buildOccurrenceKey,
   parseOccurrenceKey,
+  getCanonicalPlatAppIds,
+  areContinuitySnapshotsCompatible,
+  normalizeContinuityPlatName,
+  mergePlatReviewOverlay,
   linkCrossCycleHistory,
+  normalizeDeveloperEntityKey,
+  buildWatchedDeveloperMap,
   hasHumanDossierContributions,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   resolveAnnualDemolitionBenchmarks,
   formatDemolitionBenchmarksGrantText,
   buildDemolitionBenchmarksTablesHtml,
-} from "./js/platMonitorHelpers.js?v=20261029a";
+} from "./js/platMonitorHelpers.js?v=20261029b";
 
 import {
   TRACKER_STATUSES,
   REMOVED_TIER3_TOMBSTONE,
+  REMOVED_WATCHLIST_TOMBSTONE,
+  isRemovedWatchlistTombstone,
+  createWatchlistTombstone,
+  isLegacyUnconfirmedPlatSeed,
   SEARCH_TERM_CATEGORIES,
   simplifySearchAddress,
   escapeHtmlText,
@@ -489,13 +505,14 @@ import {
   normalizeWatchProperty,
   serializeWatchPropertyForSync,
   reconcileWatchlistProperty,
+  syncWatchlistTierToPlatReviews,
   syncPlatTierToWatchlist,
   sortWatchedProperties,
   parseCsvRfc4180,
   parseCloudSheetSyncRows,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
-} from "./js/watchlistSyncHelpers.js?v=20261029a";
+} from "./js/watchlistSyncHelpers.js?v=20261029b";
 
 import {
   ACTIVITY_STREAM_META,
@@ -513,7 +530,7 @@ import {
   buildWatchPropertyFromPermitAlert,
   sanitizeActivityEventForRender,
   formatActivityBriefingText,
-} from "./js/activityLogHelpers.js?v=20261029a";
+} from "./js/activityLogHelpers.js?v=20261029b";
 
 /* ---------- Storage ---------- */
 const store = {
@@ -708,10 +725,6 @@ let localWatchlistById = new Map();
 
 function loadInitialLocalWatchlist(){
   const raw = store.get(WL_KEY);
-  const props = Array.isArray(raw?.watchedProperties)
-    ? raw.watchedProperties.map(p => normalizeWatchProperty(p)).filter(Boolean)
-    : [];
-  const activeProps = [];
   const removedTombstones = {};
   if (raw?.removedTombstones && typeof raw.removedTombstones === "object") {
     for (const [id, tb] of Object.entries(raw.removedTombstones)) {
@@ -722,14 +735,20 @@ function loadInitialLocalWatchlist(){
       }
     }
   }
-  props.forEach(p => {
-    localWatchlistById.set(p.id, p);
-    if (p.trackerStatus === REMOVED_TIER3_TOMBSTONE) {
-      removedTombstones[p.id] = p;
-    } else {
-      activeProps.push(p);
+  const activeProps = [];
+  if (Array.isArray(raw?.watchedProperties)) {
+    for (const rawP of raw.watchedProperties) {
+      if (isLegacyUnconfirmedPlatSeed(rawP)) continue;
+      const p = normalizeWatchProperty(rawP);
+      if (!p) continue;
+      localWatchlistById.set(p.id, p);
+      if (isRemovedWatchlistTombstone(p)) {
+        removedTombstones[p.id] = p;
+      } else {
+        activeProps.push(p);
+      }
     }
-  });
+  }
   return {
     lastAutoSweepAt: raw?.lastAutoSweepAt || "",
     autoSweepSchedule: raw?.autoSweepSchedule || "Daily at 7:00 AM CT",
@@ -754,6 +773,7 @@ let view = {
   q: "",
   nb: "",
   flag: "",
+  agendaPresence: "",
   threat: "",
   wlQ: "",
   wlStatus: "ALL_ACTIVE",
@@ -773,16 +793,17 @@ let view = {
 let atlasLookupCachePromise = null;
 const addressShardCache = new Map();
 const liveHcadParcelCache = new Map();
+const liveHcadGradeCache = new Map();
 
 /* ---------- Lazy Countywide Atlas & HCAD Lookup Context ---------- */
 async function ensureLocalAtlasLookupContext(){
   if (!atlasLookupCachePromise) {
     atlasLookupCachePromise = (async () => {
       const [ovRes, bldRes, pclRes, ovlRes] = await Promise.all([
-        fetch("public/data/curated_overrides.json?v=20261029a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/buildings.geojson?v=20261029a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/parcels.geojson?v=20261029a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/overlays.json?v=20261029a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/curated_overrides.json?v=20261029b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/buildings.geojson?v=20261029b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/parcels.geojson?v=20261029b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/overlays.json?v=20261029b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
       const localHcadMap = new Map();
       const ingestFc = (fc) => {
@@ -810,14 +831,10 @@ async function ensureLocalAtlasLookupContext(){
           if (!existing.landmarkName && p.landmark_name) existing.landmarkName = p.landmark_name;
           if (!existing.owner && p.owner) existing.owner = p.owner;
           if (existing.lng === null && feat?.geometry) {
-            const coords = feat.geometry.type === "Point"
-              ? feat.geometry.coordinates
-              : feat.geometry.type === "Polygon"
-              ? feat.geometry.coordinates?.[0]?.[0]
-              : feat.geometry.coordinates?.[0]?.[0]?.[0];
-            if (Array.isArray(coords) && coords.length >= 2) {
-              existing.lng = Number(coords[0]);
-              existing.lat = Number(coords[1]);
+            const pt = computeGeoJsonCentroid(feat.geometry);
+            if (Array.isArray(pt) && pt.length >= 2) {
+              existing.lng = Number(pt[0]);
+              existing.lat = Number(pt[1]);
             }
           }
           localHcadMap.set(hid, existing);
@@ -838,7 +855,7 @@ async function ensureLocalAtlasLookupContext(){
 async function loadAddressShard(shardKey){
   const key = String(shardKey || "").padStart(2, "0");
   if (addressShardCache.has(key)) return addressShardCache.get(key);
-  const p = fetch(`public/data/address_shards/addr_${encodeURIComponent(key)}.json?v=20261029a`)
+  const p = fetch(`public/data/address_shards/addr_${encodeURIComponent(key)}.json?v=20261029b`)
     .then(r => r.ok ? r.json() : {})
     .catch(() => ({}));
   addressShardCache.set(key, p);
@@ -846,21 +863,47 @@ async function loadAddressShard(shardKey){
 }
 
 async function fetchHcadArcgisBatch(hcadIds = []){
-  const out = {};
-  const missing = [];
-  for (const id of hcadIds) {
-    if (liveHcadParcelCache.has(id)) out[id] = liveHcadParcelCache.get(id);
-    else if (/^\d{13}$/.test(id)) missing.push(id);
+  const arcgisParcelsByHcad = {};
+  const gradeYearsByHcad = {};
+  const warnings = [];
+  const missingParcels = [];
+  const missingGrades = [];
+
+  for (const rawId of hcadIds) {
+    const id = String(rawId || "").trim().padStart(13, "0");
+    if (!/^\d{13}$/.test(id)) continue;
+    if (liveHcadParcelCache.has(id)) {
+      arcgisParcelsByHcad[id] = liveHcadParcelCache.get(id);
+    } else {
+      missingParcels.push(id);
+    }
+    if (liveHcadGradeCache.has(id)) {
+      gradeYearsByHcad[id] = liveHcadGradeCache.get(id);
+    } else {
+      missingGrades.push(id);
+    }
   }
-  const chunks = [];
-  for (let i = 0; i < missing.length; i += 20) chunks.push(missing.slice(i, i + 20));
-  for (const batch of chunks) {
+
+  const chunk20 = list => {
+    const out = [];
+    for (let i = 0; i < list.length; i += 20) out.push(list.slice(i, i + 20));
+    return out;
+  };
+
+  for (const batch of chunk20(missingParcels)) {
     try {
       const inClause = batch.map(id => `'${id}'`).join(",");
-      const url = `https://arcweb.hcad.org/server/rest/services/public/public_query/MapServer/0/query?where=${encodeURIComponent(`HCAD_NUM IN (${inClause})`)}&outFields=HCAD_NUM,owner,subdivision,address,state_class,legal_lines,yr_impr&returnGeometry=true&outSR=4326&f=json`;
+      const url = `https://arcweb.hcad.org/server/rest/services/public/public_query/MapServer/0/query?where=${encodeURIComponent(`HCAD_NUM IN (${inClause})`)}&outFields=${encodeURIComponent(HCAD_PUBLIC_QUERY_OUT_FIELDS)}&returnGeometry=true&outSR=4326&f=json`;
       const resp = await fetch(url);
-      if (!resp.ok) continue;
+      if (!resp.ok) {
+        warnings.push(`HCAD parcel query HTTP ${resp.status}`);
+        continue;
+      }
       const data = await resp.json();
+      if (data?.error) {
+        warnings.push(`HCAD parcel layer error: ${data.error.message || data.error.code || "invalid query"}`);
+        continue;
+      }
       for (const feat of data?.features || []) {
         const a = feat?.attributes || {};
         const hid = String(a.HCAD_NUM || "").trim().padStart(13, "0");
@@ -868,73 +911,103 @@ async function fetchHcadArcgisBatch(hcadIds = []){
         let lng = null, lat = null;
         const ring = feat?.geometry?.rings?.[0];
         if (Array.isArray(ring) && ring.length > 0) {
-          lng = ring.reduce((s, pt) => s + pt[0], 0) / ring.length;
-          lat = ring.reduce((s, pt) => s + pt[1], 0) / ring.length;
+          const geoPt = computeGeoJsonCentroid({ type: "Polygon", coordinates: [ring] });
+          if (geoPt) { lng = geoPt[0]; lat = geoPt[1]; }
         }
         const rec = {
           hcad: hid,
-          address: String(a.address || "").trim(),
+          address: String(a.address || "").replace(/\s+/g, " ").trim(),
           owner: String(a.owner || "").trim(),
           subdivision: String(a.subdivision || "").trim(),
           legalDescription: String(a.legal_lines || a.subdivision || "").replace(/\s+/g, " ").trim(),
-          yearBuilt: Number(a.yr_impr) || 0,
+          state_class: String(a.state_class || "").trim(),
+          impr_val: a.impr_val ?? null,
+          land_val: a.land_val ?? null,
+          land_sqft: a.land_sqft ?? null,
           lng,
           lat,
         };
         liveHcadParcelCache.set(hid, rec);
-        out[hid] = rec;
+        arcgisParcelsByHcad[hid] = rec;
+      }
+    } catch (err) {
+      warnings.push(`Live HCAD parcel lookup unavailable (${err?.message || "network error"}).`);
+    }
+  }
+
+  for (const batch of chunk20(missingGrades)) {
+    try {
+      const inClause = batch.map(id => `'${id}'`).join(",");
+      const gUrl = `https://arcweb.hcad.org/server/rest/services/public/Residential_Grade/MapServer/0/query?where=${encodeURIComponent(`acct IN (${inClause})`)}&outFields=${encodeURIComponent(HCAD_RESIDENTIAL_GRADE_OUT_FIELDS)}&returnGeometry=false&f=json`;
+      const gResp = await fetch(gUrl);
+      if (!gResp.ok) continue;
+      const gData = await gResp.json();
+      if (gData?.error) continue;
+      const byAcct = new Map();
+      for (const feat of gData?.features || []) {
+        const a = feat?.attributes || {};
+        const hid = String(a.acct || "").trim().padStart(13, "0");
+        const yr = Number(a.year_impr) || 0;
+        if (!/^\d{13}$/.test(hid) || yr < 1836 || yr > 2035) continue;
+        if (!byAcct.has(hid)) byAcct.set(hid, []);
+        if (!byAcct.get(hid).includes(yr)) byAcct.get(hid).push(yr);
+      }
+      for (const id of batch) {
+        const yrs = byAcct.get(id) || [];
+        liveHcadGradeCache.set(id, yrs);
+        gradeYearsByHcad[id] = yrs;
       }
     } catch (_e) {}
   }
-  return out;
+
+  return { arcgisParcelsByHcad, gradeYearsByHcad, warnings };
 }
 
 async function resolveParcelsMetadataForHcads(hcadIds = []){
+  const parsed = parseHcadAccountList(Array.isArray(hcadIds) ? hcadIds.join(",") : String(hcadIds || ""));
   const ctx = await ensureLocalAtlasLookupContext();
-  const arcgisMap = await fetchHcadArcgisBatch(hcadIds);
-  const parcels = [];
-  for (const hid of hcadIds) {
+  const { arcgisParcelsByHcad, gradeYearsByHcad, warnings: arcgisWarnings } = await fetchHcadArcgisBatch(parsed.hcadIds);
+
+  const shardRecordsByHcad = new Map();
+  const neededShards = new Set();
+  for (const hid of parsed.hcadIds) {
     const ov = ctx.curatedOverrides[hid] || null;
     const loc = ctx.localHcadMap.get(hid) || null;
-    const live = arcgisMap[hid] || null;
-    let shardHit = null;
-    const addrGuess = ov?.address || loc?.address || live?.address || "";
-    const houseMatch = String(addrGuess).trim().match(/^(\d+)/);
-    if (houseMatch) {
-      const sk = houseMatch[1].slice(0, 2).padEnd(2, "0");
-      const rawShard = await loadAddressShard(sk);
-      for (const entries of Object.values(rawShard || {})) {
-        for (const tuple of Array.isArray(entries) ? entries : []) {
-          if (String(tuple[4] || "").padStart(13, "0") === hid) {
-            shardHit = { yearBuilt: Number(tuple[3]) || 0, lng: Number(tuple[1]), lat: Number(tuple[2]) };
-            break;
-          }
+    const live = arcgisParcelsByHcad[hid] || null;
+    for (const addrGuess of [ov?.address, loc?.address, live?.address]) {
+      const m = String(addrGuess || "").trim().match(/^(\d+)/);
+      if (m && Number(m[1]) > 0) neededShards.add(m[1].slice(0, 2).padEnd(2, "0"));
+    }
+  }
+  const shardMaps = await Promise.all(
+    Array.from(neededShards).map(async sk => [sk, await loadAddressShard(sk)])
+  );
+  const wantSet = new Set(parsed.hcadIds);
+  for (const [, rawShard] of shardMaps) {
+    for (const entries of Object.values(rawShard || {})) {
+      for (const tuple of Array.isArray(entries) ? entries : []) {
+        const tid = String(tuple[4] || "").padStart(13, "0");
+        if (wantSet.has(tid)) {
+          if (!shardRecordsByHcad.has(tid)) shardRecordsByHcad.set(tid, []);
+          shardRecordsByHcad.get(tid).push(tuple);
         }
-        if (shardHit) break;
       }
     }
-    const allYears = [
-      ...(loc?.allYears || []),
-      ...(live?.yearBuilt ? [live.yearBuilt] : []),
-      ...(shardHit?.yearBuilt ? [shardHit.yearBuilt] : []),
-    ].filter(y => y >= 1836 && y <= 2035);
-
-    parcels.push({
-      hcad: hid,
-      address: ov?.address || loc?.address || live?.address || "",
-      owner: live?.owner || loc?.owner || "",
-      legalDescription: live?.legalDescription || "",
-      building_name: ov?.landmark_name || ov?.building_name || loc?.buildingName || "",
-      historic_district: ov?.historic_district || loc?.historicDistrict || "",
-      landmark_name: ov?.landmark_name || loc?.landmarkName || "",
-      good_brick_summary: ov?.good_brick_summary || "",
-      overrideYearBuilt: ov?.year_built || null,
-      allYears,
-      lng: loc?.lng ?? shardHit?.lng ?? live?.lng ?? null,
-      lat: loc?.lat ?? shardHit?.lat ?? live?.lat ?? null,
-    });
   }
-  return { parcels, curatedOverrides: ctx.curatedOverrides };
+
+  const resolved = resolveParcelsMetadataFromSources(parsed.hcadIds, {
+    shardRecordsByHcad,
+    localHcadMap: ctx.localHcadMap,
+    curatedOverrides: ctx.curatedOverrides,
+    arcgisParcelsByHcad,
+    gradeYearsByHcad,
+    arcgisWarnings,
+  });
+  return {
+    ...resolved,
+    warnings: [...parsed.warnings, ...resolved.warnings],
+    curatedOverrides: ctx.curatedOverrides,
+  };
 }
 
 /* ---------- Multi-Cycle Management ---------- */
@@ -970,13 +1043,6 @@ function startMultiCycle(platPayload){
     if (!src) continue;
     const saved = store.get(PREFIX + ck);
     if (saved?.reviewer && !store.get("phpam:reviewer")) reviewer = saved.reviewer;
-    const mergedReviews = {};
-    for (const [app, rObj] of Object.entries(src.reviews || {})) {
-      mergedReviews[app] = { ...rObj };
-    }
-    for (const [app, savedRev] of Object.entries(saved?.reviews || {})) {
-      mergedReviews[app] = { ...(mergedReviews[app] || {}), ...savedRev };
-    }
     const items = (src.items || []).map(it => ({
       ...it,
       pcDateIso: it.pcDateIso || excelSerialToIso(it.pcDate) || ck,
@@ -984,6 +1050,18 @@ function startMultiCycle(platPayload){
       _cycleKey: ck,
       _occKey: buildOccurrenceKey(ck, it.app),
     }));
+    const itemByApp = new Map(items.map(it => [it.app, it]));
+    const mergedReviews = {};
+    for (const [app, rObj] of Object.entries(src.reviews || {})) {
+      mergedReviews[app] = { ...rObj };
+    }
+    for (const [app, savedRev] of Object.entries(saved?.reviews || {})) {
+      mergedReviews[app] = mergePlatReviewOverlay(
+        mergedReviews[app] || {},
+        savedRev,
+        itemByApp.get(app) || null
+      );
+    }
     cycles[ck] = {
       cycleKey: ck,
       meetingDate: src.meetingDate || ck,
@@ -998,16 +1076,28 @@ function startMultiCycle(platPayload){
     };
   }
 
-  const defaultKey = platPayload?.cycleKey && cycles[platPayload.cycleKey] ? platPayload.cycleKey : order[0];
+  const validOrder = order.filter(k => Boolean(cycles[k]));
+  // Prune stale phpam:cycle:* localStorage keys outside active multi-cycle index (e.g. 2026-10-16)
+  if (Array.isArray(platPayload?.cycleOrder) && validOrder.length > 0) {
+    const activeSet = new Set(validOrder);
+    for (const k of store.keys()) {
+      if (k.startsWith(PREFIX) && !activeSet.has(k.slice(PREFIX.length))) {
+        try { localStorage.removeItem(k); } catch (_e) {}
+      }
+    }
+  }
+
+  const defaultKey = platPayload?.cycleKey && cycles[platPayload.cycleKey] ? platPayload.cycleKey : validOrder[0];
   S = {
     cycles,
-    cycleOrder: order.filter(k => Boolean(cycles[k])),
+    cycleOrder: validOrder,
     activeCycleChoice: defaultKey,
     cycleKey: defaultKey,
     generatedAt: platPayload?.generatedAt || "",
     reviewer,
     loadedAt: new Date().toISOString(),
   };
+  reconcileWatchlistTiersOntoCycles({ persist: false });
   prepareAllCycles();
   persistAllCycles();
   showApp();
@@ -1019,24 +1109,30 @@ function startCycle(items, fileName, presetReviews = {}, extraMeta = {}){
     : cycleKeyFor(items);
   if (S && S.cycles) {
     const saved = store.get(PREFIX + key);
-    const mergedReviews = { ...(presetReviews || {}), ...(saved?.reviews || {}) };
+    const mappedItems = items.map(it => ({
+      ...it,
+      pcDateIso: it.pcDateIso || excelSerialToIso(it.pcDate) || key,
+      submittedIso: it.submittedIso || excelSerialToIso(it.submitted) || "",
+      _cycleKey: key,
+      _occKey: buildOccurrenceKey(key, it.app),
+    }));
+    const itemByApp = new Map(mappedItems.map(it => [it.app, it]));
+    const mergedReviews = { ...(presetReviews || {}) };
+    for (const [app, sr] of Object.entries(saved?.reviews || {})) {
+      mergedReviews[app] = mergePlatReviewOverlay(mergedReviews[app] || {}, sr, itemByApp.get(app) || null);
+    }
     S.cycles[key] = {
       cycleKey: key,
       meetingDate: key,
       pcDate,
       fileName,
-      items: items.map(it => ({
-        ...it,
-        pcDateIso: it.pcDateIso || excelSerialToIso(it.pcDate) || key,
-        submittedIso: it.submittedIso || excelSerialToIso(it.submitted) || "",
-        _cycleKey: key,
-        _occKey: buildOccurrenceKey(key, it.app),
-      })),
+      items: mappedItems,
       reviews: mergedReviews,
     };
     if (!S.cycleOrder.includes(key)) S.cycleOrder.unshift(key);
     S.activeCycleChoice = key;
     S.cycleKey = key;
+    reconcileWatchlistTiersOntoCycles({ persist: false });
     prepareAllCycles();
     persistAllCycles();
     showApp();
@@ -1075,15 +1171,140 @@ function revFor(it, create = false){
   return cyc.reviews[it.app] || {};
 }
 
+function canonicalAddressSyncKey(rawAddr = ""){
+  const simp = simplifySearchAddress(String(rawAddr || "")).toUpperCase().trim();
+  if (!simp) return "";
+  const m = simp.match(/^(\d+)[A-Z]?\s+(?:1\/2\s+)?(.+)$/);
+  if (!m) return "";
+  const numVal = Number(m[1]);
+  if (!Number.isFinite(numVal) || numVal <= 0) return "";
+  const street = m[2].replace(/[^A-Z0-9]+/g, " ").trim();
+  return street.length >= 2 ? `${numVal}|${street}` : "";
+}
+
+function reconcileWatchlistTiersOntoCycles({ persist = false, syncCloud = false } = {}){
+  if (!S || !S.cycles) return [];
+  const touchedCycleKeys = new Set();
+  const allRecords = [
+    ...(WL.watchedProperties || []),
+    ...Object.values(WL.removedTombstones || {}),
+  ]
+    .filter(Boolean)
+    .sort((a, b) => (Date.parse(a.updatedAt || "") || 0) - (Date.parse(b.updatedAt || "") || 0));
+
+  for (const wp of allRecords) {
+    const isTb = isRemovedWatchlistTombstone(wp);
+    const isArchived = wp.trackerStatus === "Archived (Tier 3)";
+    const isConfirmedActive = !isTb && !isArchived && (wp.tierConfirmed === true || wp.humanEdited === true);
+    if (!isTb && !isArchived && !isConfirmedActive) continue;
+    const desiredTier = isTb || isArchived ? "3" : String(wp.tier || "1");
+    if (!["1", "2", "3"].includes(desiredTier)) continue;
+
+    const res = syncWatchlistTierToPlatReviews({
+      prop: wp,
+      newTier: desiredTier,
+      cycles: S.cycles,
+      cycleOrder: S.cycleOrder,
+      reviewer: wp.updatedBy || S.reviewer || "",
+      nowIso: wp.updatedAt || new Date().toISOString(),
+      respectNewerReviews: true,
+    });
+
+    for (const t of res.touched) {
+      touchedCycleKeys.add(t.cycleKey);
+      if (syncCloud) queueCloudSyncPlatReview(t.cycleKey, t.appNo);
+    }
+  }
+
+  if (persist) {
+    for (const ck of touchedCycleKeys) persistCycle(ck);
+  }
+  return Array.from(touchedCycleKeys);
+}
+
+function propagateEditedReviewFieldsAcrossCycles(sourceItem, fieldKeys = [], { syncCloud = true } = {}){
+  if (!S || !S.cycles || !sourceItem || !Array.isArray(fieldKeys) || !fieldKeys.length) return [];
+  const srcCycle = sourceItem._cycleKey || S.cycleKey;
+  const srcRev = revFor(sourceItem);
+  const srcAppIds = new Set(getCanonicalPlatAppIds(sourceItem));
+  const srcHcads = parseHcadAccountList([srcRev.hcad || "", sourceItem.hcad || "", sourceItem.atlas?.hcad_num || ""].join(" ")).hcadIds;
+  const srcHcadSet = new Set(srcHcads);
+  const srcNormName = normalizeContinuityPlatName(sourceItem.name || "");
+  const srcAddrKey = canonicalAddressSyncKey(srcRev.address || sourceItem.atlas?.primaryAddress || sourceItem.noticeLocation || "");
+
+  const touched = [];
+  for (const ck of S.cycleOrder || []) {
+    const cyc = S.cycles[ck];
+    if (!cyc) continue;
+    for (const peerIt of cyc.items || []) {
+      if (ck === srcCycle && peerIt.app === sourceItem.app) continue;
+      const peerRev = cyc.reviews[peerIt.app] ? { ...cyc.reviews[peerIt.app] } : {};
+      const peerHcads = parseHcadAccountList([peerRev.hcad || "", peerIt.hcad || "", peerIt.atlas?.hcad_num || ""].join(" ")).hcadIds;
+      const peerNormName = normalizeContinuityPlatName(peerIt.name || "");
+      const peerAddrKey = canonicalAddressSyncKey(peerRev.address || peerIt.atlas?.primaryAddress || peerIt.noticeLocation || "");
+
+      let matched = false;
+      if (srcAppIds.size > 0) {
+        const peerAppIds = getCanonicalPlatAppIds(peerIt);
+        if (peerAppIds.some(id => srcAppIds.has(id))) {
+          matched = areContinuitySnapshotsCompatible(peerHcads, peerNormName, srcHcads, srcNormName);
+        }
+      }
+      if (!matched && srcHcadSet.size > 0 && peerHcads.some(id => srcHcadSet.has(id))) {
+        matched = true;
+      }
+      if (
+        !matched &&
+        srcAddrKey &&
+        peerAddrKey === srcAddrKey &&
+        !(srcHcadSet.size > 0 && peerHcads.length > 0 && !peerHcads.some(id => srcHcadSet.has(id)))
+      ) {
+        matched = true;
+      }
+      if (!matched) continue;
+
+      const peerHuman = new Set(Array.isArray(peerRev.humanEditedFields) ? peerRev.humanEditedFields.map(String) : []);
+      const peerCarried = new Set(Array.isArray(peerRev.carriedFields) ? peerRev.carriedFields.map(String) : []);
+      let changed = false;
+
+      for (const fk of fieldKeys) {
+        if (fk === "tier") {
+          const nextTier = String(srcRev.tier || "");
+          const nextConf = Boolean(srcRev.tierConfirmed);
+          if ((peerRev.tier || "") !== nextTier || Boolean(peerRev.tierConfirmed) !== nextConf) {
+            peerRev.tier = nextTier;
+            peerRev.tierConfirmed = nextConf;
+            peerCarried.add("tier");
+            changed = true;
+          }
+          continue;
+        }
+        if (peerHuman.has(fk)) continue;
+        const val = String(srcRev[fk] ?? "");
+        if ((peerRev[fk] || "") !== val) {
+          peerRev[fk] = val;
+          peerCarried.add(fk);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        peerRev.carriedFromCycle = srcCycle;
+        peerRev.carriedFields = Array.from(peerCarried);
+        peerRev.updated = srcRev.updated || new Date().toISOString();
+        cyc.reviews[peerIt.app] = peerRev;
+        persistCycle(ck);
+        if (syncCloud) queueCloudSyncPlatReview(ck, peerIt.app);
+        touched.push({ cycleKey: ck, appNo: peerIt.app });
+      }
+    }
+  }
+  return touched;
+}
+
 function prepareAllCycles(){
   if (!S) return;
   linkCrossCycleHistory(S.cycles, S.cycleOrder);
-
-  const hist = allHistory();
-  const devs = new Map();
-  hist.forEach(h => {
-    if ((h.tier === "1" || h.tier === "2") && h.developer) devs.set(h.developer.toLowerCase(), h);
-  });
 
   for (const ck of S.cycleOrder) {
     const cyc = S.cycles[ck];
@@ -1099,7 +1320,45 @@ function prepareAllCycles(){
         "";
       const r = cyc.reviews[it.app] || {};
       it._c = classifyPlatItem(it, r);
-      const externalHist = hist.find(h => h.app === it.app && h.cycle !== ck) || null;
+    });
+  }
+
+  const watchedDevMap = buildWatchedDeveloperMap({
+    cycles: S.cycles,
+    cycleOrder: S.cycleOrder,
+    watchedProperties: WL.watchedProperties || [],
+    isTombstoneFn: isRemovedWatchlistTombstone,
+  });
+  S.watchedDeveloperMap = watchedDevMap;
+
+  // Include explicit externally uploaded past findings CSVs (not browser cycle cache)
+  const extHist = Array.isArray(history) ? history : [];
+  for (const h of extHist) {
+    if ((h.tier === "1" || h.tier === "2") && h.developer) {
+      const dk = normalizeDeveloperEntityKey(h.developer);
+      if (dk) {
+        if (!watchedDevMap.has(dk)) watchedDevMap.set(dk, []);
+        watchedDevMap.get(dk).push({
+          sourceType: "history",
+          label: h.name || h.app || "Prior Cycle Item",
+          address: "",
+          watchId: "",
+          cycleKey: h.cycle || "",
+          appNo: h.app || "",
+          tier: h.tier,
+          rawName: h.developer,
+          entityKey: dk,
+        });
+      }
+    }
+  }
+
+  for (const ck of S.cycleOrder) {
+    const cyc = S.cycles[ck];
+    if (!cyc) continue;
+    cyc.items.forEach(it => {
+      const r = cyc.reviews[it.app] || {};
+      const externalHist = extHist.find(h => h.app === it.app && h.cycle !== ck) || null;
       it._hist = (it.priorCycles && it.priorCycles.length > 0)
         ? {
             cycle: it.priorCycles[it.priorCycles.length - 1].cycleKey,
@@ -1107,14 +1366,40 @@ function prepareAllCycles(){
             why: it.priorCycles[it.priorCycles.length - 1].why || "",
           }
         : externalHist;
-      it._dev = (it.developer && devs.get(it.developer.toLowerCase())) || null;
+
+      const itAppIds = new Set(getCanonicalPlatAppIds(it));
+      const devMatches = [];
+      const seenMatchKeys = new Set();
+      const rawDevParts = String(it.developer || "").replace(/\([^)]*\)/g, " ").split(/[;,/]+/);
+      for (const part of rawDevParts) {
+        const dk = normalizeDeveloperEntityKey(part);
+        if (!dk || !watchedDevMap.has(dk)) continue;
+        for (const m of watchedDevMap.get(dk) || []) {
+          if (m.appNo && m.appNo === it.app) continue;
+          if (m.appNo && itAppIds.has(String(m.appNo).toUpperCase())) continue;
+          if (m.watchId && m.watchId === `plat-${it.app}`) continue;
+          const mk = `${m.sourceType}|${m.watchId}|${m.cycleKey}|${m.appNo}`;
+          if (!seenMatchKeys.has(mk)) {
+            seenMatchKeys.add(mk);
+            devMatches.push({
+              ...m,
+              name: m.label,
+              cycle: m.cycleKey || "Property Watchlist",
+              app: m.appNo || m.watchId,
+            });
+          }
+        }
+      }
+      it._devMatches = devMatches;
+      it._dev = devMatches[0] || null;
+
       if ((it.priorCycles && it.priorCycles.length > 0) || it._hist) {
         if (!it._c.flags.includes("watch")) {
           it._c.flags.push("watch");
           it._c.score += 3;
         }
       }
-      if (it._dev && it._dev.app !== it.app) {
+      if (devMatches.length > 0) {
         if (!it._c.flags.includes("dev")) {
           it._c.flags.push("dev");
           it._c.score += 1;
@@ -1175,7 +1460,9 @@ function rebuildReconciledWatchlist(){
     if (rec) {
       merged.push(rec);
     } else {
-      const tb = [cldP, locP].find(x => x && x.trackerStatus === REMOVED_TIER3_TOMBSTONE);
+      const tb = [cldP, locP]
+        .filter(x => x && isRemovedWatchlistTombstone(x))
+        .sort((a, b) => (Date.parse(b.updatedAt || "") || 0) - (Date.parse(a.updatedAt || "") || 0))[0];
       if (tb) tombstones[id] = tb;
     }
   }
@@ -1192,7 +1479,7 @@ function persistWatchlistPropertyEdit(prop){
   if (!WL.removedTombstones || typeof WL.removedTombstones !== "object") {
     WL.removedTombstones = {};
   }
-  if (norm.trackerStatus === REMOVED_TIER3_TOMBSTONE) {
+  if (isRemovedWatchlistTombstone(norm)) {
     WL.removedTombstones[norm.id] = norm;
     WL.watchedProperties = (WL.watchedProperties || []).filter(p => p.id !== norm.id);
     store.set(WL_KEY, WL);
@@ -1259,6 +1546,16 @@ function populateHeaderAndFilterControls(){
     }
 
     const activeItems = getActiveItems();
+    const onAgendaCnt = activeItems.filter(i => i.onMeetingAgenda !== false).length;
+    const filingOnlyCnt = activeItems.length - onAgendaCnt;
+    const apEl = $("#fAgendaPresence");
+    if (apEl) {
+      apEl.innerHTML = [
+        `<option value="" ${!view.agendaPresence ? "selected" : ""}>All cycle items (${activeItems.length})</option>`,
+        `<option value="on_agenda" ${view.agendaPresence === "on_agenda" ? "selected" : ""}>On Meeting Agenda (${onAgendaCnt})</option>`,
+        `<option value="not_on_agenda" ${view.agendaPresence === "not_on_agenda" ? "selected" : ""}>Cycle Filing Only - Not on Agenda (${filingOnlyCnt})</option>`,
+      ].join("");
+    }
     const nbs = [...new Set(activeItems.map(i => i.superN).filter(Boolean))].sort();
     $("#fNeighborhood").innerHTML = '<option value="">All neighborhoods</option>' + nbs.map(n => `<option value="${esc(n)}" ${view.nb === n ? "selected" : ""}>${esc(n)}</option>`).join("");
     const used = new Set(activeItems.flatMap(i => i._c.flags));
@@ -1525,7 +1822,7 @@ async function copyCurrentActivityBriefing(){
 function ensureLazyHahcTrackerLoaded(){
   if (hahcFetchStarted) return;
   hahcFetchStarted = true;
-  fetch("public/data/hahc_coa_tracker.json?v=20261029a")
+  fetch("public/data/hahc_coa_tracker.json?v=20261029b")
     .then(r => (r.ok ? r.json() : null))
     .then(data => {
       if (data && typeof data === "object") {
@@ -1556,7 +1853,9 @@ function counts(){
 }
 
 function activeWatchlistCount(){
-  return (WL.watchedProperties || []).filter(p => p.trackerStatus !== "Archived (Tier 3)").length;
+  return (WL.watchedProperties || []).filter(
+    p => p.trackerStatus !== "Archived (Tier 3)" && !isRemovedWatchlistTombstone(p)
+  ).length;
 }
 
 function updateModeButtons(precomputedActCtx = null){
@@ -1791,7 +2090,7 @@ function renderActivityLedger(actCtx){
 function renderSingleActivityCardHtml(ev, wm){
   const s = sanitizeActivityEventForRender(ev);
   const isUnread = wm.unreadIds.has(s.id);
-  const matchedWatch = (ev.watchPropertyId && (WL.watchedProperties || []).find(w => w.id === ev.watchPropertyId && w.trackerStatus !== REMOVED_TIER3_TOMBSTONE))
+  const matchedWatch = (ev.watchPropertyId && (WL.watchedProperties || []).find(w => w.id === ev.watchPropertyId && !isRemovedWatchlistTombstone(w)))
     || (ev.stream === "permits" ? findMatchingWatchPropertyForAlert(ev, WL.watchedProperties || []) : null);
   const canPromotePermit = !matchedWatch && ev.stream === "permits" && (ev.kind === "permit_coh_alert" || ev.kind === "permit_dshs_alert");
 
@@ -2003,17 +2302,23 @@ function render(){
   $("#agendaToolbar").classList.remove("hidden");
   $("#watchlistToolbar").classList.add("hidden");
   $("#activityToolbar")?.classList.add("hidden");
+  renderAgendaFunnel(items, c);
+  renderDemoBenchmarksDrawer();
+  $("#tabs").innerHTML = GROUPS.map(([g, label, tip]) => `<button class="tab" role="tab" data-g="${g}" aria-selected="${view.group === g}" title="${esc(tip)}">${label}<span class="c">${c[g]}</span></button>`).join("");
+  renderList(actCtx);
+  renderDetail();
+}
+
+function renderAgendaFunnel(items, c){
+  const onAgendaCount = items.filter(i => i.onMeetingAgenda !== false).length;
+  const filingOnlyCount = items.length - onAgendaCount;
   $("#funnel").innerHTML = `
-    <div class="stage"><div class="n">${items.length}</div><div class="l">on agenda (incl. ${c.dpv} DPV)</div></div>
+    <div class="stage"><div class="n">${items.length}</div><div class="l">${filingOnlyCount > 0 ? `in cycle (${onAgendaCount} on agenda · ${filingOnlyCount} filing only)` : `on agenda (incl. ${c.dpv} DPV)`}</div></div>
     <div class="stage"><div class="n">${items.filter(i => i._c.group === "check").length}</div><div class="l">to check after screening</div></div>
     <div class="stage auto"><div class="n">${c.researched}</div><div class="l">pre-enriched &amp; researched</div></div>
     <div class="stage t1"><div class="n">${c.t1}</div><div class="l">Tier 1 · escalate</div></div>
     <div class="stage t2"><div class="n">${c.t2}</div><div class="l">Tier 2 · watch</div></div>
     ${buildDemoStageHtml()}`;
-  renderDemoBenchmarksDrawer();
-  $("#tabs").innerHTML = GROUPS.map(([g, label, tip]) => `<button class="tab" role="tab" data-g="${g}" aria-selected="${view.group === g}" title="${esc(tip)}">${label}<span class="c">${c[g]}</span></button>`).join("");
-  renderList(actCtx);
-  renderDetail();
 }
 
 const tierRank = it => ({"1":0, "2":1, "3":3}[tierOf(it)] ?? 2);
@@ -2023,6 +2328,11 @@ function filtered(){
   const q = view.q.toLowerCase();
   return items
     .filter(it => inGroup(it, view.group))
+    .filter(it => {
+      if (view.agendaPresence === "on_agenda") return it.onMeetingAgenda !== false;
+      if (view.agendaPresence === "not_on_agenda") return it.onMeetingAgenda === false;
+      return true;
+    })
     .filter(it => !view.nb || it.superN === view.nb)
     .filter(it => !view.flag || it._c.flags.includes(view.flag))
     .filter(it => {
@@ -2034,7 +2344,7 @@ function filtered(){
       if (!q) return true;
       const r = revFor(it);
       return [
-        it.name, it.prevSub, it.developer, it.org, it.app, it.superN,
+        it.name, it.prevSub, it.developer, it.org, it.app, it.linkedAppNo, it.superN,
         r.address, r.hcad, it.hcad, (it.atlas || {}).primaryAddress, it._c.reason
       ].join(" ").toLowerCase().includes(q);
     })
@@ -2074,6 +2384,9 @@ function renderList(precomputedActCtx = null){
     const yrVal = r.yearBuilt || at.earliestYearBuilt;
     const yrBadge = yrVal ? `<span class="chip ${Number(yrVal) > 0 && Number(yrVal) <= 1976 ? "critical" : ""}">Built ${esc(yrVal)}</span>` : "";
     const pcChip = pcShort ? `<span class="chip" title="Planning Commission Meeting Date">PC ${esc(pcShort)}</span>` : "";
+    const agendaStatusChip = it.onMeetingAgenda === false
+      ? `<span class="chip" title="Listed in the City biweekly cycle spreadsheet, not on the posted Planning Commission meeting agenda PDF">Cycle filing only</span>`
+      : "";
     const hearingChip = (hearingShort && (hearingShort !== pcShort || it._c.flags.includes("hearing")))
       ? `<span class="chip hearing" title="Scheduled Public Hearing Date">Hearing ${esc(hearingShort)}</span>`
       : "";
@@ -2089,17 +2402,20 @@ function renderList(precomputedActCtx = null){
     const subParts = primaryAddr
       ? [it.name, it.prevSub && it.prevSub !== it.name ? `Orig: ${it.prevSub}` : "", it.superN].filter(Boolean)
       : [it.prevSub, it.superN].filter(Boolean);
+    const appLabel = it.linkedAppNo && it.linkedAppNo !== it.app
+      ? `${it.app} · ${it.linkedAppNo}`
+      : it.app;
 
     return `<button class="row" data-occ="${esc(it._occKey)}" data-app="${esc(it.app)}" aria-current="${it._occKey === view.selected}">
       <div class="top">
         <span class="nm">${esc(mainTitle)}</span>
         ${unreadChip}
         ${t ? `<span class="tierbadge t${esc(t)}">Tier ${esc(t)}${r.tierConfirmed ? " ✓" : ""}</span>` : (isResearched(it) ? '<span class="app">enriched</span>' : "")}
-        <span class="app">${esc(it.app)}</span>
+        <span class="app">${esc(appLabel)}</span>
       </div>
       <div class="sub">${esc(subParts.join(" · ") || it.type || "")}</div>
       ${it._c.group === "out" && it._c.reason ? `<div class="screen-reason"><b>Screened Out:</b> ${esc(it._c.reason)}</div>` : ""}
-      <div class="chips">${pcChip}${hearingChip}${confirmedChip}${yrBadge}${chipsHtml(it, 3)}</div>
+      <div class="chips">${pcChip}${agendaStatusChip}${hearingChip}${confirmedChip}${yrBadge}${chipsHtml(it, 3)}</div>
     </button>`;
   }).join("");
 }
@@ -2153,26 +2469,31 @@ function buildMissingHcadHelperBox(it, r){
   const subTarget = at.subdivisionId || at.subdivisionMatch || cleanPrevSub;
   const snTarget = at.superNeighborhoodId || at.superNeighborhoodMatch || it.superN || "";
   const searchCopyTerm = simplifySearchAddress(cleanPrevSub || it.noticeLocation || it.name || "");
+  const isUnpostedPh = /^PH-\d+$/i.test(it.app || "") && !/^https?:/i.test(it.pdf || "") && !/^https?:/i.test(it.noticePdf || "");
+  const googleSubdivUrl = `https://www.google.com/search?q=${encodeURIComponent(`"${cleanPrevSub || it.name}" Houston plat HCAD`)}`;
   return `
     <div class="missing-hcad-box">
       <div class="mh-head">
-        <span>🧭 Pass 2 Assisted Multi-Parcel Resolver (Column Z HCAD Account Omitted by Applicant)</span>
+        <span>🧭 Pass 2 Assisted Multi-Parcel Resolver (${isUnpostedPh ? "Section III Future Public Hearing Agenda Item" : "Column Z HCAD Account Omitted by Applicant"})</span>
         ${resolvedIds.length
           ? `<span class="chip ok">✓ ${resolvedIds.length} HCAD Parcel${resolvedIds.length > 1 ? "s" : ""} Locked In</span>`
           : `<span class="chip strong">Needs Parcel Lookup</span>`}
       </div>
       <div class="mh-desc">
-        The applicant's surveyor left Column Z (<i>HCAD Account No.</i>) blank in the City spreadsheet.
+        ${isUnpostedPh
+          ? `This Section III agenda entry establishes a future public hearing date before the City posts the submittal spreadsheet row or Public Hearing Notice PDF. As soon as the submittal plat or notice PDF appears on COH Planning Notices, the daily scraper automatically links it here.`
+          : `The applicant's surveyor left Column Z (<i>HCAD Account No.</i>) blank in the City spreadsheet.`}
         ${at.subdivisionMatch
           ? `The Atlas matched <b>Previous/Original Subdivision "${esc(at.subdivisionMatch)}"</b> (earliest standing building <b>${esc(at.subdivisionEarliestYear || "N/A")}</b>, median <b>${esc(at.subdivisionMedianYear || "N/A")}</b>).`
           : (snTarget ? `Located in <b>${esc(at.superNeighborhoodMatch || it.superN)}</b>${cleanPrevSub ? ` (Original Subdivision: <b>${esc(cleanPrevSub)}</b>)` : ""}.` : "Open the Plat PDF vicinity map alongside the Atlas Map (now with street name labels &amp; countywide parcel lines) to click each affected parcel.")}
-        If a plat covers multiple HCAD accounts with different building construction years (e.g. a c. 1940 structure alongside a 2013 building), paste <b>all</b> 13-digit HCAD numbers separated by commas and click <b>Lookup Ages &amp; Suggest Tier</b>. The tool automatically evaluates the <b>oldest standing structure</b> (ignoring 0-year vacant lots).
+        Paste <b>all</b> 13-digit HCAD numbers separated by commas and click <b>Lookup Ages &amp; Suggest Tier</b>. The tool automatically queries live HCAD parcel &amp; building layers and evaluates the <b>oldest standing structure</b> (flagging vacant lots separately from unfound IDs).
       </div>
       <div class="mh-actions">
         ${subTarget ? `<a class="assist-pill" href="index.html?buildings=both&bnd=platted_subdivisions:${encodeURIComponent(subTarget)}&layers=platted_subdivisions,super_neighborhoods,landmarks,historic_districts,plat_watch${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=16` : ""}" target="_blank" rel="noopener">🗺️ Fly to "${esc(at.subdivisionMatch || cleanPrevSub)}" (Parcels + Streets) ↗</a>` : ""}
         ${snTarget ? `<a class="assist-pill" href="index.html?buildings=both&bnd=super_neighborhoods:${encodeURIComponent(snTarget)}&layers=super_neighborhoods,platted_subdivisions,landmarks,historic_districts,plat_watch${at.lat && at.lng ? `&lat=${at.lat}&lng=${at.lng}&z=14.8` : ""}" target="_blank" rel="noopener">🗺️ Fly to ${esc(at.superNeighborhoodMatch || it.superN)} on Atlas Map ↗</a>` : ""}
         ${/^https?:/i.test(it.pdf) ? `<a class="assist-pill govqa" href="${esc(it.pdf)}" target="_blank" rel="noopener">📐 Open Submittal Plat PDF ↗</a>` : ""}
         ${/^https?:/i.test(it.noticePdf) ? `<a class="assist-pill govqa" href="${esc(it.noticePdf)}" target="_blank" rel="noopener">📢 Open Public Hearing Notice PDF ↗</a>` : ""}
+        ${isUnpostedPh ? `<a class="assist-pill" href="https://www.houstontx.gov/planning/notices/" target="_blank" rel="noopener">📢 COH Planning Notices ↗</a><a class="assist-pill" href="${esc(googleSubdivUrl)}" target="_blank" rel="noopener">🔎 Web Search "${esc(cleanPrevSub || it.name)}" ↗</a>` : ""}
         ${searchCopyTerm ? `<button type="button" class="assist-pill" data-copy-text="${esc(searchCopyTerm)}" data-copy-open-url="https://search.hcad.org/">📋 Copy "${esc(searchCopyTerm)}" &amp; Open HCAD Search ↗</button>` : ""}
       </div>
       <div class="mh-inline">
@@ -2186,9 +2507,12 @@ function buildMissingHcadHelperBox(it, r){
 
 function findLinkedWatchProp(it, r){
   const hcadIds = parseHcadAccountList([r?.hcad || "", it.hcad || ""].join(" ")).hcadIds;
+  const itAppIds = new Set(getCanonicalPlatAppIds(it));
   return (WL.watchedProperties || []).find(w => {
+    if (!w || isRemovedWatchlistTombstone(w)) return false;
     if (w.appNo && w.appNo === it.app) return true;
     if (w.id === `plat-${it.app}`) return true;
+    if (itAppIds.size > 0 && getCanonicalPlatAppIds(w).some(id => itAppIds.has(id))) return true;
     if (hcadIds.length > 0) {
       const wIds = parseHcadAccountList(w.hcadAccount || "").hcadIds;
       if (wIds.some(id => hcadIds.includes(id))) return true;
@@ -2214,7 +2538,25 @@ function renderDetail(){
   const flagsList = it._c.flags.map(f => {
     let extra = "";
     if (f === "watch" && it._hist) extra = ` Seen on PC ${esc(formatShortUsDate(it._hist.cycle) || it._hist.cycle)}${it._hist.tier ? " (Tier " + esc(it._hist.tier) + ")" : ""}${it._hist.why ? ": " + esc(it._hist.why) : "."}`;
-    if (f === "dev" && it._dev) extra = ` Earlier item: ${esc(it._dev.name || it._dev.app)} (${esc(it._dev.cycle)}).`;
+    if (f === "dev") {
+      const dms = Array.isArray(it._devMatches) && it._devMatches.length
+        ? it._devMatches
+        : (it._dev ? [it._dev] : []);
+      if (dms.length) {
+        const rendered = dms.map(dm => {
+          const who = dm.rawName ? `<b>${esc(dm.rawName)}</b> on ` : "";
+          const lbl = esc(dm.address || dm.name || dm.app || "Watched Property");
+          const tierTxt = dm.tier ? ` (Tier ${esc(dm.tier)})` : "";
+          const jumpBtn = dm.sourceType === "watchlist" && dm.watchId
+            ? ` <button type="button" class="assist-pill" data-watch-id="${esc(dm.watchId)}" id="jumpDevWatchBtn-${esc(dm.watchId)}" style="padding:1px 6px">Open Watchlist Dossier</button>`
+            : (dm.cycleKey && S?.cycles?.[dm.cycleKey] && dm.appNo
+              ? ` <button type="button" class="assist-pill" data-jump-cycle="${esc(dm.cycleKey)}" data-jump-app="${esc(dm.appNo)}" style="padding:1px 6px">View PC ${esc(formatShortUsDate(dm.cycleKey) || dm.cycleKey)}</button>`
+              : (dm.cycle ? ` (${esc(dm.cycle)})` : ""));
+          return `${who}${lbl}${tierTxt}${jumpBtn}`;
+        }).join("; ");
+        extra = ` Matched active Tier 1/2 developer: ${rendered}.`;
+      }
+    }
     if (f === "pre1976" && (r.yearBuilt || at.earliestYearBuilt)) extra = ` Oldest standing parcel structure built in ${esc(r.yearBuilt || at.earliestYearBuilt)} (${esc(r.address || at.primaryAddress || "HCAD match")}).`;
     if (f === "dpv" && it.varianceSummary) extra = ` ${esc(it.varianceSummary)}`;
     const isCrit = f === "pre1976" || f === "dpv" || f === "permit";
@@ -2224,6 +2566,13 @@ function renderDetail(){
   const hasAtlasInfo = at.primaryAddress || at.earliestYearBuilt || at.subdivisionMatch || at.superNeighborhoodMatch || (at.designations && at.designations.length) || it.varianceSummary;
   const linkedWatch = findLinkedWatchProp(it, r);
   const priorCycles = Array.isArray(it.priorCycles) ? it.priorCycles : [];
+
+  const agendaPresenceBanner = it.onMeetingAgenda === false ? `
+    <div class="history-note" style="background:#FFF8EB;border-color:#E7C68E;color:#784C07">
+      <b>📋 Cycle Spreadsheet Filing Only (Not on Posted ${esc(formatShortUsDate(it.pcDateIso || it._cycleKey))} Meeting Agenda PDF):</b>
+      The City includes deferred, administratively reviewed, or withdrawn cycle submittals in the biweekly spreadsheet even when they are omitted from the Planning Commission meeting agenda outline. Use the <b>On meeting agenda only</b> toolbar filter to focus strictly on agenda items.
+    </div>
+  ` : "";
 
   const screenOutBanner = (it._c.group === "out" || it._c.overriddenFromOut) ? `
     <div class="screenout-banner">
@@ -2252,16 +2601,22 @@ function renderDetail(){
     </div>
   ` : "";
 
-  const parcelBreakdownHtml = Array.isArray(r.multiParcelBreakdown) && r.multiParcelBreakdown.length ? `
+  const lookupWarns = Array.isArray(r.hcadLookupWarnings) ? r.hcadLookupWarnings.filter(Boolean) : [];
+  const parcelBreakdownHtml = (Array.isArray(r.multiParcelBreakdown) && r.multiParcelBreakdown.length) || lookupWarns.length ? `
     <div class="multi-hcad-results">
       <b>📊 Multi-Parcel Building Age Evaluation (Oldest Standing Structure Rule >= 1836):</b>
-      <ul style="margin:5px 0 0;padding-left:18px">
-        ${r.multiParcelBreakdown.map(mp => `<li><b>HCAD ${esc(mp.hcad)}</b>${mp.address ? " (" + esc(mp.address) + ")" : ""}${mp.buildingName ? " · " + esc(mp.buildingName) : ""}: ${
-          mp.allYearsBuilt && mp.allYearsBuilt.length
-            ? `Standing structure(s) built <b>${esc(mp.allYearsBuilt.join(", "))}</b>${mp.usedCuratedOverride ? " (Verified Atlas Override)" : ""}`
-            : "Vacant / 0-year or unindexed parcel (ignored for oldest-structure age)"
-        }</li>`).join("")}
-      </ul>
+      ${Array.isArray(r.multiParcelBreakdown) && r.multiParcelBreakdown.length ? `
+        <ul style="margin:5px 0 0;padding-left:18px">
+          ${r.multiParcelBreakdown.map(mp => `<li><b>HCAD ${esc(mp.hcad)}</b>${mp.address ? " (" + esc(mp.address) + ")" : ""}${mp.buildingName ? " · " + esc(mp.buildingName) : ""}: ${
+            mp.found === false || mp.unfound
+              ? `<span style="color:var(--t1);font-weight:600">Account not found in local Atlas or live HCAD GIS (check 13-digit account number)</span>`
+              : mp.allYearsBuilt && mp.allYearsBuilt.length
+              ? `Standing structure(s) built <b>${esc(mp.allYearsBuilt.join(", "))}</b>${mp.usedCuratedOverride ? " (Verified Atlas Override)" : ""}`
+              : `Confirmed in HCAD parcel layer - <b>vacant / no standing pre-existing building on tax roll</b> (ignored for oldest-structure age)`
+          }</li>`).join("")}
+        </ul>
+      ` : ""}
+      ${lookupWarns.length ? `<div style="margin-top:6px;font-size:12px;color:#8A5E00">${lookupWarns.map(w => `⚠️ ${esc(w)}`).join("<br>")}</div>` : ""}
     </div>
   ` : "";
 
@@ -2272,10 +2627,11 @@ function renderDetail(){
     <h2>${esc(r.address || at.primaryAddress || it.name)}</h2>
     <div class="meta">
       ${(r.address || at.primaryAddress) ? `<b>Plat / Project Name:</b> ${esc(it.name)} · ` : ""}
-      <b>${esc(it.app)}</b> · <b>PC Meeting: ${esc(pcLong)}</b>
+      <b>${esc(it.app)}</b>${it.linkedAppNo && it.linkedAppNo !== it.app ? ` · <b>Submittal App #${esc(it.linkedAppNo)}</b>` : ""} · <b>PC Meeting: ${esc(pcLong)}</b>
       ${hearingLong ? ` · <b style="color:var(--survey)">Public Hearing: ${esc(hearingLong)}</b>` : ""}
-      ${it.agendaItemNo ? " · Agenda Item #" + esc(it.agendaItemNo) : ""} · ${esc(it.type)}${it.special ? " · " + esc(it.special) : ""}${it.deferral ? " · " + esc(it.deferral) : ""}
+      ${it.agendaItemNo ? " · Agenda Item #" + esc(it.agendaItemNo) : (it.onMeetingAgenda === false ? " · <span style=\"color:#784C07;font-weight:600\">Cycle filing only (not on agenda PDF)</span>" : "")} · ${esc(it.type)}${it.special ? " · " + esc(it.special) : ""}${it.deferral ? " · " + esc(it.deferral) : ""}
     </div>
+    ${agendaPresenceBanner}
     ${screenOutBanner}
     ${priorHistoryHtml}
     ${hasAtlasInfo ? `
@@ -2314,6 +2670,8 @@ function renderDetail(){
     <div id="hcadCopyStatusBanner" style="display:none;margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12.5px;background:#e8f3ee;border:1px solid #9ccbb5;color:#175e3c;"></div>
     <dl class="facts">
       ${fact("PC Meeting Date", pcLong)}
+      ${fact("Agenda Status", it.onMeetingAgenda === false ? "Cycle spreadsheet filing only (not on meeting agenda PDF)" : (it.agendaItemNo ? `On meeting agenda (Item #${it.agendaItemNo})` : "On meeting agenda"))}
+      ${it.linkedAppNo && it.linkedAppNo !== it.app ? fact("Linked Submittal App #", it.linkedAppNo) : ""}
       ${fact("Public Hearing Date", hearingLong)}
       ${fact("Date Submitted", subLong)}
       ${fact("Agenda section", it.section)}
@@ -2417,7 +2775,7 @@ function renderDetail(){
 
 
 /* ---------- Two-Way Biweekly Plat <-> Property Watchlist Sync & Multi-HCAD Lookup ---------- */
-function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jumpToWatchlist = false){
+function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jumpToWatchlist = false, skipRenderDetail = false){
   if (!S) return;
   const it = findItemBySelection(occKey || view.selected);
   if (!it) return;
@@ -2425,6 +2783,68 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
   const at = it.atlas || {};
   const nowIso = new Date().toISOString();
   const reviewerId = (S.reviewer || getStaffSession()?.email || "PH Staff").trim();
+  const renderAfterSync = () => {
+    if (skipRenderDetail && !jumpToWatchlist && view.mode === "agenda") {
+      setTimeout(() => {
+        if (view.mode !== "agenda" || !S) return;
+        const listSc = $("#list")?.scrollTop || 0;
+        const actCtx = getActivityViewContext();
+        populateHeaderAndFilterControls();
+        updateModeButtons(actCtx);
+        const c = counts();
+        const items = getActiveItems();
+        renderAgendaFunnel(items, c);
+        renderDemoBenchmarksDrawer();
+        $("#tabs").innerHTML = GROUPS.map(([g, label, tip]) => `<button class="tab" role="tab" data-g="${g}" aria-selected="${view.group === g}" title="${esc(tip)}">${label}<span class="c">${c[g]}</span></button>`).join("");
+        renderList(actCtx);
+        if ($("#list")) $("#list").scrollTop = listSc;
+      }, 0);
+      return;
+    }
+    render();
+  };
+
+  const backfillWatchlistHcadFieldsAsync = targetId => {
+    const target = (WL.watchedProperties || []).find(p => p.id === targetId);
+    if (!target || (target.ownerOfRecord && target.legalDescription)) return;
+    const hIds = parseHcadAccountList(target.hcadAccount || "").hcadIds;
+    if (!hIds.length) return;
+    fetchHcadArcgisBatch(hIds).then(({ arcgisParcelsByHcad }) => {
+      const liveTarget = (WL.watchedProperties || []).find(p => p.id === targetId);
+      if (!liveTarget || !arcgisParcelsByHcad) return;
+      let mutated = false;
+      for (const hid of hIds) {
+        const hit = arcgisParcelsByHcad[hid];
+        if (!hit) continue;
+        if (!liveTarget.ownerOfRecord && hit.owner) {
+          liveTarget.ownerOfRecord = hit.owner;
+          mutated = true;
+        }
+        if (!liveTarget.legalDescription && hit.legalDescription) {
+          liveTarget.legalDescription = hit.legalDescription;
+          mutated = true;
+        }
+        if ((liveTarget.lng == null || liveTarget.lat == null) && Number.isFinite(hit.lng) && Number.isFinite(hit.lat)) {
+          liveTarget.lng = hit.lng;
+          liveTarget.lat = hit.lat;
+          liveTarget.coordSource = liveTarget.coordSource || "hcad_arcgis_live";
+          mutated = true;
+        }
+        if (liveTarget.ownerOfRecord && liveTarget.legalDescription) break;
+      }
+      if (mutated) {
+        liveTarget.updatedAt = new Date().toISOString();
+        const savedAsync = persistWatchlistPropertyEdit(liveTarget);
+        queueCloudSyncWatchProperty(savedAsync);
+        if (view.mode === "watchlist" && view.selectedWatchId === savedAsync.id) {
+          renderWatchlistSidebar();
+          renderWatchlistDetail();
+        }
+      }
+    }).catch(err => {
+      console.warn("Watchlist HCAD backfill failed for", targetId, err);
+    });
+  };
 
   if (explicitConfirm && !r.tier) {
     r.tier = "1";
@@ -2433,10 +2853,19 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
   const existing = findLinkedWatchProp(it, r);
 
   if (tier === "1" || tier === "2") {
-    if (!explicitConfirm && !r.tierConfirmed && !existing) {
+    const hasConfirmedWatchDossier = Boolean(
+      existing && existing.tierConfirmed && existing.trackerStatus !== "Archived (Tier 3)"
+    );
+    // Strict confirmation guard (F2-01): never auto-create or flip tierConfirmed without explicit staff click
+    if (!explicitConfirm && !hasConfirmedWatchDossier) {
       return;
     }
-    r.tierConfirmed = true;
+    if (explicitConfirm) {
+      r.tierConfirmed = true;
+      const hf = new Set(Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []);
+      hf.add("tier");
+      r.humanEditedFields = Array.from(hf);
+    }
     r.updated = nowIso;
 
     const resolvedAddress = (r.address || existing?.address || at.primaryAddress || it.noticeLocation || it.name || "").trim();
@@ -2452,8 +2881,11 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
 
     if (existing) {
       existing.tier = tier;
-      existing.tierConfirmed = true;
-      if (existing.trackerStatus === "Archived (Tier 3)") {
+      if (explicitConfirm) {
+        existing.tierConfirmed = true;
+        existing.humanEdited = true;
+      }
+      if (existing.trackerStatus === "Archived (Tier 3)" && explicitConfirm) {
         existing.trackerStatus = tier === "1" ? "Active / High Priority" : "Monitoring";
         existing.archivedAt = "";
       }
@@ -2465,7 +2897,11 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
       if (resolvedDesig) existing.designation = resolvedDesig;
       if (resolvedThreat) existing.threatCategory = resolvedThreat;
       if (resolvedNb) existing.neighborhood = resolvedNb;
+      existing.ownerOfRecord = existing.ownerOfRecord || at.owner || "";
+      existing.legalDescription = existing.legalDescription || at.legalDescription || "";
+      existing.developer = it.developer || existing.developer || "";
       existing.appNo = existing.appNo || it.app;
+      existing.linkedAppNo = it.linkedAppNo || existing.linkedAppNo || "";
       existing.section = it.section || existing.section || "";
       existing.source = existing.source || "plat_confirmed";
       existing.sourceCycleKey = it._cycleKey || existing.sourceCycleKey || "";
@@ -2487,6 +2923,9 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
       existing.updatedBy = reviewerId;
       const savedProp = persistWatchlistPropertyEdit(existing);
       queueCloudSyncWatchProperty(savedProp);
+      if (explicitConfirm) {
+        propagateEditedReviewFieldsAcrossCycles(it, ["tier"]);
+      }
       prepareAllCycles();
       persistCycle(it._cycleKey);
       queueCloudSyncPlatReview(it._cycleKey, it.app);
@@ -2494,7 +2933,8 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
         view.mode = "watchlist";
         view.selectedWatchId = savedProp.id;
       }
-      render();
+      renderAfterSync();
+      backfillWatchlistHcadFieldsAsync(savedProp.id);
       if (explicitConfirm) toast(`Confirmed Tier ${tier} and synced ${savedProp.address || savedProp.propertyName} on Property Watchlist.`);
       return;
     }
@@ -2519,11 +2959,15 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
       address: resolvedAddress,
       secondaryAddresses: [],
       hcadAccount: resolvedHcad,
+      legalDescription: at.legalDescription || "",
       buildingId: at.buildingId || "",
       yearBuilt: resolvedYear,
       designation: resolvedDesig,
-      ownerOfRecord: it.developer || "",
-      buyerRelatedEntities: [it.developer, it.applicant, it.org].filter(Boolean).join(", "),
+      ownerOfRecord: at.owner || "",
+      developer: it.developer || "",
+      broker: "",
+      buyerRelatedEntities: "",
+      designFirm: [it.applicant, it.org].filter(Boolean).join(", "),
       tier,
       tierConfirmed: true,
       trackerStatus: tier === "1" ? "Active / High Priority" : "Monitoring",
@@ -2543,6 +2987,7 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
       superNeighborhoodMatch: at.superNeighborhoodMatch || it.superN || "",
       superNeighborhoodId: at.superNeighborhoodId || "",
       appNo: it.app,
+      linkedAppNo: it.linkedAppNo || "",
       section: it.section || "",
       source: "plat_confirmed",
       sourceCycleKey: it._cycleKey || "",
@@ -2552,6 +2997,7 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
       noticePdf: it.noticePdf || "",
       continuityKey: it.continuityKey || "",
       priorCycles: Array.isArray(it.priorCycles) ? it.priorCycles : [],
+      humanEdited: true,
       updatedAt: nowIso,
       updatedBy: reviewerId,
       checklist: baseChecklist,
@@ -2559,6 +3005,7 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
 
     const savedNew = persistWatchlistPropertyEdit(newProp);
     queueCloudSyncWatchProperty(savedNew);
+    propagateEditedReviewFieldsAcrossCycles(it, ["tier"]);
     prepareAllCycles();
     persistCycle(it._cycleKey);
     queueCloudSyncPlatReview(it._cycleKey, it.app);
@@ -2566,16 +3013,23 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
       view.mode = "watchlist";
       view.selectedWatchId = savedNew.id;
     }
-    render();
+    renderAfterSync();
+    backfillWatchlistHcadFieldsAsync(savedNew.id);
     toast(`Confirmed Tier ${tier} and added ${savedNew.address || savedNew.propertyName} to Property Watchlist.`);
     return;
   }
 
   // Tier 3 or cleared ("")
   r.tierConfirmed = Boolean(explicitConfirm && tier === "3");
+  if (explicitConfirm) {
+    const hf = new Set(Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []);
+    hf.add("tier");
+    r.humanEditedFields = Array.from(hf);
+  }
   r.updated = nowIso;
   const syncRes = syncPlatTierToWatchlist(WL.watchedProperties || [], {
     appNo: it.app,
+    linkedAppNo: it.linkedAppNo || "",
     hcadAccount: r.hcad || it.hcad || "",
     newTier: tier,
     nowIso,
@@ -2583,13 +3037,11 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
 
   if (syncRes.action === "removed" && syncRes.targetProp) {
     const rmId = syncRes.targetProp.id;
-    const tombstone = normalizeWatchProperty({
-      ...syncRes.targetProp,
+    const tombstone = createWatchlistTombstone(syncRes.targetProp, {
+      status: REMOVED_TIER3_TOMBSTONE,
       tier: "3",
-      tierConfirmed: false,
-      trackerStatus: REMOVED_TIER3_TOMBSTONE,
-      updatedAt: nowIso,
       updatedBy: reviewerId,
+      nowIso,
     });
     localWatchlistById.set(rmId, tombstone);
     cloudWatchlistById.set(rmId, tombstone);
@@ -2604,6 +3056,7 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     toast(`Moved ${archivedProp.address || archivedProp.propertyName} to Archived (Tier 3) so staff dossier research is preserved.`);
   }
 
+  propagateEditedReviewFieldsAcrossCycles(it, ["tier"]);
   prepareAllCycles();
   persistCycle(it._cycleKey);
   queueCloudSyncPlatReview(it._cycleKey, it.app);
@@ -2626,28 +3079,59 @@ async function runMultiHcadLookupForSelectedItem(){
     return;
   }
   toast(`Looking up ${parsed.hcadIds.length} HCAD parcel${parsed.hcadIds.length > 1 ? "s" : ""} across Houston Building Atlas & HCAD GIS...`);
-  const { parcels, curatedOverrides } = await resolveParcelsMetadataForHcads(parsed.hcadIds);
+  const { parcels, unfoundHcads, warnings, curatedOverrides } = await resolveParcelsMetadataForHcads(parsed.hcadIds);
+  const hasVacantFound = parcels.length > 0 && parcels.every(p => p.isVacant && (!p.allYears || p.allYears.length === 0));
   const evalRes = resolveMultiParcelBuildingTier(parcels, {
     flags: it._c?.flags || [],
     superN: it.superN || it.atlas?.superNeighborhoodMatch || "",
     curatedOverrides,
+    confirmedVacant: hasVacantFound && unfoundHcads.length === 0,
   });
 
+  const hf = new Set(Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []);
+  const changedFields = ["hcad"];
+  hf.add("hcad");
   r.hcad = parsed.hcadIds.join(", ");
-  r.multiParcelBreakdown = evalRes.parcels;
+
+  const foundByHcad = new Map(evalRes.parcels.map(p => [p.hcad, p]));
+  r.multiParcelBreakdown = parsed.hcadIds.map(hid => {
+    const hit = foundByHcad.get(hid);
+    if (hit) {
+      const srcP = parcels.find(p => p.hcad === hid);
+      return { ...hit, found: true, isVacant: Boolean(srcP?.isVacant) };
+    }
+    return {
+      hcad: hid,
+      found: false,
+      unfound: true,
+      address: "",
+      buildingName: "",
+      oldestYearBuilt: 0,
+      allYearsBuilt: [],
+      usedCuratedOverride: false,
+    };
+  });
+  r.hcadLookupWarnings = (warnings || []).filter(Boolean);
+
   if (evalRes.oldestYearBuilt >= 1836) {
     r.yearBuilt = String(evalRes.oldestYearBuilt);
+    hf.add("yearBuilt");
+    changedFields.push("yearBuilt");
   }
   const firstAddr = parcels.map(p => p.address).find(Boolean) || "";
   if (firstAddr && !r.address) {
     r.address = firstAddr;
+    hf.add("address");
+    changedFields.push("address");
   }
   if (evalRes.designations.length > 0 && (!r.designation || r.designation === DESIGNATIONS[0] || r.designation === "None found")) {
     const matchedOption = DESIGNATIONS.find(d => evalRes.designations.some(ed => ed.toLowerCase().includes(d.toLowerCase())));
     r.designation = matchedOption || "Other (see notes)";
+    changedFields.push("designation");
   }
   if (!r.tierConfirmed && evalRes.suggestedTier) {
     r.tier = evalRes.suggestedTier;
+    changedFields.push("tier");
   }
   const firstCoords = parcels.find(p => Number.isFinite(p.lng) && Number.isFinite(p.lat));
   if (firstCoords && it.atlas && (!it.atlas.lng || !it.atlas.lat)) {
@@ -2656,19 +3140,33 @@ async function runMultiHcadLookupForSelectedItem(){
     it.atlas.coordSource = "parcel";
   }
 
+  r.humanEditedFields = Array.from(hf);
   r.updated = new Date().toISOString();
+  propagateEditedReviewFieldsAcrossCycles(it, changedFields);
   prepareAllCycles();
   persistCycle(it._cycleKey);
   queueCloudSyncPlatReview(it._cycleKey, it.app);
-  if (findLinkedWatchProp(it, r)) {
+  const existingWp = findLinkedWatchProp(it, r);
+  if (existingWp && existingWp.tierConfirmed) {
     confirmAndSyncPlatItemToWatchlist(it._occKey, false, false);
   } else {
     render();
   }
-  const yrMsg = evalRes.oldestYearBuilt >= 1836
-    ? `Oldest standing building: ${evalRes.oldestYearBuilt}${evalRes.allYearsBuilt.length > 1 ? ` (across ${evalRes.allYearsBuilt.join(", ")})` : ""}`
-    : "No pre-existing dated structures found on entered parcel(s)";
-  toast(`Resolved ${parsed.hcadIds.length} HCAD parcel(s). ${yrMsg}.`);
+
+  let yrMsg = "";
+  if (evalRes.oldestYearBuilt >= 1836) {
+    yrMsg = `Oldest standing building: ${evalRes.oldestYearBuilt}${evalRes.allYearsBuilt.length > 1 ? ` (across ${evalRes.allYearsBuilt.join(", ")})` : ""}`;
+  } else if (parcels.length > 0) {
+    yrMsg = `${parcels.length} parcel(s) confirmed in HCAD (vacant / no pre-existing building on tax roll)`;
+  }
+  if (unfoundHcads.length > 0) {
+    const nfMsg = `${unfoundHcads.length} HCAD ID(s) not found (${unfoundHcads.join(", ")})`;
+    yrMsg = yrMsg ? `${yrMsg}; ${nfMsg}` : nfMsg;
+  }
+  if (!yrMsg && r.hcadLookupWarnings.length > 0) {
+    yrMsg = r.hcadLookupWarnings[0];
+  }
+  toast(`Checked ${parsed.hcadIds.length} HCAD account(s). ${yrMsg}.`);
 }
 
 /* ---------- Watchlist Mode Rendering ---------- */
@@ -2676,6 +3174,7 @@ function getFilteredWatchedProperties(){
   const all = sortWatchedProperties(WL.watchedProperties || []);
   const q = (view.wlQ || "").trim().toLowerCase();
   return all.filter(p => {
+    if (isRemovedWatchlistTombstone(p)) return false;
     if (view.wlStatus === "ALL_ACTIVE") {
       if (p.trackerStatus === "Archived (Tier 3)") return false;
     } else if (view.wlStatus && view.wlStatus !== "ALL") {
@@ -2693,6 +3192,8 @@ function getFilteredWatchedProperties(){
         p.legalDescription,
         p.ownerOfRecord,
         p.buyerRelatedEntities,
+        p.developer,
+        p.broker,
         p.neighborhood,
         p.appNo,
         ...(st.entities || []),
@@ -2709,7 +3210,7 @@ function getFilteredWatchedProperties(){
 
 function getSelectedWatchProp(){
   const filteredList = getFilteredWatchedProperties();
-  const fullList = WL.watchedProperties || [];
+  const fullList = (WL.watchedProperties || []).filter(p => !isRemovedWatchlistTombstone(p));
   const pool = filteredList.length ? filteredList : fullList;
   if (!pool.length) return null;
   if (!view.selectedWatchId || !pool.some(p => p.id === view.selectedWatchId)) {
@@ -2720,7 +3221,7 @@ function getSelectedWatchProp(){
 
 function renderWatchlistFunnel(){
   const activeCount = activeWatchlistCount();
-  const t1Count = (WL.watchedProperties || []).filter(p => p.trackerStatus !== "Archived (Tier 3)" && String(p.tier || "1") === "1").length;
+  const t1Count = (WL.watchedProperties || []).filter(p => !isRemovedWatchlistTombstone(p) && p.trackerStatus !== "Archived (Tier 3)" && String(p.tier || "1") === "1").length;
   const p = getSelectedWatchProp();
   const ck = (p && p.checklist) || [];
   const flagged = ck.filter(r => r.status === "Flagged").length;
@@ -2789,16 +3290,14 @@ function renderWatchlistSidebar(precomputedActCtx = null){
 
 function watchlistHcadLinks(p){
   const ids = parseHcadAccountList(p.hcadAccount || "").hcadIds;
-  const simpAddr = simplifySearchAddress(p.address || "");
-  if (!ids.length) {
-    return simpAddr
-      ? `<button type="button" class="assist-pill" data-copy-text="${esc(simpAddr)}" data-copy-open-url="https://search.hcad.org/" style="padding:6px 10px;font-size:13px">📋 Copy "${esc(simpAddr)}" &amp; Open HCAD Search ↗</button>`
-      : `<a href="https://search.hcad.org/" target="_blank" rel="noopener">HCAD Property Search ↗</a>`;
-  }
-  return ids.map((id, i) =>
-    `<button type="button" class="assist-pill" data-copy-text="${esc(id)}" data-copy-open-url="https://search.hcad.org/" data-hcad-copy-btn="${esc(id)}" style="padding:6px 10px;font-size:13px" title="Copies ${esc(id)} to clipboard and opens HCAD Property Search">📋 Copy # &amp; Open HCAD (${esc(id)})${ids.length > 1 ? " #" + (i + 1) : ""} ↗</button>` +
-    `<a href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(id)}" target="_blank" rel="noopener" title="Direct link to parcel ${esc(id)} in HCAD GIS Parcel Viewer">🗺️ HCAD GIS Map (${esc(id)})${ids.length > 1 ? " #" + (i + 1) : ""} ↗</a>`
-  ).join("");
+  const searchLink = `<a href="https://search.hcad.org/" target="_blank" rel="noopener">HCAD Property Search ↗</a>`;
+  if (!ids.length) return searchLink;
+  return (
+    searchLink +
+    ids.map((id, i) =>
+      `<a href="https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(id)}" target="_blank" rel="noopener" title="Direct link to parcel ${esc(id)} in HCAD GIS Parcel Viewer">🗺️ HCAD GIS Map (${esc(id)})${ids.length > 1 ? " #" + (i + 1) : ""} ↗</a>`
+    ).join("")
+  );
 }
 
 function watchlistAtlasMapLink(p){
@@ -2823,9 +3322,6 @@ function renderPortalPillsHtml(p, row){
   const descriptors = buildAssistedPortalPillsModel(p, row);
   if (!descriptors.length) return "";
   const html = descriptors.map(d => {
-    if (d.kind === "copy") {
-      return `<button type="button" class="assist-pill ${esc(d.extraClass || "")}" data-copy-text="${esc(d.copyText)}" ${d.openUrl ? `data-copy-open-url="${esc(d.openUrl)}"` : ""} ${d.hcadId ? `data-hcad-copy-btn="${esc(d.hcadId)}"` : ""} title="Copy '${esc(d.copyText)}' to clipboard${d.openUrl ? " and open portal in a new tab" : ""}">📋 ${esc(d.label)}${d.openUrl ? " ↗" : ""}</button>`;
-    }
     if (d.kind === "link") {
       return `<a class="assist-pill ${esc(d.extraClass || "")}" href="${esc(d.href)}" target="_blank" rel="noopener">🔎 ${esc(d.label)} ↗</a>`;
     }
@@ -2943,6 +3439,148 @@ function openGovQaRequestModal(p){
   });
 }
 
+function applyWatchlistTierChangeAndSync(p, nextTier){
+  if (!p || !["1", "2", "3"].includes(String(nextTier))) return;
+  const cleanTier = String(nextTier);
+  const nowIso = new Date().toISOString();
+  const reviewerId = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
+  const wasArchived = p.trackerStatus === "Archived (Tier 3)";
+
+  p.tier = cleanTier;
+  if (cleanTier === "3") {
+    p.tierConfirmed = false;
+    p.trackerStatus = "Archived (Tier 3)";
+    if (!wasArchived || !p.archivedAt) p.archivedAt = nowIso;
+  } else {
+    p.tierConfirmed = true;
+    p.removedFromWatchlist = false;
+    if (p.trackerStatus === "Archived (Tier 3)" || !p.trackerStatus) {
+      p.trackerStatus = cleanTier === "1" ? "Active / High Priority" : "Monitoring";
+    }
+    p.archivedAt = "";
+  }
+  p.humanEdited = true;
+  p.updatedAt = nowIso;
+  p.updatedBy = reviewerId;
+
+  const saved = persistWatchlistPropertyEdit(p);
+  queueCloudSyncWatchProperty(saved);
+
+  let syncedCount = 0;
+  if (S && S.cycles) {
+    const syncRes = syncWatchlistTierToPlatReviews({
+      prop: saved,
+      newTier: cleanTier,
+      cycles: S.cycles,
+      cycleOrder: S.cycleOrder,
+      reviewer: reviewerId,
+      nowIso,
+    });
+    const touchedCycles = new Set();
+    for (const t of syncRes.touched) {
+      touchedCycles.add(t.cycleKey);
+      queueCloudSyncPlatReview(t.cycleKey, t.appNo);
+    }
+    for (const ck of touchedCycles) persistCycle(ck);
+    syncedCount = syncRes.touched.length;
+    prepareAllCycles();
+  }
+
+  if (cleanTier === "3" && view.wlStatus === "ALL_ACTIVE") {
+    const remaining = getFilteredWatchedProperties();
+    if (!remaining.some(x => x.id === saved.id)) {
+      view.selectedWatchId = remaining[0]?.id || null;
+    }
+  }
+  render();
+  toast(
+    cleanTier === "3"
+      ? `Archived ${saved.address || saved.propertyName} as Tier 3${syncedCount ? ` & synced ${syncedCount} Biweekly Monitor item(s)` : ""}.`
+      : `Set ${saved.address || saved.propertyName} to Tier ${cleanTier} (${saved.trackerStatus})${syncedCount ? ` & synced ${syncedCount} Biweekly Monitor item(s)` : ""}.`
+  );
+}
+
+function openRemoveFromWatchlistModal(p){
+  if (!p) return;
+  if (!requireStaffAuth("removing a property from the Watchlist")) return;
+  const existingModal = document.querySelector(".modal-back");
+  if (existingModal) existingModal.remove();
+  const hasResearch = hasHumanDossierContributions(p);
+  const back = document.createElement("div");
+  back.className = "modal-back";
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:600px">
+    <h3>🗑 Remove from Property Watchlist</h3>
+    <p style="font-size:13.5px;line-height:1.45;margin:0 0 10px">
+      Choose how you want to handle <b>${esc(p.address || p.propertyName)}</b>${p.hcadAccount ? ` (HCAD ${esc(p.hcadAccount)})` : ""}:
+    </p>
+    <div style="display:grid;gap:8px;margin-bottom:12px;font-size:12.5px">
+      <div style="padding:9px 11px;border:1px solid var(--line);border-radius:5px;background:var(--bg)">
+        <b>Option A - Archive as Tier 3 (Recommended when keeping research notes):</b> Hides the property from the active Watchlist and marks any linked Biweekly Monitor filing as Tier 3, while preserving its dossier under <i>Archived (Tier 3)</i>.
+      </div>
+      <div style="padding:9px 11px;border:1px solid #E5B4B0;border-radius:5px;background:#FDF2F1">
+        <b>Option B - Remove Permanently from Watchlist:</b> Writes a permanent removal record synced to the shared Google Sheet so this property does not reappear across daily sweeps, browser reloads, or other staff sessions unless explicitly re-added later.${hasResearch ? " <b>Note:</b> This dossier contains logged staff notes/checks that will be hidden once removed." : ""}
+      </div>
+    </div>
+    <div class="field">
+      <label for="rmWlReasonInput">Optional Removal Note</label>
+      <input id="rmWlReasonInput" type="text" placeholder="e.g. Added by mistake, false alarm, outside scope...">
+    </div>
+    <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
+      <button type="button" class="btn" id="rmWlCancelBtn">Cancel</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn" id="rmWlArchiveBtn">Archive as Tier 3</button>
+        <button type="button" class="btn" id="rmWlConfirmDeleteBtn" style="background:var(--t1);border-color:var(--t1);color:#fff">🗑 Remove from Watchlist</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => { if (e.target === back || e.target.id === "rmWlCancelBtn") back.remove(); });
+  $("#rmWlArchiveBtn")?.addEventListener("click", () => {
+    back.remove();
+    applyWatchlistTierChangeAndSync(p, "3");
+  });
+  $("#rmWlConfirmDeleteBtn")?.addEventListener("click", () => {
+    const reason = ($("#rmWlReasonInput")?.value || "").trim();
+    const nowIso = new Date().toISOString();
+    const reviewerId = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
+    const tombstone = createWatchlistTombstone(p, {
+      status: REMOVED_WATCHLIST_TOMBSTONE,
+      reason: reason || "Removed by staff from Property Watchlist",
+      updatedBy: reviewerId,
+      nowIso,
+      tier: "3",
+    });
+    staticWatchlistById.delete(p.id);
+    cloudWatchlistById.set(p.id, tombstone);
+    const savedTb = persistWatchlistPropertyEdit(tombstone);
+    queueCloudSyncWatchProperty(savedTb);
+
+    if (S && S.cycles) {
+      const syncRes = syncWatchlistTierToPlatReviews({
+        prop: p,
+        newTier: "3",
+        cycles: S.cycles,
+        cycleOrder: S.cycleOrder,
+        reviewer: reviewerId,
+        nowIso,
+      });
+      const touchedCycles = new Set();
+      for (const t of syncRes.touched) {
+        touchedCycles.add(t.cycleKey);
+        queueCloudSyncPlatReview(t.cycleKey, t.appNo);
+      }
+      for (const ck of touchedCycles) persistCycle(ck);
+      prepareAllCycles();
+    }
+
+    view.editingWatchId = null;
+    if (view.selectedWatchId === p.id) view.selectedWatchId = null;
+    back.remove();
+    render();
+    toast(`Removed ${p.address || p.propertyName} from Property Watchlist.`);
+  });
+}
+
 function buildWatchPropEditFormHtml(p){
   const kd = p.keyDates || {};
   return `
@@ -2961,7 +3599,7 @@ function buildWatchPropEditFormHtml(p){
         <div class="field"><label for="we-hcad">HCAD Account #(s) <span class="hint">13 digits, comma-separated</span></label><input id="we-hcad" value="${esc(p.hcadAccount || "")}"></div>
       </div>
       <div class="field">
-        <label for="we-legal">Legal Description <span class="hint">e.g. TRS 1-16 BLK 417 SSBB; LT 12 BLK 12 HADLEY (drives Check #3 HC Clerk Block &amp; Subdivision copy pills)</span></label>
+        <label for="we-legal">Legal Description <span class="hint">e.g. TRS 1-16 BLK 417 SSBB; LT 12 BLK 12 HADLEY (used for Harris County Clerk deed lookups &amp; GovQA requests)</span></label>
         <input id="we-legal" value="${esc(p.legalDescription || "")}" placeholder="e.g. LT 1 &amp; 2 BLK 12 HADLEY ADDITION">
       </div>
       <div class="grid3">
@@ -2998,7 +3636,8 @@ function buildWatchPropEditFormHtml(p){
         <div class="field"><label for="we-owner">Owner of Record</label><input id="we-owner" value="${esc(p.ownerOfRecord || "")}"></div>
         <div class="field"><label for="we-buyer">Buyer / Related Entities (LLCs)</label><input id="we-buyer" value="${esc(p.buyerRelatedEntities || "")}"></div>
       </div>
-      <div class="grid2">
+      <div class="grid3">
+        <div class="field"><label for="we-broker">Broker / Listing Agent</label><input id="we-broker" value="${esc(p.broker || "")}" placeholder="e.g. CBRE, Colliers, listing contact"></div>
         <div class="field"><label for="we-lender">Lender / Deed of Trust</label><input id="we-lender" value="${esc(p.lender || "")}"></div>
         <div class="field"><label for="we-design">Design / Engineering Firm</label><input id="we-design" value="${esc(p.designFirm || "")}"></div>
       </div>
@@ -3040,6 +3679,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
   const showSubName = p.propertyName && p.propertyName !== primaryHeading;
   const driveLinks = sanitizeExternalLinksList(p.driveLinks);
   const st = p.searchTerms || {};
+  const curTier = String(p.tier || "1");
 
   $("#detail").innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -3048,7 +3688,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
         <div class="meta" style="margin-bottom:6px">
           ${showSubName ? `<b>${esc(p.propertyName)}</b> · ` : ""}
           ${p.platProjectName && p.platProjectName !== p.propertyName ? `Plat: <b>${esc(p.platProjectName)}</b> · ` : ""}
-          <span class="tierbadge t${esc(p.tier || "1")}">Tier ${esc(p.tier || "1")}</span> ·
+          <span class="tierbadge t${esc(curTier)}">Tier ${esc(curTier)}</span> ·
           <b>${esc(p.trackerStatus || "Active / High Priority")}</b>
           ${p.threatCategory ? ` · <span>${esc(p.threatCategory)}</span>` : ""}
           · HCAD <b>${esc(p.hcadAccount || "N/A")}</b>
@@ -3056,7 +3696,16 @@ function renderWatchlistDetail(precomputedActCtx = null){
           ${p.architect ? ` · Architect: ${esc(p.architect)}` : ""}
         </div>
       </div>
-      ${p.appNo && S ? `<button type="button" class="btn sm" id="jumpBackToPlatItemBtn" data-app="${esc(p.appNo)}" data-cycle="${esc(p.sourceCycleKey || S.cycleKey)}">← View Plat Item (${esc(p.appNo)})</button>` : ""}
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <div style="display:inline-flex;gap:3px;align-items:center;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:#fff" role="group" aria-label="Change Tier and sync with Biweekly Monitor">
+          <span style="font-size:11.5px;color:var(--muted);margin-right:2px">Tier:</span>
+          ${[["1", "T1"], ["2", "T2"], ["3", "T3 (Archive)"]].map(([tv, lbl]) =>
+            `<button type="button" class="btn sm ${curTier === tv ? "primary" : ""}" data-wl-inline-tier="${tv}" style="padding:3px 8px;font-size:11.5px" title="Set to Tier ${tv} and auto-sync matching Biweekly Plat Monitor items">${lbl}</button>`
+          ).join("")}
+        </div>
+        <button type="button" class="btn sm" id="removeFromWatchlistBtn" style="color:var(--t1);border-color:#E5B4B0" title="Remove or archive this property from the Watchlist">🗑 Remove from Watchlist</button>
+        ${p.appNo && S ? `<button type="button" class="btn sm" id="jumpBackToPlatItemBtn" data-app="${esc(p.appNo)}" data-cycle="${esc(p.sourceCycleKey || S.cycleKey)}">← View Plat Item (${esc(p.appNo)})</button>` : ""}
+      </div>
     </div>
 
     <div class="links">
@@ -3066,11 +3715,10 @@ function renderWatchlistDetail(precomputedActCtx = null){
       <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits ↗</a>
       <a href="https://www.tdlr.texas.gov/tabs/search" target="_blank" rel="noopener">TDLR TABS Search ↗</a>
       <button type="button" class="assist-pill govqa" data-open-govqa-modal="1" style="padding:6px 10px;font-size:13px">📄 Draft GovQA Open Records Request (TPIA)</button>
-      ${ctx.ilmsProjectNos[0] ? `<button type="button" class="assist-pill" data-copy-text="${esc(ctx.ilmsProjectNos[0])}" data-copy-open-url="https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp" style="padding:6px 10px;font-size:13px">📋 Copy ILMS #${esc(ctx.ilmsProjectNos[0])} &amp; Open Plan Lookup ↗</button>` : ""}
+      ${ctx.ilmsProjectNos[0] ? `<a href="https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp" target="_blank" rel="noopener" title="ILMS Project #${esc(ctx.ilmsProjectNos[0])}">COH ILMS Lookup (#${esc(ctx.ilmsProjectNos[0])}) ↗</a>` : ""}
       ${/^https?:/i.test(p.platPdf) ? `<a href="${esc(p.platPdf)}" target="_blank" rel="noopener">Plat PDF ↗</a>` : ""}
       ${/^https?:/i.test(p.noticePdf) && p.noticePdf !== p.platPdf ? `<a class="notice-link" href="${esc(p.noticePdf)}" target="_blank" rel="noopener">Public Hearing Notice PDF ↗</a>` : ""}
     </div>
-    <div id="hcadCopyStatusBanner" style="display:none;margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12.5px;background:#e8f3ee;border:1px solid #9ccbb5;color:#175e3c;"></div>
 
     <div style="margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:${staffSess ? "#e8f3ee" : "#fdf7eb"};border:1px solid ${staffSess ? "#9ccbb5" : "#e3c58e"};color:${staffSess ? "#175e3c" : "#805300"};">
       <span>${staffSess ? `☁️ <b>Authenticated Staff Session (${esc(staffSess.email)})</b>: Property edits, snowball terms, Google Drive links, and checklist updates sync automatically to the shared Preservation Houston Google Sheet.` : `🔒 <b>Read-Only Mode</b>: Sign in with your Google Sheet Editor email to edit property details, attach links, or log checklist findings.`}</span>
@@ -3092,12 +3740,14 @@ function renderWatchlistDetail(precomputedActCtx = null){
         <div class="fact"><dt>Perimeter / Block Addresses</dt><dd>${esc((p.secondaryAddresses || []).join(", ") || "None recorded")}</dd></div>
         <div class="fact"><dt>HCAD Account #(s)</dt><dd>${esc(p.hcadAccount || "N/A")}</dd></div>
         <div class="fact" style="grid-column:span 2"><dt>Legal Description (Block &amp; Subdivision)</dt><dd>${esc(p.legalDescription || "Not recorded - click Edit Property Details to add or auto-fill from HCAD")}</dd></div>
-        <div class="fact"><dt>Tracker Status &amp; Tier</dt><dd>${esc(p.trackerStatus)} (Tier ${esc(p.tier || "1")})</dd></div>
+        <div class="fact"><dt>Tracker Status &amp; Tier</dt><dd>${esc(p.trackerStatus)} (Tier ${esc(curTier)})</dd></div>
         <div class="fact"><dt>Threat Category</dt><dd>${esc(p.threatCategory || "Uncategorized")}</dd></div>
         <div class="fact"><dt>Neighborhood</dt><dd>${esc(p.neighborhood || p.superNeighborhoodMatch || "Not recorded")}</dd></div>
         <div class="fact"><dt>Designation</dt><dd>${esc(p.designation || "None")}</dd></div>
         <div class="fact"><dt>Owner of Record</dt><dd>${esc(p.ownerOfRecord || "Not recorded")}</dd></div>
         <div class="fact"><dt>Buyer / Related Entities</dt><dd>${esc(p.buyerRelatedEntities || "Not recorded")}</dd></div>
+        ${p.developer ? `<div class="fact"><dt>Plat Developer</dt><dd>${esc(p.developer)}</dd></div>` : ""}
+        <div class="fact"><dt>Broker / Listing Agent</dt><dd>${esc(p.broker || "Not identified (check LoopNet / flyer)")}</dd></div>
         <div class="fact"><dt>Lender / Deed of Trust</dt><dd>${esc(p.lender || "Not recorded")}</dd></div>
         <div class="fact"><dt>Design / Engineering Firm</dt><dd>${esc(p.designFirm || "Not recorded")}</dd></div>
         ${p.reportedBy ? `<div class="fact"><dt>Reported By</dt><dd>${esc(p.reportedBy)}</dd></div>` : ""}
@@ -3143,7 +3793,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
     <div class="wl-card" id="snowballCard">
       <h3>
         <span>🔎 Snowball Search-Term Discovery Chain</span>
-        <span style="font-size:12px;color:var(--muted);font-weight:400">Every LLC, DBA, officer, legal keyword, perimeter address, or project # added here populates 1-click portal copy pills &amp; daily auto-sweeps</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:400">Every LLC, DBA, officer, legal keyword, perimeter address, or project # added here powers daily 8-agency auto-sweeps &amp; GovQA templates</span>
       </h3>
       <div class="snowball-grid">
         ${SEARCH_TERM_CATEGORIES.map(cat => {
@@ -3152,7 +3802,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
             <h4><span>${esc(cat.label)}</span><span class="chip">${items.length}</span></h4>
             <div class="snowball-chips">
               ${items.length
-                ? items.map(val => `<span class="snowball-chip"><button type="button" class="cp" data-copy-text="${esc(val)}" title="Click to copy '${esc(val)}'">📋 ${esc(val)}</button><button type="button" class="rm" data-rm-term-cat="${esc(cat.key)}" data-rm-term-val="${esc(val)}" title="Remove search term" aria-label="Remove ${esc(val)}">×</button></span>`).join("")
+                ? items.map(val => `<span class="snowball-chip"><span class="cp" style="cursor:default">${esc(val)}</span><button type="button" class="rm" data-rm-term-cat="${esc(cat.key)}" data-rm-term-val="${esc(val)}" title="Remove search term" aria-label="Remove ${esc(val)}">×</button></span>`).join("")
                 : `<span style="font-size:11.5px;color:var(--muted)">None added yet</span>`}
             </div>
             <div class="snowball-add">
@@ -3169,7 +3819,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
         <span>15-Point Multi-Agency Monitoring Checklist</span>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-weight:400">
           <button type="button" class="assist-pill govqa" data-open-govqa-modal="1">📄 Draft GovQA Open Records Request</button>
-          <span style="font-size:12px;color:var(--muted)">Addresses auto-simplify (e.g. "3827 Broadway"); completed/N/A rows dim slightly so active items stand out</span>
+          <span style="font-size:12px;color:var(--muted)">Direct portal links &amp; automated checks; completed/N/A rows dim slightly so active items stand out</span>
         </div>
       </h3>
       <div style="overflow-x:auto">
@@ -3179,7 +3829,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
               <th style="width:105px">Stage</th>
               <th style="width:168px">Monitoring Activity</th>
               <th style="width:205px">What to Look For &amp; Timing</th>
-              <th style="width:225px">Portal Resources &amp; 1-Click Copy</th>
+              <th style="width:210px">Portal Resources</th>
               <th style="width:128px">Status</th>
               <th>Logged Checks, Result Links &amp; Stamp</th>
             </tr>
@@ -3190,7 +3840,6 @@ function renderWatchlistDetail(precomputedActCtx = null){
               const rowIdLc = rowId.toLowerCase();
               const stClass = (row.status || "To Do").replace(/[^A-Za-z]/g, "");
               const isMutedRow = row.status === "Complete" || row.status === "N/A";
-              const isHcadRow = rowIdLc === "chk-05";
               const hasUnreadCheck = unreadIdx.watchCheckUnread.has(`${p.id}::${rowIdLc}`);
               const isFlashed = Boolean(view.highlightCheckId && view.highlightCheckId.toLowerCase() === rowIdLc);
               return `<tr class="${isMutedRow ? "wl-row-done" : ""}${isFlashed ? " wl-row-flash" : ""}" data-row-id="${esc(rowId)}">
@@ -3204,8 +3853,8 @@ function renderWatchlistDetail(precomputedActCtx = null){
                 <td><b>${esc(row.activity)}</b></td>
                 <td><div>${esc(row.whatToLookFor)}</div><div style="color:var(--muted);font-size:11.5px;margin-top:4px"><i>Timing:</i> ${esc(row.typicalTiming)}</div></td>
                 <td>
-                  ${isHcadRow ? "" : (row.resourceUrl ? `<div><a href="${esc(row.resourceUrl)}" target="_blank" rel="noopener">${esc(row.resourceLabel || "Open Portal")} ↗</a></div>` : "")}
-                  ${isHcadRow ? "" : (row.additionalResourceUrl ? `<div style="margin-top:4px"><a href="${esc(row.additionalResourceUrl)}" target="_blank" rel="noopener">${esc(row.additionalResourceLabel || "Secondary Link")} ↗</a></div>` : "")}
+                  ${row.resourceUrl ? `<div><a href="${esc(row.resourceUrl)}" target="_blank" rel="noopener">${esc(row.resourceLabel || "Open Portal")} ↗</a></div>` : ""}
+                  ${row.additionalResourceUrl ? `<div style="margin-top:4px"><a href="${esc(row.additionalResourceUrl)}" target="_blank" rel="noopener">${esc(row.additionalResourceLabel || "Secondary Link")} ↗</a></div>` : ""}
                   ${renderPortalPillsHtml(p, row)}
                 </td>
                 <td>
@@ -3323,9 +3972,10 @@ function showAddWatchPropertyModal(){
       <div class="field"><label for="nw-nb">Neighborhood</label><input id="nw-nb" placeholder="e.g. Midtown"></div>
       <div class="field"><label for="nw-rep">Reported By</label><input id="nw-rep" placeholder="e.g. Staff / Tip"></div>
     </div>
-    <div class="grid2">
+    <div class="grid3">
       <div class="field"><label for="nw-owner">Owner of Record</label><input id="nw-owner" placeholder="Current deed / HCAD owner"></div>
       <div class="field"><label for="nw-buyer">Buyer / Related LLCs</label><input id="nw-buyer" placeholder="Buyer, operator, or developer LLCs"></div>
+      <div class="field"><label for="nw-broker">Broker / Listing Agent</label><input id="nw-broker" placeholder="e.g. CBRE, Colliers, agent name"></div>
     </div>
     <div class="field"><label for="nw-notes">Initial Notes</label><textarea id="nw-notes" placeholder="Why this property is being watched..."></textarea></div>
     <div class="actions">
@@ -3340,17 +3990,24 @@ function showAddWatchPropertyModal(){
     const ids = parseHcadAccountList($("#nw-hcad").value).hcadIds;
     if (!ids.length) { toast("Enter a 13-digit HCAD account number first."); return; }
     toast("Fetching HCAD parcel metadata...");
-    const { parcels } = await resolveParcelsMetadataForHcads(ids);
+    const { parcels, unfoundHcads, warnings } = await resolveParcelsMetadataForHcads(ids);
     const first = parcels[0];
-    if (!first) { toast("No HCAD metadata found for " + ids[0]); return; }
+    if (!first) {
+      toast(
+        unfoundHcads.length
+          ? `HCAD account ${unfoundHcads[0]} not found in local Atlas or live HCAD GIS.`
+          : (warnings[0] || `No HCAD metadata returned for ${ids[0]}.`)
+      );
+      return;
+    }
     if (first.address && !$("#nw-addr").value) $("#nw-addr").value = first.address;
     if (first.building_name && !$("#nw-name").value) $("#nw-name").value = first.building_name;
     if (first.legalDescription && !$("#nw-legal").value) $("#nw-legal").value = first.legalDescription;
     if (first.owner && !$("#nw-owner").value) $("#nw-owner").value = first.owner;
-    const minYr = (first.allYears || []).sort((a, b) => a - b)[0] || first.overrideYearBuilt || "";
+    const minYr = (first.allYears || []).slice().sort((a, b) => a - b)[0] || first.overrideYearBuilt || "";
     if (minYr && !$("#nw-yr").value) $("#nw-yr").value = String(minYr);
     $("#nw-hcad").value = ids.join(", ");
-    toast("Auto-filled HCAD metadata.");
+    toast(minYr ? `Auto-filled HCAD metadata (oldest building: ${minYr}).` : "Auto-filled HCAD parcel metadata (vacant / unimproved parcel on tax roll).");
   });
 
   $("#nwSave").addEventListener("click", async () => {
@@ -3385,6 +4042,7 @@ function showAddWatchPropertyModal(){
       reportedBy: $("#nw-rep").value.trim(),
       ownerOfRecord: $("#nw-owner").value.trim(),
       buyerRelatedEntities: $("#nw-buyer").value.trim(),
+      broker: $("#nw-broker").value.trim(),
       keyDates: { monitoringStarted: nowIso.slice(0, 10) },
       notes: $("#nw-notes").value.trim(),
       lng,
@@ -3597,7 +4255,7 @@ async function openDangerousBuildingsModal(initialCsvText = "", initialFileName 
       localHcadMap: atlasCtx.localHcadMap,
       overlays: atlasCtx.overlays,
       loadAddressShard,
-      lookupHcadAccounts: fetchHcadArcgisBatch,
+      lookupHcadAccounts: async (ids) => (await fetchHcadArcgisBatch(ids)).arcgisParcelsByHcad,
     });
     renderDondbResults(rep, fname);
   };
@@ -3649,6 +4307,7 @@ async function loadWork(file){
       startMultiCycle(d);
       if (Array.isArray(d.watchedProperties)) {
         d.watchedProperties.forEach(p => {
+          if (isLegacyUnconfirmedPlatSeed(p)) return;
           const norm = normalizeWatchProperty(p);
           if (norm) localWatchlistById.set(norm.id, norm);
         });
@@ -3749,6 +4408,7 @@ const cycleTitle = () => {
 };
 
 function doAction(a){
+  flushPendingAgendaTextEdit();
   if (a === "reload-live") return loadLiveAtlasCycle(true);
   if (a === "agenda") return $("#fileAgenda").click();
   if (a === "work") return $("#fileWork").click();
@@ -3824,6 +4484,8 @@ function buildCsv(){
     ["Public hearing date", i => i.hearingDateIso || ""],
     ["Date submitted", i => i.submittedIso || ""],
     ["App No.", i => i.app],
+    ["Linked filing app #", i => i.linkedAppNo || ""],
+    ["On meeting agenda", i => i.onMeetingAgenda === false ? "No (Cycle filing only)" : (i.agendaItemNo ? `Yes (#${i.agendaItemNo})` : "Yes")],
     ["Subdivision name", i => i.name],
     ["Address", (i, r) => r.address || (i.atlas || {}).primaryAddress || ""],
     ["Original subdivision", i => i.prevSub],
@@ -3870,7 +4532,8 @@ function buildWatchlistCsv(p){
     ["Primary Address", p.address, "Historic / Property Name", p.propertyName, "HCAD Account(s)", p.hcadAccount],
     ["Legal Description", p.legalDescription || "", "Tracker Status", p.trackerStatus || "", "Threat Category", p.threatCategory || ""],
     ["Perimeter Addresses", (p.secondaryAddresses || []).join("; "), "Owner of Record", p.ownerOfRecord, "Buyer / Entities", p.buyerRelatedEntities],
-    ["Design / Engineering Firm", p.designFirm || "", "Neighborhood", p.neighborhood || "", "Property Documents / Drive Links", driveStr],
+    ["Broker / Listing Agent", p.broker || "", "Design / Engineering Firm", p.designFirm || "", "Neighborhood", p.neighborhood || ""],
+    ["Property Documents / Drive Links", driveStr, "", "", "", ""],
     [],
     ["Entry #", "Date", "Stage", "Monitoring Activity", "Result / Finding", "Linked Files / URLs", "Source"],
   ];
@@ -3925,7 +4588,7 @@ function buildReport(){
   <p class="muted">Preservation Houston · Reviewed by ${esc(S.reviewer || "(reviewer not entered)")} · Prepared ${esc(new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }))}</p>
   <h2>Summary</h2>
   <table class="summary">
-    <tr><td>Items on the agenda</td><td><b>${items.length}</b></td><td>Researched</td><td><b>${f.length}</b></td></tr>
+    <tr><td>Items in cycle</td><td><b>${items.length}</b> (${items.filter(i => i.onMeetingAgenda !== false).length} on agenda, ${items.filter(i => i.onMeetingAgenda === false).length} filing only)</td><td>Researched</td><td><b>${f.length}</b></td></tr>
     <tr><td>To check after screening</td><td><b>${g("check")}</b></td><td>Tier 1 (escalate)</td><td><b>${t1.length}</b></td></tr>
     <tr><td>In a city historic district</td><td><b>${g("designated")}</b></td><td>Tier 2 (watch)</td><td><b>${t2.length}</b></td></tr>
     <tr><td>Outside city limits (ETJ)</td><td><b>${g("etj")}</b></td><td>Tier 3 (noted)</td><td><b>${t3.length}</b></td></tr>
@@ -4037,7 +4700,7 @@ function buildDocx(){
   d.p(`Preservation Houston · Reviewed by ${S.reviewer || "(reviewer not entered)"} · Prepared ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`, "Subtle");
   d.h(1, "Summary");
   d.table([
-    ["Items on the agenda", String(items.length), "Researched", String(f.length)],
+    ["Items in cycle", `${items.length} (${items.filter(i => i.onMeetingAgenda !== false).length} on agenda, ${items.filter(i => i.onMeetingAgenda === false).length} filing only)`, "Researched", String(f.length)],
     ["To check after screening", String(g("check")), "Tier 1 (escalate)", String(t1.length)],
     ["In a city historic district", String(g("designated")), "Tier 2 (watch)", String(t2.length)],
     ["Outside city limits (ETJ)", String(g("etj")), "Tier 3 (noted)", String(t3.length)],
@@ -4104,7 +4767,8 @@ function buildWatchlistDocx(p){
     ["Year Built", String(p.yearBuilt || "") + (p.yearRemodeled ? " / Remodeled " + p.yearRemodeled : ""), "Threat Category", p.threatCategory || "Uncategorized"],
     ["Designation", p.designation || "None", "Neighborhood", p.neighborhood || ""],
     ["Owner of Record", p.ownerOfRecord || "", "Buyer / Related Entities", p.buyerRelatedEntities || ""],
-    ["Lender / Deed of Trust", p.lender || "", "Design / Engineering Firm", p.designFirm || ""],
+    ["Broker / Listing Agent", p.broker || "Not identified", "Lender / Deed of Trust", p.lender || ""],
+    ["Design / Engineering Firm", p.designFirm || "", "Plat Developer", p.developer || ""],
   ], [2100, 2580, 2100, 2580], false);
   if (driveLinks.length) {
     const docRuns = [{ t: "Linked Documents & Google Drive Files: ", b: true }];
@@ -4189,7 +4853,8 @@ function buildWatchlistReportHtml(p){
       <tr><th>Tracker Status &amp; Tier</th><td>${esc(p.trackerStatus)} (Tier ${esc(p.tier || "1")})</td><th>Threat Category</th><td>${esc(p.threatCategory || "Uncategorized")}</td></tr>
       <tr><th>Year Built</th><td>${esc(p.yearBuilt || "N/A")}${p.yearRemodeled ? " / Remodeled " + esc(p.yearRemodeled) : ""}</td><th>Designation</th><td>${esc(p.designation || "None")}</td></tr>
       <tr><th>Owner of Record</th><td>${esc(p.ownerOfRecord || "Not recorded")}</td><th>Buyer / Related Entities</th><td>${esc(p.buyerRelatedEntities || "Not recorded")}</td></tr>
-      <tr><th>Lender / Deed of Trust</th><td>${esc(p.lender || "Not recorded")}</td><th>Design / Engineering Firm</th><td>${esc(p.designFirm || "Not recorded")}</td></tr>
+      <tr><th>Broker / Listing Agent</th><td>${esc(p.broker || "Not identified")}</td><th>Lender / Deed of Trust</th><td>${esc(p.lender || "Not recorded")}</td></tr>
+      <tr><th>Design / Engineering Firm</th><td>${esc(p.designFirm || "Not recorded")}</td><th>Plat Developer</th><td>${esc(p.developer || "N/A")}</td></tr>
     </table>
     ${driveLinks.length ? `<p><b>Documents &amp; Google Drive Links:</b> ${driveLinks.map(l => `<a href="${esc(l.url)}">${esc(l.label)}</a>`).join(" | ")}</p>` : ""}
     ${p.notes ? `<p><b>Executive Summary &amp; Notes:</b> ${esc(p.notes)}</p>` : ""}
@@ -4239,8 +4904,10 @@ function emailText(){
   const t1 = f.filter(i => revFor(i).tier === "1");
   const t2 = f.filter(i => revFor(i).tier === "2");
   const back = items.filter(i => i._hist);
+  const onAgCnt = items.filter(i => i.onMeetingAgenda !== false).length;
+  const filCnt = items.length - onAgCnt;
   let body = `Subject: Plat review - PC ${cycleTitle()}\n\n`;
-  body += `${items.length} items on the agenda (including Section K Development Plat Variances and Public Hearing notices); ${items.filter(i => i._c.group === "check").length} left after Pass 1 screening; ${f.length} researched.\n\n`;
+  body += `${items.length} items in cycle (${onAgCnt} on posted meeting agenda incl. Section K DPV & Public Hearing notices${filCnt > 0 ? `, ${filCnt} cycle filing only` : ""}); ${items.filter(i => i._c.group === "check").length} left after Pass 1 screening; ${f.length} researched.\n\n`;
   body += t1.length ? `Tier 1 - escalate:\n${t1.map(line).join("\n")}\n\n` : "Tier 1 - escalate: none.\n\n";
   body += t2.length ? `Tier 2 - watch:\n${t2.map(line).join("\n")}\n\n` : "Tier 2 - watch: none.\n\n";
   if (back.length) body += `Returning from earlier cycles:\n${back.map(i => `- ${i.app} ${i.name} (PC ${formatShortUsDate(i._hist.cycle) || i._hist.cycle}${i._hist.tier ? ", Tier " + i._hist.tier : ""})`).join("\n")}\n\n`;
@@ -4538,7 +5205,11 @@ async function pullCloudSheetSync(){
           const curRev = S.cycles[targetCycle].reviews[pr.appNo] || {};
           const curMs = Date.parse(curRev.updated || "") || 0;
           if (pr.updatedMs >= curMs) {
-            S.cycles[targetCycle].reviews[pr.appNo] = { ...curRev, ...pr.review };
+            const itRef = S.cycles[targetCycle].items.find(i => i.app === pr.appNo) || null;
+            S.cycles[targetCycle].reviews[pr.appNo] = mergePlatReviewOverlay(curRev, pr.review, {
+              sourceAppNo: pr.appNo,
+              item: itRef,
+            });
             appliedPlat++;
           }
         }
@@ -4546,6 +5217,7 @@ async function pullCloudSheetSync(){
     }
 
     for (const wp of watchProperties) {
+      if (isLegacyUnconfirmedPlatSeed(wp.rawProp)) continue;
       const normCloud = normalizeWatchProperty(wp.rawProp);
       if (!normCloud) continue;
       const prevCloud = cloudWatchlistById.get(normCloud.id);
@@ -4553,19 +5225,20 @@ async function pullCloudSheetSync(){
       const nextMs = wp.updatedMs || Date.parse(normCloud.updatedAt || "") || 0;
       if (!prevCloud || nextMs >= prevMs) {
         cloudWatchlistById.set(normCloud.id, normCloud);
-        if (normCloud.trackerStatus === REMOVED_TIER3_TOMBSTONE) {
+        if (isRemovedWatchlistTombstone(normCloud)) {
           staticWatchlistById.delete(normCloud.id);
         }
         appliedWatch++;
       }
     }
 
-    if (appliedPlat > 0 && S) {
-      prepareAllCycles();
-      persistAllCycles();
-    }
     if (appliedWatch > 0) {
       rebuildReconciledWatchlist();
+      if (S) reconcileWatchlistTiersOntoCycles({ persist: true, syncCloud: false });
+    }
+    if ((appliedPlat > 0 || appliedWatch > 0) && S) {
+      prepareAllCycles();
+      persistAllCycles();
     }
     if (appliedPlat > 0 || appliedWatch > 0) {
       render();
@@ -4590,6 +5263,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
   const paddedQHcad = /^\d{10,13}$/.test(qHcad) ? qHcad.padStart(13, "0") : qHcad;
 
   let foundWp = WL.watchedProperties.find(p => {
+    if (isRemovedWatchlistTombstone(p)) return false;
     if (qWatch && String(p.id || "") === qWatch) return true;
     const pHcads = parseHcadAccountList(p.hcadAccount || "").hcadIds;
     if (paddedQHcad && (pHcads.includes(paddedQHcad) || String(p.id || "") === "prop-watch-" + paddedQHcad)) return true;
@@ -4602,7 +5276,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
     try {
       let alData = window.__permitAlertsPayload || null;
       if (!alData) {
-        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261029a");
+        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261029b");
         if (alResp.ok) alData = await alResp.json();
       }
       const alerts = Array.isArray(alData?.alerts) ? alData.alerts : [];
@@ -4658,7 +5332,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
 async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
   try {
-    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261029a";
+    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261029b";
     const [platResp, wlResp, alResp, actResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json" + cacheQ),
       fetch("public/data/property_watchlist.json" + cacheQ),
@@ -4693,18 +5367,35 @@ async function loadLiveAtlasCycle(forceReload){
       if (wlData.lastSweepHealth) WL.lastSweepHealth = wlData.lastSweepHealth;
       staticWatchlistById.clear();
       for (const rawP of wlData.watchedProperties || []) {
+        if (isLegacyUnconfirmedPlatSeed(rawP)) continue;
         const norm = normalizeWatchProperty(rawP);
         if (norm) staticWatchlistById.set(norm.id, norm);
       }
-      if (forceReload) {
-        // Purge stale unconfirmed legacy plat-* entries from localStorage that are absent from static & have zero human contributions
-        for (const [id, locP] of Array.from(localWatchlistById.entries())) {
-          if (locP.trackerStatus !== REMOVED_TIER3_TOMBSTONE && id.startsWith("plat-") && !staticWatchlistById.has(id) && !cloudWatchlistById.has(id) && !hasHumanDossierContributions(locP)) {
-            localWatchlistById.delete(id);
-          }
+      // Purge stale unconfirmed legacy plat-* entries from localStorage on every live boot (DF-1)
+      let prunedLocal = false;
+      for (const [id, locP] of Array.from(localWatchlistById.entries())) {
+        if (isRemovedWatchlistTombstone(locP)) continue;
+        if (
+          isLegacyUnconfirmedPlatSeed(locP) ||
+          (id.startsWith("plat-") && !staticWatchlistById.has(id) && !cloudWatchlistById.has(id) && !locP.tierConfirmed && !hasHumanDossierContributions(locP))
+        ) {
+          localWatchlistById.delete(id);
+          prunedLocal = true;
         }
       }
       rebuildReconciledWatchlist();
+      if (prunedLocal) {
+        store.set(WL_KEY, {
+          app: "Plat & Property Monitor Watchlist",
+          version: 2,
+          savedAt: new Date().toISOString(),
+          lastAutoSweepAt: WL.lastAutoSweepAt || "",
+          autoSweepSchedule: WL.autoSweepSchedule || "Daily at 7:00 AM CT",
+          lastSweepHealth: WL.lastSweepHealth || null,
+          watchedProperties: WL.watchedProperties,
+          removedTombstones: WL.removedTombstones || {},
+        });
+      }
       if (!forceReload) {
         await resolveWatchlistDeepLink({ allowModeSwitch: !view.userSwitchedMode && !view.initialWatchDeepLinkResolved });
       }
@@ -4841,7 +5532,7 @@ document.addEventListener("click", async e => {
     const wid = actOpenWatchBtn.dataset.actOpenWatch;
     const chkId = actOpenWatchBtn.dataset.actCheckId || "";
     const wp = (WL.watchedProperties || []).find(
-      p => p.id === wid && p.trackerStatus !== REMOVED_TIER3_TOMBSTONE
+      p => p.id === wid && !isRemovedWatchlistTombstone(p)
     );
     if (!wp) {
       toast("That property is no longer in the active Property Watchlist.");
@@ -4893,6 +5584,7 @@ document.addEventListener("click", async e => {
         view.q = "";
         view.nb = "";
         view.flag = "";
+        view.agendaPresence = "";
         view.threat = "";
         const qEl = $("#q");
         if (qEl) qEl.value = "";
@@ -4901,6 +5593,7 @@ document.addEventListener("click", async e => {
       view.q = "";
       view.nb = "";
       view.flag = "";
+      view.agendaPresence = "";
       view.threat = "";
       const qEl = $("#q");
       if (qEl) qEl.value = "";
@@ -5077,16 +5770,32 @@ document.addEventListener("click", async e => {
     return;
   }
 
-  const openLinkedBtn = e.target.closest("#viewLinkedWatchBtn, #jumpWatchDossierBtn");
+  const openLinkedBtn = e.target.closest("#viewLinkedWatchBtn, #jumpWatchDossierBtn, [data-watch-id]:not(.row)");
   if (openLinkedBtn) {
     const wid = openLinkedBtn.dataset.watchId;
-    const wp = (WL.watchedProperties || []).find(p => p.id === wid);
-    if (wp?.trackerStatus === "Archived (Tier 3)") view.wlStatus = "ALL";
+    const wp = (WL.watchedProperties || []).find(p => p.id === wid && !isRemovedWatchlistTombstone(p));
+    if (!wp) return;
+    if (wp.trackerStatus === "Archived (Tier 3)") view.wlStatus = "ALL";
     view.mode = "watchlist";
     view.userSwitchedMode = true;
     persistModeChoice("watchlist");
     view.selectedWatchId = wid;
     render();
+    return;
+  }
+
+  const inlineWlTierBtn = e.target.closest("[data-wl-inline-tier]");
+  if (inlineWlTierBtn) {
+    if (!requireStaffAuth("changing Watchlist tier")) return;
+    const p = getSelectedWatchProp();
+    if (!p) return;
+    applyWatchlistTierChangeAndSync(p, inlineWlTierBtn.dataset.wlInlineTier);
+    return;
+  }
+
+  if (e.target.closest("#removeFromWatchlistBtn")) {
+    const p = getSelectedWatchProp();
+    if (p) openRemoveFromWatchlistModal(p);
     return;
   }
 
@@ -5102,6 +5811,7 @@ document.addEventListener("click", async e => {
     view.userSwitchedMode = true;
     persistModeChoice("agenda");
     view.group = "all";
+    view.agendaPresence = "";
     const hit = getActiveItems().find(i => i.app === appNo);
     if (hit) view.selected = hit._occKey;
     render();
@@ -5126,16 +5836,28 @@ document.addEventListener("click", async e => {
     const ids = parseHcadAccountList($("#we-hcad")?.value || "").hcadIds;
     if (!ids.length) { toast("Enter at least one 13-digit HCAD account number first."); return; }
     toast("Fetching HCAD legal description, owner & building year...");
-    const { parcels } = await resolveParcelsMetadataForHcads(ids);
+    const { parcels, unfoundHcads, warnings } = await resolveParcelsMetadataForHcads(ids);
     const first = parcels[0];
-    if (!first) { toast("No HCAD parcel record returned for " + ids[0]); return; }
+    if (!first) {
+      toast(
+        unfoundHcads.length
+          ? `HCAD account ${unfoundHcads[0]} not found in local Atlas or live HCAD GIS.`
+          : (warnings[0] || `No HCAD parcel record returned for ${ids[0]}.`)
+      );
+      return;
+    }
     if (first.legalDescription && !$("#we-legal").value.trim()) $("#we-legal").value = first.legalDescription;
     if (first.owner && !$("#we-owner").value.trim()) $("#we-owner").value = first.owner;
     if (first.address && !$("#we-addr").value.trim()) $("#we-addr").value = first.address;
-    const minYr = (first.allYears || []).sort((a, b) => a - b)[0] || first.overrideYearBuilt || "";
+    const allStanding = parcels.flatMap(x => x.allYears || []).filter(y => y >= 1836 && y <= 2035).sort((a, b) => a - b);
+    const minYr = allStanding[0] || first.overrideYearBuilt || "";
     if (minYr && !$("#we-yr").value.trim()) $("#we-yr").value = String(minYr);
     $("#we-hcad").value = ids.join(", ");
-    toast("Populated available HCAD metadata into editor fields. Click Save Property Details to apply.");
+    toast(
+      minYr
+        ? `Populated HCAD metadata (oldest standing year: ${minYr}). Click Save Property Details to apply.`
+        : "Populated HCAD parcel metadata (vacant / unimproved parcel on tax roll). Click Save Property Details to apply."
+    );
     return;
   }
   if (e.target.closest("#saveEditWatchPropBtn")) {
@@ -5143,6 +5865,7 @@ document.addEventListener("click", async e => {
     const p = getSelectedWatchProp();
     if (!p) return;
     const nowIso = new Date().toISOString();
+    const reviewerId = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
     const hcadParsed = parseHcadAccountList($("#we-hcad").value);
     p.address = $("#we-addr").value.trim() || p.address;
     p.propertyName = $("#we-name").value.trim() || p.address;
@@ -5151,8 +5874,16 @@ document.addEventListener("click", async e => {
     p.hcadAccount = hcadParsed.hcadIds.length ? hcadParsed.hcadIds.join(", ") : $("#we-hcad").value.trim();
     p.legalDescription = $("#we-legal").value.trim();
     const wasArchived = p.trackerStatus === "Archived (Tier 3)";
-    p.tier = $("#we-tier").value;
-    p.trackerStatus = $("#we-status").value;
+    const chosenTier = $("#we-tier").value;
+    let chosenStatus = $("#we-status").value;
+    if (chosenTier === "3") {
+      chosenStatus = "Archived (Tier 3)";
+    } else if (chosenStatus === "Archived (Tier 3)") {
+      chosenStatus = chosenTier === "1" ? "Active / High Priority" : "Monitoring";
+    }
+    p.tier = chosenTier;
+    p.tierConfirmed = chosenTier === "1" || chosenTier === "2";
+    p.trackerStatus = chosenStatus;
     if (p.trackerStatus === "Archived (Tier 3)") {
       if (!wasArchived || !p.archivedAt) p.archivedAt = nowIso;
     } else {
@@ -5167,6 +5898,7 @@ document.addEventListener("click", async e => {
     p.reportedBy = $("#we-rep").value.trim();
     p.ownerOfRecord = $("#we-owner").value.trim();
     p.buyerRelatedEntities = $("#we-buyer").value.trim();
+    p.broker = $("#we-broker").value.trim();
     p.lender = $("#we-lender").value.trim();
     p.designFirm = $("#we-design").value.trim();
     p.architectEngineer = p.designFirm;
@@ -5182,32 +5914,40 @@ document.addEventListener("click", async e => {
     if (p.keyDates.publicHearingDate) p.hearingDateIso = excelSerialToIso(p.keyDates.publicHearingDate) || p.hearingDateIso;
     p.humanEdited = true;
     p.updatedAt = nowIso;
-    p.updatedBy = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
-
-    // Sync tier back to linked Biweekly Plat Review item if present
-    if (p.appNo && S) {
-      for (const ck of S.cycleOrder) {
-        const cyc = S.cycles[ck];
-        if (cyc && cyc.items.some(i => i.app === p.appNo)) {
-          cyc.reviews[p.appNo] = {
-            ...(cyc.reviews[p.appNo] || {}),
-            tier: p.tier,
-            tierConfirmed: true,
-            address: p.address,
-            hcad: p.hcadAccount,
-            yearBuilt: String(p.yearBuilt || ""),
-            threatCategory: p.threatCategory,
-            updated: nowIso,
-          };
-          persistCycle(ck);
-          queueCloudSyncPlatReview(ck, p.appNo);
-        }
-      }
-      prepareAllCycles();
-    }
+    p.updatedBy = reviewerId;
 
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
+
+    // Sync tier & metadata back across ALL matching Biweekly Plat Monitor items (by appNo, HCAD, or address)
+    if (S && S.cycles) {
+      const syncRes = syncWatchlistTierToPlatReviews({
+        prop: saved,
+        newTier: saved.tier,
+        cycles: S.cycles,
+        cycleOrder: S.cycleOrder,
+        reviewer: reviewerId,
+        nowIso,
+      });
+      const touchedCycles = new Set();
+      for (const t of syncRes.touched) {
+        const cyc = S.cycles[t.cycleKey];
+        if (cyc && cyc.reviews[t.appNo]) {
+          cyc.reviews[t.appNo] = {
+            ...cyc.reviews[t.appNo],
+            address: saved.address || cyc.reviews[t.appNo].address,
+            hcad: saved.hcadAccount || cyc.reviews[t.appNo].hcad,
+            yearBuilt: String(saved.yearBuilt || cyc.reviews[t.appNo].yearBuilt || ""),
+            threatCategory: saved.threatCategory || cyc.reviews[t.appNo].threatCategory,
+          };
+        }
+        touchedCycles.add(t.cycleKey);
+        queueCloudSyncPlatReview(t.cycleKey, t.appNo);
+      }
+      for (const ck of touchedCycles) persistCycle(ck);
+      prepareAllCycles();
+    }
+
     view.editingWatchId = null;
     if (saved.trackerStatus === "Archived (Tier 3)" && view.wlStatus === "ALL_ACTIVE") {
       view.wlStatus = "ALL";
@@ -5300,7 +6040,7 @@ document.addEventListener("click", async e => {
     renderWatchlistSidebar(actCtx);
     renderWatchlistDetail(actCtx);
     $("#detail").scrollTop = sc;
-    toast(`Added "${val}" to search terms & updated 1-click portal copy pills.`);
+    toast(`Added "${val}" to search terms for daily auto-sweeps & GovQA templates.`);
     return;
   }
 
@@ -5447,6 +6187,7 @@ document.addEventListener("click", async e => {
   // Mode Switch, Group Tabs, Sidebar Rows, Menus
   const modeBtn = e.target.closest(".mode-btn");
   if (modeBtn) {
+    flushPendingAgendaTextEdit();
     view.mode = modeBtn.dataset.mode;
     view.userSwitchedMode = true;
     persistModeChoice(view.mode);
@@ -5456,12 +6197,14 @@ document.addEventListener("click", async e => {
   }
   const tab = e.target.closest(".tab[data-g]");
   if (tab) {
+    flushPendingAgendaTextEdit();
     view.group = tab.dataset.g;
     render();
     return;
   }
   const wlRow = e.target.closest(".row[data-watch-id]");
   if (wlRow) {
+    flushPendingAgendaTextEdit();
     view.selectedWatchId = wlRow.dataset.watchId;
     view.editingWatchId = null;
     view.highlightCheckId = "";
@@ -5475,6 +6218,7 @@ document.addEventListener("click", async e => {
   }
   const row = e.target.closest(".row[data-occ]");
   if (row) {
+    flushPendingAgendaTextEdit();
     view.selected = row.dataset.occ;
     clearBootDeepLinkUrlParams();
     const actCtx = getActivityViewContext();
@@ -5525,6 +6269,53 @@ document.addEventListener("keydown", e => {
   }
 });
 
+let _pendingAgendaTextSave = null;
+function flushPendingAgendaTextEdit(){
+  if (!_pendingAgendaTextSave) return true;
+  const { timer, cycleKey, app, occKey, fields } = _pendingAgendaTextSave;
+  clearTimeout(timer);
+  _pendingAgendaTextSave = null;
+  const it = occKey ? findItemBySelection(occKey) : null;
+  if (it && fields && fields.size) {
+    propagateEditedReviewFieldsAcrossCycles(it, Array.from(fields));
+    prepareAllCycles();
+  }
+  const ok = persistCycle(cycleKey);
+  queueCloudSyncPlatReview(cycleKey, app);
+  const noteEl = $("#savedNote");
+  if (noteEl) {
+    noteEl.textContent = ok
+      ? "Saved " + new Date().toLocaleTimeString() + " · Syncing to Google Sheet..."
+      : "Syncing to Google Sheet...";
+  }
+  return ok;
+}
+function scheduleDebouncedAgendaTextSave(cycleKey, app, occKey, fieldKey){
+  let fields = new Set();
+  if (_pendingAgendaTextSave) {
+    if (_pendingAgendaTextSave.cycleKey !== cycleKey || _pendingAgendaTextSave.app !== app) {
+      flushPendingAgendaTextEdit();
+    } else {
+      clearTimeout(_pendingAgendaTextSave.timer);
+      fields = new Set(_pendingAgendaTextSave.fields || []);
+    }
+  }
+  if (fieldKey) fields.add(String(fieldKey));
+  const timer = setTimeout(() => {
+    flushPendingAgendaTextEdit();
+  }, 250);
+  _pendingAgendaTextSave = { timer, cycleKey, app, occKey, fields };
+}
+window.addEventListener("pagehide", flushPendingAgendaTextEdit);
+window.addEventListener("beforeunload", flushPendingAgendaTextEdit);
+
+function markHumanEditedField(r, fieldKey){
+  if (!r || !fieldKey) return;
+  const set = new Set(Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []);
+  set.add(String(fieldKey));
+  r.humanEditedFields = Array.from(set);
+}
+
 $("#detail").addEventListener("input", e => {
   const el = e.target;
   if (!el || view.mode === "activity") return;
@@ -5552,6 +6343,9 @@ $("#detail").addEventListener("input", e => {
     return;
   }
   if (view.mode !== "agenda" || !S || !view.selected) return;
+  // Discrete controls (tier radios & select dropdowns) commit cleanly in the change listener
+  if (el.name === "tier" || el.tagName === "SELECT") return;
+  if (!el.dataset?.k) return;
   if (!requireStaffAuth("editing plat reviews")) {
     renderDetail();
     return;
@@ -5559,48 +6353,47 @@ $("#detail").addEventListener("input", e => {
   const it = findItemBySelection(view.selected);
   if (!it) return;
   const r = revFor(it, true);
-  if (el.name === "tier") {
-    const prevTier = r.tier || "";
-    r.tier = el.value;
-    if (r.tier !== prevTier && (r.tier === "1" || r.tier === "2") && !findLinkedWatchProp(it, r)) {
-      r.tierConfirmed = false;
-    }
-  } else if (el.dataset.k) {
-    r[el.dataset.k] = el.value;
-  } else {
-    return;
-  }
+  r[el.dataset.k] = el.value;
+  markHumanEditedField(r, el.dataset.k);
   r.updated = new Date().toISOString();
-  prepareAllCycles();
-  const ok = persistCycle(it._cycleKey);
-  queueCloudSyncPlatReview(it._cycleKey, it.app);
 
-  // Auto-sync edits or tier downgrades if this plat item is already linked on the Watchlist
-  if (findLinkedWatchProp(it, r)) {
-    confirmAndSyncPlatItemToWatchlist(it._occKey, false, false);
-    return;
+  // Mirror the two HCAD input boxes without replacing #detail or redrawing/resorting #list (F2-09)
+  if (el.dataset.k === "hcad") {
+    const otherId = el.id === "r-hcad-inline" ? "#r-hcad" : "#r-hcad-inline";
+    const otherEl = $(otherId);
+    if (otherEl && document.activeElement !== otherEl && otherEl.value !== el.value) {
+      otherEl.value = el.value;
+    }
   }
 
   const noteEl = $("#savedNote");
   if (noteEl) {
-    noteEl.textContent = ok
-      ? "Saved " + new Date().toLocaleTimeString() + " · Syncing to Google Sheet..."
-      : "Syncing to Google Sheet...";
+    noteEl.textContent = "Saving " + new Date().toLocaleTimeString() + "...";
   }
-  if (el.name === "tier") {
-    render();
-    const radio = document.querySelector(`input[name=tier][value="${el.value}"]`);
-    if (radio) radio.focus();
-  } else {
-    const actCtx = getActivityViewContext();
-    updateModeButtons(actCtx);
-    renderList(actCtx);
-  }
+  scheduleDebouncedAgendaTextSave(it._cycleKey, it.app, it._occKey, el.dataset.k);
 });
 
 $("#detail").addEventListener("change", e => {
   const el = e.target;
   if (!el || view.mode === "activity") return;
+  if (view.mode === "watchlist" && (el.id === "we-tier" || el.id === "we-status")) {
+    const tierSel = $("#we-tier");
+    const stSel = $("#we-status");
+    if (el.id === "we-tier" && stSel) {
+      if (el.value === "3" && stSel.value !== "Archived (Tier 3)") {
+        stSel.value = "Archived (Tier 3)";
+      } else if ((el.value === "1" || el.value === "2") && stSel.value === "Archived (Tier 3)") {
+        stSel.value = el.value === "1" ? "Active / High Priority" : "Monitoring";
+      }
+    } else if (el.id === "we-status" && tierSel) {
+      if (el.value === "Archived (Tier 3)" && tierSel.value !== "3") {
+        tierSel.value = "3";
+      } else if (el.value !== "Archived (Tier 3)" && tierSel.value === "3") {
+        tierSel.value = el.value === "Monitoring" ? "2" : "1";
+      }
+    }
+    return;
+  }
   if (el.id && (el.id.startsWith("chk") || el.id.startsWith("we-") || el.id.startsWith("newDoc") || el.id.startsWith("snowIn-"))) {
     return;
   }
@@ -5634,16 +6427,92 @@ $("#detail").addEventListener("change", e => {
     }
     return;
   }
-  if (view.mode === "agenda" && el.dataset && (el.dataset.k === "address" || el.dataset.k === "hcad" || el.dataset.k === "threatCategory" || el.dataset.k === "designation")) {
-    const sc = $("#detail").scrollTop;
+  if (view.mode !== "agenda" || !S || !view.selected) return;
+  if (!el.name && !el.dataset?.k) return;
+  if (el.name && el.name !== "tier" && !el.dataset?.k) return;
+  if (!requireStaffAuth("editing plat reviews")) {
     renderDetail();
-    $("#detail").scrollTop = sc;
+    return;
+  }
+  const it = findItemBySelection(view.selected);
+  if (!it) return;
+  flushPendingAgendaTextEdit();
+  const r = revFor(it, true);
+  const changedField = el.name === "tier" ? "tier" : el.dataset.k;
+  if (!changedField) return;
+
+  if (el.name === "tier") {
+    const prevTier = r.tier || "";
+    r.tier = el.value;
+    if (r.tier !== prevTier && (r.tier === "1" || r.tier === "2") && !findLinkedWatchProp(it, r)) {
+      r.tierConfirmed = false;
+    }
+  } else {
+    r[changedField] = el.value;
+  }
+  markHumanEditedField(r, changedField);
+  r.updated = new Date().toISOString();
+
+  propagateEditedReviewFieldsAcrossCycles(it, [changedField]);
+  prepareAllCycles();
+  const ok = persistCycle(it._cycleKey);
+  queueCloudSyncPlatReview(it._cycleKey, it.app);
+
+  // Sync edits or tier downgrades if this plat item is already linked on the Watchlist
+  if (findLinkedWatchProp(it, r)) {
+    const isDiscrete = el.name === "tier" || el.tagName === "SELECT";
+    confirmAndSyncPlatItemToWatchlist(it._occKey, false, false, !isDiscrete);
+    if (el.name === "tier") {
+      const radio = document.querySelector(`input[name=tier][value="${el.value}"]`);
+      if (radio) radio.focus();
+    }
+    return;
+  }
+
+  const noteEl = $("#savedNote");
+  if (noteEl) {
+    noteEl.textContent = ok
+      ? "Saved " + new Date().toLocaleTimeString() + " · Syncing to Google Sheet..."
+      : "Syncing to Google Sheet...";
+  }
+  if (el.name === "tier") {
+    render();
+    const radio = document.querySelector(`input[name=tier][value="${el.value}"]`);
+    if (radio) radio.focus();
+    return;
+  }
+  // Defer #tabs/#list innerHTML replacement past any in-flight mousedown->mouseup->click
+  // when blurring a text field onto a sidebar row or tab (F2-09).
+  const refreshChrome = () => {
+    if (view.mode !== "agenda" || !S) return;
+    const listSc = $("#list")?.scrollTop || 0;
+    const actCtx = getActivityViewContext();
+    populateHeaderAndFilterControls();
+    updateModeButtons(actCtx);
+    const c = counts();
+    const items = getActiveItems();
+    renderAgendaFunnel(items, c);
+    renderDemoBenchmarksDrawer();
+    $("#tabs").innerHTML = GROUPS.map(([g, label, tip]) => `<button class="tab" role="tab" data-g="${g}" aria-selected="${view.group === g}" title="${esc(tip)}">${label}<span class="c">${c[g]}</span></button>`).join("");
+    renderList(actCtx);
+    if ($("#list")) $("#list").scrollTop = listSc;
+  };
+  if (el.tagName === "SELECT") {
+    refreshChrome();
+    if (changedField === "threatCategory" || changedField === "designation") {
+      const sc = $("#detail").scrollTop;
+      renderDetail();
+      $("#detail").scrollTop = sc;
+    }
+  } else {
+    setTimeout(refreshChrome, 0);
   }
 });
 
 /* ---------- Header & Filter Bar Controls ---------- */
 $("#cycleSelect")?.addEventListener("change", e => {
   if (!S) return;
+  flushPendingAgendaTextEdit();
   const val = e.target.value;
   S.activeCycleChoice = val;
   if (val !== "all" && S.cycles[val]) {
@@ -5655,6 +6524,7 @@ $("#cycleSelect")?.addEventListener("change", e => {
 });
 
 $("#q").addEventListener("input", e => { view.q = e.target.value; renderList(); renderDetail(); });
+$("#fAgendaPresence")?.addEventListener("change", e => { view.agendaPresence = e.target.value; renderList(); renderDetail(); });
 $("#fNeighborhood").addEventListener("change", e => { view.nb = e.target.value; renderList(); renderDetail(); });
 $("#fFlag").addEventListener("change", e => { view.flag = e.target.value; renderList(); renderDetail(); });
 $("#fThreat").addEventListener("change", e => { view.threat = e.target.value; renderList(); renderDetail(); });

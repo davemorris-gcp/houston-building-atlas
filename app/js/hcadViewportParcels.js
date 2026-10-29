@@ -4,7 +4,8 @@
  * minimum-age enricher for The Houston Building Atlas.
  */
 
-import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261029a";
+import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261029b";
+import { computeGeoJsonCentroid } from "./platMonitorHelpers.js?v=20261029b";
 
 export const HCAD_PUBLIC_QUERY_URL =
   "https://arcweb.hcad.org/server/rest/services/public/public_query/MapServer/0/query";
@@ -112,7 +113,7 @@ export function collectMinBuildingYearsByHcad(
       continue;
     }
     const yr = Number(p.year_built) || 0;
-    const validYr = yr >= 1836 && yr <= 2030 ? yr : 0;
+    const validYr = yr >= 1836 && yr <= 2035 ? yr : 0;
     let rec = targetMap.get(hcad);
     if (!rec) {
       rec = {
@@ -462,4 +463,272 @@ export class HcadViewportParcelClient {
       throw err;
     }
   }
+}
+
+const HCAD_SEARCH_DIRECTIONAL_MAP = {
+  NORTH: "N",
+  SOUTH: "S",
+  EAST: "E",
+  WEST: "W",
+  N: "N",
+  S: "S",
+  E: "E",
+  W: "W",
+};
+
+const HCAD_SEARCH_SUFFIX_MAP = {
+  STREET: "ST",
+  AVENUE: "AVE",
+  BOULEVARD: "BLVD",
+  DRIVE: "DR",
+  ROAD: "RD",
+  LANE: "LN",
+  COURT: "CT",
+  PLACE: "PL",
+  PARKWAY: "PKWY",
+  FREEWAY: "FWY",
+  HIGHWAY: "HWY",
+  CIRCLE: "CIR",
+  TRAIL: "TRL",
+  TERRACE: "TER",
+  SPEEDWAY: "SPWY",
+  SQUARE: "SQ",
+};
+
+/**
+ * Compute a representative `[lng, lat]` centroid from a GeoJSON geometry (`Point`, `Polygon`,
+ * or `MultiPolygon`). Returns `null` when coordinates are missing or non-finite.
+ */
+export function computeParcelCentroid(geometry) {
+  return computeGeoJsonCentroid(geometry);
+}
+
+/**
+ * Normalize a user street-address search query into a sanitized ArcGIS SQL `WHERE` clause
+ * against HCAD `public_query/MapServer/0` (`address LIKE '...'`).
+ *
+ * Returns `null` when the query does not contain a concrete house number (>= 1, non-zero-led)
+ * plus at least 2 characters of the primary street name token (ignoring bare leading directionals
+ * like `"3346 S"` so live queries never match overly broad prefixes while the user is mid-keystroke).
+ *
+ * Automatically includes HCAD's double-space directional variant (`"10305 S  MAIN%"`) alongside
+ * single-space (`"10305 S MAIN%"`) whenever a leading `N`/`S`/`E`/`W` token is present.
+ */
+export function buildHcadAddressPrefixWhere(rawQuery) {
+  let s = String(rawQuery || "").trim();
+  if (!s) return null;
+
+  // Strip trailing Houston / TX / ZIP boilerplate and apartment/suite tails.
+  s = s.replace(/,?\s+houston(?:\s*,?\s*(?:tx|texas))?(?:\s+\d{5}(?:-\d{4})?)?$/i, " ");
+  s = s.replace(/\s+(?:#|apt\.?|bldg\.?|ste\.?|suite|unit)\s*[a-z0-9-]*$/i, " ");
+  s = s
+    .toUpperCase()
+    .replace(/[.,'"`\\;%_()[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const m = s.match(/^(\d+[A-Z]?)\s+([A-Z0-9][A-Z0-9\s-]*)$/);
+  if (!m) return null;
+
+  const houseNum = m[1];
+  const houseDigits = houseNum.replace(/\D/g, "");
+  if (!houseDigits || houseDigits.startsWith("0")) return null;
+
+  const rawTokens = m[2]
+    .split(/\s+/)
+    .map((tok) => tok.replace(/[^A-Z0-9-]/g, ""))
+    .filter(Boolean);
+  if (rawTokens.length === 0) return null;
+
+  const tokens = rawTokens.slice();
+  if (HCAD_SEARCH_DIRECTIONAL_MAP[tokens[0]] && tokens.length >= 2) {
+    tokens[0] = HCAD_SEARCH_DIRECTIONAL_MAP[tokens[0]];
+  }
+  if (tokens.length >= 2) {
+    const lastIdx = tokens.length - 1;
+    if (HCAD_SEARCH_SUFFIX_MAP[tokens[lastIdx]]) {
+      tokens[lastIdx] = HCAD_SEARCH_SUFFIX_MAP[tokens[lastIdx]];
+    }
+  }
+
+  const isLeadingDir =
+    tokens.length >= 1 && ["N", "S", "E", "W"].includes(tokens[0]);
+  if (isLeadingDir && tokens.length < 2) {
+    return null;
+  }
+  const primaryStreetToken = isLeadingDir ? tokens[1] : tokens[0];
+  if (!primaryStreetToken || primaryStreetToken.length < 2) {
+    return null;
+  }
+
+  const streetPrefix = tokens.join(" ");
+  const prefixes = [`${houseNum} ${streetPrefix}`];
+  if (isLeadingDir) {
+    const rest = tokens.slice(1).join(" ");
+    prefixes.push(`${houseNum} ${tokens[0]}  ${rest}`);
+  }
+
+  const clauses = prefixes.map((p) => `address LIKE '${p}%'`);
+  const where = clauses.length === 1 ? clauses[0] : `(${clauses.join(" OR ")})`;
+
+  return {
+    houseNum,
+    streetPrefix,
+    streetTokens: tokens,
+    prefixes,
+    where,
+  };
+}
+
+/**
+ * Filter and rank already-fetched or newly queried HCAD parcel GeoJSON features against a user
+ * street-address search query (`F2-10` / `DF-4`). Used both synchronously against the active
+ * viewport parcel cache (`0ms` fast path) and on live REST query results.
+ */
+export function matchHcadParcelFeaturesByAddressQuery(
+  features,
+  rawQuery,
+  {
+    knownAtlasHcads = new Set(),
+    minBuildingYearsByHcad = new Map(),
+    resolveContextAtPoint = null,
+  } = {}
+) {
+  const spec = buildHcadAddressPrefixWhere(rawQuery);
+  if (!spec || !Array.isArray(features) || features.length === 0) return [];
+
+  const matched = [];
+  const seenHcad = new Set();
+
+  for (const rawFeat of features) {
+    if (!rawFeat || typeof rawFeat !== "object") continue;
+    const rawProps = rawFeat.properties || rawFeat.attributes || {};
+    const hcad = normalizeHcad13(rawProps.HCAD_NUM ?? rawProps.hcad_num ?? "");
+    if (hcad.length !== 13 || seenHcad.has(hcad)) continue;
+
+    const cleanAddr = String(rawProps.address || "")
+      .toUpperCase()
+      .replace(/[.,]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!cleanAddr || /^0(?:\s|$)/.test(cleanAddr)) continue;
+
+    const addrParts = cleanAddr.split(" ");
+    const addrNum = addrParts[0] || "";
+    const exactNum = addrNum === spec.houseNum;
+    const prefixNum = !exactNum && addrNum.startsWith(spec.houseNum);
+    if (!exactNum && !prefixNum) continue;
+
+    const addrStreet = addrParts.slice(1).join(" ");
+    if (!spec.streetTokens.every((tok) => addrStreet.includes(tok))) continue;
+
+    const normGeom =
+      rawFeat.geometry &&
+      !rawFeat.geometry.type &&
+      Array.isArray(rawFeat.geometry.rings) &&
+      rawFeat.geometry.rings.length > 0
+        ? { type: "Polygon", coordinates: rawFeat.geometry.rings }
+        : rawFeat.geometry || null;
+
+    const centroid = computeParcelCentroid(normGeom);
+    const extraCtx =
+      centroid && typeof resolveContextAtPoint === "function"
+        ? resolveContextAtPoint(centroid[0], centroid[1]) || {}
+        : {};
+    let enriched = null;
+    if (rawProps.is_live_hcad_parcel && rawProps.use_category) {
+      enriched = {
+        type: "Feature",
+        geometry: normGeom,
+        properties: { ...extraCtx, ...rawProps, hcad_num: hcad, address: cleanAddr },
+      };
+    } else {
+      const baseEnriched = enrichParcelFeature(
+        { type: "Feature", geometry: normGeom, properties: rawProps },
+        {
+          buildingYearsByHcad: minBuildingYearsByHcad,
+          pilotCoreHcads: knownAtlasHcads,
+        }
+      );
+      if (baseEnriched) {
+        enriched = {
+          type: "Feature",
+          geometry: baseEnriched.geometry,
+          properties: {
+            ...extraCtx,
+            ...baseEnriched.properties,
+            address: cleanAddr,
+            is_live_hcad_parcel: true,
+          },
+        };
+      }
+    }
+    if (!enriched) continue;
+
+    seenHcad.add(hcad);
+    matched.push({
+      feature: enriched,
+      hcadNum: hcad,
+      address: enriched.properties.address || cleanAddr,
+      exactHouseNum: exactNum,
+      exactStreetPrefix:
+        addrStreet === spec.streetPrefix || addrStreet.startsWith(`${spec.streetPrefix} `),
+      centroid,
+      lon: centroid ? centroid[0] : null,
+      lat: centroid ? centroid[1] : null,
+    });
+  }
+
+  matched.sort((a, b) => {
+    if (a.exactHouseNum !== b.exactHouseNum) return a.exactHouseNum ? -1 : 1;
+    if (a.exactStreetPrefix !== b.exactStreetPrefix) return a.exactStreetPrefix ? -1 : 1;
+    return a.address.localeCompare(b.address) || a.hcadNum.localeCompare(b.hcadNum);
+  });
+
+  return matched;
+}
+
+/**
+ * Query HCAD's live countywide `public_query/MapServer/0` parcel layer by street-address prefix
+ * so vacant/unimproved parcels missing from `search_index.json` and `address_shards/` (such as
+ * `3346 Scott St` and `3348 Scott St`, `F2-10`) resolve cleanly in the Atlas search dropdown
+ * and `#q=` deep links with polygon geometry (`DF-4`).
+ */
+export async function searchHcadParcelsByAddressPrefix(
+  rawQuery,
+  {
+    fetchImpl = globalThis.fetch ? globalThis.fetch.bind(globalThis) : null,
+    signal = undefined,
+    baseUrl = HCAD_PUBLIC_QUERY_URL,
+    resultRecordCount = 12,
+    knownAtlasHcads = new Set(),
+    minBuildingYearsByHcad = new Map(),
+    resolveContextAtPoint = null,
+  } = {}
+) {
+  const spec = buildHcadAddressPrefixWhere(rawQuery);
+  if (!spec || typeof fetchImpl !== "function") return [];
+
+  const params = new URLSearchParams({
+    where: spec.where,
+    outFields:
+      "HCAD_NUM,address,owner,subdivision,state_class,impr_val,land_val,mkt_val,appr_val",
+    returnGeometry: "true",
+    outSR: "4326",
+    resultRecordCount: String(Math.max(1, Math.min(25, Number(resultRecordCount) || 12))),
+    f: "geojson",
+  });
+
+  const cleanBase = String(baseUrl || HCAD_PUBLIC_QUERY_URL).replace(/\/+$/, "");
+  const queryEndpoint = cleanBase.endsWith("/query") ? cleanBase : `${cleanBase}/query`;
+  const resp = await fetchImpl(`${queryEndpoint}?${params.toString()}`, { signal });
+  if (!resp || !resp.ok) return [];
+  const data = await resp.json();
+  if (!data || data.error || !Array.isArray(data.features)) return [];
+
+  return matchHcadParcelFeaturesByAddressQuery(data.features, rawQuery, {
+    knownAtlasHcads,
+    minBuildingYearsByHcad,
+    resolveContextAtPoint,
+  });
 }

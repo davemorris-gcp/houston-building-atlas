@@ -5,23 +5,37 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  CARRY_FORWARD_REVIEW_FIELDS,
+  HCAD_PUBLIC_QUERY_OUT_FIELDS,
+  HCAD_RESIDENTIAL_GRADE_OUT_FIELDS,
   excelSerialToIso,
   formatShortUsDate,
   formatLongUsDate,
   parseHcadAccountList,
   resolveMultiParcelBuildingTier,
+  computeGeoJsonCentroid,
+  resolveParcelsMetadataFromSources,
   classifyPlatItem,
   buildOccurrenceKey,
   parseOccurrenceKey,
   normalizeContinuityPlatName,
+  getCanonicalPlatAppIds,
   buildContinuityKeys,
+  areContinuitySnapshotsCompatible,
+  mergePlatReviewOverlay,
   linkCrossCycleHistory,
+  normalizeDeveloperEntityKey,
+  buildWatchedDeveloperMap,
   extractHearingDateIso,
   hasHumanDossierContributions,
 } from "../../app/js/platMonitorHelpers.js";
 
 import {
   REMOVED_TIER3_TOMBSTONE,
+  REMOVED_WATCHLIST_TOMBSTONE,
+  isRemovedWatchlistTombstone,
+  createWatchlistTombstone,
+  isLegacyUnconfirmedPlatSeed,
   simplifySearchAddress,
   extractClerkLegalCopyTerms,
   escapeHtmlText,
@@ -35,6 +49,7 @@ import {
   normalizeWatchProperty,
   serializeWatchPropertyForSync,
   reconcileWatchlistProperty,
+  syncWatchlistTierToPlatReviews,
   syncPlatTierToWatchlist,
   sortWatchedProperties,
   parseCsvRfc4180,
@@ -52,6 +67,8 @@ import {
   collectMinBuildingYearsByHcad,
   enrichParcelFeature,
   buildUnifiedParcelCollection,
+  buildHcadAddressPrefixWhere,
+  matchHcadParcelFeaturesByAddressQuery,
 } from "../../app/js/hcadViewportParcels.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -388,14 +405,14 @@ test("UT-6 & MOD-2: extractClerkLegalCopyTerms delegates to clerkSearchHelpers.j
   assert.match(wlSrc, /from\s+["']\.\/clerkSearchHelpers\.js(?:\?v=[^"']+)?["']/);
 });
 
-test("UT-7: buildAssistedPortalPillsModel routes portal-specific copy payloads with zero street-address fallthrough on #3, #4, #7, #8, #9", () => {
+test("UT-7 (F2-11 & DF-10): buildAssistedPortalPillsModel omits Watchlist copy clutter while preserving direct links on #5 (chk-05) and modal actions on #8/#13", () => {
   const kirbyProp = normalizeWatchProperty({
     id: "prop-kirby-mansion",
     propertyName: "John Henry Kirby Mansion",
     platProjectName: "Smith Street Plaza",
     address: "2000 Smith St.",
     secondaryAddresses: ["530 Pierce St."],
-    hcadAccount: "0152300000001",
+    hcadAccount: "0152300000001; 0152300000002",
     legalDescription: "TRS 1-16 BLK 417 SSBB",
     ownerOfRecord: "OB Texas Properties LLC",
     buyerRelatedEntities: "Smith St C Store LLC",
@@ -417,73 +434,36 @@ test("UT-7: buildAssistedPortalPillsModel routes portal-specific copy payloads w
     },
   });
 
-  const nonAddressChecks = ["chk-03", "chk-04", "chk-07", "chk-08", "chk-09"];
-  for (const cid of nonAddressChecks) {
-    const row = findChecklistRow(kirbyProp.checklist, cid);
+  // Zero kind === "copy" search-term buttons on ANY Watchlist checklist row (F2-11)
+  for (const row of kirbyProp.checklist) {
     const pills = buildAssistedPortalPillsModel(kirbyProp, row);
-    assert.ok(pills.length > 0, `Expected non-empty assisted pills for ${cid}`);
-    for (const pill of pills) {
-      if (pill.kind === "copy") {
-        assert.notEqual(
-          pill.copyText,
-          "2000 Smith",
-          `${cid} must never auto-copy simplified street address '2000 Smith'`
-        );
-        assert.notEqual(
-          pill.copyText,
-          "2000 Smith St.",
-          `${cid} must never auto-copy raw street address '2000 Smith St.'`
-        );
-      }
-    }
-  }
-
-  // Specific positive assertions per portal check (including 4th+ snowball entities without .slice(0, 3) truncation)
-  const p3 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-03"));
-  assert.ok(p3.some((p) => p.kind === "copy" && p.copyText === "417"));
-  assert.ok(p3.some((p) => p.kind === "copy" && p.copyText === "SSBB"));
-
-  const p4 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-04"));
-  for (const expectedTerm of [
-    "Smith St C Store LLC",
-    "OB Texas Properties LLC",
-    "BTCM National Retail Operations LLC",
-    "Kirby Block Holdings LLC",
-    "Omair Bashir",
-    "Brake Time",
-  ]) {
-    assert.ok(
-      p4.some((p) => p.kind === "copy" && p.copyText === expectedTerm),
-      `Expected Check #4 copy pill for snowball term '${expectedTerm}'`
+    assert.equal(
+      pills.some((p) => p.kind === "copy"),
+      false,
+      `${row.id} must not render copy-clutter pills on Property Watchlist`
     );
   }
-  assert.ok(p4.some((p) => p.label.includes("Bizapedia")));
 
-  const p7 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-07"));
-  assert.ok(p7.some((p) => p.kind === "copy" && p.copyText === "Brake Time"));
-  assert.ok(p7.some((p) => p.kind === "copy" && p.copyText === "Kirby Block Holdings LLC"));
-  assert.ok(p7.some((p) => p.kind === "copy" && p.copyText === "Omair Bashir"));
+  const p4 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-04"));
+  assert.ok(p4.some((p) => p.kind === "link" && p.label.includes("Bizapedia") && p.href.includes("bizapedia.com")));
 
+  // chk-05 must retain direct HCAD GIS Parcel Viewer links (never left blank when copy pills are removed)
+  const p5 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-05"));
+  assert.ok(
+    p5.some((p) => p.kind === "link" && p.href === "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001"),
+    "chk-05 must expose direct HCAD GIS Map link for 0152300000001"
+  );
+  assert.ok(
+    p5.some((p) => p.kind === "link" && p.href === "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000002"),
+    "chk-05 must expose direct HCAD GIS Map link for 0152300000002"
+  );
+
+  // Workflow modal action triggers remain intact on chk-08 and chk-13
   const p8 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-08"));
-  assert.ok(p8.some((p) => p.kind === "copy" && p.copyText === "26052089"));
   assert.ok(p8.some((p) => p.kind === "action" && p.action === "open-govqa-modal"));
-
-  const p10 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-10"));
-  assert.ok(p10.some((p) => p.kind === "copy" && (p.copyText === "2000 Smith" || p.copyText === "530 Pierce")));
-  assert.ok(p10.some((p) => p.kind === "copy" && p.copyText === "Kirby Block Holdings LLC"));
-
-  const p11 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-11"));
-  assert.ok(p11.some((p) => p.kind === "copy" && p.copyText === "2000 Smith" && (p.openUrl || "").includes("novusagenda.com")));
-
-  const p12 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-12"));
-  assert.ok(p12.some((p) => p.kind === "copy" && p.copyText === "Smith St C Store LLC" && (p.openUrl || "").includes("tceq.texas.gov")));
 
   const p13 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-13"));
   assert.ok(p13.some((p) => p.kind === "action" && p.action === "open-dondb-modal"));
-
-  const p14 = buildAssistedPortalPillsModel(kirbyProp, findChecklistRow(kirbyProp.checklist, "chk-14"));
-  assert.ok(p14.some((p) => p.kind === "copy" && p.copyText === "2000 Smith"));
-  assert.ok(p14.some((p) => p.kind === "copy" && p.copyText === "530 Pierce"));
 });
 
 test("UT-8: Dangerous Buildings DONDB*.csv RFC-4180 parser, 13-digit HCAD zero-padding, scientific-notation warning, address_shards, and overlays PIP", async () => {
@@ -1230,4 +1210,447 @@ test("MOD-1, SCH-1, SCH-3, SCH-4, SCH-5: Modularity, multi-cycle schema, zero ma
     kirby.searchTerms?.altAddresses?.includes("530 Pierce St."),
     "Kirby Mansion must retain its perimeter altAddresses in property_watchlist.json"
   );
+});
+
+test("Pass #2 F2-03 & DF-2..DF-4: HCAD outFields sanity, tax-exempt church parcels (impr_val 0 + X class), confirmed vacant parcels vs unfound IDs, '0 BELLFORT AVE' skip, double-space cleanup, and polygon centroid", () => {
+  assert.equal(/\byr_impr\b/.test(HCAD_PUBLIC_QUERY_OUT_FIELDS), false, "public_query outFields must NEVER request non-existent yr_impr");
+  assert.match(HCAD_PUBLIC_QUERY_OUT_FIELDS, /\bstate_class\b/);
+  assert.match(HCAD_PUBLIC_QUERY_OUT_FIELDS, /\bimpr_val\b/);
+  assert.match(HCAD_RESIDENTIAL_GRADE_OUT_FIELDS, /\byear_impr\b/);
+
+  // Irregular L-shaped polygon centroid differs from bbox midpoint and falls cleanly over polygon area
+  const lPoly = {
+    type: "Polygon",
+    coordinates: [[
+      [-95.40, 29.75],
+      [-95.38, 29.75],
+      [-95.38, 29.752],
+      [-95.398, 29.752],
+      [-95.398, 29.77],
+      [-95.40, 29.77],
+      [-95.40, 29.75],
+    ]],
+  };
+  const cent = computeGeoJsonCentroid(lPoly);
+  assert.ok(cent && Number.isFinite(cent[0]) && Number.isFinite(cent[1]));
+  assert.ok(cent[0] < -95.39 && cent[1] < 29.76);
+
+  // 1. Houston Chinese Church (0451910000150 [1981] & 0451910000296 [1983]) with impr_val: 0, state_class: "X3"
+  // 2. Vacant parcel 0832860000011 (612 Peden St) with impr_val: 0, state_class: "C1" -> found: true, isVacant: true (NOT unfound!)
+  // 3. West Bellfort Court (0972530000005 "0 BELLFORT AVE" vacant reserve + 0972530000010 "2915 W  BELLFORT AVE" 1992)
+  // 4. Genuine bogus HCAD 9999999999999 -> unfoundHcads
+  const arcgisMap = new Map([
+    [
+      "0451910000150",
+      {
+        address: "10305 S  MAIN ST",
+        imprVal: 0,
+        landVal: 1850000,
+        stateClass: "X3",
+        yearBuilt: 0,
+        allYears: [],
+        owner: "HOUSTON CHINESE CHURCH",
+        legalDescription: "TR 2B ABST 212",
+        lng: -95.419,
+        lat: 29.671,
+      },
+    ],
+    [
+      "0451910000296",
+      {
+        address: "10315 S MAIN ST",
+        imprVal: 0,
+        landVal: 950000,
+        stateClass: "X3",
+        yearBuilt: 0,
+        allYears: [],
+        owner: "HOUSTON CHINESE CHURCH",
+        lng: -95.418,
+        lat: 29.670,
+      },
+    ],
+    [
+      "0832860000011",
+      {
+        address: "612 PEDEN ST",
+        imprVal: 0,
+        landVal: 420000,
+        stateClass: "C1",
+        yearBuilt: 0,
+        allYears: [],
+        owner: "PEDEN TRACT LLC",
+        lng: -95.388,
+        lat: 29.749,
+      },
+    ],
+    [
+      "0972530000005",
+      {
+        address: "0 BELLFORT AVE",
+        imprVal: 0,
+        landVal: 80000,
+        stateClass: "C1",
+        yearBuilt: 0,
+        allYears: [],
+      },
+    ],
+    [
+      "0972530000010",
+      {
+        address: "2915 W  BELLFORT AVE",
+        imprVal: 325000,
+        landVal: 210000,
+        stateClass: "F1",
+        yearBuilt: 1992,
+        allYears: [1992],
+      },
+    ],
+  ]);
+
+  const localHcadMap = new Map([
+    [
+      "0451910000150",
+      { address: "10305 S MAIN ST", yearBuilt: 1981, allYears: [1981], lng: -95.419, lat: 29.671 },
+    ],
+    [
+      "0451910000296",
+      { address: "10315 S MAIN ST", yearBuilt: 1983, allYears: [1983], lng: -95.418, lat: 29.670 },
+    ],
+  ]);
+
+  // Tax-exempt church check
+  const churchRes = resolveParcelsMetadataFromSources(["0451910000150", "0451910000296"], {
+    arcgisMap,
+    localHcadMap,
+  });
+  assert.equal(churchRes.unfoundHcads.length, 0);
+  assert.equal(churchRes.parcels.length, 2);
+  assert.equal(churchRes.parcels[0].isTaxExempt, true);
+  assert.equal(churchRes.parcels[0].isVacant, false, "Tax-exempt parcel with local footprint year must NEVER be forced vacant");
+  const churchTier = resolveMultiParcelBuildingTier(churchRes.parcels, { flags: ["replat"] });
+  assert.equal(churchTier.earliestYearBuilt, 1981);
+  assert.deepEqual(churchTier.allParcelYears, [1981, 1983]);
+  assert.equal(churchTier.primaryAddress, "10305 S MAIN ST");
+
+  // Vacant Peden + bogus HCAD distinction
+  const pedenRes = resolveParcelsMetadataFromSources(["0832860000011", "9999999999999"], {
+    arcgisMap,
+    localHcadMap,
+  });
+  assert.deepEqual(pedenRes.unfoundHcads, ["9999999999999"]);
+  assert.equal(pedenRes.parcels.length, 1);
+  assert.equal(pedenRes.parcels[0].hcad, "0832860000011");
+  assert.equal(pedenRes.parcels[0].found, true);
+  assert.equal(pedenRes.parcels[0].isVacant, true);
+  const pedenTier = resolveMultiParcelBuildingTier(pedenRes.parcels, { flags: ["replat"] });
+  assert.equal(pedenTier.earliestYearBuilt, 0);
+  assert.equal(pedenTier.primaryAddress, "612 PEDEN ST");
+  assert.equal(pedenTier.suggestedTier, "3");
+
+  // West Bellfort Court: "0 BELLFORT AVE" ignored + "2915 W  BELLFORT AVE" double space collapsed
+  const bellfortRes = resolveParcelsMetadataFromSources(["0972530000005", "0972530000010"], {
+    arcgisMap,
+    localHcadMap: new Map(),
+  });
+  const bellfortTier = resolveMultiParcelBuildingTier(bellfortRes.parcels, { flags: ["replat"] });
+  assert.equal(bellfortTier.primaryAddress, "2915 W BELLFORT AVE");
+  assert.equal(bellfortTier.earliestYearBuilt, 1992);
+});
+
+test("Pass #2 F2-01, F2-02, DF-1 & DF-6: unconfirmed seed purge, Watchlist removal tombstone persistence vs re-promotion, and cross-cycle tier sync", () => {
+  // DF-1: Pre-normalized legacy raw seed with no tierConfirmed must be flagged; explicit tierConfirmed or human edits kept
+  assert.equal(
+    isLegacyUnconfirmedPlatSeed({ id: "plat-DPV-26073533", appNo: "DPV-26073533", tier: "2" }),
+    true
+  );
+  assert.equal(
+    isLegacyUnconfirmedPlatSeed({ id: "plat-2026-1585", appNo: "2026-1585", tier: "1", source: "plat_seed" }),
+    true
+  );
+  assert.equal(
+    isLegacyUnconfirmedPlatSeed({ id: "plat-2026-9001", appNo: "2026-9001", tier: "1", tierConfirmed: true }),
+    false
+  );
+  assert.equal(
+    isLegacyUnconfirmedPlatSeed({ id: "prop-kirby-mansion", propertyName: "Kirby Mansion", tier: "1" }),
+    false
+  );
+
+  // parseCloudSheetSyncRows automatically purges unconfirmed plat seeds while preserving confirmed staff rows with rawProp
+  const csv = [
+    "timestamp,hcad_num,source_type,source_citation,verified_by,status",
+    '2026-10-25T10:00:00Z,WATCH_PROP:plat-DPV-26073533,PROPERTY_WATCHLIST_UPDATE,"{""id"":""plat-DPV-26073533"",""appNo"":""DPV-26073533"",""tier"":""2""}",Bot,approved',
+    '2026-10-28T10:00:00Z,WATCH_PROP:plat-2026-9001,PROPERTY_WATCHLIST_UPDATE,"{""id"":""plat-2026-9001"",""appNo"":""2026-9001"",""tier"":""1"",""tierConfirmed"":true}",emily@preservationhouston.org,approved',
+  ].join("\n");
+  const parsed = parseCloudSheetSyncRows(csv);
+  assert.equal(
+    parsed.watchProperties.some((w) => w.id === "plat-DPV-26073533"),
+    false,
+    "parseCloudSheetSyncRows must drop legacy unconfirmed plat seeds automatically"
+  );
+  assert.equal(parsed.watchProperties.length, 1);
+  assert.equal(parsed.watchProperties[0].id, "plat-2026-9001");
+  assert.equal(parsed.watchProperties[0].rawProp.tierConfirmed, true);
+
+  // mergePlatReviewOverlay blocks stale address/HCAD resurrection on retracted baseline seeds unless humanEditedFields proves staff edit
+  const mergedStale = mergePlatReviewOverlay(
+    { tier: "3", tierConfirmed: false },
+    { tier: "2", address: "2603 Milam St", hcad: "0332370000005", yearBuilt: "1940" },
+    { appNo: "DPV-26073533" }
+  );
+  assert.equal(mergedStale.address || "", "");
+  assert.equal(mergedStale.hcad || "", "");
+
+  const mergedHuman = mergePlatReviewOverlay(
+    { tier: "3", tierConfirmed: false },
+    { tier: "1", tierConfirmed: true, address: "801 McGowen St", humanEditedFields: ["address", "tier"] },
+    { appNo: "DPV-26073533" }
+  );
+  assert.equal(mergedHuman.address, "801 McGowen St");
+  assert.equal(mergedHuman.tier, "1");
+
+  // Permanent removal tombstone (F2-02) stays hidden against static sweeps unless explicitly re-promoted later (T2 > T1)
+  const dossier = normalizeWatchProperty({
+    id: "plat-2026-4444",
+    appNo: "2026-4444",
+    propertyName: "Test Bungalow",
+    address: "1100 Heights Blvd",
+    hcadAccount: "0200010000009",
+    tier: "1",
+    tierConfirmed: true,
+    broker: "Jane Broker (CBRE)",
+    updatedAt: "2026-10-28T10:00:00Z",
+  });
+  assert.equal(dossier.broker, "Jane Broker (CBRE)");
+  assert.equal(hasHumanDossierContributions(dossier), true);
+
+  const tombstone = createWatchlistTombstone(dossier, {
+    status: REMOVED_WATCHLIST_TOMBSTONE,
+    tier: "3",
+    updatedBy: "eardoin@preservationhouston.org",
+    nowIso: "2026-10-29T15:00:00Z",
+  });
+  assert.equal(isRemovedWatchlistTombstone(tombstone), true);
+  assert.equal(
+    reconcileWatchlistProperty(
+      { ...dossier, lastAutoSweepAt: "2026-10-30T12:00:00Z", updatedAt: "2026-10-28T10:00:00Z" },
+      tombstone,
+      null
+    ),
+    null,
+    "Removed from Watchlist tombstone must suppress static sweep resurrection"
+  );
+
+  const repromoted = normalizeWatchProperty({
+    ...dossier,
+    tier: "2",
+    trackerStatus: "Monitoring",
+    removedFromWatchlist: false,
+    tierConfirmed: true,
+    updatedAt: "2026-10-31T09:00:00Z",
+  });
+  const revived = reconcileWatchlistProperty(null, tombstone, repromoted);
+  assert.ok(revived, "Explicit later re-promotion (T2 > T1) must revive dossier cleanly");
+  assert.equal(revived.tier, "2");
+  assert.equal(isRemovedWatchlistTombstone(revived), false);
+
+  // Two-way Watchlist -> Biweekly Monitor sync across cycles (F2-01)
+  const cycles = {
+    "2026-10-15": {
+      items: [{ app: "2026-1718", name: "Heights Annex", hcad: "0201650000011; 0201650000024", address: "" }],
+      reviews: { "2026-1718": { tier: "1", tierConfirmed: true } },
+    },
+    "2026-10-29": {
+      items: [{ app: "PH-131", linkedAppNo: "2026-1718", name: "Heights Annex partial replat no 1", hcad: "0201650000011; 0201650000024", address: "" }],
+      reviews: { "PH-131": { tier: "1", tierConfirmed: true } },
+    },
+  };
+  const { touched } = syncWatchlistTierToPlatReviews({
+    cycles,
+    prop: { appNo: "2026-1718", hcadAccount: "0201650000011; 0201650000024", address: "440 Heights Blvd" },
+    newTier: "3",
+    nowIso: "2026-10-29T18:00:00Z",
+  });
+  assert.equal(touched.length, 2, "Tier change on Watchlist must propagate to ALL matching cycle occurrences including linked PH notices");
+  assert.equal(cycles["2026-10-15"].reviews["2026-1718"].tier, "3");
+  assert.equal(cycles["2026-10-29"].reviews["PH-131"].tier, "3");
+});
+
+test("Pass #2 F2-08, F2-10, DF-7 & DF-8: full 9-field non-destructive carry-forward, placeholder/recycled app ID guards, and confirmed-only Watched Developer provenance", () => {
+  assert.deepEqual(CARRY_FORWARD_REVIEW_FIELDS, [
+    "hcad",
+    "address",
+    "yearBuilt",
+    "designation",
+    "tier",
+    "threatCategory",
+    "why",
+    "sources",
+    "followup",
+  ]);
+
+  // Placeholder agenda slots like PH-131 and DPV-1 must NOT produce generic canonical IDs unless linkedAppNo is authentic
+  assert.deepEqual(getCanonicalPlatAppIds({ app: "DPV-1" }), []);
+  assert.deepEqual(getCanonicalPlatAppIds({ app: "PH-132" }), []);
+  assert.deepEqual(getCanonicalPlatAppIds({ app: "PH-131", linkedAppNo: "2026-1718" }), ["2026-1718"]);
+  assert.equal(
+    areContinuitySnapshotsCompatible(["0231440000010"], "montrose vista", ["0231440000006"], "montrose residences"),
+    false,
+    "Disjoint HCAD parcels with unrelated plat names must reject recycled reference collisions"
+  );
+
+  // Full 9-field carry-forward with humanEditedFields protection
+  const cycles = {
+    "2026-10-15": {
+      items: [{ app: "2026-1718", name: "Heights Annex", hcad: "0201650000011", developer: "Riverway Homes, LLC" }],
+      reviews: {
+        "2026-1718": {
+          tier: "1",
+          tierConfirmed: true,
+          address: "440 Heights Blvd",
+          yearBuilt: "1920",
+          hcad: "0201650000011; 0201650000024",
+          designation: "Contributing to district",
+          threatCategory: "Development Pressure",
+          why: "1920 craftsman bungalow at risk",
+          sources: "HCAD card + Sanborn V4",
+          followup: "Attend Nov 12 public hearing",
+        },
+      },
+    },
+    "2026-10-29": {
+      items: [
+        {
+          app: "PH-131",
+          linkedAppNo: "2026-1718",
+          name: "Heights Annex partial replat no 1",
+          hcad: "",
+          developer: "Riverway Homes LLC",
+        },
+      ],
+      reviews: {
+        "PH-131": {
+          followup: "Hearing speech already drafted by Emily",
+          humanEditedFields: ["followup"],
+        },
+      },
+    },
+  };
+  linkCrossCycleHistory(cycles, ["2026-10-29", "2026-10-15"]);
+  const phRev = cycles["2026-10-29"].reviews["PH-131"];
+  assert.equal(phRev.tier, "1");
+  assert.equal(phRev.address, "440 Heights Blvd");
+  assert.equal(phRev.yearBuilt, "1920");
+  assert.equal(phRev.hcad, "0201650000011; 0201650000024");
+  assert.equal(phRev.designation, "Contributing to district");
+  assert.equal(phRev.threatCategory, "Development Pressure");
+  assert.equal(phRev.why, "1920 craftsman bungalow at risk");
+  assert.equal(phRev.sources, "HCAD card + Sanborn V4");
+  assert.equal(phRev.followup, "Hearing speech already drafted by Emily", "humanEditedFields must protect newer manual notes");
+
+  // Watched Developer matching: normalizes entity suffixes, blocks 1-word generic leftovers, ignores unconfirmed drafts & tombstones
+  assert.equal(normalizeDeveloperEntityKey("Development LLC"), "");
+  assert.equal(normalizeDeveloperEntityKey("Holdings, L.P."), "");
+  assert.equal(normalizeDeveloperEntityKey("Riverway Homes, L.L.C."), "RIVERWAY HOMES");
+
+  cycles["2026-10-15"].items.push({
+    app: "2026-7777",
+    name: "Draft Only Plat",
+    developer: "Unconfirmed Builders Group LLC",
+  });
+  cycles["2026-10-15"].reviews["2026-7777"] = { tier: "2", tierConfirmed: false };
+
+  const devMap = buildWatchedDeveloperMap({
+    cycles,
+    cycleOrder: ["2026-10-29", "2026-10-15"],
+    watchedProperties: [
+      {
+        id: "prop-kirby-mansion",
+        propertyName: "John Henry Kirby Mansion",
+        address: "2000 Smith St.",
+        tier: "1",
+        tierConfirmed: true,
+        trackerStatus: "Active / High Priority",
+        ownerOfRecord: "OB Texas Properties LLC",
+        buyerRelatedEntities: "Smith St C Store LLC",
+      },
+      {
+        id: "plat-removed",
+        propertyName: "Removed Property",
+        tier: "3",
+        tierConfirmed: true,
+        trackerStatus: REMOVED_WATCHLIST_TOMBSTONE,
+        removedFromWatchlist: true,
+        developer: "Ghost Corp Ventures LLC",
+      },
+    ],
+    isTombstoneFn: isRemovedWatchlistTombstone,
+  });
+
+  assert.equal(devMap.has("RIVERWAY HOMES"), true, "Confirmed Tier 1 cycle developer must be indexed");
+  assert.equal(devMap.has("OB TEXAS PROPERTIES"), true, "Active Watchlist owner entity must be indexed");
+  assert.equal(devMap.has("SMITH ST C STORE"), false, "buyerRelatedEntities alone must NOT pollute developer map unless owner/developer matches");
+  assert.equal(devMap.has("UNCONFIRMED BUILDERS GROUP"), false, "Unconfirmed draft tier must NOT trigger Watched Developer flags");
+  assert.equal(devMap.has("GHOST CORP VENTURES"), false, "Removed from Watchlist tombstone must NOT trigger Watched Developer flags");
+
+  // F2-10 & DF-4: Vacant parcel address prefix SQL builder & client-side feature matcher (double-spaced directionals + normalizeHcad13)
+  const whereScott = buildHcadAddressPrefixWhere("3346 Scott");
+  assert.ok(whereScott && whereScott.where.includes("address LIKE '3346 SCOTT%'"));
+  const whereBellfort = buildHcadAddressPrefixWhere("3050 W Bellfort");
+  assert.ok(
+    whereBellfort &&
+      whereBellfort.where.includes("address LIKE '3050 W BELLFORT%'") &&
+      whereBellfort.where.includes("address LIKE '3050 W  BELLFORT%'")
+  );
+
+  const scottMatches = matchHcadParcelFeaturesByAddressQuery(
+    [
+      {
+        attributes: {
+          HCAD_NUM: "1330170010001",
+          owner: "SCOTT LAND LLC",
+          address: "3346 SCOTT ST",
+          state_class: "C2",
+          impr_val: 0,
+        },
+        geometry: {
+          rings: [
+            [
+              [-95.3518, 29.7213],
+              [-95.3515, 29.7213],
+              [-95.3515, 29.7216],
+              [-95.3518, 29.7216],
+              [-95.3518, 29.7213],
+            ],
+          ],
+        },
+      },
+      {
+        properties: {
+          HCAD_NUM: "0972530000010",
+          owner: "BELLFORT LLC",
+          address: "3050 W  BELLFORT AVE",
+          state_class: "C1",
+          impr_val: 0,
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [
+              [-95.442, 29.674],
+              [-95.441, 29.674],
+              [-95.441, 29.675],
+              [-95.442, 29.675],
+              [-95.442, 29.674],
+            ],
+          ],
+        },
+      },
+    ],
+    "3346 Scott"
+  );
+  assert.equal(scottMatches.length, 1);
+  assert.equal(scottMatches[0].hcadNum, "1330170010001");
+  assert.equal(scottMatches[0].feature.properties.hcad_num, "1330170010001");
+  assert.equal(scottMatches[0].feature.properties.use_category, "Vacant / Unimproved");
 });

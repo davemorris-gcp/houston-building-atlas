@@ -16,8 +16,35 @@ MIN_VALID_YEAR = 1836
 MAX_VALID_YEAR = 2027
 MAX_VALID_CAMA_DATE_YEAR = 2026
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261029a"
+ACTIVE_CACHE_BUST = "20261029b"
 QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
+
+PLAT_CARRY_FORWARD_REVIEW_FIELDS: tuple[str, ...] = (
+    "hcad",
+    "address",
+    "yearBuilt",
+    "designation",
+    "tier",
+    "threatCategory",
+    "why",
+    "sources",
+    "followup",
+)
+REMOVED_TIER3_TOMBSTONE = "Removed (Tier 3)"
+REMOVED_WATCHLIST_TOMBSTONE = "Removed from Watchlist"
+WATCHLIST_TOMBSTONE_STATUSES: frozenset[str] = frozenset({
+    REMOVED_TIER3_TOMBSTONE,
+    REMOVED_WATCHLIST_TOMBSTONE,
+})
+WATCHLIST_TRACKER_STATUSES: tuple[str, ...] = (
+    "Active / High Priority",
+    "Dormant / Medium Priority",
+    "For Sale",
+    "Monitoring",
+    "Saved",
+    "Lost",
+    "Archived (Tier 3)",
+)
 
 DEMOLISHED_VACANT_ISSUE = "Building demolished - lot currently vacant"
 DEMOLISHED_REPLACED_ISSUE = "Building demolished & replaced by newer structure"
@@ -633,3 +660,103 @@ def normalize_parcel_record(
         "landmark_type": landmark_type,
         "architect": architect,
     }
+
+
+def _find_em_dash_fields(record: dict[str, Any], prefix: str = "") -> list[str]:
+    bad: list[str] = []
+    for k, v in record.items():
+        path = f"{prefix}.{k}" if prefix else str(k)
+        if isinstance(v, str) and "\u2014" in v:
+            bad.append(path)
+        elif isinstance(v, list):
+            for idx_i, elem in enumerate(v):
+                if isinstance(elem, str) and "\u2014" in elem:
+                    bad.append(f"{path}[{idx_i}]")
+                elif isinstance(elem, dict):
+                    bad.extend(_find_em_dash_fields(elem, f"{path}[{idx_i}]"))
+        elif isinstance(v, dict):
+            bad.extend(_find_em_dash_fields(v, path))
+    return bad
+
+
+def validate_plat_monitor_item_contract(
+    item: dict[str, Any],
+    review: dict[str, Any] | None = None,
+) -> list[str]:
+    """Validate Pass #2 structural contracts on a Plat Monitor item and its review overlay."""
+    errors: list[str] = []
+    if not isinstance(item, dict):
+        return ["item is not a dict"]
+
+    app = str(item.get("app") or "").strip()
+    if not app:
+        errors.append("item missing non-empty 'app'")
+
+    expected_on_agenda = bool(str(item.get("agendaItemNo") or "").strip())
+    if not isinstance(item.get("onMeetingAgenda"), bool):
+        errors.append(f"{app}: 'onMeetingAgenda' must be bool")
+    elif item["onMeetingAgenda"] != expected_on_agenda:
+        errors.append(
+            f"{app}: 'onMeetingAgenda' ({item['onMeetingAgenda']}) != bool(agendaItemNo) ({expected_on_agenda})"
+        )
+
+    if "linkedAppNo" in item and not isinstance(item.get("linkedAppNo"), str):
+        errors.append(f"{app}: 'linkedAppNo' must be str when present")
+
+    em_item = _find_em_dash_fields(item, f"item[{app}]")
+    if em_item:
+        errors.append(f"{app}: em-dash found in {', '.join(em_item)}")
+
+    if review is not None:
+        if not isinstance(review, dict):
+            errors.append(f"{app}: review is not a dict")
+        else:
+            valid_prov = set(PLAT_CARRY_FORWARD_REVIEW_FIELDS) | {
+                "reviewer",
+                "overrideScreenOut",
+            }
+            for prov_key in ("carriedFields", "humanEditedFields"):
+                if prov_key in review:
+                    val = review.get(prov_key)
+                    if not isinstance(val, list) or not all(
+                        isinstance(f, str) and f in valid_prov for f in val
+                    ):
+                        errors.append(f"{app}: invalid review '{prov_key}'={val!r}")
+            em_rev = _find_em_dash_fields(review, f"review[{app}]")
+            if em_rev:
+                errors.append(f"{app}: em-dash found in {', '.join(em_rev)}")
+
+    return errors
+
+
+def validate_watch_property_contract(
+    prop: dict[str, Any],
+    *,
+    allow_tombstone: bool = False,
+) -> list[str]:
+    """Validate Pass #2 structural contracts on a Watchlist property dossier."""
+    errors: list[str] = []
+    if not isinstance(prop, dict):
+        return ["prop is not a dict"]
+
+    pid = str(prop.get("id") or "").strip()
+    if not pid:
+        errors.append("prop missing non-empty 'id'")
+
+    if not isinstance(prop.get("broker"), str):
+        errors.append(f"{pid}: 'broker' must be str")
+    if not isinstance(prop.get("tierConfirmed"), bool):
+        errors.append(f"{pid}: 'tierConfirmed' must be bool")
+
+    status = str(prop.get("trackerStatus") or "").strip()
+    is_tombstone = bool(prop.get("removedFromWatchlist")) or status in WATCHLIST_TOMBSTONE_STATUSES
+    if is_tombstone and not allow_tombstone:
+        errors.append(f"{pid}: unexpected tombstone in active watchlist (status={status!r})")
+    elif not is_tombstone and status not in WATCHLIST_TRACKER_STATUSES:
+        errors.append(f"{pid}: invalid trackerStatus={status!r}")
+
+    em_prop = _find_em_dash_fields(prop, f"watch[{pid}]")
+    if em_prop:
+        errors.append(f"{pid}: em-dash found in {', '.join(em_prop)}")
+
+    return errors

@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261029a";
+} from "./palettes.js?v=20261029b";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -19,19 +19,19 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261029a";
-import { AtlasMapController } from "./mapController.js?v=20261029a";
+} from "./filterStore.js?v=20261029b";
+import { AtlasMapController } from "./mapController.js?v=20261029b";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261029a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261029a";
+} from "./guidedChaptersAndPortfolios.js?v=20261029b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261029b";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261029a";
+} from "./clerkSearchHelpers.js?v=20261029b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -52,7 +52,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261029a";
+} from "./curatedEdits.js?v=20261029b";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -62,13 +62,17 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261029a";
+} from "./photoService.js?v=20261029b";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   formatDemolitionBenchmarksGrantText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261029a";
+} from "./platMonitorHelpers.js?v=20261029b";
+import {
+  buildHcadAddressPrefixWhere,
+  searchHcadParcelsByAddressPrefix,
+} from "./hcadViewportParcels.js?v=20261029b";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -568,7 +572,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261029a`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261029b`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -636,6 +640,40 @@ export class HoustonAtlasApp {
       }
     }
 
+    // 3. Fallback to live HCAD public_query parcel address search for structureless/vacant lots
+    // missing from both search_index.json and address_shards/ (e.g. `#q=3346+Scott`, F2-10 / DF-4).
+    if (!hcadNum && !featureId && selection.query && !String(selection.query).includes(":")) {
+      const vpMatches = this.mapController?.getLoadedViewportParcelMatches?.(selection.query) || [];
+      let liveParcelHits = vpMatches;
+      if (liveParcelHits.length === 0) {
+        try {
+          liveParcelHits = await searchHcadParcelsByAddressPrefix(selection.query, {
+            resolveContextAtPoint: this.mapController?.resolveGeographicContextAtPoint
+              ? (lng, lat) => this.mapController.resolveGeographicContextAtPoint(lng, lat)
+              : null,
+          });
+        } catch (_e) {
+          liveParcelHits = [];
+        }
+      }
+      const bestParcel = liveParcelHits.find(
+        (pm) => pm && pm.hcadNum && !this._isSuppressedByCuratedOverride?.("", pm.hcadNum)
+      );
+      if (bestParcel) {
+        this.mapController?.cacheLookedUpParcelFeature?.(bestParcel.feature);
+        hcadNum = bestParcel.hcadNum;
+        addressQuery = bestParcel.address || addressQuery;
+        const pYr = Number(bestParcel.feature?.properties?.year_built) || 0;
+        if (!fallbackYearBuilt && pYr >= 1836) fallbackYearBuilt = pYr;
+        if (!Number.isFinite(targetLng) && Number.isFinite(bestParcel.lon)) {
+          targetLng = bestParcel.lon;
+        }
+        if (!Number.isFinite(targetLat) && Number.isFinite(bestParcel.lat)) {
+          targetLat = bestParcel.lat;
+        }
+      }
+    }
+
     if (vpChangedSignificantly && viewport) {
       this.mapController.flyToLocation({
         lng: viewport.lng,
@@ -693,12 +731,12 @@ export class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261029a"),
-        fetch("public/data/stats_summary.json?v=20261029a"),
-        fetch("public/data/haif_index.json?v=20261029a").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261029a").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261029a").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261029a").catch(() => null),
+        fetch("public/data/search_index.json?v=20261029b"),
+        fetch("public/data/stats_summary.json?v=20261029b"),
+        fetch("public/data/haif_index.json?v=20261029b").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261029b").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261029b").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261029b").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -5142,7 +5180,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261029a`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261029b`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -5246,12 +5284,148 @@ export class HoustonAtlasApp {
       }
     }
 
+    // Fourth: Vacant / Unimproved HCAD Parcel Fallback (F2-10 / DF-4).
+    // 1) Synchronously check already-loaded viewport + looked-up parcels in 0ms.
+    // 2) If the countywide address shard is loaded and no exact house-number situs match exists,
+    //    check cached live HCAD results or dispatch a 180ms debounced, AbortController +
+    //    monotonic-sequence-guarded live HCAD parcel prefix query.
+    let liveHcadLookupPending = false;
+    const parcelSpec =
+      !isNeighborhoodFilter &&
+      !isSuperNeighborhoodFilter &&
+      !isHistoricWardFilter &&
+      !isSubdivisionFilter &&
+      !String(customHeaderLabel || "").trim()
+        ? buildHcadAddressPrefixWhere(rawQuery)
+        : null;
+
+    if (parcelSpec) {
+      this._liveHcadSearchCache = this._liveHcadSearchCache || new Map();
+      const pushParcelMatches = (parcelList, inViewportFlag) => {
+        if (!Array.isArray(parcelList)) return;
+        for (const pm of parcelList) {
+          if (!pm || !pm.hcadNum || !pm.feature) continue;
+          const hcad = String(pm.hcadNum).trim();
+          if (this._isSuppressedByCuratedOverride?.("", hcad)) continue;
+          const normPAddr = String(pm.address || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toUpperCase();
+          if (!normPAddr) continue;
+          if (seenKeys.has(hcad) || seenLinkedAddrs.has(normPAddr)) continue;
+
+          seenKeys.add(hcad);
+          seenLinkedAddrs.add(normPAddr);
+          this.mapController?.cacheLookedUpParcelFeature?.(pm.feature);
+
+          const pp = pm.feature.properties || {};
+          const pYr = Number(pp.year_built) || 0;
+          const isVac = Boolean(
+            pp.is_vacant_parcel || pp.use_category === "Vacant / Unimproved"
+          );
+          let pScore = pm.exactHouseNum ? 117 : 91;
+          if (pm.exactStreetPrefix) pScore += 12;
+          if (inViewportFlag) pScore += 14;
+          if (pYr >= 1836) pScore += 3;
+
+          scoredMatches.push({
+            score: pScore,
+            item: {
+              type: "building",
+              is_live_parcel_hit: true,
+              is_vacant_parcel: isVac,
+              id: pp.id || `parcel_${hcad}`,
+              building_id: "",
+              hcad_num: hcad,
+              label: normPAddr,
+              building_name: "",
+              address: normPAddr,
+              sublabel: [
+                inViewportFlag ? "📍 In Current View" : "",
+                isVac ? "Vacant / Unimproved Parcel" : pp.use_category || "HCAD Parcel",
+                `HCAD ${hcad}`,
+                pp.subdivision || pp.neighborhood || "",
+              ]
+                .filter(Boolean)
+                .join(" • "),
+              category:
+                pYr >= 1836
+                  ? `Built ${pYr}`
+                  : isVac
+                  ? "Vacant Parcel"
+                  : pp.use_category || "HCAD Parcel",
+              year_built: pYr,
+              use_category: pp.use_category || (isVac ? "Vacant / Unimproved" : ""),
+              state_class: pp.state_class || "",
+              owner: pp.owner || "",
+              subdivision: pp.subdivision || "",
+              neighborhood: pp.neighborhood || "",
+              historic_district: pp.historic_district || "",
+              super_neighborhood: pp.super_neighborhood || "",
+              historic_ward: pp.historic_ward || "",
+              land_sqft: Number(pp.land_sqft) || 0,
+              impr_val: pp.impr_val,
+              land_val: pp.land_val,
+              mkt_val: pp.mkt_val,
+              lon: pm.lon,
+              lat: pm.lat,
+              zoom: 17.8,
+            },
+          });
+        }
+      };
+
+      const vpParcelMatches = this.mapController?.getLoadedViewportParcelMatches?.(rawQuery) || [];
+      pushParcelMatches(vpParcelMatches, true);
+
+      const cachedLiveList = this._liveHcadSearchCache.get(parcelSpec.where);
+      if (cachedLiveList) {
+        pushParcelMatches(cachedLiveList, false);
+      }
+
+      const shardKeyForParcel = parcelSpec.houseNum.replace(/\D/g, "").slice(0, 2).padEnd(2, "0");
+      const shardStillLoading = Boolean(this._addressShardPending?.[shardKeyForParcel]);
+      const hasExactHouseSitusMatch = scoredMatches.some((entry) => {
+        const it = entry.item || {};
+        const addrs = [
+          it.address || "",
+          ...(Array.isArray(it.alt_addresses) ? it.alt_addresses : []),
+        ];
+        return addrs.some((rawA) => {
+          const up = String(rawA || "")
+            .toUpperCase()
+            .replace(/[.,]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+          if (!up.startsWith(`${parcelSpec.houseNum} `)) return false;
+          const stPart = up.slice(parcelSpec.houseNum.length).trim();
+          return parcelSpec.streetTokens.every((tok) => stPart.includes(tok));
+        });
+      });
+
+      if (!hasExactHouseSitusMatch && !shardStillLoading && !cachedLiveList) {
+        if (typeof this._scheduleLiveHcadParcelSearch === "function") {
+          liveHcadLookupPending = true;
+          this._scheduleLiveHcadParcelSearch(rawQuery, customHeaderLabel, parcelSpec);
+        }
+      }
+    }
+
     scoredMatches.sort((a, b) => b.score - a.score);
     const totalMatchCount = scoredMatches.length;
     const matches = scoredMatches.slice(0, 25).map((m) => m.item);
 
     if (!matches.length) {
-      searchResults.innerHTML = `<div class="search-empty">No matching addresses, neighborhoods, wards, subdivisions, architects, builders, styles, or landmarks found for "${rawQuery}".</div>`;
+      const safeRawQuery = String(rawQuery || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+      if (liveHcadLookupPending) {
+        searchResults.innerHTML = `<div class="search-empty">Checking live Harris County (HCAD) parcel records for "${safeRawQuery}"...</div>`;
+      } else {
+        searchResults.innerHTML = `<div class="search-empty">No matching addresses, neighborhoods, wards, subdivisions, architects, builders, styles, or landmarks found for "${safeRawQuery}".</div>`;
+      }
       searchResults.classList.remove("hidden");
       return;
     }
@@ -5672,6 +5846,19 @@ export class HoustonAtlasApp {
               bld_style: chosen.bld_style || "",
               hcad_grade: chosen.hcad_grade || "",
               use_category: chosen.use_category || "",
+              state_class: chosen.state_class || "",
+              owner: chosen.owner || "",
+              land_sqft: chosen.land_sqft || 0,
+              is_vacant_parcel: Boolean(chosen.is_vacant_parcel),
+              ...(Number.isFinite(Number(chosen.impr_val))
+                ? { impr_val: Number(chosen.impr_val) }
+                : {}),
+              ...(Number.isFinite(Number(chosen.land_val))
+                ? { land_val: Number(chosen.land_val) }
+                : {}),
+              ...(Number.isFinite(Number(chosen.mkt_val))
+                ? { mkt_val: Number(chosen.mkt_val) }
+                : {}),
               landuse_desc: chosen.landuse_desc || "",
               landmark_code: chosen.landmark_code || "",
               landmark_report_url: chosen.landmark_report_url || "",
@@ -5686,6 +5873,92 @@ export class HoustonAtlasApp {
         }
       });
     });
+  }
+
+  _scheduleLiveHcadParcelSearch(rawQuery, customHeaderLabel, parcelSpec) {
+    if (!parcelSpec || !parcelSpec.where) return;
+    if (
+      this._liveHcadPendingWhere === parcelSpec.where &&
+      (this._liveHcadSearchTimer || this._liveHcadAbortController)
+    ) {
+      return;
+    }
+    if (this._liveHcadSearchTimer) {
+      clearTimeout(this._liveHcadSearchTimer);
+      this._liveHcadSearchTimer = null;
+    }
+    if (this._liveHcadAbortController) {
+      this._liveHcadAbortController.abort();
+      this._liveHcadAbortController = null;
+    }
+
+    const seq = (this._liveHcadSearchSeq || 0) + 1;
+    this._liveHcadSearchSeq = seq;
+    this._liveHcadPendingWhere = parcelSpec.where;
+
+    this._liveHcadSearchTimer = setTimeout(async () => {
+      this._liveHcadSearchTimer = null;
+      if (seq !== this._liveHcadSearchSeq) return;
+      const searchInput = document.getElementById("search-input");
+      const curInputVal = String(searchInput?.value || "").trim();
+      if (curInputVal.toLowerCase() !== String(rawQuery || "").trim().toLowerCase()) {
+        if (this._liveHcadPendingWhere === parcelSpec.where) {
+          this._liveHcadPendingWhere = "";
+        }
+        return;
+      }
+
+      const controller = new AbortController();
+      this._liveHcadAbortController = controller;
+      try {
+        const hits = await searchHcadParcelsByAddressPrefix(rawQuery, {
+          signal: controller.signal,
+          resolveContextAtPoint: this.mapController?.resolveGeographicContextAtPoint
+            ? (lng, lat) => this.mapController.resolveGeographicContextAtPoint(lng, lat)
+            : null,
+        });
+        if (this._liveHcadAbortController === controller) {
+          this._liveHcadAbortController = null;
+        }
+        if (seq !== this._liveHcadSearchSeq) return;
+        this._liveHcadSearchCache = this._liveHcadSearchCache || new Map();
+        this._liveHcadSearchCache.delete(parcelSpec.where);
+        this._liveHcadSearchCache.set(parcelSpec.where, Array.isArray(hits) ? hits : []);
+        if (this._liveHcadSearchCache.size > 64) {
+          const oldest = this._liveHcadSearchCache.keys().next().value;
+          this._liveHcadSearchCache.delete(oldest);
+        }
+        if (Array.isArray(hits)) {
+          for (const pm of hits) {
+            if (pm?.feature) this.mapController?.cacheLookedUpParcelFeature?.(pm.feature);
+          }
+        }
+        this._liveHcadPendingWhere = "";
+        const postFetchVal = String(
+          document.getElementById("search-input")?.value || ""
+        ).trim();
+        if (postFetchVal.toLowerCase() === String(rawQuery || "").trim().toLowerCase()) {
+          this._runSearchQuery(rawQuery, customHeaderLabel);
+        }
+      } catch (err) {
+        if (this._liveHcadAbortController === controller) {
+          this._liveHcadAbortController = null;
+        }
+        if (seq !== this._liveHcadSearchSeq) return;
+        this._liveHcadPendingWhere = "";
+        if (err && (err.name === "AbortError" || String(err.message || "").includes("aborted"))) {
+          return;
+        }
+        this._liveHcadSearchCache = this._liveHcadSearchCache || new Map();
+        this._liveHcadSearchCache.set(parcelSpec.where, []);
+        const postErrVal = String(
+          document.getElementById("search-input")?.value || ""
+        ).trim();
+        if (postErrVal.toLowerCase() === String(rawQuery || "").trim().toLowerCase()) {
+          this._runSearchQuery(rawQuery, customHeaderLabel);
+        }
+      }
+    }, 180);
   }
 
   triggerMetadataFilterSearch(query, headerLabel = "") {
@@ -13962,7 +14235,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261029a`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261029b`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);

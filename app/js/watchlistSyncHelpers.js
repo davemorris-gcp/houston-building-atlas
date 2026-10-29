@@ -12,12 +12,16 @@ import {
   parseClerkLegalTokens,
   formatClerkPartyTokens,
   cleanClerkSubdivisionDesc,
-} from "./clerkSearchHelpers.js?v=20261029a";
+} from "./clerkSearchHelpers.js?v=20261029b";
 import {
   THREAT_CATEGORIES,
   parseHcadAccountList,
   hasHumanDossierContributions,
-} from "./platMonitorHelpers.js?v=20261029a";
+  getCanonicalPlatAppIds,
+  areContinuitySnapshotsCompatible,
+  normalizeContinuityPlatName,
+  classifyPlatItem,
+} from "./platMonitorHelpers.js?v=20261029b";
 
 export const TRACKER_STATUSES = [
   "Active / High Priority",
@@ -30,6 +34,87 @@ export const TRACKER_STATUSES = [
 ];
 
 export const REMOVED_TIER3_TOMBSTONE = "Removed (Tier 3)";
+export const REMOVED_WATCHLIST_TOMBSTONE = "Removed from Watchlist";
+export const WATCHLIST_TOMBSTONE_STATUSES = [
+  REMOVED_TIER3_TOMBSTONE,
+  REMOVED_WATCHLIST_TOMBSTONE,
+];
+
+/**
+ * Return true when a Watchlist property object represents a soft-delete removal tombstone (F2-02, DF-2).
+ */
+export function isRemovedWatchlistTombstone(prop) {
+  if (!prop || typeof prop !== "object") return false;
+  if (prop.removedFromWatchlist === true) return true;
+  const st = String(prop.trackerStatus || "").trim();
+  return st === REMOVED_TIER3_TOMBSTONE || st === REMOVED_WATCHLIST_TOMBSTONE;
+}
+
+/**
+ * Create a durable timestamped tombstone record that cleanly suppresses a Watchlist property
+ * across static JSON, browser localStorage, and Google Sheet sync while still allowing later
+ * explicit re-promotion at T2 > T1.
+ */
+export function createWatchlistTombstone(
+  prop = {},
+  {
+    status = REMOVED_WATCHLIST_TOMBSTONE,
+    reason = "",
+    updatedBy = "",
+    nowIso = "",
+    tier = "",
+  } = {}
+) {
+  const ts = nowIso || new Date().toISOString();
+  const resolvedTier = ["1", "2", "3"].includes(String(tier || prop?.tier || ""))
+    ? String(tier || prop?.tier)
+    : "3";
+  return normalizeWatchProperty({
+    ...(prop && typeof prop === "object" ? prop : {}),
+    tier: resolvedTier,
+    tierConfirmed: false,
+    removedFromWatchlist: status === REMOVED_WATCHLIST_TOMBSTONE,
+    trackerStatus: WATCHLIST_TOMBSTONE_STATUSES.includes(status)
+      ? status
+      : REMOVED_WATCHLIST_TOMBSTONE,
+    removalReason: String(reason || prop?.removalReason || "").trim(),
+    archivedAt: ts,
+    updatedAt: ts,
+    updatedBy: String(updatedBy || prop?.updatedBy || "").trim(),
+  });
+}
+
+/**
+ * Return true when a RAW (pre-normalization) Watchlist record is a legacy auto-dumped unconfirmed
+ * plat seed or retracted pre-Pass-2 baseline mis-geocode without human dossier contributions (DF-1).
+ */
+export function isLegacyUnconfirmedPlatSeed(rawProp) {
+  if (!rawProp || typeof rawProp !== "object") return false;
+  if (isRemovedWatchlistTombstone(rawProp)) return false;
+  const pid = String(rawProp.id || "").trim();
+  const appRef = String(
+    rawProp.appNo || rawProp.sourcePlatApp || (pid.startsWith("plat-") ? pid.slice(5) : "")
+  ).trim();
+  if (!pid.startsWith("plat-") && !appRef) return false;
+  if (hasHumanDossierContributions(rawProp)) return false;
+  if (rawProp.tierConfirmed !== true) return true;
+  const updatedByLower = String(rawProp.updatedBy || "").trim().toLowerCase();
+  if (updatedByLower.includes("houston building atlas") && rawProp.humanEdited !== true) {
+    return true;
+  }
+  const appUpper = appRef.toUpperCase();
+  const addrUpper = String(rawProp.address || "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (appUpper === "DPV-26073533" && (!rawProp.updatedAt || addrUpper.includes("2603 MILAM"))) {
+    return true;
+  }
+  if (appUpper === "2026-1585" && (!rawProp.updatedAt || addrUpper.includes("1226 W CLAY"))) {
+    return true;
+  }
+  return false;
+}
 
 export const SEARCH_TERM_CATEGORIES = [
   { key: "entities", label: "LLCs / Entities", placeholder: "e.g. Smith St C Store LLC" },
@@ -802,28 +887,17 @@ export function extractWatchPropertySearchContext(prop = {}) {
 }
 
 /**
- * Build a pure, zero-DOM descriptor array of assisted portal pills and links for each of the
- * 15 checklist rows (chk-01..chk-15).
+ * Build a pure, zero-DOM descriptor array of clean portal links and workflow actions for each
+ * of the 15 checklist rows (chk-01..chk-15).
  *
- * Enforces zero street-address auto-copy fallthrough on Checks #3 (County Clerk Deeds),
- * #4 (Corporate Entity), #7 (DSHS Hemp), #8 (ILMS Plan Review), and #9 (Plat Tracker / Biweekly Plats).
+ * Per Emily's Pass #2 field feedback (F2-11, DF-10), 1-click copy search pills are omitted so the
+ * Portal Resources column stays compact and readable while keeping direct agency links and workflow tools.
  */
 export function buildAssistedPortalPillsModel(prop = {}, row = {}) {
   const ctx = extractWatchPropertySearchContext(prop);
   const rowId = String(row.id || "").trim().toLowerCase();
   const pills = [];
 
-  const pushCopy = (label, copyText, openUrl = "", extra = {}) => {
-    const val = String(copyText || "").trim();
-    if (!val) return;
-    pills.push({
-      kind: "copy",
-      label,
-      copyText: val,
-      openUrl: openUrl ? String(openUrl) : "",
-      ...extra,
-    });
-  };
   const pushLink = (label, href, extra = {}) => {
     const clean = String(href || "").trim();
     if (!clean) return;
@@ -843,16 +917,7 @@ export function buildAssistedPortalPillsModel(prop = {}, row = {}) {
     });
   };
 
-  if (rowId === "chk-01") {
-    const noticesUrl = row.resourceUrl || "https://www.texaspublicnotices.com/";
-    pushCopy(`Copy "${ctx.simplifiedPrimary}" & Open Notices`, ctx.simplifiedPrimary, noticesUrl);
-    for (const sa of ctx.simplifiedSecondaries) {
-      pushCopy(`Copy "${sa}" & Open Notices`, sa, noticesUrl);
-    }
-    for (const term of uniqueNonEmptyStrings([...ctx.dbas, ...ctx.entities]).slice(0, 2)) {
-      pushCopy(`Copy "${term}"`, term, "");
-    }
-  } else if (rowId === "chk-02") {
+  if (rowId === "chk-02") {
     const addrTerms = [ctx.simplifiedPrimary, ...ctx.simplifiedSecondaries]
       .filter(Boolean)
       .map((a) => `"${a}"`)
@@ -869,52 +934,14 @@ export function buildAssistedPortalPillsModel(prop = {}, row = {}) {
         `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(sa + ", Houston, TX")}`
       );
     }
-  } else if (rowId === "chk-03") {
-    // Check #3: Harris County Clerk Real Property (NO street address auto-copy)
-    const clerkUrl = "https://www.cclerk.hctx.net/applications/websearch/RP.aspx";
-    if (ctx.legal.block) {
-      pushCopy(`Copy Block "${ctx.legal.block}" & Open HC Clerk`, ctx.legal.block, clerkUrl);
-    }
-    if (ctx.legal.subdivisionKeyword) {
-      pushCopy(
-        `Copy Subdiv "${ctx.legal.subdivisionKeyword}" & Open HC Clerk`,
-        ctx.legal.subdivisionKeyword,
-        clerkUrl
-      );
-    }
-    if (
-      ctx.legal.subdivisionFull &&
-      ctx.legal.subdivisionFull.toUpperCase() !== ctx.legal.subdivisionKeyword.toUpperCase()
-    ) {
-      pushCopy(
-        `Copy Full Subdiv "${ctx.legal.subdivisionFull}"`,
-        ctx.legal.subdivisionFull,
-        clerkUrl
-      );
-    }
-    for (const kw of ctx.legalKeywords) {
-      const cleanKw = kw.replace(/^block\s+/i, "").trim();
-      const kwUpper = cleanKw.toUpperCase();
-      if (
-        kwUpper &&
-        kwUpper !== ctx.legal.block.toUpperCase() &&
-        kwUpper !== ctx.legal.subdivisionKeyword.toUpperCase()
-      ) {
-        pushCopy(`Copy "${cleanKw}" & Open HC Clerk`, cleanKw, clerkUrl);
-      }
-    }
-    for (const party of ctx.clerkPartyTokens) {
-      pushCopy(`Copy Party "${party}" & Open HC Clerk`, party, clerkUrl);
-    }
   } else if (rowId === "chk-04") {
-    // Check #4: Corporate Entity Verification (NO street address auto-copy)
-    const compUrl = "https://comptroller.texas.gov/taxes/franchise/account-status/search";
-    const bizaUrl = "https://www.bizapedia.com/";
     const sosUrl = "https://direct.sos.state.tx.us/acct/acct-login.asp";
     const entityTargets = uniqueNonEmptyStrings([...ctx.entities, ...ctx.officers, ...ctx.dbas]);
-    for (const ent of entityTargets) {
-      pushCopy(`Copy "${ent}" & Open Comptroller`, ent, compUrl);
-      pushCopy(`Copy "${ent}" & Open Bizapedia`, ent, bizaUrl);
+    for (const ent of entityTargets.slice(0, 3)) {
+      pushLink(
+        `Bizapedia "${ent}"`,
+        `https://www.google.com/search?q=${encodeURIComponent(`"${ent}" Texas site:bizapedia.com`)}`
+      );
       pushLink(
         `Google "${ent}"`,
         `https://www.google.com/search?q=${encodeURIComponent(`"${ent}" Texas LLC`)}`
@@ -923,129 +950,29 @@ export function buildAssistedPortalPillsModel(prop = {}, row = {}) {
     pushLink("TX SOSDirect (Paid Portal)", sosUrl);
   } else if (rowId === "chk-05") {
     for (const id of ctx.hcadIds) {
-      pushCopy(`Copy # & Open HCAD Search (${id})`, id, "https://search.hcad.org/", {
-        isHcad: true,
-        hcadId: id,
-      });
       pushLink(
         `Open HCAD GIS Parcel Map (${id})`,
         `https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=${encodeURIComponent(id)}`
       );
     }
-    if (ctx.simplifiedPrimary) {
-      pushCopy(
-        `Copy "${ctx.simplifiedPrimary}" & Open HCAD Search`,
-        ctx.simplifiedPrimary,
-        "https://search.hcad.org/",
-        { isHcad: true }
-      );
-    }
-  } else if (rowId === "chk-06") {
-    const tabcUrl = "https://apps.tabc.texas.gov/publicinquiry/";
-    pushCopy(`Copy "${ctx.simplifiedPrimary}" & Open TABC`, ctx.simplifiedPrimary, tabcUrl);
-    for (const sa of ctx.simplifiedSecondaries) {
-      pushCopy(`Copy "${sa}" & Open TABC`, sa, tabcUrl);
-    }
-    for (const term of uniqueNonEmptyStrings([...ctx.dbas, ...ctx.entities])) {
-      pushCopy(`Copy "${term}" & Open TABC`, term, tabcUrl);
-    }
   } else if (rowId === "chk-07") {
-    // Check #7: DSHS Hemp License Search (name-based only, NO street address auto-copy)
-    const dshsHempUrl = "https://vo.ras.dshs.state.tx.us/datamart/login.do";
     const nameTargets = uniqueNonEmptyStrings([...ctx.entities, ...ctx.dbas, ...ctx.officers]);
-    for (const nm of nameTargets) {
-      pushCopy(`Copy "${nm}" & Open DSHS Hemp`, nm, dshsHempUrl);
-    }
     if (nameTargets.length === 0) {
       pushAction("+ Add Entity / DBA Search Term", "focus-snowball-entity");
     }
   } else if (rowId === "chk-08") {
-    // Check #8: Pending Plans / GovQA / ILMS (8-digit Project # only, NO street address auto-copy)
-    const ilmsUrl = "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp";
     pushAction("Draft Ready-to-Send GovQA Request", "open-govqa-modal", { extraClass: "govqa" });
-    for (const pn of ctx.ilmsProjectNos) {
-      pushCopy(`Copy ILMS #${pn} & Open Plan Lookup`, pn, ilmsUrl);
-    }
     pushLink(
       "Find Project # in Houston Sold Permits",
       "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
     );
     pushAction("+ Add 8-Digit Project #", "focus-snowball-project");
   } else if (rowId === "chk-09") {
-    // Check #9: Replats & Variances (Biweekly Plat Monitor + COH dev_reports, NO plattracker SignIn, NO address copy)
     pushAction("Open Biweekly Plat & Variance Review Tab", "switch-to-agenda");
-    const platTerms = uniqueNonEmptyStrings([
-      prop.platProjectName || "",
-      ctx.legal.subdivisionKeyword || "",
-      prop.subdivisionMatch || "",
-    ]);
-    for (const term of platTerms) {
-      pushCopy(`Copy Plat/Subdiv "${term}"`, term, "");
-    }
-  } else if (rowId === "chk-10") {
-    // Check #10: TDLR TABS (https://www.tdlr.texas.gov/tabs/search + DBAs + simplified addresses)
-    const tabsUrl = "https://www.tdlr.texas.gov/tabs/search";
-    for (const tn of ctx.tabsNos) {
-      pushCopy(`Copy ${tn} & Open TABS`, tn, tabsUrl);
-    }
-    for (const dba of ctx.dbas) {
-      pushCopy(`Copy Facility "${dba}" & Open TABS`, dba, tabsUrl);
-    }
-    pushCopy(`Copy "${ctx.simplifiedPrimary}" & Open TABS`, ctx.simplifiedPrimary, tabsUrl);
-    for (const sa of ctx.simplifiedSecondaries) {
-      pushCopy(`Copy "${sa}" & Open TABS`, sa, tabsUrl);
-    }
-    for (const ent of ctx.entities) {
-      pushCopy(`Copy Owner "${ent}" & Open TABS`, ent, tabsUrl);
-    }
-  } else if (rowId === "chk-11") {
-    // Check #11: City Secretary NovusAgenda
-    const novusUrl = "https://houston.novusagenda.com/agendapublic/";
-    pushCopy(`Copy "${ctx.simplifiedPrimary}" & Open NovusAgenda`, ctx.simplifiedPrimary, novusUrl);
-    for (const sa of ctx.simplifiedSecondaries) {
-      pushCopy(`Copy "${sa}" & Open NovusAgenda`, sa, novusUrl);
-    }
-    if (ctx.legal.subdivisionKeyword) {
-      pushCopy(
-        `Copy "${ctx.legal.subdivisionKeyword}" & Open NovusAgenda`,
-        ctx.legal.subdivisionKeyword,
-        novusUrl
-      );
-    }
-  } else if (rowId === "chk-12") {
-    const tceqUrl = "https://www.tceq.texas.gov/permitting/central_registry";
-    pushCopy(`Copy "${ctx.simplifiedPrimary}" & Open TCEQ`, ctx.simplifiedPrimary, tceqUrl);
-    for (const sa of ctx.simplifiedSecondaries) {
-      pushCopy(`Copy "${sa}" & Open TCEQ`, sa, tceqUrl);
-    }
-    if (ctx.entities[0]) {
-      pushCopy(`Copy "${ctx.entities[0]}" & Open TCEQ`, ctx.entities[0], tceqUrl);
-    }
   } else if (rowId === "chk-13") {
-    const sr311Url = "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f";
     pushAction("Import & Cross-Check Dangerous Buildings CSV", "open-dondb-modal", {
       extraClass: "govqa",
     });
-    pushCopy(`Copy "${ctx.simplifiedPrimary}" & Open 311 Map`, ctx.simplifiedPrimary, sr311Url);
-    for (const sa of ctx.simplifiedSecondaries) {
-      pushCopy(`Copy "${sa}" & Open 311 Map`, sa, sr311Url);
-    }
-  } else if (rowId === "chk-14") {
-    // Check #14: Houston Sold Permits only (weekly Permit Activity Reports removed)
-    const soldUrl = "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm";
-    pushCopy(`Copy "${ctx.simplifiedPrimary}" & Open Sold Permits`, ctx.simplifiedPrimary, soldUrl);
-    for (const sa of ctx.simplifiedSecondaries) {
-      pushCopy(`Copy "${sa}" & Open Sold Permits`, sa, soldUrl);
-    }
-  } else if (rowId === "chk-15") {
-    const dshsUrl = "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do";
-    pushCopy(`Copy "${ctx.simplifiedPrimary}" & Open DSHS`, ctx.simplifiedPrimary, dshsUrl);
-    for (const sa of ctx.simplifiedSecondaries) {
-      pushCopy(`Copy "${sa}" & Open DSHS`, sa, dshsUrl);
-    }
-    if (ctx.entities[0]) {
-      pushCopy(`Copy "${ctx.entities[0]}" & Open DSHS`, ctx.entities[0], dshsUrl);
-    }
   }
 
   return pills;
@@ -1143,12 +1070,21 @@ export function normalizeWatchProperty(rawProp = {}) {
       ? "Monitoring"
       : "Active / High Priority";
   const rawTrackerStatus = String(rawProp.trackerStatus || "").trim();
-  const trackerStatus =
-    rawTrackerStatus === REMOVED_TIER3_TOMBSTONE
-      ? REMOVED_TIER3_TOMBSTONE
-      : TRACKER_STATUSES.includes(rawTrackerStatus)
+  const isTombstone = isRemovedWatchlistTombstone(rawProp);
+  let trackerStatus = defaultStatus;
+  if (isTombstone) {
+    trackerStatus = WATCHLIST_TOMBSTONE_STATUSES.includes(rawTrackerStatus)
       ? rawTrackerStatus
-      : defaultStatus;
+      : REMOVED_WATCHLIST_TOMBSTONE;
+  } else if (TRACKER_STATUSES.includes(rawTrackerStatus)) {
+    trackerStatus =
+      tier === "3" &&
+      (rawTrackerStatus === "Active / High Priority" ||
+        rawTrackerStatus === "Monitoring" ||
+        rawTrackerStatus === "Dormant / Medium Priority")
+        ? "Archived (Tier 3)"
+        : rawTrackerStatus;
+  }
 
   const rawThreat = String(rawProp.threatCategory || "").trim();
   const threatCategory = rawThreat && THREAT_CATEGORIES.includes(rawThreat) ? rawThreat : "";
@@ -1227,6 +1163,7 @@ export function normalizeWatchProperty(rawProp = {}) {
   const resolvedAppNo = String(
     rawProp.appNo || rawProp.sourcePlatApp || (id.startsWith("plat-") ? id.slice(5) : "")
   ).trim();
+  const isPlatOriginated = id.startsWith("plat-") || Boolean(resolvedAppNo);
 
   const normalized = {
     id,
@@ -1246,12 +1183,20 @@ export function normalizeWatchProperty(rawProp = {}) {
     architect: String(rawProp.architect || "").trim(),
     designation: String(rawProp.designation || "").trim(),
     ownerOfRecord: String(rawProp.ownerOfRecord ?? rawProp.owner ?? "").trim(),
+    developer: String(rawProp.developer || "").trim(),
     buyerRelatedEntities: String(rawProp.buyerRelatedEntities || "").trim(),
+    broker: String(rawProp.broker || "").trim(),
     lender: String(rawProp.lender || "").trim(),
     designFirm,
     architectEngineer: designFirm,
     tier,
-    tierConfirmed: rawProp.tierConfirmed !== false,
+    tierConfirmed: isTombstone
+      ? false
+      : isPlatOriginated
+      ? Boolean(rawProp.tierConfirmed)
+      : rawProp.tierConfirmed !== false,
+    removedFromWatchlist: isTombstone && trackerStatus === REMOVED_WATCHLIST_TOMBSTONE,
+    removalReason: isTombstone ? String(rawProp.removalReason || "").trim() : "",
     threatCategory,
     trackerStatus,
     neighborhood: String(
@@ -1271,6 +1216,7 @@ export function normalizeWatchProperty(rawProp = {}) {
     superNeighborhoodId: String(rawProp.superNeighborhoodId || ""),
     appNo: resolvedAppNo,
     sourcePlatApp: resolvedAppNo,
+    linkedAppNo: String(rawProp.linkedAppNo || "").trim(),
     section: String(rawProp.section || ""),
     source: String(rawProp.source || ""),
     sourceCycleKey: String(rawProp.sourceCycleKey || ""),
@@ -1362,7 +1308,7 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     .filter((x) => x.p)
     .sort((a, b) => b.r - a.r)[0].p;
 
-  if (humanWinner.trackerStatus === REMOVED_TIER3_TOMBSTONE) {
+  if (isRemovedWatchlistTombstone(humanWinner)) {
     return null;
   }
 
@@ -1604,24 +1550,150 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
   return base;
 }
 
+function canonicalSitusMatchKey(rawAddr = "") {
+  const simp = simplifySearchAddress(String(rawAddr || "")).toUpperCase().trim();
+  if (!simp) return "";
+  const m = simp.match(/^(\d+)[A-Z]?\s+(?:1\/2\s+)?(.+)$/);
+  if (!m) return "";
+  const numInt = Number(m[1]);
+  if (!Number.isFinite(numInt) || numInt <= 0) return "";
+  const street = m[2].replace(/[^A-Z0-9]+/g, " ").trim();
+  if (street.length < 2) return "";
+  return `${numInt}|${street}`;
+}
+
+/**
+ * Synchronize a tier change made on the Property Watchlist back across ALL matching cycle items
+ * on the Biweekly Plat Monitor (F2-01, DF-5).
+ *
+ * Matches safely by:
+ *   1. Exact (sourceCycleKey, appNo), OR
+ *   2. Canonical real application numbers (skipping PH-<n> / DPV-<1..5 digit> placeholders and
+ *      guarding against recycled reference IDs via areContinuitySnapshotsCompatible), OR
+ *   3. Overlapping 13-digit HCAD account numbers, OR
+ *   4. Positive house number (>= 1) + simplified canonical street root (when HCAD sets do not conflict).
+ */
+export function syncWatchlistTierToPlatReviews({
+  prop = {},
+  newTier = "",
+  cycles = {},
+  cycleOrder = [],
+  reviewer = "",
+  nowIso = "",
+  respectNewerReviews = false,
+} = {}) {
+  const cleanTier = ["1", "2", "3"].includes(String(newTier || "").trim())
+    ? String(newTier).trim()
+    : "";
+  if (!prop || typeof prop !== "object" || !cleanTier || !cycles || typeof cycles !== "object") {
+    return { touched: [], cycles };
+  }
+
+  const ts = nowIso || new Date().toISOString();
+  const srcCycle = String(prop.sourceCycleKey || "").trim();
+  const propApp = String(prop.appNo || prop.sourcePlatApp || "").trim();
+  const propAppIds = new Set(getCanonicalPlatAppIds(prop));
+  const propHcads = parseHcadAccountList(prop.hcadAccount || "").hcadIds;
+  const propHcadSet = new Set(propHcads);
+  const propNormName = normalizeContinuityPlatName(
+    prop.platProjectName || prop.propertyName || ""
+  );
+  const propAddrKey = canonicalSitusMatchKey(prop.address || "");
+  const wpMs = Date.parse(prop.updatedAt || prop.archivedAt || "") || 0;
+
+  const orderedCycles =
+    Array.isArray(cycleOrder) && cycleOrder.length > 0
+      ? cycleOrder.filter((ck) => Object.prototype.hasOwnProperty.call(cycles, ck))
+      : Object.keys(cycles);
+
+  const touched = [];
+  for (const ck of orderedCycles) {
+    const cyc = cycles[ck];
+    if (!cyc || !Array.isArray(cyc.items)) continue;
+    if (!cyc.reviews || typeof cyc.reviews !== "object") cyc.reviews = {};
+    for (const it of cyc.items) {
+      const curRev = cyc.reviews[it.app] ? { ...cyc.reviews[it.app] } : {};
+      const itHcads = parseHcadAccountList(
+        [curRev.hcad || "", it.hcad || "", it.atlas?.hcad_num || ""].join(" ")
+      ).hcadIds;
+      const itNormName = normalizeContinuityPlatName(it.name || "");
+      const itAddrKey = canonicalSitusMatchKey(
+        curRev.address || it.atlas?.primaryAddress || it.noticeLocation || ""
+      );
+
+      const exactSource = Boolean(srcCycle && ck === srcCycle && propApp && it.app === propApp);
+      let appMatch = false;
+      if (!exactSource && propAppIds.size > 0) {
+        const itAppIds = getCanonicalPlatAppIds(it);
+        if (itAppIds.some((id) => propAppIds.has(id))) {
+          appMatch = areContinuitySnapshotsCompatible(
+            itHcads,
+            itNormName,
+            propHcads,
+            propNormName
+          );
+        }
+      }
+      const hcadMatch = Boolean(
+        propHcadSet.size > 0 && itHcads.some((id) => propHcadSet.has(id))
+      );
+      const addrMatch = Boolean(
+        propAddrKey &&
+          itAddrKey === propAddrKey &&
+          !(
+            propHcadSet.size > 0 &&
+            itHcads.length > 0 &&
+            !itHcads.some((id) => propHcadSet.has(id))
+          )
+      );
+
+      if (!exactSource && !appMatch && !hcadMatch && !addrMatch) continue;
+      if (respectNewerReviews && wpMs > 0) {
+        const revMs = Date.parse(curRev.updated || "") || 0;
+        if (revMs > wpMs) continue;
+      }
+
+      curRev.tier = cleanTier;
+      curRev.tierConfirmed = cleanTier === "1" || cleanTier === "2";
+      curRev.updated = ts;
+      if (reviewer) curRev.reviewer = reviewer;
+      const hf = new Set(
+        Array.isArray(curRev.humanEditedFields) ? curRev.humanEditedFields.map(String) : []
+      );
+      hf.add("tier");
+      curRev.humanEditedFields = Array.from(hf);
+      cyc.reviews[it.app] = curRev;
+      it._c = classifyPlatItem(it, curRev);
+      touched.push({ cycleKey: ck, appNo: it.app, review: curRev });
+    }
+  }
+
+  return { touched, cycles };
+}
+
 /**
  * Synchronize a tier change (including Tier 1/2 -> Tier 3 downgrade) from Biweekly Plat Review
  * onto the Property Watchlist while protecting human-authored dossier research via soft-archiving.
  */
 export function syncPlatTierToWatchlist(
   watchedProperties = [],
-  { appNo = "", hcadAccount = "", newTier = "", nowIso = "" } = {}
+  { appNo = "", linkedAppNo = "", hcadAccount = "", newTier = "", nowIso = "" } = {}
 ) {
   const list = (Array.isArray(watchedProperties) ? watchedProperties : []).map((p) =>
     normalizeWatchProperty(p)
   );
   const ts = nowIso || new Date().toISOString();
   const cleanApp = String(appNo || "").trim();
+  const queryAppIds = new Set(getCanonicalPlatAppIds({ appNo: cleanApp, linkedAppNo }));
   const { hcadIds } = parseHcadAccountList(hcadAccount || "");
 
   const idx = list.findIndex((p) => {
-    if (!p) return false;
+    if (!p || isRemovedWatchlistTombstone(p)) return false;
     if (cleanApp && (p.appNo === cleanApp || p.id === `plat-${cleanApp}`)) return true;
+    if (queryAppIds.size > 0) {
+      const pAppIds = getCanonicalPlatAppIds(p);
+      if (pAppIds.some((id) => queryAppIds.has(id))) return true;
+    }
     if (hcadIds.length > 0) {
       const pHcads = parseHcadAccountList(p.hcadAccount || "").hcadIds;
       if (pHcads.some((id) => hcadIds.includes(id)) && (p.appNo || p.id.startsWith("plat-"))) {
@@ -1639,6 +1711,7 @@ export function syncPlatTierToWatchlist(
   if (newTier === "3" || newTier === "") {
     if (hasHumanDossierContributions(target)) {
       target.tier = "3";
+      target.tierConfirmed = true;
       target.trackerStatus = "Archived (Tier 3)";
       target.archivedAt = ts;
       target.updatedAt = ts;
@@ -1808,9 +1881,9 @@ export function parseCloudSheetSyncRows(csvText = "") {
       if (sheetDesig && !propObj.designation) propObj.designation = sheetDesig;
       if (sheetTier && !propObj.tier) propObj.tier = sheetTier;
       if (sheetReviewer && !propObj.updatedBy) propObj.updatedBy = sheetReviewer;
+      if (isLegacyUnconfirmedPlatSeed(propObj)) continue;
       const updatedMs = parseIsoMs(propObj.updatedAt || parsed.updatedAt || "");
-      const isRemovedTombstone =
-        String(propObj.trackerStatus || "").trim() === REMOVED_TIER3_TOMBSTONE;
+      const isRemovedTombstone = isRemovedWatchlistTombstone(propObj);
       watchProperties.push({
         id: pid,
         rawProp: propObj,

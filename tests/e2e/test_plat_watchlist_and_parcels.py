@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import urllib.parse
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
@@ -293,10 +294,11 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     )
     assert f_threat_selected == "All threat categories"
 
-    # Select All Recent Cycles and verify Montrose Residences (2026-1585)
+    # Select All Recent Cycles and verify Montrose Residences (2026-1585, fixed to Tier 3 / 1226-1230 W Pierce St)
     page.select_option("#cycleSelect", "all")
+    page.locator("#tabs [data-g='all']").click()
     page.fill("#q", "Montrose Residences")
-    page.wait_for_selector("#list .row:has-text('1226 W CLAY')", timeout=5000)
+    page.wait_for_selector("#list .row:has-text('1226-1230 W Pierce')", timeout=5000)
     assert page.locator("#list .row").count() >= 1
     page.locator("#list .row").first.click()
     montrose_detail = page.locator("#detail").inner_text()
@@ -475,27 +477,22 @@ def test_it5_it6_and_it7_watchlist_header_editor_snowball_checklist_and_exports(
     page.click('[data-add-term-cat="entities"]')
     assert "Kirby Block Holdings LLC" in page.locator("#snowballCard").inner_text()
 
-    # Check #4 must now expose a copy pill for Kirby Block Holdings LLC, and Checks #3, #4, #7, #8, #9 must have zero street-address copy pills
+    # Pass #2 F2-11: Property Watchlist must omit extra copy buttons while preserving direct portal links (especially chk-05) and workflow modals
     pill_audit = page.evaluate(
         """() => {
-            const getRowCopies = (rid) => Array.from(
-                document.querySelectorAll(`tr[data-row-id="${rid}"] [data-copy-text]`)
-            ).map((b) => b.getAttribute('data-copy-text') || '');
             return {
-                chk03: getRowCopies('chk-03'),
-                chk04: getRowCopies('chk-04'),
-                chk07: getRowCopies('chk-07'),
-                chk08: getRowCopies('chk-08'),
-                chk09: getRowCopies('chk-09'),
-                chk10: getRowCopies('chk-10'),
+                totalCopyBtns: document.querySelectorAll('#detail [data-copy-text]').length,
+                chk05Links: Array.from(document.querySelectorAll('tr[data-row-id="chk-05"] a[href]')).map(a => a.getAttribute('href') || ''),
+                hasGovQaAction: document.querySelectorAll('tr[data-row-id="chk-08"] [data-pill-action="open-govqa-modal"]').length,
+                hasDondbAction: document.querySelectorAll('tr[data-row-id="chk-13"] [data-pill-action="open-dondb-modal"]').length,
             };
         }"""
     )
-    assert "Kirby Block Holdings LLC" in pill_audit["chk04"]
-    assert "2000 Smith" in pill_audit["chk10"]
-    for no_addr_chk in ("chk03", "chk04", "chk07", "chk08", "chk09"):
-        assert "2000 Smith" not in pill_audit[no_addr_chk]
-        assert "2000 Smith St." not in pill_audit[no_addr_chk]
+    assert pill_audit["totalCopyBtns"] == 0, f"Expected 0 Watchlist copy buttons after F2-11 cleanup, got {pill_audit['totalCopyBtns']}"
+    assert any("search.hcad.org" in h for h in pill_audit["chk05Links"])
+    assert any("arcweb.hcad.org/parcel-viewer-v2.0" in h for h in pill_audit["chk05Links"])
+    assert pill_audit["hasGovQaAction"] == 1
+    assert pill_audit["hasDondbAction"] == 1
 
     # Delete a snowball chip and reload -> verify neither deleted chip nor reverted editor fields resurrect
     page.locator(
@@ -1627,9 +1624,10 @@ def test_activity_rp1_three_mode_cycling_and_detail_listener_isolation(
             assert second_occ
         elif mode == "watchlist":
             wrows = page.locator("#list .row[data-watch-id]")
-            assert wrows.count() >= 2
-            wrows.nth(1).click()
-            assert wrows.nth(1).get_attribute("aria-current") == "true"
+            assert wrows.count() >= 1
+            pick_idx = 1 if wrows.count() >= 2 else 0
+            wrows.nth(pick_idx).click()
+            assert wrows.nth(pick_idx).get_attribute("aria-current") == "true"
             assert page.locator("#detail table.wl-table").count() >= 1
             assert page.locator("#detail .act-card").count() == 0
         else:
@@ -1645,5 +1643,214 @@ def test_activity_rp1_three_mode_cycling_and_detail_listener_isolation(
                 }"""
             )
             assert page.locator("#modeWatchlistCount").inner_text().strip() == wl_before
+
+
+def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_removal(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """Verify Emily Pass #2 end-to-end UX contracts (F2-01, F2-02, F2-04..F2-10, F2-12)."""
+    page = guarded_page
+    _seed_staff_admin_session(page)
+
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=agenda", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    page.wait_for_selector("#list .row", timeout=15000)
+
+    # 1. F2-01: Default active Watchlist does NOT pre-populate unconfirmed DPV-26073533 (801 McGowen) or 2026-1585 (Montrose Residences)
+    page.click("#modeWatchlistBtn")
+    wl_ids = page.evaluate(
+        "() => Array.from(document.querySelectorAll('#list .row[data-watch-id]')).map(r => r.dataset.watchId)"
+    )
+    assert "plat-DPV-26073533" not in wl_ids
+    assert "plat-2026-1585" not in wl_ids
+
+    # 2. F2-12: Broker / Listing Agent field displayed & persists through inline editor
+    page.locator("#list .row[data-watch-id='prop-kirby-mansion']").click()
+    assert "Broker / Listing Agent" in page.locator("#detail").inner_text()
+    page.click("#toggleEditWatchPropBtn")
+    page.fill("#we-broker", "Sample Listing Group (Commercial)")
+    page.click("#saveEditWatchPropBtn")
+    assert "Sample Listing Group (Commercial)" in page.locator("#detail").inner_text()
+
+    # 3. F2-04 & F2-05: Verify 801 McGowen (0132680000011 vacant) and Montrose Residences (8 W Pierce parcels, 1490700010001..20004)
+    page.click("#modeAgendaBtn")
+    page.select_option("#cycleSelect", "2026-10-29")
+    page.locator("#tabs [data-g='all']").click()
+    page.fill("#q", "801 McGowen")
+    page.wait_for_selector("#list .row[data-app='DPV-26073533']", timeout=5000)
+    page.locator("#list .row[data-app='DPV-26073533']").click()
+    mcgowen_txt = page.locator("#detail").inner_text()
+    assert "0132680000011" in mcgowen_txt
+    assert "2603 MILAM" not in mcgowen_txt.upper()
+
+    page.fill("#q", "Montrose Residences")
+    page.wait_for_selector("#list .row[data-app='2026-1585']", timeout=5000)
+    page.locator("#list .row[data-app='2026-1585']").click()
+    montrose_txt = page.locator("#detail").inner_text()
+    assert "1226-1230 W PIERCE" in montrose_txt.upper()
+    assert "1490700010001" in montrose_txt
+    assert "1226 W CLAY" not in montrose_txt.upper()
+    assert "0231440000010" not in montrose_txt
+
+    # 4. F2-06: #fAgendaPresence filters cycle-filing-only items (Houston Chinese Church Reserves 2026-1620) vs posted meeting agenda items
+    page.fill("#q", "")
+    page.select_option("#fAgendaPresence", "not_on_agenda")
+    assert page.locator("#list .row[data-app='2026-1620']").count() == 1
+    page.locator("#list .row[data-app='2026-1620']").click()
+    assert "Cycle filing only" in page.locator("#detail").inner_text() or "Not on posted" in page.locator("#detail").inner_text()
+
+    page.select_option("#fAgendaPresence", "on_agenda")
+    assert page.locator("#list .row[data-app='2026-1620']").count() == 0
+    page.select_option("#fAgendaPresence", "")
+
+    # 5. F2-07: PH-131 (Andores Rest) shows linkedAppNo 2026-1647 + Plat PDF; PH-132 (Aisla Villas) shows unposted notice helper
+    page.fill("#q", "Andores Rest")
+    page.wait_for_selector("#list .row[data-app='PH-131']", timeout=5000)
+    page.locator("#list .row[data-app='PH-131']").click()
+    ph131_txt = page.locator("#detail").inner_text()
+    assert "2026-1647" in ph131_txt
+    assert page.locator("#detail .links a", has_text="Plat PDF").count() >= 1
+
+    page.fill("#q", "Aisla Villas")
+    page.wait_for_selector("#list .row[data-app='PH-132']", timeout=5000)
+    page.locator("#list .row[data-app='PH-132']").click()
+    ph132_txt = page.locator("#detail").inner_text()
+    assert "Section III Future Public Hearing Agenda Item" in ph132_txt
+    assert page.locator("#detail a", has_text="COH Planning Notices").count() >= 1
+
+    # 6. F2-09: Typing in #r-why must NOT mutate/replace #list DOM nodes or interrupt caret focus until blur/change,
+    #    AND blurring onto another #list .row must switch selection on the very FIRST click (never swallowed by blur).
+    page.fill("#q", "")
+    page.wait_for_selector("#list .row[data-app='2026-1445']", timeout=5000)
+    page.locator("#list .row[data-app='2026-1445']").click()
+    page.evaluate("() => { window.__testRowRef = document.querySelector('#list .row[data-app=\"2026-1445\"]'); }")
+    why_box = page.locator("#r-why")
+    why_box.click()
+    why_box.type("Typed smoothly without list redraw")
+    typing_check = page.evaluate(
+        """() => ({
+            sameNode: window.__testRowRef === document.querySelector('#list .row[data-app="2026-1445"]'),
+            activeId: document.activeElement ? document.activeElement.id : '',
+            val: document.getElementById('r-why')?.value || '',
+        })"""
+    )
+    assert typing_check["sameNode"] is True, "Typing in #r-why must NOT re-render/replace sidebar row nodes on input"
+    assert typing_check["activeId"] == "r-why"
+    assert "Typed smoothly without list redraw" in typing_check["val"]
+
+    # Directly click a DIFFERENT row in #list while #r-why still holds active focus:
+    # must commit + propagate AND select DPV-26073533 on the single first click without swallowing mousedown->mouseup.
+    page.locator("#list .row[data-app='DPV-26073533']").click()
+    assert "0132680000011" in page.locator("#detail").inner_text()
+
+    page.select_option("#cycleSelect", "2026-10-15")
+    page.fill("#q", "Citadel on Delano")
+    page.locator("#list .row[data-app='2026-1445']").click()
+    assert "Typed smoothly without list redraw" in page.locator("#r-why").input_value()
+
+    # 7. F2-01 & F2-02: Promote 2026-1445 to Watchlist -> toggle Tier 1 -> Tier 2 on Watchlist -> syncs back to Biweekly Monitor -> Remove permanently via #removeFromWatchlistBtn
+    page.locator("input[name='tier'][value='1']").click()
+    page.fill("#q", "")
+    page.locator("#tabs [data-g='t1']").click()
+    page.locator("#list .row[data-app='2026-1445']").click()
+    page.click("#confirmTierWatchBtn")
+    page.click("#jumpWatchDossierBtn")
+
+    assert page.locator("#detail [data-wl-inline-tier='2']").count() == 1
+    page.click("#detail [data-wl-inline-tier='2']")
+    page.click("#modeAgendaBtn")
+    page.locator("#tabs [data-g='t2']").click()
+    assert page.locator("#list .row[data-app='2026-1445']").count() == 1
+
+    # Permanently remove from Watchlist via modal and verify zero resurrection on reload
+    page.click("#modeWatchlistBtn")
+    page.locator("#list .row[data-watch-id='plat-2026-1445']").click()
+    cnt_before_rm = int(page.locator("#modeWatchlistCount").inner_text().strip())
+    page.click("#removeFromWatchlistBtn")
+    page.click("#rmWlConfirmDeleteBtn")
+    page.wait_for_selector(".modal-back", state="detached", timeout=5000)
+    assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == cnt_before_rm - 1
+    assert page.locator("#list .row[data-watch-id='plat-2026-1445']").count() == 0
+
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("#modeWatchlistBtn", state="visible", timeout=15000)
+    page.click("#modeWatchlistBtn")
+    page.select_option("#wlStatusFilter", "ALL")
+    assert page.locator("#list .row[data-watch-id='plat-2026-1445']").count() == 0
+
+    # 8. F2-10: Main Atlas vacant lot live HCAD ArcGIS search fallback (3346 Scott -> 1330170010001) + #q= cold-boot
+    def _mock_scott_vacant_parcels(route: Any) -> None:
+        url = route.request.url
+        dec = urllib.parse.unquote(url).lower()
+        if "public_query/mapserver/0/query" in url.lower() and ("scott" in dec or "1330170010001" in dec):
+            payload = {
+                "features": [
+                    {
+                        "attributes": {
+                            "HCAD_NUM": "1330170010001",
+                            "owner": "SCOTT CORRIDOR LAND LLC",
+                            "subdivision": "SCOTT STREET RESERVE",
+                            "address": "3346 SCOTT ST",
+                            "state_class": "C1",
+                            "impr_val": 0,
+                            "land_val": 425000,
+                            "land_sqft": 7500,
+                            "legal_lines": "LT 1 BLK 1 SCOTT STREET RESERVE",
+                        },
+                        "geometry": {
+                            "rings": [
+                                [
+                                    [-95.3518, 29.7213],
+                                    [-95.3515, 29.7213],
+                                    [-95.3515, 29.7216],
+                                    [-95.3518, 29.7216],
+                                    [-95.3518, 29.7213],
+                                ]
+                            ]
+                        },
+                    }
+                ]
+            }
+            route.fulfill(
+                status=200,
+                content_type="application/json; charset=utf-8",
+                headers={"Access-Control-Allow-Origin": "*"},
+                body=json.dumps(payload).encode("utf-8"),
+            )
+            return
+        route.fallback()
+
+    page.route("**/arcweb.hcad.org/**", _mock_scott_vacant_parcels)
+
+    # 8a. Interactive live HCAD vacant-lot search via typing in #search-input at default viewport
+    page.goto(f"{atlas_base_url}/index.html", wait_until="domcontentloaded")
+    _wait_for_atlas_ready(page)
+    page.fill("#search-input", "3346 Scott")
+    page.wait_for_selector(
+        "#search-results .search-result-item:has-text('3346 SCOTT ST')",
+        state="visible",
+        timeout=15000,
+    )
+    page.locator("#search-results .search-result-item:has-text('3346 SCOTT ST')").first.click()
+    page.wait_for_selector(
+        "#inspector-drawer:not(.hidden) #inspector-hcad-live-card[data-hcad-num='1330170010001']",
+        state="attached",
+        timeout=15000,
+    )
+    assert "3346 SCOTT ST" in page.locator("#inspector-drawer").inner_text().upper()
+
+    # 8b. Cold-boot #q=3346%20Scott hash deep link resolution
+    page.goto(f"{atlas_base_url}/index.html#q=3346%20Scott", wait_until="domcontentloaded")
+    _wait_for_atlas_ready(page)
+    page.wait_for_function(
+        """() => {
+            const items = document.querySelectorAll('#search-results .search-result-item, #search-results [data-hcad]');
+            return document.body.innerText.includes('3346 SCOTT ST') || document.body.innerText.includes('1330170010001') || items.length > 0;
+        }""",
+        timeout=15000,
+    )
+    assert "3346 SCOTT ST" in page.locator("body").inner_text() or "1330170010001" in page.locator("body").inner_text()
+
 
 

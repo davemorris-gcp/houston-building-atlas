@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261029a";
+} from "./palettes.js?v=20261029b";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -25,19 +25,21 @@ import {
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261029a";
+} from "./filterStore.js?v=20261029b";
 import {
   applyOverrideToProperties,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261029a";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261029a";
+} from "./curatedEdits.js?v=20261029b";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261029b";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
   HCAD_PUBLIC_EXPORT_TILE_URL,
   HcadViewportParcelClient,
-} from "./hcadViewportParcels.js?v=20261029a";
+  mapHcadStateClassToUseCategory,
+  matchHcadParcelFeaturesByAddressQuery,
+} from "./hcadViewportParcels.js?v=20261029b";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -296,14 +298,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261029a"),
-      fetch("public/data/parcels.geojson?v=20261029a"),
-      fetch("public/data/overlays.json?v=20261029a"),
-      fetch("public/data/pmtiles_manifest.json?v=20261029a").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261029b"),
+      fetch("public/data/parcels.geojson?v=20261029b"),
+      fetch("public/data/overlays.json?v=20261029b"),
+      fetch("public/data/pmtiles_manifest.json?v=20261029b").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261029a").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261029a").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261029a").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261029b").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261029b").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261029b").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1353,7 +1355,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261029a";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261029b";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -3761,6 +3763,64 @@ export class AtlasMapController {
     } else {
       this._dynamicParcelDebounceTimer = setTimeout(runFetch, 240);
     }
+  }
+
+  /**
+   * Cache an HCAD parcel feature returned by live prefix search so subsequent selection
+   * (`selectFeatureByIdOrHcad`) immediately highlights its exact polygon boundary without
+   * waiting on a secondary network round-trip (`F2-10`, `DF-4`).
+   */
+  cacheLookedUpParcelFeature(feature) {
+    if (!feature || typeof feature !== "object") return;
+    const hcad = String(feature.properties?.hcad_num || feature.properties?.HCAD_NUM || "")
+      .replace(/\D/g, "")
+      .trim();
+    if (hcad.length !== 13) return;
+    if (!this._lookedUpParcelsByHcad) {
+      this._lookedUpParcelsByHcad = new Map();
+    }
+    this._lookedUpParcelsByHcad.delete(hcad);
+    this._lookedUpParcelsByHcad.set(hcad, feature);
+    if (this._lookedUpParcelsByHcad.size > 128) {
+      const oldest = this._lookedUpParcelsByHcad.keys().next().value;
+      this._lookedUpParcelsByHcad.delete(oldest);
+    }
+  }
+
+  /**
+   * Synchronously filter already-fetched viewport + pilot + looked-up HCAD parcel polygons
+   * against an address search query (`0ms` fast path for `F2-10` / `DF-4`).
+   */
+  getLoadedViewportParcelMatches(rawQuery) {
+    const pool = [];
+    const seen = new Set();
+    const pushUnique = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const f of list) {
+        if (!f || typeof f !== "object") continue;
+        const h = String(f.properties?.hcad_num || f.properties?.HCAD_NUM || "")
+          .replace(/\D/g, "")
+          .trim();
+        if (h.length === 13) {
+          if (seen.has(h)) continue;
+          seen.add(h);
+        }
+        pool.push(f);
+      }
+    };
+    pushUnique(this.parcelsData);
+    pushUnique(this.hcadViewportParcels?.getLastRawFeatures?.());
+    if (this._lookedUpParcelsByHcad instanceof Map) {
+      pushUnique(Array.from(this._lookedUpParcelsByHcad.values()));
+    }
+    if (pool.length === 0) return [];
+    const buildingYearsByHcad = this._collectViewportBuildingYearsByHcad?.() || new Map();
+    return matchHcadParcelFeaturesByAddressQuery(pool, rawQuery, {
+      minBuildingYearsByHcad: buildingYearsByHcad,
+      resolveContextAtPoint: this.resolveGeographicContextAtPoint
+        ? (lng, lat) => this.resolveGeographicContextAtPoint(lng, lat)
+        : null,
+    });
   }
 
   _initSpyglassOverlay() {
@@ -7045,6 +7105,16 @@ export class AtlasMapController {
       if (isTargetSuppressed) {
         return false;
       }
+      const cachedParcelFeat = effectiveHcad
+        ? this._lookedUpParcelsByHcad?.get?.(effectiveHcad) ||
+          (Array.isArray(this.parcelsData)
+            ? this.parcelsData.find(
+                (f) => String(f?.properties?.hcad_num || "").trim() === effectiveHcad
+              )
+            : null) ||
+          null
+        : null;
+      const cp = cachedParcelFeat?.properties || null;
       const effectiveAddr =
         matchedAlert?.address ||
         matchedPlat?.address ||
@@ -7052,6 +7122,7 @@ export class AtlasMapController {
         matchedLm?.address ||
         matchedLm?.USER_ADDRESS ||
         matchedRb?.modern_address ||
+        cp?.address ||
         addressQuery ||
         (effectiveHcad ? `HCAD ${effectiveHcad}` : "");
       const effectiveYear =
@@ -7059,6 +7130,7 @@ export class AtlasMapController {
           matchedAlert?.year_built ||
             matchedPlat?.year_built ||
             matchedLm?.year_built ||
+            cp?.year_built ||
             fallbackYearBuilt
         ) || 0;
 
@@ -7069,6 +7141,7 @@ export class AtlasMapController {
               matchedAlert?.building_id ||
               matchedPlat?.building_id ||
               cleanFeatureId ||
+              (cp?.id && cp?.is_vacant_parcel ? cp.id : "") ||
               (effectiveHcad ? `${effectiveHcad}#b1` : `addr_${effectiveAddr}`),
             building_id: matchedAlert?.building_id || matchedPlat?.building_id || cleanFeatureId || "",
             hcad_num: effectiveHcad,
@@ -7088,18 +7161,28 @@ export class AtlasMapController {
             yr_remodel: Number(matchedAlert?.yr_remodel) || 0,
             style: matchedAlert?.style || matchedLm?.style || "",
             architect: matchedAlert?.architect || matchedLm?.architect || "",
-            neighborhood: matchedAlert?.neighborhood || matchedPlat?.neighborhood || "",
+            neighborhood: matchedAlert?.neighborhood || matchedPlat?.neighborhood || cp?.neighborhood || "",
             historic_district:
               matchedAlert?.historic_district ||
               matchedHahc?.historic_district ||
               matchedLm?.historic_district ||
+              cp?.historic_district ||
               "",
+            super_neighborhood: cp?.super_neighborhood || "",
+            historic_ward: cp?.historic_ward || "",
             good_brick_summary: matchedAlert?.good_brick_summary || "",
-            owner: matchedAlert?.owner || matchedPlat?.developer || "",
+            owner: matchedAlert?.owner || matchedPlat?.developer || cp?.owner || "",
             bld_area: Number(matchedAlert?.bld_area) || 0,
-            land_area: Number(matchedAlert?.land_area) || 0,
-            stories: Number(matchedAlert?.stories) || 1,
-            subdivision: matchedAlert?.subdivision || matchedPlat?.subdivision || "",
+            land_area: Number(matchedAlert?.land_area) || Number(cp?.land_sqft) || 0,
+            land_sqft: Number(cp?.land_sqft) || Number(matchedAlert?.land_area) || 0,
+            stories: Number(matchedAlert?.stories) || (cp?.is_vacant_parcel ? 0 : 1),
+            subdivision: matchedAlert?.subdivision || matchedPlat?.subdivision || cp?.subdivision || "",
+            ...(cp?.use_category ? { use_category: cp.use_category } : {}),
+            ...(cp?.state_class ? { state_class: cp.state_class } : {}),
+            ...(cp?.is_vacant_parcel ? { is_vacant_parcel: true } : {}),
+            ...(Number.isFinite(Number(cp?.impr_val)) ? { impr_val: Number(cp.impr_val) } : {}),
+            ...(Number.isFinite(Number(cp?.land_val)) ? { land_val: Number(cp.land_val) } : {}),
+            ...(Number.isFinite(Number(cp?.mkt_val)) ? { mkt_val: Number(cp.mkt_val) } : {}),
           },
           this.curatedOverrides
         );
@@ -7111,9 +7194,10 @@ export class AtlasMapController {
           });
         }
         const initialGeom =
-          Number.isFinite(effLng) && Number.isFinite(effLat)
+          (!hasExplicitSubBuildingId && cachedParcelFeat?.geometry) ||
+          (Number.isFinite(effLng) && Number.isFinite(effLat)
             ? { type: "Point", coordinates: [effLng, effLat] }
-            : null;
+            : null);
         this.highlightAndInspectFeature(initialProps, initialGeom);
         schedulePostFlightTileUpgrade();
       }
@@ -7123,6 +7207,10 @@ export class AtlasMapController {
           .then((rec) => {
             if (navSeq !== this._selectNavSeq || !rec || tilePolygonUpgraded) return;
             const recYear = rec.yearImpr || effectiveYear;
+            const resolvedStateClass = String(rec.stateClass || cp?.state_class || "").trim();
+            const resolvedUseCategory = mapHcadStateClassToUseCategory(resolvedStateClass);
+            const isVacant =
+              resolvedUseCategory === "Vacant / Unimproved" && !recYear && !(Number(rec.bldgSqft) > 0);
             const synthProps = applyOverrideToProperties(
               {
                 id:
@@ -7142,18 +7230,43 @@ export class AtlasMapController {
                 year_built: recYear,
                 decade: recYear ? Math.floor(recYear / 10) * 10 : 0,
                 bld_sqft: rec.bldgSqft || Number(matchedAlert?.bld_area) || 0,
-                land_sqft: rec.lotAreaSqft || Number(matchedAlert?.land_area) || 0,
-                owner: rec.owner || matchedAlert?.owner || "",
-                subdivision: rec.subdivision || matchedAlert?.subdivision || matchedPlat?.subdivision || "",
-                neighborhood: matchedAlert?.neighborhood || matchedPlat?.neighborhood || "",
-                use_category:
-                  rec.stateClass && rec.stateClass.startsWith("A")
-                    ? "Single-Family Residential"
-                    : rec.stateClass && rec.stateClass.startsWith("B")
-                    ? "Multi-Family Residential"
-                    : rec.stateClass && rec.stateClass.startsWith("F")
-                    ? "Commercial"
-                    : "Structure",
+                land_sqft:
+                  rec.lotAreaSqft || Number(cp?.land_sqft) || Number(matchedAlert?.land_area) || 0,
+                owner: rec.owner || cp?.owner || matchedAlert?.owner || "",
+                subdivision:
+                  rec.subdivision ||
+                  cp?.subdivision ||
+                  matchedAlert?.subdivision ||
+                  matchedPlat?.subdivision ||
+                  "",
+                neighborhood:
+                  matchedAlert?.neighborhood || matchedPlat?.neighborhood || cp?.neighborhood || "",
+                historic_district:
+                  matchedAlert?.historic_district ||
+                  matchedHahc?.historic_district ||
+                  matchedLm?.historic_district ||
+                  cp?.historic_district ||
+                  "",
+                super_neighborhood: cp?.super_neighborhood || "",
+                historic_ward: cp?.historic_ward || "",
+                state_class: resolvedStateClass,
+                use_category: resolvedUseCategory,
+                is_vacant_parcel: isVacant,
+                ...(Number.isFinite(Number(rec.imprVal))
+                  ? { impr_val: Number(rec.imprVal) }
+                  : Number.isFinite(Number(cp?.impr_val))
+                  ? { impr_val: Number(cp.impr_val) }
+                  : {}),
+                ...(Number.isFinite(Number(rec.landVal))
+                  ? { land_val: Number(rec.landVal) }
+                  : Number.isFinite(Number(cp?.land_val))
+                  ? { land_val: Number(cp.land_val) }
+                  : {}),
+                ...(Number.isFinite(Number(rec.mktVal))
+                  ? { mkt_val: Number(rec.mktVal) }
+                  : Number.isFinite(Number(cp?.mkt_val))
+                  ? { mkt_val: Number(cp.mkt_val) }
+                  : {}),
               },
               this.curatedOverrides
             );
@@ -7166,7 +7279,9 @@ export class AtlasMapController {
             }
             this.highlightAndInspectFeature(
               synthProps,
-              hasExplicitSubBuildingId ? null : rec.geometry || null
+              hasExplicitSubBuildingId
+                ? null
+                : rec.geometry || cachedParcelFeat?.geometry || null
             );
             schedulePostFlightTileUpgrade();
           })

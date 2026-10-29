@@ -58,6 +58,21 @@ DEFAULT_DATA_DIR = REPO_ROOT / "app" / "public" / "data"
 DEFAULT_LOG_FILENAME = "monitor_activity_log.json"
 
 CHICAGO_TZ = ZoneInfo("America/Chicago")
+
+REMOVED_TIER3_TOMBSTONE = "Removed (Tier 3)"
+REMOVED_WATCHLIST_TOMBSTONE = "Removed from Watchlist"
+WATCHLIST_TOMBSTONE_STATUSES = frozenset({
+    REMOVED_TIER3_TOMBSTONE,
+    REMOVED_WATCHLIST_TOMBSTONE,
+})
+
+
+def is_removed_watchlist_tombstone(prop: dict | None) -> bool:
+    if not isinstance(prop, dict):
+        return False
+    if prop.get("removedFromWatchlist") is True:
+        return True
+    return str(prop.get("trackerStatus") or "").strip() in WATCHLIST_TOMBSTONE_STATUSES
 RETENTION_DAYS = 90
 SCHEMA_VERSION = 1
 
@@ -444,27 +459,47 @@ def _diff_property_watchlist(
 
     # Check archivals / removals on previously tracked properties
     for pid, b_prop in before_by_id.items():
+        if is_removed_watchlist_tombstone(b_prop):
+            continue
         a_prop = after_by_id.get(pid)
         was_archived = str(b_prop.get("trackerStatus") or "").strip() == "Archived (Tier 3)"
-        is_missing = a_prop is None
-        is_now_archived = a_prop is not None and str(a_prop.get("trackerStatus") or "").strip() == "Archived (Tier 3)"
-        if not was_archived and (is_missing or is_now_archived):
-            ref_p = a_prop or b_prop
+        is_now_removed = a_prop is None or is_removed_watchlist_tombstone(a_prop)
+        is_now_archived = (
+            a_prop is not None
+            and not is_now_removed
+            and str(a_prop.get("trackerStatus") or "").strip() == "Archived (Tier 3)"
+        )
+        if is_now_removed or (not was_archived and is_now_archived):
+            ref_p = a_prop if (a_prop is not None and not is_now_removed) else b_prop
             prop_title = ref_p.get("propertyName") or ref_p.get("address") or pid
-            ev_ts = str(ref_p.get("archivedAt") or ref_p.get("updatedAt") or now_iso)
+            ev_ts = str(
+                (a_prop or {}).get("updatedAt")
+                or ref_p.get("archivedAt")
+                or ref_p.get("updatedAt")
+                or now_iso
+            )
             ev_date = to_chicago_date_iso(ev_ts, local_today) or local_today
+            ev_action = "removed" if is_now_removed else "archived"
             events.append(
                 _make_event(
-                    event_id=build_staff_prop_event_id(pid, "archived"),
+                    event_id=build_staff_prop_event_id(pid, ev_action),
                     stream="staff",
-                    kind="watchlist_property_archived",
+                    kind=(
+                        "watchlist_property_removed"
+                        if is_now_removed
+                        else "watchlist_property_archived"
+                    ),
                     severity="info",
                     adverse=False,
                     date_iso=ev_date,
                     timestamp_iso=ev_ts if "T" in ev_ts else now_iso,
                     discovered_at=now_iso,
                     logged_at=ev_ts if "T" in ev_ts else "",
-                    title=f"Archived from Active Watchlist: {prop_title}",
+                    title=(
+                        f"Archived from Active Watchlist: {prop_title}"
+                        if is_now_archived
+                        else f"Removed from Property Watchlist: {prop_title}"
+                    ),
                     summary=(
                         f"Reclassified to Tier 3 / Archived ({ref_p.get('address') or 'Houston'})."
                         if is_now_archived
@@ -483,7 +518,11 @@ def _diff_property_watchlist(
 
     # Inspect active/present properties in after_wl
     for pid, a_prop in after_by_id.items():
+        if is_removed_watchlist_tombstone(a_prop):
+            continue
         b_prop = before_by_id.get(pid)
+        if b_prop is not None and is_removed_watchlist_tombstone(b_prop):
+            b_prop = None
         prop_title = str(a_prop.get("propertyName") or a_prop.get("address") or pid).strip()
         prop_addr = str(a_prop.get("address") or "").strip()
         prop_hcad = str(a_prop.get("hcadAccount") or "").strip()
@@ -542,6 +581,8 @@ def _diff_property_watchlist(
                 ("notes", "dossier notes"),
                 ("ownerOfRecord", "owner of record"),
                 ("buyerRelatedEntities", "buyer/related entities"),
+                ("developer", "developer"),
+                ("broker", "listing/commercial broker"),
                 ("lender", "lender"),
                 ("designFirm", "design firm"),
                 ("phPastActions", "past PH actions"),
@@ -1583,12 +1624,89 @@ def _sort_events_newest_first(events: list[dict]) -> list[dict]:
     )
 
 
+_RETRACTED_ACTIVITY_WATCH_IDS = frozenset({"plat-2026-1585", "plat-DPV-26073533"})
+_RETRACTED_ACTIVITY_SEED_ADDRS = ("1226 W CLAY", "2603 MILAM")
+
+
+def _normalize_seed_match_addr(raw: object) -> str:
+    return " ".join(re.sub(r"[^A-Z0-9\s]", " ", str(raw or "").upper()).split())
+
+
+def _refresh_retracted_agenda_item_event(
+    cp: dict, after_cycles: dict[str, dict]
+) -> dict | None:
+    """Refresh a retained historical agenda:item:* card that still carries a retracted pre-Pass-#2 seed address."""
+    eid = str(cp.get("id") or "")
+    ck = str(cp.get("cycleKey") or "").strip()
+    app = str(cp.get("appNo") or "").strip()
+    if (not ck or not app) and eid.startswith("agenda:item:"):
+        parts = eid.split(":", 4)
+        if len(parts) >= 4:
+            ck = ck or parts[2]
+            app = app or parts[3]
+    cyc = after_cycles.get(ck) if ck else None
+    if not isinstance(cyc, dict):
+        return None
+    matched_it = next(
+        (
+            x
+            for x in (cyc.get("items") or [])
+            if isinstance(x, dict) and str(x.get("app") or "").strip() == app
+        ),
+        None,
+    )
+    if matched_it is None:
+        return None
+    section = str(matched_it.get("section") or "")
+    typ = str(matched_it.get("type") or "")
+    is_dpv = app.upper().startswith("DPV") or "K." in section or "DPV" in typ.upper()
+    atlas = matched_it.get("atlas") if isinstance(matched_it.get("atlas"), dict) else {}
+    yr = int(atlas.get("earliestYearBuilt") or 0)
+    kind = str(cp.get("kind") or "")
+    if kind == "agenda_item_dpv":
+        is_crit = bool(
+            atlas.get("hasActivePermit") or atlas.get("designations") or (1836 <= yr <= 1940)
+        )
+        sev = "critical" if is_crit else "warning"
+        adv = is_crit
+    elif kind == "agenda_item_notice_pdf":
+        sev = "warning"
+        adv = False
+    else:
+        is_crit = bool(atlas.get("hasActivePermit") or atlas.get("designations"))
+        sev = "critical" if is_crit else ("warning" if (is_dpv or 1836 <= yr <= 1940) else "info")
+        adv = is_crit
+    summary = (
+        f"{typ or 'Plat'} in {section or 'Agenda'}"
+        f"{f' | Built {yr}' if yr >= 1836 else ''}"
+        f"{f' | Hearing {matched_it.get('hearingDateIso')}' if matched_it.get('hearingDateIso') else ''}"
+        f"{f' | {matched_it.get('varianceSummary')}' if matched_it.get('varianceSummary') else ''}."
+    )
+    refreshed = _make_event(
+        event_id=eid,
+        stream=str(cp.get("stream") or "agenda"),
+        kind=kind,
+        severity=sev,
+        adverse=adv,
+        date_iso=str(cp.get("date") or cp.get("localDate") or ck),
+        timestamp_iso=str(cp.get("timestamp") or ""),
+        discovered_at=str(cp.get("discoveredAt") or cp.get("timestamp") or ""),
+        logged_at=str(cp.get("loggedAt") or ""),
+        title=str(cp.get("title") or ""),
+        summary=summary,
+        **_plat_item_event_fields(matched_it, ck),
+    )
+    refreshed["localDate"] = str(cp.get("localDate") or refreshed["localDate"])
+    return refreshed
+
+
 def merge_and_prune_ledger(
     existing_log: dict | None,
     delta_events: list[dict],
     after_watchlist: dict | None,
     now_iso: str,
     *,
+    after_plat: dict | None = None,
     retention_days: int = RETENTION_DAYS,
     seed_mode: bool = False,
 ) -> dict:
@@ -1597,10 +1715,22 @@ def merge_and_prune_ledger(
     today_d = dt.date.fromisoformat(today_str)
     floor_d = today_d - dt.timedelta(days=max(1, retention_days) - 1)
     floor_iso = floor_d.isoformat()
+    after_cycles = _extract_plat_cycles(after_plat) if isinstance(after_plat, dict) else {}
 
     events_by_id: dict[str, dict] = {}
     for prev_ev in ((existing_log or {}).get("events") or []):
         if not isinstance(prev_ev, dict) or not prev_ev.get("id"):
+            continue
+        eid = str(prev_ev.get("id") or "")
+        wpid = str(prev_ev.get("watchPropertyId") or "").strip()
+        if wpid in _RETRACTED_ACTIVITY_WATCH_IDS or any(
+            eid.startswith(f"staff:prop:{rid}:") or eid.startswith(f"wl:auto:{rid}:")
+            for rid in _RETRACTED_ACTIVITY_WATCH_IDS
+        ):
+            continue
+        addr_norm = _normalize_seed_match_addr(prev_ev.get("address"))
+        has_retracted_seed_addr = any(frag in addr_norm for frag in _RETRACTED_ACTIVITY_SEED_ADDRS)
+        if has_retracted_seed_addr and prev_ev.get("stream") == "staff":
             continue
         ld = str(prev_ev.get("localDate") or to_chicago_date_iso(prev_ev.get("discoveredAt") or prev_ev.get("timestamp") or "", prev_ev.get("date") or ""))
         if not seed_mode and ld == today_str and prev_ev.get("kind") == "watchlist_sweep_degraded":
@@ -1608,6 +1738,14 @@ def merge_and_prune_ledger(
         if ld >= floor_iso:
             cp = dict(prev_ev)
             cp["localDate"] = ld
+            if has_retracted_seed_addr and eid.startswith("agenda:item:"):
+                if after_cycles:
+                    refreshed = _refresh_retracted_agenda_item_event(cp, after_cycles)
+                    if refreshed is None:
+                        continue
+                    cp = refreshed
+                else:
+                    continue
             events_by_id[cp["id"]] = cp
 
     for new_ev in delta_events:
@@ -1809,6 +1947,7 @@ def run_update_or_seed(
         delta_events,
         after_bundle.get("property_watchlist.json"),
         now_iso,
+        after_plat=after_bundle.get("plat_agenda_monitor.json"),
         retention_days=retention_days,
         seed_mode=seed_initial,
     )

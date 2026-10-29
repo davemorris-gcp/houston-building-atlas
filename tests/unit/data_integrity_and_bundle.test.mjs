@@ -191,7 +191,14 @@ test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json
 
   const watchlist = readDataJson("property_watchlist.json");
   assert.ok(watchlist.primaryProperty?.hcadAccount, "property_watchlist.primaryProperty.hcadAccount required");
-  assert.ok(Array.isArray(watchlist.watchedProperties) && watchlist.watchedProperties.length >= 3);
+  assert.ok(Array.isArray(watchlist.watchedProperties) && watchlist.watchedProperties.length >= 1);
+  for (const wp of watchlist.watchedProperties) {
+    assert.notEqual(wp.trackerStatus, "Removed from Watchlist", `Removed tombstone leaked into active property_watchlist.json: ${wp.id}`);
+    assert.notEqual(wp.trackerStatus, "Removed (Tier 3)", `Removed Tier 3 tombstone leaked into active property_watchlist.json: ${wp.id}`);
+    if (String(wp.id || "").startsWith("plat-") && wp.trackerStatus !== "Archived (Tier 3)") {
+      assert.equal(wp.tierConfirmed, true, `Unconfirmed plat seed leaked into property_watchlist.json: ${wp.id}`);
+    }
+  }
   assert.ok(
     watchlist.lastSweepHealth &&
       typeof watchlist.lastSweepHealth === "object" &&
@@ -216,6 +223,22 @@ test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json
     seenEventIds.add(ev.id);
     assert.equal(validStreams.has(ev.stream), true, `Unexpected activity event stream '${ev.stream}' on ${ev.id}`);
     assert.match(String(ev.localDate || ""), /^\d{4}-\d{2}-\d{2}$/, `Invalid localDate on ${ev.id}`);
+    assert.notEqual(
+      ev.watchPropertyId,
+      "plat-2026-1585",
+      `Retracted unconfirmed seed plat-2026-1585 must not appear in monitor_activity_log.json (${ev.id})`
+    );
+    const evAddrUp = String(ev.address || "").toUpperCase();
+    assert.equal(
+      evAddrUp.includes("2603 MILAM"),
+      false,
+      `Misattributed 2603 MILAM seed address must not appear in monitor_activity_log.json (${ev.id})`
+    );
+    assert.equal(
+      evAddrUp.includes("1226 W CLAY"),
+      false,
+      `Retracted 1226 W CLAY seed address must not appear in monitor_activity_log.json (${ev.id})`
+    );
   }
 });
 
@@ -555,7 +578,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, schema.py, HTML entrypoints, ES module imports, and static public/data fetches
   const manifest = readDataJson("pmtiles_manifest.json");
   const expectedVer = String(manifest.cache_bust || "").trim();
-  assert.equal(expectedVer, "20261029a", `Expected pmtiles_manifest.json cache_bust === '20261029a'`);
+  assert.equal(expectedVer, "20261029b", `Expected pmtiles_manifest.json cache_bust === '20261029b'`);
 
   const schemaPyRaw = fs.readFileSync(path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "schema.py"), "utf8");
   const schemaVerMatch = schemaPyRaw.match(/^\s*ACTIVE_CACHE_BUST\s*=\s*["']([^"']+)["']/m);

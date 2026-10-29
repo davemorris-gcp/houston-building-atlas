@@ -58,6 +58,39 @@ SHEET_PUBLISHED_CSV_URL = (
     "pub?gid=1876369840&single=true&output=csv"
 )
 AUTO_SWEEP_SCHEDULE = "Daily at 7:00 AM CT"
+PLAT_CACHE_DIR = REPO_ROOT / "pipeline" / "cache" / "plat_spreadsheets_2026"
+
+REMOVED_TIER3_TOMBSTONE = "Removed (Tier 3)"
+REMOVED_WATCHLIST_TOMBSTONE = "Removed from Watchlist"
+WATCHLIST_TOMBSTONE_STATUSES = {
+    REMOVED_TIER3_TOMBSTONE,
+    REMOVED_WATCHLIST_TOMBSTONE,
+}
+WATCHLIST_TRACKER_STATUSES = {
+    "Active / High Priority",
+    "Monitoring",
+    "Dormant / Medium Priority",
+    "For Sale",
+    "Saved",
+    "Lost",
+    "Archived (Tier 3)",
+}
+WATCHLIST_ALL_VALID_STATUSES = WATCHLIST_TRACKER_STATUSES | WATCHLIST_TOMBSTONE_STATUSES
+CARRY_FORWARD_REVIEW_FIELDS = (
+    "hcad",
+    "address",
+    "yearBuilt",
+    "designation",
+    "tier",
+    "threatCategory",
+    "why",
+    "sources",
+    "followup",
+)
+RETRACTED_BASELINE_PLAT_SEEDS = {
+    "DPV-26073533": {"2603 MILAM ST 15", "2603 MILAM"},
+    "2026-1585": {"1226 W CLAY ST", "MONTROSE RESIDENCES"},
+}
 
 UTILITY_RE = re.compile(
     r"lift station|water treatment|water plant|wastewater|ground water|utility|detention only",
@@ -478,12 +511,17 @@ def resolve_multi_parcel_building_tier(
     flags: list[str] | tuple[str, ...] = (),
     super_n: str = "",
     curated_overrides: dict | None = None,
+    confirmed_vacant: bool = False,
+    override_suggested_tier: str = "",
 ) -> dict:
     """Resolve oldest nonzero standing construction year (>= 1836) and suggested tier.
 
     Why >= 1836 filter: HCAD stores year_built = 0 on vacant lots, parking reserves, and
     unimproved sub-parcels; unfiltered min() would return 0 instead of the oldest standing
     building on multi-structure parcels (such as Amerimex Motors with c. 1940 and 2013 buildings).
+    When a notice packet or parcel audit explicitly verifies a site is vacant (confirmed_vacant=True)
+    with zero standing historic structures or designations, Tier 3 supersedes generic older-ring
+    neighborhood heuristics (DF-6).
     """
     overrides_map = {}
     if isinstance(curated_overrides, dict):
@@ -492,24 +530,33 @@ def resolve_multi_parcel_building_tier(
     valid_all_years: list[int] = []
     parcel_summaries: list[dict] = []
     designations: list[str] = []
+    valid_parcels = [raw_p for raw_p in (parcels or []) if isinstance(raw_p, dict)]
 
-    for raw_p in parcels or []:
-        if not isinstance(raw_p, dict):
-            continue
+    for raw_p in valid_parcels:
         raw_hcad = str(raw_p.get("hcad") or raw_p.get("hcad_num") or "").strip()
         parsed_hcads = parse_hcad_account_list(raw_hcad)["hcadIds"]
-        hcad = parsed_hcads[0] if parsed_hcads else raw_hcad
-        ov = overrides_map.get(hcad) if (hcad and isinstance(overrides_map, dict)) else None
-        if not isinstance(ov, dict):
-            ov = None
+        hcad = parsed_hcads[0] if parsed_hcads else raw_hcad.split("#")[0].strip()
+        raw_ov = overrides_map.get(hcad) if (hcad and isinstance(overrides_map, dict)) else None
+        is_demolished_override = bool(isinstance(raw_ov, dict) and raw_ov.get("suppress_only"))
+        ov = raw_ov if (isinstance(raw_ov, dict) and not is_demolished_override) else None
+
+        hd = str((ov or {}).get("historic_district") or raw_p.get("historic_district") or "").strip()
+        lm = str((ov or {}).get("landmark_name") or raw_p.get("landmark_name") or "").strip()
+        gb = str((ov or {}).get("good_brick_summary") or raw_p.get("good_brick_summary") or "").strip()
+        raw_desigs = [str(d) for d in (raw_p.get("designations") or []) if d]
+        has_designation = bool(hd or lm or gb or raw_desigs)
 
         cand_years: list[int] = []
-        ov_yr = _collect_valid_year(
-            raw_p.get("overrideYearBuilt") if raw_p.get("overrideYearBuilt") is not None else (ov or {}).get("year_built")
+        ov_yr = (
+            None
+            if is_demolished_override
+            else _collect_valid_year(
+                raw_p.get("overrideYearBuilt") if raw_p.get("overrideYearBuilt") is not None else (ov or {}).get("year_built")
+            )
         )
         if ov_yr is not None:
             cand_years.append(ov_yr)
-        else:
+        elif not is_demolished_override and not (confirmed_vacant and not has_designation):
             many = raw_p.get("allYears") or raw_p.get("all_years") or []
             if isinstance(many, list):
                 for y in many:
@@ -525,7 +572,7 @@ def resolve_multi_parcel_building_tier(
         parcel_oldest = dedup_years[0] if dedup_years else 0
         valid_all_years.extend(dedup_years)
 
-        addr = str((ov or {}).get("address") or raw_p.get("address") or "").strip()
+        addr = " ".join(str((ov or {}).get("address") or raw_p.get("address") or "").split())
         bname = str(
             (ov or {}).get("landmark_name")
             or (ov or {}).get("building_name")
@@ -533,9 +580,6 @@ def resolve_multi_parcel_building_tier(
             or raw_p.get("building_name")
             or ""
         ).strip()
-        hd = str((ov or {}).get("historic_district") or raw_p.get("historic_district") or "").strip()
-        lm = str((ov or {}).get("landmark_name") or raw_p.get("landmark_name") or "").strip()
-        gb = str((ov or {}).get("good_brick_summary") or raw_p.get("good_brick_summary") or "").strip()
 
         if hd:
             designations.append(f"City historic district ({hd})")
@@ -543,10 +587,15 @@ def resolve_multi_parcel_building_tier(
             designations.append("City Landmark")
         if gb:
             designations.append("Good Brick Award")
-        for d in raw_p.get("designations") or []:
-            if d:
-                designations.append(str(d))
+        designations.extend(raw_desigs)
 
+        is_parcel_vacant = bool(
+            raw_p.get("isVacant")
+            or raw_p.get("confirmedVacant") is True
+            or raw_p.get("confirmed_vacant") is True
+            or is_demolished_override
+            or (confirmed_vacant and not dedup_years)
+        )
         parcel_summaries.append(
             {
                 "hcad": hcad,
@@ -555,6 +604,7 @@ def resolve_multi_parcel_building_tier(
                 "oldestYearBuilt": parcel_oldest,
                 "allYearsBuilt": dedup_years,
                 "usedCuratedOverride": ov_yr is not None,
+                "isVacant": is_parcel_vacant,
             }
         )
 
@@ -565,8 +615,18 @@ def resolve_multi_parcel_building_tier(
     flag_set = set(flags or ())
     norm_sn = str(super_n or "").strip().upper()
 
+    norm_override_tier = str(override_suggested_tier or "").strip()
+    all_parcels_confirmed_vacant = bool(confirmed_vacant) or (
+        bool(parcel_summaries) and all(p.get("isVacant") for p in parcel_summaries)
+    )
+    is_confirmed_vacant = bool(all_parcels_confirmed_vacant and oldest_yr == 0 and not unique_desigs)
+
     suggested_tier = ""
-    if unique_desigs:
+    if norm_override_tier in ("1", "2", "3"):
+        suggested_tier = norm_override_tier
+    elif is_confirmed_vacant:
+        suggested_tier = "3"
+    elif unique_desigs:
         suggested_tier = "1"
     elif "dpv" in flag_set:
         suggested_tier = (
@@ -596,6 +656,7 @@ def resolve_multi_parcel_building_tier(
         "parcels": parcel_summaries,
         "designations": unique_desigs,
         "suggestedTier": suggested_tier,
+        "confirmedVacant": is_confirmed_vacant,
     }
 
 
@@ -785,12 +846,40 @@ def normalize_continuity_plat_name(raw_name: str) -> str:
     return s
 
 
+def get_canonical_plat_app_ids(entity: dict | None) -> list[str]:
+    """Return normalized non-placeholder plat application IDs (app / appNo / sourcePlatApp / linkedAppNo).
+
+    Positional per-meeting outline IDs (PH-135, DPV-21) vary across cycles and are excluded here,
+    whereas stable COH subdivision app numbers (2026-1522) and 6+ digit ILMS DPV references
+    (DPV-26073533) are preserved for cross-cycle continuity and Watchlist <-> Biweekly sync (DF-5).
+    """
+    if not isinstance(entity, dict):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    raw_id = str(entity.get("id") or "").strip()
+    id_app = raw_id[5:] if raw_id.lower().startswith("plat-") else ""
+    for cand in (
+        entity.get("app"),
+        entity.get("appNo"),
+        entity.get("sourcePlatApp"),
+        entity.get("linkedAppNo"),
+        id_app,
+    ):
+        val = str(cand or "").strip().upper()
+        if not val or re.match(r"^(?:PH-\d+|DPV-\d{1,5})$", val):
+            continue
+        if val not in seen:
+            seen.add(val)
+            out.append(val)
+    return out
+
+
 def build_continuity_keys(it: dict, rev: dict | None = None) -> list[str]:
     rev = rev or {}
     keys: list[str] = []
-    app = str(it.get("app") or it.get("appNo") or "").strip().upper()
-    if app and not re.match(r"^(?:PH|DPV)-\d+$", app):
-        keys.append(f"app:{app}")
+    for app_id in get_canonical_plat_app_ids(it):
+        keys.append(f"app:{app_id}")
 
     atlas = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
     raw_hcads = f"{rev.get('hcad', '')} {it.get('hcad', '')} {atlas.get('hcad_num', '')}"
@@ -813,6 +902,115 @@ def build_continuity_keys(it: dict, rev: dict | None = None) -> list[str]:
     if norm_name and geo_or_party:
         keys.append(f"name:{norm_name}|ctx:{geo_or_party}")
     return keys
+
+
+def is_boilerplate_plat_why(text: object) -> bool:
+    """Return True when a review why/notes string is blank or pure machine-generated boilerplate."""
+    s = str(text or "").strip()
+    if not s:
+        return True
+    if re.search(r"\b(?:ea\s*note|ea\s*:|staff\s*note|ph\s*note)\b", s, re.I):
+        return False
+    s_inner = re.sub(r"^[\s(\[]+|[\s)\]]+$", "", s)
+    if not s_inner:
+        return True
+    return bool(
+        re.match(
+            r"^(?:Atlas matched HCAD parcel at |Atlas matched designated historic resource |"
+            r"Section K Development Plat Variance |Flagged on Planning Commission agenda |"
+            r"Confirmed from \d{4}-\d{2}-\d{2} Planning Commission Agenda|"
+            r"Proposed vacant-parcel development at )",
+            s_inner,
+            re.I,
+        )
+    )
+
+
+def merge_plat_review_overlay(
+    seed_rev: dict | None,
+    incoming_rev: dict | None,
+    item: dict | None = None,
+) -> dict:
+    """Merge a cloud or browser review overlay onto a fresh pipeline review seed safely (DF-1).
+
+    When an incoming overlay is an unconfirmed machine auto-enrichment with no human edits,
+    stale machine-geocoded fields (address, yearBuilt, designation, hcad, why, sources, followup)
+    yield to the freshly computed pipeline seed so notice/HCAD fixes propagate automatically.
+    Also replaces retracted pre-Pass-2 baseline mis-geocodes (DPV-26073533 -> 2603 MILAM ST 15
+    and 2026-1585 -> 1226 W CLAY ST) when their notes remain untouched machine boilerplate.
+    """
+    base = dict(seed_rev or {})
+    if not isinstance(incoming_rev, dict) or not incoming_rev:
+        return base
+    inc = dict(incoming_rev)
+    app_id = str((item or {}).get("app") or (item or {}).get("appNo") or "").strip().upper()
+    inc_addr_upper = " ".join(re.sub(r"[^A-Z0-9\s]", " ", str(inc.get("address") or "").upper()).split())
+    human_fields = (
+        [str(f) for f in inc.get("humanEditedFields") if str(f).strip()]
+        if isinstance(inc.get("humanEditedFields"), list)
+        else []
+    )
+    has_human_edits = bool(inc.get("humanEdited") is True or human_fields)
+    boilerplate_why = is_boilerplate_plat_why(inc.get("why"))
+
+    is_retracted_seed = bool(
+        app_id in RETRACTED_BASELINE_PLAT_SEEDS
+        and any(seed in inc_addr_upper for seed in RETRACTED_BASELINE_PLAT_SEEDS[app_id])
+        and not has_human_edits
+        and boilerplate_why
+    )
+    if is_retracted_seed:
+        return base
+
+    if inc.get("autoEnriched") is True and not has_human_edits and not inc.get("tierConfirmed") and boilerplate_why:
+        merged = dict(base)
+        # Preserve an explicit human Tier 3 dismissal made against the correct parcel while
+        # refreshing machine-enriched parcel metadata from base.
+        if str(inc.get("tier") or "") == "3" and str(inc.get("reviewer") or "").strip():
+            merged["tier"] = "3"
+            merged["tierConfirmed"] = False
+            if inc.get("threatCategory"):
+                merged["threatCategory"] = inc["threatCategory"]
+        for keep_key in ("overrideScreenOut", "reviewer", "updated", "carriedFromCycle", "carriedFields"):
+            if keep_key in inc and inc[keep_key] not in (None, "", []):
+                merged[keep_key] = inc[keep_key]
+        return merged
+
+    merged = dict(base)
+    merged.update(inc)
+    return merged
+
+
+def _is_human_reviewed_plat_entry(rev: dict | None) -> bool:
+    if not isinstance(rev, dict) or not rev:
+        return False
+    if rev.get("humanEdited") is True:
+        return True
+    if isinstance(rev.get("humanEditedFields"), list) and len(rev["humanEditedFields"]) > 0:
+        return True
+    if rev.get("tierConfirmed") is True:
+        return True
+    if not is_boilerplate_plat_why(rev.get("why")):
+        return True
+    if not rev.get("autoEnriched"):
+        return any(str(rev.get(k) or "").strip() for k in CARRY_FORWARD_REVIEW_FIELDS)
+    if str(rev.get("tier") or "") == "3" and str(rev.get("reviewer") or "").strip():
+        return True
+    return False
+
+
+def _is_truncated_carry_forward_value(field: str, cur_val: object, prior_val: object) -> bool:
+    """Detect partial-keystroke prefixes or multi-HCAD subsets captured by pre-Pass-2 carry-forward."""
+    cur_s = str(cur_val or "").strip()
+    prior_s = str(prior_val or "").strip()
+    if not cur_s or not prior_s or cur_s == prior_s or field == "tier":
+        return False
+    if field == "hcad":
+        cur_hcads = parse_hcad_account_list(cur_s)["hcadIds"]
+        prior_hcads = parse_hcad_account_list(prior_s)["hcadIds"]
+        if len(prior_hcads) > len(cur_hcads) >= 1 and set(cur_hcads).issubset(set(prior_hcads)):
+            return True
+    return len(prior_s) > len(cur_s) and prior_s.upper().startswith(cur_s.upper())
 
 
 def _are_continuity_names_compatible(norm_a: str, norm_b: str) -> bool:
@@ -888,41 +1086,88 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
             if prior_cycles:
                 latest_prior = prior_cycles[-1]
                 changed = False
-                if not it.get("hcad") and not r.get("hcad") and latest_prior.get("hcad"):
-                    r["hcad"] = latest_prior["hcad"]
-                    changed = True
-                if not r.get("address") and latest_prior.get("address"):
-                    r["address"] = latest_prior["address"]
-                    changed = True
-                if not r.get("yearBuilt") and latest_prior.get("yearBuilt"):
-                    r["yearBuilt"] = latest_prior["yearBuilt"]
-                    changed = True
-                if not r.get("tier") and latest_prior.get("tier"):
-                    r["tier"] = latest_prior["tier"]
-                    r["carriedFromCycle"] = latest_prior["cycleKey"]
-                    changed = True
-                if not r.get("why") and latest_prior.get("why"):
-                    r["why"] = latest_prior["why"]
-                    changed = True
+                human_fields = (
+                    {str(f) for f in r.get("humanEditedFields") if str(f).strip()}
+                    if isinstance(r.get("humanEditedFields"), list)
+                    else set()
+                )
+                carried_fields: list[str] = (
+                    [str(f) for f in r.get("carriedFields") if str(f).strip()]
+                    if isinstance(r.get("carriedFields"), list)
+                    else []
+                )
+                is_carried_from_prior = bool(
+                    r.get("carriedFromCycle") == latest_prior["cycleKey"] or carried_fields
+                )
+                prior_is_human = bool(latest_prior.get("isHumanReviewed"))
+                cur_is_untouched_auto = bool(
+                    r.get("autoEnriched") is True
+                    and not r.get("humanEdited")
+                    and not human_fields
+                    and not r.get("tierConfirmed")
+                    and is_boilerplate_plat_why(r.get("why"))
+                )
+
+                for k in CARRY_FORWARD_REVIEW_FIELDS:
+                    if k in human_fields:
+                        continue
+                    prior_val = str(latest_prior.get(k) or "").strip()
+                    if not prior_val:
+                        continue
+                    cur_val = str(r.get(k) or "").strip()
+                    should_copy = False
+                    if not cur_val or (k == "designation" and cur_val == "Not checked yet" and prior_val != "Not checked yet"):
+                        if k == "hcad":
+                            it_hcads = set(parse_hcad_account_list(it.get("hcad", ""))["hcadIds"])
+                            pr_hcads = set(parse_hcad_account_list(prior_val)["hcadIds"])
+                            should_copy = (not it.get("hcad")) or (prior_is_human and pr_hcads and pr_hcads != it_hcads)
+                        else:
+                            should_copy = True
+                    elif k in carried_fields:
+                        should_copy = cur_val != prior_val
+                    elif is_carried_from_prior and _is_truncated_carry_forward_value(k, cur_val, prior_val):
+                        should_copy = True
+                    elif prior_is_human and cur_is_untouched_auto and cur_val != prior_val:
+                        should_copy = True
+
+                    if should_copy:
+                        r[k] = prior_val
+                        if k not in carried_fields:
+                            carried_fields.append(k)
+                        changed = True
+
                 if changed:
+                    r["carriedFromCycle"] = latest_prior["cycleKey"]
+                    r["carriedFields"] = carried_fields
                     reviews[it["app"]] = r
+                    if "_c" in it:
+                        it["_c"] = classify_item(it, r)
 
             atlas = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
             snapshot = {
                 "cycleKey": cycle_iso,
                 "app": it["app"],
+                "linkedAppNo": it.get("linkedAppNo", ""),
                 "name": it.get("name", ""),
                 "deferral": it.get("deferral", ""),
                 "section": it.get("section", ""),
                 "tier": r.get("tier", ""),
                 "tierConfirmed": bool(r.get("tierConfirmed")),
+                "isHumanReviewed": _is_human_reviewed_plat_entry(r),
                 "hcad": r.get("hcad") or it.get("hcad") or "",
                 "address": r.get("address") or atlas.get("primaryAddress") or "",
                 "yearBuilt": r.get("yearBuilt")
                 or (str(atlas["earliestYearBuilt"]) if atlas.get("earliestYearBuilt") else ""),
+                "designation": r.get("designation", ""),
+                "threatCategory": r.get("threatCategory", ""),
                 "why": r.get("why", ""),
+                "sources": r.get("sources", ""),
+                "followup": r.get("followup", ""),
             }
-            for ck in ckeys:
+            # Refresh continuity keys if hcad was carried forward onto r
+            final_ckeys = build_continuity_keys(it, r)
+            it["continuityKey"] = final_ckeys[0] if final_ckeys else ""
+            for ck in final_ckeys:
                 seen_by_key.setdefault(ck, []).append(snapshot)
 
     return cycles_map
@@ -1033,6 +1278,18 @@ def norm_street(st: str) -> str:
     }
     tokens = [rep.get(tok, tok) for tok in s.split()]
     return " ".join(tokens)
+
+
+def normalize_historical_subdivision_key(raw_name: str) -> str:
+    """Normalize a subdivision name for historical .xlsx matching while preserving Sec/Replat ordinals (DF-7)."""
+    s = str(raw_name or "").upper().strip()
+    if not s:
+        return ""
+    s = re.sub(r"\([^)]*\)", " ", s)
+    s = re.sub(r"\b(?:SECTION|SECT)\b", "SEC", s)
+    s = re.sub(r"\b(?:NUMBER|NUM)\b", "NO", s)
+    s = re.sub(r"[^A-Z0-9\s]", " ", s)
+    return " ".join(s.split())
 
 
 def norm_subdivision(name: str) -> str:
@@ -1293,12 +1550,51 @@ def load_atlas_indices():
     }
 
 
-def lookup_address_string(raw_addr: str, idx: dict) -> dict | None:
+_STREET_LOOKUP_RE = re.compile(
+    r"\b(\d{1,5})(?:\s*(?:-|&|to)\s*(\d{1,5}))?\s+([A-Za-z0-9\s.\-]+?)\s+"
+    r"(Street|St|Avenue|Ave|Drive|Dr|Road|Rd|Boulevard|Blvd|Lane|Ln|Court|Ct|Place|Pl|Circle|Cir|Parkway|Pkwy|Freeway|Fwy|Highway|Hwy|Way)\b",
+    re.I,
+)
+
+
+def expand_compound_address_candidates(raw_addr: str) -> list[str]:
+    """Expand compound range or ampersand street strings (e.g. '1226 W. Pierce St. A-D & 1230 W. Pierce St. A-D')."""
+    s = str(raw_addr or "").strip()
+    if not s:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def _push(cand: str) -> None:
+        clean = " ".join(cand.split()).strip(" ,;.")
+        if clean and clean.upper() not in seen:
+            seen.add(clean.upper())
+            out.append(clean)
+
+    segments = re.split(r"\s*(?:&|;|\band\b(?=\s+\d))\s*", s, flags=re.I)
+    for seg in segments:
+        m = _STREET_LOOKUP_RE.search(seg)
+        if m:
+            st_tail = f"{m.group(3)} {m.group(4)}"
+            _push(f"{m.group(1)} {st_tail}")
+            if m.group(2):
+                _push(f"{m.group(2)} {st_tail}")
+    m_full = _STREET_LOOKUP_RE.search(s)
+    if m_full:
+        st_tail = f"{m_full.group(3)} {m_full.group(4)}"
+        _push(f"{m_full.group(1)} {st_tail}")
+        if m_full.group(2):
+            _push(f"{m_full.group(2)} {st_tail}")
+    _push(s)
+    return out
+
+
+def _lookup_single_address_candidate(raw_addr: str, idx: dict) -> dict | None:
     if not raw_addr:
         return None
     m = re.search(
         r"\b(\d{1,5})\s+(?:&\s*\d{1,5}\s+)?([A-Za-z0-9\s.\-]+?)\s+"
-        r"(Street|St|Avenue|Ave|Drive|Dr|Road|Rd|Boulevard|Blvd|Lane|Ln|Court|Ct|Place|Pl|Circle|Cir|Parkway|Pkwy|Way)\b",
+        r"(Street|St|Avenue|Ave|Drive|Dr|Road|Rd|Boulevard|Blvd|Lane|Ln|Court|Ct|Place|Pl|Circle|Cir|Parkway|Pkwy|Freeway|Fwy|Highway|Hwy|Way)\b",
         raw_addr,
         re.I,
     )
@@ -1338,58 +1634,387 @@ def lookup_address_string(raw_addr: str, idx: dict) -> dict | None:
     return None
 
 
+def lookup_address_string_all(raw_addr: str, idx: dict) -> list[dict]:
+    """Resolve all exact parcels referenced by a single or compound notice address, or best fallback."""
+    if not raw_addr:
+        return []
+    exact_hits: list[dict] = []
+    seen_keys: set[str] = set()
+    first_approx: dict | None = None
+    for cand in expand_compound_address_candidates(raw_addr):
+        res = _lookup_single_address_candidate(cand, idx)
+        if not res:
+            continue
+        if not res.get("approximate"):
+            dedup_k = res.get("hcad") or res.get("address") or cand.upper()
+            if dedup_k not in seen_keys:
+                seen_keys.add(dedup_k)
+                exact_hits.append(res)
+        elif first_approx is None:
+            first_approx = res
+    if exact_hits:
+        return exact_hits
+    return [first_approx] if first_approx else []
+
+
+def lookup_address_string(raw_addr: str, idx: dict) -> dict | None:
+    hits = lookup_address_string_all(raw_addr, idx)
+    return hits[0] if hits else None
+
+
 def parse_xlsx_bytes(xlsx_bytes: bytes) -> list[dict[str, str]]:
-    with zipfile.ZipFile(io.BytesIO(xlsx_bytes)) as z:
-        ns = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
-        shared: list[str] = []
-        if "xl/sharedStrings.xml" in z.namelist():
-            root = ET.fromstring(z.read("xl/sharedStrings.xml"))
-            for si in root.findall("main:si", ns):
-                shared.append("".join(t.text or "" for t in si.findall(".//main:t", ns)))
-        sheet_names = sorted(
-            n for n in z.namelist() if n.startswith("xl/worksheets/") and n.endswith(".xml")
-        )
-        if not sheet_names:
-            return []
-        sheet_name = sheet_names[0]
-        rels_name = sheet_name.replace("worksheets/", "worksheets/_rels/") + ".rels"
-        hlinks: dict[str, str] = {}
-        if rels_name in z.namelist():
-            srels = {
-                r.attrib["Id"]: r.attrib["Target"]
-                for r in ET.fromstring(z.read(rels_name))
-                if "Id" in r.attrib and "Target" in r.attrib
-            }
+    if not xlsx_bytes or not xlsx_bytes.startswith(b"PK\x03\x04"):
+        return []
+    try:
+        z_ctx = zipfile.ZipFile(io.BytesIO(xlsx_bytes))
+    except (zipfile.BadZipFile, OSError, ValueError):
+        return []
+    with z_ctx as z:
+        try:
+            ns = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            shared: list[str] = []
+            if "xl/sharedStrings.xml" in z.namelist():
+                root = ET.fromstring(z.read("xl/sharedStrings.xml"))
+                for si in root.findall("main:si", ns):
+                    shared.append("".join(t.text or "" for t in si.findall(".//main:t", ns)))
+            sheet_names = sorted(
+                n for n in z.namelist() if n.startswith("xl/worksheets/") and n.endswith(".xml")
+            )
+            if not sheet_names:
+                return []
+            sheet_name = sheet_names[0]
+            rels_name = sheet_name.replace("worksheets/", "worksheets/_rels/") + ".rels"
+            hlinks: dict[str, str] = {}
+            if rels_name in z.namelist():
+                srels = {
+                    r.attrib["Id"]: r.attrib["Target"]
+                    for r in ET.fromstring(z.read(rels_name))
+                    if "Id" in r.attrib and "Target" in r.attrib
+                }
+                sroot = ET.fromstring(z.read(sheet_name))
+                for hl in sroot.findall(".//main:hyperlink", ns):
+                    hrid = hl.attrib.get(
+                        "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+                    )
+                    if hrid and hrid in srels:
+                        hlinks[hl.attrib.get("ref", "")] = srels[hrid]
             sroot = ET.fromstring(z.read(sheet_name))
-            for hl in sroot.findall(".//main:hyperlink", ns):
-                hrid = hl.attrib.get(
-                    "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
-                )
-                if hrid and hrid in srels:
-                    hlinks[hl.attrib.get("ref", "")] = srels[hrid]
-        sroot = ET.fromstring(z.read(sheet_name))
-        rows: list[dict[str, str]] = []
-        for row in sroot.findall(".//main:row", ns):
-            rdict: dict[str, str] = {}
-            for c in row.findall("main:c", ns):
-                cref = c.attrib.get("r", "")
-                col = "".join(ch for ch in cref if ch.isalpha())
-                ctype = c.attrib.get("t")
-                v = c.find("main:v", ns)
-                val = ""
-                if ctype == "s" and v is not None and v.text:
-                    idx_s = int(v.text)
-                    val = shared[idx_s] if idx_s < len(shared) else ""
-                elif ctype == "inlineStr":
-                    val = "".join(t.text or "" for t in c.findall(".//main:t", ns))
-                elif v is not None and v.text:
-                    val = v.text
-                if cref in hlinks and not val.lower().startswith("http"):
-                    val = hlinks[cref]
-                rdict[col] = val.strip()
-            if rdict:
-                rows.append(rdict)
-        return rows
+            rows: list[dict[str, str]] = []
+            for row in sroot.findall(".//main:row", ns):
+                rdict: dict[str, str] = {}
+                for c in row.findall("main:c", ns):
+                    cref = c.attrib.get("r", "")
+                    col = "".join(ch for ch in cref if ch.isalpha())
+                    ctype = c.attrib.get("t")
+                    v = c.find("main:v", ns)
+                    val = ""
+                    if ctype == "s" and v is not None and v.text:
+                        idx_s = int(v.text)
+                        val = shared[idx_s] if idx_s < len(shared) else ""
+                    elif ctype == "inlineStr":
+                        val = "".join(t.text or "" for t in c.findall(".//main:t", ns))
+                    elif v is not None and v.text:
+                        val = v.text
+                    if cref in hlinks and not val.lower().startswith("http"):
+                        val = hlinks[cref]
+                    rdict[col] = val.strip()
+                if rdict:
+                    rows.append(rdict)
+            return rows
+        except (ET.ParseError, KeyError, ValueError, zipfile.BadZipFile):
+            return []
+
+
+_DEFAULT_SPREADSHEET_COL_MAP = {
+    "name": "A",
+    "app": "B",
+    "pcDate": "C",
+    "submitted": "D",
+    "type": "E",
+    "special": "F",
+    "section": "G",
+    "council": "H",
+    "city": "I",
+    "county": "J",
+    "precinct": "K",
+    "keymap": "L",
+    "tract": "M",
+    "zip": "N",
+    "isd": "O",
+    "prevSub": "P",
+    "tirz": "Q",
+    "mgmt": "R",
+    "hd": "S",
+    "superN": "T",
+    "park": "U",
+    "thoroughfare": "V",
+    "landUse": "W",
+    "acreage": "X",
+    "lots": "Y",
+    "hcad": "Z",
+    "developer": "AA",
+    "org": "AB",
+    "applicant": "AC",
+    "phone": "AD",
+    "pdf": "AE",
+}
+
+
+def _build_col_map_from_header_row(header_row: dict[str, str] | None) -> dict[str, str]:
+    """Detect spreadsheet columns by header text across all 2026 COH .xlsx export layouts."""
+    if not isinstance(header_row, dict) or not header_row:
+        return dict(_DEFAULT_SPREADSHEET_COL_MAP)
+    detected: dict[str, str] = {}
+    sorted_cols = sorted(
+        header_row.items(),
+        key=lambda kv: (len(str(kv[0])), str(kv[0])),
+    )
+    for col, raw_label in sorted_cols:
+        lbl = " ".join(re.sub(r"[^a-z0-9\s]", " ", str(raw_label or "").lower()).split())
+        if not lbl or lbl.startswith("do not modify"):
+            continue
+        if lbl in ("subdivision name", "plat name", "project name", "name") or (
+            "subdivision" in lbl and "name" in lbl and "prev" not in lbl and "original" not in lbl
+        ):
+            detected.setdefault("name", col)
+        elif lbl in ("app no", "app num", "app number", "application no", "application number", "app"):
+            detected.setdefault("app", col)
+        elif "pdf" in lbl or "plat link" in lbl or "download subdivision plat" in lbl:
+            detected.setdefault("pdf", col)
+        elif ("pc" in lbl or "agenda" in lbl or "commission" in lbl) and "date" in lbl:
+            detected.setdefault("pcDate", col)
+        elif ("record" in lbl or "submit" in lbl or "file" in lbl) and "date" in lbl:
+            detected.setdefault("submitted", col)
+        elif lbl == "application type":
+            # Prefer full descriptive 'Application Type' over short code 'App Type' in 33/44-col COH exports.
+            detected["type"] = col
+        elif "app" in lbl and "type" in lbl:
+            detected.setdefault("type", col)
+        elif "special" in lbl or "exception" in lbl or "variance" in lbl:
+            detected.setdefault("special", col)
+        elif lbl in ("app location", "agenda location", "agenda section", "section") or "section" in lbl:
+            detected.setdefault("section", col)
+        elif "council" in lbl:
+            detected.setdefault("council", col)
+        elif lbl in ("in city limits", "city limits", "city etj", "city", "jurisdiction") or (
+            "city" in lbl and ("etj" in lbl or "limit" in lbl)
+        ):
+            detected.setdefault("city", col)
+        elif "precinct" in lbl:
+            detected.setdefault("precinct", col)
+        elif "hcad" in lbl or "appraisal district" in lbl or ("tax" in lbl and "id" in lbl):
+            detected.setdefault("hcad", col)
+        elif lbl == "county":
+            detected.setdefault("county", col)
+        elif "key" in lbl and "map" in lbl:
+            detected.setdefault("keymap", col)
+        elif "census" in lbl or lbl == "tract":
+            detected.setdefault("tract", col)
+        elif "zip" in lbl:
+            detected.setdefault("zip", col)
+        elif "school" in lbl or lbl == "isd":
+            detected.setdefault("isd", col)
+        elif ("prev" in lbl or "original" in lbl) and "sub" in lbl:
+            detected.setdefault("prevSub", col)
+        elif "tirz" in lbl:
+            detected.setdefault("tirz", col)
+        elif "management" in lbl or "mgmt" in lbl:
+            detected.setdefault("mgmt", col)
+        elif "historic" in lbl:
+            detected.setdefault("hd", col)
+        elif "super" in lbl and "neigh" in lbl:
+            detected.setdefault("superN", col)
+        elif "park" in lbl and "parking" not in lbl:
+            detected.setdefault("park", col)
+        elif "thoroughfare" in lbl or "throughfare" in lbl or "major street" in lbl:
+            detected.setdefault("thoroughfare", col)
+        elif "land" in lbl and "use" in lbl:
+            detected.setdefault("landUse", col)
+        elif lbl in ("total acreage", "acreage"):
+            detected["acreage"] = col
+        elif "acre" in lbl and "reserve" not in lbl and "open space" not in lbl:
+            detected.setdefault("acreage", col)
+        elif "lot" in lbl:
+            detected.setdefault("lots", col)
+        elif "phone" in lbl:
+            detected.setdefault("phone", col)
+        elif "developer" in lbl or lbl in ("owner", "property owner"):
+            detected.setdefault("developer", col)
+        elif (
+            lbl in ("organization", "company", "firm", "applicant company", "engineering firm")
+            or "org" in lbl
+        ):
+            detected.setdefault("org", col)
+        elif "applicant" in lbl:
+            detected.setdefault("applicant", col)
+        elif "link" in lbl or "document" in lbl:
+            detected.setdefault("pdf", col)
+    if "name" in detected and "app" in detected:
+        if len(detected) >= 10:
+            return {k: detected.get(k, "") for k in _DEFAULT_SPREADSHEET_COL_MAP}
+        return {**_DEFAULT_SPREADSHEET_COL_MAP, **detected}
+    return dict(_DEFAULT_SPREADSHEET_COL_MAP)
+
+
+def parse_notice_pdf_text(ntxt: str, rel_path: str = "", nurl: str = "") -> dict:
+    """Parse a COH Public Hearing or Section K DPV Notice PDF layout text (F2-04, F2-05, DF-6)."""
+    ref_m = re.search(r"REFERENCE NUMBER\s*:\s*([A-Z0-9-]+)", ntxt, re.I)
+    proj_m = re.search(r"(?:PROJECT|PLAT) NAME\s*:\s*([^\n]+)", ntxt, re.I)
+
+    loc_str = ""
+    loc_start = re.search(r"property located\s+(?:at\s+)?", ntxt, re.I)
+    if loc_start:
+        tail = ntxt[loc_start.end() : loc_start.end() + 450]
+        tail = re.split(r"\n\s*\n", tail, maxsplit=1)[0]
+        tail_clean = " ".join(tail.replace("\u037e", ";").split())
+        abbrev_re = re.compile(
+            r"\b(?:N|S|E|W|NE|NW|SE|SW|St|Ave|Dr|Blvd|Rd|Ln|Ct|Pl|Cir|Pkwy|Fwy|Hwy|Expy|Sq|Ter|Trl|No|Sec|Ste|Apt|Bldg|Mt|Ft)\.$",
+            re.I,
+        )
+        end_idx = len(tail_clean)
+        for dot_m in re.finditer(r"\.(?=\s+[A-Z]|\s*$)", tail_clean):
+            prefix = tail_clean[: dot_m.end()]
+            if abbrev_re.search(prefix) or re.search(r"\b[A-Z]\.$", prefix):
+                continue
+            end_idx = dot_m.start()
+            break
+        loc_str = tail_clean[:end_idx].strip(" ,;.")
+
+    req_m = re.search(
+        r"(The applicant is requesting[^.]+\.)",
+        ntxt.replace("\n", " "),
+        re.I,
+    )
+    meeting_m = re.search(
+        r"((?:Thursday|Wednesday),\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})",
+        ntxt,
+        re.I,
+    )
+
+    def _clean_form_cell(raw_cell: str) -> str:
+        s = str(raw_cell or "").strip()
+        s = re.split(
+            r"\s{2,}(?:HCAD|ACREAGE|KEY\s*MAP|COUNCIL|SUPER|ZIP|CENSUS|LOT|BLOCK|SCHOOL|CITY|COUNTY)\b",
+            s,
+            maxsplit=1,
+            flags=re.I,
+        )[0]
+        s = re.split(
+            r"\b(?:ACREAGE|HCAD ACCOUNT NUMBER(?:\(S\))?)\s*:",
+            s,
+            maxsplit=1,
+            flags=re.I,
+        )[0]
+        out_cell = " ".join(s.split()).strip(" ,;:")
+        if re.search(
+            r"^(?:the\s+planning\s+and\s+development|planning\s+and\s+development\s+department)\b",
+            out_cell,
+            re.I,
+        ):
+            return ""
+        return out_cell
+
+    prop_addr_m = re.search(r"PROPERTY ADDRESS[ \t]*:[ \t]*([^\n]+)", ntxt, re.I)
+    hcad_line_m = re.search(r"HCAD ACCOUNT NUMBER(?:\(S\))?[ \t]*:[ \t]*([^\n]+)", ntxt, re.I)
+    acr_m = re.search(r"\bACREAGE[ \t]*:[ \t]*([0-9]+(?:\.[0-9]+)?)", ntxt, re.I)
+    owner_m = re.search(r"PROPERTY OWNER(?: OF RECORD)?[ \t]*:[ \t]*([^\n]+)", ntxt, re.I)
+    exist_m = re.search(r"EXISTING STRUCTURE(?:\(S\))?[ \t]*:[ \t]*([^\n]+)", ntxt, re.I)
+
+    prop_addr = _clean_form_cell(prop_addr_m.group(1)) if prop_addr_m else ""
+    raw_hcad_cell = _clean_form_cell(hcad_line_m.group(1)) if hcad_line_m else ""
+    parsed_hcads = parse_hcad_account_list(raw_hcad_cell)["hcadIds"]
+    acreage_str = acr_m.group(1).strip() if acr_m else ""
+    owner_str = _clean_form_cell(owner_m.group(1)) if owner_m else ""
+    existing_struct_str = _clean_form_cell(exist_m.group(1)) if exist_m else ""
+    confirmed_vacant = bool(
+        existing_struct_str
+        and re.search(
+            r"^(?:none|vacant|n/?a|no\s+existing(?:\s+structures?)?|undeveloped|unimproved|empty|cleared|0)$",
+            existing_struct_str.strip(),
+            re.I,
+        )
+    )
+
+    if prop_addr and (not loc_str or not re.search(r"^\d{1,5}\b", loc_str)):
+        effective_location = prop_addr
+    else:
+        effective_location = loc_str or prop_addr
+
+    ref_id = ref_m.group(1).strip() if ref_m else ""
+    raw_proj_name = proj_m.group(1).strip() if proj_m else ""
+    proj_name = re.sub(r"\s+(DPV|VAR/SE|C3N)\s*$", "", raw_proj_name, flags=re.I).strip()
+    req_str = " ".join((req_m.group(1) if req_m else "").split())
+    meeting_str = meeting_m.group(1).strip() if meeting_m else ""
+    meeting_iso = extract_hearing_date_iso(meeting_str)
+
+    # Why strict DPV predicate: Houston Planning Commission Public Hearing Notices carry
+    # Chapter 42 boilerplate mentioning 'subdivision or development plat'; true DPV notices
+    # carry a DPV filename/reference/suffix or request a 'development plat variance' without
+    # a YYYY-NNNN subdivision plat reference number.
+    is_subdiv_ref = bool(re.match(r"^\d{4}-\d+$", ref_id))
+    is_dpv = bool(
+        "DPV" in rel_path.upper()
+        or "DPV" in ref_id.upper()
+        or re.search(r"\bDPV\s*$", raw_proj_name, re.I)
+        or (not is_subdiv_ref and "development plat variance" in ntxt.lower())
+    )
+    is_ph = (
+        "_PH" in rel_path.upper()
+        or "-PH" in rel_path.upper()
+        or "PUBLIC HEARING" in ntxt.upper()
+    )
+    return {
+        "ref": ref_id,
+        "name": proj_name,
+        "location": effective_location,
+        "noticeProseLocation": loc_str,
+        "propertyAddress": prop_addr,
+        "hcad": ", ".join(parsed_hcads),
+        "owner": owner_str,
+        "acreage": acreage_str,
+        "existingStructures": existing_struct_str,
+        "confirmedVacant": confirmed_vacant,
+        "requestSummary": req_str,
+        "meetingDate": meeting_str,
+        "meetingDateIso": meeting_iso,
+        "noticePdf": nurl,
+        "isDpv": is_dpv,
+        "isPublicHearing": is_ph,
+        "fileName": rel_path.split("/")[-1] if rel_path else "",
+    }
+
+
+def _index_historical_spreadsheet_rows(
+    cycle_iso: str,
+    raw_rows: list[dict[str, str]],
+    by_app: dict[str, dict],
+    by_subdiv: dict[str, dict],
+) -> None:
+    """Index spreadsheet rows chronologically by app number and ordinal-preserving Subdivision Name."""
+    if not raw_rows or len(raw_rows) <= 1:
+        return
+    col_map = _build_col_map_from_header_row(raw_rows[0])
+    for r in raw_rows[1:]:
+        rec = {k: (r.get(col, "").strip() if col else "") for k, col in col_map.items()}
+        if not rec["app"] and not rec["name"]:
+            continue
+        rec["sourceCycleIso"] = cycle_iso
+
+        def _merge_preferring_nonempty(prev: dict | None, cur: dict) -> dict:
+            if not prev:
+                return dict(cur)
+            merged = dict(prev)
+            for fk, fv in cur.items():
+                if fv or fk not in merged:
+                    merged[fk] = fv
+            return merged
+
+        app_key = rec["app"].upper()
+        if app_key:
+            by_app[app_key] = _merge_preferring_nonempty(by_app.get(app_key), rec)
+        sub_key = normalize_historical_subdivision_key(rec["name"])
+        if sub_key:
+            by_subdiv[sub_key] = _merge_preferring_nonempty(by_subdiv.get(sub_key), rec)
 
 
 def _extract_xlsx_cycle_iso_from_url(url: str) -> str:
@@ -1488,69 +2113,48 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
             if not nb:
                 continue
             ntxt = pdf_to_text(nb)
-            ref_m = re.search(r"REFERENCE NUMBER\s*:\s*([A-Z0-9-]+)", ntxt, re.I)
-            proj_m = re.search(r"(?:PROJECT|PLAT) NAME\s*:\s*([^\n]+)", ntxt, re.I)
-            loc_m = re.search(
-                r"property located\s+(?:at\s+)?([^\n.]+(?:\n[^\n.]+)?)",
-                ntxt,
-                re.I,
-            )
-            req_m = re.search(
-                r"(The applicant is requesting[^.]+\.)",
-                ntxt.replace("\n", " "),
-                re.I,
-            )
-            meeting_m = re.search(
-                r"((?:Thursday|Wednesday),\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})",
-                ntxt,
-                re.I,
-            )
-            ref_id = ref_m.group(1).strip() if ref_m else ""
-            raw_proj_name = proj_m.group(1).strip() if proj_m else ""
-            proj_name = re.sub(r"\s+(DPV|VAR/SE|C3N)\s*$", "", raw_proj_name, flags=re.I).strip()
-            loc_str = " ".join((loc_m.group(1) if loc_m else "").replace("\u037e", ";").split())
-            req_str = " ".join((req_m.group(1) if req_m else "").split())
-            meeting_str = meeting_m.group(1).strip() if meeting_m else ""
-            meeting_iso = extract_hearing_date_iso(meeting_str)
-            # Why strict DPV predicate: Houston Planning Commission Public Hearing Notices carry
-            # Chapter 42 boilerplate mentioning 'subdivision or development plat'; true DPV notices
-            # carry a DPV filename/reference/suffix or request a 'development plat variance' without
-            # a YYYY-NNNN subdivision plat reference number.
-            is_subdiv_ref = bool(re.match(r"^\d{4}-\d+$", ref_id))
-            is_dpv = bool(
-                "DPV" in rel_path.upper()
-                or "DPV" in ref_id.upper()
-                or re.search(r"\bDPV\s*$", raw_proj_name, re.I)
-                or (not is_subdiv_ref and "development plat variance" in ntxt.lower())
-            )
-            is_ph = (
-                "_PH" in rel_path.upper()
-                or "-PH" in rel_path.upper()
-                or "PUBLIC HEARING" in ntxt.upper()
-            )
-            ninfo = {
-                "ref": ref_id,
-                "name": proj_name,
-                "location": loc_str,
-                "requestSummary": req_str,
-                "meetingDate": meeting_str,
-                "meetingDateIso": meeting_iso,
-                "noticePdf": nurl,
-                "isDpv": is_dpv,
-                "isPublicHearing": is_ph,
-                "fileName": rel_path.split("/")[-1],
-            }
+            ninfo = parse_notice_pdf_text(ntxt, rel_path=rel_path, nurl=nurl)
+            ref_id = ninfo["ref"]
+            proj_name = ninfo["name"]
             all_notices.append(ninfo)
             if ref_id:
                 notices_by_ref[ref_id] = ninfo
             if proj_name:
                 notices_by_name[proj_name.lower()] = ninfo
 
+    PLAT_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    historical_by_app: dict[str, dict] = {}
+    historical_by_subdiv: dict[str, dict] = {}
+
     cycles_scraped: dict[str, dict] = {}
-    for c_iso in selected_isos:
+    all_chronological_xlsx_isos = sorted(xlsx_by_iso.keys())
+    selected_set = set(selected_isos)
+
+    for c_iso in all_chronological_xlsx_isos:
         x_url = xlsx_by_iso[c_iso]
-        x_bytes = fetch_bytes(x_url)
+        fname = x_url.split("/")[-1]
+        cache_path = PLAT_CACHE_DIR / fname
+        x_bytes: bytes | None = None
+        if c_iso not in selected_set and cache_path.exists() and cache_path.stat().st_size > 0:
+            try:
+                cand_bytes = cache_path.read_bytes()
+                if cand_bytes.startswith(b"PK\x03\x04"):
+                    x_bytes = cand_bytes
+            except Exception:
+                x_bytes = None
+        if x_bytes is None:
+            x_bytes = fetch_bytes(x_url)
+            if x_bytes and x_bytes.startswith(b"PK\x03\x04") and fname.lower().endswith(".xlsx"):
+                try:
+                    cache_path.write_bytes(x_bytes)
+                except Exception:
+                    pass
         raw_rows = parse_xlsx_bytes(x_bytes) if x_bytes else []
+        _index_historical_spreadsheet_rows(c_iso, raw_rows, historical_by_app, historical_by_subdiv)
+
+        if c_iso not in selected_set:
+            continue
+
         if not x_bytes:
             scrape_errors.append(f"Cycle {c_iso} agenda spreadsheet download failed")
         elif len(raw_rows) <= 1:
@@ -1587,12 +2191,17 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
             f"(target hearing: {parsed_outline['sec4_hearing_date_iso'] or 'N/A'})."
         )
 
-    print(f"      Parsed {len(all_notices)} active Public Hearing & Variance Notice PDFs.")
+    print(
+        f"      Parsed {len(all_notices)} active Public Hearing & Variance Notice PDFs; "
+        f"indexed {len(historical_by_subdiv):,} historical 2026 subdivision filings across {len(all_chronological_xlsx_isos)} spreadsheets."
+    )
     return {
         "cycles_scraped": cycles_scraped,
         "notices_by_ref": notices_by_ref,
         "notices_by_name": notices_by_name,
         "all_notices": all_notices,
+        "historical_by_app": historical_by_app,
+        "historical_by_subdiv": historical_by_subdiv,
         "scrapeFailed": bool(scrape_errors),
         "error": "; ".join(scrape_errors),
     }
@@ -1618,6 +2227,8 @@ def _notice_name_compatible(item_name: str, notice_name: str) -> bool:
 
 
 def _suggest_threat_category(flags: list[str], earliest_yr: int, tier: str) -> str:
+    if tier == "3":
+        return "No Historic Impact"
     fset = set(flags)
     if "dpv" in fset:
         return "Setback / Walkable Realm Variance"
@@ -1632,6 +2243,20 @@ def _suggest_threat_category(flags: list[str], earliest_yr: int, tier: str) -> s
     return ""
 
 
+def _recompute_cycle_summary_counts(cyc_data: dict) -> None:
+    items = cyc_data.get("items") or []
+    reviews = cyc_data.get("reviews") or {}
+    summary = cyc_data.setdefault("summary", {})
+    summary["totalAgendaItems"] = len(items)
+    summary["onMeetingAgendaCount"] = sum(1 for i in items if i.get("onMeetingAgenda"))
+    summary["cycleFilingOnlyCount"] = sum(1 for i in items if not i.get("onMeetingAgenda"))
+    summary["toCheckCount"] = sum(1 for i in items if (i.get("_c") or {}).get("group") == "check")
+    summary["preEnrichedCount"] = len(reviews)
+    summary["tier1Count"] = sum(1 for r in reviews.values() if str(r.get("tier") or "") == "1")
+    summary["tier2Count"] = sum(1 for r in reviews.values() if str(r.get("tier") or "") == "2")
+    summary["tier3Count"] = sum(1 for r in reviews.values() if str(r.get("tier") or "") == "3")
+
+
 def build_single_cycle_dataset(
     idx: dict,
     cycle_scraped: dict,
@@ -1639,49 +2264,17 @@ def build_single_cycle_dataset(
     is_latest_cycle: bool = False,
     confirmed_baseline_apps: set[str] | None = None,
 ) -> dict:
-    confirmed_baseline_apps = confirmed_baseline_apps or set()
+    confirmed_baseline_apps = set(confirmed_baseline_apps or ())
     raw_rows = cycle_scraped["raw_rows"]
     cycle_iso = cycle_scraped["cycle_iso"]
-    col_map = {
-        "name": "A",
-        "app": "B",
-        "pcDate": "C",
-        "submitted": "D",
-        "type": "E",
-        "special": "F",
-        "section": "G",
-        "council": "H",
-        "city": "I",
-        "county": "J",
-        "precinct": "K",
-        "keymap": "L",
-        "tract": "M",
-        "zip": "N",
-        "isd": "O",
-        "prevSub": "P",
-        "tirz": "Q",
-        "mgmt": "R",
-        "hd": "S",
-        "superN": "T",
-        "park": "U",
-        "thoroughfare": "V",
-        "landUse": "W",
-        "acreage": "X",
-        "lots": "Y",
-        "hcad": "Z",
-        "developer": "AA",
-        "org": "AB",
-        "applicant": "AC",
-        "phone": "AD",
-        "pdf": "AE",
-    }
+    col_map = _build_col_map_from_header_row(raw_rows[0] if raw_rows else None)
 
     items: list[dict] = []
     seen_apps: set[str] = set()
     seen_names: set[str] = set()
 
     for r in raw_rows[1:]:
-        it = {k: r.get(col, "").strip() for k, col in col_map.items()}
+        it = {k: (r.get(col, "").strip() if col else "") for k, col in col_map.items()}
         if not it["app"] and not it["name"]:
             continue
         it["pcDateIso"] = excel_serial_to_iso(it["pcDate"]) or cycle_iso
@@ -1702,6 +2295,10 @@ def build_single_cycle_dataset(
         it["noticePdf"] = notice_hit.get("noticePdf", "")
         it["noticeLocation"] = notice_hit.get("location", "")
         it["varianceSummary"] = notice_hit.get("requestSummary", "")
+        if notice_hit.get("hcad") and not it.get("hcad"):
+            it["hcad"] = notice_hit["hcad"]
+        if notice_hit.get("confirmedVacant"):
+            it["_confirmedVacant"] = True
         is_sec4_spreadsheet_match = any(
             it["name"].lower() == s4.lower() for s4 in cycle_scraped.get("sec4_hearing_names") or []
         )
@@ -1740,10 +2337,14 @@ def build_single_cycle_dataset(
     dpv_known_fallbacks = {
         "801 mcgowen street": {
             "app": "DPV-26073533",
-            "hcad": "0060610000001",
+            "hcad": "0132680000011",
             "address": "801 MCGOWEN ST",
-            "lng": -95.37551,
-            "lat": 29.74584,
+            "owner": "801 Business LLC",
+            "acreage": "0.4408",
+            "lng": -95.375082,
+            "lat": 29.746475,
+            "confirmed_vacant": True,
+            "suggested_tier": "3",
             "council": "C",
             "superN": "MIDTOWN",
             "prevSub": "South Side Buffalo Bayou (Midtown)",
@@ -1838,10 +2439,10 @@ def build_single_cycle_dataset(
             "park": "",
             "thoroughfare": "",
             "landUse": fb.get("landUse", "Commercial / Redevelopment"),
-            "acreage": "",
+            "acreage": str(ninfo.get("acreage") or fb.get("acreage") or ""),
             "lots": "1",
-            "hcad": fb.get("hcad", ""),
-            "developer": "",
+            "hcad": str(ninfo.get("hcad") or fb.get("hcad") or ""),
+            "developer": str(ninfo.get("owner") or fb.get("owner") or ""),
             "org": "",
             "applicant": fb.get("applicant", ""),
             "phone": fb.get("phone", ""),
@@ -1852,7 +2453,9 @@ def build_single_cycle_dataset(
             "agendaItemNo": dpv.get("agendaItemNo", ""),
             "deferral": dpv.get("deferral", ""),
             "_fallbackCoords": (fb.get("lng"), fb.get("lat")) if fb.get("lng") else None,
-            "_fallbackAddr": fb.get("address", ""),
+            "_fallbackAddr": str(ninfo.get("propertyAddress") or fb.get("address") or ""),
+            "_confirmedVacant": bool(ninfo.get("confirmedVacant") or fb.get("confirmed_vacant")),
+            "_overrideTier": str(fb.get("suggested_tier") or ""),
         }
         items.append(it)
         seen_apps.add(app_id)
@@ -2015,16 +2618,83 @@ def build_single_cycle_dataset(
         )
         seen_names.add(s4_name.lower())
 
+    # Backfill notice-only C3N and Sec. III/IV PH-* items from historical 2026 Plat Tracker spreadsheets (F2-07, DF-7)
+    hist_by_app = notices_bundle.get("historical_by_app") or {}
+    hist_by_subdiv = notices_bundle.get("historical_by_subdiv") or {}
+    for it in items:
+        app_upper = str(it.get("app") or "").strip().upper()
+        is_ph_placeholder = app_upper.startswith("PH-")
+        needs_hist = is_ph_placeholder or (
+            it.get("noticePdf") and not it.get("pdf") and not it.get("developer") and not it.get("hcad")
+        )
+        if not needs_hist:
+            continue
+        hist: dict | None = None
+        if not is_ph_placeholder and app_upper in hist_by_app:
+            cand_h = hist_by_app[app_upper]
+            if _notice_name_compatible(it.get("name", ""), cand_h.get("name", "")):
+                hist = cand_h
+        if hist is None:
+            sub_key = normalize_historical_subdivision_key(it.get("name", ""))
+            if sub_key and sub_key in hist_by_subdiv:
+                hist = hist_by_subdiv[sub_key]
+        if not hist:
+            continue
+        if is_ph_placeholder and hist.get("app"):
+            it["linkedAppNo"] = hist["app"]
+        if hist.get("sourceCycleIso"):
+            it["linkedSourceCycle"] = hist["sourceCycleIso"]
+        for fk in (
+            "council",
+            "city",
+            "county",
+            "precinct",
+            "keymap",
+            "tract",
+            "zip",
+            "isd",
+            "tirz",
+            "mgmt",
+            "hd",
+            "superN",
+            "park",
+            "thoroughfare",
+            "acreage",
+            "lots",
+            "hcad",
+            "developer",
+            "org",
+            "applicant",
+            "phone",
+            "pdf",
+        ):
+            if hist.get(fk) and (not it.get(fk) or (fk == "city" and it.get("city") == "City")):
+                it[fk] = hist[fk]
+        if hist.get("prevSub") and (not it.get("prevSub") or it["prevSub"] == it.get("name")):
+            it["prevSub"] = hist["prevSub"]
+        if hist.get("landUse") and it.get("landUse") in ("", "Single Family Residential Replat"):
+            it["landUse"] = hist["landUse"]
+        if hist.get("submitted") and it.get("submittedIso") == default_pc_iso:
+            it["submitted"] = hist["submitted"]
+            it["submittedIso"] = excel_serial_to_iso(hist["submitted"]) or it["submittedIso"]
+        if it.get("pdf") and it.get("noticePdf") and it["pdf"] == it["noticePdf"]:
+            it["pdf"] = ""
+
     notice_overrides = {
         "2026-1585": {
             "name": "Montrose Residences",
-            "hcad": "0231440000010",
-            "address": "1226 W CLAY ST",
-            "lng": -95.39412,
-            "lat": 29.75498,
-            "year_built": 1930,
+            "hcad": (
+                "1490700010001, 1490700010002, 1490700010003, 1490700010004, "
+                "1490700020001, 1490700020002, 1490700020003, 1490700020004"
+            ),
+            "address": "1226-1230 W PIERCE ST",
+            "prefer_override_address": True,
+            "lng": -95.39498,
+            "lat": 29.75421,
+            "year_built": 2025,
+            "suggested_tier": "3",
             "superN": "NEARTOWN - MONTROSE",
-            "prevSub": "Montrose / West Clay",
+            "prevSub": "Montrose Vista",
         },
         "2026-1641": {
             "name": "Wheeler Residences",
@@ -2069,7 +2739,7 @@ def build_single_cycle_dataset(
     }
 
     for it in items:
-        raw_ov = notice_overrides.get(it["app"], {})
+        raw_ov = notice_overrides.get(it["app"]) or notice_overrides.get(it.get("linkedAppNo", "")) or {}
         ov = (
             raw_ov
             if raw_ov and (not raw_ov.get("name") or _notice_name_compatible(it.get("name", ""), raw_ov["name"]))
@@ -2082,6 +2752,9 @@ def build_single_cycle_dataset(
                 it["superN"] = ov["superN"]
             if it.get("prevSub") == it.get("name") and ov.get("prevSub"):
                 it["prevSub"] = ov["prevSub"]
+            if ov.get("suggested_tier"):
+                it["_overrideTier"] = str(ov["suggested_tier"])
+        it["onMeetingAgenda"] = bool(str(it.get("agendaItemNo") or "").strip())
 
         hcad_ids = parse_hcad_account_list(it.get("hcad", ""))["hcadIds"]
         matched_parcels: list[dict] = []
@@ -2137,14 +2810,15 @@ def build_single_cycle_dataset(
             else:
                 for cand_text in [
                     it.get("noticeLocation", ""),
-                    it.get("name", ""),
                     it.get("_fallbackAddr", ""),
+                    it.get("name", ""),
                 ]:
-                    hit = lookup_address_string(cand_text, idx)
-                    if hit:
-                        matched_parcels.append(hit)
-                        if hit.get("hcad") and not it.get("hcad"):
-                            it["hcad"] = hit["hcad"]
+                    hits = lookup_address_string_all(cand_text, idx)
+                    if hits:
+                        matched_parcels.extend(hits)
+                        hit_hcads = [h["hcad"] for h in hits if h.get("hcad")]
+                        if hit_hcads and not it.get("hcad"):
+                            it["hcad"] = ", ".join(dict.fromkeys(hit_hcads))
                         break
                 if not matched_parcels and it.get("_fallbackCoords"):
                     lng_fb, lat_fb = it["_fallbackCoords"]
@@ -2156,8 +2830,17 @@ def build_single_cycle_dataset(
                             "all_years": [],
                             "lng": lng_fb,
                             "lat": lat_fb,
+                            "confirmedVacant": bool(it.get("_confirmedVacant")),
                         }
                     )
+
+        if ov and matched_parcels:
+            if ov.get("year_built") and not any(p.get("year_built") for p in matched_parcels):
+                matched_parcels[0]["year_built"] = ov["year_built"]
+                matched_parcels[0]["all_years"] = [ov["year_built"]]
+            if ov.get("lng") and ov.get("lat") and not any(p.get("lng") and p.get("lat") for p in matched_parcels):
+                matched_parcels[0]["lng"] = ov["lng"]
+                matched_parcels[0]["lat"] = ov["lat"]
 
         sub_norm = norm_subdivision(it.get("prevSub", ""))
         sub_hit = idx["subdiv_index"].get(sub_norm)
@@ -2184,11 +2867,24 @@ def build_single_cycle_dataset(
         tier_res = resolve_multi_parcel_building_tier(
             matched_parcels,
             curated_overrides=idx.get("curated_overrides"),
+            confirmed_vacant=bool(it.get("_confirmedVacant")),
+            override_suggested_tier=str(it.get("_overrideTier") or ""),
         )
         earliest_yr = tier_res["oldestYearBuilt"]
         years = tier_res["allYearsBuilt"]
-        addresses = [p["address"] for p in matched_parcels if p.get("address")]
-        primary_addr = "; ".join(dict.fromkeys(addresses))
+        raw_addresses = [
+            " ".join(str(p.get("address") or "").split())
+            for p in matched_parcels
+            if str(p.get("address") or "").strip()
+        ]
+        non_zero_addresses = [a for a in raw_addresses if not re.match(r"^0(?:\s+|$)", a)]
+        addresses = non_zero_addresses if non_zero_addresses else raw_addresses
+        if ov.get("prefer_override_address") and ov.get("address"):
+            primary_addr = " ".join(str(ov["address"]).split())
+            if primary_addr not in addresses:
+                addresses.insert(0, primary_addr)
+        else:
+            primary_addr = "; ".join(dict.fromkeys(addresses))
 
         lng, lat = (None, None)
         for p in matched_parcels:
@@ -2273,7 +2969,7 @@ def build_single_cycle_dataset(
             )
         )
 
-        tier = resolve_multi_parcel_building_tier(
+        tier_eval = resolve_multi_parcel_building_tier(
             [
                 {
                     "allYears": at.get("allYearsBuilt") or ([yr] if yr else []),
@@ -2282,7 +2978,11 @@ def build_single_cycle_dataset(
             ],
             flags=c["flags"],
             super_n=it.get("superN", ""),
-        )["suggestedTier"]
+            confirmed_vacant=bool(it.get("_confirmedVacant")),
+            override_suggested_tier=str(it.get("_overrideTier") or ""),
+        )
+        tier = tier_eval["suggestedTier"]
+        is_confirmed_vacant = bool(tier_eval.get("confirmedVacant"))
         why_parts: list[str] = []
         sources_list: list[str] = []
         followup = ""
@@ -2296,9 +2996,15 @@ def build_single_cycle_dataset(
             why_parts.append(
                 f"Section K Development Plat Variance ({it['app']}) in {it['superN'] or 'Houston'}."
             )
+            if is_confirmed_vacant:
+                why_parts.append("Notice application verifies no existing structures on the parcel (vacant site).")
             if it.get("varianceSummary"):
                 why_parts.append(it["varianceSummary"])
-            followup = "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline."
+            followup = (
+                "No existing building threatened on the parcel; monitor only if adjacent historic district context applies."
+                if tier == "3"
+                else "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline."
+            )
         elif at.get("designations"):
             why_parts.append(
                 f"Atlas matched designated historic resource ({', '.join(at['designations'])}) at {addr or it['name']}."
@@ -2335,12 +3041,18 @@ def build_single_cycle_dataset(
                 f"Atlas matched HCAD parcel at {addr} (built {yr}) in {it.get('prevSub') or it.get('superN')}."
             )
             followup = "Monitor for demolition or building permit filings."
+        elif tier == "3" and yr and yr > 1976:
+            why_parts.append(
+                f"Atlas matched HCAD parcel at {addr} (built {yr}) in {it.get('prevSub') or it.get('superN')}; no pre-1976 structure threatened."
+            )
 
         if addr or yr or tier or why_parts:
             is_confirmed = it["app"] in confirmed_baseline_apps
             preseeded_reviews[it["app"]] = {
                 "address": addr,
-                "yearBuilt": str(yr) if yr else (f"ca. {sub_yr} (subdiv.)" if sub_yr and sub_yr <= 1955 else ""),
+                "yearBuilt": str(yr) if yr else (
+                    "Vacant parcel" if is_confirmed_vacant else (f"ca. {sub_yr} (subdiv.)" if sub_yr and sub_yr <= 1955 else "")
+                ),
                 "designation": des,
                 "tier": tier,
                 "tierConfirmed": is_confirmed,
@@ -2352,12 +3064,11 @@ def build_single_cycle_dataset(
                 "updated": dt.datetime.now(dt.timezone.utc).isoformat(),
             }
 
-    to_check_count = sum(1 for i in items if i["_c"]["group"] == "check")
-    t1_count = sum(1 for r in preseeded_reviews.values() if r.get("tier") == "1")
-    t2_count = sum(1 for r in preseeded_reviews.values() if r.get("tier") == "2")
-    t3_count = sum(1 for r in preseeded_reviews.values() if r.get("tier") == "3")
+    for it in items:
+        it.pop("_confirmedVacant", None)
+        it.pop("_overrideTier", None)
 
-    return {
+    cyc_payload = {
         "cycleKey": default_pc_iso,
         "meetingDate": default_pc_iso,
         "pcDate": f"{default_pc_iso}T00:00:00.000Z",
@@ -2369,15 +3080,118 @@ def build_single_cycle_dataset(
             "spreadsheetPlatCount": max(0, len(raw_rows) - 1),
             "dpvVarianceCount": len(dpv_by_name),
             "publicHearingNoticeCount": len(notices_bundle["all_notices"]),
-            "toCheckCount": to_check_count,
-            "preEnrichedCount": len(preseeded_reviews),
-            "tier1Count": t1_count,
-            "tier2Count": t2_count,
-            "tier3Count": t3_count,
         },
         "items": items,
         "reviews": preseeded_reviews,
     }
+    _recompute_cycle_summary_counts(cyc_payload)
+    return cyc_payload
+
+
+def _canonical_situs_match_key(raw_addr: object) -> str:
+    """Build a strict positive house-number + street-root match key (rejecting house <= 0)."""
+    simp = simplify_search_address(str(raw_addr or "")).upper().strip()
+    if not simp:
+        return ""
+    m = re.match(r"^(\d+)[A-Z]?\s+(?:1/2\s+)?(.+)$", simp)
+    if not m:
+        return ""
+    num_int = int(m.group(1))
+    if num_int <= 0:
+        return ""
+    street = re.sub(r"[^A-Z0-9]+", " ", m.group(2)).strip()
+    if len(street) < 2:
+        return ""
+    return f"{num_int}|{street}"
+
+
+def _reconcile_watchlist_tiers_onto_cycles(
+    cycles_out: dict[str, dict],
+    chronological_isos: list[str],
+    cloud_watch_properties: dict[str, dict] | None,
+) -> None:
+    """Propagate staff-edited Watchlist tiers onto untouched or older matching plat reviews (F2-01)."""
+    if not cloud_watch_properties:
+        return
+    for wp in cloud_watch_properties.values():
+        if not isinstance(wp, dict):
+            continue
+        if is_removed_watchlist_tombstone(wp) or is_legacy_unconfirmed_plat_seed(wp):
+            continue
+        if wp.get("humanEdited") is not True:
+            continue
+        wp_tier = str(wp.get("tier") or "").strip()
+        if wp_tier not in ("1", "2", "3"):
+            continue
+        wp_updated = str(wp.get("updatedAt") or "").strip()
+        wp_src_cycle = str(wp.get("sourceCycleKey") or "").strip()
+        wp_app_no = str(wp.get("appNo") or "").strip()
+        wp_app_ids = set(get_canonical_plat_app_ids(wp))
+        wp_hcads = set(parse_hcad_account_list(wp.get("hcadAccount") or "")["hcadIds"])
+        wp_norm_name = normalize_continuity_plat_name(
+            str(wp.get("platProjectName") or wp.get("propertyName") or "")
+        )
+        wp_addr_key = _canonical_situs_match_key(wp.get("address"))
+
+        for c_iso in chronological_isos:
+            cyc = cycles_out.get(c_iso)
+            if not cyc:
+                continue
+            reviews = cyc.setdefault("reviews", {})
+            for it in cyc.get("items") or []:
+                cur_rev = dict(reviews.get(it["app"]) or {})
+                it_hcads = parse_hcad_account_list(
+                    " ".join(
+                        [
+                            str(cur_rev.get("hcad") or ""),
+                            str(it.get("hcad") or ""),
+                            str((it.get("atlas") or {}).get("hcad_num") or ""),
+                        ]
+                    )
+                )["hcadIds"]
+                it_hcad_set = set(it_hcads)
+                it_norm_name = normalize_continuity_plat_name(str(it.get("name") or ""))
+                it_addr_key = _canonical_situs_match_key(
+                    cur_rev.get("address")
+                    or (it.get("atlas") or {}).get("primaryAddress")
+                    or it.get("noticeLocation")
+                )
+
+                exact_source = bool(wp_src_cycle == c_iso and wp_app_no and it["app"] == wp_app_no)
+                app_match = False
+                if not exact_source and wp_app_ids and (wp_app_ids & set(get_canonical_plat_app_ids(it))):
+                    app_match = _are_continuity_snapshots_compatible(
+                        it_hcads, it_norm_name, sorted(wp_hcads), wp_norm_name
+                    )
+                hcad_match = bool(wp_hcads and it_hcad_set and (wp_hcads & it_hcad_set))
+                addr_match = bool(
+                    wp_addr_key
+                    and it_addr_key == wp_addr_key
+                    and not (wp_hcads and it_hcad_set and not (wp_hcads & it_hcad_set))
+                )
+                if not (exact_source or app_match or hcad_match or addr_match):
+                    continue
+
+                rev_updated = str(cur_rev.get("updated") or "").strip()
+                if rev_updated and (not wp_updated or wp_updated <= rev_updated):
+                    continue
+
+                cur_rev["tier"] = wp_tier
+                cur_rev["tierConfirmed"] = wp_tier in ("1", "2")
+                if wp_updated:
+                    cur_rev["updated"] = wp_updated
+                if wp.get("updatedBy") and not cur_rev.get("reviewer"):
+                    cur_rev["reviewer"] = str(wp["updatedBy"])
+                prev_hf = (
+                    list(cur_rev.get("humanEditedFields"))
+                    if isinstance(cur_rev.get("humanEditedFields"), list)
+                    else []
+                )
+                if "tier" not in prev_hf:
+                    prev_hf.append("tier")
+                cur_rev["humanEditedFields"] = prev_hf
+                reviews[it["app"]] = cur_rev
+                it["_c"] = classify_item(it, cur_rev)
 
 
 def build_plat_agenda_dataset(
@@ -2385,9 +3199,10 @@ def build_plat_agenda_dataset(
     scraped_multi: dict,
     cloud_plat_reviews: dict[tuple[str, str], dict] | None = None,
     confirmed_baseline_apps: set[str] | None = None,
+    cloud_watch_properties: dict[str, dict] | None = None,
 ) -> dict:
     print("[3/6] Cross-referencing multi-cycle Plat Agendas, Section K DPVs, and Hearing Notices with Atlas...")
-    confirmed_baseline_apps = confirmed_baseline_apps or {"DPV-26073533", "2026-1585"}
+    confirmed_baseline_apps = set(confirmed_baseline_apps) if confirmed_baseline_apps is not None else set()
     cycles_scraped = scraped_multi["cycles_scraped"]
     chronological_isos = sorted(cycles_scraped.keys())
     latest_iso = chronological_isos[-1]
@@ -2401,20 +3216,26 @@ def build_plat_agenda_dataset(
             is_latest_cycle=(c_iso == latest_iso),
             confirmed_baseline_apps=confirmed_baseline_apps,
         )
-        # Apply any cloud-synced staff reviews for this cycle
+        items_by_app = {it["app"]: it for it in cyc_data["items"]}
+        # Apply any cloud-synced staff reviews for this cycle using safe machine-vs-human overlay rules (DF-1)
         if cloud_plat_reviews:
             for (rev_cycle, app_no), cloud_rev in cloud_plat_reviews.items():
                 if rev_cycle == c_iso or not rev_cycle:
-                    merged = dict(cyc_data["reviews"].get(app_no, {}))
-                    merged.update(cloud_rev)
+                    target_it = items_by_app.get(app_no)
+                    merged = merge_plat_review_overlay(
+                        cyc_data["reviews"].get(app_no),
+                        cloud_rev,
+                        target_it,
+                    )
                     cyc_data["reviews"][app_no] = merged
-                    # Re-classify item if staff overrode screen-out or updated yearBuilt
-                    for it in cyc_data["items"]:
-                        if it["app"] == app_no:
-                            it["_c"] = classify_item(it, merged)
+                    if target_it is not None:
+                        target_it["_c"] = classify_item(target_it, merged)
         cycles_out[c_iso] = cyc_data
 
+    _reconcile_watchlist_tiers_onto_cycles(cycles_out, chronological_isos, cloud_watch_properties)
     link_cross_cycle_history(cycles_out, chronological_isos)
+    for cyc_data in cycles_out.values():
+        _recompute_cycle_summary_counts(cyc_data)
 
     cycle_order_desc = list(reversed(chronological_isos))
     active = cycles_out[latest_iso]
@@ -4170,6 +4991,15 @@ def merge_auto_sweep_findings_into_property(
     return prop
 
 
+def is_removed_watchlist_tombstone(prop: object) -> bool:
+    """Return True when a Watchlist record represents a soft-delete / removal tombstone (F2-02, DF-2)."""
+    if not isinstance(prop, dict):
+        return False
+    if prop.get("removedFromWatchlist") is True:
+        return True
+    return str(prop.get("trackerStatus") or "").strip() in WATCHLIST_TOMBSTONE_STATUSES
+
+
 def has_human_dossier_contributions(prop: dict | None) -> bool:
     """Return True if a Watchlist dossier contains human research that must never be hard-deleted.
 
@@ -4188,7 +5018,15 @@ def has_human_dossier_contributions(prop: dict | None) -> bool:
         return True
     if prop.get("humanEdited") is True:
         return True
-    if str(prop.get("phPastActions") or "").strip() or str(prop.get("reportedBy") or "").strip():
+    if (
+        str(prop.get("phPastActions") or "").strip()
+        or str(prop.get("reportedBy") or "").strip()
+        or str(prop.get("broker") or "").strip()
+    ):
+        return True
+    if str(prop.get("trackerStatus") or "").strip() in ("Saved", "Lost", "For Sale"):
+        return True
+    if str(prop.get("archivedAt") or "").strip():
         return True
     if isinstance(prop.get("driveLinks"), list) and len(prop["driveLinks"]) > 0:
         return True
@@ -4233,6 +5071,40 @@ def has_human_dossier_contributions(prop: dict | None) -> bool:
                 return True
         if row.get("id") != "chk-09" and row.get("status") == "In Progress" and len(checks) == 0:
             return True
+    return False
+
+
+def is_legacy_unconfirmed_plat_seed(raw: dict | None) -> bool:
+    """Return True when a raw Watchlist record is an unconfirmed auto-seed or retracted baseline seed (F2-01, DF-1).
+
+    Applied BEFORE normalization across all Python/JS hydration paths so legacy plat-* seeds never leak
+    back into Watchlist while every record with human dossier contributions or explicit confirmation stays safe.
+    """
+    if not isinstance(raw, dict):
+        return False
+    if is_removed_watchlist_tombstone(raw):
+        return False
+    pid = str(raw.get("id") or "").strip()
+    app_ref = str(
+        raw.get("appNo")
+        or raw.get("sourcePlatApp")
+        or (pid[5:] if pid.startswith("plat-") else "")
+    ).strip()
+    if not (pid.startswith("plat-") or bool(app_ref)):
+        return False
+    if has_human_dossier_contributions(raw):
+        return False
+    if raw.get("tierConfirmed") is not True:
+        return True
+    updated_by_lower = str(raw.get("updatedBy") or "").strip().lower()
+    if "houston building atlas" in updated_by_lower and raw.get("humanEdited") is not True:
+        return True
+    app_upper = app_ref.upper()
+    addr_upper = " ".join(str(raw.get("address") or "").upper().split())
+    if app_upper == "DPV-26073533" and (not raw.get("updatedAt") or "2603 MILAM" in addr_upper):
+        return True
+    if app_upper == "2026-1585" and (not raw.get("updatedAt") or "1226 W CLAY" in addr_upper):
+        return True
     return False
 
 
@@ -4489,11 +5361,53 @@ def normalize_watch_property_record(raw: dict) -> dict:
     ).strip()
     p["appNo"] = resolved_app
     p["sourcePlatApp"] = resolved_app
+    p["linkedAppNo"] = str(p.get("linkedAppNo") or "").strip()
     design_firm = str(p.get("designFirm") or p.get("architectEngineer") or "").strip()
     p["designFirm"] = design_firm
     p["architectEngineer"] = design_firm
+    p["broker"] = str(p.get("broker") or "").strip()
+    p["developer"] = str(p.get("developer") or "").strip()
     p.setdefault("legalDescription", "")
-    p.setdefault("trackerStatus", "Active / High Priority")
+    is_tombstone = is_removed_watchlist_tombstone(p)
+    tier_val = str(p.get("tier") or "1").strip()
+    if tier_val not in ("1", "2", "3"):
+        tier_val = "1"
+    p["tier"] = tier_val
+    is_plat_orig = pid.startswith("plat-") or bool(resolved_app)
+    if is_tombstone:
+        p["removedFromWatchlist"] = (
+            bool(p.get("removedFromWatchlist"))
+            or str(p.get("trackerStatus") or "").strip() == REMOVED_WATCHLIST_TOMBSTONE
+        )
+        raw_status = str(p.get("trackerStatus") or "").strip()
+        p["trackerStatus"] = (
+            raw_status
+            if raw_status in WATCHLIST_TOMBSTONE_STATUSES
+            else REMOVED_WATCHLIST_TOMBSTONE
+        )
+        p["tierConfirmed"] = False
+    else:
+        p["removedFromWatchlist"] = False
+        raw_status = str(p.get("trackerStatus") or "").strip()
+        default_status = (
+            "Archived (Tier 3)"
+            if tier_val == "3"
+            else ("Monitoring" if tier_val == "2" else "Active / High Priority")
+        )
+        if not raw_status or raw_status not in WATCHLIST_TRACKER_STATUSES:
+            raw_status = default_status
+        elif tier_val == "3" and raw_status in (
+            "Active / High Priority",
+            "Monitoring",
+            "Dormant / Medium Priority",
+        ):
+            raw_status = "Archived (Tier 3)"
+        p["trackerStatus"] = raw_status
+        p["tierConfirmed"] = (
+            bool(p.get("tierConfirmed"))
+            if is_plat_orig
+            else (p.get("tierConfirmed") is not False)
+        )
     p.setdefault("threatCategory", "")
     p.setdefault("neighborhood", "")
     p.setdefault("reportedBy", "")
@@ -4606,6 +5520,8 @@ def pull_cloud_sheet_sync_rows(csv_text: str | None = None) -> dict:
             pid = str(prop_obj.get("id") or key.replace("WATCH_PROP:", "", 1)).strip()
             if pid:
                 prop_obj["id"] = pid
+                if is_legacy_unconfirmed_plat_seed(prop_obj):
+                    continue
                 has_explicit_terms = isinstance(prop_obj.get("searchTerms"), dict) or bool(
                     prop_obj.get("searchTermsUpdatedAt")
                 )
@@ -4885,6 +5801,7 @@ def _build_confirmed_plat_watch_property(it: dict, rev: dict, cycle_iso: str, sw
             "id": f"plat-{it['app']}",
             "appNo": it["app"],
             "sourcePlatApp": it["app"],
+            "linkedAppNo": str(it.get("linkedAppNo") or ""),
             "sourceCycleKey": cycle_iso,
             "propertyName": historic_title,
             "platProjectName": it.get("name", ""),
@@ -4901,7 +5818,9 @@ def _build_confirmed_plat_watch_property(it: dict, rev: dict, cycle_iso: str, sw
             "trackerStatus": "Active / High Priority" if str(rev.get("tier") or "1") == "1" else "Monitoring",
             "threatCategory": str(rev.get("threatCategory") or ""),
             "ownerOfRecord": it.get("developer") or "See HCAD Property Search",
+            "developer": it.get("developer") or "",
             "buyerRelatedEntities": it.get("developer") or "",
+            "broker": "",
             "lender": "",
             "designFirm": it.get("org") or it.get("applicant") or "",
             "pcMeetingDate": cycle_iso,
@@ -4951,7 +5870,7 @@ def build_property_watchlist(
 
     # Include ONLY explicitly confirmed Tier 1 / Tier 2 plat applications across loaded cycles
     cycles_map = plat_data.get("cycles") or {plat_data.get("cycleKey", sweep_date): plat_data}
-    latest_plat_tier_by_app: dict[str, str] = {}
+    latest_plat_tier_by_app: dict[str, tuple[str, str]] = {}
     for c_iso in sorted(cycles_map.keys()):
         cyc = cycles_map[c_iso]
         reviews = cyc.get("reviews") or {}
@@ -4959,21 +5878,38 @@ def build_property_watchlist(
             rev = reviews.get(it["app"]) or {}
             pid = f"plat-{it['app']}"
             tier_val = str(rev.get("tier") or "")
+            rev_ts = str(rev.get("updated") or c_iso or "")
             if tier_val:
-                latest_plat_tier_by_app[it["app"]] = tier_val
+                latest_plat_tier_by_app[it["app"]] = (tier_val, rev_ts)
+                for cid in get_canonical_plat_app_ids(it):
+                    latest_plat_tier_by_app[cid] = (tier_val, rev_ts)
             is_confirmed = bool(rev.get("tierConfirmed"))
+            cloud_for_pid = cloud_watch.get(pid)
+            if (
+                cloud_for_pid
+                and is_removed_watchlist_tombstone(cloud_for_pid)
+                and str(cloud_for_pid.get("updatedAt") or "9999") >= rev_ts
+            ):
+                watched_by_id.pop(pid, None)
+                continue
             if is_confirmed and tier_val in ("1", "2"):
-                watched_by_id[pid] = _build_confirmed_plat_watch_property(it, rev, c_iso, sweep_date)
+                seed_p = _build_confirmed_plat_watch_property(it, rev, c_iso, sweep_date)
+                if rev.get("updated"):
+                    seed_p["updatedAt"] = str(rev["updated"])
+                watched_by_id[pid] = seed_p
             elif tier_val == "3" and pid in watched_by_id:
                 existing_p = watched_by_id[pid]
                 if has_human_dossier_contributions(existing_p):
                     existing_p["tier"] = "3"
+                    existing_p["tierConfirmed"] = True
                     existing_p["trackerStatus"] = "Archived (Tier 3)"
                 else:
                     watched_by_id.pop(pid, None)
 
     # Merge cloud-synced staff-created or staff-edited Watchlist dossiers
     for pid, cloud_prop in cloud_watch.items():
+        if is_legacy_unconfirmed_plat_seed(cloud_prop):
+            continue
         has_explicit_terms = (
             bool(cloud_prop.get("_hasExplicitSearchTerms"))
             if "_hasExplicitSearchTerms" in cloud_prop
@@ -5002,14 +5938,32 @@ def build_property_watchlist(
             else bool(cloud_prop.get("checklist"))
         )
         norm_cp = _strip_internal_cloud_flags(normalize_watch_property_record(cloud_prop))
-        if norm_cp.get("trackerStatus") == "Removed (Tier 3)":
-            watched_by_id.pop(pid, None)
+        if is_removed_watchlist_tombstone(norm_cp):
+            existing_base = watched_by_id.get(pid)
+            tomb_ts = str(norm_cp.get("updatedAt") or "9999")
+            base_ts = str((existing_base or {}).get("updatedAt") or "")
+            if not existing_base or not base_ts or tomb_ts >= base_ts:
+                watched_by_id.pop(pid, None)
             continue
-        latest_app_tier = latest_plat_tier_by_app.get(str(norm_cp.get("appNo") or ""), "")
-        if (norm_cp.get("tier") == "3" or latest_app_tier == "3") and pid.startswith("plat-"):
+        app_lookup_keys = [str(norm_cp.get("appNo") or "")] + get_canonical_plat_app_ids(norm_cp)
+        latest_app_tier = ""
+        latest_app_ts = ""
+        for ak in app_lookup_keys:
+            if ak and ak in latest_plat_tier_by_app:
+                t_val, t_ts = latest_plat_tier_by_app[ak]
+                if t_ts >= latest_app_ts:
+                    latest_app_tier = t_val
+                    latest_app_ts = t_ts
+        cp_ts = str(norm_cp.get("updatedAt") or "")
+        plat_downgraded_newer = bool(
+            latest_app_tier == "3" and (not cp_ts or not latest_app_ts or latest_app_ts >= cp_ts)
+        )
+        if (norm_cp.get("tier") == "3" or plat_downgraded_newer) and pid.startswith("plat-"):
             if has_human_dossier_contributions(norm_cp):
                 norm_cp["tier"] = "3"
-                norm_cp["trackerStatus"] = "Archived (Tier 3)"
+                norm_cp["tierConfirmed"] = True
+                if norm_cp.get("trackerStatus") not in ("Saved", "Lost", "For Sale"):
+                    norm_cp["trackerStatus"] = "Archived (Tier 3)"
             else:
                 watched_by_id.pop(pid, None)
                 continue
@@ -5024,6 +5978,7 @@ def build_property_watchlist(
                 "secondaryAddresses",
                 "hcadAccount",
                 "legalDescription",
+                "linkedAppNo",
                 "yearBuilt",
                 "yearRemodeled",
                 "architect",
@@ -5034,19 +5989,28 @@ def build_property_watchlist(
                 "reportedBy",
                 "phPastActions",
                 "ownerOfRecord",
+                "developer",
                 "buyerRelatedEntities",
+                "broker",
                 "lender",
                 "designFirm",
                 "architectEngineer",
                 "keyDates",
                 "notes",
                 "tier",
+                "humanEdited",
                 "updatedAt",
                 "updatedBy",
                 "archivedAt",
             ):
-                if norm_cp.get(k_meta) not in (None, "", [], {}):
+                if norm_cp.get(k_meta) not in (None, "", [], {}, False):
                     merged_p[k_meta] = norm_cp[k_meta]
+            if merged_p.get("tier") == "3" and merged_p.get("trackerStatus") in (
+                "Active / High Priority",
+                "Monitoring",
+                "Dormant / Medium Priority",
+            ):
+                merged_p["trackerStatus"] = "Archived (Tier 3)"
             if merged_p.get("trackerStatus") != "Archived (Tier 3)":
                 merged_p["archivedAt"] = ""
             if has_explicit_terms:
@@ -5089,7 +6053,7 @@ def build_property_watchlist(
             watched_by_id[pid] = _strip_internal_cloud_flags(normalize_watch_property_record(merged_p))
         else:
             # Do not resurrect unconfirmed auto-dumped plat-* rows from legacy snapshots unless confirmed or contributed
-            if pid.startswith("plat-") and not cloud_prop.get("tierConfirmed") and not has_human_dossier_contributions(norm_cp):
+            if pid.startswith("plat-") and cloud_prop.get("tierConfirmed") is not True and not has_human_dossier_contributions(norm_cp):
                 continue
             if not norm_cp.get("checklist"):
                 norm_cp["checklist"] = build_default_checklist_for_property(
@@ -5176,6 +6140,7 @@ def main() -> None:
         idx,
         scraped_multi,
         cloud_plat_reviews=cloud_sync.get("platReviews"),
+        cloud_watch_properties=cloud_sync.get("watchProperties"),
     )
 
     plat_out = DATA_DIR / "plat_agenda_monitor.json"

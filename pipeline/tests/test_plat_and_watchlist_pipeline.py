@@ -159,7 +159,9 @@ def test_ut3_classify_item_exact_parity_with_js() -> None:
         assert sorted(py_res["flags"]) == sorted(js_res["flags"]), f"Flags mismatch on case {idx_c}"
 
 
-def test_ut4_outline_hearing_extraction_and_notice_classification_without_dpv_pollution() -> None:
+def test_ut4_outline_hearing_extraction_and_notice_classification_without_dpv_pollution(
+    tmp_path: Path,
+) -> None:
     """Verify Section IV hearing extraction and ensure C3N Public Hearing Notices with 'development plat' boilerplate are not misclassified as DPVs or cross-attached to unrelated prior-cycle apps."""
     outline_sample = """
     PLANNING COMMISSION AGENDA OUTLINE
@@ -226,6 +228,7 @@ def test_ut4_outline_hearing_extraction_and_notice_classification_without_dpv_po
         return ""
 
     with (
+        mock.patch.object(fpw, "PLAT_CACHE_DIR", tmp_path / "plat_cache"),
         mock.patch.object(fpw, "fetch_bytes", side_effect=fake_fetch_bytes),
         mock.patch.object(fpw, "pdf_to_text", side_effect=fake_pdf_to_text),
         mock.patch.object(
@@ -274,14 +277,14 @@ def test_ut4_outline_hearing_extraction_and_notice_classification_without_dpv_po
 
         empty_idx = {
             "hcad_map": {
-                "0231440000010": {
-                    "hcad": "0231440000010",
-                    "address": "1226 W CLAY ST",
-                    "addresses": ["1226 W CLAY ST"],
-                    "lng": -95.39412,
-                    "lat": 29.75498,
-                    "year_built": 1930,
-                    "all_years": [1930],
+                "1490700010001": {
+                    "hcad": "1490700010001",
+                    "address": "1230 W PIERCE ST",
+                    "addresses": ["1226 W PIERCE ST", "1230 W PIERCE ST"],
+                    "lng": -95.394513,
+                    "lat": 29.755117,
+                    "year_built": 2025,
+                    "all_years": [2025],
                     "label": "",
                 }
             },
@@ -302,7 +305,7 @@ def test_ut4_outline_hearing_extraction_and_notice_classification_without_dpv_po
         oct01_vista = ds["cycles"]["2026-10-01"]["items"][0]
         assert oct01_vista["name"] == "Montrose Vista Replat No 1"
         assert oct01_vista["noticePdf"] == "", "Montrose Residences Nov 12 notice must NOT attach to Montrose Vista Replat No 1"
-        assert oct01_vista["hcad"] != "0231440000010", "Montrose Residences HCAD override must NOT pollute Montrose Vista Replat No 1"
+        assert "1490700010001" not in oct01_vista["hcad"], "Montrose Residences HCAD override must NOT pollute Montrose Vista Replat No 1"
 
         oct29_items = ds["cycles"]["2026-10-29"]["items"]
         montrose_item = next(i for i in oct29_items if i["name"] == "Montrose Residences")
@@ -311,7 +314,11 @@ def test_ut4_outline_hearing_extraction_and_notice_classification_without_dpv_po
         assert montrose_item["noticePdf"].endswith("2026-1585_Montrose-Residences_PH.pdf")
         assert montrose_item["hearingDateIso"] == "2026-11-12"
         assert "Establish Public Hearing Date" in montrose_item["section"]
-        assert montrose_item["hcad"] == "0231440000010"
+        assert montrose_item["hcad"] == (
+            "1490700010001, 1490700010002, 1490700010003, 1490700010004, "
+            "1490700020001, 1490700020002, 1490700020003, 1490700020004"
+        )
+        assert "0231440000010" not in montrose_item["hcad"], "1226 W Clay corner store must NOT be inside Montrose Residences tract"
         assert montrose_item["priorCycles"] == [], (
             "Colliding 2026-1585 Montrose Vista Replat No 1 must not link into Montrose Residences priorCycles"
         )
@@ -1719,7 +1726,9 @@ def test_ut2_four_stream_snapshot_diff_events() -> None:
     assert "Drive / document links" in edit_ev["summary"]
 
     assert by_id["staff:prop:plat-2026-1111:archived"]["watchPropertyId"] == "plat-2026-1111"
-    assert by_id["staff:prop:plat-2026-2222:archived"]["watchPropertyId"] == ""
+    assert by_id["staff:prop:plat-2026-1111:archived"]["kind"] == "watchlist_property_archived"
+    assert by_id["staff:prop:plat-2026-2222:removed"]["watchPropertyId"] == ""
+    assert by_id["staff:prop:plat-2026-2222:removed"]["kind"] == "watchlist_property_removed"
     rev_ev = by_id["staff:review:2026-10-15:2026-1585:t1"]
     assert rev_ev["stream"] == "staff" and rev_ev["occKey"] == "2026-10-15::2026-1585"
 
@@ -2080,6 +2089,7 @@ def test_post_review_producer_failure_flags_and_timestamp_roundtrips(
     from atlas_pipeline import fetch_plat_and_watchlist as fpw
 
     # 1. Upstream Plat Agenda HTTP outage sets scrapeFailed=True and flips chk-09 to failed
+    monkeypatch.setattr(fpw, "PLAT_CACHE_DIR", tmp_path / "plat_cache_fail")
     monkeypatch.setattr(fpw, "fetch_bytes", lambda *a, **kw: None)
     scraped_fail = fpw.fetch_multi_cycle_agendas_and_notices(max_cycles=1)
     assert scraped_fail["scrapeFailed"] is True
@@ -2269,4 +2279,691 @@ def test_post_review_producer_failure_flags_and_timestamp_roundtrips(
     arch_ev = next(e for e in diff_evs if e["kind"] == "watchlist_property_archived")
     assert arch_ev["localDate"] == "2026-10-29"
     assert arch_ev["loggedAt"] == "2026-10-30T01:45:00Z"
+
+
+def test_pass2_on_meeting_agenda_ph131_linked_app_tax_exempt_and_watchlist_tombstone() -> None:
+    """Verify Pass #2 F2-01..F2-11 pipeline contracts: outline agenda tagging, PH-131 -> 2026-1647 bridge, tax-exempt church vs vacant vs '0 BELLFORT AVE', and Watchlist removal tombstones."""
+    # 1. Outline parsing captures all agenda titles (for onMeetingAgenda) and Section III PH items
+    outline_text = "\n".join(
+        [
+            "City of Houston Planning Commission Agenda",
+            "I. Platting Activity (Subdivision and Development Plats)",
+            "C. Consent Agenda",
+            "42  Amerimex Motors   C2R",
+            "88  West Bellfort Court   C2R",
+            "K. Development Plats with Variance Requests",
+            "1  801 McGowen Street   DPV",
+            "City of Houston Planning Commission",
+            "III. Establish a public hearing date of December 3, 2026",
+            "a. Andores Rest",
+            "b. Aisla Villas",
+            "IV. Public Hearing",
+        ]
+    )
+    parsed_outline = fpw.parse_agenda_outline_text(outline_text)
+    assert "amerimex motors" in parsed_outline["outline_by_name"]
+    assert "west bellfort court" in parsed_outline["outline_by_name"]
+    assert "houston chinese church reserves" not in parsed_outline["outline_by_name"]
+    assert parsed_outline["sec4_hearing_names"] == ["Andores Rest", "Aisla Villas"]
+    assert parsed_outline["sec4_hearing_date_iso"] == "2026-12-03"
+
+    # 2. Build dataset linking PH-131 ("Andores Rest") to historical 2026-1647 filing
+    #    while tagging Houston Chinese Church Reserves (2026-1620) as onMeetingAgenda == False and resolving West Bellfort Court
+    fake_idx = {
+        "hcad_map": {
+            "0132680000011": {
+                "hcad": "0132680000011",
+                "address": "801 MCGOWEN ST",
+                "addresses": ["801 MCGOWEN ST"],
+                "lng": -95.375082,
+                "lat": 29.746475,
+                "year_built": 0,
+                "all_years": [],
+                "label": "",
+            },
+            "0451910000150": {
+                "hcad": "0451910000150",
+                "address": "10305 S MAIN ST",
+                "addresses": ["10305 S MAIN ST"],
+                "lng": -95.419,
+                "lat": 29.671,
+                "year_built": 1981,
+                "all_years": [1981],
+                "label": "",
+            },
+            "0451910000296": {
+                "hcad": "0451910000296",
+                "address": "10315 S MAIN ST",
+                "addresses": ["10315 S MAIN ST"],
+                "lng": -95.418,
+                "lat": 29.670,
+                "year_built": 1983,
+                "all_years": [1983],
+                "label": "",
+            },
+            "0201650000011": {
+                "hcad": "0201650000011",
+                "address": "440 HEIGHTS BLVD",
+                "addresses": ["440 HEIGHTS BLVD"],
+                "lng": -95.398,
+                "lat": 29.779,
+                "year_built": 1920,
+                "all_years": [1920],
+                "label": "",
+            },
+            "0972530000005": {
+                "hcad": "0972530000005",
+                "address": "0 BELLFORT AVE",
+                "addresses": ["0 BELLFORT AVE"],
+                "lng": -95.441,
+                "lat": 29.673,
+                "year_built": 0,
+                "all_years": [],
+                "label": "",
+            },
+            "0972530000010": {
+                "hcad": "0972530000010",
+                "address": "2915 W  BELLFORT AVE",
+                "addresses": ["2915 W  BELLFORT AVE"],
+                "lng": -95.442,
+                "lat": 29.674,
+                "year_built": 1992,
+                "all_years": [1992],
+                "label": "",
+            },
+        },
+        "curated_overrides": {},
+        "addr_exact": {},
+        "addr_nodir": {},
+        "street_centroids": {},
+        "buildings_by_hcad": {},
+        "subdiv_index": {},
+        "snbr_index": {},
+        "landmarks_by_hcad": {},
+        "good_brick_by_hcad": {},
+        "smls_by_subdiv": {},
+        "active_alerts_by_hcad": {},
+    }
+
+    hist_key = fpw.normalize_historical_subdivision_key("Andores Rest")
+    dpv_mcgowen_notice = {
+        "ref": "DPV-26073533",
+        "name": "801 McGowen Street",
+        "meetingDateIso": "2026-10-29",
+        "noticePdf": "https://www.houstontx.gov/planning/Commissions/docs_pdfs/pn/2026/26073533_801-McGowen-Street_DPV.pdf",
+        "location": "East of Milam Street, South of McGowen Street",
+        "requestSummary": "reduced building line",
+        "isDpv": True,
+    }
+    hist_andores = {
+        "app": "2026-1647",
+        "name": "Andores Rest",
+        "sourceCycleIso": "2026-10-15",
+        "hcad": "0201650000011; 0201650000024",
+        "pdf": "https://www.houstontx.gov/planning/DevelopRegs/docs_pdfs/Plat_report/2026/2026-1647_Andores_Rest.pdf",
+        "developer": "Riverway Homes LLC",
+        "org": "Survey Group",
+        "applicant": "Riverway Homes LLC",
+        "superN": "GREATER HEIGHTS",
+        "council": "C",
+        "acreage": "0.28",
+        "lots": "4",
+        "type": "Class 3 subdivision replat (C3R)",
+    }
+    scraped = {
+        "cycles_scraped": {
+            "2026-10-15": {
+                "cycle_iso": "2026-10-15",
+                "file_name": "10-15-2026.xlsx",
+                "xlsx_url": "https://www.houstontx.gov/planning/DevelopRegs/docs_pdfs/Plat_report/2026/10-15-2026.xlsx",
+                "outline_url": "https://www.houstontx.gov/planning/Commissions/docs_pdfs/pc/2026/2026_1015_Agenda_Outline.pdf",
+                "raw_rows": [
+                    {},
+                    {
+                        "A": "Andores Rest",
+                        "B": "2026-1647",
+                        "C": "46310.60417",
+                        "D": "46300",
+                        "E": "Class 3 subdivision replat (C3R)",
+                        "G": "C. Consent Agenda",
+                        "I": "City",
+                        "J": "Harris",
+                        "Z": "0201650000011; 0201650000024",
+                        "AE": "https://www.houstontx.gov/planning/DevelopRegs/docs_pdfs/Plat_report/2026/2026-1647_Andores_Rest.pdf",
+                    },
+                ],
+                "outline_by_name": {
+                    "andores rest": {"agendaItemNo": "12", "appType": "C3R", "deferral": ""}
+                },
+                "dpv_items": [],
+                "sec4_hearing_names": [],
+                "sec4_hearing_date_iso": "",
+                "sec4_numeral": "IV",
+            },
+            "2026-10-29": {
+                "cycle_iso": "2026-10-29",
+                "file_name": "10-29-2026.xlsx",
+                "xlsx_url": "https://www.houstontx.gov/planning/DevelopRegs/docs_pdfs/Plat_report/2026/10-29-2026.xlsx",
+                "outline_url": "https://www.houstontx.gov/planning/Commissions/docs_pdfs/pc/2026/2026_1029_Agenda_Outline.pdf",
+                "raw_rows": [
+                    {},
+                    {
+                        "A": "West Bellfort Court",
+                        "B": "2026-1635",
+                        "C": "46324.60417",
+                        "D": "46314",
+                        "E": "Class 2 subdivision replat (C2R)",
+                        "G": "C. Consent Agenda",
+                        "I": "City",
+                        "J": "Harris",
+                        "Z": "0972530000005; 0972530000010",
+                    },
+                    {
+                        "A": "Houston Chinese Church Reserves",
+                        "B": "2026-1620",
+                        "C": "46324.60417",
+                        "D": "46314",
+                        "E": "Class 2 subdivision replat (C2R)",
+                        "G": "C. Consent Agenda",
+                        "I": "City",
+                        "J": "Harris",
+                        "Z": "0451910000150; 0451910000296",
+                    },
+                ],
+                **parsed_outline,
+            },
+        },
+        "notices_by_ref": {"DPV-26073533": dpv_mcgowen_notice},
+        "notices_by_name": {"801 mcgowen street": dpv_mcgowen_notice},
+        "all_notices": [dpv_mcgowen_notice],
+        "historical_by_subdiv": {hist_key: hist_andores},
+        "historical_by_app": {"2026-1647": hist_andores},
+    }
+
+    ds = fpw.build_plat_agenda_dataset(fake_idx, scraped, confirmed_baseline_apps=set())
+
+    oct29 = ds["cycles"]["2026-10-29"]["items"]
+
+    # F2-06: Houston Chinese Church Reserves (2026-1620) tagged onMeetingAgenda is False; West Bellfort Court is True
+    hcc = next(i for i in oct29 if i["app"] == "2026-1620")
+    assert hcc["onMeetingAgenda"] is False
+    # F2-03: Tax-exempt church (impr_val == 0, X3) retains local building years 1981 & 1983
+    assert hcc["atlas"]["earliestYearBuilt"] == 1981
+    assert hcc["atlas"]["allYearsBuilt"] == [1981, 1983]
+
+    wbc = next(i for i in oct29 if i["app"] == "2026-1635")
+    assert wbc["onMeetingAgenda"] is True
+    assert wbc["atlas"]["primaryAddress"] == "2915 W BELLFORT AVE"
+    assert wbc["atlas"]["earliestYearBuilt"] == 1992
+
+    # F2-04: 801 McGowen Street mapped cleanly to vacant 0132680000011 (never 2603 Milam)
+    mcgowen = next(i for i in oct29 if i["app"] == "DPV-26073533")
+    assert mcgowen["hcad"] == "0132680000011"
+    assert mcgowen["atlas"]["primaryAddress"] == "801 MCGOWEN ST"
+    assert mcgowen["atlas"]["earliestYearBuilt"] == 0
+    mcgowen_rev = ds["cycles"]["2026-10-29"]["reviews"]["DPV-26073533"]
+    assert mcgowen_rev["tier"] == "3"
+    assert mcgowen_rev["tierConfirmed"] is False
+
+    # F2-07: PH-* Andores Rest links to 2026-1647 with Plat PDF + HCADs; PH-* Aisla Villas has no PDF yet
+    ph_andores = next(i for i in oct29 if i["name"] == "Andores Rest")
+    assert ph_andores["app"].startswith("PH-")
+    assert ph_andores["linkedAppNo"] == "2026-1647"
+    assert ph_andores["pdf"].endswith("2026-1647_Andores_Rest.pdf")
+    assert "0201650000011" in ph_andores["hcad"]
+
+    ph_aisla = next(i for i in oct29 if i["name"] == "Aisla Villas")
+    assert ph_aisla["app"].startswith("PH-")
+    assert ph_aisla["onMeetingAgenda"] is True
+    assert ph_aisla["pdf"] == ""
+
+    # F2-01 & F2-02: Unconfirmed baseline seed filtered from Watchlist, and Removed from Watchlist tombstone stays gone
+    cloud_sync_mock = {
+        "platReviews": {
+            ("2026-10-15", "2026-1647"): {
+                "tier": "1",
+                "tierConfirmed": True,
+                "updated": "2026-10-28T10:00:00Z",
+            }
+        },
+        "watchProperties": {
+            "plat-DPV-26073533": {"id": "plat-DPV-26073533", "appNo": "DPV-26073533", "tier": "2"},
+            "plat-2026-1647": {
+                "id": "plat-2026-1647",
+                "appNo": "2026-1647",
+                "tier": "3",
+                "tierConfirmed": True,
+                "trackerStatus": fpw.REMOVED_WATCHLIST_TOMBSTONE,
+                "removedFromWatchlist": True,
+                "updatedAt": "2026-10-29T18:00:00Z",
+            },
+        },
+    }
+    wl_out = fpw.build_property_watchlist(
+        ds, fake_idx, cloud_sync=cloud_sync_mock, run_live_sweeps=False
+    )
+
+    out_ids = [p["id"] for p in wl_out["watchedProperties"]]
+    assert out_ids == ["prop-kirby-mansion"], (
+        f"Expected only Kirby Mansion active after filtering unconfirmed seeds and tombstones, got {out_ids}"
+    )
+
+
+def test_build_col_map_across_all_four_2026_coh_xlsx_layouts_and_bad_zip_guard() -> None:
+    """Verify _build_col_map_from_header_row maps all 4 real 2026 COH .xlsx column layouts accurately."""
+    layout_30_pre_july = {
+        "A": "Subdivision Name",
+        "B": "App No.",
+        "C": "PC Date (Cycle)",
+        "D": "Date Submitted",
+        "E": "Application Type",
+        "F": "Special Request",
+        "G": "App Location",
+        "H": "Council District",
+        "I": "In City Limits",
+        "J": "County",
+        "K": "County Precinct",
+        "L": "Key Map",
+        "M": "Census Tract",
+        "N": "Zipcode",
+        "O": "School District",
+        "P": "TIRZ",
+        "Q": "Management District",
+        "R": "Historic District",
+        "S": "Super Neighborhood",
+        "T": "Park Sector",
+        "U": "Major Throughfare",
+        "V": "Land Use",
+        "W": "Total Acreage",
+        "X": "Number of Lots Created",
+        "Y": "Appraisal District No (County Tax ID)",
+        "Z": "Developer Company Name",
+        "AA": "Organization",
+        "AB": "Applicant Name",
+        "AC": "Office Phone",
+        "AD": "Download Subdivision Plat PDF File",
+    }
+    m30 = fpw._build_col_map_from_header_row(layout_30_pre_july)
+    assert m30["name"] == "A"
+    assert m30["app"] == "B"
+    assert m30["section"] == "G"
+    assert m30["city"] == "I"
+    assert m30["county"] == "J"
+    assert m30["precinct"] == "K"
+    assert m30["prevSub"] == ""
+    assert m30["tirz"] == "P"
+    assert m30["thoroughfare"] == "U"
+    assert m30["hcad"] == "Y"
+    assert m30["developer"] == "Z"
+    assert m30["org"] == "AA"
+    assert m30["applicant"] == "AB"
+    assert m30["phone"] == "AC"
+    assert m30["pdf"] == "AD"
+
+    layout_33_feb19 = {
+        "A": "Subdivision Name",
+        "B": "App No.",
+        "C": "Download Subdivision Plat PDF File",
+        "D": "Date Submitted",
+        "E": "PC Date (Cycle) (Review Cycle)",
+        "F": "App Type",
+        "G": "Application Type",
+        "H": "Special Request",
+        "I": "Agenda Location",
+        "J": "Application Status",
+        "K": "County",
+        "L": "Major Throughfare",
+        "M": "In City Limits",
+        "N": "County Precinct",
+        "O": "Key Map",
+        "P": "Census Tract",
+        "Q": "Zipcode",
+        "R": "School District",
+        "S": "TIRZ",
+        "T": "Management District",
+        "U": "Historic District",
+        "V": "Super Neighborhood",
+        "W": "Park Sector",
+        "X": "Land Use",
+        "Y": "Total Acreage",
+        "Z": "Total Reserve Acreage",
+        "AA": "Number of Lots Created",
+        "AB": "Total Incremental Units",
+        "AC": "Appraisal District No (County Tax ID)",
+        "AD": "Developer Company Name",
+        "AE": "Organization",
+        "AF": "Applicant Name",
+        "AG": "Developer Phone #",
+    }
+    m33 = fpw._build_col_map_from_header_row(layout_33_feb19)
+    assert m33["pdf"] == "C"
+    assert m33["type"] == "G"  # Prefers full descriptive 'Application Type' over 'App Type'
+    assert m33["section"] == "I"
+    assert m33["county"] == "K"
+    assert m33["thoroughfare"] == "L"
+    assert m33["city"] == "M"
+    assert m33["precinct"] == "N"
+    assert m33["acreage"] == "Y"
+    assert m33["hcad"] == "AC"
+    assert m33["developer"] == "AD"
+    assert m33["phone"] == "AG"
+
+    layout_44_crm = {
+        "A": "(Do Not Modify) Application",
+        "B": "(Do Not Modify) Row Checksum",
+        "C": "(Do Not Modify) Modified On",
+        "D": "Subdivision Name",
+        "E": "App No.",
+        "F": "Download Subdivision Plat PDF File",
+        "G": "Date Submitted",
+        "H": "PC Date (Cycle) (Review Cycle)",
+        "I": "App Type",
+        "J": "Application Type",
+        "K": "Special Request",
+        "L": "Agenda Location",
+        "M": "Application Status",
+        "N": "County",
+        "O": "Major Throughfare",
+        "P": "Transit Corridor",
+        "Q": "In City Limits",
+        "R": "County Precinct",
+        "S": "Lambert Tile",
+        "T": "Key Map",
+        "U": "Census Tract",
+        "V": "Zipcode",
+        "W": "School District",
+        "X": "TIRZ",
+        "Y": "Management District",
+        "Z": "Historic District",
+        "AA": "Super Neighborhood",
+        "AB": "Park Sector",
+        "AC": "Land Use",
+        "AD": "Total Acreage",
+        "AE": "Total Reserve Acreage",
+        "AF": "Number of Lots Created",
+        "AG": "Total Open Space Acreage (ETJ Only)",
+        "AH": "Total Incremental Units",
+        "AI": "Total Number of Parking Spaces Provided",
+        "AJ": "Appraisal District No (County Tax ID)",
+        "AK": "Drainage System",
+        "AL": "Water System",
+        "AM": "Wastewater System",
+        "AN": "County MUD",
+        "AO": "Developer Company Name",
+        "AP": "Organization",
+        "AQ": "Applicant Name",
+        "AR": "Developer Phone #",
+    }
+    m44 = fpw._build_col_map_from_header_row(layout_44_crm)
+    assert m44["name"] == "D"
+    assert m44["app"] == "E"
+    assert m44["pdf"] == "F"
+    assert m44["type"] == "J"
+    assert m44["section"] == "L"
+    assert m44["county"] == "N"
+    assert m44["city"] == "Q"
+    assert m44["precinct"] == "R"
+    assert m44["park"] == "AB"  # Must not match 'Parking Spaces' in AI
+    assert m44["acreage"] == "AD"
+    assert m44["hcad"] == "AJ"
+    assert m44["developer"] == "AO"
+    assert m44["phone"] == "AR"
+
+    layout_31_post_july = {
+        "A": "Subdivision Name",
+        "B": "App No.",
+        "C": "PC Date (Cycle)",
+        "D": "Date Submitted",
+        "E": "Application Type",
+        "F": "Special Request",
+        "G": "App Location",
+        "H": "Council District",
+        "I": "In City Limits",
+        "J": "County",
+        "K": "County Precinct",
+        "L": "Key Map",
+        "M": "Census Tract",
+        "N": "Zipcode",
+        "O": "School District",
+        "P": "Previous/Original Subdivision",
+        "Q": "TIRZ",
+        "R": "Management District",
+        "S": "Historic District",
+        "T": "Super Neighborhood",
+        "U": "Park Sector",
+        "V": "Major Throughfare",
+        "W": "Land Use",
+        "X": "Total Acreage",
+        "Y": "Number of Lots Created",
+        "Z": "Appraisal District No (County Tax ID)",
+        "AA": "Developer Company Name",
+        "AB": "Organization",
+        "AC": "Applicant Name",
+        "AD": "Office Phone",
+        "AE": "Download Subdivision Plat PDF File",
+    }
+    m31 = fpw._build_col_map_from_header_row(layout_31_post_july)
+    assert m31 == fpw._DEFAULT_SPREADSHEET_COL_MAP
+
+    # Non-zip / HTML error pages gracefully return [] rather than raising BadZipFile
+    assert fpw.parse_xlsx_bytes(b"<html>404</html>") == []
+    assert fpw.parse_xlsx_bytes(b"") == []
+
+
+def test_post_review_cross_language_parity_and_activity_sanitization() -> None:
+    """Verify Python/JS constant & behavior parity across overlay merges, multi-parcel tiers, canonical IDs, and activity log retraction cleanup."""
+    import shutil
+    import subprocess
+
+    from atlas_pipeline import build_monitor_activity_log as bmal
+    from atlas_pipeline import schema
+
+    # 1. Constant cardinality & membership parity across schema.py and fetch_plat_and_watchlist.py
+    assert tuple(schema.PLAT_CARRY_FORWARD_REVIEW_FIELDS) == fpw.CARRY_FORWARD_REVIEW_FIELDS
+    assert len(schema.PLAT_CARRY_FORWARD_REVIEW_FIELDS) == 9
+    assert "sources" in schema.PLAT_CARRY_FORWARD_REVIEW_FIELDS
+    assert "followup" in schema.PLAT_CARRY_FORWARD_REVIEW_FIELDS
+    assert set(schema.WATCHLIST_TRACKER_STATUSES) == fpw.WATCHLIST_TRACKER_STATUSES
+    assert len(fpw.WATCHLIST_TRACKER_STATUSES) == 7
+    assert fpw.WATCHLIST_ALL_VALID_STATUSES == (
+        fpw.WATCHLIST_TRACKER_STATUSES | fpw.WATCHLIST_TOMBSTONE_STATUSES
+    )
+
+    # 2. Punctuation-insensitive retracted seed blocking vs confirmed non-seed preservation
+    base_dpv = {
+        "tier": "3",
+        "tierConfirmed": False,
+        "address": "801 MCGOWEN ST",
+        "hcad": "0132680000011",
+        "why": "Confirmed vacant parking lot",
+        "autoEnriched": True,
+    }
+    stale_hash_unit = {
+        "tier": "1",
+        "tierConfirmed": True,
+        "address": "2603 MILAM ST # 15",
+        "hcad": "0520630000018",
+        "updated": "2026-10-23T15:00:00Z",
+    }
+    retracted_py = fpw.merge_plat_review_overlay(base_dpv, stale_hash_unit, item={"app": "DPV-26073533"})
+    assert retracted_py["tier"] == "3"
+    assert retracted_py["tierConfirmed"] is False
+    assert retracted_py["address"] == "801 MCGOWEN ST"
+    assert retracted_py["hcad"] == "0132680000011"
+
+    confirmed_real = {
+        "tier": "2",
+        "tierConfirmed": True,
+        "address": "801 MCGOWEN ST",
+        "hcad": "0132680000011",
+        "updated": "2026-10-30T10:00:00Z",
+    }
+    kept_py = fpw.merge_plat_review_overlay(base_dpv, confirmed_real, item={"app": "DPV-26073533"})
+    assert kept_py["tier"] == "2"
+    assert kept_py["tierConfirmed"] is True
+    assert kept_py["address"] == "801 MCGOWEN ST"
+
+    # 3. Multi-parcel tier parity: suppress_only demolished override + partial-vacant guard
+    cur_ov = {"0972530000005": {"suppress_only": True, "year_built": 0}}
+    suppressed_res = fpw.resolve_multi_parcel_building_tier(
+        [
+            {
+                "hcad": "0972530000005",
+                "year_built": 1922,
+                "all_years": [1922],
+                "confirmedVacant": True,
+            }
+        ],
+        flags=["replat"],
+        super_n="MIDTOWN",
+        curated_overrides=cur_ov,
+    )
+    assert suppressed_res["oldestYearBuilt"] == 0
+    assert suppressed_res["suggestedTier"] == "3"
+    assert suppressed_res["confirmedVacant"] is True
+
+    mixed_vacant_res = fpw.resolve_multi_parcel_building_tier(
+        [
+            {"hcad": "0972530000005", "confirmedVacant": True, "year_built": 0, "all_years": []},
+            {"hcad": "0972530000010", "confirmedVacant": False, "year_built": 0, "all_years": []},
+        ],
+        flags=["dpv"],
+        super_n="MIDTOWN",
+    )
+    assert mixed_vacant_res["confirmedVacant"] is False
+    assert mixed_vacant_res["suggestedTier"] == "1"
+
+    # 4. Differential subprocess parity between Python and app/js/platMonitorHelpers.js
+    node_bin = shutil.which("node") or "node"
+    helpers_url = (fpw.REPO_ROOT / "app" / "js" / "platMonitorHelpers.js").as_uri()
+    js_probe = f"""
+import {{
+  CARRY_FORWARD_REVIEW_FIELDS,
+  getCanonicalPlatAppIds,
+  mergePlatReviewOverlay,
+  resolveMultiParcelBuildingTier,
+}} from {json.dumps(helpers_url)};
+
+const baseDpv = {json.dumps(base_dpv)};
+const staleHashUnit = {json.dumps(stale_hash_unit)};
+const confirmedReal = {json.dumps(confirmed_real)};
+const curOv = {json.dumps(cur_ov)};
+
+const out = {{
+  fields: CARRY_FORWARD_REVIEW_FIELDS,
+  canonIds: getCanonicalPlatAppIds({{ id: "plat-2026-1659", linkedAppNo: "2026-1647" }}),
+  retracted: mergePlatReviewOverlay(baseDpv, staleHashUnit, {{ app: "DPV-26073533" }}),
+  kept: mergePlatReviewOverlay(baseDpv, confirmedReal, {{ app: "DPV-26073533" }}),
+  suppressed: resolveMultiParcelBuildingTier(
+    [{{ hcad: "0972530000005", yearBuilt: 1922, allYears: [1922], confirmedVacant: true }}],
+    {{ flags: ["replat"], superN: "MIDTOWN", curatedOverrides: curOv }}
+  ),
+  mixedVacant: resolveMultiParcelBuildingTier(
+    [
+      {{ hcad: "0972530000005", confirmedVacant: true, yearBuilt: 0, allYears: [] }},
+      {{ hcad: "0972530000010", confirmedVacant: false, yearBuilt: 0, allYears: [] }},
+    ],
+    {{ flags: ["dpv"], superN: "MIDTOWN" }}
+  ),
+}};
+console.log(JSON.stringify(out));
+"""
+    proc = subprocess.run([node_bin, "--input-type=module", "-e", js_probe], capture_output=True, text=True, check=True)
+    js_out = json.loads(proc.stdout.strip())
+    assert tuple(js_out["fields"]) == fpw.CARRY_FORWARD_REVIEW_FIELDS
+    assert js_out["canonIds"] == fpw.get_canonical_plat_app_ids({"id": "plat-2026-1659", "linkedAppNo": "2026-1647"})
+    assert js_out["canonIds"] == ["2026-1647", "2026-1659"]
+    assert js_out["retracted"]["tier"] == retracted_py["tier"] == "3"
+    assert js_out["retracted"]["tierConfirmed"] is False
+    assert js_out["retracted"]["address"] == "801 MCGOWEN ST"
+    assert js_out["kept"]["tier"] == kept_py["tier"] == "2"
+    assert js_out["kept"]["tierConfirmed"] is True
+    assert js_out["kept"]["address"] == "801 MCGOWEN ST"
+    assert js_out["suppressed"]["suggestedTier"] == suppressed_res["suggestedTier"] == "3"
+    assert js_out["suppressed"]["confirmedVacant"] is True
+    assert js_out["mixedVacant"]["suggestedTier"] == mixed_vacant_res["suggestedTier"] == "1"
+    assert js_out["mixedVacant"]["confirmedVacant"] is False
+
+    # 5. Activity log retraction sanitization drops orphan plat-2026-1585 / staff:review cards and refreshes agenda:item cards
+    stale_log = {
+        "events": [
+            {
+                "id": "staff:prop:plat-2026-1585:added",
+                "stream": "watchlist",
+                "kind": "watchlist_property_added",
+                "localDate": "2026-10-25",
+                "timestamp": "2026-10-25T12:00:00Z",
+                "address": "1226 W CLAY ST",
+                "hcad": "0231440000010",
+                "watchPropertyId": "plat-2026-1585",
+            },
+            {
+                "id": "staff:review:2026-10-15:DPV-26073533:t1",
+                "stream": "staff",
+                "kind": "staff_plat_review",
+                "localDate": "2026-10-25",
+                "timestamp": "2026-10-25T12:00:00Z",
+                "address": "2603 MILAM ST # 15",
+                "hcad": "0060610000001",
+            },
+            {
+                "id": "agenda:item:2026-10-29:DPV-26073533:dpv",
+                "stream": "agenda",
+                "kind": "agenda_item_dpv",
+                "severity": "critical",
+                "adverse": True,
+                "date": "2026-10-29",
+                "localDate": "2026-10-29",
+                "timestamp": "2026-10-29T12:00:00Z",
+                "discoveredAt": "2026-10-29T12:00:00Z",
+                "title": "Section K DPV Filed (2026-10-29): 801 McGowen Street",
+                "summary": "DPV in K. Development Plats | Built 1922.",
+                "address": "2603 MILAM ST 15",
+                "hcad": "0060610000001",
+                "yearBuilt": 1922,
+            },
+        ],
+        "dailyRuns": [],
+    }
+    clean_after_plat = {
+        "cycles": {
+            "2026-10-29": {
+                "items": [
+                    {
+                        "app": "DPV-26073533",
+                        "name": "801 McGowen Street",
+                        "type": "Development Plat Variance (DPV)",
+                        "section": "K. Development Plats with Variance Requests",
+                        "hcad": "0132680000011",
+                        "noticePdf": "https://www.houstontx.gov/planning/dpv.pdf",
+                        "atlas": {
+                            "primaryAddress": "801 MCGOWEN ST",
+                            "earliestYearBuilt": 0,
+                            "lat": 29.746475,
+                            "lng": -95.375082,
+                        },
+                    }
+                ]
+            }
+        }
+    }
+    sanitized = bmal.merge_and_prune_ledger(
+        stale_log,
+        [],
+        {"watchedProperties": []},
+        "2026-10-29T22:00:00Z",
+        after_plat=clean_after_plat,
+    )
+    assert len(sanitized["events"]) == 1
+    ev0 = sanitized["events"][0]
+    assert ev0["id"] == "agenda:item:2026-10-29:DPV-26073533:dpv"
+    assert ev0["address"] == "801 MCGOWEN ST"
+    assert ev0["hcad"] == "0132680000011"
+    assert ev0["severity"] == "warning"
+    assert ev0["adverse"] is False
+    assert ev0["yearBuilt"] is None
+    assert "Built 1922" not in ev0["summary"]
+
+
+
 

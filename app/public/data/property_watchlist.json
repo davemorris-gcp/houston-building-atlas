@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-10-29T17:51:39Z",
-  "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+  "updatedAt": "2026-10-29T21:26:08Z",
+  "lastAutoSweepAt": "2026-10-29T21:26:08Z",
   "lastSweepHealth": {
-    "timestamp": "2026-10-29T17:51:39Z",
+    "timestamp": "2026-10-29T21:26:08Z",
     "sweepsExecuted": true,
-    "propertiesSwept": 21,
+    "propertiesSwept": 22,
     "totalAgencies": 8,
     "succeededAgencies": 7,
     "failedAgencies": [
@@ -66,7 +66,7 @@
         "status": "failed",
         "ok": false,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 21,
+        "failedPropertyCount": 22,
         "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
       }
     }
@@ -244,7 +244,7 @@
             "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212"
           }
         ],
-        "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+        "lastAutoSweepAt": "2026-10-29T21:26:08Z"
       },
       {
         "id": "chk-05",
@@ -281,7 +281,7 @@
             "discoveredAt": "2026-10-29"
           }
         ],
-        "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+        "lastAutoSweepAt": "2026-10-29T21:26:08Z"
       },
       {
         "id": "chk-06",
@@ -322,7 +322,7 @@
             "discoveredAt": "2026-10-29"
           }
         ],
-        "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+        "lastAutoSweepAt": "2026-10-29T21:26:08Z"
       },
       {
         "id": "chk-07",
@@ -383,7 +383,7 @@
             "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)"
           }
         ],
-        "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+        "lastAutoSweepAt": "2026-10-29T21:26:08Z"
       },
       {
         "id": "chk-10",
@@ -408,7 +408,7 @@
             "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
           }
         ],
-        "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+        "lastAutoSweepAt": "2026-10-29T21:26:08Z"
       },
       {
         "id": "chk-11",
@@ -475,7 +475,7 @@
         "lastChecked": "2026-10-23",
         "automated": true,
         "checks": [],
-        "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+        "lastAutoSweepAt": "2026-10-29T21:26:08Z"
       },
       {
         "id": "chk-14",
@@ -504,7 +504,7 @@
             "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St"
           }
         ],
-        "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+        "lastAutoSweepAt": "2026-10-29T21:26:08Z"
       },
       {
         "id": "chk-15",
@@ -533,7 +533,7 @@
             "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)"
           }
         ],
-        "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+        "lastAutoSweepAt": "2026-10-29T21:26:08Z"
       }
     ],
     "findingsLog": [
@@ -830,7 +830,11 @@
     ],
     "appNo": "",
     "sourcePlatApp": "",
+    "linkedAppNo": "",
     "architectEngineer": "Heights Engineering (Munir Ishaq, P.E.)",
+    "broker": "",
+    "developer": "",
+    "removedFromWatchlist": false,
     "pcMeetingDate": "",
     "sourceCycleKey": "",
     "hearingDateIso": "",
@@ -839,7 +843,7 @@
     "updatedAt": "2026-10-26T23:11:29.256Z",
     "updatedBy": "Emily Ardoin",
     "archivedAt": "",
-    "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+    "lastAutoSweepAt": "2026-10-29T21:26:08Z",
     "autoSweepSchedule": "Daily at 7:00 AM CT"
   },
   "watchedProperties": [
@@ -1014,7 +1018,7 @@
               "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -1051,7 +1055,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -1092,7 +1096,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -1153,7 +1157,7 @@
               "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -1178,7 +1182,7 @@
               "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -1245,7 +1249,7 @@
           "lastChecked": "2026-10-23",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -1274,7 +1278,7 @@
               "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -1303,7 +1307,7 @@
               "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -1600,7 +1604,11 @@
       ],
       "appNo": "",
       "sourcePlatApp": "",
+      "linkedAppNo": "",
       "architectEngineer": "Heights Engineering (Munir Ishaq, P.E.)",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false,
       "pcMeetingDate": "",
       "sourceCycleKey": "",
       "hearingDateIso": "",
@@ -1609,7 +1617,7 @@
       "updatedAt": "2026-10-26T23:11:29.256Z",
       "updatedBy": "Emily Ardoin",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -1678,7 +1686,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -1778,7 +1786,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -1811,7 +1819,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -1972,7 +1980,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -2018,7 +2026,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -2034,7 +2042,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -2080,7 +2088,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -2096,7 +2104,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -2112,7 +2120,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -2344,12 +2352,17 @@
           ],
           "entryNo": 12
         }
-      ]
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-2026-1587",
       "appNo": "2026-1587",
       "sourcePlatApp": "2026-1587",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "Refokas Estates at Canal Street",
       "platProjectName": "Refokas Estates at Canal Street",
@@ -2369,7 +2382,9 @@
       "trackerStatus": "Active / High Priority",
       "threatCategory": "Significant Building Threatened",
       "ownerOfRecord": "CAS Consultants, LLC",
+      "developer": "CAS Consultants, LLC",
       "buyerRelatedEntities": "CAS Consultants, LLC, Juan Castillo, CAS Consultants, LLC",
+      "broker": "",
       "lender": "",
       "designFirm": "CAS Consultants, LLC",
       "pcMeetingDate": "2026-10-29",
@@ -2446,7 +2461,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -2495,7 +2510,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -2511,7 +2526,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -2601,7 +2616,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -2617,7 +2632,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -2663,7 +2678,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -2679,7 +2694,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -2695,7 +2710,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -2793,6 +2808,7 @@
         }
       ],
       "architectEngineer": "CAS Consultants, LLC",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -2808,7 +2824,7 @@
       "updatedAt": "2026-10-27T19:49:14.057Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -2877,7 +2893,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -2977,7 +2993,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -3010,7 +3026,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -3026,7 +3042,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -3072,7 +3088,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -3088,7 +3104,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -3134,7 +3150,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -3150,7 +3166,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -3166,7 +3182,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -3227,7 +3243,11 @@
           ],
           "entryNo": 3
         }
-      ]
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "prop-1792765948557",
@@ -3303,7 +3323,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "2026-10-26T23:56:22.599Z",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -3390,7 +3410,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -3421,7 +3441,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -3437,7 +3457,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -3483,7 +3503,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -3499,7 +3519,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -3545,7 +3565,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -3561,7 +3581,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -3577,7 +3597,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -3628,7 +3648,11 @@
           ],
           "entryNo": 3
         }
-      ]
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "prop-1793288303585",
@@ -3690,16 +3714,16 @@
         "altAddresses": [],
         "projectNumbers": []
       },
-      "searchTermsUpdatedAt": "",
+      "searchTermsUpdatedAt": "2026-10-29T15:40:32.219Z",
       "driveLinks": [],
       "documents": [],
-      "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "driveLinksUpdatedAt": "2026-10-29T15:40:32.219Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
       "archivedAt": "",
-      "updatedAt": "2026-10-29T15:40:32.219Z",
+      "updatedAt": "2026-10-29T20:43:58.349Z",
       "updatedBy": "emily@preservationhouston.org",
       "checklist": [
         {
@@ -3761,7 +3785,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -3781,8 +3805,7 @@
               "date": "2026-10-29",
               "result": "[AUTO-SWEEP] HCAD Account 0010890000001 (611 WALKER ST): Owner CITY OF HOUSTON, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 THRU 12 BLK 89|HOUSTON MAIN OFFICE|SSBB.",
               "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-05",
+              "discoveredAt": "2026-10-29",
               "agencyRecordId": "hcad:0010890000001:CITY OF HOUSTON:XV:0",
               "adverse": false,
               "links": [
@@ -3790,11 +3813,10 @@
                   "label": "HCAD Map (0010890000001)",
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0010890000001"
                 }
-              ],
-              "discoveredAt": "2026-10-29"
+              ]
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -3810,7 +3832,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -3856,7 +3878,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -3868,48 +3890,15 @@
           "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
           "additionalResourceLabel": "",
           "additionalResourceUrl": "",
-          "status": "Flagged",
-          "lastChecked": "",
+          "status": "In Progress",
+          "lastChecked": "2026-10-29",
           "automated": true,
           "checks": [
-            {
-              "date": "2023-07-25",
-              "result": "[AUTO-SWEEP] TDLR TABS #TABS2023024398 (Public Works - City of Houston) at 611 Walker St. Houston, TX 77002: $800,000 Renovation/Alteration (Add new below grade water proofing in existing utility trench. Replace existing water damaged doors, re-seal existing storefront below grade. Replace existing flood barrier), Owner City of Houston - General Services Department, Design Firm English + Associates.",
-              "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-10",
-              "agencyRecordId": "tdlr-tabs:TABS2023024398",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "TDLR TABS (TABS2023024398)",
-                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2023024398"
-                }
-              ],
-              "discoveredAt": "2026-10-29"
-            },
-            {
-              "date": "2019-11-19",
-              "result": "[AUTO-SWEEP] TDLR TABS #TABS2020005748 (City of Houston) at 611 Walker Houston, TX 77002: $853,786 Renovation/Alteration (Remove and replace sidewalks and new reinforced concrete ramps), Owner City of Houston Public Works and Engineers.",
-              "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-10",
-              "agencyRecordId": "tdlr-tabs:TABS2020005748",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "TDLR TABS (TABS2020005748)",
-                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2020005748"
-                }
-              ],
-              "discoveredAt": "2026-10-29"
-            },
             {
               "date": "2019-02-11",
               "result": "[AUTO-SWEEP] TDLR TABS #TABS2019004511 (Bob Lanier Public Works Building) at 611 Walker Street Houston, TX 77002: $1,500,000 Renovation/Alteration (Tenant Interior Renovation - Full Floors Level 8 and 9), Owner Jared Lucher, Design Firm PDR.",
               "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-10",
+              "discoveredAt": "2026-10-29",
               "agencyRecordId": "tdlr-tabs:TABS2019004511",
               "adverse": true,
               "links": [
@@ -3917,11 +3906,41 @@
                   "label": "TDLR TABS (TABS2019004511)",
                   "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2019004511"
                 }
-              ],
-              "discoveredAt": "2026-10-29"
+              ]
+            },
+            {
+              "date": "2019-11-19",
+              "result": "[AUTO-SWEEP] TDLR TABS #TABS2020005748 (City of Houston) at 611 Walker Houston, TX 77002: $853,786 Renovation/Alteration (Remove and replace sidewalks and new reinforced concrete ramps), Owner City of Houston Public Works and Engineers.",
+              "source": "auto-sweep",
+              "discoveredAt": "2026-10-29",
+              "agencyRecordId": "tdlr-tabs:TABS2020005748",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "TDLR TABS (TABS2020005748)",
+                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2020005748"
+                }
+              ]
+            },
+            {
+              "date": "2023-07-25",
+              "result": "[AUTO-SWEEP] TDLR TABS #TABS2023024398 (Public Works - City of Houston) at 611 Walker St. Houston, TX 77002: $800,000 Renovation/Alteration (Add new below grade water proofing in existing utility trench. Replace existing water damaged doors, re-seal existing storefront below grade. Replace existing flood barrier), Owner City of Houston - General Services Department, Design Firm English + Associates.",
+              "source": "auto-sweep",
+              "discoveredAt": "2026-10-29",
+              "agencyRecordId": "tdlr-tabs:TABS2023024398",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "TDLR TABS (TABS2023024398)",
+                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2023024398"
+                }
+              ]
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "updatedAt": "2026-10-29T20:43:58.349Z",
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z",
+          "humanStatusEdited": true,
+          "statusChangedAt": "2026-10-29T20:43:58.349Z"
         },
         {
           "id": "chk-11",
@@ -3967,7 +3986,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -3983,7 +4002,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -3999,7 +4018,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -4079,7 +4098,11 @@
           ],
           "entryNo": 4
         }
-      ]
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "prop-1793290290811",
@@ -4145,7 +4168,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -4212,7 +4235,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -4245,7 +4268,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -4261,7 +4284,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -4307,7 +4330,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -4323,7 +4346,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -4369,7 +4392,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -4385,7 +4408,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -4401,7 +4424,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -4424,7 +4447,11 @@
           ],
           "entryNo": 1
         }
-      ]
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "prop-1792765566494",
@@ -4500,7 +4527,7 @@
         }
       ],
       "driveLinksUpdatedAt": "2026-10-28T01:35:40.997Z",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -4619,7 +4646,7 @@
               "result": "Tanglewood Marketing Inc: Owner per HCAD. Filed 10/3/1996. Mailing address: 3302 La Salle. Registered Agent: Michael J Clark, 3910 W Main."
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -4650,7 +4677,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -4671,7 +4698,7 @@
               "result": "no records found"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -4717,7 +4744,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -4738,7 +4765,7 @@
               "result": "no results"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -4794,7 +4821,7 @@
               "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -4815,7 +4842,7 @@
               "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -4831,7 +4858,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -4974,12 +5001,17 @@
           ],
           "entryNo": 11
         }
-      ]
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-2026-1720",
       "appNo": "2026-1720",
       "sourcePlatApp": "2026-1720",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "River Oaks Baptist replat no 1 and extension",
       "platProjectName": "River Oaks Baptist replat no 1 and extension",
@@ -4996,7 +5028,9 @@
       "trackerStatus": "Active / High Priority",
       "threatCategory": "Significant Building Threatened",
       "ownerOfRecord": "3900 Westheimer, LLC",
+      "developer": "3900 Westheimer, LLC",
       "buyerRelatedEntities": "3900 Westheimer, LLC, David Hernandez, Windrose",
+      "broker": "",
       "lender": "",
       "designFirm": "Windrose",
       "pcMeetingDate": "2026-10-29",
@@ -5073,7 +5107,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -5138,7 +5172,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -5154,7 +5188,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -5217,7 +5251,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -5233,7 +5267,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -5279,7 +5313,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -5295,7 +5329,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -5311,7 +5345,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -5400,6 +5434,7 @@
         }
       ],
       "architectEngineer": "Windrose",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -5415,13 +5450,520 @@
       "updatedAt": "2026-10-28T00:37:01.736Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
+      "autoSweepSchedule": "Daily at 7:00 AM CT"
+    },
+    {
+      "id": "plat-2026-1495",
+      "appNo": "2026-1495",
+      "sourcePlatApp": "2026-1495",
+      "linkedAppNo": "",
+      "sourceCycleKey": "2026-10-15",
+      "propertyName": "Amplified Properties",
+      "platProjectName": "Amplified Properties",
+      "address": "1131 VERA LOU ST",
+      "secondaryAddresses": [],
+      "hcadAccount": "0650100070010",
+      "legalDescription": "Replat of Brookhaven Addition",
+      "buildingId": "",
+      "yearBuilt": "1942",
+      "yearRemodeled": null,
+      "architect": "",
+      "designation": "None found",
+      "neighborhood": "SUNNYSIDE",
+      "trackerStatus": "Active / High Priority",
+      "threatCategory": "Neighborhood / District Context Impact",
+      "ownerOfRecord": "Amplified Properties",
+      "developer": "Amplified Properties",
+      "buyerRelatedEntities": "Amplified Properties, Paul Coyne, Tetra Land Services",
+      "broker": "",
+      "lender": "",
+      "designFirm": "Tetra Land Services",
+      "pcMeetingDate": "2026-10-15",
+      "hearingDateIso": "",
+      "keyDates": {
+        "monitoringStarted": "2026-10-16",
+        "targetClosing": "",
+        "planningCommission": "2026-10-29",
+        "publicHearingDate": "",
+        "asbestosAbatementWindow": ""
+      },
+      "notes": "Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
+      "lng": -95.36147,
+      "lat": 29.67483,
+      "tier": "2",
+      "tierConfirmed": true,
+      "checklist": [
+        {
+          "id": "chk-01",
+          "stage": "Every Check",
+          "activity": "Public Notices",
+          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
+          "typicalTiming": "Any stage.",
+          "resourceLabel": "Texas Public Notices",
+          "resourceUrl": "https://www.texaspublicnotices.com/",
+          "additionalResourceLabel": "Houston Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-02",
+          "stage": "Every Check",
+          "activity": "Site Visit",
+          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
+          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
+          "resourceLabel": "Google Street View",
+          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=1131+VERA+LOU+ST%2C+Houston%2C+TX",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-03",
+          "stage": "Sale & Ownership",
+          "activity": "Deed Transfers & Liens",
+          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
+          "typicalTiming": "Deeds usually record within days of closing.",
+          "resourceLabel": "HC Clerk Real Property",
+          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-04",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
+          "typicalTiming": "As soon as a new entity name surfaces.",
+          "resourceLabel": "Comptroller Entity Search",
+          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
+          "additionalResourceLabel": "Bizapedia Entity Lookup",
+          "additionalResourceUrl": "https://www.bizapedia.com/",
+          "status": "In Progress",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2020-04-22",
+              "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32074046643: AMPLIFIED PROPERTIES LLC (SOS #0803599960), status N, mailing 1300 S FRAZIER ST, CONROE, TX.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-04",
+              "agencyRecordId": "comptroller-franchise:32074046643",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "Franchise #32074046643",
+                  "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32074046643"
+                }
+              ],
+              "discoveredAt": "2026-10-29"
+            },
+            {
+              "date": "2016-11-16",
+              "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32062111565: AMPLIFIED PROPERTIES MANAGEMENT, LLC (SOS #0802584933), status A, mailing 16360 US HIGHWAY 83 N, LAREDO, TX.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-04",
+              "agencyRecordId": "comptroller-franchise:32062111565",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "Franchise #32062111565",
+                  "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32062111565"
+                }
+              ],
+              "discoveredAt": "2026-10-29"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-05",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
+          "typicalTiming": "Owner updates lag the deed by weeks to months.",
+          "resourceLabel": "HCAD Property Search",
+          "resourceUrl": "https://search.hcad.org/",
+          "additionalResourceLabel": "HCAD GIS Parcel Map",
+          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0650100070010",
+          "status": "In Progress",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-29",
+              "result": "[AUTO-SWEEP] HCAD Account 0650100070010 (1131 VERA LOU ST): Owner AMPLIFIED PROPERTIES LLC, Class A1 (Market $174898, Impr $38923, Land $135975), Legal: LT 10 BLK G|BROOKHAVEN R/P.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-05",
+              "agencyRecordId": "hcad:0650100070010:AMPLIFIED PROPERTIES LLC:A1:38923",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "HCAD Map (0650100070010)",
+                  "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0650100070010"
+                }
+              ],
+              "discoveredAt": "2026-10-29"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-06",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
+          "typicalTiming": "Often filed months before construction or demolition permits.",
+          "resourceLabel": "TABC Public Inquiry",
+          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-07",
+          "stage": "Plans & Use",
+          "activity": "Hemp Licensing",
+          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
+          "typicalTiming": "After closing or lease execution for convenience-store operators.",
+          "resourceLabel": "DSHS License Search",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-08",
+          "stage": "Plans & Use",
+          "activity": "Pending Plans (Open Records & ILMS)",
+          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+          "typicalTiming": "Design and plan-review phase after closing.",
+          "resourceLabel": "Public Records (GovQA)",
+          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
+          "additionalResourceLabel": "ILMS Project Status",
+          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-09",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
+          "typicalTiming": "Can be filed before closing with seller consent or during design.",
+          "resourceLabel": "COH Biweekly Plat Reports",
+          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
+          "additionalResourceLabel": "COH Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "Flagged",
+          "lastChecked": "2026-10-15",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-15",
+              "result": "Confirmed from 2026-10-15 Planning Commission Agenda (2026-1495 - Class 3 subdivision replat Public Hearing Notification (C3N)): Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
+              "links": [
+                {
+                  "label": "Plat PDF",
+                  "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D"
+                }
+              ],
+              "source": "plat-seed"
+            },
+            {
+              "date": "2026-10-15",
+              "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1495: 'Amplified Properties' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing).",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-09",
+              "agencyRecordId": "coh-plat:2026-10-15:2026-1495",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "Plat PDF",
+                  "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D"
+                }
+              ],
+              "discoveredAt": "2026-10-29"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-10",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
+          "typicalTiming": "Design phase, often months before building or demolition permits.",
+          "resourceLabel": "TDLR TABS Search",
+          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-11",
+          "stage": "Plans & Use",
+          "activity": "Easements, Abandonments & TIRZ",
+          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
+          "typicalTiming": "Design phase, usually after closing.",
+          "resourceLabel": "City Council Agendas (NovusAgenda)",
+          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-12",
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
+          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
+          "resourceLabel": "TCEQ Central Registry",
+          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-13",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
+          "typicalTiming": "Any stage, especially while a structure is vacant.",
+          "resourceLabel": "311 Service Request Viewer",
+          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
+          "additionalResourceLabel": "Community Code Enforcement",
+          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
+          "status": "Flagged",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-08-23",
+              "result": "[AUTO-SWEEP] Houston 311 Case #2600276436: Dangerous Buildings (Routed) at 1131 VERA LOU ST.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-13",
+              "agencyRecordId": "coh-311:2600276436",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "311 Service Request Viewer",
+                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+                }
+              ],
+              "discoveredAt": "2026-10-29"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-14",
+          "stage": "Demolition Signals",
+          "activity": "Demolition & Building Permits",
+          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
+          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
+          "resourceLabel": "Houston Sold Permits",
+          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-15",
+          "stage": "Demolition Signals",
+          "activity": "Asbestos & Demolition Notification (DSHS)",
+          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
+          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
+          "resourceLabel": "DSHS Notifications",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        }
+      ],
+      "findingsLog": [
+        {
+          "date": "2016-11-16",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
+          "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32062111565: AMPLIFIED PROPERTIES MANAGEMENT, LLC (SOS #0802584933), status A, mailing 16360 US HIGHWAY 83 N, LAREDO, TX.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-10-29",
+          "adverse": false,
+          "agencyRecordId": "comptroller-franchise:32062111565",
+          "links": [
+            {
+              "label": "Franchise #32062111565",
+              "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32062111565"
+            }
+          ],
+          "entryNo": 1
+        },
+        {
+          "date": "2020-04-22",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "checkId": "chk-04",
+          "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32074046643: AMPLIFIED PROPERTIES LLC (SOS #0803599960), status N, mailing 1300 S FRAZIER ST, CONROE, TX.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-10-29",
+          "adverse": false,
+          "agencyRecordId": "comptroller-franchise:32074046643",
+          "links": [
+            {
+              "label": "Franchise #32074046643",
+              "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32074046643"
+            }
+          ],
+          "entryNo": 2
+        },
+        {
+          "date": "2026-08-23",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "checkId": "chk-13",
+          "result": "[AUTO-SWEEP] Houston 311 Case #2600276436: Dangerous Buildings (Routed) at 1131 VERA LOU ST.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-10-29",
+          "adverse": true,
+          "agencyRecordId": "coh-311:2600276436",
+          "links": [
+            {
+              "label": "311 Service Request Viewer",
+              "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+            }
+          ],
+          "entryNo": 3
+        },
+        {
+          "date": "2026-10-15",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "checkId": "chk-09",
+          "result": "Confirmed from 2026-10-15 Planning Commission Agenda (2026-1495 - Class 3 subdivision replat Public Hearing Notification (C3N)): Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
+          "automated": true,
+          "source": "plat-seed",
+          "links": [
+            {
+              "label": "Plat PDF",
+              "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D"
+            }
+          ],
+          "entryNo": 4
+        },
+        {
+          "date": "2026-10-15",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "checkId": "chk-09",
+          "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1495: 'Amplified Properties' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing).",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-10-29",
+          "adverse": false,
+          "agencyRecordId": "coh-plat:2026-10-15:2026-1495",
+          "links": [
+            {
+              "label": "Plat PDF",
+              "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D"
+            }
+          ],
+          "entryNo": 5
+        },
+        {
+          "date": "2026-10-29",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "checkId": "chk-05",
+          "result": "[AUTO-SWEEP] HCAD Account 0650100070010 (1131 VERA LOU ST): Owner AMPLIFIED PROPERTIES LLC, Class A1 (Market $174898, Impr $38923, Land $135975), Legal: LT 10 BLK G|BROOKHAVEN R/P.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-10-29",
+          "adverse": false,
+          "agencyRecordId": "hcad:0650100070010:AMPLIFIED PROPERTIES LLC:A1:38923",
+          "links": [
+            {
+              "label": "HCAD Map (0650100070010)",
+              "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0650100070010"
+            }
+          ],
+          "entryNo": 6
+        }
+      ],
+      "architectEngineer": "Tetra Land Services",
+      "removedFromWatchlist": false,
+      "reportedBy": "",
+      "phPastActions": "",
+      "searchTerms": {
+        "entities": [],
+        "dbas": [],
+        "officers": [],
+        "legalKeywords": [],
+        "altAddresses": [],
+        "projectNumbers": []
+      },
+      "documents": [],
+      "driveLinks": [],
+      "updatedAt": "2026-10-27T20:06:51.741Z",
+      "humanEdited": true,
+      "updatedBy": "emily@preservationhouston.org",
+      "archivedAt": "",
+      "searchTermsUpdatedAt": "2026-10-27T19:16:40.135Z",
+      "driveLinksUpdatedAt": "2026-10-27T19:16:40.135Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
       "id": "plat-2026-1728",
       "appNo": "2026-1728",
       "sourcePlatApp": "2026-1728",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "1131 VERA LOU ST",
       "platProjectName": "Amplified Properties",
@@ -5433,12 +5975,14 @@
       "yearBuilt": 1942,
       "yearRemodeled": null,
       "architect": "",
-      "designation": "Undesignated",
+      "designation": "None found",
       "neighborhood": "SUNNYSIDE",
       "trackerStatus": "Monitoring",
       "threatCategory": "Neighborhood / District Context Impact",
       "ownerOfRecord": "Amplified Properties",
+      "developer": "Amplified Properties",
       "buyerRelatedEntities": "Amplified Properties",
+      "broker": "",
       "lender": "",
       "designFirm": "Tetra Land Services",
       "pcMeetingDate": "2026-10-29",
@@ -5452,7 +5996,7 @@
         "expectedDemolition": "",
         "tdlrScheduledConstruction": ""
       },
-      "notes": "(Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
+      "notes": "(Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "lng": -95.36214,
       "lat": 29.67666,
       "tier": "2",
@@ -5550,7 +6094,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -5583,7 +6127,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -5599,7 +6143,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -5673,7 +6217,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -5689,7 +6233,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -5752,7 +6296,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -5768,7 +6312,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -5784,7 +6328,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -5901,6 +6445,7 @@
         }
       ],
       "architectEngineer": "Tetra Land Services",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -5913,428 +6458,8 @@
       },
       "documents": [],
       "driveLinks": [],
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
-      "autoSweepSchedule": "Daily at 7:00 AM CT"
-    },
-    {
-      "id": "plat-2026-1585",
-      "appNo": "2026-1585",
-      "sourcePlatApp": "2026-1585",
-      "sourceCycleKey": "2026-10-29",
-      "propertyName": "1226 W CLAY ST",
-      "platProjectName": "Montrose Residences",
-      "address": "1226 W CLAY ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0231440000010",
-      "legalDescription": "Montrose / West Clay",
-      "buildingId": "",
-      "yearBuilt": "1930",
-      "yearRemodeled": null,
-      "architect": "",
-      "designation": "None found",
-      "neighborhood": "NEARTOWN - MONTROSE",
-      "trackerStatus": "Active / High Priority",
-      "threatCategory": "Neighborhood / District Context Impact",
-      "ownerOfRecord": "See HCAD Property Search",
-      "buyerRelatedEntities": "",
-      "lender": "",
-      "designFirm": "",
-      "pcMeetingDate": "2026-10-29",
-      "hearingDateIso": "2026-11-12",
-      "keyDates": {
-        "monitoringStarted": "2026-10-27",
-        "targetClosing": "",
-        "planningCommission": "2026-10-29",
-        "publicHearingDate": "2026-11-12",
-        "asbestosAbatementWindow": ""
-      },
-      "notes": "Atlas matched HCAD parcel at 1226 W CLAY ST with a standing structure built in 1930 in Montrose / West Clay. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
-      "lng": -95.39412,
-      "lat": 29.75498,
-      "tier": "2",
-      "tierConfirmed": true,
-      "checklist": [
-        {
-          "id": "chk-01",
-          "stage": "Every Check",
-          "activity": "Public Notices",
-          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
-          "typicalTiming": "Any stage.",
-          "resourceLabel": "Texas Public Notices",
-          "resourceUrl": "https://www.texaspublicnotices.com/",
-          "additionalResourceLabel": "Houston Planning Notices",
-          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-02",
-          "stage": "Every Check",
-          "activity": "Site Visit",
-          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
-          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
-          "resourceLabel": "Google Street View",
-          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=1226+W+CLAY+ST%2C+Houston%2C+TX",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-03",
-          "stage": "Sale & Ownership",
-          "activity": "Deed Transfers & Liens",
-          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
-          "typicalTiming": "Deeds usually record within days of closing.",
-          "resourceLabel": "HC Clerk Real Property",
-          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-04",
-          "stage": "Sale & Ownership",
-          "activity": "Corporate Entity Verification",
-          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
-          "typicalTiming": "As soon as a new entity name surfaces.",
-          "resourceLabel": "Comptroller Entity Search",
-          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
-          "additionalResourceLabel": "Bizapedia Entity Lookup",
-          "additionalResourceUrl": "https://www.bizapedia.com/",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
-        },
-        {
-          "id": "chk-05",
-          "stage": "Sale & Ownership",
-          "activity": "HCAD Ownership & Classification",
-          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
-          "typicalTiming": "Owner updates lag the deed by weeks to months.",
-          "resourceLabel": "HCAD Property Search",
-          "resourceUrl": "https://search.hcad.org/",
-          "additionalResourceLabel": "HCAD GIS Parcel Map",
-          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0231440000010",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
-        },
-        {
-          "id": "chk-06",
-          "stage": "Plans & Use",
-          "activity": "Liquor Licensing",
-          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
-          "typicalTiming": "Often filed months before construction or demolition permits.",
-          "resourceLabel": "TABC Public Inquiry",
-          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
-        },
-        {
-          "id": "chk-07",
-          "stage": "Plans & Use",
-          "activity": "Hemp Licensing",
-          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
-          "typicalTiming": "After closing or lease execution for convenience-store operators.",
-          "resourceLabel": "DSHS License Search",
-          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-08",
-          "stage": "Plans & Use",
-          "activity": "Pending Plans (Open Records & ILMS)",
-          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
-          "typicalTiming": "Design and plan-review phase after closing.",
-          "resourceLabel": "Public Records (GovQA)",
-          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
-          "additionalResourceLabel": "ILMS Project Status",
-          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-09",
-          "stage": "Plans & Use",
-          "activity": "Replats & Variances",
-          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
-          "typicalTiming": "Can be filed before closing with seller consent or during design.",
-          "resourceLabel": "COH Biweekly Plat Reports",
-          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
-          "additionalResourceLabel": "COH Planning Notices",
-          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
-          "status": "Flagged",
-          "lastChecked": "2026-10-29",
-          "automated": true,
-          "checks": [
-            {
-              "date": "2026-10-29",
-              "result": "Confirmed from 2026-10-29 Planning Commission Agenda (2026-1585 - Class 3 Replat with Public Hearing Notice (C3N)): Atlas matched HCAD parcel at 1226 W CLAY ST with a standing structure built in 1930 in Montrose / West Clay.",
-              "links": [
-                {
-                  "label": "Public Hearing Notice PDF",
-                  "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
-                }
-              ],
-              "source": "plat-seed"
-            },
-            {
-              "date": "2026-10-15",
-              "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1585: 'Montrose Residences' (Class 3 Replat with Public Hearing Notice (C3N), IV. Establish Public Hearing Date (Nov 12, 2026)), Public Hearing 2026-11-12.",
-              "source": "auto-sweep",
-              "discoveredAt": "2026-10-27",
-              "agencyRecordId": "coh-plat:2026-10-15:2026-1585",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "Public Hearing Notice PDF",
-                  "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
-                }
-              ]
-            },
-            {
-              "date": "2026-10-29",
-              "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1585: 'Montrose Residences' (Class 3 Replat with Public Hearing Notice (C3N), C. Public Hearing Notice Posted (Hearing: Nov 12, 2026)), Public Hearing 2026-11-12.",
-              "source": "auto-sweep",
-              "discoveredAt": "2026-10-27",
-              "agencyRecordId": "coh-plat:2026-10-29:2026-1585",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "Public Hearing Notice PDF",
-                  "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
-                }
-              ]
-            }
-          ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
-        },
-        {
-          "id": "chk-10",
-          "stage": "Plans & Use",
-          "activity": "Accessibility Registration (TDLR TABS)",
-          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
-          "typicalTiming": "Design phase, often months before building or demolition permits.",
-          "resourceLabel": "TDLR TABS Search",
-          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "Flagged",
-          "lastChecked": "",
-          "automated": true,
-          "checks": [
-            {
-              "date": "2023-02-28",
-              "result": "[AUTO-SWEEP] TDLR TABS #TABS2023012959 (HARLOW) at 1220 W. CLAY STREET 1226 W. CLAY STREET Houston, TX 77019: $282,000 Renovation/Alteration (CONVERT AND REMODEL FORMER RESIDENTIAL INTO COMMERCIAL RESTAURANT AND LOUNGE), Owner JEFF BARATI.",
-              "source": "auto-sweep",
-              "discoveredAt": "2026-10-27",
-              "agencyRecordId": "tdlr-tabs:TABS2023012959",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "TDLR TABS (TABS2023012959)",
-                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2023012959"
-                }
-              ]
-            }
-          ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
-        },
-        {
-          "id": "chk-11",
-          "stage": "Plans & Use",
-          "activity": "Easements, Abandonments & TIRZ",
-          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
-          "typicalTiming": "Design phase, usually after closing.",
-          "resourceLabel": "City Council Agendas (NovusAgenda)",
-          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-12",
-          "stage": "Plans & Use",
-          "activity": "Environmental Registrations",
-          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
-          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
-          "resourceLabel": "TCEQ Central Registry",
-          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-13",
-          "stage": "Demolition Signals",
-          "activity": "Code Complaints & Dangerous Buildings",
-          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
-          "typicalTiming": "Any stage, especially while a structure is vacant.",
-          "resourceLabel": "311 Service Request Viewer",
-          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
-          "additionalResourceLabel": "Community Code Enforcement",
-          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
-        },
-        {
-          "id": "chk-14",
-          "stage": "Demolition Signals",
-          "activity": "Demolition & Building Permits",
-          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
-          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
-          "resourceLabel": "Houston Sold Permits",
-          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
-        },
-        {
-          "id": "chk-15",
-          "stage": "Demolition Signals",
-          "activity": "Asbestos & Demolition Notification (DSHS)",
-          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
-          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
-          "resourceLabel": "DSHS Notifications",
-          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
-        }
-      ],
-      "findingsLog": [
-        {
-          "date": "2023-02-28",
-          "stage": "Plans & Use",
-          "activity": "Accessibility Registration (TDLR TABS)",
-          "checkId": "chk-10",
-          "result": "[AUTO-SWEEP] TDLR TABS #TABS2023012959 (HARLOW) at 1220 W. CLAY STREET 1226 W. CLAY STREET Houston, TX 77019: $282,000 Renovation/Alteration (CONVERT AND REMODEL FORMER RESIDENTIAL INTO COMMERCIAL RESTAURANT AND LOUNGE), Owner JEFF BARATI.",
-          "automated": true,
-          "source": "auto-sweep",
-          "discoveredAt": "2026-10-27",
-          "adverse": true,
-          "agencyRecordId": "tdlr-tabs:TABS2023012959",
-          "links": [
-            {
-              "label": "TDLR TABS (TABS2023012959)",
-              "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2023012959"
-            }
-          ],
-          "entryNo": 1
-        },
-        {
-          "date": "2026-10-15",
-          "stage": "Plans & Use",
-          "activity": "Replats & Variances",
-          "checkId": "chk-09",
-          "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1585: 'Montrose Residences' (Class 3 Replat with Public Hearing Notice (C3N), IV. Establish Public Hearing Date (Nov 12, 2026)), Public Hearing 2026-11-12.",
-          "automated": true,
-          "source": "auto-sweep",
-          "discoveredAt": "2026-10-27",
-          "adverse": true,
-          "agencyRecordId": "coh-plat:2026-10-15:2026-1585",
-          "links": [
-            {
-              "label": "Public Hearing Notice PDF",
-              "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
-            }
-          ],
-          "entryNo": 2
-        },
-        {
-          "date": "2026-10-29",
-          "stage": "Plans & Use",
-          "activity": "Replats & Variances",
-          "checkId": "chk-09",
-          "result": "Confirmed from 2026-10-29 Planning Commission Agenda (2026-1585 - Class 3 Replat with Public Hearing Notice (C3N)): Atlas matched HCAD parcel at 1226 W CLAY ST with a standing structure built in 1930 in Montrose / West Clay.",
-          "automated": true,
-          "source": "plat-seed",
-          "links": [
-            {
-              "label": "Public Hearing Notice PDF",
-              "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
-            }
-          ],
-          "entryNo": 3
-        },
-        {
-          "date": "2026-10-29",
-          "stage": "Plans & Use",
-          "activity": "Replats & Variances",
-          "checkId": "chk-09",
-          "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1585: 'Montrose Residences' (Class 3 Replat with Public Hearing Notice (C3N), C. Public Hearing Notice Posted (Hearing: Nov 12, 2026)), Public Hearing 2026-11-12.",
-          "automated": true,
-          "source": "auto-sweep",
-          "discoveredAt": "2026-10-27",
-          "adverse": true,
-          "agencyRecordId": "coh-plat:2026-10-29:2026-1585",
-          "links": [
-            {
-              "label": "Public Hearing Notice PDF",
-              "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
-            }
-          ],
-          "entryNo": 4
-        }
-      ],
-      "architectEngineer": "",
-      "reportedBy": "",
-      "phPastActions": "",
-      "searchTerms": {
-        "entities": [],
-        "dbas": [],
-        "officers": [],
-        "legalKeywords": [],
-        "altAddresses": [],
-        "projectNumbers": []
-      },
-      "documents": [],
-      "driveLinks": [],
-      "updatedAt": "2026-10-28T04:21:37.686Z",
-      "updatedBy": "Emily Ardoin",
-      "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "updatedAt": "2026-10-27T20:06:51.741Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -6401,7 +6526,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -6468,7 +6593,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -6501,7 +6626,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -6517,7 +6642,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -6563,7 +6688,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -6579,7 +6704,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -6625,7 +6750,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -6641,7 +6766,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -6657,7 +6782,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -6680,12 +6805,17 @@
           ],
           "entryNo": 1
         }
-      ]
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-DPV-26075937",
       "appNo": "DPV-26075937",
       "sourcePlatApp": "DPV-26075937",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "1501 Wichman Street",
       "platProjectName": "1501 Wichman Street",
@@ -6701,8 +6831,10 @@
       "neighborhood": "WASHINGTON AVENUE COALITION / MEMORIAL PARK",
       "trackerStatus": "Monitoring",
       "threatCategory": "Setback / Walkable Realm Variance",
-      "ownerOfRecord": "See HCAD Property Search",
+      "ownerOfRecord": "Marek & Bailey Walker (HCAD shows father Brett Walker)",
+      "developer": "Marek & Bailey Walker (HCAD shows father Brett Walker)",
       "buyerRelatedEntities": "Eric Hughes",
+      "broker": "",
       "lender": "",
       "designFirm": "Eric Hughes",
       "pcMeetingDate": "2026-10-29",
@@ -6779,7 +6911,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -6795,7 +6927,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -6811,7 +6943,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -6869,7 +7001,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -6885,7 +7017,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -6931,7 +7063,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -6947,7 +7079,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -6963,7 +7095,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -6985,6 +7117,7 @@
         }
       ],
       "architectEngineer": "Eric Hughes",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -7002,13 +7135,14 @@
       "archivedAt": "",
       "searchTermsUpdatedAt": "2026-10-27T19:55:30.869Z",
       "driveLinksUpdatedAt": "2026-10-27T19:55:30.869Z",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
       "id": "plat-2026-1704",
       "appNo": "2026-1704",
       "sourcePlatApp": "2026-1704",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "Hardy Park Plaza",
       "platProjectName": "Hardy Park Plaza",
@@ -7025,7 +7159,9 @@
       "trackerStatus": "Monitoring",
       "threatCategory": "Lot Split / Subdividing Historic Lot",
       "ownerOfRecord": "New Era Development & Land Services",
+      "developer": "New Era Development & Land Services",
       "buyerRelatedEntities": "New Era Development & Land Services, Nahom Tesfa, New Era Development & Land Services",
+      "broker": "",
       "lender": "",
       "designFirm": "New Era Development & Land Services",
       "pcMeetingDate": "2026-10-29",
@@ -7102,7 +7238,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -7135,7 +7271,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -7151,7 +7287,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -7230,7 +7366,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -7246,7 +7382,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -7292,7 +7428,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -7308,7 +7444,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -7324,7 +7460,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -7394,6 +7530,7 @@
         }
       ],
       "architectEngineer": "New Era Development & Land Services",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -7409,20 +7546,21 @@
       "updatedAt": "2026-10-27T21:15:03.254Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
       "id": "plat-2026-1671",
       "appNo": "2026-1671",
       "sourcePlatApp": "2026-1671",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "Houston Heights partial replat no 33",
       "platProjectName": "Houston Heights partial replat no 33",
       "address": "239 W  20TH ST; 235 W  20TH ST",
       "secondaryAddresses": [
-        "239 W  20TH ST",
-        "235 W  20TH ST"
+        "239 W 20TH ST",
+        "235 W 20TH ST"
       ],
       "hcadAccount": "0200820000001,0200820000051",
       "legalDescription": "Houston Heights",
@@ -7435,7 +7573,9 @@
       "trackerStatus": "Monitoring",
       "threatCategory": "Neighborhood / District Context Impact",
       "ownerOfRecord": "Kimko Realty Corporation",
+      "developer": "Kimko Realty Corporation",
       "buyerRelatedEntities": "Kimko Realty Corporation, Cathy Fontenot, Pape-Dawson",
+      "broker": "",
       "lender": "",
       "designFirm": "Pape-Dawson",
       "pcMeetingDate": "2026-10-29",
@@ -7545,7 +7685,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -7594,7 +7734,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -7627,7 +7767,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -7706,7 +7846,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -7722,7 +7862,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -7785,7 +7925,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -7801,7 +7941,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -7817,7 +7957,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -7982,6 +8122,7 @@
         }
       ],
       "architectEngineer": "Pape-Dawson",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -7997,13 +8138,14 @@
       "updatedAt": "2026-10-27T22:40:40.347Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
       "id": "plat-2026-1641",
       "appNo": "2026-1641",
       "sourcePlatApp": "2026-1641",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "Wheeler Residences",
       "platProjectName": "Wheeler Residences",
@@ -8020,7 +8162,9 @@
       "trackerStatus": "Monitoring",
       "threatCategory": "Neighborhood / District Context Impact",
       "ownerOfRecord": "See HCAD Property Search",
+      "developer": "",
       "buyerRelatedEntities": "",
+      "broker": "",
       "lender": "",
       "designFirm": "",
       "pcMeetingDate": "2026-10-29",
@@ -8097,7 +8241,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -8130,7 +8274,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -8146,7 +8290,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -8241,7 +8385,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -8257,7 +8401,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -8303,7 +8447,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -8319,7 +8463,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -8335,7 +8479,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -8424,6 +8568,7 @@
         }
       ],
       "architectEngineer": "",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -8439,13 +8584,14 @@
       "updatedAt": "2026-10-27T22:23:50.707Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
       "id": "plat-DPV-323-WYCLIFFE",
       "appNo": "DPV-323-WYCLIFFE",
       "sourcePlatApp": "DPV-323-WYCLIFFE",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-15",
       "propertyName": "323 Wycliffe Drive",
       "platProjectName": "323 Wycliffe Drive",
@@ -8462,7 +8608,9 @@
       "trackerStatus": "Active / High Priority",
       "threatCategory": "Significant Building Threatened",
       "ownerOfRecord": "See HCAD Property Search",
+      "developer": "",
       "buyerRelatedEntities": "Development Plat Variance Applicant",
+      "broker": "",
       "lender": "",
       "designFirm": "Development Plat Variance Applicant",
       "pcMeetingDate": "2026-10-15",
@@ -8539,7 +8687,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -8572,7 +8720,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -8588,7 +8736,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -8661,7 +8809,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -8677,7 +8825,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -8723,7 +8871,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -8739,7 +8887,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -8755,7 +8903,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -8816,6 +8964,7 @@
         }
       ],
       "architectEngineer": "Development Plat Variance Applicant",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -8829,17 +8978,19 @@
       "documents": [],
       "driveLinks": [],
       "updatedAt": "2026-10-28T16:44:18.501Z",
+      "humanEdited": true,
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
       "searchTermsUpdatedAt": "2026-10-28T01:02:42.878Z",
       "driveLinksUpdatedAt": "2026-10-28T01:02:42.878Z",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
       "id": "plat-2026-1739",
       "appNo": "2026-1739",
       "sourcePlatApp": "2026-1739",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "Aeric Oaks",
       "platProjectName": "Aeric Oaks",
@@ -8856,7 +9007,9 @@
       "trackerStatus": "Monitoring",
       "threatCategory": "Significant Building Threatened",
       "ownerOfRecord": "DIVYA Group of Companies LLC",
+      "developer": "DIVYA Group of Companies LLC",
       "buyerRelatedEntities": "DIVYA Group of Companies LLC, Karla Martinez, Pioneer Engineering, LLC",
+      "broker": "",
       "lender": "",
       "designFirm": "Pioneer Engineering, LLC",
       "pcMeetingDate": "2026-10-29",
@@ -8950,7 +9103,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -8983,7 +9136,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -8999,7 +9152,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -9078,7 +9231,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -9111,7 +9264,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -9158,13 +9311,13 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-04-26",
-              "result": "[AUTO-SWEEP] Houston 311 Case #2600133400: Dangerous Buildings (Routed) at 50 BRIAR HOLLOW LN.",
+              "date": "2026-04-02",
+              "result": "[AUTO-SWEEP] Houston 311 Case #2600108738: Building Code Violation (Routed) at 50 BRIAR HOLLOW LN.",
               "source": "auto-sweep",
               "automated": true,
               "checkId": "chk-13",
-              "agencyRecordId": "coh-311:2600133400",
-              "adverse": true,
+              "agencyRecordId": "coh-311:2600108738",
+              "adverse": false,
               "links": [
                 {
                   "label": "311 Service Request Viewer",
@@ -9175,12 +9328,28 @@
             },
             {
               "date": "2026-10-29",
-              "result": "[AUTO-SWEEP] Houston 311 Case #2600361191: Building Code Violation (Routed) at 50 BRIAR HOLLOW LN.",
+              "result": "[AUTO-SWEEP] Houston 311 Case #2600361191: Building Code Violation (Service Completed) at 50 BRIAR HOLLOW LN.",
               "source": "auto-sweep",
               "automated": true,
               "checkId": "chk-13",
               "agencyRecordId": "coh-311:2600361191",
               "adverse": false,
+              "links": [
+                {
+                  "label": "311 Service Request Viewer",
+                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+                }
+              ],
+              "discoveredAt": "2026-10-29"
+            },
+            {
+              "date": "2026-04-26",
+              "result": "[AUTO-SWEEP] Houston 311 Case #2600133400: Dangerous Buildings (Routed) at 50 BRIAR HOLLOW LN.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-13",
+              "agencyRecordId": "coh-311:2600133400",
+              "adverse": true,
               "links": [
                 {
                   "label": "311 Service Request Viewer",
@@ -9204,25 +9373,9 @@
                 }
               ],
               "discoveredAt": "2026-10-29"
-            },
-            {
-              "date": "2026-04-02",
-              "result": "[AUTO-SWEEP] Houston 311 Case #2600108738: Building Code Violation (Routed) at 50 BRIAR HOLLOW LN.",
-              "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-13",
-              "agencyRecordId": "coh-311:2600108738",
-              "adverse": false,
-              "links": [
-                {
-                  "label": "311 Service Request Viewer",
-                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
-                }
-              ],
-              "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -9238,7 +9391,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -9254,7 +9407,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -9422,7 +9575,7 @@
           "stage": "Demolition Signals",
           "activity": "Code Complaints & Dangerous Buildings",
           "checkId": "chk-13",
-          "result": "[AUTO-SWEEP] Houston 311 Case #2600361191: Building Code Violation (Routed) at 50 BRIAR HOLLOW LN.",
+          "result": "[AUTO-SWEEP] Houston 311 Case #2600361191: Building Code Violation (Service Completed) at 50 BRIAR HOLLOW LN.",
           "automated": true,
           "source": "auto-sweep",
           "discoveredAt": "2026-10-29",
@@ -9438,6 +9591,7 @@
         }
       ],
       "architectEngineer": "Pioneer Engineering, LLC",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -9453,7 +9607,7 @@
       "updatedAt": "2026-10-29T00:19:17.978Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -9520,7 +9674,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -9587,7 +9741,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -9620,7 +9774,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -9636,7 +9790,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -9682,7 +9836,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -9698,7 +9852,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -9744,7 +9898,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -9760,7 +9914,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -9776,7 +9930,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -9799,31 +9953,38 @@
           ],
           "entryNo": 1
         }
-      ]
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-PH-135",
       "appNo": "PH-135",
       "sourcePlatApp": "PH-135",
+      "linkedAppNo": "2026-1522",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "Eastwood Street Villas",
       "platProjectName": "Eastwood Street Villas",
       "address": "7108 EASTWOOD",
       "secondaryAddresses": [],
       "hcadAccount": "0332280550022",
-      "legalDescription": "Eastwood Street Villas",
+      "legalDescription": "Foster Place Addition",
       "buildingId": "",
       "yearBuilt": "1949",
       "yearRemodeled": null,
       "architect": "",
       "designation": "None found",
-      "neighborhood": "",
+      "neighborhood": "GREATER OST / SOUTH UNION",
       "trackerStatus": "Monitoring",
       "threatCategory": "Neighborhood / District Context Impact",
-      "ownerOfRecord": "See HCAD Property Search",
-      "buyerRelatedEntities": "",
+      "ownerOfRecord": "SLP Real State Development Investments, LLC",
+      "developer": "SLP Real State Development Investments, LLC",
+      "buyerRelatedEntities": "SLP Real State Development Investments, LLC",
+      "broker": "",
       "lender": "",
-      "designFirm": "",
+      "designFirm": "HRS and Associates, LLC",
       "pcMeetingDate": "2026-10-29",
       "hearingDateIso": "2026-12-03",
       "keyDates": {
@@ -9834,8 +9995,8 @@
         "asbestosAbatementWindow": ""
       },
       "notes": "EA: Building was altered in mid-20th century (maybe 1960s). Block of small-scale residences, fairly intact.",
-      "lng": -95.33217,
-      "lat": 29.73873,
+      "lng": -95.358,
+      "lat": 29.68684,
       "tier": "2",
       "tierConfirmed": true,
       "checklist": [
@@ -9898,7 +10059,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -9931,7 +10092,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -9947,7 +10108,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -9996,7 +10157,12 @@
             {
               "date": "2026-10-29",
               "result": "Confirmed from 2026-10-29 Planning Commission Agenda (PH-135 - Class 3 Replat - Establish Public Hearing Date (C3N)): EA: Building was altered in mid-20th century (maybe 1960s). Block of small-scale residences, fairly intact.",
-              "links": [],
+              "links": [
+                {
+                  "label": "Plat PDF",
+                  "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93804/OriginalFiles/Eastwood_Street_Villas-Replat.pdf?sv=2021-08-06&se=2051-09-18T15%3A24%3A56Z&sr=b&sp=r&sig=V3UCRAQIvot98Bn%2BAV%2F%2F8Bdqdxmz06xb2hnTkAIbwLo%3D"
+                }
+              ],
               "source": "plat-seed"
             },
             {
@@ -10005,7 +10171,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -10021,7 +10187,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -10067,7 +10233,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -10083,7 +10249,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -10099,7 +10265,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -10130,6 +10296,12 @@
           "result": "Confirmed from 2026-10-29 Planning Commission Agenda (PH-135 - Class 3 Replat - Establish Public Hearing Date (C3N)): EA: Building was altered in mid-20th century (maybe 1960s). Block of small-scale residences, fairly intact.",
           "automated": true,
           "source": "plat-seed",
+          "links": [
+            {
+              "label": "Plat PDF",
+              "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93804/OriginalFiles/Eastwood_Street_Villas-Replat.pdf?sv=2021-08-06&se=2051-09-18T15%3A24%3A56Z&sr=b&sp=r&sig=V3UCRAQIvot98Bn%2BAV%2F%2F8Bdqdxmz06xb2hnTkAIbwLo%3D"
+            }
+          ],
           "entryNo": 2
         },
         {
@@ -10143,7 +10315,8 @@
           "entryNo": 3
         }
       ],
-      "architectEngineer": "",
+      "architectEngineer": "HRS and Associates, LLC",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -10159,13 +10332,14 @@
       "updatedAt": "2026-10-29T01:08:02.703Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
       "id": "plat-2026-1660",
       "appNo": "2026-1660",
       "sourcePlatApp": "2026-1660",
+      "linkedAppNo": "",
       "sourceCycleKey": "2026-10-29",
       "propertyName": "Granger Place",
       "platProjectName": "Granger Place",
@@ -10182,7 +10356,9 @@
       "trackerStatus": "Monitoring",
       "threatCategory": "Significant Building Threatened",
       "ownerOfRecord": "Revolution Homes",
+      "developer": "Revolution Homes",
       "buyerRelatedEntities": "Revolution Homes, Mary Villareal, The Interfield Group",
+      "broker": "",
       "lender": "",
       "designFirm": "The Interfield Group",
       "pcMeetingDate": "2026-10-29",
@@ -10259,7 +10435,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-05",
@@ -10292,7 +10468,7 @@
               "discoveredAt": "2026-10-29"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-06",
@@ -10308,7 +10484,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-07",
@@ -10371,7 +10547,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-10",
@@ -10387,7 +10563,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-11",
@@ -10433,7 +10609,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-14",
@@ -10449,7 +10625,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         },
         {
           "id": "chk-15",
@@ -10465,7 +10641,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-10-29T17:51:39Z"
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
         }
       ],
       "findingsLog": [
@@ -10516,6 +10692,7 @@
         }
       ],
       "architectEngineer": "The Interfield Group",
+      "removedFromWatchlist": false,
       "reportedBy": "",
       "phPastActions": "",
       "searchTerms": {
@@ -10531,8 +10708,357 @@
       "updatedAt": "2026-10-28T23:15:25.418Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
+    },
+    {
+      "id": "plat-DPV-26080390",
+      "propertyName": "3747 Dreyfus Street A and B",
+      "platProjectName": "3747 Dreyfus Street A and B",
+      "address": "3747 DREYFUS ST",
+      "secondaryAddresses": [],
+      "hcadAccount": "0391930200024",
+      "legalDescription": "",
+      "buildingId": "",
+      "yearBuilt": "1950",
+      "yearRemodeled": "",
+      "architect": "",
+      "designation": "None found",
+      "ownerOfRecord": "",
+      "buyerRelatedEntities": "",
+      "lender": "",
+      "designFirm": "",
+      "architectEngineer": "",
+      "tier": "3",
+      "tierConfirmed": true,
+      "threatCategory": "Neighborhood / District Context Impact",
+      "trackerStatus": "Lost",
+      "neighborhood": "",
+      "reportedBy": "",
+      "phPastActions": "",
+      "ilmsProjectNo": "",
+      "keyDates": {
+        "monitoringStarted": "2026-10-16",
+        "targetClosing": "",
+        "planningCommission": "",
+        "publicHearingDate": "2026-11-12",
+        "asbestosAbatementWindow": ""
+      },
+      "notes": "(EA NOTE: DEMO PERMIT ISSUED 9/4/2026) Section K Development Plat Variance (DPV-26080390) in Houston. The applicant is requesting a 5-foot building line in lieu of the ordinance required 10-foot building line along Nathan Street, an undeveloped street, as well as to not dedicate 5 feet of right-of-way to Nathan and Dreyfus Streets, for a new duplex.",
+      "lng": -95.36635,
+      "lat": 29.68774,
+      "coordSource": "",
+      "subdivisionMatch": "",
+      "subdivisionId": "",
+      "superNeighborhoodMatch": "",
+      "superNeighborhoodId": "",
+      "appNo": "DPV-26080390",
+      "sourcePlatApp": "DPV-26080390",
+      "section": "K. Development Plat Variances",
+      "source": "",
+      "sourceCycleKey": "",
+      "pcMeetingDate": "",
+      "hearingDateIso": "2026-11-12",
+      "platPdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26080390_3747-Dreyfus-Street_notice.pdf",
+      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26080390_3747-Dreyfus-Street_notice.pdf",
+      "continuityKey": "",
+      "priorCycles": [],
+      "searchTerms": {
+        "entities": [],
+        "dbas": [],
+        "officers": [],
+        "legalKeywords": [],
+        "altAddresses": [],
+        "projectNumbers": []
+      },
+      "searchTermsUpdatedAt": "",
+      "driveLinks": [],
+      "documents": [],
+      "driveLinksUpdatedAt": "",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
+      "autoSweepSchedule": "Daily at 7:00 AM CT",
+      "autoSweepSummary": null,
+      "humanEdited": true,
+      "archivedAt": "",
+      "updatedAt": "2026-10-28T01:07:57.304Z",
+      "updatedBy": "emily@preservationhouston.org",
+      "checklist": [
+        {
+          "id": "chk-01",
+          "stage": "Every Check",
+          "activity": "Public Notices",
+          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
+          "typicalTiming": "Any stage.",
+          "resourceLabel": "Texas Public Notices",
+          "resourceUrl": "https://www.texaspublicnotices.com/",
+          "additionalResourceLabel": "Houston Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-02",
+          "stage": "Every Check",
+          "activity": "Site Visit",
+          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
+          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
+          "resourceLabel": "Google Street View",
+          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=3747+DREYFUS+ST%2C+Houston%2C+TX",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-03",
+          "stage": "Sale & Ownership",
+          "activity": "Deed Transfers & Liens",
+          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
+          "typicalTiming": "Deeds usually record within days of closing.",
+          "resourceLabel": "HC Clerk Real Property",
+          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-04",
+          "stage": "Sale & Ownership",
+          "activity": "Corporate Entity Verification",
+          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
+          "typicalTiming": "As soon as a new entity name surfaces.",
+          "resourceLabel": "Comptroller Entity Search",
+          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
+          "additionalResourceLabel": "Bizapedia Entity Lookup",
+          "additionalResourceUrl": "https://www.bizapedia.com/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-05",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
+          "typicalTiming": "Owner updates lag the deed by weeks to months.",
+          "resourceLabel": "HCAD Property Search",
+          "resourceUrl": "https://search.hcad.org/",
+          "additionalResourceLabel": "HCAD GIS Parcel Map",
+          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0391930200024",
+          "status": "In Progress",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [
+            {
+              "date": "2026-10-29",
+              "result": "[AUTO-SWEEP] HCAD Account 0391930200024 (3747 DREYFUS ST): Owner LI CHIANG KAI-LING, Class A1 (Market $143489, Impr $23489, Land $120000), Legal: LT 24 BLK 20|SOUTHLAWN.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-05",
+              "agencyRecordId": "hcad:0391930200024:LI CHIANG KAI-LING:A1:23489",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "HCAD Map (0391930200024)",
+                  "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0391930200024"
+                }
+              ],
+              "discoveredAt": "2026-10-29"
+            }
+          ],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-06",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
+          "typicalTiming": "Often filed months before construction or demolition permits.",
+          "resourceLabel": "TABC Public Inquiry",
+          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-07",
+          "stage": "Plans & Use",
+          "activity": "Hemp Licensing",
+          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
+          "typicalTiming": "After closing or lease execution for convenience-store operators.",
+          "resourceLabel": "DSHS License Search",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-08",
+          "stage": "Plans & Use",
+          "activity": "Pending Plans (Open Records & ILMS)",
+          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+          "typicalTiming": "Design and plan-review phase after closing.",
+          "resourceLabel": "Public Records (GovQA)",
+          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
+          "additionalResourceLabel": "ILMS Project Status",
+          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-09",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
+          "typicalTiming": "Can be filed before closing with seller consent or during design.",
+          "resourceLabel": "COH Biweekly Plat Reports",
+          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
+          "additionalResourceLabel": "COH Planning Notices",
+          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-10",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
+          "typicalTiming": "Design phase, often months before building or demolition permits.",
+          "resourceLabel": "TDLR TABS Search",
+          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-11",
+          "stage": "Plans & Use",
+          "activity": "Easements, Abandonments & TIRZ",
+          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
+          "typicalTiming": "Design phase, usually after closing.",
+          "resourceLabel": "City Council Agendas (NovusAgenda)",
+          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-12",
+          "stage": "Plans & Use",
+          "activity": "Environmental Registrations",
+          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
+          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
+          "resourceLabel": "TCEQ Central Registry",
+          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": false,
+          "checks": []
+        },
+        {
+          "id": "chk-13",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
+          "typicalTiming": "Any stage, especially while a structure is vacant.",
+          "resourceLabel": "311 Service Request Viewer",
+          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
+          "additionalResourceLabel": "Community Code Enforcement",
+          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-14",
+          "stage": "Demolition Signals",
+          "activity": "Demolition & Building Permits",
+          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
+          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
+          "resourceLabel": "Houston Sold Permits",
+          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        },
+        {
+          "id": "chk-15",
+          "stage": "Demolition Signals",
+          "activity": "Asbestos & Demolition Notification (DSHS)",
+          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
+          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
+          "resourceLabel": "DSHS Notifications",
+          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
+          "additionalResourceLabel": "",
+          "additionalResourceUrl": "",
+          "status": "To Do",
+          "lastChecked": "",
+          "automated": true,
+          "checks": [],
+          "lastAutoSweepAt": "2026-10-29T21:26:08Z"
+        }
+      ],
+      "findingsLog": [
+        {
+          "date": "2026-10-29",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "checkId": "chk-05",
+          "result": "[AUTO-SWEEP] HCAD Account 0391930200024 (3747 DREYFUS ST): Owner LI CHIANG KAI-LING, Class A1 (Market $143489, Impr $23489, Land $120000), Legal: LT 24 BLK 20|SOUTHLAWN.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-10-29",
+          "adverse": false,
+          "agencyRecordId": "hcad:0391930200024:LI CHIANG KAI-LING:A1:23489",
+          "links": [
+            {
+              "label": "HCAD Map (0391930200024)",
+              "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0391930200024"
+            }
+          ],
+          "entryNo": 1
+        }
+      ],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-DPV-2026-1723",
@@ -10598,7 +11124,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "2026-10-28T01:45:38.049Z",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -10832,321 +11358,11 @@
           "checks": []
         }
       ],
-      "findingsLog": []
-    },
-    {
-      "id": "plat-2026-1495",
-      "propertyName": "Amplified Properties",
-      "platProjectName": "Amplified Properties",
-      "address": "1131 VERA LOU ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0650100070010",
-      "legalDescription": "",
-      "buildingId": "",
-      "yearBuilt": "1942",
-      "yearRemodeled": "",
-      "architect": "",
-      "designation": "None found",
-      "ownerOfRecord": "Amplified Properties",
-      "buyerRelatedEntities": "Amplified Properties, Paul Coyne, Tetra Land Services",
-      "lender": "",
-      "designFirm": "",
-      "architectEngineer": "",
-      "tier": "3",
-      "tierConfirmed": true,
-      "threatCategory": "Neighborhood / District Context Impact",
-      "trackerStatus": "Archived (Tier 3)",
-      "neighborhood": "SUNNYSIDE",
-      "reportedBy": "",
-      "phPastActions": "",
-      "ilmsProjectNo": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "targetClosing": "",
-        "planningCommission": "2026-10-29",
-        "publicHearingDate": "",
-        "asbestosAbatementWindow": ""
-      },
-      "notes": "Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
-      "lng": -95.36147,
-      "lat": 29.67483,
-      "coordSource": "",
-      "subdivisionMatch": "",
-      "subdivisionId": "",
-      "superNeighborhoodMatch": "",
-      "superNeighborhoodId": "",
-      "appNo": "2026-1495",
-      "sourcePlatApp": "2026-1495",
-      "section": "A. Consent",
-      "source": "plat_confirmed",
-      "sourceCycleKey": "2026-10-29",
-      "pcMeetingDate": "2026-10-29",
-      "hearingDateIso": "",
-      "platPdf": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94039/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_-_FOR_SUBMITTAL_R06.pdf?sv=2021-08-06&se=2051-10-19T15%3A10%3A30Z&sr=b&sp=r&sig=Is3VbglMakn3NhVB%2BO1Qs39g2IauhUnWLAZuvIsp4qc%3D",
-      "noticePdf": "",
-      "continuityKey": "",
-      "priorCycles": [
-        {
-          "cycleKey": "2026-10-15",
-          "app": "2026-1495",
-          "name": "Amplified Properties",
-          "deferral": "",
-          "section": "C. Public Hearing",
-          "tier": "3",
-          "tierConfirmed": true,
-          "hcad": "0650100070010",
-          "address": "1131 VERA LOU ST",
-          "yearBuilt": "1942",
-          "why": "Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition."
-        }
-      ],
-      "searchTerms": {
-        "entities": [],
-        "dbas": [],
-        "officers": [],
-        "legalKeywords": [],
-        "altAddresses": [],
-        "projectNumbers": []
-      },
-      "searchTermsUpdatedAt": "2026-10-27T19:16:40.135Z",
-      "driveLinks": [],
-      "documents": [],
-      "driveLinksUpdatedAt": "2026-10-27T19:16:40.135Z",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
-      "autoSweepSchedule": "Daily at 7:00 AM CT",
-      "autoSweepSummary": null,
-      "humanEdited": true,
-      "archivedAt": "",
-      "updatedAt": "2026-10-27T20:06:51.741Z",
-      "updatedBy": "emily@preservationhouston.org",
-      "checklist": [
-        {
-          "id": "chk-01",
-          "stage": "Every Check",
-          "activity": "Public Notices",
-          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
-          "typicalTiming": "Any stage.",
-          "resourceLabel": "Texas Public Notices",
-          "resourceUrl": "https://www.texaspublicnotices.com/",
-          "additionalResourceLabel": "Houston Planning Notices",
-          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-02",
-          "stage": "Every Check",
-          "activity": "Site Visit",
-          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
-          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
-          "resourceLabel": "Google Street View",
-          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=1131+VERA+LOU+ST%2C+Houston%2C+TX",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-03",
-          "stage": "Sale & Ownership",
-          "activity": "Deed Transfers & Liens",
-          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
-          "typicalTiming": "Deeds usually record within days of closing.",
-          "resourceLabel": "HC Clerk Real Property",
-          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-04",
-          "stage": "Sale & Ownership",
-          "activity": "Corporate Entity Verification",
-          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
-          "typicalTiming": "As soon as a new entity name surfaces.",
-          "resourceLabel": "Comptroller Entity Search",
-          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
-          "additionalResourceLabel": "Bizapedia Entity Lookup",
-          "additionalResourceUrl": "https://www.bizapedia.com/",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-05",
-          "stage": "Sale & Ownership",
-          "activity": "HCAD Ownership & Classification",
-          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
-          "typicalTiming": "Owner updates lag the deed by weeks to months.",
-          "resourceLabel": "HCAD Property Search",
-          "resourceUrl": "https://search.hcad.org/",
-          "additionalResourceLabel": "HCAD GIS Parcel Map",
-          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0650100070010",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-06",
-          "stage": "Plans & Use",
-          "activity": "Liquor Licensing",
-          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
-          "typicalTiming": "Often filed months before construction or demolition permits.",
-          "resourceLabel": "TABC Public Inquiry",
-          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-07",
-          "stage": "Plans & Use",
-          "activity": "Hemp Licensing",
-          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
-          "typicalTiming": "After closing or lease execution for convenience-store operators.",
-          "resourceLabel": "DSHS License Search",
-          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-08",
-          "stage": "Plans & Use",
-          "activity": "Pending Plans (Open Records & ILMS)",
-          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
-          "typicalTiming": "Design and plan-review phase after closing.",
-          "resourceLabel": "Public Records (GovQA)",
-          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
-          "additionalResourceLabel": "ILMS Project Status",
-          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-09",
-          "stage": "Plans & Use",
-          "activity": "Replats & Variances",
-          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
-          "typicalTiming": "Can be filed before closing with seller consent or during design.",
-          "resourceLabel": "COH Biweekly Plat Reports",
-          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
-          "additionalResourceLabel": "COH Planning Notices",
-          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-10",
-          "stage": "Plans & Use",
-          "activity": "Accessibility Registration (TDLR TABS)",
-          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
-          "typicalTiming": "Design phase, often months before building or demolition permits.",
-          "resourceLabel": "TDLR TABS Search",
-          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-11",
-          "stage": "Plans & Use",
-          "activity": "Easements, Abandonments & TIRZ",
-          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
-          "typicalTiming": "Design phase, usually after closing.",
-          "resourceLabel": "City Council Agendas (NovusAgenda)",
-          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-12",
-          "stage": "Plans & Use",
-          "activity": "Environmental Registrations",
-          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
-          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
-          "resourceLabel": "TCEQ Central Registry",
-          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-13",
-          "stage": "Demolition Signals",
-          "activity": "Code Complaints & Dangerous Buildings",
-          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
-          "typicalTiming": "Any stage, especially while a structure is vacant.",
-          "resourceLabel": "311 Service Request Viewer",
-          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
-          "additionalResourceLabel": "Community Code Enforcement",
-          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-14",
-          "stage": "Demolition Signals",
-          "activity": "Demolition & Building Permits",
-          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
-          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
-          "resourceLabel": "Houston Sold Permits",
-          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-15",
-          "stage": "Demolition Signals",
-          "activity": "Asbestos & Demolition Notification (DSHS)",
-          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
-          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
-          "resourceLabel": "DSHS Notifications",
-          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        }
-      ],
-      "findingsLog": []
+      "findingsLog": [],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-2026-1625",
@@ -11212,7 +11428,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -11446,7 +11662,11 @@
           "checks": []
         }
       ],
-      "findingsLog": []
+      "findingsLog": [],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-2026-1484",
@@ -11512,7 +11732,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -11746,307 +11966,11 @@
           "checks": []
         }
       ],
-      "findingsLog": []
-    },
-    {
-      "id": "plat-DPV-26080390",
-      "propertyName": "3747 Dreyfus Street A and B",
-      "platProjectName": "3747 Dreyfus Street A and B",
-      "address": "3747 DREYFUS ST",
-      "secondaryAddresses": [],
-      "hcadAccount": "0391930200024",
-      "legalDescription": "",
-      "buildingId": "",
-      "yearBuilt": "1950",
-      "yearRemodeled": "",
-      "architect": "",
-      "designation": "None found",
-      "ownerOfRecord": "",
-      "buyerRelatedEntities": "",
-      "lender": "",
-      "designFirm": "",
-      "architectEngineer": "",
-      "tier": "3",
-      "tierConfirmed": true,
-      "threatCategory": "Neighborhood / District Context Impact",
-      "trackerStatus": "Archived (Tier 3)",
-      "neighborhood": "",
-      "reportedBy": "",
-      "phPastActions": "",
-      "ilmsProjectNo": "",
-      "keyDates": {
-        "monitoringStarted": "2026-10-16",
-        "targetClosing": "",
-        "planningCommission": "",
-        "publicHearingDate": "2026-11-12",
-        "asbestosAbatementWindow": ""
-      },
-      "notes": "(EA NOTE: DEMO PERMIT ISSUED 9/4/2026) Section K Development Plat Variance (DPV-26080390) in Houston. The applicant is requesting a 5-foot building line in lieu of the ordinance required 10-foot building line along Nathan Street, an undeveloped street, as well as to not dedicate 5 feet of right-of-way to Nathan and Dreyfus Streets, for a new duplex.",
-      "lng": -95.36635,
-      "lat": 29.68774,
-      "coordSource": "",
-      "subdivisionMatch": "",
-      "subdivisionId": "",
-      "superNeighborhoodMatch": "",
-      "superNeighborhoodId": "",
-      "appNo": "DPV-26080390",
-      "sourcePlatApp": "DPV-26080390",
-      "section": "K. Development Plat Variances",
-      "source": "",
-      "sourceCycleKey": "",
-      "pcMeetingDate": "",
-      "hearingDateIso": "2026-11-12",
-      "platPdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26080390_3747-Dreyfus-Street_notice.pdf",
-      "noticePdf": "https://www.houstontx.gov/planning/notices/2026/DPV_26080390_3747-Dreyfus-Street_notice.pdf",
-      "continuityKey": "",
-      "priorCycles": [],
-      "searchTerms": {
-        "entities": [],
-        "dbas": [],
-        "officers": [],
-        "legalKeywords": [],
-        "altAddresses": [],
-        "projectNumbers": []
-      },
-      "searchTermsUpdatedAt": "",
-      "driveLinks": [],
-      "documents": [],
-      "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
-      "autoSweepSchedule": "Daily at 7:00 AM CT",
-      "autoSweepSummary": null,
-      "humanEdited": true,
-      "archivedAt": "",
-      "updatedAt": "2026-10-28T01:07:57.304Z",
-      "updatedBy": "emily@preservationhouston.org",
-      "checklist": [
-        {
-          "id": "chk-01",
-          "stage": "Every Check",
-          "activity": "Public Notices",
-          "whatToLookFor": "Search simplified street address, owner, and buyer names for published legal notices.",
-          "typicalTiming": "Any stage.",
-          "resourceLabel": "Texas Public Notices",
-          "resourceUrl": "https://www.texaspublicnotices.com/",
-          "additionalResourceLabel": "Houston Planning Notices",
-          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-02",
-          "stage": "Every Check",
-          "activity": "Site Visit",
-          "whatToLookFor": "Drive by and photograph the site. Look for TABC 60-day signs, plat or variance signs, fencing, dumpsters, and survey stakes.",
-          "typicalTiming": "Any stage. Posted signs can appear before records show up online.",
-          "resourceLabel": "Google Street View",
-          "resourceUrl": "https://www.google.com/maps/search/?api=1&query=3747+DREYFUS+ST%2C+Houston%2C+TX",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-03",
-          "stage": "Sale & Ownership",
-          "activity": "Deed Transfers & Liens",
-          "whatToLookFor": "Search Block & Subdivision keywords or Grantor/Grantee names for deeds, deeds of trust (naming the lender), and purchase options.",
-          "typicalTiming": "Deeds usually record within days of closing.",
-          "resourceLabel": "HC Clerk Real Property",
-          "resourceUrl": "https://www.cclerk.hctx.net/applications/websearch/RP.aspx",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-04",
-          "stage": "Sale & Ownership",
-          "activity": "Corporate Entity Verification",
-          "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
-          "typicalTiming": "As soon as a new entity name surfaces.",
-          "resourceLabel": "Comptroller Entity Search",
-          "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
-          "additionalResourceLabel": "Bizapedia Entity Lookup",
-          "additionalResourceUrl": "https://www.bizapedia.com/",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-05",
-          "stage": "Sale & Ownership",
-          "activity": "HCAD Ownership & Classification",
-          "whatToLookFor": "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and land/improvement value shifts.",
-          "typicalTiming": "Owner updates lag the deed by weeks to months.",
-          "resourceLabel": "HCAD Property Search",
-          "resourceUrl": "https://search.hcad.org/",
-          "additionalResourceLabel": "HCAD GIS Parcel Map",
-          "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0391930200024",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-06",
-          "stage": "Plans & Use",
-          "activity": "Liquor Licensing",
-          "whatToLookFor": "Search simplified primary and perimeter addresses for pending or active TABC permits revealing operator LLCs and trade names.",
-          "typicalTiming": "Often filed months before construction or demolition permits.",
-          "resourceLabel": "TABC Public Inquiry",
-          "resourceUrl": "https://apps.tabc.texas.gov/publicinquiry/",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-07",
-          "stage": "Plans & Use",
-          "activity": "Hemp Licensing",
-          "whatToLookFor": "Search DSHS Consumable Hemp registrations by entity name, DBA/trade name, or officer name (portal does not search by street address).",
-          "typicalTiming": "After closing or lease execution for convenience-store operators.",
-          "resourceLabel": "DSHS License Search",
-          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/login.do",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-08",
-          "stage": "Plans & Use",
-          "activity": "Pending Plans (Open Records & ILMS)",
-          "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
-          "typicalTiming": "Design and plan-review phase after closing.",
-          "resourceLabel": "Public Records (GovQA)",
-          "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
-          "additionalResourceLabel": "ILMS Project Status",
-          "additionalResourceUrl": "https://www.pdinet.pd.houstontx.gov/cohilms/webs/plan_lookup.asp",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-09",
-          "stage": "Plans & Use",
-          "activity": "Replats & Variances",
-          "whatToLookFor": "Check Biweekly Planning Commission spreadsheets, Agenda Outlines (Section K DPV), and Public Hearing Notices for replats or variances.",
-          "typicalTiming": "Can be filed before closing with seller consent or during design.",
-          "resourceLabel": "COH Biweekly Plat Reports",
-          "resourceUrl": "https://www.houstontx.gov/planning/DevelopRegs/dev_reports.html",
-          "additionalResourceLabel": "COH Planning Notices",
-          "additionalResourceUrl": "https://www.houstontx.gov/planning/notices/",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-10",
-          "stage": "Plans & Use",
-          "activity": "Accessibility Registration (TDLR TABS)",
-          "whatToLookFor": "Search simplified primary and perimeter addresses, DBAs, and owner LLCs in TDLR TABS (required for commercial projects >= $50,000).",
-          "typicalTiming": "Design phase, often months before building or demolition permits.",
-          "resourceLabel": "TDLR TABS Search",
-          "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-11",
-          "stage": "Plans & Use",
-          "activity": "Easements, Abandonments & TIRZ",
-          "whatToLookFor": "Check City Council NovusAgenda packets for street, alley, or easement abandonments and check local TIRZ board agendas.",
-          "typicalTiming": "Design phase, usually after closing.",
-          "resourceLabel": "City Council Agendas (NovusAgenda)",
-          "resourceUrl": "https://houston.novusagenda.com/agendapublic/",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-12",
-          "stage": "Plans & Use",
-          "activity": "Environmental Registrations",
-          "whatToLookFor": "Search TCEQ Central Registry for underground petroleum storage tanks (PST) or construction stormwater registrations.",
-          "typicalTiming": "Shortly before construction, especially for fuel canopies and larger commercial sites.",
-          "resourceLabel": "TCEQ Central Registry",
-          "resourceUrl": "https://www.tceq.texas.gov/permitting/central_registry",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": false,
-          "checks": []
-        },
-        {
-          "id": "chk-13",
-          "stage": "Demolition Signals",
-          "activity": "Code Complaints & Dangerous Buildings",
-          "whatToLookFor": "Check Houston 311 complaints and cross-check periodic City Dangerous Buildings (DONDB) CSV lists so historic buildings can be flagged.",
-          "typicalTiming": "Any stage, especially while a structure is vacant.",
-          "resourceLabel": "311 Service Request Viewer",
-          "resourceUrl": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
-          "additionalResourceLabel": "Community Code Enforcement",
-          "additionalResourceUrl": "https://www.houstonpermittingcenter.org/community-code-enforcement",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-14",
-          "stage": "Demolition Signals",
-          "activity": "Demolition & Building Permits",
-          "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
-          "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
-          "resourceLabel": "Houston Sold Permits",
-          "resourceUrl": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        },
-        {
-          "id": "chk-15",
-          "stage": "Demolition Signals",
-          "activity": "Asbestos & Demolition Notification (DSHS)",
-          "whatToLookFor": "DSHS must be notified at least 10 working days before any commercial or public building is abated or demolished.",
-          "typicalTiming": "At least 10 working days before abatement or demolition starts.",
-          "resourceLabel": "DSHS Notifications",
-          "resourceUrl": "https://vo.ras.dshs.state.tx.us/datamart/mainMenu.do",
-          "additionalResourceLabel": "",
-          "additionalResourceUrl": "",
-          "status": "To Do",
-          "lastChecked": "",
-          "automated": true,
-          "checks": []
-        }
-      ],
-      "findingsLog": []
+      "findingsLog": [],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-DPV-4801-NMAIN",
@@ -12122,7 +12046,7 @@
         }
       ],
       "driveLinksUpdatedAt": "2026-10-28T01:23:53.530Z",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -12356,7 +12280,11 @@
           "checks": []
         }
       ],
-      "findingsLog": []
+      "findingsLog": [],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     },
     {
       "id": "plat-DPV-21",
@@ -12422,7 +12350,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-10-29T17:51:39Z",
+      "lastAutoSweepAt": "2026-10-29T21:26:08Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -12656,7 +12584,11 @@
           "checks": []
         }
       ],
-      "findingsLog": []
+      "findingsLog": [],
+      "linkedAppNo": "",
+      "broker": "",
+      "developer": "",
+      "removedFromWatchlist": false
     }
   ]
 }
