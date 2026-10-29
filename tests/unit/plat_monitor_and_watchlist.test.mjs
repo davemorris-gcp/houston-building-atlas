@@ -29,12 +29,24 @@ test("Annual Demolition Benchmarks: active_permit_alerts.json & DEFAULT_ANNUAL_D
   assert.equal(coh[0].period, "2026 YTD");
   assert.equal(coh[0].total_permits, 1755);
   assert.equal(coh[0].unique_addresses, 1676);
+  assert.equal(coh[0].net_main_bldg_teardowns, 1634);
+  assert.equal(coh[0].pool_spa_only, 1);
+  assert.equal(coh[0].canopy_porch_partial, 2);
+  assert.equal(coh[0].excluded_type13_bldg_demo_permits, 289);
   assert.equal(coh[1].period, "2025");
   assert.equal(coh[1].total_permits, 2187);
   assert.equal(coh[1].unique_addresses, 2066);
+  assert.equal(coh[1].net_main_bldg_teardowns, 2021);
+  assert.equal(coh[1].pool_spa_only, 5);
+  assert.equal(coh[1].canopy_porch_partial, 10);
+  assert.equal(coh[1].excluded_type13_bldg_demo_permits, 397);
   assert.equal(coh[2].period, "2024");
   assert.equal(coh[2].total_permits, 2380);
   assert.equal(coh[2].unique_addresses, 2287);
+  assert.equal(coh[2].net_main_bldg_teardowns, 2161);
+  assert.equal(coh[2].pool_spa_only, 5);
+  assert.equal(coh[2].canopy_porch_partial, 4);
+  assert.equal(coh[2].excluded_type13_bldg_demo_permits, 353);
 
   const hcad = DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.hcad_countywide_demolitions;
   assert.deepEqual(
@@ -43,8 +55,13 @@ test("Annual Demolition Benchmarks: active_permit_alerts.json & DEFAULT_ANNUAL_D
   );
   assert.equal(hcad[0].total_permits, 2791);
   assert.equal(hcad[0].unique_parcels, 2464);
+  assert.equal(hcad[0].net_main_bldg_teardowns, 2542);
+  assert.equal(hcad[0].pool_spa_only, 87);
+  assert.equal(hcad[0].partial_addition_interior, 19);
+  assert.equal(hcad[0].garage_accessory, 143);
   assert.equal(hcad[5].total_permits, 2096);
   assert.equal(hcad[5].unique_parcels, 1975);
+  assert.equal(hcad[5].net_main_bldg_teardowns, 1923);
 
   const hahc = DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.hahc_historic_district_demolitions;
   assert.deepEqual(
@@ -96,12 +113,14 @@ test("Annual Demolition Benchmarks: resolveAnnualDemolitionBenchmarks & formatDe
   // Grant text formatting with default payload
   const defaultTxt = formatDemolitionBenchmarksGrantText(null);
   assert.equal(defaultTxt.includes("\u2014"), false, "Grant text must contain zero U+2014 em-dashes");
-  assert.match(defaultTxt, /1,755 structural demolition permits across 1,676 unique addresses/);
-  assert.match(defaultTxt, /2,187 structural demolition permits across 2,066 unique addresses/);
-  assert.match(defaultTxt, /2,380 structural demolition permits across 2,287 unique addresses/);
-  assert.match(defaultTxt, /2025: 2,791 demolition permits across 2,464 unique parcels/);
-  assert.match(defaultTxt, /2020: 2,096 demolition permits across 1,975 unique parcels/);
+  assert.match(defaultTxt, /1,755 structural demolition permits across 1,676 unique addresses -> 1,634 Net Full Main-Building Teardowns/);
+  assert.match(defaultTxt, /2,187 structural demolition permits across 2,066 unique addresses -> 2,021 Net Full Main-Building Teardowns/);
+  assert.match(defaultTxt, /2,380 structural demolition permits across 2,287 unique addresses -> 2,161 Net Full Main-Building Teardowns/);
+  assert.match(defaultTxt, /2025: 2,791 raw demolition permits across 2,464 unique parcels -> 2,542 Net Full Main-Building Teardowns/);
+  assert.match(defaultTxt, /2020: 2,096 raw demolition permits across 1,975 unique parcels -> 1,923 Net Full Main-Building Teardowns/);
   assert.match(defaultTxt, /0 main residential structures approved for demolition/);
+  assert.match(defaultTxt, /Houston Public Works, Building Code Enforcement - Sold Permits Database/);
+  assert.match(defaultTxt, /Real_acct_owner\.zip -> permits\.txt/);
 
   // Explicit 0 counts in summary must NOT be coerced to 23 / 9 / 14 via falsy ||
   const zeroSummaryTxt = formatDemolitionBenchmarksGrantText({

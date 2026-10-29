@@ -984,18 +984,37 @@ def test_annual_demolition_benchmarks_schema_and_js_parity() -> None:
     by_period = {row["period"]: row for row in coh}
     assert by_period["2026 YTD"]["total_permits"] == 1755
     assert by_period["2026 YTD"]["unique_addresses"] == 1676
+    assert by_period["2026 YTD"]["net_main_bldg_teardowns"] == 1634
+    assert by_period["2026 YTD"]["pool_spa_only"] == 1
+    assert by_period["2026 YTD"]["canopy_porch_partial"] == 2
+    assert by_period["2026 YTD"]["excluded_type13_bldg_demo_permits"] == 289
     assert by_period["2025"]["total_permits"] == 2187
     assert by_period["2025"]["unique_addresses"] == 2066
+    assert by_period["2025"]["net_main_bldg_teardowns"] == 2021
+    assert by_period["2025"]["pool_spa_only"] == 5
+    assert by_period["2025"]["canopy_porch_partial"] == 10
+    assert by_period["2025"]["excluded_type13_bldg_demo_permits"] == 397
     assert by_period["2024"]["total_permits"] == 2380
     assert by_period["2024"]["unique_addresses"] == 2287
+    assert by_period["2024"]["net_main_bldg_teardowns"] == 2161
+    assert by_period["2024"]["pool_spa_only"] == 5
+    assert by_period["2024"]["canopy_porch_partial"] == 4
+    assert by_period["2024"]["excluded_type13_bldg_demo_permits"] == 353
 
     hcad = bench.get("hcad_countywide_demolitions")
     assert isinstance(hcad, list) and len(hcad) == 6
     assert [row["year"] for row in hcad] == [2025, 2024, 2023, 2022, 2021, 2020]
     assert hcad[0]["total_permits"] == 2791
     assert hcad[0]["unique_parcels"] == 2464
+    assert hcad[0]["net_main_bldg_teardowns"] == 2542
+    assert hcad[0]["garage_accessory"] == 143
+    assert hcad[0]["pool_spa_only"] == 87
+    assert hcad[0]["partial_addition_interior"] == 19
+    assert hcad[0]["excluded_type11_31_remodel_demo"] == 463
+    assert hcad[1]["net_main_bldg_teardowns"] == 2561
     assert hcad[-1]["year"] == 2020
     assert hcad[-1]["total_permits"] == 2096
+    assert hcad[-1]["net_main_bldg_teardowns"] == 1923
 
     hahc = bench.get("hahc_historic_district_demolitions")
     assert isinstance(hahc, list) and len(hahc) == 3

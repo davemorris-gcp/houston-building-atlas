@@ -885,11 +885,15 @@ export const DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS = {
       date_range: "Jan 1 - Oct 28, 2026",
       total_permits: 1755,
       unique_addresses: 1676,
+      net_main_bldg_teardowns: 1634,
       standard_demo_sd: 1519,
       dangerous_bldg_4d: 236,
       residential_1_2_fam: 1349,
       commercial_multifam: 288,
       garage_accessory: 118,
+      pool_spa_only: 1,
+      canopy_porch_partial: 2,
+      excluded_type13_bldg_demo_permits: 289,
       historic_index_matched: 42,
       pre_1940_matched: 27,
       sewer_disconnect_permits: 1829,
@@ -899,11 +903,15 @@ export const DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS = {
       date_range: "Jan 1 - Dec 31, 2025",
       total_permits: 2187,
       unique_addresses: 2066,
+      net_main_bldg_teardowns: 2021,
       standard_demo_sd: 2021,
       dangerous_bldg_4d: 166,
       residential_1_2_fam: 1680,
       commercial_multifam: 356,
       garage_accessory: 151,
+      pool_spa_only: 5,
+      canopy_porch_partial: 10,
+      excluded_type13_bldg_demo_permits: 397,
       historic_index_matched: 60,
       pre_1940_matched: 33,
       sewer_disconnect_permits: 2156,
@@ -913,11 +921,15 @@ export const DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS = {
       date_range: "Jan 1 - Dec 31, 2024",
       total_permits: 2380,
       unique_addresses: 2287,
+      net_main_bldg_teardowns: 2161,
       standard_demo_sd: 2220,
       dangerous_bldg_4d: 160,
       residential_1_2_fam: 1848,
       commercial_multifam: 322,
       garage_accessory: 210,
+      pool_spa_only: 5,
+      canopy_porch_partial: 4,
+      excluded_type13_bldg_demo_permits: 353,
       historic_index_matched: 47,
       pre_1940_matched: 31,
       sewer_disconnect_permits: 2150,
@@ -928,54 +940,84 @@ export const DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS = {
       year: 2025,
       total_permits: 2791,
       unique_parcels: 2464,
+      net_main_bldg_teardowns: 2542,
       residential_type_13: 2287,
       commercial_type_33: 479,
       general_type_43: 25,
+      garage_accessory: 143,
+      pool_spa_only: 87,
+      partial_addition_interior: 19,
+      excluded_type11_31_remodel_demo: 463,
       coh_agency_061: 2136,
     },
     {
       year: 2024,
       total_permits: 2869,
       unique_parcels: 2596,
+      net_main_bldg_teardowns: 2561,
       residential_type_13: 2452,
       commercial_type_33: 405,
       general_type_43: 12,
+      garage_accessory: 203,
+      pool_spa_only: 85,
+      partial_addition_interior: 20,
+      excluded_type11_31_remodel_demo: 482,
       coh_agency_061: 2251,
     },
     {
       year: 2023,
       total_permits: 2592,
       unique_parcels: 2393,
+      net_main_bldg_teardowns: 2325,
       residential_type_13: 2218,
       commercial_type_33: 365,
       general_type_43: 9,
+      garage_accessory: 136,
+      pool_spa_only: 88,
+      partial_addition_interior: 43,
+      excluded_type11_31_remodel_demo: 503,
       coh_agency_061: 1999,
     },
     {
       year: 2022,
       total_permits: 2566,
       unique_parcels: 2323,
+      net_main_bldg_teardowns: 2341,
       residential_type_13: 2208,
       commercial_type_33: 269,
       general_type_43: 89,
+      garage_accessory: 108,
+      pool_spa_only: 88,
+      partial_addition_interior: 29,
+      excluded_type11_31_remodel_demo: 490,
       coh_agency_061: 2074,
     },
     {
       year: 2021,
       total_permits: 2416,
       unique_parcels: 2249,
+      net_main_bldg_teardowns: 2180,
       residential_type_13: 2159,
       commercial_type_33: 232,
       general_type_43: 25,
+      garage_accessory: 123,
+      pool_spa_only: 77,
+      partial_addition_interior: 36,
+      excluded_type11_31_remodel_demo: 531,
       coh_agency_061: 1918,
     },
     {
       year: 2020,
       total_permits: 2096,
       unique_parcels: 1975,
+      net_main_bldg_teardowns: 1923,
       residential_type_13: 1897,
       commercial_type_33: 185,
       general_type_43: 14,
+      garage_accessory: 91,
+      pool_spa_only: 40,
+      partial_addition_interior: 42,
+      excluded_type11_31_remodel_demo: 397,
       coh_agency_061: 1610,
     },
   ],
@@ -1039,17 +1081,38 @@ export function resolveAnnualDemolitionBenchmarks(payload = null) {
   if (!hasCoh && !hasHcad && !hasHahc && !candidate.updated_through) {
     return DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS;
   }
+  const mergeRows = (rows, defRows, idField) => {
+    const defById = new Map(
+      (defRows || []).map((r) => [String(r?.[idField] ?? ""), r])
+    );
+    return rows.map((r) => {
+      const defRow = defById.get(String(r?.[idField] ?? "")) || {};
+      return { ...defRow, ...r };
+    });
+  };
   return {
     updated_through:
       candidate.updated_through || DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.updated_through,
     coh_structural_demolitions: hasCoh
-      ? candidate.coh_structural_demolitions
+      ? mergeRows(
+          candidate.coh_structural_demolitions,
+          DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.coh_structural_demolitions,
+          "period"
+        )
       : DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.coh_structural_demolitions,
     hcad_countywide_demolitions: hasHcad
-      ? candidate.hcad_countywide_demolitions
+      ? mergeRows(
+          candidate.hcad_countywide_demolitions,
+          DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.hcad_countywide_demolitions,
+          "year"
+        )
       : DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.hcad_countywide_demolitions,
     hahc_historic_district_demolitions: hasHahc
-      ? candidate.hahc_historic_district_demolitions
+      ? mergeRows(
+          candidate.hahc_historic_district_demolitions,
+          DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.hahc_historic_district_demolitions,
+          "period"
+        )
       : DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.hahc_historic_district_demolitions,
   };
 }
@@ -1070,25 +1133,33 @@ export function formatDemolitionBenchmarksGrantText(payload = null) {
     `HOUSTON BUILDING ATLAS - DEMOLITION & PRESERVATION BENCHMARKS (Through ${b.updated_through || "2026-10-28"})`,
     `Active 45-Day Historic Early-Warning Alerts: ${fmt(activeTotal)} flagged historic properties (${fmt(activeCrit)} Critical Demolition/Sewer Disconnect, ${fmt(activeWatch)} Abatement/Garage Watch)`,
     "",
-    "1. City of Houston Permitting Center (Structural Building Demolitions, Types SD & 4D):",
+    "1. City of Houston Permitting Center (Source: City of Houston, Houston Public Works, Building Code Enforcement - Sold Permits Database, Types SD & 4D):",
+    "   Screening Note: Restricting to Permit Types SD (Standard Demolition) and 4D (Dangerous Building Demolition) already screens out Permit Type 13 (BUILDING PMT) interior gut/remodel, rear-addition removal, and standard pool fill-in permits (289 excluded in 2026 YTD; 397 in 2025; 353 in 2024).",
   ];
 
   for (const r of b.coh_structural_demolitions) {
     lines.push(
-      `- ${r.period} (${r.date_range}): ${fmt(r.total_permits)} structural demolition permits across ${fmt(r.unique_addresses)} unique addresses (${fmt(r.residential_1_2_fam)} residential 1-2 family, ${fmt(r.commercial_multifam)} commercial/multi-family, ${fmt(r.garage_accessory)} garage/accessory; ${fmt(r.standard_demo_sd)} Standard Demo SD + ${fmt(r.dangerous_bldg_4d)} Dangerous Bldg 4D; ${fmt(r.sewer_disconnect_permits)} pre-demo sewer disconnects; ${fmt(r.historic_index_matched)} matched to curated historic Atlas index including ${fmt(r.pre_1940_matched)} pre-1940)`
+      `- ${r.period} (${r.date_range}): ${fmt(r.total_permits)} structural demolition permits across ${fmt(r.unique_addresses)} unique addresses -> ${fmt(r.net_main_bldg_teardowns)} Net Full Main-Building Teardowns after screening out ${fmt(r.garage_accessory)} detached garages/sheds, ${fmt(r.pool_spa_only)} swimming pools, and ${fmt(r.canopy_porch_partial)} canopies/patio covers (${fmt(r.residential_1_2_fam)} residential 1-2 family, ${fmt(r.commercial_multifam)} commercial/multi-family; ${fmt(r.standard_demo_sd)} Standard Demo SD + ${fmt(r.dangerous_bldg_4d)} Dangerous Bldg 4D; ${fmt(r.sewer_disconnect_permits)} pre-demo sewer disconnects; ${fmt(r.historic_index_matched)} matched to curated historic Atlas index including ${fmt(r.pre_1940_matched)} pre-1940)`
     );
   }
 
   lines.push("");
-  lines.push("2. HCAD Countywide CAMA Permit Roll (All of Harris County, Types 13, 33 & 43):");
+  lines.push(
+    "2. HCAD Countywide CAMA Permit Roll (Source: Harris County Appraisal District Real_acct_owner.zip -> permits.txt, Types 13, 33 & 43):"
+  );
+  lines.push(
+    "   Screening Note: Excludes HCAD Types 11 & 31 (Additions/Remodeling, ~460-530 partial/remodel demos/yr). Because HCAD appraisers log taxable extra-feature removals under codes 13/33, net full main-building teardowns screen out pool/spa (~40-88/yr), partial/addition (~19-43/yr), and detached garage/shed (~91-203/yr) descriptions:"
+  );
   for (const r of b.hcad_countywide_demolitions) {
     lines.push(
-      `- ${r.year}: ${fmt(r.total_permits)} demolition permits across ${fmt(r.unique_parcels)} unique parcels (${fmt(r.residential_type_13)} residential, ${fmt(r.commercial_type_33)} commercial, ${fmt(r.general_type_43)} general; ${fmt(r.coh_agency_061)} in City of Houston)`
+      `- ${r.year}: ${fmt(r.total_permits)} raw demolition permits across ${fmt(r.unique_parcels)} unique parcels -> ${fmt(r.net_main_bldg_teardowns)} Net Full Main-Building Teardowns after screening out ${fmt(r.garage_accessory)} garages/sheds, ${fmt(r.pool_spa_only)} pools/spas, and ${fmt(r.partial_addition_interior)} partial/addition demos (${fmt(r.residential_type_13)} residential, ${fmt(r.commercial_type_33)} commercial, ${fmt(r.general_type_43)} general; ${fmt(r.coh_agency_061)} in City of Houston)`
     );
   }
 
   lines.push("");
-  lines.push("3. HAHC Demolition & Relocation COA Filings in Designated Historic Districts:");
+  lines.push(
+    "3. HAHC Demolition & Relocation COA Filings in Designated Historic Districts (Source: City of Houston Planning & Development Dept., HAHC Monthly COA Packets):"
+  );
   for (const r of b.hahc_historic_district_demolitions) {
     lines.push(
       `- ${r.period}: ${fmt(r.demo_reloc_filings)} demolition/relocation filings out of ${fmt(r.total_coa_filings)} total COAs (${r.summary_note})`
