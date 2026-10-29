@@ -955,10 +955,11 @@ def test_annual_demolition_benchmarks_schema_and_js_parity() -> None:
     assert built_bench == default_bench
     assert built_bench is not default_bench
 
-    # Partial existing benchmarks must preserve non-empty custom tables and backfill missing/empty tables from DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS
+    # Partial existing benchmarks with sparse legacy row must preserve custom fields and backfill missing/None fields from DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS
     custom_coh_row = {
-        **default_bench["coh_structural_demolitions"][0],
+        "period": "2026 YTD",
         "total_permits": 1999,
+        "net_main_bldg_teardowns": None,
     }
     partial_built = flp.build_annual_demolition_benchmarks({
         "updated_through": "2026-11-01",
@@ -968,6 +969,9 @@ def test_annual_demolition_benchmarks_schema_and_js_parity() -> None:
     assert partial_built["updated_through"] == "2026-11-01"
     assert len(partial_built["coh_structural_demolitions"]) == 1
     assert partial_built["coh_structural_demolitions"][0]["total_permits"] == 1999
+    assert partial_built["coh_structural_demolitions"][0]["net_main_bldg_teardowns"] == 1634
+    assert partial_built["coh_structural_demolitions"][0]["pool_spa_only"] == 1
+    assert partial_built["coh_structural_demolitions"][0]["excluded_type13_bldg_demo_permits"] == 289
     assert len(partial_built["hcad_countywide_demolitions"]) == 6
     assert len(partial_built["hahc_historic_district_demolitions"]) == 3
 

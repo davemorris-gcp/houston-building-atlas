@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   resolveAnnualDemolitionBenchmarks,
   formatDemolitionBenchmarksGrantText,
@@ -80,23 +81,38 @@ test("Annual Demolition Benchmarks: resolveAnnualDemolitionBenchmarks & formatDe
   assert.deepEqual(resolveAnnualDemolitionBenchmarks(undefined), DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS);
   assert.deepEqual(resolveAnnualDemolitionBenchmarks({}), DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS);
 
-  // Direct annual_benchmarks object (not wrapped in { annual_benchmarks })
+  // Direct annual_benchmarks object with sparse legacy row (omitting net_main_bldg_teardowns & pool_spa_only)
   const directCustom = {
     updated_through: "2026-11-15",
     coh_structural_demolitions: [
       {
-        ...DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.coh_structural_demolitions[0],
+        period: "2026 YTD",
         total_permits: 1800,
         unique_addresses: 1710,
+        net_main_bldg_teardowns: undefined,
       },
+      null,
       ...DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.coh_structural_demolitions.slice(1),
     ],
   };
   const resolvedDirect = resolveAnnualDemolitionBenchmarks(directCustom);
   assert.equal(resolvedDirect.updated_through, "2026-11-15");
+  assert.equal(resolvedDirect.coh_structural_demolitions.length, 3);
   assert.equal(resolvedDirect.coh_structural_demolitions[0].total_permits, 1800);
+  assert.equal(resolvedDirect.coh_structural_demolitions[0].net_main_bldg_teardowns, 1634);
+  assert.equal(resolvedDirect.coh_structural_demolitions[0].pool_spa_only, 1);
+  assert.equal(resolvedDirect.coh_structural_demolitions[0].excluded_type13_bldg_demo_permits, 289);
   assert.equal(resolvedDirect.hcad_countywide_demolitions.length, 6);
   assert.equal(resolvedDirect.hahc_historic_district_demolitions.length, 3);
+
+  // All-null array falls back to default rows
+  const nullArrResolved = resolveAnnualDemolitionBenchmarks({
+    coh_structural_demolitions: [null],
+  });
+  assert.deepEqual(
+    nullArrResolved.coh_structural_demolitions,
+    DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.coh_structural_demolitions
+  );
 
   // Partial wrapped override preserves custom coh_structural_demolitions while backfilling HCAD & HAHC tables
   const partialWrapped = resolveAnnualDemolitionBenchmarks({
@@ -168,6 +184,16 @@ test("Option A (app/plat-monitor.html): includes #toggleDemoBenchmarksBtn, .stag
     /keydown[\s\S]*data-toggle-demo-benchmarks/.test(html),
     "plat-monitor.html keydown listener must support Enter/Space on [data-toggle-demo-benchmarks]"
   );
+
+  // Shared drawer HTML builder renders Net Main-Bldg Teardowns, screened pool/canopy/garage columns, and official citations
+  const drawerHtml = buildDemolitionBenchmarksTablesHtml(null, { variant: "drawer" });
+  assert.equal(drawerHtml.includes("\u2014"), false);
+  assert.ok(drawerHtml.includes("Net Main-Bldg Teardowns"));
+  assert.ok(drawerHtml.includes("1,634") && drawerHtml.includes("2,542"));
+  assert.ok(drawerHtml.includes("1 pool / 2 canopy"));
+  assert.ok(drawerHtml.includes("143 gar / 87 pool / 19 part"));
+  assert.ok(drawerHtml.includes("Sold Permits Database") && drawerHtml.includes("Real Property CAMA Permit Roll"));
+  assert.ok(drawerHtml.includes("397-531/yr"));
 });
 
 test("Option B (app/index.html, app/js/app.js, app/styles/index.css): sidebar subrow, modal details, HTML escaping, and openPermitWatchModal", () => {
@@ -320,6 +346,8 @@ test("Option B (app/index.html, app/js/app.js, app/styles/index.css): sidebar su
 
     const renderedBody = elements.get("pw-annual-benchmarks-body").innerHTML;
     assert.ok(renderedBody.includes("1,755") && renderedBody.includes("1,676"));
+    assert.ok(renderedBody.includes("1,634") && renderedBody.includes("2,542"));
+    assert.ok(renderedBody.includes("Sold Permits Database") && renderedBody.includes("Real Property CAMA Permit Roll"));
     assert.ok(renderedBody.includes("2,791") && renderedBody.includes("2,096"));
     assert.equal(
       renderedBody.includes("<script>alert(1)</script>") ||

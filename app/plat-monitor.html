@@ -401,6 +401,7 @@ import {
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   resolveAnnualDemolitionBenchmarks,
   formatDemolitionBenchmarksGrantText,
+  buildDemolitionBenchmarksTablesHtml,
 } from "./js/platMonitorHelpers.js?v=20261028b";
 
 import {
@@ -1270,114 +1271,7 @@ function renderDemoBenchmarksDrawer(){
         <div class="k-sub">${fmt(activeCrit)} Critical Demo/Sewer Threats · ${fmt(activeWatch)} Abatement/Garage Watch</div>
       </div>
     </div>
-    <div class="demo-bench-grid">
-      <div class="demo-bench-box">
-        <h4>1. City of Houston Permitting Center (Structural Building Demolitions, 2024 - 2026 YTD)</h4>
-        <p class="sub"><strong>Source Citation:</strong> <em>City of Houston, Houston Public Works, Building Code Enforcement - Sold Permits Database</em> (Permit Type SD Standard Demolition + Permit Type 4D Dangerous Building Demolition). Filtering strictly to SD &amp; 4D already excludes Permit Type 13 (<code>BUILDING PMT</code>) interior wall/remodel, rear-addition removal, and standard pool fill-in permits (<code>289</code> excluded in 2026 YTD; <code>397</code> in 2025; <code>353</code> in 2024).</p>
-        <table class="demo-bench-table">
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Total (SD+4D)</th>
-              <th>Net Main-Bldg Teardowns</th>
-              <th>Unique Addrs</th>
-              <th>Std (SD)</th>
-              <th>Dgr Bldg (4D)</th>
-              <th>Res (1-2 Fam)</th>
-              <th>Comm / Multi</th>
-              <th>Garage / Acc</th>
-              <th>Pool / Canopy Only</th>
-              <th>Historic Index (Pre-1940)</th>
-              <th>Sewer Discs</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${cohRows.map(r => `
-              <tr>
-                <td>${esc(r.period)} <span style="font-weight:400;color:var(--muted);font-size:11px">(${esc(r.date_range)})</span></td>
-                <td><strong>${fmt(r.total_permits)}</strong></td>
-                <td style="color:var(--t1);font-weight:700">${fmt(r.net_main_bldg_teardowns)}</td>
-                <td>${fmt(r.unique_addresses)}</td>
-                <td>${fmt(r.standard_demo_sd)}</td>
-                <td>${fmt(r.dangerous_bldg_4d)}</td>
-                <td>${fmt(r.residential_1_2_fam)}</td>
-                <td>${fmt(r.commercial_multifam)}</td>
-                <td>${fmt(r.garage_accessory)}</td>
-                <td>${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.canopy_porch_partial ?? 0)} canopy</td>
-                <td>${fmt(r.historic_index_matched)} (${fmt(r.pre_1940_matched)})</td>
-                <td>${fmt(r.sewer_disconnect_permits)}</td>
-              </tr>`).join("")}
-          </tbody>
-        </table>
-
-        <h4 style="margin-top:12px">3. HAHC Demolition &amp; Relocation COA Filings in Designated Historic Districts (2024 - 2026 YTD)</h4>
-        <table class="demo-bench-table">
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Total COAs</th>
-              <th>Demo / Reloc COAs</th>
-              <th>Main Res Approved</th>
-              <th>Main Res Denied</th>
-              <th>Accessory / Partial Approved</th>
-              <th style="text-align:left">Outcome Breakdown</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${hahcRows.map(r => `
-              <tr>
-                <td>${esc(r.period)}</td>
-                <td>${fmt(r.total_coa_filings)}</td>
-                <td><strong>${fmt(r.demo_reloc_filings)}</strong></td>
-                <td style="color:${r.main_res_approved === 0 ? "var(--ok)" : "var(--t1)"};font-weight:700">${fmt(r.main_res_approved)}</td>
-                <td style="font-weight:700">${fmt(r.main_res_denied)}</td>
-                <td>${fmt(r.accessory_or_partial_approved)}</td>
-                <td style="text-align:left;white-space:normal;min-width:220px;font-size:11.5px;color:#3C4750">${esc(r.summary_note)}</td>
-              </tr>`).join("")}
-          </tbody>
-        </table>
-      </div>
-      <div class="demo-bench-box">
-        <h4>2. HCAD Countywide Permit Roll (All of Harris County, 2020 - 2025 Calendar Years)</h4>
-        <p class="sub"><strong>Source Citation:</strong> <em>Harris County Appraisal District (HCAD) Real Property CAMA Permit Roll</em> (<code>Real_acct_owner.zip -&gt; permits.txt</code>, Types 13 Residential Demo, 33 Commercial Demo &amp; 43 General Demo; excludes Types 11 &amp; 31 Remodel/Addition permits). Because HCAD appraisers log taxable extra-feature removals under codes 13/33, <strong>Net Main-Bldg Teardowns</strong> screens out pool/spa, partial/addition, and detached garage/shed descriptions. Note: HCAD batch-loads current-year City of Houston (061) permits during winter roll prep; use Table 1 for 2026 YTD.</p>
-        <table class="demo-bench-table">
-          <thead>
-            <tr>
-              <th>Calendar Year</th>
-              <th>Raw Total (13/33/43)</th>
-              <th>Net Main-Bldg Teardowns</th>
-              <th>Unique Parcels</th>
-              <th>Res Demo (13)</th>
-              <th>Comm Demo (33)</th>
-              <th>Gen Demo (43)</th>
-              <th>Garages / Pools / Partial</th>
-              <th>City of Houston (061)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${hcadRows.map(r => `
-              <tr>
-                <td>${esc(r.year)}</td>
-                <td><strong>${fmt(r.total_permits)}</strong></td>
-                <td style="color:var(--t1);font-weight:700">${fmt(r.net_main_bldg_teardowns)}</td>
-                <td>${fmt(r.unique_parcels)}</td>
-                <td>${fmt(r.residential_type_13)}</td>
-                <td>${fmt(r.commercial_type_33)}</td>
-                <td>${fmt(r.general_type_43)}</td>
-                <td style="font-size:11.5px;color:#3C4750">${fmt(r.garage_accessory ?? 0)} gar / ${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.partial_addition_interior ?? 0)} part</td>
-                <td>${fmt(r.coh_agency_061)}</td>
-              </tr>`).join("")}
-          </tbody>
-        </table>
-        <div style="margin-top:10px;padding:9px 11px;background:#F8FAFC;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;line-height:1.45;color:#334155">
-          <strong>Methodology &amp; Screening Notes (Pool, Partial/Addition &amp; Garage Demolitions):</strong>
-          <ul style="margin:4px 0 0 16px;padding:0">
-            <li><strong>City of Houston (Table 1):</strong> Interior gut/remodels (<code>DEMO OF INTERIOR NON-LOAD BEARING WALLS</code>), rear-addition removals for remodels (<code>RESIDENTIAL DEMO FOR FUTURE REMODEL</code>), and standard swimming pool fill-ins (<code>EXISTING POOL DEMO 2021 IBC</code>) are issued under <strong>Building Permits (Type 13)</strong> rather than Demolition Permits (Types SD/4D), so <code>289-397</code> remodel/pool permits per year are already excluded. Within SD+4D, detached garages/sheds (<code>118-210/yr</code>) and the rare sewer-connected pool (<code>1-5/yr</code>) or commercial canopy (<code>2-10/yr</code>) are broken out separately so you can cite either <strong>Total Structural Demolition Permits</strong> (<code>1,755</code> in 2026 YTD; <code>2,187</code> in 2025; <code>2,380</code> in 2024) or <strong>Net Full Main-Building Teardowns</strong> (<code>1,634</code> in 2026 YTD; <code>2,021</code> in 2025; <code>2,161</code> in 2024).</li>
-            <li><strong>HCAD Countywide (Table 2):</strong> Excludes Remodel/Addition permit codes (Types 11 &amp; 31, <code>397-531/yr</code>) and screens out <code>40-88</code> pool/spa removals, <code>19-43</code> partial/addition demos, and <code>91-203</code> detached garage/shed demos per year to yield <strong>Net Countywide Full Main-Building Teardowns</strong> (<code>2,542</code> in 2025; <code>2,561</code> in 2024; <code>2,325</code> in 2023).</li>
-          </ul>
-        </div>
-      </div>
-    </div>`;
+    ${buildDemolitionBenchmarksTablesHtml(payload, { variant: "drawer" })}`;
 }
 
 function toggleDemoBenchmarksDrawer(forceState){

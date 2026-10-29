@@ -244,7 +244,8 @@ def build_annual_demolition_benchmarks(existing_benchmarks: dict | None = None) 
             for r in val:
                 if isinstance(r, dict):
                     def_row = def_by_id.get(str(r.get(id_field)), {})
-                    merged_rows.append({**copy.deepcopy(def_row), **copy.deepcopy(r)})
+                    clean_r = {k: v for k, v in r.items() if v is not None}
+                    merged_rows.append({**copy.deepcopy(def_row), **copy.deepcopy(clean_r)})
             if merged_rows:
                 base[key] = merged_rows
     return base
