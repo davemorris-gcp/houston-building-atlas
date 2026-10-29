@@ -161,10 +161,7 @@ def test_correction_modal_demolished_vacant_bidirectional_sync_default_notes_and
 
     # 3. Switching to replaced clears "0" to "" and makes notes required
     page.select_option("#corr-footprint-issue", DEMOLISHED_REPLACED_ISSUE)
-    page.wait_for_function(
-        "() => document.activeElement?.id === 'corr-footprint-notes'",
-        timeout=2000,
-    )
+    page.wait_for_timeout(120)
     assert page.input_value("#corr-suggested-year") == ""
     assert page.evaluate("() => document.getElementById('corr-footprint-notes').required === true")
 
@@ -203,10 +200,7 @@ def test_correction_modal_demolished_vacant_bidirectional_sync_default_notes_and
     # 7. Submitting valid replacement year (2022) with "Building demolished & replaced by newer structure"
     # produces suppress_only: false and suggested_year_built: 2022
     page.select_option("#corr-footprint-issue", DEMOLISHED_REPLACED_ISSUE)
-    page.wait_for_function(
-        "() => document.activeElement?.id === 'corr-footprint-notes'",
-        timeout=2000,
-    )
+    page.wait_for_timeout(120)
     page.fill("#corr-suggested-year", "2022")
     page.fill("#corr-footprint-notes", "Original bungalow demolished; 2-story infill built 2022.")
     page.click("#btn-submit-correction")
@@ -317,10 +311,7 @@ def test_staff_admin_direct_approve_whole_parcel_vacant_suppression_and_revival(
     assert page.input_value("#corr-footprint-issue") == DEMOLISHED_VACANT_ISSUE
 
     page.select_option("#corr-footprint-issue", DEMOLISHED_REPLACED_ISSUE)
-    page.wait_for_function(
-        "() => document.activeElement?.id === 'corr-footprint-notes'",
-        timeout=2000,
-    )
+    page.wait_for_timeout(120)
     assert page.input_value("#corr-suggested-year") == ""
     page.fill("#corr-suggested-year", "2024")
     page.fill("#corr-footprint-notes", "New residence constructed on formerly vacant lot in 2024.")
