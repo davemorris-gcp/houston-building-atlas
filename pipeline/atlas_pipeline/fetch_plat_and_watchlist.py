@@ -1413,6 +1413,7 @@ def _extract_outline_cycle_iso_from_url(url: str) -> str:
 def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
     """Fetch up to the 3 most recent Planning Commission .xlsx spreadsheets, matching Outline PDFs, and Notice PDFs."""
     print("[2/6] Fetching recent COH Plat Agenda .xlsx cycles, Agenda Outline PDFs, and Notice PDFs...")
+    scrape_errors: list[str] = []
     dev_html_b = fetch_bytes(DEV_REPORTS_URL)
     xlsx_by_iso: dict[str, str] = {}
     if dev_html_b:
@@ -1431,6 +1432,10 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
             c_iso = _extract_xlsx_cycle_iso_from_url(full)
             if c_iso:
                 xlsx_by_iso[c_iso] = full
+        if not xlsx_by_iso:
+            scrape_errors.append("No Plat Agenda .xlsx links found on DevelopRegs page")
+    else:
+        scrape_errors.append("COH Planning DevelopRegs index unreachable")
 
     if not xlsx_by_iso:
         xlsx_by_iso["2026-10-15"] = (
@@ -1458,8 +1463,12 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
             o_iso = _extract_outline_cycle_iso_from_url(full)
             if o_iso and o_iso not in outline_url_by_iso:
                 outline_url_by_iso[o_iso] = full
+    else:
+        scrape_errors.append("COH Planning Commission outline index unreachable")
 
     notices_html_b = fetch_bytes(NOTICES_URL)
+    if not notices_html_b:
+        scrape_errors.append("COH Public Hearing Notices page unreachable")
     notices_by_ref: dict[str, dict] = {}
     notices_by_name: dict[str, dict] = {}
     all_notices: list[dict] = []
@@ -1542,6 +1551,10 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
         x_url = xlsx_by_iso[c_iso]
         x_bytes = fetch_bytes(x_url)
         raw_rows = parse_xlsx_bytes(x_bytes) if x_bytes else []
+        if not x_bytes:
+            scrape_errors.append(f"Cycle {c_iso} agenda spreadsheet download failed")
+        elif len(raw_rows) <= 1:
+            scrape_errors.append(f"Cycle {c_iso} agenda spreadsheet empty or unparseable")
 
         d_obj = dt.date.fromisoformat(c_iso)
         mmddyy = d_obj.strftime("%m%d%y")
@@ -1552,6 +1565,8 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
         o_url = outline_url_by_iso.get(c_iso) or fallback_outline_url
         o_bytes = fetch_bytes(o_url)
         if not o_bytes:
+            if c_iso in outline_url_by_iso:
+                scrape_errors.append(f"Cycle {c_iso} agenda outline PDF download failed")
             o_url = ""
             parsed_outline = parse_agenda_outline_text("")
         else:
@@ -1578,6 +1593,8 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
         "notices_by_ref": notices_by_ref,
         "notices_by_name": notices_by_name,
         "all_notices": all_notices,
+        "scrapeFailed": bool(scrape_errors),
+        "error": "; ".join(scrape_errors),
     }
 
 
@@ -2408,6 +2425,8 @@ def build_plat_agenda_dataset(
         "version": 3,
         "generatedAt": generated_at,
         "autoSweepSchedule": AUTO_SWEEP_SCHEDULE,
+        "scrapeFailed": bool(scraped_multi.get("scrapeFailed")),
+        "error": str(scraped_multi.get("error") or ""),
         "cycleKey": active["cycleKey"],
         "meetingDate": active["meetingDate"],
         "pcDate": active["pcDate"],
@@ -3427,22 +3446,185 @@ def normalize_dshs_asbestos_records(
 # Thin Live Agency Transport Wrappers & Watchlist Dossier Builder
 # ---------------------------------------------------------------------------
 
+AUTOMATED_SWEEP_AGENCIES: tuple[tuple[str, str], ...] = (
+    ("chk-04", "TX Comptroller (Sales & Franchise Tax)"),
+    ("chk-05", "HCAD Ownership & Classification"),
+    ("chk-06", "TABC Liquor Licensing"),
+    ("chk-09", "COH Planning Commission Plats & Variances"),
+    ("chk-10", "TDLR Architectural Barriers (TABS)"),
+    ("chk-13", "Houston 311 & Dangerous Buildings"),
+    ("chk-14", "Houston Sold Permits"),
+    ("chk-15", "TX DSHS Asbestos & Demolition"),
+)
+AUTOMATED_SWEEP_AGENCY_LABELS: dict[str, str] = dict(AUTOMATED_SWEEP_AGENCIES)
+
+
+def _fetch_json_with_status(
+    url: str,
+    timeout: int = 12,
+    data: bytes | None = None,
+    headers: dict[str, str] | None = None,
+) -> tuple[object, str, str]:
+    """Fetch and parse JSON via fetch_bytes while distinguishing skipped vs ok vs failed.
+
+    Built directly atop fetch_bytes so offline unit tests that monkeypatch fetch_bytes retain
+    full deterministic control over transport timeouts, malformed JSON, and HTTP-200 error bodies.
+    """
+    if not url:
+        return None, "skipped", ""
+    raw = fetch_bytes(url, timeout=timeout, data=data, headers=headers)
+    if not raw:
+        return None, "failed", "HTTP request failed or timed out"
+    try:
+        return json.loads(raw.decode("utf-8", errors="ignore")), "ok", ""
+    except Exception as exc:
+        print(f"[warn] JSON decode failed for {url}: {exc}")
+        return None, "failed", f"Invalid JSON response: {exc}"
+
+
 def _fetch_json_safe(
     url: str,
     timeout: int = 12,
     data: bytes | None = None,
     headers: dict[str, str] | None = None,
 ) -> object:
-    if not url:
-        return None
-    raw = fetch_bytes(url, timeout=timeout, data=data, headers=headers)
-    if not raw:
-        return None
-    try:
-        return json.loads(raw.decode("utf-8", errors="ignore"))
-    except Exception as exc:
-        print(f"[warn] JSON decode failed for {url}: {exc}")
-        return None
+    payload, _, _ = _fetch_json_with_status(url, timeout=timeout, data=data, headers=headers)
+    return payload
+
+
+def _validate_socrata_rows(
+    payload: object,
+    status: str,
+    err: str,
+    label: str,
+) -> tuple[list[dict], str, str]:
+    if status != "ok":
+        return [], status, (f"{label}: {err}" if err else "")
+    if isinstance(payload, list):
+        return payload, "ok", ""
+    detail = ""
+    if isinstance(payload, dict):
+        detail = str(payload.get("message") or payload.get("error") or "").strip()
+    return [], "failed", f"{label}: {detail or 'Expected Socrata JSON array'}"
+
+
+def _validate_arcgis_features(
+    payload: object,
+    status: str,
+    err: str,
+    label: str,
+) -> tuple[list[dict], str, str]:
+    if status != "ok":
+        return [], status, (f"{label}: {err}" if err else "")
+    if isinstance(payload, dict) and "error" not in payload and isinstance(payload.get("features"), list):
+        return payload["features"], "ok", ""
+    detail = "Expected ArcGIS feature set without error key"
+    if isinstance(payload, dict) and "error" in payload:
+        err_obj = payload.get("error")
+        if isinstance(err_obj, dict):
+            code = err_obj.get("code")
+            msg = str(err_obj.get("message") or "ArcGIS service error").strip()
+            detail = f"ArcGIS error {code}: {msg}" if code is not None else msg
+        else:
+            detail = str(err_obj or detail).strip()
+    return [], "failed", f"{label}: {detail}"
+
+
+def _validate_tdlr_tabs_rows(
+    payload: object,
+    status: str,
+    err: str,
+    addr: str,
+) -> tuple[list[dict], str, str]:
+    if status != "ok":
+        return [], status, (f"TDLR TABS ({addr}): {err}" if err else "")
+    if isinstance(payload, dict) and "error" not in payload and isinstance(payload.get("data"), list):
+        return payload["data"], "ok", ""
+    detail = ""
+    if isinstance(payload, dict) and payload.get("error"):
+        detail = str(payload.get("error")).strip()
+    return [], "failed", f"TDLR TABS ({addr}): {detail or 'Expected DataTables object with data list'}"
+
+
+def _combine_subquery_health(results: list[tuple[str, str]], label: str) -> dict:
+    errors = [err for st, err in results if st == "failed" and err]
+    if any(st == "failed" for st, _ in results):
+        return {
+            "status": "failed",
+            "ok": False,
+            "label": label,
+            "error": "; ".join(dict.fromkeys(errors)) or f"{label} query failed",
+        }
+    if any(st == "ok" for st, _ in results):
+        return {"status": "ok", "ok": True, "label": label, "error": ""}
+    return {"status": "skipped", "ok": True, "label": label, "error": ""}
+
+
+def aggregate_watchlist_sweep_health(
+    per_property_healths: list[dict],
+    sweep_timestamp_iso: str,
+    run_live_sweeps: bool = True,
+) -> dict:
+    """Aggregate per-property 8-agency health via worst-case logical AND across all active properties.
+
+    Why worst-case rollup: reporting '8/8 agencies OK' when even a single watched property suffered
+    an HTTP-200 ArcGIS fault, Socrata query rejection, or TDLR timeout gives staff false confidence
+    that zero regulatory filings occurred overnight.
+    """
+    agencies: dict[str, dict] = {}
+    for chk_id, label in AUTOMATED_SWEEP_AGENCIES:
+        entries = [
+            h[chk_id]
+            for h in per_property_healths
+            if isinstance(h, dict) and isinstance(h.get(chk_id), dict)
+        ]
+        failed_entries = [
+            e for e in entries if e.get("status") == "failed" or e.get("ok") is False
+        ]
+        if failed_entries:
+            uniq_errs: list[str] = []
+            for fe in failed_entries:
+                em = str(fe.get("error") or "").strip()
+                if em and em not in uniq_errs:
+                    uniq_errs.append(em)
+            agencies[chk_id] = {
+                "status": "failed",
+                "ok": False,
+                "label": label,
+                "failedPropertyCount": len(failed_entries),
+                "error": "; ".join(uniq_errs[:3]) or f"{label} failed",
+            }
+        elif any(e.get("status") == "ok" for e in entries):
+            agencies[chk_id] = {
+                "status": "ok",
+                "ok": True,
+                "label": label,
+                "failedPropertyCount": 0,
+                "error": "",
+            }
+        else:
+            agencies[chk_id] = {
+                "status": "skipped",
+                "ok": True,
+                "label": label,
+                "failedPropertyCount": 0,
+                "error": "",
+            }
+
+    failed_ids = sorted(cid for cid, meta in agencies.items() if not meta["ok"])
+    skipped_ids = sorted(cid for cid, meta in agencies.items() if meta["status"] == "skipped")
+    total = len(AUTOMATED_SWEEP_AGENCIES)
+    return {
+        "timestamp": sweep_timestamp_iso,
+        "sweepsExecuted": bool(run_live_sweeps and per_property_healths),
+        "propertiesSwept": len(per_property_healths),
+        "totalAgencies": total,
+        "succeededAgencies": total - len(failed_ids),
+        "failedAgencies": failed_ids,
+        "skippedAgencies": skipped_ids,
+        "allOk": len(failed_ids) == 0,
+        "agencies": agencies,
+    }
 
 
 def _extract_property_sweep_context(prop: dict) -> dict[str, list[str]]:
@@ -3507,30 +3689,36 @@ def sweep_watched_property_agencies(
     dbas = ctx["dbas"]
     hcad_ids = ctx["hcadIds"]
 
-    findings_by_check: dict[str, list[dict]] = {
-        "chk-04": [],
-        "chk-05": [],
-        "chk-06": [],
-        "chk-09": [],
-        "chk-10": [],
-        "chk-13": [],
-        "chk-14": [],
-        "chk-15": [],
-    }
+    findings_by_check: dict[str, list[dict]] = {chk_id: [] for chk_id, _ in AUTOMATED_SWEEP_AGENCIES}
+    agency_health: dict[str, dict] = {}
     harvested_projects: list[str] = []
 
     # Check #4: TX Comptroller Sales Tax (jrea-zgmq) & Franchise Tax (9cir-efmm)
     sales_where = build_comptroller_sales_soql_where(addrs, entities, dbas)
-    sales_rows = _fetch_json_safe(build_socrata_query_url(SOCRATA_SALES_TAX_URL, sales_where, limit=20))
+    sales_url = build_socrata_query_url(SOCRATA_SALES_TAX_URL, sales_where, limit=20)
+    sales_raw, sales_st, sales_err = _fetch_json_with_status(sales_url)
+    sales_rows, sales_st, sales_err = _validate_socrata_rows(
+        sales_raw, sales_st, sales_err, "TX Comptroller Sales Tax"
+    )
+
     fran_where = build_comptroller_franchise_soql_where(entities)
-    fran_rows = _fetch_json_safe(build_socrata_query_url(SOCRATA_FRANCHISE_TAX_URL, fran_where, limit=15))
+    fran_url = build_socrata_query_url(SOCRATA_FRANCHISE_TAX_URL, fran_where, limit=15)
+    fran_raw, fran_st, fran_err = _fetch_json_with_status(fran_url)
+    fran_rows, fran_st, fran_err = _validate_socrata_rows(
+        fran_raw, fran_st, fran_err, "TX Comptroller Franchise Tax"
+    )
+
     findings_by_check["chk-04"] = normalize_comptroller_records(
-        sales_rows if isinstance(sales_rows, list) else [],
-        fran_rows if isinstance(fran_rows, list) else [],
+        sales_rows,
+        fran_rows,
         addrs,
         entities,
         dbas,
         sweep_date_iso,
+    )
+    agency_health["chk-04"] = _combine_subquery_health(
+        [(sales_st, sales_err), (fran_st, fran_err)],
+        AUTOMATED_SWEEP_AGENCY_LABELS["chk-04"],
     )
 
     # Check #5: HCAD ArcGIS REST MapServer/0/query
@@ -3544,31 +3732,76 @@ def sweep_watched_property_agencies(
                 "f": "json",
             }
         )
-        hcad_resp = _fetch_json_safe(f"{HCAD_ARCGIS_QUERY_URL}?{hcad_qs}")
-        hcad_feats = hcad_resp.get("features", []) if isinstance(hcad_resp, dict) else []
+        hcad_raw, hcad_st, hcad_err = _fetch_json_with_status(f"{HCAD_ARCGIS_QUERY_URL}?{hcad_qs}")
+        hcad_feats, hcad_st, hcad_err = _validate_arcgis_features(
+            hcad_raw, hcad_st, hcad_err, "HCAD ArcGIS"
+        )
         findings_by_check["chk-05"] = normalize_hcad_arcgis_records(hcad_feats, sweep_date_iso)
+        agency_health["chk-05"] = _combine_subquery_health(
+            [(hcad_st, hcad_err)], AUTOMATED_SWEEP_AGENCY_LABELS["chk-05"]
+        )
+    else:
+        agency_health["chk-05"] = _combine_subquery_health(
+            [("skipped", "")], AUTOMATED_SWEEP_AGENCY_LABELS["chk-05"]
+        )
 
     # Check #6: TABC Pending (mxm5-tdpj, no trade_name column) & Active (7hf9-qc9f)
     tabc_pend_w = build_tabc_soql_where(addrs, entities, dbas, include_trade_name=False)
     tabc_act_w = build_tabc_soql_where(addrs, entities, dbas, include_trade_name=True)
-    tabc_pend = _fetch_json_safe(build_socrata_query_url(SOCRATA_TABC_PENDING_URL, tabc_pend_w, limit=15))
-    tabc_act = _fetch_json_safe(build_socrata_query_url(SOCRATA_TABC_ACTIVE_URL, tabc_act_w, limit=15))
+    tp_raw, tp_st, tp_err = _fetch_json_with_status(
+        build_socrata_query_url(SOCRATA_TABC_PENDING_URL, tabc_pend_w, limit=15)
+    )
+    tp_rows, tp_st, tp_err = _validate_socrata_rows(tp_raw, tp_st, tp_err, "TABC Pending")
+    ta_raw, ta_st, ta_err = _fetch_json_with_status(
+        build_socrata_query_url(SOCRATA_TABC_ACTIVE_URL, tabc_act_w, limit=15)
+    )
+    ta_rows, ta_st, ta_err = _validate_socrata_rows(ta_raw, ta_st, ta_err, "TABC Active")
     findings_by_check["chk-06"] = normalize_tabc_records(
-        tabc_pend if isinstance(tabc_pend, list) else [],
-        tabc_act if isinstance(tabc_act, list) else [],
+        tp_rows,
+        ta_rows,
         addrs,
         entities,
         dbas,
         sweep_date_iso,
     )
+    agency_health["chk-06"] = _combine_subquery_health(
+        [(tp_st, tp_err), (ta_st, ta_err)],
+        AUTOMATED_SWEEP_AGENCY_LABELS["chk-06"],
+    )
 
     # Check #9: Multi-cycle COH Planning Commission Plats, Section K Variances & Notices
     all_plat_items: list[dict] = []
-    if isinstance(plat_data.get("cycles"), dict):
-        for cyc in plat_data["cycles"].values():
-            all_plat_items.extend(cyc.get("items") or [])
+    chk09_st = "ok"
+    chk09_err = ""
+    if not isinstance(plat_data, dict):
+        chk09_st = "failed"
+        chk09_err = "COH Plat Agenda dataset missing or invalid"
+    elif plat_data.get("scrapeFailed") is True or plat_data.get("error"):
+        chk09_st = "failed"
+        chk09_err = str(plat_data.get("error") or "COH Plat Agenda upstream scrape failed")
+    elif "cycles" in plat_data:
+        if not isinstance(plat_data.get("cycles"), dict):
+            chk09_st = "failed"
+            chk09_err = "COH Plat Agenda cycles index malformed"
+        else:
+            for cyc in plat_data["cycles"].values():
+                if isinstance(cyc, dict) and isinstance(cyc.get("items"), list):
+                    all_plat_items.extend(cyc["items"])
+                else:
+                    chk09_st = "failed"
+                    chk09_err = "COH Plat Agenda cycle entry malformed"
+    elif "items" in plat_data:
+        if isinstance(plat_data.get("items"), list):
+            all_plat_items.extend(plat_data["items"])
+        else:
+            chk09_st = "failed"
+            chk09_err = "COH Plat Agenda items list malformed"
     else:
-        all_plat_items.extend(plat_data.get("items") or [])
+        chk09_st = "failed"
+        chk09_err = "COH Plat Agenda dataset contains neither cycles nor items"
+
+    if chk09_st == "ok" and not (hcad_ids or addrs or ctx["subdivKeywords"]):
+        chk09_st = "skipped"
     findings_by_check["chk-09"] = normalize_plat_matches(
         all_plat_items,
         hcad_ids,
@@ -3576,14 +3809,18 @@ def sweep_watched_property_agencies(
         ctx["subdivKeywords"],
         sweep_date_iso,
     )
+    agency_health["chk-09"] = _combine_subquery_health(
+        [(chk09_st, chk09_err)], AUTOMATED_SWEEP_AGENCY_LABELS["chk-09"]
+    )
 
     # Check #10: TDLR Architectural Barriers (TABS) scoped strictly to Harris County (2101)
     tabs_collected: list[dict] = []
     seen_tabs_proj: set[str] = set()
+    tabs_statuses: list[tuple[str, str]] = []
     for addr in addrs[:6]:
         params = build_tdlr_tabs_search_params(address=addr, county_code="2101")
         body = urllib.parse.urlencode(params).encode("utf-8")
-        resp = _fetch_json_safe(
+        t_raw, t_st, t_err = _fetch_json_with_status(
             TDLR_TABS_SEARCH_API_URL,
             timeout=12,
             data=body,
@@ -3593,11 +3830,8 @@ def sweep_watched_property_agencies(
                 "X-Requested-With": "XMLHttpRequest",
             },
         )
-        raw_rows = (
-            resp["data"]
-            if isinstance(resp, dict) and isinstance(resp.get("data"), list)
-            else (resp if isinstance(resp, list) else [])
-        )
+        raw_rows, t_st, t_err = _validate_tdlr_tabs_rows(t_raw, t_st, t_err, addr)
+        tabs_statuses.append((t_st, t_err))
         for raw_row in raw_rows:
             if not isinstance(raw_row, dict):
                 continue
@@ -3639,6 +3873,10 @@ def sweep_watched_property_agencies(
         dbas,
         sweep_date_iso,
     )
+    agency_health["chk-10"] = _combine_subquery_health(
+        tabs_statuses or [("skipped", "")],
+        AUTOMATED_SWEEP_AGENCY_LABELS["chk-10"],
+    )
 
     # Check #13: Houston 311 Code Enforcement & Dangerous Buildings
     w_311 = build_houston_311_where(addrs, hcad_ids)
@@ -3652,23 +3890,60 @@ def sweep_watched_property_agencies(
                 "f": "json",
             }
         )
-        resp_311 = _fetch_json_safe(f"{HOUSTON_311_QUERY_URL}?{qs_311}")
-        feats_311 = resp_311.get("features", []) if isinstance(resp_311, dict) else []
+        r311_raw, r311_st, r311_err = _fetch_json_with_status(f"{HOUSTON_311_QUERY_URL}?{qs_311}")
+        feats_311, r311_st, r311_err = _validate_arcgis_features(
+            r311_raw, r311_st, r311_err, "Houston 311 ArcGIS"
+        )
         findings_by_check["chk-13"] = normalize_houston_311_records(
             feats_311,
             hcad_ids,
             addrs,
             sweep_date_iso,
         )
+        agency_health["chk-13"] = _combine_subquery_health(
+            [(r311_st, r311_err)], AUTOMATED_SWEEP_AGENCY_LABELS["chk-13"]
+        )
+    else:
+        agency_health["chk-13"] = _combine_subquery_health(
+            [("skipped", "")], AUTOMATED_SWEEP_AGENCY_LABELS["chk-13"]
+        )
 
     # Check #14 & #15: Cross-check fresh active_permit_alerts.json & permit shards harvested by fetch_live_permits.py
     permit_candidates: list[dict] = []
     dshs_candidates: list[dict] = []
+    chk14_statuses: list[tuple[str, str]] = []
+    chk15_statuses: list[tuple[str, str]] = []
     alerts_path = DATA_DIR / "active_permit_alerts.json"
-    if alerts_path.exists():
+    if not alerts_path.exists():
+        chk14_statuses.append(("failed", f"Missing {alerts_path.name} index"))
+        chk15_statuses.append(("failed", f"Missing {alerts_path.name} index"))
+    else:
         try:
             alerts_doc = json.loads(alerts_path.read_text(encoding="utf-8"))
+            if not isinstance(alerts_doc, dict) or not isinstance(alerts_doc.get("alerts"), list):
+                raise ValueError("alerts index missing alerts array")
+            if alerts_doc.get("degraded") is True or alerts_doc.get("coh_fetch_failed") is True:
+                chk14_statuses.append(
+                    (
+                        "failed",
+                        str(alerts_doc.get("coh_fetch_error") or "COH permit alerts index flagged degraded"),
+                    )
+                )
+            else:
+                chk14_statuses.append(("ok" if (hcad_ids or addrs) else "skipped", ""))
+            if alerts_doc.get("degraded") is True or alerts_doc.get("dshs_fetch_failed") is True:
+                chk15_statuses.append(
+                    (
+                        "failed",
+                        str(alerts_doc.get("dshs_fetch_error") or "DSHS asbestos index flagged degraded"),
+                    )
+                )
+            else:
+                chk15_statuses.append(("ok" if (hcad_ids or addrs or entities) else "skipped", ""))
+
             for al in alerts_doc.get("alerts", []):
+                if not isinstance(al, dict):
+                    continue
                 al_hcads = set(
                     parse_hcad_account_list(
                         " ".join([str(al.get("hcad_num") or "")] + [str(x) for x in (al.get("related_hcads") or [])])
@@ -3682,13 +3957,17 @@ def sweep_watched_property_agencies(
                     dshs_candidates.extend(al.get("dshs_notifications") or [])
         except Exception as exc:
             print(f"[warn] Could not inspect active_permit_alerts.json during sweep: {exc}")
+            chk14_statuses.append(("failed", f"Corrupt active_permit_alerts.json: {exc}"))
+            chk15_statuses.append(("failed", f"Corrupt active_permit_alerts.json: {exc}"))
 
     for hid in hcad_ids:
         shard_file = DATA_DIR / "permits" / f"permits_{hid[:3]}.json"
         if shard_file.exists():
             try:
                 shard_doc = json.loads(shard_file.read_text(encoding="utf-8"))
-                rec = shard_doc.get(hid) if isinstance(shard_doc, dict) else None
+                if not isinstance(shard_doc, dict):
+                    raise ValueError("Shard payload is not a JSON object")
+                rec = shard_doc.get(hid)
                 if isinstance(rec, dict):
                     for p_item in rec.get("permits") or rec.get("coh_permits") or []:
                         if isinstance(p_item, dict):
@@ -3696,12 +3975,15 @@ def sweep_watched_property_agencies(
                             if not p_copy.get("job_address") and addrs:
                                 p_copy["job_address"] = addrs[0]
                             permit_candidates.append(p_copy)
-            except Exception:
-                pass
+            except Exception as exc:
+                chk14_statuses.append(("failed", f"Corrupt permit shard {shard_file.name}: {exc}"))
 
     norm_permits = normalize_coh_sold_permits(permit_candidates, addrs, sweep_date_iso)
     findings_by_check["chk-14"] = norm_permits["findings"]
     harvested_projects.extend(norm_permits["harvestedProjectNumbers"])
+    agency_health["chk-14"] = _combine_subquery_health(
+        chk14_statuses, AUTOMATED_SWEEP_AGENCY_LABELS["chk-14"]
+    )
 
     findings_by_check["chk-15"] = normalize_dshs_asbestos_records(
         dshs_candidates,
@@ -3709,10 +3991,14 @@ def sweep_watched_property_agencies(
         entities,
         sweep_date_iso,
     )
+    agency_health["chk-15"] = _combine_subquery_health(
+        chk15_statuses, AUTOMATED_SWEEP_AGENCY_LABELS["chk-15"]
+    )
 
     return {
         "findingsByCheck": findings_by_check,
         "harvestedProjectNumbers": harvested_projects,
+        "agencyHealth": agency_health,
     }
 
 
@@ -3742,6 +4028,12 @@ def _rebuild_property_findings_log(checklist: list[dict]) -> list[dict]:
             }
             if c.get("source"):
                 item["source"] = c["source"]
+            if c.get("discoveredAt"):
+                item["discoveredAt"] = str(c["discoveredAt"])
+            if c.get("loggedAt"):
+                item["loggedAt"] = str(c["loggedAt"])
+            if isinstance(c.get("adverse"), bool):
+                item["adverse"] = c["adverse"]
             if c.get("agencyRecordId"):
                 item["agencyRecordId"] = c["agencyRecordId"]
             if isinstance(c.get("links"), list) and c["links"]:
@@ -3753,27 +4045,23 @@ def _rebuild_property_findings_log(checklist: list[dict]) -> list[dict]:
     return entries
 
 
-def merge_auto_sweep_findings_into_property(
+def collect_new_auto_sweep_findings(
     prop: dict,
     sweep_bundle: dict,
-    sweep_timestamp_iso: str,
-) -> dict:
-    """Idempotently merge [AUTO-SWEEP] findings by row['id'] ('chk-01'..'chk-15') without clobbering."""
-    sweep_date = sweep_timestamp_iso[:10]
+    sweep_date_iso: str = "",
+) -> dict[str, list[dict]]:
+    """Purely compute net-new deduplicated [AUTO-SWEEP] findings by row['id'] without mutating inputs."""
     checklist = prop.get("checklist") if isinstance(prop.get("checklist"), list) else []
-    findings_by_check = sweep_bundle.get("findingsByCheck") or {}
+    findings_by_check = (sweep_bundle or {}).get("findingsByCheck") or {}
+    net_new: dict[str, list[dict]] = {}
 
     for check_id, new_findings in findings_by_check.items():
         row = _find_checklist_row_by_id(checklist, check_id)
         if not row:
             continue
-        row["automated"] = True
-        row["lastAutoSweepAt"] = sweep_timestamp_iso
-        checks = row.setdefault("checks", [])
-
         existing_keys: set[str] = set()
         existing_texts: set[str] = set()
-        for ex in checks:
+        for ex in row.get("checks") or []:
             if not isinstance(ex, dict):
                 continue
             if ex.get("agencyRecordId"):
@@ -3785,7 +4073,10 @@ def merge_auto_sweep_findings_into_property(
                 for ref_tok in re.findall(r"\b(?:TABS\d{8,12}|\d{8,11})\b", res_norm):
                     existing_texts.add(f"REF::{ref_tok}")
 
+        accepted: list[dict] = []
         for nf in new_findings or []:
+            if not isinstance(nf, dict):
+                continue
             rec_key = f"{check_id}::{nf.get('agencyRecordId')}" if nf.get("agencyRecordId") else ""
             res_norm = " ".join(str(nf.get("result") or "").upper().split())
             ref_tokens = [f"REF::{t}" for t in re.findall(r"\b(?:TABS\d{8,12}|\d{8,11})\b", res_norm)]
@@ -3794,13 +4085,40 @@ def merge_auto_sweep_findings_into_property(
             ):
                 continue
             nf_copy = dict(nf)
-            nf_copy["discoveredAt"] = str(nf_copy.get("discoveredAt") or sweep_date)
-            checks.append(nf_copy)
+            nf_copy["discoveredAt"] = str(nf_copy.get("discoveredAt") or sweep_date_iso)
+            if isinstance(nf.get("links"), list):
+                nf_copy["links"] = [dict(lk) for lk in nf["links"] if isinstance(lk, dict)]
+            accepted.append(nf_copy)
             if rec_key:
                 existing_keys.add(rec_key)
             existing_texts.add(res_norm)
             for rt in ref_tokens:
                 existing_texts.add(rt)
+        if accepted:
+            net_new[check_id] = accepted
+    return net_new
+
+
+def merge_auto_sweep_findings_into_property(
+    prop: dict,
+    sweep_bundle: dict,
+    sweep_timestamp_iso: str,
+) -> dict:
+    """Idempotently merge [AUTO-SWEEP] findings by row['id'] ('chk-01'..'chk-15') without mutating sweep_bundle."""
+    sweep_date = sweep_timestamp_iso[:10]
+    checklist = prop.get("checklist") if isinstance(prop.get("checklist"), list) else []
+    findings_by_check = sweep_bundle.get("findingsByCheck") or {}
+    net_new_by_check = collect_new_auto_sweep_findings(prop, sweep_bundle, sweep_date)
+
+    for check_id in findings_by_check.keys():
+        row = _find_checklist_row_by_id(checklist, check_id)
+        if not row:
+            continue
+        row["automated"] = True
+        row["lastAutoSweepAt"] = sweep_timestamp_iso
+        checks = row.setdefault("checks", [])
+        for nf_copy in net_new_by_check.get(check_id, []):
+            checks.append(dict(nf_copy))
 
         # Keep row['lastChecked'] strictly for human check/acknowledgment dates (relying on
         # row['lastAutoSweepAt'] and chk['discoveredAt'] for machine sweeps) so backdated adverse
@@ -4227,6 +4545,8 @@ def normalize_watch_property_record(raw: dict) -> dict:
             out_row["lastAutoSweepAt"] = str(matched["lastAutoSweepAt"])
         if matched.get("humanStatusEdited") is True:
             out_row["humanStatusEdited"] = True
+        if isinstance(matched.get("statusChangedAt"), str) and matched["statusChangedAt"].strip():
+            out_row["statusChangedAt"] = matched["statusChangedAt"].strip()
         # Preserve specific TIRZ link on chk-11 or DSHS notification print link on chk-15
         if tpl["id"] == "chk-11" and matched.get("additionalResourceUrl"):
             out_row["additionalResourceLabel"] = str(matched.get("additionalResourceLabel") or "TIRZ Board")
@@ -4722,9 +5042,13 @@ def build_property_watchlist(
                 "notes",
                 "tier",
                 "updatedAt",
+                "updatedBy",
+                "archivedAt",
             ):
                 if norm_cp.get(k_meta) not in (None, "", [], {}):
                     merged_p[k_meta] = norm_cp[k_meta]
+            if merged_p.get("trackerStatus") != "Archived (Tier 3)":
+                merged_p["archivedAt"] = ""
             if has_explicit_terms:
                 merged_p["searchTerms"] = norm_cp["searchTerms"]
                 if norm_cp.get("searchTermsUpdatedAt"):
@@ -4749,6 +5073,8 @@ def build_property_watchlist(
                         b_row["updatedAt"] = c_row["updatedAt"]
                     if c_row.get("humanStatusEdited") is True:
                         b_row["humanStatusEdited"] = True
+                    if isinstance(c_row.get("statusChangedAt"), str) and c_row["statusChangedAt"].strip():
+                        b_row["statusChangedAt"] = c_row["statusChangedAt"].strip()
                     seen_chk = {
                         (str(ch.get("date") or ""), str(ch.get("result") or "").strip())
                         for ch in (b_row.get("checks") or [])
@@ -4774,7 +5100,8 @@ def build_property_watchlist(
             norm_cp["tierConfirmed"] = True
             watched_by_id[pid] = _strip_internal_cloud_flags(norm_cp)
 
-    # Execute 8-agency sweeps for every active watched property
+    # Execute 8-agency sweeps for every active watched property and roll up worst-case sweep health
+    per_property_healths: list[dict] = []
     for pid, prop in watched_by_id.items():
         if prop.get("trackerStatus") == "Archived (Tier 3)":
             prop["lastAutoSweepAt"] = now_iso
@@ -4782,10 +5109,16 @@ def build_property_watchlist(
             continue
         if run_live_sweeps:
             sweep_res = sweep_watched_property_agencies(prop, plat_data, idx, sweep_date)
+            if isinstance(sweep_res.get("agencyHealth"), dict):
+                per_property_healths.append(sweep_res["agencyHealth"])
             merge_auto_sweep_findings_into_property(prop, sweep_res, now_iso)
         else:
             prop["lastAutoSweepAt"] = now_iso
             prop["autoSweepSchedule"] = AUTO_SWEEP_SCHEDULE
+
+    last_sweep_health = aggregate_watchlist_sweep_health(
+        per_property_healths, now_iso, run_live_sweeps=run_live_sweeps
+    )
 
     tier_rank = {"1": 1, "2": 2, "3": 3}
     ordered_props = sorted(
@@ -4802,8 +5135,9 @@ def build_property_watchlist(
     return {
         "updatedAt": now_iso,
         "lastAutoSweepAt": now_iso,
+        "lastSweepHealth": last_sweep_health,
         "autoSweepSchedule": AUTO_SWEEP_SCHEDULE,
-        "automatedAgencyCount": 8,
+        "automatedAgencyCount": len(AUTOMATED_SWEEP_AGENCIES),
         "primaryProperty": primary,
         "watchedProperties": ordered_props,
     }
@@ -4845,16 +5179,40 @@ def main() -> None:
     )
 
     plat_out = DATA_DIR / "plat_agenda_monitor.json"
-    with open(plat_out, "w", encoding="utf-8") as f:
-        json.dump(plat_dataset, f, indent=2)
-    print(
-        f"[6/6] Wrote {plat_out} (active cycle {plat_dataset['cycleKey']}, "
-        f"cycles={plat_dataset['cycleOrder']}, "
-        f"{plat_dataset['summary']['totalAgendaItems']} active items, "
-        f"{plat_dataset['summary']['toCheckCount']} to check)."
-    )
+    sweep_plat_dataset = plat_dataset
+    if (
+        plat_dataset.get("scrapeFailed")
+        and int(plat_dataset.get("summary", {}).get("totalAgendaItems") or 0) == 0
+        and plat_out.exists()
+    ):
+        try:
+            prior_plat = json.loads(plat_out.read_text(encoding="utf-8"))
+            if isinstance(prior_plat, dict) and prior_plat.get("cycles"):
+                sweep_plat_dataset = {
+                    **prior_plat,
+                    "scrapeFailed": True,
+                    "error": str(plat_dataset.get("error") or "COH Plat Agenda upstream scrape failed"),
+                }
+                print(
+                    f"[6/6] Preserved prior {plat_out.name} because upstream scrape returned 0 items "
+                    f"({sweep_plat_dataset['error']})."
+                )
+        except Exception as exc:
+            print(f"[warn] Could not read prior {plat_out.name}: {exc}")
 
-    watchlist = build_property_watchlist(plat_dataset, idx, cloud_sync=cloud_sync, run_live_sweeps=True)
+    if sweep_plat_dataset is plat_dataset:
+        with open(plat_out, "w", encoding="utf-8") as f:
+            json.dump(plat_dataset, f, indent=2)
+        print(
+            f"[6/6] Wrote {plat_out} (active cycle {plat_dataset['cycleKey']}, "
+            f"cycles={plat_dataset['cycleOrder']}, "
+            f"{plat_dataset['summary']['totalAgendaItems']} active items, "
+            f"{plat_dataset['summary']['toCheckCount']} to check)."
+        )
+
+    watchlist = build_property_watchlist(
+        sweep_plat_dataset, idx, cloud_sync=cloud_sync, run_live_sweeps=True
+    )
     wl_out = DATA_DIR / "property_watchlist.json"
     with open(wl_out, "w", encoding="utf-8") as f:
         json.dump(watchlist, f, indent=2)

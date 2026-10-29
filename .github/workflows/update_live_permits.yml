@@ -33,6 +33,11 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y poppler-utils
 
+      - name: Snapshot pre-run monitoring datasets for Daily Activity Log diff
+        run: |
+          python3 pipeline/atlas_pipeline/build_monitor_activity_log.py \
+            --save-before /tmp/atlas_monitor_before
+
       - name: Run live permit & asbestos ingestion pipeline
         run: |
           python3 pipeline/atlas_pipeline/fetch_live_permits.py \
@@ -47,11 +52,17 @@ jobs:
         run: |
           python3 pipeline/atlas_pipeline/fetch_hahc_tracker.py
 
-      - name: Commit and push updated permit alerts, plat monitor, watchlist, and HAHC tracker
+      - name: Build 90-day Daily Activity Log & sweep telemetry ledger
+        run: |
+          python3 pipeline/atlas_pipeline/build_monitor_activity_log.py \
+            --update-log \
+            --before-dir /tmp/atlas_monitor_before
+
+      - name: Commit and push updated permit alerts, plat monitor, watchlist, HAHC tracker, and activity log
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/public/data/active_permit_alerts.json app/public/data/permits/ app/public/data/plat_agenda_monitor.json app/public/data/property_watchlist.json app/public/data/hahc_coa_tracker.json app/public/data/overlays.json app/public/data/search_index.json
+          git add app/public/data/active_permit_alerts.json app/public/data/permits/ app/public/data/plat_agenda_monitor.json app/public/data/property_watchlist.json app/public/data/hahc_coa_tracker.json app/public/data/monitor_activity_log.json app/public/data/overlays.json app/public/data/search_index.json
           if git diff --cached --quiet; then
             echo "No new permit or asbestos changes detected."
           else
@@ -62,7 +73,13 @@ jobs:
           c = s.get("critical_count", 0)
           w = s.get("watch_count", 0)
           t = s.get("total_flagged_buildings", 0)
-          print(f"{c} critical, {w} watch ({t} total)")
+          with open("app/public/data/monitor_activity_log.json") as f:
+              al = json.load(f)
+          runs = al.get("dailyRuns") or [{}]
+          today_ev = runs[0].get("eventCount", 0)
+          ok_ag = runs[0].get("succeededAgencies", 8)
+          tot_ag = runs[0].get("totalAgencies", 8)
+          print(f"{c} critical, {w} watch ({t} total); {today_ev} daily event(s), {ok_ag}/{tot_ag} agencies OK")
           ')
             git commit -m "chore(permits): automated update of Houston permits & DSHS asbestos alerts ($ALERT_SUMMARY)"
             git pull --rebase --autostash origin main

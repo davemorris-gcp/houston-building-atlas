@@ -389,8 +389,10 @@ def update_search_index_for_kirby_mansion():
             json.dump(idx_data, f, separators=(",", ":"))
 
 
-def query_coh_single_window(seltd: str, srh: str, bdt: datetime.date, edt: datetime.date, ptype: str = "ALL") -> list:
-    """Query City of Houston WebFOCUS online_per_se.fex for a single small date window."""
+def _query_coh_single_window_with_status(
+    seltd: str, srh: str, bdt: datetime.date, edt: datetime.date, ptype: str = "ALL"
+) -> tuple[list, bool, str]:
+    """Query City of Houston WebFOCUS online_per_se.fex for a single small date window with explicit error state."""
     params = urllib.parse.urlencode(
         {
             "IBIF_ex": "online_per_se.fex",
@@ -408,18 +410,19 @@ def query_coh_single_window(seltd: str, srh: str, bdt: datetime.date, edt: datet
         with urllib.request.urlopen(req, context=SSL_CTX, timeout=20) as r:
             res = r.read().decode("utf-8", errors="ignore")
     except Exception as e:
-        print(f"  [WARN] COH WFServlet query failed ({seltd}={srh}, {bdt}..{edt}): {e}", flush=True)
-        return []
+        err_msg = f"COH WFServlet query failed ({seltd}={srh}, {bdt}..{edt}): {e}"
+        print(f"  [WARN] {err_msg}", flush=True)
+        return [], True, err_msg
 
     m_ar = re.search(r"ARstrings=(\[\x27Search.*?\]);\s*T_cont", res, re.S)
     m_tc = re.search(r"T_cont\[NumOfTable\]\s*=\s*(\[\[\[.*?\]);", res, re.S)
     if not m_ar or not m_tc:
-        return []
+        return [], False, ""
     try:
         ar_strings = ast.literal_eval(m_ar.group(1))
         t_cont = ast.literal_eval(m_tc.group(1))
-    except Exception:
-        return []
+    except Exception as e:
+        return [], True, f"COH WFServlet parse failed ({seltd}={srh}, {bdt}..{edt}): {e}"
 
     results = []
     for row in t_cont:
@@ -439,10 +442,16 @@ def query_coh_single_window(seltd: str, srh: str, bdt: datetime.date, edt: datet
                 "permit_type": p_type,
             }
         )
-    return results
+    return results, False, ""
 
 
-def fetch_coh_permits_parallel(lookback_days: int = 45) -> dict:
+def query_coh_single_window(seltd: str, srh: str, bdt: datetime.date, edt: datetime.date, ptype: str = "ALL") -> list:
+    """Query City of Houston WebFOCUS online_per_se.fex for a single small date window."""
+    rows, _failed, _err = _query_coh_single_window_with_status(seltd, srh, bdt, edt, ptype)
+    return rows
+
+
+def fetch_coh_permits_parallel(lookback_days: int = 45, *, return_status: bool = False):
     """
     Fetch City of Houston DEMO, SEWER DISC, and SD permits across `lookback_days`
     using parallel 5-day date slices so every slice stays below the 100-row WebFOCUS page cap.
@@ -463,13 +472,26 @@ def fetch_coh_permits_parallel(lookback_days: int = 45) -> dict:
         tasks.append(("PT", " ", bdt, edt, "SD"))
 
     combined = {}
+    errors: list[str] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-        futs = [pool.submit(query_coh_single_window, *t) for t in tasks]
+        futs = [pool.submit(_query_coh_single_window_with_status, *t) for t in tasks]
         for fut in concurrent.futures.as_completed(futs):
-            for r in fut.result():
+            rows, failed, err_msg = fut.result()
+            if failed and err_msg:
+                errors.append(err_msg)
+            for r in rows:
                 key = (r["project_no"], r.get("permit_type", ""), r.get("permit_desc", ""))
                 combined[key] = r
-    return combined
+
+    if not return_status:
+        return combined
+    coh_failed = bool(errors) and (len(errors) >= max(1, len(tasks) // 2) or not combined)
+    err_summary = (
+        f"{len(errors)}/{len(tasks)} COH WebFOCUS window queries failed ({errors[0]})"
+        if errors
+        else ""
+    )
+    return combined, coh_failed, err_summary
 
 
 def fetch_coh_permit_detail(project_no: str, permit_type: str) -> dict:
@@ -573,15 +595,16 @@ def parse_xlsx_sold_permits(xlsx_bytes: bytes) -> list:
     return records
 
 
-def fetch_recent_weekly_xlsx_permits(max_files: int = 4) -> list:
+def fetch_recent_weekly_xlsx_permits(max_files: int = 4, *, return_status: bool = False):
     """Download the most recent weekly Sold Permits .xlsx files from houstonpermittingcenter.org."""
     try:
         req = urllib.request.Request(HPC_SOLD_PERMITS_PAGE, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, context=SSL_CTX, timeout=15) as r:
             body = r.read().decode("utf-8", errors="ignore")
     except Exception as e:
-        print(f"  [WARN] Could not fetch {HPC_SOLD_PERMITS_PAGE}: {e}", flush=True)
-        return []
+        err_msg = f"Could not fetch {HPC_SOLD_PERMITS_PAGE}: {e}"
+        print(f"  [WARN] {err_msg}", flush=True)
+        return ([], True, err_msg) if return_status else []
 
     raw_links = re.findall(r'href=["\']([^"\']*xlsx?[^"\']*)["\']', body, re.I)
     clean_urls = []
@@ -598,6 +621,7 @@ def fetch_recent_weekly_xlsx_permits(max_files: int = 4) -> list:
 
     recent_urls = clean_urls[-max_files:]
     all_rows = []
+    dl_errors: list[str] = []
     for u in recent_urls:
         try:
             u_safe = urllib.parse.quote(urllib.parse.unquote(u), safe=":/?&=%")
@@ -607,8 +631,13 @@ def fetch_recent_weekly_xlsx_permits(max_files: int = 4) -> list:
                 print(f"  Parsed {len(rows)} permits from weekly report: {u_safe.split('/')[-1]}", flush=True)
                 all_rows.extend(rows)
         except Exception as e:
-            print(f"  [WARN] Weekly XLSX download failed for {u}: {e}", flush=True)
-    return all_rows
+            err_msg = f"Weekly XLSX download failed for {u}: {e}"
+            print(f"  [WARN] {err_msg}", flush=True)
+            dl_errors.append(err_msg)
+    if not return_status:
+        return all_rows
+    weekly_failed = bool(dl_errors) and not all_rows
+    return all_rows, weekly_failed, dl_errors[0] if dl_errors else ""
 
 
 def parse_dshs_pdf_text(pdf_bytes: bytes) -> dict:
@@ -732,7 +761,9 @@ def fetch_dshs_houston_notifications(
     start_from: datetime.date,
     start_to: datetime.date,
     by_addr: dict,
-) -> list:
+    *,
+    return_status: bool = False,
+):
     """
     Query Texas DSHS Online Asbestos Notification System for Houston (Harris County = 101,
     Houston = 25185) and extract full PDF details for any notification matching an Atlas parcel.
@@ -740,6 +771,7 @@ def fetch_dshs_houston_notifications(
     """
     first_html = None
     opener = None
+    last_err = ""
     for attempt in range(1, 4):
         cj = http.cookiejar.CookieJar()
         opener = urllib.request.build_opener(
@@ -778,10 +810,12 @@ def fetch_dshs_houston_notifications(
             first_html = r.read().decode("utf-8", errors="ignore")
             break
         except Exception as e:
+            last_err = str(e)
             print(f"  [WARN] DSHS search attempt {attempt}/3 failed: {e}", flush=True)
 
     if not first_html or opener is None:
-        return []
+        fail_msg = f"DSHS asbestos portal unreachable after 3 attempts ({last_err or 'empty response'})"
+        return ([], True, fail_msg) if return_status else []
 
     pages_html = [first_html]
     page_urls = []
@@ -851,6 +885,8 @@ def fetch_dshs_houston_notifications(
 
             matched_notifications.append(item)
 
+    if return_status:
+        return matched_notifications, False, ""
     return matched_notifications
 
 
@@ -995,7 +1031,9 @@ def main():
     today = datetime.date.today()
     bdt = today - datetime.timedelta(days=args.lookback_days)
     print(f"2. Querying City of Houston WebFOCUS Sold Permits ({bdt} to {today})...", flush=True)
-    combined_coh = fetch_coh_permits_parallel(lookback_days=args.lookback_days)
+    combined_coh, coh_wf_failed, coh_wf_err = fetch_coh_permits_parallel(
+        lookback_days=args.lookback_days, return_status=True
+    )
     print(f"   Retrieved {len(combined_coh):,} unique City of Houston DEMO / SD permit records.", flush=True)
 
     # Filter to rows that match an Atlas building first, then fetch details in parallel
@@ -1052,7 +1090,11 @@ def main():
                 matched_coh_by_hcad.setdefault(hcad, []).append(merged_permit)
 
     print(f"3. Ingesting recent weekly Sold Permits .xlsx spreadsheets ({args.weekly_xlsx_count} weeks)...", flush=True)
-    weekly_rows = fetch_recent_weekly_xlsx_permits(max_files=args.weekly_xlsx_count)
+    weekly_rows, weekly_failed, weekly_err = fetch_recent_weekly_xlsx_permits(
+        max_files=args.weekly_xlsx_count, return_status=True
+    )
+    coh_fetch_failed = bool(coh_wf_failed or (coh_wf_err and weekly_failed))
+    coh_fetch_error = "; ".join(x for x in (coh_wf_err, weekly_err if weekly_failed else "") if x)
     weekly_matched_by_hcad = {}
     for r in weekly_rows:
         na = r["norm_address"]
@@ -1065,7 +1107,9 @@ def main():
     print("4. Querying Texas DSHS Asbestos Abatement & Demolition Notifications for Houston...", flush=True)
     dshs_start = today - datetime.timedelta(days=45)
     dshs_end = today + datetime.timedelta(days=90)
-    dshs_matched = fetch_dshs_houston_notifications(dshs_start, dshs_end, by_addr)
+    dshs_matched, dshs_fetch_failed, dshs_fetch_error = fetch_dshs_houston_notifications(
+        dshs_start, dshs_end, by_addr, return_status=True
+    )
     print(f"   Matched {len(dshs_matched)} Texas DSHS notifications to Atlas structures.", flush=True)
 
     dshs_by_hcad = {}
@@ -1074,6 +1118,27 @@ def main():
         for bld in by_addr.get(na, []):
             hcad = str(bld.get("hcad_num") or bld.get("id") or "")
             dshs_by_hcad.setdefault(hcad, []).append(item)
+
+    # Carry forward active COH permits from existing ALERTS_OUTPUT_JSON if upstream COH portal timed out
+    if coh_fetch_failed and not matched_coh_by_hcad and ALERTS_OUTPUT_JSON.exists():
+        try:
+            with open(ALERTS_OUTPUT_JSON, "r", encoding="utf-8") as f:
+                prev_alerts_coh = json.load(f).get("alerts", [])
+            coh_cutoff_iso = bdt.strftime("%Y-%m-%d")
+            carried_coh = 0
+            for pa in prev_alerts_coh:
+                ph = str(pa.get("hcad_num") or "")
+                for cp in pa.get("coh_permits") or []:
+                    if str(cp.get("date") or "9999") >= coh_cutoff_iso:
+                        matched_coh_by_hcad.setdefault(ph, []).append(cp)
+                        carried_coh += 1
+            if carried_coh:
+                print(
+                    f"   Carried forward {carried_coh} active COH permits from previous snapshot (upstream degraded).",
+                    flush=True,
+                )
+        except Exception:
+            pass
 
     # Carry forward active DSHS notifications from existing ALERTS_OUTPUT_JSON if upstream DSHS portal timed out
     if not dshs_by_hcad and ALERTS_OUTPUT_JSON.exists():
@@ -1297,6 +1362,10 @@ def main():
         "updated_at": now_iso,
         "generated_at": now_iso,
         "lookback_days": args.lookback_days,
+        "coh_fetch_failed": bool(coh_fetch_failed),
+        "dshs_fetch_failed": bool(dshs_fetch_failed),
+        "coh_fetch_error": coh_fetch_error,
+        "dshs_fetch_error": dshs_fetch_error,
         "summary": {
             "total_flagged_buildings": len(alerts_list),
             "critical_count": sum(1 for a in alerts_list if a["severity"] == "critical"),

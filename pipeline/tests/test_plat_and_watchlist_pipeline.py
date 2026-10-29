@@ -1044,3 +1044,1229 @@ def test_annual_demolition_benchmarks_schema_and_js_parity() -> None:
     assert js_bench == bench
 
 
+def test_ut1_watchlist_sweep_health_fault_detection_and_rollup(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """UT-1: Verify honest 8-agency sweep health telemetry across timeouts, HTTP-200 errors, partial failures, skipped terms, and multi-property rollup."""
+    import copy
+
+    fake_data_dir = tmp_path / "data"
+    (fake_data_dir / "permits").mkdir(parents=True)
+    monkeypatch.setattr(fpw, "DATA_DIR", fake_data_dir)
+
+    # Seed healthy baseline alerts index for scenarios 1 & 2
+    (fake_data_dir / "active_permit_alerts.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-10-29T12:00:00Z",
+                "alerts": [
+                    {
+                        "hcad_num": "0152300000001",
+                        "address": "2000 Smith St",
+                        "coh_permits": [
+                            {
+                                "project_no": "26099111",
+                                "date": "2026-10-28",
+                                "permit_type_label": "Demolition Permit",
+                                "use_desc": "BLD DEMO/SEWER DISC",
+                                "buyer": "ACME DEMO LLC",
+                                "job_address": "2000 SMITH ST",
+                                "is_structural_demo": True,
+                            }
+                        ],
+                        "dshs_notifications": [],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    # Scenario A: Mixed multi-agency faults on a fully populated property:
+    #   - chk-04: Sales Tax OK, Franchise Tax returns non-list Socrata error dict -> chk-04 failed
+    #   - chk-05: HCAD ArcGIS returns HTTP-200 {"error": {"code": 499, ...}} -> chk-05 failed
+    #   - chk-06: TABC Pending times out (None), TABC Active succeeds -> chk-06 failed
+    #   - chk-09: plat_data flagged scrapeFailed -> chk-09 failed
+    #   - chk-10: Addr #1 returns valid DataTables payload, Addr #2 times out (None) -> chk-10 failed
+    #   - chk-13: Houston 311 ArcGIS returns HTTP-200 {"error": {"code": 500, ...}} -> chk-13 failed
+    #   - chk-14 & chk-15: local active_permit_alerts.json valid -> ok
+    tdlr_post_count = 0
+
+    def fault_fetch_bytes(url: str, timeout: int = 12, data: bytes | None = None, headers=None):
+        nonlocal tdlr_post_count
+        if "jrea-zgmq.json" in url:  # Comptroller Sales Tax -> OK
+            return json.dumps(
+                [
+                    {
+                        "taxpayer_number": "32099112233",
+                        "taxpayer_name": "SMITH ST C STORE LLC",
+                        "outlet_number": "00001",
+                        "outlet_name": "BRAKE TIME",
+                        "outlet_address": "2000 SMITH ST",
+                        "outlet_city": "HOUSTON",
+                        "outlet_county_code": "101",
+                        "outlet_permit_issue_date": "20260315",
+                    }
+                ]
+            ).encode("utf-8")
+        if "9cir-efmm.json" in url:  # Comptroller Franchise Tax -> non-list Socrata error dict
+            return json.dumps({"error": True, "message": "SoQL rate limit or syntax fault"}).encode("utf-8")
+        if "arcweb.hcad.org" in url:  # HCAD ArcGIS -> HTTP-200 error envelope
+            return json.dumps({"error": {"code": 499, "message": "Token Required"}}).encode("utf-8")
+        if "mxm5-tdpj.json" in url:  # TABC Pending -> network timeout
+            return None
+        if "7hf9-qc9f.json" in url:  # TABC Active -> OK list
+            return b"[]"
+        if "tdlr.texas.gov/TABS/Search/SearchProjects" in url:
+            tdlr_post_count += 1
+            if tdlr_post_count == 1:
+                return json.dumps(
+                    {
+                        "data": [
+                            {
+                                "ProjectNumber": "TABS2026099999",
+                                "ProjectName": "Smith Retail Buildout",
+                                "LocationAddress": "2000 SMITH ST",
+                                "County": "2101",
+                                "EstimatedCost": "550000",
+                                "WorkType": "New Construction",
+                            }
+                        ]
+                    }
+                ).encode("utf-8")
+            return None  # Second perimeter address POST times out
+        if "tdlr.texas.gov/TABS/Search/Project/" in url:
+            return b"<html><body>Scope of Work: Convenience store Square Footage: 4000</body></html>"
+        if "311" in url or "mycity" in url.lower() or "arcgis" in url.lower():  # Houston 311 ArcGIS
+            return json.dumps({"error": {"code": 503, "message": "Service Unavailable"}}).encode("utf-8")
+        return b"[]"
+
+    monkeypatch.setattr(fpw, "fetch_bytes", fault_fetch_bytes)
+
+    prop_faulty = fpw.normalize_watch_property_record(
+        {
+            "id": "prop-faulty",
+            "propertyName": "Fault Test Building",
+            "address": "2000 Smith St.",
+            "secondaryAddresses": ["530 Pierce St."],
+            "hcadAccount": "0152300000001",
+            "searchTerms": {
+                "entities": ["Smith St C Store LLC"],
+                "dbas": ["Brake Time"],
+                "altAddresses": ["530 Pierce St."],
+            },
+        }
+    )
+    res_faulty = fpw.sweep_watched_property_agencies(
+        prop=prop_faulty,
+        plat_data={"scrapeFailed": True, "error": "Upstream agenda download HTTP 502"},
+        idx={},
+        sweep_date_iso="2026-10-29",
+    )
+    ah = res_faulty["agencyHealth"]
+    assert set(ah.keys()) == set(fpw.AUTOMATED_SWEEP_AGENCY_LABELS.keys())
+    for failed_cid in ("chk-04", "chk-05", "chk-06", "chk-09", "chk-10", "chk-13"):
+        assert ah[failed_cid]["status"] == "failed", f"{failed_cid} must be marked failed"
+        assert ah[failed_cid]["ok"] is False
+        assert ah[failed_cid]["error"], f"{failed_cid} must include diagnostic error text"
+    assert "ArcGIS error 499: Token Required" in ah["chk-05"]["error"]
+    assert "SoQL rate limit" in ah["chk-04"]["error"]
+    assert "TABC Pending" in ah["chk-06"]["error"]
+    assert "530 Pierce" in ah["chk-10"]["error"]
+    assert ah["chk-14"]["status"] == "ok" and ah["chk-14"]["ok"] is True
+    assert ah["chk-15"]["status"] == "ok" and ah["chk-15"]["ok"] is True
+    # Valid partial data from chk-04 Sales Tax, chk-10 Addr #1, and chk-14 still surfaces
+    assert len(res_faulty["findingsByCheck"]["chk-04"]) >= 1
+    assert len(res_faulty["findingsByCheck"]["chk-10"]) == 1
+    assert len(res_faulty["findingsByCheck"]["chk-14"]) == 1
+    assert "26099111" in res_faulty["harvestedProjectNumbers"]
+
+    # Verify merge_auto_sweep_findings_into_property does NOT mutate caller's sweep_bundle
+    bundle_before = copy.deepcopy(res_faulty)
+    fpw.merge_auto_sweep_findings_into_property(
+        prop_faulty, res_faulty, "2026-10-29T12:05:00Z"
+    )
+    assert res_faulty == bundle_before, "merge_auto_sweep_findings_into_property must never mutate sweep_bundle"
+    chk14_row = next(r for r in prop_faulty["checklist"] if r["id"] == "chk-14")
+    assert chk14_row["status"] == "Flagged"
+    assert chk14_row["lastAutoSweepAt"] == "2026-10-29T12:05:00Z"
+    assert "26099111" in prop_faulty["searchTerms"]["projectNumbers"]
+    # Re-merging identical sweep_bundle is strictly idempotent
+    chk14_len = len(chk14_row["checks"])
+    fpw.merge_auto_sweep_findings_into_property(
+        prop_faulty, res_faulty, "2026-10-29T12:10:00Z"
+    )
+    assert len(chk14_row["checks"]) == chk14_len
+
+    # Scenario B: Skipped agencies due to empty search terms report status == 'skipped' (ok=True, NOT failed)
+    monkeypatch.setattr(fpw, "fetch_bytes", lambda *a, **kw: b"[]")
+    prop_sparse = {"id": "prop-sparse", "address": "", "hcadAccount": "", "searchTerms": {}}
+    res_sparse = fpw.sweep_watched_property_agencies(
+        prop=prop_sparse,
+        plat_data={"cycles": {"2026-10-29": {"items": []}}},
+        idx={},
+        sweep_date_iso="2026-10-29",
+    )
+    ah_sparse = res_sparse["agencyHealth"]
+    for cid, meta in ah_sparse.items():
+        assert meta["status"] == "skipped", f"Empty-term {cid} should be skipped, got {meta}"
+        assert meta["ok"] is True
+    rolled_sparse = fpw.aggregate_watchlist_sweep_health(
+        [ah_sparse], "2026-10-29T12:00:00Z", run_live_sweeps=True
+    )
+    assert rolled_sparse["allOk"] is True
+    assert rolled_sparse["failedAgencies"] == []
+    assert rolled_sparse["succeededAgencies"] == 8
+    assert len(rolled_sparse["skippedAgencies"]) == 8
+
+    # Scenario C: Degraded local permit/DSHS indices flag chk-14 and chk-15 as failed
+    (fake_data_dir / "active_permit_alerts.json").write_text(
+        json.dumps({"alerts": [], "coh_fetch_failed": True, "dshs_fetch_failed": True}),
+        encoding="utf-8",
+    )
+    res_deg_idx = fpw.sweep_watched_property_agencies(
+        prop={"id": "prop-idx", "address": "500 Main St", "hcadAccount": "0010020030004"},
+        plat_data={"cycles": {"2026-10-29": {"items": []}}},
+        idx={},
+        sweep_date_iso="2026-10-29",
+    )
+    assert res_deg_idx["agencyHealth"]["chk-14"]["ok"] is False
+    assert res_deg_idx["agencyHealth"]["chk-15"]["ok"] is False
+
+    # Restore healthy active_permit_alerts.json for Scenario D (multi-property worst-case rollup in build_property_watchlist)
+    (fake_data_dir / "active_permit_alerts.json").write_text(
+        json.dumps({"alerts": []}), encoding="utf-8"
+    )
+
+    def selective_prop_b_failure(url: str, timeout: int = 12, data: bytes | None = None, headers=None):
+        if "tdlr.texas.gov/TABS/Search/SearchProjects" in url and data and b"910+BAGBY" in data.upper():
+            return None  # Only Property B fails chk-10; Kirby Mansion succeeds on all 8
+        if "tdlr.texas.gov/TABS/Search/SearchProjects" in url:
+            return b'{"data": []}'
+        if "arcweb.hcad.org" in url or "arcgis" in url.lower() or "311" in url or "mycity" in url.lower():
+            return b'{"features": []}'
+        return b"[]"
+
+    monkeypatch.setattr(fpw, "fetch_bytes", selective_prop_b_failure)
+    wl_built = fpw.build_property_watchlist(
+        plat_data={
+            "cycleKey": "2026-10-29",
+            "cycles": {
+                "2026-10-29": {
+                    "items": [
+                        {
+                            "app": "2026-8888",
+                            "name": "Bagby Block Replat",
+                            "type": "C2",
+                            "section": "A. Consent",
+                            "hcad": "0410010010001",
+                            "atlas": {"primaryAddress": "910 Bagby St", "earliestYearBuilt": 1925},
+                        }
+                    ],
+                    "reviews": {
+                        "2026-8888": {"tier": "1", "tierConfirmed": True, "why": "Historic block"}
+                    },
+                }
+            },
+        },
+        idx={},
+        cloud_sync={"watchProperties": {}},
+        run_live_sweeps=True,
+        sweep_timestamp_iso="2026-10-29T12:15:00Z",
+    )
+    sh = wl_built["lastSweepHealth"]
+    assert sh["propertiesSwept"] == 2
+    assert sh["totalAgencies"] == 8
+    assert sh["succeededAgencies"] == 7
+    assert sh["failedAgencies"] == ["chk-10"]
+    assert sh["allOk"] is False
+    assert sh["agencies"]["chk-10"]["failedPropertyCount"] == 1
+    assert sh["agencies"]["chk-05"]["ok"] is True
+
+
+def test_ut2_four_stream_snapshot_diff_events() -> None:
+    """UT-2: Verify deterministic pre/post snapshot diffing across all 4 monitoring streams."""
+    from atlas_pipeline import build_monitor_activity_log as bmal
+
+    now_iso = "2026-10-29T12:15:00Z"
+
+    before_bundle = {
+        "property_watchlist.json": {
+            "watchedProperties": [
+                {
+                    "id": "prop-kirby-mansion",
+                    "propertyName": "John Henry Kirby Mansion",
+                    "address": "2000 Smith St.",
+                    "hcadAccount": "0152300000001",
+                    "buildingId": "bld_004618",
+                    "yearBuilt": 1894,
+                    "designation": "1979 Good Brick Award",
+                    "lat": 29.751432,
+                    "lng": -95.374833,
+                    "tier": "1",
+                    "trackerStatus": "Active / High Priority",
+                    "notes": "Baseline note",
+                    "searchTerms": {"entities": ["OB Texas Properties LLC"]},
+                    "driveLinks": [],
+                    "checklist": [
+                        {"id": "chk-02", "activity": "Site Visit", "status": "In Progress", "checks": []},
+                        {"id": "chk-10", "activity": "Accessibility Registration (TDLR TABS)", "status": "Complete", "checks": []},
+                        {"id": "chk-13", "activity": "Code Complaints & Dangerous Buildings", "status": "To Do", "checks": []},
+                    ],
+                },
+                {
+                    "id": "plat-2026-1111",
+                    "propertyName": "Old Warehouse",
+                    "address": "100 Commerce St",
+                    "hcadAccount": "0020030040005",
+                    "tier": "2",
+                    "trackerStatus": "Monitoring",
+                    "checklist": [],
+                },
+                {
+                    "id": "plat-2026-2222",
+                    "propertyName": "Removed Ephemeral Row",
+                    "address": "200 Commerce St",
+                    "tier": "2",
+                    "trackerStatus": "Monitoring",
+                    "checklist": [],
+                },
+            ]
+        },
+        "plat_agenda_monitor.json": {
+            "cycles": {
+                "2026-10-15": {
+                    "items": [
+                        {
+                            "app": "2026-1585",
+                            "name": "Montrose Residences",
+                            "type": "C3N",
+                            "section": "I. Public Hearings",
+                            "hcad": "0610770240001",
+                            "pdf": "",
+                            "noticePdf": "",
+                            "deferral": "",
+                            "atlas": {
+                                "primaryAddress": "4310 Montrose Blvd",
+                                "earliestYearBuilt": 1930,
+                                "lat": 29.734,
+                                "lng": -95.391,
+                            },
+                        }
+                    ],
+                    "reviews": {},
+                }
+            }
+        },
+        "active_permit_alerts.json": {
+            "alerts": [
+                {
+                    "hcad_num": "0152300000001",
+                    "title": "John Henry Kirby Mansion",
+                    "address": "2000 Smith St",
+                    "year_built": 1894,
+                    "coh_permits": [{"project_no": "26090093", "date": "2026-10-14", "is_structural_demo": True}],
+                    "dshs_notifications": [],
+                }
+            ]
+        },
+        "hahc_coa_tracker.json": {
+            "current_cycle": {
+                "meeting_date": "2026-10-08",
+                "active_items_count": 14,
+                "guideline_updates": [],
+            },
+            "filings": [
+                {
+                    "filing_id": "HP2026_0301",
+                    "meeting_date": "2026-10-08",
+                    "address": "1115 Heights Blvd",
+                    "hcad_num": "0201120000005",
+                    "historic_district": "Houston Heights South",
+                    "app_type": "Demolition / Relocation",
+                    "app_category": "demolition_relocation",
+                    "outcome": "pending_agenda",
+                },
+                {
+                    "filing_id": "HP2026_0302",
+                    "meeting_date": "2026-10-08",
+                    "address": "712 Cortlandt St",
+                    "historic_district": "Houston Heights South",
+                    "app_type": "Alteration / Addition",
+                    "app_category": "alteration_addition",
+                    "outcome": "pending_agenda",
+                },
+                {
+                    "filing_id": "HP2026_0303",
+                    "meeting_date": "2026-10-08",
+                    "address": "820 Columbia St",
+                    "historic_district": "Houston Heights East",
+                    "app_type": "Alteration / Addition",
+                    "app_category": "alteration_addition",
+                    "outcome": "pending_agenda",
+                },
+            ],
+        },
+    }
+
+    after_bundle = {
+        "property_watchlist.json": {
+            "lastAutoSweepAt": now_iso,
+            "lastSweepHealth": {
+                "timestamp": now_iso,
+                "sweepsExecuted": True,
+                "propertiesSwept": 3,
+                "totalAgencies": 8,
+                "succeededAgencies": 7,
+                "failedAgencies": ["chk-10"],
+                "allOk": False,
+                "agencies": {
+                    "chk-10": {
+                        "status": "failed",
+                        "ok": False,
+                        "label": "TDLR Architectural Barriers (TABS)",
+                        "error": "TDLR TABS (530 Pierce St): HTTP timeout",
+                    }
+                },
+            },
+            "watchedProperties": [
+                {
+                    "id": "prop-kirby-mansion",
+                    "propertyName": "John Henry Kirby Mansion",
+                    "address": "2000 Smith St.",
+                    "hcadAccount": "0152300000001",
+                    "buildingId": "bld_004618",
+                    "yearBuilt": 1894,
+                    "designation": "1979 Good Brick Award",
+                    "lat": 29.751432,
+                    "lng": -95.374833,
+                    "tier": "1",
+                    "trackerStatus": "Active / High Priority",
+                    "notes": "Updated note with architect plan contact",
+                    "searchTerms": {"entities": ["OB Texas Properties LLC", "Brake Time Holding LLC"]},
+                    "driveLinks": [{"label": "Deed PDF", "url": "https://drive.google.com/file/d/abc123/view"}],
+                    "updatedAt": "2026-10-29T11:45:00Z",
+                    "updatedBy": "Emily",
+                    "checklist": [
+                        {
+                            "id": "chk-02",
+                            "activity": "Site Visit",
+                            "status": "Flagged",
+                            "checks": [
+                                {
+                                    "date": "2026-10-29",
+                                    "loggedAt": "2026-10-29T11:40:00Z",
+                                    "result": "Observed orange abatement barrier fencing along Pierce St",
+                                    "source": "manual",
+                                }
+                            ],
+                        },
+                        {
+                            "id": "chk-10",
+                            "activity": "Accessibility Registration (TDLR TABS)",
+                            "status": "Flagged",
+                            "checks": [
+                                {
+                                    "date": "2026-10-29",
+                                    "discoveredAt": now_iso,
+                                    "agencyRecordId": "TABS2026088777",
+                                    "result": "[AUTO-SWEEP] TDLR #TABS2026088777 canopy registration at 530 Pierce St",
+                                    "source": "auto-sweep",
+                                    "adverse": True,
+                                }
+                            ],
+                        },
+                        {
+                            "id": "chk-13",
+                            "activity": "Code Complaints & Dangerous Buildings",
+                            "status": "Flagged",
+                            "checks": [],
+                        },
+                    ],
+                },
+                {
+                    "id": "plat-2026-1111",
+                    "propertyName": "Old Warehouse",
+                    "address": "100 Commerce St",
+                    "hcadAccount": "0020030040005",
+                    "tier": "3",
+                    "trackerStatus": "Archived (Tier 3)",
+                    "archivedAt": "2026-10-29T11:50:00Z",
+                    "checklist": [],
+                },
+                {
+                    "id": "plat-2026-9901",
+                    "propertyName": "Magnolia Brewery Annex",
+                    "address": "715 Franklin St",
+                    "hcadAccount": "0010120000001",
+                    "tier": "1",
+                    "trackerStatus": "Active / High Priority",
+                    "keyDates": {"monitoringStarted": "2026-10-29"},
+                    "checklist": [],
+                },
+            ],
+        },
+        "plat_agenda_monitor.json": {
+            "cycles": {
+                "2026-10-15": {
+                    "items": [
+                        {
+                            "app": "2026-1585",
+                            "name": "Montrose Residences",
+                            "type": "C3N",
+                            "section": "I. Public Hearings",
+                            "hcad": "0610770240001",
+                            "hearingDateIso": "2026-11-12",
+                            "pdf": "https://edrc.houstontx.gov/plats/2026-1585.pdf",
+                            "noticePdf": "https://houstontx.gov/planning/notices/2026-1585-notice.pdf",
+                            "deferral": "1st Request (2 weeks)",
+                            "atlas": {
+                                "primaryAddress": "4310 Montrose Blvd",
+                                "earliestYearBuilt": 1930,
+                                "lat": 29.734,
+                                "lng": -95.391,
+                            },
+                        },
+                        {
+                            "app": "2026-1659",
+                            "name": "Amerimex Motors Reserve",
+                            "type": "C2R",
+                            "section": "D. Variances",
+                            "hcad": "0660450130001",
+                            "atlas": {"primaryAddress": "8002 North Fwy", "earliestYearBuilt": 1964},
+                        },
+                        {
+                            "app": "DPV-26079999",
+                            "name": "Westheimer Heritage Block DPV",
+                            "type": "Development Plat Variance (DPV)",
+                            "section": "K. Development Plat Variances",
+                            "hcad": "0520010020003",
+                            "varianceSummary": "Requesting 0-ft setback along Westheimer Rd",
+                            "atlas": {
+                                "primaryAddress": "1420 Westheimer Rd",
+                                "earliestYearBuilt": 1924,
+                                "designations": ["City Protected Landmark"],
+                            },
+                        },
+                    ],
+                    "reviews": {
+                        "2026-1585": {
+                            "tier": "1",
+                            "tierConfirmed": True,
+                            "reviewer": "Emily",
+                            "threatCategory": "Significant Building Threatened",
+                            "why": "1930 masonry courtyard apartments",
+                            "updated": "2026-10-29T12:00:00Z",
+                        }
+                    },
+                },
+                "2026-10-29": {
+                    "sourceSpreadsheetUrl": "https://houstontx.gov/planning/2026-10-29.xlsx",
+                    "agendaOutlineUrl": "https://houstontx.gov/planning/2026-10-29-outline.pdf",
+                    "summary": {
+                        "totalAgendaItems": 88,
+                        "toCheckCount": 11,
+                        "dpvVarianceCount": 1,
+                        "publicHearingNoticeCount": 2,
+                    },
+                    "items": [
+                        {
+                            "app": "DPV-26081111",
+                            "name": "Heights Bungalow Variance",
+                            "type": "Development Plat Variance (DPV)",
+                            "section": "K. Development Plat Variances",
+                            "atlas": {"primaryAddress": "512 Harvard St", "earliestYearBuilt": 1918},
+                        }
+                    ],
+                    "reviews": {},
+                },
+            }
+        },
+        "active_permit_alerts.json": {
+            "alerts": [
+                {
+                    "hcad_num": "0152300000001",
+                    "watchlist_id": "prop-kirby-mansion",
+                    "title": "John Henry Kirby Mansion",
+                    "address": "2000 Smith St",
+                    "year_built": 1894,
+                    "coh_permits": [{"project_no": "26090093", "date": "2026-10-14", "is_structural_demo": True}],
+                    "dshs_notifications": [
+                        {
+                            "notification_number": "2026009911",
+                            "work_type": "Demolition",
+                            "filing_date": "2026-10-29",
+                            "start_date": "2026-11-12",
+                            "end_date": "2026-11-20",
+                            "abatement_contractor": "AAR Incorporated",
+                            "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=999",
+                        }
+                    ],
+                },
+                {
+                    "hcad_num": "410170020150",  # 12-digit unpadded HCAD tests 13-digit zero-padding
+                    "title": "River Oaks Theater Annex",
+                    "address": "2009 W Gray St",
+                    "year_built": 1939,
+                    "landmark_name": "River Oaks Theater",
+                    "historic_district": "",
+                    "lat": 29.7531,
+                    "lon": -95.4082,
+                    "coh_permits": [
+                        {
+                            "project_no": "26099555",
+                            "date": "2026-10-29",
+                            "permit_type_label": "Building Demolition",
+                            "use_desc": "DEMO COMMERCIAL STRUCTURE",
+                            "buyer": "DEMO CO",
+                            "is_structural_demo": True,
+                        }
+                    ],
+                    "dshs_notifications": [],
+                },
+            ]
+        },
+        "hahc_coa_tracker.json": {
+            "source_url": "https://houstontx.gov/planning/Commissions/commiss_hahc.html",
+            "current_cycle": {
+                "meeting_date": "2026-11-05",
+                "active_items_count": 19,
+                "agenda_pdf_url": "https://houstontx.gov/planning/hahc/2026-11-05-agenda.pdf",
+                "guideline_updates": [
+                    {
+                        "title": "Freedmen's Town Historic District Design Guidelines Redline",
+                        "pdf_url": "https://houstontx.gov/planning/hahc/freedmens-redline.pdf",
+                    }
+                ],
+            },
+            "filings": [
+                {
+                    "filing_id": "HP2026_0301",
+                    "meeting_date": "2026-10-08",
+                    "address": "1115 Heights Blvd",
+                    "hcad_num": "0201120000005",
+                    "historic_district": "Houston Heights South",
+                    "app_type": "Demolition / Relocation",
+                    "app_category": "demolition_relocation",
+                    "outcome": "approved",
+                    "outcome_detail": "Approved final demolition COA per post-hearing action sheet",
+                },
+                {
+                    "filing_id": "HP2026_0302",
+                    "meeting_date": "2026-10-08",
+                    "address": "712 Cortlandt St",
+                    "historic_district": "Houston Heights South",
+                    "app_type": "Alteration / Addition",
+                    "app_category": "alteration_addition",
+                    "outcome": "denied",
+                },
+                {
+                    "filing_id": "HP2026_0303",
+                    "meeting_date": "2026-10-08",
+                    "address": "820 Columbia St",
+                    "historic_district": "Houston Heights East",
+                    "app_type": "Alteration / Addition",
+                    "app_category": "alteration_addition",
+                    "outcome": "deferred",
+                },
+            ],
+        },
+    }
+
+    evs = bmal.compute_snapshot_diff_events(before_bundle, after_bundle, now_iso)
+    by_id = {e["id"]: e for e in evs}
+
+    # Stream 1 (watchlist)
+    assert "wl:sweep:2026-10-29:degraded:chk-10" in by_id
+    sw_ev = by_id["wl:sweep:2026-10-29:degraded:chk-10"]
+    assert sw_ev["stream"] == "watchlist" and sw_ev["severity"] == "warning" and sw_ev["adverse"] is False
+    assert "7/8 agencies OK" in sw_ev["title"]
+
+    auto_ev = by_id["wl:auto:prop-kirby-mansion:chk-10:id:TABS2026088777"]
+    assert auto_ev["stream"] == "watchlist" and auto_ev["severity"] == "critical" and auto_ev["adverse"] is True
+    assert auto_ev["watchPropertyId"] == "prop-kirby-mansion" and auto_ev["checkId"] == "chk-10"
+
+    # Both Complete -> Flagged (chk-10), To Do -> Flagged (chk-13), and In Progress -> Flagged (chk-02)
+    assert by_id["wl:status:prop-kirby-mansion:chk-10:flagged:2026-10-29"]["kind"] == "watchlist_status_escalation"
+    assert by_id["wl:status:prop-kirby-mansion:chk-10:flagged:2026-10-29"]["severity"] == "critical"
+    assert by_id["wl:status:prop-kirby-mansion:chk-13:flagged:2026-10-29"]["adverse"] is True
+    assert by_id["wl:status:prop-kirby-mansion:chk-02:flagged:2026-10-29"]["severity"] == "warning"
+
+    # Unedited plat-confirmed watch property lands on watchlist stream
+    plat_add_ev = by_id["staff:prop:plat-2026-9901:added"]
+    assert plat_add_ev["stream"] == "watchlist" and plat_add_ev["watchPropertyId"] == "plat-2026-9901"
+
+    # Stream 2 (agenda)
+    assert by_id["agenda:cycle:2026-10-29"]["stream"] == "agenda"
+    assert by_id["agenda:item:2026-10-29:DPV-26081111:dpv"]["kind"] == "agenda_item_dpv"
+    assert by_id["agenda:item:2026-10-15:2026-1659:added"]["severity"] == "warning"
+    dpv_crit = by_id["agenda:item:2026-10-15:DPV-26079999:dpv"]
+    assert dpv_crit["severity"] == "critical" and dpv_crit["adverse"] is True
+    assert by_id["agenda:item:2026-10-15:2026-1585:plat_pdf"]["kind"] == "agenda_item_plat_pdf"
+    assert by_id["agenda:item:2026-10-15:2026-1585:notice_pdf"]["severity"] == "warning"
+    assert by_id["agenda:item:2026-10-15:2026-1585:deferral:1st-request-2-weeks"]["kind"] == "agenda_item_deferral"
+
+    # Stream 3 (staff)
+    manual_matches = [k for k in by_id if k.startswith("wl:manual:prop-kirby-mansion:chk-02:2026-10-29:")]
+    assert len(manual_matches) == 1
+    assert by_id[manual_matches[0]]["stream"] == "staff"
+    assert by_id[manual_matches[0]]["loggedAt"] == "2026-10-29T11:40:00Z"
+
+    edit_ev = by_id["staff:prop:prop-kirby-mansion:edited:2026-10-29"]
+    assert edit_ev["stream"] == "staff"
+    assert "dossier notes" in edit_ev["summary"]
+    assert "snowball search terms" in edit_ev["summary"]
+    assert "Drive / document links" in edit_ev["summary"]
+
+    assert by_id["staff:prop:plat-2026-1111:archived"]["watchPropertyId"] == "plat-2026-1111"
+    assert by_id["staff:prop:plat-2026-2222:archived"]["watchPropertyId"] == ""
+    rev_ev = by_id["staff:review:2026-10-15:2026-1585:t1"]
+    assert rev_ev["stream"] == "staff" and rev_ev["occKey"] == "2026-10-15::2026-1585"
+
+    # Stream 4 (permits & HAHC rulings)
+    assert "permit:coh:0152300000001:26090093" not in by_id  # Unchanged baseline permit must NOT re-emit
+    coh_new = by_id["permit:coh:0410170020150:26099555"]
+    assert coh_new["stream"] == "permits" and coh_new["severity"] == "critical" and coh_new["adverse"] is True
+    assert coh_new["hcad"] == "0410170020150"
+    assert coh_new["permitMeta"]["lng"] == -95.4082
+
+    dshs_new = by_id["permit:dshs:0152300000001:2026009911"]
+    assert dshs_new["severity"] == "critical" and dshs_new["adverse"] is True
+    assert dshs_new["watchPropertyId"] == "prop-kirby-mansion"
+
+    assert by_id["hahc:cycle:2026-11-05"]["kind"] == "hahc_cycle_posted"
+    guide_keys = [k for k in by_id if k.startswith("hahc:guideline:2026-11-05:")]
+    assert len(guide_keys) == 1 and by_id[guide_keys[0]]["severity"] == "warning"
+
+    ruling_approved = by_id["hahc:filing:HP2026_0301:approved"]
+    assert ruling_approved["kind"] == "hahc_filing_outcome"
+    assert ruling_approved["severity"] == "critical" and ruling_approved["adverse"] is True
+    assert "Pending HAHC Agenda -> Approved" in ruling_approved["title"]
+
+    ruling_denied = by_id["hahc:filing:HP2026_0302:denied"]
+    assert ruling_denied["kind"] == "hahc_filing_outcome"
+    assert ruling_denied["severity"] == "warning" and ruling_denied["adverse"] is False
+
+    ruling_deferred = by_id["hahc:filing:HP2026_0303:deferred"]
+    assert ruling_deferred["kind"] == "hahc_filing_outcome"
+    assert ruling_deferred["severity"] == "warning" and ruling_deferred["adverse"] is False
+
+
+def test_ut3_activity_log_cli_retention_timezone_and_intraday_idempotency(tmp_path: Path) -> None:
+    """UT-3: Verify --save-before / --update-log / --seed-initial CLI, 90-day pruning, America/Chicago midnight bucketing, and same-day workflow_dispatch idempotency."""
+    import shutil
+    from atlas_pipeline import build_monitor_activity_log as bmal
+
+    script_path = REPO_ROOT / "pipeline" / "atlas_pipeline" / "build_monitor_activity_log.py"
+
+    # 1. Seed initial ledger from a copy of real app/public/data snapshots via bare stdlib Python (-S)
+    seed_data_dir = tmp_path / "seed_data"
+    seed_data_dir.mkdir()
+    real_data_dir = REPO_ROOT / "app" / "public" / "data"
+    for fname in bmal.SNAPSHOT_FILENAMES:
+        shutil.copy2(real_data_dir / fname, seed_data_dir / fname)
+    seed_log_path = tmp_path / "seeded_monitor_activity_log.json"
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-S",
+            str(script_path),
+            "--seed-initial",
+            "--data-dir",
+            str(seed_data_dir),
+            "--log-path",
+            str(seed_log_path),
+            "--now-iso",
+            "2026-10-29T12:15:00Z",
+        ],
+        check=True,
+        cwd=str(REPO_ROOT),
+    )
+    seeded_raw = seed_log_path.read_text(encoding="utf-8")
+    assert "\u2014" not in seeded_raw
+    seeded_doc = json.loads(seeded_raw)
+    assert seeded_doc["version"] == 1
+    assert seeded_doc["timezone"] == "America/Chicago"
+    assert seeded_doc["retentionFloorDate"] == "2026-08-01"
+    assert seeded_doc["summary"]["totalEvents"] > 10
+    for s_key in ("watchlist", "agenda", "staff", "permits"):
+        assert seeded_doc["summary"]["byStream"][s_key] >= 1, f"Seeded log missing {s_key} events"
+    assert all(ev["localDate"] >= "2026-08-01" for ev in seeded_doc["events"])
+    assert all(ev["localDate"] <= "2026-10-29" for ev in seeded_doc["events"])
+
+    # 2. Missing optional snapshot files + >90-day pruning + America/Chicago UTC-midnight bucketing
+    live_dir = tmp_path / "live_data"
+    before_dir = tmp_path / "before"
+    live_dir.mkdir()
+    log_path = live_dir / "monitor_activity_log.json"
+
+    # Write ONLY property_watchlist.json (leaving plat/permits/hahc optional snapshots absent)
+    (live_dir / "property_watchlist.json").write_text(
+        json.dumps(
+            {
+                "lastAutoSweepAt": "2026-10-28T12:00:00Z",
+                "lastSweepHealth": {
+                    "timestamp": "2026-10-28T12:00:00Z",
+                    "sweepsExecuted": True,
+                    "propertiesSwept": 1,
+                    "totalAgencies": 8,
+                    "succeededAgencies": 8,
+                    "failedAgencies": [],
+                    "allOk": True,
+                },
+                "watchedProperties": [
+                    {
+                        "id": "prop-kirby-mansion",
+                        "propertyName": "John Henry Kirby Mansion",
+                        "address": "2000 Smith St.",
+                        "hcadAccount": "0152300000001",
+                        "tier": "1",
+                        "checklist": [
+                            {"id": "chk-02", "activity": "Site Visit", "status": "In Progress", "checks": []}
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    # Seed an existing log containing a stale >90-day event (2026-07-15) that must be pruned
+    log_path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "events": [
+                    {
+                        "id": "staff:prop:old-legacy:added",
+                        "stream": "staff",
+                        "kind": "watchlist_property_added",
+                        "severity": "info",
+                        "adverse": False,
+                        "date": "2026-07-15",
+                        "localDate": "2026-07-15",
+                        "timestamp": "2026-07-15T12:00:00Z",
+                        "discoveredAt": "2026-07-15T12:00:00Z",
+                        "title": "Stale >90d event",
+                        "summary": "Should prune",
+                    }
+                ],
+                "dailyRuns": [{"date": "2026-07-15", "eventCount": 1, "adverseEventCount": 0}],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert bmal.main(["--save-before", str(before_dir), "--data-dir", str(live_dir)]) == 0
+
+    # Evening edit at 2026-10-29T02:30:00Z == 2026-10-28 21:30 CDT (must bucket under 2026-10-28!)
+    evening_wl = json.loads((live_dir / "property_watchlist.json").read_text(encoding="utf-8"))
+    evening_wl["watchedProperties"][0]["checklist"][0]["checks"].append(
+        {
+            "date": "2026-10-28",
+            "loggedAt": "2026-10-29T02:30:00Z",
+            "result": "Evening drive-by check at 9:30 PM Central Time",
+            "source": "manual",
+        }
+    )
+    (live_dir / "property_watchlist.json").write_text(json.dumps(evening_wl), encoding="utf-8")
+
+    assert (
+        bmal.main(
+            [
+                "--update-log",
+                "--data-dir",
+                str(live_dir),
+                "--before-dir",
+                str(before_dir),
+                "--log-path",
+                str(log_path),
+                "--now-iso",
+                "2026-10-29T02:30:00Z",
+            ]
+        )
+        == 0
+    )
+    after_evening = json.loads(log_path.read_text(encoding="utf-8"))
+    assert all(e["id"] != "staff:prop:old-legacy:added" for e in after_evening["events"])
+    assert all(r["date"] >= after_evening["retentionFloorDate"] for r in after_evening["dailyRuns"])
+    assert len(after_evening["events"]) == 1
+    assert after_evening["events"][0]["localDate"] == "2026-10-28"
+    assert after_evening["dailyRuns"][0]["date"] == "2026-10-28"
+    assert after_evening["dailyRuns"][0]["eventCount"] == 1
+
+    # 3. Same-day repeated --update-log idempotency + degraded sweep telemetry isolation:
+    #    Morning run (2026-10-29T12:15:00Z, 8/8 OK) discovers exactly 4 new substantive events (1 adverse).
+    assert bmal.main(["--save-before", str(before_dir), "--data-dir", str(live_dir)]) == 0
+    morning_wl = json.loads((live_dir / "property_watchlist.json").read_text(encoding="utf-8"))
+    morning_wl["lastAutoSweepAt"] = "2026-10-29T12:15:00Z"
+    morning_wl["lastSweepHealth"] = {
+        "timestamp": "2026-10-29T12:15:00Z",
+        "sweepsExecuted": True,
+        "propertiesSwept": 1,
+        "totalAgencies": 8,
+        "succeededAgencies": 8,
+        "failedAgencies": [],
+        "allOk": True,
+    }
+    morning_wl["watchedProperties"][0]["notes"] = "Morning title update"
+    morning_wl["watchedProperties"][0]["updatedAt"] = "2026-10-29T12:15:00Z"
+    morning_wl["watchedProperties"][0]["checklist"].append(
+        {
+            "id": "chk-14",
+            "activity": "Demolition & Building Permits",
+            "status": "In Progress",  # Avoid extra status-escalation event so count is strictly 4
+            "checks": [
+                {
+                    "date": "2026-10-29",
+                    "discoveredAt": "2026-10-29T12:15:00Z",
+                    "agencyRecordId": "26099888",
+                    "result": "[AUTO-SWEEP] COH Demo Permit #26099888",
+                    "source": "auto-sweep",
+                    "adverse": True,
+                }
+            ],
+        }
+    )
+    (live_dir / "property_watchlist.json").write_text(json.dumps(morning_wl), encoding="utf-8")
+    (live_dir / "plat_agenda_monitor.json").write_text(
+        json.dumps(
+            {
+                "cycles": {
+                    "2026-10-29": {
+                        "summary": {"totalAgendaItems": 1, "toCheckCount": 1},
+                        "items": [
+                            {
+                                "app": "2026-7777",
+                                "name": "Test Subdiv",
+                                "type": "C2",
+                                "section": "A. Consent",
+                            }
+                        ],
+                        "reviews": {},
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert (
+        bmal.main(
+            [
+                "--update-log",
+                "--data-dir",
+                str(live_dir),
+                "--before-dir",
+                str(before_dir),
+                "--log-path",
+                str(log_path),
+                "--now-iso",
+                "2026-10-29T12:15:00Z",
+            ]
+        )
+        == 0
+    )
+    morning_log = json.loads(log_path.read_text(encoding="utf-8"))
+    assert morning_log["dailyRuns"][0]["date"] == "2026-10-29"
+    assert morning_log["dailyRuns"][0]["eventCount"] == 4
+    assert morning_log["dailyRuns"][0]["adverseEventCount"] == 1
+    assert morning_log["dailyRuns"][0]["allOk"] is True
+    assert morning_log["dailyRuns"][0]["failedAgencies"] == []
+
+    # Afternoon intraday workflow_dispatch re-run (2026-10-29T18:30:00Z) with 0 substantive delta
+    # changes and degraded failedAgencies: ['chk-10']
+    assert bmal.main(["--save-before", str(before_dir), "--data-dir", str(live_dir)]) == 0
+    afternoon_wl = json.loads((live_dir / "property_watchlist.json").read_text(encoding="utf-8"))
+    afternoon_wl["lastAutoSweepAt"] = "2026-10-29T18:30:00Z"
+    afternoon_wl["lastSweepHealth"] = {
+        "timestamp": "2026-10-29T18:30:00Z",
+        "sweepsExecuted": True,
+        "propertiesSwept": 1,
+        "totalAgencies": 8,
+        "succeededAgencies": 7,
+        "failedAgencies": ["chk-10"],
+        "allOk": False,
+        "agencies": {
+            "chk-10": {
+                "status": "failed",
+                "ok": False,
+                "label": "TDLR Architectural Barriers (TABS)",
+                "error": "HTTP request failed or timed out",
+            }
+        },
+    }
+    (live_dir / "property_watchlist.json").write_text(json.dumps(afternoon_wl), encoding="utf-8")
+
+    assert (
+        bmal.main(
+            [
+                "--update-log",
+                "--data-dir",
+                str(live_dir),
+                "--before-dir",
+                str(before_dir),
+                "--log-path",
+                str(log_path),
+                "--now-iso",
+                "2026-10-29T18:30:00Z",
+            ]
+        )
+        == 0
+    )
+    afternoon_log = json.loads(log_path.read_text(encoding="utf-8"))
+    today_rec = afternoon_log["dailyRuns"][0]
+    assert today_rec["date"] == "2026-10-29"
+    assert today_rec["runCount"] == 2
+    assert today_rec["lastRunAt"] == "2026-10-29T18:30:00Z"
+    assert today_rec["failedAgencies"] == ["chk-10"]
+    assert today_rec["succeededAgencies"] == 7
+    assert today_rec["allOk"] is False
+    # Substantive morning counts (4 events / 1 adverse) MUST be preserved without inflating to 5 or dropping to 0
+    assert today_rec["eventCount"] == 4
+    assert today_rec["adverseEventCount"] == 1
+    assert any(e["id"] == "wl:sweep:2026-10-29:degraded:chk-10" for e in afternoon_log["events"])
+
+    # Evening clean recovery run (2026-10-29T21:00:00Z, 8/8 OK again) must clear stale same-day degraded notice
+    assert bmal.main(["--save-before", str(before_dir), "--data-dir", str(live_dir)]) == 0
+    evening_ok_wl = json.loads((live_dir / "property_watchlist.json").read_text(encoding="utf-8"))
+    evening_ok_wl["lastAutoSweepAt"] = "2026-10-29T21:00:00Z"
+    evening_ok_wl["lastSweepHealth"] = {
+        "timestamp": "2026-10-29T21:00:00Z",
+        "sweepsExecuted": True,
+        "propertiesSwept": 1,
+        "totalAgencies": 8,
+        "succeededAgencies": 8,
+        "failedAgencies": [],
+        "allOk": True,
+    }
+    (live_dir / "property_watchlist.json").write_text(json.dumps(evening_ok_wl), encoding="utf-8")
+
+    assert (
+        bmal.main(
+            [
+                "--update-log",
+                "--data-dir",
+                str(live_dir),
+                "--before-dir",
+                str(before_dir),
+                "--log-path",
+                str(log_path),
+                "--now-iso",
+                "2026-10-29T21:00:00Z",
+            ]
+        )
+        == 0
+    )
+    recovery_log = json.loads(log_path.read_text(encoding="utf-8"))
+    rec_today = recovery_log["dailyRuns"][0]
+    assert rec_today["runCount"] == 3
+    assert rec_today["allOk"] is True
+    assert rec_today["failedAgencies"] == []
+    assert rec_today["eventCount"] == 4
+    assert rec_today["adverseEventCount"] == 1
+    assert all(e["kind"] != "watchlist_sweep_degraded" for e in recovery_log["events"])
+
+
+def test_post_review_producer_failure_flags_and_timestamp_roundtrips(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Verify F2 upstream scraper failure propagation (chk-09/chk-14/chk-15) and F3/F7 statusChangedAt + archivedAt CT round-tripping."""
+    import datetime as dt
+    import urllib.error
+
+    from atlas_pipeline import build_monitor_activity_log as bmal
+    from atlas_pipeline import fetch_live_permits as flp
+    from atlas_pipeline import fetch_plat_and_watchlist as fpw
+
+    # 1. Upstream Plat Agenda HTTP outage sets scrapeFailed=True and flips chk-09 to failed
+    monkeypatch.setattr(fpw, "fetch_bytes", lambda *a, **kw: None)
+    scraped_fail = fpw.fetch_multi_cycle_agendas_and_notices(max_cycles=1)
+    assert scraped_fail["scrapeFailed"] is True
+    assert "unreachable" in scraped_fail["error"] or "failed" in scraped_fail["error"]
+    plat_ds_fail = fpw.build_plat_agenda_dataset({}, scraped_fail)
+    assert plat_ds_fail["scrapeFailed"] is True
+    assert plat_ds_fail["error"]
+
+    # 2. Upstream COH WebFOCUS + TX DSHS network outages propagate explicit failure flags into chk-14 / chk-15
+    def _raise_url_err(*_args, **_kwargs):
+        raise urllib.error.URLError("simulated upstream portal timeout")
+
+    monkeypatch.setattr(flp.urllib.request, "urlopen", _raise_url_err)
+    monkeypatch.setattr(flp.urllib.request, "build_opener", lambda *a, **kw: type(
+        "_DeadOpener",
+        (),
+        {"addheaders": [], "open": staticmethod(_raise_url_err)},
+    )())
+
+    coh_map, coh_failed, coh_err = flp.fetch_coh_permits_parallel(lookback_days=5, return_status=True)
+    assert coh_map == {}
+    assert coh_failed is True
+    assert "COH WebFOCUS window queries failed" in coh_err
+
+    dshs_rows, dshs_failed, dshs_err = flp.fetch_dshs_houston_notifications(
+        dt.date(2026, 10, 1), dt.date(2026, 10, 29), {}, return_status=True
+    )
+    assert dshs_rows == []
+    assert dshs_failed is True
+    assert "DSHS asbestos portal unreachable" in dshs_err
+
+    fake_data_dir = tmp_path / "data"
+    (fake_data_dir / "permits").mkdir(parents=True)
+    (fake_data_dir / "active_permit_alerts.json").write_text(
+        json.dumps(
+            {
+                "alerts": [],
+                "coh_fetch_failed": coh_failed,
+                "dshs_fetch_failed": dshs_failed,
+                "coh_fetch_error": coh_err,
+                "dshs_fetch_error": dshs_err,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(fpw, "DATA_DIR", fake_data_dir)
+    monkeypatch.setattr(fpw, "fetch_bytes", lambda *a, **kw: b"[]")
+
+    res_e2e_fail = fpw.sweep_watched_property_agencies(
+        prop={"id": "prop-kirby-mansion", "address": "2000 Smith St.", "hcadAccount": "0152300000001"},
+        plat_data=plat_ds_fail,
+        idx={},
+        sweep_date_iso="2026-10-29",
+    )
+    assert res_e2e_fail["agencyHealth"]["chk-09"]["status"] == "failed"
+    assert res_e2e_fail["agencyHealth"]["chk-14"]["status"] == "failed"
+    assert res_e2e_fail["agencyHealth"]["chk-15"]["status"] == "failed"
+    assert "COH WebFOCUS" in res_e2e_fail["agencyHealth"]["chk-14"]["error"]
+    assert "DSHS asbestos portal" in res_e2e_fail["agencyHealth"]["chk-15"]["error"]
+
+    # 3. normalize_watch_property_record & build_property_watchlist preserve statusChangedAt & archivedAt
+    norm_with_ts = fpw.normalize_watch_property_record(
+        {
+            "id": "prop-ts-check",
+            "propertyName": "Historic Bank",
+            "address": "400 Main St.",
+            "hcadAccount": "0010020030004",
+            "trackerStatus": "Archived (Tier 3)",
+            "archivedAt": "2026-10-30T01:30:00Z",
+            "checklist": [
+                {
+                    "id": "chk-01",
+                    "status": "Flagged",
+                    "humanStatusEdited": True,
+                    "statusChangedAt": "2026-10-30T01:15:00Z",
+                    "updatedAt": "2026-10-30T01:15:00Z",
+                    "lastChecked": "2026-10-29",
+                    "checks": [],
+                }
+            ],
+        }
+    )
+    assert norm_with_ts["archivedAt"] == "2026-10-30T01:30:00Z"
+    chk01_norm = next(r for r in norm_with_ts["checklist"] if r["id"] == "chk-01")
+    assert chk01_norm["statusChangedAt"] == "2026-10-30T01:15:00Z"
+
+    merged_wl = fpw.build_property_watchlist(
+        plat_data={"cycleKey": "2026-10-29", "cycles": {"2026-10-29": {"items": [], "reviews": {}}}},
+        idx={},
+        cloud_sync={
+            "watchProperties": {
+                "prop-kirby-mansion": {
+                    "id": "prop-kirby-mansion",
+                    "propertyName": "John Henry Kirby Mansion",
+                    "address": "2000 Smith St.",
+                    "hcadAccount": "0152300000001",
+                    "tier": "3",
+                    "trackerStatus": "Archived (Tier 3)",
+                    "archivedAt": "2026-10-30T01:45:00Z",
+                    "updatedAt": "2026-10-30T01:45:00Z",
+                    "updatedBy": "Emily",
+                    "_hasExplicitChecklist": True,
+                    "checklist": [
+                        {
+                            "id": "chk-03",
+                            "status": "Flagged",
+                            "humanStatusEdited": True,
+                            "statusChangedAt": "2026-10-30T01:20:00Z",
+                            "updatedAt": "2026-10-30T01:20:00Z",
+                            "lastChecked": "2026-10-29",
+                            "checks": [],
+                        }
+                    ],
+                }
+            }
+        },
+        run_live_sweeps=False,
+        sweep_timestamp_iso="2026-10-30T12:15:00Z",
+    )
+    kirby_merged = next(p for p in merged_wl["watchedProperties"] if p["id"] == "prop-kirby-mansion")
+    assert kirby_merged["archivedAt"] == "2026-10-30T01:45:00Z"
+    assert kirby_merged["updatedBy"] == "Emily"
+    chk03_merged = next(r for r in kirby_merged["checklist"] if r["id"] == "chk-03")
+    assert chk03_merged["statusChangedAt"] == "2026-10-30T01:20:00Z"
+
+    # 4. Next-morning CI sweep (2026-10-30T12:15:00Z == Oct 30 CT) buckets evening staff escalation + archive onto Oct 29 CT
+    before_wl = {
+        "watchedProperties": [
+            {
+                "id": "prop-evening",
+                "propertyName": "Evening Test House",
+                "address": "800 Lovett Blvd",
+                "hcadAccount": "0520520000001",
+                "trackerStatus": "Active / High Priority",
+                "checklist": [{"id": "chk-01", "activity": "County Clerk Deed", "status": "In Progress", "checks": []}],
+            },
+            {
+                "id": "prop-archive-eve",
+                "propertyName": "Archived Bungalow",
+                "address": "900 Heights Blvd",
+                "hcadAccount": "0610610000002",
+                "trackerStatus": "Active / Watch",
+                "checklist": [],
+            },
+        ]
+    }
+    after_wl = {
+        "watchedProperties": [
+            {
+                "id": "prop-evening",
+                "propertyName": "Evening Test House",
+                "address": "800 Lovett Blvd",
+                "hcadAccount": "0520520000001",
+                "trackerStatus": "Active / High Priority",
+                "checklist": [
+                    {
+                        "id": "chk-01",
+                        "activity": "County Clerk Deed",
+                        "status": "Flagged",
+                        "humanStatusEdited": True,
+                        "statusChangedAt": "2026-10-30T01:20:00Z",
+                        "updatedAt": "2026-10-30T01:20:00Z",
+                        "lastChecked": "2026-10-29",
+                        "checks": [],
+                    }
+                ],
+            },
+            {
+                "id": "prop-archive-eve",
+                "propertyName": "Archived Bungalow",
+                "address": "900 Heights Blvd",
+                "hcadAccount": "0610610000002",
+                "trackerStatus": "Archived (Tier 3)",
+                "archivedAt": "2026-10-30T01:45:00Z",
+                "updatedAt": "2026-10-30T01:45:00Z",
+                "checklist": [],
+            },
+        ]
+    }
+    diff_evs = bmal._diff_property_watchlist(before_wl, after_wl, "2026-10-30T12:15:00Z")
+    esc_ev = next(e for e in diff_evs if e["kind"] == "watchlist_status_escalation")
+    assert esc_ev["id"] == "wl:status:prop-evening:chk-01:flagged:2026-10-29"
+    assert esc_ev["stream"] == "staff"
+    assert esc_ev["localDate"] == "2026-10-29"
+    assert esc_ev["loggedAt"] == "2026-10-30T01:20:00Z"
+
+    arch_ev = next(e for e in diff_evs if e["kind"] == "watchlist_property_archived")
+    assert arch_ev["localDate"] == "2026-10-29"
+    assert arch_ev["loggedAt"] == "2026-10-30T01:45:00Z"
+

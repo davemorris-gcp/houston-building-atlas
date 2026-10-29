@@ -225,6 +225,44 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 .demo-bench-table tr:last-child td{border-bottom:0}
 @media (max-width:1100px){.demo-bench-grid{grid-template-columns:1fr}}
 
+/* Activity & Morning Briefing Mode Styles */
+.mode-btn .pill.alert-pill{background:var(--t1);color:#fff}
+.unread-dot{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700;background:#EAF2FA;color:var(--survey);border:1px solid #B8D0E8;white-space:nowrap}
+.unread-dot.crit{background:var(--t1-soft);color:var(--t1);border-color:#E5A5A0}
+@keyframes rowFlash{0%{background:#FFF3CD}45%{background:#FFE299}100%{background:transparent}}
+.wl-table tr.wl-row-flash{animation:rowFlash 2.4s ease-out;outline:2px solid #D97706;outline-offset:-2px;opacity:1 !important}
+.act-ledger-head{padding:10px 14px;background:var(--vellum);border-bottom:1px solid var(--line);font-size:12px;color:#3C4750;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:2}
+.act-run-row{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line-soft);padding:10px 14px;cursor:pointer}
+.act-run-row:hover{background:#EDEAE2}
+.act-run-row[aria-current="true"]{background:var(--panel);box-shadow:inset 3px 0 0 var(--survey)}
+.act-run-row.degraded{background:#FFF8EB;box-shadow:inset 3px 0 0 #C88A00}
+.act-run-row.degraded[aria-current="true"]{background:#FFF4DE;box-shadow:inset 4px 0 0 var(--t1)}
+.act-run-row.subday{padding-left:24px;background:#FAFAF7}
+.act-quiet-row{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;background:#F5F3EE;border:0;border-bottom:1px solid var(--line-soft);padding:8px 14px;cursor:pointer;font-size:12.5px;color:var(--muted)}
+.act-quiet-row:hover{background:#EAE6DC;color:var(--ink)}
+.act-health-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px}
+.act-health-pill.ok{background:var(--ok-soft);color:var(--ok);border:1px solid #A5D9B8}
+.act-health-pill.degraded{background:#FBE9D0;color:#7A4300;border:1px solid #E0A85A}
+.act-health-pill.neutral{background:#EDF1F3;color:#4C5760;border:1px solid var(--line)}
+.act-banner{border-radius:6px;padding:12px 15px;margin-bottom:14px;font-size:13.5px;line-height:1.45;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.act-banner.info{background:#F2F7FC;border:1px solid #B8D0E8;color:#1E3A5F}
+.act-banner.degraded{background:#FDF4E7;border:1px solid #E0A85A;border-left:4px solid #C88A00;color:#5F370E}
+.act-banner.caughtup{background:var(--ok-soft);border:1px solid #A5D9B8;border-left:4px solid var(--ok);color:#14532D}
+.act-day-group{margin-bottom:22px}
+.act-day-hdr{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:6px;margin:0 0 10px;border-bottom:1.5px solid var(--line);font-size:14px;font-weight:700;color:var(--ink)}
+.act-card{background:var(--panel);border:1px solid var(--line);border-left:4px solid #9FB2C2;border-radius:6px;padding:12px 15px;margin-bottom:10px}
+.act-card.critical{border-left-color:var(--t1);background:linear-gradient(90deg,rgba(179,38,30,.035) 0%,#fff 28%)}
+.act-card.warning{border-left-color:#D97706}
+.act-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:5px}
+.act-card-title{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.3}
+.act-card-sum{font-size:13px;color:#3C4750;line-height:1.45;margin:4px 0 8px}
+.act-stream-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.02em}
+.act-stream-badge.watchlist{background:#EAF2FA;color:var(--survey)}
+.act-stream-badge.agenda{background:#F3ECFA;color:#5B2C86}
+.act-stream-badge.staff{background:#E8F4ED;color:#1F6B43}
+.act-stream-badge.permits{background:#FCECE9;color:#8F1D14}
+.act-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+
 /* Start screen */
 .start{max-width:760px;margin:48px auto;padding:0 24px}
 .start h2{font-size:28px;letter-spacing:-.015em;margin:0 0 8px}
@@ -273,6 +311,9 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
     <button class="mode-btn" id="modeWatchlistBtn" role="tab" aria-selected="false" data-mode="watchlist">
       Property Watchlist (Kirby Mansion &amp; Tier 1/2) <span class="pill" id="modeWatchlistCount">0</span>
     </button>
+    <button class="mode-btn" id="modeActivityBtn" role="tab" aria-selected="false" data-mode="activity" title="Morning briefing &amp; 90-day daily change ledger across Watchlist sweeps, Planning Commission agendas, staff edits, demolition/asbestos permits, and HAHC filings">
+      What's New &amp; Daily Log <span class="pill" id="modeActivityCount">0</span>
+    </button>
   </div>
 
   <div class="cycle" id="cycleBar">
@@ -290,6 +331,12 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
     <span id="watchlistHeaderControls" class="hidden" style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap">
       <span id="watchlistSweepBadge" class="hdr-meta-badge" title="Automated daily 7:00 AM CT sweeps across Comptroller, HCAD, TABC, COH Plats, TDLR TABS, 311, Sold Permits, and DSHS Asbestos"></span>
       <button class="btn dark" id="openDondbHeaderBtn" type="button" title="Upload and cross-check a City of Houston Dangerous Buildings CSV list against all 1.5M Harris County buildings &amp; historic overlays">🏚 Cross-Check Dangerous Buildings CSV</button>
+    </span>
+
+    <span id="activityHeaderControls" class="hidden" style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span id="activitySweepHealthBadge" class="hdr-meta-badge" title="Automated daily 7:00 AM CT 8-agency sweep status across Comptroller, HCAD, TABC, COH Plats, TDLR TABS, 311, Sold Permits, and DSHS Asbestos"></span>
+      <button class="btn dark" id="markCaughtUpBtn" type="button" title="Save your browser read watermark so Since Last Visit only shows future changes">✓ Mark Caught Up</button>
+      <button class="btn dark" id="copyActivityBriefingBtn" type="button" title="Copy formatted plain-text summary of visible What's New &amp; Daily Log updates">📋 Copy Briefing</button>
     </span>
 
     <button class="btn dark" id="staffAuthBtn" type="button" title="Preservation Houston Staff Admin Sign-In (Google Sheet Editor Verification &amp; Live Cloud Sync)">🔒 Staff Sign-In</button>
@@ -315,6 +362,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
         <button role="menuitem" data-act="plat-docx">Download Plat Report (.docx)<small>Editable Word report for the active Planning Commission cycle</small></button>
         <button role="menuitem" data-act="csv">Download Plat Findings Log (CSV)<small>Opens in Google Sheets or Excel; one row per researched item</small></button>
         <button role="menuitem" data-act="email">Copy email summary for Emily</button>
+        <button role="menuitem" data-act="copy-briefing">Copy What's New &amp; Daily Log briefing<small>Morning briefing summary across all 4 monitoring streams</small></button>
         <button role="menuitem" data-act="copy-demo-benchmarks">Copy 2020-2026 Demolition Permit Stats<small>Grant &amp; annual report summary (COH, HCAD &amp; HAHC)</small></button>
         <div class="sep"></div>
         <button role="menuitem" data-act="watchlist-print">Print Property Watchlist Dossier or save as PDF<small>15-point checklist, links &amp; chronological Findings Log</small></button>
@@ -378,6 +426,26 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
       <button class="btn" id="exportWatchlistCsvBtn" type="button">Findings (.csv)</button>
     </div>
   </div>
+  <div class="toolbar hidden" id="activityToolbar">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="tabs" role="tablist" id="activityRangeTabs" aria-label="Activity briefing range">
+        <button type="button" class="tab" role="tab" data-act-range="since_last_visit" aria-selected="true" title="Show unread discoveries &amp; edits since you last clicked Mark Caught Up (7-day rolling window on first visit)">Since Last Visit <span class="c" id="actCntUnread">0</span></button>
+        <button type="button" class="tab" role="tab" data-act-range="7d" aria-selected="false" title="Show all changes over the trailing 7 Houston calendar days">Last 7 Days <span class="c" id="actCnt7d">0</span></button>
+        <button type="button" class="tab" role="tab" data-act-range="all" aria-selected="false" title="Show complete 90-day daily change archive">All History (90d) <span class="c" id="actCntAll">0</span></button>
+      </div>
+      <span id="actDateFilterChip" class="hidden" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:14px;background:var(--survey-soft);border:1px solid #B8D0E8;color:var(--survey);font-size:12.5px;font-weight:700"></span>
+    </div>
+    <div class="filters">
+      <input type="search" id="actSearchInput" placeholder="Search address, name, HCAD, app #, agency..." aria-label="Search activity log" style="width:240px">
+      <select id="actStreamFilter" aria-label="Filter activity stream">
+        <option value="all">All 4 Streams</option>
+        <option value="watchlist">Watchlist Sweeps</option>
+        <option value="agenda">Plat Agendas</option>
+        <option value="staff">Staff Edits</option>
+        <option value="permits">Permits &amp; HAHC</option>
+      </select>
+    </div>
+  </div>
   <main>
     <div class="list" id="list" aria-label="Items list"></div>
     <div class="detail" id="detail"></div>
@@ -402,7 +470,7 @@ import {
   resolveAnnualDemolitionBenchmarks,
   formatDemolitionBenchmarksGrantText,
   buildDemolitionBenchmarksTablesHtml,
-} from "./js/platMonitorHelpers.js?v=20261028b";
+} from "./js/platMonitorHelpers.js?v=20261029a";
 
 import {
   TRACKER_STATUSES,
@@ -427,7 +495,25 @@ import {
   parseCloudSheetSyncRows,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
-} from "./js/watchlistSyncHelpers.js?v=20261028b";
+} from "./js/watchlistSyncHelpers.js?v=20261029a";
+
+import {
+  ACTIVITY_STREAM_META,
+  AUTOMATED_SWEEP_AGENCY_LABELS,
+  shiftIsoDate,
+  resolveInitialMonitorMode,
+  synthesizeLiveMonitorEvents,
+  computeWatermarkState,
+  buildMarkCaughtUpState,
+  filterActivityEvents,
+  groupActivityEventsByDate,
+  compactDailyRunsForLedger,
+  buildEntityUnreadIndex,
+  findMatchingWatchPropertyForAlert,
+  buildWatchPropertyFromPermitAlert,
+  sanitizeActivityEventForRender,
+  formatActivityBriefingText,
+} from "./js/activityLogHelpers.js?v=20261029a";
 
 /* ---------- Storage ---------- */
 const store = {
@@ -437,6 +523,9 @@ const store = {
 };
 const PREFIX = "phpam:cycle:";
 const WL_KEY = "phpam:watchlist:v2";
+const LAST_MODE_KEY = "phpam:lastMode";
+const CAUGHT_UP_AT_KEY = "phpam:caughtUpAt";
+const READ_IDS_KEY = "phpam:readEventIds";
 
 /* ---------- Helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -644,12 +733,17 @@ function loadInitialLocalWatchlist(){
   return {
     lastAutoSweepAt: raw?.lastAutoSweepAt || "",
     autoSweepSchedule: raw?.autoSweepSchedule || "Daily at 7:00 AM CT",
+    lastSweepHealth: raw?.lastSweepHealth || null,
     watchedProperties: sortWatchedProperties(activeProps),
     removedTombstones,
   };
 }
 
 let WL = loadInitialLocalWatchlist();
+let staticActivityLog = null;
+let hahcTrackerPayload = null;
+let hahcFetchStarted = false;
+let flashRowClearTimer = null;
 let history = store.get("phpam:history") || [];
 let view = {
   mode: "agenda",
@@ -664,6 +758,16 @@ let view = {
   wlQ: "",
   wlStatus: "ALL_ACTIVE",
   wlThreat: "",
+  actRange: "since_last_visit",
+  actSelectedDate: "",
+  actStream: "all",
+  actQ: "",
+  actExpandedQuietRanges: [],
+  caughtUpAt: typeof store.get(CAUGHT_UP_AT_KEY) === "string" ? store.get(CAUGHT_UP_AT_KEY) : "",
+  readEventIds: Array.isArray(store.get(READ_IDS_KEY)) ? store.get(READ_IDS_KEY) : [],
+  highlightCheckId: "",
+  initialWatchDeepLinkResolved: false,
+  userSwitchedMode: false,
 };
 
 let atlasLookupCachePromise = null;
@@ -675,10 +779,10 @@ async function ensureLocalAtlasLookupContext(){
   if (!atlasLookupCachePromise) {
     atlasLookupCachePromise = (async () => {
       const [ovRes, bldRes, pclRes, ovlRes] = await Promise.all([
-        fetch("public/data/curated_overrides.json?v=20261028b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/buildings.geojson?v=20261028b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/parcels.geojson?v=20261028b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/overlays.json?v=20261028b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/curated_overrides.json?v=20261029a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/buildings.geojson?v=20261029a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/parcels.geojson?v=20261029a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/overlays.json?v=20261029a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
       const localHcadMap = new Map();
       const ingestFc = (fc) => {
@@ -734,7 +838,7 @@ async function ensureLocalAtlasLookupContext(){
 async function loadAddressShard(shardKey){
   const key = String(shardKey || "").padStart(2, "0");
   if (addressShardCache.has(key)) return addressShardCache.get(key);
-  const p = fetch(`public/data/address_shards/addr_${encodeURIComponent(key)}.json?v=20261028b`)
+  const p = fetch(`public/data/address_shards/addr_${encodeURIComponent(key)}.json?v=20261029a`)
     .then(r => r.ok ? r.json() : {})
     .catch(() => ({}));
   addressShardCache.set(key, p);
@@ -887,6 +991,8 @@ function startMultiCycle(platPayload){
       fileName: src.fileName || `Plat-Agenda-${ck}.xlsx`,
       sourceSpreadsheetUrl: src.sourceSpreadsheetUrl || "",
       agendaOutlineUrl: src.agendaOutlineUrl || "",
+      generatedAt: src.generatedAt || platPayload?.generatedAt || "",
+      summary: src.summary || null,
       items,
       reviews: mergedReviews,
     };
@@ -898,6 +1004,7 @@ function startMultiCycle(platPayload){
     cycleOrder: order.filter(k => Boolean(cycles[k])),
     activeCycleChoice: defaultKey,
     cycleKey: defaultKey,
+    generatedAt: platPayload?.generatedAt || "",
     reviewer,
     loadedAt: new Date().toISOString(),
   };
@@ -1015,6 +1122,7 @@ function prepareAllCycles(){
       }
     });
   }
+  markActivityDirty();
 }
 
 const stripPrivate = it => {
@@ -1074,6 +1182,7 @@ function rebuildReconciledWatchlist(){
   WL.watchedProperties = sortWatchedProperties(merged);
   WL.removedTombstones = tombstones;
   store.set(WL_KEY, WL);
+  markActivityDirty();
 }
 
 function persistWatchlistPropertyEdit(prop){
@@ -1087,6 +1196,7 @@ function persistWatchlistPropertyEdit(prop){
     WL.removedTombstones[norm.id] = norm;
     WL.watchedProperties = (WL.watchedProperties || []).filter(p => p.id !== norm.id);
     store.set(WL_KEY, WL);
+    markActivityDirty();
     return norm;
   }
   delete WL.removedTombstones[norm.id];
@@ -1095,6 +1205,7 @@ function persistWatchlistPropertyEdit(prop){
   else WL.watchedProperties.push(norm);
   WL.watchedProperties = sortWatchedProperties(WL.watchedProperties);
   store.set(WL_KEY, WL);
+  markActivityDirty();
   return norm;
 }
 
@@ -1159,7 +1270,29 @@ function populateHeaderAndFilterControls(){
   const sweepTs = WL.lastAutoSweepAt
     ? new Date(WL.lastAutoSweepAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })
     : "Scheduled Daily 7:00 AM CT";
-  $("#watchlistSweepBadge").textContent = `8-Agency Auto-Sweep: ${sweepTs}`;
+  const sh = WL.lastSweepHealth || staticActivityLog?.lastSweepHealth || null;
+  const shFailed = Array.isArray(sh?.failedAgencies) ? sh.failedAgencies : [];
+  const shTotal = Number(sh?.totalAgencies || 8);
+  const shOk = Number(sh?.succeededAgencies ?? Math.max(0, shTotal - shFailed.length));
+  const sweepHealthTxt = shFailed.length > 0
+    ? `⚠ Sweep Degraded (${shOk}/${shTotal} OK · Failed: ${shFailed.join(", ")}) · ${sweepTs}`
+    : `✓ ${shOk}/${shTotal} Agencies OK · ${sweepTs}`;
+  $("#watchlistSweepBadge").textContent = `8-Agency Auto-Sweep: ${sweepHealthTxt}`;
+  const actSweepEl = $("#activitySweepHealthBadge");
+  if (actSweepEl) {
+    actSweepEl.textContent = sweepHealthTxt;
+    actSweepEl.style.background = shFailed.length > 0 ? "rgba(217,119,6,.28)" : "";
+    actSweepEl.style.borderColor = shFailed.length > 0 ? "#F59E0B" : "";
+  }
+
+  const actStreamEl = $("#actStreamFilter");
+  if (actStreamEl && actStreamEl.value !== view.actStream) {
+    actStreamEl.value = view.actStream;
+  }
+  const actSearchEl = $("#actSearchInput");
+  if (actSearchEl && document.activeElement !== actSearchEl && actSearchEl.value !== view.actQ) {
+    actSearchEl.value = view.actQ;
+  }
 
   $("#wlStatusFilter").innerHTML = [
     `<option value="ALL_ACTIVE" ${view.wlStatus === "ALL_ACTIVE" ? "selected" : ""}>Active Watchlist (Excl. Archived)</option>`,
@@ -1171,6 +1304,238 @@ function populateHeaderAndFilterControls(){
     `<option value="" ${!view.wlThreat ? "selected" : ""}>All Threat Categories</option>`,
     ...THREAT_CATEGORIES.filter(Boolean).map(tc => `<option value="${esc(tc)}" ${view.wlThreat === tc ? "selected" : ""}>${esc(tc)}</option>`),
   ].join("");
+}
+
+let _activityDataRev = 0;
+let _activityObjNextId = 1;
+const _activityObjIds = new WeakMap();
+let _activityMemo = {
+  dataKey: "",
+  bundle: null,
+  substantiveEvents: [],
+  count7d: 0,
+  watermarkKey: "",
+  watermarkState: null,
+  unreadIndex: null,
+};
+
+function _actObjStamp(obj){
+  if (!obj || typeof obj !== "object") return "0";
+  let id = _activityObjIds.get(obj);
+  if (!id) {
+    id = _activityObjNextId++;
+    _activityObjIds.set(obj, id);
+  }
+  return String(id);
+}
+
+function markActivityDirty(){
+  _activityDataRev += 1;
+}
+
+function getActivityViewContext(){
+  const nowIso = new Date().toISOString();
+  const minuteBucket = nowIso.slice(0, 16);
+  const alertsRef = window.__permitAlertsPayload || null;
+  const wlLen = Array.isArray(WL.watchedProperties) ? WL.watchedProperties.length : 0;
+  const tbLen = WL.removedTombstones ? Object.keys(WL.removedTombstones).length : 0;
+  const dataKey = [
+    _activityDataRev,
+    minuteBucket,
+    _actObjStamp(staticActivityLog),
+    _actObjStamp(S),
+    _actObjStamp(WL.lastSweepHealth),
+    _actObjStamp(alertsRef),
+    _actObjStamp(hahcTrackerPayload),
+    wlLen,
+    tbLen,
+  ].join("|");
+
+  if (_activityMemo.dataKey !== dataKey || !_activityMemo.bundle) {
+    const allWatchWithTombstones = [
+      ...(WL.watchedProperties || []),
+      ...Object.values(WL.removedTombstones || {}),
+    ];
+    const bundle = synthesizeLiveMonitorEvents({
+      staticLog: staticActivityLog,
+      watchedProperties: allWatchWithTombstones,
+      watchlistSweepHealth: WL.lastSweepHealth,
+      platState: S,
+      permitAlertsPayload: alertsRef,
+      hahcPayload: hahcTrackerPayload,
+      nowIso,
+    });
+    const substantiveEvents = bundle.events.filter(
+      e => e && e.kind !== "watchlist_sweep_degraded"
+    );
+    const floor7d = shiftIsoDate(bundle.todayLocal, -6);
+    const count7d = substantiveEvents.filter(e => e.localDate && e.localDate >= floor7d).length;
+    _activityMemo.dataKey = dataKey;
+    _activityMemo.bundle = bundle;
+    _activityMemo.substantiveEvents = substantiveEvents;
+    _activityMemo.count7d = count7d;
+    _activityMemo.watermarkKey = "";
+  }
+
+  const readIdsArr = Array.isArray(view.readEventIds) ? view.readEventIds : [];
+  const watermarkKey = [
+    dataKey,
+    view.caughtUpAt || "",
+    readIdsArr.length,
+    readIdsArr[0] || "",
+    readIdsArr[readIdsArr.length - 1] || "",
+  ].join("|");
+
+  if (_activityMemo.watermarkKey !== watermarkKey || !_activityMemo.watermarkState) {
+    const watermarkState = computeWatermarkState({
+      events: _activityMemo.bundle.events,
+      caughtUpAt: view.caughtUpAt,
+      readEventIds: readIdsArr,
+      nowIso,
+    });
+    const unreadIndex = buildEntityUnreadIndex(_activityMemo.bundle.events, watermarkState);
+    _activityMemo.watermarkKey = watermarkKey;
+    _activityMemo.watermarkState = watermarkState;
+    _activityMemo.unreadIndex = unreadIndex;
+  }
+
+  const filteredEvents = filterActivityEvents({
+    events: _activityMemo.bundle.events,
+    watermarkState: _activityMemo.watermarkState,
+    rangeMode: view.actRange,
+    selectedDate: view.actSelectedDate,
+    streamFilter: view.actStream,
+    query: view.actQ,
+    nowIso,
+  });
+  return {
+    nowIso,
+    bundle: _activityMemo.bundle,
+    substantiveEvents: _activityMemo.substantiveEvents,
+    watermarkState: _activityMemo.watermarkState,
+    unreadIndex: _activityMemo.unreadIndex,
+    filteredEvents,
+    count7d: _activityMemo.count7d,
+  };
+}
+
+function formatCaughtUpTimestamp(isoStr){
+  if (!isoStr) return "your last visit";
+  const d = new Date(isoStr);
+  if (Number.isNaN(d.getTime())) return String(isoStr);
+  return d.toLocaleString("en-US", {
+    timeZone: "America/Chicago",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }) + " CT";
+}
+
+function persistModeChoice(nextMode){
+  if (nextMode === "agenda" || nextMode === "watchlist" || nextMode === "activity") {
+    store.set(LAST_MODE_KEY, nextMode);
+  }
+}
+
+function clearBootDeepLinkUrlParams(){
+  try {
+    const url = new URL(window.location.href);
+    let changed = false;
+    for (const k of ["mode", "tab", "watch", "hcad", "address", "name", "autoadd", "cycle", "app", "id"]) {
+      if (url.searchParams.has(k)) {
+        url.searchParams.delete(k);
+        changed = true;
+      }
+    }
+    if (changed && window.history && typeof window.history.replaceState === "function") {
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
+  } catch (_e) {}
+}
+
+function resolvePlatJumpTarget({ ck = "", appNo = "", occKey = "" } = {}){
+  if (!S || !S.cycles) return null;
+  if (!appNo && !occKey) {
+    if (ck && S.cycles[ck]) return { cycleKey: ck, item: null };
+    return null;
+  }
+  if (ck && S.cycles[ck]) {
+    const exact = (S.cycles[ck].items || []).find(
+      i => (occKey && i._occKey === occKey) || (appNo && i.app === appNo)
+    );
+    if (exact) return { cycleKey: ck, item: exact };
+  }
+  for (const candCk of S.cycleOrder || []) {
+    const found = (S.cycles[candCk]?.items || []).find(
+      i => (occKey && i._occKey === occKey) || (appNo && i.app === appNo)
+    );
+    if (found) return { cycleKey: candCk, item: found };
+  }
+  return null;
+}
+
+function markActivityCaughtUp(){
+  const actCtx = getActivityViewContext();
+  const nextWm = buildMarkCaughtUpState({
+    events: actCtx.bundle.events,
+    prevReadEventIds: view.readEventIds,
+    nowIso: actCtx.nowIso,
+  });
+  view.caughtUpAt = nextWm.caughtUpAt;
+  view.readEventIds = nextWm.readEventIds;
+  store.set(CAUGHT_UP_AT_KEY, view.caughtUpAt);
+  store.set(READ_IDS_KEY, view.readEventIds);
+  render();
+  toast("Marked all current updates as caught up on this browser.");
+}
+
+async function copyCurrentActivityBriefing(){
+  const actCtx = getActivityViewContext();
+  const rangeLabel = view.actSelectedDate
+    ? `Date ${view.actSelectedDate}`
+    : view.actRange === "since_last_visit"
+    ? "Since Last Visit"
+    : view.actRange === "7d"
+    ? "Last 7 Days"
+    : "All History (90 Days)";
+  const targetDayRun = view.actSelectedDate
+    ? actCtx.bundle.dailyRuns.find(r => r.date === view.actSelectedDate) || actCtx.bundle.dailyRuns[0]
+    : actCtx.bundle.dailyRuns[0] || null;
+  const txt = formatActivityBriefingText({
+    events: actCtx.filteredEvents,
+    dailyRun: targetDayRun,
+    rangeLabel,
+    nowIso: actCtx.nowIso,
+  });
+  try {
+    await navigator.clipboard.writeText(txt);
+  } catch (_e) {
+    const ta = document.createElement("textarea");
+    ta.value = txt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  toast(`Copied Morning Briefing (${actCtx.filteredEvents.length} update${actCtx.filteredEvents.length === 1 ? "" : "s"}).`);
+}
+
+function ensureLazyHahcTrackerLoaded(){
+  if (hahcFetchStarted) return;
+  hahcFetchStarted = true;
+  fetch("public/data/hahc_coa_tracker.json?v=20261029a")
+    .then(r => (r.ok ? r.json() : null))
+    .then(data => {
+      if (data && typeof data === "object") {
+        hahcTrackerPayload = data;
+        markActivityDirty();
+        if (view.mode === "activity") render();
+        else updateModeButtons();
+      }
+    })
+    .catch(() => {});
 }
 
 function showApp(){
@@ -1194,14 +1559,22 @@ function activeWatchlistCount(){
   return (WL.watchedProperties || []).filter(p => p.trackerStatus !== "Archived (Tier 3)").length;
 }
 
-function updateModeButtons(){
+function updateModeButtons(precomputedActCtx = null){
+  const actCtx = precomputedActCtx || getActivityViewContext();
   const items = getActiveItems();
   $("#modeAgendaCount").textContent = items.length;
   $("#modeWatchlistCount").textContent = activeWatchlistCount();
+  const actCountEl = $("#modeActivityCount");
+  if (actCountEl) {
+    actCountEl.textContent = actCtx.watermarkState.unreadCount;
+    actCountEl.classList.toggle("alert-pill", actCtx.watermarkState.unreadAdverseCount > 0);
+  }
   $("#modeAgendaBtn").setAttribute("aria-selected", String(view.mode === "agenda"));
   $("#modeWatchlistBtn").setAttribute("aria-selected", String(view.mode === "watchlist"));
-  $("#agendaHeaderControls").classList.toggle("hidden", view.mode === "watchlist");
+  $("#modeActivityBtn")?.setAttribute("aria-selected", String(view.mode === "activity"));
+  $("#agendaHeaderControls").classList.toggle("hidden", view.mode !== "agenda");
   $("#watchlistHeaderControls").classList.toggle("hidden", view.mode !== "watchlist");
+  $("#activityHeaderControls")?.classList.toggle("hidden", view.mode !== "activity");
 }
 
 function buildDemoStageHtml(){
@@ -1302,24 +1675,334 @@ async function copyDemoBenchmarksSummary(){
   toast("Copied 2020-2026 YTD demolition permit statistics for grant/report use.");
 }
 
+function renderActivityFunnel(actCtx){
+  const wm = actCtx.watermarkState;
+  const latestRun = actCtx.bundle.dailyRuns[0] || null;
+  const failedList = Array.isArray(latestRun?.failedAgencies) ? latestRun.failedAgencies : [];
+  const totalAg = Number(latestRun?.totalAgencies || 8);
+  const okAg = Number(latestRun?.succeededAgencies ?? Math.max(0, totalAg - failedList.length));
+  const critCount = actCtx.filteredEvents.filter(e => e.severity === "critical" || e.adverse).length;
+  $("#funnel").innerHTML = `
+    <div class="stage ${wm.unreadAdverseCount > 0 ? "t1" : "auto"}"><div class="n">${wm.unreadCount}</div><div class="l">${wm.isImplicitFirstVisit ? "recent updates (7d first visit)" : "unread since last visit"}</div></div>
+    <div class="stage t1"><div class="n">${critCount}</div><div class="l">critical / adverse in view</div></div>
+    <div class="stage ${failedList.length > 0 ? "t2" : "auto"}"><div class="n">${okAg} / ${totalAg}</div><div class="l">${failedList.length > 0 ? "agencies OK (degraded sweep)" : "daily sweep agencies OK"}</div></div>
+    <div class="stage"><div class="n">${actCtx.count7d}</div><div class="l">changes in last 7 days</div></div>
+    <div class="stage"><div class="n">${actCtx.substantiveEvents.length}</div><div class="l">events in 90-day archive</div></div>
+    ${buildDemoStageHtml()}`;
+}
+
+function renderActivityToolbar(actCtx){
+  const cntUnreadEl = $("#actCntUnread");
+  const cnt7dEl = $("#actCnt7d");
+  const cntAllEl = $("#actCntAll");
+  if (cntUnreadEl) cntUnreadEl.textContent = actCtx.watermarkState.unreadCount;
+  if (cnt7dEl) cnt7dEl.textContent = actCtx.count7d;
+  if (cntAllEl) cntAllEl.textContent = actCtx.substantiveEvents.length;
+
+  document.querySelectorAll("#activityRangeTabs .tab[data-act-range]").forEach(btn => {
+    const isSel = !view.actSelectedDate && btn.dataset.actRange === view.actRange;
+    btn.setAttribute("aria-selected", String(isSel));
+  });
+
+  const dateChip = $("#actDateFilterChip");
+  if (dateChip) {
+    if (view.actSelectedDate) {
+      dateChip.classList.remove("hidden");
+      dateChip.innerHTML = `📅 Filtered to ${esc(formatLongUsDate(view.actSelectedDate) || view.actSelectedDate)} <button type="button" class="btn sm" data-clear-act-date="1" style="padding:1px 6px;font-size:11.5px;margin-left:4px" aria-label="Clear single-date filter">× Clear</button>`;
+    } else {
+      dateChip.classList.add("hidden");
+      dateChip.innerHTML = "";
+    }
+  }
+}
+
+function renderActivityLedger(actCtx){
+  const runs = actCtx.bundle.dailyRuns;
+  if (!runs.length) {
+    $("#list").innerHTML = '<div class="list-empty">No daily sweep runs recorded in the trailing 90-day window.</div>';
+    return;
+  }
+  const unreadDays = new Set();
+  for (const ev of actCtx.bundle.events) {
+    if (actCtx.watermarkState.unreadIds.has(String(ev.id)) && ev.localDate) {
+      unreadDays.add(ev.localDate);
+    }
+  }
+  const compacted = compactDailyRunsForLedger(runs, {
+    expandedRangeKeys: view.actExpandedQuietRanges,
+  });
+
+  const headHtml = `<div class="act-ledger-head">
+    <span><b>Daily Run Ledger</b> (${runs.length}d · CT)</span>
+    ${view.actSelectedDate
+      ? `<button type="button" class="btn sm" data-clear-act-date="1" style="padding:2px 8px;font-size:11.5px">Show All Dates</button>`
+      : `<span style="font-size:11.5px;color:var(--muted)">Click any day to inspect</span>`}
+  </div>`;
+
+  const rowsHtml = compacted.map(entry => {
+    if (entry.type === "quiet_range") {
+      const startShort = formatShortUsDate(entry.startDate) || entry.startDate;
+      const endShort = formatShortUsDate(entry.endDate) || entry.endDate;
+      return `<button type="button" class="act-quiet-row" data-toggle-quiet-range="${esc(entry.rangeKey)}" aria-expanded="${String(Boolean(entry.expanded))}">
+        <span>${entry.expanded ? "▾ Hide" : "▸ Show"} <b>${entry.count} quiet days</b> (${esc(startShort)} - ${esc(endShort)})</span>
+        <span class="act-health-pill ok">✓ All sweeps OK · 0 hits</span>
+      </button>`;
+    }
+
+    const r = entry.run;
+    const failedList = Array.isArray(r.failedAgencies) ? r.failedAgencies : [];
+    const isDegraded = failedList.length > 0 || r.allOk === false;
+    const totAg = Number(r.totalAgencies || 8);
+    const okAg = Number(r.succeededAgencies ?? Math.max(0, totAg - failedList.length));
+    const dateLabel = formatLongUsDate(r.date) || r.date;
+    const hasUnread = unreadDays.has(r.date);
+    const bs = r.byStream || {};
+
+    const healthBadge = isDegraded
+      ? `<span class="act-health-pill degraded" data-sweep-status="degraded">⚠ ${okAg}/${totAg} OK (${esc(failedList.join(", "))})</span>`
+      : r.liveOnlyDay
+      ? `<span class="act-health-pill neutral" data-sweep-status="live">Archive / Live Day</span>`
+      : `<span class="act-health-pill ok" data-sweep-status="ok">✓ ${okAg}/${totAg} agencies OK</span>`;
+
+    const streamChips = [
+      bs.watchlist ? `<span class="chip watch">${bs.watchlist} Watchlist</span>` : "",
+      bs.agenda ? `<span class="chip hearing">${bs.agenda} Agenda</span>` : "",
+      bs.permits ? `<span class="chip strong">${bs.permits} Permit/HAHC</span>` : "",
+      bs.staff ? `<span class="chip ok">${bs.staff} Staff</span>` : "",
+    ].filter(Boolean).join("");
+
+    return `<button type="button" class="act-run-row ${isDegraded ? "degraded" : ""} ${entry.parentRangeKey ? "subday" : ""}" data-act-date="${esc(r.date)}" aria-current="${String(view.actSelectedDate === r.date)}">
+      <div class="top" style="align-items:center">
+        <span class="nm" style="font-size:13.5px">${esc(dateLabel)}</span>
+        ${hasUnread ? `<span class="unread-dot" data-ledger-unread="1">● Unread</span>` : ""}
+        ${healthBadge}
+      </div>
+      <div class="sub" style="margin-top:4px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+        <span><b>${r.eventCount}</b> update${r.eventCount === 1 ? "" : "s"}${r.propertiesSwept ? ` · ${r.propertiesSwept} watched swept` : ""}</span>
+        ${r.adverseEventCount > 0 ? `<span class="chip critical">${r.adverseEventCount} critical/adverse</span>` : ""}
+      </div>
+      ${streamChips ? `<div class="chips" style="margin-top:5px">${streamChips}</div>` : ""}
+    </button>`;
+  }).join("");
+
+  $("#list").innerHTML = headHtml + rowsHtml;
+}
+
+function renderSingleActivityCardHtml(ev, wm){
+  const s = sanitizeActivityEventForRender(ev);
+  const isUnread = wm.unreadIds.has(s.id);
+  const matchedWatch = (ev.watchPropertyId && (WL.watchedProperties || []).find(w => w.id === ev.watchPropertyId && w.trackerStatus !== REMOVED_TIER3_TOMBSTONE))
+    || (ev.stream === "permits" ? findMatchingWatchPropertyForAlert(ev, WL.watchedProperties || []) : null);
+  const canPromotePermit = !matchedWatch && ev.stream === "permits" && (ev.kind === "permit_coh_alert" || ev.kind === "permit_dshs_alert");
+
+  const actionBtns = [];
+  if (matchedWatch) {
+    actionBtns.push(
+      `<button type="button" class="assist-pill" data-act-open-watch="${esc(matchedWatch.id)}" ${ev.checkId ? `data-act-check-id="${esc(ev.checkId)}"` : ""}>Open Watchlist Row →</button>`
+    );
+  } else if (canPromotePermit) {
+    actionBtns.push(
+      `<button type="button" class="btn sm primary" data-act-promote-event="${s.safeId}">+ Promote to Watchlist</button>`
+    );
+  }
+
+  const platJump = (ev.appNo || (ev.cycleKey && ev.stream === "agenda"))
+    ? resolvePlatJumpTarget({ ck: ev.cycleKey || "", appNo: ev.appNo || "", occKey: ev.occKey || "" })
+    : null;
+  if (ev.appNo && platJump?.item) {
+    actionBtns.push(
+      `<button type="button" class="assist-pill" data-act-open-plat-app="${s.safeAppNo}" data-act-open-plat-cycle="${esc(platJump.cycleKey || ev.cycleKey || "")}" data-act-open-plat-occ="${esc(platJump.item._occKey || ev.occKey || "")}">Open Plat Item →</button>`
+    );
+  } else if (!ev.appNo && ev.cycleKey && ev.stream === "agenda" && platJump) {
+    actionBtns.push(
+      `<button type="button" class="assist-pill" data-act-open-plat-cycle="${esc(platJump.cycleKey)}">Open Agenda Cycle →</button>`
+    );
+  } else if ((ev.appNo || (ev.cycleKey && ev.stream === "agenda")) && S) {
+    actionBtns.push(
+      `<span class="chip" title="This Planning Commission cycle has rotated out of the active 3-cycle browser index; use the attached PDF links.">Archived Cycle ${esc(ev.cycleKey || ev.appNo || "")}</span>`
+    );
+  }
+
+  if (s.atlasMapHref) {
+    actionBtns.push(
+      `<a class="assist-pill" data-act-map-link="1" href="${s.safeAtlasMapHref}" target="_blank" rel="noopener">🗺️ View on Atlas Map ↗</a>`
+    );
+  }
+
+  for (const lk of s.safeLinks) {
+    actionBtns.push(
+      `<a class="chk-link-pill" href="${lk.safeUrl}" target="_blank" rel="noopener">🔗 ${lk.safeLabel} ↗</a>`
+    );
+  }
+
+  const sevBadge = s.severity === "critical"
+    ? `<span class="chip critical">Critical</span>`
+    : s.severity === "warning"
+    ? `<span class="chip strong">Review</span>`
+    : `<span class="chip">Info</span>`;
+
+  const metaChips = [
+    s.localDate ? `<span class="chip">${esc(formatShortUsDate(s.localDate) || s.localDate)}</span>` : "",
+    s.safeCheckId ? `<span class="chip watch">${s.safeCheckId}</span>` : "",
+    s.yearBuilt ? `<span class="chip ${Number(s.yearBuilt) <= 1940 ? "critical" : ""}">Built ${esc(s.yearBuilt)}</span>` : "",
+    s.safeHcad ? `<span class="chip">HCAD ${s.safeHcad}</span>` : "",
+  ].filter(Boolean).join("");
+
+  return `<article class="act-card ${esc(s.severity)}" data-event-id="${s.safeId}" data-stream="${esc(s.stream)}" data-severity="${esc(s.severity)}">
+    <div class="act-card-top">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span class="act-stream-badge ${esc(s.stream)}">${esc(ACTIVITY_STREAM_META[s.stream]?.label || s.streamLabel)}</span>
+        ${sevBadge}
+        ${isUnread ? `<span class="unread-dot ${s.severity === "critical" || s.adverse ? "crit" : ""}" data-card-unread="1">● Unread</span>` : ""}
+        ${metaChips}
+      </div>
+    </div>
+    <div class="act-card-title">${s.safeTitle}</div>
+    ${s.safeSummary ? `<div class="act-card-sum">${s.safeSummary}</div>` : ""}
+    ${actionBtns.length ? `<div class="act-actions">${actionBtns.join("")}</div>` : ""}
+  </article>`;
+}
+
+function renderActivityBriefing(actCtx){
+  const { bundle, watermarkState: wm, filteredEvents } = actCtx;
+  const banners = [];
+
+  if (!bundle.hasStaticLog) {
+    banners.push(`<div class="act-banner info" data-fallback-log-banner="1">
+      <div><b>Live Fallback Mode:</b> Static 90-day daily ledger (<code>monitor_activity_log.json</code>) could not be loaded. Displaying live-synthesized trailing 7-day updates directly from active Watchlist, Plat Agenda, Permit Watch, and Google Sheet sync payloads.</div>
+    </div>`);
+  }
+
+  const sh = bundle.lastSweepHealth;
+  const failedList = Array.isArray(sh?.failedAgencies) ? sh.failedAgencies : [];
+  if (failedList.length > 0) {
+    const totAg = Number(sh?.totalAgencies || 8);
+    const okAg = Number(sh?.succeededAgencies ?? Math.max(0, totAg - failedList.length));
+    const agencyDetails = failedList.map(cid => {
+      const info = sh?.agencies?.[cid] || {};
+      const lbl = info.label || AUTOMATED_SWEEP_AGENCY_LABELS[cid] || cid;
+      const err = info.error ? ` (${info.error})` : "";
+      return `${lbl}${err}`;
+    }).join("; ");
+    banners.push(`<div class="act-banner degraded" data-degraded-sweep-banner="1">
+      <div><b>⚠ Latest 8-Agency Sweep Degraded (${okAg}/${totAg} agencies OK):</b> ${esc(agencyDetails)}. Quiet results on failed portals may be incomplete until the next 7:00 AM CT sweep.</div>
+    </div>`);
+  }
+
+  const totDefaultAg = Number(sh?.totalAgencies || 8);
+  const okDefaultAg = Number(sh?.succeededAgencies ?? Math.max(0, totDefaultAg - failedList.length));
+  const sweepReassure = failedList.length > 0
+    ? `${okDefaultAg}/${totDefaultAg} agencies completed (${failedList.length} degraded)`
+    : `all ${okDefaultAg}/${totDefaultAg} agencies reported cleanly`;
+
+  if (view.actSelectedDate) {
+    banners.push(`<div class="act-banner info">
+      <div><b>📅 Single-Day Inspection: ${esc(formatLongUsDate(view.actSelectedDate) || view.actSelectedDate)}</b> · Showing ${filteredEvents.length} update${filteredEvents.length === 1 ? "" : "s"} recorded on this Houston calendar date.</div>
+      <button type="button" class="btn sm" data-clear-act-date="1">Return to ${view.actRange === "since_last_visit" ? "Since Last Visit" : view.actRange === "7d" ? "Last 7 Days" : "All History"}</button>
+    </div>`);
+  } else if (view.actRange === "since_last_visit") {
+    if (wm.isImplicitFirstVisit) {
+      banners.push(`<div class="act-banner info" data-first-visit-banner="1">
+        <div><b>👋 Morning Briefing (First Visit on This Browser):</b> Showing <b>${wm.unreadCount}</b> update${wm.unreadCount === 1 ? "" : "s"} from the past 7 days across all 4 monitoring streams (${sweepReassure}). Click <b>✓ Mark Caught Up</b> once reviewed to set your personal read watermark.</div>
+        <button type="button" class="btn sm primary" data-mark-caught-up="1">✓ Mark Caught Up</button>
+      </div>`);
+    } else if (filteredEvents.length === 0 && !view.actQ && view.actStream === "all") {
+      banners.push(`<div class="act-banner caughtup" data-caught-up-card="1">
+        <div>
+          <b style="font-size:15px">✓ All caught up since ${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}</b><br>
+          <span>Zero new filings, permit alerts, or staff edits since your saved watermark. Daily 7:00 AM CT sweeps checked <b>${activeWatchlistCount()}</b> active watched properties (${esc(sweepReassure)}).</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn sm" data-switch-act-range="7d">View Last 7 Days (${actCtx.count7d})</button>
+          <button type="button" class="btn sm" data-switch-act-range="all">Browse 90-Day History (${bundle.events.length})</button>
+        </div>
+      </div>`);
+    } else {
+      banners.push(`<div class="act-banner info">
+        <div><b>📬 Since Last Visit (${esc(formatCaughtUpTimestamp(wm.caughtUpAt))}):</b> <b>${wm.unreadCount}</b> unread update${wm.unreadCount === 1 ? "" : "s"} (${wm.unreadAdverseCount} critical/adverse).</div>
+        ${wm.unreadCount > 0 ? `<button type="button" class="btn sm primary" data-mark-caught-up="1">✓ Mark Caught Up</button>` : ""}
+      </div>`);
+    }
+  }
+
+  if (!filteredEvents.length) {
+    const emptyBody = (view.actRange === "since_last_visit" && !wm.isImplicitFirstVisit && !view.actSelectedDate && !view.actQ && view.actStream === "all")
+      ? ""
+      : `<div class="list-empty">No monitoring updates match the current time window and filters.</div>`;
+    $("#detail").innerHTML = banners.join("") + emptyBody;
+    return;
+  }
+
+  let sectionsHtml = "";
+  if (view.actSelectedDate) {
+    sectionsHtml = `<section class="act-day-group">
+      <h3 class="act-day-hdr">
+        <span>${esc(formatLongUsDate(view.actSelectedDate) || view.actSelectedDate)}</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:600">${filteredEvents.length} update${filteredEvents.length === 1 ? "" : "s"}</span>
+      </h3>
+      ${filteredEvents.map(ev => renderSingleActivityCardHtml(ev, wm)).join("")}
+    </section>`;
+  } else {
+    const priorityEvents = filteredEvents.filter(ev => ev.severity === "critical" || ev.adverse);
+    const routineEvents = filteredEvents.filter(ev => !(ev.severity === "critical" || ev.adverse));
+    if (priorityEvents.length > 0) {
+      sectionsHtml += `<section class="act-day-group" data-act-section="priority">
+        <h3 class="act-day-hdr" style="color:var(--t1);border-bottom-color:#E5A5A0">
+          <span>🚨 Priority Escalations &amp; Adverse Hits (${priorityEvents.length})</span>
+          <span style="font-size:12px;color:var(--muted);font-weight:600">Pinned first by preservation urgency</span>
+        </h3>
+        ${priorityEvents.map(ev => renderSingleActivityCardHtml(ev, wm)).join("")}
+      </section>`;
+    }
+    if (routineEvents.length > 0) {
+      const grouped = groupActivityEventsByDate(routineEvents);
+      sectionsHtml += grouped.map(grp => `<section class="act-day-group" data-act-date-group="${esc(grp.date)}">
+        <h3 class="act-day-hdr">
+          <span>📅 ${esc(formatLongUsDate(grp.date) || grp.date)}</span>
+          <span style="font-size:12px;color:var(--muted);font-weight:600">${grp.events.length} update${grp.events.length === 1 ? "" : "s"}</span>
+        </h3>
+        ${grp.events.map(ev => renderSingleActivityCardHtml(ev, wm)).join("")}
+      </section>`).join("");
+    }
+  }
+
+  $("#detail").innerHTML = banners.join("") + sectionsHtml;
+}
+
 function render(){
+  const actCtx = getActivityViewContext();
   populateHeaderAndFilterControls();
-  updateModeButtons();
+  updateModeButtons(actCtx);
   const c = counts();
   const items = getActiveItems();
+
+  if (view.mode === "activity") {
+    ensureLazyHahcTrackerLoaded();
+    $("#agendaToolbar").classList.add("hidden");
+    $("#watchlistToolbar").classList.add("hidden");
+    $("#activityToolbar")?.classList.remove("hidden");
+    renderActivityFunnel(actCtx);
+    renderDemoBenchmarksDrawer();
+    renderActivityToolbar(actCtx);
+    renderActivityLedger(actCtx);
+    renderActivityBriefing(actCtx);
+    return;
+  }
 
   if (view.mode === "watchlist") {
     $("#agendaToolbar").classList.add("hidden");
     $("#watchlistToolbar").classList.remove("hidden");
+    $("#activityToolbar")?.classList.add("hidden");
     renderWatchlistFunnel();
     renderDemoBenchmarksDrawer();
-    renderWatchlistSidebar();
-    renderWatchlistDetail();
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
     return;
   }
 
   $("#agendaToolbar").classList.remove("hidden");
   $("#watchlistToolbar").classList.add("hidden");
+  $("#activityToolbar")?.classList.add("hidden");
   $("#funnel").innerHTML = `
     <div class="stage"><div class="n">${items.length}</div><div class="l">on agenda (incl. ${c.dpv} DPV)</div></div>
     <div class="stage"><div class="n">${items.filter(i => i._c.group === "check").length}</div><div class="l">to check after screening</div></div>
@@ -1329,7 +2012,7 @@ function render(){
     ${buildDemoStageHtml()}`;
   renderDemoBenchmarksDrawer();
   $("#tabs").innerHTML = GROUPS.map(([g, label, tip]) => `<button class="tab" role="tab" data-g="${g}" aria-selected="${view.group === g}" title="${esc(tip)}">${label}<span class="c">${c[g]}</span></button>`).join("");
-  renderList();
+  renderList(actCtx);
   renderDetail();
 }
 
@@ -1368,7 +2051,7 @@ function chipsHtml(it, max){
   return fl.map(f => `<span class="chip ${FLAG_INFO[f]?.[2] || ""}">${esc(FLAG_INFO[f]?.[0] || f)}</span>`).join("");
 }
 
-function renderList(){
+function renderList(precomputedActCtx = null){
   const items = filtered();
   if (!items.length) {
     $("#list").innerHTML = `<div class="list-empty">${
@@ -1381,6 +2064,7 @@ function renderList(){
   if (!view.selected || !items.some(i => i._occKey === view.selected)) {
     view.selected = items[0]._occKey;
   }
+  const unreadIdx = (precomputedActCtx || getActivityViewContext()).unreadIndex;
   $("#list").innerHTML = items.map(it => {
     const t = tierOf(it);
     const r = revFor(it);
@@ -1396,6 +2080,10 @@ function renderList(){
     const confirmedChip = r.tierConfirmed && (t === "1" || t === "2")
       ? `<span class="chip ok" title="Confirmed and synced to Property Watchlist">✓ On Watchlist</span>`
       : "";
+    const unreadInfo = unreadIdx.agendaOccUnread.get(it._occKey) || unreadIdx.agendaAppUnread.get(`${it._cycleKey}::${it.app}`) || null;
+    const unreadChip = unreadInfo
+      ? `<span class="unread-dot ${unreadInfo.hasCritical ? "crit" : ""}" data-unread-badge="agenda" title="New or updated since your last What's New watermark">● ${unreadInfo.count > 1 ? `${unreadInfo.count} New` : "New"}</span>`
+      : "";
     const primaryAddr = r.address || at.primaryAddress || "";
     const mainTitle = primaryAddr ? primaryAddr : (it.name || "(no name)");
     const subParts = primaryAddr
@@ -1405,6 +2093,7 @@ function renderList(){
     return `<button class="row" data-occ="${esc(it._occKey)}" data-app="${esc(it.app)}" aria-current="${it._occKey === view.selected}">
       <div class="top">
         <span class="nm">${esc(mainTitle)}</span>
+        ${unreadChip}
         ${t ? `<span class="tierbadge t${esc(t)}">Tier ${esc(t)}${r.tierConfirmed ? " ✓" : ""}</span>` : (isResearched(it) ? '<span class="app">enriched</span>' : "")}
         <span class="app">${esc(it.app)}</span>
       </div>
@@ -2046,13 +2735,14 @@ function renderWatchlistFunnel(){
     ${buildDemoStageHtml()}`;
 }
 
-function renderWatchlistSidebar(){
+function renderWatchlistSidebar(precomputedActCtx = null){
   const list = getFilteredWatchedProperties();
   if (!list.length) {
     $("#list").innerHTML = '<div class="list-empty">No watched properties match the current filters.</div>';
     return;
   }
   getSelectedWatchProp();
+  const unreadIdx = (precomputedActCtx || getActivityViewContext()).unreadIndex;
   $("#list").innerHTML = list.map(p => {
     const t = String(p.tier || "1");
     const isArchived = p.trackerStatus === "Archived (Tier 3)";
@@ -2074,10 +2764,15 @@ function renderWatchlistSidebar(){
       : p.trackerStatus === "For Sale"
       ? "strong"
       : "";
+    const unreadInfo = unreadIdx.watchPropUnread.get(p.id) || null;
+    const unreadChip = unreadInfo
+      ? `<span class="unread-dot ${unreadInfo.hasCritical ? "crit" : ""}" data-unread-badge="watchlist" title="${unreadInfo.count} unread check/dossier update(s) since last visit">● ${unreadInfo.count} Updated</span>`
+      : "";
 
     return `<button class="row ${isArchived ? "archived-row" : ""}" data-watch-id="${esc(p.id)}" aria-current="${p.id === view.selectedWatchId}">
       <div class="top">
         <span class="nm">${esc(primaryTitle)}</span>
+        ${unreadChip}
         <span class="tierbadge t${esc(t)}">Tier ${esc(t)}</span>
       </div>
       <div class="sub">${esc(subtitleParts.join(" · ") || (p.hcadAccount ? "HCAD " + p.hcadAccount : ""))}</div>
@@ -2325,12 +3020,13 @@ function buildWatchPropEditFormHtml(p){
   `;
 }
 
-function renderWatchlistDetail(){
+function renderWatchlistDetail(precomputedActCtx = null){
   const p = getSelectedWatchProp();
   if (!p) {
     $("#detail").innerHTML = '<p class="list-empty">Select a watched property on the left.</p>';
     return;
   }
+  const unreadIdx = (precomputedActCtx || getActivityViewContext()).unreadIndex;
   const ck = p.checklist || [];
   const log = rebuildFindingsLog(p);
   const cnt = st => ck.filter(r => r.status === st).length;
@@ -2491,15 +3187,19 @@ function renderWatchlistDetail(){
           <tbody>
             ${ck.map(row => {
               const rowId = String(row.id || "");
+              const rowIdLc = rowId.toLowerCase();
               const stClass = (row.status || "To Do").replace(/[^A-Za-z]/g, "");
               const isMutedRow = row.status === "Complete" || row.status === "N/A";
-              const isHcadRow = rowId === "chk-05";
-              return `<tr class="${isMutedRow ? "wl-row-done" : ""}" data-row-id="${esc(rowId)}">
+              const isHcadRow = rowIdLc === "chk-05";
+              const hasUnreadCheck = unreadIdx.watchCheckUnread.has(`${p.id}::${rowIdLc}`);
+              const isFlashed = Boolean(view.highlightCheckId && view.highlightCheckId.toLowerCase() === rowIdLc);
+              return `<tr class="${isMutedRow ? "wl-row-done" : ""}${isFlashed ? " wl-row-flash" : ""}" data-row-id="${esc(rowId)}">
                 <td>
                   <span class="wl-stage">${esc(row.stage)}</span>
                   ${row.automated
                     ? '<br><span class="chip ok" style="margin-top:4px;display:inline-block" title="Checked automatically every day at 7:00 AM CT">Daily Auto-Sweep</span>'
                     : '<br><span class="chip" style="margin-top:4px;display:inline-block">Assisted Check</span>'}
+                  ${hasUnreadCheck ? '<br><span class="unread-dot" data-unread-badge="check" style="margin-top:4px">● New</span>' : ""}
                 </td>
                 <td><b>${esc(row.activity)}</b></td>
                 <td><div>${esc(row.whatToLookFor)}</div><div style="color:var(--muted);font-size:11.5px;margin-top:4px"><i>Timing:</i> ${esc(row.typicalTiming)}</div></td>
@@ -2563,6 +3263,17 @@ function renderWatchlistDetail(){
       </table>
     </div>
   `;
+  if (view.highlightCheckId) {
+    const targetTr = document.querySelector(`#detail tr[data-row-id="${CSS.escape ? CSS.escape(view.highlightCheckId) : view.highlightCheckId}"]`);
+    if (targetTr) {
+      targetTr.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    if (flashRowClearTimer) clearTimeout(flashRowClearTimer);
+    flashRowClearTimer = setTimeout(() => {
+      view.highlightCheckId = "";
+      flashRowClearTimer = null;
+    }, 2600);
+  }
 }
 
 /* ---------- Add Custom Property & Dangerous Buildings (DONDB*.csv) Modals ---------- */
@@ -2687,6 +3398,8 @@ function showAddWatchPropertyModal(){
     const saved = persistWatchlistPropertyEdit(newProp);
     queueCloudSyncWatchProperty(saved);
     view.mode = "watchlist";
+    view.userSwitchedMode = true;
+    persistModeChoice("watchlist");
     view.selectedWatchId = saved.id;
     back.remove();
     render();
@@ -2847,6 +3560,11 @@ async function openDangerousBuildingsModal(initialCsvText = "", initialFileName 
         }
         const chk13 = findChecklistRow(targetProp.checklist, "chk-13");
         if (chk13) {
+          if (chk13.status !== "Flagged") {
+            chk13.statusChangedAt = nowIso;
+          } else if (chk13.statusChangedAt === undefined) {
+            chk13.statusChangedAt = chk13.updatedAt || (chk13.lastChecked ? `${chk13.lastChecked}T00:00:00Z` : "");
+          }
           chk13.status = "Flagged";
           chk13.lastChecked = todayStr;
           chk13.updatedAt = nowIso;
@@ -2854,7 +3572,7 @@ async function openDangerousBuildingsModal(initialCsvText = "", initialFileName 
           const dup = (chk13.checks || []).some(c => String(c.result || "").includes(m.caseNumber));
           if (!dup) {
             chk13.checks = chk13.checks || [];
-            chk13.checks.push({ date: todayStr, result: findingMsg });
+            chk13.checks.push({ date: todayStr, result: findingMsg, source: "manual", loggedAt: nowIso });
           }
         }
         targetProp.updatedAt = nowIso;
@@ -3036,6 +3754,7 @@ function doAction(a){
   if (a === "work") return $("#fileWork").click();
   if (a === "history") return $("#fileHistory").click();
   if (a === "dondb") return openDangerousBuildingsModal();
+  if (a === "copy-briefing") return copyCurrentActivityBriefing();
   if (a === "copy-demo-benchmarks") return copyDemoBenchmarksSummary();
   if (a === "watchlist-print") {
     const p = getSelectedWatchProp();
@@ -3857,12 +4576,13 @@ async function pullCloudSheetSync(){
 }
 
 /* ---------- Deep-Linking & Live Pre-Enriched Atlas Loader ---------- */
-async function resolveWatchlistDeepLink(){
+async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
   const params = new URLSearchParams(window.location.search);
   const qHcad = (params.get("hcad") || "").trim();
   const qWatch = (params.get("watch") || "").trim();
   const qAddr = (params.get("address") || "").trim();
   const qName = (params.get("name") || "").trim();
+  const explicitModeParam = (params.get("mode") || params.get("tab") || "").trim().toLowerCase();
   if (!qHcad && !qWatch && !qAddr) return false;
 
   WL.watchedProperties = Array.isArray(WL.watchedProperties) ? WL.watchedProperties : [];
@@ -3880,77 +4600,56 @@ async function resolveWatchlistDeepLink(){
   if (!foundWp && (paddedQHcad || qAddr)) {
     let alertMatch = null;
     try {
-      const alResp = await fetch("public/data/active_permit_alerts.json?v=20261028b");
-      if (alResp.ok) {
-        const alData = await alResp.json();
-        const alerts = Array.isArray(alData.alerts) ? alData.alerts : [];
-        alertMatch = alerts.find(a =>
-          (paddedQHcad && String(a.hcad_num || "").trim().padStart(13, "0") === paddedQHcad) ||
-          (qAddr && normAddr(a.address) === normAddr(qAddr))
-        ) || null;
+      let alData = window.__permitAlertsPayload || null;
+      if (!alData) {
+        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261029a");
+        if (alResp.ok) alData = await alResp.json();
       }
+      const alerts = Array.isArray(alData?.alerts) ? alData.alerts : [];
+      alertMatch = alerts.find(a =>
+        (paddedQHcad && (
+          String(a.hcad_num || "").trim().padStart(13, "0") === paddedQHcad ||
+          (Array.isArray(a.related_hcads) && a.related_hcads.some(rh => String(rh || "").trim().padStart(13, "0") === paddedQHcad))
+        )) ||
+        (qAddr && normAddr(a.address) === normAddr(qAddr))
+      ) || null;
     } catch (_e) {}
 
-    const addr = (alertMatch && alertMatch.address) || qAddr || paddedQHcad;
-    const propName = (alertMatch && alertMatch.building_name) || qName || addr;
-    const hcadVal = (alertMatch && alertMatch.hcad_num) || paddedQHcad || "";
-    const newId = hcadVal ? ("prop-watch-" + hcadVal) : ("prop-watch-" + normAddr(addr).replace(/\s+/g, "-").toLowerCase());
-    const checklist = buildDefaultChecklist(addr);
-    const todayStr = new Date().toISOString().slice(0, 10);
-
     if (alertMatch) {
-      const coh = Array.isArray(alertMatch.coh_permits) ? alertMatch.coh_permits : [];
-      const dshs = Array.isArray(alertMatch.dshs_notifications) ? alertMatch.dshs_notifications : [];
-      const chk15 = findChecklistRow(checklist, "chk-15");
-      if (dshs.length > 0 && chk15) {
-        chk15.status = "Flagged";
-        chk15.lastChecked = dshs[0].start_date || todayStr;
-        chk15.checks = dshs.map(dn => ({
-          date: dn.start_date || todayStr,
-          result: `TX DSHS #${dn.notification_number || "N/A"} (${dn.work_type || "Abatement"}): ${dn.work_description || "RACM Abatement"}${dn.abatement_contractor ? " · Operator: " + dn.abatement_contractor : ""}`,
-        }));
-      }
-      const chk14 = findChecklistRow(checklist, "chk-14");
-      if (coh.length > 0 && chk14) {
-        chk14.status = "Flagged";
-        chk14.lastChecked = coh[0].date || todayStr;
-        chk14.checks = coh.map(cp => ({
-          date: cp.date || todayStr,
-          result: `COH Sold Permit #${cp.project_no || "N/A"} (${cp.permit_type_label || cp.permit_type || "Permit"}): ${cp.use_desc || cp.permit_desc || ""}${cp.buyer ? " · Applicant: " + cp.buyer : ""}`,
-        }));
-      }
+      foundWp = findMatchingWatchPropertyForAlert(alertMatch, WL.watchedProperties || []);
     }
-
-    foundWp = persistWatchlistPropertyEdit({
-      id: newId,
-      propertyName: propName,
-      address: addr,
-      secondaryAddresses: (alertMatch && Array.isArray(alertMatch.secondary_addresses)) ? alertMatch.secondary_addresses : [],
-      hcadAccount: hcadVal,
-      buildingId: (alertMatch && alertMatch.building_id) || "",
-      yearBuilt: (alertMatch && alertMatch.year_built) ? String(alertMatch.year_built) : "",
-      designation: (alertMatch && alertMatch.historic_district) || "None found",
-      ownerOfRecord: (alertMatch && alertMatch.owner) || "",
-      buyerRelatedEntities: "",
-      tier: (alertMatch && alertMatch.severity === "critical") ? "1" : "2",
-      tierConfirmed: true,
-      trackerStatus: "Active / High Priority",
-      threatCategory: "Significant Building Threatened",
-      keyDates: { monitoringStarted: todayStr },
-      notes: (alertMatch && (alertMatch.preservation_note || alertMatch.headline)) || "Flagged via Houston Building Atlas Active Permit Watch.",
-      lng: (alertMatch && alertMatch.lon) || null,
-      lat: (alertMatch && alertMatch.lat) || null,
-      source: "permit_watch_deeplink",
-      checklist,
-    });
+    if (!foundWp) {
+      const nowIso = new Date().toISOString();
+      const reviewerName = ($("#reviewer")?.value || getStaffSession()?.email || "").trim();
+      const candidate = buildWatchPropertyFromPermitAlert(
+        alertMatch || {
+          hcad_num: paddedQHcad,
+          address: qAddr || paddedQHcad,
+          title: qName || qAddr || paddedQHcad,
+          headline: "Flagged via Houston Building Atlas Active Permit Watch.",
+        },
+        {
+          reviewer: reviewerName,
+          nowIso,
+          fallbackAddress: qAddr || paddedQHcad,
+          fallbackName: qName,
+          source: "permit_watch_deeplink",
+          defaultTier: alertMatch && alertMatch.severity === "critical" ? "1" : "2",
+        }
+      );
+      foundWp = persistWatchlistPropertyEdit(candidate);
+    }
   }
 
   if (foundWp) {
-    view.mode = "watchlist";
+    if (allowModeSwitch && !view.userSwitchedMode && !view.initialWatchDeepLinkResolved && !explicitModeParam) {
+      view.mode = "watchlist";
+    }
     if (foundWp.trackerStatus === "Archived (Tier 3)") {
       view.wlStatus = "ALL";
     }
     view.selectedWatchId = foundWp.id;
+    view.initialWatchDeepLinkResolved = true;
     return true;
   }
   return false;
@@ -3959,16 +4658,31 @@ async function resolveWatchlistDeepLink(){
 async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
   try {
-    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261028b";
-    const [platResp, wlResp, alResp] = await Promise.all([
+    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261029a";
+    const [platResp, wlResp, alResp, actResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json" + cacheQ),
       fetch("public/data/property_watchlist.json" + cacheQ),
       fetch("public/data/active_permit_alerts.json" + cacheQ).catch(() => null),
+      fetch("public/data/monitor_activity_log.json" + cacheQ).catch(() => null),
     ]);
+
+    if (actResp && actResp.ok) {
+      try {
+        staticActivityLog = await actResp.json();
+        markActivityDirty();
+      } catch (_e) {
+        staticActivityLog = null;
+        markActivityDirty();
+      }
+    } else if (forceReload) {
+      staticActivityLog = null;
+      markActivityDirty();
+    }
 
     if (alResp && alResp.ok) {
       try {
         window.__permitAlertsPayload = await alResp.json();
+        markActivityDirty();
       } catch (_e) {}
     }
 
@@ -3976,6 +4690,7 @@ async function loadLiveAtlasCycle(forceReload){
       const wlData = await wlResp.json();
       if (wlData.lastAutoSweepAt) WL.lastAutoSweepAt = wlData.lastAutoSweepAt;
       if (wlData.autoSweepSchedule) WL.autoSweepSchedule = wlData.autoSweepSchedule;
+      if (wlData.lastSweepHealth) WL.lastSweepHealth = wlData.lastSweepHealth;
       staticWatchlistById.clear();
       for (const rawP of wlData.watchedProperties || []) {
         const norm = normalizeWatchProperty(rawP);
@@ -3990,35 +4705,48 @@ async function loadLiveAtlasCycle(forceReload){
         }
       }
       rebuildReconciledWatchlist();
-      await resolveWatchlistDeepLink();
+      if (!forceReload) {
+        await resolveWatchlistDeepLink({ allowModeSwitch: !view.userSwitchedMode && !view.initialWatchDeepLinkResolved });
+      }
+    }
+
+    if (view.mode === "activity" || !staticActivityLog) {
+      ensureLazyHahcTrackerLoaded();
     }
 
     if (platResp.ok) {
       const d = await platResp.json();
       startMultiCycle(d);
-      const params = new URLSearchParams(window.location.search);
-      const qCycle = (params.get("cycle") || "").trim();
-      if (qCycle && (d.cycles?.[qCycle] || qCycle === "all")) {
-        S.activeCycleChoice = qCycle;
-        if (qCycle !== "all") S.cycleKey = qCycle;
-      }
-      const qId = (params.get("id") || params.get("app") || "").trim();
-      if (qId) {
-        let hit = getActiveItems().find(it => it.app === qId || it._occKey === qId);
-        if (!hit && S) {
-          for (const ck of S.cycleOrder) {
-            const inCyc = S.cycles[ck]?.items?.find(it => it.app === qId);
-            if (inCyc) {
-              S.activeCycleChoice = ck;
-              S.cycleKey = ck;
-              hit = inCyc;
-              break;
+      if (!forceReload) {
+        const params = new URLSearchParams(window.location.search);
+        const qCycle = (params.get("cycle") || "").trim();
+        const explicitModeParam = (params.get("mode") || params.get("tab") || "").trim();
+        const hasWatchParam = Boolean((params.get("watch") || params.get("hcad") || params.get("address") || "").trim());
+        if (qCycle && (d.cycles?.[qCycle] || qCycle === "all")) {
+          S.activeCycleChoice = qCycle;
+          if (qCycle !== "all") S.cycleKey = qCycle;
+        }
+        const qId = (params.get("id") || params.get("app") || "").trim();
+        if (qId) {
+          let hit = getActiveItems().find(it => it.app === qId || it._occKey === qId);
+          if (!hit && S) {
+            for (const ck of S.cycleOrder) {
+              const inCyc = S.cycles[ck]?.items?.find(it => it.app === qId);
+              if (inCyc) {
+                S.activeCycleChoice = ck;
+                S.cycleKey = ck;
+                hit = inCyc;
+                break;
+              }
             }
           }
+          if (hit) {
+            view.selected = hit._occKey;
+            view.group = "all";
+          }
         }
-        if (hit) {
-          view.selected = hit._occKey;
-          view.group = "all";
+        if ((qCycle || qId) && !explicitModeParam && !hasWatchParam && !view.userSwitchedMode) {
+          view.mode = "agenda";
         }
       }
       render();
@@ -4026,7 +4754,7 @@ async function loadLiveAtlasCycle(forceReload){
     }
 
     await pullCloudSheetSync();
-    if (await resolveWatchlistDeepLink()) {
+    if (!forceReload && (await resolveWatchlistDeepLink({ allowModeSwitch: !view.userSwitchedMode && !view.initialWatchDeepLinkResolved }))) {
       render();
     }
   } catch (err) {
@@ -4054,6 +4782,157 @@ document.addEventListener("click", async e => {
   }
   if (e.target.closest("#copyDemoBenchmarksBtn")) {
     await copyDemoBenchmarksSummary();
+    return;
+  }
+
+  // What's New & Daily Log controls (Mode 3)
+  if (e.target.closest("#markCaughtUpBtn") || e.target.closest("[data-mark-caught-up]")) {
+    markActivityCaughtUp();
+    return;
+  }
+  if (e.target.closest("#copyActivityBriefingBtn")) {
+    await copyCurrentActivityBriefing();
+    return;
+  }
+  const actRangeBtn = e.target.closest("[data-act-range]");
+  if (actRangeBtn) {
+    view.actRange = actRangeBtn.dataset.actRange;
+    view.actSelectedDate = "";
+    render();
+    $("#detail").scrollTop = 0;
+    return;
+  }
+  const switchRangeBtn = e.target.closest("[data-switch-act-range]");
+  if (switchRangeBtn) {
+    view.actRange = switchRangeBtn.dataset.switchActRange;
+    view.actSelectedDate = "";
+    render();
+    $("#detail").scrollTop = 0;
+    return;
+  }
+  const actDateBtn = e.target.closest("[data-act-date]");
+  if (actDateBtn) {
+    const d = actDateBtn.dataset.actDate || "";
+    view.actSelectedDate = view.actSelectedDate === d ? "" : d;
+    render();
+    $("#detail").scrollTop = 0;
+    return;
+  }
+  if (e.target.closest("[data-clear-act-date]")) {
+    view.actSelectedDate = "";
+    render();
+    $("#detail").scrollTop = 0;
+    return;
+  }
+  const quietToggleBtn = e.target.closest("[data-toggle-quiet-range]");
+  if (quietToggleBtn) {
+    const rk = quietToggleBtn.dataset.toggleQuietRange || "";
+    if (rk) {
+      const cur = new Set(view.actExpandedQuietRanges || []);
+      if (cur.has(rk)) cur.delete(rk);
+      else cur.add(rk);
+      view.actExpandedQuietRanges = Array.from(cur);
+      renderActivityLedger(getActivityViewContext());
+    }
+    return;
+  }
+  const actOpenWatchBtn = e.target.closest("[data-act-open-watch]");
+  if (actOpenWatchBtn) {
+    const wid = actOpenWatchBtn.dataset.actOpenWatch;
+    const chkId = actOpenWatchBtn.dataset.actCheckId || "";
+    const wp = (WL.watchedProperties || []).find(
+      p => p.id === wid && p.trackerStatus !== REMOVED_TIER3_TOMBSTONE
+    );
+    if (!wp) {
+      toast("That property is no longer in the active Property Watchlist.");
+      return;
+    }
+    if (wp.trackerStatus === "Archived (Tier 3)") {
+      view.wlStatus = "ALL";
+    } else if (
+      view.wlStatus !== "ALL_ACTIVE" &&
+      view.wlStatus !== "ALL" &&
+      view.wlStatus !== wp.trackerStatus
+    ) {
+      view.wlStatus = "ALL_ACTIVE";
+    }
+    view.selectedWatchId = wid;
+    view.editingWatchId = null;
+    view.highlightCheckId = chkId;
+    if (!getFilteredWatchedProperties().some(p => p.id === wid)) {
+      view.wlQ = "";
+      view.wlThreat = "";
+      view.wlStatus = wp.trackerStatus === "Archived (Tier 3)" ? "ALL" : "ALL_ACTIVE";
+      const wlSearchEl = $("#wlSearchInput");
+      if (wlSearchEl) wlSearchEl.value = "";
+    }
+    view.mode = "watchlist";
+    view.userSwitchedMode = true;
+    persistModeChoice("watchlist");
+    clearBootDeepLinkUrlParams();
+    render();
+    if (!chkId) $("#detail").scrollTop = 0;
+    return;
+  }
+  const actOpenPlatBtn = e.target.closest("[data-act-open-plat-app], [data-act-open-plat-cycle]");
+  if (actOpenPlatBtn && S) {
+    const ck = actOpenPlatBtn.dataset.actOpenPlatCycle || "";
+    const appNo = actOpenPlatBtn.dataset.actOpenPlatApp || "";
+    const occKey = actOpenPlatBtn.dataset.actOpenPlatOcc || "";
+    const target = resolvePlatJumpTarget({ ck, appNo, occKey });
+    if (!target) {
+      toast("That Planning Commission cycle has rotated out of the active 3-cycle window. Use the attached PDF links on the card.");
+      return;
+    }
+    S.activeCycleChoice = target.cycleKey;
+    S.cycleKey = target.cycleKey;
+    view.group = "all";
+    if (target.item) {
+      view.selected = target.item._occKey;
+      if (!filtered().some(i => i._occKey === target.item._occKey)) {
+        view.q = "";
+        view.nb = "";
+        view.flag = "";
+        view.threat = "";
+        const qEl = $("#q");
+        if (qEl) qEl.value = "";
+      }
+    } else if (!filtered().length && getActiveItems().length) {
+      view.q = "";
+      view.nb = "";
+      view.flag = "";
+      view.threat = "";
+      const qEl = $("#q");
+      if (qEl) qEl.value = "";
+    }
+    view.mode = "agenda";
+    view.userSwitchedMode = true;
+    persistModeChoice("agenda");
+    clearBootDeepLinkUrlParams();
+    render();
+    $("#detail").scrollTop = 0;
+    return;
+  }
+  const actPromoteBtn = e.target.closest("[data-act-promote-event]");
+  if (actPromoteBtn) {
+    if (!requireStaffAuth("promoting a permit alert to the Property Watchlist")) return;
+    const evId = actPromoteBtn.dataset.actPromoteEvent || "";
+    const actCtx = getActivityViewContext();
+    const ev = actCtx.bundle.events.find(x => x.id === evId);
+    if (!ev) return;
+    const existing = findMatchingWatchPropertyForAlert(ev, WL.watchedProperties || []);
+    if (existing) {
+      toast(`Already on Property Watchlist (${existing.address || existing.propertyName}).`);
+      render();
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    const reviewerName = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
+    const newProp = buildWatchPropertyFromPermitAlert(ev, { reviewer: reviewerName, nowIso });
+    const saved = persistWatchlistPropertyEdit(newProp);
+    queueCloudSyncWatchProperty(saved);
+    render();
+    toast(`Promoted ${saved.address || saved.propertyName} to Property Watchlist (Tier ${saved.tier}).`);
     return;
   }
 
@@ -4117,6 +4996,8 @@ document.addEventListener("click", async e => {
     if (act === "switch-to-agenda") {
       const p = getSelectedWatchProp();
       view.mode = "agenda";
+      view.userSwitchedMode = true;
+      persistModeChoice("agenda");
       if (p?.appNo && S) {
         if (p.sourceCycleKey && S.cycles[p.sourceCycleKey]) {
           S.activeCycleChoice = p.sourceCycleKey;
@@ -4202,6 +5083,8 @@ document.addEventListener("click", async e => {
     const wp = (WL.watchedProperties || []).find(p => p.id === wid);
     if (wp?.trackerStatus === "Archived (Tier 3)") view.wlStatus = "ALL";
     view.mode = "watchlist";
+    view.userSwitchedMode = true;
+    persistModeChoice("watchlist");
     view.selectedWatchId = wid;
     render();
     return;
@@ -4216,6 +5099,8 @@ document.addEventListener("click", async e => {
       S.cycleKey = ck;
     }
     view.mode = "agenda";
+    view.userSwitchedMode = true;
+    persistModeChoice("agenda");
     view.group = "all";
     const hit = getActiveItems().find(i => i.app === appNo);
     if (hit) view.selected = hit._occKey;
@@ -4265,8 +5150,14 @@ document.addEventListener("click", async e => {
     p.secondaryAddresses = $("#we-sec").value.split(",").map(s => s.trim()).filter(Boolean);
     p.hcadAccount = hcadParsed.hcadIds.length ? hcadParsed.hcadIds.join(", ") : $("#we-hcad").value.trim();
     p.legalDescription = $("#we-legal").value.trim();
+    const wasArchived = p.trackerStatus === "Archived (Tier 3)";
     p.tier = $("#we-tier").value;
     p.trackerStatus = $("#we-status").value;
+    if (p.trackerStatus === "Archived (Tier 3)") {
+      if (!wasArchived || !p.archivedAt) p.archivedAt = nowIso;
+    } else {
+      p.archivedAt = "";
+    }
     p.threatCategory = $("#we-threat").value;
     p.yearBuilt = $("#we-yr").value.trim();
     p.yearRemodeled = $("#we-rem").value.trim();
@@ -4347,7 +5238,10 @@ document.addEventListener("click", async e => {
     p.humanEdited = true;
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
-    renderWatchlistDetail();
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
     toast(`Attached "${clean.label}" to ${saved.address || saved.propertyName}.`);
     return;
   }
@@ -4367,7 +5261,10 @@ document.addEventListener("click", async e => {
     p.humanEdited = true;
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
-    renderWatchlistDetail();
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
     toast("Removed document link.");
     return;
   }
@@ -4398,7 +5295,10 @@ document.addEventListener("click", async e => {
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
     const sc = $("#detail").scrollTop;
-    renderWatchlistDetail();
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
     $("#detail").scrollTop = sc;
     toast(`Added "${val}" to search terms & updated 1-click portal copy pills.`);
     return;
@@ -4422,7 +5322,10 @@ document.addEventListener("click", async e => {
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
     const sc = $("#detail").scrollTop;
-    renderWatchlistDetail();
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
     $("#detail").scrollTop = sc;
     toast(`Removed "${val}" from search terms.`);
     return;
@@ -4454,21 +5357,28 @@ document.addEventListener("click", async e => {
     const humanDate = formatLongUsDate(dVal, true) || dVal;
     const resultText = customText || `Checked ${humanDate} by ${reviewerName} - No new filings found.`;
     row.checks = row.checks || [];
-    const newEntry = { date: dVal, result: resultText, source: "manual" };
+    const newEntry = { date: dVal, result: resultText, source: "manual", loggedAt: nowIso };
     if (links.length) newEntry.links = links;
     row.checks.push(newEntry);
     row.lastChecked = dVal;
+    if (row.status === "To Do") {
+      row.status = "In Progress";
+      row.statusChangedAt = nowIso;
+    } else if (row.statusChangedAt === undefined) {
+      row.statusChangedAt = row.updatedAt || (row.lastChecked ? `${row.lastChecked}T00:00:00Z` : "");
+    }
     row.updatedAt = nowIso;
     row.humanStatusEdited = true;
-    if (row.status === "To Do") row.status = "In Progress";
     p.updatedAt = nowIso;
     p.humanEdited = true;
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
     const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
     renderWatchlistFunnel();
-    renderWatchlistSidebar();
-    renderWatchlistDetail();
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
     $("#detail").scrollTop = sc;
     toast(`Stamped ${row.activity} (${dVal}) as ${row.status}.`);
     return;
@@ -4505,21 +5415,30 @@ document.addEventListener("click", async e => {
       date: dVal,
       result: tVal || `Attached link: ${links[0].label}`,
       source: "manual",
+      loggedAt: nowIso,
     };
     if (links.length) entry.links = links;
+    const priorStatusFallbackTs = row.updatedAt || (row.lastChecked ? `${row.lastChecked}T00:00:00Z` : "");
     row.checks.push(entry);
     row.lastChecked = dVal;
+    if (row.status === "To Do") {
+      row.status = "In Progress";
+      row.statusChangedAt = nowIso;
+    } else if (row.statusChangedAt === undefined) {
+      row.statusChangedAt = priorStatusFallbackTs;
+    }
     row.updatedAt = nowIso;
     row.humanStatusEdited = true;
-    if (row.status === "To Do") row.status = "In Progress";
     p.updatedAt = nowIso;
     p.humanEdited = true;
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
     const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
     renderWatchlistFunnel();
-    renderWatchlistSidebar();
-    renderWatchlistDetail();
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
     $("#detail").scrollTop = sc;
     toast(`Logged check for ${row.activity}.`);
     return;
@@ -4529,6 +5448,9 @@ document.addEventListener("click", async e => {
   const modeBtn = e.target.closest(".mode-btn");
   if (modeBtn) {
     view.mode = modeBtn.dataset.mode;
+    view.userSwitchedMode = true;
+    persistModeChoice(view.mode);
+    clearBootDeepLinkUrlParams();
     render();
     return;
   }
@@ -4542,16 +5464,21 @@ document.addEventListener("click", async e => {
   if (wlRow) {
     view.selectedWatchId = wlRow.dataset.watchId;
     view.editingWatchId = null;
+    view.highlightCheckId = "";
+    clearBootDeepLinkUrlParams();
+    const actCtx = getActivityViewContext();
     renderWatchlistFunnel();
-    renderWatchlistSidebar();
-    renderWatchlistDetail();
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
     $("#detail").scrollTop = 0;
     return;
   }
   const row = e.target.closest(".row[data-occ]");
   if (row) {
     view.selected = row.dataset.occ;
-    renderList();
+    clearBootDeepLinkUrlParams();
+    const actCtx = getActivityViewContext();
+    renderList(actCtx);
     renderDetail();
     $("#detail").scrollTop = 0;
     return;
@@ -4600,7 +5527,7 @@ document.addEventListener("keydown", e => {
 
 $("#detail").addEventListener("input", e => {
   const el = e.target;
-  if (!el) return;
+  if (!el || view.mode === "activity") return;
   if (
     (el.id && (el.id.startsWith("chk") || el.id.startsWith("we-") || el.id.startsWith("newDoc") || el.id.startsWith("snowIn-"))) ||
     el.dataset?.wlRowId
@@ -4620,10 +5547,11 @@ $("#detail").addEventListener("input", e => {
       p.humanEdited = true;
       const saved = persistWatchlistPropertyEdit(p);
       queueCloudSyncWatchProperty(saved);
+      updateModeButtons();
     }
     return;
   }
-  if (!S || !view.selected) return;
+  if (view.mode !== "agenda" || !S || !view.selected) return;
   if (!requireStaffAuth("editing plat reviews")) {
     renderDetail();
     return;
@@ -4664,13 +5592,15 @@ $("#detail").addEventListener("input", e => {
     const radio = document.querySelector(`input[name=tier][value="${el.value}"]`);
     if (radio) radio.focus();
   } else {
-    renderList();
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderList(actCtx);
   }
 });
 
 $("#detail").addEventListener("change", e => {
   const el = e.target;
-  if (!el) return;
+  if (!el || view.mode === "activity") return;
   if (el.id && (el.id.startsWith("chk") || el.id.startsWith("we-") || el.id.startsWith("newDoc") || el.id.startsWith("snowIn-"))) {
     return;
   }
@@ -4683,6 +5613,9 @@ $("#detail").addEventListener("change", e => {
     const row = p ? findChecklistRow(p.checklist, el.dataset.wlRowId) : null;
     if (p && row) {
       const nowIso = new Date().toISOString();
+      if (row.status !== el.value) {
+        row.statusChangedAt = nowIso;
+      }
       row.status = el.value;
       row.lastChecked = nowIso.slice(0, 10);
       row.updatedAt = nowIso;
@@ -4692,8 +5625,11 @@ $("#detail").addEventListener("change", e => {
       const saved = persistWatchlistPropertyEdit(p);
       queueCloudSyncWatchProperty(saved);
       const sc = $("#detail").scrollTop;
+      const actCtx = getActivityViewContext();
+      updateModeButtons(actCtx);
       renderWatchlistFunnel();
-      renderWatchlistDetail();
+      renderWatchlistSidebar(actCtx);
+      renderWatchlistDetail(actCtx);
       $("#detail").scrollTop = sc;
     }
     return;
@@ -4714,6 +5650,7 @@ $("#cycleSelect")?.addEventListener("change", e => {
     S.cycleKey = val;
   }
   view.selected = null;
+  clearBootDeepLinkUrlParams();
   render();
 });
 
@@ -4724,18 +5661,38 @@ $("#fThreat").addEventListener("change", e => { view.threat = e.target.value; re
 
 $("#wlSearchInput")?.addEventListener("input", e => {
   view.wlQ = e.target.value;
-  renderWatchlistSidebar();
-  renderWatchlistDetail();
+  const actCtx = getActivityViewContext();
+  renderWatchlistSidebar(actCtx);
+  renderWatchlistDetail(actCtx);
 });
 $("#wlStatusFilter")?.addEventListener("change", e => {
   view.wlStatus = e.target.value;
-  renderWatchlistSidebar();
-  renderWatchlistDetail();
+  const actCtx = getActivityViewContext();
+  renderWatchlistSidebar(actCtx);
+  renderWatchlistDetail(actCtx);
 });
 $("#wlThreatFilter")?.addEventListener("change", e => {
   view.wlThreat = e.target.value;
-  renderWatchlistSidebar();
-  renderWatchlistDetail();
+  const actCtx = getActivityViewContext();
+  renderWatchlistSidebar(actCtx);
+  renderWatchlistDetail(actCtx);
+});
+
+$("#actSearchInput")?.addEventListener("input", e => {
+  view.actQ = e.target.value;
+  if (view.mode === "activity") {
+    const actCtx = getActivityViewContext();
+    renderActivityFunnel(actCtx);
+    renderActivityToolbar(actCtx);
+    renderActivityBriefing(actCtx);
+  }
+});
+$("#actStreamFilter")?.addEventListener("change", e => {
+  view.actStream = e.target.value;
+  if (view.mode === "activity") {
+    render();
+    $("#detail").scrollTop = 0;
+  }
 });
 
 $("#reviewer").addEventListener("input", e => {
@@ -4791,13 +5748,15 @@ document.addEventListener("drop", async e => {
 
 (function init(){
   const params = new URLSearchParams(window.location.search);
-  if (params.get("tab") === "watchlist" || params.get("mode") === "watchlist") {
-    view.mode = "watchlist";
-  }
+  const bootMode = resolveInitialMonitorMode({
+    searchString: window.location.search,
+    storedLastMode: store.get(LAST_MODE_KEY) || "",
+  });
+  view.mode = bootMode.mode;
   if (params.get("watch")) {
-    view.mode = "watchlist";
     view.selectedWatchId = params.get("watch");
   }
+  updateModeButtons();
   loadLiveAtlasCycle(false);
   let lastFocusSync = Date.now();
   const syncOnFocus = () => {

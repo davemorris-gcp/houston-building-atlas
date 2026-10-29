@@ -1,6 +1,74 @@
 {
   "updatedAt": "2026-10-28T17:47:21Z",
   "lastAutoSweepAt": "2026-10-28T17:47:21Z",
+  "lastSweepHealth": {
+    "timestamp": "2026-10-28T17:47:21Z",
+    "sweepsExecuted": true,
+    "propertiesSwept": 20,
+    "totalAgencies": 8,
+    "succeededAgencies": 8,
+    "failedAgencies": [],
+    "skippedAgencies": [],
+    "allOk": true,
+    "agencies": {
+      "chk-04": {
+        "status": "ok",
+        "ok": true,
+        "label": "TX Comptroller (Sales & Franchise Tax)",
+        "failedPropertyCount": 0,
+        "error": ""
+      },
+      "chk-05": {
+        "status": "ok",
+        "ok": true,
+        "label": "HCAD Ownership & Classification",
+        "failedPropertyCount": 0,
+        "error": ""
+      },
+      "chk-06": {
+        "status": "ok",
+        "ok": true,
+        "label": "TABC Liquor Licensing",
+        "failedPropertyCount": 0,
+        "error": ""
+      },
+      "chk-09": {
+        "status": "ok",
+        "ok": true,
+        "label": "COH Planning Commission Plats & Variances",
+        "failedPropertyCount": 0,
+        "error": ""
+      },
+      "chk-10": {
+        "status": "ok",
+        "ok": true,
+        "label": "TDLR Architectural Barriers (TABS)",
+        "failedPropertyCount": 0,
+        "error": ""
+      },
+      "chk-13": {
+        "status": "ok",
+        "ok": true,
+        "label": "Houston 311 & Dangerous Buildings",
+        "failedPropertyCount": 0,
+        "error": ""
+      },
+      "chk-14": {
+        "status": "ok",
+        "ok": true,
+        "label": "Houston Sold Permits",
+        "failedPropertyCount": 0,
+        "error": ""
+      },
+      "chk-15": {
+        "status": "ok",
+        "ok": true,
+        "label": "TX DSHS Asbestos & Demolition",
+        "failedPropertyCount": 0,
+        "error": ""
+      }
+    }
+  },
   "autoSweepSchedule": "Daily at 7:00 AM CT",
   "automatedAgencyCount": 8,
   "primaryProperty": {

@@ -12,12 +12,12 @@ import {
   parseClerkLegalTokens,
   formatClerkPartyTokens,
   cleanClerkSubdivisionDesc,
-} from "./clerkSearchHelpers.js?v=20261028b";
+} from "./clerkSearchHelpers.js?v=20261029a";
 import {
   THREAT_CATEGORIES,
   parseHcadAccountList,
   hasHumanDossierContributions,
-} from "./platMonitorHelpers.js?v=20261028b";
+} from "./platMonitorHelpers.js?v=20261029a";
 
 export const TRACKER_STATUSES = [
   "Active / High Priority",
@@ -1090,7 +1090,7 @@ export function rebuildFindingsLog(prop) {
   prop.checklist.forEach((row, idxRow) => {
     (row.checks || []).forEach((chk, idxChk) => {
       const cleanLinks = sanitizeExternalLinksList(chk.links);
-      log.push({
+      const entry = {
         date: chk.date || "",
         stage: row.stage,
         activity: row.activity,
@@ -1102,7 +1102,12 @@ export function rebuildFindingsLog(prop) {
         _order: `${chk.date || "9999-99-99"}-${String(idxRow).padStart(2, "0")}-${String(
           idxChk
         ).padStart(3, "0")}`,
-      });
+      };
+      if (chk.discoveredAt) entry.discoveredAt = String(chk.discoveredAt);
+      if (chk.loggedAt) entry.loggedAt = String(chk.loggedAt);
+      if (chk.agencyRecordId) entry.agencyRecordId = String(chk.agencyRecordId);
+      if (typeof chk.adverse === "boolean") entry.adverse = chk.adverse;
+      log.push(entry);
     });
   });
   log.sort((a, b) => a._order.localeCompare(b._order));
@@ -1178,6 +1183,7 @@ export function normalizeWatchProperty(rawProp = {}) {
       };
       if (c?.source) entry.source = String(c.source);
       if (c?.discoveredAt) entry.discoveredAt = String(c.discoveredAt);
+      if (c?.loggedAt) entry.loggedAt = String(c.loggedAt);
       if (c?.agencyRecordId) entry.agencyRecordId = String(c.agencyRecordId);
       if (typeof c?.adverse === "boolean") entry.adverse = c.adverse;
       const cleanLinks = sanitizeExternalLinksList(c?.links);
@@ -1194,6 +1200,7 @@ export function normalizeWatchProperty(rawProp = {}) {
       checks,
     };
     if (matched.updatedAt) outRow.updatedAt = String(matched.updatedAt);
+    if (typeof matched.statusChangedAt === "string") outRow.statusChangedAt = matched.statusChangedAt;
     if (matched.lastAutoSweepAt) outRow.lastAutoSweepAt = String(matched.lastAutoSweepAt);
     if (matched.humanStatusEdited === true) outRow.humanStatusEdited = true;
     if (
@@ -1480,25 +1487,35 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     const humanLastChecked = String(rowHumanWinner?.lastChecked || "");
     const humanUpdatedAt = String(rowHumanWinner?.updatedAt || "");
 
-    // Collect manual checks from winning human row + any non-duplicate manual checks
+    // Collect manual checks from winning human row + any non-duplicate manual checks,
+    // retaining earliest explicit loggedAt timestamp when an identical manual entry appears across sources.
     const manualChecks = [];
-    const seenManual = new Set();
+    const manualByKey = new Map();
     const orderedManualSources = [rowHumanWinner, cRow, lRow, sRow].filter(Boolean);
+    let lockedManualList = false;
     for (const srcRow of orderedManualSources) {
       for (const chk of srcRow.checks || []) {
         if (isAutoSweepFinding(chk)) continue;
         const mKey = `${chk.date || ""}::${String(chk.result || "").trim()}`;
-        if (!seenManual.has(mKey)) {
-          seenManual.add(mKey);
-          manualChecks.push({
+        if (!manualByKey.has(mKey)) {
+          if (lockedManualList) continue;
+          const entry = {
             ...chk,
             ...(chk.links ? { links: sanitizeExternalLinksList(chk.links) } : {}),
-          });
+          };
+          manualByKey.set(mKey, entry);
+          manualChecks.push(entry);
+        } else if (chk.loggedAt) {
+          const existing = manualByKey.get(mKey);
+          if (!existing.loggedAt || String(chk.loggedAt) < String(existing.loggedAt)) {
+            existing.loggedAt = String(chk.loggedAt);
+          }
         }
       }
       // If winning human row carries an explicit row.updatedAt, treat its manual check list as authoritative
+      // while still backfilling loggedAt metadata on matching entries from sibling snapshots.
       if (srcRow === rowHumanWinner && rowHumanWinner?.updatedAt) {
-        break;
+        lockedManualList = true;
       }
     }
 
@@ -1575,6 +1592,9 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
       checks: combinedChecks,
     };
     if (humanUpdatedAt) mergedRow.updatedAt = humanUpdatedAt;
+    if (typeof rowHumanWinner?.statusChangedAt === "string") {
+      mergedRow.statusChangedAt = rowHumanWinner.statusChangedAt;
+    }
     if (rowHumanWinner?.humanStatusEdited === true) mergedRow.humanStatusEdited = true;
     if (latestRowSweep) mergedRow.lastAutoSweepAt = latestRowSweep;
     return mergedRow;

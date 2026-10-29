@@ -891,6 +891,31 @@
       "classId": "c13_active_permit_watch",
       "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
       "targetType": "building",
+      "hcadNum": "0031950000018",
+      "id": "0031950000018",
+      "name": "213 HOGAN ST",
+      "address": "213 HOGAN ST",
+      "lng": -95.365036,
+      "lat": 29.775049,
+      "deepLinkHash": "#hcad=0031950000018",
+      "expectedUi": {
+        "mustHaveTabs": [
+          "overview",
+          "history",
+          "permits",
+          "hcad"
+        ],
+        "mustContainTextAny": [
+          "Permit",
+          "LEGAL PROTECTION"
+        ]
+      }
+    },
+    {
+      "archetypeId": "c13_active_permit_watch_3",
+      "classId": "c13_active_permit_watch",
+      "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
+      "targetType": "building",
       "hcadNum": "0261900000007",
       "id": "bld_006541",
       "name": "3703 GRAUSTARK ST",
@@ -912,39 +937,14 @@
       }
     },
     {
-      "archetypeId": "c13_active_permit_watch_3",
-      "classId": "c13_active_permit_watch",
-      "className": "Active Demolition, Sewer Disconnect & DSHS Asbestos Watch Parcel",
-      "targetType": "building",
-      "hcadNum": "1487630010001",
-      "id": "bld_014328",
-      "name": "503 SUL ROSS ST",
-      "address": "503 SUL ROSS ST",
-      "lng": -95.385969,
-      "lat": 29.737665,
-      "deepLinkHash": "#hcad=1487630010001",
-      "expectedUi": {
-        "mustHaveTabs": [
-          "overview",
-          "history",
-          "permits",
-          "hcad"
-        ],
-        "mustContainTextAny": [
-          "Permit",
-          "LEGAL PROTECTION"
-        ]
-      }
-    },
-    {
       "archetypeId": "c14_campus_composite_override_1",
       "classId": "c14_campus_composite_override",
       "className": "Multi-Building Institutional Campus Sub-Structure (Composite '#' ID)",
       "targetType": "building",
       "hcadNum": "0421790000001",
       "id": "0421790000001#rice_1_will_rice_college_old_dorm_o",
-      "name": "Will Rice College  -  Old Dorm",
-      "address": "6100 MAIN ST (WILL RICE COLLEGE  -  OLD DORM (ORIGINAL SOUTH HALL))",
+      "name": "Will Rice College - Old Dorm",
+      "address": "6100 MAIN ST (WILL RICE COLLEGE - OLD DORM (ORIGINAL SOUTH HALL))",
       "lng": -95.399132,
       "lat": 29.716485,
       "deepLinkHash": "#id=0421790000001%23rice_1_will_rice_college_old_dorm_o",
@@ -993,8 +993,8 @@
       "targetType": "building",
       "hcadNum": "0421790000001",
       "id": "0421790000001#rice_3_baker_college_historic_old_w",
-      "name": "Baker College  -  Historic Old Wing",
-      "address": "6100 MAIN ST (BAKER COLLEGE  -  HISTORIC OLD WING (ORIGINAL EAST HALL))",
+      "name": "Baker College - Historic Old Wing",
+      "address": "6100 MAIN ST (BAKER COLLEGE - HISTORIC OLD WING (ORIGINAL EAST HALL))",
       "lng": -95.399354,
       "lat": 29.716879,
       "deepLinkHash": "#id=0421790000001%23rice_3_baker_college_historic_old_w",

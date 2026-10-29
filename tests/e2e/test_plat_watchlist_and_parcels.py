@@ -856,3 +856,739 @@ def test_annual_demolition_benchmarks_option_a_and_option_b_e2e(
     modal_clip = page.evaluate("() => navigator.clipboard.readText()")
     assert modal_clip == clip_text
 
+
+def test_activity_it1_morning_briefing_layout_sweep_health_ledger_filters_and_export(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """IT-1: Verify 2-pane What's New & Daily Log UI, header/toolbar decoupling, healthy vs degraded sweep indicators, ledger drill-down, filters, and Copy Briefing."""
+    page = guarded_page
+    page.context.grant_permissions(["clipboard-read", "clipboard-write"])
+
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    page.wait_for_function(
+        "() => Number(document.querySelector('#actCntAll')?.textContent || '0') > 0",
+        timeout=15000,
+    )
+
+    # 1. Two-pane side-by-side layout + exclusive header/toolbar surface parity
+    geom = page.evaluate(
+        """() => {
+            const l = document.querySelector('#list').getBoundingClientRect();
+            const d = document.querySelector('#detail').getBoundingClientRect();
+            return {
+                innerWidth: window.innerWidth,
+                scrollWidth: document.documentElement.scrollWidth,
+                listX: l.x,
+                listW: l.width,
+                detailX: d.x,
+                detailW: d.width,
+            };
+        }"""
+    )
+    assert geom["scrollWidth"] <= geom["innerWidth"]
+    assert geom["listW"] > 200 and geom["detailW"] > 400
+    assert geom["detailX"] >= geom["listX"] + geom["listW"] - 2
+
+    assert page.locator("#activityHeaderControls").is_visible()
+    assert not page.locator("#agendaHeaderControls").is_visible()
+    assert not page.locator("#watchlistHeaderControls").is_visible()
+    assert page.locator("#toggleDemoBenchmarksBtn").is_visible()
+    assert page.locator("#activityToolbar").is_visible()
+    assert not page.locator("#agendaToolbar").is_visible()
+    assert not page.locator("#watchlistToolbar").is_visible()
+    assert page.locator("#funnel .stage").count() == 6
+
+    # 2. Unread badge alignment & healthy 8/8 sweep status without false warnings
+    mode_cnt = page.locator("#modeActivityCount").inner_text().strip()
+    unread_cnt = page.locator("#actCntUnread").inner_text().strip()
+    assert mode_cnt == unread_cnt and int(mode_cnt) > 0
+    sweep_txt = page.locator("#activitySweepHealthBadge").inner_text()
+    assert "8/8" in sweep_txt
+    assert page.locator("[data-degraded-sweep-banner='1']").count() == 0
+
+    # 3. Multi-day quiet sweep compaction expand/collapse
+    quiet_rows = page.locator("#list .act-quiet-row")
+    assert quiet_rows.count() >= 1
+    initial_run_rows = page.locator("#list .act-run-row").count()
+    first_quiet = quiet_rows.first
+    assert first_quiet.get_attribute("aria-expanded") == "false"
+    first_quiet.click()
+    assert first_quiet.get_attribute("aria-expanded") == "true"
+    expanded_run_rows = page.locator("#list .act-run-row").count()
+    assert expanded_run_rows > initial_run_rows
+    first_quiet.click()
+    assert page.locator("#list .act-run-row").count() == initial_run_rows
+
+    # 4. Single-day ledger inspection + Clear filter chip
+    target_row = page.locator("#list .act-run-row").first
+    target_date = target_row.get_attribute("data-act-date")
+    assert target_date
+    target_row.click()
+    assert target_row.get_attribute("aria-current") == "true"
+    assert page.locator("#actDateFilterChip").is_visible()
+    assert target_date[:4] in page.locator("#actDateFilterChip").inner_text()
+    page.locator("#actDateFilterChip [data-clear-act-date]").click()
+    assert not page.locator("#actDateFilterChip").is_visible()
+
+    # 5. Range pills (`since_last_visit`, `7d`, `all`), all 4 stream filters, and search input
+    page.click("#activityRangeTabs [data-act-range='7d']")
+    assert page.locator("#detail .act-card").count() == int(
+        page.locator("#actCnt7d").inner_text().strip()
+    )
+    page.click("#activityRangeTabs [data-act-range='all']")
+    all_cnt = int(page.locator("#actCntAll").inner_text().strip())
+    assert page.locator("#detail .act-card").count() == all_cnt
+
+    for stream_val in ("watchlist", "agenda", "staff", "permits"):
+        page.select_option("#actStreamFilter", stream_val)
+        cards_cnt = page.locator("#detail .act-card").count()
+        assert cards_cnt >= 1
+        wrong_stream = page.evaluate(
+            "(sv) => Array.from(document.querySelectorAll('#detail .act-card')).filter(c => c.dataset.stream !== sv).length",
+            stream_val,
+        )
+        assert wrong_stream == 0
+    page.select_option("#actStreamFilter", "all")
+
+    page.fill("#actSearchInput", "Montrose")
+    search_cnt = page.locator("#detail .act-card").count()
+    assert 1 <= search_cnt < all_cnt
+    page.fill("#actSearchInput", "")
+    page.click("#activityRangeTabs [data-act-range='since_last_visit']")
+
+    # 6. Copy Briefing button copies plain-text briefing with zero U+2014 em-dashes
+    page.click("#copyActivityBriefingBtn")
+    briefing_clip = page.evaluate("() => navigator.clipboard.readText()")
+    assert "Preservation Houston - Plat & Property Monitor Briefing" in briefing_clip
+    assert "8/8 agencies OK" in briefing_clip
+    assert "\u2014" not in briefing_clip
+
+    # 7. Mock degraded sweep payload (`7/8`, `chk-10` TDLR failed) -> surfaces degraded badge, banner, & ledger pill
+    data_dir = Path(__file__).resolve().parents[2] / "app" / "public" / "data"
+    degraded_doc = json.loads((data_dir / "monitor_activity_log.json").read_text(encoding="utf-8"))
+    degraded_wl = json.loads((data_dir / "property_watchlist.json").read_text(encoding="utf-8"))
+    tdlr_err = {
+        "status": "error",
+        "ok": False,
+        "label": "TDLR Architectural Barriers (TABS)",
+        "failedPropertyCount": 3,
+        "error": "TDLR TABS: HTTP 503 Service Unavailable",
+    }
+    for sh_obj in (degraded_doc["lastSweepHealth"], degraded_wl["lastSweepHealth"]):
+        sh_obj["succeededAgencies"] = 7
+        sh_obj["failedAgencies"] = ["chk-10"]
+        sh_obj["allOk"] = False
+        sh_obj.setdefault("agencies", {})["chk-10"] = tdlr_err
+    degraded_doc["dailyRuns"][0]["succeededAgencies"] = 7
+    degraded_doc["dailyRuns"][0]["failedAgencies"] = ["chk-10"]
+    degraded_doc["dailyRuns"][0]["allOk"] = False
+    degraded_json = json.dumps(degraded_doc)
+    degraded_wl_json = json.dumps(degraded_wl)
+
+    page.route(
+        "**/data/monitor_activity_log.json*",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            body=degraded_json,
+        ),
+    )
+    page.route(
+        "**/data/property_watchlist.json*",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            body=degraded_wl_json,
+        ),
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    page.wait_for_selector("[data-degraded-sweep-banner='1']", timeout=10000)
+
+    deg_badge_txt = page.locator("#activitySweepHealthBadge").inner_text()
+    assert "7/8" in deg_badge_txt and "chk-10" in deg_badge_txt
+    deg_banner_txt = page.locator("[data-degraded-sweep-banner='1']").inner_text()
+    assert "7/8 agencies OK" in deg_banner_txt
+    assert "TDLR" in deg_banner_txt
+    assert "HTTP 503" in deg_banner_txt
+    assert page.locator("#list .act-run-row.degraded [data-sweep-status='degraded']").count() >= 1
+    assert "\u2014" not in page.locator("body").inner_text()
+
+
+def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_watermark(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """IT-2: Verify unread dots across modes, Open Watchlist Row auto-scroll/flash, Open Plat Item deep jump, Atlas Map hashes, live check badge updates, and Mark Caught Up persistence + post-watermark sync."""
+    page = guarded_page
+    _seed_staff_admin_session(page)
+
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
+    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    page.wait_for_function(
+        "() => Number(document.querySelector('#actCntAll')?.textContent || '0') > 0",
+        timeout=15000,
+    )
+
+    # 1. Inline unread badges visible in Agenda & Watchlist modes on first visit
+    page.click("#modeAgendaBtn")
+    assert page.locator("#list .row [data-unread-badge='agenda']").count() >= 1
+    page.click("#modeWatchlistBtn")
+    assert page.locator("#list .row [data-unread-badge='watchlist']").count() >= 1
+
+    # 2. Back in Activity mode (`all`), click Open Watchlist Row -> with specific data-act-check-id
+    page.click("#modeActivityBtn")
+    page.click("#activityRangeTabs [data-act-range='all']")
+    target_watch_btn = page.locator(
+        "#detail button[data-act-open-watch][data-act-check-id]"
+    ).first
+    expected_wid = target_watch_btn.get_attribute("data-act-open-watch")
+    expected_chk = target_watch_btn.get_attribute("data-act-check-id")
+    assert expected_wid and expected_chk
+    target_watch_btn.click()
+
+    assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
+    assert (
+        page.locator(f"#list .row[data-watch-id='{expected_wid}']").get_attribute("aria-current")
+        == "true"
+    )
+    flashed_tr = page.locator(f"#detail tr[data-row-id='{expected_chk}']")
+    assert flashed_tr.count() == 1
+    assert "wl-row-flash" in (flashed_tr.get_attribute("class") or "")
+
+    # Also verify jumping specifically to prop-kirby-mansion auto-clears any excluding destination filter
+    page.fill("#wlSearchInput", "NONEXISTENT_WATCHLIST_FILTER_99999")
+    page.click("#modeActivityBtn")
+    page.click("#activityRangeTabs [data-act-range='all']")
+    kirby_btn = page.locator("#detail button[data-act-open-watch='prop-kirby-mansion']").first
+    assert kirby_btn.count() == 1
+    kirby_btn.click()
+    assert page.locator("#wlSearchInput").input_value() == ""
+    assert (
+        page.locator("#list .row[data-watch-id='prop-kirby-mansion']").get_attribute(
+            "aria-current"
+        )
+        == "true"
+    )
+    assert "2000 Smith" in (page.locator("#detail h2").text_content() or "")
+
+    # 3. Click Open Plat Item -> auto-clears any excluding Agenda search filter and selects exact occurrenceKey
+    page.click("#modeAgendaBtn")
+    page.fill("#q", "NONEXISTENT_PLAT_QUERY_99999")
+    page.click("#modeActivityBtn")
+    page.click("#activityRangeTabs [data-act-range='all']")
+    plat_btn = page.locator("#detail button[data-act-open-plat-app]").first
+    expected_app = plat_btn.get_attribute("data-act-open-plat-app")
+    expected_cyc = plat_btn.get_attribute("data-act-open-plat-cycle")
+    expected_occ = plat_btn.get_attribute("data-act-open-plat-occ")
+    assert expected_app and expected_occ
+    plat_btn.click()
+    assert page.locator("#q").input_value() == ""
+
+    assert page.locator("#modeAgendaBtn").get_attribute("aria-selected") == "true"
+    if expected_cyc:
+        assert page.locator("#cycleSelect").input_value() == expected_cyc
+    assert (
+        page.locator(f"#list .row[data-occ='{expected_occ}']").get_attribute("aria-current")
+        == "true"
+    )
+    assert expected_app in page.locator("#detail").inner_text()
+
+    # 4. Stream 4 View on Atlas Map link hashes include hcad=/layers=permit_watch and hahc_coa on HAHC cards
+    page.click("#modeActivityBtn")
+    page.click("#activityRangeTabs [data-act-range='all']")
+    page.select_option("#actStreamFilter", "permits")
+    # Give lazy HAHC tracker fetch a brief moment if still completing
+    page.wait_for_function(
+        """() => Array.from(document.querySelectorAll('#detail .act-card')).some(
+            c => (c.dataset.eventId || '').startsWith('hahc:')
+        )""",
+        timeout=10000,
+    )
+    map_href_audit = page.evaluate(
+        """() => {
+            const cohHrefs = Array.from(
+                document.querySelectorAll('#detail .act-card[data-event-id^="permit:coh:"] a[data-act-map-link]')
+            ).map(a => a.getAttribute('href') || '');
+            const hahcHrefs = Array.from(
+                document.querySelectorAll('#detail .act-card[data-event-id^="hahc:"] a[data-act-map-link]')
+            ).map(a => a.getAttribute('href') || '');
+            return { cohHrefs, hahcHrefs };
+        }"""
+    )
+    assert len(map_href_audit["cohHrefs"]) >= 1
+    assert any(
+        "#" in h and "hcad=" in h and "permit_watch" in h for h in map_href_audit["cohHrefs"]
+    )
+    assert len(map_href_audit["hahcHrefs"]) >= 1
+    assert all("hahc_coa" in h for h in map_href_audit["hahcHrefs"])
+    page.select_option("#actStreamFilter", "all")
+
+    # 5. Live manual Watchlist check updates #modeActivityCount immediately without page reload
+    before_badge = int(page.locator("#modeActivityCount").inner_text().strip())
+    page.click("#modeWatchlistBtn")
+    page.locator("#list .row[data-watch-id='prop-kirby-mansion']").click()
+    page.fill("#chkText-chk-02", "IT-2 live manual deed follow-up recorded")
+    page.click("[data-add-chk-id='chk-02']")
+    after_badge = int(page.locator("#modeActivityCount").inner_text().strip())
+    assert after_badge >= before_badge + 1
+    page.click("#modeActivityBtn")
+    assert "IT-2 live manual deed follow-up recorded" in page.locator("#detail").inner_text()
+
+    # 6. Mark Caught Up zeroes badge, renders All Caught Up state, clears unread dots across modes, & survives reload
+    page.click("#modeActivityBtn")
+    page.click("#activityRangeTabs [data-act-range='since_last_visit']")
+    page.click("#markCaughtUpBtn")
+    assert page.locator("#modeActivityCount").inner_text().strip() == "0"
+    assert page.locator("#actCntUnread").inner_text().strip() == "0"
+    assert page.locator("[data-caught-up-card='1']").count() == 1
+
+    page.click("#modeWatchlistBtn")
+    assert page.locator("#list .row [data-unread-badge='watchlist']").count() == 0
+    assert page.locator("#detail [data-unread-badge='check']").count() == 0
+    page.click("#modeAgendaBtn")
+    assert page.locator("#list .row [data-unread-badge='agenda']").count() == 0
+
+    page.click("#modeActivityBtn")
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    assert page.locator("#modeActivityCount").inner_text().strip() == "0"
+    assert page.locator("[data-caught-up-card='1']").count() == 1
+
+    # 7. Inject a post-watermark Google Sheet CSV edit -> surfaces strictly as 1 new unread item
+    future_iso = page.evaluate("() => new Date(Date.now() + 120000).toISOString()")
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\r\n")
+    writer.writerow(
+        [
+            "status",
+            "hcad_num",
+            "year_built",
+            "historic_district",
+            "contributing",
+            "source_type",
+            "source_citation",
+            "verified_by",
+        ]
+    )
+    writer.writerow(
+        [
+            "approved",
+            "WATCH_PROP:prop-kirby-mansion",
+            "1926",
+            "National Register (individual)",
+            "Tier 1",
+            "PROPERTY_WATCHLIST_UPDATE",
+            json.dumps(
+                {
+                    "id": "prop-kirby-mansion",
+                    "propertyName": "John Henry Kirby Mansion",
+                    "address": "2000 Smith St.",
+                    "hcadAccount": "0152300000001",
+                    "tier": "1",
+                    "updatedAt": future_iso,
+                    "checklist": [
+                        {
+                            "id": "chk-03",
+                            "status": "Flagged",
+                            "lastChecked": future_iso[:10],
+                            "updatedAt": future_iso,
+                            "checks": [
+                                {
+                                    "date": future_iso[:10],
+                                    "result": "Post-watermark cloud DBA transfer filed.",
+                                    "source": "manual",
+                                    "loggedAt": future_iso,
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ),
+            "Emily Ardoin",
+        ]
+    )
+    post_wm_csv = buf.getvalue().encode("utf-8")
+    page.route(
+        "**/docs.google.com/spreadsheets/**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="text/csv; charset=utf-8",
+            headers={"Access-Control-Allow-Origin": "*"},
+            body=post_wm_csv,
+        ),
+    )
+    page.route(
+        "**/script.google.com/macros/**",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="text/csv; charset=utf-8",
+            headers={"Access-Control-Allow-Origin": "*"},
+            body=post_wm_csv,
+        ),
+    )
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_function(
+        "() => document.querySelector('#modeActivityCount')?.textContent?.trim() === '1'",
+        timeout=15000,
+    )
+    assert page.locator("#detail .act-card").count() == 1
+    assert "Post-watermark cloud DBA transfer filed." in page.locator("#detail").inner_text()
+
+
+def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_promotion(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """IT-3: Verify watched HCAD deduplication, unauthenticated staff modal gate, and 1-click Permit/DSHS -> Watchlist promotion with Cloud Sync POST."""
+    page = guarded_page
+    sync_posts: list[dict[str, Any]] = []
+
+    def _stub_apps_script(route: Any) -> None:
+        if route.request.method.upper() == "POST":
+            raw = route.request.post_data or "{}"
+            payload = json.loads(raw)
+            if payload.get("action") == "verify_admin":
+                route.fulfill(
+                    status=200,
+                    content_type="application/json; charset=utf-8",
+                    headers={"Access-Control-Allow-Origin": "*"},
+                    body=json.dumps({"authorized": True, "email": payload.get("admin_email")}),
+                )
+                return
+            sync_posts.append(payload)
+            route.fulfill(
+                status=200,
+                content_type="application/json; charset=utf-8",
+                headers={"Access-Control-Allow-Origin": "*"},
+                body=b'{"ok":true}',
+            )
+            return
+        route.fulfill(
+            status=200,
+            content_type="text/csv; charset=utf-8",
+            headers={"Access-Control-Allow-Origin": "*"},
+            body=b"hcad_num,status\n",
+        )
+
+    page.route("**/script.google.com/macros/**", _stub_apps_script)
+
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
+    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    page.wait_for_function(
+        "() => Number(document.querySelector('#actCntAll')?.textContent || '0') > 0",
+        timeout=15000,
+    )
+    page.click("#activityRangeTabs [data-act-range='all']")
+    page.select_option("#actStreamFilter", "permits")
+
+    # 1. Already-watched 2000 Smith St (0152300000001) Stream 4 cards render Open Watchlist Row -> instead of Promote
+    smith_dedup = page.evaluate(
+        """() => {
+            const cards = Array.from(document.querySelectorAll('#detail .act-card')).filter(
+                c => c.innerText.includes('0152300000001') || c.innerText.includes('2000 SMITH')
+            );
+            return {
+                count: cards.length,
+                allOpenKirby: cards.every(c => Boolean(c.querySelector('[data-act-open-watch="prop-kirby-mansion"]'))),
+                anyPromote: cards.some(c => Boolean(c.querySelector('[data-act-promote-event]'))),
+            };
+        }"""
+    )
+    assert smith_dedup["count"] >= 1
+    assert smith_dedup["allOpenKirby"] is True
+    assert smith_dedup["anyPromote"] is False
+
+    # 2. Pick an unwatched historic COH demolition/sewer card with an 8-digit project # + historic designation
+    coh_target = page.evaluate(
+        """() => {
+            const cards = Array.from(document.querySelectorAll('#detail .act-card[data-event-id^="permit:coh:"]'));
+            for (const c of cards) {
+                const btn = c.querySelector('[data-act-promote-event]');
+                const m = (c.innerText || '').match(/#(\\d{8})/);
+                if (btn && m && (c.innerText.includes('Historic District') || c.innerText.includes('Landmark') || c.innerText.includes('Good Brick'))) {
+                    return { eventId: btn.dataset.actPromoteEvent, projNo: m[1], hcadMatch: ((c.innerText || '').match(/HCAD\\s+(\\d{13})/) || [])[1] || '' };
+                }
+            }
+            return null;
+        }"""
+    )
+    assert coh_target is not None, "Expected at least one unwatched designated COH permit alert card"
+
+    initial_wl_cnt = int(page.locator("#modeWatchlistCount").inner_text().strip())
+
+    # Signed-out click MUST open staff auth modal without creating a Watchlist entry
+    page.locator(f"#detail button[data-act-promote-event='{coh_target['eventId']}']").click()
+    assert page.locator(".modal-back .modal[role='dialog'] #sa-email").is_visible()
+    assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == initial_wl_cnt
+
+    # 3. Sign in directly through the staff verification modal
+    page.fill("#sa-email", "eardoin@preservationhouston.org")
+    page.fill("#sa-passkey", "test-passkey")
+    page.click("#saVerify")
+    page.wait_for_selector(".modal-back", state="detached", timeout=10000)
+
+    # 4. Promote the COH historic demolition/sewer alert card
+    page.locator(f"#detail button[data-act-promote-event='{coh_target['eventId']}']").click()
+    assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == initial_wl_cnt + 1
+
+    # Card immediately switches from + Promote to Watchlist -> Open Watchlist Row ->
+    promoted_card = page.locator(f"#detail .act-card[data-event-id='{coh_target['eventId']}']")
+    assert promoted_card.locator("[data-act-promote-event]").count() == 0
+    open_new_watch_btn = promoted_card.locator("[data-act-open-watch]")
+    assert open_new_watch_btn.count() == 1
+    new_watch_id = open_new_watch_btn.get_attribute("data-act-open-watch")
+    assert new_watch_id and new_watch_id.startswith("prop-watch-")
+
+    # Inspect newly promoted Watchlist record (Tier 1, combined designations, chk-14 Flagged w/ loggedAt, 8-digit projectNo)
+    open_new_watch_btn.click()
+    assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
+    dossier_info = page.evaluate(
+        """(wid) => {
+            const raw = JSON.parse(localStorage.getItem('phpam:watchlist:v2') || '{}');
+            const p = (raw.watchedProperties || []).find(x => x.id === wid);
+            const chk14 = (p?.checklist || []).find(r => r.id === 'chk-14');
+            const chk15 = (p?.checklist || []).find(r => r.id === 'chk-15');
+            return {
+                found: Boolean(p),
+                tier: p?.tier,
+                trackerStatus: p?.trackerStatus,
+                designation: p?.designation || '',
+                ilmsProjectNo: p?.ilmsProjectNo || '',
+                projectNumbers: p?.searchTerms?.projectNumbers || [],
+                chk14Status: chk14?.status,
+                chk14LoggedAt: chk14?.checks?.[0]?.loggedAt || '',
+                chk15Status: chk15?.status,
+                chk15LoggedAt: chk15?.checks?.[0]?.loggedAt || '',
+            };
+        }""",
+        new_watch_id,
+    )
+    assert dossier_info["found"] is True
+    assert dossier_info["tier"] == "1"
+    assert dossier_info["trackerStatus"] == "Active / High Priority"
+    assert any(
+        lbl in dossier_info["designation"]
+        for lbl in ("Historic District", "City Landmark", "Good Brick")
+    )
+    assert coh_target["projNo"] in dossier_info["ilmsProjectNo"]
+    assert coh_target["projNo"] in dossier_info["projectNumbers"]
+    assert dossier_info["chk14Status"] == "Flagged"
+    assert "T" in dossier_info["chk14LoggedAt"]
+
+    # Also test promoting an unwatched DSHS asbestos alert card if available so chk-15 Flagged + loggedAt is verified E2E
+    page.click("#modeActivityBtn")
+    page.click("#activityRangeTabs [data-act-range='all']")
+    page.select_option("#actStreamFilter", "permits")
+    dshs_event_id = page.evaluate(
+        """() => {
+            const btn = document.querySelector('#detail .act-card[data-event-id^="permit:dshs:"] [data-act-promote-event]');
+            return btn ? btn.dataset.actPromoteEvent : '';
+        }"""
+    )
+    if dshs_event_id:
+        page.locator(f"#detail button[data-act-promote-event='{dshs_event_id}']").click()
+        dshs_wid = page.locator(
+            f"#detail .act-card[data-event-id='{dshs_event_id}'] [data-act-open-watch]"
+        ).get_attribute("data-act-open-watch")
+        dshs_chk15 = page.evaluate(
+            """(wid) => {
+                const raw = JSON.parse(localStorage.getItem('phpam:watchlist:v2') || '{}');
+                const p = (raw.watchedProperties || []).find(x => x.id === wid);
+                const chk15 = (p?.checklist || []).find(r => r.id === 'chk-15');
+                return { status: chk15?.status, loggedAt: chk15?.checks?.[0]?.loggedAt || '' };
+            }""",
+            dshs_wid,
+        )
+        assert dshs_chk15["status"] == "Flagged"
+        assert "T" in dshs_chk15["loggedAt"]
+
+    # Wait for debounced queueCloudSyncWatchProperty POST (~800ms timer) and assert Google Sheet payload
+    page.wait_for_function("() => true")
+    deadline_ms = 5000
+    waited = 0
+    while waited < deadline_ms and not sync_posts:
+        page.wait_for_timeout(150)
+        waited += 150
+    assert len(sync_posts) >= 1
+    wl_posts = [p for p in sync_posts if p.get("source_type") == "PROPERTY_WATCHLIST_UPDATE"]
+    assert len(wl_posts) >= 1
+    first_synced = json.loads(wl_posts[0]["source_citation"])
+    assert first_synced["id"] == new_watch_id
+    assert first_synced["tier"] == "1"
+    assert coh_target["projNo"] in first_synced["searchTerms"]["projectNumbers"]
+
+
+def test_activity_it4_boot_routing_precedence_deeplinks_and_delayed_sheet_race(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """IT-4: Verify clean 'agenda' default, phpam:lastMode reload restoration, URL parameter precedence, and async CSV tab-switch race safety."""
+    page = guarded_page
+
+    # 1. Clean browser storage defaults to 'agenda'
+    page.goto(f"{atlas_base_url}/plat-monitor.html", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    assert page.locator("#modeAgendaBtn").get_attribute("aria-selected") == "true"
+
+    # 2. Switching to 'activity' saves phpam:lastMode and restores 'activity' on clean reload
+    page.click("#modeActivityBtn")
+    assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
+    assert page.evaluate("() => JSON.parse(localStorage.getItem('phpam:lastMode') || '\"\"')") == "activity"
+
+    page.goto(f"{atlas_base_url}/plat-monitor.html", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
+
+    # 3. Every explicit URL query pattern overrides stored phpam:lastMode === 'activity'
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=watchlist", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
+
+    page.evaluate("() => localStorage.setItem('phpam:lastMode', JSON.stringify('activity'))")
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=agenda", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    assert page.locator("#modeAgendaBtn").get_attribute("aria-selected") == "true"
+
+    page.evaluate("() => localStorage.setItem('phpam:lastMode', JSON.stringify('agenda'))")
+    page.goto(f"{atlas_base_url}/plat-monitor.html?tab=activity", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
+
+    page.evaluate("() => localStorage.setItem('phpam:lastMode', JSON.stringify('activity'))")
+    page.goto(
+        f"{atlas_base_url}/plat-monitor.html?watch=prop-kirby-mansion",
+        wait_until="domcontentloaded",
+    )
+    page.wait_for_selector("#list .row", timeout=15000)
+    assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
+    assert (
+        page.locator("#list .row[data-watch-id='prop-kirby-mansion']").get_attribute(
+            "aria-current"
+        )
+        == "true"
+    )
+
+    page.evaluate("() => localStorage.setItem('phpam:lastMode', JSON.stringify('activity'))")
+    page.goto(f"{atlas_base_url}/plat-monitor.html?hcad=0152300000001", wait_until="domcontentloaded")
+    page.wait_for_selector("#list .row", timeout=15000)
+    assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
+    assert "2000 Smith" in (page.locator("#detail h2").text_content() or "")
+
+    page.evaluate("() => localStorage.setItem('phpam:lastMode', JSON.stringify('activity'))")
+    page.goto(
+        f"{atlas_base_url}/plat-monitor.html?cycle=2026-10-29&app=2026-1659",
+        wait_until="domcontentloaded",
+    )
+    page.wait_for_selector("#list .row", timeout=15000)
+    assert page.locator("#modeAgendaBtn").get_attribute("aria-selected") == "true"
+    assert "Amerimex Motors" in page.locator("#detail").inner_text()
+    assert "2026-1659" in page.locator("#detail").inner_text()
+
+    # Switching tabs after booting via query params strips stale URL params so reload/pickLive keeps the new mode
+    page.click("#modeActivityBtn")
+    assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
+    assert page.evaluate("() => window.location.search") == ""
+    page.reload(wait_until="domcontentloaded")
+    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    assert page.locator("#modeActivityBtn").get_attribute("aria-selected") == "true"
+
+    # 4. Rapid tab switch while background Google Sheet CSV request resolves 450ms later never snaps user back
+    page.context.add_init_script(
+        """() => {
+            const origFetch = window.fetch.bind(window);
+            window.fetch = async (...args) => {
+                const u = String((args[0] && args[0].url) || args[0] || '');
+                if (u.includes('spreadsheets') || u.includes('script.google.com')) {
+                    await new Promise((resolve) => setTimeout(resolve, 450));
+                }
+                return origFetch(...args);
+            };
+        }"""
+    )
+
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
+    page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
+    page.click("#modeWatchlistBtn")
+    assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
+    page.wait_for_timeout(700)
+    assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
+    assert page.locator("#watchlistToolbar").is_visible()
+    assert not page.locator("#activityToolbar").is_visible()
+
+
+def test_activity_rp1_three_mode_cycling_and_detail_listener_isolation(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """RP-1: Verify repeated 3-mode switching leaves zero stale DOM panels, leaked headers/toolbars, or cross-triggered #detail listeners."""
+    page = guarded_page
+    _seed_staff_admin_session(page)
+
+    page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
+    page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    page.wait_for_function(
+        "() => Number(document.querySelector('#actCntAll')?.textContent || '0') > 0",
+        timeout=15000,
+    )
+
+    sequence = ["activity", "agenda", "watchlist", "activity", "watchlist", "agenda", "activity"]
+    btn_map = {
+        "activity": "#modeActivityBtn",
+        "agenda": "#modeAgendaBtn",
+        "watchlist": "#modeWatchlistBtn",
+    }
+    hdr_map = {
+        "activity": "#activityHeaderControls",
+        "agenda": "#agendaHeaderControls",
+        "watchlist": "#watchlistHeaderControls",
+    }
+    tb_map = {
+        "activity": "#activityToolbar",
+        "agenda": "#agendaToolbar",
+        "watchlist": "#watchlistToolbar",
+    }
+
+    for mode in sequence:
+        page.click(btn_map[mode])
+        assert page.locator(btn_map[mode]).get_attribute("aria-selected") == "true"
+        for candidate in ("activity", "agenda", "watchlist"):
+            expected_vis = candidate == mode
+            assert page.locator(hdr_map[candidate]).is_visible() is expected_vis
+            assert page.locator(tb_map[candidate]).is_visible() is expected_vis
+
+        if mode == "agenda":
+            rows = page.locator("#list .row[data-occ]")
+            assert rows.count() >= 2
+            second_occ = rows.nth(1).get_attribute("data-occ")
+            second_app = rows.nth(1).get_attribute("data-app")
+            rows.nth(1).click()
+            assert rows.nth(1).get_attribute("aria-current") == "true"
+            assert second_app and second_app in page.locator("#detail").inner_text()
+            assert page.locator("#detail .act-card").count() == 0
+            assert second_occ
+        elif mode == "watchlist":
+            wrows = page.locator("#list .row[data-watch-id]")
+            assert wrows.count() >= 2
+            wrows.nth(1).click()
+            assert wrows.nth(1).get_attribute("aria-current") == "true"
+            assert page.locator("#detail table.wl-table").count() >= 1
+            assert page.locator("#detail .act-card").count() == 0
+        else:
+            assert page.locator("#list .act-run-row").count() >= 1
+            assert page.locator("#detail table.wl-table").count() == 0
+            # Dispatch synthetic input/change events inside #detail in activity mode to verify listener guard
+            wl_before = page.locator("#modeWatchlistCount").inner_text().strip()
+            page.evaluate(
+                """() => {
+                    const d = document.getElementById('detail');
+                    d.dispatchEvent(new Event('input', { bubbles: true }));
+                    d.dispatchEvent(new Event('change', { bubbles: true }));
+                }"""
+            )
+            assert page.locator("#modeWatchlistCount").inner_text().strip() == wl_before
+
+

@@ -293,7 +293,7 @@ test("UT-3: _resolveAndSelectDeepLinkedProperty resolves #<slug> building_id, sc
     assert.equal(selectCalls.length, 2);
     assert.equal(selectCalls[1].featureId, "1223580020001#cy_ridge_hs_main");
 
-    // Case C: Deep link by #q=7600 N ELDRIDGE PKWY fetches versioned addr_76.json?v=20261028b and extracts row[6] building_id
+    // Case C: Deep link by #q=7600 N ELDRIDGE PKWY fetches versioned addr_76.json?v=20261029a and extracts row[6] building_id
     await HoustonAtlasApp.prototype._resolveAndSelectDeepLinkedProperty.call(
       fakeApp,
       { hcadNum: "", featureId: "", query: "7600 N ELDRIDGE PKWY" },
@@ -302,8 +302,10 @@ test("UT-3: _resolveAndSelectDeepLinkedProperty resolves #<slug> building_id, sc
     );
     assert.equal(selectCalls.length, 3);
     assert.ok(
-      fetchedUrls.some((u) => u === "public/data/address_shards/addr_76.json?v=20261028b"),
-      `Expected versioned addr_76.json?v=20261028b fetch, got ${JSON.stringify(fetchedUrls)}`
+      fetchedUrls.some((u) =>
+        /^public\/data\/address_shards\/addr_76\.json\?v=20\d{6}[a-z]?$/.test(u)
+      ),
+      `Expected versioned addr_76.json?v=YYYYMMDD fetch, got ${JSON.stringify(fetchedUrls)}`
     );
     assert.equal(selectCalls[2].featureId, "1223580020001#eldridge_trans_main");
     assert.equal(selectCalls[2].targetLng, -95.603476);

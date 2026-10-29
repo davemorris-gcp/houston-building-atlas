@@ -174,7 +174,7 @@ test("deed_restrictions_catalog.json local PDFs exist on disk", () => {
   assert.ok(verifiedPdfs >= 60, `Expected >= 60 verified local deed PDFs, found ${verifiedPdfs}`);
 });
 
-test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json, and property_watchlist.json schemas", () => {
+test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json, property_watchlist.json, and monitor_activity_log.json schemas", () => {
   const hahc = readDataJson("hahc_coa_tracker.json");
   assert.ok(hahc.current_cycle && hahc.current_cycle.agenda_pdf_url, "hahc_coa_tracker current_cycle.agenda_pdf_url required");
   assert.ok(Array.isArray(hahc.filings) && hahc.filings.length >= 300, "Expected >= 300 HAHC filings");
@@ -192,6 +192,31 @@ test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json
   const watchlist = readDataJson("property_watchlist.json");
   assert.ok(watchlist.primaryProperty?.hcadAccount, "property_watchlist.primaryProperty.hcadAccount required");
   assert.ok(Array.isArray(watchlist.watchedProperties) && watchlist.watchedProperties.length >= 3);
+  assert.ok(
+    watchlist.lastSweepHealth &&
+      typeof watchlist.lastSweepHealth === "object" &&
+      Number.isInteger(watchlist.lastSweepHealth.totalAgencies) &&
+      Array.isArray(watchlist.lastSweepHealth.failedAgencies),
+    "property_watchlist.lastSweepHealth telemetry object required"
+  );
+
+  const actLog = readDataJson("monitor_activity_log.json");
+  assert.equal(actLog.version, 1, "monitor_activity_log.version must be 1");
+  assert.equal(actLog.retentionDays, 90, "monitor_activity_log.retentionDays must be 90");
+  assert.equal(actLog.timezone, "America/Chicago", "monitor_activity_log.timezone must be America/Chicago");
+  assert.match(String(actLog.generatedAt || ""), /^\d{4}-\d{2}-\d{2}T/, "monitor_activity_log.generatedAt ISO string required");
+  assert.ok(Array.isArray(actLog.dailyRuns) && actLog.dailyRuns.length >= 1, "monitor_activity_log.dailyRuns must be non-empty");
+  assert.ok(Array.isArray(actLog.events) && actLog.events.length >= 10, "monitor_activity_log.events must be populated");
+
+  const validStreams = new Set(["watchlist", "agenda", "staff", "permits"]);
+  const seenEventIds = new Set();
+  for (const ev of actLog.events) {
+    assert.ok(ev.id && typeof ev.id === "string", "Every activity event requires string id");
+    assert.equal(seenEventIds.has(ev.id), false, `Duplicate event id in monitor_activity_log.json: ${ev.id}`);
+    seenEventIds.add(ev.id);
+    assert.equal(validStreams.has(ev.stream), true, `Unexpected activity event stream '${ev.stream}' on ${ev.id}`);
+    assert.match(String(ev.localDate || ""), /^\d{4}-\d{2}-\d{2}$/, `Invalid localDate on ${ev.id}`);
+  }
 });
 
 test("Stratified 45-Archetype Matrix covers all 15 equivalence classes with valid Harris County WGS84 coordinates", () => {
@@ -242,6 +267,7 @@ test("All static external URLs across HTML, JS, and authoritative data catalogs 
     path.join(DATA_DIR, "active_permit_alerts.json"),
     path.join(DATA_DIR, "plat_agenda_monitor.json"),
     path.join(DATA_DIR, "property_watchlist.json"),
+    path.join(DATA_DIR, "monitor_activity_log.json"),
     path.join(DATA_DIR, "citydir_index.json"),
   ];
 
@@ -526,10 +552,19 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     );
   }
 
-  // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, HTML entrypoints, ES module imports, and static public/data fetches
+  // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, schema.py, HTML entrypoints, ES module imports, and static public/data fetches
   const manifest = readDataJson("pmtiles_manifest.json");
   const expectedVer = String(manifest.cache_bust || "").trim();
-  assert.equal(expectedVer, "20261028b", `Expected pmtiles_manifest.json cache_bust === '20261028b'`);
+  assert.equal(expectedVer, "20261029a", `Expected pmtiles_manifest.json cache_bust === '20261029a'`);
+
+  const schemaPyRaw = fs.readFileSync(path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "schema.py"), "utf8");
+  const schemaVerMatch = schemaPyRaw.match(/^\s*ACTIVE_CACHE_BUST\s*=\s*["']([^"']+)["']/m);
+  assert.ok(schemaVerMatch, "pipeline/atlas_pipeline/schema.py must declare ACTIVE_CACHE_BUST");
+  assert.equal(
+    schemaVerMatch[1],
+    expectedVer,
+    `pipeline/atlas_pipeline/schema.py ACTIVE_CACHE_BUST ('${schemaVerMatch[1]}') must match pmtiles_manifest.json ('${expectedVer}')`
+  );
 
   const sourceFiles = [
     path.join(APP_DIR, "index.html"),
@@ -600,6 +635,52 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
       shardRaw.includes("\u2014"),
       false,
       `address_shards/${fn} must contain zero U+2014 em-dashes`
+    );
+  }
+
+  for (const relCheck of [
+    "app/public/data/monitor_activity_log.json",
+    "app/public/data/property_watchlist.json",
+    "app/plat-monitor.html",
+    "app/js/activityLogHelpers.js",
+    "app/js/watchlistSyncHelpers.js",
+    "pipeline/atlas_pipeline/build_monitor_activity_log.py",
+    "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+    ".github/workflows/update_live_permits.yml",
+    "docs/PRESERVATION_MONITORING_AUTOMATION_ARCHITECTURE.md",
+  ]) {
+    const rawTxt = fs.readFileSync(path.join(REPO_ROOT, relCheck), "utf8");
+    assert.equal(rawTxt.includes("\u2014"), false, `${relCheck} must contain zero U+2014 em-dashes`);
+  }
+
+  // Zero positional checklist[N] indexing across watchlist/activity pipeline & UI code
+  for (const relNoPos of [
+    "app/plat-monitor.html",
+    "app/js/activityLogHelpers.js",
+    "app/js/watchlistSyncHelpers.js",
+    "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+    "pipeline/atlas_pipeline/build_monitor_activity_log.py",
+  ]) {
+    const rawTxt = fs.readFileSync(path.join(REPO_ROOT, relNoPos), "utf8");
+    assert.equal(
+      /\bchecklist\[\s*\d+\s*\]/.test(rawTxt),
+      false,
+      `${relNoPos} must address watchlist checkpoints by row.id ('chk-01'..'chk-15'), never positional checklist[N]`
+    );
+  }
+
+  // Ensure every unit test suite in tests/unit/*.test.mjs is registered in tests/unit/run_all.mjs
+  const runAllRaw = fs.readFileSync(path.join(REPO_ROOT, "tests", "unit", "run_all.mjs"), "utf8");
+  const testFiles = fs
+    .readdirSync(path.join(REPO_ROOT, "tests", "unit"))
+    .filter((f) => f.endsWith(".test.mjs"))
+    .sort();
+  assert.ok(testFiles.length >= 6, `Expected >= 6 unit test files, found ${testFiles.length}`);
+  for (const tf of testFiles) {
+    assert.equal(
+      runAllRaw.includes(`./${tf}`),
+      true,
+      `tests/unit/${tf} is missing from tests/unit/run_all.mjs imports`
     );
   }
 });

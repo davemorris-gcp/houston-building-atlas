@@ -170,9 +170,9 @@ test("Option A (app/plat-monitor.html): includes #toggleDemoBenchmarksBtn, .stag
   assert.match(html, /id=["']copyDemoBenchmarksBtn["']/);
   assert.match(html, /id=["']closeDemoBenchmarksBtn["']/);
 
-  // Both agenda and watchlist funnels include buildDemoStageHtml()
+  // All 3 workspace mode funnels (agenda, watchlist, activity) include buildDemoStageHtml()
   const demoStageCalls = html.match(/\$\{buildDemoStageHtml\(\)\}/g) || [];
-  assert.equal(demoStageCalls.length, 2, "Both agenda and watchlist funnels must include buildDemoStageHtml()");
+  assert.equal(demoStageCalls.length, 3, "All 3 mode funnels (agenda, watchlist, activity) must include buildDemoStageHtml()");
 
   // Keyboard accessibility on [data-toggle-demo-benchmarks] (role="button" tabindex="0")
   assert.match(
