@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261030a";
+} from "./palettes.js?v=20261030b";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -21,19 +21,19 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261030a";
-import { AtlasMapController } from "./mapController.js?v=20261030a";
+} from "./filterStore.js?v=20261030b";
+import { AtlasMapController } from "./mapController.js?v=20261030b";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261030a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261030a";
+} from "./guidedChaptersAndPortfolios.js?v=20261030b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261030b";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261030a";
+} from "./clerkSearchHelpers.js?v=20261030b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -54,7 +54,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261030a";
+} from "./curatedEdits.js?v=20261030b";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -64,18 +64,18 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261030a";
+} from "./photoService.js?v=20261030b";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   formatDemolitionBenchmarksGrantText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261030a";
+} from "./platMonitorHelpers.js?v=20261030b";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261030a";
+} from "./hcadViewportParcels.js?v=20261030b";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -93,7 +93,7 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261030a";
+} from "./preservationOrganizer.js?v=20261030b";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -158,6 +158,7 @@ export class HoustonAtlasApp {
       search: "",
       sort: "pre1940",
       selectedKey: "",
+      mobilePane: "detail",
     };
     this._ch42ReqSeq = 0;
     this._ch42AbortCtrl = null;
@@ -665,7 +666,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030a`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030b`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -824,12 +825,12 @@ export class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261030a"),
-        fetch("public/data/stats_summary.json?v=20261030a"),
-        fetch("public/data/haif_index.json?v=20261030a").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261030a").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261030a").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261030a").catch(() => null),
+        fetch("public/data/search_index.json?v=20261030b"),
+        fetch("public/data/stats_summary.json?v=20261030b"),
+        fetch("public/data/haif_index.json?v=20261030b").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261030b").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261030b").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261030b").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -3720,10 +3721,20 @@ export class HoustonAtlasApp {
         this._renderScorecardModalHub({ autoSelectFirst: true });
       });
     }
+    const scMobilePaneTabs = document.getElementById("scorecard-mobile-pane-tabs");
+    if (scMobilePaneTabs) {
+      scMobilePaneTabs.addEventListener("click", (e) => {
+        const btn = e.target.closest?.("[data-sc-pane]");
+        if (!btn) return;
+        const pane = btn.getAttribute("data-sc-pane") === "table" ? "table" : "detail";
+        this._setScorecardMobilePane(pane);
+      });
+    }
     const scSearchInput = document.getElementById("scorecard-search-input");
     if (scSearchInput) {
       scSearchInput.addEventListener("input", () => {
         this._scorecardModalState.search = String(scSearchInput.value || "");
+        this._setScorecardMobilePane("table");
         this._renderScorecardModalHub({ autoSelectFirst: false });
       });
     }
@@ -3731,6 +3742,7 @@ export class HoustonAtlasApp {
     if (scSortSelect) {
       scSortSelect.addEventListener("change", () => {
         this._scorecardModalState.sort = String(scSortSelect.value || "pre1940");
+        this._setScorecardMobilePane("table");
         this._renderScorecardModalHub({ autoSelectFirst: false });
       });
     }
@@ -3756,6 +3768,11 @@ export class HoustonAtlasApp {
     const scDetailPane = document.getElementById("scorecard-detail-pane");
     if (scDetailPane) {
       scDetailPane.addEventListener("click", (e) => {
+        const backBtn = e.target.closest?.(".btn-scorecard-back-table");
+        if (backBtn) {
+          this._setScorecardMobilePane("table");
+          return;
+        }
         const flyBtn = e.target.closest?.(".btn-scorecard-fly");
         if (flyBtn) {
           const layer = flyBtn.getAttribute("data-scorecard-layer") || "";
@@ -5503,7 +5520,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030a`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030b`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -14660,7 +14677,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261030a`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261030b`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -16628,7 +16645,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261030a`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261030b`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -19257,7 +19274,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261030a")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261030b")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {
@@ -19341,10 +19358,34 @@ export class HoustonAtlasApp {
     }
   }
 
+  _setScorecardMobilePane(pane = "detail", selectedName = "") {
+    const cleanPane = pane === "table" ? "table" : "detail";
+    this._scorecardModalState.mobilePane = cleanPane;
+    const modal = document.getElementById("scorecard-modal");
+    if (modal) modal.dataset.mobilePane = cleanPane;
+    const tabWrap = document.getElementById("scorecard-mobile-pane-tabs");
+    if (tabWrap) {
+      tabWrap.querySelectorAll("[data-sc-pane]").forEach((btn) => {
+        const isAct = btn.getAttribute("data-sc-pane") === cleanPane;
+        btn.classList.toggle("active", isAct);
+        btn.setAttribute("aria-selected", isAct ? "true" : "false");
+      });
+    }
+    if (selectedName) {
+      const detailTab = document.getElementById("btn-sc-pane-detail");
+      if (detailTab) {
+        detailTab.textContent = `Brief: ${selectedName}`;
+        detailTab.title = selectedName;
+      }
+    }
+  }
+
   async openScorecardModal({ layer = "", id = "", updateUrl = true } = {}) {
     const modal = document.getElementById("scorecard-modal");
     if (!modal) return;
     modal.classList.remove("hidden");
+    const hasExplicitTarget = Boolean(layer && id);
+    this._setScorecardMobilePane(hasExplicitTarget ? "detail" : "table");
 
     const detailPane = document.getElementById("scorecard-detail-pane");
     if (detailPane && !this._scorecardsData) {
@@ -19552,10 +19593,15 @@ export class HoustonAtlasApp {
       includeViewport: false,
       activeScorecard: { layer: scorecard.layer, id: scorecard.id },
     });
+    this._setScorecardMobilePane(
+      this._scorecardModalState.mobilePane || "detail",
+      scorecard.name
+    );
     detailPane.innerHTML = renderScorecardDetailHtml(scorecard, threats, {
       shareUrl,
       generatedAt: this._scorecardsData?.generatedAt || "October 30, 2026",
     });
+    detailPane.scrollTop = 0;
   }
 
   async openChapter42AtPoint(lng, lat) {

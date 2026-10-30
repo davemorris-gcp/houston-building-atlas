@@ -724,12 +724,17 @@ def test_it_e2e_4_mutual_css_print_exclusivity(
                     };
                 };
                 return {
+                    map: probe('map'),
                     topbar: probe('atlas-topbar'),
                     sidebar: probe('sidebar'),
                     inspector: probe('inspector-drawer'),
                     dossier: probe('dossier-modal'),
                     scorecard: probe('scorecard-modal'),
                     ch42: probe('ch42-modal'),
+                    ch42IncThDisplay: (() => {
+                        const th = document.querySelector('.ch42-lot-table th.no-print');
+                        return th ? window.getComputedStyle(th).display : 'none';
+                    })(),
                 };
             }"""
         )
@@ -753,6 +758,7 @@ def test_it_e2e_4_mutual_css_print_exclusivity(
     assert m_dossier["dossier"]["height"] > 200
     assert m_dossier["scorecard"]["display"] == "none"
     assert m_dossier["ch42"]["display"] == "none"
+    assert m_dossier["map"]["display"] == "none", f"Map canvas leaked into dossier print: {m_dossier}"
     assert m_dossier["topbar"]["display"] == "none"
     assert m_dossier["inspector"]["display"] == "none"
     page.emulate_media(media="screen")
@@ -764,13 +770,27 @@ def test_it_e2e_4_mutual_css_print_exclusivity(
         '#scorecard-detail-pane [data-scorecard-key="council_districts:council_dist_c"]',
         timeout=15000,
     )
+    assert page.evaluate(
+        """() => Array.from(
+            document.querySelectorAll('#scorecard-modal .print-only-inline, #scorecard-modal .print-only-block')
+        ).every(el => window.getComputedStyle(el).display === 'none')"""
+    ), "Print-only summary pill/block leaked onto interactive screen view"
     page.emulate_media(media="print")
     m_scorecard = _measure_print_layout()
     assert m_scorecard["scorecard"]["display"] != "none" and m_scorecard["scorecard"]["width"] > 200
     assert m_scorecard["scorecard"]["height"] > 200
     assert m_scorecard["dossier"]["display"] == "none", f"Sibling dossier leaked in print: {m_scorecard}"
     assert m_scorecard["ch42"]["display"] == "none"
+    assert m_scorecard["map"]["display"] == "none", f"Map canvas leaked into scorecard print: {m_scorecard}"
     assert m_scorecard["topbar"]["display"] == "none"
+    assert page.evaluate(
+        """() => Array.from(document.querySelectorAll('#scorecard-modal .sc-print-overflow'))
+            .every(el => window.getComputedStyle(el).display === 'none')"""
+    ), ".sc-print-overflow failed to hide in print mode"
+    assert page.evaluate(
+        """() => Array.from(document.querySelectorAll('#scorecard-modal .print-only-inline, #scorecard-modal .print-only-block'))
+            .every(el => window.getComputedStyle(el).display !== 'none')"""
+    ), ".print-only-inline/.print-only-block failed to display in print mode"
     page.emulate_media(media="screen")
 
     # Mode 3: Open Chapter 42 modal WHILE both dossier-modal AND scorecard-modal remain open ->
@@ -783,7 +803,25 @@ def test_it_e2e_4_mutual_css_print_exclusivity(
     assert m_ch42["ch42"]["height"] > 200
     assert m_ch42["scorecard"]["display"] == "none", f"Sibling scorecard leaked in print: {m_ch42}"
     assert m_ch42["dossier"]["display"] == "none", f"Sibling dossier leaked in print: {m_ch42}"
+    assert m_ch42["map"]["display"] == "none", f"Map canvas leaked into ch42 print: {m_ch42}"
+    assert m_ch42["ch42IncThDisplay"] == "none", f"th.no-print leaked into ch42 print header: {m_ch42}"
     assert m_ch42["topbar"]["display"] == "none"
+    ch42_print_state = page.evaluate(
+        """() => {
+            const omits = Array.from(document.querySelectorAll('#ch42-modal .ch42-print-omit'));
+            const row = document.querySelector('#ch42-modal tr.ch42-lot-row:not(.ch42-print-omit):not(.is-cutoff-lot)');
+            const parcelCell = row?.querySelector('td[data-label="Parcel"]');
+            return {
+                omitCount: omits.length,
+                allOmitsHidden: omits.every(el => window.getComputedStyle(el).display === 'none'),
+                rowDisplay: row ? window.getComputedStyle(row).display : '',
+                parcelAlign: parcelCell ? window.getComputedStyle(parcelCell).textAlign : '',
+            };
+        }"""
+    )
+    assert ch42_print_state["omitCount"] >= 1 and ch42_print_state["allOmitsHidden"] is True
+    assert ch42_print_state["rowDisplay"] == "table-row"
+    assert ch42_print_state["parcelAlign"] == "left"
     page.emulate_media(media="screen")
 
 
@@ -1010,5 +1048,192 @@ def test_it_e2e_5_cold_boot_deeplinks_popstate_abort_and_escape_stack(
         assert not page_errors and not p2_errs, f"Page errors: {page_errors + p2_errs}"
         assert not local_http_errors and not h2_errs, f"HTTP errors: {local_http_errors + h2_errs}"
         assert not console_errors and not c2_errs, f"Console errors: {console_errors + c2_errs}"
+    finally:
+        ctx.close()
+
+
+def test_it_e2e_7_responsive_modal_widths_mobile_tabs_and_ch42_cards(
+    browser: Any,
+    atlas_base_url: str,
+) -> None:
+    ctx = browser.new_context(viewport={"width": 1440, "height": 900})
+    try:
+        configure_fast_e2e_context(ctx, atlas_base_url)
+        page = ctx.new_page()
+        page_errors, console_errors, local_http_errors = attach_error_monitors(page, atlas_base_url)
+        recorded_queries: list[dict[str, str]] = []
+        _install_hcad_blockface_route(page, recorded_queries)
+
+        # 1. Wide Desktop (1440x900): modals expand across screen (never capped at 620px),
+        #    both panes render side-by-side, and mobile-only controls remain hidden.
+        page.goto(
+            f"{atlas_base_url}/index.html#scorecard=council_districts:council_dist_c",
+            wait_until="domcontentloaded",
+        )
+        _wait_for_atlas_ready(page)
+        page.wait_for_selector(
+            '#scorecard-detail-pane [data-scorecard-key="council_districts:council_dist_c"]',
+            timeout=15000,
+        )
+        desktop_metrics = page.evaluate(
+            """() => {
+                const card = document.querySelector('.scorecard-modal-card');
+                const tblWrap = document.querySelector('.scorecard-hub-table-wrap');
+                const detail = document.getElementById('scorecard-detail-pane');
+                const backBtn = document.querySelector('.btn-scorecard-back-table');
+                const mobileTabs = document.getElementById('scorecard-mobile-pane-tabs');
+                const statBoxes = Array.from(detail.querySelectorAll('.scorecard-stat-box'));
+                return {
+                    cardW: Math.round(card.getBoundingClientRect().width),
+                    tblW: Math.round(tblWrap.getBoundingClientRect().width),
+                    detailW: Math.round(detail.getBoundingClientRect().width),
+                    backBtnDisplay: backBtn ? window.getComputedStyle(backBtn).display : 'none',
+                    mobileTabsDisplay: mobileTabs ? window.getComputedStyle(mobileTabs).display : 'none',
+                    minStatW: Math.min(...statBoxes.map(b => Math.round(b.getBoundingClientRect().width))),
+                    statOverflow: statBoxes.some(b => b.scrollWidth > b.clientWidth + 2),
+                };
+            }"""
+        )
+        assert desktop_metrics["cardW"] >= 1300, f"Desktop scorecard modal crushed: {desktop_metrics}"
+        assert desktop_metrics["tblW"] >= 450 and desktop_metrics["detailW"] >= 650
+        assert desktop_metrics["backBtnDisplay"] == "none"
+        assert desktop_metrics["mobileTabsDisplay"] == "none"
+        assert desktop_metrics["minStatW"] >= 150
+        assert desktop_metrics["statOverflow"] is False
+
+        # Verify desktop Ch. 42 modal width and Property Inspector Ch. 42 CTA vertical layout
+        page.evaluate("() => window.atlasApp.openChapter42ModalForHcad('0621100000014')")
+        _wait_for_ch42_loaded(page, "0621100000014")
+        ch42_card_w = page.locator(".ch42-modal-card").bounding_box()["width"]
+        assert ch42_card_w >= 1250, f"Desktop Ch. 42 modal crushed to {ch42_card_w}px"
+        page.evaluate("() => window.atlasApp.closeChapter42Modal()")
+        page.evaluate("() => window.atlasApp.closeScorecardModal()")
+        page.evaluate(
+            """async () => {
+                window.atlasApp._lastHandledUrlKey = null;
+                window.location.hash = '#hcad=0621100000014';
+                await window.atlasApp._handleUrlChange();
+            }"""
+        )
+        page.wait_for_selector("#btn-open-ch42-calculator", timeout=10000)
+        cta_metrics = page.evaluate(
+            """() => {
+                const btn = document.getElementById('btn-open-ch42-calculator');
+                const cs = window.getComputedStyle(btn);
+                return {
+                    display: cs.display,
+                    flexDirection: cs.flexDirection,
+                    overflowPx: btn.scrollWidth - btn.clientWidth,
+                };
+            }"""
+        )
+        assert cta_metrics["display"] == "flex" and cta_metrics["flexDirection"] == "column"
+        assert cta_metrics["overflowPx"] <= 2
+
+        # 2. Split-Screen (885x1024) & Mobile (390x844): 2-tab pane switcher prevents crushed side-by-side layout
+        for vw, vh in [(885, 1024), (390, 844)]:
+            page.set_viewport_size({"width": vw, "height": vh})
+            page.evaluate(
+                "() => window.atlasApp.openScorecardModal({ layer: 'council_districts', id: 'council_dist_c' })"
+            )
+            page.wait_for_selector(
+                '#scorecard-detail-pane [data-scorecard-key="council_districts:council_dist_c"]',
+                timeout=10000,
+            )
+            detail_state = page.evaluate(
+                """() => {
+                    const modal = document.getElementById('scorecard-modal');
+                    const tabs = document.getElementById('scorecard-mobile-pane-tabs');
+                    const tblWrap = document.querySelector('.scorecard-hub-table-wrap');
+                    const detail = document.getElementById('scorecard-detail-pane');
+                    const brandDiv = modal.querySelector('.modal-brand-row > div:not(.ph-key-badge)');
+                    const kicker = modal.querySelector('.modal-header .brand-kicker');
+                    const closeBtn = document.getElementById('btn-close-scorecard-modal');
+                    const statBoxes = Array.from(detail.querySelectorAll('.scorecard-stat-box'));
+                    return {
+                        pane: modal.dataset.mobilePane,
+                        tabsDisplay: window.getComputedStyle(tabs).display,
+                        tblDisplay: window.getComputedStyle(tblWrap).display,
+                        detailW: Math.round(detail.getBoundingClientRect().width),
+                        brandRight: Math.round(brandDiv.getBoundingClientRect().right),
+                        closeLeft: Math.round(closeBtn.getBoundingClientRect().left),
+                        kickerFontPx: parseFloat(window.getComputedStyle(kicker).fontSize),
+                        statOverflow: statBoxes.some(b => b.scrollWidth > b.clientWidth + 2),
+                    };
+                }"""
+            )
+            assert detail_state["pane"] == "detail"
+            assert detail_state["tabsDisplay"] == "flex"
+            assert detail_state["tblDisplay"] == "none"
+            assert detail_state["detailW"] >= vw - 80
+            assert detail_state["brandRight"] <= detail_state["closeLeft"], (
+                f"Header brand text overlapped close button at {vw}px: {detail_state}"
+            )
+            assert detail_state["kickerFontPx"] >= 9.0, f"Modal kicker shrunk below 9px at {vw}px: {detail_state}"
+            assert detail_state["statOverflow"] is False
+
+            # Switch to Ranking Table tab and verify full-width table, then click a row to auto-return to Detail
+            page.click("#btn-sc-pane-table")
+            assert page.locator("#scorecard-modal").get_attribute("data-mobile-pane") == "table"
+            assert page.locator(".scorecard-hub-table-wrap").is_visible()
+            assert not page.locator("#scorecard-detail-pane").is_visible()
+            page.locator('#scorecard-hub-tbody tr[data-scorecard-id="council_dist_h"]').click()
+            page.wait_for_selector(
+                '#scorecard-detail-pane [data-scorecard-key="council_districts:council_dist_h"]',
+                timeout=10000,
+            )
+            assert page.locator("#scorecard-modal").get_attribute("data-mobile-pane") == "detail"
+            assert page.locator("#scorecard-detail-pane").is_visible()
+
+        # 3. Mobile (390x844) Chapter 42 stacked field-walk parcel cards (2-column data-label + .ch42-cell-val)
+        page.evaluate("() => window.atlasApp.closeScorecardModal()")
+        page.evaluate("() => window.atlasApp.openChapter42ModalForHcad('0621100000014')")
+        _wait_for_ch42_loaded(page, "0621100000014")
+        ch42_mobile = page.evaluate(
+            """() => {
+                const cells = Array.from(document.querySelectorAll('#ch42-modal tr.ch42-lot-row:first-child td'));
+                const parcelTd = cells.find(td => td.getAttribute('data-label') === 'Parcel');
+                return {
+                    theadDisplay: window.getComputedStyle(document.querySelector('#ch42-modal .ch42-lot-table thead')).display,
+                    rowDisplay: window.getComputedStyle(document.querySelector('#ch42-modal tr.ch42-lot-row')).display,
+                    labels: cells.map(td => td.getAttribute('data-label')),
+                    allSingleValWrapper: cells.every(
+                        td => td.children.length === 1 && td.firstElementChild.classList.contains('ch42-cell-val')
+                    ),
+                    parcelOverflowPx: parcelTd ? parcelTd.scrollWidth - parcelTd.clientWidth : 999,
+                };
+            }"""
+        )
+        assert ch42_mobile["theadDisplay"] == "none"
+        assert ch42_mobile["rowDisplay"] == "block"
+        assert "Parcel" in ch42_mobile["labels"] and "Lot Area (SMLS)" in ch42_mobile["labels"]
+        assert ch42_mobile["allSingleValWrapper"] is True, f"Unwrapped td children broke mobile flex cards: {ch42_mobile}"
+        assert ch42_mobile["parcelOverflowPx"] <= 2
+
+        # Also verify narrow 390px print emulation NEVER leaks mobile block/flex cards into @media print
+        page.emulate_media(media="print")
+        ch42_narrow_print = page.evaluate(
+            """() => {
+                const row = document.querySelector('#ch42-modal tr.ch42-lot-row:not(.ch42-print-omit)');
+                const td = row.querySelector('td[data-label="Parcel"]');
+                return {
+                    theadDisplay: window.getComputedStyle(document.querySelector('#ch42-modal .ch42-lot-table thead')).display,
+                    rowDisplay: window.getComputedStyle(row).display,
+                    tdDisplay: window.getComputedStyle(td).display,
+                    tdAlign: window.getComputedStyle(td).textAlign,
+                };
+            }"""
+        )
+        page.emulate_media(media="screen")
+        assert ch42_narrow_print == {
+            "theadDisplay": "table-header-group",
+            "rowDisplay": "table-row",
+            "tdDisplay": "table-cell",
+            "tdAlign": "left",
+        }
+
+        assert not page_errors, f"Page errors: {page_errors}"
+        assert not local_http_errors, f"HTTP errors: {local_http_errors}"
+        assert not console_errors, f"Console errors: {console_errors}"
     finally:
         ctx.close()

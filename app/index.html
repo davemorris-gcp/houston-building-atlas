@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261030a" />
+  <link rel="stylesheet" href="styles/index.css?v=20261030b" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -2860,18 +2860,40 @@
               <span class="scorecard-count-badge mono" id="scorecard-hub-count">Loading...</span>
             </div>
           </div>
+          <div class="scorecard-mobile-pane-tabs no-print" id="scorecard-mobile-pane-tabs" role="tablist" aria-label="Scorecard Hub View">
+            <button
+              type="button"
+              class="scorecard-pane-tab"
+              id="btn-sc-pane-table"
+              data-sc-pane="table"
+              role="tab"
+              aria-selected="false"
+            >
+              Browse Ranking Table
+            </button>
+            <button
+              type="button"
+              class="scorecard-pane-tab active"
+              id="btn-sc-pane-detail"
+              data-sc-pane="detail"
+              role="tab"
+              aria-selected="true"
+            >
+              Selected Scorecard Brief
+            </button>
+          </div>
           <div class="scorecard-hub-split">
             <div class="scorecard-hub-table-wrap">
               <table class="scorecard-hub-table">
                 <thead>
                   <tr>
-                    <th>Boundary</th>
-                    <th>Standing</th>
-                    <th>Pre-1940</th>
-                    <th>Ch. 33 / Ch. 42</th>
-                    <th>Expiring 26-31</th>
-                    <th>Owner / LLC %</th>
-                    <th>Demos 20-26</th>
+                    <th class="sc-col-name">Boundary</th>
+                    <th class="sc-col-num" title="Total standing structure footprints">Bldgs</th>
+                    <th class="sc-col-num" title="Pre-1940 historic structures and share">Pre-1940</th>
+                    <th class="sc-col-num" title="COH Chapter 33 Historic District share vs. Chapter 42 residential lot coverage">Ch.33 / Ch.42</th>
+                    <th class="sc-col-num" title="Pre-July 24, 2015 Chapter 42 ordinances reaching 20-year sunset in 2026-2031">Sunset 26-31</th>
+                    <th class="sc-col-num" title="Resident-occupied situs share vs. Corporate LLC/LP/Inc share">Res / LLC %</th>
+                    <th class="sc-col-num" title="Main-structure teardown parcels permitted 2020 through Oct 2026 YTD">Demos</th>
                   </tr>
                 </thead>
                 <tbody id="scorecard-hub-tbody">
@@ -2926,6 +2948,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261030a"></script>
+  <script type="module" src="js/app.js?v=20261030b"></script>
 </body>
 </html>

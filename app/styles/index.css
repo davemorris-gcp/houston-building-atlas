@@ -2111,14 +2111,35 @@ body {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .modal-brand-row {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.modal-brand-row > div:not(.ph-key-badge) {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.modal-header .brand-kicker {
+  display: block;
+  font-size: 10px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: break-word;
+}
+
+.modal-header > .icon-btn {
+  flex-shrink: 0;
 }
 
 .ph-key-badge {
@@ -4390,6 +4411,7 @@ body {
    ========================================================================== */
 .dossier-modal-card {
   width: min(820px, 95vw);
+  max-width: min(820px, 95vw);
   max-height: 90dvh;
 }
 
@@ -4711,6 +4733,11 @@ body {
 }
 
 @media print {
+  @page {
+    size: letter;
+    margin: 0.35in;
+  }
+
   html,
   body,
   .atlas-shell {
@@ -4721,13 +4748,19 @@ body {
     overflow: visible !important;
   }
 
+  .atlas-shell > *:not(.modal-backdrop),
   .atlas-topbar,
   .tour-bar,
   .atlas-sidebar,
+  #map,
+  .map-canvas,
   #map-container,
   .inspector-drawer,
   .map-bottom-bar,
+  .tilt-dock,
   .search-results,
+  .toast-container,
+  .maplibregl-control-container,
   .modal-backdrop {
     display: none !important;
   }
@@ -4769,10 +4802,14 @@ body {
   .scorecard-modal-card > .modal-header,
   .ch42-modal-card > .modal-header,
   .scorecard-hub-toolbar,
+  .scorecard-mobile-pane-tabs,
   .scorecard-hub-table-wrap,
   .scorecard-detail-actions,
   .ch42-kit-controls-row,
   .ch42-print-hide,
+  .ch42-print-omit,
+  .sc-print-overflow,
+  .mobile-pane-only,
   .no-print {
     display: none !important;
   }
@@ -4780,9 +4817,28 @@ body {
   .print-only-inline {
     display: inline !important;
   }
+  .sc-ord-pill.print-only-inline {
+    display: inline-block !important;
+  }
+  .print-only-block {
+    display: block !important;
+  }
+  .scorecard-print-masthead {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 9.5px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1.5px solid #0f172a !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 2px !important;
+    color: #0f172a !important;
+  }
   .ch42-print-sig-line {
     display: block !important;
-    font-size: 10.5px !important;
+    font-size: 9.5px !important;
     color: #0f172a !important;
   }
 
@@ -4796,6 +4852,7 @@ body {
     margin: 0 !important;
     max-height: none !important;
     height: auto !important;
+    border: none !important;
     background: #ffffff !important;
     color: #0f172a !important;
     overflow: visible !important;
@@ -4809,7 +4866,8 @@ body {
     border-radius: 0 !important;
     background: #ffffff !important;
     color: #0f172a !important;
-    padding: 14px 16px !important;
+    padding: 10px 12px !important;
+    gap: 7px !important;
   }
 
   .scorecard-detail-sheet *,
@@ -4824,7 +4882,35 @@ body {
     text-decoration: underline !important;
   }
 
+  /* Compact 1-Page Scorecard Print Layout */
+  .scorecard-detail-header,
+  .ch42-header-bar {
+    padding-bottom: 5px !important;
+    gap: 4px !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+  .scorecard-eyebrow {
+    font-size: 9px !important;
+    gap: 4px !important;
+  }
+  .scorecard-detail-title {
+    font-size: 16.5px !important;
+    margin: 1px 0 2px !important;
+    line-height: 1.15 !important;
+  }
+  .scorecard-cm-banner {
+    margin: 3px 0 2px !important;
+    padding: 4px 8px !important;
+    font-size: 9.5px !important;
+    line-height: 1.3 !important;
+  }
+  .scorecard-metrics-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
   .scorecard-stat-box,
+  .scorecard-kpi-cell,
   .scorecard-section-block,
   .scorecard-chart-panel,
   .scorecard-cm-banner,
@@ -4834,8 +4920,212 @@ body {
     border: 1px solid #cbd5e1 !important;
     break-inside: avoid;
   }
+  .scorecard-stat-box,
+  .scorecard-kpi-cell {
+    padding: 5px 7px !important;
+    border-radius: 5px !important;
+  }
+  .sc-stat-label {
+    font-size: 8.5px !important;
+  }
+  .sc-stat-big {
+    font-size: 13.5px !important;
+    margin: 1px 0 2px !important;
+  }
+  .sc-stat-sub,
+  .scorecard-kpi-pct {
+    font-size: 9px !important;
+  }
+  .sc-stat-meta {
+    font-size: 8.8px !important;
+    line-height: 1.28 !important;
+  }
+  .scorecard-charts-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+  .scorecard-chart-panel,
+  .scorecard-section-block {
+    padding: 6px 8px !important;
+    border-radius: 5px !important;
+  }
+  .sc-panel-title {
+    font-size: 9.5px !important;
+    margin-bottom: 4px !important;
+  }
+  .scorecard-chart-panel .sc-bars-wrap {
+    height: 62px !important;
+    padding-top: 2px !important;
+    gap: 3px !important;
+  }
+  .sc-bar-lbl,
+  .sc-demo-num {
+    font-size: 8px !important;
+  }
+  .sc-bar-track,
+  .sc-bar-col .sc-bar-track,
+  .sc-demo-col .sc-bar-track {
+    background: #e2e8f0 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .sc-bar-fill,
+  .sc-bar-col .sc-bar-fill,
+  .sc-demo-col .sc-bar-fill {
+    background: #475569 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .sc-bar-fill.is-pre40 {
+    background: #ca8a04 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .sc-bar-fill.is-demo {
+    background: #dc2626 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 
-  .sc-bar-fill {
+  .scorecard-renewal-box,
+  .scorecard-expiring-callout,
+  .ch42-existing-ord-banner.is-expiring {
+    background: #fffbeb !important;
+    border: 1px solid #d97706 !important;
+    margin-top: 0 !important;
+    padding: 5px 8px !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .scorecard-renewal-box p {
+    font-size: 9px !important;
+    line-height: 1.28 !important;
+    margin: 0 0 4px !important;
+  }
+  .sc-ord-pill-list {
+    gap: 3px !important;
+  }
+  .sc-ord-pill {
+    background: #fef3c7 !important;
+    border: 1px solid #d97706 !important;
+    font-size: 8.5px !important;
+    padding: 1px 5px !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .scorecard-threats-list {
+    gap: 3px !important;
+  }
+  .sc-threat-item {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    padding: 3px 6px !important;
+    font-size: 9.5px !important;
+    line-height: 1.25 !important;
+    break-inside: avoid;
+  }
+  .sc-threat-badge {
+    background: #fee2e2 !important;
+    border: 1px solid #dc2626 !important;
+    font-size: 8px !important;
+    padding: 0 5px !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .sc-yr-tag {
+    font-size: 8.5px !important;
+  }
+  .sc-threat-item-desc {
+    font-size: 8.8px !important;
+    margin-top: 1px !important;
+  }
+  .sc-print-more-note {
+    font-size: 9px !important;
+    font-style: italic;
+    padding-top: 2px;
+  }
+  .scorecard-print-footer {
+    margin-top: 2px !important;
+    padding-top: 4px !important;
+    border-top: 1px solid #cbd5e1 !important;
+    font-size: 8.5px !important;
+    line-height: 1.28 !important;
+  }
+
+  /* Clean White-Paper Table Formatting for Chapter 42 Walk-Sheets */
+  .ch42-statutory-caveat,
+  .ch42-existing-ord-banner {
+    padding: 5px 8px !important;
+    font-size: 9px !important;
+    line-height: 1.3 !important;
+  }
+  .ch42-table-wrap {
+    overflow: visible !important;
+    border: 1px solid #94a3b8 !important;
+    border-radius: 4px !important;
+  }
+  .ch42-lot-table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9px !important;
+  }
+  .ch42-lot-table thead {
+    display: table-header-group !important;
+  }
+  .ch42-lot-table tbody {
+    display: table-row-group !important;
+  }
+  .ch42-lot-table tr:not(.ch42-print-omit) {
+    display: table-row !important;
+    break-inside: avoid;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .ch42-lot-table th:not(.no-print),
+  .ch42-lot-table td:not(.no-print) {
+    display: table-cell !important;
+    padding: 4px 5px !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    text-align: left !important;
+    vertical-align: top !important;
+  }
+  .ch42-lot-table td.sc-col-num {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+  .ch42-lot-table th:not(.no-print) {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-size: 8.5px !important;
+    font-weight: 700 !important;
+    border-bottom: 1.5px solid #64748b !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .ch42-lot-table td::before {
+    content: none !important;
+    display: none !important;
+  }
+  .ch42-lot-row.is-cutoff-lot {
+    background: #fef3c7 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .ch42-lot-row.is-excluded {
+    opacity: 0.72 !important;
+  }
+  .ch42-cut-badge,
+  .ch42-role-tag {
+    background: #fef3c7 !important;
+    border: 1px solid #d97706 !important;
+    font-size: 8px !important;
+    padding: 0 4px !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -10334,17 +10624,26 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
 
 /* Scorecards Modal Layout */
 .scorecard-modal-card {
-  width: min(1320px, 96vw);
-  max-height: 92vh;
+  width: min(1440px, 96vw);
+  max-width: min(1440px, 96vw);
+  height: min(92dvh, 920px);
+  max-height: 92dvh;
   display: flex;
   flex-direction: column;
 }
 .scorecard-modal-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
   overflow: hidden;
-  padding: 14px 18px 18px;
+  padding: 12px 18px 16px;
+}
+.scorecard-mobile-pane-tabs,
+.print-only-block {
+  display: none;
 }
 .scorecard-hub-toolbar {
   display: flex;
@@ -10366,6 +10665,7 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 .scorecard-family-pill:hover {
@@ -10384,7 +10684,8 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   flex-wrap: wrap;
 }
 .scorecard-search-input {
-  flex: 1 1 260px;
+  flex: 1 1 240px;
+  min-width: 0;
   padding: 7px 11px;
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.3);
@@ -10393,6 +10694,7 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   font-size: 12.5px;
 }
 .scorecard-sort-select {
+  max-width: 100%;
   padding: 7px 10px;
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.3);
@@ -10408,20 +10710,21 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
 
 .scorecard-hub-split {
   display: grid;
-  grid-template-columns: minmax(340px, 43%) minmax(0, 57%);
+  grid-template-columns: minmax(470px, 44%) minmax(0, 56%);
   gap: 14px;
   min-height: 0;
   flex: 1 1 auto;
   overflow: hidden;
 }
 .scorecard-hub-table-wrap {
-  overflow-y: auto;
+  overflow: auto;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.55);
 }
 .scorecard-hub-table {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
   font-size: 11.5px;
   color: #e2e8f0;
@@ -10434,19 +10737,44 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   color: #94a3b8;
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 7px 8px;
+  letter-spacing: 0.03em;
+  padding: 8px 7px;
   text-align: right;
+  white-space: nowrap;
   border-bottom: 1px solid rgba(148, 163, 184, 0.25);
 }
 .scorecard-hub-table thead th:first-child,
 .scorecard-hub-table td:first-child {
   text-align: left;
+  white-space: normal;
 }
 .scorecard-hub-table td {
-  padding: 7px 8px;
+  padding: 7px 7px;
   text-align: right;
   border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  vertical-align: middle;
+}
+.scorecard-hub-table td.sc-col-num {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sc-row-title {
+  font-weight: 600;
+  color: var(--text-cream);
+  line-height: 1.25;
+}
+.sc-row-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.25;
+  margin-top: 1px;
+}
+.sc-num-sub {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+}
+.sc-muted-zero {
+  color: var(--text-muted);
 }
 .scorecard-hub-row {
   cursor: pointer;
@@ -10463,6 +10791,7 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
 
 .scorecard-detail-pane {
   overflow-y: auto;
+  min-width: 0;
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 10px;
   background: rgba(15, 23, 42, 0.65);
@@ -10473,6 +10802,7 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   flex-direction: column;
   gap: 12px;
   color: #e2e8f0;
+  min-width: 0;
 }
 .scorecard-detail-header {
   display: flex;
@@ -10483,11 +10813,16 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
   padding-bottom: 10px;
 }
+.scorecard-detail-heading-col {
+  flex: 1 1 320px;
+  min-width: 0;
+}
 .scorecard-detail-title {
   margin: 2px 0 4px;
   font-size: 20px;
   font-family: "Fraunces", Georgia, serif;
   color: #f8fafc;
+  line-height: 1.2;
 }
 .scorecard-detail-actions {
   display: flex;
@@ -10499,6 +10834,22 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
+@media screen and (max-width: 1320px) {
+  .scorecard-detail-sheet .scorecard-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media screen and (max-width: 960px) {
+  .ch42-kit-sheet .scorecard-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media screen and (max-width: 540px) {
+  .scorecard-detail-sheet .scorecard-metrics-grid,
+  .ch42-kit-sheet .scorecard-metrics-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .scorecard-kpi-val {
   font-size: 17px;
@@ -10530,13 +10881,17 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
 
 /* Chapter 42 Modal Layout */
 .ch42-modal-card {
-  width: min(1220px, 96vw);
-  max-height: 92vh;
+  width: min(1360px, 96vw);
+  max-width: min(1360px, 96vw);
+  max-height: 92dvh;
   display: flex;
   flex-direction: column;
 }
 .ch42-modal-body {
   overflow-y: auto;
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 14px 18px 20px;
 }
 .ch42-kit-sheet {
@@ -10557,6 +10912,11 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   border-bottom: 1px solid rgba(148, 163, 184, 0.16);
   text-align: left;
   vertical-align: middle;
+}
+.ch42-lot-table td.sc-col-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .ch42-lot-table th {
   font-size: 10px;
@@ -10621,6 +10981,8 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 9px;
   padding: 9px 10px;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 .scorecard-stat-box.is-pass {
   border-color: rgba(16, 185, 129, 0.52);
@@ -10667,7 +11029,7 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
 }
 .scorecard-charts-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   gap: 10px;
 }
 .scorecard-chart-panel,
@@ -10676,6 +11038,7 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 10px;
   padding: 11px 13px;
+  min-width: 0;
 }
 .sc-panel-title {
   font-size: 11.5px;
@@ -10749,6 +11112,9 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   border: 1px solid rgba(251, 191, 36, 0.4);
   color: #fef3c7;
 }
+.sc-ord-pill.print-only-inline {
+  display: none;
+}
 .scorecard-threats-list {
   display: flex;
   flex-direction: column;
@@ -10760,6 +11126,28 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .scorecard-expi
   background: rgba(15, 23, 42, 0.65);
   border: 1px solid rgba(248, 113, 113, 0.25);
   font-size: 12px;
+}
+.sc-threat-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sc-threat-item-title-line {
+  min-width: 0;
+  flex: 1 1 200px;
+}
+.sc-threat-item-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.sc-threat-item-desc {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  line-height: 1.4;
 }
 .sc-threat-badge {
   display: inline-block;
@@ -10886,37 +11274,250 @@ body[data-basemap="solid_light"] .boundary-scorecard-inline-card .btn-secondary 
   color: #0f172a;
 }
 
+.inspector-ch42-cta-wrap {
+  margin: 8px 0 10px;
+}
 .inspector-ch42-cta-btn {
   width: 100%;
-  justify-content: center;
-  margin-top: 8px;
-  border-color: rgba(16, 185, 129, 0.48) !important;
-  background: rgba(16, 185, 129, 0.14) !important;
-  color: #d1fae5 !important;
-  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(16, 185, 129, 0.48);
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.18), rgba(15, 23, 42, 0.65));
+  color: #d1fae5;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.inspector-ch42-cta-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.inspector-ch42-cta-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: #a7f3d0;
+  line-height: 1.35;
 }
 .inspector-ch42-cta-btn:hover {
-  background: rgba(16, 185, 129, 0.24) !important;
+  border-color: rgba(52, 211, 153, 0.8);
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.28), rgba(15, 23, 42, 0.72));
 }
 body[data-basemap="warm_parchment"] .inspector-ch42-cta-btn,
 body[data-basemap="solid_light"] .inspector-ch42-cta-btn {
-  background: rgba(16, 185, 129, 0.14) !important;
-  color: #065f46 !important;
+  background: linear-gradient(145deg, rgba(209, 250, 229, 0.9), rgba(240, 253, 244, 0.96));
+  color: #065f46;
+}
+body[data-basemap="warm_parchment"] .inspector-ch42-cta-sub,
+body[data-basemap="solid_light"] .inspector-ch42-cta-sub {
+  color: #047857;
 }
 
-@media (max-width: 960px) {
+.mobile-pane-only,
+.scorecard-modal-card button.mobile-pane-only {
+  display: none;
+}
+
+/* Split-screen, tablet, and mobile responsive layout for Scorecards & Ch. 42 */
+@media screen and (max-width: 1120px) {
+  .scorecard-modal-card {
+    height: 92dvh;
+  }
+  .scorecard-mobile-pane-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.26);
+    flex-shrink: 0;
+  }
+  .scorecard-pane-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #94a3b8;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.15s ease;
+  }
+  .scorecard-pane-tab.active {
+    background: rgba(14, 165, 233, 0.24);
+    border-color: rgba(56, 189, 248, 0.65);
+    color: #f0f9ff;
+  }
+  .mobile-pane-only,
+  .scorecard-modal-card .mobile-pane-only,
+  .scorecard-modal-card button.mobile-pane-only {
+    display: inline-flex;
+  }
   .scorecard-hub-split {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
   }
-  .scorecard-hub-table-wrap {
-    max-height: 260px;
+  #scorecard-modal[data-mobile-pane="detail"] .scorecard-hub-toolbar,
+  #scorecard-modal[data-mobile-pane="detail"] .scorecard-hub-table-wrap {
+    display: none;
   }
-  .scorecard-metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  #scorecard-modal[data-mobile-pane="detail"] .scorecard-detail-pane {
+    flex: 1 1 auto;
+    min-height: 0;
   }
-  .scorecard-charts-row {
-    grid-template-columns: 1fr;
+  #scorecard-modal[data-mobile-pane="table"] .scorecard-detail-pane {
+    display: none;
+  }
+  #scorecard-modal[data-mobile-pane="table"] .scorecard-hub-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
+@media screen and (max-width: 720px) {
+  #scorecard-modal,
+  #ch42-modal {
+    padding: 8px;
+  }
+  .scorecard-modal-card,
+  .ch42-modal-card {
+    width: 100%;
+    max-width: 100%;
+    height: 94dvh;
+    max-height: 94dvh;
+  }
+  .scorecard-modal-card > .modal-header,
+  .ch42-modal-card > .modal-header {
+    padding: 11px 13px;
+  }
+  .scorecard-modal-card .modal-title,
+  .ch42-modal-card .modal-title {
+    font-size: 15.5px;
+    line-height: 1.2;
+  }
+  .scorecard-modal-card .brand-kicker,
+  .ch42-modal-card .brand-kicker {
+    font-size: 9.5px;
+    line-height: 1.25;
+  }
+  .scorecard-modal-body,
+  .ch42-modal-body {
+    padding: 10px 12px 14px;
+    gap: 8px;
+  }
+  .scorecard-family-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scorecard-hub-table thead th.sc-col-name,
+  .scorecard-hub-table td.sc-col-name {
+    position: sticky;
+    left: 0;
+    min-width: 132px;
+    max-width: 156px;
+    background: #0f172a;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.35);
+  }
+  .scorecard-hub-table thead th.sc-col-name {
+    z-index: 4;
+  }
+  .scorecard-hub-table td.sc-col-name {
+    z-index: 1;
+  }
+  .scorecard-hub-row.is-selected td.sc-col-name {
+    background: #10324a;
+  }
+  .scorecard-search-input,
+  .scorecard-sort-select {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .scorecard-detail-pane {
+    padding: 11px 12px;
+  }
+  .scorecard-detail-actions {
+    width: 100%;
+  }
+  .scorecard-detail-actions > button {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
+  .scorecard-detail-actions > .btn-scorecard-back-table {
+    flex: 1 1 100%;
+  }
+  .sc-bar-lbl {
+    font-size: 8px;
+  }
+
+  /* Responsive stacked field-walk cards for Chapter 42 blockface lots on phones */
+  .ch42-table-wrap {
+    overflow-x: visible;
+    border: none;
+    background: transparent;
+  }
+  .ch42-lot-table,
+  .ch42-lot-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .ch42-lot-table thead {
+    display: none;
+  }
+  .ch42-lot-table tr.ch42-lot-row {
+    display: block;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.26);
+    border-radius: 10px;
+    padding: 9px 11px;
+    margin-bottom: 8px;
+  }
+  .ch42-lot-table tr.ch42-lot-row.is-cutoff-lot {
+    border-color: rgba(245, 158, 11, 0.6);
+    background: rgba(245, 158, 11, 0.14);
+  }
+  .ch42-lot-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    white-space: normal;
+  }
+  .ch42-lot-table td > .ch42-cell-val {
+    min-width: 0;
+    text-align: right;
+    white-space: normal;
+  }
+  .ch42-lot-table td:last-child {
+    border-bottom: none;
+  }
+  .ch42-lot-table td::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+    text-align: left;
+    flex-shrink: 0;
+    padding-top: 2px;
   }
 }
 

@@ -25,7 +25,7 @@
  *      any daily run where `failedAgencies.length > 0` or `allOk === false`.
  */
 
-import { parseHcadAccountList } from "./platMonitorHelpers.js?v=20261030a";
+import { parseHcadAccountList } from "./platMonitorHelpers.js?v=20261030b";
 import {
   REMOVED_TIER3_TOMBSTONE,
   REMOVED_WATCHLIST_TOMBSTONE,
@@ -35,7 +35,7 @@ import {
   normalizeWatchProperty,
   sanitizeExternalLinksList,
   simplifySearchAddress,
-} from "./watchlistSyncHelpers.js?v=20261030a";
+} from "./watchlistSyncHelpers.js?v=20261030b";
 
 export const ACTIVITY_RETENTION_DAYS = 90;
 export const MAX_STORED_READ_EVENT_IDS = 500;

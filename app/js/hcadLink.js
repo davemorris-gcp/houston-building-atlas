@@ -14,7 +14,7 @@
 import {
   extractLegalSubdivisionFromLines,
   splitHcadLegalLines,
-} from "./clerkSearchHelpers.js?v=20261030a";
+} from "./clerkSearchHelpers.js?v=20261030b";
 
 const HCAD_EXTERNAL_ACCESS_URL =
   "https://api.hcad.org/propertysearch/ExternalAccess/AccountDetails";

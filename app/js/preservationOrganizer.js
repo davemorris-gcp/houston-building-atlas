@@ -11,10 +11,10 @@
  *     while leaving pre-July 24, 2015 ordinances on their 20-year statutory sunset clock.
  */
 
-import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261030a";
-import { HCAD_PUBLIC_QUERY_URL, normalizeHcad13 } from "./hcadViewportParcels.js?v=20261030a";
+import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261030b";
+import { HCAD_PUBLIC_QUERY_URL, normalizeHcad13 } from "./hcadViewportParcels.js?v=20261030b";
 
-export const ORGANIZER_CACHE_BUST = "20261030a";
+export const ORGANIZER_CACHE_BUST = "20261030b";
 export const NEIGHBORHOOD_SCORECARDS_URL = `public/data/neighborhood_scorecards.json?v=${ORGANIZER_CACHE_BUST}`;
 
 export const ORD_2015_639_CUTOFF_ISO = "2015-07-24";
@@ -1004,6 +1004,8 @@ export function computeLiveBoundaryThreats(boundaryInput, liveDatasets = {}) {
   const bbox = geom ? computeGeometryBbox(geom) : null;
 
   const mergedByKey = new Map();
+  const keyByHcad = new Map();
+  const keyByAddr = new Map();
   const sourceCounts = { permits: 0, plats: 0, watchlist: 0, hahc: 0 };
 
   const upsertThreat = ({
@@ -1021,19 +1023,63 @@ export function computeLiveBoundaryThreats(boundaryInput, liveDatasets = {}) {
     lat = null,
     severityRank = 2,
   }) => {
-    const cleanHcad = normalizeHcad13(hcadNum);
-    const addrKey = normalizeThreatAddressKey(address);
-    const dedupKey = cleanHcad
-      ? `hcad:${cleanHcad}`
-      : addrKey
-      ? `addr:${addrKey}`
-      : `title:${source}:${String(title || summary).toUpperCase().trim()}`;
+    const allHcads = Array.from(
+      new Set(
+        String(hcadNum || "")
+          .split(/[,;\s|]+/)
+          .map((t) => normalizeHcad13(t))
+          .filter(Boolean)
+      )
+    );
+    const cleanHcad = allHcads[0] || "";
+    const addrKeys = Array.from(
+      new Set(
+        String(address || "")
+          .split(/[;|]+/)
+          .map((t) => normalizeThreatAddressKey(t))
+          .filter(Boolean)
+      )
+    );
+    const addrKey = addrKeys[0] || "";
+
+    let existingKey = "";
+    for (const h of allHcads) {
+      if (keyByHcad.has(h)) {
+        existingKey = keyByHcad.get(h);
+        break;
+      }
+    }
+    if (!existingKey) {
+      for (const ak of addrKeys) {
+        const candKey = keyByAddr.get(ak);
+        if (!candKey) continue;
+        const candRec = mergedByKey.get(candKey);
+        if (
+          candRec &&
+          (candRec.hcads.size === 0 ||
+            allHcads.length === 0 ||
+            allHcads.some((h) => candRec.hcads.has(h)))
+        ) {
+          existingKey = candKey;
+          break;
+        }
+      }
+    }
+
+    const dedupKey =
+      existingKey ||
+      (cleanHcad
+        ? `hcad:${cleanHcad}`
+        : addrKey
+        ? `addr:${addrKey}`
+        : `title:${source}:${String(title || summary).toUpperCase().trim()}`);
 
     let rec = mergedByKey.get(dedupKey);
     if (!rec) {
       rec = {
         key: dedupKey,
         hcadNum: cleanHcad,
+        hcads: new Set(allHcads),
         buildingId: String(buildingId || ""),
         title: String(title || address || "Tracked Property"),
         address: String(address || ""),
@@ -1049,6 +1095,7 @@ export function computeLiveBoundaryThreats(boundaryInput, liveDatasets = {}) {
       mergedByKey.set(dedupKey, rec);
     } else {
       if (!rec.hcadNum && cleanHcad) rec.hcadNum = cleanHcad;
+      for (const h of allHcads) rec.hcads.add(h);
       if (!rec.buildingId && buildingId) rec.buildingId = String(buildingId);
       if (!rec.address && address) rec.address = String(address);
       if (rec.title === rec.address && title && title !== address) rec.title = String(title);
@@ -1062,6 +1109,12 @@ export function computeLiveBoundaryThreats(boundaryInput, liveDatasets = {}) {
       if (date && (!rec.latestDate || String(date) > rec.latestDate)) {
         rec.latestDate = String(date);
       }
+    }
+    for (const h of allHcads) {
+      if (!keyByHcad.has(h)) keyByHcad.set(h, rec.key);
+    }
+    for (const ak of addrKeys) {
+      if (!keyByAddr.has(ak)) keyByAddr.set(ak, rec.key);
     }
     if (!rec.sources.includes(source)) {
       rec.sources.push(source);
@@ -1084,7 +1137,12 @@ export function computeLiveBoundaryThreats(boundaryInput, liveDatasets = {}) {
     upsertThreat({
       source: "permits",
       badge: String(p.badge || p.severity_label || "Demolition / Sewer Permit Alert"),
-      hcadNum: p.hcad_num || p.HCAD_NUM,
+      hcadNum: [
+        p.hcad_num || p.HCAD_NUM,
+        ...(Array.isArray(p.related_hcads) ? p.related_hcads : [p.related_hcads]),
+      ]
+        .filter(Boolean)
+        .join(","),
       buildingId: p.building_id || "",
       title: p.title || p.building_name || p.landmark_name || p.address,
       address: p.address || "",
@@ -1125,15 +1183,18 @@ export function computeLiveBoundaryThreats(boundaryInput, liveDatasets = {}) {
       it.atlas?.lat ?? it.lat ?? gCoord?.[1]
     );
     if (!coord || !geom || !pointInGeometry(coord[0], coord[1], geom, bbox)) continue;
-    const firstHcad = String(it.hcad || rev?.hcad || "")
-      .split(/[,;\s|]+/)
-      .map((t) => normalizeHcad13(t))
-      .find(Boolean) || "";
+    const platHcadsRaw = [
+      it.hcad,
+      rev?.hcad,
+      ...(Array.isArray(it.atlas?.hcadAccounts) ? it.atlas.hcadAccounts : []),
+    ]
+      .filter(Boolean)
+      .join(",");
     const tierLbl = rev?.tier ? `Tier ${rev.tier} Plat` : it.special ? `Plat (${it.special})` : "Plat / Replat Filing";
     upsertThreat({
       source: "plats",
       badge: tierLbl,
-      hcadNum: firstHcad,
+      hcadNum: platHcadsRaw,
       buildingId: it.atlas?.buildingId || "",
       title: it.name || rev?.address || it.atlas?.primaryAddress || "Plat Application",
       address: rev?.address || it.atlas?.primaryAddress || "",
@@ -1166,8 +1227,19 @@ export function computeLiveBoundaryThreats(boundaryInput, liveDatasets = {}) {
   for (const w of wlCandidates) {
     if (!w || typeof w !== "object") continue;
     const wid = String(w.id || "").trim();
-    const whcad = normalizeHcad13(w.hcadAccount || w.hcad_num || w.hcad);
-    const dedupWl = wid || (whcad ? `hcad:${whcad}` : `nm:${w.propertyName || w.address || ""}`);
+    const wlHcadsRaw = [
+      w.hcadAccount,
+      w.hcad_num,
+      w.hcad,
+      ...(Array.isArray(w.hcadAccounts) ? w.hcadAccounts : []),
+    ]
+      .filter(Boolean)
+      .join(",");
+    const whcads = Array.from(
+      new Set(wlHcadsRaw.split(/[,;\s|]+/).map((t) => normalizeHcad13(t)).filter(Boolean))
+    );
+    const dedupWl =
+      wid || (whcads.length ? `hcad:${whcads.join(",")}` : `nm:${w.propertyName || w.address || ""}`);
     if (seenWlIds.has(dedupWl)) continue;
     seenWlIds.add(dedupWl);
 
@@ -1194,7 +1266,7 @@ export function computeLiveBoundaryThreats(boundaryInput, liveDatasets = {}) {
     upsertThreat({
       source: "watchlist",
       badge: statusTxt ? `Watchlist: ${statusTxt}` : "PH Watchlist",
-      hcadNum: whcad,
+      hcadNum: wlHcadsRaw,
       buildingId: w.buildingId || "",
       title: w.propertyName || w.platProjectName || w.address || "Watched Property",
       address: w.address || "",
@@ -3216,16 +3288,16 @@ export function renderScorecardHubTableRowsHtml(records = [], selectedKey = "") 
             data-scorecard-layer="${escapeOrganizerHtml(r.layer)}"
             data-scorecard-id="${escapeOrganizerHtml(r.id)}"
             tabindex="0">
-          <td>
-            <div style="font-weight:600;color:var(--text-primary)">${escapeOrganizerHtml(r.name)}</div>
-            <div style="font-size:0.72rem;color:var(--text-secondary)">${escapeOrganizerHtml(cmNote)}${r.councilDistricts && !r.councilMemberMeta ? ` &middot; Dist. ${escapeOrganizerHtml(r.councilDistricts)}` : ""}</div>
+          <td class="sc-col-name">
+            <div class="sc-row-title">${escapeOrganizerHtml(r.name)}</div>
+            <div class="sc-row-sub">${escapeOrganizerHtml(cmNote)}${r.councilDistricts && !r.councilMemberMeta ? ` &middot; Dist. ${escapeOrganizerHtml(r.councilDistricts)}` : ""}</div>
           </td>
-          <td style="text-align:right">${fmtInt(r.buildingCount)}</td>
-          <td style="text-align:right"><strong>${fmtInt(r.pre1940Count)}</strong> <span style="color:var(--text-secondary);font-size:0.72rem">(${r.pre1940Pct}%)</span></td>
-          <td style="text-align:right">${r.cohChapter33Pct}% / <strong>${r.ch42ProtectedPct}%</strong></td>
-          <td style="text-align:right">${r.expiringOrdinances.length > 0 ? `<span class="scorecard-warn-pill">${fmtInt(r.expiringOrdinances.length)} (${fmtInt(r.expiringCh42ParcelCount)} lots)</span>` : `<span style="color:var(--text-muted)">0</span>`}</td>
-          <td style="text-align:right">${r.ownerOccupiedPct}% / ${r.corporateLlcPct}%</td>
-          <td style="text-align:right"><strong>${fmtInt(r.demolitionsTotal2020To2026)}</strong></td>
+          <td class="sc-col-num">${fmtInt(r.buildingCount)}</td>
+          <td class="sc-col-num"><strong>${fmtInt(r.pre1940Count)}</strong> <span class="sc-num-sub">(${r.pre1940Pct}%)</span></td>
+          <td class="sc-col-num">${r.cohChapter33Pct}% / <strong>${r.ch42ProtectedPct}%</strong></td>
+          <td class="sc-col-num">${r.expiringOrdinances.length > 0 ? `<span class="scorecard-warn-pill">${fmtInt(r.expiringOrdinances.length)} (${fmtInt(r.expiringCh42ParcelCount)})</span>` : `<span class="sc-muted-zero">0</span>`}</td>
+          <td class="sc-col-num">${r.ownerOccupiedPct}% / ${r.corporateLlcPct}%</td>
+          <td class="sc-col-num"><strong>${fmtInt(r.demolitionsTotal2020To2026)}</strong></td>
         </tr>
       `;
     })
@@ -3241,6 +3313,9 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
   }
   const shareUrl = String(options.shareUrl || "");
   const asOfLabel = String(options.generatedAt || "October 2026");
+  const PRINT_MAX_EXPIRING_PILLS = 10;
+  const PRINT_MAX_THREAT_ROWS = 5;
+  const SCREEN_MAX_THREAT_ROWS = 20;
   const maxDecCount = Math.max(1, ...scorecard.decadeHistogram.map((d) => d.count));
   const maxDemoCount = Math.max(1, ...scorecard.demolitionsByYear.map((d) => d.count));
   const threats = liveThreats?.items || [];
@@ -3279,8 +3354,12 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
 
   return `
     <div class="scorecard-detail-sheet" data-scorecard-key="${escapeOrganizerHtml(scorecard.key)}">
+      <div class="print-only-block scorecard-print-masthead">
+        <span><strong>Preservation Houston</strong> &middot; The Houston Building Atlas</span>
+        <span>1-Page Preservation &amp; Chapter 42 Data Brief (${escapeOrganizerHtml(asOfLabel)})</span>
+      </div>
       <div class="scorecard-detail-header">
-        <div>
+        <div class="scorecard-detail-heading-col">
           <div class="scorecard-eyebrow">
             <span>${escapeOrganizerHtml(scorecard.typeLabel)}</span>
             ${scorecard.alreadyDesignatedCohHd ? `<span class="badge badge-accent">Designated COH Historic District</span>` : ""}
@@ -3327,6 +3406,9 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
           }
         </div>
         <div class="scorecard-detail-actions no-print">
+          <button type="button" class="btn-secondary btn-scorecard-back-table mobile-pane-only">
+            &larr; Back to Ranking Table
+          </button>
           <button type="button" class="btn-secondary btn-scorecard-fly"
             data-scorecard-layer="${escapeOrganizerHtml(scorecard.layer)}"
             data-scorecard-id="${escapeOrganizerHtml(scorecard.id)}">
@@ -3406,16 +3488,21 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
                <div class="sc-ord-pill-list">
                  ${scorecard.expiringOrdinances
                    .map(
-                     (o) =>
-                       `<span class="sc-ord-pill">${escapeOrganizerHtml(o.protectionType)} Ord. ${escapeOrganizerHtml(o.ordinance)} &middot; ${o.isEstimatedSunset ? "Est. " : ""}${o.expirationYear}</span>`
+                     (o, idx) =>
+                       `<span class="sc-ord-pill${idx >= PRINT_MAX_EXPIRING_PILLS ? " sc-print-overflow" : ""}">${escapeOrganizerHtml(o.protectionType)} Ord. ${escapeOrganizerHtml(o.ordinance)} &middot; ${o.isEstimatedSunset ? "Est. " : ""}${o.expirationYear}</span>`
                    )
                    .join("")}
+                 ${
+                   scorecard.expiringOrdinances.length > PRINT_MAX_EXPIRING_PILLS
+                     ? `<span class="sc-ord-pill print-only-inline">+${fmtInt(scorecard.expiringOrdinances.length - PRINT_MAX_EXPIRING_PILLS)} more expiring ordinances</span>`
+                     : ""
+                 }
                </div>
              </div>`
           : ""
       }
 
-      <div class="scorecard-section-block">
+      <div class="scorecard-section-block scorecard-threats-block">
         <div class="sc-panel-title">
           Active Preservation Early-Warning Alerts Inside Boundary (${fmtInt(threats.length)} deduplicated propert${threats.length === 1 ? "y" : "ies"})
         </div>
@@ -3424,21 +3511,21 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
             ? `<div style="font-size:0.78rem;color:var(--text-secondary)">Zero active demolition/sewer disconnect permits, Tier 1/2 replat submittals, active watchlist escalations, or pending HAHC demolition dockets inside this boundary as of ${escapeOrganizerHtml(asOfLabel)}.</div>`
             : `<div class="scorecard-threats-list">
                  ${threats
-                   .slice(0, 20)
+                   .slice(0, SCREEN_MAX_THREAT_ROWS)
                    .map(
-                     (t) => `
-                   <div class="sc-threat-item">
-                     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
-                       <div>
+                     (t, idx) => `
+                   <div class="sc-threat-item${idx >= PRINT_MAX_THREAT_ROWS ? " sc-print-overflow" : ""}">
+                     <div class="sc-threat-item-top">
+                       <div class="sc-threat-item-title-line">
                          <strong>${escapeOrganizerHtml(t.title)}</strong>
                          ${t.address && t.address !== t.title ? `<span style="color:var(--text-secondary)"> &middot; ${escapeOrganizerHtml(t.address)}</span>` : ""}
                          ${t.yearBuilt ? `<span class="sc-yr-tag">Built ${t.yearBuilt}</span>` : ""}
                        </div>
-                       <div style="display:flex;gap:4px;flex-wrap:wrap">
+                       <div class="sc-threat-item-badges">
                          ${(t.badges || []).map((b) => `<span class="sc-threat-badge">${escapeOrganizerHtml(b)}</span>`).join("")}
                        </div>
                      </div>
-                     <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:3px">
+                     <div class="sc-threat-item-desc">
                        ${escapeOrganizerHtml((t.details || [])[0]?.summary || "")}
                        ${
                          t.hcadNum
@@ -3449,6 +3536,11 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
                    </div>`
                    )
                    .join("")}
+                 ${
+                   threats.length > PRINT_MAX_THREAT_ROWS
+                     ? `<div class="print-only-block sc-print-more-note">+ ${fmtInt(threats.length - PRINT_MAX_THREAT_ROWS)} additional active preservation alert${threats.length - PRINT_MAX_THREAT_ROWS === 1 ? "" : "s"} inside ${escapeOrganizerHtml(scorecard.name)} omitted from 1-page print view. Open the interactive link below for the full parcel list.</div>`
+                     : ""
+                 }
                </div>`
         }
       </div>
@@ -3492,6 +3584,10 @@ export function renderChapter42ModalHtml(assembly, calc, matchedOverlays = [], o
 
   return `
     <div class="ch42-kit-sheet" data-seed-hcad="${escapeOrganizerHtml(assembly.seedHcadNum)}">
+      <div class="print-only-block scorecard-print-masthead">
+        <span><strong>Preservation Houston</strong> &middot; The Houston Building Atlas</span>
+        <span>COH Code Chapter 42 Civic Club Block-Face Petition &amp; Walk-Sheet Packet</span>
+      </div>
       <div class="ch42-header-bar">
         <div>
           <div class="scorecard-eyebrow">
@@ -3619,74 +3715,92 @@ export function renderChapter42ModalHtml(assembly, calc, matchedOverlays = [], o
             ${allDisplayRows
               .map(({ merged, sr, br }) => {
                 const isCut = sr?.isCutoffLot || br?.isCutoffLot;
+                const omitInPrint =
+                  !merged.included &&
+                  merged.frontageRole === "opposing" &&
+                  !assembly.includeOpposingBlockface;
                 return `
-                  <tr class="ch42-lot-row${merged.included ? "" : " is-excluded"}${isCut ? " is-cutoff-lot" : ""}" data-hcad="${escapeOrganizerHtml(merged.hcadNum)}">
-                    <td class="no-print" style="text-align:center">
-                      <input type="checkbox" class="ch42-inc-chk" data-hcad="${escapeOrganizerHtml(merged.hcadNum)}" ${merged.included ? "checked" : ""} aria-label="Include ${escapeOrganizerHtml(merged.address || merged.hcadNum)} in blockface" />
-                    </td>
-                    <td>
-                      <div style="font-weight:600">${escapeOrganizerHtml(merged.address || "Unnumbered Parcel")}</div>
-                      <div style="font-size:0.72rem;color:var(--text-secondary)">
-                        <code>${escapeOrganizerHtml(merged.hcadNum)}</code>
-                        ${merged.yearBuilt ? ` &middot; Built ${merged.yearBuilt}` : merged.isVacant ? " &middot; Vacant" : ""}
-                        ${merged.frontageRole !== "interior" ? ` &middot; <span class="ch42-role-tag">${escapeOrganizerHtml(merged.frontageRole.replace(/_/g, " "))}</span>` : ""}
+                  <tr class="ch42-lot-row${merged.included ? "" : " is-excluded"}${isCut ? " is-cutoff-lot" : ""}${omitInPrint ? " ch42-print-omit" : ""}" data-hcad="${escapeOrganizerHtml(merged.hcadNum)}">
+                    <td class="no-print ch42-td-inc" data-label="Include in Blockface" style="text-align:center">
+                      <div class="ch42-cell-val">
+                        <input type="checkbox" class="ch42-inc-chk" data-hcad="${escapeOrganizerHtml(merged.hcadNum)}" ${merged.included ? "checked" : ""} aria-label="Include ${escapeOrganizerHtml(merged.address || merged.hcadNum)} in blockface" />
                       </div>
                     </td>
-                    <td>
-                      <div style="font-size:0.78rem">${escapeOrganizerHtml(merged.owner || "Unknown Owner")}</div>
-                      <div style="font-size:0.7rem;color:var(--text-secondary)">${escapeOrganizerHtml(merged.legalLines || merged.subdivision || "")}</div>
-                      ${
-                        merged.warnings?.length
-                          ? `<div class="ch42-lot-warn">${merged.warnings.map((w) => escapeOrganizerHtml(w)).join(" &bull; ")}</div>`
-                          : ""
-                      }
+                    <td data-label="Parcel">
+                      <div class="ch42-cell-val">
+                        <div style="font-weight:600">${escapeOrganizerHtml(merged.address || "Unnumbered Parcel")}</div>
+                        <div style="font-size:0.72rem;color:var(--text-secondary)">
+                          <code>${escapeOrganizerHtml(merged.hcadNum)}</code>
+                          ${merged.yearBuilt ? ` &middot; Built ${merged.yearBuilt}` : merged.isVacant ? " &middot; Vacant" : ""}
+                          ${merged.frontageRole !== "interior" ? ` &middot; <span class="ch42-role-tag">${escapeOrganizerHtml(merged.frontageRole.replace(/_/g, " "))}</span>` : ""}
+                        </div>
+                      </div>
                     </td>
-                    <td style="font-size:0.75rem">
-                      <div>${escapeOrganizerHtml(merged.classification?.landUseLabel || "")}</div>
-                      ${
-                        merged.isVacant
-                          ? `<label class="no-print ch42-vacant-toggle">
-                               <input type="checkbox" class="ch42-vac-sfr-chk" data-hcad="${escapeOrganizerHtml(merged.hcadNum)}" ${merged.vacantWasSfrPast5Years ? "checked" : ""} />
-                               <span>SFR within past 5 yrs</span>
-                             </label>`
-                          : ""
-                      }
+                    <td data-label="Owner & Legal">
+                      <div class="ch42-cell-val">
+                        <div style="font-size:0.78rem">${escapeOrganizerHtml(merged.owner || "Unknown Owner")}</div>
+                        <div style="font-size:0.7rem;color:var(--text-secondary)">${escapeOrganizerHtml(merged.legalLines || merged.subdivision || "")}</div>
+                        ${
+                          merged.warnings?.length
+                            ? `<div class="ch42-lot-warn">${merged.warnings.map((w) => escapeOrganizerHtml(w)).join(" &bull; ")}</div>`
+                            : ""
+                        }
+                      </div>
                     </td>
-                    <td style="text-align:right;font-variant-numeric:tabular-nums">
-                      <div><strong>${fmtInt(merged.lotSqftInt)}</strong> sq ft</div>
-                      ${
-                        sr
-                          ? `<div style="font-size:0.71rem;color:var(--text-secondary)">#${sr.rank} &middot; Cum. ${sr.cumulativePct}%${sr.isCutoffLot ? ` <span class="ch42-cut-badge">SMLS CUT</span>` : ""}</div>`
-                          : `<div style="font-size:0.7rem;color:var(--text-muted)">Excluded</div>`
-                      }
+                    <td data-label="Ch. 42 Use" style="font-size:0.75rem">
+                      <div class="ch42-cell-val">
+                        <div>${escapeOrganizerHtml(merged.classification?.landUseLabel || "")}</div>
+                        ${
+                          merged.isVacant
+                            ? `<label class="no-print ch42-vacant-toggle">
+                                 <input type="checkbox" class="ch42-vac-sfr-chk" data-hcad="${escapeOrganizerHtml(merged.hcadNum)}" ${merged.vacantWasSfrPast5Years ? "checked" : ""} />
+                                 <span>SFR within past 5 yrs</span>
+                               </label>`
+                            : ""
+                        }
+                      </div>
                     </td>
-                    <td style="text-align:right;font-variant-numeric:tabular-nums">
-                      ${
-                        merged.isVacant || merged.isSuppressedVacant
-                          ? `<span style="font-size:0.73rem;color:var(--text-muted)">Vacant (Excl.)</span>`
-                          : `<div class="ch42-sb-cell">
-                               <input type="number" step="0.5" min="1" max="300"
-                                 class="ch42-sb-input no-print"
-                                 data-hcad="${escapeOrganizerHtml(merged.hcadNum)}"
-                                 placeholder="${merged.estimatedSetbackFt != null ? merged.estimatedSetbackFt.toFixed(1) : "--"}"
-                                 value="${merged.manualSetbackFt != null ? merged.manualSetbackFt : merged.effectiveSetbackFt != null ? merged.effectiveSetbackFt : ""}"
-                                 aria-label="Front setback feet for ${escapeOrganizerHtml(merged.address || merged.hcadNum)}" />
-                               <span class="print-only-inline">${merged.effectiveSetbackFt != null ? `${merged.effectiveSetbackFt.toFixed(1)} ft` : "Field check"}</span>
-                               <span class="no-print" style="font-size:0.72rem">ft</span>
-                             </div>
-                             ${
-                               br
-                                 ? `<div style="font-size:0.71rem;color:var(--text-secondary)">#${br.rank} &middot; Cum. ${br.cumulativePct}%${br.isCutoffLot ? ` <span class="ch42-cut-badge">SMBL CUT</span>` : ""}</div>`
-                                 : `<div style="font-size:0.7rem;color:var(--text-muted)">Needs setback</div>`
-                             }`
-                      }
+                    <td class="sc-col-num" data-label="Lot Area (SMLS)">
+                      <div class="ch42-cell-val">
+                        <div><strong>${fmtInt(merged.lotSqftInt)}</strong> sq ft</div>
+                        ${
+                          sr
+                            ? `<div style="font-size:0.71rem;color:var(--text-secondary)">#${sr.rank} &middot; Cum. ${sr.cumulativePct}%${sr.isCutoffLot ? ` <span class="ch42-cut-badge">SMLS CUT</span>` : ""}</div>`
+                            : `<div style="font-size:0.7rem;color:var(--text-muted)">Excluded</div>`
+                        }
+                      </div>
                     </td>
-                    <td>
-                      <label class="no-print ch42-sign-lbl">
-                        <input type="checkbox" class="ch42-sign-chk" data-hcad="${escapeOrganizerHtml(merged.hcadNum)}" ${merged.supportSigned ? "checked" : ""} />
-                        <span>Owner Committed</span>
-                      </label>
-                      <div class="ch42-print-sig-line">${merged.supportSigned ? "[X] Committed / Signed" : "[ ] Support   [ ] Undecided   Sig: ________________"}</div>
+                    <td class="sc-col-num" data-label="Front Setback (SMBL)">
+                      <div class="ch42-cell-val">
+                        ${
+                          merged.isVacant || merged.isSuppressedVacant
+                            ? `<span style="font-size:0.73rem;color:var(--text-muted)">Vacant (Excl.)</span>`
+                            : `<div class="ch42-sb-cell">
+                                 <input type="number" step="0.5" min="1" max="300"
+                                   class="ch42-sb-input no-print"
+                                   data-hcad="${escapeOrganizerHtml(merged.hcadNum)}"
+                                   placeholder="${merged.estimatedSetbackFt != null ? merged.estimatedSetbackFt.toFixed(1) : "--"}"
+                                   value="${merged.manualSetbackFt != null ? merged.manualSetbackFt : merged.effectiveSetbackFt != null ? merged.effectiveSetbackFt : ""}"
+                                   aria-label="Front setback feet for ${escapeOrganizerHtml(merged.address || merged.hcadNum)}" />
+                                 <span class="print-only-inline">${merged.effectiveSetbackFt != null ? `${merged.effectiveSetbackFt.toFixed(1)} ft` : "Field check"}</span>
+                                 <span class="no-print" style="font-size:0.72rem">ft</span>
+                               </div>
+                               ${
+                                 br
+                                   ? `<div style="font-size:0.71rem;color:var(--text-secondary)">#${br.rank} &middot; Cum. ${br.cumulativePct}%${br.isCutoffLot ? ` <span class="ch42-cut-badge">SMBL CUT</span>` : ""}</div>`
+                                   : `<div style="font-size:0.7rem;color:var(--text-muted)">Needs setback</div>`
+                               }`
+                        }
+                      </div>
+                    </td>
+                    <td data-label="Petition Sign-Off">
+                      <div class="ch42-cell-val">
+                        <label class="no-print ch42-sign-lbl">
+                          <input type="checkbox" class="ch42-sign-chk" data-hcad="${escapeOrganizerHtml(merged.hcadNum)}" ${merged.supportSigned ? "checked" : ""} />
+                          <span>Owner Committed</span>
+                        </label>
+                        <div class="ch42-print-sig-line">${merged.supportSigned ? "[X] Committed / Signed" : "[ ] Support   [ ] Undecided   Sig: ________________"}</div>
+                      </div>
                     </td>
                   </tr>
                 `;

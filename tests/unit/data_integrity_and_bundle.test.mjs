@@ -10,6 +10,7 @@ import {
   validateExternalAtlasUrl,
 } from "../../app/js/urlValidators.js";
 import { parseHashToState } from "../../app/js/filterStore.js";
+import { ORGANIZER_CACHE_BUST } from "../../app/js/preservationOrganizer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
@@ -613,10 +614,30 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     );
   }
 
-  // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, schema.py, HTML entrypoints, ES module imports, and static public/data fetches
+  // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, schema.py, ORGANIZER_CACHE_BUST, mapController fallback, HTML asset tags, ES imports, and public/data fetches
   const manifest = readDataJson("pmtiles_manifest.json");
   const expectedVer = String(manifest.cache_bust || "").trim();
-  assert.equal(expectedVer, "20261030a", `Expected pmtiles_manifest.json cache_bust === '20261030a'`);
+  assert.match(
+    expectedVer,
+    /^\d{8}[a-z]?$/,
+    `Expected pmtiles_manifest.json cache_bust to match YYYYMMDD[a-z], got '${expectedVer}'`
+  );
+  assert.equal(
+    ORGANIZER_CACHE_BUST,
+    expectedVer,
+    `ORGANIZER_CACHE_BUST ('${ORGANIZER_CACHE_BUST}') in preservationOrganizer.js must match pmtiles_manifest.json ('${expectedVer}')`
+  );
+
+  const mapControllerRaw = fs.readFileSync(path.join(APP_DIR, "js", "mapController.js"), "utf8");
+  const mcFallbackMatch = mapControllerRaw.match(
+    /this\.pmtilesManifest\.cache_bust\)\s*\|\|\s*["']([^"']+)["']/
+  );
+  assert.ok(mcFallbackMatch, "mapController.js must declare a cache_bust fallback literal");
+  assert.equal(
+    mcFallbackMatch[1],
+    expectedVer,
+    `mapController.js cache_bust fallback ('${mcFallbackMatch[1]}') must match pmtiles_manifest.json ('${expectedVer}')`
+  );
 
   const schemaPyRaw = fs.readFileSync(path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "schema.py"), "utf8");
   const schemaVerMatch = schemaPyRaw.match(/^\s*ACTIVE_CACHE_BUST\s*=\s*["']([^"']+)["']/m);
@@ -670,6 +691,16 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
         urlStr.includes(`?v=${expectedVer}`),
         true,
         `Data fetch '${urlStr}' in ${rel} is missing cache-buster '?v=${expectedVer}'`
+      );
+    }
+  }
+  for (const htmlRel of ["index.html", "plat-monitor.html"]) {
+    const htmlSrc = fs.readFileSync(path.join(APP_DIR, htmlRel), "utf8");
+    for (const m of htmlSrc.matchAll(/<(?:link|script)\b[^>]+(?:href|src)=["']((?:styles|js)\/[^"']+)["']/g)) {
+      assert.equal(
+        m[1].endsWith(`?v=${expectedVer}`),
+        true,
+        `${htmlRel} local asset '${m[1]}' must end with '?v=${expectedVer}'`
       );
     }
   }

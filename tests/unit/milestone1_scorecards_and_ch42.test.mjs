@@ -1238,6 +1238,81 @@ test("UT-JS-5: computeLiveBoundaryThreats deduplicates 4 streams into 1 property
   });
   assert.equal(dirDedup.totalUniqueThreats, 1);
   assert.equal(dirDedup.items[0].sources.length, 2);
+
+  // Cross-feed deduplication when one feed has single/multi-HCAD + multi-address and another has
+  // blank HCAD or a secondary parcel HCAD, while NEVER collapsing distinct 13-digit HCAD parcels
+  // (including comma-delimited multi-HCAD watchlist and permit related_hcads records).
+  const crossFeedAddrDedup = computeLiveBoundaryThreats(boundaryFeat, {
+    boundaryLayer: "council_districts",
+    boundaryName: "District C",
+    activePermitAlerts: {
+      alerts: [
+        {
+          hcad_num: "0611390420051",
+          related_hcads: ["0611390420052"],
+          address: "235 W 20TH ST",
+          badge: "Pre-Demolition Sewer Disconnect",
+          severity: "critical",
+          lng: insideLng,
+          lat: insideLat,
+        },
+      ],
+    },
+    platAgendaMonitor: {
+      reviews: {
+        "2026-9901": {
+          tier: "2",
+          hcad: "0611390420001, 0611390420051",
+          address: "239 W 20TH ST; 235 W 20TH ST",
+          why: "Townhome replat",
+        },
+      },
+      items: [
+        {
+          app: "2026-9901",
+          hcad: "0611390420001",
+          name: "Heights partial replat no 33",
+          atlas: { lng: insideLng, lat: insideLat, coordSource: "hcad_parcel" },
+        },
+      ],
+    },
+    propertyWatchlist: {
+      watchedProperties: [
+        {
+          id: "watch-no-hcad-239",
+          address: "235 West 20th Street",
+          lon: insideLng,
+          lat: insideLat,
+          trackerStatus: "Monitoring",
+        },
+        {
+          id: "watch-secondary-hcad-235",
+          hcadAccount: "0611390420052",
+          address: "233 W 20TH ST",
+          lon: insideLng,
+          lat: insideLat,
+          trackerStatus: "Active",
+        },
+        {
+          id: "watch-distinct-multi-hcad",
+          hcadAccount: "0611390420999, 0611390420998",
+          address: "239 W 20TH ST",
+          lon: insideLng,
+          lat: insideLat,
+          trackerStatus: "For Sale",
+        },
+      ],
+    },
+  });
+  assert.equal(crossFeedAddrDedup.totalUniqueThreats, 2);
+  const replatMerged = crossFeedAddrDedup.items.find((r) =>
+    ["0611390420051", "0611390420001"].includes(r.hcadNum)
+  );
+  const distinctMulti = crossFeedAddrDedup.items.find((r) => r.hcadNum === "0611390420999");
+  assert.ok(replatMerged, "Expected multi-parcel permit + plat + watchlist rows to merge");
+  assert.ok(distinctMulti, "Expected multi-HCAD watchlist record to keep non-empty hcadNum and avoid collapsing");
+  assert.deepEqual(replatMerged.sources.slice().sort(), ["permits", "plats", "watchlist"]);
+  assert.deepEqual(distinctMulti.sources, ["watchlist"]);
 });
 
 // ============================================================================
