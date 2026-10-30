@@ -85,6 +85,10 @@ DEAD_URL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         ),
     ),
     ("hpl_legacy_cdm_redirect_path", re.compile(r"digital\.houstonlibrary\.org/cdm/", re.I)),
+    (
+        "coh_ch42_retired_forms_devregs_pdf",
+        re.compile(r"houstontx\.gov/planning/Forms/devregs/(?:SMLS|SMBL)-", re.I),
+    ),
     ("uninterpolated_js_token", re.compile(r"(?:[/?&=#]|^)(?:undefined|null|NaN)(?:[/?&#]|$)|\$\{[^}]*\}")),
 ]
 

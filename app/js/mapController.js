@@ -11,7 +11,7 @@ import {
   PRESERVATION_STATUS_ITEMS,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261029b";
+} from "./palettes.js?v=20261030a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -25,13 +25,13 @@ import {
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261029b";
+} from "./filterStore.js?v=20261030a";
 import {
   applyOverrideToProperties,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261029b";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261029b";
+} from "./curatedEdits.js?v=20261030a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261030a";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
@@ -39,7 +39,9 @@ import {
   HcadViewportParcelClient,
   mapHcadStateClassToUseCategory,
   matchHcadParcelFeaturesByAddressQuery,
-} from "./hcadViewportParcels.js?v=20261029b";
+  normalizeHcad13,
+} from "./hcadViewportParcels.js?v=20261030a";
+import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261030a";
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -298,14 +300,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261029b"),
-      fetch("public/data/parcels.geojson?v=20261029b"),
-      fetch("public/data/overlays.json?v=20261029b"),
-      fetch("public/data/pmtiles_manifest.json?v=20261029b").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261030a"),
+      fetch("public/data/parcels.geojson?v=20261030a"),
+      fetch("public/data/overlays.json?v=20261030a"),
+      fetch("public/data/pmtiles_manifest.json?v=20261030a").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261029b").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261029b").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261029b").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261030a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261030a").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261030a").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1355,7 +1357,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261029b";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261030a";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -1408,6 +1410,14 @@ export class AtlasMapController {
       type: "geojson",
       data: this._buildLabelPointsFeatureCollection(overlays.historic_wards),
     });
+    this.map.addSource("council-districts-src", {
+      type: "geojson",
+      data: overlays.council_districts || { type: "FeatureCollection", features: [] },
+    });
+    this.map.addSource("council-districts-labels-src", {
+      type: "geojson",
+      data: this._buildLabelPointsFeatureCollection(overlays.council_districts),
+    });
     this.map.addSource("super-neighborhoods-src", {
       type: "geojson",
       data: overlays.super_neighborhoods || { type: "FeatureCollection", features: [] },
@@ -1439,6 +1449,10 @@ export class AtlasMapController {
     this.map.addSource("land-use-protections-labels-src", {
       type: "geojson",
       data: this._buildLabelPointsFeatureCollection(overlays.land_use_protections),
+    });
+    this.map.addSource("ch42-blockface-src", {
+      type: "geojson",
+      data: this.ch42BlockfaceFC || { type: "FeatureCollection", features: [] },
     });
     this.map.addSource("selected-boundary-src", {
       type: "geojson",
@@ -1674,6 +1688,28 @@ export class AtlasMapController {
       },
     });
     this.map.addLayer({
+      id: "council-districts-fill",
+      type: "fill",
+      source: "council-districts-src",
+      layout: { visibility: state.layers?.councilDistricts ? "visible" : "none" },
+      paint: {
+        "fill-color": "#0EA5E9",
+        "fill-opacity": 0.06,
+      },
+    });
+    this.map.addLayer({
+      id: "council-districts-line",
+      type: "line",
+      source: "council-districts-src",
+      layout: { visibility: state.layers?.councilDistricts ? "visible" : "none" },
+      paint: {
+        "line-color": "#38BDF8",
+        "line-width": 2.2,
+        "line-dasharray": [4, 2],
+        "line-opacity": 0.88,
+      },
+    });
+    this.map.addLayer({
       id: "super-neighborhoods-fill",
       type: "fill",
       source: "super-neighborhoods-src",
@@ -1786,6 +1822,97 @@ export class AtlasMapController {
         "line-width": 1.8,
         "line-dasharray": [2, 1.5],
         "line-opacity": 0.9,
+      },
+    });
+    this.map.addLayer({
+      id: "ch42-blockface-fill",
+      type: "fill",
+      source: "ch42-blockface-src",
+      paint: {
+        "fill-color": [
+          "match",
+          ["get", CH42_BLOCKFACE_ROLE_PROP],
+          "seed",
+          "#FDE047",
+          "cutoff",
+          "#F59E0B",
+          "included",
+          "#10B981",
+          "opposing_included",
+          "#38BDF8",
+          "corner_candidate",
+          "#FB923C",
+          "opposing_candidate",
+          "#94A3B8",
+          "common_reserve",
+          "#A855F7",
+          "excluded",
+          "#64748B",
+          "#10B981",
+        ],
+        "fill-opacity": [
+          "match",
+          ["get", CH42_BLOCKFACE_ROLE_PROP],
+          "seed",
+          0.34,
+          "cutoff",
+          0.3,
+          "included",
+          0.22,
+          "opposing_included",
+          0.2,
+          "corner_candidate",
+          0.14,
+          "opposing_candidate",
+          0.09,
+          "common_reserve",
+          0.16,
+          "excluded",
+          0.08,
+          0.18,
+        ],
+      },
+    });
+    this.map.addLayer({
+      id: "ch42-blockface-line",
+      type: "line",
+      source: "ch42-blockface-src",
+      paint: {
+        "line-color": [
+          "match",
+          ["get", CH42_BLOCKFACE_ROLE_PROP],
+          "seed",
+          "#FEF08A",
+          "cutoff",
+          "#FBBF24",
+          "included",
+          "#34D399",
+          "opposing_included",
+          "#7DD3FC",
+          "corner_candidate",
+          "#FDBA74",
+          "opposing_candidate",
+          "#CBD5E1",
+          "common_reserve",
+          "#C084FC",
+          "excluded",
+          "#94A3B8",
+          "#34D399",
+        ],
+        "line-width": [
+          "match",
+          ["get", CH42_BLOCKFACE_ROLE_PROP],
+          "seed",
+          3.2,
+          "cutoff",
+          2.6,
+          "included",
+          2.1,
+          "opposing_included",
+          2.0,
+          1.4,
+        ],
+        "line-opacity": 0.94,
       },
     });
     this.map.addLayer({
@@ -3124,6 +3251,27 @@ export class AtlasMapController {
         "circle-color": "#FDE047",
         "circle-stroke-color": "#0F172A",
         "circle-stroke-width": 2.2,
+      },
+    });
+    this.map.addLayer({
+      id: "council-districts-label",
+      type: "symbol",
+      source: "council-districts-labels-src",
+      minzoom: 9.8,
+      layout: {
+        visibility: state.layers?.councilDistricts ? "visible" : "none",
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 9.8, 11.0, 13.5, 14.0],
+        "text-transform": "uppercase",
+        "text-letter-spacing": 0.1,
+        "text-max-width": 10,
+        "text-padding": 8,
+      },
+      paint: {
+        "text-color": "#7DD3FC",
+        "text-halo-color": "rgba(11, 15, 23, 0.94)",
+        "text-halo-width": 2.0,
       },
     });
     this.map.addLayer({
@@ -4808,6 +4956,17 @@ export class AtlasMapController {
           );
         }
       }
+      if (state.layers.councilDistricts && this.overlaysData?.council_districts) {
+        for (const feat of this.overlaysData.council_districts.features || []) {
+          drawPolygonFeature(
+            feat.geometry,
+            "rgba(14, 165, 233, 0.05)",
+            "rgba(56, 189, 248, 0.85)",
+            2.1,
+            [5, 3]
+          );
+        }
+      }
       if (state.layers.superNeighborhoods && this.overlaysData?.super_neighborhoods) {
         for (const feat of this.overlaysData.super_neighborhoods.features || []) {
           drawPolygonFeature(
@@ -4857,6 +5016,42 @@ export class AtlasMapController {
               ? "#FB7185"
               : "#FBBF24";
           drawPolygonFeature(feat.geometry, fill, stroke, 1.7, [2, 1.5]);
+        }
+      }
+      if (this.ch42BlockfaceFC?.features?.length) {
+        for (const feat of this.ch42BlockfaceFC.features) {
+          const role =
+            feat.properties?.[CH42_BLOCKFACE_ROLE_PROP] || feat.properties?.role || "included";
+          const fill =
+            role === "seed"
+              ? "rgba(253, 224, 71, 0.34)"
+              : role === "cutoff"
+              ? "rgba(245, 158, 11, 0.28)"
+              : role === "opposing_included"
+              ? "rgba(56, 189, 248, 0.2)"
+              : role === "corner_candidate"
+              ? "rgba(251, 146, 60, 0.14)"
+              : role === "opposing_candidate" || role === "excluded"
+              ? "rgba(100, 116, 139, 0.08)"
+              : "rgba(16, 185, 129, 0.22)";
+          const stroke =
+            role === "seed"
+              ? "#FEF08A"
+              : role === "cutoff"
+              ? "#FBBF24"
+              : role === "opposing_included"
+              ? "#7DD3FC"
+              : role === "corner_candidate"
+              ? "#FDBA74"
+              : role === "opposing_candidate" || role === "excluded"
+              ? "#94A3B8"
+              : "#34D399";
+          drawPolygonFeature(
+            feat.geometry,
+            fill,
+            stroke,
+            role === "seed" ? 3.0 : role === "cutoff" ? 2.4 : 1.8
+          );
         }
       }
       const drawPolylineFeature = (geom, strokeStyle, lineWidth = 2.0, dash = null) => {
@@ -5540,6 +5735,9 @@ export class AtlasMapController {
     if (state.layers.neighborhoods && this.overlaysData?.neighborhoods) {
       drawBoundaryLabels(this.overlaysData.neighborhoods.features, 12.2, "#D9F99D");
     }
+    if (state.layers.councilDistricts && this.overlaysData?.council_districts) {
+      drawBoundaryLabels(this.overlaysData.council_districts.features, 9.8, "#7DD3FC");
+    }
     if (state.layers.superNeighborhoods && this.overlaysData?.super_neighborhoods) {
       drawBoundaryLabels(this.overlaysData.super_neighborhoods.features, 10.6, "#BFDBFE");
     }
@@ -5664,6 +5862,7 @@ export class AtlasMapController {
       p.overlay_layer === "neighborhoods" ||
       p.overlay_layer === "platted_subdivisions" ||
       p.overlay_layer === "land_use_protections" ||
+      p.overlay_layer === "council_districts" ||
       p.overlay_layer === "super_neighborhoods" ||
       p.overlay_layer === "historic_wards" ||
       p.overlay_layer === "historic_districts" ||
@@ -5748,6 +5947,9 @@ export class AtlasMapController {
         badge = p.type_label || "Chapter 42 Protection";
       } else if (p.overlay_layer === "historic_wards" && p.era_label) {
         badge = p.era_label;
+      } else if (p.overlay_layer === "council_districts") {
+        const cm = p.council_member ? ` · CM ${p.council_member}` : "";
+        badge = `COH Council District ${p.district_letter || p.district_code || ""}${cm}`.trim();
       } else if (p.overlay_layer === "super_neighborhoods" && p.poly_id) {
         badge = `COH Super Neighborhood #${p.poly_id}`;
       } else if (p.overlay_layer === "historical_waterways") {
@@ -6445,6 +6647,10 @@ export class AtlasMapController {
       !isoGeom && Boolean(state.layers?.landUseProtections)
     );
     setVis(
+      ["council-districts-fill", "council-districts-line", "council-districts-label"],
+      !isoGeom && Boolean(state.layers?.councilDistricts)
+    );
+    setVis(
       ["super-neighborhoods-fill", "super-neighborhoods-line", "super-neighborhoods-label"],
       !isoGeom && Boolean(state.layers?.superNeighborhoods)
     );
@@ -6609,6 +6815,7 @@ export class AtlasMapController {
         neighborhoods: Boolean(state.layers?.neighborhoods),
         platted_subdivisions: Boolean(state.layers?.plattedSubdivisions),
         land_use_protections: Boolean(state.layers?.landUseProtections),
+        council_districts: Boolean(state.layers?.councilDistricts),
         super_neighborhoods: Boolean(state.layers?.superNeighborhoods),
         historic_wards: showWards,
         annexations: showAnnex,
@@ -8191,6 +8398,7 @@ export class AtlasMapController {
     indexLayer(this.overlaysData?.land_use_protections, "land_use_protections");
     indexLayer(this.overlaysData?.neighborhoods, "neighborhoods");
     indexLayer(this.overlaysData?.super_neighborhoods, "super_neighborhoods");
+    indexLayer(this.overlaysData?.council_districts, "council_districts");
     indexLayer(this.overlaysData?.historic_wards, "historic_wards");
     indexLayer(this.overlaysData?.historic_districts, "historic_districts");
     indexLayer(this.overlaysData?.heritage_districts, "heritage_districts");
@@ -8222,6 +8430,13 @@ export class AtlasMapController {
       superNeighborhoods: "super_neighborhoods",
       super_neighborhoods: "super_neighborhoods",
       "super-neighborhoods-fill": "super_neighborhoods",
+      councilDistricts: "council_districts",
+      council_districts: "council_districts",
+      council_district: "council_districts",
+      council: "council_districts",
+      city_council: "council_districts",
+      cd: "council_districts",
+      "council-districts-fill": "council_districts",
       historicWards: "historic_wards",
       historic_wards: "historic_wards",
       "historic-wards-fill": "historic_wards",
@@ -9151,6 +9366,12 @@ export class AtlasMapController {
           typeBadge: "Super Nbhd",
           swatchColor: "#818cf8",
         },
+        council_districts: {
+          enabled: Boolean(state.layers?.councilDistricts),
+          priority: 55,
+          typeBadge: "Council Dist",
+          swatchColor: "#38bdf8",
+        },
         historic_wards: {
           enabled: Boolean(state.layers?.historicWards),
           priority: 60,
@@ -9622,6 +9843,7 @@ export class AtlasMapController {
     const culturalDistMatches = [];
     const holcMatches = [];
     let snMatch = null;
+    let councilMatch = null;
     let wardMatch1903 = null;
 
     for (const entry of this.boundarySpatialIndex) {
@@ -9648,6 +9870,8 @@ export class AtlasMapController {
         holcMatches.push(entry);
       } else if (entry.overlayKey === "super_neighborhoods" && !snMatch) {
         snMatch = entry;
+      } else if (entry.overlayKey === "council_districts" && !councilMatch) {
+        councilMatch = entry;
       } else if (
         entry.overlayKey === "historic_wards" &&
         Number(entry.props.era || entry.props.ward_era || entry.props.era_year) === 1903 &&
@@ -9728,6 +9952,11 @@ export class AtlasMapController {
         "",
       neighborhood_id: nhMatches[0]?.props?.id || "",
       super_neighborhood_id: snMatch?.props?.id || "",
+      council_district: councilMatch?.props?.name || "",
+      council_district_id: councilMatch?.props?.id || "",
+      council_district_code:
+        councilMatch?.props?.district_letter || councilMatch?.props?.district_code || "",
+      council_district_props: councilMatch?.props || null,
       historic_ward_id: wardMatch1903?.props?.id || "",
     };
   }
@@ -10570,7 +10799,11 @@ export class AtlasMapController {
     if (!Array.isArray(this.boundarySpatialIndex) || !this.boundarySpatialIndex.length) {
       this._buildBoundarySpatialIndex();
     }
-    const targetId = String(spec.id || "").trim();
+    const rawTargetId = String(spec.id || "").trim();
+    const targetId = rawTargetId.replace(
+      /^cd_([a-k])$/i,
+      (_, ch) => `council_dist_${ch.toLowerCase()}`
+    );
     const targetName = String(spec.name || spec.id || "").trim().toLowerCase();
     const stripDistrictSuffix = (s) =>
       String(s || "")
@@ -10585,11 +10818,13 @@ export class AtlasMapController {
 
     let matchEntry = null;
     if (targetId) {
-      matchEntry = this.boundarySpatialIndex.find(
-        (e) =>
-          String(e.props.id || "") === targetId &&
+      matchEntry = this.boundarySpatialIndex.find((e) => {
+        const entryId = String(e.props.id || "");
+        return (
+          (entryId === targetId || entryId === rawTargetId) &&
           (!targetLayer || e.overlayKey === targetLayer)
-      );
+        );
+      });
     }
     if (!matchEntry && targetName) {
       matchEntry = this.boundarySpatialIndex.find((e) => {
@@ -11159,6 +11394,102 @@ export class AtlasMapController {
             inViewport: true,
           });
         }
+      }
+    }
+
+    return out;
+  }
+
+  setChapter42BlockfaceOverlay(geojsonFC) {
+    const validFC =
+      geojsonFC && geojsonFC.type === "FeatureCollection" && Array.isArray(geojsonFC.features)
+        ? geojsonFC
+        : { type: "FeatureCollection", features: [] };
+    this.ch42BlockfaceFC = validFC;
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+      return;
+    }
+    const src = this.map?.getSource?.("ch42-blockface-src");
+    if (src && typeof src.setData === "function") {
+      src.setData(validFC);
+    }
+  }
+
+  clearChapter42BlockfaceOverlay() {
+    this.setChapter42BlockfaceOverlay({ type: "FeatureCollection", features: [] });
+  }
+
+  collectFootprintsForHcads(hcads = []) {
+    const out = new Map();
+    const wanted = new Set();
+    for (const raw of Array.isArray(hcads) ? hcads : []) {
+      const clean = normalizeHcad13(raw);
+      if (clean) wanted.add(clean);
+    }
+    if (!wanted.size) return out;
+
+    const seenByHcad = new Map();
+    const ingestFeature = (feat) => {
+      if (!feat?.geometry) return;
+      const gType = feat.geometry.type;
+      if (gType !== "Polygon" && gType !== "MultiPolygon") return;
+      const rawProps = feat.properties || {};
+      const merged = applyOverrideToProperties(rawProps, this.curatedOverrides);
+      if (merged.suppress_only) return;
+      const hcad13 = normalizeHcad13(merged.hcad_num || merged.HCAD_NUM || "");
+      if (!hcad13 || !wanted.has(hcad13)) return;
+      const key = String(
+        merged.building_id || merged.id || `${hcad13}:${JSON.stringify(feat.geometry).slice(0, 80)}`
+      );
+      let seen = seenByHcad.get(hcad13);
+      if (!seen) {
+        seen = new Set();
+        seenByHcad.set(hcad13, seen);
+      }
+      if (seen.has(key)) return;
+      seen.add(key);
+      let arr = out.get(hcad13);
+      if (!arr) {
+        arr = [];
+        out.set(hcad13, arr);
+      }
+      arr.push({
+        type: "Feature",
+        geometry: feat.geometry,
+        properties: merged,
+      });
+    };
+
+    for (const f of this.overridesFC?.features || []) ingestFeature(f);
+    for (const f of this.buildingsData || []) ingestFeature(f);
+
+    if (!this.useCanvasFallback && this.map) {
+      const queryLayers = [
+        "curated-overrides-fill",
+        "curated-overrides-extrusion",
+        ...(this.buildingFillLayerIds || []),
+        ...(this.buildingExtrusionLayerIds || []),
+      ].filter((id) => this.map.getLayer(id));
+      if (queryLayers.length > 0) {
+        try {
+          const rendered = this.map.queryRenderedFeatures({ layers: queryLayers });
+          for (const f of rendered) ingestFeature(f);
+        } catch (_e) {}
+      }
+      if (Array.isArray(this.shardSourceIds)) {
+        for (const srcId of this.shardSourceIds) {
+          try {
+            const srcFeats = this.map.querySourceFeatures(srcId, { sourceLayer: "buildings" });
+            for (const f of srcFeats) ingestFeature(f);
+          } catch (_e) {}
+        }
+      }
+      if (this.map.getSource("buildings-src")) {
+        try {
+          const bFeats = this.map.querySourceFeatures("buildings-src");
+          for (const f of bFeats) ingestFeature(f);
+        } catch (_e) {}
       }
     }
 

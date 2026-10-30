@@ -12,7 +12,7 @@ import {
   parseClerkLegalTokens,
   formatClerkPartyTokens,
   cleanClerkSubdivisionDesc,
-} from "./clerkSearchHelpers.js?v=20261029b";
+} from "./clerkSearchHelpers.js?v=20261030a";
 import {
   THREAT_CATEGORIES,
   parseHcadAccountList,
@@ -21,7 +21,7 @@ import {
   areContinuitySnapshotsCompatible,
   normalizeContinuityPlatName,
   classifyPlatItem,
-} from "./platMonitorHelpers.js?v=20261029b";
+} from "./platMonitorHelpers.js?v=20261030a";
 
 export const TRACKER_STATUSES = [
   "Active / High Priority",

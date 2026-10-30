@@ -55,6 +55,8 @@ export const DEFAULT_FILTER_STATE = {
   holcGradeFilter: "all", // 'all' | 'A' | 'B' | 'C' | 'D'
   hahcFilter: "all", // 'all' | 'active_agenda' | 'demolition_relocation' | 'addition_new' | 'designation' | 'denied_or_cor'
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
+  activeScorecard: null, // null or { layer: string, id: string }
+  activeCh42: null, // null or { hcad: string, includeOpposing: boolean }
   layers: {
     permitWatch: true,
     platWatch: false,
@@ -74,6 +76,7 @@ export const DEFAULT_FILTER_STATE = {
     plattedSubdivisions: false,
     landUseProtections: false,
     superNeighborhoods: false,
+    councilDistricts: false,
     historicWards: false,
     annexations: false,
     historicalWaterways: false,
@@ -396,6 +399,7 @@ const LAYER_KEY_TO_SHORT = {
   neighborhoods: "neighborhoods",
   plattedSubdivisions: "platted_subdivisions",
   landUseProtections: "land_use_protections",
+  councilDistricts: "council_districts",
   superNeighborhoods: "super_neighborhoods",
   historicWards: "historic_wards",
   annexations: "annexations",
@@ -485,6 +489,12 @@ const SHORT_TO_LAYER_KEY = {
   deed_restrictions: "landUseProtections",
   smls: "landUseProtections",
   smbl: "landUseProtections",
+  councildistricts: "councilDistricts",
+  council_districts: "councilDistricts",
+  council_district: "councilDistricts",
+  council: "councilDistricts",
+  city_council: "councilDistricts",
+  cd: "councilDistricts",
   superneighborhoods: "superNeighborhoods",
   super_neighborhoods: "superNeighborhoods",
   super_neighborhood: "superNeighborhoods",
@@ -526,6 +536,174 @@ const SHORT_TO_LAYER_KEY = {
   topo: "historicMap",
   usgs: "historicMap",
 };
+
+const SCORECARD_LAYER_ALIASES = {
+  council_districts: "council_districts",
+  councildistricts: "council_districts",
+  council_district: "council_districts",
+  council: "council_districts",
+  city_council: "council_districts",
+  cd: "council_districts",
+  historic_districts: "historic_districts",
+  historicdistricts: "historic_districts",
+  districts: "historic_districts",
+  hd: "historic_districts",
+  heritage_districts: "heritage_districts",
+  heritagedistricts: "heritage_districts",
+  heritage: "heritage_districts",
+  nrhp_districts: "nrhp_districts",
+  nrhpdistricts: "nrhp_districts",
+  nrhp: "nrhp_districts",
+  potential_historic_districts: "potential_historic_districts",
+  potentialhistoricdistricts: "potential_historic_districts",
+  potential_districts: "potential_historic_districts",
+  potential_hd: "potential_historic_districts",
+  phd: "potential_historic_districts",
+  super_neighborhoods: "super_neighborhoods",
+  superneighborhoods: "super_neighborhoods",
+  super_neighborhood: "super_neighborhoods",
+  snbr: "super_neighborhoods",
+  holc_1937_zones: "holc_1937_zones",
+  holc_zones: "holc_1937_zones",
+  holc_1937: "holc_1937_zones",
+  holc1937: "holc_1937_zones",
+  holc: "holc_1937_zones",
+  neighborhoods: "neighborhoods",
+  neighborhood: "neighborhoods",
+  nbhd: "neighborhoods",
+  platted_subdivisions: "platted_subdivisions",
+  plattedsubdivisions: "platted_subdivisions",
+  subdivisions: "platted_subdivisions",
+  subdivision: "platted_subdivisions",
+  plats: "platted_subdivisions",
+  plat: "platted_subdivisions",
+};
+
+const OVERLAY_DATA_ALIAS_MAP = Object.freeze({
+  historicwards: "historic_wards",
+  historic_wards: "historic_wards",
+  historic_ward: "historic_wards",
+  superneighborhoods: "super_neighborhoods",
+  super_neighborhoods: "super_neighborhoods",
+  super_neighborhood: "super_neighborhoods",
+  snbr: "super_neighborhoods",
+  councildistricts: "council_districts",
+  council_districts: "council_districts",
+  council_district: "council_districts",
+  city_council: "council_districts",
+  council: "council_districts",
+  cd: "council_districts",
+  plattedsubdivisions: "platted_subdivisions",
+  platted_subdivisions: "platted_subdivisions",
+  platted_subdivision: "platted_subdivisions",
+  subdivisions: "platted_subdivisions",
+  subdivision: "platted_subdivisions",
+  plats: "platted_subdivisions",
+  plat: "platted_subdivisions",
+  potentialhistoricdistricts: "potential_historic_districts",
+  potential_historic_districts: "potential_historic_districts",
+  potential_historic_district: "potential_historic_districts",
+  potential_districts: "potential_historic_districts",
+  potential_hd: "potential_historic_districts",
+  phd: "potential_historic_districts",
+  culturaldistricts: "cultural_districts",
+  cultural_districts: "cultural_districts",
+  cultural_district: "cultural_districts",
+  holc1937: "holc_1937_zones",
+  holc_1937_zones: "holc_1937_zones",
+  holc_1937_zone: "holc_1937_zones",
+  holc_1937: "holc_1937_zones",
+  holc_zones: "holc_1937_zones",
+  holc: "holc_1937_zones",
+  redbook1915: "red_book_1915",
+  red_book_1915: "red_book_1915",
+  red_book: "red_book_1915",
+  losthouston: "lost_houston",
+  lost_houston: "lost_houston",
+  historicalwaterways: "historical_waterways",
+  historical_waterways: "historical_waterways",
+  historical_waterway: "historical_waterways",
+  waterways: "historical_waterways",
+  historicalrailroads: "historical_railroads",
+  historical_railroads: "historical_railroads",
+  historical_railroad: "historical_railroads",
+  railroads: "historical_railroads",
+  historicdistricts: "historic_districts",
+  historic_districts: "historic_districts",
+  historic_district: "historic_districts",
+  districts: "historic_districts",
+  hd: "historic_districts",
+  heritagedistricts: "heritage_districts",
+  heritage_districts: "heritage_districts",
+  heritage_district: "heritage_districts",
+  heritage: "heritage_districts",
+  nrhpdistricts: "nrhp_districts",
+  nrhp_districts: "nrhp_districts",
+  nrhp_district: "nrhp_districts",
+  nrhp: "nrhp_districts",
+  nrhpproperties: "nrhp_properties",
+  nrhp_properties: "nrhp_properties",
+  nrhp_property: "nrhp_properties",
+  hahctracker: "hahc_coa_filings",
+  hahc_coa_filings: "hahc_coa_filings",
+  hahc_coa: "hahc_coa_filings",
+  hahc_tracker: "hahc_coa_filings",
+  landuseprotections: "land_use_protections",
+  land_use_protections: "land_use_protections",
+  neighborhoods: "neighborhoods",
+  neighborhood: "neighborhoods",
+  nbhd: "neighborhoods",
+  landmarks: "landmarks",
+  thcmarkers: "thc_markers",
+  thc_markers: "thc_markers",
+  goodbrickawards: "good_brick_awards",
+  good_brick_awards: "good_brick_awards",
+  annexations: "annexations",
+  relocatedstructures: "relocated_structures",
+  relocated_structures: "relocated_structures",
+});
+
+export function toOverlayDataKey(rawLayer = "", rawId = "", fallback = "") {
+  const idLower = String(rawId || "").trim().toLowerCase();
+  if (idLower.startsWith("holc_1937_")) return "holc_1937_zones";
+  if (idLower.startsWith("plat_")) return "platted_subdivisions";
+  if (idLower.startsWith("council_dist_") || /^cd_[a-k]$/.test(idLower)) return "council_districts";
+  const cleanLayer = String(rawLayer || "").trim();
+  const mapped = OVERLAY_DATA_ALIAS_MAP[cleanLayer.toLowerCase()];
+  if (mapped) return mapped;
+  return cleanLayer || fallback;
+}
+
+export function toLayerStateKey(overlayOrAlias = "") {
+  const clean = String(overlayOrAlias || "").trim();
+  if (!clean) return "";
+  if (Object.prototype.hasOwnProperty.call(DEFAULT_FILTER_STATE.layers, clean)) {
+    return clean;
+  }
+  return SHORT_TO_LAYER_KEY[clean.toLowerCase()] || "";
+}
+
+function normalizeScorecardSpec(spec) {
+  if (!spec || typeof spec !== "object") return null;
+  const rawLayer = String(spec.layer || spec.layerKey || "").trim().toLowerCase();
+  const layer = SCORECARD_LAYER_ALIASES[rawLayer] || "";
+  const id = String(spec.id || "").trim();
+  if (!layer || !id || !/^[A-Za-z0-9_.:-]+$/.test(id)) return null;
+  return { layer, id };
+}
+
+function normalizeCh42Spec(spec) {
+  if (!spec) return null;
+  const rawHcad = typeof spec === "string" ? spec : spec.hcad || spec.hcadNum || "";
+  const hcad = String(rawHcad || "").trim();
+  if (!/^\d{13}$/.test(hcad) || /^0+$/.test(hcad)) return null;
+  return {
+    hcad,
+    includeOpposing: Boolean(
+      typeof spec === "object" && (spec.includeOpposing || spec.opposing || spec.opp)
+    ),
+  };
+}
 
 const BASEMAP_TO_SHORT = {
   dark_archival: "dark",
@@ -805,6 +983,23 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     params.set("portfolio", `${pKind}:${String(activePortfolio.query).trim()}`);
   }
 
+  const effScorecard = normalizeScorecardSpec(
+    options.activeScorecard !== undefined ? options.activeScorecard : state.activeScorecard
+  );
+  if (effScorecard) {
+    params.set("scorecard", `${effScorecard.layer}:${effScorecard.id}`);
+  }
+
+  const effCh42 = normalizeCh42Spec(
+    options.activeCh42 !== undefined ? options.activeCh42 : state.activeCh42
+  );
+  if (effCh42) {
+    params.set("ch42", effCh42.hcad);
+    if (effCh42.includeOpposing) {
+      params.set("ch42opp", "1");
+    }
+  }
+
   if (state.isolatedBoundary && (state.isolatedBoundary.id || state.isolatedBoundary.name)) {
     const isoLayer = state.isolatedBoundary.layerKey || "neighborhoods";
     const isoTarget = state.isolatedBoundary.id || state.isolatedBoundary.name;
@@ -858,6 +1053,8 @@ export function buildShareableUrl(state, viewport = null, options = {}) {
     selectedBoundary: options.selectedBoundary || null,
     activeChapterId: options.activeChapterId || "",
     activePortfolio: options.activePortfolio || null,
+    activeScorecard: options.activeScorecard,
+    activeCh42: options.activeCh42,
     collapseSidebar: Boolean(options.collapseSidebar),
     humanReadable: true,
   });
@@ -1234,6 +1431,32 @@ export function parseHashToState(hashString = "", searchString = "") {
     }
   }
 
+  let activeScorecard = null;
+  if (mergedParams.has("scorecard") || mergedParams.has("scorecards")) {
+    const rawSc = String(
+      mergedParams.get("scorecard") ?? mergedParams.get("scorecards") ?? ""
+    ).trim();
+    const scIdx = rawSc.indexOf(":");
+    if (scIdx > 0) {
+      activeScorecard = normalizeScorecardSpec({
+        layer: rawSc.slice(0, scIdx),
+        id: rawSc.slice(scIdx + 1),
+      });
+    } else if (rawSc === "hub" || rawSc === "1" || rawSc === "true") {
+      activeScorecard = { layer: "council_districts", id: "__hub__" };
+    }
+    patch.activeScorecard = activeScorecard;
+  }
+
+  let activeCh42 = null;
+  if (mergedParams.has("ch42")) {
+    const rawCh42 = (mergedParams.get("ch42") || "").trim();
+    const rawOpp = (mergedParams.get("ch42opp") || "").trim().toLowerCase();
+    const includeOpposing = rawOpp === "1" || rawOpp === "true" || rawOpp === "on";
+    activeCh42 = normalizeCh42Spec({ hcad: rawCh42, includeOpposing });
+    patch.activeCh42 = activeCh42;
+  }
+
   return {
     patch,
     viewport,
@@ -1241,6 +1464,8 @@ export function parseHashToState(hashString = "", searchString = "") {
     collapseSidebar,
     activeChapterId,
     activePortfolio,
+    activeScorecard,
+    activeCh42,
   };
 }
 

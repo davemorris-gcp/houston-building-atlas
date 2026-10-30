@@ -24,6 +24,8 @@ from shapely.geometry import MultiPolygon, Point, Polygon, mapping, shape
 from shapely.ops import unary_union
 from shapely.validation import make_valid
 
+from atlas_pipeline.schema import is_boundary_search_entry, upsert_search_index_slice
+
 
 def round_coords(geom_dict: dict, decimals: int = 5) -> dict:
   def _rc(c):
@@ -1175,8 +1177,14 @@ def main() -> None:
   with open(si_path) as f:
     si_list = json.load(f)
 
-  # Remove any previous place entries (is_neighborhood_entry)
-  si_buildings = [item for item in si_list if not item.get('is_neighborhood_entry')]
+  # Separate building/property entries from boundary entries while preserving unrelated boundary slices (DF-7)
+  owned_layers = frozenset({
+      'historicWards',
+      'superNeighborhoods',
+      'neighborhoods',
+      'plattedSubdivisions',
+  })
+  si_buildings = [item for item in si_list if not is_boundary_search_entry(item)]
   for item in si_buildings:
     hcad = str(item.get('hcad_num') or '').split('#')[0].strip()
     sub = hcad_to_sub.get(hcad) or normalize_hcad_subdivision(str(item.get('subdivision') or ''))
@@ -1309,10 +1317,28 @@ def main() -> None:
         'bbox': [round(v, 5) for v in geom.bounds],
     })
 
-  combined_si = place_entries + si_buildings
+  other_boundaries = [
+      item
+      for item in si_list
+      if is_boundary_search_entry(item)
+      and str(item.get('overlay_layer') or '') not in owned_layers
+  ]
+  combined_si = upsert_search_index_slice(
+      other_boundaries + si_buildings,
+      slice_predicate=lambda it: (
+          is_boundary_search_entry(it)
+          and str(it.get('overlay_layer') or '') in owned_layers
+      ),
+      new_entries=place_entries,
+      prepend=True,
+  )
   with open(si_path, 'w') as f:
     json.dump(combined_si, f, separators=(',', ':'))
-  print(f'Updated {si_path}: {len(place_entries)} neighborhood/subdivision/ward entries + {len(si_buildings)} building entries = {len(combined_si)} total ({os.path.getsize(si_path)/1e6:.2f} MB)')
+  print(
+      f'Updated {si_path}: {len(place_entries)} neighborhood/subdivision/ward entries + '
+      f'{len(other_boundaries)} other boundary entries + {len(si_buildings)} building entries = '
+      f'{len(combined_si)} total ({os.path.getsize(si_path)/1e6:.2f} MB)'
+  )
 
 
 if __name__ == '__main__':

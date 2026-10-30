@@ -4,7 +4,7 @@ import glob
 import json
 import os
 
-from atlas_pipeline.schema import write_compact_json
+from atlas_pipeline.schema import is_boundary_search_entry, write_compact_json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SEARCH_INDEX_PATH = os.path.join(ROOT, "app/public/data/search_index.json")
@@ -281,7 +281,7 @@ def main():
   # 4. Enrich every entry in search_index.json
   existing_hcads_in_si = set()
   for item in search_index:
-    if item.get("type") == "district":
+    if is_boundary_search_entry(item):
       continue
     hcad = str(item.get("hcad_num") or "").strip()
     if hcad:

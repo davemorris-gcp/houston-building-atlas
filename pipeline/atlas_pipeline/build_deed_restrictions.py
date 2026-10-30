@@ -23,6 +23,8 @@ from pathlib import Path
 from shapely.geometry import shape, mapping
 from shapely.strtree import STRtree
 
+from atlas_pipeline.schema import resolve_ch42_ordinance_lifecycle
+
 ROOT_DIR = str(Path(__file__).resolve().parents[2])
 CACHE_DIR = os.path.join(ROOT_DIR, "pipeline", "cache")
 DATA_DIR = os.path.join(ROOT_DIR, "app", "public", "data")
@@ -1287,6 +1289,13 @@ def main():
                 eff_date = ms_to_iso_date(p.get("Effective_Date") or p.get("STARTDATE"))
                 exp_date = ms_to_iso_date(p.get("Expiration_Date"))
                 status = str(p.get("Status") or "Approved").strip()
+                lifecycle = resolve_ch42_ordinance_lifecycle(
+                    ordinance=ord_no,
+                    effective_date=eff_date,
+                    expiration_date=exp_date,
+                    status=status,
+                    protection_type="smls",
+                )
                 rep = sg.representative_point()
                 title = f"SMLS Ord. #{ord_no}" if ord_no else f"Special Minimum Lot Size #{app_num or idx+1}"
                 if lot_sqft > 0:
@@ -1302,7 +1311,12 @@ def main():
                     "no_of_lots": no_lots,
                     "app_num": app_num,
                     "effective_date": eff_date,
-                    "expiration_date": exp_date,
+                    "expiration_date": lifecycle["expiration_date"],
+                    "expiration_year": lifecycle["expiration_year"],
+                    "expiration_label": lifecycle["expiration_label"],
+                    "statutory_term_years": lifecycle["statutory_term_years"],
+                    "is_estimated_sunset": lifecycle["is_estimated_sunset"],
+                    "sunset_status": lifecycle["sunset_status"],
                     "status": status,
                     "label_lng": round(rep.x, 5),
                     "label_lat": round(rep.y, 5),
@@ -1341,6 +1355,13 @@ def main():
                 eff_date = ms_to_iso_date(p.get("START_DATE"))
                 exp_date = ms_to_iso_date(p.get("Expiration_Date"))
                 status = str(p.get("Status") or "Approved").strip()
+                lifecycle = resolve_ch42_ordinance_lifecycle(
+                    ordinance=ord_no,
+                    effective_date=eff_date,
+                    expiration_date=exp_date,
+                    status=status,
+                    protection_type="smbl",
+                )
                 rep = sg.representative_point()
                 title = f"SMBL Ord. #{ord_no}" if ord_no else f"Special Minimum Building Line #{app_num or idx+1}"
                 if bldg_ft > 0:
@@ -1356,7 +1377,12 @@ def main():
                     "no_of_lots": no_lots,
                     "app_num": app_num,
                     "effective_date": eff_date,
-                    "expiration_date": exp_date,
+                    "expiration_date": lifecycle["expiration_date"],
+                    "expiration_year": lifecycle["expiration_year"],
+                    "expiration_label": lifecycle["expiration_label"],
+                    "statutory_term_years": lifecycle["statutory_term_years"],
+                    "is_estimated_sunset": lifecycle["is_estimated_sunset"],
+                    "sunset_status": lifecycle["sunset_status"],
                     "status": status,
                     "label_lng": round(rep.x, 5),
                     "label_lat": round(rep.y, 5),
@@ -1390,6 +1416,11 @@ def main():
                 p = feat.get("properties") or {}
                 nm = str(p.get("NAME") or p.get("Name") or p.get("DISTRICT") or f"Conservation District #{idx+1}").strip().title()
                 rep = sg.representative_point()
+                cons_lc = resolve_ch42_ordinance_lifecycle(
+                    effective_date="2023",
+                    status="Active",
+                    protection_type="conservation",
+                )
                 clean_p = {
                     "id": f"cons_dist_{idx+1}",
                     "name": f"{nm} Conservation District",
@@ -1400,8 +1431,14 @@ def main():
                     "min_bldg_line_ft": 0,
                     "no_of_lots": 0,
                     "app_num": "",
-                    "effective_date": "2023",
-                    "expiration_date": "",
+                    "effective_date": cons_lc["effective_date"],
+                    "effective_year": cons_lc["effective_year"],
+                    "expiration_date": cons_lc["expiration_date"],
+                    "expiration_year": cons_lc["expiration_year"],
+                    "expiration_label": cons_lc["expiration_label"],
+                    "statutory_term_years": cons_lc["statutory_term_years"],
+                    "is_estimated_sunset": cons_lc["is_estimated_sunset"],
+                    "sunset_status": cons_lc["sunset_status"],
                     "status": "Active",
                     "label_lng": round(rep.x, 5),
                     "label_lat": round(rep.y, 5),
@@ -1463,8 +1500,12 @@ def main():
                 p["civic_club_url"] = ""
                 p.pop("plat_year", None)
             p.pop("catalog_id", None)
-            p["plat_citation"] = format_plat_citation(p.get("recnum"), p.get("vol_page"))
-            p["deed_citation"] = format_deed_citation(p.get("deed_num"))
+            if not p.get("is_historic_plat"):
+                p["plat_citation"] = format_plat_citation(p.get("recnum"), p.get("vol_page"))
+                p["deed_citation"] = format_deed_citation(p.get("deed_num"))
+            else:
+                p.setdefault("plat_citation", format_plat_citation(p.get("recnum"), p.get("vol_page")))
+                p.setdefault("deed_citation", format_deed_citation(p.get("deed_num")))
             p["has_deed_docs"] = False
             p["deed_doc_count"] = 0
 

@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,9 @@ MIN_VALID_YEAR = 1836
 MAX_VALID_YEAR = 2027
 MAX_VALID_CAMA_DATE_YEAR = 2026
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261029b"
+ACTIVE_CACHE_BUST = "20261030a"
+ORD_2015_639_CUTOFF_ISO = "2015-07-24"
+ORD_2015_639_CUTOFF_ORD_NUM = 639
 QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
 
 PLAT_CARRY_FORWARD_REVIEW_FIELDS: tuple[str, ...] = (
@@ -267,6 +270,229 @@ def write_compact_json(path: Path | str, payload: Any) -> None:
 def sanitize_atlas_text(val: str) -> str:
     """Normalize typography so public JSON artifacts contain zero U+2014 em-dashes."""
     return val.replace(" \u2014 ", " - ").replace("\u2014", "-")
+
+
+_RE_ORDINANCE_YEAR_SEQ = re.compile(r"\b(19\d{2}|20\d{2})\s*[-/]\s*0*(\d+)\b")
+_RE_YEAR_ONLY = re.compile(r"\b(19\d{2}|20\d{2}|21\d{2})\b")
+_INACTIVE_CH42_STATUSES: frozenset[str] = frozenset({
+    "pending",
+    "in review",
+    "applied",
+    "draft",
+    "withdrawn",
+    "denied",
+    "rescinded",
+})
+
+
+def _add_years_iso(iso_date: str, years: int) -> str:
+    m = _RE_YMD_DATE.match(iso_date)
+    if not m:
+        return ""
+    y_int, m_int, d_int = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    target_yr = y_int + years
+    try:
+        return datetime.date(target_yr, m_int, d_int).isoformat()
+    except ValueError:
+        if m_int == 2 and d_int == 29:
+            return datetime.date(target_yr, 2, 28).isoformat()
+        return str(target_yr)
+
+
+def _extract_iso_or_year(raw_val: Any) -> tuple[str, int]:
+    s = "" if raw_val is None else str(raw_val).strip()
+    if not s or s.lower() in ("null", "none", "nan", "<null>", "n/a", "permanent"):
+        return "", 0
+    m_ymd = _RE_YMD_DATE.match(s)
+    if m_ymd:
+        y_int, m_int, d_int = int(m_ymd.group(1)), int(m_ymd.group(2)), int(m_ymd.group(3))
+        if not is_hcad_null_date_sentinel(y_int, m_int, d_int) and 1980 <= y_int <= 2120:
+            try:
+                return datetime.date(y_int, m_int, d_int).isoformat(), y_int
+            except ValueError:
+                pass
+    m_mdy = _RE_MDY_DATE.match(s)
+    if m_mdy:
+        m_int, d_int, y_int = int(m_mdy.group(1)), int(m_mdy.group(2)), int(m_mdy.group(3))
+        if not is_hcad_null_date_sentinel(y_int, m_int, d_int) and 1980 <= y_int <= 2120:
+            try:
+                return datetime.date(y_int, m_int, d_int).isoformat(), y_int
+            except ValueError:
+                pass
+    m_yr = _RE_YEAR_ONLY.search(s)
+    if m_yr:
+        yr = int(m_yr.group(1))
+        if 1980 <= yr <= 2120:
+            return str(yr), yr
+    return "", 0
+
+
+def resolve_ch42_ordinance_lifecycle(
+    *,
+    ordinance: Any = "",
+    effective_date: Any = "",
+    expiration_date: Any = "",
+    status: Any = "Approved",
+    protection_type: str = "smls",
+    ref_year: int = MAX_VALID_CAMA_DATE_YEAR,
+    renewal_window_years: int = 5,
+) -> dict[str, Any]:
+    """Resolve COH Chapter 42 ordinance effective/sunset lifecycle metadata (DF-1).
+
+    Under City of Houston Code of Ordinances Sec. 42-207(a) (SMLS) and Sec. 42-178(a) (SMBL),
+    ordinances enacted prior to Ord. No. 2015-639 (effective July 24, 2015) carried a 20-year
+    term, whereas ordinances effective on or after July 24, 2015 carry a 40-year term.
+    Because pre-2015 COH SMBL and selected SMLS GIS rows omit explicit Expiration_Date (and
+    some SMBL rows also omit START_DATE, encoding enactment only in ORDINANCE_ like 2007-0123),
+    this helper derives statutory sunset dates with explicit `is_estimated_sunset: True`
+    provenance while leaving non-enacted `Pending` applications without fabricated sunsets.
+    """
+    ptype = str(protection_type or "").strip().lower()
+    ord_str = sanitize_atlas_text(_clean_str(ordinance))
+    status_str = sanitize_atlas_text(_clean_str(status)) or "Approved"
+    status_low = status_str.lower()
+
+    if ptype == "conservation":
+        eff_norm, eff_yr = _extract_iso_or_year(effective_date)
+        return {
+            "effective_date": eff_norm,
+            "effective_year": eff_yr,
+            "expiration_date": "",
+            "expiration_year": 0,
+            "statutory_term_years": 0,
+            "is_estimated_sunset": False,
+            "sunset_status": "permanent",
+            "expiration_label": "No statutory sunset (Ch. 33 Conservation District)",
+        }
+
+    eff_norm, eff_yr = _extract_iso_or_year(effective_date)
+    exp_norm, exp_yr = _extract_iso_or_year(expiration_date)
+
+    ord_yr = 0
+    ord_seq = 0
+    m_ord = _RE_ORDINANCE_YEAR_SEQ.search(ord_str)
+    if m_ord:
+        cand_oy = int(m_ord.group(1))
+        if 1995 <= cand_oy <= 2050:
+            ord_yr = cand_oy
+            ord_seq = int(m_ord.group(2) or "0")
+
+    base_yr = eff_yr or ord_yr
+    term_years = 0
+    if len(eff_norm) == 10:
+        term_years = 20 if eff_norm < ORD_2015_639_CUTOFF_ISO else 40
+    elif ord_yr > 0:
+        if ord_yr < 2015:
+            term_years = 20
+        elif ord_yr > 2015:
+            term_years = 40
+        else:
+            term_years = 20 if (0 < ord_seq < ORD_2015_639_CUTOFF_ORD_NUM) else 40
+    elif eff_yr > 0:
+        term_years = 20 if eff_yr < 2015 else 40
+
+    is_pending = any(tok in status_low for tok in ("pend", "review", "applied", "draft"))
+    is_rejected = any(tok in status_low for tok in ("denied", "withdraw", "rescind", "reject"))
+    is_inactive = is_pending or is_rejected or status_low in _INACTIVE_CH42_STATUSES
+    is_estimated = False
+    resolved_exp_date = "" if (is_pending or is_rejected) else exp_norm
+    resolved_exp_yr = 0 if (is_pending or is_rejected) else exp_yr
+
+    if resolved_exp_yr > 0:
+        if term_years == 0 and base_yr > 0:
+            span = resolved_exp_yr - base_yr
+            if 15 <= span <= 25:
+                term_years = 20
+            elif 35 <= span <= 45:
+                term_years = 40
+    elif not is_inactive and term_years > 0 and base_yr >= 1995:
+        is_estimated = True
+        resolved_exp_yr = base_yr + term_years
+        if len(eff_norm) == 10:
+            resolved_exp_date = _add_years_iso(eff_norm, term_years)
+        else:
+            resolved_exp_date = f"{resolved_exp_yr}-12-31"
+
+    if is_pending:
+        sunset_status = "pending"
+    elif is_rejected:
+        sunset_status = "inactive"
+    elif status_low == "expired" or (resolved_exp_yr > 0 and resolved_exp_yr < ref_year):
+        sunset_status = "expired"
+    elif resolved_exp_yr > 0 and ref_year <= resolved_exp_yr <= ref_year + renewal_window_years:
+        sunset_status = "expiring_soon"
+    elif resolved_exp_yr > ref_year + renewal_window_years:
+        sunset_status = "active"
+    else:
+        sunset_status = "unknown"
+
+    if sunset_status == "pending":
+        exp_label = "Pending application (not yet enacted)"
+    elif sunset_status == "inactive":
+        exp_label = status_str
+    elif resolved_exp_yr > 0:
+        if is_estimated:
+            date_disp = resolved_exp_date if len(eff_norm) == 10 else str(resolved_exp_yr)
+            exp_label = f"Est. {date_disp} ({term_years}-yr statutory term)"
+        else:
+            exp_label = resolved_exp_date
+    else:
+        exp_label = "Date unrecorded in COH GIS"
+
+    return {
+        "effective_date": "" if (is_pending or is_rejected) else eff_norm,
+        "effective_year": 0 if (is_pending or is_rejected) else base_yr,
+        "expiration_date": resolved_exp_date,
+        "expiration_year": resolved_exp_yr,
+        "statutory_term_years": 40 if is_pending else (0 if is_rejected else term_years),
+        "is_estimated_sunset": is_estimated,
+        "sunset_status": sunset_status,
+        "expiration_label": exp_label,
+    }
+
+
+def is_boundary_search_entry(item: dict[str, Any]) -> bool:
+    """Return True when a search_index.json entry represents a boundary/district/place overlay (DF-7)."""
+    if not isinstance(item, dict):
+        return False
+    if item.get("type") == "district":
+        return True
+    if bool(item.get("is_neighborhood_entry")):
+        return True
+    if item.get("overlay_layer"):
+        return True
+    return False
+
+
+def upsert_search_index_slice(
+    index_list: list[dict[str, Any]],
+    *,
+    slice_predicate: Callable[[dict[str, Any]], bool],
+    new_entries: list[dict[str, Any]],
+    prepend: bool = True,
+) -> list[dict[str, Any]]:
+    """Idempotently replace only the targeted boundary slice in search_index.json (DF-7).
+
+    Preserves all unrelated boundary families (historic districts, HOLC zones, potential
+    districts, council districts, cultural districts, neighborhoods, subdivisions) and all
+    building/property entries intact regardless of script execution order.
+    """
+    incoming_ids = {
+        str(entry.get("id") or "").strip()
+        for entry in new_entries
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
+    retained: list[dict[str, Any]] = []
+    for item in index_list:
+        if not isinstance(item, dict):
+            continue
+        if slice_predicate(item):
+            continue
+        item_id = str(item.get("id") or "").strip()
+        if item_id and item_id in incoming_ids and is_boundary_search_entry(item):
+            continue
+        retained.append(item)
+    return (list(new_entries) + retained) if prepend else (retained + list(new_entries))
 
 
 def compile_quadrant_pmtiles(

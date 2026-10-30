@@ -164,8 +164,8 @@ test("Guided Chapters & Portfolio Engine builds deduplicated extant + Lost Houst
   }
 });
 
-test("urlValidators rejects all 11 known retired/broken municipal & archive URL patterns and accepts canonical replacements", () => {
-  assert.equal(KNOWN_DEAD_URL_PATTERNS.length, 11);
+test("urlValidators rejects all 12 known retired/broken municipal & archive URL patterns and accepts canonical replacements", () => {
+  assert.equal(KNOWN_DEAD_URL_PATTERNS.length, 12);
 
   const badUrls = [
     "https://maps.lib.utexas.edu/maps/sanborn/texas_cities_g-i.html",
@@ -173,6 +173,7 @@ test("urlValidators rejects all 11 known retired/broken municipal & archive URL 
     "https://www.houstontx.gov/planning/HistoricPres/historic_districts.html",
     "https://www.houstontx.gov/planning/HistoricPres/HistoricPreservationManual/historic_preservation_manual.html",
     "https://www.houstontx.gov/planning/Commissions/docs_pdfs/hahc/2026/Oct_10_2026/C_Norhill_Redline_Draft_Oct_26.pdf",
+    "https://www.houstontx.gov/planning/Forms/devregs/SMLS-Block-NewApp-0821.pdf",
     "http://digital.houstonlibrary.org/cdm/ref/collection/books/id/28",
     "https://atlas.thc.texas.gov/NR/pdfs/6001063/6001063.pdf",
     "https://projectrowhouses.org/cultural-district",
@@ -194,6 +195,7 @@ test("urlValidators rejects all 11 known retired/broken municipal & archive URL 
     "https://www.cclerk.hctx.net/Applications/WebSearch/MC.aspx",
     "https://www.houstontx.gov/planning/HistoricPres/District_Reference.html",
     "https://www.houstontx.gov/planning/Commissions/hahc_100826/C_Norhill_Redline_Draft_Oct_26.pdf",
+    "https://www.houstontx.gov/planning/docs_pdfs/MLS-MBL-Application2026/SMLS-Block-NewApp-0821.pdf",
     "https://cdm17006.contentdm.oclc.org/digital/collection/p17006coll12/id/545/rec/3",
   ];
 

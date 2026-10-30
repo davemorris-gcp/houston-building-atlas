@@ -76,6 +76,12 @@ export const KNOWN_DEAD_URL_PATTERNS = [
     reason:
       "txrrhistory.com does not have a dedicated /towers/014/014.htm page (HTTP 404); use http://www.txrrhistory.com/towers/index.htm.",
   },
+  {
+    id: "coh_ch42_retired_forms_devregs_pdf",
+    regex: /houstontx\.gov\/planning\/Forms\/devregs\/(?:SMLS|SMBL)-/i,
+    reason:
+      "Retired COH /planning/Forms/devregs/ Chapter 42 application PDF path returns HTTP 404; use https://www.houstontx.gov/planning/docs_pdfs/MLS-MBL-Application2026/...",
+  },
 ];
 
 /**

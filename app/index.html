@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261029b" />
+  <link rel="stylesheet" href="styles/index.css?v=20261030a" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -61,7 +61,7 @@
           type="search"
           id="search-input"
           class="search-input"
-          placeholder="Search address, neighborhood, historic ward, landmark, or HCAD #..."
+          placeholder="Search address, neighborhood, council district, landmark, or HCAD #..."
           autocomplete="off"
         />
         <div id="search-results" class="search-results hidden"></div>
@@ -197,6 +197,15 @@
           <span>&#128203; Plat Monitor</span>
         </a>
 
+        <button
+          type="button"
+          class="action-pill scorecards-pill"
+          id="btn-open-scorecards-hub"
+          title="Open Shareable Neighborhood &amp; City Council District Preservation Scorecards (4,242 Boundaries)"
+        >
+          <span>&#128202; Scorecards</span>
+        </button>
+
         <div class="topbar-more-dropdown" id="topbar-more-dropdown">
           <button
             type="button"
@@ -219,6 +228,15 @@
             >
               &#128203; Plat &amp; Property Monitor
             </a>
+
+            <button
+              type="button"
+              class="action-pill scorecards-pill mobile-only-more-item"
+              id="btn-more-scorecards"
+              title="Open Shareable Neighborhood &amp; City Council District Preservation Scorecards (4,242 Boundaries)"
+            >
+              &#128202; Preservation Scorecards (4,242)
+            </button>
 
             <button
               type="button"
@@ -1227,6 +1245,33 @@
                 </button>
               </div>
 
+              <div class="layer-item-row" data-layer-key="councilDistricts">
+                <label class="check-row layer-row-main">
+                  <input type="checkbox" id="chk-layer-council-districts" />
+                  <span class="swatch-line dashed" style="border-color:#38BDF8;"></span>
+                  <span class="layer-name">City Council Districts A-K (11)</span>
+                </label>
+                <button
+                  type="button"
+                  class="layer-solo-btn"
+                  data-solo-layer="councilDistricts"
+                  title="Show only City of Houston Council Districts A through K (click again to restore)"
+                >
+                  Solo
+                </button>
+              </div>
+
+              <div class="sidebar-scorecard-cta-row">
+                <button
+                  type="button"
+                  class="action-pill subtle sidebar-scorecard-cta-btn"
+                  id="btn-open-scorecards-sidebar"
+                  title="Compare standing historic stock, Chapter 42 protection gaps, expiring ordinances, LLC ownership, and 2020-2026 demolitions across 4,242 boundaries"
+                >
+                  &#128202; Compare Neighborhood &amp; Council Scorecards (4,242)
+                </button>
+              </div>
+
               <div class="layer-item-row" data-layer-key="historicWards">
                 <label class="check-row layer-row-main">
                   <input type="checkbox" id="chk-layer-historic-wards" />
@@ -1615,13 +1660,16 @@
           <p>
             <strong>The Houston Building Atlas</strong> is an open-source historical cartography, house-history research, and preservation advocacy platform created by
             <a href="https://www.preservationhouston.org" target="_blank" rel="noopener noreferrer">Preservation Houston</a>.
-            It maps <strong>1,507,897 dated structures (1823-2026)</strong> across Harris County alongside live countywide HCAD tax parcels and vacant-lot search, <strong>22 preservation, social-history, and civic overlays</strong>, <strong>18 georeferenced historical maps (1869-1969)</strong>, and automated early-warning feeds for endangered historic buildings.
+            It maps <strong>1,507,897 dated structures (1823-2026)</strong> across Harris County alongside live countywide HCAD tax parcels and vacant-lot search, <strong>23 preservation, social-history, and civic overlays</strong>, <strong>18 georeferenced historical maps (1869-1969)</strong>, <strong>4,242 shareable Neighborhood &amp; Council District Preservation Scorecards</strong>, an interactive <strong>Chapter 42 SMLS / SMBL Block-Face Calculator</strong>, and automated early-warning feeds for endangered historic buildings.
           </p>
 
           <h3>Key Capabilities</h3>
           <ul>
             <li>
-              <strong>4-Tab Property Inspector, Live Vacant-Parcel Search &amp; 3-Pillar Protection Scorecard:</strong> Click any building or switch to <em>Parcels / Both</em> (or search any unimproved street address directly) to inspect its <em>Overview</em>, <em>History</em>, <em>Permits</em>, and <em>HCAD &amp; Parcel</em> tabs (expandable to a 2-column <strong>Wide View</strong> on desktop or a <strong>Printable Property Sheet</strong>), including plain-English Chapter 33 demolition rules, Chapter 42 / deed lot-split armor, and City, State (25%), and Federal (20%) historic tax-credit eligibility.
+              <strong>4-Tab Property Inspector, Live Vacant-Parcel Search &amp; Chapter 42 Block-Face Calculator:</strong> Click any building or switch to <em>Parcels / Both</em> (or search any unimproved street address directly) to inspect its <em>Overview</em>, <em>History</em>, <em>Permits</em>, and <em>HCAD &amp; Parcel</em> tabs (expandable to a 2-column <strong>Wide View</strong> on desktop or a <strong>Printable Property Sheet</strong>), including plain-English Chapter 33 demolition rules, Chapter 42 / deed lot-split armor, City/State (25%)/Federal (20%) historic tax-credit eligibility, and 1-click <strong>COH Code Chapter 42 SMLS &amp; SMBL Block-Face Petition Modeling</strong> (complete with 51% Direct-to-Council thresholds and printable civic club walk-sheets).
+            </li>
+            <li>
+              <strong>4,242 Shareable Neighborhood &amp; City Council Preservation Scorecards:</strong> Compare standing pre-1940 / pre-1960 housing stock, Chapter 42 lot-split protection coverage, active vs. expiring 20-year ordinances (2026-2031 sunset watch), investor/LLC ownership concentration, and verified 2020-2026 demolition counts across all 11 City Council Districts (A-K, term through January 2028), 88 Super Neighborhoods, 23 COH Historic Districts, Freedmen's Town Heritage District, 12 NRHP Districts, 60 Surveyed Potential Historic Districts, 47 HOLC Zones, 1,387 Vernacular Neighborhoods, and 2,613 Historic Platted Subdivisions.
             </li>
             <li>
               <strong>One-Click 5-Step House History Research Kit:</strong> Pre-matches every parcel to <strong>16 digitized Sanborn Fire Insurance Atlas volumes (1877-1955, 878 sheets)</strong> across the Library of Congress and UT Austin Perry-Castaneda Library, <strong>39 Houston City Directories (1866-1926)</strong> with historic street-name equivalences, <strong>65 mirrored Subdivision Deed Restriction PDFs</strong>, 1917-1929 contractor records, and <strong>1.30M HCAD building permits</strong>.
@@ -1634,7 +1682,7 @@
             </li>
           </ul>
 
-          <h3>Primary Archival, Municipal &amp; Geospatial Sources (32 Datasets)</h3>
+          <h3>Primary Archival, Municipal &amp; Geospatial Sources (33 Datasets)</h3>
           <ul>
             <li>
               <strong>Harris Central Appraisal District (HCAD) &amp; Building Footprints:</strong> 1.55M tax parcels (<code>Parcels.gdb</code>), CAMA structural/remodel/permit tables (100.00% dated coverage with explicit <code>year_source</code> provenance badges), OpenStreetMap, Microsoft Building Footprints v2, Esri vector footprints, and university/park campus GIS inventories (Rice, UH, TSU, Hermann Park, Heritage Society).
@@ -1646,7 +1694,7 @@
               <strong>Sanborn Atlases, City Directories, Contractors &amp; HAIF:</strong> Library of Congress IIIF Sanborn sheets (626 sheets) + UT Austin PCL Sanborn volumes (252 sheets mirrored locally), Houston Public Library ContentDM City Directories (1866-1926) &amp; HMRC <em>T.G.C.A. Monthly Bulletin</em> / Russell Brown Co. contractor archives, 74 verified demolished <em>Lost Houston</em> landmarks (1837-2006), 5,576 linked Houston Architecture Info Forum (HAIF) threads, and Wikimedia Commons / HABS photography.
             </li>
             <li>
-              <strong>Social History, Neighborhoods &amp; Infrastructure:</strong> Rice University Woodson Research Center <strong>1915 <em>Red Book of Houston</em></strong> (970 African American heritage sites + 85 digitized plates), University of Richmond <em>Mapping Inequality</em> <strong>1937 HOLC Redlining Zones</strong> (47 zones + HARC/NOAA Urban Heat Watch metrics), 2009 Peter Brown GeoPDF neighborhoods (1,387 boundaries), authentic 1839-1905 Municipal Charter Wards, 1836-2020 Annexation boundaries, 5,573 Platted Subdivisions, 910 Chapter 42 SMLS/SMBL/Conservation zones, 1,957 Historical Waterways, Oxbows &amp; Buried Gullies, and 61 Railroad &amp; 1891-1938 Electric Streetcar corridors.
+              <strong>Social History, Neighborhoods &amp; Infrastructure:</strong> Rice University Woodson Research Center <strong>1915 <em>Red Book of Houston</em></strong> (970 African American heritage sites + 85 digitized plates), University of Richmond <em>Mapping Inequality</em> <strong>1937 HOLC Redlining Zones</strong> (47 zones + HARC/NOAA Urban Heat Watch metrics), 2009 Peter Brown GeoPDF neighborhoods (1,387 boundaries), City of Houston Council Districts A-K (11 districts, Jan 2024 - Jan 2028 roster), authentic 1839-1905 Municipal Charter Wards, 1836-2020 Annexation boundaries, 5,573 Platted Subdivisions, 910 Chapter 42 SMLS/SMBL/Conservation zones, 1,957 Historical Waterways, Oxbows &amp; Buried Gullies, and 61 Railroad &amp; 1891-1938 Electric Streetcar corridors.
             </li>
           </ul>
 
@@ -1670,6 +1718,9 @@
             </li>
             <li>
               <strong>Statutory Protection Distinction:</strong> Under COH Code Ch. 33 Sec. 33-250, the 223 standard City Landmarks (<code>LM</code>) outside Historic Districts carry only a 90-day demolition waiver delay, and federal National Register (NRHP) listing alone does not restrict private-owner demolition. Only Protected Landmarks (<code>PLM</code>) and COH Historic District parcels require binding HAHC demolition review.
+            </li>
+            <li>
+              <strong>Chapter 42 SMLS / SMBL Statutory &amp; Geometry Notes:</strong> Blockface modeling follows City of Houston Code Ch. 42, Art. III (<code>Sec. 42-197..208</code> for SMLS and <code>Sec. 42-170..178</code> for SMBL), enforcing the July 24, 2015 (<code>Ord. No. 2015-639</code>) boundary between pre-amendment 20-year sunset terms and post-amendment 40-year terms, halting contiguous blockface assembly across cross-street right-of-way gaps (<code>&gt; 16 m</code>), computing parcel areas in Houston US survey feet calibrated to <code>EPSG:2278</code>, and flagging <code>Sec. 42-173(b)</code> porch/porte-cochere exclusions and the <code>Sec. 42-171(a)(4)</code> 1-lot survey requirement. City Council Districts A-K reflect the sitting roster through January 2028 (including District C Council Member Joe Panzarella, elected April 2026).
             </li>
             <li>
               <strong>Documentation Manual &amp; External Archive Link Health:</strong> Read the complete 10-chapter engineering, data-source, third-party integration, and public/staff curation manual on
@@ -2165,11 +2216,12 @@
                     <strong>Supported Parameters:</strong>
                     <code>base=light|dark|satellite|solid_dark|solid_light</code> &middot;
                     <code>buildings=off|buildings|both|parcels</code> &middot;
-                    <code>layers=good_brick,landmarks,historic_districts,heritage_districts,nrhp_districts,nrhp_properties,potential_districts,cultural_districts,thc_markers,land_use_protections,platted_subdivisions,annexations,none,all</code> &middot;
+                    <code>layers=good_brick,landmarks,historic_districts,heritage_districts,nrhp_districts,nrhp_properties,potential_districts,cultural_districts,thc_markers,land_use_protections,platted_subdivisions,council_districts,super_neighborhoods,annexations,none,all</code> &middot;
                     <code>lmFilter=all|protected|waiver_lm</code> &middot;
                     <code>minY=1836</code> &middot; <code>maxY=2026</code> &middot;
                     <code>color=year_built|preservation_status|use_category</code> &middot;
-                    <code>3d=1</code> &middot; <code>hcad=13_DIGIT_ACCT</code> &middot; <code>sidebar=0</code>
+                    <code>3d=1</code> &middot; <code>hcad=13_DIGIT_ACCT</code> &middot;
+                    <code>scorecard=LAYER:ID</code> &middot; <code>ch42=13_DIGIT_ACCT</code> &middot; <code>ch42opp=1</code> &middot; <code>sidebar=0</code>
                   </li>
                 </ul>
               </div>
@@ -2745,10 +2797,135 @@
         </div>
       </div>
     </div>
+
+    <!-- Shareable Neighborhood & City Council Preservation Scorecards Hub Modal -->
+    <div
+      class="modal-backdrop hidden"
+      id="scorecard-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="scorecard-modal-title"
+    >
+      <div class="modal-card scorecard-modal-card">
+        <div class="modal-header scorecard-modal-header">
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">Preservation Houston &bull; City Council, Civic Club &amp; Media Data Briefs</span>
+              <h2 class="modal-title" id="scorecard-modal-title">Neighborhood &amp; Council District Preservation Scorecards</h2>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            id="btn-close-scorecard-modal"
+            aria-label="Close Preservation Scorecards Modal"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="modal-body scorecard-modal-body">
+          <div class="scorecard-hub-toolbar">
+            <div class="scorecard-family-tabs" id="scorecard-family-tabs" role="tablist" aria-label="Scorecard Boundary Families">
+              <button type="button" class="scorecard-family-pill active" data-sc-family="council_districts">Council Districts (11)</button>
+              <button type="button" class="scorecard-family-pill" data-sc-family="super_neighborhoods">Super Neighborhoods (88)</button>
+              <button type="button" class="scorecard-family-pill" data-sc-family="historic_districts">COH Historic Districts (23)</button>
+              <button type="button" class="scorecard-family-pill" data-sc-family="potential_historic_districts">Surveyed Potential HDs (60)</button>
+              <button type="button" class="scorecard-family-pill" data-sc-family="nrhp_districts">NRHP Districts (12)</button>
+              <button type="button" class="scorecard-family-pill" data-sc-family="heritage_districts">Heritage District (1)</button>
+              <button type="button" class="scorecard-family-pill" data-sc-family="holc_1937_zones">1937 HOLC Zones (47)</button>
+              <button type="button" class="scorecard-family-pill" data-sc-family="neighborhoods">Neighborhoods (1,387)</button>
+              <button type="button" class="scorecard-family-pill" data-sc-family="platted_subdivisions">Historic Plats (2,613)</button>
+            </div>
+            <div class="scorecard-filter-row">
+              <input
+                type="search"
+                id="scorecard-search-input"
+                class="scorecard-search-input"
+                placeholder="Filter by neighborhood, Council Member, subdivision, or HOLC zone..."
+                autocomplete="off"
+                aria-label="Filter scorecards"
+              />
+              <select id="scorecard-sort-select" class="scorecard-sort-select" aria-label="Sort scorecards">
+                <option value="pre1940">Sort: Most Pre-1940 Structures</option>
+                <option value="unprotected_gap">Sort: Most Unprotected Pre-1940 (Ch. 42 Opportunity)</option>
+                <option value="lowest_armor">Sort: Lowest Ch. 42 Armor % (min. 25 pre-1940)</option>
+                <option value="expiring">Sort: Expiring Ch. 42 Ordinances (2026-2031)</option>
+                <option value="llc_share">Sort: Highest Investor / LLC Share % (min. 20 res.)</option>
+                <option value="demos_total">Sort: Highest 2020-2026 Demolitions</option>
+                <option value="name">Sort: Name (A-Z)</option>
+              </select>
+              <span class="scorecard-count-badge mono" id="scorecard-hub-count">Loading...</span>
+            </div>
+          </div>
+          <div class="scorecard-hub-split">
+            <div class="scorecard-hub-table-wrap">
+              <table class="scorecard-hub-table">
+                <thead>
+                  <tr>
+                    <th>Boundary</th>
+                    <th>Standing</th>
+                    <th>Pre-1940</th>
+                    <th>Ch. 33 / Ch. 42</th>
+                    <th>Expiring 26-31</th>
+                    <th>Owner / LLC %</th>
+                    <th>Demos 20-26</th>
+                  </tr>
+                </thead>
+                <tbody id="scorecard-hub-tbody">
+                  <tr>
+                    <td colspan="7" class="scorecard-empty-cell">Loading 4,242 preservation scorecards...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="scorecard-detail-pane" id="scorecard-detail-pane">
+              <div class="scorecard-detail-placeholder">Select any Council District, Neighborhood, or Historic District to view its full Preservation Scorecard brief.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chapter 42 SMLS / SMBL Block-Face Eligibility Calculator & Civic Club Kit Modal -->
+    <div
+      class="modal-backdrop hidden"
+      id="ch42-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ch42-modal-title"
+    >
+      <div class="modal-card ch42-modal-card">
+        <div class="modal-header ch42-modal-header">
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">COH Code Ch. 42 Art. III Div. 3 &amp; 4 &bull; Block-Face Petition Estimator</span>
+              <h2 class="modal-title" id="ch42-modal-title">Chapter 42 Block-Face Protection Calculator &amp; Civic Club Kit</h2>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            id="btn-close-ch42-modal"
+            aria-label="Close Chapter 42 Block-Face Calculator Modal"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="modal-body ch42-modal-body" id="ch42-modal-body">
+          <div class="ch42-loading-box">Assembling live HCAD blockface parcels and building footprints...</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261029b"></script>
+  <script type="module" src="js/app.js?v=20261030a"></script>
 </body>
 </html>

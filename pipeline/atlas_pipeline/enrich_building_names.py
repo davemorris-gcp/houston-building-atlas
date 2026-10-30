@@ -20,6 +20,8 @@ import urllib.parse
 from collections import defaultdict
 from pathlib import Path
 
+from atlas_pipeline.schema import is_boundary_search_entry
+
 CACHE_DIR = Path("pipeline/cache")
 DATA_DIR = Path("app/public/data")
 
@@ -1091,7 +1093,7 @@ def main() -> None:
     existing_si_ids: set[str] = set()
     existing_si_hcads: set[str] = set()
     for item in search_doc:
-        if item.get("type") == "district":
+        if is_boundary_search_entry(item):
             continue
         fid = str(item.get("id") or "").strip()
         hcad = str(item.get("hcad_num") or "").strip()
@@ -1218,7 +1220,7 @@ def main() -> None:
     search_alt_count = 0
     search_multi_addr_count = 0
     for item in search_doc:
-        if item.get("type") == "district":
+        if is_boundary_search_entry(item):
             continue
         fid = str(item.get("id") or "").strip()
         if "#aux_" in fid:
@@ -1235,7 +1237,7 @@ def main() -> None:
         # Strip any prior "AKA: ... • " prefix so we rebuild cleanly
         sub = re.sub(r"^AKA:\s*[^•]+•\s*", "", sub).strip()
 
-        lbl_no_addr = re.sub(r"\s*(?:—\s*\d+\s+.*|\(\d+\s+[^)]+\))$", "", lbl).strip()
+        lbl_no_addr = re.sub(r"\s*(?:\u2014\s*\d+\s+.*|\(\d+\s+[^)]+\))$", "", lbl).strip()
         lbl_primary, lbl_alts = split_primary_and_alts(lbl_no_addr, "")
         addr_cand = clean_name_or_title(item.get("address") or "").strip()
         if not addr_cand and re.match(r"^\d+\s+", lbl):

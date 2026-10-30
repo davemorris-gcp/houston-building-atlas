@@ -63,7 +63,7 @@ test("GitHub Pages bundle size limits (every file < 95 MB, total app/ < 980 MB)"
   );
 });
 
-test("overlays.json contains all 22 GeoJSON FeatureCollections + HOLC grade summary with valid Harris County coordinates", () => {
+test("overlays.json contains all 23 GeoJSON FeatureCollections + HOLC grade summary with valid Harris County coordinates", () => {
   const overlays = readDataJson("overlays.json");
   const expectedFeatureCollections = [
     "landmarks",
@@ -75,6 +75,7 @@ test("overlays.json contains all 22 GeoJSON FeatureCollections + HOLC grade summ
     "good_brick_awards",
     "neighborhoods",
     "super_neighborhoods",
+    "council_districts",
     "historic_wards",
     "platted_subdivisions",
     "land_use_protections",
@@ -292,6 +293,7 @@ test("All static external URLs across HTML, JS, and authoritative data catalogs 
     path.join(DATA_DIR, "property_watchlist.json"),
     path.join(DATA_DIR, "monitor_activity_log.json"),
     path.join(DATA_DIR, "citydir_index.json"),
+    path.join(DATA_DIR, "neighborhood_scorecards.json"),
   ];
 
   const violations = [];
@@ -578,7 +580,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, schema.py, HTML entrypoints, ES module imports, and static public/data fetches
   const manifest = readDataJson("pmtiles_manifest.json");
   const expectedVer = String(manifest.cache_bust || "").trim();
-  assert.equal(expectedVer, "20261029b", `Expected pmtiles_manifest.json cache_bust === '20261029b'`);
+  assert.equal(expectedVer, "20261030a", `Expected pmtiles_manifest.json cache_bust === '20261030a'`);
 
   const schemaPyRaw = fs.readFileSync(path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "schema.py"), "utf8");
   const schemaVerMatch = schemaPyRaw.match(/^\s*ACTIVE_CACHE_BUST\s*=\s*["']([^"']+)["']/m);
@@ -664,10 +666,13 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   for (const relCheck of [
     "app/public/data/monitor_activity_log.json",
     "app/public/data/property_watchlist.json",
+    "app/public/data/neighborhood_scorecards.json",
     "app/plat-monitor.html",
     "app/js/activityLogHelpers.js",
+    "app/js/preservationOrganizer.js",
     "app/js/watchlistSyncHelpers.js",
     "pipeline/atlas_pipeline/build_monitor_activity_log.py",
+    "pipeline/atlas_pipeline/build_neighborhood_scorecards.py",
     "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
     ".github/workflows/update_live_permits.yml",
     "docs/PRESERVATION_MONITORING_AUTOMATION_ARCHITECTURE.md",
@@ -675,6 +680,18 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     const rawTxt = fs.readFileSync(path.join(REPO_ROOT, relCheck), "utf8");
     assert.equal(rawTxt.includes("\u2014"), false, `${relCheck} must contain zero U+2014 em-dashes`);
   }
+
+  const scPath = path.join(DATA_DIR, "neighborhood_scorecards.json");
+  const rawSc = fs.readFileSync(scPath, "utf8");
+  assert.ok(
+    Buffer.byteLength(rawSc, "utf8") < 2_500_000,
+    `neighborhood_scorecards.json (${Buffer.byteLength(rawSc, "utf8")} bytes) must stay below 2,500,000-byte budget`
+  );
+  assert.equal(
+    rawSc.trimEnd().includes("\n"),
+    false,
+    "neighborhood_scorecards.json must remain single-line compact JSON"
+  );
 
   // Zero positional checklist[N] indexing across watchlist/activity pipeline & UI code
   for (const relNoPos of [

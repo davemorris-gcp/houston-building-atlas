@@ -118,8 +118,17 @@ function collectCandidateUrls(maxCatalogPerDomain) {
     "deed_restrictions_catalog.json",
     "sanborn_catalog.json",
     "citydir_index.json",
+    "neighborhood_scorecards.json",
     "overlays.json",
   ];
+  for (const relJs of ["app/js/preservationOrganizer.js"]) {
+    const jsPath = path.join(REPO_ROOT, relJs);
+    if (fs.existsSync(jsPath)) {
+      for (const u of extractHttpUrlsFromText(fs.readFileSync(jsPath, "utf8"))) {
+        addUrl(u, relJs, "harvested");
+      }
+    }
+  }
 
   for (const filename of catalogFiles) {
     const full = path.join(DATA_DIR, filename);

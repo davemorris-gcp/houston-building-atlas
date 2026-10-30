@@ -8,7 +8,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261029b";
+} from "./palettes.js?v=20261030a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -19,19 +19,21 @@ import {
   resolveActiveWardEra,
   serializeStateToHash,
   SHARE_VIEW_PRESETS,
-} from "./filterStore.js?v=20261029b";
-import { AtlasMapController } from "./mapController.js?v=20261029b";
+  toLayerStateKey,
+  toOverlayDataKey,
+} from "./filterStore.js?v=20261030a";
+import { AtlasMapController } from "./mapController.js?v=20261030a";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261029b";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261029b";
+} from "./guidedChaptersAndPortfolios.js?v=20261030a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261030a";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261029b";
+} from "./clerkSearchHelpers.js?v=20261030a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -52,7 +54,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261029b";
+} from "./curatedEdits.js?v=20261030a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -62,17 +64,36 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261029b";
+} from "./photoService.js?v=20261030a";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   formatDemolitionBenchmarksGrantText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261029b";
+} from "./platMonitorHelpers.js?v=20261030a";
 import {
   buildHcadAddressPrefixWhere,
+  normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261029b";
+} from "./hcadViewportParcels.js?v=20261030a";
+import {
+  assembleBlockfaceFromSeedParcel,
+  buildChapter42BlockfaceGeoJson,
+  COH_COUNCIL_ROSTER_2024_2028,
+  computeChapter42BlockEligibility,
+  computeLiveBoundaryThreats,
+  fetchBlockfaceParcelsAroundSeed,
+  fetchHcadParcelByAccount,
+  loadNeighborhoodScorecards,
+  matchCh42OverlaysToBlockface,
+  renderBoundaryInlineScorecardHtml,
+  renderChapter42ModalHtml,
+  renderScorecardDetailHtml,
+  renderScorecardHubTableRowsHtml,
+  resolveCh42OrdinanceLifecycle,
+  SCORECARD_FAMILIES,
+  VALID_SCORECARD_LAYERS,
+} from "./preservationOrganizer.js?v=20261030a";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -92,12 +113,16 @@ export class HoustonAtlasApp {
       collapseSidebar,
       activeChapterId,
       activePortfolio,
+      activeScorecard,
+      activeCh42,
     } = parseHashToState(window.location.hash, window.location.search);
     this.initialViewport = viewport;
     this.initialSelection = selection;
     this.initialCollapseSidebar = collapseSidebar;
     this.initialChapterId = activeChapterId || "";
     this.initialPortfolio = activePortfolio || null;
+    this.initialScorecard = activeScorecard || null;
+    this.initialCh42 = activeCh42 || null;
     this.filterStore = createFilterStore(patch);
     this.searchIndex = [];
     this.globalStats = null;
@@ -124,6 +149,19 @@ export class HoustonAtlasApp {
       category: "all",
       search: "",
     };
+    this._scorecardsData = null;
+    this._watchlistPayloadPromise = null;
+    this._watchlistPayloadCache = null;
+    this._boundaryScorecardReqSeq = 0;
+    this._scorecardModalState = {
+      family: "council_districts",
+      search: "",
+      sort: "pre1940",
+      selectedKey: "",
+    };
+    this._ch42ReqSeq = 0;
+    this._ch42AbortCtrl = null;
+    this._ch42Session = null;
     this._exportStudioState = {
       targetSpec: null, // null = current isolated/selected or viewport
       composition: "figure_ground", // 'figure_ground' | 'footprints_only' | 'border_only' | 'era_poster'
@@ -235,16 +273,15 @@ export class HoustonAtlasApp {
             flyTo: !this.initialViewport,
           });
         } else {
-          const normInitLayer =
-            initBLayer === "holc1937" || initBId.startsWith("holc_1937_")
-              ? "holc_1937_zones"
-              : initBLayer === "plattedSubdivisions" || initBId.startsWith("plat_")
-              ? "platted_subdivisions"
-              : initBLayer || "neighborhoods";
-          if (normInitLayer === "holc_1937_zones") {
-            this.filterStore.setLayerVisibility("holc1937", true);
-          } else if (normInitLayer === "platted_subdivisions") {
-            this.filterStore.setLayerVisibility("plattedSubdivisions", true);
+          const normInitLayer = toOverlayDataKey(initBLayer, initBId, "neighborhoods");
+          const initStoreKey = toLayerStateKey(normInitLayer);
+          if (
+            initStoreKey &&
+            (normInitLayer === "holc_1937_zones" ||
+              normInitLayer === "platted_subdivisions" ||
+              normInitLayer === "council_districts")
+          ) {
+            this.filterStore.setLayerVisibility(initStoreKey, true);
           }
           this.mapController.highlightBoundaryByIdOrName({
             layerKey: normInitLayer,
@@ -261,6 +298,21 @@ export class HoustonAtlasApp {
           false
         );
       }
+    }
+
+    if (this.initialScorecard) {
+      await this.openScorecardModal({
+        layer: this.initialScorecard.layer,
+        id: this.initialScorecard.id,
+        updateUrl: false,
+      });
+    }
+    if (this.initialCh42 && this.initialCh42.hcad) {
+      await this.openChapter42ModalForHcad(this.initialCh42.hcad, {
+        includeOpposing: Boolean(this.initialCh42.includeOpposing ?? this.initialCh42.opposing),
+        updateUrl: false,
+        respectPresetViewport: Boolean(this.initialViewport),
+      });
     }
 
     this._applyExportStudioHashParams(window.location.hash, window.location.search);
@@ -287,6 +339,8 @@ export class HoustonAtlasApp {
         collapseSidebar,
         activeChapterId,
         activePortfolio,
+        activeScorecard,
+        activeCh42,
       } = parseHashToState(window.location.hash, window.location.search);
       this._isRestoringHistory = true;
       this._suppressUrlUpdate = true;
@@ -295,11 +349,51 @@ export class HoustonAtlasApp {
           patch.isolatedBoundary = null;
           this.mapController.clearIsolatedBoundary();
         }
+        if (!activeScorecard && this.filterStore.getState().activeScorecard) {
+          patch.activeScorecard = null;
+        }
+        if (!activeCh42 && this.filterStore.getState().activeCh42) {
+          patch.activeCh42 = null;
+        }
         if (Object.keys(patch).length > 0) {
           this.filterStore.setState(patch);
         }
         if (collapseSidebar !== null) {
           this._setSidebarCollapsed(collapseSidebar);
+        }
+
+        if (activeScorecard) {
+          await this.openScorecardModal({
+            layer: activeScorecard.layer,
+            id: activeScorecard.id,
+            updateUrl: false,
+          });
+        } else if (!document.getElementById("scorecard-modal")?.classList.contains("hidden")) {
+          this.closeScorecardModal({ updateUrl: false });
+        }
+
+        if (activeCh42 && activeCh42.hcad) {
+          const wantOpp = Boolean(activeCh42.includeOpposing ?? activeCh42.opposing);
+          const curSess = this._ch42Session;
+          if (
+            !curSess ||
+            curSess.seedHcadNum !== activeCh42.hcad ||
+            document.getElementById("ch42-modal")?.classList.contains("hidden")
+          ) {
+            await this.openChapter42ModalForHcad(activeCh42.hcad, {
+              includeOpposing: wantOpp,
+              updateUrl: false,
+              respectPresetViewport: Boolean(viewport),
+            });
+          } else if (Boolean(curSess.includeOpposing) !== wantOpp) {
+            curSess.includeOpposing = wantOpp;
+            this._recomputeAndRenderChapter42Session({ updateUrl: false });
+          }
+        } else if (
+          !document.getElementById("ch42-modal")?.classList.contains("hidden") ||
+          this._ch42Session
+        ) {
+          this.closeChapter42Modal({ updateUrl: false });
         }
 
         if (activeChapterId && activeChapterId !== this._activeChapterId) {
@@ -386,16 +480,15 @@ export class HoustonAtlasApp {
               flyTo: !viewport,
             });
           } else {
-            const normSelLayer =
-              selBLayer === "holc1937" || selBId.startsWith("holc_1937_")
-                ? "holc_1937_zones"
-                : selBLayer === "plattedSubdivisions" || selBId.startsWith("plat_")
-                ? "platted_subdivisions"
-                : selBLayer || "neighborhoods";
-            if (normSelLayer === "holc_1937_zones") {
-              this.filterStore.setLayerVisibility("holc1937", true);
-            } else if (normSelLayer === "platted_subdivisions") {
-              this.filterStore.setLayerVisibility("plattedSubdivisions", true);
+            const normSelLayer = toOverlayDataKey(selBLayer, selBId, "neighborhoods");
+            const selStoreKey = toLayerStateKey(normSelLayer);
+            if (
+              selStoreKey &&
+              (normSelLayer === "holc_1937_zones" ||
+                normSelLayer === "platted_subdivisions" ||
+                normSelLayer === "council_districts")
+            ) {
+              this.filterStore.setLayerVisibility(selStoreKey, true);
             }
             this.mapController.highlightBoundaryByIdOrName({
               layerKey: normSelLayer,
@@ -405,7 +498,7 @@ export class HoustonAtlasApp {
               inspect: true,
             });
           }
-        } else if (!activeChapterId && !activePortfolio) {
+        } else if (!activeChapterId && !activePortfolio && !activeCh42) {
           this.mapController.clearSelection();
           document.getElementById("inspector-drawer")?.classList.add("hidden");
           if (vpChangedSignificantly) {
@@ -572,7 +665,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261029b`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030a`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -731,17 +824,18 @@ export class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261029b"),
-        fetch("public/data/stats_summary.json?v=20261029b"),
-        fetch("public/data/haif_index.json?v=20261029b").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261029b").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261029b").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261029b").catch(() => null),
+        fetch("public/data/search_index.json?v=20261030a"),
+        fetch("public/data/stats_summary.json?v=20261030a"),
+        fetch("public/data/haif_index.json?v=20261030a").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261030a").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261030a").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261030a").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
         if (
           item.is_neighborhood_entry ||
+          item.type === "council_district" ||
           item.type === "lost_houston" ||
           item.type === "nrhp_property" ||
           item.type === "red_book_1915" ||
@@ -749,30 +843,10 @@ export class HoustonAtlasApp {
         ) {
           if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
           if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
-          if (item.overlay_layer === "historicWards") item.overlay_layer = "historic_wards";
-          if (item.overlay_layer === "superNeighborhoods") item.overlay_layer = "super_neighborhoods";
-          if (item.overlay_layer === "plattedSubdivisions") {
-            item.overlay_layer = "platted_subdivisions";
-          }
-          if (item.overlay_layer === "lostHouston") item.overlay_layer = "lost_houston";
-          if (item.overlay_layer === "potentialHistoricDistricts") {
-            item.overlay_layer = "potential_historic_districts";
-          }
-          if (item.overlay_layer === "culturalDistricts") {
-            item.overlay_layer = "cultural_districts";
-          }
-          if (item.overlay_layer === "holc1937") {
-            item.overlay_layer = "holc_1937_zones";
-          }
-          if (item.overlay_layer === "redBook1915") {
-            item.overlay_layer = "red_book_1915";
-          }
-          if (
-            item.type === "hahc_coa" ||
-            item.overlay_layer === "hahcTracker" ||
-            item.overlay_layer === "hahc_coa"
-          ) {
-            item.overlay_layer = "hahc_coa_filings";
+          if (item.type === "hahc_coa" || item.overlay_layer) {
+            item.overlay_layer = toOverlayDataKey(
+              item.type === "hahc_coa" ? "hahc_coa_filings" : item.overlay_layer
+            );
           }
           if (!item.sublabel) {
             const alts = Array.isArray(item.alt_names) ? item.alt_names.slice(0, 3).join(", ") : "";
@@ -2008,11 +2082,12 @@ export class HoustonAtlasApp {
     for (let i = 0; i < this.searchIndex.length; i++) {
       const item = this.searchIndex[i];
       if (item.type === "red_book_1915" || item.type === "hahc_coa") continue;
-      if (item.is_neighborhood_entry || item.is_place_boundary) {
+      if (item.is_neighborhood_entry || item.is_place_boundary || item.type === "council_district") {
         if (!item.label) item.label = item.name || item.building_name || "Houston Neighborhood";
         if (!Number.isFinite(item.lon) && Number.isFinite(item.lng)) item.lon = item.lng;
-        if (item.overlay_layer === "historicWards") item.overlay_layer = "historic_wards";
-        if (item.overlay_layer === "superNeighborhoods") item.overlay_layer = "super_neighborhoods";
+        if (item.overlay_layer) {
+          item.overlay_layer = toOverlayDataKey(item.overlay_layer);
+        }
         if (!item.sublabel) {
           const alts = Array.isArray(item.alt_names) ? item.alt_names.slice(0, 3).join(", ") : "";
           item.sublabel = [alts ? `AKA: ${alts}` : "", item.address || ""]
@@ -2866,6 +2941,48 @@ export class HoustonAtlasApp {
     window.addEventListener(
       "keydown",
       (e) => {
+        if (e.key === "Escape") {
+          for (const topUtilityId of ["photo-lightbox-modal", "correction-modal", "share-modal"]) {
+            const utilEl = document.getElementById(topUtilityId);
+            if (utilEl && !utilEl.classList.contains("hidden")) {
+              e.preventDefault();
+              e.stopPropagation();
+              utilEl.classList.add("hidden");
+              return;
+            }
+          }
+          const ch42ModalEl = document.getElementById("ch42-modal");
+          if (ch42ModalEl && !ch42ModalEl.classList.contains("hidden")) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.closeChapter42Modal();
+            return;
+          }
+          const scModalEl = document.getElementById("scorecard-modal");
+          if (scModalEl && !scModalEl.classList.contains("hidden")) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.closeScorecardModal();
+            return;
+          }
+          for (const modalId of [
+            "dossier-modal",
+            "export-studio-modal",
+            "about-modal",
+            "hahc-tracker-modal",
+            "permit-watch-modal",
+            "sanborn-browser-modal",
+          ]) {
+            const mEl = document.getElementById(modalId);
+            if (mEl && !mEl.classList.contains("hidden")) {
+              e.preventDefault();
+              e.stopPropagation();
+              mEl.classList.add("hidden");
+              return;
+            }
+          }
+          return;
+        }
         if (e.metaKey || e.ctrlKey || e.altKey) return;
         const active = document.activeElement;
         if (active) {
@@ -2963,6 +3080,7 @@ export class HoustonAtlasApp {
       ["chk-layer-neighborhoods", "neighborhoods"],
       ["chk-layer-platted-subdivisions", "plattedSubdivisions"],
       ["chk-layer-land-use-protections", "landUseProtections"],
+      ["chk-layer-council-districts", "councilDistricts"],
       ["chk-layer-super-neighborhoods", "superNeighborhoods"],
       ["chk-layer-historic-wards", "historicWards"],
       ["chk-layer-thc-markers", "thcMarkers"],
@@ -3551,7 +3669,212 @@ export class HoustonAtlasApp {
     }
     if (btnPrintDossierNow) {
       btnPrintDossierNow.addEventListener("click", () => {
-        window.print();
+        this._triggerScopedPrint("dossier");
+      });
+    }
+    window.addEventListener("afterprint", () => {
+      if (document.body) {
+        delete document.body.dataset.printSurface;
+      }
+    });
+
+    // Neighborhood & Council District Preservation Scorecards Hub Modal
+    const scorecardModal = document.getElementById("scorecard-modal");
+    const btnCloseScorecardModal = document.getElementById("btn-close-scorecard-modal");
+    const openScorecardsHandler = () => {
+      const moreMenu = document.getElementById("topbar-more-dropdown");
+      if (moreMenu && moreMenu.hasAttribute("open")) moreMenu.removeAttribute("open");
+      const selBnd = this.mapController?.selectedBoundaryFeature?.properties;
+      const bLayer = String(selBnd?.overlay_layer || "");
+      const bId = String(selBnd?.id || "");
+      if (bLayer && VALID_SCORECARD_LAYERS.has(bLayer) && bId) {
+        this.openScorecardModal({ layer: bLayer, id: bId });
+      } else {
+        this.openScorecardModal({});
+      }
+    };
+    for (const triggerId of [
+      "btn-open-scorecards-hub",
+      "btn-more-scorecards",
+      "btn-open-scorecards-sidebar",
+    ]) {
+      const el = document.getElementById(triggerId);
+      if (el) el.addEventListener("click", openScorecardsHandler);
+    }
+    if (btnCloseScorecardModal) {
+      btnCloseScorecardModal.addEventListener("click", () => this.closeScorecardModal());
+    }
+    if (scorecardModal) {
+      scorecardModal.addEventListener("click", (e) => {
+        if (e.target === scorecardModal) this.closeScorecardModal();
+      });
+    }
+    const scTabs = document.getElementById("scorecard-family-tabs");
+    if (scTabs) {
+      scTabs.addEventListener("click", (e) => {
+        const btn = e.target.closest?.("[data-sc-family]");
+        if (!btn) return;
+        const fam = String(btn.getAttribute("data-sc-family") || "");
+        if (!VALID_SCORECARD_LAYERS.has(fam)) return;
+        this._scorecardModalState.family = fam;
+        this._renderScorecardModalHub({ autoSelectFirst: true });
+      });
+    }
+    const scSearchInput = document.getElementById("scorecard-search-input");
+    if (scSearchInput) {
+      scSearchInput.addEventListener("input", () => {
+        this._scorecardModalState.search = String(scSearchInput.value || "");
+        this._renderScorecardModalHub({ autoSelectFirst: false });
+      });
+    }
+    const scSortSelect = document.getElementById("scorecard-sort-select");
+    if (scSortSelect) {
+      scSortSelect.addEventListener("change", () => {
+        this._scorecardModalState.sort = String(scSortSelect.value || "pre1940");
+        this._renderScorecardModalHub({ autoSelectFirst: false });
+      });
+    }
+    const scHubTbody = document.getElementById("scorecard-hub-tbody");
+    if (scHubTbody) {
+      const handleRowPick = (e) => {
+        const row = e.target.closest?.("tr.scorecard-hub-row[data-scorecard-layer]");
+        if (!row) return;
+        const layer = row.getAttribute("data-scorecard-layer") || "";
+        const id = row.getAttribute("data-scorecard-id") || "";
+        if (layer && id) {
+          this.openScorecardModal({ layer, id });
+        }
+      };
+      scHubTbody.addEventListener("click", handleRowPick);
+      scHubTbody.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleRowPick(e);
+        }
+      });
+    }
+    const scDetailPane = document.getElementById("scorecard-detail-pane");
+    if (scDetailPane) {
+      scDetailPane.addEventListener("click", (e) => {
+        const flyBtn = e.target.closest?.(".btn-scorecard-fly");
+        if (flyBtn) {
+          const layer = flyBtn.getAttribute("data-scorecard-layer") || "";
+          const id = flyBtn.getAttribute("data-scorecard-id") || "";
+          this.closeScorecardModal();
+          if (layer && id && this.mapController) {
+            const storeKey = toLayerStateKey(layer);
+            if (storeKey) {
+              this.filterStore.setLayerVisibility(storeKey, true);
+            }
+            this.mapController.highlightBoundaryByIdOrName({
+              layerKey: layer,
+              id,
+              name: id,
+              flyTo: true,
+              inspect: true,
+            });
+          }
+          return;
+        }
+        const probeBtn = e.target.closest?.(".btn-scorecard-ch42-probe");
+        if (probeBtn) {
+          const lng = Number(probeBtn.getAttribute("data-lng"));
+          const lat = Number(probeBtn.getAttribute("data-lat"));
+          this.closeScorecardModal({ updateUrl: false });
+          this.openChapter42AtPoint(lng, lat);
+          return;
+        }
+        const copyBtn = e.target.closest?.(".btn-scorecard-copy-link");
+        if (copyBtn) {
+          const shareUrl = copyBtn.getAttribute("data-share-url") || window.location.href;
+          navigator.clipboard?.writeText?.(shareUrl).catch(() => {});
+          const orig = copyBtn.textContent;
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => {
+            copyBtn.textContent = orig;
+          }, 1800);
+          return;
+        }
+        const printBtn = e.target.closest?.(".btn-scorecard-print");
+        if (printBtn) {
+          this._triggerScopedPrint("scorecard");
+          return;
+        }
+        const jumpCh42Btn = e.target.closest?.(".btn-sc-jump-ch42");
+        if (jumpCh42Btn) {
+          const hcad = normalizeHcad13(jumpCh42Btn.getAttribute("data-hcad") || "");
+          if (hcad) {
+            this.closeScorecardModal({ updateUrl: false });
+            this.openChapter42ModalForHcad(hcad);
+          }
+        }
+      });
+    }
+
+    // Chapter 42 Block-Face Eligibility Calculator & Civic Club Kit Modal
+    const ch42Modal = document.getElementById("ch42-modal");
+    const btnCloseCh42Modal = document.getElementById("btn-close-ch42-modal");
+    if (btnCloseCh42Modal) {
+      btnCloseCh42Modal.addEventListener("click", () => this.closeChapter42Modal());
+    }
+    if (ch42Modal) {
+      ch42Modal.addEventListener("click", (e) => {
+        if (e.target === ch42Modal) this.closeChapter42Modal();
+      });
+    }
+    const ch42Body = document.getElementById("ch42-modal-body");
+    if (ch42Body) {
+      ch42Body.addEventListener("click", (e) => {
+        const copyBtn = e.target.closest?.("#btn-ch42-copy-link");
+        if (copyBtn) {
+          const shareUrl = copyBtn.getAttribute("data-share-url") || window.location.href;
+          navigator.clipboard?.writeText?.(shareUrl).catch(() => {});
+          const orig = copyBtn.textContent;
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => {
+            copyBtn.textContent = orig;
+          }, 1800);
+          return;
+        }
+        const printBtn = e.target.closest?.("#btn-ch42-print-packet");
+        if (printBtn) {
+          this._triggerScopedPrint("ch42");
+        }
+      });
+      ch42Body.addEventListener("change", (e) => {
+        const sess = this._ch42Session;
+        if (!sess) return;
+        const target = e.target;
+        if (!target) return;
+        if (target.id === "chk-ch42-opposing") {
+          sess.includeOpposing = Boolean(target.checked);
+          this._recomputeAndRenderChapter42Session({ updateUrl: true });
+          return;
+        }
+        const hcad = normalizeHcad13(target.getAttribute?.("data-hcad") || "");
+        if (!hcad) return;
+        if (target.classList?.contains("ch42-inc-chk")) {
+          sess.includedByHcad[hcad] = Boolean(target.checked);
+          this._recomputeAndRenderChapter42Session({ updateUrl: false });
+        } else if (target.classList?.contains("ch42-vac-sfr-chk")) {
+          sess.vacantWasSfrByHcad[hcad] = Boolean(target.checked);
+          this._recomputeAndRenderChapter42Session({ updateUrl: false });
+        } else if (target.classList?.contains("ch42-sign-chk")) {
+          sess.supportSignedByHcad[hcad] = Boolean(target.checked);
+          this._recomputeAndRenderChapter42Session({ updateUrl: false });
+        } else if (target.classList?.contains("ch42-sb-input")) {
+          const rawVal = String(target.value || "").trim();
+          const numVal = Number(rawVal);
+          if (rawVal === "" || !Number.isFinite(numVal) || numVal <= 0) {
+            delete sess.manualSetbacksByHcad[hcad];
+          } else {
+            sess.manualSetbacksByHcad[hcad] = Number(Math.min(300, Math.max(1, numVal)).toFixed(1));
+          }
+          this._recomputeAndRenderChapter42Session({
+            updateUrl: false,
+            preserveFocusHcad: hcad,
+          });
+        }
       });
     }
 
@@ -5180,7 +5503,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261029b`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030a`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -5651,8 +5974,10 @@ export class HoustonAtlasApp {
             chosen.type === "neighborhood" ||
             chosen.type === "platted_subdivision" ||
             chosen.type === "super_neighborhood" ||
+            chosen.type === "council_district" ||
             chosen.type === "historic_ward" ||
             chosen.type === "historic_district" ||
+            chosen.type === "heritage_district" ||
             chosen.type === "nrhp_district" ||
             chosen.type === "potential_historic_district" ||
             chosen.type === "cultural_district" ||
@@ -5660,68 +5985,20 @@ export class HoustonAtlasApp {
             chosen.type === "historical_waterway" ||
             chosen.type === "historical_railroad"
           ) {
-            const rawLayer = String(chosen.overlay_layer || "");
-            const layerKey =
-              rawLayer === "historicWards"
-                ? "historic_wards"
-                : rawLayer === "superNeighborhoods"
-                ? "super_neighborhoods"
-                : rawLayer === "plattedSubdivisions"
-                ? "platted_subdivisions"
-                : rawLayer === "historicalWaterways"
-                ? "historical_waterways"
-                : rawLayer === "historicalRailroads"
-                ? "historical_railroads"
-                : rawLayer === "potentialHistoricDistricts"
-                ? "potential_historic_districts"
-                : rawLayer === "culturalDistricts"
-                ? "cultural_districts"
-                : rawLayer === "holc1937"
-                ? "holc_1937_zones"
-                : rawLayer ||
-                  (chosen.type === "super_neighborhood"
-                    ? "super_neighborhoods"
-                    : chosen.type === "historic_ward"
-                    ? "historic_wards"
-                    : chosen.type === "platted_subdivision"
-                    ? "platted_subdivisions"
-                    : chosen.type === "historic_district"
-                    ? "historic_districts"
-                    : chosen.type === "nrhp_district"
-                    ? "nrhp_districts"
-                    : chosen.type === "potential_historic_district"
-                    ? "potential_historic_districts"
-                    : chosen.type === "cultural_district"
-                    ? "cultural_districts"
-                    : chosen.type === "holc_1937_zone"
-                    ? "holc_1937_zones"
-                    : chosen.type === "historical_waterway"
-                    ? "historical_waterways"
-                    : chosen.type === "historical_railroad"
-                    ? "historical_railroads"
-                    : "neighborhoods");
+            const layerKey = toOverlayDataKey(
+              chosen.overlay_layer || chosen.type,
+              chosen.id,
+              "neighborhoods"
+            );
             if (chosen.type === "historic_ward" && chosen.era_year) {
               this.filterStore.setState({ wardEra: Number(chosen.era_year) });
             }
             if (layerKey === "holc_1937_zones" && this.filterStore.getState().holcGradeFilter !== "all") {
               this.filterStore.setState({ holcGradeFilter: "all" });
             }
-            const layerKeyToStoreKey = {
-              historical_waterways: "historicalWaterways",
-              historical_railroads: "historicalRailroads",
-              historic_districts: "historicDistricts",
-              heritage_districts: "heritageDistricts",
-              nrhp_districts: "nrhpDistricts",
-              potential_historic_districts: "potentialHistoricDistricts",
-              cultural_districts: "culturalDistricts",
-              holc_1937_zones: "holc1937",
-              neighborhoods: "neighborhoods",
-              platted_subdivisions: "plattedSubdivisions",
-              super_neighborhoods: "superNeighborhoods",
-              historic_wards: "historicWards",
-            };
-            if (layerKeyToStoreKey[layerKey]) {
-              this.filterStore.setLayerVisibility(layerKeyToStoreKey[layerKey], true);
+            const storeKey = toLayerStateKey(layerKey);
+            if (storeKey) {
+              this.filterStore.setLayerVisibility(storeKey, true);
             }
             this.mapController.highlightBoundaryByIdOrName({
               id: chosen.id || "",
@@ -6774,6 +7051,7 @@ export class HoustonAtlasApp {
       "chk-layer-neighborhoods": state.layers.neighborhoods,
       "chk-layer-platted-subdivisions": state.layers.plattedSubdivisions,
       "chk-layer-land-use-protections": state.layers.landUseProtections,
+      "chk-layer-council-districts": state.layers.councilDistricts,
       "chk-layer-super-neighborhoods": state.layers.superNeighborhoods,
       "chk-layer-historic-wards": state.layers.historicWards,
       "chk-layer-annexations": state.layers.annexations,
@@ -8010,6 +8288,9 @@ export class HoustonAtlasApp {
       badgeLabel = rawProps.type_label || "Chapter 42 Land-Use Protection";
       const pt = rawProps.protection_type;
       badgeColor = pt === "smbl" ? "#34d399" : pt === "conservation" ? "#fb7185" : "#fbbf24";
+    } else if (overlayLayer === "council_districts") {
+      badgeLabel = `City Council District ${rawProps.district_letter || rawProps.district_code || ""}`.trim();
+      badgeColor = "#38bdf8";
     } else if (overlayLayer === "super_neighborhoods") {
       badgeLabel = `COH Super Neighborhood${rawProps.sn_id || rawProps.poly_id ? ` #${rawProps.sn_id || rawProps.poly_id}` : ""}`;
       badgeColor = "#818cf8";
@@ -8214,6 +8495,18 @@ export class HoustonAtlasApp {
       if (Number(rawProps.af_temp_f) > 0) {
         subtitleParts.push(`HARC Heat Watch: ${Number(rawProps.af_temp_f).toFixed(1)}°F`);
       }
+    } else if (overlayLayer === "council_districts") {
+      if (rawProps.council_member) {
+        subtitleParts.push(`Council Member ${rawProps.council_member} (Term through Jan 2028)`);
+      }
+      if (rawProps.council_phone) subtitleParts.push(rawProps.council_phone);
+      const cdSqMi =
+        Number(rawProps.area_sq_mi) > 0
+          ? Number(rawProps.area_sq_mi)
+          : Number(rawProps.area_acres) > 0
+          ? Number((Number(rawProps.area_acres) / 640).toFixed(1))
+          : 0;
+      if (cdSqMi > 0) subtitleParts.push(`${cdSqMi} sq mi`);
     } else if (overlayLayer === "hahc_coa_filings") {
       if (rawProps.address && rawProps.address !== name) subtitleParts.push(rawProps.address);
       if (rawProps.historic_district) subtitleParts.push(rawProps.historic_district);
@@ -8709,7 +9002,54 @@ export class HoustonAtlasApp {
           : ""
       }
 
+      ${
+        VALID_SCORECARD_LAYERS.has(overlayLayer)
+          ? `<div id="boundary-inline-scorecard-slot"></div>`
+          : ""
+      }
+
       <div class="inspector-grid">
+        ${
+          overlayLayer === "council_districts"
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Houston City Council Member (Jan 2024 - Jan 2028 Term)</span>
+                <span class="cell-value">
+                  <strong>${this._escapeHtmlAttr(rawProps.council_member || "District Office")}</strong>
+                  ${
+                    rawProps.council_phone
+                      ? ` &middot; <a href="tel:${this._escapeHtmlAttr(rawProps.council_phone)}" class="inline-ext-link">${this._escapeHtmlAttr(rawProps.council_phone)}</a>`
+                      : ""
+                  }
+                  ${
+                    rawProps.council_email
+                      ? ` &middot; <a href="mailto:${this._escapeHtmlAttr(rawProps.council_email)}" class="inline-ext-link">${this._escapeHtmlAttr(rawProps.council_email)}</a>`
+                      : ""
+                  }
+                  ${
+                    rawProps.council_url
+                      ? ` &middot; <a href="${this._escapeHtmlAttr(rawProps.council_url)}" target="_blank" rel="noopener noreferrer" class="inline-ext-link">Official Council Page &#8599;</a>`
+                      : ""
+                  }
+                </span>
+              </div>
+              ${
+                Number(rawProps.area_acres) > 0
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">District Land Area</span>
+                      <span class="cell-value mono">${Number(rawProps.area_acres).toLocaleString()} ac (${rawProps.area_sq_mi || (Number(rawProps.area_acres) / 640).toFixed(1)} sq mi)</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                Number(rawProps.ch42_protected_count) >= 0 && rawProps.ch42_protected_count !== undefined
+                  ? `<div class="inspector-cell">
+                      <span class="cell-label">Ch. 42 Protected Res. Lots</span>
+                      <span class="cell-value mono">${Number(rawProps.ch42_protected_count || 0).toLocaleString()} (${rawProps.ch42_protected_pct || 0}%)</span>
+                    </div>`
+                  : ""
+              }`
+            : ""
+        }
         ${
           overlayLayer === "lost_houston"
             ? `<div class="inspector-cell">
@@ -8923,11 +9263,19 @@ export class HoustonAtlasApp {
             : ""
         }
         ${
-          overlayLayer === "land_use_protections" && (rawProps.effective_date || rawProps.expiration_date)
-            ? `<div class="inspector-cell full">
-                <span class="cell-label">Ordinance Effective / Expiration Window</span>
-                <span class="cell-value mono">${rawProps.effective_date || "Recorded"} &#8594; ${rawProps.expiration_date || "Permanent"}</span>
-              </div>`
+          overlayLayer === "land_use_protections" &&
+          (rawProps.effective_date || rawProps.expiration_date || rawProps.expiration_label || rawProps.ordinance)
+            ? (() => {
+                const lc = resolveCh42OrdinanceLifecycle(rawProps);
+                const effLbl = rawProps.effective_date || rawProps.effective_year || "Recorded";
+                const expLbl = rawProps.expiration_label || lc.expiration_label || "20/40-yr statutory term";
+                const termNote =
+                  rawProps.statutory_term_years || lc.statutory_term_years || rawProps.term_years;
+                return `<div class="inspector-cell full">
+                  <span class="cell-label">Ordinance Effective / Statutory Sunset Window</span>
+                  <span class="cell-value mono">${this._escapeHtmlAttr(String(effLbl))} &#8594; ${this._escapeHtmlAttr(String(expLbl))}${termNote ? ` (${termNote}-yr Ch. 42 term)` : ""}</span>
+                </div>`;
+              })()
             : ""
         }
         ${
@@ -9784,6 +10132,8 @@ export class HoustonAtlasApp {
             this.filterStore.setLayerVisibility("holc1937", true);
           } else if (bLayer === "platted_subdivisions") {
             this.filterStore.setLayerVisibility("plattedSubdivisions", true);
+          } else if (bLayer === "council_districts") {
+            this.filterStore.setLayerVisibility("councilDistricts", true);
           }
           this.mapController.highlightBoundaryByIdOrName(bName, {
             layerKey: bLayer,
@@ -9803,6 +10153,10 @@ export class HoustonAtlasApp {
         this._updateUrlHash(this.filterStore.getState());
         this._refreshShareModalContent();
       });
+    }
+
+    if (VALID_SCORECARD_LAYERS.has(overlayLayer)) {
+      this._hydrateBoundaryInlineScorecard(rawProps, content);
     }
 
     this._updateUrlHash(this.filterStore.getState());
@@ -11819,6 +12173,7 @@ export class HoustonAtlasApp {
         "platted_subdivisions",
         "land_use_protections",
         "neighborhoods",
+        "council_districts",
         "super_neighborhoods",
         "historic_wards",
         "historic_districts",
@@ -12446,6 +12801,15 @@ export class HoustonAtlasApp {
       }
       if (Array.isArray(geoCtx.land_use_protections) && !props._land_use_protections) {
         props._land_use_protections = geoCtx.land_use_protections;
+      }
+      if (geoCtx.council_district && !props.council_district) {
+        props.council_district = geoCtx.council_district;
+      }
+      if (geoCtx.council_district_id && !props._council_district_id) {
+        props._council_district_id = geoCtx.council_district_id;
+      }
+      if (geoCtx.council_district_props && !props._council_district_props) {
+        props._council_district_props = geoCtx.council_district_props;
       }
     }
 
@@ -13383,6 +13747,23 @@ export class HoustonAtlasApp {
 
             ${protectionScorecardHtml}
 
+            ${
+              normalizeHcad13(hcadNum)
+                ? `<div class="inspector-ch42-cta-wrap" id="inspector-ch42-cta-wrap">
+                     <button
+                       type="button"
+                       class="inspector-ch42-cta-btn"
+                       id="btn-open-ch42-calculator"
+                       data-hcad-num="${hcadNum}"
+                       title="Run the City of Houston Chapter 42 SMLS / SMBL Block-Face Eligibility Calculator and Printable Civic Club Kit for this parcel"
+                     >
+                       <span class="inspector-ch42-cta-title">&#128737; Analyze Blockface for Ch. 42 Protection (SMLS / SMBL)</span>
+                       <span class="inspector-ch42-cta-sub">Live HCAD lot-size &amp; setback cutoffs, 51% fast-track area &amp; printable walk-sheet &rarr;</span>
+                     </button>
+                   </div>`
+                : ""
+            }
+
             <div class="inspector-photo-card" id="inspector-photo-card" data-photo-hcad="${hcadNum}">
               <div class="inspector-photo-header">
                 <div class="inspector-photo-title-group">
@@ -13701,6 +14082,22 @@ export class HoustonAtlasApp {
                 </span>
               </div>
               <div class="inspector-cell full">
+                <span class="cell-label">Houston City Council District</span>
+                <span class="cell-value inspector-chip-group">
+                  ${
+                    props.council_district
+                      ? (() => {
+                          const cdName = String(props.council_district);
+                          const cdId = String(props._council_district_id || cdName);
+                          const cdMember = String(props._council_district_props?.council_member || "").trim();
+                          return `<button type="button" class="inspector-boundary-btn" data-highlight-boundary="${this._escapeHtmlAttr(cdId)}" data-boundary-layer="council_districts" data-open-boundary-dossier="1" title="Open Preservation Scorecard &amp; Council Member dossier for ${this._escapeHtmlAttr(cdName)}">${this._escapeHtmlAttr(cdName)}${cdMember ? ` &middot; CM ${this._escapeHtmlAttr(cdMember)}` : ""} &#128202;</button>
+                                  <button type="button" class="inline-isolate-btn" data-isolate-boundary="${this._escapeHtmlAttr(cdId)}" data-boundary-layer="council_districts" title="Isolate ${this._escapeHtmlAttr(cdName)} on the map">&#127919; Isolate</button>`;
+                        })()
+                      : "Outside City of Houston Council Boundary"
+                  }
+                </span>
+              </div>
+              <div class="inspector-cell full">
                 <span class="cell-label">Recorded Property Owner (HCAD)</span>
                 <span class="cell-value" id="inspector-cell-owner">${props.owner || "Public / Unlisted"}</span>
               </div>
@@ -13755,6 +14152,19 @@ export class HoustonAtlasApp {
             ${
               hcadNum
                 ? `<div class="inspector-actions">
+                    ${
+                      normalizeHcad13(hcadNum)
+                        ? `<button
+                             type="button"
+                             class="inspector-btn secondary"
+                             id="btn-open-ch42-calculator-hcad"
+                             data-hcad-num="${hcadNum}"
+                             title="Calculate City of Houston Chapter 42 SMLS / SMBL blockface eligibility for parcel ${hcadNum}"
+                           >
+                             &#128737; Chapter 42 Blockface Calculator (${hcadNum})
+                           </button>`
+                        : ""
+                    }
                     <div class="hcad-link-status-note hidden" id="hcad-link-status-note"></div>
                     <a
                       href="https://search.hcad.org/"
@@ -13957,6 +14367,8 @@ export class HoustonAtlasApp {
             this.filterStore.setLayerVisibility("holc1937", true);
           } else if (bLayer === "platted_subdivisions") {
             this.filterStore.setLayerVisibility("plattedSubdivisions", true);
+          } else if (bLayer === "council_districts") {
+            this.filterStore.setLayerVisibility("councilDistricts", true);
           }
           if (openDossier) {
             this.mapController.highlightBoundaryByIdOrName(bName, {
@@ -14006,6 +14418,19 @@ export class HoustonAtlasApp {
       btnPrintDossier.addEventListener("click", () => {
         this.openPropertyDossierModal(props);
       });
+    }
+
+    for (const ch42BtnId of ["btn-open-ch42-calculator", "btn-open-ch42-calculator-hcad"]) {
+      const btnCh42 = content.querySelector(`#${ch42BtnId}`);
+      if (btnCh42) {
+        btnCh42.addEventListener("click", (e) => {
+          e.preventDefault();
+          const targetHcad = normalizeHcad13(btnCh42.getAttribute("data-hcad-num") || hcadNum);
+          if (targetHcad) {
+            this.openChapter42ModalForHcad(targetHcad);
+          }
+        });
+      }
     }
 
     this._populateInspectorPhotos({
@@ -14235,7 +14660,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261029b`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261030a`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -15497,6 +15922,7 @@ export class HoustonAtlasApp {
         neighborhoods: "Neighborhoods",
         plattedSubdivisions: "Platted Subdivisions & Deeds",
         landUseProtections: "Ch. 42 Lot & Setback Protections",
+        councilDistricts: "City Council Districts A-K (11)",
         superNeighborhoods: "Super Neighborhoods",
         historicWards: "Historic Wards",
         thcMarkers: "THC Markers",
@@ -15576,6 +16002,20 @@ export class HoustonAtlasApp {
           `<span class="share-pill-tag accent">&#127919; Isolated: ${state.isolatedBoundary.name} (${
             state.isolatedBoundary.mode || "contents"
           })</span>`
+        );
+      }
+      if (state.activeScorecard && state.activeScorecard.id) {
+        pills.push(
+          `<span class="share-pill-tag accent">&#128202; Scorecard: ${this._escapeHtmlAttr(
+            state.activeScorecard.layer
+          )}:${this._escapeHtmlAttr(state.activeScorecard.id)}</span>`
+        );
+      }
+      if (state.activeCh42 && state.activeCh42.hcad) {
+        pills.push(
+          `<span class="share-pill-tag accent">&#128737; Ch. 42 Blockface: ${this._escapeHtmlAttr(
+            state.activeCh42.hcad
+          )}${state.activeCh42.includeOpposing || state.activeCh42.opposing ? " (+ opposing)" : ""}</span>`
         );
       }
       if (includeSelection && selProps) {
@@ -15970,6 +16410,13 @@ export class HoustonAtlasApp {
             : []),
           { val: "__viewport__", text: "🗺️ Current Map Viewport (All Visible Structures)" },
         ],
+      },
+      {
+        label: "Houston City Council Districts (A-K)",
+        items: Object.entries(COH_COUNCIL_ROSTER_2024_2028).map(([letter, cm]) => ({
+          val: `council_districts::council_dist_${letter.toLowerCase()}`,
+          text: `District ${letter} (${cm.member})`,
+        })),
       },
       {
         label: "COH Historic Districts & Heritage Districts (All 24)",
@@ -17566,6 +18013,15 @@ export class HoustonAtlasApp {
     const portfolioSig = this._activePortfolio
       ? `portfolio:${this._activePortfolio.kind}:${this._activePortfolio.query}`
       : "";
+    const scSig =
+      state?.activeScorecard?.layer && state?.activeScorecard?.id
+        ? `scorecard:${state.activeScorecard.layer}:${state.activeScorecard.id}`
+        : "";
+    const ch42Sig = state?.activeCh42?.hcad
+      ? `ch42:${state.activeCh42.hcad}:${
+          state.activeCh42.includeOpposing ?? state.activeCh42.opposing ? 1 : 0
+        }`
+      : "";
     return [
       selectedHcad ? `hcad:${selectedHcad}` : "",
       selectedFeatureId ? `id:${selectedFeatureId}` : "",
@@ -17574,6 +18030,8 @@ export class HoustonAtlasApp {
       tourSig,
       chapterSig,
       portfolioSig,
+      scSig,
+      ch42Sig,
     ]
       .filter(Boolean)
       .join("|");
@@ -18737,6 +19195,643 @@ export class HoustonAtlasApp {
         }
       });
     });
+  }
+
+  /* ========================================================================
+     Milestone 1: Preservation Scorecards Hub & Chapter 42 Civic Club Kit
+     ======================================================================== */
+  _triggerScopedPrint(surface = "dossier") {
+    if (typeof document !== "undefined" && document.body) {
+      document.body.dataset.printSurface = surface;
+    }
+    try {
+      window.print();
+    } finally {
+      setTimeout(() => {
+        if (typeof document !== "undefined" && document.body) {
+          delete document.body.dataset.printSurface;
+        }
+      }, 1500);
+    }
+  }
+
+  async _ensureScorecardsLoaded() {
+    if (this._scorecardsData) return this._scorecardsData;
+    this._scorecardsData = await loadNeighborhoodScorecards();
+    return this._scorecardsData;
+  }
+
+  async _ensureWatchlistPayload() {
+    if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
+    if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261030a")
+      .then((res) => (res && res.ok ? res.json() : null))
+      .catch(() => null)
+      .then((data) => {
+        this._watchlistPayloadCache = data;
+        return data;
+      });
+    return this._watchlistPayloadPromise;
+  }
+
+  _findOverlayFeatureForBoundary(layerKey, boundaryId, boundaryName = "") {
+    const fc = this.mapController?.overlaysData?.[layerKey];
+    const feats = Array.isArray(fc?.features) ? fc.features : [];
+    const targetId = String(boundaryId || "").trim().toLowerCase();
+    const targetName = String(boundaryName || "").trim().toLowerCase();
+    for (const f of feats) {
+      const p = f?.properties || {};
+      const pid = String(p.id || p.zone_code || "").trim().toLowerCase();
+      const pname = String(p.name || p.district_label || "").trim().toLowerCase();
+      if ((targetId && pid === targetId) || (targetId && pname === targetId) || (targetName && pname === targetName)) {
+        return f;
+      }
+    }
+    return null;
+  }
+
+  async _computeThreatsForBoundary(layerKey, boundaryId, boundaryName = "") {
+    const feat = this._findOverlayFeatureForBoundary(layerKey, boundaryId, boundaryName);
+    if (!feat || !feat.geometry) {
+      return { totalUniqueThreats: 0, sourceCounts: { permits: 0, plats: 0, watchlist: 0, hahc: 0 }, items: [] };
+    }
+    const watchlist = await this._ensureWatchlistPayload();
+    return computeLiveBoundaryThreats(feat, {
+      boundaryLayer: layerKey,
+      boundaryName: boundaryName || feat.properties?.name || "",
+      activePermitAlerts: this.mapController?.permitAlertsData || null,
+      platAgendaMonitor: this.mapController?.platWatchData || null,
+      propertyWatchlist: watchlist,
+      hahcCoaTracker: this.mapController?.hahcTrackerData || null,
+    });
+  }
+
+  async _hydrateBoundaryInlineScorecard(rawProps, containerEl) {
+    const slot = containerEl?.querySelector?.("#boundary-inline-scorecard-slot");
+    if (!slot) return;
+    const overlayLayer = String(rawProps?.overlay_layer || "");
+    if (!VALID_SCORECARD_LAYERS.has(overlayLayer)) return;
+
+    const reqId = ++this._boundaryScorecardReqSeq;
+    try {
+      const ds = await this._ensureScorecardsLoaded();
+      if (reqId !== this._boundaryScorecardReqSeq || !slot.isConnected) return;
+
+      const targetId = String(rawProps.id || "").trim();
+      const targetName = String(rawProps.name || "").trim().toLowerCase();
+      let scorecard = targetId ? ds.byKey.get(`${overlayLayer}:${targetId}`) : null;
+      if (!scorecard && targetName) {
+        const list = ds.byLayer.get(overlayLayer) || [];
+        scorecard = list.find((r) => r.name.toLowerCase() === targetName) || null;
+      }
+      if (!scorecard) return;
+
+      const threats = await this._computeThreatsForBoundary(overlayLayer, scorecard.id, scorecard.name);
+      if (reqId !== this._boundaryScorecardReqSeq || !slot.isConnected) return;
+
+      slot.innerHTML = renderBoundaryInlineScorecardHtml(scorecard, threats);
+      const openBtn = slot.querySelector(".btn-open-full-scorecard");
+      if (openBtn) {
+        openBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          this.openScorecardModal({
+            layer: openBtn.getAttribute("data-scorecard-layer") || scorecard.layer,
+            id: openBtn.getAttribute("data-scorecard-id") || scorecard.id,
+          });
+        });
+      }
+    } catch (err) {
+      console.warn("Boundary scorecard hydration error:", err);
+      if (reqId === this._boundaryScorecardReqSeq && slot.isConnected) {
+        slot.innerHTML = `<div class="boundary-scorecard-inline-card boundary-scorecard-inline-unavailable" style="padding:10px 12px;font-size:12px;color:var(--text-secondary)">Preservation scorecard summary temporarily unavailable offline.</div>`;
+      }
+    }
+  }
+
+  async openScorecardModal({ layer = "", id = "", updateUrl = true } = {}) {
+    const modal = document.getElementById("scorecard-modal");
+    if (!modal) return;
+    modal.classList.remove("hidden");
+
+    const detailPane = document.getElementById("scorecard-detail-pane");
+    if (detailPane && !this._scorecardsData) {
+      detailPane.innerHTML = `<div style="padding:24px;color:var(--text-secondary)">Loading Houston Preservation Scorecards (4,242 boundaries)...</div>`;
+    }
+
+    try {
+      const ds = await this._ensureScorecardsLoaded();
+      const cleanLayer = VALID_SCORECARD_LAYERS.has(String(layer)) ? String(layer) : "";
+      let targetRec = null;
+
+      if (cleanLayer && id) {
+        targetRec = ds.byKey.get(`${cleanLayer}:${id}`) || null;
+        if (!targetRec) {
+          const normId = String(id).trim().toLowerCase();
+          targetRec =
+            (ds.byLayer.get(cleanLayer) || []).find(
+              (r) => r.id.toLowerCase() === normId || r.name.toLowerCase() === normId
+            ) || null;
+        }
+      }
+
+      if (targetRec) {
+        this._scorecardModalState.family = targetRec.layer;
+        this._scorecardModalState.selectedKey = targetRec.key;
+      } else {
+        if (cleanLayer) this._scorecardModalState.family = cleanLayer;
+        if (!VALID_SCORECARD_LAYERS.has(this._scorecardModalState.family)) {
+          this._scorecardModalState.family = "council_districts";
+        }
+        const curKey = this._scorecardModalState.selectedKey;
+        const curRec = curKey ? ds.byKey.get(curKey) : null;
+        if (!curRec || (cleanLayer && curRec.layer !== cleanLayer)) {
+          const famList = ds.byLayer.get(this._scorecardModalState.family) || [];
+          targetRec = famList[0] || ds.records[0] || null;
+          this._scorecardModalState.selectedKey = targetRec ? targetRec.key : "";
+        } else {
+          targetRec = curRec;
+        }
+      }
+
+      this._renderScorecardModalHub({ autoSelectFirst: false });
+
+      if (targetRec) {
+        if (updateUrl) {
+          this.filterStore.setState({
+            activeScorecard: { layer: targetRec.layer, id: targetRec.id },
+          });
+        } else {
+          this._suppressUrlUpdate = true;
+          try {
+            this.filterStore.setState({
+              activeScorecard: { layer: targetRec.layer, id: targetRec.id },
+            });
+          } finally {
+            this._suppressUrlUpdate = false;
+          }
+        }
+        await this._renderScorecardModalDetail(targetRec);
+      } else if (detailPane) {
+        detailPane.innerHTML = `<div style="padding:24px;color:var(--text-secondary)">Requested boundary scorecard not found. Select any district or neighborhood on the left.</div>`;
+      }
+    } catch (err) {
+      console.error("Failed to open Scorecard modal:", err);
+      if (detailPane) {
+        detailPane.innerHTML = `<div style="padding:24px;color:#fda4af">Failed to load Preservation Scorecards dataset. Please check your connection and try again.</div>`;
+      }
+    }
+  }
+
+  closeScorecardModal({ updateUrl = true } = {}) {
+    const modal = document.getElementById("scorecard-modal");
+    if (modal) modal.classList.add("hidden");
+    if (this.filterStore.getState().activeScorecard) {
+      if (updateUrl) {
+        this.filterStore.setState({ activeScorecard: null });
+      } else {
+        this._suppressUrlUpdate = true;
+        try {
+          this.filterStore.setState({ activeScorecard: null });
+        } finally {
+          this._suppressUrlUpdate = false;
+        }
+      }
+    }
+  }
+
+  _renderScorecardModalHub({ autoSelectFirst = false } = {}) {
+    const ds = this._scorecardsData;
+    if (!ds) return;
+    const fam = this._scorecardModalState.family || "council_districts";
+    const q = String(this._scorecardModalState.search || "").trim().toLowerCase();
+    const sortBy = String(this._scorecardModalState.sort || "pre1940");
+
+    const tabsEl = document.getElementById("scorecard-family-tabs");
+    if (tabsEl) {
+      tabsEl.querySelectorAll("[data-sc-family]").forEach((btn) => {
+        const isAct = btn.getAttribute("data-sc-family") === fam;
+        btn.classList.toggle("active", isAct);
+        btn.setAttribute("aria-selected", isAct ? "true" : "false");
+      });
+    }
+
+    let rows = (ds.byLayer.get(fam) || []).slice();
+    if (q) {
+      rows = rows.filter((r) => {
+        const hay = `${r.name} ${r.id} ${r.superNeighborhood || ""} ${r.councilDistricts || ""} ${
+          r.councilMemberMeta?.member || ""
+        } ${r.civicClub || ""}`.toLowerCase();
+        return hay.includes(q);
+      });
+    }
+
+    rows.sort((a, b) => {
+      if (sortBy === "demos_total" || sortBy === "demos") {
+        return (
+          b.demolitionsTotal2020To2026 - a.demolitionsTotal2020To2026 ||
+          b.pre1940Count - a.pre1940Count ||
+          a.name.localeCompare(b.name)
+        );
+      }
+      if (sortBy === "expiring") {
+        return (
+          b.expiringOrdinances.length - a.expiringOrdinances.length ||
+          b.expiringCh42ParcelCount - a.expiringCh42ParcelCount ||
+          b.pre1940Count - a.pre1940Count ||
+          a.name.localeCompare(b.name)
+        );
+      }
+      if (sortBy === "unprotected_gap" || sortBy === "ch42_gap") {
+        return (
+          b.pre1940Count * (1 - b.ch42ProtectedPct / 100) -
+            a.pre1940Count * (1 - a.ch42ProtectedPct / 100) ||
+          a.ch42ProtectedPct - b.ch42ProtectedPct ||
+          a.name.localeCompare(b.name)
+        );
+      }
+      if (sortBy === "lowest_armor") {
+        const aQual = a.pre1940Count >= 25 ? 1 : 0;
+        const bQual = b.pre1940Count >= 25 ? 1 : 0;
+        return (
+          bQual - aQual ||
+          a.ch42ProtectedPct - b.ch42ProtectedPct ||
+          b.pre1940Count - a.pre1940Count ||
+          a.name.localeCompare(b.name)
+        );
+      }
+      if (sortBy === "llc_share" || sortBy === "corp") {
+        const aQual = a.residentialParcelCount >= 20 ? 1 : 0;
+        const bQual = b.residentialParcelCount >= 20 ? 1 : 0;
+        return (
+          bQual - aQual ||
+          b.corporateLlcPct - a.corporateLlcPct ||
+          b.corporateLlcCount - a.corporateLlcCount ||
+          a.name.localeCompare(b.name)
+        );
+      }
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      return b.pre1940Count - a.pre1940Count || a.name.localeCompare(b.name);
+    });
+
+    const totalCount = rows.length;
+    const displayRows = rows.slice(0, 400);
+
+    if (autoSelectFirst && displayRows.length > 0) {
+      const first = displayRows[0];
+      this._scorecardModalState.selectedKey = first.key;
+      this.filterStore.setState({
+        activeScorecard: { layer: first.layer, id: first.id },
+      });
+      this._renderScorecardModalDetail(first);
+    }
+
+    const countEl = document.getElementById("scorecard-hub-count");
+    if (countEl) {
+      const famObj = SCORECARD_FAMILIES.find((f) => f.key === fam);
+      countEl.textContent = `${totalCount.toLocaleString("en-US")} ${
+        famObj ? famObj.shortLabel : "boundaries"
+      }${totalCount > displayRows.length ? ` (showing top ${displayRows.length})` : ""}`;
+    }
+
+    const tbody = document.getElementById("scorecard-hub-tbody");
+    if (tbody) {
+      tbody.innerHTML = renderScorecardHubTableRowsHtml(
+        displayRows,
+        this._scorecardModalState.selectedKey
+      );
+    }
+  }
+
+  async _renderScorecardModalDetail(scorecard) {
+    const detailPane = document.getElementById("scorecard-detail-pane");
+    if (!detailPane || !scorecard) return;
+    const threats = await this._computeThreatsForBoundary(
+      scorecard.layer,
+      scorecard.id,
+      scorecard.name
+    );
+    const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+    const baseOriginUrl = `${window.location.origin}${window.location.pathname}`;
+    const shareUrl = buildShareableUrl(this.filterStore.getState(), vp, {
+      baseOriginPath: baseOriginUrl,
+      includeViewport: false,
+      activeScorecard: { layer: scorecard.layer, id: scorecard.id },
+    });
+    detailPane.innerHTML = renderScorecardDetailHtml(scorecard, threats, {
+      shareUrl,
+      generatedAt: this._scorecardsData?.generatedAt || "October 30, 2026",
+    });
+  }
+
+  async openChapter42AtPoint(lng, lat) {
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+    const modal = document.getElementById("ch42-modal");
+    const bodyEl = document.getElementById("ch42-modal-body");
+    if (modal) modal.classList.remove("hidden");
+    if (bodyEl) {
+      bodyEl.innerHTML = `<div style="padding:24px;color:var(--text-secondary)">Locating nearest HCAD parcel at (${lat.toFixed(
+        5
+      )}, ${lng.toFixed(5)})...</div>`;
+    }
+    try {
+      const nearby = await fetchBlockfaceParcelsAroundSeed({ lng, lat }, { radiusMeters: 95 });
+      const firstValid = (nearby || []).find((f) =>
+        normalizeHcad13(f?.properties?.HCAD_NUM ?? f?.properties?.hcad_num)
+      );
+      const hcad = firstValid
+        ? normalizeHcad13(firstValid.properties?.HCAD_NUM ?? firstValid.properties?.hcad_num)
+        : "";
+      if (hcad) {
+        await this.openChapter42ModalForHcad(hcad);
+      } else if (bodyEl) {
+        bodyEl.innerHTML = `<div style="padding:24px;color:var(--text-secondary)">No residential HCAD tax parcel found at boundary center. Close this window, click any individual house or lot on the map, and press <strong>Analyze Blockface for Ch. 42 Protection</strong>.</div>`;
+      }
+    } catch (err) {
+      console.error("Failed to probe parcel for Chapter 42:", err);
+      if (bodyEl) {
+        bodyEl.innerHTML = `<div style="padding:24px;color:#fda4af">Could not query HCAD ArcGIS parcel service. Please click a specific property on the map and try again.</div>`;
+      }
+    }
+  }
+
+  async _waitForMapIdleSafe(timeoutMs = 1200) {
+    const map = this.mapController?.map;
+    if (!map || typeof map.once !== "function") return;
+    if (typeof map.loaded === "function" && map.loaded() && typeof map.areTilesLoaded === "function" && map.areTilesLoaded()) {
+      return;
+    }
+    await new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      const timer = setTimeout(finish, timeoutMs);
+      try {
+        map.once("idle", () => {
+          clearTimeout(timer);
+          finish();
+        });
+      } catch (_e) {
+        clearTimeout(timer);
+        finish();
+      }
+    });
+  }
+
+  async openChapter42ModalForHcad(
+    rawHcadNum,
+    { includeOpposing = false, updateUrl = true, respectPresetViewport = false } = {}
+  ) {
+    const seedHcad = normalizeHcad13(rawHcadNum);
+    if (!seedHcad) return;
+
+    const modal = document.getElementById("ch42-modal");
+    const bodyEl = document.getElementById("ch42-modal-body");
+    if (modal) modal.classList.remove("hidden");
+    if (bodyEl) {
+      bodyEl.innerHTML = `<div style="padding:28px;color:var(--text-secondary)">Assembling live Chapter 42 blockface from HCAD GIS &amp; Atlas footprints for parcel <code>${this._escapeHtmlAttr(
+        seedHcad
+      )}</code>...</div>`;
+    }
+
+    if (this._ch42AbortCtrl) {
+      try {
+        this._ch42AbortCtrl.abort();
+      } catch (_e) {}
+    }
+    const reqSeq = ++this._ch42ReqSeq;
+    const abortCtrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    this._ch42AbortCtrl = abortCtrl;
+    const signal = abortCtrl ? abortCtrl.signal : undefined;
+
+    try {
+      const seedFeat = await fetchHcadParcelByAccount(seedHcad, { signal });
+      if (reqSeq !== this._ch42ReqSeq) return;
+      if (!seedFeat || !seedFeat.geometry) {
+        if (bodyEl) {
+          bodyEl.innerHTML = `<div style="padding:24px;color:#fda4af">HCAD parcel geometry unavailable for account <code>${this._escapeHtmlAttr(
+            seedHcad
+          )}</code>. Verify the 13-digit account number on HCAD GIS or select an adjacent lot.</div>`;
+        }
+        return;
+      }
+
+      // Compute seed parcel approximate center so PMTiles shard footprints are hydrated before setback math
+      const ring =
+        seedFeat.geometry.type === "Polygon"
+          ? seedFeat.geometry.coordinates?.[0]
+          : seedFeat.geometry.type === "MultiPolygon"
+          ? seedFeat.geometry.coordinates?.[0]?.[0]
+          : null;
+      let seedLng = null;
+      let seedLat = null;
+      if (Array.isArray(ring) && ring.length > 0) {
+        let sx = 0;
+        let sy = 0;
+        let n = 0;
+        for (const pt of ring) {
+          if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) {
+            sx += pt[0];
+            sy += pt[1];
+            n += 1;
+          }
+        }
+        if (n > 0) {
+          seedLng = sx / n;
+          seedLat = sy / n;
+        }
+      }
+
+      if (this.mapController && Number.isFinite(seedLng) && Number.isFinite(seedLat) && !respectPresetViewport) {
+        const curVp = this.mapController.getCurrentViewport?.();
+        const targetZoom = Math.max(curVp?.zoom || 0, 17.6);
+        if (this.mapController.map && typeof this.mapController.map.jumpTo === "function") {
+          this.mapController.map.jumpTo({ center: [seedLng, seedLat], zoom: targetZoom });
+        } else {
+          this.mapController.flyToLocation({ lng: seedLng, lat: seedLat, zoom: targetZoom });
+        }
+        await this._waitForMapIdleSafe(1200);
+        if (reqSeq !== this._ch42ReqSeq) return;
+      }
+
+      const rawCandidates = await fetchBlockfaceParcelsAroundSeed(seedFeat, {
+        radiusMeters: 260,
+        signal,
+      });
+      if (reqSeq !== this._ch42ReqSeq) return;
+
+      const allHcads = new Set([seedHcad]);
+      for (const f of rawCandidates || []) {
+        const hid = normalizeHcad13(f?.properties?.HCAD_NUM ?? f?.properties?.hcad_num);
+        if (hid) allHcads.add(hid);
+      }
+
+      const footprintsByHcad = this.mapController?.collectFootprintsForHcads
+        ? this.mapController.collectFootprintsForHcads(Array.from(allHcads))
+        : new Map();
+      const buildingSummariesByHcad = new Map();
+      for (const item of this.searchIndex || []) {
+        const hid = normalizeHcad13(item?.hcad_num);
+        if (hid && allHcads.has(hid) && !buildingSummariesByHcad.has(hid)) {
+          buildingSummariesByHcad.set(hid, item);
+        }
+      }
+
+      this._ch42Session = {
+        seedHcadNum: seedHcad,
+        seedFeature: seedFeat,
+        seedLng,
+        seedLat,
+        rawCandidates: rawCandidates || [],
+        footprintsByHcad,
+        buildingSummariesByHcad,
+        includeOpposing: Boolean(includeOpposing),
+        includedByHcad: {},
+        vacantWasSfrByHcad: {},
+        manualSetbacksByHcad: {},
+        supportSignedByHcad: {},
+      };
+
+      this._recomputeAndRenderChapter42Session({ updateUrl });
+    } catch (err) {
+      if (err?.name === "AbortError" || reqSeq !== this._ch42ReqSeq) return;
+      console.error("Chapter 42 blockface load failed:", err);
+      if (bodyEl) {
+        bodyEl.innerHTML = `<div style="padding:24px;color:#fda4af">Unable to assemble Chapter 42 blockface from HCAD GIS (${this._escapeHtmlAttr(
+          err?.message || "network error"
+        )}). Please retry in a moment.</div>`;
+      }
+    }
+  }
+
+  _recomputeAndRenderChapter42Session({ updateUrl = true, preserveFocusHcad = "" } = {}) {
+    const sess = this._ch42Session;
+    if (!sess) return;
+    const bodyEl = document.getElementById("ch42-modal-body");
+
+    const curatedOverrides = this.mapController?.curatedOverrides || {};
+    const assembly = assembleBlockfaceFromSeedParcel(sess.seedFeature, sess.rawCandidates, {
+      includeOpposingBlockface: Boolean(sess.includeOpposing),
+      footprintsByHcad: sess.footprintsByHcad,
+      buildingSummariesByHcad: sess.buildingSummariesByHcad,
+      curatedOverrides,
+    });
+
+    // Resolve Historic District context at seed coordinate (enforces 60% vs 70% threshold)
+    let historicDistrict = String(
+      assembly.historicDistrict || assembly.seedParcel?.historicDistrict || ""
+    ).trim();
+    if (
+      !historicDistrict &&
+      this.mapController?.resolveGeographicContextAtPoint &&
+      Number.isFinite(sess.seedLng) &&
+      Number.isFinite(sess.seedLat)
+    ) {
+      const gCtx = this.mapController.resolveGeographicContextAtPoint(sess.seedLng, sess.seedLat);
+      if (gCtx?.historic_district && gCtx.historic_district !== "none") {
+        historicDistrict = String(gCtx.historic_district).trim();
+      }
+    }
+
+    const calc = computeChapter42BlockEligibility(assembly.items, {
+      historicDistrict,
+      includedByHcad: sess.includedByHcad,
+      vacantWasSfrByHcad: sess.vacantWasSfrByHcad,
+      manualSetbacksByHcad: sess.manualSetbacksByHcad,
+      supportSignedByHcad: sess.supportSignedByHcad,
+    });
+
+    const landUseFC = this.mapController?.overlaysData?.land_use_protections || null;
+    const activeHcadSet = new Set((calc.items || []).map((r) => r.hcadNum));
+    const activeAssembly = {
+      ...assembly,
+      items: (assembly.items || []).map((it) => ({
+        ...it,
+        included: activeHcadSet.has(it.hcadNum),
+      })),
+    };
+    const matchedOverlays = matchCh42OverlaysToBlockface(activeAssembly, landUseFC?.features || []);
+
+    if (this.mapController?.setChapter42BlockfaceOverlay) {
+      this.mapController.setChapter42BlockfaceOverlay(
+        buildChapter42BlockfaceGeoJson(assembly, calc)
+      );
+    }
+
+    const nextCh42Spec = {
+      hcad: sess.seedHcadNum,
+      includeOpposing: Boolean(sess.includeOpposing),
+    };
+    const prevSpec = this.filterStore.getState().activeCh42;
+    const specChanged =
+      !prevSpec ||
+      prevSpec.hcad !== nextCh42Spec.hcad ||
+      Boolean(prevSpec.includeOpposing ?? prevSpec.opposing) !== nextCh42Spec.includeOpposing;
+
+    if (specChanged) {
+      if (updateUrl) {
+        this.filterStore.setState({ activeCh42: nextCh42Spec });
+      } else {
+        this._suppressUrlUpdate = true;
+        try {
+          this.filterStore.setState({ activeCh42: nextCh42Spec });
+        } finally {
+          this._suppressUrlUpdate = false;
+        }
+      }
+    }
+
+    const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+    const baseOriginUrl = `${window.location.origin}${window.location.pathname}`;
+    const shareUrl = buildShareableUrl(this.filterStore.getState(), vp, {
+      baseOriginPath: baseOriginUrl,
+      includeViewport: true,
+      activeCh42: nextCh42Spec,
+    });
+
+    if (bodyEl) {
+      bodyEl.innerHTML = renderChapter42ModalHtml(assembly, calc, matchedOverlays, {
+        shareUrl,
+      });
+      if (preserveFocusHcad) {
+        const inputEl = bodyEl.querySelector(`.ch42-sb-input[data-hcad="${preserveFocusHcad}"]`);
+        if (inputEl && typeof inputEl.focus === "function") {
+          inputEl.focus();
+        }
+      }
+    }
+  }
+
+  closeChapter42Modal({ updateUrl = true } = {}) {
+    this._ch42ReqSeq += 1;
+    if (this._ch42AbortCtrl) {
+      try {
+        this._ch42AbortCtrl.abort();
+      } catch (_e) {}
+      this._ch42AbortCtrl = null;
+    }
+    this._ch42Session = null;
+    const modal = document.getElementById("ch42-modal");
+    if (modal) modal.classList.add("hidden");
+    if (this.mapController?.clearChapter42BlockfaceOverlay) {
+      this.mapController.clearChapter42BlockfaceOverlay();
+    }
+    if (this.filterStore.getState().activeCh42) {
+      if (updateUrl) {
+        this.filterStore.setState({ activeCh42: null });
+      } else {
+        this._suppressUrlUpdate = true;
+        try {
+          this.filterStore.setState({ activeCh42: null });
+        } finally {
+          this._suppressUrlUpdate = false;
+        }
+      }
+    }
   }
 }
 
