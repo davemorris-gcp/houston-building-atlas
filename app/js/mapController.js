@@ -9,9 +9,10 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   PRESERVATION_STATUS_ITEMS,
+  resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261030b";
+} from "./palettes.js?v=20261030d";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -22,16 +23,17 @@ import {
   buildLostHoustonFilterExpression,
   buildRedBookFilterExpression,
   featureMatchesFilter,
+  featureMatchesLostHoustonFilter,
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261030b";
+} from "./filterStore.js?v=20261030d";
 import {
   applyOverrideToProperties,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261030b";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261030b";
+} from "./curatedEdits.js?v=20261030d";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261030d";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
@@ -40,8 +42,37 @@ import {
   mapHcadStateClassToUseCategory,
   matchHcadParcelFeaturesByAddressQuery,
   normalizeHcad13,
-} from "./hcadViewportParcels.js?v=20261030b";
-import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261030b";
+} from "./hcadViewportParcels.js?v=20261030d";
+import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261030d";
+
+export const LOST_HOUSTON_RANK_EXPR = ["coalesce", ["to-number", ["get", "symbol_rank"]], 4];
+
+export const LOST_HOUSTON_LABEL_TIERS = [
+  {
+    id: "lost-houston-label",
+    minzoom: 12.5,
+    maxRank: 1,
+    font: "Noto Sans Bold",
+    sizeStops: [12.5, 9.8, 16, 12.5],
+    clause: ["==", LOST_HOUSTON_RANK_EXPR, 1],
+  },
+  {
+    id: "lost-houston-label-r2",
+    minzoom: 14.5,
+    maxRank: 2,
+    font: "Noto Sans Bold",
+    sizeStops: [14.5, 9.8, 17, 12.2],
+    clause: ["==", LOST_HOUSTON_RANK_EXPR, 2],
+  },
+  {
+    id: "lost-houston-label-r34",
+    minzoom: 15.8,
+    maxRank: 4,
+    font: "Noto Sans Regular",
+    sizeStops: [15.8, 9.2, 18, 11.6],
+    clause: [">=", LOST_HOUSTON_RANK_EXPR, 3],
+  },
+];
 
 const BASEMAP_TILES = {
   dark_archival: {
@@ -112,15 +143,7 @@ function formatHistoricalTileUrl(tpl, z, tx, ty) {
 }
 
 function getSanbornMaterialColors(materialKey) {
-  const found = SANBORN_MATERIAL_ITEMS.find((m) => m.key === materialKey);
-  return (
-    found || {
-      key: "brick",
-      color: "#F472B6",
-      fillColor: "rgba(244, 114, 182, 0.28)",
-      strokeColor: "#F472B6",
-    }
-  );
+  return resolveSanbornMaterialColors(materialKey);
 }
 
 function evaluateFeatureColor(props, colorMode, paletteStyle) {
@@ -300,14 +323,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261030b"),
-      fetch("public/data/parcels.geojson?v=20261030b"),
-      fetch("public/data/overlays.json?v=20261030b"),
-      fetch("public/data/pmtiles_manifest.json?v=20261030b").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261030d"),
+      fetch("public/data/parcels.geojson?v=20261030d"),
+      fetch("public/data/overlays.json?v=20261030d"),
+      fetch("public/data/pmtiles_manifest.json?v=20261030d").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261030b").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261030b").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261030b").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261030d").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261030d").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261030d").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1357,7 +1380,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261030b";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261030d";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -2586,16 +2609,16 @@ export class AtlasMapController {
     const sanbornMaterialColorExpr = [
       "match",
       ["coalesce", ["get", "sanborn_material"], "brick"],
-      "wood_frame",
+      ["wood_frame", "frame"],
       "#FACC15",
       "brick",
       "#F472B6",
-      "stone_concrete",
+      ["stone", "stone_concrete"],
       "#60A5FA",
-      "iron_steel",
-      "#94A3B8",
+      ["iron_metal", "iron_steel", "iron"],
+      "#CBD5E1",
       "fireproof",
-      "#A3E635",
+      "#A3B18A",
       "#F472B6",
     ];
     const showLostHouston =
@@ -3513,35 +3536,50 @@ export class AtlasMapController {
         "text-halo-width": 2.0,
       },
     });
-    this.map.addLayer({
-      id: "lost-houston-label",
-      type: "symbol",
-      source: "lost-houston-labels-src",
-      filter: lostHoustonFilterExpr,
-      minzoom: 12.2,
-      layout: {
-        visibility: showLostHouston ? "visible" : "none",
-        "text-field": [
+    // DF-1: Split Lost Houston labels into 3 MapLibre Spec-compliant zoom-tiered symbol layers
+    // sharing `lost-houston-labels-src` because MapLibre forbids `["zoom"]` inside non-top-level
+    // `filter` clauses (`["all", temporalExpr, zoomExpr]`).
+    const lostHoustonLabelTextField = [
+      "concat",
+      "† ",
+      ["get", "name"],
+      "\n(",
+      [
+        "coalesce",
+        ["get", "lifespan_label"],
+        [
           "concat",
-          "† ",
-          ["get", "name"],
-          "\n(",
           ["to-string", ["get", "year_built"]],
           "-",
           ["to-string", ["get", "year_demolished"]],
-          ")",
         ],
-        "text-font": ["Noto Sans Bold"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 12.2, 9.8, 16, 12.5],
-        "text-max-width": 9,
-        "text-padding": 4,
-      },
-      paint: {
-        "text-color": "#FBCFE8",
-        "text-halo-color": "rgba(11, 15, 23, 0.95)",
-        "text-halo-width": 1.9,
-      },
-    });
+      ],
+      ")",
+    ];
+    const lostHoustonLabelPaint = {
+      "text-color": "#FBCFE8",
+      "text-halo-color": "rgba(11, 15, 23, 0.95)",
+      "text-halo-width": 1.9,
+    };
+    for (const tier of LOST_HOUSTON_LABEL_TIERS) {
+      this.map.addLayer({
+        id: tier.id,
+        type: "symbol",
+        source: "lost-houston-labels-src",
+        filter: ["all", lostHoustonFilterExpr, tier.clause],
+        minzoom: tier.minzoom,
+        layout: {
+          visibility: showLostHouston ? "visible" : "none",
+          "symbol-sort-key": LOST_HOUSTON_RANK_EXPR,
+          "text-field": lostHoustonLabelTextField,
+          "text-font": [tier.font],
+          "text-size": ["interpolate", ["linear"], ["zoom"], ...tier.sizeStops],
+          "text-max-width": 9,
+          "text-padding": 4,
+        },
+        paint: lostHoustonLabelPaint,
+      });
+    }
     this.map.addLayer({
       id: "potential-historic-districts-label",
       type: "symbol",
@@ -5254,17 +5292,9 @@ export class AtlasMapController {
       (Boolean(state.layers?.lostHouston) || Boolean(state.historicalSnapshotMode));
     const visibleLostHoustonFeatures = [];
     if (showLostHouston && this.overlaysData?.lost_houston) {
-      const minY = Number(state.minYear ?? 1836) || 1836;
-      const maxY = Number(state.maxYear ?? 2026) || 2026;
       for (const feat of this.overlaysData.lost_houston.features || []) {
         const p = feat.properties || {};
-        const yb = Number(p.year_built) || 1836;
-        const yd = Number(p.year_demolished) || 1950;
-        if (state.historicalSnapshotMode) {
-          if (!(yb <= maxY && yd > maxY && yb >= minY)) continue;
-        } else if (minY > 1836 || maxY < 2026) {
-          if (!(yb <= maxY && yd >= minY)) continue;
-        }
+        if (!featureMatchesLostHoustonFilter(p, state)) continue;
         visibleLostHoustonFeatures.push(feat);
         const mat = getSanbornMaterialColors(p.sanborn_material);
         const extrudeM = state.extrude3D ? (Number(p.height_m) || 10.0) * 0.55 : 0;
@@ -5483,6 +5513,7 @@ export class AtlasMapController {
             address: w.address,
             year_built: w.yearBuilt,
             year_demolished: w.yearDemolished || 0,
+            lifespan_label: w.lifespanLabel || "",
             is_lost: Boolean(w.isLost),
             portfolio_index: i,
             overlay_layer: "portfolio_work",
@@ -5498,6 +5529,7 @@ export class AtlasMapController {
       const lmMode = String(state.landmarkFilter || "all");
       for (const feat of this.overlaysData.landmarks.features || []) {
         const lp = feat.properties || {};
+        if (lp.demolished) continue;
         const tier = String(lp.protection_tier || "");
         if (lmMode === "protected" && tier !== "plm" && tier !== "lm_in_hd") continue;
         if (lmMode === "waiver_lm" && tier !== "lm_waiver_vulnerable") continue;
@@ -5533,7 +5565,7 @@ export class AtlasMapController {
       }
     }
 
-    // 8. Preservation Houston Good Brick Award Winners (1979–2026)
+    // 8. Preservation Houston Good Brick Award Winners (1979-2026)
     if (allowPointMarkers && state.layers.goodBrickAwards && this.overlaysData?.good_brick_awards) {
       for (const feat of this.overlaysData.good_brick_awards.features || []) {
         const coords = feat.geometry?.coordinates;
@@ -5685,20 +5717,29 @@ export class AtlasMapController {
       ctx.font = "700 10.5px Inter, system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const ordered = [...features].sort(
-        (a, b) =>
-          (b?.properties?.has_deed_docs ? 1 : 0) - (a?.properties?.has_deed_docs ? 1 : 0)
-      );
+      const ordered = [...features].sort((a, b) => {
+        const hasRa =
+          a?.properties?.symbol_rank !== undefined && a?.properties?.symbol_rank !== null;
+        const hasRb =
+          b?.properties?.symbol_rank !== undefined && b?.properties?.symbol_rank !== null;
+        if (hasRa || hasRb) {
+          const ra = Number(a?.properties?.symbol_rank) || 4;
+          const rb = Number(b?.properties?.symbol_rank) || 4;
+          if (ra !== rb) return ra - rb;
+        }
+        return (b?.properties?.has_deed_docs ? 1 : 0) - (a?.properties?.has_deed_docs ? 1 : 0);
+      });
       for (const feat of ordered) {
         const p = feat.properties || {};
         const lng = Number(p.label_lng);
         const lat = Number(p.label_lat);
         const rawName = String(p.name || "").trim();
         const hasDocs = Boolean(p.has_deed_docs);
-        const cleanLostName = rawName.replace(/\s*\(\d{4}(?:\s*[/–-]\s*\d{4})?\)\s*$/, "").trim();
+        const cleanLostName = rawName.replace(/\s*\(\d{4}(?:\s*[/-]\s*\d{4})?\)\s*$/, "").trim();
+        const lostSpan = p.lifespan_label || `${p.year_built}-${p.year_demolished}`;
         const name =
           p.overlay_layer === "lost_houston"
-            ? `† ${cleanLostName} (${p.year_built}-${p.year_demolished})`
+            ? `† ${cleanLostName} (${lostSpan})`
             : hasDocs
             ? `📜 ${rawName}`
             : rawName;
@@ -5723,8 +5764,14 @@ export class AtlasMapController {
       }
       ctx.restore();
     };
-    if (showLostHouston && visibleLostHoustonFeatures.length > 0) {
-      drawBoundaryLabels(visibleLostHoustonFeatures, 12.8, "#FBCFE8");
+    const activeLostTier = [...LOST_HOUSTON_LABEL_TIERS]
+      .reverse()
+      .find((t) => cs.zoom >= t.minzoom);
+    if (showLostHouston && visibleLostHoustonFeatures.length > 0 && activeLostTier) {
+      const zoomTieredLostFeatures = visibleLostHoustonFeatures.filter(
+        (f) => (Number(f?.properties?.symbol_rank) || 4) <= activeLostTier.maxRank
+      );
+      drawBoundaryLabels(zoomTieredLostFeatures, activeLostTier.minzoom, "#FBCFE8");
     }
     if (state.layers.plattedSubdivisions && this.overlaysData?.platted_subdivisions) {
       drawBoundaryLabels(this.overlaysData.platted_subdivisions.features, 13.0, "#ECFCCB");
@@ -5931,7 +5978,8 @@ export class AtlasMapController {
     if (isBoundary) {
       let badge = p.type_label || p.type || "Neighborhood Boundary";
       if (p.overlay_layer === "lost_houston") {
-        badge = `† Lost Houston (${p.year_built}-${p.year_demolished})`;
+        const lhSpan = p.lifespan_label || `${p.year_built}-${p.year_demolished}`;
+        badge = `† Lost Houston (${lhSpan})`;
       } else if (p.overlay_layer === "platted_subdivisions") {
         const platYrLbl = p.plat_year_label ? `Platted ${p.plat_year_label}` : "";
         if (p.has_deed_docs) {
@@ -5976,7 +6024,9 @@ export class AtlasMapController {
             })`;
       } else if (p.overlay_layer === "portfolio_work") {
         badge = p.is_lost
-          ? `Portfolio Work · Demolished (${p.year_built || "?"}-${p.year_demolished || "?"})`
+          ? `Portfolio Work · Demolished (${
+              p.lifespan_label || `${p.year_built || "?"}-${p.year_demolished || "?"}`
+            })`
           : `Portfolio Work · Extant (${p.year_built || "Undated"})`;
       }
       const statParts = [];
@@ -6417,17 +6467,28 @@ export class AtlasMapController {
     const showLostHouston =
       !isoGeom &&
       (Boolean(state.layers?.lostHouston) || Boolean(state.historicalSnapshotMode));
-    setVis(["lost-houston-fill", "lost-houston-line", "lost-houston-label"], showLostHouston);
-    setVis(["lost-houston-extrusion"], showLostHouston && Boolean(state.extrude3D));
-    if (showLostHouston) {
-      for (const lhLayer of [
+    setVis(
+      [
         "lost-houston-fill",
         "lost-houston-line",
-        "lost-houston-extrusion",
         "lost-houston-label",
-      ]) {
+        "lost-houston-label-r2",
+        "lost-houston-label-r34",
+      ],
+      showLostHouston
+    );
+    setVis(["lost-houston-extrusion"], showLostHouston && Boolean(state.extrude3D));
+    if (showLostHouston) {
+      for (const lhLayer of ["lost-houston-fill", "lost-houston-line", "lost-houston-extrusion"]) {
         if (this.map.getLayer(lhLayer)) {
           this.map.setFilter(lhLayer, lostHoustonFilterExpr);
+        }
+      }
+      // DF-1 / ANA-1: Keep each symbol layer's rank clause composed with `lostHoustonFilterExpr`
+      // without ever embedding `["zoom"]` inside a `filter` clause (forbidden by MapLibre Spec).
+      for (const tier of LOST_HOUSTON_LABEL_TIERS) {
+        if (this.map.getLayer(tier.id)) {
+          this.map.setFilter(tier.id, ["all", lostHoustonFilterExpr, tier.clause]);
         }
       }
     }
@@ -7736,6 +7797,7 @@ export class AtlasMapController {
             style: w.style || "",
             year_built: Number(w.yearBuilt) || 0,
             year_demolished: Number(w.yearDemolished) || 0,
+            lifespan_label: w.lifespanLabel || "",
             is_lost: Boolean(w.isLost),
             is_active: idx === activeIndex,
             portfolio_index: idx,
@@ -7754,7 +7816,7 @@ export class AtlasMapController {
           isActive ? " active" : ""
         }`;
         const yrText = w.isLost
-          ? `${w.yearBuilt || "?"}-${w.yearDemolished || "?"}`
+          ? w.lifespanLabel || `${w.yearBuilt || "?"}-${w.yearDemolished || "?"}`
           : w.yearBuilt || "Undated";
         pinBtn.title = `${i + 1}. ${w.title} (${yrText})${w.isLost ? " [Lost Houston]" : ""}`;
         pinBtn.setAttribute("aria-label", pinBtn.title);
@@ -8807,7 +8869,7 @@ export class AtlasMapController {
         if (
           (lid === "permit-watch-circle" ||
             lid === "plat-watch-circle" ||
-            lid === "landmarks-circle" ||
+            (lid === "landmarks-circle" && !p.demolished) ||
             (lid === "nrhp-properties-circle" && !p.is_demolished_nrhp) ||
             lid === "good-brick-circle" ||
             lid === "relocated-structures-circle") &&
@@ -9375,7 +9437,7 @@ export class AtlasMapController {
         historic_wards: {
           enabled: Boolean(state.layers?.historicWards),
           priority: 60,
-          typeBadge: `${activeWardEra === 1903 ? "1903–05" : activeWardEra} Ward`,
+          typeBadge: `${activeWardEra === 1903 ? "1903-05" : activeWardEra} Ward`,
           swatchColor: "#fb923c",
         },
         annexations: {
@@ -9421,9 +9483,10 @@ export class AtlasMapController {
         let dynBadge = meta.typeBadge;
         let dynSwatch = entry.props.color || meta.swatchColor;
         if (entry.overlayKey === "lost_houston") {
-          const yb = entry.props.year_built || "?";
-          const yd = entry.props.year_demolished || "?";
-          dynBadge = `† Lost (${yb}-${yd})`;
+          const lhSpan =
+            entry.props.lifespan_label ||
+            `${entry.props.year_built || "?"}-${entry.props.year_demolished || "?"}`;
+          dynBadge = `† Lost (${lhSpan})`;
           dynSwatch = getSanbornMaterialColors(entry.props.sanborn_material).color;
         } else if (entry.overlayKey === "holc_1937_zones") {
           dynBadge = `1937 HOLC ${entry.props.zone_code || ""} (${entry.props.grade_short || entry.props.holc_grade || ""})`;
@@ -9503,7 +9566,9 @@ export class AtlasMapController {
           title,
           subtitle:
             mb.entry.overlayKey === "lost_houston"
-              ? `${ep.category || "Demolished Landmark"} (${ep.year_built || "?"}-${ep.year_demolished || "?"})`
+              ? `${ep.category || "Demolished Landmark"} (${
+                  ep.lifespan_label || `${ep.year_built || "?"}-${ep.year_demolished || "?"}`
+                })`
               : Number(ep.building_count) > 0
               ? `${Number(ep.building_count).toLocaleString()} structures`
               : ep.type || mb.typeBadge,
@@ -9961,10 +10026,12 @@ export class AtlasMapController {
     };
   }
 
-  findLostHoustonAtSite({ hcadNum = "", lng = null, lat = null } = {}) {
+  findLostHoustonAtSite({ hcadNum = "", address = "", lng = null, lat = null } = {}) {
     const features = this.overlaysData?.lost_houston?.features;
     if (!Array.isArray(features) || !features.length) return [];
-    const cleanHcad = String(hcadNum || "").trim();
+    const cleanHcad = normalizeHcad13(hcadNum) || String(hcadNum || "").trim();
+    const callerHasHcad13 = /^\d{13}$/.test(cleanHcad);
+    const callerNormAddr = address ? normalizeComparableAddress(address) : "";
     const numLng = Number(lng);
     const numLat = Number(lat);
     const hasCoords = Number.isFinite(numLng) && Number.isFinite(numLat);
@@ -9977,14 +10044,52 @@ export class AtlasMapController {
       const id = String(p.id || p.name || "");
       if (!id || seenIds.has(id)) continue;
 
-      let isExact = false;
-      if (cleanHcad && Array.isArray(p.site_hcad_nums)) {
-        if (p.site_hcad_nums.some((h) => String(h || "").trim() === cleanHcad)) {
-          isExact = true;
+      const featHcads = [];
+      const primaryP = normalizeHcad13(p.hcad_num);
+      if (primaryP) featHcads.push(primaryP);
+      if (Array.isArray(p.site_hcad_nums)) {
+        for (const h of p.site_hcad_nums) {
+          const hn = normalizeHcad13(h) || String(h || "").trim();
+          if (hn && !featHcads.includes(hn)) featHcads.push(hn);
         }
       }
+
+      let isExact = false;
+      if (cleanHcad && featHcads.includes(cleanHcad)) {
+        isExact = true;
+      }
       if (!isExact && hasCoords && feat.geometry) {
-        if (this._pointInPolygonGeometry(numLng, numLat, feat.geometry)) {
+        // DF-2 / REG-3: When caller clicked a parcel with a valid 13-digit HCAD ID:
+        //   1. Require `isTrueSurveyedPoly` (blocking un-surveyed synthetic street/parcel
+        //      ghost boxes whose interpolated rectangles can graze neighbor/cross-street lots).
+        //   2. If the Lost Houston site declares a different single 13-digit HCAD, only match
+        //      spatially when the street address also matches; allow multi-lot surveyed campus
+        //      or ballpark monuments (`featHcads.length > 1`, e.g. 1905 West End Park) to match
+        //      replatted townhome parcels contained inside their surveyed perimeter.
+        const hasDifferentDeclaredHcad =
+          callerHasHcad13 &&
+          featHcads.length > 0 &&
+          featHcads.every((fh) => /^\d{13}$/.test(fh) && fh !== cleanHcad);
+        const isTrueSurveyedPoly =
+          p.footprint_provenance === "surveyed_sanborn_or_parcel" ||
+          !p.footprint_provenance;
+        const featNormAddr = p.address ? normalizeComparableAddress(p.address) : "";
+        const featHistAddr = p.historic_address
+          ? normalizeComparableAddress(p.historic_address)
+          : "";
+        const sameNormalizedAddress =
+          Boolean(callerNormAddr) &&
+          (callerNormAddr === featNormAddr || callerNormAddr === featHistAddr);
+        const allowCrossParcelSurveyedOverlap =
+          isTrueSurveyedPoly &&
+          p.source_cohort !== "historic_teardown_2020_2026" &&
+          (!hasDifferentDeclaredHcad || featHcads.length > 1 || sameNormalizedAddress);
+        if (
+          (callerHasHcad13
+            ? allowCrossParcelSurveyedOverlap
+            : !hasDifferentDeclaredHcad || isTrueSurveyedPoly) &&
+          this._pointInPolygonGeometry(numLng, numLat, feat.geometry)
+        ) {
           isExact = true;
         }
       }

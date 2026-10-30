@@ -915,6 +915,30 @@ export function buildPortfolioDataset({
     );
   };
 
+  const demolishedLandmarkHcads = new Set();
+  for (const lf of overlaysData?.lost_houston?.features || []) {
+    const lp = lf?.properties || {};
+    if (lp.source_cohort === "coh_landmark_demolished" || lp.coh_landmark_id) {
+      const candList = [
+        lp.hcad_num,
+        ...(Array.isArray(lp.site_hcad_nums) ? lp.site_hcad_nums : []),
+      ];
+      for (const rawH of candList) {
+        const lh = String(rawH || "").trim();
+        if (/^\d{13}$/.test(lh)) demolishedLandmarkHcads.add(lh);
+      }
+    }
+  }
+  for (const mf of overlaysData?.landmarks?.features || []) {
+    const mp = mf?.properties || {};
+    if (mp.demolished === true) {
+      for (const rawH of [mp.site_hcad_num, mp.hcad_num]) {
+        const mh = String(rawH || "").trim();
+        if (/^\d{13}$/.test(mh)) demolishedLandmarkHcads.add(mh);
+      }
+    }
+  }
+
   // 1. Scan enriched searchIndex
   if (Array.isArray(searchIndex)) {
     for (const row of searchIndex) {
@@ -922,15 +946,19 @@ export function buildPortfolioDataset({
       const lng = Number(row.lon ?? row.lng);
       const lat = Number(row.lat);
       if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+      const rowHcad = String(row.hcad_num || "").trim();
       if (
         row.kind === "lost_houston" ||
         row.type === "lost_houston" ||
+        row.demolished === true ||
+        row.hcad_num === "Demolished" ||
         row.overlay_layer ||
         row.year_demolished ||
         row.type === "historical_waterway" ||
         row.type === "historical_railroad" ||
         row.type === "district" ||
-        row.type === "red_book_1915"
+        row.type === "red_book_1915" ||
+        (rowHcad && demolishedLandmarkHcads.has(rowHcad))
       ) {
         continue;
       }
@@ -964,7 +992,8 @@ export function buildPortfolioDataset({
       if (!rec || typeof rec !== "object" || !checkMatch(rec)) continue;
       const [lng, lat] = geomCentroid(rec.geometry);
       if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
-      const rawHcad = String(rec.hcad_num || (ovKey.includes("#") ? ovKey.split("#")[0] : ovKey));
+      const rawHcad = String(rec.hcad_num || (ovKey.includes("#") ? ovKey.split("#")[0] : ovKey)).trim();
+      if (/^\d{13}$/.test(rawHcad) && demolishedLandmarkHcads.has(rawHcad)) continue;
       upsertWork({
         isDemolished: false,
         isLost: false,
@@ -985,10 +1014,13 @@ export function buildPortfolioDataset({
     }
   }
 
-  // 3. Scan COH Landmarks
+  // 3. Scan COH Landmarks (skipping demolished entries so they appear strictly via Lost Houston)
   const lmFeatures = overlaysData?.landmarks?.features || [];
   for (const feat of lmFeatures) {
     const p = feat?.properties || {};
+    if (p.demolished === true || p.hcad_num === "Demolished" || p.USER_HCAD_NUM === "Demolished") {
+      continue;
+    }
     if (!checkMatch(p)) continue;
     const [lng, lat] = geomCentroid(feat.geometry);
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
@@ -1018,20 +1050,41 @@ export function buildPortfolioDataset({
     if (!checkMatch(p)) continue;
     const [lng, lat] = geomCentroid(feat.geometry);
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+    const canonicalHcad = String(
+      p.hcad_num ||
+        p.modern_hcad_num ||
+        (Array.isArray(p.site_hcad_nums) && p.site_hcad_nums.length ? p.site_hcad_nums[0] : "") ||
+        ""
+    ).trim();
+    const demoYr = Number(p.year_demolished) || 0;
+    const lostCandidateHcads = [
+      canonicalHcad,
+      ...(Array.isArray(p.site_hcad_nums) ? p.site_hcad_nums.map((x) => String(x || "").trim()) : []),
+    ];
+    for (const hc of lostCandidateHcads) {
+      if (!hc || !byKey.has(`hcad:${hc}`)) continue;
+      const ext = byKey.get(`hcad:${hc}`);
+      if (ext && !ext.isDemolished && ((demoYr > 0 && ext.yearBuilt >= demoYr - 1) || demolishedLandmarkHcads.has(hc))) {
+        byKey.delete(`hcad:${hc}`);
+      }
+    }
     upsertWork({
       isDemolished: true,
       isLost: true,
-      hcadNum: String(p.modern_hcad_num || ""),
+      hcadNum: canonicalHcad,
       featureId: String(p.id || ""),
       lostHoustonId: String(p.id || ""),
       title: String(p.name || "Lost Houston Structure"),
-      address: String(p.historic_address || p.address || ""),
+      address: String(p.historic_address_1915 || p.historic_address || p.address || ""),
       yearBuilt: Number(p.year_built) || 0,
       yearDemolished: Number(p.year_demolished) || null,
-      architect: String(p.architect || ""),
+      lifespanLabel: String(p.lifespan_label || ""),
+      sourceCohort: String(p.source_cohort || ""),
+      sourceCohortLabel: String(p.source_cohort_label || ""),
+      architect: String(p.architect || p.builder || ""),
       style: String(p.style || ""),
       district: String(p.neighborhood || "Demolished Landmark"),
-      isLandmark: false,
+      isLandmark: Boolean(p.coh_landmark_code || p.nrhp_refnum),
       isGoodBrick: false,
       lng,
       lat,

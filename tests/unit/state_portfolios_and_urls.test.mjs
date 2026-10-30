@@ -118,7 +118,8 @@ test("filterStore MapLibre filter compilers produce valid expressions across mod
   assert.equal(exprLostSnap[0], "all");
 
   const exprLmProtected = buildLandmarksFilterExpression({ landmarkFilter: "protected" });
-  assert.equal(exprLmProtected[0], "in");
+  assert.equal(exprLmProtected[0], "all");
+  assert.equal(exprLmProtected[2][0], "in");
 
   const exprRbChurch = buildRedBookFilterExpression({ redBookCategory: "church" });
   assert.equal(exprRbChurch[0], "==");

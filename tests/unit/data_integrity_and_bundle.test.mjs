@@ -147,7 +147,11 @@ test("overlays.json contains all 23 GeoJSON FeatureCollections + HOLC grade summ
   for (const feat of landmarks) {
     const tier = feat.properties?.protection_tier;
     assert.ok(
-      tier === "plm" || tier === "lm_in_hd" || tier === "lm_waiver_vulnerable" || tier === "waiver_lm",
+      tier === "plm" ||
+        tier === "lm_in_hd" ||
+        tier === "lm_waiver_vulnerable" ||
+        tier === "waiver_lm" ||
+        (tier === "lm_demolished" && feat.properties?.demolished === true),
       `Unexpected landmark protection_tier '${tier}' on ${feat.properties?.name}`
     );
   }
@@ -733,6 +737,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/public/data/monitor_activity_log.json",
     "app/public/data/property_watchlist.json",
     "app/public/data/neighborhood_scorecards.json",
+    "app/public/data/overlays.json",
+    "app/public/data/building_photos.json",
     "app/plat-monitor.html",
     "app/js/activityLogHelpers.js",
     "app/js/preservationOrganizer.js",
@@ -740,11 +746,49 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/build_monitor_activity_log.py",
     "pipeline/atlas_pipeline/build_neighborhood_scorecards.py",
     "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+    "pipeline/atlas_pipeline/schema.py",
+    "pipeline/atlas_pipeline/lost_houston_expansion.py",
+    "pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py",
+    "pipeline/atlas_pipeline/build_social_history_layers.py",
+    "pipeline/atlas_pipeline/audit_historical_accuracy.py",
+    "docs/06-sanborn-maps-and-lost-houston.md",
+    "docs/10-sources-integrations-and-curation-workflows.md",
     ".github/workflows/update_live_permits.yml",
     "docs/PRESERVATION_MONITORING_AUTOMATION_ARCHITECTURE.md",
   ]) {
     const rawTxt = fs.readFileSync(path.join(REPO_ROOT, relCheck), "utf8");
     assert.equal(rawTxt.includes("\u2014"), false, `${relCheck} must contain zero U+2014 em-dashes`);
+  }
+
+  for (const relStrictNoDash of [
+    "app/public/data/overlays.json",
+    "app/public/data/search_index.json",
+    "app/public/data/building_photos.json",
+    "app/public/data/neighborhood_scorecards.json",
+    "pipeline/atlas_pipeline/schema.py",
+    "pipeline/atlas_pipeline/lost_houston_expansion.py",
+    "pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py",
+    "pipeline/atlas_pipeline/build_social_history_layers.py",
+    "pipeline/atlas_pipeline/build_neighborhood_scorecards.py",
+    "pipeline/atlas_pipeline/audit_historical_accuracy.py",
+    "docs/06-sanborn-maps-and-lost-houston.md",
+    "docs/10-sources-integrations-and-curation-workflows.md",
+  ]) {
+    const rawTxt = fs.readFileSync(path.join(REPO_ROOT, relStrictNoDash), "utf8");
+    assert.equal(
+      rawTxt.includes("\u2013"),
+      false,
+      `${relStrictNoDash} must contain zero U+2013 en-dashes (UT-7)`
+    );
+  }
+
+  for (const compactRel of ["overlays.json", "search_index.json", "building_photos.json"]) {
+    const rawCompact = fs.readFileSync(path.join(DATA_DIR, compactRel), "utf8");
+    assert.equal(
+      rawCompact.trimEnd().includes("\n"),
+      false,
+      `${compactRel} must remain single-line compact JSON`
+    );
   }
 
   const scPath = path.join(DATA_DIR, "neighborhood_scorecards.json");

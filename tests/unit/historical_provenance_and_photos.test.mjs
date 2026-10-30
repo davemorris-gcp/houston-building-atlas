@@ -86,10 +86,27 @@ test("Phase A: Guided Chapters, Portfolio Biographies, Walking Tours, and Deed C
 test("Phase A & C: Lost Houston excludes extant landmarks and building_photos.json contains zero favicons, TGCA text tables, or demolished replacement photos", () => {
   const overlays = readDataJson("overlays.json");
   const lostFeatures = overlays.lost_houston?.features || [];
-  assert.equal(
-    lostFeatures.length,
-    74,
-    `Expected 74 verified demolished Lost Houston structures (66 surveyed + 8 Red Book), got ${lostFeatures.length}`
+  assert.ok(
+    lostFeatures.length >= 550 && lostFeatures.length <= 700,
+    `Expected 550-700 verified demolished Lost Houston structures across 5 cohorts, got ${lostFeatures.length}`
+  );
+  assert.equal(lostFeatures.length, 622, "Expected exact Milestone 2 total of 622 Lost Houston structures");
+
+  const cohortCounts = {};
+  for (const f of lostFeatures) {
+    const c = String(f.properties?.source_cohort || "");
+    cohortCounts[c] = (cohortCounts[c] || 0) + 1;
+  }
+  assert.deepEqual(
+    cohortCounts,
+    {
+      curated_landmark: 85,
+      coh_landmark_demolished: 7,
+      nrhp_demolished: 15,
+      red_book_1915_vanished: 205,
+      historic_teardown_2020_2026: 310,
+    },
+    "Expected exact 5-cohort composition (85 curated + 7 COH + 15 NRHP + 205 Red Book + 310 teardowns = 622)"
   );
 
   const extantFalsePositives = [
@@ -99,17 +116,34 @@ test("Phase A & C: Lost Houston excludes extant landmarks and building_photos.js
     /^humble oil building\b/i,
     /^merchants\s*&\s*manufacturers building\b/i,
     /^jefferson davis hospital \(1924/i,
+    /arthur b\.\s*cohn house/i,
+    /wesley chapel ame/i,
+    /magnolia ball\s*park/i,
+    /^1206 nance\b/i,
   ];
 
   for (const feat of lostFeatures) {
-    const nm = String(feat.properties?.name || "");
+    const p = feat.properties || {};
+    const nm = String(p.name || "");
     for (const pat of extantFalsePositives) {
-      assert.ok(!pat.test(nm), `Extant building '${nm}' must not appear in Lost Houston`);
+      assert.ok(!pat.test(nm), `Extant or relocated building '${nm}' must not appear in Lost Houston`);
     }
+    assert.notEqual(
+      String(p.nrhp_refnum || ""),
+      "85002771",
+      "Relocated NRHP #85002771 (Arthur B. Cohn House) must be excluded from Lost Houston"
+    );
+    assert.notEqual(
+      String(p.coh_landmark_id || ""),
+      "coh_lm_089",
+      "Extant 1206 Nance St (coh_lm_089) must not appear in Lost Houston"
+    );
     assert.ok(
-      Array.isArray(feat.properties?.citations) && feat.properties.citations.length >= 1,
+      Array.isArray(p.citations) && p.citations.length >= 1,
       `Lost Houston entry '${nm}' must carry >= 1 primary archival citation`
     );
+    assert.ok([1, 2, 3].includes(Number(p.provenance_tier)), `Invalid provenance_tier on '${nm}'`);
+    assert.ok([1, 2, 3, 4].includes(Number(p.symbol_rank)), `Invalid symbol_rank on '${nm}'`);
   }
 
   // Verify Courtlandt Place spelling normalization across Historic Districts

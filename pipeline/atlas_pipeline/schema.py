@@ -17,7 +17,7 @@ MIN_VALID_YEAR = 1836
 MAX_VALID_YEAR = 2027
 MAX_VALID_CAMA_DATE_YEAR = 2026
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261030b"
+ACTIVE_CACHE_BUST = "20261030d"
 ORD_2015_639_CUTOFF_ISO = "2015-07-24"
 ORD_2015_639_CUTOFF_ORD_NUM = 639
 QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
@@ -258,18 +258,37 @@ def parse_hcad_date_year(
     return yr
 
 
+def _sanitize_payload_strings(value: Any) -> Any:
+    """Recursively strip U+2014/U+2013 dashes across JSON strings while preserving schema keys."""
+    if isinstance(value, str):
+        if "\u2014" in value or "\u2013" in value:
+            return sanitize_atlas_text(value)
+        return value
+    if isinstance(value, list):
+        return [_sanitize_payload_strings(item) for item in value]
+    if isinstance(value, dict):
+        return {k: _sanitize_payload_strings(v) for k, v in value.items()}
+    return value
+
+
 def write_compact_json(path: Path | str, payload: Any) -> None:
     """Serialize payload as single-line compact UTF-8 JSON to keep data bundles within budget."""
     target = Path(path)
     tmp_path = target.with_name(f"{target.name}.tmp")
-    serialized = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    clean_payload = _sanitize_payload_strings(payload)
+    serialized = json.dumps(clean_payload, ensure_ascii=False, separators=(",", ":"))
     tmp_path.write_text(serialized, encoding="utf-8")
     tmp_path.replace(target)
 
 
 def sanitize_atlas_text(val: str) -> str:
-    """Normalize typography so public JSON artifacts contain zero U+2014 em-dashes."""
-    return val.replace(" \u2014 ", " - ").replace("\u2014", "-")
+    """Normalize typography so public JSON artifacts contain zero U+2014/U+2013 dashes."""
+    return (
+        val.replace(" \u2014 ", " - ")
+        .replace("\u2014", "-")
+        .replace(" \u2013 ", " - ")
+        .replace("\u2013", "-")
+    )
 
 
 _RE_ORDINANCE_YEAR_SEQ = re.compile(r"\b(19\d{2}|20\d{2})\s*[-/]\s*0*(\d+)\b")
@@ -986,3 +1005,370 @@ def validate_watch_property_contract(
         errors.append(f"{pid}: em-dash found in {', '.join(em_prop)}")
 
     return errors
+
+
+LOST_HOUSTON_COHORTS: tuple[str, ...] = (
+    "curated_landmark",
+    "coh_landmark_demolished",
+    "nrhp_demolished",
+    "red_book_1915_vanished",
+    "historic_teardown_2020_2026",
+)
+LOST_HOUSTON_VALID_COHORTS: frozenset[str] = frozenset(LOST_HOUSTON_COHORTS)
+
+LOST_HOUSTON_COHORT_LABELS: dict[str, str] = {
+    "curated_landmark": "Curated Survey & Archival Landmark",
+    "coh_landmark_demolished": "City of Houston Designated Landmark (Demolished)",
+    "nrhp_demolished": "National Register Property (Demolished / Gone)",
+    "red_book_1915_vanished": "1915 Red Book of Houston (Vanished Place)",
+    "historic_teardown_2020_2026": "2020-2026 Pre-1940 Historic Teardown",
+}
+
+_RE_MAIN_DEMO_ALLOW = re.compile(
+    r"\b("
+    r"DEMO\s*(?:RES|HSE|HOUSE|DWG|DWELLING|SF|SFR|BLDG|BLD|BUILDING|COM|COMM|COMMERCIAL|STRUC|STRUCTURE|DUPLEX|TRIPLEX|FOURPLEX|4-PLEX|MAIN|CHURCH|SCHOOL)"
+    r"|TOTAL\s*DEMO(?:LITION)?"
+    r"|DEMOLISH\s*(?:RES|HSE|HOUSE|DWG|BLDG|BLD|BUILDING|MAIN|DUPLEX|STRUCTURE)"
+    r"|COMPLETE\s*DEMO(?:LITION)?"
+    r"|D\.?B\.?\s*/\s*(?:DEMO\s*/\s*)?RESIDENTIAL"
+    r"|COH\s*DEMO\s*/\s*RESIDENTIAL"
+    r"|MAIN\s*STRUC(?:TURE)?"
+    r"|RAZED"
+    r"|TEARDOWN"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_RE_PRIMARY_PLUS_ACCESSORY_DEMO = re.compile(
+    r"\b(?:DEMO(?:LISH)?\s+)?(?:MAIN\s+)?(?:HOUSE|RESIDENCE|BLDG|BLD|BUILDING|DWELLING)\s*"
+    r"(?:&|AND|\+)\s*(?:DETACHED\s+)?(?:GAR(?:AGE)?|POOL|CARPORT|SHED|QTRS|QUARTERS)\b",
+    re.IGNORECASE,
+)
+
+_RE_PARTIAL_OR_NOTE_DENY = re.compile(
+    r"\b("
+    r"INTERIOR|PARTIAL|SELECTIVE|NON[- ]?STRUCT(?:URAL)?|NON[- ]?LOAD|NON[- ]?FIRE|EXPLORATORY"
+    r"|FACADE|ROOF|REROOF|FOUNDATION\s*REPAIR|SLAB\s*ONLY|REMODEL|ADDITION|ALTERATION"
+    r"|REPAIR|FIRE\s*DAMAGE\s*REPAIR|WATER\s*DAMAGE|STORM\s*DAMAGE"
+    r"|CHECK\s*FOR|VERIFY|RECHECK|INSPECT|REVIEW|PENDING|CANCEL|VOID|EXPIRED"
+    r"|TENANT\s*BUILD|BUILD[- ]?OUT|FINISH[- ]?OUT"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_RE_MAIN_DEMO_DENY = re.compile(
+    r"\b("
+    r"GAR|GARAGE|CARPORT|SHED|POOL|SPA|ACC|ACCESSORY|OUTBUILDING|STORAGE|DET|DETACHED"
+    r"|QTRS|QUARTERS|GUEST|CABANA|GAZEBO|PAVILION|PERGOLA|BARN|STABLE|WORKSHOP"
+    r"|INTERIOR|INT|PARTIAL|SELECTIVE|NON[- ]?STRUCT(?:URAL)?|NON[- ]?LOAD|NON[- ]?FIRE|EXPLORATORY"
+    r"|FACADE|ROOF|REROOF|PORCH|PATIO|DECK|BALCONY|STAIR|FENCE|WALL|DRIVEWAY|PAVING"
+    r"|SIDEWALK|FLATWORK|RETAINING|CANOPY|AWNING|SIGN|BILLBOARD|ANTENNA|TOWER"
+    r"|FOUNDATION\s*REPAIR|SLAB\s*ONLY|REMODEL|ADDITION|ALT|ALTERATION"
+    r"|REPAIR|FIRE\s*DAMAGE\s*REPAIR|WATER\s*DAMAGE|STORM\s*DAMAGE"
+    r"|CHECK\s*FOR|VERIFY|RECHECK|INSPECT|REVIEW|TEST|PENDING|CANCEL|VOID|EXPIRED"
+    r"|TENANT\s*BUILD|BUILD[- ]?OUT|FINISH[- ]?OUT|MECH|HVAC|PLUMB|ELEC"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_RE_SECONDARY_UNIT_ADDR = re.compile(
+    r"(?:^\s*0+\b"
+    r"|\b1/2\b"
+    r"|\bREAR\b"
+    r"|\bGARAGE\b"
+    r"|\bCARPORT\b"
+    r"|\bQTRS\b"
+    r"|\bQUARTERS\b"
+    r"|\bGUEST\b"
+    r"|\bAPT\s*[A-Z0-9]*\b"
+    r"|\bUNIT\s+[B-Z2-9]\w*\b"
+    r"|\bSTE\s+\w+\b"
+    r"|\bSUITE\s+\w+\b"
+    r"|\bBLDG?\s+[B-Z2-9]\w*\b"
+    r"|#\s*[A-Z0-9]+\b)",
+    re.IGNORECASE,
+)
+
+_HISTORIC_HOUSTON_STREET_RENAMES: tuple[tuple[str, str], ...] = (
+    ("SAN FELIPE", "W DALLAS"),
+    ("W DALLAS", "SAN FELIPE"),
+    ("DOWLING", "EMANCIPATION"),
+    ("EMANCIPATION", "DOWLING"),
+    ("ODIN", "JENSEN"),
+    ("CARR", "JENSEN"),
+    ("JENSEN", "ODIN"),
+    ("GRANT", "MONTROSE"),
+    ("MONTROSE", "GRANT"),
+    ("HATHAWAY", "WESTHEIMER"),
+    ("WESTHEIMER", "HATHAWAY"),
+    ("BRUNNER", "WASHINGTON"),
+    ("COURTLAND", "CORTLANDT"),
+    ("CORTLANDT", "COURTLAND"),
+    ("SHEPHERD DAM", "GREENBRIAR"),
+    ("ALMEDA", "CRAWFORD"),
+)
+
+_STREET_SUFFIX_CANON: dict[str, str] = {
+    "STREET": "ST",
+    "ST": "ST",
+    "AVENUE": "AVE",
+    "AV": "AVE",
+    "AVE": "AVE",
+    "BOULEVARD": "BLVD",
+    "BLVD": "BLVD",
+    "DRIVE": "DR",
+    "DR": "DR",
+    "ROAD": "RD",
+    "RD": "RD",
+    "PLACE": "PL",
+    "PL": "PL",
+    "COURT": "CT",
+    "CT": "CT",
+    "LANE": "LN",
+    "LN": "LN",
+    "PARKWAY": "PKWY",
+    "PKWY": "PKWY",
+    "FREEWAY": "FWY",
+    "FWY": "FWY",
+    "HIGHWAY": "HWY",
+    "HWY": "HWY",
+    "CIRCLE": "CIR",
+    "CIR": "CIR",
+    "TERRACE": "TER",
+    "TER": "TER",
+    "SQUARE": "SQ",
+    "SQ": "SQ",
+    "TRAIL": "TRL",
+    "TRL": "TRL",
+    "WAY": "WAY",
+}
+
+_DIRECTIONAL_CANON: dict[str, str] = {
+    "NORTH": "N",
+    "N": "N",
+    "SOUTH": "S",
+    "S": "S",
+    "EAST": "E",
+    "E": "E",
+    "WEST": "W",
+    "W": "W",
+}
+
+
+def is_main_structure_demolition_scope(
+    description: Any,
+    *,
+    allow_empty: bool = False,
+) -> bool:
+    """Shared primary-vs-accessory demolition text screener (DF-5 / MOD-2).
+
+    Used across both `classify_main_structure_demolition_permit` and
+    `build_neighborhood_scorecards` so pool, detached garage, carport, canopy,
+    shed, interior remodel, roof, repair, and cancel/void permits are rejected
+    by a single source of truth, while explicit combined teardowns such as
+    `DEMO HOUSE & GARAGE` or `HOUSE & POOL` pass.
+    """
+    dscr = "" if description is None else str(description).strip()
+    if not dscr:
+        return bool(allow_empty)
+    if _RE_PARTIAL_OR_NOTE_DENY.search(dscr):
+        return False
+    if _RE_PRIMARY_PLUS_ACCESSORY_DEMO.search(dscr):
+        return True
+    if _RE_MAIN_DEMO_DENY.search(dscr):
+        return False
+    return True
+
+
+def classify_main_structure_demolition_permit(
+    description: Any,
+    permit_type: Any = "",
+    issue_date: Any = "",
+    *,
+    raw_address: Any = "",
+    site_apt: Any = "",
+    permit_desc: Any = "",
+    min_year: int = 2020,
+    max_year: int = MAX_VALID_CAMA_DATE_YEAR,
+) -> tuple[bool, int, str]:
+    """Deterministically classify whether a permit removes a primary structure (DF-5).
+
+    Returns `(is_main_demo, permit_year, reason_code)`:
+      - Rejects blank/empty descriptions (never treats raw `SD`/`4D` codes alone as proof
+        without description inspection; for COH 2026 structural permits where `permit_desc`
+        is explicitly `"Demolition"` or `"Dgr Bldg Demo"`, still inspects `description`/`use_desc`
+        against the allowlist and accessory/interior denylist).
+      - Rejects HCAD SQL/OLE null-date sentinels (`12/30/1899`, `01/01/1900`, `01/02/1900`)
+        and dates outside `[min_year, max_year]`.
+      - Rejects `0 <STREET>` and secondary unit suffixes (`1/2`, `REAR`, `GARAGE`, `APT`,
+        `BLD B`, `UNIT B`, `#B`).
+      - Rejects accessory, garage, carport, pool, shed, interior, partial, roof, facade,
+        remodel, addition, repair, and appraiser note permits (`CHECK FOR DEMO`, `VERIFY`),
+        while permitting combined teardowns like `DEMO HOUSE & GARAGE`.
+    """
+    iso_dt, yr = normalize_hcad_date(
+        issue_date,
+        None,
+        allow_fallback=False,
+        min_year=min_year,
+        max_year=max_year,
+    )
+    if not yr or not iso_dt:
+        # Also allow bare 4-digit year string only when explicitly in [min_year, max_year]
+        s_dt = "" if issue_date is None else str(issue_date).strip()
+        if re.fullmatch(r"\d{4}", s_dt):
+            y_only = int(s_dt)
+            if min_year <= y_only <= max_year:
+                yr = y_only
+            else:
+                return False, 0, "year_out_of_range"
+        else:
+            return False, 0, "invalid_or_sentinel_date"
+
+    dscr = "" if description is None else str(description).strip()
+    if not dscr:
+        return False, 0, "empty_description"
+
+    addr = "" if raw_address is None else str(raw_address).strip()
+    apt = "" if site_apt is None else str(site_apt).strip()
+    if apt and re.search(r"(1/2|REAR|GAR|APT|QTRS|GUEST|[B-Z2-9])", apt, re.IGNORECASE):
+        return False, 0, "secondary_unit_apt"
+    if addr:
+        if _RE_SECONDARY_UNIT_ADDR.search(addr):
+            return False, 0, "secondary_or_zero_address"
+        if not re.match(r"^[1-9]\d*\s+\S+", addr):
+            return False, 0, "missing_street_number"
+
+    if not is_main_structure_demolition_scope(dscr, allow_empty=False):
+        return False, 0, "denied_accessory_or_partial"
+
+    p_type = "" if permit_type is None else str(permit_type).strip().upper()
+    p_desc = "" if permit_desc is None else str(permit_desc).strip().upper()
+
+    if _RE_MAIN_DEMO_ALLOW.search(dscr) or _RE_PRIMARY_PLUS_ACCESSORY_DEMO.search(dscr):
+        return True, yr, "main_structure_demo"
+
+    # COH structural demolition feed edge case: permit_type SD/4D + permit_desc DEMOLITION/DGR BLDG DEMO
+    # with explicit SINGLE FAMILY / RESIDENTIAL / COMMERCIAL BUILDING description alongside DEMO token
+    if p_type in ("SD", "4D") and p_desc in ("DEMOLITION", "DGR BLDG DEMO"):
+        if re.search(r"\bDEMO(?:LITION)?\b", dscr, re.IGNORECASE) and re.search(
+            r"\b(SINGLE\s*FAMILY|RESIDENTIAL|RESIDENCE|HOUSE|DWELLING|COMMERCIAL|BUILDING|CHURCH|SCHOOL)\b",
+            dscr,
+            re.IGNORECASE,
+        ):
+            return True, yr, "coh_structural_main_demo"
+
+    return False, 0, "unmatched_description"
+
+
+def normalize_houston_address_keys(
+    raw_address: Any,
+    *,
+    include_historic_aliases: bool = True,
+) -> list[str]:
+    """Normalize a Houston street address to canonical uppercase lookup keys.
+
+    Strips parenthetical notes (`1010 Prairie St (SW corner Main & Prairie)`), historic
+    annotations (`now 2000 Emancipation`), punctuation, trailing city/state/ZIP tokens,
+    and expands multi-number ranges (`815-817 Main St` -> `815 MAIN`, `817 MAIN`) as well
+    as documented Houston street renamings (`San Felipe` <-> `W Dallas`, `Dowling` <->
+    `Emancipation`, `Odin`/`Carr` <-> `Jensen`, `Courtland` <-> `Cortlandt`, `19th Ave`
+    <-> `W 19th St`) so cross-cohort dedup and extant-collision checks operate strictly
+    on structured keys rather than fragile substrings.
+    """
+    s = "" if raw_address is None else sanitize_atlas_text(str(raw_address)).strip().upper()
+    if not s:
+        return []
+
+    # Collect any explicit "(now <address>)" or "(formerly <address>)" alias too
+    segments = [s]
+    for m_alias in re.finditer(r"\(\s*(?:NOW|FORMERLY|HISTORICALLY|LATER)\s+([^)]+)\)", s):
+        segments.append(m_alias.group(1).strip())
+
+    out_keys: list[str] = []
+    seen: set[str] = set()
+
+    def _add(k: str) -> None:
+        kk = re.sub(r"\s+", " ", k).strip()
+        if kk and kk not in seen:
+            seen.add(kk)
+            out_keys.append(kk)
+
+    for seg in segments:
+        clean = re.sub(r"\([^)]*\)", " ", seg)
+        clean = re.split(r"\bHOUSTON\b|,", clean)[0]
+        clean = re.sub(r"\bTX\b|\bTEXAS\b|\b77\d{3}(?:-\d{4})?\b", " ", clean)
+        clean = clean.replace(".", " ").replace("#", " #")
+        clean = re.sub(r"\s+", " ", clean).strip()
+        if not clean:
+            continue
+
+        # Reject secondary / zero addresses from producing bare primary matches
+        if re.match(r"^0+\b", clean):
+            continue
+        has_half = bool(re.search(r"^\d+\s+1/2\b", clean))
+
+        m_num = re.match(r"^([1-9]\d*)(?:\s*[-/&]+\s*([1-9]\d*))*?\s+(?:(1/2)\s+)?(.+)$", clean)
+        if not m_num:
+            continue
+
+        lead_part_end = m_num.start(4)
+        lead_nums = [n for n in re.findall(r"\b[1-9]\d*\b", clean[:lead_part_end]) if n != "2" or not has_half]
+        if has_half:
+            # Keep 1/2 explicitly separate so `202 1/2 E 31ST` NEVER collides with `202 E 31ST`
+            lead_nums = [f"{lead_nums[0]} 1/2"] if lead_nums else []
+        rest = m_num.group(4).strip()
+        # Strip trailing apartment/unit tokens
+        rest = re.split(r"\b(?:APT|UNIT|STE|SUITE|BLDG|BLD|FL|FLOOR|REAR)\b|#", rest)[0].strip()
+        tokens = [t for t in rest.split() if t]
+        if not tokens or not lead_nums:
+            continue
+
+        dir_prefix = ""
+        if tokens and tokens[0] in _DIRECTIONAL_CANON and len(tokens) >= 2:
+            dir_prefix = _DIRECTIONAL_CANON[tokens[0]]
+            tokens = tokens[1:]
+
+        suffix = ""
+        if len(tokens) >= 2 and tokens[-1] in _STREET_SUFFIX_CANON:
+            suffix = _STREET_SUFFIX_CANON[tokens[-1]]
+            tokens = tokens[:-1]
+        elif len(tokens) >= 3 and tokens[-1] in _DIRECTIONAL_CANON and tokens[-2] in _STREET_SUFFIX_CANON:
+            # trailing directional e.g. MONTROSE BLVD S
+            suffix = _STREET_SUFFIX_CANON[tokens[-2]]
+            tokens = tokens[:-2]
+
+        core = " ".join(tokens).strip()
+        if not core:
+            continue
+
+        street_variants: list[tuple[str, str, str]] = [(dir_prefix, core, suffix)]
+        if include_historic_aliases:
+            full_street = f"{dir_prefix} {core}".strip()
+            for old_st, new_st in _HISTORIC_HOUSTON_STREET_RENAMES:
+                if full_street == old_st:
+                    parts_n = new_st.split()
+                    if parts_n[0] in ("N", "S", "E", "W") and len(parts_n) >= 2:
+                        street_variants.append((parts_n[0], " ".join(parts_n[1:]), suffix))
+                    else:
+                        street_variants.append(("", new_st, suffix))
+                elif core == old_st and not dir_prefix:
+                    parts_n = new_st.split()
+                    if parts_n[0] in ("N", "S", "E", "W") and len(parts_n) >= 2:
+                        street_variants.append((parts_n[0], " ".join(parts_n[1:]), suffix))
+                    else:
+                        street_variants.append(("", new_st, suffix))
+            # Houston Heights numbered avenues -> W/E numbered streets (e.g. 829 19TH AVE -> W 19TH ST)
+            if re.fullmatch(r"\d+(?:ST|ND|RD|TH)", core) and suffix == "AVE" and not dir_prefix:
+                street_variants.append(("W", core, "ST"))
+                street_variants.append(("E", core, "ST"))
+
+        for num_tok in lead_nums[:4]:
+            for dp, cr, sf in street_variants:
+                base_with_dir = f"{num_tok} {dp} {cr}".replace("  ", " ").strip()
+                if sf:
+                    _add(f"{base_with_dir} {sf}")
+                _add(base_with_dir)
+
+    return out_keys
+

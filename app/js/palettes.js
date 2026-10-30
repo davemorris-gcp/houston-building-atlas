@@ -2857,6 +2857,32 @@ export const SANBORN_MATERIAL_ITEMS = [
   },
 ];
 
+export function resolveSanbornMaterialColors(materialKey) {
+  const raw = String(materialKey || "brick")
+    .trim()
+    .toLowerCase();
+  const norm =
+    raw === "frame"
+      ? "wood_frame"
+      : raw === "stone_concrete"
+      ? "stone"
+      : raw === "iron_steel" || raw === "iron"
+      ? "iron_metal"
+      : raw;
+  const found = SANBORN_MATERIAL_ITEMS.find((m) => m.key === norm);
+  return (
+    found || {
+      key: "brick",
+      code: "brick",
+      color: "#F472B6",
+      fillColor: "rgba(244, 114, 182, 0.28)",
+      strokeColor: "#F472B6",
+      stroke: "#A8384B",
+      label: "Pink - Brick / Masonry",
+    }
+  );
+}
+
 export const HISTORICAL_MAP_CATALOG = [
   {
     id: "sanborn_1907",

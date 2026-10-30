@@ -24,10 +24,50 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
+from typing import Any
+
+from shapely.geometry import Polygon, shape
+
+from atlas_pipeline.lost_houston_expansion import (
+    COH_DEMOLISHED_LANDMARKS_METADATA,
+    COH_LANDMARK_ENRICHMENTS_ON_CURATED,
+    NRHP_DEMOLISHED_METADATA,
+    get_all_coh_demolished_landmarks_meta,
+    sanitize_coh_landmarks_overlay,
+)
+from atlas_pipeline.schema import (
+    LOST_HOUSTON_VALID_COHORTS,
+    MAX_VALID_CAMA_DATE_YEAR,
+    MIN_VALID_YEAR,
+    write_compact_json,
+)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT_DIR / "pipeline" / "cache"
 DATA_DIR = ROOT_DIR / "app" / "public" / "data"
+
+VALID_SANBORN_MATERIALS: frozenset[str] = frozenset(
+    {
+        "wood_frame",
+        "frame",
+        "brick",
+        "stone",
+        "stone_concrete",
+        "iron_metal",
+        "iron_steel",
+        "iron",
+        "fireproof",
+    }
+)
+
+
+def has_excess_ring_precision(ring_coords: list[Any], max_decimals: int = 6) -> bool:
+    """Return True if any vertex lon/lat in `ring_coords` exceeds `max_decimals` decimal places."""
+    return any(
+        "." in str(coord) and len(str(coord).split(".", 1)[1]) > max_decimals
+        for pt in ring_coords
+        for coord in pt[:2]
+    )
 
 # ---------------------------------------------------------------------------
 # 1. HAIF Automated Building Name Hygiene Filter
@@ -373,7 +413,11 @@ def geom_area(geom: dict | None) -> float:
     )
 
 
-def run_audit(apply_fixes: bool = False) -> dict:
+def run_audit(
+    apply_fixes: bool = False,
+    *,
+    cama_override: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     haif_path = DATA_DIR / "haif_index.json"
     overlays_path = DATA_DIR / "overlays.json"
     overrides_path = DATA_DIR / "curated_overrides.json"
@@ -388,8 +432,10 @@ def run_audit(apply_fixes: bool = False) -> dict:
     buildings_doc = json.loads(buildings_path.read_text())
     search_index = json.loads(search_index_path.read_text())
     citydir_doc = json.loads(citydir_path.read_text())
-    coh_raw = json.loads((CACHE_DIR / "coh_landmarks.json").read_text())
-    coh_enr = json.loads((CACHE_DIR / "coh_landmarks_enriched.json").read_text())
+    coh_raw_path = CACHE_DIR / "coh_landmarks.json"
+    coh_enr_path = CACHE_DIR / "coh_landmarks_enriched.json"
+    coh_raw = json.loads(coh_raw_path.read_text()) if coh_raw_path.exists() else []
+    coh_enr = json.loads(coh_enr_path.read_text()) if coh_enr_path.exists() else []
 
     # Resolve verified report URLs from coh_landmarks_enriched.json so every URL matches cached live PDFs
     enr_by_code: dict[str, dict] = {}
@@ -508,6 +554,8 @@ def run_audit(apply_fixes: bool = False) -> dict:
     # -----------------------------------------------------------------------
     # STEP 2: Reconcile Demolished Landmarks & Verified COH Landmark Report Fixes
     # -----------------------------------------------------------------------
+    all_coh_demo = get_all_coh_demolished_landmarks_meta()
+    verified_demolished_coh_ids = set(all_coh_demo.keys())
     demolished_hcads: set[str] = set()
     landmark_feats = overlays_doc.get("landmarks", {}).get("features", [])
     for idx, feat in enumerate(landmark_feats):
@@ -517,22 +565,51 @@ def run_audit(apply_fixes: bool = False) -> dict:
             if idx < len(coh_raw)
             else {}
         )
-        raw_name = str(raw_p.get("USER_SITE_NAME") or p.get("name") or "")
+        coh_id = str(p.get("id") or f"coh_lm_{idx + 1:03d}")
         raw_demod = str(raw_p.get("USER_DEMOD") or "").strip().upper() == "Y"
-        raw_hcad = str(raw_p.get("USER_HCAD_NUM") or p.get("hcad_num") or "").strip()
-        is_demod = (
-            raw_demod
-            or "DEMOLISHED" in raw_name.upper()
-            or "DESTROYED BY FIRE" in raw_name.upper()
-            or raw_hcad.upper() == "DEMOLISHED"
-        )
+        is_demod = (raw_demod and coh_id != "coh_lm_089") or (coh_id in verified_demolished_coh_ids)
+
         if is_demod:
             stats["landmarks_marked_demolished"] += 1
-            if re.match(r"^\d{13}$", raw_hcad):
-                demolished_hcads.add(raw_hcad)
+            demo_meta_hcads = list((all_coh_demo.get(coh_id) or {}).get("site_hcad_nums") or [])
+            cand_site_hcad = str(
+                p.get("site_hcad_num")
+                or p.get("hcad_num")
+                or (demo_meta_hcads[0] if demo_meta_hcads else "")
+                or raw_p.get("USER_HCAD_NUM")
+                or ""
+            ).strip()
+            clean_site_hcad = (
+                cand_site_hcad
+                if (re.match(r"^\d{13}$", cand_site_hcad) and cand_site_hcad != "0000000000000")
+                else (demo_meta_hcads[0] if demo_meta_hcads else "")
+            )
+            for dh in ([clean_site_hcad] + demo_meta_hcads):
+                if re.match(r"^\d{13}$", str(dh or "")):
+                    demolished_hcads.add(str(dh))
+            if str(p.get("hcad_num") or "").strip() != "":
+                stats["landmarks_non13_hcad_cleaned"] += 1
             if apply_fixes:
                 p["demolished"] = True
+                p["hcad_num"] = ""
+                if clean_site_hcad:
+                    p["site_hcad_num"] = clean_site_hcad
+                p["city_tax_exemption_eligible"] = False
                 p["status_note"] = "Demolished Former Landmark (City of Houston HPO Archive)"
+                p.pop("alt_addresses", None)
+                p.pop("haif_threads", None)
+        else:
+            raw_hcad = str(p.get("hcad_num") or raw_p.get("USER_HCAD_NUM") or "").strip()
+            clean_hcad = raw_hcad if (re.match(r"^\d{13}$", raw_hcad) and raw_hcad != "0000000000000") else ""
+            if str(p.get("hcad_num") or "").strip() != clean_hcad:
+                stats["landmarks_non13_hcad_cleaned"] += 1
+                if apply_fixes:
+                    p["hcad_num"] = clean_hcad
+            if p.get("demolished"):
+                stats["landmarks_false_demolished_cleared"] += 1
+                if apply_fixes:
+                    p["demolished"] = False
+                    p.pop("status_note", None)
 
         # Fix 07L182 Alabama Theatre typo ("Kenneth Franzheim. 1040, wings") & mismatched Cullen PDF
         lm_code = str(p.get("lm_num") or p.get("plm_num") or raw_p.get("USER_LM_NUM") or "").strip()
@@ -557,7 +634,7 @@ def run_audit(apply_fixes: bool = False) -> dict:
 
         # Apply verified COH Landmark Report fixes onto overlays.landmarks too
         hcad_clean = str(p.get("hcad_num") or "").strip()
-        if hcad_clean in VERIFIED_COH_LANDMARK_FIXES:
+        if not is_demod and hcad_clean in VERIFIED_COH_LANDMARK_FIXES:
             fix = VERIFIED_COH_LANDMARK_FIXES[hcad_clean]
             if not fix.get("target_building_id") or lm_code == fix["code"]:
                 stats["landmarks_overlay_facts_reconciled"] += 1
@@ -567,6 +644,9 @@ def run_audit(apply_fixes: bool = False) -> dict:
                         p["architect"] = fix["architect"]
                     if fix["style"] and not p.get("style"):
                         p["style"] = fix["style"].strip()
+
+    if apply_fixes:
+        sanitize_coh_landmarks_overlay(overlays_doc.get("landmarks", {}), search_index)
 
     # Remove false landmark overrides on confirmed demolished landmarks (e.g. 2019 replacement at 1059 Kirby Dr)
     blds_by_hcad: dict[str, list[dict]] = {}
@@ -896,6 +976,200 @@ def run_audit(apply_fixes: bool = False) -> dict:
                 primary_source_url=dir_url,
             )
 
+    # 3E. Lost Houston, Demolished COH Landmarks, and Demolished NRHP Integrity Gate (Milestone 2)
+    lost_feats = overlays_doc.get("lost_houston", {}).get("features", [])
+    lost_by_coh_id: set[str] = set()
+    lost_by_nrhp_refnum: set[str] = set()
+    lost_hcads: set[str] = set()
+    lost_schema_errors = 0
+    lost_extant_collision_errors = 0
+
+    cama_pkl_path = CACHE_DIR / "cama_2026_compact.pkl"
+    cama_audit_map: dict[str, Any] = {}
+    if cama_override is not None:
+        cama_audit_map = cama_override
+    elif cama_pkl_path.exists():
+        import pickle as _pickle
+
+        cama_audit_map = _pickle.loads(cama_pkl_path.read_bytes())
+
+    for lf in lost_feats:
+        lp = lf.get("properties") or {}
+        lid = str(lp.get("id") or "")
+        cohort = str(lp.get("source_cohort") or "")
+        rank = lp.get("symbol_rank")
+        yb = int(lp.get("year_built") or 0)
+        yd = int(lp.get("year_demolished") or 0)
+        geom_d = lf.get("geometry") or {}
+        if lp.get("coh_landmark_id"):
+            lost_by_coh_id.add(str(lp["coh_landmark_id"]))
+        if lp.get("nrhp_refnum"):
+            lost_by_nrhp_refnum.add(str(lp["nrhp_refnum"]))
+        for hk in [lp.get("hcad_num")] + list(lp.get("site_hcad_nums") or []):
+            hs = str(hk or "").strip()
+            if re.match(r"^\d{13}$", hs):
+                lost_hcads.add(hs)
+
+        raw_lp_json = json.dumps(lp, ensure_ascii=False)
+        geom_ok = False
+        if geom_d.get("type") == "Polygon":
+            try:
+                poly = shape(geom_d)
+                minx, miny, maxx, maxy = poly.bounds
+                ring_coords = (geom_d.get("coordinates") or [[]])[0]
+                has_excess_dp = has_excess_ring_precision(ring_coords, 6)
+                geom_ok = (
+                    isinstance(poly, Polygon)
+                    and poly.is_valid
+                    and not poly.is_empty
+                    and poly.exterior.is_ccw
+                    and len(ring_coords) >= 4
+                    and -96.0 <= minx <= maxx <= -94.8
+                    and 29.4 <= miny <= maxy <= 30.2
+                    and not has_excess_dp
+                )
+            except Exception:
+                geom_ok = False
+
+        mat_key = str(lp.get("sanborn_material") or "").strip()
+        if (
+            not lid.startswith("lost_")
+            or cohort not in LOST_HOUSTON_VALID_COHORTS
+            or rank not in (1, 2, 3, 4)
+            or mat_key not in VALID_SANBORN_MATERIALS
+            or not (MIN_VALID_YEAR <= yb < yd <= MAX_VALID_CAMA_DATE_YEAR)
+            or not geom_ok
+            or "\u2014" in raw_lp_json
+            or "\u2013" in raw_lp_json
+        ):
+            lost_schema_errors += 1
+            add_finding(
+                category="LOST_HOUSTON_SCHEMA_VIOLATION",
+                priority_score=100,
+                hcad_num=str(lp.get("hcad_num") or ""),
+                address=str(lp.get("address") or ""),
+                name=str(lp.get("name") or lid),
+                district=str(lp.get("neighborhood") or cohort),
+                displayed_claim=(
+                    f"id={lid} cohort={cohort} rank={rank} mat={mat_key} "
+                    f"years={yb}-{yd} geom_ok={geom_ok}"
+                ),
+                conflicting_evidence="Lost Houston feature violates Milestone 2 schema, lifespan chronology, CCW geometry, or dash hygiene",
+                recommended_action="Fix source catalog or generator in lost_houston_expansion.py",
+                primary_source_url=str(lp.get("source_url") or ""),
+            )
+
+        # Verify automated cohorts (2-5) never claim demolition on a parcel with an extant pre-demolition building
+        if cohort != "curated_landmark":
+            for hk in [lp.get("hcad_num")] + list(lp.get("site_hcad_nums") or []):
+                hs = str(hk or "").strip()
+                if not re.match(r"^\d{13}$", hs):
+                    continue
+                crow_a = cama_audit_map.get(hs)
+                cama_vacant = bool(
+                    crow_a is not None
+                    and float(crow_a[2] or 0.0) <= 0.0
+                    and str(crow_a[3] or "").strip().upper() in ("C1", "C2", "C3")
+                )
+                cama_rebuilt = bool(
+                    crow_a is not None
+                    and float(crow_a[2] or 0.0) > 0.0
+                    and int(crow_a[0] or 0) >= yd
+                )
+                stamped_cama_cleared_or_rebuilt = (
+                    not cama_audit_map
+                    and cohort in ("red_book_1915_vanished", "historic_teardown_2020_2026")
+                    and (
+                        "Vacant lot (2026 HCAD" in str(lp.get("replaced_by") or "")
+                        or "replacement structure" in str(lp.get("replaced_by") or "")
+                        or "2026 HCAD CAMA" in str(lp.get("historic_significance") or "")
+                    )
+                )
+                # Verified COH/NRHP demolished multi-lot or rebuilt parcels and certified vacant C1/C2/C3 lots
+                # may still intersect stale pre-2026 aerial shards in buildings.geojson.
+                if (
+                    cama_vacant
+                    or cama_rebuilt
+                    or stamped_cama_cleared_or_rebuilt
+                    or cohort in ("coh_landmark_demolished", "nrhp_demolished")
+                ):
+                    continue
+                for bf in blds_by_hcad.get(hs, []):
+                    bp2 = bf.get("properties") or {}
+                    if bp2.get("suppress_only"):
+                        continue
+                    ey = int(bp2.get("year_built") or 0)
+                    if MIN_VALID_YEAR <= ey < yd:
+                        lost_extant_collision_errors += 1
+                        add_finding(
+                            category="LOST_HOUSTON_EXTANT_COLLISION",
+                            priority_score=100,
+                            hcad_num=hs,
+                            address=str(lp.get("address") or ""),
+                            name=str(lp.get("name") or lid),
+                            district=cohort,
+                            displayed_claim=f"Lost Houston demolished {yd}",
+                            conflicting_evidence=f"Extant buildings.geojson structure on HCAD {hs} built {ey} (< {yd})",
+                            recommended_action="Exclude candidate via ZeroExtantCollisionGate",
+                            primary_source_url=str(lp.get("source_url") or ""),
+                        )
+
+    stats["lost_houston_features_audited"] = len(lost_feats)
+    stats["lost_houston_schema_errors"] = lost_schema_errors
+    stats["lost_houston_extant_collision_errors"] = lost_extant_collision_errors
+
+    for feat in overlays_doc.get("landmarks", {}).get("features", []):
+        lp = feat.get("properties") or {}
+        lid = str(lp.get("id") or "")
+        hc = str(lp.get("hcad_num") or "").strip()
+        site_hc = str(lp.get("site_hcad_num") or hc).strip()
+        if hc and not re.match(r"^\d{13}$", hc):
+            add_finding(
+                category="LANDMARK_NON13_HCAD",
+                priority_score=99,
+                hcad_num=hc,
+                address=str(lp.get("address") or ""),
+                name=str(lp.get("name") or lid),
+                district="landmarks",
+                displayed_claim=f"hcad_num='{hc}'",
+                conflicting_evidence="Non-13-digit string stored in landmarks.hcad_num",
+                recommended_action="Run sanitize_coh_landmarks_overlay",
+                primary_source_url=str(lp.get("report_pdf_url") or ""),
+            )
+        if lp.get("demolished") and lid not in lost_by_coh_id and site_hc not in lost_hcads:
+            add_finding(
+                category="DEMOLISHED_LANDMARK_MISSING_FROM_LOST_HOUSTON",
+                priority_score=99,
+                hcad_num=hc,
+                address=str(lp.get("address") or ""),
+                name=str(lp.get("name") or lid),
+                district="landmarks",
+                displayed_claim=f"demolished=True on {lid}",
+                conflicting_evidence="Demolished COH Landmark has no matching record in overlays.lost_houston",
+                recommended_action="Add landmark to COH_DEMOLISHED_LANDMARKS_METADATA or COH_LANDMARK_ENRICHMENTS_ON_CURATED",
+                primary_source_url=str(lp.get("report_pdf_url") or ""),
+            )
+
+    for feat in overlays_doc.get("nrhp_properties", {}).get("features", []):
+        np = feat.get("properties") or {}
+        if not np.get("is_demolished_nrhp"):
+            continue
+        ref = str(np.get("refnum") or "")
+        yb = int(np.get("year_built") or 0)
+        if yb < MIN_VALID_YEAR or (ref not in lost_by_nrhp_refnum and not np.get("was_relocated")):
+            add_finding(
+                category="DEMOLISHED_NRHP_UNENRICHED",
+                priority_score=99,
+                hcad_num=str(np.get("hcad_num") or ""),
+                address=str(np.get("address") or ""),
+                name=str(np.get("name") or ref),
+                district="nrhp_properties",
+                displayed_claim=f"NRHP #{ref} year_built={yb} was_relocated={bool(np.get('was_relocated'))}",
+                conflicting_evidence="Demolished NRHP property missing historic year_built or Lost Houston link",
+                recommended_action="Populate NRHP_DEMOLISHED_METADATA in lost_houston_expansion.py",
+                primary_source_url=str(np.get("thc_atlas_url") or ""),
+            )
+
     # Sort findings by priority_score descending, then category, then district, then address
     findings.sort(
         key=lambda r: (
@@ -920,7 +1194,7 @@ def run_audit(apply_fixes: bool = False) -> dict:
             rounded_hcad_count += 1
 
     summary_payload = {
-        "generated_on": "2026-10-25",
+        "generated_on": "2026-10-30",
         "reconciled_fixes": stats_dict,
         "historic_core_hcad_rounded_decade_estimates": rounded_hcad_count,
         "total_queued_contradictions": len(findings),
@@ -929,13 +1203,15 @@ def run_audit(apply_fixes: bool = False) -> dict:
     }
 
     if apply_fixes:
-        haif_path.write_text(json.dumps(haif_doc, separators=(",", ":")))
-        overlays_path.write_text(json.dumps(overlays_doc, separators=(",", ":")))
+        write_compact_json(haif_path, haif_doc)
+        write_compact_json(overlays_path, overlays_doc)
         overrides_doc["overrides"] = overrides
-        overrides_path.write_text(json.dumps(overrides_doc, separators=(",", ":")))
-        buildings_path.write_text(json.dumps(buildings_doc, separators=(",", ":")))
-        search_index_path.write_text(json.dumps(search_index, separators=(",", ":")))
-        (DATA_DIR / "historical_audit_summary.json").write_text(json.dumps(summary_payload, indent=2))
+        write_compact_json(overrides_path, overrides_doc)
+        write_compact_json(buildings_path, buildings_doc)
+        write_compact_json(search_index_path, search_index)
+        (DATA_DIR / "historical_audit_summary.json").write_text(
+            json.dumps(summary_payload, indent=2, ensure_ascii=False)
+        )
 
         csv_path = CACHE_DIR / "historical_audit_findings.csv"
         fieldnames = [

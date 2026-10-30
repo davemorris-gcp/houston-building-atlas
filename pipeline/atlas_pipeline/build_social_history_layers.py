@@ -47,6 +47,9 @@ from shapely.geometry.polygon import orient
 from shapely.strtree import STRtree
 from shapely.validation import make_valid
 
+from atlas_pipeline.lost_houston_expansion import reconcile_holc_lost_houston_rollups
+from atlas_pipeline.schema import write_compact_json
+
 ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT / "pipeline" / "cache"
 SHARDS_DIR = CACHE_DIR / "aligned_ndjson"
@@ -1361,8 +1364,9 @@ def main() -> None:
     overlays["red_book_1915"] = {"type": "FeatureCollection", "features": rb_features}
     overlays["holc_1937_zones"] = {"type": "FeatureCollection", "features": holc_features}
     overlays["holc_1937_grade_summary"] = holc_summary_list
+    reconcile_holc_lost_houston_rollups(overlays)
 
-    overlays_path.write_text(json.dumps(overlays, separators=(",", ":")))
+    write_compact_json(overlays_path, overlays)
     print(f"Updated overlays.json ({overlays_path.stat().st_size / 1e6:.2f} MB)")
 
     # -------------------------------------------------------------------------
@@ -1476,7 +1480,7 @@ def main() -> None:
         + cleaned_si[insert_pos:]
         + rb_search_entries
     )
-    search_index_path.write_text(json.dumps(final_si, separators=(",", ":")))
+    write_compact_json(search_index_path, final_si)
     print(
         f"Updated search_index.json ({search_index_path.stat().st_size / 1e6:.2f} MB): "
         f"{len(final_si):,} total searchable entries."

@@ -7,8 +7,9 @@ import {
   getLegendItems,
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
+  resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261030b";
+} from "./palettes.js?v=20261030d";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -21,19 +22,19 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261030b";
-import { AtlasMapController } from "./mapController.js?v=20261030b";
+} from "./filterStore.js?v=20261030d";
+import { AtlasMapController } from "./mapController.js?v=20261030d";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261030b";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261030b";
+} from "./guidedChaptersAndPortfolios.js?v=20261030d";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261030d";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261030b";
+} from "./clerkSearchHelpers.js?v=20261030d";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -54,7 +55,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261030b";
+} from "./curatedEdits.js?v=20261030d";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -64,18 +65,18 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261030b";
+} from "./photoService.js?v=20261030d";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   formatDemolitionBenchmarksGrantText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261030b";
+} from "./platMonitorHelpers.js?v=20261030d";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261030b";
+} from "./hcadViewportParcels.js?v=20261030d";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -93,7 +94,7 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261030b";
+} from "./preservationOrganizer.js?v=20261030d";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -666,7 +667,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030b`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030d`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -825,12 +826,12 @@ export class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261030b"),
-        fetch("public/data/stats_summary.json?v=20261030b"),
-        fetch("public/data/haif_index.json?v=20261030b").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261030b").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261030b").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261030b").catch(() => null),
+        fetch("public/data/search_index.json?v=20261030d"),
+        fetch("public/data/stats_summary.json?v=20261030d"),
+        fetch("public/data/haif_index.json?v=20261030d").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261030d").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261030d").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261030d").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -2515,6 +2516,19 @@ export class HoustonAtlasApp {
       }
     }
 
+    // 4. Hydrate live Lost Houston count across sidebar toggle and About modal so UI copy never drifts (DF-8 / JIT-4)
+    const lhCount = this.mapController?.overlaysData?.lost_houston?.features?.length || 0;
+    if (lhCount > 0) {
+      const lhLayerLabel = document.querySelector('.layer-item-row[data-layer-key="lostHouston"] .layer-name');
+      if (lhLayerLabel) {
+        lhLayerLabel.textContent = `Lost Houston: Demolished Structures (${lhCount.toLocaleString()})`;
+      }
+      const aboutLhSpan = document.getElementById("about-lost-houston-summary");
+      if (aboutLhSpan) {
+        aboutLhSpan.innerHTML = `${lhCount.toLocaleString()} verified demolished <em>Lost Houston</em> landmarks &amp; teardowns (1837-2026)`;
+      }
+    }
+
     for (let i = 0; i < this.searchIndex.length; i++) {
       this.searchIndex[i]._lc = null;
     }
@@ -2564,6 +2578,8 @@ export class HoustonAtlasApp {
       : [];
     const lmCode = String(item.landmark_code || "").toLowerCase();
     const nrhpRef = String(item.refnum || item.nrhp_refnum || "").toLowerCase();
+    const srcCohort = String(item.source_cohort || "").toLowerCase();
+    const srcCohortLbl = String(item.source_cohort_label || item.cohort_label || "").toLowerCase();
     const isPlaceBoundary = Boolean(
       item.is_neighborhood_entry ||
         item.type === "neighborhood" ||
@@ -2613,6 +2629,7 @@ export class HoustonAtlasApp {
       topSubdivs.join(" "),
       lmCode ? `${lmCode} hpo #${lmCode}` : "",
       nrhpRef ? `${nrhpRef} nrhp #${nrhpRef} national register` : "",
+      srcCohort ? `${srcCohort} ${srcCohortLbl}` : srcCohortLbl,
     ]
       .filter(Boolean)
       .join(" | ");
@@ -2649,6 +2666,8 @@ export class HoustonAtlasApp {
       subdiv,
       topSubdivs,
       lmCode,
+      srcCohort,
+      srcCohortLbl,
       isPlaceBoundary,
       allText,
     };
@@ -4858,6 +4877,8 @@ export class HoustonAtlasApp {
       hdrLow.startsWith("architectural style:") ||
       hdrLow.startsWith("building class:") ||
       hdrLow.startsWith("building category:");
+    const isLostCohortFilter =
+      hdrLow.startsWith("source cohort:") || hdrLow.startsWith("lost houston cohort:");
 
     const qAddr = q
       .replace(/,\s*houston.*$/i, "")
@@ -4959,8 +4980,23 @@ export class HoustonAtlasApp {
         subdiv,
         topSubdivs,
         lmCode,
+        srcCohort,
+        srcCohortLbl,
         isPlaceBoundary,
       } = lc;
+
+      // DF-8 / IT-4: Explicit Lost Houston Source Cohort chip scoping so cohort searches
+      // match strictly `item.type === "lost_houston"` and never mix non-Lost entries.
+      if (isLostCohortFilter) {
+        if (item.type !== "lost_houston") return 0;
+        if (srcCohort === q || srcCohortLbl === q) {
+          return isViewportCandidate ? 134 : 128;
+        }
+        if (srcCohortLbl && srcCohortLbl.includes(q)) {
+          return isViewportCandidate ? 116 : 110;
+        }
+        return 0;
+      }
 
       if (targetGrade) {
         if (isPlaceBoundary) return 0;
@@ -5520,7 +5556,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030b`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030d`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -6085,6 +6121,53 @@ export class HoustonAtlasApp {
           }
 
           const chosenIdStr = String(chosen.id || "").trim();
+          if (chosen.type === "landmark" && chosen.demolished) {
+            const matchedLost = (
+              this.mapController?.overlaysData?.lost_houston?.features || []
+            ).find((f) => f.properties && f.properties.coh_landmark_id === chosenIdStr);
+            if (matchedLost?.properties) {
+              const curLayers = this.store.getState().layers || {};
+              if (!curLayers.lostHouston) {
+                this.store.setState({ layers: { ...curLayers, lostHouston: true } });
+              }
+              this.mapController.flyToLocation({
+                lng: chosen.lon,
+                lat: chosen.lat,
+                zoom: chosen.zoom || 17.5,
+              });
+              this.renderInspectorDrawer({
+                ...matchedLost.properties,
+                overlay_layer: "lost_houston",
+                is_boundary_feature: true,
+                lng: chosen.lon,
+                lat: chosen.lat,
+              });
+              if (this.mapController && matchedLost.geometry) {
+                this.mapController.highlightFeatureGeometry(matchedLost.geometry, {
+                  ...matchedLost.properties,
+                  overlay_layer: "lost_houston",
+                });
+              }
+              return;
+            }
+            const fullLmFeat = (
+              this.mapController?.overlaysData?.landmarks?.features || []
+            ).find((f) => f.properties && f.properties.id === chosenIdStr);
+            this.mapController.flyToLocation({
+              lng: chosen.lon,
+              lat: chosen.lat,
+              zoom: chosen.zoom || 17.5,
+            });
+            this.renderInspectorDrawer({
+              ...(fullLmFeat?.properties || chosen),
+              hcad_num: "",
+              overlay_layer: "landmarks",
+              lng: chosen.lon,
+              lat: chosen.lat,
+            });
+            return;
+          }
+
           const targetFeatureId = String(
             chosen.building_id || (!chosenIdStr.startsWith("school_") ? chosenIdStr : "") || ""
           ).trim();
@@ -8312,7 +8395,7 @@ export class HoustonAtlasApp {
       badgeLabel = `COH Super Neighborhood${rawProps.sn_id || rawProps.poly_id ? ` #${rawProps.sn_id || rawProps.poly_id}` : ""}`;
       badgeColor = "#818cf8";
     } else if (overlayLayer === "historic_wards") {
-      badgeLabel = `Historic Ward${wardEra === 1903 ? " (1903–05)" : wardEra ? ` (${wardEra})` : ""}`;
+      badgeLabel = `Historic Ward${wardEra === 1903 ? " (1903-05)" : wardEra ? ` (${wardEra})` : ""}`;
       badgeColor = String(rawProps.color || "#fb923c");
     } else if (overlayLayer === "historic_districts") {
       badgeLabel = "COH Historic District";
@@ -8372,17 +8455,7 @@ export class HoustonAtlasApp {
           : "#f59e0b";
     } else if (overlayLayer === "lost_houston") {
       badgeLabel = rawProps.type_label || "Lost Houston · Demolished Landmark";
-      const mat = String(rawProps.sanborn_material || "brick").toLowerCase();
-      badgeColor =
-        mat === "frame"
-          ? "#facc15"
-          : mat === "stone"
-          ? "#60a5fa"
-          : mat === "iron"
-          ? "#cbd5e1"
-          : mat === "fireproof"
-          ? "#a3b18a"
-          : "#f472b6";
+      badgeColor = resolveSanbornMaterialColors(rawProps.sanborn_material).color.toLowerCase();
     } else if (overlayLayer === "red_book_1915") {
       badgeLabel = rawProps.category_label || "1915 Red Book of Houston";
       const rbCat = String(rawProps.category || "").toLowerCase();
@@ -8539,7 +8612,7 @@ export class HoustonAtlasApp {
       subtitleParts.push(`Super Neighborhood: ${snName}`);
     }
     if (wardName && overlayLayer !== "historic_wards") {
-      subtitleParts.push(`1903–05 ${wardName}`);
+      subtitleParts.push(`1903-05 ${wardName}`);
     }
     const subtitle = subtitleParts.join(" · ") || "Harris County, Texas";
 
@@ -8679,6 +8752,7 @@ export class HoustonAtlasApp {
     const narrativeDesc =
       rawProps.historic_significance ||
       rawProps.description ||
+      rawProps.blurb ||
       (overlayLayer === "holc_1937_zones" ? rawProps.appraisal_summary || "" : "");
     const lostSiteHcads = parseJsonList(rawProps.site_hcad_nums);
     const primarySiteHcad = String(rawProps.hcad_num || lostSiteHcads[0] || "").trim();
@@ -9071,25 +9145,72 @@ export class HoustonAtlasApp {
           overlayLayer === "lost_houston"
             ? `<div class="inspector-cell">
                 <span class="cell-label">Completed / Opened</span>
-                <span class="cell-value mono">${rawProps.year_built || "-"}</span>
+                <span class="cell-value mono">${
+                  rawProps.year_built_display || rawProps.year_built || "-"
+                }${
+                  Number(rawProps.provenance_tier) === 3 ||
+                  rawProps.age_source === "hcad_retained_yr_impr_vacant"
+                    ? ` <span class="ph-tier-pill" style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:4px;font-size:9.8px;background:rgba(245,158,11,0.18);border:1px solid rgba(251,191,36,0.45);color:#fde68a;" title="Construction year from retained HCAD CAMA yr_impr prior to demolition clearance">HCAD Est.</span>`
+                    : ""
+                }</span>
               </div>
               <div class="inspector-cell">
                 <span class="cell-label">Demolished / Destroyed</span>
-                <span class="cell-value mono" style="color:#fda4af;">${rawProps.year_demolished || "-"} (${rawProps.demolition_cause || "Demolished"})</span>
+                <span class="cell-value mono" style="color:#fda4af;">${
+                  rawProps.year_demolished_display || rawProps.year_demolished || "-"
+                }${
+                  rawProps.demolition_cause ? ` (${rawProps.demolition_cause})` : ""
+                }</span>
               </div>
+              ${
+                rawProps.source_cohort_label || rawProps.source_cohort
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">Source Cohort &amp; Footprint Provenance</span>
+                      <span class="cell-value" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <button
+                          type="button"
+                          class="inspector-filter-chip category-chip"
+                          data-filter-chip="${this._escapeHtmlAttr(
+                            rawProps.source_cohort || rawProps.source_cohort_label
+                          )}"
+                          data-filter-label="Source Cohort: ${this._escapeHtmlAttr(
+                            rawProps.source_cohort_label || rawProps.source_cohort
+                          )}"
+                          title="Filter search dropdown to all Lost Houston structures in this cohort"
+                        >${rawProps.source_cohort_label || rawProps.source_cohort}</button>
+                        ${
+                          rawProps.footprint_provenance
+                            ? `<span class="mono" style="font-size:10.5px;padding:2px 6px;border-radius:4px;background:rgba(148,163,184,0.14);border:1px solid rgba(148,163,184,0.3);color:#cbd5e1;">${rawProps.footprint_provenance.replace(
+                                /_/g,
+                                " "
+                              )}</span>`
+                            : ""
+                        }
+                      </span>
+                    </div>`
+                  : ""
+              }
               <div class="inspector-cell">
                 <span class="cell-label">Sanborn Construction Class</span>
                 <span class="cell-value">${rawProps.sanborn_material_label || "Brick / Masonry"}</span>
               </div>
               <div class="inspector-cell">
                 <span class="cell-label">Historic Scale</span>
-                <span class="cell-value mono">${rawProps.stories || 2} stories (~${rawProps.height_m || 9}m)</span>
+                <span class="cell-value mono">${rawProps.stories || 1} stories (~${rawProps.height_m || 6}m)</span>
               </div>
               ${
                 rawProps.sanborn_ref
                   ? `<div class="inspector-cell full">
                       <span class="cell-label">Verified Sanborn Fire Insurance Atlas Plate</span>
                       <span class="cell-value" style="color:#fde68a;">${rawProps.sanborn_ref}</span>
+                    </div>`
+                  : ""
+              }
+              ${
+                rawProps.historic_address_1915
+                  ? `<div class="inspector-cell full">
+                      <span class="cell-label">1915 Historic Address</span>
+                      <span class="cell-value">${rawProps.historic_address_1915}</span>
                     </div>`
                   : ""
               }
@@ -9335,7 +9456,7 @@ export class HoustonAtlasApp {
         ${
           wardName && overlayLayer !== "historic_wards"
             ? `<div class="inspector-cell">
-                <span class="cell-label">Historic Ward (1839–1905)</span>
+                <span class="cell-label">Historic Ward (1839-1905)</span>
                 <span class="cell-value">
                   <button
                     type="button"
@@ -13263,6 +13384,7 @@ export class HoustonAtlasApp {
       this.mapController && typeof this.mapController.findLostHoustonAtSite === "function"
         ? this.mapController.findLostHoustonAtSite({
             hcadNum,
+            address: props.address || "",
             lng: effLng,
             lat: effLat,
           })
@@ -13280,17 +13402,9 @@ export class HoustonAtlasApp {
             <div class="lost-houston-site-list">
               ${lostHoustonAtSite
                 .map((lh) => {
-                  const mat = String(lh.sanborn_material || "brick").toLowerCase();
-                  const matColor =
-                    mat === "frame"
-                      ? "#facc15"
-                      : mat === "stone"
-                      ? "#60a5fa"
-                      : mat === "iron"
-                      ? "#cbd5e1"
-                      : mat === "fireproof"
-                      ? "#a3b18a"
-                      : "#f472b6";
+                  const matColor = resolveSanbornMaterialColors(
+                    lh.sanborn_material
+                  ).color.toLowerCase();
                   return `
                   <div class="lost-houston-site-item">
                     <div class="lost-houston-site-item-top">
@@ -13304,19 +13418,38 @@ export class HoustonAtlasApp {
                         <span style="width:8px;height:8px;border-radius:2px;background:${matColor};display:inline-block;"></span>
                         ${lh.sanborn_material_label || "Brick / Masonry"}
                       </span>
+                      ${
+                        lh.source_cohort_label
+                          ? `<button
+                              type="button"
+                              class="inspector-alias-chip small inspector-filter-chip"
+                              data-filter-chip="${this._escapeHtmlAttr(
+                                lh.source_cohort || lh.source_cohort_label
+                              )}"
+                              data-filter-label="Source Cohort: ${this._escapeHtmlAttr(
+                                lh.source_cohort_label
+                              )}"
+                              title="Search all Lost Houston sites in ${this._escapeHtmlAttr(
+                                lh.source_cohort_label
+                              )}"
+                            >${lh.source_cohort_label}</button>`
+                          : ""
+                      }
                       ${lh.architect ? `<span>· Architect: ${lh.architect}</span>` : ""}
                       ${lh.demolition_cause ? `<span>· ${lh.demolition_cause}</span>` : ""}
                     </div>
                     ${
-                      lh.historic_significance
-                        ? `<div class="lost-houston-site-desc">${lh.historic_significance}</div>`
+                      lh.historic_significance || lh.description || lh.blurb
+                        ? `<div class="lost-houston-site-desc">${
+                            lh.historic_significance || lh.description || lh.blurb
+                          }</div>`
                         : ""
                     }
                     ${this._buildNarrativeCitationsHtml({
                       citations: lh.citations,
                       contextId: `lost_houston_${lh.id || lh.name}`,
                       contextTitle: `Lost Houston: ${lh.name}`,
-                      excerpt: lh.historic_significance || "",
+                      excerpt: lh.historic_significance || lh.description || lh.blurb || "",
                       compact: true,
                     })}
                     <div class="lost-houston-site-actions">
@@ -13797,9 +13930,9 @@ export class HoustonAtlasApp {
                   rel="noopener noreferrer"
                   class="photo-streetview-btn"
                   id="btn-inspector-streetview"
-                  title="Open Google Maps Street View Time Machine (2007–Present) for this building"
+                  title="Open Google Maps Street View Time Machine (2007-Present) for this building"
                 >
-                  &#128065; Street View Time Machine (2007–Present) &#8599;
+                  &#128065; Street View Time Machine (2007-Present) &#8599;
                 </a>
               </div>
             </div>
@@ -14149,11 +14282,11 @@ export class HoustonAtlasApp {
               ${
                 wardVal
                   ? `<div class="inspector-cell full">
-                      <span class="cell-label">Historic Ward (1839–1905 Aldermanic Charter)</span>
+                      <span class="cell-label">Historic Ward (1839-1905 Aldermanic Charter)</span>
                       <span class="cell-value inspector-chip-group">
-                        <button type="button" class="inspector-filter-chip" data-filter-chip="${wardVal.replace(/"/g, "&quot;")}" data-filter-label="Historic Ward: ${wardVal.replace(/"/g, "&quot;")}" title="Click to search structures in ${wardVal.replace(/"/g, "&quot;")}">1903–05 ${wardVal} &#128269;</button>
-                        <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Outline 1903–1905 ${wardVal.replace(/"/g, "&quot;")} boundary on the map">Outline Ward</button>
-                        <button type="button" class="inline-isolate-btn" data-isolate-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Isolate 1903–1905 ${wardVal.replace(/"/g, "&quot;")} on the map">&#127919; Isolate</button>
+                        <button type="button" class="inspector-filter-chip" data-filter-chip="${wardVal.replace(/"/g, "&quot;")}" data-filter-label="Historic Ward: ${wardVal.replace(/"/g, "&quot;")}" title="Click to search structures in ${wardVal.replace(/"/g, "&quot;")}">1903-05 ${wardVal} &#128269;</button>
+                        <button type="button" class="inspector-boundary-btn" data-highlight-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Outline 1903-1905 ${wardVal.replace(/"/g, "&quot;")} boundary on the map">Outline Ward</button>
+                        <button type="button" class="inline-isolate-btn" data-isolate-boundary="${wardVal.replace(/"/g, "&quot;")}" data-boundary-layer="historic_wards" title="Isolate 1903-1905 ${wardVal.replace(/"/g, "&quot;")} on the map">&#127919; Isolate</button>
                       </span>
                     </div>`
                   : ""
@@ -14677,7 +14810,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261030b`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261030d`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -14916,7 +15049,7 @@ export class HoustonAtlasApp {
       } else {
         const firstYr = photos[0].photo_year || "Historic";
         const lastYr = photos[photos.length - 1].photo_year || "Present";
-        badgeEl.textContent = `${photos.length} Eras · ${firstYr}–${lastYr}`;
+        badgeEl.textContent = `${photos.length} Eras · ${firstYr}-${lastYr}`;
       }
     }
 
@@ -14983,7 +15116,7 @@ export class HoustonAtlasApp {
     if (photos.length === 0) {
       containerEl.innerHTML = `
         <div class="photo-empty-note">
-          No public-domain archival photograph is linked to this parcel yet. Launch <strong>Street View Time Machine</strong> below to scrub Google's 2007–2026 street-level photography, or submit a historic photo via <em>Suggest a Date / Data Correction</em>.
+          No public-domain archival photograph is linked to this parcel yet. Launch <strong>Street View Time Machine</strong> below to scrub Google's 2007-2026 street-level photography, or submit a historic photo via <em>Suggest a Date / Data Correction</em>.
         </div>
       `;
       return;
@@ -15929,7 +16062,7 @@ export class HoustonAtlasApp {
         potentialHistoricDistricts: "Potential Historic Districts (60)",
         redBook1915: "1915 Red Book of Houston (970)",
         holc1937: "1937 HOLC Security Grades (47)",
-        lostHouston: "Lost Houston (110)",
+        lostHouston: `Lost Houston (${this.mapController?.overlaysData?.lost_houston?.features?.length || 622})`,
         relocatedStructures: "Relocated Structures",
         historicDistricts: "COH Historic Districts (23)",
         heritageDistricts: "Freedmen's Town Heritage Dist",
@@ -16008,7 +16141,7 @@ export class HoustonAtlasApp {
 
       if (state.minYear > 1836 || state.maxYear < 2026 || state.selectedDecade !== "all") {
         pills.push(
-          `<span class="share-pill-tag">Years: ${state.minYear}–${state.maxYear}</span>`
+          `<span class="share-pill-tag">Years: ${state.minYear}-${state.maxYear}</span>`
         );
       }
       if (state.extrude3D) {
@@ -16482,14 +16615,14 @@ export class HoustonAtlasApp {
         ],
       },
       {
-        label: "Historic Aldermanic Wards (1839–1905)",
+        label: "Historic Aldermanic Wards (1839-1905)",
         items: [
-          { val: "historic_wards::First Ward", text: "First Ward (1903–1905 Charter)" },
-          { val: "historic_wards::Second Ward", text: "Second Ward (1903–1905 Charter)" },
-          { val: "historic_wards::Third Ward", text: "Third Ward (1903–1905 Charter)" },
-          { val: "historic_wards::Fourth Ward", text: "Fourth Ward (1903–1905 Charter)" },
-          { val: "historic_wards::Fifth Ward", text: "Fifth Ward (1903–1905 Charter)" },
-          { val: "historic_wards::Sixth Ward", text: "Sixth Ward (1903–1905 Charter)" },
+          { val: "historic_wards::First Ward", text: "First Ward (1903-1905 Charter)" },
+          { val: "historic_wards::Second Ward", text: "Second Ward (1903-1905 Charter)" },
+          { val: "historic_wards::Third Ward", text: "Third Ward (1903-1905 Charter)" },
+          { val: "historic_wards::Fourth Ward", text: "Fourth Ward (1903-1905 Charter)" },
+          { val: "historic_wards::Fifth Ward", text: "Fifth Ward (1903-1905 Charter)" },
+          { val: "historic_wards::Sixth Ward", text: "Sixth Ward (1903-1905 Charter)" },
         ],
       },
       {
@@ -16645,7 +16778,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261030b`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261030d`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18571,7 +18704,7 @@ export class HoustonAtlasApp {
           const isLost = Boolean(w.isDemolished);
           const isActive = idx === p.activeIndex;
           const yrLabel = isLost
-            ? `${w.yearBuilt || "?"}-${w.yearDemolished || "Demolished"}`
+            ? w.lifespanLabel || `${w.yearBuilt || "?"}-${w.yearDemolished || "Demolished"}`
             : w.yearBuilt >= 1800
             ? String(w.yearBuilt)
             : "Undated";
@@ -19274,7 +19407,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261030b")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261030d")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

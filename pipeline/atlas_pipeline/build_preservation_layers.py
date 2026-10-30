@@ -38,6 +38,12 @@ from shapely.geometry.polygon import orient
 from shapely.strtree import STRtree
 from shapely.validation import make_valid
 
+from atlas_pipeline.lost_houston_expansion import (
+    enrich_nrhp_demolished_overlay_and_search,
+    sanitize_coh_landmarks_overlay,
+)
+from atlas_pipeline.schema import write_compact_json
+
 ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT / "pipeline" / "cache"
 SHARDS_DIR = CACHE_DIR / "aligned_ndjson"
@@ -328,7 +334,10 @@ def main() -> None:
     landmark_pts: list[Point] = []
     landmark_tiers: list[str] = []
 
-    tier_counts = {"plm": 0, "lm_in_hd": 0, "lm_waiver_vulnerable": 0}
+    # Sanitize COH landmark HCAD fields & demolished flags before building tiers (DF-3)
+    sanitize_coh_landmarks_overlay(overlays["landmarks"])
+
+    tier_counts = {"plm": 0, "lm_in_hd": 0, "lm_waiver_vulnerable": 0, "lm_demolished": 0}
     for idx, feat in enumerate(overlays["landmarks"]["features"]):
         p = feat["properties"]
         pt = shape(feat["geometry"])
@@ -358,29 +367,36 @@ def main() -> None:
         is_plm = str(p.get("designation") or "").strip() == "Protected Landmark"
         p["is_protected_landmark"] = is_plm
 
-        if is_plm:
+        if p.get("demolished"):
+            tier = "lm_demolished"
+            rule_short = "Demolished / Destroyed Former Landmark (Recorded in Lost Houston Archive)"
+            city_tax_eligible = False
+        elif is_plm:
             tier = "plm"
             rule_short = "Ch. 33 Protected Landmark (HAHC COA Required; Permanent Demolition Ban)"
+            city_tax_eligible = True
         elif matched_hd_name:
             tier = "lm_in_hd"
             rule_short = f"Landmark Protected by {matched_hd_name} COA Rules (Ch. 33)"
+            city_tax_eligible = True
         else:
             tier = "lm_waiver_vulnerable"
             rule_short = "Non-Protected Landmark Outside Historic District (Subject to 90-Day Demolition Waiver)"
+            city_tax_eligible = True
 
         p["protection_tier"] = tier
         p["demolition_rule_short"] = rule_short
-        p["city_tax_exemption_eligible"] = True
+        p["city_tax_exemption_eligible"] = city_tax_eligible
         tier_counts[tier] += 1
         landmark_tiers.append(tier)
 
         hcad = str(p.get("hcad_num") or "").strip()
-        if hcad:
+        if hcad and re.match(r"^\d{13}$", hcad) and not p.get("demolished"):
             if tier == "plm":
                 plm_hcads.add(hcad)
             elif tier == "lm_in_hd":
                 lm_in_hd_hcads.add(hcad)
-            else:
+            elif tier == "lm_waiver_vulnerable":
                 lm_waiver_hcads.add(hcad)
 
     print(f"Enriched 509 COH Landmarks -> {tier_counts}")
@@ -482,6 +498,8 @@ def main() -> None:
         if not name:
             continue
         website = str(rp.get("Website") or "").strip()
+        if website.rstrip("/") == "https://projectrowhouses.org/cultural-district":
+            website = "https://projectrowhouses.org/"
         geom = orient_geometry(shape(feat["geometry"]).simplify(0.00005, preserve_topology=True))
         if geom.is_empty:
             continue
@@ -541,8 +559,11 @@ def main() -> None:
         if not feat.get("geometry"):
             continue
         rp = feat.get("properties") or {}
-        refnum = str(rp.get("REFNUM") or "").strip()
+        refnum_raw = str(rp.get("REFNUM") or "").strip()
+        refnum = refnum_raw.zfill(8) if refnum_raw.isdigit() and len(refnum_raw) == 7 else refnum_raw
         atlas_num = str(rp.get("AtlasNum") or "").strip()
+        if not atlas_num and len(refnum) == 8 and refnum.isdigit():
+            atlas_num = f"20{refnum}"
         raw_resname = str(rp.get("RESNAME") or "").strip()
         display_name, alt_names, is_gone = format_nrhp_display_name(raw_resname)
         multiname = str(rp.get("MULTINAME") or "").strip()
@@ -580,14 +601,17 @@ def main() -> None:
                     break
 
         thc_atlas_url = f"https://atlas.thc.texas.gov/Details/{atlas_num}" if atlas_num else ""
-        nomination_pdf_url = f"https://atlas.thc.texas.gov/NR/pdfs/{refnum}/{refnum}.pdf" if refnum else ""
+        if refnum in {"83004671", "85002810", "85002815"}:
+            nomination_pdf_url = f"https://npgallery.nps.gov/AssetDetail/NRIS/{refnum}"
+        else:
+            nomination_pdf_url = f"https://atlas.thc.texas.gov/NR/pdfs/{refnum}/{refnum}.pdf" if refnum else ""
 
         entry_idx = len(nrhp_prop_features)
         nrhp_prop_features.append(
             {
                 "type": "Feature",
                 "properties": {
-                    "id": f"nrhp_{refnum or (idx + 1)}",
+                    "id": f"nrhp_{refnum_raw or (idx + 1)}",
                     "refnum": refnum,
                     "atlas_num": atlas_num,
                     "name": display_name,
@@ -706,7 +730,12 @@ def main() -> None:
                         if kind == "nrhp_dist":
                             fid_str = str(p.get("id") or "")
                             hcad_str = str(p.get("hcad_num") or "").strip()
-                            if fid_str and fid_str not in existing_bld_ids and fid_str not in extra_nrhp_district_footprints:
+                            if (
+                                fid_str
+                                and fid_str not in existing_bld_ids
+                                and (not hcad_str or hcad_str not in existing_bld_hcads)
+                                and fid_str not in extra_nrhp_district_footprints
+                            ):
                                 fp_copy = json.loads(raw)
                                 fp_copy["properties"]["nrhp_district"] = nrhp_dist_features[g_idx]["properties"]["name"]
                                 extra_nrhp_district_footprints[fid_str] = fp_copy
@@ -804,7 +833,12 @@ def main() -> None:
         if byr >= 1836:
             np["year_built"] = byr
         # Ensure matched individual NRHP footprint is in buildings.geojson if not already
-        if bid and bid not in existing_bld_ids and bid not in extra_nrhp_district_footprints:
+        if (
+            bid
+            and bid not in existing_bld_ids
+            and (not hcad or hcad not in existing_bld_hcads)
+            and bid not in extra_nrhp_district_footprints
+        ):
             extra_nrhp_district_footprints[bid] = matched_b_feat
 
         # Attach local Ch. 33 status summary onto each NRHP property
@@ -855,7 +889,7 @@ def main() -> None:
         plm_cnt = 0
         vuln_lm_cnt = 0
         for l_pt, l_tier in zip(landmark_pts, landmark_tiers):
-            if poly_geom.contains(l_pt):
+            if l_tier != "lm_demolished" and poly_geom.contains(l_pt):
                 lm_cnt += 1
                 if l_tier == "plm":
                     plm_cnt += 1
@@ -985,8 +1019,9 @@ def main() -> None:
     overlays["potential_historic_districts"] = {"type": "FeatureCollection", "features": pot_features}
     overlays["nrhp_properties"] = {"type": "FeatureCollection", "features": nrhp_prop_features}
     overlays["cultural_districts"] = {"type": "FeatureCollection", "features": cult_features}
+    enrich_nrhp_demolished_overlay_and_search(overlays["nrhp_properties"], None)
 
-    overlays_path.write_text(json.dumps(overlays, separators=(",", ":")))
+    write_compact_json(overlays_path, overlays)
     print(
         f"Saved overlays.json ({overlays_path.stat().st_size / 1e6:.2f} MB) with "
         f"{len(pot_features)} potential HDs, {len(nrhp_prop_features)} NRHP properties, "
@@ -1257,7 +1292,9 @@ def main() -> None:
         + cleaned_si[insert_pos:]
         + new_nrhp_point_entries
     )
-    search_index_path.write_text(json.dumps(final_si, separators=(",", ":")))
+    sanitize_coh_landmarks_overlay(overlays["landmarks"], final_si)
+    enrich_nrhp_demolished_overlay_and_search(overlays["nrhp_properties"], final_si)
+    write_compact_json(search_index_path, final_si)
     print(
         f"Updated search_index.json ({search_index_path.stat().st_size / 1e6:.2f} MB): "
         f"{len(final_si):,} total searchable entries."

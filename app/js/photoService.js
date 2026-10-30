@@ -10,7 +10,7 @@
  *      - Coordinate GeoSearch within 65m of the building footprint centroid
  *      - Bitmap title/description search when a named landmark is inspected
  *
- * Also builds direct Google Street View Time Machine deep-links (`2007–Present`).
+ * Also builds direct Google Street View Time Machine deep-links (`2007-Present`).
  */
 
 const COMMONS_API_ENDPOINT = 'https://commons.wikimedia.org/w/api.php';
@@ -125,9 +125,21 @@ function indexPhotoRecord(index, raw, sourceTier = 'curated') {
   };
   index.allPhotos.push(item);
 
-  if (raw.building_id) {
-    pushToMap(index.byBuildingId, String(raw.building_id).trim().toLowerCase(), item);
+  const bldIdNorm = raw.building_id ? String(raw.building_id).trim().toLowerCase() : '';
+  const isLostHoustonPhoto =
+    raw.is_lost_houston === true || bldIdNorm.startsWith('lost_');
+  item.is_lost_houston = isLostHoustonPhoto;
+
+  if (bldIdNorm) {
+    pushToMap(index.byBuildingId, bldIdNorm, item);
   }
+  // DF-6: Isolate demolished Lost Houston archival photos strictly to `byBuildingId`
+  // so clicking a modern replacement structure on the same HCAD parcel or street address
+  // never renders the demolished building's archival photo as its primary header photo.
+  if (isLostHoustonPhoto) {
+    return;
+  }
+
   if (raw.hcad_num) {
     const cleanHcad = String(raw.hcad_num).split('#')[0].replace(/\D/g, '');
     if (cleanHcad) {
@@ -181,7 +193,7 @@ export async function loadCuratedPhotosIndex() {
       allPhotos: [],
     };
     try {
-      const resp = await fetch('./public/data/building_photos.json?v=20261030b');
+      const resp = await fetch('./public/data/building_photos.json?v=20261030d');
       if (resp.ok) {
         const data = await resp.json();
         const photos = Array.isArray(data?.photos) ? data.photos : [];
@@ -230,7 +242,7 @@ export async function getCuratedBuildingPhotos({
     if (bid.includes('#')) {
       addList(index.byBuildingId.get(bid.split('#')[0]));
     }
-    if (bid.startsWith('lost_') && matched.length > 0) {
+    if (bid.startsWith('lost_')) {
       return matched.sort((a, b) => (a.photo_year || 9999) - (b.photo_year || 9999));
     }
   }
@@ -966,7 +978,7 @@ export async function resolveBuildingPhotos({
 }
 
 /**
- * Builds a Google Maps Street View panorama deep-link (`2007–Present` Time Machine).
+ * Builds a Google Maps Street View panorama deep-link (`2007-Present` Time Machine).
  */
 export function buildStreetViewUrl(lat, lng) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {

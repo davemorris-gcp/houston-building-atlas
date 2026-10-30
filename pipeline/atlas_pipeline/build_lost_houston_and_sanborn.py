@@ -4,13 +4,23 @@ from __future__ import annotations
 
 import json
 import math
-import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_permits_and_contractors import DEMOLISHED_CONTRACTOR_SITES
-from lost_houston_catalog import LOST_HOUSTON_PART_1
-from lost_houston_catalog_2 import LOST_HOUSTON_PART_2
+from atlas_pipeline.lost_houston_catalog import LOST_HOUSTON_PART_1
+from atlas_pipeline.lost_houston_catalog_2 import LOST_HOUSTON_PART_2
+from atlas_pipeline.lost_houston_expansion import (
+    COH_LANDMARK_ENRICHMENTS_ON_CURATED,
+    DEMOLISHED_CONTRACTOR_SITES,
+    LOST_HOUSTON_PART_4_MIDCENTURY_AND_CIVIC,
+    build_cohorts_2_to_5,
+    build_lost_houston_photo_record,
+    build_lost_houston_search_item,
+    compact_lost_houston_feature,
+    enrich_nrhp_demolished_overlay_and_search,
+    reconcile_holc_lost_houston_rollups,
+    sanitize_coh_landmarks_overlay,
+)
+from atlas_pipeline.schema import sanitize_atlas_text, upsert_search_index_slice, write_compact_json
 
 ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT / "pipeline" / "cache"
@@ -28,7 +38,7 @@ LOST_HOUSTON_PART_3 = [
         "year_demolished": 1912,
         "demolition_cause": "Destroyed in the spectacular May 19, 1912 Market Square conflagration.",
         "replaced_by": "Market Square commercial buildings (900 Congress Ave)",
-        "site_hcad_nums": ["0010330000030", "0010330000024", "0010330000026"],
+        "site_hcad_nums": ["0010330000030"],
         "architect": "Olle J. Lorehn",
         "style": "Romanesque Revival Five-Story Brick Wholesale House",
         "sanborn_material": "brick",
@@ -38,10 +48,10 @@ LOST_HOUSTON_PART_3 = [
         "sanborn_ref": "1907 Vol. 1 Sheet 3 (Block 33: Congress & Travis opposite City Hall Market)",
         "loc_volume_id": "sanborn08580_004",
         "loc_sheet_num": 3,
-        "lon": -95.36155,
-        "lat": 29.76252,
-        "width_m": 28.0,
-        "depth_m": 36.0,
+        "lon": -95.36154,
+        "lat": 29.76251,
+        "width_m": 20.0,
+        "depth_m": 28.0,
         "angle": 35.0,
         "shape": "rect",
         "blurb": "Facing the 1904 City Hall & Market House on Market Square, Mistrot Bros. was the largest wholesale and retail dry-goods house in South Texas until a catastrophic fire destroyed the building on May 19, 1912.",
@@ -775,12 +785,12 @@ EXPLICIT_HCAD_FIXES = {
         "222 W. Dallas St at Bagby St (Fourth Ward)",
     ),
     "lost_mistrot_emporium_1904": (
-        ["0010330000030", "0010330000024", "0010330000026"],
+        ["0010330000030"],
         "001033",
-        -95.36155,
-        29.76252,
-        26.0,
-        32.0,
+        -95.36154,
+        29.76251,
+        20.0,
+        28.0,
         "910 Congress Ave at Travis St (Market Square South Side, Block 33)",
     ),
     "lost_turnverein_hall_1908": (
@@ -1568,25 +1578,50 @@ def _resolve_sanborn_sheet(
 
 
 def main() -> None:
-    # 1. Write sanborn_catalog.json
+    # 1. Write sanborn_catalog.json while preserving existing UT Austin PCL volumes (16 vols / 878 sheets)
     sanborn_catalog = build_sanborn_catalog()
     sanborn_path = DATA_DIR / "sanborn_catalog.json"
-    sanborn_path.write_text(json.dumps(sanborn_catalog, indent=2), encoding="utf-8")
+    if sanborn_path.exists():
+        existing_cat = json.loads(sanborn_path.read_text(encoding="utf-8"))
+        loc_ids = {v["id"] for v in sanborn_catalog.get("volumes", [])}
+        extra_vols = [
+            v for v in existing_cat.get("volumes", [])
+            if isinstance(v, dict) and v.get("id") not in loc_ids
+        ]
+        if extra_vols:
+            sanborn_catalog["volumes"] = sanborn_catalog["volumes"] + extra_vols
+            sanborn_catalog["total_digitized_sheets"] = sum(
+                int(v.get("sheet_count") or len(v.get("sheets") or []))
+                for v in sanborn_catalog["volumes"]
+            )
+            for k_preserve in ("ut_pcl_volumes_count", "ut_pcl_sheets_count", "ut_pcl_attribution"):
+                if k_preserve in existing_cat:
+                    sanborn_catalog[k_preserve] = existing_cat[k_preserve]
+    write_compact_json(sanborn_path, sanborn_catalog)
     print(f"Wrote {sanborn_path} ({len(sanborn_catalog['volumes'])} volumes, {sanborn_catalog['total_digitized_sheets']} sheets)")
 
-    # 2. Build overlays.json['lost_houston'] with surveyed HCAD parcel fitting & orientation
+    # 2. Build overlays.json['lost_houston'] across all 5 systematic cohorts
     p_by_hcad = load_parcel_index()
-    all_entries = LOST_HOUSTON_PART_1 + LOST_HOUSTON_PART_2 + LOST_HOUSTON_PART_3
+    all_entries = (
+        LOST_HOUSTON_PART_1
+        + LOST_HOUSTON_PART_2
+        + LOST_HOUSTON_PART_3
+        + LOST_HOUSTON_PART_4_MIDCENTURY_AND_CIVIC
+    )
     features = []
     photos_path = DATA_DIR / "building_photos.json"
     photos_db = json.loads(photos_path.read_text(encoding="utf-8")) if photos_path.exists() else {"photos": []}
     for k in list(photos_db.keys()):
         if k.startswith("lost_"):
             del photos_db[k]
-    photo_list = [
-        p for p in photos_db.get("photos", [])
-        if not str(p.get("building_id", "")).startswith("lost_")
-    ]
+    photo_list = []
+    for p_existing in photos_db.get("photos", []):
+        if str(p_existing.get("building_id", "")).startswith("lost_"):
+            continue
+        for sk, sv in list(p_existing.items()):
+            if isinstance(sv, str):
+                p_existing[sk] = sanitize_atlas_text(sv)
+        photo_list.append(p_existing)
 
     for entry in all_entries:
         eid = entry["id"]
@@ -1696,35 +1731,38 @@ def main() -> None:
                 "url": "https://www.tshaonline.org/handbook",
             })
 
+        coh_enrich = COH_LANDMARK_ENRICHMENTS_ON_CURATED.get(eid) or {}
+        if coh_enrich.get("extra_citation"):
+            citations.append(coh_enrich["extra_citation"])
+
         props = {
             "id": eid,
-            "overlay_layer": "lost_houston",
-            "is_boundary_feature": True,
-            "feature_type": "lost_houston",
-            "is_demolished": True,
             "name": entry["name"],
-            "building_name": entry["name"],
             "subtitle": entry["subtitle"],
-            "type_label": f"Lost Houston · {entry['category']} ({yb}-{yd})",
-            "lifespan_label": f"{yb}-{yd}",
-            "lifespan_years": max(1, yd - yb),
             "category": entry["category"],
             "address": address,
             "neighborhood": entry["neighborhood"],
             "year_built": yb,
+            "year_built_qualifier": entry.get("year_built_qualifier", "exact"),
             "year_demolished": yd,
+            "year_demolished_qualifier": entry.get("year_demolished_qualifier", "exact"),
             "demolition_cause": entry["demolition_cause"],
             "replaced_by": entry["replaced_by"],
             "site_hcad_nums": site_hcads,
             "hcad_num": primary_hcad,
             "architect": entry.get("architect", "Unknown"),
+            "builder": entry.get("builder", ""),
             "style": entry.get("style", "Historic Architecture"),
             "sanborn_material": entry["sanborn_material"],
             "sanborn_material_label": entry["sanborn_material_label"],
             "stories": entry["stories"],
             "height_m": entry["height_m"],
             "sanborn_ref": sanborn_ref,
-            "source": f"Sanborn Fire Insurance Atlas ({sanborn_ref}) · Preservation Houston Lost Houston Archive",
+            "source": (
+                f"Sanborn Fire Insurance Atlas ({sanborn_ref}) · Preservation Houston Lost Houston Archive"
+                if sanborn_ref
+                else "Preservation Houston Lost Houston Archive & Primary Historical Survey"
+            ),
             "loc_volume_id": loc_vol,
             "loc_sheet_num": loc_sheet,
             "loc_sp": loc_sp,
@@ -1734,12 +1772,11 @@ def main() -> None:
             "sanborn_sheet_loc_url": sanborn_sheet_loc_url,
             "photo_url": photo_url,
             "photo_credit": photo_credit,
-            "blurb": entry["blurb"],
+            "coh_landmark_id": coh_enrich.get("coh_landmark_id"),
+            "coh_landmark_code": coh_enrich.get("coh_landmark_code"),
             "historic_significance": entry["blurb"],
-            "description": entry["blurb"],
             "citations": citations,
             "lon": lon,
-            "lng": lon,
             "lat": lat,
             "label_lng": lon,
             "label_lat": lat,
@@ -1748,19 +1785,20 @@ def main() -> None:
         if entry.get("photo_url"):
             p_year = int(entry.get("photo_year") or yb)
             p_era = str(entry.get("photo_era_label") or f"Historic Archival View ({yb}-{yd})")
-            photo_list.append({
-                "building_id": entry["id"],
-                "landmark_name": entry["name"],
-                "address": address,
-                "image_url": entry["photo_url"],
-                "thumb_url": entry["photo_url"],
-                "full_url": entry["photo_url"],
-                "photo_year": p_year,
-                "era_label": p_era,
-                "caption": f"{entry['name']} ({yb}-{yd}) - {entry['subtitle']}. {entry['blurb']}",
-                "attribution": entry.get("photo_credit") or "Wikimedia Commons / Public Domain Archive",
-                "source_url": entry.get("source_url") or entry["photo_url"],
-            })
+            photo_list.append(
+                build_lost_houston_photo_record(
+                    building_id=entry["id"],
+                    landmark_name=entry["name"],
+                    image_url=entry["photo_url"],
+                    thumb_url=entry["photo_url"],
+                    full_url=entry["photo_url"],
+                    photo_year=p_year,
+                    era_label=p_era,
+                    caption=f"{entry['name']} ({yb}-{yd}) - {entry['subtitle']}. {entry['blurb']}",
+                    attribution=entry.get("photo_credit") or "Wikimedia Commons / Public Domain Archive",
+                    source_url=entry.get("source_url") or entry["photo_url"],
+                )
+            )
         if sanborn_sheet_image_url:
             primary_year = (
                 1885 if loc_vol == "sanborn08580_001"
@@ -1780,19 +1818,20 @@ def main() -> None:
             )
             paren_idx = sanborn_ref.find("(")
             block_suffix = f" {sanborn_ref[paren_idx:]}" if paren_idx != -1 else ""
-            photo_list.append({
-                "building_id": entry["id"],
-                "landmark_name": entry["name"],
-                "address": address,
-                "image_url": sanborn_sheet_image_url,
-                "thumb_url": sanborn_sheet_image_url,
-                "full_url": sanborn_sheet_hires_url or sanborn_sheet_image_url,
-                "photo_year": primary_year,
-                "era_label": f"Sanborn Plate: {vol_short}{block_suffix}",
-                "caption": f"Digitized Library of Congress Sanborn Fire Insurance Map plate showing the block and surrounding context for {entry['name']} ({vol_short}{block_suffix}).",
-                "attribution": "Library of Congress Geography & Map Division",
-                "source_url": sanborn_sheet_loc_url or "https://www.loc.gov/collections/sanborn-maps/",
-            })
+            photo_list.append(
+                build_lost_houston_photo_record(
+                    building_id=entry["id"],
+                    landmark_name=entry["name"],
+                    image_url=sanborn_sheet_image_url,
+                    thumb_url=sanborn_sheet_image_url,
+                    full_url=sanborn_sheet_hires_url or sanborn_sheet_image_url,
+                    photo_year=primary_year,
+                    era_label=f"Sanborn Plate: {vol_short}{block_suffix}",
+                    caption=f"Digitized Library of Congress Sanborn Fire Insurance Map plate showing the block and surrounding context for {entry['name']} ({vol_short}{block_suffix}).",
+                    attribution="Library of Congress Geography & Map Division",
+                    source_url=sanborn_sheet_loc_url or "https://www.loc.gov/collections/sanborn-maps/",
+                )
+            )
         for ex_vol, ex_sheet, ex_label in extra_plates:
             ex_prev, ex_hi, ex_loc, _, _ = _resolve_sanborn_sheet(sanborn_catalog, ex_vol, ex_sheet)
             if ex_prev:
@@ -1803,29 +1842,29 @@ def main() -> None:
                     else 1907 if ex_vol in ("sanborn08580_004", "sanborn08580_005")
                     else 1950
                 )
-                photo_list.append({
-                    "building_id": entry["id"],
-                    "landmark_name": entry["name"],
-                    "address": address,
-                    "image_url": ex_prev,
-                    "thumb_url": ex_prev,
-                    "full_url": ex_hi or ex_prev,
-                    "photo_year": ex_year,
-                    "era_label": f"Sanborn Plate: {ex_label}",
-                    "caption": f"Comparative Library of Congress Sanborn Fire Insurance Map plate for {entry['name']}: {ex_label}.",
-                    "attribution": "Library of Congress Geography & Map Division",
-                    "source_url": ex_loc or "https://www.loc.gov/collections/sanborn-maps/",
-                })
+                photo_list.append(
+                    build_lost_houston_photo_record(
+                        building_id=entry["id"],
+                        landmark_name=entry["name"],
+                        image_url=ex_prev,
+                        thumb_url=ex_prev,
+                        full_url=ex_hi or ex_prev,
+                        photo_year=ex_year,
+                        era_label=f"Sanborn Plate: {ex_label}",
+                        caption=f"Comparative Library of Congress Sanborn Fire Insurance Map plate for {entry['name']}: {ex_label}.",
+                        attribution="Library of Congress Geography & Map Division",
+                        source_url=ex_loc or "https://www.loc.gov/collections/sanborn-maps/",
+                    )
+                )
 
-        features.append({
-            "type": "Feature",
-            "id": entry["id"],
-            "properties": props,
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": coords,
-            },
-        })
+        features.append(
+            compact_lost_houston_feature(
+                props,
+                coords[0],
+                source_cohort="curated_landmark",
+                footprint_provenance="surveyed_sanborn_or_parcel" if rings else "surveyed_catalog",
+            )
+        )
 
     # Also append the 8 verified demolished Russell Brown Co. residences from DEMOLISHED_CONTRACTOR_SITES
     existing_lost_ids = {f["properties"]["id"] for f in features}
@@ -1856,23 +1895,17 @@ def main() -> None:
         ]
         rb_props = {
             "id": dsite["id"],
-            "overlay_layer": "lost_houston",
-            "is_boundary_feature": True,
-            "feature_type": "lost_houston",
-            "is_demolished": True,
             "name": dsite["name"],
-            "building_name": dsite["name"],
             "subtitle": dsite.get("subtitle") or dsite["builder_source"],
             "category": dsite.get("category") or "Gilded Age Mansion",
-            "type_label": f"Lost Houston · {dsite.get('category') or 'Gilded Age Mansion'} ({rb_yb}-{rb_yd})",
-            "lifespan_label": f"{rb_yb}-{rb_yd}",
-            "lifespan_years": max(1, rb_yd - rb_yb),
             "address": dsite["address"],
             "neighborhood": dsite.get("neighborhood") or "Montrose",
             "site_hcad_nums": rb_hcads,
             "hcad_num": rb_hcads[0] if rb_hcads else "",
             "year_built": rb_yb,
+            "year_built_qualifier": dsite.get("year_built_qualifier", "exact"),
             "year_demolished": rb_yd,
+            "year_demolished_qualifier": dsite.get("year_demolished_qualifier", "exact"),
             "demolition_cause": dsite.get("demolition_cause", ""),
             "replaced_by": dsite.get("replaced_by", ""),
             "architect": dsite["architect"],
@@ -1887,12 +1920,9 @@ def main() -> None:
             "sanborn_material_label": dsite.get("sanborn_material_label", "Historic Residential Construction"),
             "stories": dsite["stories"],
             "height_m": dsite["height_m"],
-            "blurb": dsite["description"],
             "historic_significance": dsite["description"],
-            "description": dsite["description"],
             "citations": rb_citations,
             "lon": cx,
-            "lng": cx,
             "lat": cy,
             "label_lng": cx,
             "label_lat": cy,
@@ -1901,81 +1931,108 @@ def main() -> None:
                 "cost": "$9,500 (est.)",
                 "architect": dsite["architect"],
                 "builder": dsite["builder"],
-                "scope": dsite["description"],
-                "source_title": dsite["builder_source"],
+                "scope": sanitize_atlas_text(str(dsite["description"])),
+                "source_title": sanitize_atlas_text(str(dsite["builder_source"])),
                 "source_url": dsite["source_url"],
                 "image_url": dsite["photo_url"],
             },
         }
-        features.append({
-            "type": "Feature",
-            "id": dsite["id"],
-            "properties": rb_props,
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": rb_coords,
-            },
-        })
-        photo_list.append({
-            "building_id": dsite["id"],
-            "landmark_name": dsite["name"],
-            "address": dsite["address"],
-            "image_url": dsite["photo_url"],
-            "thumb_url": dsite["photo_url"],
-            "full_url": dsite["photo_url"],
-            "photo_year": 1917,
-            "era_label": "c. 1917 HMRC 'Modern Homes' Plate",
-            "caption": f"{dsite['name']} ({dsite['address']}, {rb_yb}-{rb_yd}) - {dsite['description']}",
-            "attribution": dsite["builder_source"],
-            "source_url": dsite["source_url"],
-        })
+        features.append(
+            compact_lost_houston_feature(
+                rb_props,
+                rb_coords[0],
+                source_cohort="curated_landmark",
+                footprint_provenance="surveyed_catalog",
+            )
+        )
+        photo_list.append(
+            build_lost_houston_photo_record(
+                building_id=dsite["id"],
+                landmark_name=dsite["name"],
+                image_url=dsite["photo_url"],
+                thumb_url=dsite["photo_url"],
+                full_url=dsite["photo_url"],
+                photo_year=1917,
+                era_label="c. 1917 HMRC 'Modern Homes' Plate",
+                caption=f"{dsite['name']} ({dsite['address']}, {rb_yb}-{rb_yd}) - {dsite['description']}",
+                attribution=dsite["builder_source"],
+                source_url=dsite["source_url"],
+            )
+        )
 
     overlays_path = DATA_DIR / "overlays.json"
     overlays = json.loads(overlays_path.read_text(encoding="utf-8"))
+    overrides_path = DATA_DIR / "curated_overrides.json"
+    curated_overrides = json.loads(overrides_path.read_text(encoding="utf-8")) if overrides_path.exists() else {}
+    citydir_path = DATA_DIR / "citydir_index.json"
+    citydir_index = json.loads(citydir_path.read_text(encoding="utf-8")) if citydir_path.exists() else {}
+
+    buildings_path = DATA_DIR / "buildings.geojson"
+    buildings_fc = json.loads(buildings_path.read_text(encoding="utf-8")) if buildings_path.exists() else {}
+
+    search_path = DATA_DIR / "search_index.json"
+    sdata = json.loads(search_path.read_text(encoding="utf-8")) if search_path.exists() else None
+    items = (sdata.get("items", sdata) if isinstance(sdata, dict) else sdata) if sdata is not None else None
+
+    lm_fix_stats = sanitize_coh_landmarks_overlay(
+        overlays.get("landmarks", {}),
+        items if isinstance(items, list) else None,
+    )
+    print(f"Sanitized overlays['landmarks'] & search_index: {lm_fix_stats}")
+
+    cohort2_to_5_feats, cohort2_to_5_photos, exp_stats = build_cohorts_2_to_5(
+        cohort1_features=features,
+        overlays=overlays,
+        curated_overrides=curated_overrides,
+        citydir_index=citydir_index,
+        cache_dir=CACHE_DIR,
+        parcel_by_hcad=p_by_hcad,
+        fit_rect_fn=fit_rect_in_parcel,
+        buildings_fc=buildings_fc,
+    )
+    features.extend(cohort2_to_5_feats)
+    photo_list.extend(cohort2_to_5_photos)
+    print(f"Lost Houston cohort breakdown: {dict(exp_stats['cohort_counts'])}")
+    print(f"Lost Houston gate/dedup summary: {dict(exp_stats['rejected'])}")
+
+    nrhp_updated = enrich_nrhp_demolished_overlay_and_search(
+        overlays.get("nrhp_properties", {}),
+        items if isinstance(items, list) else None,
+    )
+    print(f"Enriched {nrhp_updated} demolished NRHP properties in overlays & search_index.")
+
     overlays["lost_houston"] = {
         "type": "FeatureCollection",
         "features": features,
     }
-    overlays_path.write_text(json.dumps(overlays, separators=(",", ":")), encoding="utf-8")
-    photos_db["photos"] = photo_list
-    photos_path.write_text(json.dumps(photos_db, indent=2), encoding="utf-8")
-    print(f"Updated {overlays_path} with {len(features)} surveyed Lost Houston features and {len(photo_list)} total photos.")
+    holc_sync = reconcile_holc_lost_houston_rollups(overlays)
+    print(f"Synchronized HOLC 1937 Lost Houston rollups: {holc_sync}")
 
-    # 3. Also index Lost Houston landmarks into search_index.json so users can search for them by name!
-    search_path = DATA_DIR / "search_index.json"
-    if search_path.exists():
-        sdata = json.loads(search_path.read_text(encoding="utf-8"))
-        items = sdata.get("items", sdata) if isinstance(sdata, dict) else sdata
-        items = [it for it in items if not (isinstance(it, dict) and str(it.get("id", "")).startswith("lost_"))]
-        added = 0
-        for f in features:
-            p = f["properties"]
-            items.append({
-                "id": p["id"],
-                "type": "lost_houston",
-                "overlay_layer": "lost_houston",
-                "label": f"{p['name']} ({p['year_built']}-{p['year_demolished']})",
-                "name": p["name"],
-                "building_name": p["name"],
-                "sublabel": f"Demolished {p['year_demolished']} • {p['address']} • {p['sanborn_material_label']}",
-                "category": f"Lost Houston ({p['year_built']}-{p['year_demolished']})",
-                "address": p["address"],
-                "neighborhood": p["neighborhood"],
-                "year_built": p["year_built"],
-                "year_demolished": p["year_demolished"],
-                "architect": p["architect"],
-                "style": p["style"],
-                "use_category": p["category"],
-                "lon": p["lon"],
-                "lat": p["lat"],
-            })
-            added += 1
+    write_compact_json(overlays_path, overlays)
+    write_compact_json(photos_path, {"photos": photo_list})
+    print(f"Updated {overlays_path} with {len(features)} verified Lost Houston features and {len(photo_list)} total photos.")
+
+    # 3. Also index Lost Houston landmarks into search_index.json strictly via upsert_search_index_slice!
+    if sdata is not None and isinstance(items, list):
+        new_search_entries = [build_lost_houston_search_item(f) for f in features]
+        updated_si = upsert_search_index_slice(
+            items,
+            slice_predicate=lambda it: (
+                isinstance(it, dict)
+                and (
+                    str(it.get("id") or "").startswith("lost_")
+                    or it.get("type") == "lost_houston"
+                )
+            ),
+            new_entries=new_search_entries,
+            prepend=False,
+        )
         if isinstance(sdata, dict):
-            sdata["items"] = items
-            search_path.write_text(json.dumps(sdata, separators=(",", ":")), encoding="utf-8")
+            sdata["items"] = updated_si
+            write_compact_json(search_path, sdata)
         else:
-            search_path.write_text(json.dumps(items, separators=(",", ":")), encoding="utf-8")
-        print(f"Added {added} Lost Houston entries to {search_path}.")
+            write_compact_json(search_path, updated_si)
+        print(f"Added {len(new_search_entries)} Lost Houston entries to {search_path}.")
 
 
 if __name__ == "__main__":

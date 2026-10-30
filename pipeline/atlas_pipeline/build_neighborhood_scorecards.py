@@ -58,8 +58,10 @@ from shapely.validation import make_valid
 from atlas_pipeline.schema import (
     MAX_VALID_CAMA_DATE_YEAR,
     MIN_VALID_YEAR,
+    classify_main_structure_demolition_permit,
     is_boundary_search_entry,
     is_demolished_vacant_marker,
+    is_main_structure_demolition_scope,
     normalize_hcad_date,
     normalize_year,
     resolve_ch42_ordinance_lifecycle,
@@ -296,24 +298,6 @@ _RE_FAMILY_TRUST_ESTATE = re.compile(
     r"ESTATE\s+OF|EST\s+OF|HEIRS\s+OF|\bESTATE\b|\bTRS\b)\b)",
     re.IGNORECASE,
 )
-_RE_NON_MAIN_DEMO_SCOPE = re.compile(
-    r"(?:\b(?:SWIMMING\s+POOL|POOL\s+ONLY|DEMO\s+POOL|POOL\s+DEMO|POOL\s+DEMOLITION|"
-    r"SPA\s+DEMO|SPA\s+ONLY|DETACHED\s+GARAGE|GARAGE\s+ONLY|GARAGE\s+DEMO(?:LITION)?\b|"
-    r"DEMO(?:LISH)?\s+(?:DETACHED\s+|EXISTING\s+|RES\s+)?GARAGE\b|"
-    r"CARPORT\s+ONLY|DEMO\s+CARPORT|CANOPY\s+ONLY|CANOPY\s+DEMO|"
-    r"SIGN\s+DEMO|FENCE\s+DEMO|SHED\s+DEMO|DEMO\s+SHED|"
-    r"INTERIOR\s+NON[- ]?LOAD|NON[- ]?LOAD\s+BEARING|NON[- ]?FIRE\s+RATED|"
-    r"PARTIAL\s+DEMO|INTERIOR\s+REMODEL|INTERIOR\s+BUILDOUT)\b)",
-    re.IGNORECASE,
-)
-_RE_MAIN_BLDG_CUE = re.compile(
-    r"(?:\b(?:HOUSE|RESIDENCE|SFR|SINGLE\s+FAMILY|DUPLEX|TRIPLEX|FOURPLEX|"
-    r"DWELLING|HOME|MAIN\s+BLDG|MAIN\s+HOUSE|BLDG\s+&\s+GARAGE|HOUSE\s+&\s+GARAGE|"
-    r"HOUSE\s+&\s+POOL|TOTAL\s+DEMO|COMPLETE\s+DEMO|COMMERCIAL\s+BLDG)\b)",
-    re.IGNORECASE,
-)
-
-
 def round_coords(geom_dict: dict[str, Any], decimals: int = 5) -> dict[str, Any]:
     def _rc(c: Any) -> Any:
         if isinstance(c, (int, float)):
@@ -416,23 +400,12 @@ def classify_parcel_ownership(
 
 
 def is_main_structure_demolition_desc(desc: Any) -> bool:
-    """Return True when a permit description represents a primary building teardown (DF-4).
+    """Return True when a permit description represents a primary building teardown (DF-4 / DF-5).
 
-    Excludes swimming pool, detached garage, carport, canopy, sign, fence, and non-load-bearing
-    interior remodel permits unless paired explicitly with a house/main building demolition.
+    Delegates to `schema.is_main_structure_demolition_scope` so Cohort 5 Lost Houston
+    and Scorecard `dp`/`dy`/`dp40` totals share a single source of truth.
     """
-    txt = str(desc or "").strip()
-    if not txt:
-        return True
-    if _RE_NON_MAIN_DEMO_SCOPE.search(txt):
-        if _RE_MAIN_BLDG_CUE.search(txt):
-            # Guard against "GARAGE DEMO AT RESIDENCE" or "RESIDENTIAL DETACHED GARAGE DEMO"
-            low = txt.upper()
-            if "HOUSE &" in low or "BLDG &" in low or "RESIDENCE &" in low or "AND GARAGE" in low or "AND POOL" in low:
-                return True
-            return False
-        return False
-    return True
+    return is_main_structure_demolition_scope(desc, allow_empty=True)
 
 
 def parse_demolition_permit_row(
@@ -1233,8 +1206,16 @@ def main() -> None:
     coh_2026_permits = fetch_or_load_coh_2026_demo_permits(coh_2026_cache)
     coh_2026_matched = 0
     for prm in coh_2026_permits:
-        use_desc = f"{prm.get('permit_desc', '')} {prm.get('use_desc', '')}"
-        if not is_main_structure_demolition_desc(use_desc):
+        ok_coh, _, _ = classify_main_structure_demolition_permit(
+            prm.get("use_desc"),
+            prm.get("permit_type"),
+            "2026",
+            raw_address=prm.get("raw_address"),
+            permit_desc=prm.get("permit_desc"),
+            min_year=2026,
+            max_year=MAX_VALID_CAMA_DATE_YEAR,
+        )
+        if not ok_coh:
             continue
         sk = normalize_situs_compare_key(prm.get("raw_address", ""))
         if not sk:

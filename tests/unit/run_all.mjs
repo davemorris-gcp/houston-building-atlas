@@ -8,3 +8,4 @@ import "./demolished_vacant_suppression.test.mjs";
 import "./plat_monitor_and_watchlist.test.mjs";
 import "./activity_log_and_briefing.test.mjs";
 import "./milestone1_scorecards_and_ch42.test.mjs";
+import "./lost_houston_expansion.test.mjs";

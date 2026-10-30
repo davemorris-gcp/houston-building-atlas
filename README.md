@@ -12,27 +12,27 @@
 
 ## Overview
 
-**The Houston Building Atlas v2** replaces Preservation Houston's legacy cloud GIS prototype with a self-contained, zero-cost web application built on **MapLibre GL JS v4.7.1**, **PMTiles v3.2.0**, and a **45-script geospatial & archival Python pipeline** (`pipeline/atlas_pipeline/`).
+**The Houston Building Atlas v2** replaces Preservation Houston's legacy cloud GIS prototype with a self-contained, zero-cost web application built on **MapLibre GL JS v4.7.1**, **PMTiles v3.2.0**, and a **46-script geospatial & archival Python pipeline** (`pipeline/atlas_pipeline/`).
 
-Every building footprint in Harris County (`1,507,897` countywide structures across 5 Zoom-11 tile-aligned `.pmtiles` shards with `100.00%` dated coverage and `0` undated buildings, plus `18,734` curated inner-core structures in `buildings.geojson`, `2,216` verified overrides, countywide live HCAD tax-parcel rendering, and live address search across ~325,000 unimproved vacant lots) is paired with **4-Tier Evidentiary Provenance Badges** (explicitly labeling `3,047` Historic Core HCAD rounded-decade estimates as `c. 1920 (HCAD Est.)` and flagging 1926 City Directory contradictions), 1-click public misattribution flagging (`⚑ Wrong Building`, `⚑ Flag`, `⚑ Flag Error`), plain-English Chapter 33/42 legal protection rules, **`4,242` shareable Neighborhood & City Council District Preservation Scorecards** (`#scorecard=<layer>:<id>` across all `11` City Council Districts `A-K` through January 2028, `88` Super Neighborhoods, `23` COH Historic Districts, `60` Potential Historic Districts, `47` HOLC zones, `1,387` neighborhoods, and `2,613` historic subdivisions), a live **COH Code Chapter 42 `SMLS` / `SMBL` Block-Face Eligibility Calculator & Walk-Sheet Kit** (`#ch42=<13_digit_hcad>`), a 1-click 5-Step House History Research Kit (`16` Sanborn volumes / `878` sheets `1877-1955` + `39` digitized Houston City Directories `1866-1926`), `23` preservation and social-history overlays (`1915 Red Book of Houston`, `1937 HOLC Redlining`, `City Council Districts A-K`), annual (`2020-2025`) & `2026 YTD` demolition permit benchmarks, and automated daily/biweekly/monthly early-warning feeds wrapped inside a 3-mode Companion Monitor (`What's New & Daily Log` 90-day Central Time ledger, `Biweekly Plat Review`, and `15-Point Property Watchlist`).
+Every building footprint in Harris County (`1,507,897` countywide structures across 5 Zoom-11 tile-aligned `.pmtiles` shards with `100.00%` dated coverage and `0` undated buildings, plus `18,735` curated inner-core structures in `buildings.geojson`, `2,216` verified overrides, countywide live HCAD tax-parcel rendering, and live address search across ~325,000 unimproved vacant lots) is paired with **4-Tier Evidentiary Provenance Badges** (explicitly labeling `3,237` Historic Core HCAD rounded-decade estimates as `c. 1920 (HCAD Est.)` and flagging 1926 City Directory contradictions), 1-click public misattribution flagging (`⚑ Wrong Building`, `⚑ Flag`, `⚑ Flag Error`), plain-English Chapter 33/42 legal protection rules, **`4,242` shareable Neighborhood & City Council District Preservation Scorecards** (`#scorecard=<layer>:<id>` across all `11` City Council Districts `A-K` through January 2028, `88` Super Neighborhoods, `23` COH Historic Districts, `60` Potential Historic Districts, `47` HOLC zones, `1,387` neighborhoods, and `2,613` historic subdivisions), a live **COH Code Chapter 42 `SMLS` / `SMBL` Block-Face Eligibility Calculator & Walk-Sheet Kit** (`#ch42=<13_digit_hcad>`), a 1-click 5-Step House History Research Kit (`16` Sanborn volumes / `878` sheets `1877-1955` + `39` digitized Houston City Directories `1866-1926`), **`622` verified demolished *Lost Houston* structures (`1837-2026`)** across 5 primary-source cohorts, `23` preservation and social-history overlays (`1915 Red Book of Houston`, `1937 HOLC Redlining`, `City Council Districts A-K`), annual (`2020-2025`) & `2026 YTD` demolition permit benchmarks, and automated daily/biweekly/monthly early-warning feeds wrapped inside a 3-mode Companion Monitor (`What's New & Daily Log` 90-day Central Time ledger, `Biweekly Plat Review`, and `15-Point Property Watchlist`).
 
 ```mermaid
 flowchart TD
     subgraph Sources["33 Primary Archival, Municipal & Geospatial Data Sources"]
         S1["HCAD Parcels.gdb (1.55M Parcels in EPSG:2278)\n& CAMA Tables (real_acct, building_res/other,\nextra_features, 1.3M permits, tiebacks, deeds)"]
         S2["Footprint Geometry:\nOpenStreetMap + Microsoft MSBFP2 (1.85M)\n+ Esri World_Basemap_v2 Vector Tiles\n+ Campus GIS (Rice, UH, TSU, Hermann Park)"]
-        S3["Archival, Preservation & Social History:\n• PH Good Brick Awards (1979-2026, 359 awards)\n• COH Landmarks (509: 200 PLM, 86 LM-in-HD, 223 Waiver)\n• LOC + UT Austin PCL Sanborn (1877-1955, 16 vols / 878 sheets)\n• HPL City Directories (1866-1926) & HMRC Contractors\n• 1915 Red Book of Houston (970 sites) & 1937 HOLC (47 zones)\n• HAIF Archive (29,467 threads) & 238 Individual NRHPs"]
+        S3["Archival, Preservation & Social History:\n• PH Good Brick Awards (1979-2026, 359 awards)\n• COH Landmarks (501 standing: 199 PLM, 86 LM-in-HD, 216 Waiver + 8 Lost)\n• LOC + UT Austin PCL Sanborn (1877-1955, 16 vols / 878 sheets)\n• HPL City Directories (1866-1926) & HMRC Contractors\n• 1915 Red Book of Houston (970 sites) & 1937 HOLC (47 zones)\n• HAIF Archive (29,467 threads) & 238 Individual NRHPs"]
         S4["Civic Geography & Live Early-Warning Feeds:\n• 2009 Peter Brown GeoPDF (1,387 neighborhoods) + 11 Council Dists (A-K)\n• 1839-1905 Charter Wards & 1836-2020 Annexations\n• 5,573 Subdivisions, 65 Deed PDFs & 910 Ch. 42 Zones\n• 1,957 Waterways/Gullies/Oxbows & 61 Rail/Streetcar Lines\n• Daily COH Demo Permits + TX DSHS Asbestos + Monthly HAHC\n• Biweekly COH Plats/DPV Variances + 8-Agency Watchlist APIs"]
     end
 
-    subgraph Pipeline["45-Script Geospatial & Archival Pipeline (pipeline/atlas_pipeline/)"]
+    subgraph Pipeline["46-Script Geospatial & Archival Pipeline (pipeline/atlas_pipeline/)"]
         P1["Spatial Join, MultiPolygon Recovery,\n2-Stage STRtree Deduplication &\n-34.65 deg Borden Survey Orientation Repair"]
         P2["4-Phase Countywide Undated Resolution\n(43,983 -> 0 Undated; 100.00% Coverage),\nCampus & 679/688 School Decomposition, Contradiction Audit\n& 4,242 Neighborhood Preservation Scorecards"]
         P3["Zoom-11 Web Mercator Tile-Aligned Sharding\n(tippecanoe v2.82.0 --hilbert -Z10 -z15),\nDaily GitHub Actions Permit/Plat/HAHC Sync &\n90-Day America/Chicago Activity Ledger"]
     end
 
     subgraph App["Zero-Cost Static Web Applications on GitHub Pages (app/)"]
-        A1["5 PMTiles v3 Shards (<80 MB each) + buildings.geojson (18,734)\n+ 504 Mirrored UT PCL Sanborn WebP Plates + 65 Deed PDFs"]
+        A1["5 PMTiles v3 Shards (<80 MB each) + buildings.geojson (18,735)\n+ 504 Mirrored UT PCL Sanborn WebP Plates + 65 Deed PDFs"]
         A2["152 Permit Shards + overlays.json (23 layers) + neighborhood_scorecards.json\n+ citydir_index.json + sanborn_catalog.json + hahc_coa_tracker.json + monitor_activity_log.json"]
         A3["Main Atlas (index.html): 2D/3D WebGL, Live HCAD Parcels, 4,242 Scorecards,\nCh. 42 Block-Face Calculator, 4-Tab Inspector, Research Kit, 6 Chapters & SVG Studio\n+ 3-Mode Companion Monitor (plat-monitor.html: What's New & Daily Log,\nBiweekly Plat Review & 15-Point Property Watchlist)"]
     end
@@ -99,7 +99,7 @@ To ensure engineering architecture, archival methodology, third-party server dep
 ### [Chapter 6: Library of Congress & UT Austin PCL Sanborn Atlases, Historical Map Spyglass & Lost Houston](docs/06-sanborn-maps-and-lost-houston.md)
 - **Georeferenced Historical Maps (`1869-1969`) & Spyglass Lens Math:** Fixing the `512 px` vs. `256 px` WebGL world-size zoom offset (`effectiveTileZoom = vpZoom + 1`) and 3D perspective projection inside `#spyglass-canvas`.
 - **Sanborn Fire Insurance Atlases (`1877-1955`, `16` Volumes / `878` Sheets across LOC & UT Austin PCL):** Leveraging LOC CloudFront power-of-two wavelet pre-caching (`pct:12.5` & `pct:25` in `< 60 ms`), resolving `-covr` and `-0001s` skeleton map suffixes, and mirroring `504` local WebP plates from `6` UT Austin PCL volumes (`1877`, `1917`, `1919`, `1924 Vol. 2 & 3`, `1948 Vol. 6`) in `app/public/data/sanborn_ut/`.
-- **Lost Houston (`74` Verified Demolished Landmarks):** Sanborn Underwriters material color coding, purging `7` extant false positives, fixing the `-34.65°` Borden Survey grid rotation (`fit_rect_in_parcel`), bidirectional "Previous Historic Structures on This Site" cross-referencing (`1837 First Capitol` & `1883 Capitol Hotel` under the `1913 Rice Hotel`), primary-source citations, and **Historical Snapshot Mode**.
+- **Lost Houston (`622` Verified Demolished Structures, `1837-2026`):** Systematic 5-cohort archive (`85` curated landmarks, `7` demolished COH landmarks + `coh_lm_081` merged onto Cohort 1, `15` demolished NRHP `"Gone"` listings, `205` vanished 1915 *Red Book of Houston* heritage sites, and `310` strict permit + CAMA verified `2020-2026` pre-1940 teardowns), gated by `ZeroExtantCollisionGate`, zoom-stepped `symbol_rank` (`1..4`) WebGL/Canvas decluttering (`z = 12.5` / `14.5` / `15.8`), Sanborn Underwriters material color coding, `-34.65°` Borden Survey parcel fitting (`fit_rect_in_parcel`), bidirectional "Previous Historic Structures on This Site" cross-referencing, qualifier-aware `circa` / `HCAD Est.` lifespans, and **Historical Snapshot Mode**.
 
 ### [Chapter 7: Historical Waterways, Railroads, Multi-Era Permits & HMRC Contractor Archives](docs/07-waterways-railroads-permits-and-contractors.md)
 - **Historical Waterways, Pre-1960s Oxbows & Buried Gullies (`1,957` Features):** Merging USGS NHD, HCFCD (`M3` sub-basins), and TNRIS into `218` continuous open bayous/creeks with culvert confluence snapping, plus **7 daylighted/buried historic gullies** and pre-channelization White Oak Bayou oxbows.
@@ -110,7 +110,7 @@ To ensure engineering architecture, archival methodology, third-party server dep
 ### [Chapter 8: Crowdsourced Moderation Pipeline, Live HCAD API & Admin Operations](docs/08-crowdsourcing-and-admin-operations.md)
 - Zero-cost 10-tab Google Sheets moderation backend (`Pending_Submissions` -> `Approved_Edits` live CSV hydration + `Historical_Audit_Queue` (`250` prioritized contradictions) + `Admin_Hub_&_Quick_Filter` + 12 Saved Filter Views + `🔒 Staff Admin` mode), **4-Tier Evidentiary Provenance System**, and 1-click public misattribution flagging (`⚑ Wrong Building`, `⚑ Flag`, `⚑ Flag Error`).
 - Live HCAD ArcGIS REST appraisal lookup, countywide viewport parcels, & live vacant-lot address search (`hcadLink.js`, `hcadViewportParcels.js`).
-- Pre-warmed O(1) global search index (`search_index.json`, `25,340` entries including all `11` City Council Districts `A-K`) and complete **45-script pipeline rebuild reference table**.
+- Pre-warmed O(1) global search index (`search_index.json`, `25,888` entries including all `622` `Source Cohort`-filterable Lost Houston records and `11` City Council Districts `A-K`) and complete **46-script pipeline rebuild reference table**.
 - Automated 4-layer verification suite (`45` stratified property archetypes across `15` equivalence classes) and live [**External Archive & Municipal Link Health Report (GitHub Issue #1)**](https://github.com/davemorris-gcp/houston-building-atlas/issues/1).
 
 ### [Chapter 9: Preservation Practice Stack, House History Research Kit, Social History Equity Layers, Guided Chapters, Neighborhood Scorecards, Chapter 42 Kit & HAHC COA Tracker](docs/09-preservation-practice-social-history-and-hahc.md)
@@ -236,7 +236,7 @@ houston-building-atlas/
 │           ├── houston_buildings_se.pmtiles   # SE Shard (<60 MB, Zoom-11 Web Mercator tile-aligned)
 │           ├── buildings.geojson              # 18,734 deeply curated inner-core footprints
 │           ├── curated_overrides.json         # 2,216 verified archival overrides & multi-building keys
-│           ├── overlays.json                  # 23 vector overlays (Council Districts A-K, Landmarks, HDs, Red Book, HOLC, HAHC, 74 Lost Houston, etc.)
+│           ├── overlays.json                  # 23 vector overlays (Council Districts A-K, Landmarks, HDs, Red Book, HOLC, HAHC, 622 Lost Houston, etc.)
 │           ├── neighborhood_scorecards.json   # 4,242 precomputed preservation, ownership, Ch. 42 & demolition scorecards
 │           ├── sanborn_catalog.json           # 16 Sanborn volumes / 878 sheets (1877-1955, LOC + UT PCL)
 │           ├── sanborn_ut/                    # 504 mirrored UT Austin PCL Sanborn WebP thumbnails & plates
@@ -249,10 +249,10 @@ houston-building-atlas/
 │           ├── property_watchlist.json        # 27 staff-confirmed watched properties across 15 multi-agency checks
 │           ├── monitor_activity_log.json      # 90-day America/Chicago Daily Run Ledger & 4-stream change history
 │           ├── haif_index.json                # 5,576 HAIF architecture threads linked to parcels & addresses
-│           ├── building_photos.json           # 279 curated HABS, HPO, HMRC, HAIF & Wikimedia photos
-│           ├── search_index.json              # 25,340 pre-compiled global autocomplete entries
+│           ├── building_photos.json           # 338 curated HABS, HPO, HMRC, Woodson IIIF, Sanborn & Wikimedia photos
+│           ├── search_index.json              # 25,888 pre-compiled global autocomplete entries
 │           └── permits/                       # 152 on-demand HCAD permit shards (permits_001..152.json)
-└── pipeline/                                  # 45-script geospatial & archival Python pipeline (uv / Python 3.13)
+└── pipeline/                                  # 46-script geospatial & archival Python pipeline (uv / Python 3.13)
     ├── pyproject.toml
     └── atlas_pipeline/
 ```

@@ -137,17 +137,14 @@ export function buildFeatureFilterExpression(state) {
 }
 
 /**
- * Compile a MapLibre GL JS filter expression for the Lost Houston (demolished structures) layer.
- * In Historical Snapshot Mode (or during time-lapse playback before 2026), displays only structures
- * that were standing in the active target year (`year_built <= cutoff && year_demolished > cutoff`).
- * Otherwise displays all demolished structures whose lifespan overlaps `[minYear, maxYear]`.
+ * Resolve normalized temporal bounds and snapshot mode for Lost Houston filtering.
+ * Shared by both WebGL (`buildLostHoustonFilterExpression`) and 2D Canvas / JS
+ * (`featureMatchesLostHoustonFilter`) so boundary math never drifts.
  */
-export function buildLostHoustonFilterExpression(state) {
-  if (!state) return ["has", "year_built"];
+export function resolveLostHoustonBounds(state) {
   const minY = Number(state.minYear) || 1836;
   const maxY = Number(state.maxYear) || 2026;
   const dec = String(state.selectedDecade || "all");
-
   let lowBound = minY;
   let highBound = maxY;
   if (dec !== "all" && dec !== "unknown") {
@@ -157,12 +154,45 @@ export function buildLostHoustonFilterExpression(state) {
       highBound = decInt + 9;
     }
   }
+  const isSnapshot = Boolean(
+    state.historicalSnapshotMode || (state.isPlaying && highBound < 2026)
+  );
+  return { dec, lowBound, highBound, isSnapshot };
+}
 
-  if (state.historicalSnapshotMode || (state.isPlaying && highBound < 2026)) {
+const LOST_YEAR_BUILT_EXPR = [
+  "case",
+  [">", ["to-number", ["get", "year_built"], 0], 0],
+  ["to-number", ["get", "year_built"], 1836],
+  1836,
+];
+
+const LOST_YEAR_DEMO_EXPR = [
+  "case",
+  [">", ["to-number", ["get", "year_demolished"], 0], 0],
+  ["to-number", ["get", "year_demolished"], 2026],
+  2026,
+];
+
+/**
+ * Compile a MapLibre GL JS filter expression for the Lost Houston (demolished structures) layer.
+ * In Historical Snapshot Mode (or during time-lapse playback before 2026), displays only structures
+ * that were standing in the active target year (`year_built <= cutoff && year_demolished > cutoff`).
+ * Otherwise displays all demolished structures whose lifespan overlaps `[minYear, maxYear]`.
+ */
+export function buildLostHoustonFilterExpression(state) {
+  if (!state) return ["has", "year_built"];
+  const { dec, lowBound, highBound, isSnapshot } = resolveLostHoustonBounds(state);
+
+  if (dec === "unknown") {
+    return ["==", ["get", "id"], "__none__"];
+  }
+
+  if (isSnapshot) {
     return [
       "all",
-      ["<=", ["to-number", ["get", "year_built"], 1836], highBound],
-      [">", ["to-number", ["get", "year_demolished"], 2026], highBound],
+      ["<=", LOST_YEAR_BUILT_EXPR, highBound],
+      [">", LOST_YEAR_DEMO_EXPR, highBound],
     ];
   }
 
@@ -172,9 +202,33 @@ export function buildLostHoustonFilterExpression(state) {
 
   return [
     "all",
-    ["<=", ["to-number", ["get", "year_built"], 1836], highBound],
-    [">=", ["to-number", ["get", "year_demolished"], 2026], lowBound],
+    ["<=", LOST_YEAR_BUILT_EXPR, highBound],
+    [">=", LOST_YEAR_DEMO_EXPR, lowBound],
   ];
+}
+
+/**
+ * Evaluate whether a Lost Houston feature passes the exact same temporal / snapshot filter
+ * compiled by `buildLostHoustonFilterExpression(state)` (guarantees 1:1 WebGL <-> 2D Canvas parity).
+ */
+export function featureMatchesLostHoustonFilter(props, state) {
+  if (!props) return false;
+  const hasYearBuilt = props.year_built !== undefined && props.year_built !== null;
+  if (!state) return hasYearBuilt;
+  const { dec, lowBound, highBound, isSnapshot } = resolveLostHoustonBounds(state);
+  if (dec === "unknown") return false;
+
+  const rawYb = Number(props.year_built);
+  const rawYd = Number(props.year_demolished);
+  const yb = Number.isFinite(rawYb) && rawYb > 0 ? rawYb : 1836;
+  const yd = Number.isFinite(rawYd) && rawYd > 0 ? rawYd : 2026;
+  if (isSnapshot) {
+    return yb <= highBound && yd > highBound;
+  }
+  if (lowBound <= 1836 && highBound >= 2026) {
+    return hasYearBuilt;
+  }
+  return yb <= highBound && yd >= lowBound;
 }
 
 /**
@@ -300,7 +354,7 @@ export function buildAnnexationFilterExpression(state) {
  */
 export function buildLandmarksFilterExpression(state, isoIds = null) {
   const mode = String(state?.landmarkFilter || "all");
-  const clauses = [];
+  const clauses = [["!", ["boolean", ["get", "demolished"], false]]];
   if (mode === "protected") {
     clauses.push([
       "in",
@@ -839,7 +893,7 @@ export const SHARE_VIEW_PRESETS = [
   {
     id: "pre1940_buildings_only",
     label: "Pre-1940 Historic Structures Only",
-    description: "1836–1939 structures across Houston with all overlay pins hidden for pure architectural footprint clarity.",
+    description: "1836-1939 structures across Houston with all overlay pins hidden for pure architectural footprint clarity.",
     statePatch: {
       basemap: "dark_archival",
       renderMode: "buildings",
