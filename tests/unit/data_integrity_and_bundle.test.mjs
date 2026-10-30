@@ -749,10 +749,12 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/schema.py",
     "pipeline/atlas_pipeline/lost_houston_expansion.py",
     "pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py",
+    "pipeline/atlas_pipeline/sync_lost_houston_sheet.py",
     "pipeline/atlas_pipeline/build_social_history_layers.py",
     "pipeline/atlas_pipeline/audit_historical_accuracy.py",
     "docs/06-sanborn-maps-and-lost-houston.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
+    "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
     ".github/workflows/update_live_permits.yml",
     "docs/PRESERVATION_MONITORING_AUTOMATION_ARCHITECTURE.md",
   ]) {
@@ -768,11 +770,13 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/schema.py",
     "pipeline/atlas_pipeline/lost_houston_expansion.py",
     "pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py",
+    "pipeline/atlas_pipeline/sync_lost_houston_sheet.py",
     "pipeline/atlas_pipeline/build_social_history_layers.py",
     "pipeline/atlas_pipeline/build_neighborhood_scorecards.py",
     "pipeline/atlas_pipeline/audit_historical_accuracy.py",
     "docs/06-sanborn-maps-and-lost-houston.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
+    "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
   ]) {
     const rawTxt = fs.readFileSync(path.join(REPO_ROOT, relStrictNoDash), "utf8");
     assert.equal(

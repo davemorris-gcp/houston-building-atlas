@@ -744,12 +744,18 @@ def main() -> None:
             ],
         },
         # F. Add Open_in_Atlas helper ARRAYFORMULA column to Building_Photos (L1)
+        # Synchronized with BUILDING_PHOTOS_OPEN_IN_ATLAS_FORMULA in sync_lost_houston_sheet.py
+        # so DF-6 lost_* rows (blank Col A hcad_num) retain deep links alongside standing HCAD rows.
         {
             "op": "write",
             "range": "Building_Photos!L1",
             "data": [
                 [
-                    '={"open_in_atlas"; ARRAYFORMULA(IF(LEN(A2:A)=0, , HYPERLINK("https://davemorris-gcp.github.io/houston-building-atlas/#hcad=" & A2:A, "🗺️ Open Building in Atlas ↗")))}'
+                    '={"open_in_atlas"; ARRAYFORMULA(IF(REGEXMATCH(TRIM(TO_TEXT(B2:B)), "^(?i)lost_"), '
+                    'HYPERLINK("https://davemorris-gcp.github.io/houston-building-atlas/#lost_houston=1&bnd=lost_houston:" & LOWER(TRIM(B2:B)), '
+                    '"🏛️ Open Lost Site in Atlas ↗"), '
+                    'IF(LEN(A2:A)=0, , HYPERLINK("https://davemorris-gcp.github.io/houston-building-atlas/#hcad=" & A2:A, '
+                    '"🗺️ Open Building in Atlas ↗"))))}'
                 ]
             ],
         },

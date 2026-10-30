@@ -1,29 +1,32 @@
 """Generate Google Sheets batch payloads for the read-only Lost_Houston_Catalog tab.
 
 Reads the Milestone 2 Lost Houston overlay (`app/public/data/overlays.json["lost_houston"]`)
-and curated archival photo index (`app/public/data/building_photos.json`), enriches each
-demolished structure with spatial jurisdiction overlays (Super Neighborhood, Houston City
-Council District, 1937 HOLC Redlining Grade & Zone, and COH Historic/Heritage/NRHP District
-boundaries), and writes JSON batch payloads compatible with `gsheets mutate`:
+and curated archival photo index (`app/public/data/building_photos.json`), optionally merges
+newly staged `lost_*` archival photographs from a `Building_Photos` CSV export (with strict
+`DF-6` parcel-isolation guards), enriches each demolished structure with spatial jurisdiction
+overlays (Super Neighborhood, Houston City Council District, 1937 HOLC Redlining Grade & Zone,
+and COH Historic/Heritage/NRHP District boundaries), and writes JSON batch payloads compatible
+with `gsheets mutate`:
 
-  1. `lost_houston_create_raw_batch.json`  (one-time provisioning: tab creation + Admin Hub insert)
-  2. `lost_houston_values_batch.json`      (idempotent clear + RAW text/number slices + ARRAYFORMULAs)
-  3. `lost_houston_style_raw_batch.json`   (idempotent formatting, widths, BasicFilter, Filter View sync;
-                                            includes initial rules/protection when `--include-add-sheet` is set)
+  1. `lost_houston_create_raw_batch.json`  (one-time structural DDL: tab creation + Admin Hub row insert)
+  2. `lost_houston_values_batch.json`      (idempotent clear + RAW text/number slices + ARRAYFORMULAs + optional Hub/SOP 14)
+  3. `lost_houston_style_raw_batch.json`   (idempotent formatting, widths, BasicFilter, 7 Filter View syncs + SOP 14 styling)
 
 Usage:
   # Repeatable re-sync on existing workbook:
   uv run python -m atlas_pipeline.sync_lost_houston_sheet --output-dir /path/to/scratch
 
-  # First-time tab provisioning + one-time Admin Hub row insertion:
-  uv run python -m atlas_pipeline.sync_lost_houston_sheet --output-dir /path/to/scratch \\
-      --include-add-sheet --include-hub-insert --verify-milestone2-counts
+  # Ingest newly staged lost_* photo rows from Building_Photos CSV export + re-sync sheet:
+  uv run python -m atlas_pipeline.sync_lost_houston_sheet \
+      --ingest-building-photos-csv /path/to/Building_Photos.csv \
+      --write-site-data --include-sop14 --update-hub-row --output-dir /path/to/scratch
 """
 
 from __future__ import annotations
 
 import argparse
 from collections import Counter
+import csv
 import json
 from pathlib import Path
 from typing import Any
@@ -31,19 +34,36 @@ from typing import Any
 from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
-from atlas_pipeline.schema import sanitize_atlas_text
+from atlas_pipeline.lost_houston_expansion import build_lost_houston_photo_record
+from atlas_pipeline.schema import sanitize_atlas_text, write_compact_json
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OVERLAYS_PATH = REPO_ROOT / "app" / "public" / "data" / "overlays.json"
 DEFAULT_PHOTOS_PATH = REPO_ROOT / "app" / "public" / "data" / "building_photos.json"
 
 SID_HUB = 1383259584
+SID_INSTR = 1038833872
+SID_PHOTOS = 1351980492
 SID_LOST = 824622001
 SHEET_TITLE_LOST = "Lost_Houston_Catalog"
+# Live Instructions_&_Apps_Script row map: Rows 1..5 overview, Row 6 Passkey (B6),
+# Row 7 divider, Rows 8..24 Sections 7..22 (SOP 1..13 + Master Docs section at Row 24).
+# Verify A24:A26 before changing so --include-sop14 never overwrites Row 24 or touches Cell B6.
+SOP14_TARGET_ROW = 25
 ATLAS_BASE_URL = "https://davemorris-gcp.github.io/houston-building-atlas/"
+# Must stay synchronized with Building_Photos!L1 in setup_admin_sheet.py so DF-6
+# lost_* rows (blank Col A hcad_num) retain deep links alongside standing HCAD rows.
+BUILDING_PHOTOS_OPEN_IN_ATLAS_FORMULA = (
+    '={"open_in_atlas"; ARRAYFORMULA(IF(REGEXMATCH(TRIM(TO_TEXT(B2:B)), "^(?i)lost_"), '
+    f'HYPERLINK("{ATLAS_BASE_URL}#lost_houston=1&bnd=lost_houston:" & LOWER(TRIM(B2:B)), '
+    '"🏛️ Open Lost Site in Atlas ↗"), '
+    f'IF(LEN(A2:A)=0, , HYPERLINK("{ATLAS_BASE_URL}#hcad=" & A2:A, '
+    '"🗺️ Open Building in Atlas ↗"))))}'
+)
 
 MIN_SHEET_GRID_ROWS = 700
 SHEET_ROW_HEADROOM = 100
+FILTER_VIEW_COUNT = 7
 
 COHORT_SPECS: dict[str, tuple[int, str]] = {
     "curated_landmark": (1, "1. Curated Survey Landmark"),
@@ -167,6 +187,190 @@ def format_designation_id(props: dict[str, Any]) -> str:
     if loc_vol and loc_sheet is not None and not parts:
         parts.append(f"Sanborn {loc_vol} Sh. {loc_sheet}")
     return "; ".join(parts)
+
+
+def ingest_lost_houston_sheet_photos(
+    overlays: dict[str, Any],
+    building_photos: dict[str, Any],
+    csv_path: Path,
+) -> dict[str, int]:
+    """Non-destructively merge `lost_*` photo rows from a `Building_Photos` CSV export.
+
+    Mutates `building_photos["photos"]` and `overlays["lost_houston"]` feature properties
+    in place atomically ONLY after all CSV rows pass schema and `lost_id` validation.
+    Enforces `DF-6` isolation via `build_lost_houston_photo_record` (omitting `hcad_num`
+    and `address` and setting `is_lost_houston: True`) even if an editor accidentally
+    filled parcel columns in the sheet, tags records with `"curation_source":
+    "building_photos_sheet"` so catalog rebuilds preserve them, and promotes real photos
+    ahead of LOC Sanborn map plate fallbacks (`sanborn_sheet_image_url`).
+    """
+    lost_features_by_id: dict[str, dict[str, Any]] = {}
+    for feat in overlays.get("lost_houston", {}).get("features", []):
+        props = feat.get("properties") or {}
+        lid = str(props.get("id") or "").strip().lower()
+        if lid:
+            lost_features_by_id[lid] = props
+
+    existing_photos = building_photos.setdefault("photos", [])
+    seen_keys: set[tuple[str, str]] = set()
+    for p in existing_photos:
+        bid = str(p.get("building_id") or "").strip().lower()
+        img = sanitize_sheet_text(p.get("image_url"))
+        if bid and img:
+            seen_keys.add((bid, img))
+
+    scanned_lost_rows = 0
+    staged: list[tuple[dict[str, Any], dict[str, Any], str, str]] = []
+
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        headers = {str(h or "").strip() for h in (reader.fieldnames or [])}
+        missing_cols = {"building_id", "image_url"} - headers
+        if missing_cols:
+            raise ValueError(
+                f"Building_Photos CSV {csv_path} missing required column(s): "
+                f"{sorted(missing_cols)}; verify you exported the Building_Photos tab."
+            )
+        for row_num, raw_row in enumerate(reader, start=2):
+            raw_bid = str(raw_row.get("building_id") or "").strip()
+            if not raw_bid.lower().startswith("lost_"):
+                continue
+            scanned_lost_rows += 1
+            bid_norm = raw_bid.lower()
+            if bid_norm not in lost_features_by_id:
+                raise ValueError(
+                    f"Building_Photos CSV row {row_num} references unknown lost_id {raw_bid!r}; "
+                    f"copy exact ID from Lost_Houston_Catalog Column A."
+                )
+            img_url = sanitize_sheet_text(raw_row.get("image_url"))
+            if not img_url.startswith(("http://", "https://")):
+                raise ValueError(
+                    f"Building_Photos CSV row {row_num} ({bid_norm}) requires a direct http(s) image_url."
+                )
+            if (bid_norm, img_url) in seen_keys:
+                continue
+
+            fprops = lost_features_by_id[bid_norm]
+            raw_yr = str(raw_row.get("photo_year") or "").strip()
+            photo_year = int(raw_yr) if raw_yr.isdigit() else 0
+            canonical_id = str(fprops.get("id") or bid_norm)
+            landmark_name = sanitize_sheet_text(raw_row.get("landmark_name")) or sanitize_sheet_text(
+                fprops.get("name")
+            )
+            credit = sanitize_sheet_text(raw_row.get("credit") or raw_row.get("attribution"))
+
+            rec = build_lost_houston_photo_record(
+                building_id=canonical_id,
+                landmark_name=landmark_name,
+                image_url=img_url,
+                thumb_url=sanitize_sheet_text(raw_row.get("thumb_url")),
+                photo_year=photo_year,
+                era_label=sanitize_sheet_text(raw_row.get("era_label")),
+                caption=sanitize_sheet_text(raw_row.get("caption")),
+                attribution=credit,
+                source_url=sanitize_sheet_text(raw_row.get("source_url")),
+            )
+            rec["curation_source"] = "building_photos_sheet"
+            seen_keys.add((bid_norm, img_url))
+            staged.append((rec, fprops, img_url, credit))
+
+    backfilled_features = 0
+    for rec, fprops, img_url, credit in staged:
+        existing_photos.append(rec)
+        cur_photo = sanitize_sheet_text(fprops.get("photo_url"))
+        sanborn_fallback = sanitize_sheet_text(fprops.get("sanborn_sheet_image_url"))
+        if not cur_photo or (sanborn_fallback and cur_photo == sanborn_fallback):
+            fprops["photo_url"] = img_url
+            if credit:
+                fprops["photo_credit"] = credit
+            backfilled_features += 1
+    added_photos = len(staged)
+
+    return {
+        "scanned_lost_rows": scanned_lost_rows,
+        "added_photos": added_photos,
+        "backfilled_features": backfilled_features,
+    }
+
+
+def build_sop14_row(metrics: dict[str, Any]) -> list[str]:
+    """Build the 3-column SOP 14 Administrator Manual row for `Instructions_&_Apps_Script`."""
+    total_sites = metrics["total_sites"]
+    photo_sites = metrics["photo_site_count"]
+    unphoto_sites = metrics["unphotographed_site_count"]
+    total_photos = metrics["total_curated_photos"]
+    cohorts = metrics["cohort_counts"]
+    desig = metrics["designated_landmark_count"]
+    holc_d = metrics["holc_counts"].get("D", 0)
+
+    col_a = "23. SOP 14 - Lost Houston Catalog Curation & Archival Photo Backfill (Lost_Houston_Catalog Tab)"
+    col_b = (
+        f"The read-only 'Lost_Houston_Catalog' tab (gid={SID_LOST}) indexes all {total_sites} verified "
+        f"Milestone 2 demolished structures across 5 provenance cohorts: Cohort 1 Curated Survey Landmarks "
+        f"({cohorts.get(1, 0)}), Cohort 2 COH Designated Landmarks Lost ({cohorts.get(2, 0)}), Cohort 3 NRHP "
+        f"Properties Lost ({cohorts.get(3, 0)}), Cohort 4 1915 Red Book Vanished Black Houston Sites "
+        f"({cohorts.get(4, 0)}), and Cohort 5 2020-2026 Pre-1940 Teardowns ({cohorts.get(5, 0)}). "
+        f"Currently {photo_sites} sites carry {total_photos} curated archival photographs and "
+        f"{unphoto_sites} sites await archival photo backfill.\n\n"
+        "1. Filtering Lost_Houston_Catalog Without Affecting Other Staff (7 Saved Filter Views):\n"
+        "   • Open 'Lost_Houston_Catalog' -> Data -> Filter views:\n"
+        f"     - '🏛️ 1. Designated COH & NRHP Landmarks Lost ({desig} Sites)' (includes COH #98LD74 in Cohort 1)\n"
+        f"     - '🏙️ 2. Curated Surveyed Monuments ({cohorts.get(1, 0)} Sites)'\n"
+        f"     - '📕 3. 1915 Red Book Vanished Black Houston Sites ({cohorts.get(4, 0)} Sites)'\n"
+        f"     - '🚧 4. Recent Pre-1940 Teardowns 2020-2026 ({cohorts.get(5, 0)} Sites)'\n"
+        f"     - '🟥 5. Inside 1937 HOLC Grade D Redlined Zones ({holc_d} Sites)'\n"
+        f"     - '📷 6. Sites with Curated Archival Photos ({photo_sites} Sites)'\n"
+        f"     - '🖼️ 7. Unphotographed Sites - Archival Photo Backfill Queue ({unphoto_sites} Sites)'\n"
+        "   • Why the tab is Warning-Protected (Read-Only): Direct cell edits inside Lost_Houston_Catalog are "
+        "wiped on every pipeline sync ('clear Lost_Houston_Catalog!A1:AH'). Always stage new photos in "
+        "'Building_Photos' and source/geometry updates in Git.\n\n"
+        "2. Working the Archival Photo Backfill Queue (HMRC, LOC HABS, Rice Woodson, Portal to Texas History):\n"
+        "   • Select Filter View '🖼️ 7. Unphotographed Sites - Archival Photo Backfill Queue' (auto-sorted "
+        "by Cohort Tier 1 -> 5 and earliest year_built first so unphotographed major monuments appear at the top; "
+        "note that 59 Cohort 1 monuments in Filter View 6 currently show a LOC Sanborn map plate fallback "
+        "from tile.loc.gov in archival_photo_url and also remain eligible for building-photo backfill).\n"
+        "   • Click '🗺️ Open in Atlas ↗' (Col AD) or '🕰️ Street View ↗' (Col AE; use Google Maps Historical "
+        "Street View clock back to 2007 for Cohort 5 2020-2026 teardowns!) and check Column Z/AA citations.\n"
+        "   • Verify candidate scans in Houston Public Library HMRC Digital Archives, Library of Congress "
+        "HABS/HAER, Rice University Woodson Research Center (Quartex IIIF), Portal to Texas History "
+        "(texashistory.unt.edu), Wikimedia Commons, or HAIF (media.invisioncic.com/w329674/...).\n\n"
+        "3. MANDATORY DF-6 DATA-ISOLATION RULE When Staging Lost Houston Photos in Building_Photos:\n"
+        "   • Append a new row to the 'Building_Photos' tab (Cols A-K) using these STRICT rules:\n"
+        "     - Col A (hcad_num): LEAVE COMPLETELY BLANK! (Never enter the modern parcel's HCAD account, or "
+        "the demolished building's photo could be mistaken for the modern replacement tower on that lot.)\n"
+        "     - Col B (building_id): Copy the EXACT 'lost_...' ID from Lost_Houston_Catalog Column A "
+        "(e.g., 'lost_hermann_building_1917'). Col L will automatically render '🏛️ Open Lost Site in Atlas ↗'.\n"
+        "     - Col C (landmark_name): Historic name of the demolished structure.\n"
+        "     - Col D (address): LEAVE BLANK (enforces DF-6 address-index isolation from modern buildings on the lot).\n"
+        "     - Cols E-K: Fill in photo_year (e.g. 1925), era_label ('c. 1925 Postcard View'), caption, direct "
+        "permanent image_url (.jpg/.png/.webp or IIIF default.jpg), thumb_url, credit (archive + photographer), "
+        "and source_url (catalog item page).\n\n"
+        "4. Non-Destructive Pipeline Sync Commands (Publishing Staged Photos to Map & Refreshing Catalog):\n"
+        "   • Export Building_Photos to CSV, then run from houston-building-atlas/pipeline:\n"
+        "     uv run python -m atlas_pipeline.sync_lost_houston_sheet \\\n"
+        "         --ingest-building-photos-csv /path/to/Building_Photos.csv \\\n"
+        "         --write-site-data --include-sop14 --update-hub-row --output-dir /tmp/lost_sync\n"
+        "   • Apply the regenerated batches to refresh Lost_Houston_Catalog, Hub Row 18, SOP 14, and Filter View counts:\n"
+        "     gsheets mutate batch <SHEET_ID> -f /tmp/lost_sync/lost_houston_values_batch.json\n"
+        "     gsheets mutate raw-batch <SHEET_ID> -f /tmp/lost_sync/lost_houston_style_raw_batch.json\n"
+        "   • IMPORTANT: NEVER run standalone 'seed_building_photos.py' to sync Lost Houston photos (that legacy "
+        "bootstrap script only contains the 33 initial seed photos and would overwrite HAIF, Landmark, and "
+        "Lost Houston entries in building_photos.json).\n\n"
+        "5. Adding Newly Researched Lost Landmarks or Correcting Footprints / Lifespans:\n"
+        "   • Add curated monuments in pipeline/atlas_pipeline/lost_houston_expansion.py (or "
+        "build_lost_houston_and_sanborn.py; sheet-ingested photos tagged 'curation_source: building_photos_sheet' "
+        "are preserved automatically), verify against ZeroExtantCollisionGate (<=14m point & >20% "
+        "polygon area guards so extant landmarks are never falsely marked demolished), rebuild scorecards "
+        "(build_neighborhood_scorecards.py), re-run sync_lost_houston_sheet.py with "
+        "'--ingest-building-photos-csv <Building_Photos.csv> --write-site-data --include-sop14 --update-hub-row', "
+        "and run 'node tests/unit/run_all.mjs'."
+    )
+    col_c = (
+        "Monthly / Ongoing Archival Curation\n"
+        f"Tabs: Lost_Houston_Catalog (gid={SID_LOST}) & Building_Photos (gid={SID_PHOTOS})\n"
+        "Script: pipeline/atlas_pipeline/sync_lost_houston_sheet.py"
+    )
+    return [col_a, col_b, col_c]
 
 
 def build_lost_houston_catalog_rows(
@@ -359,13 +563,15 @@ def build_lost_houston_catalog_rows(
     rows_a_ac = [HEADERS_A_TO_AC] + [r[1] for r in sortable_records]
     rows_ag_ah = [HEADERS_AG_TO_AH] + [r[2] for r in sortable_records]
 
+    total_sites = len(sortable_records)
     metrics = {
-        "total_sites": len(sortable_records),
+        "total_sites": total_sites,
         "cohort_counts": dict(sorted(cohort_counter.items())),
         "designated_landmark_count": designated_landmark_count,
         "holc_counts": dict(sorted(holc_counter.items())),
         "holc_zoned_total": sum(v for k, v in holc_counter.items() if k != "Unzoned"),
         "photo_site_count": photo_site_count,
+        "unphotographed_site_count": total_sites - photo_site_count,
         "total_curated_photos": sum(len(v) for v in photos_by_id.values()),
     }
     _assert_catalog_invariants(
@@ -390,6 +596,8 @@ def _assert_catalog_invariants(
         raise AssertionError("Expected at least 1 Lost Houston site")
     if sum(metrics["cohort_counts"].values()) != metrics["total_sites"]:
         raise AssertionError("Cohort count sum does not match total_sites")
+    if metrics["photo_site_count"] + metrics["unphotographed_site_count"] != metrics["total_sites"]:
+        raise AssertionError("Photographed + unphotographed site counts do not sum to total_sites")
 
     if verify_milestone2_counts:
         if metrics["total_sites"] != 622:
@@ -426,17 +634,70 @@ def _assert_catalog_invariants(
                     raise AssertionError(f"Malformed 13-digit site_hcad_nums token at row {r_idx}: {tok!r}")
 
 
+def _build_sop14_format_requests() -> list[dict[str, Any]]:
+    """Build idempotent `repeatCell` formatting for `Instructions_&_Apps_Script!A25:C25`."""
+    r0 = SOP14_TARGET_ROW - 1
+    return [
+        {
+            "repeatCell": {
+                "range": {
+                    "sheetId": SID_INSTR,
+                    "startRowIndex": r0,
+                    "endRowIndex": r0 + 1,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": 3,
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "verticalAlignment": "TOP",
+                        "wrapStrategy": "WRAP",
+                        "textFormat": {"fontSize": 10},
+                    }
+                },
+                "fields": "userEnteredFormat(verticalAlignment,wrapStrategy,textFormat.fontSize)",
+            }
+        },
+        {
+            "repeatCell": {
+                "range": {
+                    "sheetId": SID_INSTR,
+                    "startRowIndex": r0,
+                    "endRowIndex": r0 + 1,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": 1,
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": rgb("#f8faf5"),
+                        "textFormat": {
+                            "bold": True,
+                            "fontSize": 10,
+                            "foregroundColor": rgb("#272727"),
+                        },
+                        "verticalAlignment": "TOP",
+                        "wrapStrategy": "WRAP",
+                    }
+                },
+                "fields": "userEnteredFormat(backgroundColor,textFormat,verticalAlignment,wrapStrategy)",
+            }
+        },
+    ]
+
+
 def build_create_raw_batch(
     include_add_sheet: bool,
     include_hub_insert: bool,
     *,
+    include_sop14: bool = False,
     total_rows: int = MIN_SHEET_GRID_ROWS,
 ) -> dict[str, Any]:
-    """Build one-time provisioning BatchUpdateSpreadsheetRequest payload.
+    """Build one-time structural DDL BatchUpdateSpreadsheetRequest payload.
 
-    WARNING: Both `include_add_sheet` and `include_hub_insert` are non-idempotent
-    one-time provisioning operations; verify tab absence and `Admin_Hub_&_Quick_Filter!A18`
-    pre-state before executing.
+    WARNING: `include_add_sheet` and `include_hub_insert` are non-idempotent one-time
+    provisioning operations; verify tab absence and `Admin_Hub_&_Quick_Filter!A18`
+    pre-state before executing. Note that `build_style_raw_batch(..., include_sop14=True)`
+    also emits the idempotent `SOP 14` formatting so routine re-syncs never depend on
+    running this one-time create batch.
     """
     requests: list[dict[str, Any]] = []
     if include_add_sheet:
@@ -471,6 +732,8 @@ def build_create_raw_batch(
                 }
             }
         )
+    if include_sop14:
+        requests.extend(_build_sop14_format_requests())
     return {"requests": requests}
 
 
@@ -479,6 +742,7 @@ def build_values_batch(
     rows_ag_ah: list[list[float]],
     include_hub_row: bool,
     *,
+    include_sop14: bool = False,
     metrics: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Build `gsheets mutate batch` operations for idempotent catalog sync.
@@ -490,6 +754,9 @@ def build_values_batch(
        HCAD strings (`001...`) and `<=` lifespan strings stay literal text while numeric
        years/coordinates stay JSON numbers.
     3. Writes single-cell `USER_ENTERED` `ARRAYFORMULA` headers into `AD1:AF1`.
+    4. When `include_sop14=True`, writes SOP 14 onto `Instructions_&_Apps_Script!A25:C25`
+       (never touching Rows `1..24` or Passkey Cell `B6`) and upgrades `Building_Photos!L1`
+       so staged `lost_*` rows with blank `Col A` receive one-click Atlas deep links.
     """
     end_row = len(rows_a_ac)
     total_sites = metrics["total_sites"] if metrics else max(0, end_row - 1)
@@ -553,7 +820,10 @@ def build_values_batch(
                         "🏛️ Lost Houston Demolished Buildings Catalog (Read-Only)",
                         f"=COUNTA(IFERROR({SHEET_TITLE_LOST}!A2:A))",
                         "Read-only reference catalog",
-                        f"In {SHEET_TITLE_LOST} -> Data -> Filter views (6 pre-built cohort & HOLC Grade D views)",
+                        (
+                            f"In {SHEET_TITLE_LOST} -> Data -> Filter views "
+                            f"({FILTER_VIEW_COUNT} pre-built cohort, HOLC & photo-backfill views)"
+                        ),
                         f'=HYPERLINK("#gid={SID_LOST}", "Open {SHEET_TITLE_LOST} ↗")',
                         "",
                         "Lost Houston Layer (Live 3D Atlas)",
@@ -564,6 +834,30 @@ def build_values_batch(
                 "value_input": "USER_ENTERED",
             }
         )
+
+    if include_sop14:
+        if not metrics:
+            raise ValueError("metrics dict is required when include_sop14=True")
+        sop_row = build_sop14_row(metrics)
+        for cell in sop_row:
+            if "\u2014" in cell or "\u2013" in cell:
+                raise AssertionError(f"Typographic dash leaked into SOP 14 text: {cell!r}")
+        ops.extend(
+            [
+                {
+                    "op": "write",
+                    "range": f"Instructions_&_Apps_Script!A{SOP14_TARGET_ROW}:C{SOP14_TARGET_ROW}",
+                    "data": [sop_row],
+                    "value_input": "RAW",
+                },
+                {
+                    "op": "write",
+                    "range": "Building_Photos!L1",
+                    "data": [[BUILDING_PHOTOS_OPEN_IN_ATLAS_FORMULA]],
+                    "value_input": "USER_ENTERED",
+                },
+            ]
+        )
     return ops
 
 
@@ -572,15 +866,28 @@ def build_style_raw_batch(
     metrics: dict[str, Any] | None = None,
     *,
     initial_setup: bool = False,
+    add_filter_view_offsets: set[int] | None = None,
+    include_sop14: bool = False,
 ) -> dict[str, Any]:
     """Build styling, filter, and protection BatchUpdateSpreadsheetRequest payload.
 
     When `initial_setup=False` (default recurring sync), emits only idempotent operations:
     cell/column styling, grid row capacity growth, `setBasicFilter`, and `updateFilterView`
-    referencing deterministic `filterViewId`s (`SID_LOST + 1`..`SID_LOST + 6`).
-    When `initial_setup=True`, also adds conditional format rules, creates the 6 Filter
+    referencing deterministic `filterViewId`s (`SID_LOST + 1`..`SID_LOST + 7`).
+    Pass `add_filter_view_offsets={7}` when migrating an existing tab that lacks a newly
+    introduced filter view so that offset creates via `addFilterView` while existing views
+    use `updateFilterView`. When `include_sop14=True`, also emits idempotent `repeatCell`
+    styling for `Instructions_&_Apps_Script!A25:C25`.
+    When `initial_setup=True`, also adds conditional format rules, creates all 7 Filter
     Views via `addFilterView`, and attaches the `warningOnly` protected range.
     """
+    extra_add_offsets = set(add_filter_view_offsets or ())
+    invalid_offsets = sorted(o for o in extra_add_offsets if not (1 <= o <= FILTER_VIEW_COUNT))
+    if invalid_offsets:
+        raise ValueError(
+            f"add_filter_view_offsets must be within 1..{FILTER_VIEW_COUNT}, got {invalid_offsets}"
+        )
+
     c_charcoal = rgb("#272727")
     c_sage = rgb("#95c959")
     total_cols = len(ALL_HEADERS)
@@ -594,6 +901,7 @@ def build_style_raw_batch(
     c5_count = cohorts.get(5, 0)
     holc_d_count = (m.get("holc_counts") or {}).get("D", 0)
     photo_count = m.get("photo_site_count", 0)
+    unphoto_count = m.get("unphotographed_site_count", max(0, total_rows - 1 - photo_count))
 
     def col_width_req(start_col: int, end_col: int, px: int) -> dict[str, Any]:
         return {
@@ -646,7 +954,7 @@ def build_style_raw_batch(
 
     def filter_view_req(offset: int, filter_body: dict[str, Any]) -> dict[str, Any]:
         body = {"filterViewId": SID_LOST + offset, **filter_body}
-        if initial_setup:
+        if initial_setup or offset in extra_add_offsets:
             return {"addFilterView": {"filter": body}}
         return {
             "updateFilterView": {
@@ -944,8 +1252,25 @@ def build_style_raw_batch(
                     ],
                 },
             ),
+            filter_view_req(
+                7,
+                {
+                    "title": f"🖼️ 7. Unphotographed Sites - Archival Photo Backfill Queue ({unphoto_count} Sites)",
+                    "range": filter_range,
+                    "criteria": {
+                        str(COL_IDX["archival_photo_url"]): {"condition": {"type": "BLANK"}}
+                    },
+                    "sortSpecs": [
+                        {"dimensionIndex": cohort_col, "sortOrder": "ASCENDING"},
+                        {"dimensionIndex": COL_IDX["year_built"], "sortOrder": "ASCENDING"},
+                    ],
+                },
+            ),
         ]
     )
+
+    if include_sop14:
+        requests.extend(_build_sop14_format_requests())
 
     if initial_setup:
         requests.append(
@@ -973,6 +1298,17 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--photos", type=Path, default=DEFAULT_PHOTOS_PATH)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
+        "--ingest-building-photos-csv",
+        type=Path,
+        default=None,
+        help="Optional Building_Photos CSV export; non-destructively merges lost_* rows with DF-6 isolation",
+    )
+    parser.add_argument(
+        "--write-site-data",
+        action="store_true",
+        help="Write merged building_photos.json and overlays.json back to disk when --ingest-building-photos-csv adds rows",
+    )
+    parser.add_argument(
         "--include-add-sheet",
         action="store_true",
         help="ONE-TIME ONLY: emit addSheet, conditional format rules, addFilterView, and addProtectedRange",
@@ -983,14 +1319,47 @@ def main(argv: list[str] | None = None) -> None:
         help="ONE-TIME ONLY: insert row 18 on Admin_Hub_&_Quick_Filter and populate Lost Houston telemetry",
     )
     parser.add_argument(
+        "--update-hub-row",
+        action="store_true",
+        help="Idempotently rewrite Admin_Hub_&_Quick_Filter!A18:I18 without inserting a new row",
+    )
+    parser.add_argument(
+        "--add-filter-view-offsets",
+        type=int,
+        nargs="*",
+        default=[],
+        help="Filter view offsets (1..7) to create via addFilterView when upgrading an existing tab",
+    )
+    parser.add_argument(
+        "--include-sop14",
+        action="store_true",
+        help="Write SOP 14 manual row to Instructions_&_Apps_Script!A25:C25 and upgrade Building_Photos!L1",
+    )
+    parser.add_argument(
         "--verify-milestone2-counts",
         action="store_true",
         help="Assert exact Milestone-2 baseline counts (622 sites, 393 HOLC, 133 photographed)",
     )
     args = parser.parse_args(argv)
+    if args.write_site_data and not args.ingest_building_photos_csv:
+        parser.error("--write-site-data requires --ingest-building-photos-csv")
 
     overlays = json.loads(args.overlays.read_text(encoding="utf-8"))
     building_photos = json.loads(args.photos.read_text(encoding="utf-8"))
+
+    if args.ingest_building_photos_csv:
+        ingest_stats = ingest_lost_houston_sheet_photos(
+            overlays,
+            building_photos,
+            args.ingest_building_photos_csv,
+        )
+        print("Ingested Building_Photos CSV:", json.dumps(ingest_stats))
+        if args.write_site_data and (
+            ingest_stats["added_photos"] > 0 or ingest_stats["backfilled_features"] > 0
+        ):
+            write_compact_json(args.photos, building_photos)
+            write_compact_json(args.overlays, overlays)
+            print(f"Updated {args.photos} and {args.overlays}")
 
     rows_a_ac, rows_ag_ah, metrics = build_lost_houston_catalog_rows(
         overlays,
@@ -1006,18 +1375,22 @@ def main(argv: list[str] | None = None) -> None:
     create_payload = build_create_raw_batch(
         include_add_sheet=args.include_add_sheet,
         include_hub_insert=args.include_hub_insert,
+        include_sop14=args.include_sop14,
         total_rows=len(rows_a_ac),
     )
     values_payload = build_values_batch(
         rows_a_ac=rows_a_ac,
         rows_ag_ah=rows_ag_ah,
-        include_hub_row=args.include_hub_insert,
+        include_hub_row=args.include_hub_insert or args.update_hub_row,
+        include_sop14=args.include_sop14,
         metrics=metrics,
     )
     style_payload = build_style_raw_batch(
         total_rows=len(rows_a_ac),
         metrics=metrics,
         initial_setup=args.include_add_sheet,
+        add_filter_view_offsets=set(args.add_filter_view_offsets),
+        include_sop14=args.include_sop14,
     )
 
     create_path.write_text(json.dumps(create_payload, indent=2), encoding="utf-8")

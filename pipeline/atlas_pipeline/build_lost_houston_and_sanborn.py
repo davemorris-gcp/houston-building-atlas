@@ -1615,12 +1615,15 @@ def main() -> None:
         if k.startswith("lost_"):
             del photos_db[k]
     photo_list = []
+    sheet_backfilled_lost_photos = []
     for p_existing in photos_db.get("photos", []):
-        if str(p_existing.get("building_id", "")).startswith("lost_"):
-            continue
         for sk, sv in list(p_existing.items()):
             if isinstance(sv, str):
                 p_existing[sk] = sanitize_atlas_text(sv)
+        if str(p_existing.get("building_id", "")).startswith("lost_"):
+            if p_existing.get("curation_source") == "building_photos_sheet":
+                sheet_backfilled_lost_photos.append(p_existing)
+            continue
         photo_list.append(p_existing)
 
     for entry in all_entries:
@@ -1992,6 +1995,39 @@ def main() -> None:
     )
     features.extend(cohort2_to_5_feats)
     photo_list.extend(cohort2_to_5_photos)
+
+    if sheet_backfilled_lost_photos:
+        feat_props_by_id = {
+            str((f.get("properties") or {}).get("id") or "").strip().lower(): f["properties"]
+            for f in features
+            if isinstance(f.get("properties"), dict) and f["properties"].get("id")
+        }
+        seen_photo_keys = {
+            (
+                str(p.get("building_id") or "").strip().lower(),
+                sanitize_atlas_text(str(p.get("image_url") or "")).strip(),
+            )
+            for p in photo_list
+        }
+        reattached = 0
+        for sp in sheet_backfilled_lost_photos:
+            bid = str(sp.get("building_id") or "").strip().lower()
+            img = sanitize_atlas_text(str(sp.get("image_url") or "")).strip()
+            if bid in feat_props_by_id and img and (bid, img) not in seen_photo_keys:
+                seen_photo_keys.add((bid, img))
+                photo_list.append(sp)
+                reattached += 1
+                fprops = feat_props_by_id[bid]
+                cur_photo = sanitize_atlas_text(str(fprops.get("photo_url") or "")).strip()
+                sanborn_fb = sanitize_atlas_text(str(fprops.get("sanborn_sheet_image_url") or "")).strip()
+                if not cur_photo or (sanborn_fb and cur_photo == sanborn_fb):
+                    fprops["photo_url"] = img
+                    credit = sanitize_atlas_text(str(sp.get("attribution") or sp.get("credit") or "")).strip()
+                    if credit:
+                        fprops["photo_credit"] = credit
+        if reattached:
+            print(f"Preserved {reattached} Building_Photos sheet-curated Lost Houston photo(s).")
+
     print(f"Lost Houston cohort breakdown: {dict(exp_stats['cohort_counts'])}")
     print(f"Lost Houston gate/dedup summary: {dict(exp_stats['rejected'])}")
 
