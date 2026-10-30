@@ -1,17 +1,17 @@
 {
-  "updated_at": "2026-10-29T17:51:08Z",
-  "generated_at": "2026-10-29T17:51:08Z",
+  "updated_at": "2026-10-30T17:32:12Z",
+  "generated_at": "2026-10-30T17:32:12Z",
   "lookback_days": 45,
   "coh_fetch_failed": false,
   "dshs_fetch_failed": true,
   "coh_fetch_error": "",
   "dshs_fetch_error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)",
   "summary": {
-    "total_flagged_buildings": 20,
-    "critical_count": 9,
-    "watch_count": 11,
-    "coh_permits_matched": 19,
-    "dshs_notifications_matched": 12
+    "total_flagged_buildings": 18,
+    "critical_count": 8,
+    "watch_count": 10,
+    "coh_permits_matched": 18,
+    "dshs_notifications_matched": 11
   },
   "annual_benchmarks": {
     "updated_through": "2026-10-28",
@@ -722,61 +722,6 @@
       ]
     },
     {
-      "hcad_num": "0261910000004",
-      "building_id": "bld_006534",
-      "title": "3618 MOUNT VERNON ST",
-      "building_name": "",
-      "address": "3618 MOUNT VERNON ST",
-      "year_built": 1959,
-      "yr_remodel": 0,
-      "style": "",
-      "architect": "",
-      "neighborhood": "Montrose",
-      "historic_district": "",
-      "landmark_name": "",
-      "good_brick_summary": "",
-      "owner": "ANNUNCIATION ORTHODOX SCHOOL",
-      "lng": -95.393981,
-      "lon": -95.393981,
-      "lat": 29.739783,
-      "severity": "critical",
-      "severity_label": "Critical Alert: Texas DSHS Demolition Notification",
-      "badge": "DSHS Demolition Filing",
-      "headline": "Texas DSHS demolition notification (#2026003972) scheduled 2026-09-25 to 2026-09-29.",
-      "preservation_note": "",
-      "latest_filing_date": "2026-07-02",
-      "coh_permits": [],
-      "dshs_notifications": [
-        {
-          "notification_number": "2026003972",
-          "facility_name": "Vacant Brick 2-Story Building",
-          "raw_address": "3618 Mount Vernon Street HOUSTON HARRIS TX 77006",
-          "norm_address": "3618 MOUNT VERNON ST",
-          "start_date": "2026-09-25",
-          "end_date": "2026-09-29",
-          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2421331",
-          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=230026",
-          "filing_date": "2026-07-02",
-          "work_type": "Demolition",
-          "start_date_pretty": "Jul 16, 2026",
-          "end_date_pretty": "Jul 24, 2026",
-          "work_hours": "8:00 AM to 5:00 PM",
-          "reported_building_age": "67 years",
-          "reported_sqft": "7068 square feet",
-          "reported_floors": 2,
-          "survey_date": "Apr 20, 2026",
-          "tceq_permit": "261-B",
-          "disposal_site": "McCarty Road Landfill"
-        }
-      ],
-      "related_hcads": [
-        "0261910000004"
-      ],
-      "related_building_ids": [
-        "bld_006534"
-      ]
-    },
-    {
       "hcad_num": "0011490000001",
       "building_id": "bld_003326",
       "title": "Houston City Hall and Hermann Square",
@@ -831,58 +776,6 @@
       ],
       "related_building_ids": [
         "bld_003326"
-      ]
-    },
-    {
-      "hcad_num": "0201020000015",
-      "building_id": "0201020000015",
-      "title": "1810 CORTLANDT ST",
-      "building_name": "",
-      "address": "1810 CORTLANDT ST",
-      "year_built": 1920,
-      "yr_remodel": 0,
-      "style": "",
-      "architect": "",
-      "neighborhood": "",
-      "historic_district": "Houston Heights East Historic District",
-      "landmark_name": "",
-      "good_brick_summary": "",
-      "owner": "",
-      "lng": -95.39527,
-      "lon": -95.39527,
-      "lat": 29.802391,
-      "severity": "watch",
-      "severity_label": "Active Watch: Garage / Accessory Demolition Permit",
-      "badge": "Garage Demo Only",
-      "headline": "City of Houston accessory/garage demolition permit (#26080237, issued 2026-09-14: DEMO RES/ NO SEWER DISC REQ (GARAGE ONLY).",
-      "preservation_note": "",
-      "latest_filing_date": "2026-09-14",
-      "coh_permits": [
-        {
-          "project_no": "26080237",
-          "date": "2026-09-14",
-          "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
-          "permit_desc": "Demolition",
-          "use_desc": "DEMO RES/ NO SEWER DISC REQ (GARAGE ONLY",
-          "fcc_group": "Demo; Single Familty Dwelling",
-          "owner_occupant": "*DEBELLOWICH LLC",
-          "buyer": "*ROBLES CLEAN UP SERVICE LLC",
-          "buyer_address": "4621 FUQUA ST 77048",
-          "valuation": "$ 0",
-          "job_address": "1810 CORTLANDT ST 77008",
-          "is_sewer_disconnect": true,
-          "is_garage_only": true,
-          "is_structural_demo": true,
-          "is_interior_only": false
-        }
-      ],
-      "dshs_notifications": [],
-      "related_hcads": [
-        "0201020000015"
-      ],
-      "related_building_ids": [
-        "0201020000015"
       ]
     },
     {
@@ -1379,24 +1272,6 @@
         {
           "project_no": "26087441",
           "date": "2026-10-06",
-          "permit_type": "PX",
-          "permit_type_label": "Plan Review Fee",
-          "permit_desc": "Plan Review Fee",
-          "use_desc": "PPR DEMO OF NON-LOAD BEARING/NON- FIRE R",
-          "fcc_group": "Non-Residential Alteration",
-          "owner_occupant": "*THE HOUSTON CLUB",
-          "buyer": "*DELTON CONSTRUCTION",
-          "buyer_address": "11176 WINDJAMMER DR 75036",
-          "valuation": "$ 0",
-          "job_address": "910 LOUISIANA ST 4900 77002",
-          "is_sewer_disconnect": false,
-          "is_garage_only": false,
-          "is_structural_demo": false,
-          "is_interior_only": true
-        },
-        {
-          "project_no": "26087441",
-          "date": "2026-10-06",
           "permit_type": "13",
           "permit_type_label": "Building Pmt",
           "permit_desc": "Building Pmt",
@@ -1406,6 +1281,24 @@
           "buyer": "*DELTON CONSTRUCTION",
           "buyer_address": "11176 WINDJAMMER DR 75036",
           "valuation": "$ 20,000",
+          "job_address": "910 LOUISIANA ST 4900 77002",
+          "is_sewer_disconnect": false,
+          "is_garage_only": false,
+          "is_structural_demo": false,
+          "is_interior_only": true
+        },
+        {
+          "project_no": "26087441",
+          "date": "2026-10-06",
+          "permit_type": "PX",
+          "permit_type_label": "Plan Review Fee",
+          "permit_desc": "Plan Review Fee",
+          "use_desc": "PPR DEMO OF NON-LOAD BEARING/NON- FIRE R",
+          "fcc_group": "Non-Residential Alteration",
+          "owner_occupant": "*THE HOUSTON CLUB",
+          "buyer": "*DELTON CONSTRUCTION",
+          "buyer_address": "11176 WINDJAMMER DR 75036",
+          "valuation": "$ 0",
           "job_address": "910 LOUISIANA ST 4900 77002",
           "is_sewer_disconnect": false,
           "is_garage_only": false,
