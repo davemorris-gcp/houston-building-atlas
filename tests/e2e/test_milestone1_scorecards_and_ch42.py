@@ -837,13 +837,29 @@ def test_it_e2e_5_cold_boot_deeplinks_popstate_abort_and_escape_stack(
         )
         assert "scorecard=council_districts" in urllib.parse.unquote(copy_btn_url)
 
-        # Verify Export Studio Council District entries resolve canonical council_dist_* AND legacy cd_* IDs
+        # Verify Export Studio Council District entries resolve canonical council_dist_* AND legacy cd_* IDs,
+        # and verify shipped COH Historic District export_cache loads 200 OK while unshipped boundaries emit zero HTTP 404s.
         export_check = page.evaluate(
-            """() => {
+            """async () => {
                 window.atlasApp.openExportStudioModal();
                 const opts = Array.from(
                     document.querySelectorAll('#select-export-target-area option')
                 ).map(o => o.value).filter(v => v.startsWith('council_districts::'));
+                const shippedDistrictLoaded = await window.atlasApp._ensureCachedExportFootprints({
+                    layerKey: 'historic_districts',
+                    id: 'Audubon Place Historic District',
+                    name: 'Audubon Place Historic District',
+                });
+                const unshippedCouncilLoaded = await window.atlasApp._ensureCachedExportFootprints({
+                    layerKey: 'council_districts',
+                    id: 'council_dist_c',
+                    name: 'District C (Abbie Kamin)',
+                });
+                const unshippedNeighborhoodLoaded = await window.atlasApp._ensureCachedExportFootprints({
+                    layerKey: 'neighborhoods',
+                    id: 'Montrose',
+                    name: 'Montrose',
+                });
                 document.getElementById('export-studio-modal')?.classList.add('hidden');
                 const byCanonical = window.atlasApp.mapController._findBoundaryEntry({
                     layerKey: 'council_districts',
@@ -857,6 +873,10 @@ def test_it_e2e_5_cold_boot_deeplinks_popstate_abort_and_escape_stack(
                     opts,
                     canonicalId: byCanonical?.props?.id || '',
                     legacyId: byLegacy?.props?.id || '',
+                    shippedSlugCount: window.atlasApp.constructor.SHIPPED_EXPORT_CACHE_SLUGS?.size || 0,
+                    shippedDistrictLoaded,
+                    unshippedCouncilLoaded,
+                    unshippedNeighborhoodLoaded,
                 };
             }"""
         )
@@ -864,6 +884,10 @@ def test_it_e2e_5_cold_boot_deeplinks_popstate_abort_and_escape_stack(
         assert len(export_check["opts"]) >= 11
         assert export_check["canonicalId"] == "council_dist_c"
         assert export_check["legacyId"] == "council_dist_c"
+        assert export_check["shippedSlugCount"] == 24
+        assert export_check["shippedDistrictLoaded"] is True
+        assert export_check["unshippedCouncilLoaded"] is False
+        assert export_check["unshippedNeighborhoodLoaded"] is False
 
         page.evaluate("() => window.atlasApp.openShareModal?.() || document.getElementById('btn-open-share-modal')?.click()")
         page.wait_for_selector("#share-modal:not(.hidden)", timeout=5000)

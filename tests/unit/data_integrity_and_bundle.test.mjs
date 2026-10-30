@@ -61,6 +61,42 @@ test("GitHub Pages bundle size limits (every file < 95 MB, total app/ < 980 MB)"
     totalBytes < MAX_TOTAL_BUNDLE_BYTES,
     `Total app/ bundle size ${(totalBytes / (1024 * 1024)).toFixed(2)} MB exceeds 980 MB GitHub Pages limit`
   );
+
+  // Guardrail against local vs. GitHub Actions divergence:
+  // 1) Zero git-ignored static assets inside app/public/ (which pass local Playwright but 404 on CI/Pages).
+  const ignoredOut = execFileSync(
+    "git",
+    ["ls-files", "--others", "-i", "--exclude-standard", "app/public"],
+    { cwd: REPO_ROOT, encoding: "utf8" }
+  )
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  assert.deepEqual(
+    ignoredOut,
+    [],
+    `Git-ignored static files detected inside app/public/ (causes local-vs-CI HTTP 404 skew): ${ignoredOut.join(", ")}`
+  );
+
+  // 2) Exact 1:1 parity between HoustonAtlasApp.SHIPPED_EXPORT_CACHE_SLUGS and app/public/data/export_cache/*.json
+  const appJsRaw = fs.readFileSync(path.join(APP_DIR, "js", "app.js"), "utf8");
+  const slugBlockMatch = appJsRaw.match(/_shippedExportCacheSlugs\s*=\s*new Set\(\[([\s\S]*?)\]\)/);
+  assert.ok(slugBlockMatch, "Expected HoustonAtlasApp.SHIPPED_EXPORT_CACHE_SLUGS Set definition in app/js/app.js");
+  const declaredSlugs = Array.from(slugBlockMatch[1].matchAll(/"([a-z0-9_]+)"/g), (m) => m[1]).sort();
+  assert.equal(declaredSlugs.length, 24, `Expected 24 shipped COH Historic/Heritage District export_cache slugs, got ${declaredSlugs.length}`);
+
+  const exportCacheDir = path.join(DATA_DIR, "export_cache");
+  assert.ok(fs.existsSync(exportCacheDir), "app/public/data/export_cache directory must exist");
+  const onDiskSlugs = fs
+    .readdirSync(exportCacheDir)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => f.slice(0, -5))
+    .sort();
+  assert.deepEqual(
+    onDiskSlugs,
+    declaredSlugs,
+    "app/public/data/export_cache/*.json files must match HoustonAtlasApp.SHIPPED_EXPORT_CACHE_SLUGS 1:1"
+  );
 });
 
 test("overlays.json contains all 23 GeoJSON FeatureCollections + HOLC grade summary with valid Harris County coordinates", () => {
@@ -624,10 +660,9 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
       );
     }
 
-    // 3. Every fetch(...) of public/data/ JSON/GeoJSON (except dynamic export_cache/ previews or dynamic + cacheQ) must carry ?v=<expectedVer>
+    // 3. Every fetch(...) of public/data/ JSON/GeoJSON (except dynamic + cacheQ expressions) must carry ?v=<expectedVer>
     for (const m of content.matchAll(/fetch\(\s*[`"'](\.?\/?public\/data\/[^`"']+\.(?:json|geojson)[^`"']*)[`"']/g)) {
       const urlStr = m[1];
-      if (urlStr.includes("export_cache/")) continue;
       const afterIdx = (m.index || 0) + m[0].length;
       const trailing = content.slice(afterIdx, afterIdx + 24);
       if (/^\s*\+\s*cacheQ\b/.test(trailing)) continue;

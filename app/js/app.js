@@ -16582,6 +16582,38 @@ export class HoustonAtlasApp {
     return `${cleanLayer}__${cleanName}`;
   }
 
+  static get SHIPPED_EXPORT_CACHE_SLUGS() {
+    return (
+      HoustonAtlasApp._shippedExportCacheSlugs ||
+      (HoustonAtlasApp._shippedExportCacheSlugs = new Set([
+        "heritage_districts__freedmen_s_town_heritage_district",
+        "historic_districts__audubon_place_historic_district",
+        "historic_districts__avondale_east_historic_district",
+        "historic_districts__avondale_west_historic_district",
+        "historic_districts__boulevard_oaks_historic_district",
+        "historic_districts__broadacres_historic_district",
+        "historic_districts__brunner_harmonium_historic_district",
+        "historic_districts__courtland_place_historic_district",
+        "historic_districts__first_montrose_commons_historic_district",
+        "historic_districts__freeland_historic_district",
+        "historic_districts__germantown_historic_district",
+        "historic_districts__glenbrook_valley_historic_district",
+        "historic_districts__high_first_ward_historic_district",
+        "historic_districts__houston_heights_east_historic_district",
+        "historic_districts__houston_heights_south_historic_district",
+        "historic_districts__houston_heights_west_historic_district",
+        "historic_districts__main_street_market_square_historic_district",
+        "historic_districts__norhill_historic_district",
+        "historic_districts__old_sixth_ward_historic_district",
+        "historic_districts__shadow_lawn_historic_district",
+        "historic_districts__starkweather_historic_district",
+        "historic_districts__west_eleventh_place_historic_district",
+        "historic_districts__westmoreland_historic_district",
+        "historic_districts__woodland_heights_historic_district",
+      ]))
+    );
+  }
+
   async _ensureCachedExportFootprints(boundarySpec) {
     if (!boundarySpec || typeof boundarySpec !== "object" || !boundarySpec.name) return false;
     if (!this._loadedExportFootprintSlugs) {
@@ -16591,11 +16623,12 @@ export class HoustonAtlasApp {
       boundarySpec.layerKey || "neighborhoods",
       boundarySpec.name || boundarySpec.id
     );
+    if (!HoustonAtlasApp.SHIPPED_EXPORT_CACHE_SLUGS.has(slug)) return false;
     if (this._loadedExportFootprintSlugs.has(slug)) return false;
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261030a`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
