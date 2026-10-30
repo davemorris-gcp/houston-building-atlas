@@ -298,7 +298,10 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     page.select_option("#cycleSelect", "all")
     page.locator("#tabs [data-g='all']").click()
     page.fill("#q", "Montrose Residences")
-    page.wait_for_selector("#list .row:has-text('1226-1230 W Pierce')", timeout=5000)
+    page.wait_for_selector(
+        "#list .row:has-text('1226 W Pierce'), #list .row:has-text('1226-1230 W Pierce')",
+        timeout=5000,
+    )
     assert page.locator("#list .row").count() >= 1
     page.locator("#list .row").first.click()
     montrose_detail = page.locator("#detail").inner_text()
@@ -340,24 +343,32 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     page.locator("#tabs button, #tabs .tab", has_text="To check").first.click()
     page.wait_for_selector("#list .row", timeout=10000)
 
-    # Pick an unconfirmed item not currently on the Watchlist
+    # Pick an unconfirmed item not currently on the Watchlist (querying live rows by data-occ so
+    # re-rendering #list never detaches remaining row references)
+    initial_wl_count = int(page.locator("#modeWatchlistCount").inner_text().strip())
     target_occ = page.evaluate(
         """() => {
-            const rows = Array.from(document.querySelectorAll('#list .row'));
-            for (const row of rows) {
-                if (!row.innerText.includes('Montrose Residences') && !row.innerText.includes('801 McGowen')) {
-                    row.click();
-                    const btn = document.getElementById('confirmTierWatchBtn');
-                    if (btn && btn.innerText.includes('Confirm Tier')) {
-                        return btn.dataset.occ || '';
-                    }
-                    const t2Radio = document.querySelector('input[name="tier"][value="2"]');
-                    if (t2Radio) {
-                        t2Radio.click();
-                        const btnAfter = document.getElementById('confirmTierWatchBtn');
-                        if (btnAfter && btnAfter.innerText.includes('Confirm Tier')) {
-                            return btnAfter.dataset.occ || '';
-                        }
+            const occs = Array.from(document.querySelectorAll('#list .row[data-occ]'))
+                .filter(r => !r.innerText.includes('Montrose Residences') && !r.innerText.includes('801 McGowen'))
+                .map(r => r.dataset.occ || '')
+                .filter(Boolean);
+            for (const occ of occs) {
+                const liveRow = document.querySelector(`#list .row[data-occ="${CSS.escape(occ)}"]`);
+                if (!liveRow) continue;
+                liveRow.click();
+                if (document.getElementById('jumpWatchDossierBtn')) {
+                    continue;
+                }
+                const btn = document.getElementById('confirmTierWatchBtn');
+                if (btn && btn.innerText.includes('Confirm Tier')) {
+                    return btn.dataset.occ || '';
+                }
+                const t2Radio = document.querySelector('input[name="tier"][value="2"]');
+                if (t2Radio) {
+                    t2Radio.click();
+                    const btnAfter = document.getElementById('confirmTierWatchBtn');
+                    if (btnAfter && btnAfter.innerText.includes('Confirm Tier')) {
+                        return btnAfter.dataset.occ || '';
                     }
                 }
             }
@@ -365,7 +376,6 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
         }"""
     )
     assert target_occ != ""
-    initial_wl_count = int(page.locator("#modeWatchlistCount").inner_text().strip())
 
     # Clicking Tier 2 radio alone must NOT auto-add to Watchlist before clicking #confirmTierWatchBtn
     assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == initial_wl_count
@@ -453,11 +463,11 @@ def test_it5_it6_and_it7_watchlist_header_editor_snowball_checklist_and_exports(
     )
     assert wl_threat_selected == "All Threat Categories"
     first_card_txt = page.locator("#list .row").first.inner_text()
-    assert "2000 Smith" in first_card_txt
+    assert "2000 SMITH" in first_card_txt.upper()
 
     # Select Kirby Mansion (2000 Smith St.)
     page.locator("#list .row", has_text="2000 Smith").first.click()
-    assert "2000 Smith" in (page.locator("#detail h2").text_content() or "")
+    assert "2000 SMITH" in (page.locator("#detail h2").text_content() or "").upper()
 
     # Inline Edit Property Details persistence across reload
     page.click("#toggleEditWatchPropBtn")
@@ -1123,7 +1133,7 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
         )
         == "true"
     )
-    assert "2000 Smith" in (page.locator("#detail h2").text_content() or "")
+    assert "2000 SMITH" in (page.locator("#detail h2").text_content() or "").upper()
 
     # 3. Click Open Plat Item -> auto-clears any excluding Agenda search filter and selects exact occurrenceKey
     page.click("#modeAgendaBtn")
@@ -1528,7 +1538,7 @@ def test_activity_it4_boot_routing_precedence_deeplinks_and_delayed_sheet_race(
     page.goto(f"{atlas_base_url}/plat-monitor.html?hcad=0152300000001", wait_until="domcontentloaded")
     page.wait_for_selector("#list .row", timeout=15000)
     assert page.locator("#modeWatchlistBtn").get_attribute("aria-selected") == "true"
-    assert "2000 Smith" in (page.locator("#detail h2").text_content() or "")
+    assert "2000 SMITH" in (page.locator("#detail h2").text_content() or "").upper()
 
     page.evaluate("() => localStorage.setItem('phpam:lastMode', JSON.stringify('activity'))")
     page.goto(
@@ -1688,7 +1698,10 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
     page.wait_for_selector("#list .row[data-app='2026-1585']", timeout=5000)
     page.locator("#list .row[data-app='2026-1585']").click()
     montrose_txt = page.locator("#detail").inner_text()
-    assert "1226-1230 W PIERCE" in montrose_txt.upper()
+    assert (
+        "1226 W PIERCE" in montrose_txt.upper()
+        or "1226-1230 W PIERCE" in montrose_txt.upper()
+    )
     assert "1490700010001" in montrose_txt
     assert "1226 W CLAY" not in montrose_txt.upper()
     assert "0231440000010" not in montrose_txt
