@@ -791,15 +791,68 @@ def upsert_search_index_slice(
     return (list(new_entries) + retained) if prepend else (retained + list(new_entries))
 
 
+_PURE_PYTHON_PMTILES_FALLBACK_MAX_FEATURES = 25_000
+
+
+def _resolve_tippecanoe_binary() -> str | None:
+    """Locate an executable `tippecanoe` binary, returning None when absent (e.g. GitHub Actions CI)."""
+    candidates = [
+        shutil.which("tippecanoe"),
+        "/tmp/tippecanoe/tippecanoe",
+        str(Path.home() / ".local" / "bin" / "tippecanoe"),
+    ]
+    for cand in candidates:
+        if cand and Path(cand).is_file():
+            return str(cand)
+    return None
+
+
 def compile_quadrant_pmtiles(
     shard_dir: Path,
     output_dir: Path,
     quad_names: tuple[str, ...] = QUAD_NAMES,
 ) -> tuple[list[str], int]:
-    """Compile quadrant .geojsonseq shards into Web Mercator PMTiles v3 archives in parallel via Tippecanoe."""
-    tippecanoe_bin = shutil.which("tippecanoe") or "/tmp/tippecanoe/tippecanoe"
-    if not Path(tippecanoe_bin).exists():
-        tippecanoe_bin = str(Path.home() / ".local" / "bin" / "tippecanoe")
+    """Compile quadrant .geojsonseq shards into Web Mercator PMTiles v3 archives in parallel via Tippecanoe.
+
+    Falls back cleanly to pure-Python `tile_builder.compile_pmtiles_archive` when `tippecanoe`
+    is not installed (such as headless CI runners) and each shard contains <= 25,000 features.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    tippecanoe_bin = _resolve_tippecanoe_binary()
+    if tippecanoe_bin is None:
+        import orjson
+        from atlas_pipeline.tile_builder import compile_pmtiles_archive
+
+        print(
+            "-> tippecanoe binary not found; compiling PMTiles v3 archives via pure-Python mapbox_vector_tile..."
+        )
+        t_py = time.time()
+        shard_files_py: list[str] = []
+        total_py_bytes = 0
+        for q in quad_names:
+            in_seq = shard_dir / f"buildings_{q}.geojsonseq"
+            out_pmtiles = output_dir / f"houston_buildings_{q}.pmtiles"
+            feats: list[dict[str, Any]] = []
+            for raw_ln in in_seq.read_bytes().splitlines():
+                ln = raw_ln[1:] if raw_ln.startswith(b"\x1e") else raw_ln
+                ln = ln.strip()
+                if ln:
+                    feats.append(orjson.loads(ln))
+            if len(feats) > _PURE_PYTHON_PMTILES_FALLBACK_MAX_FEATURES:
+                raise RuntimeError(
+                    f"tippecanoe binary not found on PATH or ~/.local/bin/tippecanoe; "
+                    f"required to compile countywide shard {in_seq.name} ({len(feats):,} features)."
+                )
+            sz = compile_pmtiles_archive(out_pmtiles, feats, [], min_zoom=10, max_zoom=15)
+            if sz <= 0 or not out_pmtiles.exists():
+                raise RuntimeError(
+                    f"Pure-Python PMTiles fallback produced empty archive for quadrant {q} ({len(feats)} features)."
+                )
+            total_py_bytes += sz
+            shard_files_py.append(out_pmtiles.name)
+            print(f"   Compiled {out_pmtiles.name} (pure-Python MVT): {sz / 1024:.1f} KB")
+        print(f"-> Pure-Python PMTiles compilation finished in {time.time() - t_py:.2f}s.")
+        return shard_files_py, total_py_bytes
 
     print("-> Compiling 5 Web Mercator tile-aligned PMTiles v3 archives in parallel via Tippecanoe...")
     t_tip = time.time()
