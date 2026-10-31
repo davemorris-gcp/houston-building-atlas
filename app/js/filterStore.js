@@ -57,6 +57,10 @@ export const DEFAULT_FILTER_STATE = {
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
   activeScorecard: null, // null or { layer: string, id: string }
   activeCh42: null, // null or { hcad: string, includeOpposing: boolean }
+  activeAudit: false, // false | true | '<finding_id>'
+  activeAuditCategory: "all", // 'all' or audit category key (`auditCat=...`)
+  activeSurvey: false, // boolean Walk-the-Block Field Survey bottom sheet
+  activePolyEdit: null, // null or '<hcad_or_building_id>' (Staff Admin gated)
   layers: {
     permitWatch: true,
     platWatch: false,
@@ -759,6 +763,76 @@ function normalizeCh42Spec(spec) {
   };
 }
 
+function normalizeAuditSpec(spec) {
+  if (spec === false || spec === null || spec === undefined) return false;
+  if (spec === true) return true;
+  const s = String(spec).trim();
+  if (!s) return false;
+  const low = s.toLowerCase();
+  if (low === "0" || low === "false" || low === "off" || low === "no") return false;
+  if (low === "1" || low === "true" || low === "on" || low === "yes" || low === "all") {
+    return true;
+  }
+  if (/^0+$/.test(s)) return true;
+  if (s.length <= 96 && /^[A-Za-z0-9_#.:-]+$/.test(s)) {
+    return s;
+  }
+  return true;
+}
+
+function normalizeAuditCategory(raw) {
+  if (!raw || typeof raw === "boolean") return "all";
+  const s = String(raw).trim();
+  if (!s || s.toLowerCase() === "all") return "all";
+  const up = s.toUpperCase();
+  if (up.length <= 64 && /^[A-Z0-9_]+$/.test(up)) {
+    return up;
+  }
+  return "all";
+}
+
+function normalizePolyEditSpec(spec) {
+  if (!spec || typeof spec === "boolean") return null;
+  const s = String(spec).trim();
+  if (!s || s.length > 96) return null;
+  const low = s.toLowerCase();
+  if (
+    low === "0" ||
+    low === "1" ||
+    low === "false" ||
+    low === "true" ||
+    low === "off" ||
+    low === "on" ||
+    low === "no" ||
+    low === "yes" ||
+    low === "none" ||
+    low === "all"
+  ) {
+    return null;
+  }
+  if (!/^[A-Za-z0-9_#.:-]+$/.test(s)) return null;
+  const parts = s.split("#");
+  if (parts.length > 2) return null;
+  const base = parts[0];
+  const suffix = parts.length === 2 ? parts[1] : "";
+  if (!base) return null;
+  if (parts.length === 2 && (!suffix || !/^[A-Za-z0-9_.-]{1,40}$/.test(suffix))) {
+    return null;
+  }
+  if (/^\d+$/.test(base)) {
+    if (base.length < 10 || base.length > 13 || /^0+$/.test(base)) return null;
+    const padded = base.padStart(13, "0");
+    return suffix ? `${padded}#${suffix}` : padded;
+  }
+  if (
+    parts.length === 1 &&
+    /^(?:bldg|lm|ov|osm|ms|parcel|custom)_[A-Za-z0-9_.-]{1,64}$/i.test(base)
+  ) {
+    return base;
+  }
+  return null;
+}
+
 const BASEMAP_TO_SHORT = {
   dark_archival: "dark",
   warm_parchment: "light",
@@ -1044,7 +1118,7 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     params.set("scorecard", `${effScorecard.layer}:${effScorecard.id}`);
   }
 
-  const effCh42 = normalizeCh42Spec(
+    const effCh42 = normalizeCh42Spec(
     options.activeCh42 !== undefined ? options.activeCh42 : state.activeCh42
   );
   if (effCh42) {
@@ -1052,6 +1126,36 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     if (effCh42.includeOpposing) {
       params.set("ch42opp", "1");
     }
+  }
+
+  const effAudit = normalizeAuditSpec(
+    options.activeAudit !== undefined ? options.activeAudit : state.activeAudit
+  );
+  const effAuditCategory = normalizeAuditCategory(
+    options.activeAuditCategory !== undefined
+      ? options.activeAuditCategory
+      : state.activeAuditCategory
+  );
+  if (effAudit) {
+    params.set("audit", typeof effAudit === "string" ? effAudit : "1");
+    if (effAuditCategory && effAuditCategory !== "all") {
+      params.set("auditCat", effAuditCategory);
+    }
+  }
+
+  const effSurvey = Boolean(
+    options.activeSurvey !== undefined ? options.activeSurvey : state.activeSurvey
+  );
+  if (effSurvey) {
+    params.set("survey", "1");
+  }
+
+  const includeStaffTools = options.includeStaffTools !== false;
+  const effPolyEdit = normalizePolyEditSpec(
+    options.activePolyEdit !== undefined ? options.activePolyEdit : state.activePolyEdit
+  );
+  if (includeStaffTools && effPolyEdit) {
+    params.set("polyedit", effPolyEdit);
   }
 
   if (state.isolatedBoundary && (state.isolatedBoundary.id || state.isolatedBoundary.name)) {
@@ -1109,6 +1213,11 @@ export function buildShareableUrl(state, viewport = null, options = {}) {
     activePortfolio: options.activePortfolio || null,
     activeScorecard: options.activeScorecard,
     activeCh42: options.activeCh42,
+    activeAudit: options.activeAudit,
+    activeAuditCategory: options.activeAuditCategory,
+    activeSurvey: options.activeSurvey,
+    activePolyEdit: options.activePolyEdit,
+    includeStaffTools: Boolean(options.includeStaffTools),
     collapseSidebar: Boolean(options.collapseSidebar),
     humanReadable: true,
   });
@@ -1139,11 +1248,15 @@ export function parseHashToState(hashString = "", searchString = "") {
     cleanSearch &&
     cleanHash &&
     !cleanHash.includes("=") &&
-    /^[A-Za-z0-9_.-]+$/.test(cleanHash) &&
-    /^\d{10,13}$/.test(String(mergedParams.get("id") || "").trim())
+    /^[A-Za-z0-9_.-]+$/.test(cleanHash)
   ) {
-    mergedParams.set("id", `${String(mergedParams.get("id")).trim()}#${cleanHash}`);
-    mergedParams.delete(cleanHash);
+    if (/^\d{10,13}$/.test(String(mergedParams.get("polyedit") || "").trim())) {
+      mergedParams.set("polyedit", `${String(mergedParams.get("polyedit")).trim()}#${cleanHash}`);
+      mergedParams.delete(cleanHash);
+    } else if (/^\d{10,13}$/.test(String(mergedParams.get("id") || "").trim())) {
+      mergedParams.set("id", `${String(mergedParams.get("id")).trim()}#${cleanHash}`);
+      mergedParams.delete(cleanHash);
+    }
   }
 
   const patch = {};
@@ -1511,6 +1624,34 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.activeCh42 = activeCh42;
   }
 
+  let activeAudit = false;
+  if (mergedParams.has("audit")) {
+    activeAudit = normalizeAuditSpec(mergedParams.get("audit"));
+    patch.activeAudit = activeAudit;
+  }
+
+  let activeAuditCategory = "all";
+  if (mergedParams.has("auditCat") || mergedParams.has("auditCategory")) {
+    activeAuditCategory = normalizeAuditCategory(
+      mergedParams.get("auditCat") ?? mergedParams.get("auditCategory")
+    );
+    patch.activeAuditCategory = activeAuditCategory;
+  }
+
+  let activeSurvey = false;
+  if (mergedParams.has("survey")) {
+    const rawSurv = String(mergedParams.get("survey") || "").trim().toLowerCase();
+    activeSurvey =
+      rawSurv === "1" || rawSurv === "true" || rawSurv === "on" || rawSurv === "yes";
+    patch.activeSurvey = activeSurvey;
+  }
+
+  let activePolyEdit = null;
+  if (mergedParams.has("polyedit")) {
+    activePolyEdit = normalizePolyEditSpec(mergedParams.get("polyedit"));
+    patch.activePolyEdit = activePolyEdit;
+  }
+
   return {
     patch,
     viewport,
@@ -1520,6 +1661,10 @@ export function parseHashToState(hashString = "", searchString = "") {
     activePortfolio,
     activeScorecard,
     activeCh42,
+    activeAudit,
+    activeAuditCategory,
+    activeSurvey,
+    activePolyEdit,
   };
 }
 
@@ -1824,6 +1969,10 @@ export function createFilterStore(initialOverrides = {}) {
       holcGradeFilter: "all",
       hahcFilter: "all",
       isPlaying: false,
+      activeAudit: false,
+      activeAuditCategory: "all",
+      activeSurvey: false,
+      activePolyEdit: null,
     });
   }
 

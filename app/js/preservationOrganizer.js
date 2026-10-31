@@ -11,10 +11,10 @@
  *     while leaving pre-July 24, 2015 ordinances on their 20-year statutory sunset clock.
  */
 
-import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261030d";
-import { HCAD_PUBLIC_QUERY_URL, normalizeHcad13 } from "./hcadViewportParcels.js?v=20261030d";
+import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261030e";
+import { HCAD_PUBLIC_QUERY_URL, normalizeHcad13 } from "./hcadViewportParcels.js?v=20261030e";
 
-export const ORGANIZER_CACHE_BUST = "20261030d";
+export const ORGANIZER_CACHE_BUST = "20261030e";
 export const NEIGHBORHOOD_SCORECARDS_URL = `public/data/neighborhood_scorecards.json?v=${ORGANIZER_CACHE_BUST}`;
 
 export const ORD_2015_639_CUTOFF_ISO = "2015-07-24";

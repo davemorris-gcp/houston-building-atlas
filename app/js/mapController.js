@@ -12,7 +12,7 @@ import {
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261030d";
+} from "./palettes.js?v=20261030e";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -27,13 +27,18 @@ import {
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261030d";
+} from "./filterStore.js?v=20261030e";
 import {
+  METERS_PER_DEGREE_LAT,
+  OVERRIDE_MODE_ADDITIVE_POLYGON,
+  OVERRIDE_MODE_PARCEL_REPLACEMENT,
+  OVERRIDE_MODE_SUPPRESS_VACANT,
   applyOverrideToProperties,
+  classifyOverrideFootprintMode,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261030d";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261030d";
+} from "./curatedEdits.js?v=20261030e";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261030e";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
@@ -42,8 +47,8 @@ import {
   mapHcadStateClassToUseCategory,
   matchHcadParcelFeaturesByAddressQuery,
   normalizeHcad13,
-} from "./hcadViewportParcels.js?v=20261030d";
-import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261030d";
+} from "./hcadViewportParcels.js?v=20261030e";
+import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261030e";
 
 export const LOST_HOUSTON_RANK_EXPR = ["coalesce", ["to-number", ["get", "symbol_rank"]], 4];
 
@@ -248,6 +253,11 @@ export class AtlasMapController {
     this.curatedOverrides = {};
     this.sheetSyncStatus = null;
     this.overridesFC = { type: "FeatureCollection", features: [] };
+    this.polygonEditorFC = { type: "FeatureCollection", features: [] };
+    this.fieldSurveyOverlayFC = { type: "FeatureCollection", features: [] };
+    this._polygonEditorSession = null;
+    this._polyActiveDragVertex = -1;
+    this._interactiveMapTapInterceptor = null;
     this.selectedFeatureId = null;
     this.selectedBoundaryFeature = null;
     this.isolatedBoundary = null;
@@ -323,14 +333,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261030d"),
-      fetch("public/data/parcels.geojson?v=20261030d"),
-      fetch("public/data/overlays.json?v=20261030d"),
-      fetch("public/data/pmtiles_manifest.json?v=20261030d").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261030e"),
+      fetch("public/data/parcels.geojson?v=20261030e"),
+      fetch("public/data/overlays.json?v=20261030e"),
+      fetch("public/data/pmtiles_manifest.json?v=20261030e").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261030d").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261030d").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261030d").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261030e").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261030e").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261030e").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1121,7 +1131,7 @@ export class AtlasMapController {
       bearing: 0,
       maxPitch: 65,
       minZoom: 9.5,
-      maxZoom: 19.5,
+      maxZoom: 20.5,
       preserveDrawingBuffer: true,
       attributionControl: false,
       style: {
@@ -1380,7 +1390,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261030d";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261030e";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -3618,6 +3628,159 @@ export class AtlasMapController {
         "text-halo-width": 1.9,
       },
     });
+
+    // Milestone 3: Walk-the-Block Field Survey Mode overlay (`field-survey-overlay-src`)
+    this.map.addSource("field-survey-overlay-src", {
+      type: "geojson",
+      data: this.fieldSurveyOverlayFC,
+    });
+    this.map.addLayer({
+      id: "field-survey-accuracy-fill",
+      type: "fill",
+      source: "field-survey-overlay-src",
+      filter: ["==", ["get", "overlay_kind"], "gps_accuracy"],
+      paint: {
+        "fill-color": [
+          "case",
+          ["==", ["get", "is_low_accuracy"], 1],
+          "rgba(245, 158, 11, 0.14)",
+          "rgba(56, 189, 248, 0.14)",
+        ],
+      },
+    });
+    this.map.addLayer({
+      id: "field-survey-accuracy-line",
+      type: "line",
+      source: "field-survey-overlay-src",
+      filter: ["==", ["get", "overlay_kind"], "gps_accuracy"],
+      paint: {
+        "line-color": [
+          "case",
+          ["==", ["get", "is_low_accuracy"], 1],
+          "#F59E0B",
+          "#38BDF8",
+        ],
+        "line-width": 1.6,
+        "line-dasharray": [3, 2],
+      },
+    });
+    this.map.addLayer({
+      id: "field-survey-rings",
+      type: "circle",
+      source: "field-survey-overlay-src",
+      filter: ["==", ["get", "overlay_kind"], "surveyed_ring"],
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 6, 19, 12],
+        "circle-color": [
+          "match",
+          ["get", "sync_status"],
+          "synced",
+          "rgba(16, 185, 129, 0.28)",
+          "rgba(251, 191, 36, 0.30)",
+        ],
+        "circle-stroke-width": 2.6,
+        "circle-stroke-color": [
+          "match",
+          ["get", "sync_status"],
+          "synced",
+          "#10B981",
+          "#F59E0B",
+        ],
+      },
+    });
+    this.map.addLayer({
+      id: "field-survey-active-ring",
+      type: "circle",
+      source: "field-survey-overlay-src",
+      filter: ["==", ["get", "overlay_kind"], "active_target"],
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 9, 19, 16],
+        "circle-color": "rgba(253, 224, 71, 0.22)",
+        "circle-stroke-width": 3.2,
+        "circle-stroke-color": "#FACC15",
+      },
+    });
+    this.map.addLayer({
+      id: "field-survey-gps-dot",
+      type: "circle",
+      source: "field-survey-overlay-src",
+      filter: ["==", ["get", "overlay_kind"], "gps_dot"],
+      paint: {
+        "circle-radius": 7.5,
+        "circle-color": [
+          "case",
+          ["==", ["get", "is_low_accuracy"], 1],
+          "#F59E0B",
+          "#0EA5E9",
+        ],
+        "circle-stroke-width": 2.8,
+        "circle-stroke-color": "#FFFFFF",
+      },
+    });
+
+    // Milestone 3: Staff Polygon Editor interactive layers (`polygon-editor-src`)
+    this.map.addSource("polygon-editor-src", {
+      type: "geojson",
+      data: this.polygonEditorFC,
+    });
+    this.map.addLayer({
+      id: "polygon-editor-fill",
+      type: "fill",
+      source: "polygon-editor-src",
+      filter: ["==", ["get", "feature_kind"], "footprint"],
+      paint: {
+        "fill-color": [
+          "case",
+          ["==", ["get", "is_valid"], 1],
+          "rgba(250, 204, 21, 0.24)",
+          "rgba(239, 68, 68, 0.28)",
+        ],
+      },
+    });
+    this.map.addLayer({
+      id: "polygon-editor-line",
+      type: "line",
+      source: "polygon-editor-src",
+      filter: ["==", ["get", "feature_kind"], "outline"],
+      paint: {
+        "line-color": [
+          "case",
+          ["==", ["get", "is_valid"], 1],
+          "#FDE047",
+          "#F87171",
+        ],
+        "line-width": 2.8,
+      },
+    });
+    this.map.addLayer({
+      id: "polygon-editor-midpoints",
+      type: "circle",
+      source: "polygon-editor-src",
+      filter: ["==", ["get", "feature_kind"], "midpoint"],
+      paint: {
+        "circle-radius": 5.5,
+        "circle-color": "#22D3EE",
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#0F172A",
+      },
+    });
+    this.map.addLayer({
+      id: "polygon-editor-vertices",
+      type: "circle",
+      source: "polygon-editor-src",
+      filter: ["==", ["get", "feature_kind"], "vertex"],
+      paint: {
+        "circle-radius": ["case", ["==", ["get", "is_active"], 1], 8.5, 7],
+        "circle-color": ["case", ["==", ["get", "is_active"], 1], "#FACC15", "#FFFFFF"],
+        "circle-stroke-width": 2.5,
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "is_active"], 1],
+          "#0F172A",
+          "#0284C7",
+        ],
+      },
+    });
   }
 
   _buildTourFocusFilterExpression(baseFilterExpr) {
@@ -3665,9 +3828,14 @@ export class AtlasMapController {
     for (const f of this.overridesFC?.features || []) {
       const p = f.properties || {};
       if (p.keep_shard_footprints) continue;
+      const featKey = String(p.building_id || p.id || "").trim();
+      const isAuxAdditive = /#aux_\d+$/i.test(featKey);
+      if (isAuxAdditive && !p.replace_parcel_shards) continue;
       if (!p.is_building_override || p.replace_parcel_shards) {
         const primaryHcad = String(p.hcad_num || "").trim();
         if (primaryHcad) hcadSet.add(primaryHcad);
+      } else if (featKey.includes("#")) {
+        subBuildingIdSet.add(featKey);
       }
       if (Array.isArray(p.suppress_shard_hcads)) {
         for (const sh of p.suppress_shard_hcads) {
@@ -3678,17 +3846,23 @@ export class AtlasMapController {
     }
     for (const [ovKey, ov] of Object.entries(this.curatedOverrides || {})) {
       if (!ov || ov.keep_shard_footprints) continue;
+      const mode = classifyOverrideFootprintMode(ovKey, ov);
+      if (mode === OVERRIDE_MODE_ADDITIVE_POLYGON && !ov.replace_parcel_shards) {
+        continue;
+      }
       const isSubBuilding = ovKey.includes("#") || Boolean(ov.is_building_override);
-      if (ov.suppress_only) {
-        if (isSubBuilding) {
+      if (mode === OVERRIDE_MODE_SUPPRESS_VACANT || ov.suppress_only) {
+        if (isSubBuilding && !ov.replace_parcel_shards) {
           subBuildingIdSet.add(ovKey);
         } else {
           const primaryHcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
           if (primaryHcad && /^\d+$/.test(primaryHcad)) hcadSet.add(primaryHcad);
         }
-      } else if (ov.geometry && (!isSubBuilding || ov.replace_parcel_shards)) {
+      } else if (mode === OVERRIDE_MODE_PARCEL_REPLACEMENT || (ov.geometry && !isSubBuilding)) {
         const primaryHcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
         if (primaryHcad && /^\d+$/.test(primaryHcad)) hcadSet.add(primaryHcad);
+      } else if (ov.geometry && isSubBuilding) {
+        subBuildingIdSet.add(ovKey);
       }
       if (Array.isArray(ov.suppress_shard_hcads)) {
         for (const sh of ov.suppress_shard_hcads) {
@@ -3804,8 +3978,89 @@ export class AtlasMapController {
     });
 
     this.map.on("click", (e) => {
+      if (this._polygonEditorSession) {
+        if (this._polySuppressNextClick) {
+          this._polySuppressNextClick = false;
+          return;
+        }
+        if (this._polygonEditorSession.isTraceMode?.()) {
+          this._polygonEditorSession.onMapTraceClick?.(e.lngLat.lng, e.lngLat.lat);
+        }
+        return;
+      }
       this._handleMapPointClick(e.point, e.lngLat);
     });
+
+    this.map.on("mousedown", (e) => {
+      if (!this._polygonEditorSession) return;
+      const hit = this._hitTestPolygonEditorHandles(e.point.x, e.point.y);
+      if (!hit) return;
+      e.preventDefault();
+      this._polySuppressNextClick = true;
+      if (hit.kind === "vertex") {
+        if (e.originalEvent?.altKey) {
+          this._polygonEditorSession.onSelectVertex?.(hit.index, { altKey: true });
+          return;
+        }
+        this._polyActiveDragVertex = hit.index;
+        this._polygonEditorSession.onSelectVertex?.(hit.index, { altKey: false });
+        this._polygonEditorSession.onBeginVertexDrag?.(hit.index);
+        try {
+          this.map.dragPan?.disable?.();
+          this.map.doubleClickZoom?.disable?.();
+          this.map.getCanvas().style.cursor = "grabbing";
+        } catch (_err) {
+          // Ignore MapLibre control warning
+        }
+      } else if (hit.kind === "midpoint") {
+        this._polygonEditorSession.onInsertMidpoint?.(hit.index);
+      }
+    });
+
+    this.map.on("mousemove", (e) => {
+      if (!this._polygonEditorSession) return;
+      if (this._polyActiveDragVertex >= 0) {
+        this._polygonEditorSession.onDragVertex?.(
+          this._polyActiveDragVertex,
+          e.lngLat.lng,
+          e.lngLat.lat
+        );
+        return;
+      }
+      const hit = this._hitTestPolygonEditorHandles(e.point.x, e.point.y);
+      if (hit) {
+        try {
+          this.map.getCanvas().style.cursor =
+            hit.kind === "vertex" ? "move" : "copy";
+        } catch (_err) {
+          // Ignore cursor warning
+        }
+      } else if (this._polygonEditorSession.isTraceMode?.()) {
+        try {
+          this.map.getCanvas().style.cursor = "crosshair";
+        } catch (_err) {
+          // Ignore
+        }
+      }
+    });
+
+    const finishMapLibrePolyDrag = () => {
+      if (this._polyActiveDragVertex < 0) return;
+      this._polyActiveDragVertex = -1;
+      this._polygonEditorSession?.onEndVertexDrag?.();
+      try {
+        this.map?.dragPan?.enable?.();
+        this.map?.doubleClickZoom?.enable?.();
+        if (this.map?.getCanvas?.()) {
+          this.map.getCanvas().style.cursor = "";
+        }
+      } catch (_err) {
+        // Ignore
+      }
+    };
+    this.map.on("mouseup", finishMapLibrePolyDrag);
+    window.addEventListener("mouseup", finishMapLibrePolyDrag);
+    window.addEventListener("blur", finishMapLibrePolyDrag);
 
     this.map.on("pitch", () => {
       if (this.onPitchChange) {
@@ -4431,6 +4686,30 @@ export class AtlasMapController {
 
     // Pan & Zoom interactions
     canvas.addEventListener("mousedown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      if (this._polygonEditorSession) {
+        const hit = this._hitTestPolygonEditorHandles(px, py);
+        if (hit) {
+          e.preventDefault();
+          if (hit.kind === "vertex") {
+            if (e.altKey) {
+              this._polygonEditorSession.onSelectVertex?.(hit.index, { altKey: true });
+              return;
+            }
+            this._polyActiveDragVertex = hit.index;
+            this._polygonEditorSession.onSelectVertex?.(hit.index, { altKey: false });
+            this._polygonEditorSession.onBeginVertexDrag?.(hit.index);
+            canvas.style.cursor = "grabbing";
+            return;
+          }
+          if (hit.kind === "midpoint") {
+            this._polygonEditorSession.onInsertMidpoint?.(hit.index);
+            return;
+          }
+        }
+      }
       this.canvasState.isDragging = true;
       this.canvasState.dragStartX = e.clientX;
       this.canvasState.dragStartY = e.clientY;
@@ -4440,6 +4719,18 @@ export class AtlasMapController {
 
     window.addEventListener("mousemove", (e) => {
       if (!this.canvasState) return;
+      if (this._polygonEditorSession && this._polyActiveDragVertex >= 0) {
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const ll = this._screenToLngLat(px, py, rect.width, rect.height);
+        this._polygonEditorSession.onDragVertex?.(
+          this._polyActiveDragVertex,
+          ll.lng,
+          ll.lat
+        );
+        return;
+      }
       if (this.canvasState.isDragging) {
         const dx = e.clientX - this.canvasState.dragStartX;
         const dy = e.clientY - this.canvasState.dragStartY;
@@ -4462,6 +4753,18 @@ export class AtlasMapController {
       const py = e.clientY - rect.top;
       if (px < 0 || py < 0 || px > rect.width || py > rect.height) {
         tooltipEl.classList.add("hidden");
+        return;
+      }
+      if (this._polygonEditorSession) {
+        tooltipEl.classList.add("hidden");
+        const pHit = this._hitTestPolygonEditorHandles(px, py);
+        if (pHit) {
+          canvas.style.cursor = pHit.kind === "vertex" ? "move" : "copy";
+        } else if (this._polygonEditorSession.isTraceMode?.()) {
+          canvas.style.cursor = "crosshair";
+        } else {
+          canvas.style.cursor = "grab";
+        }
         return;
       }
       const hit = this._hitTestCanvas2D(px, py);
@@ -4492,19 +4795,32 @@ export class AtlasMapController {
     });
 
     window.addEventListener("mouseup", (e) => {
-      if (!this.canvasState || !this.canvasState.isDragging) return;
+      if (!this.canvasState) return;
+      if (this._polyActiveDragVertex >= 0) {
+        this._polyActiveDragVertex = -1;
+        canvas.style.cursor = "grab";
+        this._polygonEditorSession?.onEndVertexDrag?.();
+        return;
+      }
+      if (!this.canvasState.isDragging) return;
       this.canvasState.isDragging = false;
       canvas.style.cursor = "grab";
       if (!this.canvasState.moved) {
         const rect = canvas.getBoundingClientRect();
         const px = e.clientX - rect.left;
         const py = e.clientY - rect.top;
+        const lngLat = this._screenToLngLat(px, py, rect.width, rect.height);
+        if (this._polygonEditorSession) {
+          if (this._polygonEditorSession.isTraceMode?.()) {
+            this._polygonEditorSession.onMapTraceClick?.(lngLat.lng, lngLat.lat);
+          }
+          return;
+        }
         const hit = this._hitTestCanvas2D(px, py);
         if (hit && hit.isTourStop && typeof this.onSelectTourStop === "function") {
           this.onSelectTourStop(hit.stopIndex);
           return;
         }
-        const lngLat = this._screenToLngLat(px, py, rect.width, rect.height);
         this._handleMapPointClick({ x: px, y: py }, lngLat);
       } else {
         this.computeViewportHistogram();
@@ -4516,7 +4832,7 @@ export class AtlasMapController {
       (e) => {
         e.preventDefault();
         const delta = e.deltaY < 0 ? 0.35 : -0.35;
-        this.canvasState.zoom = Math.max(10.5, Math.min(18.5, this.canvasState.zoom + delta));
+        this.canvasState.zoom = Math.max(10.5, Math.min(20.5, this.canvasState.zoom + delta));
         this._renderCanvas2D();
         this.computeViewportHistogram();
       },
@@ -4584,6 +4900,20 @@ export class AtlasMapController {
     return null;
   }
 
+  _scheduleCanvas2DRender() {
+    if (!this.canvasState || this._canvasRenderRafPending) return;
+    this._canvasRenderRafPending = true;
+    const flush = () => {
+      this._canvasRenderRafPending = false;
+      this._renderCanvas2D();
+    };
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(flush);
+    } else {
+      setTimeout(flush, 16);
+    }
+  }
+
   _renderCanvas2D() {
     if (!this.canvasState) return;
     const cs = this.canvasState;
@@ -4641,7 +4971,7 @@ export class AtlasMapController {
             img.crossOrigin = "anonymous";
             const tpl = tileTemplates[Math.abs(tx + ty) % tileTemplates.length];
             img.src = tpl.replace("{z}", tileZ).replace("{x}", tx).replace("{y}", ty);
-            img.onload = () => this._renderCanvas2D();
+            img.onload = () => this._scheduleCanvas2DRender();
             cs.tileCache.set(cacheId, img);
           }
           if (img.complete && img.naturalWidth > 0) {
@@ -4656,7 +4986,7 @@ export class AtlasMapController {
               lblImg.crossOrigin = "anonymous";
               const ltpl = labelTemplates[Math.abs(tx + ty) % labelTemplates.length];
               lblImg.src = ltpl.replace("{z}", tileZ).replace("{x}", tx).replace("{y}", ty);
-              lblImg.onload = () => this._renderCanvas2D();
+              lblImg.onload = () => this._scheduleCanvas2DRender();
               cs.tileCache.set(lblCacheId, lblImg);
             }
             if (lblImg.complete && lblImg.naturalWidth > 0) {
@@ -4693,7 +5023,7 @@ export class AtlasMapController {
             hImg = new Image();
             hImg.crossOrigin = "anonymous";
             hImg.src = formatHistoricalTileUrl(histEntry.tileUrl, histZ, tx, ty);
-            hImg.onload = () => this._renderCanvas2D();
+            hImg.onload = () => this._scheduleCanvas2DRender();
             cs.tileCache.set(hCacheId, hImg);
           }
           if (hImg.complete && hImg.naturalWidth > 0) {
@@ -5893,6 +6223,115 @@ export class AtlasMapController {
             address: s.story,
           },
         });
+      }
+    }
+
+    // Milestone 3: Render Walk-the-Block Field Survey overlay in 2D Canvas mode
+    if (Array.isArray(this.fieldSurveyOverlayFC?.features)) {
+      for (const feat of this.fieldSurveyOverlayFC.features) {
+        const kind = feat?.properties?.overlay_kind;
+        if (kind === "gps_accuracy" && feat.geometry?.type === "Polygon") {
+          const low = feat.properties?.is_low_accuracy === 1;
+          drawPolygonFeature(
+            feat.geometry,
+            low ? "rgba(245, 158, 11, 0.14)" : "rgba(56, 189, 248, 0.14)",
+            low ? "#F59E0B" : "#38BDF8",
+            1.6,
+            [5, 4]
+          );
+        } else if (feat.geometry?.type === "Point") {
+          const [lng, lat] = feat.geometry.coordinates || [];
+          if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+          const [sx, sy] = this._lngLatToScreen(lng, lat, width, height);
+          if (sx < -30 || sx > width + 30 || sy < -30 || sy > height + 30) continue;
+          ctx.save();
+          ctx.beginPath();
+          if (kind === "surveyed_ring") {
+            const synced = feat.properties?.sync_status === "synced";
+            ctx.arc(sx, sy, 10, 0, Math.PI * 2);
+            ctx.fillStyle = synced
+              ? "rgba(16, 185, 129, 0.28)"
+              : "rgba(251, 191, 36, 0.30)";
+            ctx.fill();
+            ctx.lineWidth = 2.6;
+            ctx.strokeStyle = synced ? "#10B981" : "#F59E0B";
+            ctx.stroke();
+          } else if (kind === "active_target") {
+            ctx.arc(sx, sy, 14, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(253, 224, 71, 0.22)";
+            ctx.fill();
+            ctx.lineWidth = 3.2;
+            ctx.strokeStyle = "#FACC15";
+            ctx.stroke();
+          } else if (kind === "gps_dot") {
+            const low = feat.properties?.is_low_accuracy === 1;
+            ctx.arc(sx, sy, 7.5, 0, Math.PI * 2);
+            ctx.fillStyle = low ? "#F59E0B" : "#0EA5E9";
+            ctx.fill();
+            ctx.lineWidth = 2.8;
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+    }
+
+    // Milestone 3: Render Staff Polygon Editor draft & handles in 2D Canvas mode
+    if (Array.isArray(this.polygonEditorFC?.features)) {
+      for (const feat of this.polygonEditorFC.features) {
+        const kind = feat?.properties?.feature_kind;
+        const isValid = feat?.properties?.is_valid !== 0;
+        if (kind === "footprint" && feat.geometry?.type === "Polygon") {
+          drawPolygonFeature(
+            feat.geometry,
+            isValid ? "rgba(250, 204, 21, 0.24)" : "rgba(239, 68, 68, 0.28)",
+            isValid ? "#FDE047" : "#F87171",
+            2.6
+          );
+        } else if (
+          kind === "outline" &&
+          feat.geometry?.type === "LineString" &&
+          Array.isArray(feat.geometry.coordinates) &&
+          feat.geometry.coordinates.length >= 2
+        ) {
+          ctx.save();
+          ctx.beginPath();
+          feat.geometry.coordinates.forEach(([lng, lat], i) => {
+            const [sx, sy] = this._lngLatToScreen(lng, lat, width, height);
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+          });
+          ctx.strokeStyle = isValid ? "#FDE047" : "#F87171";
+          ctx.lineWidth = 2.6;
+          ctx.stroke();
+          ctx.restore();
+        } else if (kind === "midpoint" && feat.geometry?.type === "Point") {
+          const [lng, lat] = feat.geometry.coordinates;
+          const [sx, sy] = this._lngLatToScreen(lng, lat, width, height);
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(sx, sy, 5.5, 0, Math.PI * 2);
+          ctx.fillStyle = "#22D3EE";
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "#0F172A";
+          ctx.stroke();
+          ctx.restore();
+        } else if (kind === "vertex" && feat.geometry?.type === "Point") {
+          const [lng, lat] = feat.geometry.coordinates;
+          const [sx, sy] = this._lngLatToScreen(lng, lat, width, height);
+          const isAct = feat.properties?.is_active === 1;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(sx, sy, isAct ? 8.5 : 7, 0, Math.PI * 2);
+          ctx.fillStyle = isAct ? "#FACC15" : "#FFFFFF";
+          ctx.fill();
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = isAct ? "#0F172A" : "#0284C7";
+          ctx.stroke();
+          ctx.restore();
+        }
       }
     }
 
@@ -9593,8 +10032,427 @@ export class AtlasMapController {
     return stack;
   }
 
+  _projectLngLatToScreen(lng, lat) {
+    if (this.useCanvasFallback && this.canvasState?.canvas) {
+      const rect = this.canvasState.canvas.getBoundingClientRect();
+      const [sx, sy] = this._lngLatToScreen(lng, lat, rect.width, rect.height);
+      return { x: sx, y: sy };
+    }
+    if (this.map && typeof this.map.project === "function") {
+      try {
+        const pt = this.map.project([lng, lat]);
+        return { x: pt.x, y: pt.y };
+      } catch (_err) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  screenPointToLngLat(px, py) {
+    if (this.useCanvasFallback && this.canvasState?.canvas) {
+      const rect = this.canvasState.canvas.getBoundingClientRect();
+      return this._screenToLngLat(px, py, rect.width, rect.height);
+    }
+    if (this.map && typeof this.map.unproject === "function") {
+      try {
+        const ll = this.map.unproject([px, py]);
+        return { lng: ll.lng, lat: ll.lat };
+      } catch (_err) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  _hitTestPolygonEditorHandles(px, py) {
+    const sess = this._polygonEditorSession;
+    if (!sess) return null;
+    const verts = sess.getVertices?.() || [];
+    let bestVert = -1;
+    let bestVertDist = 17;
+    for (let i = 0; i < verts.length; i += 1) {
+      const sc = this._projectLngLatToScreen(verts[i][0], verts[i][1]);
+      if (!sc) continue;
+      const d = Math.hypot(px - sc.x, py - sc.y);
+      if (d < bestVertDist) {
+        bestVertDist = d;
+        bestVert = i;
+      }
+    }
+    if (bestVert >= 0) {
+      return { kind: "vertex", index: bestVert, dist: bestVertDist };
+    }
+    const mids = sess.getMidpoints?.() || [];
+    let bestMid = -1;
+    let bestMidDist = 14;
+    for (let i = 0; i < mids.length; i += 1) {
+      const sc = this._projectLngLatToScreen(mids[i][0], mids[i][1]);
+      if (!sc) continue;
+      const d = Math.hypot(px - sc.x, py - sc.y);
+      if (d < bestMidDist) {
+        bestMidDist = d;
+        bestMid = i;
+      }
+    }
+    if (bestMid >= 0) {
+      return { kind: "midpoint", index: bestMid, dist: bestMidDist };
+    }
+    return null;
+  }
+
+  /**
+   * Register or tear down an interactive Staff Polygon Editor session (`RP-1`).
+   * Guaranteed idempotent: calling with `null` multiple times cleanly restores
+   * `dragPan`, `doubleClickZoom`, cursors, and empties `polygon-editor-src`.
+   */
+  setPolygonEditorSession(sessionOrNull) {
+    this._polygonEditorSession = sessionOrNull || null;
+    this._polyActiveDragVertex = -1;
+    this._polySuppressNextClick = false;
+    if (!sessionOrNull) {
+      this.polygonEditorFC = { type: "FeatureCollection", features: [] };
+      if (this.map) {
+        try {
+          this.map.getSource("polygon-editor-src")?.setData?.(this.polygonEditorFC);
+          this.map.dragPan?.enable?.();
+          this.map.doubleClickZoom?.enable?.();
+          if (this.map.getCanvas?.()) {
+            this.map.getCanvas().style.cursor = "";
+          }
+        } catch (_err) {
+          // Ignore MapLibre cleanup error
+        }
+      }
+      if (this.useCanvasFallback && this.canvasState?.canvas) {
+        this.canvasState.canvas.style.cursor = "grab";
+        this._renderCanvas2D();
+      }
+    }
+  }
+
+  updatePolygonEditorData(fc) {
+    this.polygonEditorFC =
+      fc && fc.type === "FeatureCollection" && Array.isArray(fc.features)
+        ? fc
+        : { type: "FeatureCollection", features: [] };
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+      return;
+    }
+    if (this.map) {
+      try {
+        this.map.getSource("polygon-editor-src")?.setData?.(this.polygonEditorFC);
+      } catch (_err) {
+        // Ignore transient source update error
+      }
+    }
+  }
+
+  setFieldSurveyOverlay(fcOrNull) {
+    this.fieldSurveyOverlayFC =
+      fcOrNull && fcOrNull.type === "FeatureCollection" && Array.isArray(fcOrNull.features)
+        ? fcOrNull
+        : { type: "FeatureCollection", features: [] };
+    if (this.useCanvasFallback) {
+      this._renderCanvas2D();
+      return;
+    }
+    if (this.map) {
+      try {
+        this.map.getSource("field-survey-overlay-src")?.setData?.(this.fieldSurveyOverlayFC);
+      } catch (_err) {
+        // Ignore source update error
+      }
+    }
+  }
+
+  setInteractiveMapTapInterceptor(fnOrNull) {
+    this._interactiveMapTapInterceptor =
+      typeof fnOrNull === "function" ? fnOrNull : null;
+  }
+
+  /**
+   * Wait until PMTiles vector tiles covering `hcadNum` finish decoding or `timeoutMs`
+   * elapses (`DF-3`), so multi-footprint risk detection and geometry hydration never
+   * evaluate against empty mid-flight tiles.
+   */
+  async awaitParcelShardReadiness(hcadNum = "", _targetLngLat = null, timeoutMs = 2400) {
+    if (this.useCanvasFallback || !this.map) {
+      return { ready: true, mode: "canvas2d" };
+    }
+    const cleanHcad = normalizeHcad13(hcadNum);
+    const hasParcelHits = () => {
+      if (!cleanHcad) return false;
+      for (const f of this.buildingsData || []) {
+        if (normalizeHcad13(f?.properties?.hcad_num) === cleanHcad) return true;
+      }
+      if (Array.isArray(this.shardSourceIds)) {
+        for (const srcId of this.shardSourceIds) {
+          try {
+            const hits = this.map.querySourceFeatures(srcId, {
+              sourceLayer: "buildings",
+              filter: ["==", ["get", "hcad_num"], cleanHcad],
+            });
+            if (Array.isArray(hits) && hits.length > 0) return true;
+          } catch (_err) {
+            // Shard still loading
+          }
+        }
+      }
+      return false;
+    };
+
+    try {
+      if (hasParcelHits()) {
+        return { ready: true, mode: "immediate" };
+      }
+    } catch (_err) {
+      // Proceed to bounded idle wait
+    }
+
+    // Yield one frame so MapLibre marks destination PMTiles requests in-flight after jumpTo/flyTo
+    await new Promise((resolve) => {
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => resolve());
+      } else {
+        setTimeout(resolve, 16);
+      }
+    });
+
+    try {
+      if (
+        hasParcelHits() ||
+        (!this.map.isMoving?.() && this.map.loaded?.() && this.map.areTilesLoaded?.())
+      ) {
+        return { ready: true, mode: "settled_frame" };
+      }
+    } catch (_err) {
+      // Proceed to bounded idle wait
+    }
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = (mode) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try {
+          this.map?.off?.("idle", onIdle);
+        } catch (_e) {
+          // Ignore
+        }
+        resolve({ ready: mode !== "timeout", mode });
+      };
+      const onIdle = () => done("idle");
+      const timer = setTimeout(() => done("timeout"), Math.max(200, Number(timeoutMs) || 2400));
+      try {
+        this.map.once("idle", onIdle);
+      } catch (_err) {
+        done("fallback");
+      }
+    });
+  }
+
+  /**
+   * Summarize all loaded building footprints associated with `hcadNum` for
+   * multi-footprint risk warning (`SOP 4 Case D`) and polygon editor geometry seeding.
+   */
+  getParcelFootprintSummary(hcadNum, preferredKey = "") {
+    const cleanHcad = normalizeHcad13(hcadNum || preferredKey);
+    const pref = String(preferredKey || "").trim();
+    const seenKeys = new Set();
+    const subBuildingIds = [];
+    let hasMultiPolygon = false;
+    let matchedGeometry = null;
+    let matchedProps = null;
+
+    const inspectFeature = (feat) => {
+      if (!feat?.geometry) return;
+      const props = feat.properties || {};
+      const fHcad = normalizeHcad13(props.hcad_num || props.HCAD_NUM);
+      const fid = String(props.building_id || props.id || feat.id || "").trim();
+      if (cleanHcad && fHcad !== cleanHcad && !fid.startsWith(`${cleanHcad}#`)) {
+        return;
+      }
+      if (!cleanHcad && fid !== pref) return;
+      const dedupe = fid || `${fHcad}_${seenKeys.size}`;
+      if (!seenKeys.has(dedupe)) {
+        seenKeys.add(dedupe);
+        subBuildingIds.push(dedupe);
+      }
+      if (feat.geometry.type === "MultiPolygon" && feat.geometry.coordinates?.length > 1) {
+        hasMultiPolygon = true;
+      }
+      const exactMatch = pref && (fid === pref || (!pref.includes("#") && fHcad === cleanHcad));
+      if (!matchedGeometry || exactMatch) {
+        matchedGeometry = feat.geometry;
+        matchedProps = applyOverrideToProperties({ ...props }, this.curatedOverrides);
+      }
+    };
+
+    for (const f of this.overridesFC?.features || []) inspectFeature(f);
+    for (const f of this.buildingsData || []) inspectFeature(f);
+    if (this.map && !this.useCanvasFallback && Array.isArray(this.shardSourceIds) && cleanHcad) {
+      for (const srcId of this.shardSourceIds) {
+        try {
+          const hits = this.map.querySourceFeatures(srcId, {
+            sourceLayer: "buildings",
+            filter: ["==", ["get", "hcad_num"], cleanHcad],
+          });
+          for (const h of hits || []) inspectFeature(h);
+        } catch (_err) {
+          // Ignore streaming shard
+        }
+      }
+    }
+    return {
+      hcadNum: cleanHcad,
+      footprintCount: seenKeys.size,
+      hasMultiPolygon,
+      subBuildingIds,
+      matchedGeometry,
+      matchedProps,
+    };
+  }
+
+  requestCanvasRedraw() {
+    if (this.useCanvasFallback && typeof this._renderCanvas2D === "function") {
+      this._renderCanvas2D();
+    }
+  }
+
+  /**
+   * Collect building & fallback parcel features within `radiusMeters` of `(lng, lat)`
+   * across Pilot GeoJSON, curated overrides, dynamic HCAD parcels, and loaded PMTiles
+   * shards so Walk-the-Block Field Survey Mode works citywide in WebGL and Canvas2D.
+   */
+  getNearbyFeaturesAroundPoint(lng, lat, radiusMeters = 130) {
+    const cLng = Number(lng);
+    const cLat = Number(lat);
+    if (!Number.isFinite(cLng) || !Number.isFinite(cLat)) return [];
+    const rM = Math.max(20, Number(radiusMeters) || 130);
+    const dLat = rM / METERS_PER_DEGREE_LAT;
+    const dLng = rM / (METERS_PER_DEGREE_LAT * Math.max(0.2, Math.cos((cLat * Math.PI) / 180)));
+    const minLng = cLng - dLng;
+    const maxLng = cLng + dLng;
+    const minLat = cLat - dLat;
+    const maxLat = cLat + dLat;
+    const padMinLng = minLng - 0.001;
+    const padMaxLng = maxLng + 0.001;
+    const padMinLat = minLat - 0.001;
+    const padMaxLat = maxLat + 0.001;
+
+    const pool = [];
+    const inBbox = (feat) => {
+      if (!feat?.geometry) return false;
+      const g = feat.geometry;
+      if (g.type === "Point") {
+        const [x, y] = g.coordinates || [];
+        return x >= minLng && x <= maxLng && y >= minLat && y <= maxLat;
+      }
+      const rings =
+        g.type === "Polygon"
+          ? g.coordinates || []
+          : g.type === "MultiPolygon"
+          ? (g.coordinates || []).flatMap((poly) => poly || [])
+          : null;
+      if (!rings || !rings.length) return false;
+      let fMinX = Infinity;
+      let fMaxX = -Infinity;
+      let fMinY = Infinity;
+      let fMaxY = -Infinity;
+      for (const ring of rings) {
+        if (!Array.isArray(ring)) continue;
+        for (const pt of ring) {
+          const x = pt?.[0];
+          const y = pt?.[1];
+          if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+          if (x < fMinX) fMinX = x;
+          if (x > fMaxX) fMaxX = x;
+          if (y < fMinY) fMinY = y;
+          if (y > fMaxY) fMaxY = y;
+        }
+      }
+      if (!Number.isFinite(fMinX)) return false;
+      return fMaxX >= padMinLng && fMinX <= padMaxLng && fMaxY >= padMinLat && fMinY <= padMaxLat;
+    };
+
+    const pushWithOv = (feat) => {
+      if (!inBbox(feat)) return;
+      const props = applyOverrideToProperties({ ...(feat.properties || {}) }, this.curatedOverrides);
+      if (isEntitySuppressedByOverrides(this.curatedOverrides, {
+        buildingId: props.building_id || props.id,
+        hcadNum: props.hcad_num,
+      })) {
+        return;
+      }
+      pool.push({
+        type: "Feature",
+        id: feat.id,
+        geometry: feat.geometry,
+        properties: props,
+      });
+    };
+
+    for (const f of this.overridesFC?.features || []) pushWithOv(f);
+    for (const f of this.buildingsData || []) pushWithOv(f);
+    if (this.map && !this.useCanvasFallback && Array.isArray(this.shardSourceIds)) {
+      for (const srcId of this.shardSourceIds) {
+        try {
+          const hits = this.map.querySourceFeatures(srcId, { sourceLayer: "buildings" });
+          for (const h of hits || []) pushWithOv(h);
+        } catch (_err) {
+          // Ignore shard while streaming
+        }
+      }
+    }
+    if (pool.length === 0) {
+      for (const p of this.parcelsData || []) pushWithOv(p);
+    }
+    return pool;
+  }
+
   _handleMapPointClick(point, lngLat) {
+    if (this._polygonEditorSession) {
+      if (this._polygonEditorSession.isTraceMode?.() && lngLat) {
+        this._polygonEditorSession.onMapTraceClick?.(lngLat.lng, lngLat.lat);
+      }
+      return;
+    }
     const stack = this._collectOverlappingFeaturesAtPoint(point, lngLat);
+    if (typeof this._interactiveMapTapInterceptor === "function") {
+      const buildingHit =
+        stack.find((it) => it && it.kind !== "boundary" && !it.overlayKey) ||
+        stack.find((it) => it && it.props?.hcad_num) ||
+        null;
+      const tapProps = buildingHit?.props
+        ? applyOverrideToProperties({ ...buildingHit.props }, this.curatedOverrides)
+        : null;
+      const intercepted = this._interactiveMapTapInterceptor({
+        props: tapProps,
+        geometry: buildingHit?.geometry || null,
+        lngLat,
+        point,
+        stack,
+      });
+      if (intercepted) {
+        if (buildingHit?.geometry && tapProps) {
+          this.selectedFeatureId = tapProps.building_id || tapProps.id || tapProps.hcad_num || null;
+          this.selectedFeatureProps = tapProps;
+          this.selectedFeatureGeometry = buildingHit.geometry;
+          if (this.useCanvasFallback) {
+            this._renderCanvas2D();
+          } else if (this.map) {
+            this.map.getSource("selected-building-src")?.setData?.({
+              type: "FeatureCollection",
+              features: [{ type: "Feature", geometry: buildingHit.geometry, properties: tapProps }],
+            });
+          }
+        }
+        return;
+      }
+    }
     if (!stack.length) return;
 
     let nextIndex = 0;

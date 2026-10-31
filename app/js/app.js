@@ -9,7 +9,7 @@ import {
   HISTORICAL_MAP_CATALOG,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261030d";
+} from "./palettes.js?v=20261030e";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -22,19 +22,19 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261030d";
-import { AtlasMapController } from "./mapController.js?v=20261030d";
+} from "./filterStore.js?v=20261030e";
+import { AtlasMapController } from "./mapController.js?v=20261030e";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261030d";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261030d";
+} from "./guidedChaptersAndPortfolios.js?v=20261030e";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261030e";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261030d";
+} from "./clerkSearchHelpers.js?v=20261030e";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -52,10 +52,12 @@ import {
   mergeOverrideRecord,
   MIN_VALID_YEAR,
   saveGoogleSheetEndpoints,
+  stripEmbeddedFieldSurveyTag,
+  stripEmbeddedGeometryTag,
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261030d";
+} from "./curatedEdits.js?v=20261030e";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -65,18 +67,18 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261030d";
+} from "./photoService.js?v=20261030e";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   formatDemolitionBenchmarksGrantText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261030d";
+} from "./platMonitorHelpers.js?v=20261030e";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261030d";
+} from "./hcadViewportParcels.js?v=20261030e";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -94,7 +96,7 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261030d";
+} from "./preservationOrganizer.js?v=20261030e";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -116,6 +118,10 @@ export class HoustonAtlasApp {
       activePortfolio,
       activeScorecard,
       activeCh42,
+      activeAudit,
+      activeAuditCategory,
+      activeSurvey,
+      activePolyEdit,
     } = parseHashToState(window.location.hash, window.location.search);
     this.initialViewport = viewport;
     this.initialSelection = selection;
@@ -124,6 +130,13 @@ export class HoustonAtlasApp {
     this.initialPortfolio = activePortfolio || null;
     this.initialScorecard = activeScorecard || null;
     this.initialCh42 = activeCh42 || null;
+    this.initialAudit = activeAudit || false;
+    this.initialAuditCategory = activeAuditCategory || "all";
+    this.initialSurvey = Boolean(activeSurvey);
+    this.initialPolyEdit = activePolyEdit || null;
+    this._staffWorkbench = null;
+    this._staffWorkbenchPromise = null;
+    this._archivalCatalogsPromise = null;
     this.filterStore = createFilterStore(patch);
     this.searchIndex = [];
     this.globalStats = null;
@@ -316,6 +329,15 @@ export class HoustonAtlasApp {
         respectPresetViewport: Boolean(this.initialViewport),
       });
     }
+    if (this.initialAudit || this.initialSurvey || this.initialPolyEdit) {
+      await this._syncStaffWorkbenchWithRoute({
+        activeAudit: this.initialAudit,
+        activeAuditCategory: this.initialAuditCategory,
+        activeSurvey: this.initialSurvey,
+        activePolyEdit: this.initialPolyEdit,
+        updateUrl: false,
+      });
+    }
 
     this._applyExportStudioHashParams(window.location.hash, window.location.search);
     this._lastHistorySignature = this._computeHistorySignature(this.filterStore.getState());
@@ -343,6 +365,10 @@ export class HoustonAtlasApp {
         activePortfolio,
         activeScorecard,
         activeCh42,
+        activeAudit,
+        activeAuditCategory,
+        activeSurvey,
+        activePolyEdit,
       } = parseHashToState(window.location.hash, window.location.search);
       this._isRestoringHistory = true;
       this._suppressUrlUpdate = true;
@@ -356,6 +382,21 @@ export class HoustonAtlasApp {
         }
         if (!activeCh42 && this.filterStore.getState().activeCh42) {
           patch.activeCh42 = null;
+        }
+        if (!activeAudit && this.filterStore.getState().activeAudit) {
+          patch.activeAudit = false;
+        }
+        if (
+          (!activeAuditCategory || activeAuditCategory === "all") &&
+          this.filterStore.getState().activeAuditCategory !== "all"
+        ) {
+          patch.activeAuditCategory = "all";
+        }
+        if (!activeSurvey && this.filterStore.getState().activeSurvey) {
+          patch.activeSurvey = false;
+        }
+        if (!activePolyEdit && this.filterStore.getState().activePolyEdit) {
+          patch.activePolyEdit = null;
         }
         if (Object.keys(patch).length > 0) {
           this.filterStore.setState(patch);
@@ -396,6 +437,16 @@ export class HoustonAtlasApp {
           this._ch42Session
         ) {
           this.closeChapter42Modal({ updateUrl: false });
+        }
+
+        if (activeAudit || activeSurvey || activePolyEdit || this._staffWorkbench) {
+          await this._syncStaffWorkbenchWithRoute({
+            activeAudit,
+            activeAuditCategory,
+            activeSurvey,
+            activePolyEdit,
+            updateUrl: false,
+          });
         }
 
         if (activeChapterId && activeChapterId !== this._activeChapterId) {
@@ -667,7 +718,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030d`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030e`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -826,12 +877,12 @@ export class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261030d"),
-        fetch("public/data/stats_summary.json?v=20261030d"),
-        fetch("public/data/haif_index.json?v=20261030d").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261030d").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261030d").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261030d").catch(() => null),
+        fetch("public/data/search_index.json?v=20261030e"),
+        fetch("public/data/stats_summary.json?v=20261030e"),
+        fetch("public/data/haif_index.json?v=20261030e").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261030e").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261030e").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261030e").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -2962,12 +3013,21 @@ export class HoustonAtlasApp {
       "keydown",
       (e) => {
         if (e.key === "Escape") {
-          for (const topUtilityId of ["photo-lightbox-modal", "correction-modal", "share-modal"]) {
+          for (const topUtilityId of [
+            "photo-lightbox-modal",
+            "correction-modal",
+            "share-modal",
+            "sanborn-browser-modal",
+            "dossier-modal",
+          ]) {
             const utilEl = document.getElementById(topUtilityId);
             if (utilEl && !utilEl.classList.contains("hidden")) {
               e.preventDefault();
               e.stopPropagation();
               utilEl.classList.add("hidden");
+              if (topUtilityId === "correction-modal" && this._staffWorkbench) {
+                this._staffWorkbench.cancelPendingPolyEditAuthGate?.();
+              }
               return;
             }
           }
@@ -2985,13 +3045,22 @@ export class HoustonAtlasApp {
             this.closeScorecardModal();
             return;
           }
+          const auditModalEl = document.getElementById("historian-audit-modal");
+          if (auditModalEl && !auditModalEl.classList.contains("hidden")) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (this._staffWorkbench) {
+              this._staffWorkbench.closeHistorianAuditModal();
+            } else {
+              auditModalEl.classList.add("hidden");
+            }
+            return;
+          }
           for (const modalId of [
-            "dossier-modal",
             "export-studio-modal",
             "about-modal",
             "hahc-tracker-modal",
             "permit-watch-modal",
-            "sanborn-browser-modal",
           ]) {
             const mEl = document.getElementById(modalId);
             if (mEl && !mEl.classList.contains("hidden")) {
@@ -3000,6 +3069,28 @@ export class HoustonAtlasApp {
               mEl.classList.add("hidden");
               return;
             }
+          }
+          if (this._staffWorkbench?.surveyOpen) {
+            e.preventDefault();
+            e.stopPropagation();
+            this._staffWorkbench.closeFieldSurveySheet();
+            return;
+          }
+          if (this._staffWorkbench?.polySession) {
+            e.preventDefault();
+            e.stopPropagation();
+            this._staffWorkbench.teardownPolyEditSession();
+            return;
+          }
+          const inspectorEl = document.getElementById("inspector-drawer");
+          if (inspectorEl && !inspectorEl.classList.contains("hidden")) {
+            e.preventDefault();
+            e.stopPropagation();
+            inspectorEl.classList.add("hidden");
+            this.mapController?.clearSelection?.();
+            this._updateUrlHash(this.filterStore.getState());
+            this._refreshShareModalContent();
+            return;
           }
           return;
         }
@@ -3010,8 +3101,17 @@ export class HoustonAtlasApp {
           const isTextInput =
             (tag === "INPUT" && !["range", "checkbox", "button"].includes(active.type)) ||
             tag === "TEXTAREA" ||
+            tag === "SELECT" ||
             active.isContentEditable;
           if (isTextInput) return;
+        }
+
+        if (
+          !document.getElementById("historian-audit-modal")?.classList.contains("hidden") ||
+          this._staffWorkbench?.polySession ||
+          this._staffWorkbench?.surveyOpen
+        ) {
+          return;
         }
 
         if (e.key === "ArrowLeft") {
@@ -3041,6 +3141,9 @@ export class HoustonAtlasApp {
     if (btnReset) {
       btnReset.addEventListener("click", () => {
         this.filterStore.resetFilters();
+        if (this._staffWorkbench) {
+          this._syncStaffWorkbenchWithRoute({ updateUrl: false });
+        }
       });
     }
 
@@ -3721,6 +3824,33 @@ export class HoustonAtlasApp {
       const el = document.getElementById(triggerId);
       if (el) el.addEventListener("click", openScorecardsHandler);
     }
+
+    // Milestone 3 Staff & Field Workbench launchers (lazy-loads `staffWorkbench.js`)
+    for (const auditBtnId of ["btn-topbar-audit", "btn-sidebar-open-audit"]) {
+      document.getElementById(auditBtnId)?.addEventListener("click", () => {
+        const curHcad = normalizeHcad13(this._currentInspectedRawProps?.hcad_num || "");
+        this.openHistorianAuditMode(curHcad || "");
+      });
+    }
+    for (const surveyBtnId of ["btn-topbar-field-survey", "btn-sidebar-open-survey"]) {
+      document.getElementById(surveyBtnId)?.addEventListener("click", () => {
+        const props =
+          this._currentInspectedRawProps && !this._currentInspectedRawProps.is_boundary_feature
+            ? this._currentInspectedRawProps
+            : null;
+        this.openFieldSurveyMode(props);
+      });
+    }
+    document.getElementById("btn-corr-open-polyedit")?.addEventListener("click", () => {
+      const hcadRaw = document.getElementById("corr-hcad-num")?.value?.trim() || "";
+      const props = this._currentInspectedRawProps || { hcad_num: hcadRaw };
+      document.getElementById("correction-modal")?.classList.add("hidden");
+      this.openPolygonEditorForCurrentOrTarget({
+        targetKey: hcadRaw || props.building_id || props.hcad_num || "",
+        hcadNum: props.hcad_num || hcadRaw,
+        props,
+      });
+    });
     if (btnCloseScorecardModal) {
       btnCloseScorecardModal.addEventListener("click", () => this.closeScorecardModal());
     }
@@ -4114,6 +4244,7 @@ export class HoustonAtlasApp {
       if (feedbackText && isUnlocked) {
         feedbackText.textContent = `✓ Unlocked (${session.email})`;
       }
+      this._staffWorkbench?.onAdminAuthChanged?.(isUnlocked);
     };
 
     syncAdminUiState();
@@ -4241,10 +4372,29 @@ export class HoustonAtlasApp {
           Number.isInteger(yrNum) &&
           yrNum >= MIN_VALID_YEAR &&
           yrNum <= MAX_VALID_YEAR;
+        const hasStandingMetadataOnly =
+          rawSuggYr === "" &&
+          Boolean(
+            String(payload.building_name || "").trim() ||
+              String(payload.architect || "").trim() ||
+              String(payload.builder || "").trim() ||
+              String(payload.permit_info || "").trim() ||
+              String(payload.footprint_issue || "").trim() ||
+              String(payload.footprint_notes || "").trim() ||
+              String(payload.photo_url || "").trim() ||
+              String(payload.source_citation || "").trim()
+          );
 
-        if (!isDemolishedVacant && !isValidStandingYear) {
+        if (!isDemolishedVacant && !isValidStandingYear && !hasStandingMetadataOnly) {
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built between ${MIN_VALID_YEAR} and ${MAX_VALID_YEAR}, or enter <code>0</code> / select "Building demolished - lot currently vacant" to hide a demolished building footprint.</strong>`;
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built between ${MIN_VALID_YEAR} and ${MAX_VALID_YEAR}, supply curated metadata/footprint notes, or enter <code>0</code> / select "Building demolished - lot currently vacant" to hide a demolished building footprint.</strong>`;
+            feedbackEl.classList.remove("hidden");
+          }
+          return;
+        }
+        if (rawSuggYr !== "" && !isDemolishedVacant && !isValidStandingYear) {
+          if (feedbackEl) {
+            feedbackEl.innerHTML = `<strong>Corrected Year Built must be between ${MIN_VALID_YEAR} and ${MAX_VALID_YEAR} (or leave blank when updating metadata/geometry on an undated structure).</strong>`;
             feedbackEl.classList.remove("hidden");
           }
           return;
@@ -4315,6 +4465,7 @@ export class HoustonAtlasApp {
             this.mapController._refreshCuratedOverridesSource();
             this._mergeCuratedOverridesIntoSearchIndex();
             this._enrichSearchIndexWithOverlayMetadata();
+            this._staffWorkbench?.refreshAfterOverrideChange?.();
             if (res.override.suppress_only) {
               this.mapController.clearSelection?.();
             } else if (this.mapController.selectedFeatureProps) {
@@ -4348,7 +4499,12 @@ export class HoustonAtlasApp {
     }
 
     if (btnCloseCorrModal && corrModal) {
-      btnCloseCorrModal.addEventListener("click", () => corrModal.classList.add("hidden"));
+      btnCloseCorrModal.addEventListener("click", () => {
+        corrModal.classList.add("hidden");
+        if (this._staffWorkbench) {
+          this._staffWorkbench.cancelPendingPolyEditAuthGate?.();
+        }
+      });
     }
 
     const footprintSelectEl = document.getElementById("corr-footprint-issue");
@@ -5556,7 +5712,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030d`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030e`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -6430,6 +6586,9 @@ export class HoustonAtlasApp {
   openCorrectionModal(props, opts = {}) {
     const modal = document.getElementById("correction-modal");
     if (!modal || !props) return;
+    if (!opts.focusAdminUnlock && this._staffWorkbench) {
+      this._staffWorkbench.cancelPendingPolyEditAuthGate?.({ updateUrl: false });
+    }
 
     const addrEl = document.getElementById("corr-address");
     const bldNameEl = document.getElementById("corr-building-name");
@@ -6494,7 +6653,11 @@ export class HoustonAtlasApp {
         (props.original_cost ? `Cost: ${props.original_cost}` : "") ||
         "";
     }
-    if (citeEl) citeEl.value = props.source_citation || "";
+    if (citeEl) {
+      citeEl.value = stripEmbeddedFieldSurveyTag(
+        stripEmbeddedGeometryTag(props.source_citation || "")
+      );
+    }
     if (sourceTypeEl) {
       sourceTypeEl.value = isAlreadyVacant ? "Aerial / Satellite Imagery" : "Houston City Directory";
     }
@@ -14315,6 +14478,25 @@ export class HoustonAtlasApp {
                            </button>`
                         : ""
                     }
+                    <button
+                      type="button"
+                      class="inspector-btn secondary"
+                      id="btn-inspector-open-polyedit"
+                      data-hcad-num="${hcadNum}"
+                      data-building-id="${String(props.building_id || props.id || "").replace(/"/g, "&quot;")}"
+                      title="Open Staff Polygon Editor to reshape this roof footprint or add a secondary building on parcel ${hcadNum}"
+                    >
+                      &#9998; Reshape / Trace Footprint (Staff)
+                    </button>
+                    <button
+                      type="button"
+                      class="inspector-btn secondary"
+                      id="btn-inspector-open-survey"
+                      data-hcad-num="${hcadNum}"
+                      title="Open Mobile Walk-the-Block Field Survey Mode preloaded with ${hcadNum}"
+                    >
+                      &#128203; Walk-the-Block Survey Card
+                    </button>
                     <div class="hcad-link-status-note hidden" id="hcad-link-status-note"></div>
                     <a
                       href="https://search.hcad.org/"
@@ -14367,6 +14549,19 @@ export class HoustonAtlasApp {
       histBtn.addEventListener("click", () => {
         this.openCorrectionModal(props);
       });
+    });
+
+    content.querySelector("#btn-inspector-open-polyedit")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.openPolygonEditorForCurrentOrTarget({
+        targetKey: props.building_id || props.id || props.hcad_num || "",
+        hcadNum: props.hcad_num || "",
+        props,
+      });
+    });
+    content.querySelector("#btn-inspector-open-survey")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.openFieldSurveyMode(props);
     });
 
     this._bindInspectorOverlapStackEvents(content);
@@ -14810,7 +15005,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261030d`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261030e`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -16778,7 +16973,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261030d`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261030e`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18178,6 +18373,175 @@ export class HoustonAtlasApp {
     return { selectedHcad, selectedFeatureId };
   }
 
+  async ensureArchivalCatalogsLoaded() {
+    if (this.citydirIndex && this.sanbornCatalog) return;
+    if (this._archivalCatalogsPromise) {
+      await this._archivalCatalogsPromise;
+      return;
+    }
+    this._archivalCatalogsPromise = (async () => {
+      const tasks = [];
+      if (!this.sanbornCatalog) {
+        tasks.push(
+          fetch("public/data/sanborn_catalog.json?v=20261030e")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((j) => {
+              if (j) this.sanbornCatalog = j;
+            })
+            .catch(() => {})
+        );
+      }
+      if (!this.citydirIndex) {
+        tasks.push(
+          fetch("public/data/citydir_index.json?v=20261030e")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((j) => {
+              if (j) {
+                this.citydirIndex = j;
+                this.citydirAbsentSet = new Set(j.absent_through_1926 || []);
+              }
+            })
+            .catch(() => {})
+        );
+      }
+      await Promise.all(tasks);
+    })();
+    try {
+      await this._archivalCatalogsPromise;
+    } finally {
+      this._archivalCatalogsPromise = null;
+    }
+  }
+
+  async _ensureStaffWorkbench() {
+    if (this._staffWorkbench) return this._staffWorkbench;
+    if (!this._staffWorkbenchPromise) {
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261030e")
+        .then((mod) => {
+          this._staffWorkbench = new mod.StaffWorkbenchController(this, {
+            showToast: (msg) => this._showQuickFlagToast(msg),
+            getWebhookUrl: () => this._getActiveWebhookUrl(),
+            getInspectedRawProps: () => this._currentInspectedRawProps || null,
+            requestCanvasRedraw: () => this.mapController?.requestCanvasRedraw?.(),
+          });
+          return this._staffWorkbench;
+        })
+        .catch((err) => {
+          this._staffWorkbenchPromise = null;
+          throw err;
+        });
+    }
+    return this._staffWorkbenchPromise;
+  }
+
+  async openHistorianAuditMode(targetFidOrHcad = "") {
+    const wb = await this._ensureStaffWorkbench();
+    const raw = String(targetFidOrHcad || "").trim();
+    const cleanHcad = normalizeHcad13(raw);
+    await wb.openHistorianAuditModal({
+      targetFid: raw && !cleanHcad ? raw : "",
+      hcadNum: cleanHcad || "",
+      updateUrl: true,
+    });
+  }
+
+  async openPolygonEditorForCurrentOrTarget(spec = {}) {
+    const wb = await this._ensureStaffWorkbench();
+    const fallbackProps = this._currentInspectedRawProps || {};
+    const props = spec.props || fallbackProps;
+    await wb.openPolygonEditor({
+      targetKey: spec.targetKey || props.building_id || props.id || props.hcad_num || "",
+      hcadNum: spec.hcadNum || props.hcad_num || "",
+      geometry:
+        spec.geometry ||
+        (!props.is_tax_parcel &&
+        !props.is_boundary_feature &&
+        this.mapController?.selectedFeatureGeometry?.type !== "Point"
+          ? this.mapController?.selectedFeatureGeometry
+          : null),
+      props,
+    });
+  }
+
+  async openFieldSurveyMode(targetProps = null) {
+    const wb = await this._ensureStaffWorkbench();
+    wb.openFieldSurveySheet({ targetProps, updateUrl: true });
+  }
+
+  async _syncStaffWorkbenchWithRoute({
+    activeAudit = false,
+    activeAuditCategory = "all",
+    activeSurvey = false,
+    activePolyEdit = null,
+    updateUrl = false,
+  } = {}) {
+    if (!activeAudit && !activeSurvey && !activePolyEdit && !this._staffWorkbench) {
+      return;
+    }
+    const wb = await this._ensureStaffWorkbench();
+    if (activeAudit) {
+      const raw = typeof activeAudit === "string" ? activeAudit : "";
+      const cleanHcad = normalizeHcad13(raw);
+      await wb.openHistorianAuditModal({
+        targetFid: raw && raw !== "1" && raw !== "true" && !cleanHcad ? raw : "",
+        hcadNum: cleanHcad || "",
+        auditCategory: activeAuditCategory && activeAuditCategory !== "all" ? activeAuditCategory : "",
+        updateUrl,
+      });
+    } else {
+      wb.closeHistorianAuditModal({ updateUrl: false });
+    }
+
+    if (activePolyEdit) {
+      const targetStr = String(activePolyEdit).trim();
+      const baseHcad = normalizeHcad13(targetStr.split("#")[0]);
+      if (!wb.polySession || wb.polySession.requestedKey !== targetStr) {
+        await wb.openPolygonEditor({
+          targetKey: targetStr,
+          hcadNum: baseHcad,
+          props:
+            this._currentInspectedRawProps &&
+            normalizeHcad13(this._currentInspectedRawProps.hcad_num) === baseHcad
+              ? this._currentInspectedRawProps
+              : { hcad_num: baseHcad, building_id: targetStr.includes("#") ? targetStr : "" },
+        });
+      }
+    } else if (wb.polySession) {
+      wb.teardownPolyEditSession({ updateUrl: false, restoreBasemap: false });
+    }
+
+    if (activeSurvey) {
+      if (!wb.surveyOpen) {
+        const seedProps =
+          this._currentInspectedRawProps && !this._currentInspectedRawProps.is_boundary_feature
+            ? this._currentInspectedRawProps
+            : null;
+        wb.openFieldSurveySheet({ targetProps: seedProps, updateUrl });
+      }
+    } else if (wb.surveyOpen) {
+      wb.closeFieldSurveySheet({ updateUrl: false });
+    }
+  }
+
+  applyLiveCuratedOverrideMapUpdate(overrideKey, incomingPatch, fallbackGeometry = null) {
+    if (!this.mapController || !overrideKey || !incomingPatch) return;
+    const key = String(overrideKey).trim();
+    const existingOv = this.mapController.curatedOverrides[key] || {};
+    this.mapController.curatedOverrides[key] = mergeOverrideRecord(
+      existingOv,
+      incomingPatch,
+      {
+        overrideKey: key,
+        fallbackGeometry,
+      }
+    );
+    this.mapController._refreshCuratedOverridesSource();
+    this._mergeCuratedOverridesIntoSearchIndex();
+    this._enrichSearchIndexWithOverlayMetadata();
+    this._syncPhotoExclusionRegistries?.();
+    this._staffWorkbench?.refreshAfterOverrideChange?.();
+  }
+
   _computeHistorySignature(state) {
     const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
     const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(selProps);
@@ -18205,6 +18569,13 @@ export class HoustonAtlasApp {
           state.activeCh42.includeOpposing ?? state.activeCh42.opposing ? 1 : 0
         }`
       : "";
+    const auditCatPart =
+      state?.activeAuditCategory && state.activeAuditCategory !== "all"
+        ? `:${state.activeAuditCategory}`
+        : "";
+    const auditSig = state?.activeAudit ? `audit:${state.activeAudit}${auditCatPart}` : "";
+    const surveySig = state?.activeSurvey ? "survey:1" : "";
+    const polySig = state?.activePolyEdit ? `polyedit:${state.activePolyEdit}` : "";
     return [
       selectedHcad ? `hcad:${selectedHcad}` : "",
       selectedFeatureId ? `id:${selectedFeatureId}` : "",
@@ -18215,6 +18586,9 @@ export class HoustonAtlasApp {
       portfolioSig,
       scSig,
       ch42Sig,
+      auditSig,
+      surveySig,
+      polySig,
     ]
       .filter(Boolean)
       .join("|");
@@ -19407,7 +19781,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261030d")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261030e")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

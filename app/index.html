@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261030d" />
+  <link rel="stylesheet" href="styles/index.css?v=20261030e" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -281,6 +281,24 @@
               title="Share or embed the map with current layers, basemap, filters, and camera view"
             >
               &#128279; Share View
+            </button>
+
+            <button
+              type="button"
+              class="action-pill"
+              id="btn-topbar-audit"
+              title="Open Split-Screen Historian Archival Audit Workbench (2,600 Cross-Dataset Date &amp; Directory Contradictions)"
+            >
+              &#128270; Archival Audit Queue (2,600)
+            </button>
+
+            <button
+              type="button"
+              class="action-pill"
+              id="btn-topbar-field-survey"
+              title="Launch Mobile Walk-the-Block Field Survey Sheet (Offline Queue, GPS Blockface Cards &amp; Camera Capture)"
+            >
+              &#128694; Walk-the-Block Survey
             </button>
 
             <button type="button" class="action-pill subtle" id="btn-open-about-modal">
@@ -1563,6 +1581,26 @@
               <span>&#128214; Browse 1877-1955 Sanborn Fire Insurance Maps (878 Sheets)</span>
               <span class="mono">LOC &amp; UT PCL &#8599;</span>
             </button>
+            <div class="sidebar-workbench-launch-row">
+              <button
+                type="button"
+                class="sanborn-quick-launcher-btn workbench-launch-btn"
+                id="btn-sidebar-open-audit"
+                title="Review 2,600 pre-computed cross-dataset archival contradictions alongside 1866-1926 City Directories and 1877-1955 Sanborn sheets"
+              >
+                <span>&#128270; Historian Archival Audit Queue</span>
+                <span class="mono">2,600 &#8594;</span>
+              </button>
+              <button
+                type="button"
+                class="sanborn-quick-launcher-btn workbench-launch-btn"
+                id="btn-sidebar-open-survey"
+                title="Open mobile Walk-the-Block Field Survey Mode with GPS blockface cards, offline photo queue, and CSV/Google Sheet sync"
+              >
+                <span>&#128694; Walk-the-Block Field Survey</span>
+                <span class="mono">Mobile &#8594;</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1639,6 +1677,442 @@
       </div>
     </div>
 
+    <!-- Staff In-Browser Polygon Footprint Editor Dock (Component B) -->
+    <aside
+      class="polyedit-dock hidden"
+      id="polygon-editor-dock"
+      role="region"
+      aria-label="Staff Polygon Footprint Editor"
+    >
+      <div class="polyedit-header">
+        <div class="polyedit-title-wrap">
+          <span class="polyedit-kicker">Staff Admin &bull; Zoom 20 Editor</span>
+          <strong class="polyedit-target-badge mono" id="polyedit-target-badge">Parcel</strong>
+        </div>
+        <div class="polyedit-header-actions">
+          <button
+            type="button"
+            class="btn-secondary btn-xs"
+            id="btn-polyedit-toggle-basemap"
+            title="Switch between Satellite Roof Imagery and Vector Basemap"
+          >
+            Sat / Vector
+          </button>
+          <button
+            type="button"
+            class="icon-btn"
+            id="btn-close-polyedit"
+            aria-label="Close Polygon Editor"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
+
+      <div class="polyedit-body">
+        <div class="polyedit-tile-status mono" id="polyedit-tile-status">
+          Aerial Roof Check: Native tile zoom 18 (overzoom active to 20.5)
+        </div>
+
+        <div class="polyedit-warning hidden" id="polyedit-multifp-warning" role="alert"></div>
+
+        <div class="form-field">
+          <label for="polyedit-select-mode">Override Target Key Mode</label>
+          <select id="polyedit-select-mode" class="form-input workbench-control">
+            <option value="primary">Primary Parcel / Selected Building</option>
+            <option value="additive_aux">Add Auxiliary / Secondary Footprint (#aux_N)</option>
+          </select>
+        </div>
+
+        <div class="polyedit-replace-confirm hidden" id="polyedit-replace-confirm-wrap">
+          <label class="polyedit-chk-label" for="polyedit-chk-confirm-replace">
+            <input type="checkbox" id="polyedit-chk-confirm-replace" />
+            <span>I intentionally want to suppress all existing PMTiles roof polygons on this multi-footprint parcel (SOP 4 Case D).</span>
+          </label>
+        </div>
+
+        <div class="polyedit-toolbar-grid" role="group" aria-label="Polygon geometry tools">
+          <button type="button" class="btn-secondary btn-xs" id="btn-polyedit-new-rect">
+            &#9645; New Box
+          </button>
+          <button type="button" class="btn-secondary btn-xs" id="btn-polyedit-trace-mode">
+            Trace Roof Points
+          </button>
+          <button type="button" class="btn-secondary btn-xs" id="btn-polyedit-delete-vertex">
+            Delete Selected Pt
+          </button>
+          <button type="button" class="btn-secondary btn-xs" id="btn-polyedit-undo" disabled>
+            &#8630; Undo
+          </button>
+          <button type="button" class="btn-secondary btn-xs" id="btn-polyedit-redo" disabled>
+            &#8631; Redo
+          </button>
+        </div>
+
+        <div class="polyedit-section">
+          <div class="polyedit-section-label">
+            <span>Grid Orientation &amp; Tangent Rotation</span>
+            <span class="mono" id="polyedit-rotate-value">0.0&deg;</span>
+          </div>
+          <div class="polyedit-rotate-presets">
+            <button type="button" class="polyedit-chip mono" data-poly-rotate="-90">-90&deg;</button>
+            <button type="button" class="polyedit-chip mono" data-poly-rotate="-45">-45&deg;</button>
+            <button
+              type="button"
+              class="polyedit-chip mono accent"
+              data-poly-rotate="-34.65"
+              title="Align footprint to Downtown Houston's historic 1836 Borden survey street grid (-34.65 deg off true north)"
+            >
+              Borden -34.65&deg;
+            </button>
+            <button type="button" class="polyedit-chip mono" data-poly-rotate="45">+45&deg;</button>
+            <button type="button" class="polyedit-chip mono" data-poly-rotate="90">+90&deg;</button>
+          </div>
+          <input
+            type="range"
+            id="polyedit-rotate-slider"
+            min="-45"
+            max="45"
+            step="0.5"
+            value="0"
+            aria-label="Fine polygon rotation in degrees"
+          />
+        </div>
+
+        <div class="polyedit-section">
+          <div class="polyedit-section-label">
+            <label for="polyedit-nudge-step">Sub-Meter Tangent Nudge</label>
+            <select id="polyedit-nudge-step" class="form-input polyedit-step-select workbench-control">
+              <option value="0.25">0.25 m</option>
+              <option value="0.5" selected>0.5 m</option>
+              <option value="1">1.0 m</option>
+              <option value="2">2.0 m</option>
+            </select>
+          </div>
+          <div class="polyedit-nudge-row" role="group" aria-label="Compass nudge buttons">
+            <button type="button" class="polyedit-chip mono" data-poly-nudge="W">&#8592; W</button>
+            <button type="button" class="polyedit-chip mono" data-poly-nudge="N">&#8593; N</button>
+            <button type="button" class="polyedit-chip mono" data-poly-nudge="S">&#8595; S</button>
+            <button type="button" class="polyedit-chip mono" data-poly-nudge="E">E &#8594;</button>
+          </div>
+        </div>
+
+        <div class="polyedit-meta-grid">
+          <div class="form-field">
+            <label for="polyedit-input-address">Street Address</label>
+            <input type="text" id="polyedit-input-address" class="form-input workbench-control" placeholder="e.g. 1506 Heights Blvd" />
+          </div>
+          <div class="form-field">
+            <label for="polyedit-input-name">Building / Auxiliary Label</label>
+            <input type="text" id="polyedit-input-name" class="form-input workbench-control" placeholder="e.g. Carriage House / Garage Apt" />
+          </div>
+          <div class="polyedit-row-2col">
+            <div class="form-field">
+              <label for="polyedit-input-year">Year Built</label>
+              <input
+                type="number"
+                id="polyedit-input-year"
+                class="form-input workbench-control"
+                inputmode="numeric"
+                min="1836"
+                max="2035"
+                placeholder="1924"
+              />
+            </div>
+            <div class="form-field">
+              <label for="polyedit-select-contributing">Contributing Status *</label>
+              <select id="polyedit-select-contributing" class="form-input workbench-control" required>
+                <option value="Contributing">Contributing</option>
+                <option value="Non-Contributing">Non-Contributing</option>
+                <option value="Outside Historic District">Outside Historic District</option>
+                <option value="Tax-Exempt Campus Structure">Tax-Exempt Campus Structure</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="polyedit-input-citation">Source Citation / Editor Note</label>
+            <input
+              type="text"
+              id="polyedit-input-citation"
+              class="form-input workbench-control"
+              placeholder="e.g. Zoom-20 aerial roof alignment + 1924 Sanborn Vol 6"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="polyedit-footer">
+        <div class="polyedit-stats-row mono">
+          <span id="polyedit-stat-sqft">0 sq ft</span>
+          <span id="polyedit-stat-vertices">0 vertices</span>
+          <span class="polyedit-valid-badge ok" id="polyedit-validation-badge">Valid CCW polygon</span>
+        </div>
+        <div class="polyedit-footer-actions">
+          <button type="button" class="btn-secondary btn-sm" id="btn-polyedit-cancel">Cancel</button>
+          <button type="button" class="btn-primary btn-sm" id="btn-polyedit-save">
+            Save Approved Footprint
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Walk-the-Block Field Survey Upper-Map Crosshair & Toast (Component C) -->
+    <div class="field-survey-crosshair hidden" id="field-survey-crosshair" aria-hidden="false">
+      <div class="field-survey-reticle-ring" aria-hidden="true">
+        <span class="field-survey-reticle-dot"></span>
+      </div>
+      <button
+        type="button"
+        class="field-survey-center-pick-btn"
+        id="btn-survey-pick-center"
+        title="Load the building directly under the map crosshair into the survey sheet"
+      >
+        &#8982; Select Center Roof
+      </button>
+    </div>
+
+    <div class="field-survey-toast hidden" id="field-survey-toast" role="status" aria-live="polite">
+      <span class="field-survey-toast-msg" id="field-survey-toast-msg">Observation saved</span>
+      <button type="button" class="field-survey-toast-undo-btn" id="btn-survey-toast-undo">
+        Undo
+      </button>
+    </div>
+
+    <!-- Mobile Walk-the-Block Field Survey Split-Map Bottom Sheet (Component C) -->
+    <section
+      class="field-survey-sheet hidden"
+      id="field-survey-sheet"
+      data-snap="half"
+      role="region"
+      aria-label="Walk-the-Block Field Survey Workbench"
+    >
+      <div class="field-survey-sheet-top">
+        <div
+          class="field-survey-drag-handle"
+          id="field-survey-drag-handle"
+          role="button"
+          tabindex="0"
+          aria-label="Drag or tap to resize field survey sheet"
+        >
+          <span class="field-survey-drag-pill"></span>
+        </div>
+
+        <div class="field-survey-toolbar">
+          <div class="field-survey-snap-group" role="group" aria-label="Bottom sheet height">
+            <button type="button" class="survey-snap-btn" data-survey-snap="peek" aria-pressed="false">Map</button>
+            <button type="button" class="survey-snap-btn active" data-survey-snap="half" aria-pressed="true">Split</button>
+            <button type="button" class="survey-snap-btn" data-survey-snap="full" aria-pressed="false">Form</button>
+          </div>
+          <div class="field-survey-toolbar-right">
+            <button
+              type="button"
+              class="survey-tool-pill"
+              id="btn-survey-daylight-toggle"
+              aria-pressed="false"
+              title="Toggle high-contrast outdoor sunlight theme (WCAG AAA 7:1)"
+            >
+              Daylight: OFF
+            </button>
+            <button
+              type="button"
+              class="survey-tool-pill"
+              id="btn-survey-locate"
+              aria-pressed="false"
+              title="Toggle live browser GPS tracking"
+            >
+              Locate Me
+            </button>
+            <button
+              type="button"
+              class="survey-tool-pill mono"
+              id="btn-survey-sync-badge"
+              title="Open Offline Queue, CSV Export, and Google Sheet Sync drawer"
+            >
+              Saved: 0
+            </button>
+            <button
+              type="button"
+              class="survey-close-btn"
+              id="btn-close-field-survey"
+              aria-label="Close Field Survey Mode"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-survey-scroll-body">
+        <div class="survey-banner warning hidden" id="survey-gps-banner" role="status"></div>
+        <div class="survey-banner error hidden" id="survey-inline-error" role="alert"></div>
+
+        <div class="survey-active-card">
+          <div class="survey-active-addr-row">
+            <span class="survey-house-num mono" id="survey-active-house-num">AIM</span>
+            <div class="survey-street-wrap">
+              <strong class="survey-street-name" id="survey-active-street">Tap any roof on map or Select Center Roof</strong>
+              <span class="survey-active-meta mono" id="survey-active-meta">Atlas: Undated</span>
+            </div>
+          </div>
+          <div class="survey-manual-address-wrap hidden" id="survey-manual-address-wrap">
+            <label for="survey-input-manual-address">Manual Street Address (Vacant / Unaddressed Lot) *</label>
+            <input
+              type="text"
+              id="survey-input-manual-address"
+              class="survey-input workbench-control"
+              placeholder="e.g. 1412 Harvard St"
+            />
+          </div>
+        </div>
+
+        <div class="survey-section-heading">1. Architectural Integrity Grade * (Tap Once)</div>
+        <div class="survey-integrity-grid" id="survey-integrity-grid" role="group" aria-label="Architectural integrity grade"></div>
+
+        <div class="survey-nearby-strip" id="survey-nearby-strip" aria-label="Nearby houses on blockface"></div>
+
+        <div class="survey-gps-row">
+          <span class="survey-gps-pill mono" id="survey-gps-status-pill">GPS off (tap roof or center)</span>
+          <button type="button" class="survey-refresh-btn" id="btn-survey-refresh-nearby">
+            &#8635; Refresh Nearby
+          </button>
+        </div>
+
+        <div class="survey-context-row">
+          <div class="survey-context-field">
+            <label for="survey-input-surveyor">Surveyor *</label>
+            <input
+              type="text"
+              id="survey-input-surveyor"
+              class="survey-input workbench-control"
+              placeholder="Name or initials"
+              autocomplete="name"
+            />
+          </div>
+          <div class="survey-context-field">
+            <label for="survey-input-district">District / Area</label>
+            <input
+              type="text"
+              id="survey-input-district"
+              class="survey-input workbench-control"
+              placeholder="District or area"
+            />
+          </div>
+        </div>
+
+        <details class="survey-drawer" id="survey-detail-drawer">
+          <summary class="survey-drawer-summary">
+            <span>2. Optional Materials, Photo &amp; Notes</span>
+            <span class="survey-drawer-meta mono" id="survey-detail-summary-meta">Condition: Good &middot; Contributing</span>
+          </summary>
+          <div class="survey-drawer-body">
+            <div class="survey-sub-label">Overall Physical Condition</div>
+            <div class="survey-pill-row" id="survey-condition-pills" role="group" aria-label="Condition rating"></div>
+
+            <div class="survey-sub-label">Contributing Assessment</div>
+            <div class="survey-pill-row" id="survey-contributing-pills" role="group" aria-label="Contributing status"></div>
+
+            <div class="survey-select-grid">
+              <div class="survey-context-field">
+                <label for="survey-select-windows">Windows</label>
+                <select id="survey-select-windows" class="survey-input workbench-control"></select>
+              </div>
+              <div class="survey-context-field">
+                <label for="survey-select-cladding">Wall Cladding</label>
+                <select id="survey-select-cladding" class="survey-input workbench-control"></select>
+              </div>
+              <div class="survey-context-field">
+                <label for="survey-select-porch">Front Porch</label>
+                <select id="survey-select-porch" class="survey-input workbench-control"></select>
+              </div>
+              <div class="survey-context-field">
+                <label for="survey-input-observed-year">Est. Year Built</label>
+                <input
+                  type="number"
+                  id="survey-input-observed-year"
+                  class="survey-input workbench-control"
+                  inputmode="numeric"
+                  min="1836"
+                  max="2035"
+                  placeholder="e.g. 1922"
+                />
+              </div>
+            </div>
+
+            <div class="survey-photo-row">
+              <input
+                type="file"
+                id="survey-photo-input"
+                accept="image/*"
+                capture="environment"
+                class="hidden"
+              />
+              <button type="button" class="survey-photo-btn" id="btn-survey-take-photo">
+                &#128247; Take / Attach Street Photo
+              </button>
+              <input
+                type="url"
+                id="survey-input-photo-url"
+                class="survey-input workbench-control"
+                placeholder="Optional hosted image link"
+              />
+            </div>
+
+            <div class="survey-photo-preview hidden" id="survey-photo-preview-wrap">
+              <img id="survey-photo-preview-img" alt="Captured field survey preview" class="survey-photo-thumb hidden" />
+              <span class="survey-photo-name mono" id="survey-photo-preview-name"></span>
+              <button type="button" class="survey-clear-photo-btn" id="btn-survey-clear-photo">
+                Remove
+              </button>
+            </div>
+
+            <div class="survey-context-field">
+              <label for="survey-input-notes">Field Notes (Alterations, additions, signage)</label>
+              <textarea
+                id="survey-input-notes"
+                rows="2"
+                class="survey-input workbench-control"
+                placeholder="Notes on fenestration, additions, garage apartment, or HAHC signage..."
+              ></textarea>
+            </div>
+          </div>
+        </details>
+
+        <details class="survey-drawer" id="survey-queue-drawer">
+          <summary class="survey-drawer-summary">
+            <span>Offline Queue, CSV Export &amp; Google Sheet Sync</span>
+            <span class="mono">Field_Surveys</span>
+          </summary>
+          <div class="survey-drawer-body">
+            <p class="survey-queue-summary" id="survey-queue-summary-text">0 total observations on device.</p>
+            <div class="survey-banner info hidden" id="survey-queue-sync-status"></div>
+            <div class="survey-queue-actions">
+              <button type="button" class="survey-queue-btn primary" id="btn-survey-sync-now">
+                &#9729; Sync Queue Now
+              </button>
+              <button type="button" class="survey-queue-btn" id="btn-survey-export-csv">
+                &#8681; Export CSV
+              </button>
+              <button type="button" class="survey-queue-btn" id="btn-survey-share-photos" disabled>
+                Share / Save Photos (0)
+              </button>
+              <button type="button" class="survey-queue-btn subtle" id="btn-survey-clear-synced">
+                Clear Synced Rows
+              </button>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="field-survey-footer" id="field-survey-footer">
+        <button type="button" class="survey-save-stay-btn" id="btn-survey-save-stay">
+          Save Only
+        </button>
+        <button type="button" class="survey-save-next-btn" id="btn-survey-save-next">
+          Save &amp; Next House &#8594;
+        </button>
+      </div>
+    </section>
+
     <!-- Methodology & Data Provenance Modal -->
     <div class="modal-backdrop hidden" id="about-modal" role="dialog" aria-modal="true">
       <div class="modal-card">
@@ -1679,6 +2153,9 @@
             </li>
             <li>
               <strong>Automated Preservation Early-Warning, Demolition Benchmarks &amp; 3-Mode Companion Monitor:</strong> Tracks daily <strong>City of Houston Demolition / Sewer Disconnect Permits</strong> and <strong>Texas DSHS 10-day Advance Asbestos Filings</strong>, monthly <strong>HAHC Certificates of Appropriateness (403 filings / 283 parcels)</strong>, <strong>Annual (2020-2025) &amp; 2026 YTD Demolition Permit Benchmarks</strong>, and a 3-mode companion <a href="plat-monitor.html">Plat &amp; Property Monitor</a> (featuring a 90-day <em>What's New &amp; Daily Log</em> morning briefing, <em>Biweekly Plat Review</em>, and a <em>15-Point Property Watchlist</em>).
+            </li>
+            <li>
+              <strong>Preservation Staff &amp; Field Workbench:</strong> Includes a keyboard-driven <strong>Split-Screen Historian Rapid Audit Queue</strong> across <strong>2,600 pre-computed cross-dataset contradictions</strong> paired side-by-side with 1866-1926 City Directory OCR and 1877-1955 Sanborn plates, an in-browser <strong>Zoom-20 Staff Polygon Editor</strong> with <code>-34.65&deg;</code> Borden Downtown grid rotation and additive auxiliary footprint tracing, and a daylight-contrast <strong>Mobile Walk-the-Block Field Survey Sheet</strong> with offline queuing, GPS blockface cards, and Google Sheet sync.
             </li>
           </ul>
 
@@ -1888,6 +2365,16 @@
                   class="form-input"
                   placeholder="Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street')."
                 ></textarea>
+              </div>
+              <div class="corr-polyedit-launch-row">
+                <button
+                  type="button"
+                  class="btn-secondary btn-sm"
+                  id="btn-corr-open-polyedit"
+                  title="Preservation Houston Staff Admin: reshape, rotate (-34.65 deg Borden grid), or trace primary/auxiliary roof footprints directly over Zoom-20 satellite imagery"
+                >
+                  &#9998; Open Staff Polygon Editor (Zoom 20)
+                </button>
               </div>
             </div>
 
@@ -2944,10 +3431,112 @@
         </div>
       </div>
     </div>
+
+    <!-- Split-Screen Historian Rapid Audit Workbench Modal (Component A) -->
+    <div
+      class="modal-backdrop hidden"
+      id="historian-audit-modal"
+      data-mobile-pane="claim"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="audit-modal-title"
+    >
+      <div class="modal-card audit-modal-card">
+        <div class="modal-header audit-modal-header">
+          <div class="modal-brand-row">
+            <div class="ph-key-badge">
+              <img src="public/assets/ph-key-icon.png" alt="Preservation Houston Key" class="ph-key-badge-img" />
+            </div>
+            <div>
+              <span class="brand-kicker">Preservation Houston &bull; Cross-Dataset Archival Verification</span>
+              <h2 class="modal-title" id="audit-modal-title">Split-Screen Historian Rapid Audit Workbench</h2>
+            </div>
+          </div>
+          <div class="audit-header-right">
+            <div class="audit-progress-box">
+              <span class="audit-progress-text mono" id="audit-progress-text">Loading queue...</span>
+              <div class="audit-progress-track" aria-hidden="true">
+                <div class="audit-progress-fill" id="audit-progress-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <div class="audit-nav-group" role="group" aria-label="Audit item navigation">
+              <button type="button" class="btn-secondary btn-xs mono" id="btn-audit-prev" title="Previous Finding (K)">
+                &#8592; Prev (K)
+              </button>
+              <span class="audit-nav-counter mono" id="audit-nav-counter">0 / 0</span>
+              <button type="button" class="btn-secondary btn-xs mono" id="btn-audit-next" title="Next Finding (J)">
+                Next (J) &#8594;
+              </button>
+            </div>
+            <button type="button" class="icon-btn" id="btn-close-audit-modal" aria-label="Close Historian Audit Modal">
+              &times;
+            </button>
+          </div>
+        </div>
+
+        <div class="audit-filter-bar">
+          <select id="audit-filter-category" class="form-input workbench-control" aria-label="Filter by contradiction category">
+            <option value="all">All Categories</option>
+          </select>
+          <select id="audit-filter-district" class="form-input workbench-control" aria-label="Filter by historic district or neighborhood">
+            <option value="all">All Districts &amp; Areas</option>
+          </select>
+          <select id="audit-filter-status" class="form-input workbench-control" aria-label="Filter by review status">
+            <option value="actionable" selected>Actionable (Unreviewed)</option>
+            <option value="all">All Items</option>
+            <option value="resolved">Resolved / Overridden</option>
+            <option value="dismissed">Dismissed (Keep Current)</option>
+            <option value="skipped">Skipped for Later</option>
+          </select>
+          <input
+            type="search"
+            id="audit-filter-search"
+            class="form-input workbench-control"
+            placeholder="Search address, HCAD account, landmark, or directory match..."
+            aria-label="Search audit queue"
+          />
+          <button type="button" class="btn-secondary btn-xs" id="audit-btn-reset-filters">
+            Reset
+          </button>
+        </div>
+
+        <div class="audit-mobile-tabs" role="tablist" aria-label="Mobile audit pane switcher">
+          <button
+            type="button"
+            class="audit-mobile-tab active"
+            id="audit-mobile-tab-claim"
+            aria-selected="true"
+          >
+            1. Contradiction &amp; Claim
+          </button>
+          <button
+            type="button"
+            class="audit-mobile-tab"
+            id="audit-mobile-tab-archival"
+            aria-selected="false"
+          >
+            2. Directories &amp; Sanborn
+          </button>
+        </div>
+
+        <div class="audit-split-body">
+          <section class="audit-pane audit-pane-left" id="audit-pane-left" aria-label="Contradiction and Resolution Form">
+            <div id="audit-claim-card-host" class="audit-pane-scroll">
+              <div class="audit-loading">Loading 2,600 pre-computed archival contradictions...</div>
+            </div>
+          </section>
+          <section class="audit-pane audit-pane-right" id="audit-pane-right" aria-label="Primary Archival Evidence">
+            <div id="audit-archival-pane-host" class="audit-pane-scroll">
+              <div class="audit-loading">Matching 1866-1926 City Directories and 1877-1955 Sanborn fire insurance volumes...</div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261030d"></script>
+  <script type="module" src="js/app.js?v=20261030e"></script>
 </body>
 </html>

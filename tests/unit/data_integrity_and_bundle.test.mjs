@@ -335,6 +335,7 @@ test("All static external URLs across HTML, JS, and authoritative data catalogs 
     path.join(DATA_DIR, "monitor_activity_log.json"),
     path.join(DATA_DIR, "citydir_index.json"),
     path.join(DATA_DIR, "neighborhood_scorecards.json"),
+    path.join(DATA_DIR, "historical_audit_queue.json"),
   ];
 
   const violations = [];
@@ -594,18 +595,20 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
         true,
         `Split campus parcel ${prefix} must use #<slug> sub-building keys, found bare key ${key}`
       );
-      assert.equal(
-        Boolean(rec.geometry),
-        false,
-        `Shard-primary campus override ${key} must not embed duplicate GeoJSON geometry`
-      );
       assert.equal(rec.is_building_override, true, `${key} must set is_building_override === true`);
-      assert.equal(rec.keep_shard_footprints, true, `${key} must set keep_shard_footprints === true`);
       assert.equal(rec.replace_parcel_shards, false, `${key} must set replace_parcel_shards === false`);
+      if (!rec.geometry) {
+        assert.equal(rec.keep_shard_footprints, true, `${key} must set keep_shard_footprints === true`);
+      } else {
+        assert.ok(
+          rec.geometry.type === "Polygon" || rec.geometry.type === "MultiPolygon",
+          `Custom campus geometry override ${key} must be Polygon/MultiPolygon`
+        );
+      }
       assert.equal(
         Number.isFinite(Number(rec.lon)) && Number.isFinite(Number(rec.lat)),
         true,
-        `Shard-primary campus override ${key} must carry finite lon/lat coordinates for #id= deep-link flight`
+        `Campus override ${key} must carry finite lon/lat coordinates for #id= deep-link flight`
       );
       campusCountsByHcad.set(prefix, (campusCountsByHcad.get(prefix) || 0) + 1);
     }
@@ -621,6 +624,11 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   // MOD-4 & UT-4: Uniform cache-buster parity across pmtiles_manifest.json, schema.py, ORGANIZER_CACHE_BUST, mapController fallback, HTML asset tags, ES imports, and public/data fetches
   const manifest = readDataJson("pmtiles_manifest.json");
   const expectedVer = String(manifest.cache_bust || "").trim();
+  assert.equal(
+    expectedVer,
+    "20261030e",
+    `Expected active Milestone 3 pmtiles_manifest.json cache_bust '20261030e', got '${expectedVer}'`
+  );
   assert.match(
     expectedVer,
     /^\d{8}[a-z]?$/,
@@ -676,12 +684,28 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
       );
     }
 
-    // 2. Every relative ES module import must carry ?v=<expectedVer>
+    // 2. Every relative ES module import (both static from "..." and dynamic import("...")) must carry ?v=<expectedVer> (DF-12)
     for (const m of content.matchAll(/\bfrom\s+["'](\.[^"']+)["']/g)) {
       assert.equal(
         m[1].endsWith(`?v=${expectedVer}`),
         true,
-        `Relative ES module import '${m[1]}' in ${rel} is missing '?v=${expectedVer}'`
+        `Relative static ES module import '${m[1]}' in ${rel} is missing '?v=${expectedVer}'`
+      );
+    }
+    for (const m of content.matchAll(/\bimport\(\s*["'](\.[^"']+)["']\s*\)/g)) {
+      assert.equal(
+        m[1].endsWith(`?v=${expectedVer}`),
+        true,
+        `Relative dynamic import('${m[1]}') in ${rel} is missing '?v=${expectedVer}'`
+      );
+    }
+
+    // 2b. Zero cold-load overhead invariant: staffWorkbench.js must ONLY be dynamically imported, never statically imported by boot modules
+    if (rel === "app/js/app.js" || rel === "app/js/mapController.js") {
+      assert.equal(
+        /\bfrom\s+["'][^"']*staffWorkbench\.js/.test(content),
+        false,
+        `${rel} must not statically import staffWorkbench.js (lazy-load on workbench launch only)`
       );
     }
 
@@ -739,19 +763,33 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/public/data/neighborhood_scorecards.json",
     "app/public/data/overlays.json",
     "app/public/data/building_photos.json",
+    "app/public/data/historical_audit_queue.json",
+    "app/index.html",
     "app/plat-monitor.html",
+    "app/styles/index.css",
     "app/js/activityLogHelpers.js",
+    "app/js/app.js",
+    "app/js/curatedEdits.js",
+    "app/js/filterStore.js",
+    "app/js/mapController.js",
     "app/js/preservationOrganizer.js",
     "app/js/watchlistSyncHelpers.js",
+    "app/js/staffWorkbench.js",
     "pipeline/atlas_pipeline/build_monitor_activity_log.py",
     "pipeline/atlas_pipeline/build_neighborhood_scorecards.py",
     "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
     "pipeline/atlas_pipeline/schema.py",
+    "pipeline/atlas_pipeline/setup_admin_sheet.py",
+    "pipeline/atlas_pipeline/sync_curated_edits.py",
     "pipeline/atlas_pipeline/lost_houston_expansion.py",
     "pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py",
     "pipeline/atlas_pipeline/sync_lost_houston_sheet.py",
+    "pipeline/atlas_pipeline/sync_field_surveys_sheet.py",
     "pipeline/atlas_pipeline/build_social_history_layers.py",
     "pipeline/atlas_pipeline/audit_historical_accuracy.py",
+    "pipeline/tests/test_milestone3_workbench.py",
+    "tests/unit/milestone3_staff_workbench.test.mjs",
+    "tests/e2e/test_milestone3_staff_workbench.py",
     "docs/06-sanborn-maps-and-lost-houston.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
     "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
@@ -767,13 +805,27 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/public/data/search_index.json",
     "app/public/data/building_photos.json",
     "app/public/data/neighborhood_scorecards.json",
+    "app/public/data/historical_audit_queue.json",
+    "app/index.html",
+    "app/styles/index.css",
+    "app/js/app.js",
+    "app/js/curatedEdits.js",
+    "app/js/filterStore.js",
+    "app/js/mapController.js",
+    "app/js/staffWorkbench.js",
     "pipeline/atlas_pipeline/schema.py",
+    "pipeline/atlas_pipeline/setup_admin_sheet.py",
+    "pipeline/atlas_pipeline/sync_curated_edits.py",
     "pipeline/atlas_pipeline/lost_houston_expansion.py",
     "pipeline/atlas_pipeline/build_lost_houston_and_sanborn.py",
     "pipeline/atlas_pipeline/sync_lost_houston_sheet.py",
+    "pipeline/atlas_pipeline/sync_field_surveys_sheet.py",
     "pipeline/atlas_pipeline/build_social_history_layers.py",
     "pipeline/atlas_pipeline/build_neighborhood_scorecards.py",
     "pipeline/atlas_pipeline/audit_historical_accuracy.py",
+    "pipeline/tests/test_milestone3_workbench.py",
+    "tests/unit/milestone3_staff_workbench.test.mjs",
+    "tests/e2e/test_milestone3_staff_workbench.py",
     "docs/06-sanborn-maps-and-lost-houston.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
     "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
@@ -782,16 +834,53 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     assert.equal(
       rawTxt.includes("\u2013"),
       false,
-      `${relStrictNoDash} must contain zero U+2013 en-dashes (UT-7)`
+      `${relStrictNoDash} must contain zero U+2013 en-dashes (UT-7 / SA-2)`
     );
   }
 
-  for (const compactRel of ["overlays.json", "search_index.json", "building_photos.json"]) {
+  for (const compactRel of [
+    "overlays.json",
+    "search_index.json",
+    "building_photos.json",
+    "historical_audit_queue.json",
+  ]) {
     const rawCompact = fs.readFileSync(path.join(DATA_DIR, compactRel), "utf8");
     assert.equal(
       rawCompact.trimEnd().includes("\n"),
       false,
       `${compactRel} must remain single-line compact JSON`
+    );
+  }
+
+  const aqPath = path.join(DATA_DIR, "historical_audit_queue.json");
+  const rawAq = fs.readFileSync(aqPath, "utf8");
+  const aqBytes = Buffer.byteLength(rawAq, "utf8");
+  assert.ok(
+    aqBytes < 1_048_576,
+    `historical_audit_queue.json (${aqBytes} bytes) must stay strictly below 1.0 MiB (1,048,576 bytes)`
+  );
+  const aqDoc = JSON.parse(rawAq);
+  assert.equal(aqDoc.total, 2600, `Expected 2,600 items in historical_audit_queue.json, got ${aqDoc.total}`);
+  assert.equal(aqDoc.items?.length, 2600, "historical_audit_queue.json items.length must equal 2,600");
+  assert.ok(
+    aqDoc.categories &&
+      typeof aqDoc.categories === "object" &&
+      Object.keys(aqDoc.categories).length === 6,
+    "Expected 6 audit contradiction categories"
+  );
+  assert.equal(
+    aqDoc.defaults?.district,
+    "Undesignated / Outside HD",
+    "historical_audit_queue.json defaults.district must declare explicit 'Undesignated / Outside HD' bucket"
+  );
+  for (const row of aqDoc.items) {
+    assert.ok(
+      Array.isArray(row.ll) &&
+        row.ll[0] >= -96.2 &&
+        row.ll[0] <= -94.8 &&
+        row.ll[1] >= 29.3 &&
+        row.ll[1] <= 30.3,
+      `Audit row ${row.fid} coordinates (${JSON.stringify(row.ll)}) outside Harris County bounds`
     );
   }
 
@@ -806,6 +895,56 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     false,
     "neighborhood_scorecards.json must remain single-line compact JSON"
   );
+
+  // SA-3: Print Stylesheet & Media-Query Cascade Ordering in app/styles/index.css
+  const cssRaw = fs.readFileSync(path.join(APP_DIR, "styles", "index.css"), "utf8");
+  const printBlockMatch = cssRaw.match(/@media\s+print\s*\{([\s\S]*?)\n\}/);
+  assert.ok(printBlockMatch, "app/styles/index.css must declare an @media print block");
+  for (const wbSel of [
+    "#historian-audit-modal",
+    "#polygon-editor-dock",
+    "#field-survey-sheet",
+    "#field-survey-crosshair",
+    "#field-survey-toast",
+  ]) {
+    assert.equal(
+      printBlockMatch[1].includes(wbSel),
+      true,
+      `@media print block in app/styles/index.css must hide Milestone 3 surface '${wbSel}'`
+    );
+  }
+  const m3CssStart = cssRaw.indexOf("Milestone 3: Preservation Staff & Field Workbench");
+  assert.ok(m3CssStart > 0, "Expected Milestone 3 section marker in app/styles/index.css");
+  const m3Css = cssRaw.slice(m3CssStart);
+  const m3MediaRules = [...m3Css.matchAll(/^[ \t]*@media\b[^{]+\{/gm)].map((m) => m[0].trim());
+  assert.ok(m3MediaRules.length >= 3, `Expected >= 3 Milestone 3 @media rules, found ${m3MediaRules.length}`);
+  for (const ruleHead of m3MediaRules) {
+    assert.match(
+      ruleHead,
+      /^@media\s+screen\s+and\s*\(/,
+      `Milestone 3 responsive CSS rule '${ruleHead}' below @media print must use '@media screen and (...)' so it never overrides print layout (SA-3)`
+    );
+  }
+
+  // SA-4: 12-Tab Workbook Documentation Parity in docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md
+  const sheetsGuideRaw = fs.readFileSync(
+    path.join(REPO_ROOT, "docs", "GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md"),
+    "utf8"
+  );
+  for (const requiredToken of [
+    "12-Tab",
+    "Field_Surveys",
+    "913405001",
+    "SOP 15",
+    "geometry_geojson",
+    "sync_field_surveys_sheet.py",
+  ]) {
+    assert.equal(
+      sheetsGuideRaw.includes(requiredToken),
+      true,
+      `docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md must document '${requiredToken}' (SA-4)`
+    );
+  }
 
   // Zero positional checklist[N] indexing across watchlist/activity pipeline & UI code
   for (const relNoPos of [

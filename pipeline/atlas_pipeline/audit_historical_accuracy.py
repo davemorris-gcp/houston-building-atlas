@@ -36,9 +36,11 @@ from atlas_pipeline.lost_houston_expansion import (
     sanitize_coh_landmarks_overlay,
 )
 from atlas_pipeline.schema import (
+    HARRIS_COUNTY_BBOX,
     LOST_HOUSTON_VALID_COHORTS,
     MAX_VALID_CAMA_DATE_YEAR,
     MIN_VALID_YEAR,
+    sanitize_atlas_text,
     write_compact_json,
 )
 
@@ -763,8 +765,111 @@ def run_audit(
     # -----------------------------------------------------------------------
     # STEP 3: Generate Prioritized Cross-Dataset Contradiction Audit Queue
     # -----------------------------------------------------------------------
-    findings: list[dict] = []
+    category_slug_map = {
+        "SUSPECTED_UNMARKED_LANDMARK_DEMOLITION": "demo_lm",
+        "ARCHITECT_CAREER_WINDOW_CHECK": "arch_win",
+        "LANDMARK_VS_ATLAS_YEAR_MISMATCH": "lm_year",
+        "ADDRESS_STREET_MISMATCH": "addr_st",
+        "CITY_DIRECTORY_EARLIER_THAN_HCAD": "dir_early",
+        "CITY_DIRECTORY_ABSENT_THROUGH_1926": "dir_abs",
+    }
+
+    def _safe_geom_point(geom: Any) -> tuple[float, float] | None:
+        if not isinstance(geom, dict):
+            return None
+        try:
+            shp = shape(geom)
+            if shp.is_empty:
+                return None
+            pt = shp.representative_point()
+            lon_v, lat_v = round(float(pt.x), 6), round(float(pt.y), 6)
+            min_lng, min_lat, max_lng, max_lat = HARRIS_COUNTY_BBOX
+            if min_lng <= lon_v <= max_lng and min_lat <= lat_v <= max_lat:
+                return (lon_v, lat_v)
+        except Exception:
+            return None
+        return None
+
+    coord_by_id: dict[str, tuple[float, float]] = {}
+    coord_by_hcad: dict[str, tuple[float, float]] = {}
+    primary_props_by_hcad: dict[str, dict[str, Any]] = {}
+
+    for feat in buildings_doc.get("features", []):
+        bp = feat.get("properties") or {}
+        bid = str(bp.get("building_id") or bp.get("id") or "").strip()
+        hc = str(bp.get("hcad_num") or "").strip()
+        pt = _safe_geom_point(feat.get("geometry"))
+        if pt:
+            if bid:
+                coord_by_id[bid] = pt
+            if hc and (hc not in coord_by_hcad or bid != hc):
+                coord_by_hcad[hc] = pt
+        if hc and (hc not in primary_props_by_hcad or bid != hc):
+            primary_props_by_hcad[hc] = bp
+
+    for ov_k, ov in overrides.items():
+        if not isinstance(ov, dict):
+            continue
+        pt = None
+        min_lng, min_lat, max_lng, max_lat = HARRIS_COUNTY_BBOX
+        if ov.get("lon") is not None and ov.get("lat") is not None:
+            try:
+                cand = (round(float(ov["lon"]), 6), round(float(ov["lat"]), 6))
+                if min_lng <= cand[0] <= max_lng and min_lat <= cand[1] <= max_lat:
+                    pt = cand
+            except (TypeError, ValueError):
+                pt = None
+        if pt is None and ov.get("geometry"):
+            pt = _safe_geom_point(ov["geometry"])
+        if pt:
+            coord_by_id.setdefault(str(ov_k), pt)
+            hc_ov = str(ov.get("hcad_num") or str(ov_k).split("#")[0]).strip()
+            if hc_ov:
+                coord_by_hcad.setdefault(hc_ov, pt)
+
+    for layer_name in ("landmarks", "good_brick_awards", "nrhp_properties", "thc_markers", "lost_houston"):
+        for feat in (overlays_doc.get(layer_name) or {}).get("features", []):
+            fp = feat.get("properties") or {}
+            pt = _safe_geom_point(feat.get("geometry"))
+            if not pt:
+                continue
+            hc_f = str(fp.get("hcad_num") or fp.get("site_hcad_num") or "").strip()
+            if hc_f:
+                coord_by_hcad.setdefault(hc_f, pt)
+
+    for srow in search_index:
+        if not isinstance(srow, dict):
+            continue
+        if srow.get("lng") is not None and srow.get("lat") is not None:
+            try:
+                cand = (round(float(srow["lng"]), 6), round(float(srow["lat"]), 6))
+                min_lng, min_lat, max_lng, max_lat = HARRIS_COUNTY_BBOX
+                if min_lng <= cand[0] <= max_lng and min_lat <= cand[1] <= max_lat:
+                    if srow.get("id"):
+                        coord_by_id.setdefault(str(srow["id"]), cand)
+                    if srow.get("hcad_num"):
+                        coord_by_hcad.setdefault(str(srow["hcad_num"]), cand)
+            except (TypeError, ValueError):
+                pass
+
+    findings: list[dict[str, Any]] = []
     seen_finding_keys: set[tuple[str, str]] = set()
+    used_finding_ids: set[str] = set()
+
+    def _make_finding_id(category: str, dedup_target: str) -> str:
+        cat_slug = category_slug_map.get(
+            category,
+            re.sub(r"[^a-z0-9]+", "_", category.lower()).strip("_")[:24],
+        )
+        tgt_slug = re.sub(r"[^A-Za-z0-9_#-]+", "_", dedup_target.strip()).strip("_") or "item"
+        base_id = f"{cat_slug}:{tgt_slug}"
+        fid = base_id
+        seq = 2
+        while fid in used_finding_ids:
+            fid = f"{base_id}_{seq}"
+            seq += 1
+        used_finding_ids.add(fid)
+        return fid
 
     def add_finding(
         category: str,
@@ -777,22 +882,75 @@ def run_audit(
         conflicting_evidence: str,
         recommended_action: str,
         primary_source_url: str,
+        *,
+        building_id: str = "",
+        atlas_year: int = 0,
+        hcad_year: int = 0,
+        suggested_year: int = 0,
+        suggested_source_type: str = "",
+        contributing: str = "",
+        cdm_pointer: int = 0,
+        citydir_years: list[int] | None = None,
+        landmark_code: str = "",
+        architect: str = "",
     ) -> None:
-        key = (category, hcad_num or f"{address}:{name}")
+        target_token = hcad_num or f"{address}:{name}"
+        key = (category, target_token)
         if key in seen_finding_keys:
             return
         seen_finding_keys.add(key)
+
+        base_bp = primary_props_by_hcad.get(hcad_num, {}) if hcad_num else {}
+        resolved_bid = str(
+            building_id
+            or base_bp.get("building_id")
+            or base_bp.get("id")
+            or hcad_num
+            or ""
+        ).strip()
+        resolved_cnt = str(
+            contributing
+            or base_bp.get("contributing")
+            or ("Contributing" if (district and district not in ("Historic Core", "Outside Historic District", "landmarks")) else "Outside Historic District")
+        ).strip()
+        resolved_ay = int(atlas_year or base_bp.get("year_built") or 0)
+        resolved_hy = int(
+            hcad_year
+            or base_bp.get("original_hcad_year")
+            or base_bp.get("year_built")
+            or 0
+        )
+        coord_pair = (
+            coord_by_id.get(resolved_bid)
+            or coord_by_hcad.get(hcad_num)
+            or None
+        )
+        fid = _make_finding_id(category, hcad_num or resolved_bid or target_token)
+
         findings.append({
+            "finding_id": fid,
             "priority_score": priority_score,
             "category": category,
             "hcad_num": hcad_num,
-            "address": address,
-            "building_name": name,
-            "district_or_context": district,
-            "displayed_claim": displayed_claim,
-            "conflicting_evidence": conflicting_evidence,
-            "recommended_action": recommended_action,
+            "building_id": resolved_bid,
+            "address": sanitize_atlas_text(address),
+            "building_name": sanitize_atlas_text(name),
+            "district_or_context": sanitize_atlas_text(district),
+            "contributing": resolved_cnt,
+            "lng": coord_pair[0] if coord_pair else None,
+            "lat": coord_pair[1] if coord_pair else None,
+            "atlas_year": resolved_ay,
+            "hcad_year": resolved_hy,
+            "suggested_year": int(suggested_year or 0),
+            "suggested_source_type": suggested_source_type,
+            "displayed_claim": sanitize_atlas_text(displayed_claim),
+            "conflicting_evidence": sanitize_atlas_text(conflicting_evidence),
+            "recommended_action": sanitize_atlas_text(recommended_action),
             "primary_source_url": primary_source_url,
+            "cdm_pointer": int(cdm_pointer or 0),
+            "citydir_years": list(citydir_years or []),
+            "landmark_code": landmark_code,
+            "architect": sanitize_atlas_text(architect or str(base_bp.get("architect") or "")),
             "review_status": "Pending PH Review",
         })
 
@@ -808,13 +966,15 @@ def run_audit(
         bfeats = blds_by_hcad.get(hcad, [])
         if not bfeats:
             continue
+        non_parcel_bfeats = [bf for bf in bfeats if str(bf["properties"].get("id") or "") != hcad]
+        primary_bf = max(non_parcel_bfeats or bfeats, key=lambda x: geom_area(x.get("geometry")))
+        primary_bp = primary_bf.get("properties") or {}
         bld_years = [
             int(bf["properties"].get("year_built") or 0)
             for bf in bfeats
             if str(bf["properties"].get("id") or "") != hcad and int(bf["properties"].get("year_built") or 0) > 0
         ] or [int(bfeats[0]["properties"].get("year_built") or 0)]
         min_by = min(bld_years)
-        max_by = max(bld_years)
         lm_type = str(lp.get("landmark_type") or lp.get("designation") or "Landmark")
         lm_code = str(lp.get("plm_num") or lp.get("lm_num") or "")
         pdf_url = str(lp.get("report_pdf_url") or "")
@@ -824,26 +984,40 @@ def run_audit(
                 category="SUSPECTED_UNMARKED_LANDMARK_DEMOLITION",
                 priority_score=98,
                 hcad_num=hcad,
-                address=str(lp.get("address") or bfeats[0]["properties"].get("address") or ""),
+                address=str(lp.get("address") or primary_bp.get("address") or ""),
                 name=str(lp.get("name") or ""),
-                district=str(bfeats[0]["properties"].get("historic_district") or lm_type),
+                district=str(primary_bp.get("historic_district") or lm_type),
                 displayed_claim=f"Active COH {lm_type} ({lm_code}, built {lmy})",
                 conflicting_evidence=f"HCAD records modern structure built {min_by} on parcel; likely demolished after 90-day waiver without COH GIS USER_DEMOD flag",
                 recommended_action="Verify via Street View / HAHC minutes; if demolished, mark demolished and move historic record to Lost Houston",
                 primary_source_url=pdf_url,
+                building_id=str(primary_bp.get("building_id") or primary_bp.get("id") or ""),
+                atlas_year=min_by,
+                hcad_year=min_by,
+                suggested_year=0,
+                suggested_source_type="COH Landmark Designation Report",
+                landmark_code=lm_code,
+                architect=str(lp.get("architect") or primary_bp.get("architect") or ""),
             )
         elif min_by > 0 and min(abs(by - lmy) for by in bld_years) >= 8:
             add_finding(
                 category="LANDMARK_VS_ATLAS_YEAR_MISMATCH",
                 priority_score=88,
                 hcad_num=hcad,
-                address=str(lp.get("address") or bfeats[0]["properties"].get("address") or ""),
+                address=str(lp.get("address") or primary_bp.get("address") or ""),
                 name=str(lp.get("name") or ""),
-                district=str(bfeats[0]["properties"].get("historic_district") or lm_type),
+                district=str(primary_bp.get("historic_district") or lm_type),
                 displayed_claim=f"Atlas footprint year(s): {sorted(set(bld_years))}",
                 conflicting_evidence=f"COH {lm_type} ({lm_code}) report lists year_built = {lmy}",
                 recommended_action="Disambiguate primary landmark footprint vs. secondary buildings or later remodel year in Approved_Edits",
                 primary_source_url=pdf_url,
+                building_id=str(primary_bp.get("building_id") or primary_bp.get("id") or ""),
+                atlas_year=min_by,
+                hcad_year=int(primary_bp.get("original_hcad_year") or min_by),
+                suggested_year=lmy,
+                suggested_source_type="COH Landmark Designation Report",
+                landmark_code=lm_code,
+                architect=str(lp.get("architect") or primary_bp.get("architect") or ""),
             )
 
     # 3B. Architect Active-Career Window Anachronism Scan
@@ -872,6 +1046,12 @@ def run_audit(
                     conflicting_evidence=f"Year {yr} is outside documented career window ({lo}-{hi}) for {label}",
                     recommended_action="Check whether architect designed a later remodel/addition or whether HCAD year reflects a replacement building",
                     primary_source_url=str(bp.get("landmark_report_url") or bp.get("source_url") or ""),
+                    building_id=str(bp.get("building_id") or bp.get("id") or ""),
+                    atlas_year=yr,
+                    hcad_year=int(bp.get("original_hcad_year") or yr),
+                    suggested_year=0,
+                    suggested_source_type="Architectural Monograph / Handbook of Texas",
+                    architect=arch,
                 )
 
     # 3C. Cross-Street / Address Mismatch Scan on Overrides & Good Brick Awards
@@ -902,6 +1082,13 @@ def run_audit(
                     conflicting_evidence=f"HCAD {hcad} situs street is {sorted(parcel_streets)} (Verify corner lot vs. adjacent parcel snap)",
                     recommended_action="Confirm corner-lot secondary frontage or reassign to adjacent HCAD account",
                     primary_source_url=str(ov.get("source_url") or ""),
+                    building_id=str(ov_k),
+                    atlas_year=int(ov.get("year_built") or 0),
+                    hcad_year=int(ov.get("original_hcad_year") or ov.get("year_built") or 0),
+                    suggested_year=int(ov.get("year_built") or 0),
+                    suggested_source_type=str(ov.get("source_type") or "HCAD Parcel GIS"),
+                    contributing=str(ov.get("contributing") or ""),
+                    architect=str(ov.get("architect") or ""),
                 )
 
     # 3D. 1866-1926 Houston City Directory Contradictions on Un-Overridden Buildings
@@ -946,6 +1133,14 @@ def run_audit(
             earliest_dir = int(dir_rec["e"])
             if earliest_dir <= yr - 5:
                 gap = min(25, yr - earliest_dir)
+                ptr_int, cdm_item_url = resolve_citydir_cdm_url(dir_rec, dir_url)
+                ocr_excerpt = sanitize_atlas_text(str(dir_rec.get("c") or dir_rec.get("x") or "")).strip()
+                excerpt_short = (ocr_excerpt[:140] + "...") if len(ocr_excerpt) > 140 else ocr_excerpt
+                dir_years = [int(y) for y in (dir_rec.get("y") or []) if isinstance(y, (int, float))]
+                evidence_detail = (
+                    f"Appears in {earliest_dir} Houston City Directory ({yr - earliest_dir} yrs earlier than HCAD"
+                    + (f"; {excerpt_short})" if excerpt_short else ")")
+                )
                 add_finding(
                     category="CITY_DIRECTORY_EARLIER_THAN_HCAD",
                     priority_score=65 + min(20, gap // 2) + vis_bonus,
@@ -954,11 +1149,17 @@ def run_audit(
                     name=bname,
                     district=hd or "Historic Core",
                     displayed_claim=f"HCAD Year Built: {yr} (unverified)",
-                    conflicting_evidence=f"Appears in {earliest_dir} Houston City Directory ({yr - earliest_dir} yrs earlier than HCAD; '{dir_rec.get('x', '')[:70]}')",
+                    conflicting_evidence=evidence_detail,
                     recommended_action=f"Verify same structure on Sanborn map and promote year_built <= {earliest_dir} in Approved_Edits",
-                    primary_source_url=f"https://cdm17006.contentdm.oclc.org/digital/collection/citydir/id/{dir_rec.get('c')}/rec/1"
-                    if dir_rec.get("c")
-                    else dir_url,
+                    primary_source_url=cdm_item_url,
+                    building_id=str(bp.get("building_id") or bp.get("id") or ""),
+                    atlas_year=yr,
+                    hcad_year=yr,
+                    suggested_year=earliest_dir,
+                    suggested_source_type="Houston City Directory",
+                    contributing=str(bp.get("contributing") or ""),
+                    cdm_pointer=ptr_int,
+                    citydir_years=dir_years,
                 )
 
         if hcad in absent_1926 and yr <= 1924:
@@ -974,6 +1175,12 @@ def run_audit(
                 conflicting_evidence="Address audited as unimproved / absent through the 1926 Morrison & Fourmy Houston City Directory",
                 recommended_action="Check 1928-1935 City Directories & 1924-1951 Sanborn sheets for exact post-1926 construction year",
                 primary_source_url=dir_url,
+                building_id=str(bp.get("building_id") or bp.get("id") or ""),
+                atlas_year=yr,
+                hcad_year=yr,
+                suggested_year=0,
+                suggested_source_type="Houston City Directory",
+                contributing=str(bp.get("contributing") or ""),
             )
 
     # 3E. Lost Houston, Demolished COH Landmarks, and Demolished NRHP Integrity Gate (Milestone 2)
@@ -1016,6 +1223,7 @@ def run_audit(
             try:
                 poly = shape(geom_d)
                 minx, miny, maxx, maxy = poly.bounds
+                min_lng, min_lat, max_lng, max_lat = HARRIS_COUNTY_BBOX
                 ring_coords = (geom_d.get("coordinates") or [[]])[0]
                 has_excess_dp = has_excess_ring_precision(ring_coords, 6)
                 geom_ok = (
@@ -1024,8 +1232,8 @@ def run_audit(
                     and not poly.is_empty
                     and poly.exterior.is_ccw
                     and len(ring_coords) >= 4
-                    and -96.0 <= minx <= maxx <= -94.8
-                    and 29.4 <= miny <= maxy <= 30.2
+                    and min_lng <= minx <= maxx <= max_lng
+                    and min_lat <= miny <= maxy <= max_lat
                     and not has_excess_dp
                 )
             except Exception:
@@ -1193,6 +1401,8 @@ def run_audit(
         if not bp.get("is_curated_override") and not bp.get("year_source") and 1890 <= yr <= 1950 and yr % 10 == 0:
             rounded_hcad_count += 1
 
+    queue_payload = build_historical_audit_queue_payload(findings, generated_on="2026-10-30")
+
     summary_payload = {
         "generated_on": "2026-10-30",
         "reconciled_fixes": stats_dict,
@@ -1209,12 +1419,14 @@ def run_audit(
         write_compact_json(overrides_path, overrides_doc)
         write_compact_json(buildings_path, buildings_doc)
         write_compact_json(search_index_path, search_index)
+        write_compact_json(DATA_DIR / "historical_audit_queue.json", queue_payload)
         (DATA_DIR / "historical_audit_summary.json").write_text(
             json.dumps(summary_payload, indent=2, ensure_ascii=False)
         )
 
         csv_path = CACHE_DIR / "historical_audit_findings.csv"
         fieldnames = [
+            "finding_id",
             "priority_score",
             "category",
             "hcad_num",
@@ -1228,13 +1440,187 @@ def run_audit(
             "review_status",
         ]
         with csv_path.open("w", newline="", encoding="utf-8") as cf:
-            writer = csv.DictWriter(cf, fieldnames=fieldnames)
+            writer = csv.DictWriter(cf, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(findings)
 
     return {
         "summary": summary_payload,
         "findings": findings,
+        "queue": queue_payload,
+    }
+
+
+def resolve_citydir_cdm_url(dir_rec: dict[str, Any] | None, fallback_url: str) -> tuple[int, str]:
+    """Resolve validated ContentDM integer page pointer (`p`) and direct item URL.
+
+    Never interpolates non-integer OCR citation strings (`c`/`x`) into `/id/<ptr>/rec/1`.
+    """
+    if not isinstance(dir_rec, dict):
+        return 0, fallback_url
+    raw_ptr = dir_rec.get("p")
+    ptr_int = (
+        int(raw_ptr)
+        if isinstance(raw_ptr, int) and not isinstance(raw_ptr, bool)
+        else (int(str(raw_ptr).strip()) if str(raw_ptr or "").strip().isdigit() else 0)
+    )
+    if ptr_int > 0:
+        return ptr_int, f"https://cdm17006.contentdm.oclc.org/digital/collection/citydir/id/{ptr_int}/rec/1"
+    return 0, fallback_url
+
+
+def build_historical_audit_queue_payload(
+    findings: list[dict[str, Any]],
+    *,
+    generated_on: str = "2026-10-30",
+) -> dict[str, Any]:
+    """Build the compact Milestone 3 `historical_audit_queue.json` bundle (< 1.0 MiB; DF-8, DF-9).
+
+    Guarantees deterministic composite `fid` uniqueness across multi-category duplicate HCADs,
+    validated ContentDM integer page pointer URLs, and finite countywide coordinates `[lng, lat]`
+    for all standing historic contradictions while deduplicating repetitive category boilerplate
+    into top-level `defaults` so the single-line bundle stays well under 1.0 MiB.
+    """
+    min_lng, min_lat, max_lng, max_lat = HARRIS_COUNTY_BBOX
+    seen_fids: set[str] = set()
+    items: list[dict[str, Any]] = []
+    cat_counts: dict[str, int] = Counter()
+
+    default_actions: dict[str, str] = {
+        "CITY_DIRECTORY_EARLIER_THAN_HCAD": "Verify same structure on Sanborn map and promote earliest directory year in Approved_Edits",
+        "CITY_DIRECTORY_ABSENT_THROUGH_1926": "Check 1928-1935 City Directories & 1924-1951 Sanborn sheets for exact post-1926 construction year",
+        "LANDMARK_VS_ATLAS_YEAR_MISMATCH": "Disambiguate primary landmark footprint vs. secondary buildings or later remodel year in Approved_Edits",
+        "ADDRESS_STREET_MISMATCH": "Confirm corner-lot secondary frontage or reassign to adjacent HCAD account",
+        "SUSPECTED_UNMARKED_LANDMARK_DEMOLITION": "Verify via Street View / HAHC minutes; if demolished, mark demolished and move historic record to Lost Houston",
+        "ARCHITECT_CAREER_WINDOW_CHECK": "Check whether architect designed a later remodel/addition or whether HCAD year reflects a replacement building",
+    }
+    default_sources: dict[str, str] = {
+        "CITY_DIRECTORY_EARLIER_THAN_HCAD": "Houston City Directory",
+        "CITY_DIRECTORY_ABSENT_THROUGH_1926": "Houston City Directory",
+        "LANDMARK_VS_ATLAS_YEAR_MISMATCH": "COH Landmark Designation Report",
+        "ADDRESS_STREET_MISMATCH": "HCAD Parcel GIS",
+        "SUSPECTED_UNMARKED_LANDMARK_DEMOLITION": "COH Landmark Designation Report",
+        "ARCHITECT_CAREER_WINDOW_CHECK": "Architectural Monograph / Handbook of Texas",
+    }
+
+    for row in findings:
+        fid = str(row.get("finding_id") or "").strip()
+        if not fid:
+            raise ValueError(f"Audit finding missing finding_id: {row}")
+        if fid in seen_fids:
+            raise ValueError(f"Duplicate composite finding_id in audit queue: {fid}")
+        seen_fids.add(fid)
+
+        cat = str(row.get("category") or "").strip()
+        cat_counts[cat] += 1
+
+        lng = row.get("lng")
+        lat = row.get("lat")
+        ll_pair: list[float] | None = None
+        if lng is not None and lat is not None:
+            lng_f, lat_f = round(float(lng), 6), round(float(lat), 6)
+            if min_lng <= lng_f <= max_lng and min_lat <= lat_f <= max_lat:
+                ll_pair = [lng_f, lat_f]
+
+        hcad_s = str(row.get("hcad_num") or "")
+        bid_s = str(row.get("building_id") or hcad_s)
+        ay_i = int(row.get("atlas_year") or 0)
+        hy_i = int(row.get("hcad_year") or 0)
+        sy_i = int(row.get("suggested_year") or 0)
+        dist_s = sanitize_atlas_text(str(row.get("district_or_context") or ""))
+        cnt_s = sanitize_atlas_text(str(row.get("contributing") or "Outside Historic District"))
+        claim_s = sanitize_atlas_text(str(row.get("displayed_claim") or ""))
+        ev_s = sanitize_atlas_text(str(row.get("conflicting_evidence") or ""))
+
+        if cat == "CITY_DIRECTORY_EARLIER_THAN_HCAD":
+            claim_s = ""
+            # Keep concise page/excerpt hint here; full OCR quote hydrates from citydir_index.json in UI
+            m_pg = re.search(r"\(page\s+\d+\):\s*(.+)$", ev_s)
+            pg_lbl_m = re.search(r"\((page\s+\d+)\)", ev_s)
+            if m_pg:
+                snip = m_pg.group(1).strip().rstrip(")")
+                snip = (snip[:40] + "...") if len(snip) > 40 else snip
+                pg_lbl = f", {pg_lbl_m.group(1)}" if pg_lbl_m else ""
+                ev_s = f"{sy_i} City Dir ({ay_i - sy_i}y earlier{pg_lbl}): {snip}"
+            elif len(ev_s) > 80:
+                ev_s = ev_s[:77] + "..."
+        elif cat == "CITY_DIRECTORY_ABSENT_THROUGH_1926":
+            claim_s = ""
+            ev_s = ""
+
+        url_s = str(row.get("primary_source_url") or "")
+        raw_cdm_ptr = row.get("cdm_pointer")
+        if raw_cdm_ptr not in (None, "", 0, "0"):
+            if isinstance(raw_cdm_ptr, bool) or not str(raw_cdm_ptr).strip().isdigit():
+                raise ValueError(f"Non-integer ContentDM cdm_pointer on {fid}: {raw_cdm_ptr!r}")
+            ptr = int(str(raw_cdm_ptr).strip())
+        else:
+            ptr = 0
+        if "cdm17006.contentdm.oclc.org/digital/collection/citydir/id/" in url_s:
+            cdm_seg = url_s.split("/collection/citydir/id/", 1)[1].split("/", 1)[0]
+            if not cdm_seg.isdigit() or int(cdm_seg) <= 0:
+                raise ValueError(f"Invalid non-integer ContentDM item URL on {fid}: {url_s!r}")
+        if cat == "CITY_DIRECTORY_ABSENT_THROUGH_1926" and ptr == 0 and "/search/searchterm/" in url_s:
+            url_s = ""
+
+        item: dict[str, Any] = {
+            "fid": fid,
+            "p": int(row.get("priority_score") or 0),
+            "cat": cat,
+            "h": hcad_s,
+            "a": sanitize_atlas_text(str(row.get("address") or "")),
+            "ll": ll_pair,
+            "ay": ay_i,
+        }
+        if claim_s:
+            item["cl"] = claim_s
+        if ev_s:
+            item["ev"] = ev_s
+        if url_s:
+            item["u"] = url_s
+        if bid_s and bid_s != hcad_s:
+            item["bid"] = bid_s
+        if dist_s and dist_s not in ("Historic Core", "Outside Historic District"):
+            item["d"] = dist_s
+        if cnt_s and cnt_s != "Outside Historic District":
+            item["cnt"] = cnt_s
+        if hy_i and hy_i != ay_i:
+            item["hy"] = hy_i
+        if sy_i > 0:
+            item["sy"] = sy_i
+        st_s = sanitize_atlas_text(str(row.get("suggested_source_type") or ""))
+        if st_s and st_s != default_sources.get(cat, ""):
+            item["st"] = st_s
+        act_s = sanitize_atlas_text(str(row.get("recommended_action") or ""))
+        if cat != "CITY_DIRECTORY_EARLIER_THAN_HCAD" and act_s and act_s != default_actions.get(cat, ""):
+            item["act"] = act_s
+        bname = sanitize_atlas_text(str(row.get("building_name") or ""))
+        if bname:
+            item["n"] = bname
+        if ptr > 0:
+            item["dp"] = ptr
+        lmc = sanitize_atlas_text(str(row.get("landmark_code") or ""))
+        if lmc:
+            item["lmc"] = lmc
+        arc = sanitize_atlas_text(str(row.get("architect") or ""))
+        if arc:
+            item["arc"] = arc
+        items.append(item)
+
+    return {
+        "v": 1,
+        "generated_on": generated_on,
+        "total": len(items),
+        "categories": dict(cat_counts),
+        "defaults": {
+            "district": "Undesignated / Outside HD",
+            "contributing": "Outside Historic District",
+            "absent_1926_evidence": "Address audited as unimproved / absent through the 1926 Morrison & Fourmy Houston City Directory",
+            "cdm_search_prefix": "https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search/searchterm/",
+            "actions": default_actions,
+            "sources": default_sources,
+        },
+        "items": items,
     }
 
 

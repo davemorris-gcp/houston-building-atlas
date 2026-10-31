@@ -22,24 +22,45 @@ from pathlib import Path
 from typing import Any
 
 from atlas_pipeline.schema import (
-    MAX_STANDING_OVERRIDE_YEAR,
+    FIELD_SURVEY_SOURCE_TYPE,
     MIN_VALID_YEAR,
+    OVERRIDE_MODE_ADDITIVE_POLYGON,
+    OVERRIDE_MODE_SHARD_PRIMARY,
+    OVERRIDE_MODE_SUPPRESS_VACANT,
+    classify_override_footprint_mode,
     compute_decade,
+    extract_embedded_geometry_json,
     is_demolished_vacant_marker,
     normalize_override_record,
+    normalize_standing_override_year,
+    strip_embedded_field_survey_tag,
+    strip_embedded_geometry_tag,
+    validate_and_normalize_override_polygon,
     write_compact_json,
 )
 
 _SKIP_SOURCE_TYPES = frozenset({
     "PLAT_MONITOR_REVIEW",
     "PROPERTY_WATCHLIST_UPDATE",
+    FIELD_SURVEY_SOURCE_TYPE,
     "BUILDING_FLAG",
     "DATA_FLAG",
     "PHOTO_MISATTRIBUTION_FLAG",
     "CLAIM_DISPUTE_FLAG",
     "NARRATIVE_ERROR_FLAG",
 })
-_SKIP_ID_PREFIXES = ("PLAT_", "WATCH_", "FLAG_", "NARRATIVE_")
+_SKIP_ID_PREFIXES = ("PLAT_", "WATCH_", "FLAG_", "NARRATIVE_", "SURV_")
+_GEOMETRY_ONLY_FALLBACK_SOURCES = frozenset({
+    "",
+    "SATELLITE / AERIAL IMAGERY",
+    "AERIAL / SATELLITE IMAGERY",
+    "SATELLITE / AERIAL IMAGERY VERIFICATION",
+    "SATELLITE / GIS FOOTPRINT EDIT",
+    "STAFF POLYGON EDITOR",
+    "PRESERVATION HOUSTON STAFF POLYGON EDITOR",
+    "HCAD PARCEL GIS",
+    "[FOOTPRINT FIX NEEDED]",
+})
 
 
 def normalize_hcad(raw: Any) -> str:
@@ -74,6 +95,141 @@ def parse_override_target(norm_row: dict[str, str]) -> tuple[str, str, bool]:
     return (hcad_num, hcad_num, False)
 
 
+def _resolve_row_geometry(norm_row: dict[str, str]) -> dict[str, Any] | None:
+    """Resolve explicit `geometry_geojson` cell first, then balanced `[GEOMETRY_GEOJSON:{...}]` tag (DF-2)."""
+    raw_geom_cell = str(norm_row.get("geometry_geojson") or "").strip()
+    if raw_geom_cell:
+        try:
+            cand_obj = json.loads(raw_geom_cell)
+        except json.JSONDecodeError:
+            cand_obj = None
+        if cand_obj is not None:
+            res = validate_and_normalize_override_polygon(cand_obj)
+            if res["ok"]:
+                return res["geometry"]
+    return extract_embedded_geometry_json(norm_row.get("source_citation", ""))
+
+
+def merge_override_record(
+    prev: dict[str, Any] | None,
+    incoming: dict[str, Any],
+    ov_key: str = "",
+) -> dict[str, Any]:
+    """Fold an incoming approved edit row onto a prior override record left-to-right (DF-1, DF-2).
+
+    Guarantees:
+      - Later metadata-only rows preserve earlier custom `geometry` (and keep additive `#aux_<N>`
+        disposition `keep_shard_footprints=False`).
+      - Later geometry-only rows (with missing/unknown `year_built` and `suppress_only=False`)
+        preserve prior standing `year_built`, `decade`, Tier 1/2 `source_type`, and architectural
+        metadata without coercing `year_built` to `0`.
+      - Vacant suppression rows (`suppress_only=True`) strip active `geometry` and zero out years;
+        revival rows (`suppress_only=False` with standing year or geometry) clear suppression.
+    """
+    prior = dict(prev or {})
+    key = str(ov_key or incoming.get("override_key") or incoming.get("id") or prior.get("id") or "").strip()
+    is_sub = "#" in key or bool(incoming.get("is_building_override")) or bool(prior.get("is_building_override"))
+
+    if bool(incoming.get("suppress_only")):
+        merged = dict(prior)
+        for k, v in incoming.items():
+            if k == "override_key" or v in ("", None):
+                continue
+            merged[k] = v
+        merged["suppress_only"] = True
+        merged["year_built"] = 0
+        merged["decade"] = 0
+        merged["keep_shard_footprints"] = False
+        merged.pop("geometry", None)
+        if is_sub:
+            merged["building_id"] = key
+            merged["is_building_override"] = True
+        return normalize_override_record(key, merged)
+
+    inc_year = normalize_standing_override_year(incoming.get("year_built"))
+    prior_year = normalize_standing_override_year(prior.get("year_built"))
+    was_suppressed = bool(prior.get("suppress_only"))
+    is_geom_only = inc_year == 0 and isinstance(incoming.get("geometry"), dict)
+
+    merged = dict(prior)
+    for k, v in incoming.items():
+        if k in ("override_key", "year_built", "decade", "keep_shard_footprints", "replace_parcel_shards"):
+            continue
+        if v in ("", None):
+            continue
+        if k == "source_type" and is_geom_only and prior_year >= MIN_VALID_YEAR and not was_suppressed:
+            prior_src = str(prior.get("source_type") or "").strip()
+            inc_src_upper = str(v).strip().upper()
+            if prior_src and (
+                inc_src_upper in _GEOMETRY_ONLY_FALLBACK_SOURCES
+                or inc_src_upper.startswith("FOOTPRINT ISSUE:")
+            ):
+                continue
+        if k == "source_citation" and is_geom_only and prior_year >= MIN_VALID_YEAR and not was_suppressed:
+            prior_cit = strip_embedded_geometry_tag(prior.get("source_citation", ""))
+            inc_cit = strip_embedded_geometry_tag(str(v))
+            if prior_cit and inc_cit and inc_cit not in prior_cit:
+                merged["source_citation"] = f"{prior_cit} | Footprint note: {inc_cit}"
+                continue
+            if prior_cit and not inc_cit:
+                merged["source_citation"] = prior_cit
+                continue
+        merged[k] = v
+
+    merged["suppress_only"] = False
+    if inc_year >= MIN_VALID_YEAR:
+        merged["year_built"] = inc_year
+        merged["decade"] = compute_decade(inc_year)
+    elif was_suppressed:
+        merged.pop("year_built", None)
+        merged.pop("decade", None)
+    elif prior_year >= MIN_VALID_YEAR:
+        merged["year_built"] = prior_year
+        merged["decade"] = compute_decade(prior_year)
+    else:
+        merged.pop("year_built", None)
+        merged.pop("decade", None)
+
+    has_geom = isinstance(merged.get("geometry"), dict) and merged["geometry"].get("type") in (
+        "Polygon",
+        "MultiPolygon",
+    )
+    explicit_replace = incoming.get("replace_parcel_shards")
+
+    if is_sub:
+        merged["building_id"] = key
+        merged["is_building_override"] = True
+        if has_geom:
+            merged["keep_shard_footprints"] = False
+            if isinstance(explicit_replace, bool):
+                merged["replace_parcel_shards"] = explicit_replace
+            else:
+                merged["replace_parcel_shards"] = bool(prior.get("replace_parcel_shards", False))
+        else:
+            merged["keep_shard_footprints"] = True
+            merged["replace_parcel_shards"] = False
+    else:
+        if has_geom:
+            merged.pop("keep_shard_footprints", None)
+            if isinstance(explicit_replace, bool):
+                merged["replace_parcel_shards"] = explicit_replace
+        elif merged.get("keep_shard_footprints") is False and was_suppressed:
+            merged.pop("keep_shard_footprints", None)
+
+    mode = classify_override_footprint_mode(key, merged)
+    if mode == OVERRIDE_MODE_ADDITIVE_POLYGON:
+        merged["keep_shard_footprints"] = False
+        merged["replace_parcel_shards"] = False
+    elif mode == OVERRIDE_MODE_SHARD_PRIMARY and is_sub:
+        merged["keep_shard_footprints"] = True
+        merged["replace_parcel_shards"] = False
+    elif mode == OVERRIDE_MODE_SUPPRESS_VACANT:
+        merged["keep_shard_footprints"] = False
+        merged.pop("geometry", None)
+
+    return normalize_override_record(key, merged)
+
+
 def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
     """Parse CSV text and return only rows whose status is Approved/Verified."""
     reader = csv.DictReader(io.StringIO(csv_text.lstrip("\ufeff")))
@@ -86,10 +242,16 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
         raw_src_type = norm_row.get("source_type", "").strip().upper()
         if raw_src_type in _SKIP_SOURCE_TYPES or raw_src_type.endswith("_FLAG"):
             continue
+        raw_citation = norm_row.get("source_citation", "")
+        if "[FIELD_SURVEY_JSON:" in raw_citation:
+            continue
 
         override_key, hcad_num, is_sub = parse_override_target(norm_row)
         if not hcad_num:
             continue
+
+        resolved_geom = _resolve_row_geometry(norm_row)
+        clean_citation = strip_embedded_field_survey_tag(strip_embedded_geometry_tag(raw_citation))
 
         raw_yr_str = ""
         for yr_col in ("year_built", "verified_year_built", "suggested_year_built", "corrected_year"):
@@ -111,18 +273,21 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
             footprint_issue=norm_row.get("footprint_issue", ""),
             footprint_notes=norm_row.get("footprint_notes") or norm_row.get("notes", ""),
             source_type=norm_row.get("source_type", ""),
-            source_citation=norm_row.get("source_citation", ""),
+            source_citation=clean_citation,
             suppress_only=explicit_sup,
         )
 
+        year_built: int | None
         if is_suppress_only:
             year_built = 0
+            resolved_geom = None
         else:
-            try:
-                year_built = int(round(float(raw_yr_str or 0)))
-            except ValueError:
-                continue
-            if not (MIN_VALID_YEAR <= year_built <= MAX_STANDING_OVERRIDE_YEAR):
+            parsed_yr = normalize_standing_override_year(raw_yr_str)
+            if parsed_yr >= MIN_VALID_YEAR:
+                year_built = parsed_yr
+            elif resolved_geom is not None and (raw_yr_str == "" or raw_yr_str == "0"):
+                year_built = None
+            else:
                 continue
 
         orig_raw = (
@@ -134,36 +299,79 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
         )
         orig_year = int(orig_raw) if orig_raw.isdigit() else None
 
+        default_src_type = (
+            "Satellite / Aerial Imagery"
+            if (resolved_geom is not None and year_built is None)
+            else "Houston City Directory"
+        )
         parsed_rec: dict[str, Any] = {
             "override_key": override_key,
             "id": override_key,
             "hcad_num": hcad_num,
             "address": norm_row.get("address", ""),
             "year_built": year_built,
-            "decade": 0 if is_suppress_only else compute_decade(year_built),
+            "decade": 0 if is_suppress_only else (compute_decade(year_built) if year_built else None),
             "original_hcad_year": orig_year,
             "historic_district": norm_row.get("historic_district", ""),
             "contributing": norm_row.get("contributing", ""),
-            "source_type": norm_row.get("source_type", "Houston City Directory"),
-            "source_citation": norm_row.get("source_citation", ""),
+            "source_type": norm_row.get("source_type") or default_src_type,
+            "source_citation": clean_citation,
             "source_url": norm_row.get("source_url", ""),
             "verified_by": norm_row.get("verified_by", "Preservation Houston Archival Review"),
             "verified_date": norm_row.get("verified_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
             "notes": norm_row.get("notes", ""),
             "suppress_only": bool(is_suppress_only),
         }
+        if resolved_geom is not None:
+            parsed_rec["geometry"] = resolved_geom
+        raw_replace = norm_row.get("replace_parcel_shards", "").strip().lower()
+        if raw_replace in {"true", "1", "yes"}:
+            parsed_rec["replace_parcel_shards"] = True
+        elif raw_replace in {"false", "0", "no"}:
+            parsed_rec["replace_parcel_shards"] = False
+
         if norm_row.get("building_name"):
             parsed_rec["building_name"] = norm_row["building_name"]
+        raw_alt_names = norm_row.get("alt_names", "")
+        if raw_alt_names:
+            alt_list = [
+                part.strip()
+                for part in raw_alt_names.replace("|", ";").split(";")
+                if part.strip() and part.strip() != parsed_rec.get("building_name")
+            ]
+            if alt_list:
+                parsed_rec["alt_names"] = alt_list
+        if norm_row.get("bld_style"):
+            parsed_rec["bld_style"] = norm_row["bld_style"]
         if norm_row.get("architect"):
             parsed_rec["architect"] = norm_row["architect"]
         if is_sub:
             parsed_rec["building_id"] = override_key
             parsed_rec["is_building_override"] = True
-            if not is_suppress_only:
+            if is_suppress_only:
+                parsed_rec["keep_shard_footprints"] = False
+            elif resolved_geom is not None:
+                parsed_rec["keep_shard_footprints"] = False
+                parsed_rec.setdefault("replace_parcel_shards", False)
+            else:
                 parsed_rec["keep_shard_footprints"] = True
                 parsed_rec["replace_parcel_shards"] = False
         approved.append(parsed_rec)
     return approved
+
+
+def fold_approved_csv_overrides(
+    csv_text: str,
+    base_overrides: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Fold sequential `Approved_Edits` CSV rows left-to-right onto `base_overrides` (DF-2)."""
+    folded: dict[str, dict[str, Any]] = {
+        str(k): dict(v) for k, v in (base_overrides or {}).items() if isinstance(v, dict)
+    }
+    for row in parse_approved_csv_rows(csv_text):
+        ov_key = str(row.get("override_key") or row["hcad_num"]).strip()
+        folded[ov_key] = merge_override_record(folded.get(ov_key), row, ov_key)
+    return folded
 
 
 def sync_curated_overrides(
@@ -197,29 +405,7 @@ def sync_curated_overrides(
         csv_text = local_csv_path.read_text(encoding="utf-8")
 
     if csv_text:
-        for row in parse_approved_csv_rows(csv_text):
-            ov_key = str(row.get("override_key") or row["hcad_num"]).strip()
-            clean_row = {k: v for k, v in row.items() if k != "override_key" and v not in ("", None)}
-            prev = overrides_map.get(ov_key, {})
-            merged = {**prev, **clean_row}
-            if row.get("suppress_only"):
-                merged["suppress_only"] = True
-                merged["year_built"] = 0
-                merged["decade"] = 0
-                merged["keep_shard_footprints"] = False
-                merged.pop("geometry", None)
-            elif int(row.get("year_built") or 0) >= MIN_VALID_YEAR:
-                merged["suppress_only"] = False
-                if (
-                    "#" not in ov_key
-                    and not bool(merged.get("is_building_override"))
-                    and merged.get("keep_shard_footprints") is False
-                ):
-                    merged.pop("keep_shard_footprints", None)
-                if ("#" in ov_key or bool(merged.get("is_building_override"))) and not merged.get("geometry"):
-                    merged["keep_shard_footprints"] = True
-                    merged.setdefault("replace_parcel_shards", False)
-            overrides_map[ov_key] = merged
+        overrides_map = fold_approved_csv_overrides(csv_text, overrides_map)
 
     # Enrich geometry and baseline properties from buildings.geojson if present
     updated_buildings_count = 0
@@ -262,13 +448,24 @@ def sync_curated_overrides(
 
                 if not ov.get("keep_shard_footprints") and not ov.get("geometry") and feat.get("geometry"):
                     ov["geometry"] = feat["geometry"]
+                elif isinstance(ov.get("geometry"), dict) and ov["geometry"].get("type") == "Polygon":
+                    feat["geometry"] = ov["geometry"]
 
                 # Apply override to buildings.geojson feature as well
                 ov_norm = normalize_override_record(matched_key, ov)
+                resolved_yr = normalize_standing_override_year(ov_norm.get("year_built"))
+                if resolved_yr < MIN_VALID_YEAR:
+                    fallback_feat_yr = normalize_standing_override_year(props.get("year_built"))
+                    if fallback_feat_yr >= MIN_VALID_YEAR:
+                        ov_norm["year_built"] = fallback_feat_yr
+                        ov_norm["decade"] = compute_decade(fallback_feat_yr)
+                        resolved_yr = fallback_feat_yr
+
                 overrides_map[matched_key] = ov_norm
                 props["original_hcad_year"] = ov_norm["original_hcad_year"]
-                props["year_built"] = int(ov_norm["year_built"])
-                props["decade"] = compute_decade(int(ov_norm["year_built"]))
+                if resolved_yr >= MIN_VALID_YEAR:
+                    props["year_built"] = int(resolved_yr)
+                    props["decade"] = compute_decade(int(resolved_yr))
                 props["is_curated_override"] = True
                 props["source_type"] = ov_norm.get("source_type", "Houston City Directory")
                 props["source_citation"] = ov_norm.get("source_citation", "")

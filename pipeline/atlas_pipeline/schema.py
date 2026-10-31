@@ -17,10 +17,50 @@ MIN_VALID_YEAR = 1836
 MAX_VALID_YEAR = 2027
 MAX_VALID_CAMA_DATE_YEAR = 2026
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261030d"
+ACTIVE_CACHE_BUST = "20261030e"
 ORD_2015_639_CUTOFF_ISO = "2015-07-24"
 ORD_2015_639_CUTOFF_ORD_NUM = 639
 QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
+
+# Milestone 3 cross-language domain constants (DF-1, DF-2, DF-3, DF-4, DF-9).
+# Kept 1:1 with `app/js/curatedEdits.js` and `app/js/staffWorkbench.js`.
+HARRIS_COUNTY_BBOX: tuple[float, float, float, float] = (-96.2, 29.3, -94.8, 30.3)
+MIN_FOOTPRINT_AREA_SQ_M: float = 4.0
+POLYGON_EDITOR_MAX_VERTICES: int = 64
+GOOGLE_SHEETS_CELL_MAX_CHARS: int = 50000
+METERS_PER_DEGREE_LAT: float = 111320.0
+SQ_FT_PER_SQ_M: float = 10.76391041671
+
+GEOMETRY_TAG_PREFIX = "[GEOMETRY_GEOJSON:"
+FIELD_SURVEY_TAG_PREFIX = "[FIELD_SURVEY_JSON:"
+FIELD_SURVEY_SOURCE_TYPE = "FIELD_SURVEY_OBSERVATION"
+
+FIELD_SURVEY_INTEGRITY_GRADES: tuple[str, ...] = (
+    "Intact",
+    "Minor Alterations",
+    "Substantially Altered",
+    "Vacant / Boarded",
+    "Demolished / Vacant Lot",
+    "Storm / Hazard Damaged",
+)
+FIELD_SURVEY_CONDITION_RATINGS: tuple[str, ...] = (
+    "Good",
+    "Fair",
+    "Poor",
+    "Critical / Emergency",
+)
+FIELD_SURVEY_CONTRIBUTING_VALUES: tuple[str, ...] = (
+    "Contributing",
+    "Non-Contributing",
+    "Potentially Contributing",
+    "Vacant / Demolished",
+    "Outside Historic District",
+)
+
+OVERRIDE_MODE_SHARD_PRIMARY = "SHARD_PRIMARY_METADATA"
+OVERRIDE_MODE_ADDITIVE_POLYGON = "ADDITIVE_CUSTOM_POLYGON"
+OVERRIDE_MODE_PARCEL_REPLACEMENT = "PARCEL_REPLACEMENT_POLYGON"
+OVERRIDE_MODE_SUPPRESS_VACANT = "SUPPRESS_PARCEL_VACANT"
 
 PLAT_CARRY_FORWARD_REVIEW_FIELDS: tuple[str, ...] = (
     "hcad",
@@ -591,9 +631,10 @@ def normalize_override_record(key: str, record: dict[str, Any]) -> dict[str, Any
         out["suppress_only"] = True
         out["year_built"] = 0
         out["decade"] = 0
+        out["keep_shard_footprints"] = False
         out.pop("geometry", None)
     else:
-        yr = normalize_year(out.get("year_built"))
+        yr = normalize_standing_override_year(out.get("year_built"))
         if yr >= MIN_VALID_YEAR:
             out["year_built"] = yr
             out["decade"] = compute_decade(yr)
@@ -607,6 +648,18 @@ def normalize_override_record(key: str, record: dict[str, Any]) -> dict[str, Any
             else:
                 out["decade"] = 0
 
+        # Enforce DF-1 footprint disposition invariants on sub-building records:
+        # Custom-geometry additive `#aux_<N>` / sub-building records must NEVER carry
+        # `keep_shard_footprints: True`, which causes `_applyCuratedOverridesInMemory`
+        # to skip rendering them inside `curated-overrides-src`.
+        is_sub = "#" in clean_key or bool(out.get("is_building_override"))
+        if is_sub and out.get("geometry") and out.get("keep_shard_footprints") is True:
+            out["keep_shard_footprints"] = False
+            out.setdefault("replace_parcel_shards", False)
+
+    if isinstance(out.get("source_citation"), str) and GEOMETRY_TAG_PREFIX in out["source_citation"]:
+        out["source_citation"] = strip_embedded_geometry_tag(out["source_citation"])
+
     contrib = str(out.get("contributing") or "").strip()
     if contrib == "NonContributing":
         contrib = "Non-Contributing"
@@ -616,6 +669,31 @@ def normalize_override_record(key: str, record: dict[str, Any]) -> dict[str, Any
         out["contributing"] = contrib
 
     return out
+
+
+def normalize_standing_override_year(raw_val: Any) -> int:
+    """Parse a standing override construction year in [1836, 2035], or 0 if invalid/unknown (DF-9)."""
+    if raw_val is None or isinstance(raw_val, bool):
+        return 0
+    if isinstance(raw_val, (int, float)):
+        if not math.isfinite(raw_val):
+            return 0
+        yr = int(round(raw_val))
+    else:
+        s = str(raw_val).strip()
+        if not s:
+            return 0
+        try:
+            fval = float(s)
+        except ValueError:
+            return 0
+        if not math.isfinite(fval):
+            return 0
+        yr = int(round(fval))
+
+    if MIN_VALID_YEAR <= yr <= MAX_STANDING_OVERRIDE_YEAR:
+        return yr
+    return 0
 
 
 def normalize_year(raw_val: Any) -> int:
@@ -1371,4 +1449,624 @@ def normalize_houston_address_keys(
                 _add(base_with_dir)
 
     return out_keys
+
+
+# ==============================================================================
+# Milestone 3: Footprint Disposition, Polygon Topology & Embedded Envelope Utils
+# ==============================================================================
+
+
+def classify_override_footprint_mode(
+    ov_key: str,
+    ov: dict[str, Any] | None,
+) -> str:
+    """Classify an override record into one of the 4 DF-1 footprint disposition modes.
+
+    Modes:
+      1. `SUPPRESS_PARCEL_VACANT`: `suppress_only=True` hides parcel/sub-building footprint(s).
+      2. `SHARD_PRIMARY_METADATA`: split-campus sub-building (`#slug` or `is_building_override`)
+         with no custom `geometry` (`keep_shard_footprints=True`). Metadata merged onto matching
+         PMTiles shard footprint without drawing in `curated-overrides-src`.
+      3. `ADDITIVE_CUSTOM_POLYGON`: custom-traced secondary building (`#aux_<N>` / sub-building)
+         with valid `Polygon`/`MultiPolygon` `geometry` and `replace_parcel_shards=False`.
+         Rendered inside `curated-overrides-src` while sibling parcel shard footprints stay visible.
+      4. `PARCEL_REPLACEMENT_POLYGON`: primary parcel polygon replacement (13-digit key with or
+         without hydrated geometry, or sub-building with `replace_parcel_shards=True`). Suppresses
+         underlying PMTiles shard footprints for `hcad_num` once polygon geometry is active.
+    """
+    if not isinstance(ov, dict) or not ov:
+        return ""
+    if bool(ov.get("suppress_only")):
+        return OVERRIDE_MODE_SUPPRESS_VACANT
+
+    key_str = str(ov_key or ov.get("building_id") or ov.get("id") or "").strip()
+    is_sub = "#" in key_str or bool(ov.get("is_building_override"))
+    geom = ov.get("geometry")
+    has_geom = (
+        isinstance(geom, dict)
+        and geom.get("type") in ("Polygon", "MultiPolygon")
+        and isinstance(geom.get("coordinates"), list)
+        and len(geom["coordinates"]) > 0
+    )
+
+    if is_sub:
+        if has_geom:
+            if bool(ov.get("replace_parcel_shards")):
+                return OVERRIDE_MODE_PARCEL_REPLACEMENT
+            return OVERRIDE_MODE_ADDITIVE_POLYGON
+        return OVERRIDE_MODE_SHARD_PRIMARY
+
+    if ov.get("keep_shard_footprints") is True and not has_geom:
+        return OVERRIDE_MODE_SHARD_PRIMARY
+    return OVERRIDE_MODE_PARCEL_REPLACEMENT
+
+
+def _project_ring_to_tangent_meters(
+    pts: list[tuple[float, float]],
+    origin: tuple[float, float] | None = None,
+) -> tuple[list[tuple[float, float]], tuple[float, float], float]:
+    """Project `(lng, lat)` vertices onto a local tangent plane in meters around `origin`."""
+    if not pts:
+        return [], (0.0, 0.0), 1.0
+    if origin is None:
+        c_lng = sum(p[0] for p in pts) / len(pts)
+        c_lat = sum(p[1] for p in pts) / len(pts)
+    else:
+        c_lng, c_lat = float(origin[0]), float(origin[1])
+    cos_lat = math.cos(math.radians(c_lat))
+    if abs(cos_lat) < 1e-6:
+        cos_lat = 1e-6
+    xy = [
+        (
+            (lng - c_lng) * cos_lat * METERS_PER_DEGREE_LAT,
+            (lat - c_lat) * METERS_PER_DEGREE_LAT,
+        )
+        for lng, lat in pts
+    ]
+    return xy, (c_lng, c_lat), cos_lat
+
+
+def _signed_shoelace_area(xy: list[tuple[float, float]]) -> float:
+    """Return signed planar area in m^2 (> 0 for CCW, < 0 for CW)."""
+    n = len(xy)
+    if n < 3:
+        return 0.0
+    acc = 0.0
+    for i in range(n):
+        x1, y1 = xy[i]
+        x2, y2 = xy[(i + 1) % n]
+        acc += x1 * y2 - x2 * y1
+    return 0.5 * acc
+
+
+def compute_ring_planar_area_sq_m(ring_or_geom: Any) -> float:
+    """Return unsigned planar area in square meters for a Polygon dict or exterior ring."""
+    pts_raw = _extract_raw_exterior_ring_coords(ring_or_geom)
+    if not pts_raw:
+        return 0.0
+    pts: list[tuple[float, float]] = []
+    for item in pts_raw:
+        if (
+            not isinstance(item, (list, tuple))
+            or len(item) < 2
+            or isinstance(item[0], bool)
+            or isinstance(item[1], bool)
+        ):
+            return 0.0
+        try:
+            lng = float(item[0])
+            lat = float(item[1])
+        except (TypeError, ValueError):
+            return 0.0
+        if not (math.isfinite(lng) and math.isfinite(lat)):
+            return 0.0
+        pts.append((lng, lat))
+    while len(pts) > 1 and pts[-1] == pts[0]:
+        pts.pop()
+    if len(pts) < 3:
+        return 0.0
+    xy, _, _ = _project_ring_to_tangent_meters(pts)
+    return abs(_signed_shoelace_area(xy))
+
+
+def _extract_raw_exterior_ring_coords(ring_or_geom: Any) -> list[Any] | None:
+    if isinstance(ring_or_geom, dict):
+        if ring_or_geom.get("type") != "Polygon":
+            return None
+        coords = ring_or_geom.get("coordinates")
+        if not isinstance(coords, list) or len(coords) != 1 or not isinstance(coords[0], list):
+            return None
+        return coords[0]
+    if isinstance(ring_or_geom, (list, tuple)):
+        return list(ring_or_geom)
+    return None
+
+
+def _segments_intersect_planar(
+    a1: tuple[float, float],
+    a2: tuple[float, float],
+    b1: tuple[float, float],
+    b2: tuple[float, float],
+    eps: float = 1e-7,
+) -> bool:
+    """Return True if closed planar segments `[a1, a2]` and `[b1, b2]` intersect properly or collinearly."""
+    min_ax, max_ax = (a1[0], a2[0]) if a1[0] <= a2[0] else (a2[0], a1[0])
+    min_ay, max_ay = (a1[1], a2[1]) if a1[1] <= a2[1] else (a2[1], a1[1])
+    min_bx, max_bx = (b1[0], b2[0]) if b1[0] <= b2[0] else (b2[0], b1[0])
+    min_by, max_by = (b1[1], b2[1]) if b1[1] <= b2[1] else (b2[1], b1[1])
+    if max_ax + eps < min_bx or max_bx + eps < min_ax or max_ay + eps < min_by or max_by + eps < min_ay:
+        return False
+
+    def _cross(o: tuple[float, float], p: tuple[float, float], q: tuple[float, float]) -> float:
+        return (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0])
+
+    def _on_segment(o: tuple[float, float], p: tuple[float, float], q: tuple[float, float]) -> bool:
+        return (
+            min(o[0], q[0]) - eps <= p[0] <= max(o[0], q[0]) + eps
+            and min(o[1], q[1]) - eps <= p[1] <= max(o[1], q[1]) + eps
+        )
+
+    d1 = _cross(a1, a2, b1)
+    d2 = _cross(a1, a2, b2)
+    d3 = _cross(b1, b2, a1)
+    d4 = _cross(b1, b2, a2)
+
+    if ((d1 > eps and d2 < -eps) or (d1 < -eps and d2 > eps)) and (
+        (d3 > eps and d4 < -eps) or (d3 < -eps and d4 > eps)
+    ):
+        return True
+    if abs(d1) <= eps and _on_segment(a1, b1, a2):
+        return True
+    if abs(d2) <= eps and _on_segment(a1, b2, a2):
+        return True
+    if abs(d3) <= eps and _on_segment(b1, a1, b2):
+        return True
+    if abs(d4) <= eps and _on_segment(b1, a2, b2):
+        return True
+    return False
+
+
+def validate_and_normalize_override_polygon(
+    geometry_or_ring: Any,
+    *,
+    bbox: tuple[float, float, float, float] = HARRIS_COUNTY_BBOX,
+    min_area_sq_m: float = MIN_FOOTPRINT_AREA_SQ_M,
+    max_vertices: int = POLYGON_EDITOR_MAX_VERTICES,
+) -> dict[str, Any]:
+    """Validate and normalize an override Polygon in strict post-rounding order (DF-3, DF-9).
+
+    Order of operations:
+      1. Parse single exterior ring from GeoJSON `Polygon` or raw `[[lng, lat], ...]`.
+      2. Strip raw closing duplicate(s) and snap all coordinates to 6 decimals.
+      3. Collapse consecutive snapped duplicates and wrap-around tail duplicate(s).
+      4. Enforce vertex bounds (`3..max_vertices`) and county bounding box (`bbox`).
+      5. Project to local tangent-plane meters (`cos(lat)`), enforce `area >= min_area_sq_m`,
+         and normalize exterior ring to RFC 7946 counter-clockwise (`CCW`) winding.
+      6. Reject duplicate non-adjacent vertices, 180-degree folded collinear spikes, and any
+         proper or collinear/improper non-adjacent segment intersections on the snapped ring.
+      7. Append bit-identical closing vertex `pts[0]`.
+    """
+    errors: list[str] = []
+    if isinstance(geometry_or_ring, dict):
+        if geometry_or_ring.get("type") != "Polygon":
+            return {
+                "ok": False,
+                "geometry": None,
+                "vertex_count": 0,
+                "area_sq_m": 0.0,
+                "area_sq_ft": 0.0,
+                "centroid": None,
+                "was_reversed": False,
+                "errors": ["Geometry must have type 'Polygon'."],
+            }
+        coords = geometry_or_ring.get("coordinates")
+        if not isinstance(coords, list) or len(coords) == 0:
+            return {
+                "ok": False,
+                "geometry": None,
+                "vertex_count": 0,
+                "area_sq_m": 0.0,
+                "area_sq_ft": 0.0,
+                "centroid": None,
+                "was_reversed": False,
+                "errors": ["Polygon coordinates must contain an exterior ring."],
+            }
+        if len(coords) > 1:
+            return {
+                "ok": False,
+                "geometry": None,
+                "vertex_count": 0,
+                "area_sq_m": 0.0,
+                "area_sq_ft": 0.0,
+                "centroid": None,
+                "was_reversed": False,
+                "errors": ["Polygon interior holes are not supported for building footprint overrides."],
+            }
+        raw_ring = coords[0]
+    elif isinstance(geometry_or_ring, (list, tuple)):
+        raw_ring = list(geometry_or_ring)
+    else:
+        return {
+            "ok": False,
+            "geometry": None,
+            "vertex_count": 0,
+            "area_sq_m": 0.0,
+            "area_sq_ft": 0.0,
+            "centroid": None,
+            "was_reversed": False,
+            "errors": ["Geometry must be a GeoJSON Polygon object or exterior coordinate ring."],
+        }
+
+    if not isinstance(raw_ring, (list, tuple)) or len(raw_ring) < 3:
+        return {
+            "ok": False,
+            "geometry": None,
+            "vertex_count": 0,
+            "area_sq_m": 0.0,
+            "area_sq_ft": 0.0,
+            "centroid": None,
+            "was_reversed": False,
+            "errors": ["Polygon exterior ring requires at least 3 distinct vertices."],
+        }
+
+    parsed_raw: list[tuple[float, float]] = []
+    for idx, pt in enumerate(raw_ring):
+        if (
+            not isinstance(pt, (list, tuple))
+            or len(pt) < 2
+            or isinstance(pt[0], bool)
+            or isinstance(pt[1], bool)
+        ):
+            errors.append(f"Vertex {idx} is not a numeric [lng, lat] coordinate pair.")
+            continue
+        try:
+            lng_f = float(pt[0])
+            lat_f = float(pt[1])
+        except (TypeError, ValueError):
+            errors.append(f"Vertex {idx} has non-numeric coordinates.")
+            continue
+        if not (math.isfinite(lng_f) and math.isfinite(lat_f)):
+            errors.append(f"Vertex {idx} has non-finite coordinates.")
+            continue
+        parsed_raw.append((lng_f, lat_f))
+
+    if errors:
+        return {
+            "ok": False,
+            "geometry": None,
+            "vertex_count": 0,
+            "area_sq_m": 0.0,
+            "area_sq_ft": 0.0,
+            "centroid": None,
+            "was_reversed": False,
+            "errors": errors,
+        }
+
+    while len(parsed_raw) > 1 and parsed_raw[-1] == parsed_raw[0]:
+        parsed_raw.pop()
+
+    snapped: list[tuple[float, float]] = []
+    for lng_f, lat_f in parsed_raw:
+        s_lng = round(lng_f, 6)
+        s_lat = round(lat_f, 6)
+        if s_lng == 0.0:
+            s_lng = 0.0
+        if s_lat == 0.0:
+            s_lat = 0.0
+        pt_s = (s_lng, s_lat)
+        if not snapped or snapped[-1] != pt_s:
+            snapped.append(pt_s)
+
+    while len(snapped) > 1 and snapped[-1] == snapped[0]:
+        snapped.pop()
+
+    n = len(snapped)
+    if n < 3:
+        return {
+            "ok": False,
+            "geometry": None,
+            "vertex_count": n,
+            "area_sq_m": 0.0,
+            "area_sq_ft": 0.0,
+            "centroid": None,
+            "was_reversed": False,
+            "errors": [f"Polygon requires at least 3 distinct snapped vertices (got {n})."],
+        }
+    if n > max_vertices:
+        return {
+            "ok": False,
+            "geometry": None,
+            "vertex_count": n,
+            "area_sq_m": 0.0,
+            "area_sq_ft": 0.0,
+            "centroid": None,
+            "was_reversed": False,
+            "errors": [f"Polygon has {n} vertices, exceeding maximum allowed ({max_vertices})."],
+        }
+
+    min_lng, min_lat, max_lng, max_lat = bbox
+    for idx, (s_lng, s_lat) in enumerate(snapped):
+        if not (min_lng <= s_lng <= max_lng and min_lat <= s_lat <= max_lat):
+            return {
+                "ok": False,
+                "geometry": None,
+                "vertex_count": n,
+                "area_sq_m": 0.0,
+                "area_sq_ft": 0.0,
+                "centroid": None,
+                "was_reversed": False,
+                "errors": [
+                    f"Vertex {idx} [{s_lng}, {s_lat}] falls outside Harris County bounds "
+                    f"[{min_lng}, {min_lat}, {max_lng}, {max_lat}]."
+                ],
+            }
+
+    xy, (c_lng, c_lat), _ = _project_ring_to_tangent_meters(snapped)
+    signed_area = _signed_shoelace_area(xy)
+    area_sq_m = abs(signed_area)
+    if area_sq_m < min_area_sq_m:
+        return {
+            "ok": False,
+            "geometry": None,
+            "vertex_count": n,
+            "area_sq_m": round(area_sq_m, 3),
+            "area_sq_ft": round(area_sq_m * SQ_FT_PER_SQ_M, 1),
+            "centroid": [round(c_lng, 6), round(c_lat, 6)],
+            "was_reversed": False,
+            "errors": [
+                f"Polygon footprint area ({area_sq_m:.2f} sq m) is below minimum threshold ({min_area_sq_m:.1f} sq m)."
+            ],
+        }
+
+    was_reversed = False
+    if signed_area < 0.0:
+        snapped.reverse()
+        xy.reverse()
+        was_reversed = True
+
+    if len(set(snapped)) != n:
+        return {
+            "ok": False,
+            "geometry": None,
+            "vertex_count": n,
+            "area_sq_m": round(area_sq_m, 2),
+            "area_sq_ft": round(area_sq_m * SQ_FT_PER_SQ_M, 1),
+            "centroid": [round(c_lng, 6), round(c_lat, 6)],
+            "was_reversed": was_reversed,
+            "errors": ["Polygon contains a pinched duplicate non-adjacent vertex (self-touching ring)."],
+        }
+
+    for i in range(n):
+        p_prev = xy[(i - 1) % n]
+        p_curr = xy[i]
+        p_next = xy[(i + 1) % n]
+        ux, uy = p_curr[0] - p_prev[0], p_curr[1] - p_prev[1]
+        vx, vy = p_next[0] - p_curr[0], p_next[1] - p_curr[1]
+        u_len = math.hypot(ux, uy)
+        v_len = math.hypot(vx, vy)
+        if u_len < 1e-6 or v_len < 1e-6:
+            return {
+                "ok": False,
+                "geometry": None,
+                "vertex_count": n,
+                "area_sq_m": round(area_sq_m, 2),
+                "area_sq_ft": round(area_sq_m * SQ_FT_PER_SQ_M, 1),
+                "centroid": [round(c_lng, 6), round(c_lat, 6)],
+                "was_reversed": was_reversed,
+                "errors": ["Polygon contains a zero-length degenerate edge after 6-decimal coordinate rounding."],
+            }
+        cross = ux * vy - uy * vx
+        dot = ux * vx + uy * vy
+        if dot < 0.0 and abs(cross) <= 1e-6 * u_len * v_len:
+            return {
+                "ok": False,
+                "geometry": None,
+                "vertex_count": n,
+                "area_sq_m": round(area_sq_m, 2),
+                "area_sq_ft": round(area_sq_m * SQ_FT_PER_SQ_M, 1),
+                "centroid": [round(c_lng, 6), round(c_lat, 6)],
+                "was_reversed": was_reversed,
+                "errors": ["Polygon contains a 180-degree folded collinear edge spike."],
+            }
+
+    for i in range(n):
+        a1 = xy[i]
+        a2 = xy[(i + 1) % n]
+        for j in range(i + 2, n):
+            if i == 0 and j == n - 1:
+                continue
+            b1 = xy[j]
+            b2 = xy[(j + 1) % n]
+            if _segments_intersect_planar(a1, a2, b1, b2):
+                return {
+                    "ok": False,
+                    "geometry": None,
+                    "vertex_count": n,
+                    "area_sq_m": round(area_sq_m, 2),
+                    "area_sq_ft": round(area_sq_m * SQ_FT_PER_SQ_M, 1),
+                    "centroid": [round(c_lng, 6), round(c_lat, 6)],
+                    "was_reversed": was_reversed,
+                    "errors": [f"Polygon self-intersects between edge {i} and edge {j}."],
+                }
+
+    closed_coords = [[lng, lat] for lng, lat in snapped] + [[snapped[0][0], snapped[0][1]]]
+    return {
+        "ok": True,
+        "geometry": {"type": "Polygon", "coordinates": [closed_coords]},
+        "vertex_count": n,
+        "area_sq_m": round(area_sq_m, 2),
+        "area_sq_ft": round(area_sq_m * SQ_FT_PER_SQ_M, 1),
+        "centroid": [round(c_lng, 6), round(c_lat, 6)],
+        "was_reversed": was_reversed,
+        "errors": [],
+    }
+
+
+def rotate_polygon_tangent_plane(
+    geometry_or_ring: Any,
+    angle_deg: float,
+    pivot: tuple[float, float] | None = None,
+) -> list[list[float]]:
+    """Rotate a polygon exterior ring around its tangent-plane centroid without WGS84 degree shear (DF-3)."""
+    raw_ring = _extract_raw_exterior_ring_coords(geometry_or_ring)
+    if not raw_ring:
+        return []
+    pts: list[tuple[float, float]] = [(float(p[0]), float(p[1])) for p in raw_ring if len(p) >= 2]
+    while len(pts) > 1 and pts[-1] == pts[0]:
+        pts.pop()
+    if len(pts) < 3:
+        return []
+    xy, (c_lng, c_lat), cos_lat = _project_ring_to_tangent_meters(pts, origin=pivot)
+    rad = math.radians(float(angle_deg))
+    cos_a = math.cos(rad)
+    sin_a = math.sin(rad)
+    rotated: list[list[float]] = []
+    for x_m, y_m in xy:
+        rx = x_m * cos_a - y_m * sin_a
+        ry = x_m * sin_a + y_m * cos_a
+        n_lng = round(c_lng + rx / (cos_lat * METERS_PER_DEGREE_LAT), 6)
+        n_lat = round(c_lat + ry / METERS_PER_DEGREE_LAT, 6)
+        rotated.append([n_lng, n_lat])
+    rotated.append([rotated[0][0], rotated[0][1]])
+    return rotated
+
+
+def nudge_polygon_tangent_plane(
+    geometry_or_ring: Any,
+    dx_m: float,
+    dy_m: float,
+) -> list[list[float]]:
+    """Translate a polygon exterior ring by `(dx_m, dy_m)` meters east/north on the local tangent plane."""
+    raw_ring = _extract_raw_exterior_ring_coords(geometry_or_ring)
+    if not raw_ring:
+        return []
+    pts: list[tuple[float, float]] = [(float(p[0]), float(p[1])) for p in raw_ring if len(p) >= 2]
+    while len(pts) > 1 and pts[-1] == pts[0]:
+        pts.pop()
+    if not pts:
+        return []
+    c_lat = sum(p[1] for p in pts) / len(pts)
+    cos_lat = max(abs(math.cos(math.radians(c_lat))), 1e-6)
+    d_lng = float(dx_m) / (cos_lat * METERS_PER_DEGREE_LAT)
+    d_lat = float(dy_m) / METERS_PER_DEGREE_LAT
+    shifted = [[round(lng + d_lng, 6), round(lat + d_lat, 6)] for lng, lat in pts]
+    shifted.append([shifted[0][0], shifted[0][1]])
+    return shifted
+
+
+def _find_tagged_json_spans(text: str, prefix: str) -> list[tuple[int, int, Any]]:
+    """Scan `text` for balanced `[<PREFIX>:{...}]` spans using RFC 8259 JSON decoding (DF-2, DF-4)."""
+    if not text or prefix not in text:
+        return []
+    decoder = json.JSONDecoder()
+    spans: list[tuple[int, int, Any]] = []
+    pos = 0
+    n = len(text)
+    plen = len(prefix)
+    while pos < n:
+        idx = text.find(prefix, pos)
+        if idx < 0:
+            break
+        cur = idx + plen
+        while cur < n and text[cur].isspace():
+            cur += 1
+        if cur >= n or text[cur] not in ("{", "["):
+            pos = idx + plen
+            continue
+        try:
+            obj, end_idx = decoder.raw_decode(text, cur)
+        except json.JSONDecodeError:
+            pos = idx + plen
+            continue
+        close_idx = end_idx
+        while close_idx < n and text[close_idx].isspace():
+            close_idx += 1
+        if close_idx < n and text[close_idx] == "]":
+            spans.append((idx, close_idx + 1, obj))
+            pos = close_idx + 1
+        else:
+            pos = idx + plen
+    return spans
+
+
+def _strip_tagged_json_spans(text: str, prefix: str) -> str:
+    """Remove all balanced `[<PREFIX>:{...}]` envelopes from `text` and normalize surrounding spacing."""
+    s = str(text or "")
+    spans = _find_tagged_json_spans(s, prefix)
+    if not spans:
+        return s.strip()
+    parts: list[str] = []
+    last = 0
+    for start, end, _ in spans:
+        parts.append(s[last:start])
+        last = end
+    parts.append(s[last:])
+    cleaned = "".join(parts)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = re.sub(r"\s*\|\s*$", "", cleaned)
+    return cleaned.strip()
+
+
+def extract_embedded_geometry_json(source_citation: Any) -> dict[str, Any] | None:
+    """Extract and topology-validate the latest `[GEOMETRY_GEOJSON:{...}]` Polygon from a citation string."""
+    s = str(source_citation or "")
+    spans = _find_tagged_json_spans(s, GEOMETRY_TAG_PREFIX)
+    for _, _, obj in reversed(spans):
+        res = validate_and_normalize_override_polygon(obj)
+        if res["ok"]:
+            return res["geometry"]
+    return None
+
+
+def strip_embedded_geometry_tag(source_citation: Any) -> str:
+    """Remove all balanced `[GEOMETRY_GEOJSON:{...}]` tags from a citation string (DF-2)."""
+    return _strip_tagged_json_spans(str(source_citation or ""), GEOMETRY_TAG_PREFIX)
+
+
+def encode_citation_with_geometry(source_citation: str, geometry_or_ring: Any) -> str:
+    """Strip any prior geometry tag and append a validated compact `[GEOMETRY_GEOJSON:{...}]` suffix."""
+    base = strip_embedded_geometry_tag(sanitize_atlas_text(str(source_citation or "")))
+    res = validate_and_normalize_override_polygon(geometry_or_ring)
+    if not res["ok"]:
+        raise ValueError("; ".join(res["errors"]))
+    compact_geom = json.dumps(res["geometry"], ensure_ascii=False, separators=(",", ":"))
+    tag = f"{GEOMETRY_TAG_PREFIX}{compact_geom}]"
+    combined = f"{base} {tag}".strip() if base else tag
+    if len(combined) > GOOGLE_SHEETS_CELL_MAX_CHARS:
+        raise ValueError(
+            f"Encoded citation exceeds Google Sheets {GOOGLE_SHEETS_CELL_MAX_CHARS}-character cell limit "
+            f"(got {len(combined)} chars)."
+        )
+    return combined
+
+
+def extract_embedded_field_survey_json(source_citation: Any) -> dict[str, Any] | None:
+    """Extract the balanced `[FIELD_SURVEY_JSON:{...}]` envelope dict from `source_citation` (DF-4)."""
+    s = str(source_citation or "")
+    spans = _find_tagged_json_spans(s, FIELD_SURVEY_TAG_PREFIX)
+    for _, _, obj in reversed(spans):
+        if isinstance(obj, dict):
+            return obj
+    return None
+
+
+def strip_embedded_field_survey_tag(source_citation: Any) -> str:
+    """Remove all balanced `[FIELD_SURVEY_JSON:{...}]` tags from `source_citation`."""
+    return _strip_tagged_json_spans(str(source_citation or ""), FIELD_SURVEY_TAG_PREFIX)
+
+
+def encode_citation_with_field_survey(source_citation: str, envelope: dict[str, Any]) -> str:
+    """Strip prior `[FIELD_SURVEY_JSON:{...}]` tags and append a single compact envelope suffix."""
+    base = strip_embedded_field_survey_tag(sanitize_atlas_text(str(source_citation or "")))
+    clean_env = _sanitize_payload_strings(dict(envelope or {}))
+    compact_env = json.dumps(clean_env, ensure_ascii=False, separators=(",", ":"))
+    tag = f"{FIELD_SURVEY_TAG_PREFIX}{compact_env}]"
+    combined = f"{base} {tag}".strip() if base else tag
+    if len(combined) > GOOGLE_SHEETS_CELL_MAX_CHARS:
+        raise ValueError(
+            f"Encoded field survey citation exceeds Google Sheets {GOOGLE_SHEETS_CELL_MAX_CHARS}-character limit "
+            f"(got {len(combined)} chars)."
+        )
+    return combined
+
 
