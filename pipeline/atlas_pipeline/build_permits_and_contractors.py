@@ -30,7 +30,16 @@ import re
 import zipfile
 from pathlib import Path
 
-from atlas_pipeline.schema import normalize_hcad_date, write_compact_json
+from atlas_pipeline.schema import (
+    ACTIVE_TAX_YEAR,
+    EXTRA_FEATURES_CAP_PER_ACCOUNT,
+    compute_decade,
+    finalize_hcad_account_permits,
+    normalize_hcad_appraiser_note,
+    normalize_hcad_extra_feature_row,
+    normalize_hcad_permit_row,
+    write_compact_json,
+)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CACHE_DIR = ROOT_DIR / "pipeline" / "cache"
@@ -1223,199 +1232,177 @@ def parse_tgca_houston_contracts() -> dict:
 # ---------------------------------------------------------------------------
 # 4. Stream HCAD CAMA Tables (`permits.txt`, `building_res.txt`, `building_other.txt`, `extra_features`)
 # ---------------------------------------------------------------------------
-PERMIT_TYPE_CATEGORY = {
-    "01": ("New Construction", "new"),
-    "02": ("Demolition", "demo"),
-    "03": ("Addition / Increase Sq Ft", "add"),
-    "04": ("Finish Out / Completion", "remodel"),
-    "05": ("Remodel / Renovation", "remodel"),
-    "06": ("Mechanical / Electrical / Plumbing", "mep"),
-    "07": ("Re-Roof / Roof Structure", "roof"),
-    "08": ("Swimming Pool / Spa", "aux"),
-    "09": ("Enclosure / Carport / Patio", "add"),
-    "11": ("Fire / Storm Damage Repair", "repair"),
-    "13": ("General Repair / Foundation", "repair"),
-    "14": ("Paving / Flatwork / Driveway", "aux"),
-    "15": ("Moved / Relocated Structure", "reloc"),
-    "16": ("Storage / Outbuilding / Canopy", "aux"),
-    "17": ("Foundation / Structural Repair", "repair"),
-    "18": ("Site / Drainage / Utilities", "aux"),
-    "31": ("New Custom Residence", "new"),
-    "33": ("Townhome / Multi-Family New Build", "new"),
-    "50": ("Commercial General Permit", "remodel"),
-    "TX": ("County Tax Permit", "remodel"),
-    "W": ("Water / Utility Permit", "mep"),
-}
 
 
-def build_hcad_permits_and_cama_index(target_hcads: set):
+def build_hcad_permits_and_cama_index(
+    target_hcads: set,
+    *,
+    tax_year: int | None = None,
+    cache_dir: Path | None = None,
+):
     """
     Stream HCAD `building_res.txt`, `building_other.txt`, `extra_features_detail1/2.txt`,
     and `permits.txt` to build:
       1. `cama_by_acct`: remodel year, effective year, appraiser note, and relocation flag.
       2. `xfeat_by_acct`: secondary structures with construction years.
-      3. `permits_by_acct`: chronological municipal building permits (`2004-2026`).
+      3. `permits_by_acct`: chronological municipal building permits (`2004-<tax_year>`).
       4. `relocated_accts`: set of HCAD accounts with `permit_type == '15'` or moved structure note.
       5. `addr_to_acct`: lookup from normalized street address to `(acct, year_built, raw_addr)`.
     """
+    eff_year = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    cdir = Path(cache_dir) if cache_dir is not None else CACHE_DIR
     cama_by_acct = {}
     xfeat_by_acct = collections.defaultdict(list)
     permits_by_acct = collections.defaultdict(list)
     relocated_accts = {}
     addr_to_acct = {}
 
-    z_acct = zipfile.ZipFile(CACHE_DIR / "Real_acct_owner.zip")
-    z_bld = zipfile.ZipFile(CACHE_DIR / "Real_building_land.zip")
-
-    print("[1/5] Indexing HCAD real_acct.txt addresses...")
-    with z_acct.open("real_acct.txt") as f:
-        header = [h.strip() for h in f.readline().decode("latin-1").rstrip("\r\n").split("\t")]
-        idx_acct = header.index("acct")
-        idx_addr = header.index("site_addr_1")
-        idx_city = header.index("site_addr_3")
-        idx_yr = header.index("yr_impr")
-        for line in f:
-            row = line.decode("latin-1", errors="replace").rstrip("\r\n").split("\t")
-            if len(row) <= max(idx_acct, idx_addr, idx_yr):
-                continue
-            acct = row[idx_acct].strip()
-            addr = row[idx_addr].strip()
-            city = row[idx_city].strip() if len(row) > idx_city else "HOUSTON"
-            yr_str = row[idx_yr].strip()
-            yr = int(yr_str) if yr_str.isdigit() else 0
-            if addr and city in ("HOUSTON", "BELLAIRE", "BUNKER HILL VILLAGE", "WEST UNIVERSITY PLACE", "HEDWIG VILLAGE", "HUNTERS CREEK VILLAGE", "PINEY POINT VILLAGE", "SOUTH SIDE PLACE", "GALENA PARK", "JACINTO CITY", "PASADENA", "LA PORTE", "BAYTOWN", "DEER PARK", "HUMBLE", "TOMBALL", "KATY", "SPRING", "CYPRESS", "SEABROOK", "WEBSTER", "CLEAR LAKE"):
-                norm = normalize_addr(addr)
-                if norm:
-                    # Prefer older structure or existing target HCAD
-                    prev = addr_to_acct.get(norm)
-                    if not prev or (acct in target_hcads and prev[0] not in target_hcads) or (1836 <= yr < prev[1] if prev[1] >= 1836 else yr >= 1836):
-                        addr_to_acct[norm] = (acct, yr, addr)
-
-    print("[2/5] Streaming building_res.txt & building_other.txt for remodel years and appraiser notes...")
-    for fname, is_res in [("building_res.txt", True), ("building_other.txt", False)]:
-        with z_bld.open(fname) as f:
+    with (
+        zipfile.ZipFile(cdir / "Real_acct_owner.zip") as z_acct,
+        zipfile.ZipFile(cdir / "Real_building_land.zip") as z_bld,
+    ):
+        print("[1/5] Indexing HCAD real_acct.txt addresses...")
+        with z_acct.open("real_acct.txt") as f:
             header = [h.strip() for h in f.readline().decode("latin-1").rstrip("\r\n").split("\t")]
-            i_acct = header.index("acct")
-            i_erect = header.index("date_erected")
-            i_eff = header.index("eff")
-            i_remod = header.index("yr_remodel")
-            i_notes = header.index("notes")
-            i_qual = header.index("dscr")
+            idx_acct = header.index("acct")
+            idx_addr = header.index("site_addr_1")
+            idx_city = header.index("site_addr_3")
+            idx_yr = header.index("yr_impr")
             for line in f:
                 row = line.decode("latin-1", errors="replace").rstrip("\r\n").split("\t")
-                if len(row) <= i_notes:
+                if len(row) <= max(idx_acct, idx_addr, idx_yr):
                     continue
-                acct = row[i_acct].strip()
-                erect = int(row[i_erect].strip()) if row[i_erect].strip().isdigit() else 0
-                eff = int(row[i_eff].strip()) if row[i_eff].strip().isdigit() else 0
-                remod_s = row[i_remod].strip()
-                remod = int(remod_s) if remod_s.isdigit() and 1850 <= int(remod_s) <= 2026 else 0
-                note = row[i_notes].strip()
-                qual = row[i_qual].strip()
+                acct = row[idx_acct].strip()
+                addr = row[idx_addr].strip()
+                city = row[idx_city].strip() if len(row) > idx_city else "HOUSTON"
+                yr_str = row[idx_yr].strip()
+                yr = int(yr_str) if yr_str.isdigit() else 0
+                if addr and city in ("HOUSTON", "BELLAIRE", "BUNKER HILL VILLAGE", "WEST UNIVERSITY PLACE", "HEDWIG VILLAGE", "HUNTERS CREEK VILLAGE", "PINEY POINT VILLAGE", "SOUTH SIDE PLACE", "GALENA PARK", "JACINTO CITY", "PASADENA", "LA PORTE", "BAYTOWN", "DEER PARK", "HUMBLE", "TOMBALL", "KATY", "SPRING", "CYPRESS", "SEABROOK", "WEBSTER", "CLEAR LAKE"):
+                    norm = normalize_addr(addr)
+                    if norm:
+                        # Prefer older structure or existing target HCAD
+                        prev = addr_to_acct.get(norm)
+                        if not prev or (acct in target_hcads and prev[0] not in target_hcads) or (1836 <= yr < prev[1] if prev[1] >= 1836 else yr >= 1836):
+                            addr_to_acct[norm] = (acct, yr, addr)
 
-                # Ignore bare numeric permit strings in `note` since they are already in permits.txt
-                clean_note = "" if re.fullmatch(r"[\d\s,;/#-]+", note) else note
-                is_moved = bool(
-                    clean_note
-                    and re.search(r"\b(?:MOVED\s+(?:FROM|TO|ON|IN|ONTO)|RELOCATED\s+(?:FROM|TO))\b", clean_note, re.IGNORECASE)
+        print("[2/5] Streaming building_res.txt & building_other.txt for remodel years and appraiser notes...")
+        for fname in ("building_res.txt", "building_other.txt"):
+            with z_bld.open(fname) as f:
+                header = [h.strip() for h in f.readline().decode("latin-1").rstrip("\r\n").split("\t")]
+                i_acct = header.index("acct")
+                i_erect = (
+                    header.index("date_erected")
+                    if "date_erected" in header
+                    else header.index("date_erect")
                 )
-                if is_moved and acct not in relocated_accts:
-                    relocated_accts[acct] = {
-                        "reason": "HCAD Appraiser Relocation Record",
-                        "note": clean_note,
-                        "year_built": erect,
-                    }
+                i_eff = (
+                    header.index("eff")
+                    if "eff" in header
+                    else (header.index("eff_yr") if "eff_yr" in header else -1)
+                )
+                i_remod = header.index("yr_remodel")
+                i_notes = header.index("notes")
+                i_qual = header.index("dscr")
+                for line in f:
+                    row = line.decode("latin-1", errors="replace").rstrip("\r\n").split("\t")
+                    if len(row) <= i_notes:
+                        continue
+                    acct = row[i_acct].strip()
+                    erect = int(row[i_erect].strip()) if row[i_erect].strip().isdigit() else 0
+                    eff = (
+                        int(row[i_eff].strip())
+                        if i_eff >= 0 and len(row) > i_eff and row[i_eff].strip().isdigit()
+                        else 0
+                    )
+                    remod_s = row[i_remod].strip()
+                    remod = int(remod_s) if remod_s.isdigit() and 1850 <= int(remod_s) <= eff_year else 0
+                    note = row[i_notes].strip()
+                    qual = row[i_qual].strip()
 
-                if remod or clean_note or (eff and erect and eff - erect >= 10) or acct in target_hcads:
-                    prev = cama_by_acct.get(acct)
-                    if not prev:
-                        cama_by_acct[acct] = {
-                            "yr": erect,
-                            "eff": eff,
-                            "remod": remod,
-                            "qual": qual,
-                            "note": clean_note[:240] if clean_note else "",
+                    clean_note, is_moved = normalize_hcad_appraiser_note(note)
+                    if is_moved and acct not in relocated_accts:
+                        relocated_accts[acct] = {
+                            "reason": "HCAD Appraiser Relocation Record",
+                            "note": clean_note,
+                            "year_built": erect,
                         }
-                    else:
-                        if remod > prev["remod"]:
-                            prev["remod"] = remod
-                        if clean_note and not prev["note"]:
-                            prev["note"] = clean_note[:240]
 
-    print("[3/5] Streaming extra_features_detail1.txt & extra_features_detail2.txt...")
-    for xfname in ["extra_features_detail1.txt", "extra_features_detail2.txt"]:
-        with z_bld.open(xfname) as f:
+                    if remod or clean_note or (eff and erect and eff - erect >= 10) or acct in target_hcads:
+                        prev = cama_by_acct.get(acct)
+                        if not prev:
+                            cama_by_acct[acct] = {
+                                "yr": erect,
+                                "eff": eff,
+                                "remod": remod,
+                                "qual": qual,
+                                "note": clean_note,
+                            }
+                        else:
+                            if remod > prev["remod"]:
+                                prev["remod"] = remod
+                            if clean_note and not prev["note"]:
+                                prev["note"] = clean_note
+
+        print("[3/5] Streaming extra_features_detail1.txt & extra_features_detail2.txt...")
+        bld_names = set(z_bld.namelist())
+        for xfname in ["extra_features_detail1.txt", "extra_features_detail2.txt"]:
+            if xfname not in bld_names:
+                continue
+            with z_bld.open(xfname) as f:
+                header = [h.strip() for h in f.readline().decode("latin-1").rstrip("\r\n").split("\t")]
+                i_acct = header.index("acct")
+                i_dscr = header.index("dscr")
+                i_yr = header.index("act_yr")
+                for line in f:
+                    row = line.decode("latin-1", errors="replace").rstrip("\r\n").split("\t")
+                    if len(row) <= i_yr:
+                        continue
+                    acct = row[i_acct].strip()
+                    # Keep extra features for accounts in target_hcads or with CAMA remodel/notes or historic prefixes (001..095)
+                    if acct not in target_hcads and acct not in cama_by_acct and int(acct[:3] if acct[:3].isdigit() else "999") > 95:
+                        continue
+                    item_xf = normalize_hcad_extra_feature_row(
+                        row[i_dscr], row[i_yr], max_year=eff_year
+                    )
+                    if item_xf is None:
+                        continue
+                    if len(xfeat_by_acct[acct]) < EXTRA_FEATURES_CAP_PER_ACCOUNT:
+                        xfeat_by_acct[acct].append(item_xf)
+
+        print("[4/5] Streaming permits.txt...")
+        with z_acct.open("permits.txt") as f:
             header = [h.strip() for h in f.readline().decode("latin-1").rstrip("\r\n").split("\t")]
             i_acct = header.index("acct")
-            i_cd = header.index("cd")
+            i_id = header.index("id")
             i_dscr = header.index("dscr")
-            i_yr = header.index("act_yr")
+            i_ptype = header.index("permit_type")
+            i_pdesc = header.index("permit_tp_descr")
+            i_date = header.index("issue_date")
             for line in f:
                 row = line.decode("latin-1", errors="replace").rstrip("\r\n").split("\t")
-                if len(row) <= i_yr:
+                if len(row) <= i_date:
                     continue
                 acct = row[i_acct].strip()
-                # Keep extra features for accounts in target_hcads or with CAMA remodel/notes or historic prefixes (001..095)
-                if acct not in target_hcads and acct not in cama_by_acct and int(acct[:3] if acct[:3].isdigit() else "999") > 95:
-                    continue
-                yr_s = row[i_yr].strip()
-                yr = int(yr_s) if yr_s.isdigit() and 1836 <= int(yr_s) <= 2026 else 0
+                pid = row[i_id].strip()
                 dscr = row[i_dscr].strip()
-                if not dscr or dscr.upper().startswith("RESIDENTIAL GAS") or "CRACKED" in dscr.upper():
-                    continue
-                if len(xfeat_by_acct[acct]) < 6:
-                    xfeat_by_acct[acct].append({"d": dscr, "y": yr})
-
-    print("[4/5] Streaming permits.txt (1,300,027 rows)...")
-    with z_acct.open("permits.txt") as f:
-        header = [h.strip() for h in f.readline().decode("latin-1").rstrip("\r\n").split("\t")]
-        i_acct = header.index("acct")
-        i_id = header.index("id")
-        i_dscr = header.index("dscr")
-        i_ptype = header.index("permit_type")
-        i_pdesc = header.index("permit_tp_descr")
-        i_date = header.index("issue_date")
-        for line in f:
-            row = line.decode("latin-1", errors="replace").rstrip("\r\n").split("\t")
-            if len(row) <= i_date:
-                continue
-            acct = row[i_acct].strip()
-            pid = row[i_id].strip()
-            dscr = row[i_dscr].strip()
-            ptype = row[i_ptype].strip()
-            pdesc = row[i_pdesc].strip()
-            dt = row[i_date].strip()  # MM/DD/YYYY
-            iso_dt_parsed, _ = normalize_hcad_date(dt, allow_fallback=False)
-            iso_dt = iso_dt_parsed or ""
-            display_dt = iso_dt or "Undated"
-
-            is_omitted_imps = "OMITTED IMPS" in dscr.upper()
-            if ptype == "15" and not is_omitted_imps:
-                relocated_accts[acct] = {
-                    "reason": "City of Houston Moved Structure Permit",
-                    "note": f"{display_dt}: {dscr or pdesc} (Permit #{pid})",
-                    "permit_id": pid,
-                    "permit_date": iso_dt,
-                }
-
-            if is_omitted_imps:
-                cat_label, cat_code = ("HCAD Omitted Improvement Assessment", "add")
-            else:
-                cat_label, cat_code = PERMIT_TYPE_CATEGORY.get(ptype, (pdesc or "Building Permit", "other"))
-
-            if len(permits_by_acct[acct]) < 25:
-                permits_by_acct[acct].append({
-                    "id": pid,
-                    "dt": iso_dt,
-                    "cat": cat_code,
-                    "tp": cat_label,
-                    "d": dscr if dscr and dscr.upper() != pdesc.upper() else pdesc,
-                })
+                ptype = row[i_ptype].strip()
+                pdesc = row[i_pdesc].strip()
+                dt = row[i_date].strip()  # MM/DD/YYYY
+                p_obj, reloc_meta = normalize_hcad_permit_row(
+                    pid, dscr, ptype, pdesc, dt, max_year=eff_year
+                )
+                if reloc_meta is not None:
+                    relocated_accts[acct] = reloc_meta
+                permits_by_acct[acct].append(p_obj)
+        for acct_k in list(permits_by_acct.keys()):
+            permits_by_acct[acct_k] = finalize_hcad_account_permits(
+                permits_by_acct[acct_k]
+            )
 
     return cama_by_acct, xfeat_by_acct, permits_by_acct, relocated_accts, addr_to_acct
 
 
-def main():
+def main(*, tax_year: int | None = None, cache_dir: Path | None = None):
     PERMITS_DIR.mkdir(parents=True, exist_ok=True)
 
     buildings_path = DATA_DIR / "buildings.geojson"
@@ -1467,7 +1454,7 @@ def main():
 
     # Stream HCAD CAMA & Permits
     cama_by_acct, xfeat_by_acct, permits_by_acct, relocated_accts, addr_to_acct = (
-        build_hcad_permits_and_cama_index(target_hcads)
+        build_hcad_permits_and_cama_index(target_hcads, tax_year=tax_year, cache_dir=cache_dir)
     )
 
     # Map `CURATED_BUILDER_BY_ADDRESS` and `tgca_by_addr` to HCAD accounts via `addr_to_acct`,
@@ -1637,7 +1624,7 @@ def main():
                     if not ov.get("original_hcad_year"):
                         ov["original_hcad_year"] = cur_yr or cama.get("yr") or 0
                     ov["year_built"] = arch_yr
-                    ov["decade"] = f"{(arch_yr // 10) * 10}s"
+                    ov["decade"] = compute_decade(arch_yr)
             if cama.get("remod"):
                 ov["yr_remodel"] = cama["remod"]
             if cama.get("eff"):
@@ -1665,7 +1652,7 @@ def main():
                 "historic_district": bf_props.get("historic_district") or sp.get("historic_district", ""),
                 "contributing": bf_props.get("contributing") or sp.get("contributing", ""),
                 "year_built": yr,
-                "decade": f"{(yr // 10) * 10}s",
+                "decade": compute_decade(yr),
                 "original_hcad_year": orig_yr,
                 "bld_style": bf_props.get("bld_style") or sp.get("bld_style", ""),
                 "architect": binfo.get("architect") or bf_props.get("architect") or sp.get("architect", ""),
@@ -1762,7 +1749,7 @@ def main():
                 if cur_yr != arch_yr and (cur_yr == 0 or abs(cur_yr - arch_yr) <= 22):
                     p["original_hcad_year"] = cur_yr
                     p["year_built"] = arch_yr
-                    p["decade"] = f"{(arch_yr // 10) * 10}s"
+                    p["decade"] = compute_decade(arch_yr)
                     p["is_curated_override"] = True
 
         # Sync geometry with `overrides` or `shard_footprints` so `buildings.geojson` matches `.pmtiles` shards
@@ -1935,6 +1922,7 @@ def main():
                     "builder": ov.get("builder", ""),
                     "yr_remodel": ov.get("yr_remodel", 0),
                     "was_relocated": bool(ov.get("was_relocated")),
+                    "lon": pt[0],
                     "lng": pt[0],
                     "lat": pt[1],
                 })
@@ -1986,9 +1974,7 @@ def main():
         if x_list:
             rec["xf"] = x_list
         if p_list:
-            # Sort newest to oldest
-            p_sorted = sorted(p_list, key=lambda x: x.get("dt", ""), reverse=True)
-            rec["p"] = p_sorted
+            rec["p"] = finalize_hcad_account_permits(p_list)
 
         shards[acct[:3]][acct] = rec
         kept_accts += 1
@@ -2011,7 +1997,7 @@ def main():
             except Exception:
                 pass
         if shard_dict:
-            shard_file.write_text(json.dumps(shard_dict, separators=(",", ":")), encoding="utf-8")
+            write_compact_json(shard_file, shard_dict)
 
     print(f"Wrote {len(shards)} permit shard files covering {kept_accts:,} HCAD accounts.")
 

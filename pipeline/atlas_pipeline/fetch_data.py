@@ -14,7 +14,7 @@ import shapefile
 from pyproj import Transformer
 from shapely.geometry import Polygon, mapping, shape
 
-from atlas_pipeline.schema import normalize_parcel_record, normalize_year
+from atlas_pipeline.schema import ACTIVE_TAX_YEAR, normalize_parcel_record, normalize_year
 from atlas_pipeline.spatial_join import _ensure_valid_polygon
 
 # Verified Public Endpoints (No Auth / API Key Required)
@@ -51,12 +51,22 @@ OVERPASS_URLS = [
 ]
 
 HCAD_PARCELS_ZIP_URL = "https://download.hcad.org/data/GIS/Parcels.zip"
-HCAD_BUILDING_LAND_ZIP_URL = "https://download.hcad.org/data/CAMA/2025/Real_building_land.zip"
-HCAD_ACCT_OWNER_ZIP_URL = "https://download.hcad.org/data/CAMA/2025/Real_acct_owner.zip"
+HCAD_CAMA_BASE_URL = "https://download.hcad.org/data/CAMA"
+
+
+def get_hcad_bulk_urls(tax_year: int | None = None) -> dict[str, str]:
+    """Return canonical upstream HCAD bulk archive URLs for `tax_year`."""
+    yr = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    return {
+        "Real_building_land.zip": f"{HCAD_CAMA_BASE_URL}/{yr}/Real_building_land.zip",
+        "Real_acct_owner.zip": f"{HCAD_CAMA_BASE_URL}/{yr}/Real_acct_owner.zip",
+        "Code_description_real.zip": f"{HCAD_CAMA_BASE_URL}/{yr}/Code_description_real.zip",
+        "Parcels.zip": HCAD_PARCELS_ZIP_URL,
+    }
 
 ANNEXATION_LAYERS: list[tuple[int, int, str]] = [
     (14, 1836, "1836 Original Townsite"),
-    (13, 1840, "1839–1840 Annexation"),
+    (13, 1840, "1839-1840 Annexation"),
     (12, 1900, "1900s Expansion"),
     (11, 1910, "1910s Expansion"),
     (10, 1920, "1920s Expansion"),
@@ -323,7 +333,7 @@ def fetch_all_overlays(cache_dir: Path) -> dict[str, list[dict[str, Any]]]:
             },
         })
 
-    print("-> Fetching COH Annexation History by Decade (1836–2020)...")
+    print("-> Fetching COH Annexation History by Decade (1836-2020)...")
     annexations_cache = cache_dir / "coh_annexations.json"
     if annexations_cache.exists():
         annexations = json.loads(annexations_cache.read_text())
@@ -578,13 +588,17 @@ def download_file_stream(url: str, dest: Path) -> Path:
 def fetch_full_hcad_parcels(
     cache_dir: Path,
     limit: int | None = None,
+    *,
+    tax_year: int | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     """Download and parse full Harris County HCAD bulk ZIP archives (Parcels.zip + CAMA tables)."""
     overlays = fetch_all_overlays(cache_dir)
+    urls = get_hcad_bulk_urls(tax_year)
+    max_yr = None if tax_year is None else int(tax_year) + 1
 
-    parcels_zip = download_file_stream(HCAD_PARCELS_ZIP_URL, cache_dir / "Parcels.zip")
-    bld_zip = download_file_stream(HCAD_BUILDING_LAND_ZIP_URL, cache_dir / "Real_building_land.zip")
-    acct_zip = download_file_stream(HCAD_ACCT_OWNER_ZIP_URL, cache_dir / "Real_acct_owner.zip")
+    parcels_zip = download_file_stream(urls["Parcels.zip"], cache_dir / "Parcels.zip")
+    bld_zip = download_file_stream(urls["Real_building_land.zip"], cache_dir / "Real_building_land.zip")
+    acct_zip = download_file_stream(urls["Real_acct_owner.zip"], cache_dir / "Real_acct_owner.zip")
 
     # 1. Parse earliest year_built, remodel_year, style, and total building area per account from Real_building_land.zip
     cama_by_acct: dict[str, dict[str, Any]] = {}
@@ -598,8 +612,8 @@ def fetch_full_hcad_parcels(
                     acct = str(row.get("acct") or "").strip()
                     if not acct:
                         continue
-                    yr = normalize_year(row.get("date_erect") or row.get("yr_impr"))
-                    rem_yr = normalize_year(row.get("yr_remodel"))
+                    yr = normalize_year(row.get("date_erect") or row.get("date_erected") or row.get("yr_impr"), max_year=max_yr)
+                    rem_yr = normalize_year(row.get("yr_remodel"), max_year=max_yr)
                     area = float(row.get("im_sq_ft") or row.get("act_ar") or 0.0)
                     style = str(row.get("style_desc") or row.get("dscr") or "").strip()
                     rec = cama_by_acct.get(acct)
@@ -656,7 +670,7 @@ def fetch_full_hcad_parcels(
         rec_dict = dict(zip(field_names, shape_rec.record))
         acct = str(rec_dict.get("HCAD_NUM") or rec_dict.get("acct") or "").strip()
         merged_raw = {**rec_dict, **(cama_by_acct.get(acct) or {})}
-        norm_p = normalize_parcel_record(merged_raw)
+        norm_p = normalize_parcel_record(merged_raw, max_year=max_yr)
 
         pts = shape_rec.shape.points
         if len(pts) < 4:

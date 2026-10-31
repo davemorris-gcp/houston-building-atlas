@@ -3,6 +3,8 @@
  * Architect / Builder / Architectural Style Map Portfolio Engine (Priority #4).
  */
 
+import { getAtlasMaxYear } from "./filterStore.js?v=20261031a";
+
 export const CITY_HISTORY_CHAPTERS = [
   {
     id: "bayous_and_two_grids",
@@ -236,7 +238,9 @@ export const CITY_HISTORY_CHAPTERS = [
       colorMode: "year_built",
       renderMode: "buildings",
       minYear: 1836,
-      maxYear: 2026,
+      get maxYear() {
+        return getAtlasMaxYear();
+      },
       selectedDecade: "all",
       historicalSnapshotMode: false,
       redBookCategory: "all",
@@ -308,7 +312,9 @@ export const CITY_HISTORY_CHAPTERS = [
       colorMode: "year_built",
       renderMode: "buildings",
       minYear: 1836,
-      maxYear: 2026,
+      get maxYear() {
+        return getAtlasMaxYear();
+      },
       selectedDecade: "all",
       historicalSnapshotMode: false,
       syncAnnexationToTime: true,
@@ -353,7 +359,9 @@ export const CITY_HISTORY_CHAPTERS = [
   {
     id: "preservation_without_zoning",
     chapterNum: 6,
-    era: "1979-2026",
+    get era() {
+      return `1979-${getAtlasMaxYear()}`;
+    },
     kicker: "Chapter 6 of 6 · Modern Preservation Toolkit",
     title: "Preservation Without Zoning: How Houston Protects Places",
     narrative:
@@ -375,7 +383,9 @@ export const CITY_HISTORY_CHAPTERS = [
       colorMode: "preservation_status",
       renderMode: "buildings",
       minYear: 1836,
-      maxYear: 2026,
+      get maxYear() {
+        return getAtlasMaxYear();
+      },
       selectedDecade: "all",
       historicalSnapshotMode: false,
       landmarkFilter: "all",
@@ -1118,7 +1128,7 @@ export function buildPortfolioDataset({
     if (w.lat < minLat) minLat = w.lat;
     if (w.lng > maxLng) maxLng = w.lng;
     if (w.lat > maxLat) maxLat = w.lat;
-    if (w.yearBuilt >= 1800 && w.yearBuilt <= 2030) {
+    if (w.yearBuilt >= 1800 && w.yearBuilt <= Math.max(getAtlasMaxYear(), 2035)) {
       if (w.yearBuilt < earliestYear) earliestYear = w.yearBuilt;
       if (w.yearBuilt > latestYear) latestYear = w.yearBuilt;
     }

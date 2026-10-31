@@ -3,28 +3,30 @@
  * for The Houston Building Atlas v2 (Preservation Houston).
  */
 
+import { DEFAULT_ATLAS_MAX_YEAR, getAtlasMaxYear } from "./filterStore.js?v=20261031a";
+
 export const ARCHIVAL_YEAR_STOPS = [
-  { year: 1836, maxYear: 1889, label: "1836–1889 (Pioneer & Victorian)", color: "#8B1E24" },
-  { year: 1890, maxYear: 1899, label: "1890–1899 (Gilded Age)", color: "#B83B2A" },
-  { year: 1900, maxYear: 1919, label: "1900–1919 (Early Streetcar Era)", color: "#D6642C" },
-  { year: 1920, maxYear: 1929, label: "1920–1929 (Roaring Twenties)", color: "#E69238" },
-  { year: 1930, maxYear: 1939, label: "1930–1939 (Depression & Deco)", color: "#EBC154" },
-  { year: 1940, maxYear: 1959, label: "1940–1959 (Post-War Boom)", color: "#89B87A" },
-  { year: 1960, maxYear: 1979, label: "1960–1979 (Space City Era)", color: "#429B8E" },
-  { year: 1980, maxYear: 1999, label: "1980–1999 (Late 20th Century)", color: "#316B9C" },
-  { year: 2000, maxYear: 2026, label: "2000–Present (21st Century)", color: "#26437E" },
+  { year: 1836, maxYear: 1889, label: "1836-1889 (Pioneer & Victorian)", color: "#8B1E24" },
+  { year: 1890, maxYear: 1899, label: "1890-1899 (Gilded Age)", color: "#B83B2A" },
+  { year: 1900, maxYear: 1919, label: "1900-1919 (Early Streetcar Era)", color: "#D6642C" },
+  { year: 1920, maxYear: 1929, label: "1920-1929 (Roaring Twenties)", color: "#E69238" },
+  { year: 1930, maxYear: 1939, label: "1930-1939 (Depression & Deco)", color: "#EBC154" },
+  { year: 1940, maxYear: 1959, label: "1940-1959 (Post-War Boom)", color: "#89B87A" },
+  { year: 1960, maxYear: 1979, label: "1960-1979 (Space City Era)", color: "#429B8E" },
+  { year: 1980, maxYear: 1999, label: "1980-1999 (Late 20th Century)", color: "#316B9C" },
+  { year: 2000, maxYear: DEFAULT_ATLAS_MAX_YEAR, label: "2000-Present (21st Century)", color: "#26437E" },
 ];
 
 export const CLASSIC_EE_YEAR_STOPS = [
   { year: 1836, maxYear: 1889, label: "Pre-1890 (Oldest)", color: "#800026" },
-  { year: 1890, maxYear: 1909, label: "1890–1909", color: "#bd0026" },
-  { year: 1910, maxYear: 1924, label: "1910–1924", color: "#e31a1c" },
-  { year: 1925, maxYear: 1939, label: "1925–1939", color: "#fc4e2a" },
-  { year: 1940, maxYear: 1954, label: "1940–1954", color: "#fd8d3c" },
-  { year: 1955, maxYear: 1969, label: "1955–1969", color: "#feb24c" },
-  { year: 1970, maxYear: 1984, label: "1970–1984", color: "#fed976" },
-  { year: 1985, maxYear: 1999, label: "1985–1999", color: "#ffeda0" },
-  { year: 2000, maxYear: 2026, label: "2000–Present (Newest)", color: "#ffffcc" },
+  { year: 1890, maxYear: 1909, label: "1890-1909", color: "#bd0026" },
+  { year: 1910, maxYear: 1924, label: "1910-1924", color: "#e31a1c" },
+  { year: 1925, maxYear: 1939, label: "1925-1939", color: "#fc4e2a" },
+  { year: 1940, maxYear: 1954, label: "1940-1954", color: "#fd8d3c" },
+  { year: 1955, maxYear: 1969, label: "1955-1969", color: "#feb24c" },
+  { year: 1970, maxYear: 1984, label: "1970-1984", color: "#fed976" },
+  { year: 1985, maxYear: 1999, label: "1985-1999", color: "#ffeda0" },
+  { year: 2000, maxYear: DEFAULT_ATLAS_MAX_YEAR, label: "2000-Present (Newest)", color: "#ffffcc" },
 ];
 
 export const UNKNOWN_YEAR_COLOR = "#524E4A";
@@ -52,7 +54,9 @@ export const CURATED_TOURS = [
   {
     "id": "good_brick_highlights",
     "name": "★ Good Brick Highlights",
-    "era": "1979-2026",
+    get era() {
+      return `1979-${getAtlasMaxYear()}`;
+    },
     "center": [
       -95.36443,
       29.75998
@@ -2701,6 +2705,20 @@ export const CURATED_TOURS = [
 
 
 /**
+ * Return palette year stops with the final stop widened dynamically through
+ * `getAtlasMaxYear()` so newly constructed buildings (`2027+`) color correctly.
+ */
+export function getEffectiveYearStops(paletteStyle = "archival") {
+  const baseStops = paletteStyle === "classic_ee" ? CLASSIC_EE_YEAR_STOPS : ARCHIVAL_YEAR_STOPS;
+  const topY = getAtlasMaxYear();
+  return baseStops.map((s, idx) =>
+    idx === baseStops.length - 1
+      ? { ...s, maxYear: Math.max(s.maxYear, topY) }
+      : s
+  );
+}
+
+/**
  * Return a hex color for a single building year (or decade) under the chosen palette style.
  */
 export function getYearColorHex(year, paletteStyle = "archival") {
@@ -2708,7 +2726,7 @@ export function getYearColorHex(year, paletteStyle = "archival") {
   if (yr < 1836) {
     return UNKNOWN_YEAR_COLOR;
   }
-  const stops = paletteStyle === "classic_ee" ? CLASSIC_EE_YEAR_STOPS : ARCHIVAL_YEAR_STOPS;
+  const stops = getEffectiveYearStops(paletteStyle);
   for (const s of stops) {
     if (yr >= s.year && yr <= s.maxYear) {
       return s.color;

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import io
-import pickle
 import re
 import time
 import zipfile
@@ -26,11 +25,17 @@ from atlas_pipeline.fetch_data import (
 )
 from atlas_pipeline.schema import (
     ACTIVE_CACHE_BUST,
+    ACTIVE_TAX_YEAR,
     classify_use_category,
     compile_quadrant_pmtiles,
     compute_decade,
+    compute_decade_bins,
     estimate_stories_and_height,
+    load_compact_cama_lookup,
+    normalize_ring_6dp,
     normalize_year,
+    save_compact_cama_lookup,
+    update_pmtiles_manifest_v3,
 )
 
 # Web Mercator Zoom 11 tile-aligned split boundaries (x=480/481, x=481/482, y=846/847)
@@ -73,12 +78,18 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
         n_pts = max(1, len(ring) - 1)
         cx = sum(pt[0] for pt in ring[:n_pts]) / n_pts
         cy = sum(pt[1] for pt in ring[:n_pts]) / n_pts
-        yr = int(f["properties"].get("year_built") or 0)
+        props = f.get("properties") or {}
+        yr = int(props.get("year_built") or 0)
+        is_prot = bool(
+            props.get("is_curated_override")
+            or props.get("school_situs_hydrated")
+            or props.get("year_source") == "COH Landmark Designation Report"
+        )
         is_syn = len(ring) == 5 and ring[0][1] == ring[1][1] and ring[1][0] == ring[2][0]
-        prio = (0 if yr >= 1836 else 1, 1 if is_syn else 0, yr if yr >= 1836 else 9999)
+        prio = (0 if is_prot else 1, 0 if yr >= 1836 else 1, 1 if is_syn else 0, yr if yr >= 1836 else 9999)
         key = (round(cx, 5), round(cy, 5))
         if key not in centroid_buckets or prio < centroid_buckets[key][0]:
-            centroid_buckets[key] = (prio, f, ring, yr, is_syn)
+            centroid_buckets[key] = (prio, f, ring, yr, is_syn, is_prot)
 
     items = list(centroid_buckets.values())
     n = len(items)
@@ -116,6 +127,8 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
         min_wing_deg2 = 110.0 / (111320.0 * 96486.0)
         carved_parents: set[int] = set()
         for parent_idx, children in contained_children.items():
+            if items[parent_idx][5]:
+                continue
             if len(children) >= 2:
                 p_area = float(areas[parent_idx])
                 c_cov = child_inter_sum[parent_idx] / p_area if p_area > 0 else 1.0
@@ -134,7 +147,9 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
                         ]
                         if valid_parts:
                             best_p = max(valid_parts, key=lambda p: p.area)
-                            new_ring = [[round(float(x), 7), round(float(y), 7)] for x, y in best_p.exterior.coords]
+                            new_ring = normalize_ring_6dp(list(best_p.exterior.coords), ccw=True)
+                            if not new_ring:
+                                continue
                             items[parent_idx][1]["geometry"]["coordinates"] = [new_ring]
                             polys_arr[parent_idx] = best_p
                             areas[parent_idx] = best_p.area
@@ -147,6 +162,7 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
         order = sorted(
             range(n),
             key=lambda idx: (
+                0 if items[idx][5] else 1,
                 0 if items[idx][3] >= 1836 else 1,
                 1 if items[idx][4] else 0,
                 items[idx][3] if items[idx][3] >= 1836 else 9999,
@@ -176,6 +192,8 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
             for v, ia in adj.get(u, ()):
                 if not keep[v]:
                     continue
+                if items[v][5]:
+                    continue
                 v_area = float(areas[v])
                 u_area = float(areas[u])
                 if (
@@ -197,7 +215,9 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
                         ]
                         if valid_parts:
                             best_p = max(valid_parts, key=lambda p: p.area)
-                            new_ring = [[round(float(x), 7), round(float(y), 7)] for x, y in best_p.exterior.coords]
+                            new_ring = normalize_ring_6dp(list(best_p.exterior.coords), ccw=True)
+                            if not new_ring:
+                                continue
                             items[v][1]["geometry"]["coordinates"] = [new_ring]
                             polys_arr[v] = best_p
                             areas[v] = best_p.area
@@ -216,52 +236,59 @@ def deduplicate_geojsonseq_shard(seq_path: Path) -> tuple[str, int, int]:
     return (seq_path.name, initial_count, kept_count)
 
 
-def load_or_build_cama_lookup(cache_dir: Path) -> dict[str, tuple[int, int, int, str, str, str]]:
+def load_or_build_cama_lookup(
+    cache_dir: Path,
+    *,
+    tax_year: int | None = None,
+    bld_zip: Path | None = None,
+    acct_zip: Path | None = None,
+    min_cache_bytes: int = 1_000_000,
+) -> dict[str, tuple[int, int, int, str, str, str]]:
     """
-    Parse 2026 HCAD Real_building_land.zip and Real_acct_owner.zip into a compact dictionary:
+    Parse HCAD Real_building_land.zip and Real_acct_owner.zip into a compact dictionary:
       acct -> (year_built, remodel_year, bld_area_sqft, use_code, style_desc, subdivision)
-    Caches binary pickle to cache_dir / 'cama_2026_compact.pkl' for instant reloads.
+    Caches stamped binary pickle to cache_dir / f'cama_{eff_year}_compact.pkl'.
     """
-    pkl_path = cache_dir / "cama_2026_compact.pkl"
-    if pkl_path.exists() and pkl_path.stat().st_size > 1_000_000:
-        print("-> Loading cached 2026 HCAD CAMA lookup table...")
-        with open(pkl_path, "rb") as f:
-            return pickle.load(f)
+    eff_year = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    max_yr = eff_year + 1
+    cached = load_compact_cama_lookup(cache_dir, tax_year=eff_year, min_bytes=min_cache_bytes)
+    if cached is not None:
+        print(f"-> Loading cached {eff_year} HCAD CAMA lookup table...")
+        return cached
 
     t0 = time.time()
-    bld_zip = cache_dir / "Real_building_land.zip"
-    acct_zip = cache_dir / "Real_acct_owner.zip"
+    bld_zip_path = bld_zip or (cache_dir / "Real_building_land.zip")
+    acct_zip_path = acct_zip or (cache_dir / "Real_acct_owner.zip")
 
     # Temporary mutable dict: acct -> [yr, rem_yr, area, use_cd, style, subdiv]
     records: dict[str, list[Any]] = {}
 
-    print("-> Parsing 2026 HCAD Real_building_land.zip (building_res.txt & building_other.txt)...")
-    with zipfile.ZipFile(bld_zip, "r") as zf:
+    print(f"-> Parsing {eff_year} HCAD Real_building_land.zip (building_res.txt & building_other.txt)...")
+    with zipfile.ZipFile(bld_zip_path, "r") as zf:
         for member in ("building_res.txt", "building_other.txt"):
             if member not in zf.namelist():
                 continue
             with zf.open(member, "r") as raw_f:
                 text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
+                header = [h.strip() for h in text_f.readline().rstrip("\r\n").split("\t")]
                 col_idx = {name: i for i, name in enumerate(header)}
                 i_acct = col_idx.get("acct", 0)
                 i_use = col_idx.get("property_use_cd", 1)
                 i_struct = col_idx.get("structure_dscr", 6)
-                i_qual = col_idx.get("dscr", 11)
-                i_date = col_idx.get("date_erected", 12)
+                i_date = col_idx.get("date_erected", col_idx.get("date_erect", 12))
                 i_rem = col_idx.get("yr_remodel", 14)
                 i_sqft = col_idx.get("im_sq_ft", 19)
                 i_act = col_idx.get("act_ar", 20)
 
                 for line in text_f:
                     parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_date:
+                    if len(parts) <= i_acct:
                         continue
                     acct = parts[i_acct].strip()
                     if not acct:
                         continue
-                    yr = normalize_year(parts[i_date])
-                    rem = normalize_year(parts[i_rem]) if len(parts) > i_rem else 0
+                    yr = normalize_year(parts[i_date], max_year=max_yr) if len(parts) > i_date else 0
+                    rem = normalize_year(parts[i_rem], max_year=max_yr) if len(parts) > i_rem else 0
                     sqft_str = parts[i_sqft].strip() if len(parts) > i_sqft else ""
                     if not sqft_str and len(parts) > i_act:
                         sqft_str = parts[i_act].strip()
@@ -289,11 +316,11 @@ def load_or_build_cama_lookup(cache_dir: Path) -> dict[str, tuple[int, int, int,
     print(f"   Parsed {len(records):,} building CAMA accounts in {time.time() - t0:.1f}s.")
 
     t1 = time.time()
-    print("-> Parsing 2026 HCAD Real_acct_owner.zip (real_acct.txt)...")
-    with zipfile.ZipFile(acct_zip, "r") as zf:
+    print(f"-> Parsing {eff_year} HCAD Real_acct_owner.zip (real_acct.txt)...")
+    with zipfile.ZipFile(acct_zip_path, "r") as zf:
         with zf.open("real_acct.txt", "r") as raw_f:
             text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-            header = text_f.readline().rstrip("\r\n").split("\t")
+            header = [h.strip() for h in text_f.readline().rstrip("\r\n").split("\t")]
             col_idx = {name: i for i, name in enumerate(header)}
             i_acct = col_idx.get("acct", 0)
             i_st = col_idx.get("state_class", 20)
@@ -315,7 +342,7 @@ def load_or_build_cama_lookup(cache_dir: Path) -> dict[str, tuple[int, int, int,
                     if not existing[3] and st_cls:
                         existing[3] = st_cls
                     if existing[0] == 0 and len(parts) > i_yr_impr:
-                        yr_i = normalize_year(parts[i_yr_impr])
+                        yr_i = normalize_year(parts[i_yr_impr], max_year=max_yr)
                         if yr_i > 0:
                             existing[0] = yr_i
                     if existing[2] == 0 and len(parts) > i_bld_ar:
@@ -325,7 +352,7 @@ def load_or_build_cama_lookup(cache_dir: Path) -> dict[str, tuple[int, int, int,
                             pass
                     existing[5] = lgl1
                 else:
-                    yr_i = normalize_year(parts[i_yr_impr]) if len(parts) > i_yr_impr else 0
+                    yr_i = normalize_year(parts[i_yr_impr], max_year=max_yr) if len(parts) > i_yr_impr else 0
                     try:
                         b_ar = int(float(parts[i_bld_ar].strip() or "0")) if len(parts) > i_bld_ar else 0
                     except ValueError:
@@ -337,8 +364,7 @@ def load_or_build_cama_lookup(cache_dir: Path) -> dict[str, tuple[int, int, int,
         k: (v[0], v[1], v[2], v[3], v[4], v[5]) for k, v in records.items()
     }
     print(f"   Completed full CAMA lookup ({len(compact):,} accounts) in {time.time() - t1:.1f}s.")
-    with open(pkl_path, "wb") as f:
-        pickle.dump(compact, f, protocol=pickle.HIGHEST_PROTOCOL)
+    save_compact_cama_lookup(cache_dir, compact, tax_year=eff_year)
     return compact
 
 
@@ -398,12 +424,19 @@ def load_historic_overrides(
     return by_hcad
 
 
-def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
+def run_full_county_build(
+    cache_dir: Path,
+    output_dir: Path,
+    *,
+    tax_year: int | None = None,
+) -> dict[str, Any]:
     """
     Execute the complete Harris County build (~1.85M building footprints + 1.55M tax parcels)
     and compile multi-quadrant PMTiles v3 archives (<85 MB per file) ready for GitHub Pages.
     """
     t_start = time.time()
+    eff_year = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    max_yr = eff_year + 1
     cache_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -412,8 +445,8 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
     hist_by_hcad = load_historic_overrides(cache_dir, overlays)
     print(f"   Loaded {len(hist_by_hcad):,} historic district & landmark HCAD account overrides.")
 
-    # 2. Load 2026 HCAD CAMA lookup
-    cama_lookup = load_or_build_cama_lookup(cache_dir)
+    # 2. Load HCAD CAMA lookup for eff_year
+    cama_lookup = load_or_build_cama_lookup(cache_dir, tax_year=eff_year)
 
     # 3. Ensure Parcels.gdb is extracted on local SSD for fast GDAL reading
     gdb_dir = cache_dir / "Parcels" / "Parcels.gdb"
@@ -483,7 +516,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
 
         yr = cama[0] if cama else 0
         if yr == 0:
-            yr = normalize_year(yr_impr_arr[p_idx])
+            yr = normalize_year(yr_impr_arr[p_idx], max_year=max_yr)
         rem_yr = cama[1] if cama else 0
         bld_area = cama[2] if cama else 0
         use_cd = cama[3] if cama else ""
@@ -560,7 +593,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
         raw_acct = hcad_nums_arr[pcl_idx]
         acct = str(raw_acct).strip() if raw_acct is not None else ""
         cama = cama_lookup.get(acct)
-        yr = cama[0] if cama else normalize_year(yr_impr_arr[pcl_idx])
+        yr = cama[0] if cama else normalize_year(yr_impr_arr[pcl_idx], max_year=max_yr)
         hist = hist_by_hcad.get(acct)
         if hist and hist.get("year_built", 0) >= 1836:
             if yr < 1836 or hist["year_built"] < yr:
@@ -691,7 +724,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
         raw_acct = hcad_nums_arr[p_idx]
         acct = str(raw_acct).strip() if raw_acct is not None else ""
         cama = cama_lookup.get(acct)
-        yr = cama[0] if cama else normalize_year(yr_impr_arr[p_idx])
+        yr = cama[0] if cama else normalize_year(yr_impr_arr[p_idx], max_year=max_yr)
         bld_ar = cama[2] if cama else 0
         if yr >= 1836 or bld_ar > 0 or acct in hist_by_hcad:
             if parcel_geoms_2278[p_idx] is not None and not shapely.is_empty(parcel_geoms_2278[p_idx]):
@@ -772,6 +805,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             output_dir,
             compile_pmtiles=False,
             shard_dir=ndjson_dir,
+            tax_year=eff_year,
         )
         total_buildings = int(campus_stats.get("total_buildings", total_buildings))
 
@@ -783,21 +817,30 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
     )
 
     # Also include the core houston_atlas.pmtiles (which has historic core parcels + buildings) in the manifest
-    manifest = {
-        "version": 2,
-        "mode": "full_county",
-        "cache_bust": ACTIVE_CACHE_BUST,
-        "total_buildings": total_buildings,
-        "building_shards": shard_files,
-        "core_pmtiles": "houston_atlas.pmtiles",
-    }
-    (output_dir / "pmtiles_manifest.json").write_bytes(orjson.dumps(manifest, option=orjson.OPT_INDENT_2))
+    update_pmtiles_manifest_v3(
+        output_dir / "pmtiles_manifest.json",
+        total_buildings=total_buildings,
+        building_shards=shard_files,
+        data_tax_year=eff_year,
+        cache_bust=ACTIVE_CACHE_BUST,
+        core_pmtiles="houston_atlas.pmtiles",
+        mode="full_county",
+    )
 
     # Update stats_summary.json with full countywide totals
-    ordered_decades = {str(d): decade_counter.get(str(d), 0) for d in range(1830, 2030, 10)}
+    resolved_latest = (
+        int(campus_stats["latest_year"])
+        if campus_stats
+        else (latest_year if latest_year != 0 else eff_year)
+    )
+    ordered_decades = {
+        str(d): decade_counter.get(str(d), 0)
+        for d in compute_decade_bins(max(eff_year, resolved_latest))
+    }
     ordered_decades["unknown"] = decade_counter.get("unknown", 0)
 
     stats_summary: dict[str, Any] = {
+        "data_tax_year": eff_year,
         "total_buildings": total_buildings,
         "dated_buildings": int(campus_stats["dated_buildings"]) if campus_stats else dated_count,
         "observed_footprints": observed_fp_count,
@@ -806,11 +849,7 @@ def run_full_county_build(cache_dir: Path, output_dir: Path) -> dict[str, Any]:
             if campus_stats
             else (earliest_year if earliest_year != 9999 else 1836)
         ),
-        "latest_year": (
-            int(campus_stats["latest_year"])
-            if campus_stats
-            else (latest_year if latest_year != 0 else 2026)
-        ),
+        "latest_year": resolved_latest,
         "total_landmarks": len(overlays.get("landmarks", [])),
         "total_historic_districts": len(overlays.get("historic_districts", [])),
         "total_heritage_districts": len(overlays.get("heritage_districts", [])),

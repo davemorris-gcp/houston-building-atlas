@@ -1,6 +1,7 @@
 {
   "version": 3,
-  "cache_bust": "20261030e",
+  "cache_bust": "20261031a",
+  "data_tax_year": 2026,
   "mode": "full_county",
   "total_buildings": 1507897,
   "building_shards": [

@@ -11,10 +11,11 @@
  *     while leaving pre-July 24, 2015 ordinances on their 20-year statutory sunset clock.
  */
 
-import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261030e";
-import { HCAD_PUBLIC_QUERY_URL, normalizeHcad13 } from "./hcadViewportParcels.js?v=20261030e";
+import { isEntitySuppressedByOverrides } from "./curatedEdits.js?v=20261031a";
+import { getAtlasMaxYear } from "./filterStore.js?v=20261031a";
+import { HCAD_PUBLIC_QUERY_URL, normalizeHcad13 } from "./hcadViewportParcels.js?v=20261031a";
 
-export const ORGANIZER_CACHE_BUST = "20261030e";
+export const ORGANIZER_CACHE_BUST = "20261031a";
 export const NEIGHBORHOOD_SCORECARDS_URL = `public/data/neighborhood_scorecards.json?v=${ORGANIZER_CACHE_BUST}`;
 
 export const ORD_2015_639_CUTOFF_ISO = "2015-07-24";
@@ -549,7 +550,7 @@ function parseIsoOrFlexibleDate(rawVal) {
  * Resolves the statutory enactment, term (20 vs. 40 years under Ord. 2015-639), and sunset year
  * for any City of Houston Chapter 42 SMLS / SMBL record (mirrored with Python schema.py, DF-1).
  */
-export function resolveCh42OrdinanceLifecycle(props = {}, refYearArg = 2026) {
+export function resolveCh42OrdinanceLifecycle(props = {}, refYearArg = getAtlasMaxYear()) {
   const p = props && typeof props === "object" ? props : {};
   let refYear = Number(refYearArg);
   if (p.referenceDate) {
@@ -558,7 +559,7 @@ export function resolveCh42OrdinanceLifecycle(props = {}, refYearArg = 2026) {
   } else if (Number.isFinite(Number(p.ref_year)) && Number(p.ref_year) >= 1980) {
     refYear = Number(p.ref_year);
   }
-  if (!Number.isFinite(refYear) || refYear < 1980) refYear = 2026;
+  if (!Number.isFinite(refYear) || refYear < 1980) refYear = getAtlasMaxYear();
 
   const ptype = String(p.protectionType ?? p.protection_type ?? "smls").trim().toLowerCase();
   const statusStr = String(p.status ?? p.STATUS ?? "Approved").trim().toLowerCase();
@@ -760,6 +761,10 @@ export function decodeScorecardRecord(raw, meta = {}) {
     Array.isArray(meta?.demo_years) && meta.demo_years.length > 0
       ? meta.demo_years
       : [2020, 2021, 2022, 2023, 2024, 2025, 2026];
+  const lastDemoYr = Number(demoYears[demoYears.length - 1]) || 2026;
+  const demoLatestIsYtd =
+    (meta?.demo_latest_year_is_ytd ?? meta?.demo_latest_is_ytd ?? meta?.demo_2026_is_ytd) !==
+    false;
 
   const buildingCount = Number(raw["bc"]) || 0;
   const pre1920Count = Number(raw["p20"]) || 0;
@@ -792,7 +797,7 @@ export function decodeScorecardRecord(raw, meta = {}) {
   const demolitionsByYear = demoYears.map((year, idx) => ({
     year,
     count: Number(rawDm[idx]) || 0,
-    isYtd: year === 2026 && meta?.demo_2026_is_ytd !== false,
+    isYtd: year === lastDemoYr && demoLatestIsYtd,
   }));
 
   const rawExo = Array.isArray(raw["exo"]) ? raw["exo"] : [];
@@ -862,6 +867,9 @@ export function decodeScorecardRecord(raw, meta = {}) {
     conservationDistrictCount: Number(raw["cdo"]) || 0,
     expiringOrdinances,
     demolitionsByYear,
+    demoEndYear: lastDemoYr,
+    demoHasYtd: demoLatestIsYtd,
+    demolitionsTotal: Number(raw["dmt"]) || 0,
     demolitionsTotal2020To2026: Number(raw["dmt"]) || 0,
     demolitionsPre1940Count: Number(raw["dmp40"]) || 0,
     superNeighborhood: String(raw["sn"] || ""),
@@ -2757,7 +2765,7 @@ export function assembleBlockfaceFromSeedParcel(seedParcelInput, candidateParcel
 export function matchCh42OverlaysToBlockface(
   blockfaceAssembly,
   landUseProtectionFeatures = [],
-  refYear = 2026
+  refYear = getAtlasMaxYear()
 ) {
   const rawItems = Array.isArray(blockfaceAssembly)
     ? blockfaceAssembly
@@ -3208,6 +3216,10 @@ export function renderBoundaryInlineScorecardHtml(scorecard, liveThreats = null)
   const threatCount = liveThreats?.totalUniqueThreats || 0;
   const cm = scorecard.councilMemberMeta;
   const expCount = scorecard.expiringOrdinances?.length || 0;
+  const demoEndYr = Number(scorecard.demoEndYear) || getAtlasMaxYear();
+  const demoYtdTag = scorecard.demoHasYtd !== false ? " YTD" : "";
+  const watchStartY = demoEndYr;
+  const watchEndY = watchStartY + 5;
 
   return `
     <div class="detail-card boundary-scorecard-inline-card" data-scorecard-key="${escapeOrganizerHtml(scorecard.key)}">
@@ -3249,13 +3261,13 @@ export function renderBoundaryInlineScorecardHtml(scorecard, liveThreats = null)
         </div>
         <div class="scorecard-kpi-cell">
           <div class="scorecard-kpi-val">${fmtInt(scorecard.demolitionsTotal2020To2026)}</div>
-          <div class="scorecard-kpi-lbl">2020-2026 YTD Teardowns (${fmtInt(scorecard.post2020InfillCount)} new builds)</div>
+          <div class="scorecard-kpi-lbl">2020-${demoEndYr}${demoYtdTag} Teardowns (${fmtInt(scorecard.post2020InfillCount)} new builds)</div>
         </div>
       </div>
       ${
         expCount > 0
           ? `<div class="scorecard-expiring-callout">
-               <strong>Renewal Watch (2026-2031):</strong> ${fmtInt(expCount)} Chapter 42 ordinance${expCount === 1 ? "" : "s"} (${fmtInt(scorecard.expiringCh42ParcelCount)} residential lots) reach their 20-year sunset by 2031 under Sec. 42-207(a) / Sec. 42-178(a).
+               <strong>Renewal Watch (${watchStartY}-${watchEndY}):</strong> ${fmtInt(expCount)} Chapter 42 ordinance${expCount === 1 ? "" : "s"} (${fmtInt(scorecard.expiringCh42ParcelCount)} residential lots) reach their 20-year sunset by ${watchEndY} under Sec. 42-207(a) / Sec. 42-178(a).
              </div>`
           : ""
       }
@@ -3320,6 +3332,9 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
   const maxDemoCount = Math.max(1, ...scorecard.demolitionsByYear.map((d) => d.count));
   const threats = liveThreats?.items || [];
   const cm = scorecard.councilMemberMeta;
+  const demoEndYr = Number(scorecard.demoEndYear) || getAtlasMaxYear();
+  const watchStartY = demoEndYr;
+  const watchEndY = watchStartY + 5;
 
   const histBarsHtml = scorecard.decadeHistogram
     .filter((d) => d.decade >= 1860 || d.count > 0)
@@ -3458,7 +3473,7 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
         </div>
 
         <div class="scorecard-stat-box">
-          <div class="sc-stat-label">2020-2026 Teardown &amp; Infill Velocity</div>
+          <div class="sc-stat-label">2020-${demoEndYr} Teardown &amp; Infill Velocity</div>
           <div class="sc-stat-big">${fmtInt(scorecard.demolitionsTotal2020To2026)} <span class="sc-stat-sub">teardown parcels</span></div>
           <div class="sc-stat-meta">
             Matched to pre-1940 parcel history: <strong>${fmtInt(scorecard.demolitionsPre1940Count)}</strong><br/>
@@ -3473,7 +3488,7 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
           <div class="sc-bars-wrap">${histBarsHtml}</div>
         </div>
         <div class="scorecard-chart-panel">
-          <div class="sc-panel-title">Annual Main-Structure Demolitions (2020-2026 YTD*)</div>
+          <div class="sc-panel-title">Annual Main-Structure Demolitions (2020-${demoEndYr}${scorecard.demoHasYtd !== false ? " YTD*" : ""})</div>
           <div class="sc-bars-wrap sc-demo-wrap">${demoBarsHtml}</div>
         </div>
       </div>
@@ -3481,7 +3496,7 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
       ${
         scorecard.expiringOrdinances.length > 0
           ? `<div class="scorecard-section-block scorecard-renewal-box">
-               <div class="sc-panel-title">Action Alert: Chapter 42 Ordinances Reaching 20-Year Sunset (2026-2031)</div>
+               <div class="sc-panel-title">Action Alert: Chapter 42 Ordinances Reaching 20-Year Sunset (${watchStartY}-${watchEndY})</div>
                <p style="margin:0 0 8px;font-size:0.78rem;color:var(--text-secondary)">
                  Pre-July 24, 2015 SMLS and SMBL ordinances expire after 20 years under COH Code Sec. 42-207(a) and Sec. 42-178(a) (${fmtInt(scorecard.expiringCh42ParcelCount)} residential parcels in this boundary). Civic clubs should contact COH Planning at <strong>${escapeOrganizerHtml(COH_CHAPTER_42_RESOURCES.planningIntakePhone)}</strong> before expiration to renew for a 40-year term:
                </p>
@@ -3546,7 +3561,7 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
       </div>
 
       <div class="scorecard-print-footer">
-        Source: Preservation Houston &amp; The Houston Building Atlas (${escapeOrganizerHtml(asOfLabel)}) &middot; Reconciled across 1.51M building footprints, 1.55M HCAD parcels, COH Planning GIS, COH Demolition Permits (*2026 YTD through Oct 2026), Planning Commission Plats, and HAHC Dockets.
+        Source: Preservation Houston &amp; The Houston Building Atlas (${escapeOrganizerHtml(asOfLabel)}) &middot; Reconciled across 1.51M building footprints, 1.55M HCAD parcels, COH Planning GIS, COH Demolition Permits (2020-${demoEndYr}), Planning Commission Plats, and HAHC Dockets.
         ${shareUrl ? `<br/>Interactive Live Link: <span>${escapeOrganizerHtml(shareUrl)}</span>` : ""}
       </div>
     </div>
@@ -3628,7 +3643,7 @@ export function renderChapter42ModalHtml(assembly, calc, matchedOverlays = [], o
                  .join(" ")}
                ${
                  expiringMatches.length > 0
-                   ? `<div style="margin-top:4px;font-size:0.76rem">One or more ordinances reach their 20-year statutory sunset by 2031. Organizers can file a new 40-year Chapter 42 application before expiration.</div>`
+                   ? `<div style="margin-top:4px;font-size:0.76rem">One or more ordinances reach their 20-year statutory sunset by ${(Number(options.refYear) || getAtlasMaxYear()) + 5}. Organizers can file a new 40-year Chapter 42 application before expiration.</div>`
                    : ""
                }
              </div>`

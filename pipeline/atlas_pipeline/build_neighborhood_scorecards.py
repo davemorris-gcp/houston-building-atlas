@@ -48,6 +48,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pyogrio
 import pyogrio.raw
 import shapely
 from pyproj import Transformer
@@ -55,10 +56,14 @@ from shapely import STRtree
 from shapely.geometry import MultiPolygon, Point, Polygon, mapping, shape
 from shapely.validation import make_valid
 
+import atlas_pipeline.schema as _schema
 from atlas_pipeline.schema import (
-    MAX_VALID_CAMA_DATE_YEAR,
+    ACTIVE_TAX_YEAR,
     MIN_VALID_YEAR,
     classify_main_structure_demolition_permit,
+    compute_decade_bins,
+    compute_demo_years,
+    extract_parcels_zip_dataset,
     is_boundary_search_entry,
     is_demolished_vacant_marker,
     is_main_structure_demolition_scope,
@@ -158,29 +163,12 @@ COH_COUNCIL_ROSTER_2024_2028: dict[str, dict[str, str]] = {
     },
 }
 
-DECADE_BINS: tuple[int, ...] = (
-    1830,
-    1840,
-    1850,
-    1860,
-    1870,
-    1880,
-    1890,
-    1900,
-    1910,
-    1920,
-    1930,
-    1940,
-    1950,
-    1960,
-    1970,
-    1980,
-    1990,
-    2000,
-    2010,
-    2020,
-)
-DEMO_YEARS: tuple[int, ...] = (2020, 2021, 2022, 2023, 2024, 2025, 2026)
+def __getattr__(name: str) -> Any:
+    if name == "DECADE_BINS":
+        return compute_decade_bins(_schema.ACTIVE_TAX_YEAR)
+    if name == "DEMO_YEARS":
+        return compute_demo_years(_schema.ACTIVE_TAX_YEAR)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 SCORECARD_FIELD_LEGEND: dict[str, str] = {
     "id": "Canonical boundary feature ID matching overlays.json",
@@ -416,7 +404,7 @@ def parse_demolition_permit_row(
     issue_date: Any,
     roll_yr: Any = None,
     min_year: int = 2020,
-    max_year: int = MAX_VALID_CAMA_DATE_YEAR,
+    max_year: int | None = None,
 ) -> tuple[str, int] | None:
     """Validate an HCAD `permits.txt` row and return `(hcad13, issue_year)` if it is a main-structure demo (DF-4).
 
@@ -424,6 +412,7 @@ def parse_demolition_permit_row(
     null-date sentinels (`12/30/1899`, `01/01/1900`) NEVER fall back to the appraisal tax-roll
     `yr` column (`roll_yr`). Accepts only HCAD demo permit types `13`, `33`, and `43`.
     """
+    eff_max = _schema.MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
     ptype = str(permit_type or "").strip()
     if ptype not in ("13", "33", "43"):
         return None
@@ -435,9 +424,9 @@ def parse_demolition_permit_row(
         roll_yr,
         allow_fallback=False,
         min_year=min_year,
-        max_year=max_year,
+        max_year=eff_max,
     )
-    if yr < min_year or yr > max_year:
+    if yr < min_year or yr > eff_max:
         return None
     if not is_main_structure_demolition_desc(dscr):
         return None
@@ -447,6 +436,8 @@ def parse_demolition_permit_row(
 def iter_reconciled_standing_buildings(
     shard_features: Iterable[dict[str, Any]],
     overrides: dict[str, dict[str, Any]],
+    *,
+    max_year: int | None = None,
 ) -> Iterator[dict[str, Any]]:
     """Stream reconciled standing structures across shard features and `curated_overrides.json` (DF-4).
 
@@ -519,7 +510,7 @@ def iter_reconciled_standing_buildings(
             return
         if props.get("suppress_only"):
             return
-        yr = normalize_year(props.get("year_built"))
+        yr = normalize_year(props.get("year_built"), max_year=max_year)
         if yr < MIN_VALID_YEAR:
             return
         hcad = normalize_hcad13(props.get("hcad_num") or props.get("id"))
@@ -581,9 +572,11 @@ def iter_reconciled_standing_buildings(
 def reconcile_standing_buildings(
     shard_features: Iterable[dict[str, Any]],
     overrides: dict[str, dict[str, Any]],
+    *,
+    max_year: int | None = None,
 ) -> list[dict[str, Any]]:
     """Materialize `iter_reconciled_standing_buildings` as a list for unit and reconciliation checks."""
-    return list(iter_reconciled_standing_buildings(shard_features, overrides))
+    return list(iter_reconciled_standing_buildings(shard_features, overrides, max_year=max_year))
 
 
 def match_ch42_protected_parcels(
@@ -773,8 +766,11 @@ def fetch_and_cache_council_districts(cache_path: Path) -> list[dict[str, Any]]:
     return features_out
 
 
-def hydrate_land_use_protections_lifecycle(overlays: dict[str, Any], *, ref_year: int = MAX_VALID_CAMA_DATE_YEAR) -> dict[str, int]:
+def hydrate_land_use_protections_lifecycle(
+    overlays: dict[str, Any], *, ref_year: int | None = None
+) -> dict[str, int]:
     """Hydrate every `overlays['land_use_protections']` feature with Ch. 42 statutory sunset metadata (DF-1)."""
+    eff_ref = _schema.MAX_VALID_CAMA_DATE_YEAR if ref_year is None else int(ref_year)
     fc = overlays.get("land_use_protections") or {}
     feats = fc.get("features") or []
     counts = Counter()
@@ -793,7 +789,7 @@ def hydrate_land_use_protections_lifecycle(overlays: dict[str, Any], *, ref_year
             expiration_date=p.get("gis_expiration_date", ""),
             status=p.get("status", "Approved"),
             protection_type=ptype,
-            ref_year=ref_year,
+            ref_year=eff_ref,
         )
         p["expiration_date"] = lifecycle["expiration_date"]
         p["expiration_year"] = lifecycle["expiration_year"]
@@ -936,8 +932,14 @@ def _query_coh_webfocus_window(
     return out
 
 
-def fetch_or_load_coh_2026_demo_permits(cache_path: Path) -> list[dict[str, str]]:
-    """Fetch and cache 2026 YTD City of Houston structural demolition permits (`SD` / `4D`)."""
+def fetch_or_load_coh_ytd_demo_permits(
+    cache_path: Path,
+    *,
+    tax_year: int | None = None,
+    fetch_network: bool = True,
+) -> list[dict[str, str]]:
+    """Fetch and cache YTD City of Houston structural demolition permits (`SD` / `4D`) for `tax_year`."""
+    eff_tax = _schema.ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
     if cache_path.exists():
         try:
             doc = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -951,10 +953,16 @@ def fetch_or_load_coh_2026_demo_permits(cache_path: Path) -> list[dict[str, str]
         except Exception:
             pass
 
-    print("   Fetching 2026 YTD COH structural demolition permits across 4-day slices...")
+    if not fetch_network:
+        return []
+
+    start_dt = datetime.date(eff_tax, 1, 1)
+    end_dt = min(datetime.date.today(), datetime.date(eff_tax, 12, 31))
+    if start_dt > end_dt:
+        return []
+
+    print(f"   Fetching {eff_tax} YTD COH structural demolition permits across 4-day slices...")
     ssl_ctx = _make_ssl_ctx()
-    start_dt = datetime.date(2026, 1, 1)
-    end_dt = min(datetime.date.today(), datetime.date(2026, 12, 31))
     slices: list[tuple[datetime.date, datetime.date]] = []
     cur = start_dt
     step = datetime.timedelta(days=4)
@@ -984,6 +992,7 @@ def fetch_or_load_coh_2026_demo_permits(cache_path: Path) -> list[dict[str, str]
         cache_path.write_text(
             json.dumps(
                 {
+                    "tax_year": eff_tax,
                     "fetched_through": end_dt.isoformat(),
                     "count": len(permits_list),
                     "permits": permits_list,
@@ -992,7 +1001,7 @@ def fetch_or_load_coh_2026_demo_permits(cache_path: Path) -> list[dict[str, str]
             ),
             encoding="utf-8",
         )
-    print(f"   Cached {len(permits_list):,} COH 2026 YTD SD/4D permit records.")
+    print(f"   Cached {len(permits_list):,} COH {eff_tax} YTD SD/4D permit records.")
     return permits_list
 
 
@@ -1003,34 +1012,66 @@ def _to_2278_shapely(geom_wgs84: Any, transformer: Transformer) -> Any:
     )
 
 
-def main() -> None:
+def _pick_pyogrio_column(
+    col_idx: dict[str, int],
+    field_data: Any,
+    row_count: int,
+    *cands: str,
+) -> Any:
+    for cand in cands:
+        idx_c = col_idx.get(cand.lower())
+        if idx_c is not None:
+            return field_data[idx_c]
+    return [""] * row_count
+
+
+def main(
+    *,
+    cache_dir: Path | None = None,
+    data_dir: Path | None = None,
+    tax_year: int | None = None,
+    fetch_network: bool = True,
+) -> dict[str, Any]:
     t0 = time.time()
+    eff_year = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    cdir = cache_dir or CACHE_DIR
+    ddir = data_dir or DATA_DIR
+    decade_bins = compute_decade_bins(eff_year)
+    demo_years = compute_demo_years(eff_year)
     print("=== Building Houston Neighborhood & Council District Preservation Scorecards ===")
 
-    overlays_path = DATA_DIR / "overlays.json"
-    search_index_path = DATA_DIR / "search_index.json"
-    overrides_path = DATA_DIR / "curated_overrides.json"
-    scorecards_out_path = DATA_DIR / "neighborhood_scorecards.json"
+    overlays_path = ddir / "overlays.json"
+    search_index_path = ddir / "search_index.json"
+    overrides_path = ddir / "curated_overrides.json"
+    scorecards_out_path = ddir / "neighborhood_scorecards.json"
 
     print("1. Loading overlays.json, search_index.json, and curated_overrides.json...")
     overlays = json.loads(overlays_path.read_text(encoding="utf-8"))
     search_index = json.loads(search_index_path.read_text(encoding="utf-8"))
-    overrides = json.loads(overrides_path.read_text(encoding="utf-8"))
+    raw_overrides = json.loads(overrides_path.read_text(encoding="utf-8"))
+    overrides = (
+        raw_overrides.get("overrides", raw_overrides)
+        if isinstance(raw_overrides, dict) and "overrides" in raw_overrides
+        else raw_overrides
+    )
 
-    lifecycle_counts = hydrate_land_use_protections_lifecycle(overlays)
+    lifecycle_counts = hydrate_land_use_protections_lifecycle(overlays, ref_year=eff_year)
     print(f"   Hydrated land_use_protections lifecycle stats: {lifecycle_counts}")
 
-    council_cache_path = CACHE_DIR / "coh_council_districts_2024.geojson"
-    council_features = fetch_and_cache_council_districts(council_cache_path)
+    council_cache_path = cdir / "coh_council_districts_2024.geojson"
+    if council_cache_path.exists() or fetch_network:
+        council_features = fetch_and_cache_council_districts(council_cache_path)
+    else:
+        council_features = list(overlays.get("council_districts", {}).get("features", []))
     print(f"   Loaded {len(council_features)} COH Council Districts (A-K).")
 
     to_2278 = Transformer.from_crs("EPSG:4326", "EPSG:2278", always_xy=True)
 
     # 2. Build StandingBuildingIndex across all 5 countywide shards reconciled with curated_overrides.json
     print("2. Building StandingBuildingIndex across 5 countywide shards + curated_overrides.json...")
-    shard_paths = sorted(glob.glob(str(CACHE_DIR / "aligned_ndjson" / "buildings_*.geojsonseq")))
+    shard_paths = sorted(glob.glob(str(cdir / "aligned_ndjson" / "buildings_*.geojsonseq")))
     if not shard_paths:
-        raise RuntimeError("Missing aligned_ndjson building shards in pipeline/cache/aligned_ndjson/")
+        raise RuntimeError(f"Missing aligned_ndjson building shards in {cdir / 'aligned_ndjson'}")
 
     # Stream shard records cleanly via iter_reconciled_standing_buildings without keeping polygon rings in RAM
     bldg_xs: list[float] = []
@@ -1072,7 +1113,9 @@ def main() -> None:
                     if s_ln:
                         yield json.loads(s_ln)
 
-    for rec in iter_reconciled_standing_buildings(_iter_raw_shard_features(), overrides):
+    for rec in iter_reconciled_standing_buildings(
+        _iter_raw_shard_features(), overrides, max_year=eff_year + 1
+    ):
         yr = rec["year_built"]
         hcad = rec["hcad_num"]
         for cx, cy in _centroid_xy(rec["geometry"]):
@@ -1111,9 +1154,9 @@ def main() -> None:
             bldg_in_coh_hd[hits] = True
 
     # 3. Parse HCAD CAMA real_acct.txt & permits.txt from Real_acct_owner.zip
-    print("3. Parsing HCAD CAMA real_acct.txt (ownership/state_class/situs) & permits.txt (2020-2026 demos)...")
+    print(f"3. Parsing HCAD CAMA real_acct.txt (ownership/state_class/situs) & permits.txt (2020-{eff_year} demos)...")
     t_cama = time.time()
-    cama_zip_path = CACHE_DIR / "Real_acct_owner.zip"
+    cama_zip_path = cdir / "Real_acct_owner.zip"
     acct_flags: dict[str, int] = {}
     # Bit flags per hcad13:
     # 1 = residential (A* or B*)
@@ -1130,25 +1173,35 @@ def main() -> None:
     FLAG_ABS = 32
 
     situs_to_hcad_coh: dict[str, str] = {}
-    demo_parcels_by_year: dict[int, set[str]] = {yr: set() for yr in DEMO_YEARS}
+    demo_parcels_by_year: dict[int, set[str]] = {yr: set() for yr in demo_years}
     demo_pre40_hcads: set[str] = set()
 
     with zipfile.ZipFile(cama_zip_path, "r") as zf:
         with zf.open("real_acct.txt") as fp:
-            _hdr = fp.readline()
+            hdr_cols = [c.strip() for c in fp.readline().decode("latin1", errors="replace").rstrip("\r\n").split("\t")]
+            col_a = {name: i for i, name in enumerate(hdr_cols)}
+            i_acct = col_a.get("acct", 0)
+            i_mailto = col_a.get("mailto", 2)
+            i_mail1 = col_a.get("mail_addr_1", 3)
+            i_mail2 = col_a.get("mail_addr_2", 4)
+            i_situs1 = col_a.get("site_addr_1", 17)
+            i_sc = col_a.get("state_class", 20)
+            i_yr_impr = col_a.get("yr_impr", 33)
+            i_jurs = col_a.get("jurs", 70)
+            min_acct_cols = max(i_acct, i_mailto, i_situs1, i_sc, i_yr_impr) + 1
             for raw_line in fp:
                 cols = raw_line.decode("latin1", errors="replace").rstrip("\r\n").split("\t")
-                if len(cols) < 50:
+                if len(cols) < min_acct_cols:
                     continue
-                hcad = normalize_hcad13(cols[0])
+                hcad = normalize_hcad13(cols[i_acct])
                 if not hcad:
                     continue
-                sc = cols[20].strip().upper()
-                owner = cols[2].strip()
-                mail1 = cols[3].strip()
-                mail2 = cols[4].strip()
-                situs1 = cols[17].strip()
-                yr_impr = normalize_year(cols[33])
+                sc = cols[i_sc].strip().upper()
+                owner = cols[i_mailto].strip()
+                mail1 = cols[i_mail1].strip() if len(cols) > i_mail1 else ""
+                mail2 = cols[i_mail2].strip() if len(cols) > i_mail2 else ""
+                situs1 = cols[i_situs1].strip()
+                yr_impr = normalize_year(cols[i_yr_impr], max_year=eff_year)
                 if yr_impr >= MIN_VALID_YEAR:
                     prev_yr = hcad_earliest_year.get(hcad)
                     if prev_yr is None or yr_impr < prev_yr:
@@ -1174,46 +1227,59 @@ def main() -> None:
                         flags |= FLAG_ABS
                 acct_flags[hcad] = flags
 
-                jurs = cols[70] if len(cols) > 70 else ""
-                if "061" in jurs and situs1:
+                jurs = cols[i_jurs] if len(cols) > i_jurs else ""
+                if ("061" in jurs or not jurs) and situs1:
                     sk = normalize_situs_compare_key(situs1)
                     if sk and sk not in situs_to_hcad_coh:
                         situs_to_hcad_coh[sk] = hcad
 
-        with zf.open("permits.txt") as fp:
-            _hdr = fp.readline()
-            for raw_line in fp:
-                cols = raw_line.decode("latin1", errors="replace").rstrip("\r\n").split("\t")
-                if len(cols) < 11:
-                    continue
-                parsed = parse_demolition_permit_row(
-                    acct=cols[0],
-                    permit_type=cols[6],
-                    dscr=cols[4],
-                    issue_date=cols[9],
-                    roll_yr=cols[10],
-                    min_year=2020,
-                    max_year=MAX_VALID_CAMA_DATE_YEAR,
-                )
-                if parsed is not None:
-                    hcad, yr = parsed
-                    demo_parcels_by_year[yr].add(hcad)
-                    if hcad in bldg_hcads_set_pre40:
-                        demo_pre40_hcads.add(hcad)
+        if "permits.txt" in zf.namelist():
+            with zf.open("permits.txt") as fp:
+                p_hdr_cols = [c.strip() for c in fp.readline().decode("latin1", errors="replace").rstrip("\r\n").split("\t")]
+                col_p = {name: i for i, name in enumerate(p_hdr_cols)}
+                ip_acct = col_p.get("acct", 0)
+                ip_dscr = col_p.get("dscr", 4)
+                ip_type = col_p.get("permit_type", 6)
+                ip_dt = col_p.get("issue_date", 9)
+                ip_yr = col_p.get("yr", 10)
+                min_p_cols = max(ip_acct, ip_dscr, ip_type, ip_dt) + 1
+                for raw_line in fp:
+                    cols = raw_line.decode("latin1", errors="replace").rstrip("\r\n").split("\t")
+                    if len(cols) < min_p_cols:
+                        continue
+                    parsed = parse_demolition_permit_row(
+                        acct=cols[ip_acct],
+                        permit_type=cols[ip_type],
+                        dscr=cols[ip_dscr],
+                        issue_date=cols[ip_dt],
+                        roll_yr=cols[ip_yr] if len(cols) > ip_yr else None,
+                        min_year=2020,
+                        max_year=eff_year,
+                    )
+                    if parsed is not None:
+                        hcad, yr = parsed
+                        if yr in demo_parcels_by_year:
+                            demo_parcels_by_year[yr].add(hcad)
+                        if hcad in bldg_hcads_set_pre40:
+                            demo_pre40_hcads.add(hcad)
 
-    # Merge 2026 YTD COH structural demolition permits (`SD` / `4D`), deduplicated by `(hcad13, 2026)`
-    coh_2026_cache = CACHE_DIR / "coh_2026_structural_demo_permits.json"
-    coh_2026_permits = fetch_or_load_coh_2026_demo_permits(coh_2026_cache)
-    coh_2026_matched = 0
-    for prm in coh_2026_permits:
+    # Merge active tax_year YTD COH structural demolition permits (`SD` / `4D`), deduplicated by `(hcad13, eff_year)`
+    coh_ytd_cache = cdir / f"coh_{eff_year}_structural_demo_permits.json"
+    coh_ytd_permits = fetch_or_load_coh_ytd_demo_permits(
+        coh_ytd_cache,
+        tax_year=eff_year,
+        fetch_network=fetch_network,
+    )
+    coh_ytd_matched = 0
+    for prm in coh_ytd_permits:
         ok_coh, _, _ = classify_main_structure_demolition_permit(
             prm.get("use_desc"),
             prm.get("permit_type"),
-            "2026",
+            str(eff_year),
             raw_address=prm.get("raw_address"),
             permit_desc=prm.get("permit_desc"),
-            min_year=2026,
-            max_year=MAX_VALID_CAMA_DATE_YEAR,
+            min_year=eff_year,
+            max_year=eff_year,
         )
         if not ok_coh:
             continue
@@ -1222,33 +1288,54 @@ def main() -> None:
             continue
         hcad = situs_to_hcad_coh.get(sk)
         if hcad:
-            demo_parcels_by_year[2026].add(hcad)
-            coh_2026_matched += 1
+            demo_parcels_by_year[eff_year].add(hcad)
+            coh_ytd_matched += 1
             if hcad in bldg_hcads_set_pre40:
                 demo_pre40_hcads.add(hcad)
 
     print(
         f"   Parsed {len(acct_flags):,} HCAD accounts & demo permits in {time.time() - t_cama:.1f}s "
-        f"(2026 YTD COH matched: {coh_2026_matched:,}; annual unique demo parcels: "
+        f"({eff_year} YTD COH matched: {coh_ytd_matched:,}; annual unique demo parcels: "
         f"{ {y: len(s) for y, s in demo_parcels_by_year.items()} })."
     )
 
-    # 4. Read Parcels.gdb (EPSG:2278) -> UniqueParcelIndex + Dual-Mode Ch. 42 Protection Matching
-    print("4. Reading Parcels.gdb (EPSG:2278) into UniqueParcelIndex...")
+    # 4. Read Parcels.gdb / Parcels.zip (EPSG:2278) -> UniqueParcelIndex + Dual-Mode Ch. 42 Protection Matching
+    print("4. Reading Parcels vector dataset (EPSG:2278) into UniqueParcelIndex...")
     t_pcl = time.time()
-    gdb_path = str(CACHE_DIR / "Parcels" / "Parcels.gdb")
-    meta, fids, geom_wkb, field_data = pyogrio.raw.read(
-        gdb_path,
-        layer="Parcels",
-        columns=["HCAD_NUM_1", "CurrOwner", "LocAddr", "mail_addr_1", "mail_addr_2", "Shape_Area"],
+    pcl_src_path = cdir / "Parcels" / "Parcels.gdb"
+    pcl_layer: str | None = "Parcels"
+    if not pcl_src_path.exists():
+        pcl_zip = cdir / "Parcels.zip"
+        if not pcl_zip.exists():
+            raise FileNotFoundError(f"Missing Parcels.gdb or Parcels.zip under {cdir}")
+        pcl_src_path = extract_parcels_zip_dataset(
+            pcl_zip, scratch_extract_dir=cdir / "_parcels_extracted"
+        )
+        if pcl_src_path.suffix.lower() != ".gdb":
+            pcl_layer = None
+
+    info_layers = pyogrio.list_layers(str(pcl_src_path))
+    avail_layers = [str(row[0]) for row in info_layers]
+    if pcl_layer not in avail_layers:
+        pcl_layer = avail_layers[0] if avail_layers else None
+
+    meta, _fids_tmp, geom_wkb, field_data = pyogrio.raw.read(
+        str(pcl_src_path),
+        layer=pcl_layer,
         read_geometry=True,
     )
-    raw_hcads = field_data[0]
-    raw_owners = field_data[1]
-    raw_locaddrs = field_data[2]
-    raw_mail1 = field_data[3]
-    raw_mail2 = field_data[4]
-    raw_areas = field_data[5]
+    col_names = [str(c) for c in (meta.get("fields") if meta.get("fields") is not None else [])]
+    col_idx = {c.lower(): idx for idx, c in enumerate(col_names)}
+
+    row_cnt = len(geom_wkb)
+    if not any(k in col_idx for k in ("hcad_num_1", "hcad_num", "acct")):
+        raise ValueError(f"Missing HCAD account column in {pcl_src_path} (fields={col_names})")
+    raw_hcads = _pick_pyogrio_column(col_idx, field_data, row_cnt, "HCAD_NUM_1", "HCAD_NUM", "acct", "hcad_num")
+    raw_owners = _pick_pyogrio_column(col_idx, field_data, row_cnt, "CurrOwner", "mailto", "owner")
+    raw_locaddrs = _pick_pyogrio_column(col_idx, field_data, row_cnt, "LocAddr", "site_addr_1", "address")
+    raw_mail1 = _pick_pyogrio_column(col_idx, field_data, row_cnt, "mail_addr_1")
+    raw_mail2 = _pick_pyogrio_column(col_idx, field_data, row_cnt, "mail_addr_2")
+    raw_areas = _pick_pyogrio_column(col_idx, field_data, row_cnt, "Shape_Area", "land_ar", "area_sqft")
 
     keep_indices: list[int] = []
     seen_pcl_hcads: set[str] = set()
@@ -1286,14 +1373,31 @@ def main() -> None:
                 fl |= FLAG_ABS
         uniq_flags.append(fl)
         a_val = raw_areas[idx_row]
-        uniq_areas.append(float(a_val) if a_val and float(a_val) > 0 else 0.0)
+        try:
+            uniq_areas.append(float(a_val) if a_val and float(a_val) > 0 else 0.0)
+        except (TypeError, ValueError):
+            uniq_areas.append(0.0)
 
-    del fids, raw_hcads, raw_owners, raw_locaddrs, raw_mail1, raw_mail2, raw_areas, field_data
+    del _fids_tmp, raw_hcads, raw_owners, raw_locaddrs, raw_mail1, raw_mail2, raw_areas, field_data
 
     keep_wkb = geom_wkb[np.asarray(keep_indices, dtype=np.int64)]
     del geom_wkb
     pcl_geoms_2278 = shapely.from_wkb(keep_wkb)
     del keep_wkb
+    src_crs_str = str(meta.get("crs") or "")
+    if src_crs_str and "2278" not in src_crs_str and "Texas South Central" not in src_crs_str:
+        src_to_2278 = Transformer.from_crs(src_crs_str, "EPSG:2278", always_xy=True)
+        pcl_geoms_2278 = np.asarray(
+            [_to_2278_shapely(g, src_to_2278) for g in pcl_geoms_2278],
+            dtype=object,
+        )
+        uniq_areas = [
+            uniq_areas[i] if uniq_areas[i] > 0 else float(shapely.area(pcl_geoms_2278[i]))
+            for i in range(len(pcl_geoms_2278))
+        ]
+    invalid_pcl = ~shapely.is_valid(pcl_geoms_2278)
+    if np.any(invalid_pcl):
+        pcl_geoms_2278 = np.where(invalid_pcl, shapely.make_valid(pcl_geoms_2278), pcl_geoms_2278)
     pcl_pts_2278 = shapely.point_on_surface(pcl_geoms_2278)
 
     pcl_flags_arr = np.asarray(uniq_flags, dtype=np.uint8)
@@ -1306,7 +1410,7 @@ def main() -> None:
     pcl_abs_mask = pcl_res_mask & ((pcl_flags_arr & FLAG_ABS) != 0)
 
     pcl_demo_masks: dict[int, np.ndarray] = {}
-    for yr in DEMO_YEARS:
+    for yr in demo_years:
         yr_set = demo_parcels_by_year[yr]
         pcl_demo_masks[yr] = np.fromiter((h in yr_set for h in uniq_hcads), dtype=bool, count=len(uniq_hcads))
     all_demo_set: set[str] = set().union(*demo_parcels_by_year.values())
@@ -1363,7 +1467,7 @@ def main() -> None:
     print(
         f"   Matched Ch. 42 protections in {time.time() - t_prot:.1f}s: "
         f"any={int(pcl_ch42_mask.sum()):,} res parcels (SMLS={int(pcl_smls_mask.sum()):,}, "
-        f"SMBL={int(pcl_smbl_mask.sum()):,}, expiring 2026-2031={int(pcl_ch42_exp_mask.sum()):,})."
+        f"SMBL={int(pcl_smbl_mask.sum()):,}, expiring {eff_year}-{eff_year + 5}={int(pcl_ch42_exp_mask.sum()):,})."
     )
 
     # 6. Build supplementary point spatial indices for Landmarks, Good Brick, NRHP Props, Lost Houston, Protections, Council Districts
@@ -1388,9 +1492,9 @@ def main() -> None:
     prot_geoms_wgs = [pr["geom_wgs"] for pr in protections_2278]
     prot_tree_wgs = STRtree(prot_geoms_wgs) if prot_geoms_wgs else None
 
-    cd_geoms_wgs = [shape(f["geometry"]) for f in council_features]
-    cd_letters = [f["properties"]["district_letter"] for f in council_features]
-    cd_tree_wgs = STRtree(cd_geoms_wgs)
+    cd_geoms_wgs = [shape(f["geometry"]) for f in council_features if f.get("geometry")]
+    cd_letters = [f["properties"]["district_letter"] for f in council_features if f.get("geometry")]
+    cd_tree_wgs = STRtree(cd_geoms_wgs) if cd_geoms_wgs else None
 
     sn_feats = overlays.get("super_neighborhoods", {}).get("features", [])
     sn_geoms_wgs = [shape(f["geometry"]) for f in sn_feats]
@@ -1459,13 +1563,13 @@ def main() -> None:
                 p75 = int(np.sum(yrs_sub < 1975))
                 n20 = int(np.sum(yrs_sub >= 2020))
                 hdp = int(np.sum(bldg_in_coh_hd[b_hits]))
-                dec_vals = np.clip((yrs_sub // 10) * 10, DECADE_BINS[0], DECADE_BINS[-1])
-                dh = [int(np.sum(dec_vals == db)) for db in DECADE_BINS]
+                dec_vals = np.clip((yrs_sub // 10) * 10, decade_bins[0], decade_bins[-1])
+                dh = [int(np.sum(dec_vals == db)) for db in decade_bins]
             else:
                 ey = 0
                 my = 0
                 p20 = p40 = p60 = p75 = n20 = hdp = 0
-                dh = [0] * len(DECADE_BINS)
+                dh = [0] * len(decade_bins)
 
             # Unique parcel hits (EPSG:2278)
             p_hits = pcl_pt_tree_2278.query(sg_2278, predicate="intersects")
@@ -1481,12 +1585,12 @@ def main() -> None:
                 slp = int(np.sum(pcl_smls_mask[p_hits]))
                 sbp = int(np.sum(pcl_smbl_mask[p_hits]))
                 chx = int(np.sum(pcl_ch42_exp_mask[p_hits]))
-                dm = [int(np.sum(pcl_demo_masks[yr][p_hits])) for yr in DEMO_YEARS]
+                dm = [int(np.sum(pcl_demo_masks[yr][p_hits])) for yr in demo_years]
                 dmt = int(np.sum(pcl_demo_any_mask[p_hits]))
                 dmp40 = int(np.sum(pcl_demo_pre40_mask[p_hits]))
             else:
                 rpc = sfc = occ = ftc = llc = abs_c = chp = slp = sbp = chx = dmt = dmp40 = 0
-                dm = [0] * len(DEMO_YEARS)
+                dm = [0] * len(demo_years)
 
             # Designation point counts (exclude demolished former landmarks; separate Protected vs 90-day waiver vs COA-protected HD landmarks)
             lm_hits = lm_tree.query(sg_wgs, predicate="intersects") if lm_tree else []
@@ -1578,7 +1682,7 @@ def main() -> None:
                 p["ch42_protected_count"] = chp
                 p["ch42_protected_pct"] = round((chp * 100.0 / rpc), 1) if rpc > 0 else 0.0
             else:
-                cd_hits = cd_tree_wgs.query(sg_wgs, predicate="intersects")
+                cd_hits = cd_tree_wgs.query(sg_wgs, predicate="intersects") if cd_tree_wgs is not None else []
                 hit_letters: list[str] = []
                 for cdi in cd_hits:
                     idx_cd = int(cdi)
@@ -1588,7 +1692,7 @@ def main() -> None:
                         ov_a = 0.0
                     if ov_a >= max(1e-8, float(sg_wgs.area) * 0.03):
                         hit_letters.append(cd_letters[idx_cd])
-                if not hit_letters:
+                if not hit_letters and cd_tree_wgs is not None:
                     for cdi in cd_tree_wgs.query(rep_pt, predicate="intersects"):
                         hit_letters.append(cd_letters[int(cdi)])
                 cd_str = ", ".join(sorted(set(hit_letters)))
@@ -1714,11 +1818,13 @@ def main() -> None:
     payload = {
         "schema_version": SCORECARD_SCHEMA_VERSION,
         "generated_at": datetime.date.today().isoformat(),
+        "data_tax_year": eff_year,
         "council_term_expires": COUNCIL_TERM_EXPIRES,
         "min_subdivision_standing_structures": MIN_SUBDIVISION_STANDING_STRUCTURES,
-        "decade_bins": list(DECADE_BINS),
-        "demo_years": list(DEMO_YEARS),
-        "demo_2026_is_ytd": True,
+        "decade_bins": list(decade_bins),
+        "demo_years": list(demo_years),
+        "demo_latest_year_is_ytd": True,
+        "demo_2026_is_ytd": eff_year == 2026,
         "family_counts": family_counts,
         "field_legend": SCORECARD_FIELD_LEGEND,
         "council_roster": COH_COUNCIL_ROSTER_2024_2028,
@@ -1732,6 +1838,7 @@ def main() -> None:
     )
     if out_mb >= 2.5:
         raise RuntimeError(f"neighborhood_scorecards.json exceeded 2.5 MB budget ({out_mb:.2f} MB)")
+    return payload
 
 
 if __name__ == "__main__":

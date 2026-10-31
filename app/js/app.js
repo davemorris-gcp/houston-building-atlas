@@ -9,10 +9,12 @@ import {
   HISTORICAL_MAP_CATALOG,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261030e";
+} from "./palettes.js?v=20261031a";
 import {
   buildShareableUrl,
   createFilterStore,
+  getAtlasMaxDecade,
+  getAtlasMaxYear,
   HISTORIC_WARD_ERAS,
   normalizeComparableAddress,
   parseHashToState,
@@ -22,19 +24,19 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261030e";
-import { AtlasMapController } from "./mapController.js?v=20261030e";
+} from "./filterStore.js?v=20261031a";
+import { AtlasMapController } from "./mapController.js?v=20261031a";
 import {
   buildPortfolioDataset,
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261030e";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261030e";
+} from "./guidedChaptersAndPortfolios.js?v=20261031a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261031a";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261030e";
+} from "./clerkSearchHelpers.js?v=20261031a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -57,7 +59,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261030e";
+} from "./curatedEdits.js?v=20261031a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -67,18 +69,18 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261030e";
+} from "./photoService.js?v=20261031a";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   formatDemolitionBenchmarksGrantText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261030e";
+} from "./platMonitorHelpers.js?v=20261031a";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261030e";
+} from "./hcadViewportParcels.js?v=20261031a";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -96,7 +98,7 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261030e";
+} from "./preservationOrganizer.js?v=20261031a";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -233,6 +235,9 @@ export class HoustonAtlasApp {
       loadCuratedPhotosIndex(),
     ]);
 
+    this._applyRollYearMetadata(
+      this.mapController?.pmtilesManifest?.data_tax_year || this.globalStats?.data_tax_year
+    );
     this._syncPhotoExclusionRegistries();
     this._syncPermitWatchCounts();
     this._syncHahcCounts();
@@ -718,7 +723,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030e`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261031a`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -877,12 +882,12 @@ export class HoustonAtlasApp {
   async _loadMetadataFiles() {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261030e"),
-        fetch("public/data/stats_summary.json?v=20261030e"),
-        fetch("public/data/haif_index.json?v=20261030e").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261030e").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261030e").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261030e").catch(() => null),
+        fetch("public/data/search_index.json?v=20261031a"),
+        fetch("public/data/stats_summary.json?v=20261031a"),
+        fetch("public/data/haif_index.json?v=20261031a").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261031a").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261031a").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261031a").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -911,6 +916,7 @@ export class HoustonAtlasApp {
       }
       this.searchIndex = rawIdx;
       this.globalStats = await statsRes.json();
+      this._applyRollYearMetadata(this.globalStats?.data_tax_year);
       if (haifRes && haifRes.ok) {
         this.haifIndex = await haifRes.json();
       } else {
@@ -950,6 +956,88 @@ export class HoustonAtlasApp {
     } catch (err) {
       console.error("Failed to load metadata files:", err);
     }
+  }
+
+  _applyRollYearMetadata(rawRollYear) {
+    const yr = Math.round(Number(rawRollYear));
+    if (!Number.isFinite(yr) || yr < 1836 || yr > 2100) return;
+    const reconciled = this.filterStore.reconcileAtlasMaxYear(yr);
+    const resolvedTopY =
+      typeof reconciled === "number" && Number.isFinite(reconciled)
+        ? reconciled
+        : getAtlasMaxYear();
+    const topDec = getAtlasMaxDecade();
+    if (typeof document === "undefined") return;
+
+    const minSlider = document.getElementById("slider-min-year");
+    const maxSlider = document.getElementById("slider-max-year");
+    if (minSlider) minSlider.max = String(resolvedTopY);
+    if (maxSlider) maxSlider.max = String(resolvedTopY);
+
+    const corrSugg = document.getElementById("corr-suggested-year");
+    if (corrSugg) corrSugg.max = String(resolvedTopY);
+    const lblCorrSugg = document.getElementById("lbl-corr-suggested-year");
+    if (lblCorrSugg && typeof lblCorrSugg.querySelector === "function") {
+      const hint = lblCorrSugg.querySelector(".opt-hint");
+      if (hint) {
+        hint.innerHTML = `(1836-${resolvedTopY}, or <code>0</code> if vacant)`;
+      }
+    }
+
+    const decSelect = document.getElementById("select-decade");
+    if (decSelect && decSelect.options) {
+      let unknownOpt = null;
+      const existingValues = new Set();
+      for (let i = decSelect.options.length - 1; i >= 0; i -= 1) {
+        const opt = decSelect.options[i];
+        const optVal = String(opt.value);
+        const optNum = Number(optVal);
+        if (Number.isInteger(optNum) && optNum >= 2030 && optNum > topDec) {
+          if (typeof opt.remove === "function") opt.remove();
+          else if (typeof decSelect.remove === "function") decSelect.remove(i);
+          continue;
+        }
+        existingValues.add(optVal);
+        if (optVal === "unknown") unknownOpt = opt;
+      }
+      for (let d = 2030; d <= topDec; d += 10) {
+        const decVal = String(d);
+        if (!existingValues.has(decVal) && typeof document.createElement === "function") {
+          const opt = document.createElement("option");
+          opt.value = decVal;
+          opt.textContent = `${d}s Decade`;
+          if (unknownOpt && typeof decSelect.insertBefore === "function") {
+            decSelect.insertBefore(opt, unknownOpt);
+          } else if (typeof decSelect.appendChild === "function") {
+            decSelect.appendChild(opt);
+          }
+        }
+      }
+    }
+
+    const scSort = document.getElementById("scorecard-sort-select");
+    if (scSort && typeof scSort.querySelector === "function") {
+      const expOpt = scSort.querySelector('option[value="expiring"]');
+      if (expOpt) {
+        expOpt.textContent = `Sort: Expiring Ch. 42 Ordinances (${resolvedTopY}-${resolvedTopY + 5})`;
+      }
+      const demoOpt = scSort.querySelector('option[value="demos_total"]');
+      if (demoOpt) {
+        demoOpt.textContent = `Sort: Highest 2020-${resolvedTopY} Demolitions`;
+      }
+    }
+    const scSunsetTh = document.getElementById("sc-th-sunset");
+    if (scSunsetTh) {
+      scSunsetTh.title = `Pre-July 24, 2015 Chapter 42 ordinances reaching 20-year sunset in ${resolvedTopY}-${resolvedTopY + 5}`;
+      scSunsetTh.textContent = `Sunset ${String(resolvedTopY).slice(-2)}-${String(resolvedTopY + 5).slice(-2)}`;
+    }
+    const scDemosTh = document.getElementById("sc-th-demos");
+    if (scDemosTh) {
+      scDemosTh.title = `Main-structure teardown parcels permitted 2020-${resolvedTopY}`;
+    }
+
+    this._renderLegend();
+    this._syncControlsFromState(this.filterStore.getState());
   }
 
   _syncPhotoExclusionRegistries() {
@@ -2887,7 +2975,7 @@ export class HoustonAtlasApp {
     }
     if (maxSlider) {
       maxSlider.addEventListener("input", (e) => {
-        const val = parseInt(e.target.value, 10) || 2026;
+        const val = parseInt(e.target.value, 10) || getAtlasMaxYear();
         const currMin = this.filterStore.getState().minYear;
         this.filterStore.setState({
           maxYear: Math.max(val, currMin),
@@ -2906,7 +2994,7 @@ export class HoustonAtlasApp {
           this.filterStore.setState({
             selectedDecade: val,
             minYear: 1836,
-            maxYear: 2026,
+            maxYear: getAtlasMaxYear(),
             isPlaying: false,
           });
         } else {
@@ -2914,7 +3002,7 @@ export class HoustonAtlasApp {
           this.filterStore.setState({
             selectedDecade: val,
             minYear: decInt === 1840 ? 1836 : decInt,
-            maxYear: Math.min(2026, decInt + 9),
+            maxYear: Math.min(getAtlasMaxYear(), decInt + 9),
             stepYears: 10,
             isPlaying: false,
           });
@@ -4366,12 +4454,13 @@ export class HoustonAtlasApp {
           sourceType: payload.source_type,
           sourceCitation: payload.source_citation,
         });
+        const maxValidYr = Math.max(MAX_VALID_YEAR, getAtlasMaxYear());
         const yrNum = rawSuggYr !== "" ? Number(rawSuggYr) : NaN;
         const isValidStandingYear =
           Number.isFinite(yrNum) &&
           Number.isInteger(yrNum) &&
           yrNum >= MIN_VALID_YEAR &&
-          yrNum <= MAX_VALID_YEAR;
+          yrNum <= maxValidYr;
         const hasStandingMetadataOnly =
           rawSuggYr === "" &&
           Boolean(
@@ -4387,14 +4476,14 @@ export class HoustonAtlasApp {
 
         if (!isDemolishedVacant && !isValidStandingYear && !hasStandingMetadataOnly) {
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built between ${MIN_VALID_YEAR} and ${MAX_VALID_YEAR}, supply curated metadata/footprint notes, or enter <code>0</code> / select "Building demolished - lot currently vacant" to hide a demolished building footprint.</strong>`;
+            feedbackEl.innerHTML = `<strong>Please enter a Corrected Year Built between ${MIN_VALID_YEAR} and ${maxValidYr}, supply curated metadata/footprint notes, or enter <code>0</code> / select "Building demolished - lot currently vacant" to hide a demolished building footprint.</strong>`;
             feedbackEl.classList.remove("hidden");
           }
           return;
         }
         if (rawSuggYr !== "" && !isDemolishedVacant && !isValidStandingYear) {
           if (feedbackEl) {
-            feedbackEl.innerHTML = `<strong>Corrected Year Built must be between ${MIN_VALID_YEAR} and ${MAX_VALID_YEAR} (or leave blank when updating metadata/geometry on an undated structure).</strong>`;
+            feedbackEl.innerHTML = `<strong>Corrected Year Built must be between ${MIN_VALID_YEAR} and ${maxValidYr} (or leave blank when updating metadata/geometry on an undated structure).</strong>`;
             feedbackEl.classList.remove("hidden");
           }
           return;
@@ -4543,7 +4632,7 @@ export class HoustonAtlasApp {
             Number.isFinite(yrNum) &&
             Number.isInteger(yrNum) &&
             yrNum >= MIN_VALID_YEAR &&
-            yrNum <= MAX_VALID_YEAR
+            yrNum <= Math.max(MAX_VALID_YEAR, getAtlasMaxYear())
           ) {
             footprintSelectEl.value = DEMOLISHED_REPLACED_ISSUE;
             (this._syncFootprintIssueUi || HoustonAtlasApp.prototype._syncFootprintIssueUi).call(
@@ -4608,15 +4697,16 @@ export class HoustonAtlasApp {
           sourceCitation: payload.source_citation,
         });
         if (rawSuggYr !== "" && !isDemolishedVacant) {
+          const maxValidYr = Math.max(MAX_VALID_YEAR, getAtlasMaxYear());
           const yrNum = Number(rawSuggYr);
           if (
             !Number.isFinite(yrNum) ||
             !Number.isInteger(yrNum) ||
             yrNum < MIN_VALID_YEAR ||
-            yrNum > MAX_VALID_YEAR
+            yrNum > maxValidYr
           ) {
             if (feedbackEl) {
-              feedbackEl.innerHTML = `<strong>Please enter a construction year between ${MIN_VALID_YEAR} and ${MAX_VALID_YEAR}, or enter <code>0</code> to mark the building demolished and the lot currently vacant.</strong>`;
+              feedbackEl.innerHTML = `<strong>Please enter a construction year between ${MIN_VALID_YEAR} and ${maxValidYr}, or enter <code>0</code> to mark the building demolished and the lot currently vacant.</strong>`;
               feedbackEl.classList.remove("hidden");
             }
             if (corrSuggYrEl) corrSuggYrEl.focus();
@@ -5712,7 +5802,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261030e`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261031a`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -7236,7 +7326,7 @@ export class HoustonAtlasApp {
       (state.selectedDecade !== "all" && state.selectedDecade !== "unknown") ||
       state.minYear > 1836;
     const atStart = isWindowMode ? state.minYear <= 1836 : state.maxYear <= 1836;
-    const atEnd = state.maxYear >= 2026;
+    const atEnd = state.maxYear >= getAtlasMaxYear();
     if (btnStepPrev) btnStepPrev.disabled = atStart;
     if (btnStepNext) btnStepNext.disabled = atEnd;
 
@@ -7597,10 +7687,11 @@ export class HoustonAtlasApp {
         this.timelapseTimer = null;
         return;
       }
+      const topY = getAtlasMaxYear();
       const nextMax = curr.maxYear + stepYears;
-      if (nextMax >= 2026) {
+      if (nextMax >= topY) {
         this.filterStore.setState({
-          maxYear: 2026,
+          maxYear: topY,
           isPlaying: false,
         });
       } else {
@@ -7646,7 +7737,8 @@ export class HoustonAtlasApp {
     const decades = [];
     let maxCount = 1;
 
-    for (let d = 1840; d <= 2020; d += 10) {
+    const topDec = getAtlasMaxDecade();
+    for (let d = 1840; d <= topDec; d += 10) {
       const c = Number(decadeCounts[String(d)] || 0);
       if (d === 1840) {
         const c1830 = Number(decadeCounts["1830"] || 0);
@@ -7690,7 +7782,7 @@ export class HoustonAtlasApp {
           this.filterStore.setState({
             selectedDecade: "all",
             minYear: 1836,
-            maxYear: 2026,
+            maxYear: getAtlasMaxYear(),
             isPlaying: false,
           });
         } else {
@@ -7698,7 +7790,7 @@ export class HoustonAtlasApp {
           this.filterStore.setState({
             selectedDecade: clickedDec,
             minYear: dInt === 1840 ? 1836 : dInt,
-            maxYear: Math.min(2026, dInt + 9),
+            maxYear: Math.min(getAtlasMaxYear(), dInt + 9),
             stepYears: 10,
             isPlaying: false,
           });
@@ -12521,7 +12613,8 @@ export class HoustonAtlasApp {
     }
 
     const yr = Number(props.year_built) || 0;
-    const currentYear = 2026;
+    const currentYear = getAtlasMaxYear();
+    const bldgAge = Math.max(0, currentYear - yr);
     const hcadNumPre = String(props.hcad_num || "").trim();
     const hasCityDirHitPre = Boolean(
       hcadNumPre && this.citydirIndex?.by_hcad && this.citydirIndex.by_hcad[hcadNumPre]
@@ -12549,10 +12642,10 @@ export class HoustonAtlasApp {
     const ageText =
       yr >= 1836
         ? isRoundedHcadDecade
-          ? `~${currentYear - yr} yrs (HCAD Est.)`
+          ? `~${bldgAge} yrs (HCAD Est.)`
           : isCircaEst
-          ? `~${currentYear - yr} yrs old (Est.)`
-          : `${currentYear - yr} yrs old`
+          ? `~${bldgAge} yrs old (Est.)`
+          : `${bldgAge} yrs old`
         : isDemolishedVacantParcel
         ? origDemolishedYr >= 1836
           ? `Building demolished · Formerly ${origDemolishedYr}`
@@ -14825,7 +14918,7 @@ export class HoustonAtlasApp {
             if (badge) badge.textContent = "Exempt / Unindexed";
             return;
           }
-          if (badge) badge.textContent = "2026 Roll · Live";
+          if (badge) badge.textContent = `${getAtlasMaxYear()} Roll · Live`;
           const apprEl = document.getElementById("hcad-live-appr");
           const mktEl = document.getElementById("hcad-live-mkt");
           const imprEl = document.getElementById("hcad-live-impr");
@@ -15005,7 +15098,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261030e`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261031a`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -15168,7 +15261,7 @@ export class HoustonAtlasApp {
     if (timelineItems.length > 0) {
       html += `<div class="permit-timeline-list">${timelineItems.join("")}</div>`;
     } else if (!appraiserNote && !relocNote) {
-      html += `<div class="permit-empty-note">No itemized 2004-2026 municipal building permits recorded in HCAD's CAMA permit table for this parcel. Know of a historic building permit or contractor record? Click <strong>Suggest a Date / Shape / Data Correction</strong> below.</div>`;
+      html += `<div class="permit-empty-note">No itemized 2004-${getAtlasMaxYear()} municipal building permits recorded in HCAD's CAMA permit table for this parcel. Know of a historic building permit or contractor record? Click <strong>Suggest a Date / Shape / Data Correction</strong> below.</div>`;
     }
 
     body.innerHTML = html;
@@ -16023,7 +16116,7 @@ export class HoustonAtlasApp {
               }</span>
             </div>
             <div class="dossier-kv-cell">
-              <span class="dossier-k">${liveAppr && liveAppr !== "…" ? "2026 Appraised Value" : "Data Provenance"}</span>
+              <span class="dossier-k">${liveAppr && liveAppr !== "…" ? `${getAtlasMaxYear()} Appraised Value` : "Data Provenance"}</span>
               <span class="dossier-v mono">${
                 liveAppr && liveAppr !== "…"
                   ? liveAppr
@@ -16140,8 +16233,8 @@ export class HoustonAtlasApp {
         const statusBadge = btn.querySelector("[data-preset-status]");
         const urlToCopy = inputEl ? inputEl.value : window.location.href;
 
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(urlToCopy);
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+          navigator.clipboard.writeText(urlToCopy).catch(() => {});
         }
 
         grid.querySelectorAll(".share-preset-card").forEach((c) => c.classList.remove("active"));
@@ -16334,7 +16427,7 @@ export class HoustonAtlasApp {
         );
       }
 
-      if (state.minYear > 1836 || state.maxYear < 2026 || state.selectedDecade !== "all") {
+      if (state.minYear > 1836 || state.maxYear < getAtlasMaxYear() || state.selectedDecade !== "all") {
         pills.push(
           `<span class="share-pill-tag">Years: ${state.minYear}-${state.maxYear}</span>`
         );
@@ -16973,7 +17066,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261030e`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261031a`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18383,7 +18476,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261030e")
+          fetch("public/data/sanborn_catalog.json?v=20261031a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -18393,7 +18486,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261030e")
+          fetch("public/data/citydir_index.json?v=20261031a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -18416,7 +18509,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261030e")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261031a")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -18971,7 +19064,7 @@ export class HoustonAtlasApp {
     const curState = this.filterStore.getState();
     const statePatch = {
       minYear: 1836,
-      maxYear: 2026,
+      maxYear: getAtlasMaxYear(),
       selectedDecade: "all",
     };
     if (dataset.stats.demolishedCount > 0 && !curState.layers?.lostHouston) {
@@ -19781,7 +19874,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261030e")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261031a")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

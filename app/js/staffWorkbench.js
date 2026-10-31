@@ -1,7 +1,7 @@
 /**
  * Preservation Houston Staff & Field Workbench (Milestone 3).
  *
- * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261030e")` strictly when
+ * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261031a")` strictly when
  * staff or field volunteers open:
  *   - Component A (`#4`): Split-Screen Historian Rapid Audit Mode (`#audit=1`)
  *   - Component B (`#5a`): In-Browser Staff Polygon Editor (`#polyedit=<id>`)
@@ -43,8 +43,8 @@ import {
   getSurveyPhotoBlob,
   listSurveyPhotoSummaries,
   deleteSurveyPhotoBlob,
-} from "./curatedEdits.js?v=20261030e";
-import { normalizeComparableAddress } from "./filterStore.js?v=20261030e";
+} from "./curatedEdits.js?v=20261031a";
+import { getAtlasMaxYear, normalizeComparableAddress } from "./filterStore.js?v=20261031a";
 
 export const BORDEN_DOWNTOWN_GRID_DEG = -34.65;
 export const LS_AUDIT_DECISIONS_KEY = "ph_atlas_audit_decisions_v1";
@@ -1670,7 +1670,7 @@ export function buildSurveyPhotoFilename(hcadNum, address, dateIso = "") {
       .replace(/^_+|_+$/g, "")
       .slice(0, 32) || "site";
   const dt = dateIso ? new Date(dateIso) : new Date();
-  const y = Number.isFinite(dt.getTime()) ? dt.getUTCFullYear() : 2026;
+  const y = Number.isFinite(dt.getTime()) ? dt.getUTCFullYear() : getAtlasMaxYear();
   const m = Number.isFinite(dt.getTime())
     ? String(dt.getUTCMonth() + 1).padStart(2, "0")
     : "10";
@@ -2152,7 +2152,7 @@ export class StaffWorkbenchController {
     }
     if (this._auditLoadingPromise) return this._auditLoadingPromise;
     this._auditLoadingPromise = (async () => {
-      const resp = await fetch("public/data/historical_audit_queue.json?v=20261030e");
+      const resp = await fetch("public/data/historical_audit_queue.json?v=20261031a");
       if (!resp.ok) {
         throw new Error(`HTTP ${resp.status} loading historical_audit_queue.json`);
       }
@@ -2562,7 +2562,9 @@ export class StaffWorkbenchController {
 
     const admin = getAdminSession();
     const isAdmin = isAdminUnlockedSession(admin);
-    const maxAllowedYear = isAdmin ? MAX_STANDING_OVERRIDE_YEAR : MAX_VALID_YEAR;
+    const maxAllowedYear = isAdmin
+      ? MAX_STANDING_OVERRIDE_YEAR
+      : Math.max(MAX_VALID_YEAR, getAtlasMaxYear());
     const rawYr = String(yearEl?.value || "").trim();
     const yrNum = rawYr ? Number(rawYr) : null;
     if (

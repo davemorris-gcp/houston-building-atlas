@@ -409,13 +409,12 @@ def test_modularity_single_source_of_truth_and_cli_registration() -> None:
     for mod_name, expected_symbol in [
         ("resolve_undated_countywide.py", "parse_hcad_date_year"),
         ("resolve_undated_countywide.py", "compile_quadrant_pmtiles"),
-        ("fix_campus_anomalies_and_schools.py", "parse_hcad_date_year"),
         ("fix_campus_anomalies_and_schools.py", "ACTIVE_CACHE_BUST"),
         ("fix_campus_anomalies_and_schools.py", "compile_quadrant_pmtiles"),
         ("full_build.py", "ACTIVE_CACHE_BUST"),
         ("full_build.py", "compile_quadrant_pmtiles"),
         ("enrich_deed_chains.py", "normalize_hcad_date"),
-        ("build_permits_and_contractors.py", "normalize_hcad_date"),
+        ("build_permits_and_contractors.py", "normalize_hcad_permit_row"),
     ]:
         src = (pipeline_pkg / mod_name).read_text(encoding="utf-8")
         tree = ast.parse(src, filename=mod_name)
@@ -426,6 +425,15 @@ def test_modularity_single_source_of_truth_and_cli_registration() -> None:
         assert expected_symbol in imported_from_schema, (
             f"{mod_name} must import {expected_symbol} from atlas_pipeline.schema"
         )
+
+    # fix_campus_anomalies_and_schools.py delegates fallback permit/deed parsing via resolve_undated_countywide helpers
+    campus_src = (pipeline_pkg / "fix_campus_anomalies_and_schools.py").read_text(encoding="utf-8")
+    campus_tree = ast.parse(campus_src, filename="fix_campus_anomalies_and_schools.py")
+    imported_from_resolve = set()
+    for node in ast.walk(campus_tree):
+        if isinstance(node, ast.ImportFrom) and node.module == "atlas_pipeline.resolve_undated_countywide":
+            imported_from_resolve.update(alias.name for alias in node.names)
+    assert {"build_undated_fallback_context", "resolve_undated_feature_batch"} <= imported_from_resolve
 
     import re
 

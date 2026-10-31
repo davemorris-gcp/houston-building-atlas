@@ -24,7 +24,12 @@ from shapely.geometry import MultiPolygon, Point, Polygon, mapping, shape
 from shapely.ops import unary_union
 from shapely.validation import make_valid
 
-from atlas_pipeline.schema import is_boundary_search_entry, upsert_search_index_slice
+from atlas_pipeline.schema import (
+    ACTIVE_TAX_YEAR,
+    is_boundary_search_entry,
+    resolve_subdivisions_cache_path,
+    upsert_search_index_slice,
+)
 
 
 def round_coords(geom_dict: dict, decimals: int = 5) -> dict:
@@ -491,37 +496,57 @@ def normalize_hcad_subdivision(raw_lgl: str) -> str:
   return canon_sub(clean_title(s))
 
 
-def load_hcad_subdivisions() -> dict[str, str]:
+def load_hcad_subdivisions(
+    *,
+    cache_dir: str | os.PathLike[str] | None = None,
+    tax_year: int | None = None,
+) -> dict[str, str]:
   """Load HCAD account -> normalized platted subdivision name (using fast pickle cache when available)."""
+  from pathlib import Path
   import pickle
-  pkl_path = os.path.join(CACHE_DIR, 'hcad_subdivisions_2026.pkl')
-  if os.path.exists(pkl_path):
-    with open(pkl_path, 'rb') as f:
+
+  cdir = Path(cache_dir or CACHE_DIR)
+  read_pkl = resolve_subdivisions_cache_path(
+      cdir,
+      tax_year,
+      allow_fallback_latest=(tax_year is None),
+  )
+  if read_pkl.exists():
+    with open(read_pkl, 'rb') as f:
       raw_map = pickle.load(f)
     hcad_to_sub = {k: canon_sub(v) for k, v in raw_map.items()}
     print(f'Loaded {len(hcad_to_sub):,} normalized HCAD platted subdivision names from cache')
     return hcad_to_sub
 
-  zip_path = os.path.join(CACHE_DIR, 'Real_acct_owner.zip')
+  zip_path = cdir / 'Real_acct_owner.zip'
   hcad_to_sub: dict[str, str] = {}
-  if not os.path.exists(zip_path):
+  if not zip_path.exists():
     return hcad_to_sub
   with zipfile.ZipFile(zip_path) as zf:
     with zf.open('real_acct.txt') as f:
-      _ = f.readline()
+      header = [h.strip() for h in f.readline().decode('latin1', errors='replace').rstrip('\r\n').split('\t')]
+      idx_acct = header.index('acct') if 'acct' in header else 0
+      idx_lgl2 = header.index('lgl_2') if 'lgl_2' in header else 67
+      idx_lgl3 = header.index('lgl_3') if 'lgl_3' in header else idx_lgl2 + 1
       for line in f:
         parts = line.decode('latin1', errors='replace').rstrip('\r\n').split('\t')
-        if len(parts) > 67:
-          acct = parts[0].strip()
+        if len(parts) > idx_lgl2:
+          acct = parts[idx_acct].strip()
           if not acct:
             continue
-          lgl2 = parts[67].strip()
+          lgl2 = parts[idx_lgl2].strip()
           sub = normalize_hcad_subdivision(lgl2)
-          if not sub and len(parts) > 68:
-            sub = normalize_hcad_subdivision(parts[68].strip())
+          if not sub and len(parts) > idx_lgl3:
+            sub = normalize_hcad_subdivision(parts[idx_lgl3].strip())
           if sub:
             hcad_to_sub[acct] = sub
-  with open(pkl_path, 'wb') as f:
+  write_pkl = resolve_subdivisions_cache_path(
+      cdir,
+      tax_year,
+      allow_fallback_latest=False,
+  )
+  write_pkl.parent.mkdir(parents=True, exist_ok=True)
+  with open(write_pkl, 'wb') as f:
     pickle.dump(hcad_to_sub, f, protocol=pickle.HIGHEST_PROTOCOL)
   print(f'Loaded {len(hcad_to_sub):,} normalized HCAD platted subdivision names from real_acct.txt')
   return hcad_to_sub
@@ -536,7 +561,7 @@ def build_historic_wards() -> list[dict]:
       (1839, 'coh_wards_1839.geojson', '1839', '1839 Original 4-Ward Charter'),
       (1866, 'coh_wards_1866.geojson', '1866', '1866 5-Ward Charter'),
       (1896, 'coh_wards_1896.geojson', '1896', '1896 6-Ward Charter (9 Sq. Mi.)'),
-      (1903, 'coh_wards_1903.geojson', '1903–05', '1903–1905 Final Aldermanic Charter (16 Sq. Mi.)'),
+      (1903, 'coh_wards_1903.geojson', '1903-05', '1903-1905 Final Aldermanic Charter (16 Sq. Mi.)'),
   ]
   ward_features = []
   for era, fname, era_short, era_desc in era_files:
@@ -571,7 +596,7 @@ def build_historic_wards() -> list[dict]:
               'alt_names': meta['alt_names'],
               'color': meta['color'],
               'description': meta['description'],
-              'source': 'City of Houston Historic Ward Charters (1839–1905)',
+              'source': 'City of Houston Historic Ward Charters (1839-1905)',
               'label_lng': round(rep.x, 5),
               'label_lat': round(rep.y, 5),
           },
@@ -912,8 +937,9 @@ def build_platted_subdivisions_features(
   return feats
 
 
-def main() -> None:
-  hcad_to_sub = load_hcad_subdivisions()
+def main(*, tax_year: int | None = None) -> None:
+  eff_max_yr = (ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)) + 1
+  hcad_to_sub = load_hcad_subdivisions(tax_year=tax_year)
   ward_features = build_historic_wards()
   wards_1903 = [f for f in ward_features if f['properties']['era'] == 1903]
   super_nbhds = build_super_neighborhoods()
@@ -1077,7 +1103,7 @@ def main() -> None:
       key_id = poly_feats[poly_i]['properties'][id_prop]
       st = stats_dict[key_id]
       yr = yrs_list[pt_i]
-      if 1800 <= yr <= 2026:
+      if 1800 <= yr <= eff_max_yr:
         st['years'].append(yr)
       if lms_list[pt_i]:
         st['landmarks'] += 1
@@ -1221,12 +1247,12 @@ def main() -> None:
     place_entries.append({
         'id': p['id'],
         'is_neighborhood_entry': True,
-        'place_type': 'Historic Ward (1839–1905)',
+        'place_type': 'Historic Ward (1839-1905)',
         'overlay_layer': 'historicWards',
         'name': p['name'],
         'building_name': p['name'],
         'alt_names': p.get('alt_names', []),
-        'address': f"Original Houston Aldermanic Ward (1839–1905) · {p.get('building_count', 0):,} structures · Median {p.get('median_year') or 'N/A'}",
+        'address': f"Original Houston Aldermanic Ward (1839-1905) · {p.get('building_count', 0):,} structures · Median {p.get('median_year') or 'N/A'}",
         'category': 'Historic Ward',
         'year_built': p.get('median_year') or 1900,
         'earliest_year': p.get('earliest_year') or 0,

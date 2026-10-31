@@ -12,7 +12,7 @@ import {
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261030e";
+} from "./palettes.js?v=20261031a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -24,10 +24,12 @@ import {
   buildRedBookFilterExpression,
   featureMatchesFilter,
   featureMatchesLostHoustonFilter,
+  getAtlasMaxDecade,
+  getAtlasMaxYear,
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261030e";
+} from "./filterStore.js?v=20261031a";
 import {
   METERS_PER_DEGREE_LAT,
   OVERRIDE_MODE_ADDITIVE_POLYGON,
@@ -37,8 +39,8 @@ import {
   classifyOverrideFootprintMode,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261030e";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261030e";
+} from "./curatedEdits.js?v=20261031a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261031a";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
@@ -47,8 +49,8 @@ import {
   mapHcadStateClassToUseCategory,
   matchHcadParcelFeaturesByAddressQuery,
   normalizeHcad13,
-} from "./hcadViewportParcels.js?v=20261030e";
-import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261030e";
+} from "./hcadViewportParcels.js?v=20261031a";
+import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261031a";
 
 export const LOST_HOUSTON_RANK_EXPR = ["coalesce", ["to-number", ["get", "symbol_rank"]], 4];
 
@@ -333,14 +335,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261030e"),
-      fetch("public/data/parcels.geojson?v=20261030e"),
-      fetch("public/data/overlays.json?v=20261030e"),
-      fetch("public/data/pmtiles_manifest.json?v=20261030e").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261031a"),
+      fetch("public/data/parcels.geojson?v=20261031a"),
+      fetch("public/data/overlays.json?v=20261031a"),
+      fetch("public/data/pmtiles_manifest.json?v=20261031a").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261030e").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261030e").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261030e").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261031a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261031a").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261031a").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1390,7 +1392,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261030e";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261031a";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -9892,15 +9894,7 @@ export class AtlasMapController {
         const meta = LAYER_META[entry.overlayKey];
         if (!meta || !meta.enabled) continue;
         if (entry.overlayKey === "lost_houston") {
-          const yb = Number(entry.props.year_built || 1836);
-          const yd = Number(entry.props.year_demolished || 9999);
-          const minY = Number(state.minYear ?? 1836);
-          const maxY = Number(state.maxYear ?? 2026);
-          if (state.historicalSnapshotMode) {
-            if (yb > maxY || yd <= maxY) continue;
-          } else {
-            if (yb > maxY || yd < minY) continue;
-          }
+          if (!featureMatchesLostHoustonFilter(entry.props, state)) continue;
         } else if (entry.overlayKey === "historic_wards") {
           const entryEra = Number(
             entry.props.era || entry.props.ward_era || entry.props.era_year || 0
@@ -11580,8 +11574,9 @@ export class AtlasMapController {
     const north = bounds.getNorth();
     const state = this.filterStore.getState();
 
+    const topDec = getAtlasMaxDecade();
     const decadeCounts = {};
-    for (let d = 1830; d <= 2020; d += 10) {
+    for (let d = 1830; d <= topDec; d += 10) {
       decadeCounts[String(d)] = 0;
     }
 
@@ -11663,7 +11658,7 @@ export class AtlasMapController {
             inViewportTotal += 1;
             const yr = Number(p.year_built) || 0;
             const dec = Number(p.decade) || 0;
-            if (yr >= 1836 && dec >= 1830 && dec <= 2020) {
+            if (yr >= 1836 && dec >= 1830 && dec <= topDec) {
               decadeCounts[String(dec)] = (decadeCounts[String(dec)] || 0) + 1;
             }
             if (featureMatchesFilter(p, state)) {
@@ -11712,7 +11707,7 @@ export class AtlasMapController {
         const yr = Number(p.year_built) || 0;
         const dec = Number(p.decade) || 0;
 
-        if (yr >= 1836 && dec >= 1830 && dec <= 2020) {
+        if (yr >= 1836 && dec >= 1830 && dec <= topDec) {
           decadeCounts[String(dec)] = (decadeCounts[String(dec)] || 0) + 1;
         }
 
@@ -12234,7 +12229,7 @@ export class AtlasMapController {
 
     const years = buildings
       .map((b) => Number(b.properties?.year_built) || 0)
-      .filter((y) => y >= 1836 && y <= 2026)
+      .filter((y) => y >= 1836 && y <= Math.max(getAtlasMaxYear(), 2035))
       .sort((a, b) => a - b);
 
     const bProps = boundaryFeature?.properties || {};

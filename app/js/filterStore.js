@@ -26,6 +26,39 @@ export function normalizeComparableAddress(raw) {
     .trim();
 }
 
+export const DEFAULT_ATLAS_MAX_YEAR = 2026;
+let _atlasMaxYear = DEFAULT_ATLAS_MAX_YEAR;
+const _liveStoreRefs = new Set();
+
+export function getAtlasMaxYear() {
+  return _atlasMaxYear;
+}
+
+export function getAtlasMaxDecade() {
+  return Math.floor(_atlasMaxYear / 10) * 10;
+}
+
+export function setAtlasMaxYear(year) {
+  const parsed = Math.floor(Number(year));
+  if (!Number.isFinite(parsed) || parsed < 1836 || parsed > 2100) {
+    return _atlasMaxYear;
+  }
+  const prev = _atlasMaxYear;
+  _atlasMaxYear = parsed;
+  DEFAULT_FILTER_STATE.maxYear = parsed;
+  for (const ref of Array.from(_liveStoreRefs)) {
+    const store = typeof ref.deref === "function" ? ref.deref() : ref;
+    if (!store) {
+      _liveStoreRefs.delete(ref);
+      continue;
+    }
+    if (typeof store._onAtlasMaxYearChanged === "function") {
+      store._onAtlasMaxYearChanged(parsed, prev);
+    }
+  }
+  return _atlasMaxYear;
+}
+
 export const DEFAULT_FILTER_STATE = {
   colorMode: "year_built", // 'year_built' | 'preservation_status' | 'use_category'
   paletteStyle: "archival", // 'archival' | 'classic_ee'
@@ -34,8 +67,8 @@ export const DEFAULT_FILTER_STATE = {
   basemap: "dark_archival", // 'dark_archival' | 'warm_parchment' | 'satellite' | 'solid_dark' | 'solid_light'
   extrude3D: false,
   minYear: 1836,
-  maxYear: 2026,
-  selectedDecade: "all", // 'all' | '1830' .. '2020' | 'unknown'
+  maxYear: DEFAULT_ATLAS_MAX_YEAR,
+  selectedDecade: "all", // 'all' | '1830' .. dynamic roll decade | 'unknown'
   showUnknownYears: true,
   syncAnnexationToTime: false,
   isPlaying: false,
@@ -95,8 +128,9 @@ export const DEFAULT_FILTER_STATE = {
  * Compile a MapLibre GL JS filter expression for buildings / parcels given the current state.
  */
 export function buildFeatureFilterExpression(state) {
+  const topY = getAtlasMaxYear();
   const minY = Number(state.minYear) || 1836;
-  const maxY = Number(state.maxYear) || 2026;
+  const maxY = Number(state.maxYear) || topY;
   const dec = String(state.selectedDecade || "all");
 
   if (dec === "unknown") {
@@ -146,8 +180,9 @@ export function buildFeatureFilterExpression(state) {
  * (`featureMatchesLostHoustonFilter`) so boundary math never drifts.
  */
 export function resolveLostHoustonBounds(state) {
+  const topY = getAtlasMaxYear();
   const minY = Number(state.minYear) || 1836;
-  const maxY = Number(state.maxYear) || 2026;
+  const maxY = Number(state.maxYear) || topY;
   const dec = String(state.selectedDecade || "all");
   let lowBound = minY;
   let highBound = maxY;
@@ -159,7 +194,7 @@ export function resolveLostHoustonBounds(state) {
     }
   }
   const isSnapshot = Boolean(
-    state.historicalSnapshotMode || (state.isPlaying && highBound < 2026)
+    state.historicalSnapshotMode || (state.isPlaying && highBound < topY)
   );
   return { dec, lowBound, highBound, isSnapshot };
 }
@@ -171,21 +206,25 @@ const LOST_YEAR_BUILT_EXPR = [
   1836,
 ];
 
-const LOST_YEAR_DEMO_EXPR = [
-  "case",
-  [">", ["to-number", ["get", "year_demolished"], 0], 0],
-  ["to-number", ["get", "year_demolished"], 2026],
-  2026,
-];
+function buildLostYearDemoExpr(fallbackYear = getAtlasMaxYear()) {
+  return [
+    "case",
+    [">", ["to-number", ["get", "year_demolished"], 0], 0],
+    ["to-number", ["get", "year_demolished"], fallbackYear],
+    fallbackYear,
+  ];
+}
 
 /**
  * Compile a MapLibre GL JS filter expression for the Lost Houston (demolished structures) layer.
- * In Historical Snapshot Mode (or during time-lapse playback before 2026), displays only structures
- * that were standing in the active target year (`year_built <= cutoff && year_demolished > cutoff`).
+ * In Historical Snapshot Mode (or during time-lapse playback before the active max year), displays only
+ * structures standing in the target year (`year_built <= cutoff && year_demolished > cutoff`).
  * Otherwise displays all demolished structures whose lifespan overlaps `[minYear, maxYear]`.
  */
 export function buildLostHoustonFilterExpression(state) {
   if (!state) return ["has", "year_built"];
+  const topY = getAtlasMaxYear();
+  const lostDemoExpr = buildLostYearDemoExpr(topY);
   const { dec, lowBound, highBound, isSnapshot } = resolveLostHoustonBounds(state);
 
   if (dec === "unknown") {
@@ -196,18 +235,18 @@ export function buildLostHoustonFilterExpression(state) {
     return [
       "all",
       ["<=", LOST_YEAR_BUILT_EXPR, highBound],
-      [">", LOST_YEAR_DEMO_EXPR, highBound],
+      [">", lostDemoExpr, highBound],
     ];
   }
 
-  if (lowBound <= 1836 && highBound >= 2026) {
+  if (lowBound <= 1836 && highBound >= topY) {
     return ["has", "year_built"];
   }
 
   return [
     "all",
     ["<=", LOST_YEAR_BUILT_EXPR, highBound],
-    [">=", LOST_YEAR_DEMO_EXPR, lowBound],
+    [">=", lostDemoExpr, lowBound],
   ];
 }
 
@@ -219,17 +258,18 @@ export function featureMatchesLostHoustonFilter(props, state) {
   if (!props) return false;
   const hasYearBuilt = props.year_built !== undefined && props.year_built !== null;
   if (!state) return hasYearBuilt;
+  const topY = getAtlasMaxYear();
   const { dec, lowBound, highBound, isSnapshot } = resolveLostHoustonBounds(state);
   if (dec === "unknown") return false;
 
   const rawYb = Number(props.year_built);
   const rawYd = Number(props.year_demolished);
   const yb = Number.isFinite(rawYb) && rawYb > 0 ? rawYb : 1836;
-  const yd = Number.isFinite(rawYd) && rawYd > 0 ? rawYd : 2026;
+  const yd = Number.isFinite(rawYd) && rawYd > 0 ? rawYd : topY;
   if (isSnapshot) {
     return yb <= highBound && yd > highBound;
   }
-  if (lowBound <= 1836 && highBound >= 2026) {
+  if (lowBound <= 1836 && highBound >= topY) {
     return hasYearBuilt;
   }
   return yb <= highBound && yd >= lowBound;
@@ -249,13 +289,17 @@ export function featureMatchesFilter(props, state) {
   }
   if (dec !== "all") {
     const decInt = Number(dec);
-    const lowBound = decInt === 1840 ? 1836 : decInt;
-    return yr >= lowBound && yr <= decInt + 9;
+    if (!Number.isNaN(decInt) && decInt >= 1830) {
+      const lowBound = state.historicalSnapshotMode ? 1836 : decInt === 1840 ? 1836 : decInt;
+      return yr >= lowBound && yr <= decInt + 9;
+    }
   }
   if (yr < 1836) {
-    return Boolean(state.showUnknownYears);
+    return Boolean(state.showUnknownYears && !state.historicalSnapshotMode);
   }
-  return yr >= state.minYear && yr <= state.maxYear;
+  const minY = state.historicalSnapshotMode ? 1836 : Number(state.minYear) || 1836;
+  const maxY = Number(state.maxYear) || getAtlasMaxYear();
+  return yr >= minY && yr <= maxY;
 }
 
 export const ANNEXATION_MILESTONE_DECADES = [
@@ -274,7 +318,7 @@ export const HISTORIC_WARD_ERAS = [1839, 1866, 1896, 1903];
 export function resolveActiveWardEra(state) {
   if (!state) return 1903;
   const decStr = String(state.selectedDecade || "all");
-  const maxY = Number(state.maxYear) || 2026;
+  const maxY = Number(state.maxYear) || getAtlasMaxYear();
   if (Boolean(state.isPlaying)) {
     let cutoff = maxY;
     if (decStr !== "all" && decStr !== "unknown") {
@@ -313,7 +357,7 @@ export function buildHistoricWardFilterExpression(state) {
 export function resolveActiveAnnexationDecade(state) {
   if (!state) return 2020;
   const decStr = String(state.selectedDecade || "all");
-  const maxY = Number(state.maxYear) || 2026;
+  const maxY = Number(state.maxYear) || getAtlasMaxYear();
 
   let cutoff = maxY;
   if (decStr !== "all" && decStr !== "unknown") {
@@ -894,123 +938,158 @@ const SHORT_TO_COLOR_MODE = {
   landuse: "use_category",
 };
 
-export const SHARE_VIEW_PRESETS = [
-  {
-    id: "good_brick_light",
-    label: "Good Brick Award Winners Only (Light Map)",
-    description: "Warm Parchment basemap with building footprints turned off and Good Brick Award winners soloed.",
-    statePatch: {
-      basemap: "warm_parchment",
-      renderMode: "none",
-      extrude3D: false,
-      minYear: 1836,
-      maxYear: 2026,
-      selectedDecade: "all",
-      layers: {
-        goodBrickAwards: true,
-        landmarks: false,
-        historicDistricts: false,
-        heritageDistricts: false,
-        nrhpDistricts: false,
-        thcMarkers: false,
-        annexations: false,
+let _cachedPresetsYear = null;
+let _cachedPresetsList = null;
+
+export function getShareViewPresets(maxY = getAtlasMaxYear()) {
+  const topY = Math.max(1836, Math.floor(Number(maxY) || getAtlasMaxYear()));
+  if (_cachedPresetsYear === topY && _cachedPresetsList) {
+    return _cachedPresetsList;
+  }
+  const built = [
+    {
+      id: "good_brick_light",
+      label: "Good Brick Award Winners Only (Light Map)",
+      description:
+        "Warm Parchment basemap with building footprints turned off and Good Brick Award winners soloed.",
+      statePatch: {
+        basemap: "warm_parchment",
+        renderMode: "none",
+        extrude3D: false,
+        minYear: 1836,
+        maxYear: topY,
+        selectedDecade: "all",
+        layers: {
+          goodBrickAwards: true,
+          landmarks: false,
+          historicDistricts: false,
+          heritageDistricts: false,
+          nrhpDistricts: false,
+          thcMarkers: false,
+          annexations: false,
+        },
       },
+      viewport: { lat: 29.7585, lng: -95.3785, zoom: 12.6, pitch: 0 },
     },
-    viewport: { lat: 29.7585, lng: -95.3785, zoom: 12.6, pitch: 0 },
-  },
-  {
-    id: "good_brick_districts_dark",
-    label: "Good Brick Winners + Historic Districts (Dark Map)",
-    description: "Archival Dark basemap showing Good Brick Award recipients in context with City Historic Districts.",
-    statePatch: {
-      basemap: "dark_archival",
-      renderMode: "none",
-      extrude3D: false,
-      minYear: 1836,
-      maxYear: 2026,
-      selectedDecade: "all",
-      layers: {
-        goodBrickAwards: true,
-        landmarks: false,
-        historicDistricts: true,
-        heritageDistricts: false,
-        nrhpDistricts: false,
-        thcMarkers: false,
-        annexations: false,
+    {
+      id: "good_brick_districts_dark",
+      label: "Good Brick Winners + Historic Districts (Dark Map)",
+      description:
+        "Archival Dark basemap showing Good Brick Award recipients in context with City Historic Districts.",
+      statePatch: {
+        basemap: "dark_archival",
+        renderMode: "none",
+        extrude3D: false,
+        minYear: 1836,
+        maxYear: topY,
+        selectedDecade: "all",
+        layers: {
+          goodBrickAwards: true,
+          landmarks: false,
+          historicDistricts: true,
+          heritageDistricts: false,
+          nrhpDistricts: false,
+          thcMarkers: false,
+          annexations: false,
+        },
       },
+      viewport: { lat: 29.7662, lng: -95.3805, zoom: 12.8, pitch: 0 },
     },
-    viewport: { lat: 29.7662, lng: -95.3805, zoom: 12.8, pitch: 0 },
-  },
-  {
-    id: "landmarks_districts_light",
-    label: "Designated Landmarks & Historic Districts (Light Map)",
-    description: "Clean Parchment map highlighting Protected Landmarks, Landmarks, and Historic Districts without footprints.",
-    statePatch: {
-      basemap: "warm_parchment",
-      renderMode: "none",
-      extrude3D: false,
-      minYear: 1836,
-      maxYear: 2026,
-      selectedDecade: "all",
-      layers: {
-        goodBrickAwards: false,
-        landmarks: true,
-        historicDistricts: true,
-        heritageDistricts: true,
-        nrhpDistricts: true,
-        thcMarkers: false,
-        annexations: false,
+    {
+      id: "landmarks_districts_light",
+      label: "Designated Landmarks & Historic Districts (Light Map)",
+      description:
+        "Clean Parchment map highlighting Protected Landmarks, Landmarks, and Historic Districts without footprints.",
+      statePatch: {
+        basemap: "warm_parchment",
+        renderMode: "none",
+        extrude3D: false,
+        minYear: 1836,
+        maxYear: topY,
+        selectedDecade: "all",
+        layers: {
+          goodBrickAwards: false,
+          landmarks: true,
+          historicDistricts: true,
+          heritageDistricts: true,
+          nrhpDistricts: true,
+          thcMarkers: false,
+          annexations: false,
+        },
       },
+      viewport: { lat: 29.7662, lng: -95.3805, zoom: 13.0, pitch: 0 },
     },
-    viewport: { lat: 29.7662, lng: -95.3805, zoom: 13.0, pitch: 0 },
-  },
-  {
-    id: "pre1940_buildings_only",
-    label: "Pre-1940 Historic Structures Only",
-    description: "1836-1939 structures across Houston with all overlay pins hidden for pure architectural footprint clarity.",
-    statePatch: {
-      basemap: "dark_archival",
-      renderMode: "buildings",
-      colorMode: "year_built",
-      extrude3D: false,
-      minYear: 1836,
-      maxYear: 1939,
-      selectedDecade: "all",
-      layers: {
-        goodBrickAwards: false,
-        landmarks: false,
-        historicDistricts: false,
-        heritageDistricts: false,
-        nrhpDistricts: false,
-        thcMarkers: false,
-        annexations: false,
+    {
+      id: "pre1940_buildings_only",
+      label: "Pre-1940 Historic Structures Only",
+      description:
+        "1836-1939 structures across Houston with all overlay pins hidden for pure architectural footprint clarity.",
+      statePatch: {
+        basemap: "dark_archival",
+        renderMode: "buildings",
+        colorMode: "year_built",
+        extrude3D: false,
+        minYear: 1836,
+        maxYear: 1939,
+        selectedDecade: "all",
+        layers: {
+          goodBrickAwards: false,
+          landmarks: false,
+          historicDistricts: false,
+          heritageDistricts: false,
+          nrhpDistricts: false,
+          thcMarkers: false,
+          annexations: false,
+        },
       },
+      viewport: { lat: 29.7662, lng: -95.3805, zoom: 13.6, pitch: 0 },
     },
-    viewport: { lat: 29.7662, lng: -95.3805, zoom: 13.6, pitch: 0 },
-  },
-  {
-    id: "full_atlas_default",
-    label: "Full Building Atlas (Default View)",
-    description: "All 1.51M dated building footprints + Good Brick Awards, Landmarks, and Historic Districts.",
-    statePatch: {
-      basemap: "dark_archival",
-      renderMode: "buildings",
-      colorMode: "year_built",
-      extrude3D: false,
-      minYear: 1836,
-      maxYear: 2026,
-      selectedDecade: "all",
-      layers: { ...DEFAULT_FILTER_STATE.layers },
+    {
+      id: "full_atlas_default",
+      label: "Full Building Atlas (Default View)",
+      description:
+        "All countywide dated building footprints + Good Brick Awards, Landmarks, and Historic Districts.",
+      statePatch: {
+        basemap: "dark_archival",
+        renderMode: "buildings",
+        colorMode: "year_built",
+        extrude3D: false,
+        minYear: 1836,
+        maxYear: topY,
+        selectedDecade: "all",
+        layers: { ...DEFAULT_FILTER_STATE.layers },
+      },
+      viewport: { lat: 29.7662, lng: -95.3805, zoom: 15.2, pitch: 0 },
     },
-    viewport: { lat: 29.7662, lng: -95.3805, zoom: 15.2, pitch: 0 },
+  ];
+  _cachedPresetsYear = topY;
+  _cachedPresetsList = built;
+  return built;
+}
+
+export const SHARE_VIEW_PRESETS = new Proxy([], {
+  get(_target, prop) {
+    const live = getShareViewPresets();
+    const val = Reflect.get(live, prop, live);
+    return typeof val === "function" ? val.bind(live) : val;
   },
-];
+  has(_target, prop) {
+    return Reflect.has(getShareViewPresets(), prop);
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getShareViewPresets());
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    return Object.getOwnPropertyDescriptor(getShareViewPresets(), prop);
+  },
+});
 
 /**
  * Serialize map viewport, filter state, and optional selected feature into URL parameters.
  * Supports both compact hash strings and clean human-readable query URLs.
  */
 export function serializeStateToHash(state, viewport = null, options = {}) {
+  const topY = getAtlasMaxYear();
   const {
     includeViewport = true,
     selectedHcad = "",
@@ -1053,7 +1132,7 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
   if (state.paletteStyle !== "archival") params.set("pal", state.paletteStyle);
   if (state.extrude3D) params.set("3d", "1");
   if (state.minYear !== 1836) params.set("minY", String(state.minYear));
-  if (state.maxYear !== 2026) params.set("maxY", String(state.maxYear));
+  if (state.maxYear !== topY) params.set("maxY", String(state.maxYear));
   if (state.selectedDecade !== "all") params.set("dec", String(state.selectedDecade));
   if (!state.showUnknownYears) params.set("unk", "0");
   if (state.layers?.annexations || state.syncAnnexationToTime) params.set("syncAnnex", "1");
@@ -1260,6 +1339,11 @@ export function parseHashToState(hashString = "", searchString = "") {
   }
 
   const patch = {};
+  const topY = getAtlasMaxYear();
+  let urlMaxYearPinned = false;
+  let urlRequestedMaxYear = null;
+  let urlMinYearPinned = false;
+  let urlRequestedMinYear = null;
   let viewport = null;
   let selection = null;
   let collapseSidebar = null;
@@ -1267,9 +1351,16 @@ export function parseHashToState(hashString = "", searchString = "") {
   // Check preset first (can be overridden by explicit params)
   if (mergedParams.has("preset")) {
     const presetId = (mergedParams.get("preset") || "").trim().toLowerCase();
-    const foundPreset = SHARE_VIEW_PRESETS.find((p) => p.id.toLowerCase() === presetId);
+    const foundPreset = getShareViewPresets(topY).find((p) => p.id.toLowerCase() === presetId);
     if (foundPreset) {
       Object.assign(patch, foundPreset.statePatch);
+      if (
+        Number.isFinite(Number(foundPreset.statePatch.maxYear)) &&
+        Number(foundPreset.statePatch.maxYear) < topY
+      ) {
+        urlMaxYearPinned = true;
+        urlRequestedMaxYear = Number(foundPreset.statePatch.maxYear);
+      }
       if (foundPreset.statePatch.layers) {
         patch.layers = { ...foundPreset.statePatch.layers };
       }
@@ -1343,11 +1434,17 @@ export function parseHashToState(hashString = "", searchString = "") {
   // Timeline / Decade
   const rawMinY = mergedParams.get("minY") || mergedParams.get("minYear");
   if (rawMinY !== null && rawMinY !== undefined && rawMinY !== "") {
-    patch.minYear = Math.max(1836, Math.min(2026, parseInt(rawMinY, 10) || 1836));
+    const parsedMin = parseInt(rawMinY, 10) || 1836;
+    urlMinYearPinned = true;
+    urlRequestedMinYear = parsedMin;
+    patch.minYear = Math.max(1836, Math.min(topY, parsedMin));
   }
   const rawMaxY = mergedParams.get("maxY") || mergedParams.get("maxYear");
   if (rawMaxY !== null && rawMaxY !== undefined && rawMaxY !== "") {
-    patch.maxYear = Math.max(1836, Math.min(2026, parseInt(rawMaxY, 10) || 2026));
+    const parsedMax = parseInt(rawMaxY, 10) || topY;
+    urlMaxYearPinned = true;
+    urlRequestedMaxYear = parsedMax;
+    patch.maxYear = Math.max(1836, Math.min(topY, parsedMax));
   }
   const rawDec = mergedParams.get("dec") || mergedParams.get("decade");
   if (rawDec) {
@@ -1652,6 +1749,17 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.activePolyEdit = activePolyEdit;
   }
 
+  Object.defineProperty(patch, "_urlYearMeta", {
+    value: {
+      maxYearPinned: urlMaxYearPinned,
+      requestedMaxYear: urlRequestedMaxYear,
+      minYearPinned: urlMinYearPinned,
+      requestedMinYear: urlRequestedMinYear,
+    },
+    enumerable: false,
+    configurable: true,
+  });
+
   return {
     patch,
     viewport,
@@ -1673,28 +1781,30 @@ export function parseHashToState(hashString = "", searchString = "") {
  * or forward (`direction = 1`) by `state.stepYears` (1, 5, or 10 years).
  *
  * - If a specific decade is active (`selectedDecade !== "all"`) and `stepYears === 10`,
- *   cycles to the previous/next decade (`1840` .. `2020`).
+ *   cycles to the previous/next decade (`1840` .. dynamic roll decade).
  * - If a sliding window is active (`minYear > 1836` or a decade with `stepYears` 1 or 5),
  *   shifts both `minYear` and `maxYear` by `direction * stepYears`.
  * - Otherwise (cumulative mode, `minYear === 1836`), pauses playback and shifts
- *   `maxYear` by `direction * stepYears` (or starts at `1840 + step` if stepping forward from `2026`).
+ *   `maxYear` by `direction * stepYears`.
  */
 export function computeStepTimeState(state, direction) {
+  const topY = getAtlasMaxYear();
+  const topDec = getAtlasMaxDecade();
   const step = Number(state.stepYears) || 1;
   const dir = direction < 0 ? -1 : 1;
   const delta = dir * step;
   const minY = Number(state.minYear) || 1836;
-  const maxY = Number(state.maxYear) || 2026;
+  const maxY = Number(state.maxYear) || topY;
   const dec = String(state.selectedDecade || "all");
 
-  // Case 1a: Decade mode with 10-year step -> cycle between decades (1840 .. 2020)
+  // Case 1a: Decade mode with 10-year step -> cycle between decades (1840 .. topDec)
   if (dec !== "all" && dec !== "unknown" && step === 10) {
     const decInt = Number(dec);
     if (!Number.isNaN(decInt)) {
-      const nextDec = Math.max(1840, Math.min(2020, decInt + delta));
+      const nextDec = Math.max(1840, Math.min(topDec, decInt + delta));
       return {
         minYear: nextDec === 1840 ? 1836 : nextDec,
-        maxYear: Math.min(2026, nextDec + 9),
+        maxYear: Math.min(topY, nextDec + 9),
         selectedDecade: String(nextDec),
         isPlaying: false,
       };
@@ -1709,7 +1819,7 @@ export function computeStepTimeState(state, direction) {
       const decInt = Number(dec);
       if (!Number.isNaN(decInt)) {
         curMin = decInt;
-        curMax = Math.min(2026, decInt + 9);
+        curMax = Math.min(topY, decInt + 9);
       }
     }
     const span = Math.max(0, curMax - curMin);
@@ -1718,19 +1828,19 @@ export function computeStepTimeState(state, direction) {
 
     if (nextMin < 1836) {
       nextMin = 1836;
-      nextMax = Math.min(2026, 1836 + span);
+      nextMax = Math.min(topY, 1836 + span);
     }
-    if (nextMax > 2026) {
-      nextMax = 2026;
-      nextMin = Math.max(1836, 2026 - span);
+    if (nextMax > topY) {
+      nextMax = topY;
+      nextMin = Math.max(1836, topY - span);
     }
 
     let nextDecade = "all";
     if (
       nextMin >= 1840 &&
-      nextMin <= 2020 &&
+      nextMin <= topDec &&
       nextMin % 10 === 0 &&
-      (nextMax === nextMin + 9 || (nextMin === 2020 && nextMax === 2026))
+      (nextMax === nextMin + 9 || (nextMin === topDec && nextMax === topY))
     ) {
       nextDecade = String(nextMin);
     }
@@ -1743,14 +1853,14 @@ export function computeStepTimeState(state, direction) {
     };
   }
 
-  // Case 2: Cumulative growth mode (minYear === 1836) - clamp to [1836, 2026] without looping
-  const nextMax = Math.max(1836, Math.min(2026, maxY + delta));
+  // Case 2: Cumulative growth mode (minYear === 1836) - clamp to [1836, topY] without looping
+  const nextMax = Math.max(1836, Math.min(topY, maxY + delta));
 
   return {
     minYear: 1836,
     maxYear: nextMax,
     selectedDecade: "all",
-    showUnknownYears: nextMax >= 2026 ? state.showUnknownYears : false,
+    showUnknownYears: nextMax >= topY ? state.showUnknownYears : false,
     isPlaying: false,
   };
 }
@@ -1759,6 +1869,19 @@ export function computeStepTimeState(state, direction) {
  * Create a reactive FilterStore instance.
  */
 export function createFilterStore(initialOverrides = {}) {
+  const urlMeta =
+    initialOverrides && typeof initialOverrides === "object"
+      ? initialOverrides._urlYearMeta || null
+      : null;
+  let maxYearPinnedByUserOrUrl = urlMeta
+    ? Boolean(urlMeta.maxYearPinned)
+    : Object.prototype.hasOwnProperty.call(initialOverrides, "maxYear") &&
+      Number(initialOverrides.maxYear) !== getAtlasMaxYear();
+  let pendingUrlMaxYear =
+    urlMeta && urlMeta.requestedMaxYear !== null ? Number(urlMeta.requestedMaxYear) : null;
+  let pendingUrlMinYear =
+    urlMeta && urlMeta.requestedMinYear !== null ? Number(urlMeta.requestedMinYear) : null;
+
   const initialLayers = {
     ...DEFAULT_FILTER_STATE.layers,
     ...(initialOverrides.layers || {}),
@@ -1780,6 +1903,7 @@ export function createFilterStore(initialOverrides = {}) {
 
   let state = {
     ...DEFAULT_FILTER_STATE,
+    maxYear: getAtlasMaxYear(),
     ...initialOverrides,
     syncAnnexationToTime: initialSyncAnnex,
     layers: initialLayers,
@@ -1790,7 +1914,7 @@ export function createFilterStore(initialOverrides = {}) {
     return state;
   }
 
-  function setState(partial) {
+  function _commitState(partial) {
     let nextLayers = partial.layers ? { ...state.layers, ...partial.layers } : { ...state.layers };
     let nextSyncAnnex = state.syncAnnexationToTime;
 
@@ -1822,6 +1946,74 @@ export function createFilterStore(initialOverrides = {}) {
     for (const fn of listeners) {
       fn(state);
     }
+  }
+
+  function setState(partial) {
+    if (partial && typeof partial === "object") {
+      if (Object.prototype.hasOwnProperty.call(partial, "maxYear")) {
+        maxYearPinnedByUserOrUrl = true;
+        pendingUrlMaxYear = null;
+      }
+      if (Object.prototype.hasOwnProperty.call(partial, "minYear")) {
+        pendingUrlMinYear = null;
+      }
+    }
+    _commitState(partial || {});
+  }
+
+  function _onAtlasMaxYearChanged(newTopY, prevTopY) {
+    const patchUpdate = {};
+    const topDec = Math.floor(newTopY / 10) * 10;
+    const decStr = String(state.selectedDecade || "all");
+    const decInt = decStr !== "all" && decStr !== "unknown" ? Number(decStr) : NaN;
+    if (pendingUrlMinYear !== null && Number.isFinite(pendingUrlMinYear)) {
+      const reclampedMin = Math.max(1836, Math.min(newTopY, pendingUrlMinYear));
+      if (reclampedMin !== state.minYear) {
+        patchUpdate.minYear = reclampedMin;
+      }
+    } else if (state.minYear > newTopY) {
+      patchUpdate.minYear = 1836;
+    }
+    if (!Number.isNaN(decInt) && decInt > topDec) {
+      patchUpdate.selectedDecade = "all";
+      patchUpdate.minYear = 1836;
+      patchUpdate.maxYear = newTopY;
+      maxYearPinnedByUserOrUrl = false;
+    } else if (maxYearPinnedByUserOrUrl) {
+      if (pendingUrlMaxYear !== null && Number.isFinite(pendingUrlMaxYear)) {
+        const reclampedMax = Math.max(1836, Math.min(newTopY, pendingUrlMaxYear));
+        if (reclampedMax !== state.maxYear) {
+          patchUpdate.maxYear = reclampedMax;
+        }
+      } else if (state.maxYear > newTopY) {
+        patchUpdate.maxYear = newTopY;
+      }
+    } else if (decStr === "all" || decStr === "unknown") {
+      if (state.maxYear !== newTopY) {
+        patchUpdate.maxYear = newTopY;
+      }
+    } else if (!Number.isNaN(decInt) && decInt >= 1830) {
+      const cappedDecMax = Math.min(newTopY, decInt + 9);
+      if (cappedDecMax !== state.maxYear && (state.maxYear === prevTopY || cappedDecMax < state.maxYear)) {
+        patchUpdate.maxYear = cappedDecMax;
+      }
+    }
+    if (Object.keys(patchUpdate).length > 0) {
+      _commitState(patchUpdate);
+    } else if (newTopY !== prevTopY) {
+      for (const listener of listeners) {
+        listener(state);
+      }
+    }
+  }
+
+  function reconcileAtlasMaxYear(rollYear = getAtlasMaxYear()) {
+    const prevTopY = getAtlasMaxYear();
+    const resolvedTopY = setAtlasMaxYear(rollYear);
+    if (resolvedTopY === prevTopY) {
+      _onAtlasMaxYearChanged(resolvedTopY, prevTopY);
+    }
+    return resolvedTopY;
   }
 
   function setLayerVisibility(layerKey, visible) {
@@ -1960,9 +2152,12 @@ export function createFilterStore(initialOverrides = {}) {
   }
 
   function resetFilters() {
-    setState({
+    maxYearPinnedByUserOrUrl = false;
+    pendingUrlMaxYear = null;
+    pendingUrlMinYear = null;
+    _commitState({
       minYear: 1836,
-      maxYear: 2026,
+      maxYear: getAtlasMaxYear(),
       selectedDecade: "all",
       showUnknownYears: true,
       redBookCategory: "all",
@@ -1981,7 +2176,7 @@ export function createFilterStore(initialOverrides = {}) {
     return () => listeners.delete(fn);
   }
 
-  return {
+  const storeApi = {
     getState,
     setState,
     setLayerVisibility,
@@ -1992,6 +2187,14 @@ export function createFilterStore(initialOverrides = {}) {
     toggleSingleLayerMode,
     stepTime,
     resetFilters,
+    reconcileAtlasMaxYear,
     subscribe,
   };
+  Object.defineProperty(storeApi, "_onAtlasMaxYearChanged", {
+    value: _onAtlasMaxYearChanged,
+    enumerable: false,
+  });
+  _liveStoreRefs.add(typeof WeakRef === "function" ? new WeakRef(storeApi) : storeApi);
+
+  return storeApi;
 }

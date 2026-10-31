@@ -15,6 +15,8 @@ from pmtiles.writer import write as pmtiles_write
 from shapely.geometry import box, shape
 from shapely.strtree import STRtree
 
+from atlas_pipeline.schema import ACTIVE_TAX_YEAR, compute_decade_bins
+
 
 def _lonlat_to_tile(lon: float, lat: float, z: int) -> tuple[int, int]:
     lat_rad = math.radians(max(-85.0511, min(85.0511, lat)))
@@ -135,7 +137,7 @@ def build_search_index(
         items.append({
             "type": "building",
             "category": props.get("contributing") if dist else props.get("use_category", "Property"),
-            "label": f"{lm_name} — {addr}" if lm_name and addr else (addr or lm_name),
+            "label": f"{lm_name} - {addr}" if lm_name and addr else (addr or lm_name),
             "address": addr,
             "sublabel": " • ".join(sub_parts),
             "lon": round(pt.x, 6),
@@ -152,8 +154,11 @@ def build_search_index(
 def build_stats_summary(
     buildings: list[dict[str, Any]],
     overlays: dict[str, list[dict[str, Any]]],
+    *,
+    tax_year: int | None = None,
 ) -> dict[str, Any]:
     """Compute aggregate statistics by decade, contributing status, and land use for the Atlas UI."""
+    eff_year = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
     decade_counter: Counter[str] = Counter()
     contrib_counter: Counter[str] = Counter()
     use_counter: Counter[str] = Counter()
@@ -191,16 +196,17 @@ def build_stats_summary(
 
     ordered_decades = {
         str(d): decade_counter.get(str(d), 0)
-        for d in range(1830, 2030, 10)
+        for d in compute_decade_bins(max(eff_year, latest_year))
     }
     ordered_decades["unknown"] = decade_counter.get("unknown", 0)
 
     return {
+        "data_tax_year": eff_year,
         "total_buildings": len(buildings),
         "dated_buildings": dated_count,
         "observed_footprints": observed_fp_count,
         "earliest_year": earliest_year if earliest_year != 9999 else 1836,
-        "latest_year": latest_year if latest_year != 0 else 2026,
+        "latest_year": latest_year if latest_year != 0 else eff_year,
         "total_landmarks": len(overlays.get("landmarks", [])),
         "total_historic_districts": len(overlays.get("historic_districts", [])),
         "total_heritage_districts": len(overlays.get("heritage_districts", [])),
@@ -337,6 +343,8 @@ def write_atlas_bundle(
     buildings: list[dict[str, Any]],
     parcels: list[dict[str, Any]],
     overlays: dict[str, list[dict[str, Any]]],
+    *,
+    tax_year: int | None = None,
 ) -> dict[str, Any]:
     """Write the complete static data bundle (.pmtiles, .geojson, search_index.json, stats_summary.json)."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -359,7 +367,7 @@ def write_atlas_bundle(
     search_index = build_search_index(buildings, overlays)
     (output_dir / "search_index.json").write_text(json.dumps(search_index, separators=(",", ":")))
 
-    stats_summary = build_stats_summary(buildings, overlays)
+    stats_summary = build_stats_summary(buildings, overlays, tax_year=tax_year)
     stats_summary["pmtiles_size_bytes"] = pmtiles_size
     (output_dir / "stats_summary.json").write_text(json.dumps(stats_summary, indent=2))
 

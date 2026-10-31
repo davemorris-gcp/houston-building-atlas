@@ -3,24 +3,60 @@
 from __future__ import annotations
 
 import datetime
+from dataclasses import dataclass, field
 import json
 import math
+import pickle
 import re
 import shutil
 import subprocess
 import time
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 MIN_VALID_YEAR = 1836
-MAX_VALID_YEAR = 2027
-MAX_VALID_CAMA_DATE_YEAR = 2026
+ACTIVE_TAX_YEAR = 2026
+MAX_VALID_CAMA_DATE_YEAR = ACTIVE_TAX_YEAR
+MAX_VALID_YEAR = ACTIVE_TAX_YEAR + 1
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261030e"
+ACTIVE_CACHE_BUST = "20261031a"
+SOFT_MAX_APP_BYTES = 955 * 1024 * 1024
+HARD_MAX_APP_BYTES = 980 * 1024 * 1024
+MAX_SINGLE_FILE_BYTES = 95 * 1024 * 1024
 ORD_2015_639_CUTOFF_ISO = "2015-07-24"
 ORD_2015_639_CUTOFF_ORD_NUM = 639
 QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
+
+
+@dataclass(frozen=True)
+class RollContext:
+    """Immutable tax-roll execution context threaded through pipeline stages (DF-1)."""
+
+    tax_year: int = field(default_factory=lambda: ACTIVE_TAX_YEAR)
+    cache_bust: str = field(default_factory=lambda: ACTIVE_CACHE_BUST)
+    cache_dir: Path | None = None
+    output_dir: Path | None = None
+
+    @property
+    def max_cama_date_year(self) -> int:
+        return int(self.tax_year)
+
+    @property
+    def max_valid_year(self) -> int:
+        return int(self.tax_year) + 1
+
+    @property
+    def roll_dir(self) -> Path:
+        if self.cache_dir is None:
+            raise ValueError("RollContext.cache_dir must be set before accessing roll_dir.")
+        return Path(self.cache_dir) / "rolls" / str(int(self.tax_year))
+
+    @property
+    def staged_dir(self) -> Path:
+        return self.roll_dir / "staged"
+
 
 # Milestone 3 cross-language domain constants (DF-1, DF-2, DF-3, DF-4, DF-9).
 # Kept 1:1 with `app/js/curatedEdits.js` and `app/js/staffWorkbench.js`.
@@ -236,7 +272,7 @@ def normalize_hcad_date(
     *,
     allow_fallback: bool = True,
     min_year: int = MIN_VALID_YEAR,
-    max_year: int = MAX_VALID_CAMA_DATE_YEAR,
+    max_year: int | None = None,
 ) -> tuple[str | None, int]:
     """Parse an HCAD date string into (iso_yyyy_mm_dd_or_none, valid_year_or_0).
 
@@ -249,6 +285,7 @@ def normalize_hcad_date(
       - permits.txt passes allow_fallback=False because permits.txt yr stores the HCAD
         appraisal tax-roll cycle year (e.g. 2008 or 2025) rather than permit issuance year.
     """
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
     s = "" if date_str is None else str(date_str).strip()
     if s and s not in ("0", "00/00/0000", "0000-00-00"):
         y_int = m_int = d_int = 0
@@ -264,7 +301,7 @@ def normalize_hcad_date(
                 matched = True
 
         if matched and not is_hcad_null_date_sentinel(y_int, m_int, d_int):
-            if min_year <= y_int <= max_year:
+            if min_year <= y_int <= eff_max:
                 try:
                     dt_obj = datetime.date(y_int, m_int, d_int)
                     return dt_obj.isoformat(), y_int
@@ -272,8 +309,8 @@ def normalize_hcad_date(
                     pass
 
     if allow_fallback and fallback_yr_str is not None:
-        fb_yr = normalize_year(fallback_yr_str)
-        if fb_yr != 1899 and min_year <= fb_yr <= max_year:
+        fb_yr = normalize_year(fallback_yr_str, max_year=max(eff_max, min_year))
+        if fb_yr != 1899 and min_year <= fb_yr <= eff_max:
             return None, fb_yr
 
     return None, 0
@@ -285,7 +322,7 @@ def parse_hcad_date_year(
     *,
     allow_fallback: bool = True,
     min_year: int = MIN_VALID_YEAR,
-    max_year: int = MAX_VALID_CAMA_DATE_YEAR,
+    max_year: int | None = None,
 ) -> int:
     """Return the validated integer year in [min_year, max_year] for an HCAD date field, or 0."""
     _, yr = normalize_hcad_date(
@@ -386,6 +423,205 @@ def _extract_iso_or_year(raw_val: Any) -> tuple[str, int]:
     return "", 0
 
 
+EXTRA_FEATURES_CAP_PER_ACCOUNT = 6
+_HCAD_RELOCATION_NOTE_RE = re.compile(
+    r"\b(?:MOVED\s+(?:FROM|TO|ON|IN|HERE|ONTO)|RELOCATED\s+(?:FROM|TO))\b",
+    re.IGNORECASE,
+)
+_BARE_PERMIT_LIST_NOTE_RE = re.compile(r"[\d\s,;/#-]+")
+
+
+def normalize_hcad_appraiser_note(raw_note: Any, *, max_len: int = 240) -> tuple[str, bool]:
+    """Sanitize an HCAD appraiser note and detect structure relocations in a single pass.
+
+    Strips bare numeric permit-number lists (already represented in `permits.txt`), detects
+    appraiser relocation phrases across the full unclipped text, and truncates to `max_len`.
+    """
+    note = sanitize_atlas_text(" ".join(str(raw_note or "").split()))
+    if not note or _BARE_PERMIT_LIST_NOTE_RE.fullmatch(note):
+        return "", False
+    indicates_relocation = bool(_HCAD_RELOCATION_NOTE_RE.search(note))
+    return note[:max_len], indicates_relocation
+
+
+def is_meaningful_hcad_extra_feature(dscr: Any) -> bool:
+    """Return True when an HCAD extra-feature description carries structural signal."""
+    d = str(dscr or "").strip()
+    if not d:
+        return False
+    du = d.upper()
+    return not du.startswith("RESIDENTIAL GAS") and "CRACKED" not in du
+
+
+def normalize_hcad_extra_feature_row(
+    dscr_raw: Any,
+    act_yr_raw: Any,
+    *,
+    max_year: int | None = None,
+) -> dict[str, Any] | None:
+    """Normalize an HCAD `extra_features_detail*.txt` row (`{"d": ..., "y": ...}`) or return `None`."""
+    dscr = sanitize_atlas_text(str(dscr_raw or "").strip())
+    if not is_meaningful_hcad_extra_feature(dscr):
+        return None
+    eff_max = ACTIVE_TAX_YEAR if max_year is None else int(max_year)
+    ay_s = str(act_yr_raw or "").strip()
+    yr = normalize_year(ay_s, max_year=eff_max) or 0
+    if not yr and ay_s:
+        yr = parse_hcad_date_year(ay_s, allow_fallback=False, max_year=eff_max)
+    return {"d": dscr, "y": int(yr) if yr >= MIN_VALID_YEAR else 0}
+
+
+PERMITS_CAP_PER_ACCOUNT = 25
+PERMIT_TYPE_CATEGORY: dict[str, tuple[str, str]] = {
+    "01": ("New Construction", "new"),
+    "02": ("Demolition", "demo"),
+    "03": ("Addition / Increase Sq Ft", "add"),
+    "04": ("Finish Out / Completion", "remodel"),
+    "05": ("Remodel / Renovation", "remodel"),
+    "06": ("Mechanical / Electrical / Plumbing", "mep"),
+    "07": ("Re-Roof / Roof Structure", "roof"),
+    "08": ("Swimming Pool / Spa", "aux"),
+    "09": ("Enclosure / Carport / Patio", "add"),
+    "11": ("Fire / Storm Damage Repair", "repair"),
+    "13": ("General Repair / Foundation", "repair"),
+    "14": ("Paving / Flatwork / Driveway", "aux"),
+    "15": ("Moved / Relocated Structure", "reloc"),
+    "16": ("Storage / Outbuilding / Canopy", "aux"),
+    "17": ("Foundation / Structural Repair", "repair"),
+    "18": ("Site / Drainage / Utilities", "aux"),
+    "31": ("New Custom Residence", "new"),
+    "33": ("Townhome / Multi-Family New Build", "new"),
+    "50": ("Commercial General Permit", "remodel"),
+    "TX": ("County Tax Permit", "remodel"),
+    "W": ("Water / Utility Permit", "mep"),
+}
+
+
+def normalize_hcad_permit_row(
+    pid: Any,
+    dscr: Any,
+    ptype: Any,
+    pdesc: Any,
+    issue_date: Any,
+    *,
+    max_year: int | None = None,
+) -> tuple[dict[str, Any], dict[str, str] | None]:
+    """Normalize a single HCAD `permits.txt` row and optional moved-structure metadata."""
+    iso_dt_parsed, _ = normalize_hcad_date(
+        issue_date, allow_fallback=False, max_year=max_year
+    )
+    iso_dt = iso_dt_parsed or ""
+    display_dt = iso_dt or "Undated"
+    pid_s = sanitize_atlas_text(str(pid or "").strip())
+    dscr_s = sanitize_atlas_text(str(dscr or "").strip())
+    ptype_s = str(ptype or "").strip()
+    pdesc_s = sanitize_atlas_text(str(pdesc or "").strip())
+
+    is_omitted_imps = "OMITTED IMPS" in dscr_s.upper()
+    reloc_meta: dict[str, str] | None = None
+    if ptype_s == "15" and not is_omitted_imps:
+        reloc_meta = {
+            "reason": "City of Houston Moved Structure Permit",
+            "note": f"{display_dt}: {dscr_s or pdesc_s} (Permit #{pid_s})",
+            "permit_id": pid_s,
+            "permit_date": iso_dt,
+        }
+
+    if is_omitted_imps:
+        cat_label, cat_code = ("HCAD Omitted Improvement Assessment", "add")
+    else:
+        cat_label, cat_code = PERMIT_TYPE_CATEGORY.get(
+            ptype_s, (pdesc_s or "Building Permit", "other")
+        )
+
+    desc_val = dscr_s if dscr_s and dscr_s.upper() != pdesc_s.upper() else pdesc_s
+    permit_obj: dict[str, Any] = {
+        "id": pid_s,
+        "dt": iso_dt,
+        "cat": cat_code,
+        "tp": cat_label,
+        "d": desc_val,
+    }
+    return permit_obj, reloc_meta
+
+
+def finalize_hcad_account_permits(
+    permits: list[dict[str, Any]],
+    *,
+    limit: int = PERMITS_CAP_PER_ACCOUNT,
+) -> list[dict[str, Any]]:
+    """Sort an account's normalized permits newest-first and cap at `limit`."""
+    return sorted(
+        permits,
+        key=lambda item: (str(item.get("dt") or ""), str(item.get("id") or "")),
+        reverse=True,
+    )[:limit]
+
+
+def extract_parcels_zip_dataset(
+    parcels_zip_path: Path,
+    scratch_extract_dir: Path | None = None,
+) -> Path:
+    """Safely extract `Parcels.zip` once (with zip-slip & size+mtime invalidation) and return its vector dataset path."""
+    zp = Path(parcels_zip_path)
+    if not zp.exists():
+        raise ValueError(f"Missing required parcel archive: {zp}")
+    size = zp.stat().st_size
+    if size < 22:
+        raise ValueError(f"Archive {zp.name} is truncated ({size} bytes).")
+    with open(zp, "rb") as fh:
+        magic = fh.read(4)
+    if magic != b"PK\x03\x04":
+        raise ValueError(
+            f"Archive {zp.name} failed ZIP magic-byte verification (got {magic!r})."
+        )
+
+    extract_dir = Path(scratch_extract_dir) if scratch_extract_dir is not None else (zp.parent / "_parcels_extracted")
+    extract_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        with zipfile.ZipFile(zp, "r") as zf:
+            for member_info in zf.infolist():
+                m_path = Path(member_info.filename)
+                if m_path.is_absolute() or ".." in m_path.parts:
+                    raise ValueError(
+                        f"Parcels.zip contains unsafe path entry: {member_info.filename!r}"
+                    )
+            names = zf.namelist()
+            gdb_roots = sorted({n.split(".gdb/")[0] + ".gdb" for n in names if ".gdb/" in n})
+            gpkg_files = sorted(n for n in names if n.lower().endswith(".gpkg") and not n.endswith("/"))
+            shp_files = sorted(n for n in names if n.lower().endswith(".shp") and not n.endswith("/"))
+            geojson_files = sorted(
+                n for n in names if n.lower().endswith((".geojson", ".json")) and not n.endswith("/")
+            )
+            if not (gdb_roots or gpkg_files or shp_files or geojson_files):
+                raise ValueError(
+                    f"Parcels.zip ({zp}) contains no supported vector layer (.gdb/.gpkg/.shp/.geojson)."
+                )
+            stat = zp.stat()
+            marker = extract_dir / f".extracted_{stat.st_size}_{int(stat.st_mtime_ns)}"
+            if not marker.exists():
+                bad_member = zf.testzip()
+                if bad_member is not None:
+                    raise ValueError(f"Archive {zp.name} failed CRC check on member {bad_member!r}.")
+                for child in list(extract_dir.iterdir()):
+                    if child.is_dir():
+                        shutil.rmtree(child, ignore_errors=True)
+                    else:
+                        child.unlink(missing_ok=True)
+                zf.extractall(extract_dir)
+                marker.write_text("ok", encoding="utf-8")
+    except zipfile.BadZipFile as exc:
+        raise ValueError(f"Archive {zp.name} is not a valid ZIP file: {exc}") from exc
+
+    if gdb_roots:
+        return extract_dir / gdb_roots[0]
+    if gpkg_files:
+        return extract_dir / gpkg_files[0]
+    if shp_files:
+        return extract_dir / shp_files[0]
+    return extract_dir / geojson_files[0]
+
+
 def resolve_ch42_ordinance_lifecycle(
     *,
     ordinance: Any = "",
@@ -393,7 +629,7 @@ def resolve_ch42_ordinance_lifecycle(
     expiration_date: Any = "",
     status: Any = "Approved",
     protection_type: str = "smls",
-    ref_year: int = MAX_VALID_CAMA_DATE_YEAR,
+    ref_year: int | None = None,
     renewal_window_years: int = 5,
 ) -> dict[str, Any]:
     """Resolve COH Chapter 42 ordinance effective/sunset lifecycle metadata (DF-1).
@@ -406,6 +642,7 @@ def resolve_ch42_ordinance_lifecycle(
     this helper derives statutory sunset dates with explicit `is_estimated_sunset: True`
     provenance while leaving non-enacted `Pending` applications without fabricated sunsets.
     """
+    eff_ref = MAX_VALID_CAMA_DATE_YEAR if ref_year is None else int(ref_year)
     ptype = str(protection_type or "").strip().lower()
     ord_str = sanitize_atlas_text(_clean_str(ordinance))
     status_str = sanitize_atlas_text(_clean_str(status)) or "Approved"
@@ -476,11 +713,11 @@ def resolve_ch42_ordinance_lifecycle(
         sunset_status = "pending"
     elif is_rejected:
         sunset_status = "inactive"
-    elif status_low == "expired" or (resolved_exp_yr > 0 and resolved_exp_yr < ref_year):
+    elif status_low == "expired" or (resolved_exp_yr > 0 and resolved_exp_yr < eff_ref):
         sunset_status = "expired"
-    elif resolved_exp_yr > 0 and ref_year <= resolved_exp_yr <= ref_year + renewal_window_years:
+    elif resolved_exp_yr > 0 and eff_ref <= resolved_exp_yr <= eff_ref + renewal_window_years:
         sunset_status = "expiring_soon"
-    elif resolved_exp_yr > ref_year + renewal_window_years:
+    elif resolved_exp_yr > eff_ref + renewal_window_years:
         sunset_status = "active"
     else:
         sunset_status = "unknown"
@@ -696,12 +933,13 @@ def normalize_standing_override_year(raw_val: Any) -> int:
     return 0
 
 
-def normalize_year(raw_val: Any) -> int:
-    """Parse a raw year-built value into an integer year in [1836, 2027], or 0 if invalid/unknown."""
-    if raw_val is None:
+def normalize_year(raw_val: Any, *, max_year: int | None = None) -> int:
+    """Parse a raw year-built value into an integer year in [MIN_VALID_YEAR, max_year], or 0."""
+    eff_max = MAX_VALID_YEAR if max_year is None else int(max_year)
+    if raw_val is None or isinstance(raw_val, bool):
         return 0
     if isinstance(raw_val, (int, float)):
-        if math.isnan(raw_val):
+        if not math.isfinite(raw_val):
             return 0
         yr = int(round(raw_val))
     else:
@@ -709,11 +947,14 @@ def normalize_year(raw_val: Any) -> int:
         if not s:
             return 0
         try:
-            yr = int(round(float(s)))
+            fval = float(s)
+            if not math.isfinite(fval):
+                return 0
+            yr = int(round(fval))
         except ValueError:
             return 0
 
-    if MIN_VALID_YEAR <= yr <= MAX_VALID_YEAR:
+    if MIN_VALID_YEAR <= yr <= eff_max:
         return yr
     return 0
 
@@ -821,6 +1062,8 @@ def normalize_parcel_record(
     raw_props: dict[str, Any],
     historic_override: dict[str, Any] | None = None,
     landmark_override: dict[str, Any] | None = None,
+    *,
+    max_year: int | None = None,
 ) -> dict[str, Any]:
     """Normalize a parcel attribute dict from COH Cadastral / HCAD + Historic layers into the 20-field schema."""
     hist = historic_override or {}
@@ -849,14 +1092,15 @@ def normalize_parcel_record(
     yr_cadastral = normalize_year(
         raw_props.get("YR_IMPR")
         or raw_props.get("Yr_Impr")
-        or raw_props.get("date_erect")
+        or raw_props.get("date_erect"),
+        max_year=max_year,
     )
-    yr_hist = normalize_year(hist.get("Yr_Impr"))
-    yr_lm = normalize_year(lm.get("USER_YR_BUILT"))
+    yr_hist = normalize_year(hist.get("Yr_Impr"), max_year=max_year)
+    yr_lm = normalize_year(lm.get("USER_YR_BUILT"), max_year=max_year)
 
     candidates = [y for y in (yr_lm, yr_hist, yr_cadastral) if y > 0]
     year_built = min(candidates) if candidates else 0
-    remodel_year = normalize_year(raw_props.get("yr_remodel"))
+    remodel_year = normalize_year(raw_props.get("yr_remodel"), max_year=max_year)
 
     owner = (
         _clean_str(raw_props.get("OWNER_MAILTO"))
@@ -1267,7 +1511,7 @@ def classify_main_structure_demolition_permit(
     site_apt: Any = "",
     permit_desc: Any = "",
     min_year: int = 2020,
-    max_year: int = MAX_VALID_CAMA_DATE_YEAR,
+    max_year: int | None = None,
 ) -> tuple[bool, int, str]:
     """Deterministically classify whether a permit removes a primary structure (DF-5).
 
@@ -1284,19 +1528,20 @@ def classify_main_structure_demolition_permit(
         remodel, addition, repair, and appraiser note permits (`CHECK FOR DEMO`, `VERIFY`),
         while permitting combined teardowns like `DEMO HOUSE & GARAGE`.
     """
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
     iso_dt, yr = normalize_hcad_date(
         issue_date,
         None,
         allow_fallback=False,
         min_year=min_year,
-        max_year=max_year,
+        max_year=eff_max,
     )
     if not yr or not iso_dt:
-        # Also allow bare 4-digit year string only when explicitly in [min_year, max_year]
+        # Also allow bare 4-digit year string only when explicitly in [min_year, eff_max]
         s_dt = "" if issue_date is None else str(issue_date).strip()
         if re.fullmatch(r"\d{4}", s_dt):
             y_only = int(s_dt)
-            if min_year <= y_only <= max_year:
+            if min_year <= y_only <= eff_max:
                 yr = y_only
             else:
                 return False, 0, "year_out_of_range"
@@ -2068,5 +2313,657 @@ def encode_citation_with_field_survey(source_citation: str, envelope: dict[str, 
             f"(got {len(combined)} chars)."
         )
     return combined
+
+
+# ---------------------------------------------------------------------------
+# Milestone 4: Dynamic Tax-Year Bins, Stamped Caches, & Ring Normalization
+# ---------------------------------------------------------------------------
+
+
+def compute_demo_years(
+    tax_year: int | None = None,
+    *,
+    start_year: int = 2020,
+) -> tuple[int, ...]:
+    """Return inclusive annual demolition tracker years `(start_year..tax_year)` (DF-6)."""
+    eff_yr = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    if eff_yr < start_year:
+        return (start_year,)
+    return tuple(range(int(start_year), eff_yr + 1))
+
+
+def compute_decade_bins(
+    max_year: int | None = None,
+    *,
+    start_decade: int = 1830,
+) -> tuple[int, ...]:
+    """Return inclusive decade floors `(1830, ..., (max_year // 10) * 10)` covering `2030s+` (DF-6)."""
+    eff_max = ACTIVE_TAX_YEAR if max_year is None else int(max_year)
+    top_decade = max(int(start_decade), (eff_max // 10) * 10)
+    return tuple(range(int(start_decade), top_decade + 10, 10))
+
+
+def resolve_cama_cache_path(cache_dir: Path, tax_year: int | None = None) -> Path:
+    """Return the year-specific compact CAMA pickle cache path (DF-8)."""
+    eff_yr = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    return Path(cache_dir) / f"cama_{eff_yr}_compact.pkl"
+
+
+def save_compact_cama_lookup(
+    cache_dir: Path,
+    by_acct: dict[str, Any],
+    *,
+    tax_year: int | None = None,
+) -> Path:
+    """Persist a stamped v2 compact CAMA lookup envelope via atomic `.tmp` swap (DF-8)."""
+    eff_yr = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    pkl_path = resolve_cama_cache_path(cache_dir, eff_yr)
+    pkl_path.parent.mkdir(parents=True, exist_ok=True)
+    envelope = {
+        "schema_version": 2,
+        "tax_year": eff_yr,
+        "by_acct": by_acct,
+    }
+    tmp_path = pkl_path.with_name(f".{pkl_path.name}.tmp")
+    with open(tmp_path, "wb") as f:
+        pickle.dump(envelope, f, protocol=pickle.HIGHEST_PROTOCOL)
+    tmp_path.replace(pkl_path)
+    return pkl_path
+
+
+def load_compact_cama_lookup(
+    cache_dir: Path,
+    *,
+    tax_year: int | None = None,
+    min_bytes: int = 0,
+) -> dict[str, Any] | None:
+    """Load a compact CAMA lookup, enforcing exact `tax_year` match on v2 envelopes (DF-8).
+
+    Legacy unstamped bare dicts are accepted strictly when `eff_yr == 2026` on legacy
+    `cama_2026_compact.pkl` files. Mismatched `tax_year` envelopes return `None` so callers
+    rebuild cleanly instead of reading stale data.
+    """
+    eff_yr = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    pkl_path = resolve_cama_cache_path(cache_dir, eff_yr)
+    if not pkl_path.exists():
+        return None
+    if min_bytes > 0 and pkl_path.stat().st_size < min_bytes:
+        return None
+    try:
+        with open(pkl_path, "rb") as f:
+            payload = pickle.load(f)
+    except Exception:
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+    if "schema_version" in payload and "by_acct" in payload:
+        try:
+            env_yr = int(payload.get("tax_year") or 0)
+        except (TypeError, ValueError):
+            return None
+        if env_yr != eff_yr:
+            return None
+        inner = payload.get("by_acct")
+        return inner if isinstance(inner, dict) else None
+
+    # Legacy unstamped dict compatibility strictly when loading the matching legacy 2026 file.
+    if eff_yr == 2026:
+        return payload
+    return None
+
+
+def resolve_subdivisions_cache_path(
+    cache_dir: Path,
+    tax_year: int | None = None,
+    *,
+    allow_fallback_latest: bool = True,
+) -> Path:
+    """Return the year-specific `hcad_subdivisions_<YYYY>.pkl` path, falling back cleanly if allowed (DF-6)."""
+    cdir = Path(cache_dir)
+    eff_yr = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    exact = cdir / f"hcad_subdivisions_{eff_yr}.pkl"
+    if exact.exists() or not allow_fallback_latest:
+        return exact
+    candidates: list[tuple[int, Path]] = []
+    for p in cdir.glob("hcad_subdivisions_*.pkl"):
+        m = re.fullmatch(r"hcad_subdivisions_(\d{4})\.pkl", p.name)
+        if m:
+            candidates.append((int(m.group(1)), p))
+    if candidates:
+        candidates.sort(key=lambda item: (item[0] <= eff_yr, item[0]))
+        return candidates[-1][1]
+    return exact
+
+
+def _signed_ring_area2(ring: list[list[float]]) -> float:
+    if len(ring) < 3:
+        return 0.0
+    x0, y0 = ring[0][0], ring[0][1]
+    area2 = 0.0
+    for i in range(len(ring) - 1):
+        dx1, dy1 = ring[i][0] - x0, ring[i][1] - y0
+        dx2, dy2 = ring[i + 1][0] - x0, ring[i + 1][1] - y0
+        area2 += (dx1 * dy2) - (dx2 * dy1)
+    return area2
+
+
+def normalize_ring_6dp(
+    raw_ring: list[Any] | tuple[Any, ...],
+    *,
+    ccw: bool = True,
+) -> list[list[float]]:
+    """Round a ring to `<= 6` decimal places, close endpoints, and orient per RFC 7946."""
+    pts: list[list[float]] = []
+    for pt in raw_ring or ():
+        if not isinstance(pt, (list, tuple)) or len(pt) < 2:
+            continue
+        lon = round(float(pt[0]), 6)
+        lat = round(float(pt[1]), 6)
+        if not pts or pts[-1][0] != lon or pts[-1][1] != lat:
+            pts.append([lon, lat])
+    if len(pts) < 3:
+        return []
+    if pts[0] != pts[-1]:
+        pts.append([pts[0][0], pts[0][1]])
+    if len(pts) < 4:
+        return []
+    area2 = _signed_ring_area2(pts)
+    if ccw and area2 < 0:
+        pts.reverse()
+    elif (not ccw) and area2 > 0:
+        pts.reverse()
+    pts[-1] = [pts[0][0], pts[0][1]]
+    return pts
+
+
+def normalize_polygon_rings_6dp_ccw(geom: dict[str, Any]) -> dict[str, Any]:
+    """Normalize a GeoJSON `Polygon` or `MultiPolygon` to `<= 6` decimal places and RFC 7946 winding."""
+    if not isinstance(geom, dict):
+        return geom
+    gtype = geom.get("type")
+    coords = geom.get("coordinates")
+    if gtype == "Polygon" and isinstance(coords, (list, tuple)):
+        norm_rings: list[list[list[float]]] = []
+        for r_idx, raw_r in enumerate(coords):
+            nr = normalize_ring_6dp(raw_r, ccw=(r_idx == 0))
+            if nr:
+                norm_rings.append(nr)
+            elif r_idx == 0:
+                return geom
+        return {"type": "Polygon", "coordinates": norm_rings}
+    if gtype == "MultiPolygon" and isinstance(coords, (list, tuple)):
+        norm_polys: list[list[list[list[float]]]] = []
+        for poly_coords in coords:
+            if not isinstance(poly_coords, (list, tuple)):
+                continue
+            norm_rings = []
+            for r_idx, raw_r in enumerate(poly_coords):
+                nr = normalize_ring_6dp(raw_r, ccw=(r_idx == 0))
+                if nr:
+                    norm_rings.append(nr)
+                elif r_idx == 0:
+                    norm_rings = []
+                    break
+            if norm_rings:
+                norm_polys.append(norm_rings)
+        if norm_polys:
+            return {"type": "MultiPolygon", "coordinates": norm_polys}
+    return geom
+
+
+def update_pmtiles_manifest_v3(
+    manifest_path: Path,
+    *,
+    total_buildings: int,
+    building_shards: list[str],
+    data_tax_year: int | None = None,
+    cache_bust: str | None = None,
+    core_pmtiles: str | None = None,
+    mode: str | None = None,
+) -> dict[str, Any]:
+    """Atomically write `pmtiles_manifest.json` preserving schema `"version": 3` (DF-4)."""
+    existing: dict[str, Any] = {}
+    if manifest_path.exists():
+        try:
+            loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                existing = loaded
+        except Exception:
+            existing = {}
+
+    eff_yr = (
+        int(data_tax_year)
+        if data_tax_year is not None
+        else int(existing.get("data_tax_year") or ACTIVE_TAX_YEAR)
+    )
+    eff_cb = str(cache_bust or existing.get("cache_bust") or ACTIVE_CACHE_BUST)
+    eff_core = str(core_pmtiles or existing.get("core_pmtiles") or "houston_atlas.pmtiles")
+    eff_mode = str(mode or existing.get("mode") or "full_county")
+
+    manifest: dict[str, Any] = {
+        "version": 3,
+        "mode": eff_mode,
+        "cache_bust": eff_cb,
+        "data_tax_year": eff_yr,
+        "total_buildings": int(total_buildings),
+        "building_shards": list(building_shards),
+        "core_pmtiles": eff_core,
+    }
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = manifest_path.with_name(f".{manifest_path.name}.tmp")
+    tmp_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    tmp_path.replace(manifest_path)
+    return manifest
+
+
+@dataclass(frozen=True)
+class AnchorRule:
+    """Structural anchor replacement rule for lockstep tax-year + cache-bust sync (DF-4)."""
+
+    rel_path: str
+    description: str
+    pattern: re.Pattern[str]
+    expected_min_matches: int
+    render_replacement: Callable[[re.Match[str], int, str], str]
+    optional: bool = False
+
+
+REPO_SYNC_ANCHOR_RULES: tuple[AnchorRule, ...] = (
+    AnchorRule(
+        rel_path="pipeline/atlas_pipeline/schema.py",
+        description="schema.py ACTIVE_TAX_YEAR constant",
+        pattern=re.compile(r"(^ACTIVE_TAX_YEAR\s*=\s*)\d{4}(\s*$)", re.MULTILINE),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="pipeline/atlas_pipeline/schema.py",
+        description="schema.py ACTIVE_CACHE_BUST constant",
+        pattern=re.compile(r'(^ACTIVE_CACHE_BUST\s*=\s*")[^"]+("\s*$)', re.MULTILINE),
+        expected_min_matches=1,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/js/filterStore.js",
+        description="filterStore.js DEFAULT_ATLAS_MAX_YEAR constant",
+        pattern=re.compile(
+            r"(export\s+const\s+DEFAULT_ATLAS_MAX_YEAR\s*=\s*)\d{4}(;)"
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/js/curatedEdits.js",
+        description="curatedEdits.js MAX_VALID_YEAR constant",
+        pattern=re.compile(r"(export\s+const\s+MAX_VALID_YEAR\s*=\s*)\d{4}(;)"),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/js/preservationOrganizer.js",
+        description="preservationOrganizer.js ORGANIZER_CACHE_BUST constant",
+        pattern=re.compile(r'(export\s+const\s+ORGANIZER_CACHE_BUST\s*=\s*")[^"]+(";)'),
+        expected_min_matches=1,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/js/mapController.js",
+        description="mapController.js fallback cache_bust literal",
+        pattern=re.compile(
+            r'(this\.pmtilesManifest\.cache_bust\)\s*\|\|\s*["\'])[^"\']+(["\'])'
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #slider-min-year max attribute",
+        pattern=re.compile(
+            r'(<input\s+[^>]*id="slider-min-year"[^>]*max=")\d{4}(")',
+            re.DOTALL,
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #slider-max-year max attribute",
+        pattern=re.compile(
+            r'(<input\s+[^>]*id="slider-max-year"[^>]*max=")\d{4}(")',
+            re.DOTALL,
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #slider-max-year value attribute",
+        pattern=re.compile(
+            r'(<input\s+[^>]*id="slider-max-year"[^>]*value=")\d{4}(")',
+            re.DOTALL,
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #lbl-corr-suggested-year range hint",
+        pattern=re.compile(
+            r'(id="lbl-corr-suggested-year">Corrected Year Built <span class="opt-hint">\(1836-)\d{4}(, or <code>0</code> if vacant\)</span></label>)'
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #corr-suggested-year max attribute",
+        pattern=re.compile(
+            r'(<input\s+[^>]*id="corr-suggested-year"[^>]*max=")\d{4}(")',
+            re.DOTALL,
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #scorecard-sort-select expiring option",
+        pattern=re.compile(
+            r'(<option\s+value="expiring">Sort:\s*Expiring\s+Ch\.\s*42\s+Ordinances\s+\()\d{4}-\d{4}(\)</option>)'
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}-{yr + 5}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #scorecard-sort-select demos_total option",
+        pattern=re.compile(
+            r'(<option\s+value="demos_total">Sort:\s*Highest\s+2020-)\d{4}(\s+Demolitions</option>)'
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: f"{m.group(1)}{yr}{m.group(2)}",
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #sc-th-sunset header label and title",
+        pattern=re.compile(
+            r'(<th\s+id="sc-th-sunset"[^>]*title="Pre-July 24, 2015 Chapter 42 ordinances reaching 20-year sunset in )\d{4}-\d{4}(">Sunset )\d{2}-\d{2}(</th>)'
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: (
+            f"{m.group(1)}{yr}-{yr + 5}{m.group(2)}"
+            f"{str(yr)[-2:]}-{str(yr + 5)[-2:]}{m.group(3)}"
+        ),
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html #sc-th-demos header title",
+        pattern=re.compile(
+            r'(<th\s+id="sc-th-demos"[^>]*title="Main-structure teardown parcels permitted 2020)(?:-\d{4}| through [A-Za-z]+ \d{4} YTD)(")'
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, yr, _cb: (
+            m.group(0)
+            if (yr == 2026 and "through Oct 2026 YTD" in m.group(0))
+            else f"{m.group(1)}-{yr}{m.group(2)}"
+        ),
+    ),
+    AnchorRule(
+        rel_path="app/index.html",
+        description="index.html ?v= cache-bust asset URLs",
+        pattern=re.compile(r"(\?v=)\d{8}[a-z]?\b"),
+        expected_min_matches=2,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}",
+    ),
+    AnchorRule(
+        rel_path="app/plat-monitor.html",
+        description="plat-monitor.html ?v= cache-bust asset and fetch URLs",
+        pattern=re.compile(r"(\?v=)\d{8}[a-z]?\b"),
+        expected_min_matches=10,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}",
+    ),
+    AnchorRule(
+        rel_path="app/js/app.js",
+        description="app.js ?v= cache-bust imports and fetch URLs",
+        pattern=re.compile(r"(\?v=)\d{8}[a-z]?\b"),
+        expected_min_matches=20,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}",
+    ),
+    AnchorRule(
+        rel_path="app/js/mapController.js",
+        description="mapController.js ?v= cache-bust imports and fetch URLs",
+        pattern=re.compile(r"(\?v=)\d{8}[a-z]?\b"),
+        expected_min_matches=12,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}",
+    ),
+    AnchorRule(
+        rel_path="tests/unit/data_integrity_and_bundle.test.mjs",
+        description="data_integrity_and_bundle.test.mjs expectedVer assertion",
+        pattern=re.compile(
+            r'(assert\.equal\(\s*expectedVer,\s*["\'])\d{8}[a-z]?(["\']\s*,\s*`Expected active [^`]*cache_bust [\'"])\d{8}[a-z]?([\'"])'
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}{m.group(2)}{cb}{m.group(3)}",
+        optional=True,
+    ),
+)
+
+_CACHE_BUST_QUERY_RE = re.compile(r"(\?v=)\d{8}[a-z]?\b")
+_SELECT_DECADE_BLOCK_RE = re.compile(
+    r'(<select[^>]*id="select-decade"[^>]*>)(.*?)(</select>)',
+    re.DOTALL,
+)
+_UNKNOWN_DECADE_OPT_RE = re.compile(
+    r'^([ \t]*)(<option\s+value="unknown">)',
+    re.MULTILINE,
+)
+
+
+_NUMERIC_DECADE_OPT_LINE_RE = re.compile(
+    r'^[ \t]*<option\s+value="(\d{4})"\s*>[^<]*</option>\r?\n?',
+    re.MULTILINE,
+)
+
+
+def _prune_future_decade_opt(match: re.Match[str], max_keep_decade: int) -> str:
+    return "" if int(match.group(1)) > max_keep_decade else match.group(0)
+
+
+def _ensure_index_html_decades(html_text: str, tax_year: int) -> tuple[str, int]:
+    """Ensure `<select id="select-decade">` includes decade options strictly through `(tax_year // 10) * 10`."""
+    top_decade = (int(tax_year) // 10) * 10
+    m = _SELECT_DECADE_BLOCK_RE.search(html_text)
+    if m is None:
+        raise ValueError("Anchor missing: app/index.html <select id=\"select-decade\"> block")
+    inner = m.group(2)
+    max_keep = max(2020, top_decade)
+    pruned_inner = _NUMERIC_DECADE_OPT_LINE_RE.sub(
+        lambda om: _prune_future_decade_opt(om, max_keep),
+        inner,
+    )
+    unk = _UNKNOWN_DECADE_OPT_RE.search(pruned_inner)
+    if unk is None:
+        raise ValueError(
+            'Anchor missing: app/index.html <option value="unknown"> inside #select-decade'
+        )
+    indent = unk.group(1)
+    insert_lines: list[str] = []
+    if top_decade >= 2030:
+        for dec in range(2030, top_decade + 1, 10):
+            opt_re = re.compile(rf'<option\s+value="{dec}"\s*>')
+            if not opt_re.search(pruned_inner):
+                insert_lines.append(f'{indent}<option value="{dec}">{dec}s Decade</option>\n')
+    if not insert_lines and pruned_inner == inner:
+        return html_text, 0
+    ins_pos = unk.start()
+    new_inner = pruned_inner[:ins_pos] + "".join(insert_lines) + pruned_inner[ins_pos:]
+    updated = html_text[: m.start(2)] + new_inner + html_text[m.end(2) :]
+    return updated, len(insert_lines)
+
+
+def _load_repo_sync_target(
+    root: Path,
+    rel_p: str,
+    buffered: dict[Path, str],
+    originals: dict[Path, str],
+    *,
+    optional: bool = False,
+) -> tuple[Path, str | None]:
+    abs_p = root / rel_p
+    if abs_p in buffered:
+        return abs_p, buffered[abs_p]
+    if not abs_p.exists():
+        if optional:
+            return abs_p, None
+        raise ValueError(f"Required repo sync file missing: {rel_p}")
+    txt = abs_p.read_text(encoding="utf-8")
+    originals[abs_p] = txt
+    buffered[abs_p] = txt
+    return abs_p, txt
+
+
+def sync_repo_tax_year_and_cache_bust(
+    repo_root: Path,
+    *,
+    tax_year: int,
+    cache_bust: str,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Lockstep-sync `ACTIVE_TAX_YEAR`, HTML/JS year anchors, and `?v=<cache_bust>` across `repo_root`.
+
+    Validates EVERY structural anchor across all target files in memory first (failing fast
+    with zero partial mutations if any anchor went stale) before writing atomically via `.tmp`.
+    """
+    yr = int(tax_year)
+    if yr < MIN_VALID_YEAR or yr > 2100:
+        raise ValueError(f"Invalid tax_year {yr}; expected {MIN_VALID_YEAR}..2100")
+    cb = str(cache_bust).strip()
+    if not re.fullmatch(r"\d{8}[a-z]?", cb):
+        raise ValueError(
+            f"Invalid cache_bust {cb!r}; expected YYYYMMDD or YYYYMMDD[a-z]"
+        )
+
+    root = Path(repo_root)
+    buffered: dict[Path, str] = {}
+    originals: dict[Path, str] = {}
+    rule_hits: dict[str, int] = {}
+
+    for rule in REPO_SYNC_ANCHOR_RULES:
+        abs_p, cur_txt = _load_repo_sync_target(
+            root, rule.rel_path, buffered, originals, optional=rule.optional
+        )
+        if cur_txt is None:
+            continue
+        matches = list(rule.pattern.finditer(cur_txt))
+        match_count = len(matches)
+        if match_count < rule.expected_min_matches:
+            raise ValueError(
+                f"Stale AnchorRule '{rule.description}' in {rule.rel_path}: "
+                f"expected >= {rule.expected_min_matches} match(es), got {match_count}"
+            )
+        pieces: list[str] = []
+        last_end = 0
+        for m in matches:
+            pieces.append(cur_txt[last_end : m.start()])
+            pieces.append(rule.render_replacement(m, yr, cb))
+            last_end = m.end()
+        pieces.append(cur_txt[last_end:])
+        buffered[abs_p] = "".join(pieces)
+        rule_hits[f"{rule.rel_path}::{rule.description}"] = match_count
+
+    # Ensure dynamic 2030s+ `<option>` rows in app/index.html
+    idx_abs, idx_txt = _load_repo_sync_target(root, "app/index.html", buffered, originals)
+    assert idx_txt is not None
+    idx_updated, inserted_decades = _ensure_index_html_decades(idx_txt, yr)
+    buffered[idx_abs] = idx_updated
+
+    # Sweep all remaining `app/js/*.js` modules + test `?v=` imports so DF-12 never drifts
+    js_dir = root / "app" / "js"
+    swept_files: list[str] = []
+    if js_dir.is_dir():
+        for js_file in sorted(js_dir.glob("*.js")):
+            rel_js = js_file.relative_to(root).as_posix()
+            abs_p, cur_txt = _load_repo_sync_target(root, rel_js, buffered, originals)
+            assert cur_txt is not None
+            next_txt, count = _CACHE_BUST_QUERY_RE.subn(rf"\g<1>{cb}", cur_txt)
+            if count > 0:
+                buffered[abs_p] = next_txt
+                swept_files.append(rel_js)
+
+    for test_dir_rel, glob_pat in (
+        ("tests/unit", "*.mjs"),
+        ("tests/e2e", "*.py"),
+    ):
+        tdir = root / test_dir_rel
+        if tdir.is_dir():
+            for tf in sorted(tdir.glob(glob_pat)):
+                rel_tf = tf.relative_to(root).as_posix()
+                abs_p, cur_txt = _load_repo_sync_target(
+                    root, rel_tf, buffered, originals, optional=True
+                )
+                if cur_txt is None:
+                    continue
+                next_txt, count = _CACHE_BUST_QUERY_RE.subn(rf"\g<1>{cb}", cur_txt)
+                if count > 0:
+                    buffered[abs_p] = next_txt
+                    swept_files.append(rel_tf)
+
+    modified_paths: list[str] = []
+    pending_writes: list[tuple[Path, str, str]] = []
+    for abs_p, next_txt in buffered.items():
+        if next_txt != originals[abs_p]:
+            modified_paths.append(abs_p.relative_to(root).as_posix())
+            pending_writes.append((abs_p, originals[abs_p], next_txt))
+
+    if not dry_run and pending_writes:
+        written_rollbacks: list[tuple[Path, Path]] = []
+        staged_tmps: list[tuple[Path, Path, Path]] = []
+        active_tmp: Path | None = None
+        active_rb: Path | None = None
+        try:
+            for abs_p, orig_txt, next_txt in pending_writes:
+                active_tmp = abs_p.with_name(f".{abs_p.name}.sync.tmp")
+                active_tmp.write_text(next_txt, encoding="utf-8")
+                active_rb = abs_p.with_name(f".{abs_p.name}.rollback.tmp")
+                active_rb.write_text(orig_txt, encoding="utf-8")
+                staged_tmps.append((active_tmp, active_rb, abs_p))
+                active_tmp = None
+                active_rb = None
+            for tmp_p, rb_p, abs_p in staged_tmps:
+                tmp_p.replace(abs_p)
+                written_rollbacks.append((rb_p, abs_p))
+        except Exception as exc:
+            if active_tmp is not None:
+                active_tmp.unlink(missing_ok=True)
+            if active_rb is not None:
+                active_rb.unlink(missing_ok=True)
+            failed_rollbacks: list[str] = []
+            for rb_p, abs_p in reversed(written_rollbacks):
+                try:
+                    rb_p.replace(abs_p)
+                except OSError:
+                    failed_rollbacks.append(abs_p.relative_to(root).as_posix())
+            for tmp_p, rb_p, _abs_p in staged_tmps:
+                tmp_p.unlink(missing_ok=True)
+                rb_p.unlink(missing_ok=True)
+            if failed_rollbacks:
+                exc.add_note(f"Unrestored live sync targets: {failed_rollbacks}")
+            raise
+        else:
+            for _tmp_p, rb_p, _abs_p in staged_tmps:
+                rb_p.unlink(missing_ok=True)
+
+    return {
+        "tax_year": yr,
+        "cache_bust": cb,
+        "dry_run": bool(dry_run),
+        "rules_validated": len(rule_hits),
+        "rule_hits": rule_hits,
+        "inserted_decade_options": inserted_decades,
+        "swept_cache_bust_files": swept_files,
+        "modified_files": sorted(modified_paths),
+    }
+
+
 
 

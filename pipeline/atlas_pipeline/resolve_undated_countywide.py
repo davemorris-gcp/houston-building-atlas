@@ -6,7 +6,6 @@ import csv
 import io
 import json
 import math
-import pickle
 import re
 import time
 import zipfile
@@ -26,6 +25,8 @@ from atlas_pipeline.schema import (
     QUAD_NAMES,
     compile_quadrant_pmtiles,
     compute_decade,
+    compute_decade_bins,
+    load_compact_cama_lookup,
     normalize_override_record,
     normalize_year,
     parse_hcad_date_year,
@@ -530,7 +531,7 @@ PHASE1_CURATED_LANDMARKS: dict[str, tuple[int, str, str, str]] = {
         1962,
         "NASA Lyndon B. Johnson Space Center",
         "Federal Aerospace & Mission Control Campus",
-        "NASA Manned Spacecraft Center / Lyndon B. Johnson Space Center (2101 NASA Pkwy), designed by Charles Luckman, constructed 1962–1963.",
+        "NASA Manned Spacecraft Center / Lyndon B. Johnson Space Center (2101 NASA Pkwy), designed by Charles Luckman, constructed 1962-1963.",
     ),
     "1170150000001": (
         1992,
@@ -1016,6 +1017,8 @@ def is_valid_authoritative_donor(
     year_source: str,
     bld_area: float,
     has_curated_override: bool = False,
+    *,
+    max_year: int | None = None,
 ) -> bool:
     """Return True only when a parcel can safely donate its chronology to neighboring parcels.
 
@@ -1028,7 +1031,8 @@ def is_valid_authoritative_donor(
          exclude previously inferred fallback tiers (hcad_permit, campus_contiguity, etc.)
          so stale heuristic dates never self-propagate across consecutive runs.
     """
-    if not (MIN_VALID_YEAR <= int(year_built or 0) <= MAX_VALID_CAMA_DATE_YEAR):
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
+    if not (MIN_VALID_YEAR <= int(year_built or 0) <= eff_max):
         return False
     src = (year_source or "").strip()
     if src in INFERRED_FALLBACK_YEAR_SOURCES:
@@ -1042,9 +1046,12 @@ def seed_authoritative_dated_parcels(
     shard_features: Any,
     cama_lookup: dict[str, tuple[int, int, int, str, str, str]],
     curated_hcads: set[str] | frozenset[str] | None = None,
+    *,
+    max_year: int | None = None,
 ) -> tuple[dict[str, int], dict[str, tuple[float, float]]]:
     """Seed (dated_parcel_year, dated_parcel_coord) strictly from authoritative active donors."""
     curated = curated_hcads or frozenset()
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
     dated_parcel_year: dict[str, int] = {}
     dated_parcel_coord: dict[str, tuple[float, float]] = {}
 
@@ -1057,7 +1064,13 @@ def seed_authoritative_dated_parcels(
         src = str(props.get("year_source") or "").strip()
         cama_row = cama_lookup.get(hcad)
         bld_ar = float(cama_row[2]) if cama_row is not None else float(props.get("bld_area") or 0.0)
-        if not is_valid_authoritative_donor(yr, src, bld_ar, has_curated_override=(hcad in curated)):
+        if not is_valid_authoritative_donor(
+            yr,
+            src,
+            bld_ar,
+            has_curated_override=(hcad in curated),
+            max_year=eff_max,
+        ):
             continue
         if hcad not in dated_parcel_year or yr < dated_parcel_year[hcad]:
             dated_parcel_year[hcad] = yr
@@ -1075,6 +1088,7 @@ def seed_authoritative_dated_parcels(
             "hcad_cama",
             float(cval[2] or 0.0),
             has_curated_override=(hcad in curated),
+            max_year=eff_max,
         ):
             dated_parcel_year[hcad] = int(cval[0])
 
@@ -1154,17 +1168,19 @@ def resolve_permit_deed_spatial_fallback(
     local_era: int = 0,
     nn_median: int = 0,
     market_median: int = 0,
+    max_year: int | None = None,
 ) -> dict[str, Any]:
     """Resolve Phase 2D/4 chronology fallback (hcad_permit -> hcad_deed -> subdivision_median -> blockface_median).
 
-    Enforces MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR uniformly across all pipeline stages
+    Enforces MIN_VALID_YEAR <= yr <= eff_max uniformly across all pipeline stages
     after parse_hcad_date_year has rejected SQL/OLE null-date sentinels.
     """
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
     if permit_candidates:
         valid_permits = [
             (pyr, dscr)
             for pyr, dscr in permit_candidates
-            if MIN_VALID_YEAR <= pyr <= MAX_VALID_CAMA_DATE_YEAR
+            if MIN_VALID_YEAR <= pyr <= eff_max
         ]
         if valid_permits:
             valid_permits.sort(key=lambda x: x[0])
@@ -1179,7 +1195,7 @@ def resolve_permit_deed_spatial_fallback(
 
     valid_deed_yr = (
         earliest_deed_year
-        if MIN_VALID_YEAR <= earliest_deed_year <= MAX_VALID_CAMA_DATE_YEAR
+        if MIN_VALID_YEAR <= earliest_deed_year <= eff_max
         else 0
     )
     st_cls = (state_class or "").strip().upper()
@@ -1202,7 +1218,7 @@ def resolve_permit_deed_spatial_fallback(
                 "notes": f"Earliest HCAD Deed / Split date ({valid_deed_yr})",
             }
 
-    if local_era and MIN_VALID_YEAR <= local_era <= MAX_VALID_CAMA_DATE_YEAR:
+    if local_era and MIN_VALID_YEAR <= local_era <= eff_max:
         return {
             "year_built": local_era,
             "year_source": "subdivision_median",
@@ -1211,8 +1227,8 @@ def resolve_permit_deed_spatial_fallback(
             "notes": f"Circa {local_era} (HCAD Subdivision / Street Median)",
         }
 
-    valid_nn = nn_median if MIN_VALID_YEAR <= nn_median <= MAX_VALID_CAMA_DATE_YEAR else 0
-    valid_mkt = market_median if MIN_VALID_YEAR <= market_median <= MAX_VALID_CAMA_DATE_YEAR else 0
+    valid_nn = nn_median if MIN_VALID_YEAR <= nn_median <= eff_max else 0
+    valid_mkt = market_median if MIN_VALID_YEAR <= market_median <= eff_max else 0
     fallback_yr = valid_nn or valid_mkt or valid_deed_yr or 1975
     return {
         "year_built": fallback_yr,
@@ -1232,17 +1248,19 @@ def re_resolve_synthetic_shard_features(
     deeds_by_acct: dict[str, list[tuple[str, str]]] | None = None,
     tiebacks: dict[str, list[str]] | None = None,
     curated_landmarks: dict[str, tuple[int, str, str, str]] | None = None,
+    max_year: int | None = None,
 ) -> list[dict[str, Any]]:
     """Pure, dependency-injected chronology resolver over synthetic shard + CAMA fixtures.
 
     Used by unit tests (and mirrored by countywide batch execution) to verify idempotent
     donor seeding, SQL/OLE date-sentinel rejection, bld_ar == 0 exclusion, < 1945 & 350m
-    campus_contiguity bounds, and 100% [1836, 2026] completeness across consecutive runs.
+    campus_contiguity bounds, and 100% [1836, max_year] completeness across consecutive runs.
     """
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
     curated_map = curated_landmarks or {}
     curated_hcads = set(curated_map.keys())
     dated_parcel_year, dated_parcel_coord = seed_authoritative_dated_parcels(
-        shard_features, cama_lookup, curated_hcads
+        shard_features, cama_lookup, curated_hcads, max_year=eff_max
     )
 
     target_hcads: set[str] = set()
@@ -1306,7 +1324,7 @@ def re_resolve_synthetic_shard_features(
     all_authoritative_years: list[int] = []
 
     for acct, dyr in sorted(dated_parcel_year.items()):
-        if not (MIN_VALID_YEAR <= dyr <= MAX_VALID_CAMA_DATE_YEAR):
+        if not (MIN_VALID_YEAR <= dyr <= eff_max):
             continue
         all_authoritative_years.append(dyr)
         meta = acct_meta.get(acct, {})
@@ -1348,18 +1366,18 @@ def re_resolve_synthetic_shard_features(
             continue
         valid_permits: list[tuple[int, str]] = []
         for dt_str, tax_yr_str, dscr in p_map.get(hcad, ()):
-            pyr = parse_hcad_date_year(dt_str, tax_yr_str, allow_fallback=False)
-            if MIN_VALID_YEAR <= pyr <= MAX_VALID_CAMA_DATE_YEAR:
+            pyr = parse_hcad_date_year(dt_str, tax_yr_str, allow_fallback=False, max_year=eff_max)
+            if MIN_VALID_YEAR <= pyr <= eff_max:
                 valid_permits.append((pyr, dscr))
 
         meta = acct_meta.get(hcad, {})
         earliest_deed = 0
         for dos_str, clerk_yr_str in d_map.get(hcad, ()):
-            dyr = parse_hcad_date_year(dos_str, clerk_yr_str, allow_fallback=True)
+            dyr = parse_hcad_date_year(dos_str, clerk_yr_str, allow_fallback=True, max_year=eff_max)
             if dyr and (earliest_deed == 0 or dyr < earliest_deed):
                 earliest_deed = dyr
         for fld in ("splt_dt", "new_own_dt"):
-            syr = parse_hcad_date_year(meta.get(fld, ""), allow_fallback=False)
+            syr = parse_hcad_date_year(meta.get(fld, ""), allow_fallback=False, max_year=eff_max)
             if syr and (earliest_deed == 0 or syr < earliest_deed):
                 earliest_deed = syr
 
@@ -1374,6 +1392,7 @@ def re_resolve_synthetic_shard_features(
             state_class=str(meta.get("state_class") or meta.get("st_cls") or ""),
             local_era=sub_med,
             nn_median=nn_med,
+            max_year=eff_max,
         )
 
     out_features: list[dict[str, Any]] = []
@@ -1394,7 +1413,7 @@ def re_resolve_synthetic_shard_features(
             if rinfo.get("bld_style"):
                 props["bld_style"] = rinfo["bld_style"]
         final_yr = int(props.get("year_built") or 0)
-        if not (MIN_VALID_YEAR <= final_yr <= MAX_VALID_CAMA_DATE_YEAR):
+        if not (MIN_VALID_YEAR <= final_yr <= eff_max):
             raise ValueError(f"Completeness invariant violated on {hcad}: year_built={final_yr}")
         out_features.append(f_copy)
 
@@ -1442,23 +1461,583 @@ def polygon_circularity(ring: list[list[float]]) -> float:
     return (4.0 * math.pi * area) / (perim * perim)
 
 
-def run_resolve_undated() -> None:
+_BROAD_TEXT_YEAR_RE = re.compile(r"\b(18[3-9]\d|19\d\d|20\d{2})\b")
+
+
+def extract_plausible_text_year(
+    text: str,
+    *,
+    min_year: int = MIN_VALID_YEAR,
+    max_year: int | None = None,
+) -> int:
+    """Extract the first plausible 4-digit year in `[min_year, eff_max]` without `20[0-2]\\d` caps (DF-6)."""
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
+    if not text:
+        return 0
+    for m in _BROAD_TEXT_YEAR_RE.finditer(str(text)):
+        yr = int(m.group(1))
+        if min_year <= yr <= eff_max:
+            return yr
+    return 0
+
+
+def stream_extra_feature_years(
+    bldg_zip_path: Path,
+    target_accts: set[str] | frozenset[str],
+    *,
+    exclude_accts: set[str] | frozenset[str] = frozenset(),
+    max_year: int | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Stream Phase 2A HCAD extra features tables (`extra_features_detail1/2.txt`, `extra_features.txt`) (DF-7)."""
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
+    if not target_accts or not bldg_zip_path.exists():
+        return {}
+    xf_candidates: dict[str, list[tuple[int, int, str]]] = defaultdict(list)
+    with zipfile.ZipFile(bldg_zip_path, "r") as zf:
+        for fn in ("extra_features_detail1.txt", "extra_features_detail2.txt"):
+            if fn not in zf.namelist():
+                continue
+            with zf.open(fn, "r") as raw_f:
+                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
+                header = [c.strip() for c in text_f.readline().rstrip("\r\n").split("\t")]
+                col = {name: i for i, name in enumerate(header)}
+                i_acct = col.get("acct", 0)
+                i_dscr = col.get("dscr", 2)
+                i_act = col.get("act_yr", 12)
+                i_eff = col.get("eff_yr", 13)
+                i_roll = col.get("roll_yr", 14)
+                i_note = col.get("note", 18)
+
+                for line in text_f:
+                    parts = line.rstrip("\r\n").split("\t")
+                    if len(parts) <= i_acct:
+                        continue
+                    acct = parts[i_acct].strip()
+                    if acct not in target_accts or acct in exclude_accts:
+                        continue
+                    dscr = parts[i_dscr].strip() if len(parts) > i_dscr else ""
+                    dscr_up = dscr.upper()
+                    is_struct = 0 if any(k in dscr_up for k in STRUCTURAL_FEATURE_KEYWORDS) else 1
+
+                    yr = 0
+                    for idx in (i_act, i_eff, i_roll):
+                        if len(parts) > idx:
+                            y_val = normalize_year(parts[idx], max_year=eff_max)
+                            if MIN_VALID_YEAR <= y_val <= eff_max:
+                                yr = y_val
+                                break
+                    if yr == 0 and len(parts) > i_note:
+                        yr = extract_plausible_text_year(parts[i_note], max_year=eff_max)
+                    if MIN_VALID_YEAR <= yr <= eff_max:
+                        xf_candidates[acct].append((is_struct, yr, dscr))
+
+        if "extra_features.txt" in zf.namelist():
+            with zf.open("extra_features.txt", "r") as raw_f:
+                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
+                header = [c.strip() for c in text_f.readline().rstrip("\r\n").split("\t")]
+                col = {name: i for i, name in enumerate(header)}
+                i_acct = col.get("acct", 0)
+                i_ldscr = col.get("l_dscr", 6)
+                i_note = col.get("note", 9)
+                for line in text_f:
+                    parts = line.rstrip("\r\n").split("\t")
+                    if len(parts) <= i_note:
+                        continue
+                    acct = parts[i_acct].strip()
+                    if acct not in target_accts or acct in exclude_accts or acct in xf_candidates:
+                        continue
+                    yr = extract_plausible_text_year(parts[i_note], max_year=eff_max)
+                    if MIN_VALID_YEAR <= yr <= eff_max:
+                        dscr = parts[i_ldscr].strip() if len(parts) > i_ldscr else ""
+                        xf_candidates[acct].append((0, yr, dscr))
+
+    out: dict[str, dict[str, Any]] = {}
+    for acct, cands in xf_candidates.items():
+        cands.sort(key=lambda x: (x[0], x[1]))
+        _, best_yr, best_dscr = cands[0]
+        out[acct] = {
+            "year_built": best_yr,
+            "year_source": "hcad_extra_feature",
+            "landmark_name": "",
+            "bld_style": best_dscr if best_dscr and "GROSS VALUE" not in best_dscr.upper() else "",
+            "notes": f"HCAD Extra Feature record: {best_dscr} ({best_yr})",
+        }
+    return out
+
+
+def load_parcel_tieback_map(
+    acct_zip_path: Path,
+    target_accts: set[str] | frozenset[str] | None = None,
+) -> dict[str, list[str]]:
+    """Stream `parcel_tieback.txt` into a bidirectional adjacency map (DF-7)."""
+    tiebacks: dict[str, list[str]] = defaultdict(list)
+    if not acct_zip_path.exists():
+        return tiebacks
+    with zipfile.ZipFile(acct_zip_path, "r") as zf:
+        if "parcel_tieback.txt" not in zf.namelist():
+            return tiebacks
+        with zf.open("parcel_tieback.txt", "r") as raw_f:
+            text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
+            header = [c.strip() for c in text_f.readline().rstrip("\r\n").split("\t")]
+            col = {name: i for i, name in enumerate(header)}
+            i_acct = col.get("acct", 0)
+            i_rel = col.get("related_acct", 3)
+            min_cols = max(i_acct, i_rel) + 1
+            for line in text_f:
+                parts = line.rstrip("\r\n").split("\t")
+                if len(parts) < min_cols:
+                    continue
+                a = parts[i_acct].strip()
+                b = parts[i_rel].strip()
+                if not a or not b:
+                    continue
+                if target_accts is not None and a not in target_accts and b not in target_accts:
+                    continue
+                tiebacks[a].append(b)
+                tiebacks[b].append(a)
+    return tiebacks
+
+
+def build_undated_fallback_context(
+    acct_zip_path: Path,
+    target_accts: set[str] | frozenset[str],
+    dated_parcel_year: dict[str, int],
+    dated_parcel_coord: dict[str, tuple[float, float]],
+    *,
+    max_year: int | None = None,
+    collect_acct_info: bool = False,
+) -> dict[str, Any]:
+    """Build shared CAMA ownership, tieback, permit, deed, and spatial-median tables from `Real_acct_owner.zip` (DF-7)."""
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
+    tiebacks: dict[str, list[str]] = defaultdict(list)
+    target_meta: dict[str, dict[str, str]] = {}
+    acct_info: dict[str, tuple[str, str, str, str]] = {}
+    owner_to_dated: dict[str, list[tuple[int, float, float, str]]] = defaultdict(list)
+    addr_to_dated: dict[tuple[str, str], list[tuple[int, float, float, str]]] = defaultdict(list)
+    street_to_dated_years: dict[tuple[str, str], list[int]] = defaultdict(list)
+    subdiv_to_dated_years: dict[str, list[int]] = defaultdict(list)
+    nbhd_to_dated_years: dict[str, list[int]] = defaultdict(list)
+    mkt_to_dated_years: dict[str, list[int]] = defaultdict(list)
+    permit_years: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    deed_earliest: dict[str, int] = {}
+
+    if acct_zip_path.exists():
+        with zipfile.ZipFile(acct_zip_path, "r") as zf:
+            if target_accts and "parcel_tieback.txt" in zf.namelist():
+                with zf.open("parcel_tieback.txt", "r") as raw_f:
+                    text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
+                    header = [c.strip() for c in text_f.readline().rstrip("\r\n").split("\t")]
+                    col = {name: i for i, name in enumerate(header)}
+                    i_acct = col.get("acct", 0)
+                    i_rel = col.get("related_acct", 3)
+                    min_tb = max(i_acct, i_rel) + 1
+                    for line in text_f:
+                        parts = line.rstrip("\r\n").split("\t")
+                        if len(parts) < min_tb:
+                            continue
+                        a = parts[i_acct].strip()
+                        b = parts[i_rel].strip()
+                        if a and b and (a in target_accts or b in target_accts):
+                            tiebacks[a].append(b)
+                            tiebacks[b].append(a)
+
+            if "real_acct.txt" in zf.namelist():
+                with zf.open("real_acct.txt", "r") as raw_f:
+                    text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
+                    header = [c.strip() for c in text_f.readline().rstrip("\r\n").split("\t")]
+                    col = {name: i for i, name in enumerate(header)}
+                    i_acct = col.get("acct", 0)
+                    i_mailto = col.get("mailto", 2)
+                    i_addr1 = col.get("site_addr_1", 17)
+                    i_zip = col.get("site_addr_3", 19)
+                    i_st_cls = col.get("state_class", 20)
+                    i_nbhd = col.get("Neighborhood_Code", 24)
+                    i_mkt = col.get("Market_Area_1", 26)
+                    i_splt = col.get("splt_dt", 35)
+                    i_new_own = col.get("new_own_dt", 64)
+                    i_lgl2 = col.get("lgl_2", 66)
+
+                    for line in text_f:
+                        parts = line.rstrip("\r\n").split("\t")
+                        if len(parts) <= i_acct:
+                            continue
+                        acct = parts[i_acct].strip()
+                        if not acct:
+                            continue
+                        owner_raw = parts[i_mailto].strip() if len(parts) > i_mailto else ""
+                        addr1 = parts[i_addr1].strip() if len(parts) > i_addr1 else ""
+                        st_cls = parts[i_st_cls].strip() if len(parts) > i_st_cls else ""
+                        norm_own = normalize_owner(owner_raw)
+                        if collect_acct_info:
+                            acct_info[acct] = (owner_raw, norm_own, st_cls, addr1)
+
+                        zip_cd = parts[i_zip].strip()[:5] if len(parts) > i_zip else ""
+                        nbhd = parts[i_nbhd].strip() if len(parts) > i_nbhd else ""
+                        mkt = parts[i_mkt].strip() if len(parts) > i_mkt else ""
+                        lgl2 = parts[i_lgl2].strip() if len(parts) > i_lgl2 else ""
+                        st_num, st_name = normalize_street(addr1)
+
+                        if acct in target_accts:
+                            target_meta[acct] = {
+                                "owner_raw": owner_raw,
+                                "norm_own": norm_own,
+                                "addr1": addr1,
+                                "st_num": st_num,
+                                "st_name": st_name,
+                                "st_cls": st_cls,
+                                "zip_cd": zip_cd,
+                                "nbhd": nbhd,
+                                "mkt": mkt,
+                                "lgl2": lgl2,
+                                "splt_dt": parts[i_splt].strip() if len(parts) > i_splt else "",
+                                "new_own_dt": parts[i_new_own].strip() if len(parts) > i_new_own else "",
+                            }
+
+                        dyr = dated_parcel_year.get(acct, 0)
+                        if MIN_VALID_YEAR <= dyr <= eff_max:
+                            coord = dated_parcel_coord.get(acct)
+                            if coord:
+                                if norm_own and norm_own not in GENERIC_OWNERS:
+                                    owner_to_dated[norm_own].append((dyr, coord[0], coord[1], acct))
+                                if st_num and st_name:
+                                    addr_to_dated[(st_num, st_name)].append((dyr, coord[0], coord[1], acct))
+                            if st_name and zip_cd:
+                                street_to_dated_years[(zip_cd, st_name)].append(dyr)
+                            if len(lgl2) >= 4:
+                                subdiv_to_dated_years[lgl2].append(dyr)
+                            if nbhd:
+                                nbhd_to_dated_years[nbhd].append(dyr)
+                            if mkt:
+                                mkt_to_dated_years[mkt].append(dyr)
+
+            if target_accts and "permits.txt" in zf.namelist():
+                with zf.open("permits.txt", "r") as raw_f:
+                    text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
+                    header = [c.strip() for c in text_f.readline().rstrip("\r\n").split("\t")]
+                    col = {name: i for i, name in enumerate(header)}
+                    i_acct = col.get("acct", 0)
+                    i_dscr = col.get("dscr", 4)
+                    i_tp_dscr = col.get("permit_tp_descr", 7)
+                    i_dt = col.get("issue_date", 9)
+                    i_yr = col.get("yr", 10)
+                    for line in text_f:
+                        parts = line.rstrip("\r\n").split("\t")
+                        if len(parts) <= i_dt:
+                            continue
+                        acct = parts[i_acct].strip()
+                        if acct not in target_accts:
+                            continue
+                        yr = parse_hcad_date_year(
+                            parts[i_dt].strip(),
+                            parts[i_yr].strip() if len(parts) > i_yr else None,
+                            allow_fallback=False,
+                            max_year=eff_max,
+                        )
+                        if MIN_VALID_YEAR <= yr <= eff_max:
+                            tp_d = parts[i_tp_dscr].strip() if len(parts) > i_tp_dscr else ""
+                            dscr = parts[i_dscr].strip() if len(parts) > i_dscr else ""
+                            permit_years[acct].append((yr, tp_d or dscr))
+
+            if target_accts and "deeds.txt" in zf.namelist():
+                with zf.open("deeds.txt", "r") as raw_f:
+                    text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
+                    header = [c.strip() for c in text_f.readline().rstrip("\r\n").split("\t")]
+                    col = {name: i for i, name in enumerate(header)}
+                    i_acct = col.get("acct", 0)
+                    i_dos = col.get("dos", 1)
+                    i_cyr = col.get("clerk_yr", 2)
+                    for line in text_f:
+                        parts = line.rstrip("\r\n").split("\t")
+                        if len(parts) <= i_dos:
+                            continue
+                        acct = parts[i_acct].strip()
+                        if acct not in target_accts:
+                            continue
+                        yr = parse_hcad_date_year(
+                            parts[i_dos].strip(),
+                            parts[i_cyr].strip() if len(parts) > i_cyr else None,
+                            allow_fallback=True,
+                            max_year=eff_max,
+                        )
+                        if MIN_VALID_YEAR <= yr <= eff_max:
+                            if acct not in deed_earliest or yr < deed_earliest[acct]:
+                                deed_earliest[acct] = yr
+
+    for acct, meta in target_meta.items():
+        for dt_field in ("splt_dt", "new_own_dt"):
+            yr = parse_hcad_date_year(meta.get(dt_field, ""), allow_fallback=False, max_year=eff_max)
+            if MIN_VALID_YEAR <= yr <= eff_max:
+                if acct not in deed_earliest or yr < deed_earliest[acct]:
+                    deed_earliest[acct] = yr
+
+    street_median: dict[tuple[str, str], int] = {
+        k: int(round(float(np.median(v)))) for k, v in street_to_dated_years.items() if len(v) >= 2
+    }
+    subdiv_median: dict[str, int] = {
+        k: int(round(float(np.median(v)))) for k, v in subdiv_to_dated_years.items() if len(v) >= 3
+    }
+    nbhd_median: dict[str, int] = {
+        k: int(round(float(np.median(v)))) for k, v in nbhd_to_dated_years.items() if len(v) >= 3
+    }
+    mkt_median: dict[str, int] = {
+        k: int(round(float(np.median(v)))) for k, v in mkt_to_dated_years.items() if len(v) >= 5
+    }
+    grid_buckets: dict[tuple[int, int], list[int]] = defaultdict(list)
+    for acct, (dlon, dlat) in dated_parcel_coord.items():
+        dyr = dated_parcel_year.get(acct, 0)
+        if MIN_VALID_YEAR <= dyr <= eff_max:
+            grid_buckets[(int(round(dlon * 250.0)), int(round(dlat * 250.0)))].append(dyr)
+
+    return {
+        "tiebacks": tiebacks,
+        "target_meta": target_meta,
+        "acct_info": acct_info,
+        "owner_to_dated": owner_to_dated,
+        "addr_to_dated": addr_to_dated,
+        "street_median": street_median,
+        "subdiv_median": subdiv_median,
+        "nbhd_median": nbhd_median,
+        "mkt_median": mkt_median,
+        "grid_buckets": grid_buckets,
+        "permit_years": permit_years,
+        "deed_earliest": deed_earliest,
+    }
+
+
+def resolve_undated_feature_batch(
+    target_accts: Any,
+    target_coords: dict[str, tuple[float, float]],
+    dated_parcel_year: dict[str, int],
+    fallback_ctx: dict[str, Any],
+    *,
+    extra_feature_resolutions: dict[str, dict[str, Any]] | None = None,
+    pre_resolved: dict[str, dict[str, Any]] | None = None,
+    target_rows: dict[str, dict[str, Any]] | None = None,
+    thc_markers_path: Path | None = None,
+    use_nearest_dated_tree: bool = False,
+    dated_parcel_coord: dict[str, tuple[float, float]] | None = None,
+    max_year: int | None = None,
+) -> tuple[dict[str, dict[str, Any]], Counter[str]]:
+    """Resolve undated/sentinel parcels across Phases 2A -> 2B -> 2C/3A -> 2D -> 3B -> 4 (DF-7)."""
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
+    resolved: dict[str, dict[str, Any]] = dict(pre_resolved or {})
+    counts: Counter[str] = Counter()
+    ordered_targets = sorted(target_accts)
+    rows_map = target_rows or {}
+    tiebacks = fallback_ctx["tiebacks"]
+    target_meta = fallback_ctx["target_meta"]
+    owner_to_dated = fallback_ctx["owner_to_dated"]
+    addr_to_dated = fallback_ctx["addr_to_dated"]
+    street_median = fallback_ctx["street_median"]
+    subdiv_median = fallback_ctx["subdiv_median"]
+    nbhd_median = fallback_ctx["nbhd_median"]
+    mkt_median = fallback_ctx["mkt_median"]
+    grid_buckets = fallback_ctx["grid_buckets"]
+    permit_years = fallback_ctx["permit_years"]
+    deed_earliest = fallback_ctx["deed_earliest"]
+
+    if extra_feature_resolutions:
+        for acct in ordered_targets:
+            if acct not in resolved and acct in extra_feature_resolutions:
+                resolved[acct] = extra_feature_resolutions[acct]
+                counts["p2a_extra_feature"] += 1
+
+    for hcad in ordered_targets:
+        if hcad in resolved:
+            continue
+        best_yr = 0
+        best_rel = ""
+        for rel in tiebacks.get(hcad, ()):
+            ryr = dated_parcel_year.get(rel, 0)
+            if MIN_VALID_YEAR <= ryr <= eff_max and (best_yr == 0 or ryr < best_yr):
+                best_yr = ryr
+                best_rel = rel
+        if best_yr >= MIN_VALID_YEAR:
+            resolved[hcad] = {
+                "year_built": best_yr,
+                "year_source": "hcad_tieback",
+                "landmark_name": "",
+                "bld_style": "",
+                "notes": f"Linked to HCAD master/related account {best_rel} ({best_yr})",
+            }
+            counts["p2b_tieback"] += 1
+
+    for hcad in ordered_targets:
+        if hcad in resolved:
+            continue
+        ucoord = target_coords.get(hcad)
+        if not ucoord:
+            continue
+        meta = target_meta.get(hcad, {})
+        row_fb = rows_map.get(hcad, {})
+        norm_own = meta.get("norm_own") or normalize_owner(str(row_fb.get("owner") or ""))
+        st_num = meta.get("st_num") or ""
+        st_name = meta.get("st_name") or ""
+        if not st_name and row_fb.get("address"):
+            st_num, st_name = normalize_street(str(row_fb.get("address") or ""))
+        cand = resolve_contiguity_candidate(
+            ucoord[0],
+            ucoord[1],
+            norm_own,
+            st_num,
+            st_name,
+            addr_to_dated=addr_to_dated,
+            owner_to_dated=owner_to_dated,
+            exclude_acct=hcad,
+        )
+        if cand is not None:
+            resolved[hcad] = cand
+            if cand["year_source"] == "campus_contiguity":
+                counts["p3a_campus_contiguity"] += 1
+            else:
+                counts["p2c_adjacent_owner"] += 1
+
+    for hcad in ordered_targets:
+        if hcad in resolved:
+            continue
+        plist = permit_years.get(hcad)
+        if plist:
+            valid_p = sorted((pyr, d) for pyr, d in plist if MIN_VALID_YEAR <= pyr <= eff_max)
+            if valid_p:
+                best_yr, p_dscr = valid_p[0]
+                resolved[hcad] = {
+                    "year_built": best_yr,
+                    "year_source": "hcad_permit",
+                    "landmark_name": "",
+                    "bld_style": "",
+                    "notes": f"HCAD Building Permit ({best_yr}): {p_dscr[:60]}",
+                }
+                counts["p2d_permit"] += 1
+
+    if thc_markers_path is not None and thc_markers_path.exists():
+        thc_feats = orjson.loads(thc_markers_path.read_bytes())
+        thc_pts: list[tuple[float, float]] = []
+        thc_info: list[tuple[int, str]] = []
+        for tf in thc_feats:
+            g = tf.get("geometry") or {}
+            coords = g.get("coordinates")
+            p = tf.get("properties") or {}
+            if not coords or len(coords) < 2:
+                continue
+            txt = f"{p.get('title', '')} {p.get('text', '')}"
+            yr = extract_plausible_text_year(txt, min_year=MIN_VALID_YEAR, max_year=1980)
+            if MIN_VALID_YEAR <= yr <= 1980:
+                thc_pts.append((float(coords[0]), float(coords[1])))
+                thc_info.append((yr, str(p.get("title") or "").strip()))
+        if thc_pts:
+            thc_geoms = shapely.points([p[0] * 0.868 for p in thc_pts], [p[1] for p in thc_pts])
+            thc_tree = STRtree(thc_geoms)
+            for hcad in ordered_targets:
+                if hcad in resolved:
+                    continue
+                row_fb = rows_map.get(hcad, {})
+                if not str(row_fb.get("strategy_tier") or "").startswith("Tier 2"):
+                    continue
+                ucoord = target_coords.get(hcad)
+                if not ucoord:
+                    continue
+                q_pt = shapely.points(ucoord[0] * 0.868, ucoord[1])
+                idx_arr, dist_arr = thc_tree.query_nearest(q_pt, return_distance=True)
+                if len(idx_arr) > 0 and float(dist_arr[0]) * 110540.0 <= 120.0:
+                    yr, title = thc_info[int(idx_arr[0])]
+                    resolved[hcad] = {
+                        "year_built": yr,
+                        "year_source": "campus_contiguity",
+                        "landmark_name": title if not row_fb.get("landmark_name") else row_fb["landmark_name"],
+                        "bld_style": "",
+                        "notes": f"Matched Texas Historical Commission Marker '{title}' ({yr})",
+                    }
+                    counts["p3b_thc_marker"] += 1
+
+    dated_pts_tree = None
+    dated_years_arr = None
+    if use_nearest_dated_tree and dated_parcel_coord:
+        dated_xs: list[float] = []
+        dated_ys: list[float] = []
+        dated_years_list: list[int] = []
+        for acct, (dlon, dlat) in dated_parcel_coord.items():
+            dyr = dated_parcel_year.get(acct, 0)
+            if MIN_VALID_YEAR <= dyr <= eff_max:
+                dated_xs.append(dlon * 0.868)
+                dated_ys.append(dlat)
+                dated_years_list.append(dyr)
+        if dated_xs:
+            dated_pts_tree = STRtree(
+                shapely.points(np.array(dated_xs, dtype=np.float64), np.array(dated_ys, dtype=np.float64))
+            )
+            dated_years_arr = np.array(dated_years_list, dtype=np.int32)
+
+    for hcad in ordered_targets:
+        if hcad in resolved:
+            continue
+        meta = target_meta.get(hcad, {})
+        row_fb = rows_map.get(hcad, {})
+        ucoord = target_coords.get(hcad)
+        st_key = (meta.get("zip_cd", ""), meta.get("st_name", ""))
+        local_era = (
+            street_median.get(st_key)
+            or subdiv_median.get(meta.get("lgl2", ""))
+            or nbhd_median.get(meta.get("nbhd", ""))
+        )
+        nn_median = 0
+        if ucoord:
+            gx, gy = int(round(ucoord[0] * 250.0)), int(round(ucoord[1] * 250.0))
+            cell_yrs: list[int] = []
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    cell_yrs.extend(grid_buckets.get((gx + dx, gy + dy), ()))
+            if cell_yrs:
+                nn_median = int(round(float(np.median(cell_yrs))))
+            elif dated_pts_tree is not None and dated_years_arr is not None:
+                q_pt = shapely.points(ucoord[0] * 0.868, ucoord[1])
+                idx_arr = dated_pts_tree.query_nearest(q_pt)
+                if len(idx_arr) > 0:
+                    nn_median = int(dated_years_arr[int(idx_arr[0])])
+
+        st_cls = str(meta.get("st_cls") or row_fb.get("state_class") or "").strip()
+        fb_res = resolve_permit_deed_spatial_fallback(
+            earliest_deed_year=deed_earliest.get(hcad, 0),
+            state_class=st_cls,
+            local_era=int(local_era or 0),
+            nn_median=int(nn_median or 0),
+            market_median=int(mkt_median.get(meta.get("mkt", "")) or 0),
+            max_year=eff_max,
+        )
+        resolved[hcad] = fb_res
+        if fb_res["year_source"] == "hcad_deed":
+            counts["p4_deed"] += 1
+        elif fb_res["year_source"] == "subdivision_median":
+            counts["p4_subdivision_median"] += 1
+        else:
+            counts["p4_blockface_median"] += 1
+
+    return resolved, counts
+
+
+def run_resolve_undated(
+    *,
+    cache_dir: Path | None = None,
+    data_dir: Path | None = None,
+    tax_year: int | None = None,
+) -> None:
     t0 = time.time()
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if tax_year is None else int(tax_year)
     repo_dir = Path(__file__).resolve().parents[2]
-    cache_dir = repo_dir / "pipeline" / "cache"
-    data_dir = repo_dir / "app" / "public" / "data"
+    cache_dir = cache_dir or (repo_dir / "pipeline" / "cache")
+    data_dir = data_dir or (repo_dir / "app" / "public" / "data")
     aligned_dir = cache_dir / "aligned_ndjson"
 
     # 1. Load undated inventory (18,303 parcels)
     inv_path = cache_dir / "undated_buildings_inventory.csv"
-    with open(inv_path, "r", encoding="utf-8") as f:
-        inv_rows = list(csv.DictReader(f))
+    inv_rows: list[dict[str, Any]] = []
+    if inv_path.exists():
+        with open(inv_path, "r", encoding="utf-8") as f:
+            inv_rows = list(csv.DictReader(f))
     undated_by_hcad: dict[str, dict[str, Any]] = {r["hcad_num"].strip(): r for r in inv_rows}
     print(f"-> Loaded {len(undated_by_hcad):,} undated HCAD parcels from {inv_path.name}.")
 
     # 2. Load CAMA compact lookup
-    with open(cache_dir / "cama_2026_compact.pkl", "rb") as f:
-        cama_lookup: dict[str, tuple[int, int, int, str, str, str]] = pickle.load(f)
+    cama_lookup = load_compact_cama_lookup(cache_dir, tax_year=eff_max) or {}
     print(f"-> Loaded {len(cama_lookup):,} CAMA accounts.")
 
     # 2b. Scan aligned_ndjson shards upfront to seed authoritative donors AND augment undated_by_hcad
@@ -1515,11 +2094,14 @@ def run_resolve_undated() -> None:
                     src,
                     bld_ar,
                     has_curated_override=(hcad in curated_donor_hcads),
+                    max_year=eff_max,
                 ):
                     if hcad not in dated_parcel_year or yr < dated_parcel_year[hcad]:
                         dated_parcel_year[hcad] = yr
                         dated_parcel_coord[hcad] = (pt_lon, pt_lat)
-                elif (yr < MIN_VALID_YEAR or (src in INFERRED_FALLBACK_YEAR_SOURCES and hcad not in curated_donor_hcads)):
+                elif yr < MIN_VALID_YEAR or (
+                    src in INFERRED_FALLBACK_YEAR_SOURCES and hcad not in curated_donor_hcads
+                ):
                     if hcad not in undated_by_hcad and hcad not in dynamic_undated_candidates:
                         use_cat = str(props.get("use_category") or "")
                         st_cls_val = str(cama_row[3] if cama_row is not None else "")
@@ -1540,6 +2122,7 @@ def run_resolve_undated() -> None:
             "hcad_cama",
             float(cval[2] or 0.0),
             has_curated_override=(hcad in curated_donor_hcads),
+            max_year=eff_max,
         ):
             dated_parcel_year[hcad] = int(cval[0])
 
@@ -1552,12 +2135,9 @@ def run_resolve_undated() -> None:
     if added_dyn_targets:
         print(f"   Augmented undated target set with {added_dyn_targets:,} shard parcels outside {inv_path.name}.")
 
-    # Track resolved parcels: hcad_num -> {year_built, year_source, landmark_name, bld_style, notes}
     resolved: dict[str, dict[str, Any]] = {}
 
-    # ========================================================================
-    # PHASE 1: Curated Landmarks, Historic Districts & Top Urban/Industrial Icons
-    # ========================================================================
+    # PHASE 1: Curated Landmarks & City Directory Audit matches
     for hcad, (yr, lm_name, style, notes) in PHASE1_CURATED_LANDMARKS.items():
         if hcad in undated_by_hcad:
             resolved[hcad] = {
@@ -1568,7 +2148,6 @@ def run_resolve_undated() -> None:
                 "notes": notes,
             }
 
-    # Also check cached City Directory Audit matches (1866-1926) for any undated parcel
     citydir_csv = cache_dir / "city_directory_audit_candidates.csv"
     if citydir_csv.exists():
         with open(citydir_csv, "r", encoding="utf-8") as f:
@@ -1585,527 +2164,78 @@ def run_resolve_undated() -> None:
                             "notes": f"Verified in {yr_str} Houston City Directory ({row.get('matched_query', '')}).",
                         }
 
-    # Also check cached OpenStreetMap & Wikidata building dates
-    for osm_fn in ("osm_core_footprints.json", "overpass_uh_and_dated.json", "overpass_zoo_ust_tmc.json"):
-        p = cache_dir / osm_fn
-        if not p.exists():
-            continue
-        try:
-            data = orjson.loads(p.read_bytes())
-            feats = data if isinstance(data, list) else data.get("features") or data.get("elements") or []
-            for el in feats:
-                props = el.get("properties") or el.get("tags") or {}
-                sd = str(props.get("start_date") or props.get("year_built") or "")
-                m = re.search(r"\b(18[3-9]\d|19\d\d|20[0-2]\d)\b", sd)
-                if not m:
-                    continue
-        except Exception:
-            pass
-
     print(f"   [Phase 1] Resolved {len(resolved):,} curated landmark, campus & industrial parcels.")
 
-    # ========================================================================
-    # PHASE 2A: HCAD Extra Features Tables (extra_features_detail1/2 & extra_features)
-    # ========================================================================
     t_p2 = time.time()
-    xf_candidates: dict[str, list[tuple[int, int, str]]] = defaultdict(list)
-    year_regex = re.compile(r"\b(18[4-9]\d|19\d\d|20[0-2]\d)\b")
+    target_set = set(undated_by_hcad.keys())
+    xf_resolved = stream_extra_feature_years(
+        cache_dir / "Real_building_land.zip",
+        target_set,
+        exclude_accts=set(resolved.keys()),
+        max_year=eff_max,
+    )
+    resolved.update(xf_resolved)
+    print(f"   [Phase 2A] Resolved {len(xf_resolved):,} parcels via HCAD extra_features_detail1/2 ({time.time() - t_p2:.1f}s).")
 
-    with zipfile.ZipFile(cache_dir / "Real_building_land.zip", "r") as zf:
-        for fn in ("extra_features_detail1.txt", "extra_features_detail2.txt"):
-            if fn not in zf.namelist():
-                continue
-            with zf.open(fn, "r") as raw_f:
-                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
-                col = {name: i for i, name in enumerate(header)}
-                i_acct = col.get("acct", 0)
-                i_dscr = col.get("dscr", 2)
-                i_act = col.get("act_yr", 12)
-                i_eff = col.get("eff_yr", 13)
-                i_roll = col.get("roll_yr", 14)
-                i_note = col.get("note", 18)
-
-                for line in text_f:
-                    parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_eff:
-                        continue
-                    acct = parts[i_acct].strip()
-                    if acct not in undated_by_hcad or acct in resolved:
-                        continue
-                    dscr = parts[i_dscr].strip()
-                    dscr_up = dscr.upper()
-                    is_struct = 0 if any(k in dscr_up for k in STRUCTURAL_FEATURE_KEYWORDS) else 1
-
-                    yr = 0
-                    for idx in (i_act, i_eff, i_roll):
-                        if len(parts) > idx:
-                            y_val = normalize_year(parts[idx])
-                            if 1836 <= y_val <= 2026:
-                                yr = y_val
-                                break
-                    if yr == 0 and len(parts) > i_note:
-                        m = year_regex.search(parts[i_note])
-                        if m:
-                            yr = int(m.group(1))
-                    if 1836 <= yr <= 2026:
-                        xf_candidates[acct].append((is_struct, yr, dscr))
-
-        if "extra_features.txt" in zf.namelist():
-            with zf.open("extra_features.txt", "r") as raw_f:
-                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
-                col = {name: i for i, name in enumerate(header)}
-                i_acct = col.get("acct", 0)
-                i_ldscr = col.get("l_dscr", 6)
-                i_note = col.get("note", 9)
-                for line in text_f:
-                    parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_note:
-                        continue
-                    acct = parts[i_acct].strip()
-                    if acct not in undated_by_hcad or acct in resolved or acct in xf_candidates:
-                        continue
-                    m = year_regex.search(parts[i_note])
-                    if m:
-                        yr = int(m.group(1))
-                        if 1836 <= yr <= 2026:
-                            dscr = parts[i_ldscr].strip()
-                            xf_candidates[acct].append((0, yr, dscr))
-
-    p2a_count = 0
-    for acct, cands in xf_candidates.items():
-        if acct in resolved:
-            continue
-        cands.sort(key=lambda x: (x[0], x[1]))
-        _, best_yr, best_dscr = cands[0]
-        resolved[acct] = {
-            "year_built": best_yr,
-            "year_source": "hcad_extra_feature",
-            "landmark_name": "",
-            "bld_style": best_dscr if best_dscr and "GROSS VALUE" not in best_dscr.upper() else "",
-            "notes": f"HCAD Extra Feature record: {best_dscr} ({best_yr})",
-        }
-        p2a_count += 1
-
-    print(f"   [Phase 2A] Resolved {p2a_count:,} parcels via HCAD extra_features_detail1/2 ({time.time() - t_p2:.1f}s).")
-
-    # ========================================================================
-    # PHASE 2B: HCAD Parcel Tieback + Seed Phase 1 Authoritative Donors
-    # ========================================================================
-    t_p2b = time.time()
-    tiebacks: dict[str, list[str]] = defaultdict(list)
-
+    # Seed Phase 1 + Phase 2A authoritative donors before building fallback context
     for hcad, rinfo in resolved.items():
         if rinfo.get("year_source") not in INFERRED_FALLBACK_YEAR_SOURCES:
-            dated_parcel_year[hcad] = rinfo["year_built"]
+            dated_parcel_year[hcad] = int(rinfo["year_built"])
             if hcad in undated_parcel_coord:
                 dated_parcel_coord[hcad] = undated_parcel_coord[hcad]
 
-    with zipfile.ZipFile(cache_dir / "Real_acct_owner.zip", "r") as zf:
-        if "parcel_tieback.txt" in zf.namelist():
-            with zf.open("parcel_tieback.txt", "r") as raw_f:
-                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
-                col = {name: i for i, name in enumerate(header)}
-                i_acct = col.get("acct", 0)
-                i_rel = col.get("related_acct", 3)
-                for line in text_f:
-                    parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_rel:
-                        continue
-                    a = parts[i_acct].strip()
-                    b = parts[i_rel].strip()
-                    if a and b:
-                        tiebacks[a].append(b)
-                        tiebacks[b].append(a)
-
-    p2b_count = 0
-    for hcad in undated_by_hcad:
-        if hcad in resolved:
-            continue
-        rels = tiebacks.get(hcad, ())
-        best_yr = 0
-        best_rel = ""
-        for rel in rels:
-            ryr = dated_parcel_year.get(rel, 0)
-            if ryr >= 1836 and (best_yr == 0 or ryr < best_yr):
-                best_yr = ryr
-                best_rel = rel
-        if best_yr >= 1836:
-            resolved[hcad] = {
-                "year_built": best_yr,
-                "year_source": "hcad_tieback",
-                "landmark_name": "",
-                "bld_style": "",
-                "notes": f"Linked to HCAD master/related account {best_rel} ({best_yr})",
-            }
-            p2b_count += 1
-
-    print(f"   [Phase 2B] Resolved {p2b_count:,} parcels via HCAD parcel_tieback.txt ({time.time() - t_p2b:.1f}s).")
-
-    # ========================================================================
-    # PHASE 2C & PHASE 3: Parse real_acct.txt for Owner, Street Address,
-    #                     Neighborhood Code, Subdivision & Market Area
-    # ========================================================================
-    t_acct = time.time()
-    print("-> Parsing real_acct.txt for owner, street address, subdivision, and neighborhood metadata...")
-
-    # Group dated accounts by normalized owner, exact address, street name, subdivision, neighborhood
-    owner_to_dated: dict[str, list[tuple[int, float, float, str]]] = defaultdict(list)
-    addr_to_dated: dict[tuple[str, str], list[tuple[int, float, float, str]]] = defaultdict(list)
-    street_to_dated_years: dict[tuple[str, str], list[int]] = defaultdict(list)
-    subdiv_to_dated_years: dict[str, list[int]] = defaultdict(list)
-    nbhd_to_dated_years: dict[str, list[int]] = defaultdict(list)
-    mkt_to_dated_years: dict[str, list[int]] = defaultdict(list)
-
-    undated_meta: dict[str, dict[str, str]] = {}
-
-    with zipfile.ZipFile(cache_dir / "Real_acct_owner.zip", "r") as zf:
-        with zf.open("real_acct.txt", "r") as raw_f:
-            text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-            header = text_f.readline().rstrip("\r\n").split("\t")
-            col = {name: i for i, name in enumerate(header)}
-            i_acct = col.get("acct", 0)
-            i_mailto = col.get("mailto", 2)
-            i_addr1 = col.get("site_addr_1", 17)
-            i_zip = col.get("site_addr_3", 19)
-            i_nbhd = col.get("Neighborhood_Code", 24)
-            i_mkt = col.get("Market_Area_1", 26)
-            i_splt = col.get("splt_dt", 35)
-            i_new_own = col.get("new_own_dt", 64)
-            i_lgl1 = col.get("lgl_1", 65)
-            i_lgl2 = col.get("lgl_2", 66)
-
-            for line in text_f:
-                parts = line.rstrip("\r\n").split("\t")
-                if len(parts) <= i_lgl2:
-                    continue
-                acct = parts[i_acct].strip()
-                if not acct:
-                    continue
-                owner_raw = parts[i_mailto].strip()
-                addr1 = parts[i_addr1].strip()
-                zip_cd = parts[i_zip].strip()[:5]
-                nbhd = parts[i_nbhd].strip()
-                mkt = parts[i_mkt].strip()
-                lgl2 = parts[i_lgl2].strip()
-                norm_own = normalize_owner(owner_raw)
-                st_num, st_name = normalize_street(addr1)
-
-                if acct in undated_by_hcad:
-                    undated_meta[acct] = {
-                        "owner_raw": owner_raw,
-                        "norm_own": norm_own,
-                        "addr1": addr1,
-                        "st_num": st_num,
-                        "st_name": st_name,
-                        "zip_cd": zip_cd,
-                        "nbhd": nbhd,
-                        "mkt": mkt,
-                        "lgl2": lgl2,
-                        "splt_dt": parts[i_splt].strip(),
-                        "new_own_dt": parts[i_new_own].strip(),
-                    }
-
-                yr = dated_parcel_year.get(acct, 0)
-                if yr >= 1836:
-                    coord = dated_parcel_coord.get(acct)
-                    if coord:
-                        lon, lat = coord
-                        if norm_own and norm_own not in GENERIC_OWNERS:
-                            owner_to_dated[norm_own].append((yr, lon, lat, acct))
-                        if st_num and st_name:
-                            addr_to_dated[(st_num, st_name)].append((yr, lon, lat, acct))
-                    if st_name and zip_cd:
-                        street_to_dated_years[(zip_cd, st_name)].append(yr)
-                    if lgl2 and len(lgl2) >= 4:
-                        subdiv_to_dated_years[lgl2].append(yr)
-                    if nbhd:
-                        nbhd_to_dated_years[nbhd].append(yr)
-                    if mkt:
-                        mkt_to_dated_years[mkt].append(yr)
-
-    print(f"   Parsed real_acct.txt metadata in {time.time() - t_acct:.1f}s.")
-
-    # Phase 2C & 3A: Spatial Same-Address (<= 400m), Same-Owner (<= 250m), and Campus Contiguity (<= 350m, >= 1945)
-    p2c_count = 0
-    p3_campus_count = 0
-    for hcad, r in undated_by_hcad.items():
-        if hcad in resolved:
-            continue
-        meta = undated_meta.get(hcad, {})
-        norm_own = meta.get("norm_own") or normalize_owner(str(r.get("owner") or ""))
-        st_num, st_name = normalize_street(meta.get("addr1") or str(r.get("address") or ""))
-        ucoord = undated_parcel_coord.get(hcad)
-        if not ucoord:
-            continue
-        cand = resolve_contiguity_candidate(
-            ucoord[0],
-            ucoord[1],
-            norm_own,
-            st_num,
-            st_name,
-            addr_to_dated=addr_to_dated,
-            owner_to_dated=owner_to_dated,
-            exclude_acct=hcad,
-        )
-        if cand is not None:
-            resolved[hcad] = cand
-            if cand["year_source"] == "campus_contiguity":
-                p3_campus_count += 1
-            else:
-                p2c_count += 1
-
-    print(
-        f"   [Phase 2C & 3A] Resolved {p2c_count:,} adjacent same-owner/same-address parcels and {p3_campus_count:,} contiguous institutional campus parcels."
+    t_fb = time.time()
+    fallback_ctx = build_undated_fallback_context(
+        cache_dir / "Real_acct_owner.zip",
+        target_set,
+        dated_parcel_year,
+        dated_parcel_coord,
+        max_year=eff_max,
     )
-
-    # ========================================================================
-    # PHASE 2D: HCAD Building Permits (permits.txt)
-    # ========================================================================
-    t_perm = time.time()
-    permit_years: dict[str, list[tuple[int, str]]] = defaultdict(list)
-    with zipfile.ZipFile(cache_dir / "Real_acct_owner.zip", "r") as zf:
-        if "permits.txt" in zf.namelist():
-            with zf.open("permits.txt", "r") as raw_f:
-                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
-                col = {name: i for i, name in enumerate(header)}
-                i_acct = col.get("acct", 0)
-                i_dscr = col.get("dscr", 4)
-                i_tp_dscr = col.get("permit_tp_descr", 7)
-                i_dt = col.get("issue_date", 9)
-                i_yr = col.get("yr", 10)
-
-                for line in text_f:
-                    parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_dt:
-                        continue
-                    acct = parts[i_acct].strip()
-                    if acct not in undated_by_hcad or acct in resolved:
-                        continue
-                    # Reject SQL/OLE null-date sentinels (e.g. 12/30/1899 on 30,253 permit rows)
-                    # without falling back to permits.txt yr, which records appraisal roll cycle year.
-                    dt_str = parts[i_dt].strip()
-                    tax_yr_str = parts[i_yr].strip() if len(parts) > i_yr else None
-                    yr = parse_hcad_date_year(dt_str, tax_yr_str, allow_fallback=False)
-                    if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
-                        tp_d = parts[i_tp_dscr].strip() if len(parts) > i_tp_dscr else ""
-                        dscr = parts[i_dscr].strip() if len(parts) > i_dscr else ""
-                        permit_years[acct].append((yr, tp_d or dscr))
-
-    p2d_count = 0
-    for acct, plist in permit_years.items():
-        if acct in resolved:
-            continue
-        plist.sort(key=lambda x: x[0])
-        best_yr, p_dscr = plist[0]
-        resolved[acct] = {
-            "year_built": best_yr,
-            "year_source": "hcad_permit",
-            "landmark_name": "",
-            "bld_style": "",
-            "notes": f"HCAD Building Permit ({best_yr}): {p_dscr[:60]}",
-        }
-        p2d_count += 1
-
-    print(f"   [Phase 2D] Resolved {p2d_count:,} parcels via HCAD permits.txt ({time.time() - t_perm:.1f}s).")
-
-    # ========================================================================
-    # PHASE 3B: Texas Historical Commission Markers & ISD/Church/Civic Name Date Extraction
-    # ========================================================================
-    thc_path = cache_dir / "thc_markers_harris.json"
-    p3b_count = 0
-    if thc_path.exists():
-        thc_feats = orjson.loads(thc_path.read_bytes())
-        thc_pts = []
-        thc_info = []
-        for tf in thc_feats:
-            g = tf.get("geometry") or {}
-            coords = g.get("coordinates")
-            p = tf.get("properties") or {}
-            if not coords or len(coords) < 2:
-                continue
-            txt = f"{p.get('title', '')} {p.get('text', '')}"
-            m = year_regex.search(txt)
-            if m:
-                yr = int(m.group(1))
-                if 1836 <= yr <= 1980:
-                    thc_pts.append((float(coords[0]), float(coords[1])))
-                    thc_info.append((yr, str(p.get("title") or "").strip()))
-        if thc_pts:
-            thc_geoms = shapely.points([p[0] * 0.868 for p in thc_pts], [p[1] for p in thc_pts])
-            thc_tree = STRtree(thc_geoms)
-            for hcad, r in undated_by_hcad.items():
-                if hcad in resolved:
-                    continue
-                if not str(r.get("strategy_tier") or "").startswith("Tier 2"):
-                    continue
-                ucoord = undated_parcel_coord.get(hcad)
-                if not ucoord:
-                    continue
-                q_pt = shapely.points(ucoord[0] * 0.868, ucoord[1])
-                idx_arr, dist_arr = thc_tree.query_nearest(q_pt, return_distance=True)
-                if len(idx_arr) > 0 and float(dist_arr[0]) * 110540.0 <= 120.0:
-                    yr, title = thc_info[int(idx_arr[0])]
-                    resolved[hcad] = {
-                        "year_built": yr,
-                        "year_source": "campus_contiguity",
-                        "landmark_name": title if not r.get("landmark_name") else r["landmark_name"],
-                        "bld_style": "",
-                        "notes": f"Matched Texas Historical Commission Marker '{title}' ({yr})",
-                    }
-                    p3b_count += 1
-
-    print(f"   [Phase 3B] Resolved {p3b_count:,} institutional parcels via THC Historical Markers.")
-
-    # ========================================================================
-    # PHASE 4: HCAD Historical Deeds + Subdivision / Street / Block-Face Spatial Median
-    # ========================================================================
-    t_p4 = time.time()
-    deed_earliest: dict[str, int] = {}
-    with zipfile.ZipFile(cache_dir / "Real_acct_owner.zip", "r") as zf:
-        if "deeds.txt" in zf.namelist():
-            with zf.open("deeds.txt", "r") as raw_f:
-                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
-                col = {name: i for i, name in enumerate(header)}
-                i_acct = col.get("acct", 0)
-                i_dos = col.get("dos", 1)
-                i_cyr = col.get("clerk_yr", 2)
-                for line in text_f:
-                    parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_dos:
-                        continue
-                    acct = parts[i_acct].strip()
-                    if acct not in undated_by_hcad or acct in resolved:
-                        continue
-                    dos = parts[i_dos].strip()
-                    cyr_str = parts[i_cyr].strip() if len(parts) > i_cyr else None
-                    yr = parse_hcad_date_year(dos, cyr_str, allow_fallback=True)
-                    if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
-                        if acct not in deed_earliest or yr < deed_earliest[acct]:
-                            deed_earliest[acct] = yr
-
-    # Also check splt_dt and new_own_dt from real_acct.txt (rejecting SQL/OLE null-date sentinels)
-    for acct, meta in undated_meta.items():
-        if acct in resolved:
-            continue
-        for dt_field in ("splt_dt", "new_own_dt"):
-            val = meta.get(dt_field, "")
-            yr = parse_hcad_date_year(val, allow_fallback=False)
-            if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
-                if acct not in deed_earliest or yr < deed_earliest[acct]:
-                    deed_earliest[acct] = yr
-
-    # Precompute median years for (zip_cd, st_name), lgl2 subdivision, Neighborhood_Code, and Market_Area_1
-    street_median: dict[tuple[str, str], int] = {
-        k: int(round(float(np.median(v)))) for k, v in street_to_dated_years.items() if len(v) >= 2
-    }
-    subdiv_median: dict[str, int] = {
-        k: int(round(float(np.median(v)))) for k, v in subdiv_to_dated_years.items() if len(v) >= 3
-    }
-    nbhd_median: dict[str, int] = {
-        k: int(round(float(np.median(v)))) for k, v in nbhd_to_dated_years.items() if len(v) >= 3
-    }
-    mkt_median: dict[str, int] = {
-        k: int(round(float(np.median(v)))) for k, v in mkt_to_dated_years.items() if len(v) >= 5
-    }
-
-    # Build a fast spatial grid + STRtree over all ~1.47M dated parcels for nearest block-face structure median!
-    grid_buckets: dict[tuple[int, int], list[int]] = defaultdict(list)
-    dated_xs = []
-    dated_ys = []
-    dated_years_list = []
-    for acct, (dlon, dlat) in dated_parcel_coord.items():
-        dyr = dated_parcel_year.get(acct, 0)
-        if 1836 <= dyr <= 2026:
-            gx = int(round(dlon * 250.0))  # ~400m cells
-            gy = int(round(dlat * 250.0))
-            grid_buckets[(gx, gy)].append(dyr)
-            dated_xs.append(dlon * 0.868)
-            dated_ys.append(dlat)
-            dated_years_list.append(dyr)
-
-    dated_pts_tree = STRtree(shapely.points(np.array(dated_xs, dtype=np.float64), np.array(dated_ys, dtype=np.float64)))
-    dated_years_arr = np.array(dated_years_list, dtype=np.int32)
-
-    p4_deed_count = 0
-    p4_subdiv_count = 0
-    p4_blockface_count = 0
-
-    for hcad, r in undated_by_hcad.items():
-        if hcad in resolved:
-            continue
-        meta = undated_meta.get(hcad, {})
-        ucoord = undated_parcel_coord.get(hcad)
-
-        # Compute local neighborhood / subdivision / street era
-        st_key = (meta.get("zip_cd", ""), meta.get("st_name", ""))
-        local_era = (
-            street_median.get(st_key)
-            or subdiv_median.get(meta.get("lgl2", ""))
-            or nbhd_median.get(meta.get("nbhd", ""))
-        )
-
-        nn_median = 0
-        if ucoord:
-            gx = int(round(ucoord[0] * 250.0))
-            gy = int(round(ucoord[1] * 250.0))
-            cell_yrs: list[int] = []
-            for dx in (-1, 0, 1):
-                for dy in (-1, 0, 1):
-                    cell_yrs.extend(grid_buckets.get((gx + dx, gy + dy), ()))
-            if cell_yrs:
-                nn_median = int(round(float(np.median(cell_yrs))))
-            else:
-                q_pt = shapely.points(ucoord[0] * 0.868, ucoord[1])
-                idx_arr = dated_pts_tree.query_nearest(q_pt)
-                if len(idx_arr) > 0:
-                    nn_median = int(dated_years_arr[int(idx_arr[0])])
-
-        deed_yr = deed_earliest.get(hcad, 0)
-        st_cls = (r.get("state_class") or "").strip()
-        fb_res = resolve_permit_deed_spatial_fallback(
-            earliest_deed_year=deed_yr,
-            state_class=st_cls,
-            local_era=int(local_era or 0),
-            nn_median=int(nn_median or 0),
-            market_median=int(mkt_median.get(meta.get("mkt", "")) or 0),
-        )
-        resolved[hcad] = fb_res
-        if fb_res["year_source"] == "hcad_deed":
-            p4_deed_count += 1
-        elif fb_res["year_source"] == "subdivision_median":
-            p4_subdiv_count += 1
-        else:
-            p4_blockface_count += 1
-
-    print(
-        f"   [Phase 4] Resolved {p4_deed_count:,} via HCAD Deeds, {p4_subdiv_count:,} via Subdivision/Street Median, and {p4_blockface_count:,} via Block-Face k-NN Median ({time.time() - t_p4:.1f}s)."
+    resolved, phase_counts = resolve_undated_feature_batch(
+        target_set,
+        undated_parcel_coord,
+        dated_parcel_year,
+        fallback_ctx,
+        pre_resolved=resolved,
+        target_rows=undated_by_hcad,
+        thc_markers_path=cache_dir / "thc_markers_harris.json",
+        use_nearest_dated_tree=True,
+        dated_parcel_coord=dated_parcel_coord,
+        max_year=eff_max,
     )
-    print(f"-> Total Undated Parcels Resolved: {len(resolved):,} / {len(undated_by_hcad):,} (100.0%)!")
+    print(
+        f"   [Phases 2B-4] tieback={phase_counts['p2b_tieback']:,}, adjacent={phase_counts['p2c_adjacent_owner']:,}, "
+        f"campus={phase_counts['p3a_campus_contiguity']:,}, permit={phase_counts['p2d_permit']:,}, "
+        f"thc={phase_counts['p3b_thc_marker']:,}, deed={phase_counts['p4_deed']:,}, "
+        f"subdiv={phase_counts['p4_subdivision_median']:,}, blockface={phase_counts['p4_blockface_median']:,} "
+        f"({time.time() - t_fb:.1f}s)."
+    )
+    print(f"-> Total Undated Parcels Resolved: {len(resolved):,} / {max(1, len(undated_by_hcad)):,} (100.0%)!")
 
-    # ========================================================================
-    # Export Resolved Audit CSV
-    # ========================================================================
-    report_csv = cache_dir / "undated_buildings_resolved_report.csv"
-    with open(report_csv, "w", newline="", encoding="utf-8") as f:
-        fieldnames = list(inv_rows[0].keys()) + ["resolved_year_built", "year_source", "resolved_landmark_name", "resolved_bld_style", "resolution_notes"]
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for r in inv_rows:
-            hcad = r["hcad_num"].strip()
-            info = resolved.get(hcad, {})
-            row_out = dict(r)
-            row_out["resolved_year_built"] = info.get("year_built", 0)
-            row_out["year_source"] = info.get("year_source", "")
-            row_out["resolved_landmark_name"] = info.get("landmark_name", "")
-            row_out["resolved_bld_style"] = info.get("bld_style", "")
-            row_out["resolution_notes"] = info.get("notes", "")
-            writer.writerow(row_out)
-    print(f"-> Wrote parcel-by-parcel resolution audit to {report_csv.name}.")
+    if inv_rows:
+        report_csv = cache_dir / "undated_buildings_resolved_report.csv"
+        with open(report_csv, "w", newline="", encoding="utf-8") as f:
+            fieldnames = list(inv_rows[0].keys()) + [
+                "resolved_year_built",
+                "year_source",
+                "resolved_landmark_name",
+                "resolved_bld_style",
+                "resolution_notes",
+            ]
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for r in inv_rows:
+                hcad = r["hcad_num"].strip()
+                info = resolved.get(hcad, {})
+                row_out = dict(r)
+                row_out["resolved_year_built"] = info.get("year_built", 0)
+                row_out["year_source"] = info.get("year_source", "")
+                row_out["resolved_landmark_name"] = info.get("landmark_name", "")
+                row_out["resolved_bld_style"] = info.get("bld_style", "")
+                row_out["resolution_notes"] = info.get("notes", "")
+                writer.writerow(row_out)
+        print(f"-> Wrote parcel-by-parcel resolution audit to {report_csv.name}.")
 
     # ========================================================================
     # Update curated_overrides.json & search_index.json with Phase 1 Landmarks
@@ -2283,7 +2413,7 @@ def run_resolve_undated() -> None:
                     source_counter[props.get("year_source") or "hcad_cama"] += 1
 
                 # Enforce terminal completeness invariant so 100.00% of footprints carry valid years
-                if not (MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR):
+                if not (MIN_VALID_YEAR <= yr <= eff_max):
                     raise ValueError(
                         f"Completeness invariant violated on {hcad} in {seq_path.name}: year_built={yr}"
                     )
@@ -2336,14 +2466,15 @@ def run_resolve_undated() -> None:
     # ========================================================================
     stats_path = data_dir / "stats_summary.json"
     existing_stats = json.loads(stats_path.read_text(encoding="utf-8")) if stats_path.exists() else {}
-    ordered_decades = {str(d): decade_counter.get(str(d), 0) for d in range(1830, 2030, 10)}
+    ordered_decades = {str(d): decade_counter.get(str(d), 0) for d in compute_decade_bins(eff_max)}
     ordered_decades["unknown"] = decade_counter.get("unknown", 0)
 
     existing_stats.update({
+        "data_tax_year": eff_max,
         "total_buildings": total_buildings,
         "dated_buildings": dated_count,
-        "earliest_year": earliest_year if earliest_year != 9999 else 1836,
-        "latest_year": latest_year if latest_year != 0 else 2026,
+        "earliest_year": earliest_year if earliest_year != 9999 else MIN_VALID_YEAR,
+        "latest_year": latest_year if latest_year != 0 else eff_max,
         "decade_counts": ordered_decades,
         "contributing_counts": dict(contrib_counter),
         "use_category_counts": dict(use_counter),

@@ -45,6 +45,8 @@ from pyproj import Transformer
 from shapely.geometry import Point, Polygon
 from shapely.strtree import STRtree
 
+from atlas_pipeline.schema import normalize_ring_6dp
+
 SPLIT_LON_EAST = -95.361328125
 SPLIT_LON_WEST = -95.537109375
 SPLIT_LAT = 29.76437738
@@ -274,16 +276,14 @@ def batch_transform_polys_2278_to_rings_4326(
     xs_arr = np.array(all_xs, dtype=np.float64)
     ys_arr = np.array(all_ys, dtype=np.float64)
     lons_arr, lats_arr = transformer_to_4326.transform(xs_arr, ys_arr)
-    lons_r = np.round(lons_arr, 7).tolist()
-    lats_r = np.round(lats_arr, 7).tolist()
+    lons_l = lons_arr.tolist()
+    lats_l = lats_arr.tolist()
 
     rings: list[list[list[float]]] = []
     offset = 0
     for n in lengths:
-        ring = [[lons_r[i], lats_r[i]] for i in range(offset, offset + n)]
-        if ring and ring[0] != ring[-1]:
-            ring.append(list(ring[0]))
-        rings.append(ring)
+        raw_ring = [[lons_l[i], lats_l[i]] for i in range(offset, offset + n)]
+        rings.append(normalize_ring_6dp(raw_ring, ccw=True))
         offset += n
     return rings
 
@@ -535,12 +535,14 @@ def run_fix_polygon_orientations() -> None:
     repaired_rings_list = batch_transform_polys_2278_to_rings_4326(
         repaired_polys_2278, transformer_to_4326
     )
-    repaired_ring_by_hcad: dict[str, list[list[float]]] = dict(
-        zip(repaired_hcads, repaired_rings_list)
-    )
-    repaired_poly2278_by_hcad: dict[str, Polygon] = dict(
-        zip(repaired_hcads, repaired_polys_2278)
-    )
+    repaired_ring_by_hcad: dict[str, list[list[float]]] = {
+        h_k: r_v for h_k, r_v in zip(repaired_hcads, repaired_rings_list) if r_v
+    }
+    repaired_poly2278_by_hcad: dict[str, Polygon] = {
+        h_k: p_v
+        for h_k, p_v in zip(repaired_hcads, repaired_polys_2278)
+        if h_k in repaired_ring_by_hcad
+    }
     print(
         f"   Pre-computed {len(repaired_ring_by_hcad):,} repaired footprints "
         f"({tier1_osm_cnt:,} Tier 1 OSM observed, {tier3_oriented_cnt:,} Tier 3 parcel-oriented) in {time.time() - t_rep:.1f}s."
@@ -767,8 +769,8 @@ def run_fix_polygon_orientations() -> None:
             continue
         hcad = str(rec.get("hcad_num") or k.split("#")[0]).strip()
         # For #aux_ auxiliary structures or non-HCAD keys, check parcel orientation
-        if hcad in repaired_ring_by_hcad and "#aux_" not in k:
-            new_ring = repaired_ring_by_hcad[hcad]
+        new_ring = repaired_ring_by_hcad.get(hcad)
+        if new_ring and "#aux_" not in k:
             g["coordinates"] = [new_ring]
             ov_fixed_cnt += 1
             poly_4326 = Polygon(new_ring)
@@ -792,14 +794,15 @@ def run_fix_polygon_orientations() -> None:
         if not hcad:
             addr = str(props.get("address") or "").strip().upper()
             hcad = addr_to_hcad_core.get(addr, "")
-        if hcad and hcad in repaired_ring_by_hcad:
+        new_ring_b = repaired_ring_by_hcad.get(hcad) if hcad else None
+        if new_ring_b:
             mrr_ang = hcad_to_angle.get(hcad, 0.0)
             if (
                 props.get("footprint_source") == "derived_parcel"
                 or is_step4c_syn_rect(ring)
                 or angle_diff_mod90(mrr_ang, 0.0) > 3.5
             ):
-                g["coordinates"] = [repaired_ring_by_hcad[hcad]]
+                g["coordinates"] = [new_ring_b]
                 if props.get("footprint_source") == "derived_parcel" and repaired_tier.get(hcad) == "osm_observed":
                     props["footprint_source"] = "observed"
                 blds_fixed_cnt += 1

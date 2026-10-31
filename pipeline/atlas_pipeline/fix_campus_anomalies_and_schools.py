@@ -3,29 +3,23 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-import io
 import json
 import math
-import pickle
 from pathlib import Path
 import re
 import time
 from typing import Any
-import zipfile
 
-import numpy as np
 import orjson
 import shapely
 from shapely.strtree import STRtree
 
 from atlas_pipeline.resolve_undated_countywide import (
-    GENERIC_OWNERS,
     PHASE1_CURATED_LANDMARKS,
+    build_undated_fallback_context,
     is_valid_authoritative_donor,
-    normalize_owner,
     normalize_street,
-    resolve_contiguity_candidate,
-    resolve_permit_deed_spatial_fallback,
+    resolve_undated_feature_batch,
 )
 from atlas_pipeline.schema import (
     ACTIVE_CACHE_BUST,
@@ -34,9 +28,11 @@ from atlas_pipeline.schema import (
     QUAD_NAMES,
     compile_quadrant_pmtiles,
     compute_decade,
+    compute_decade_bins,
+    load_compact_cama_lookup,
     normalize_override_record,
-    parse_hcad_date_year,
     sanitize_atlas_text,
+    update_pmtiles_manifest_v3,
     write_compact_json,
 )
 
@@ -997,9 +993,11 @@ def run_campus_and_school_fixes(
     *,
     compile_pmtiles: bool = True,
     shard_dir: Path | None = None,
+    tax_year: int | None = None,
 ) -> dict[str, Any]:
     """Execute countywide sentinel/contiguity re-resolution, campus splits, school linkage, and tile rebuild."""
     t0 = time.time()
+    eff_year = MAX_VALID_CAMA_DATE_YEAR if tax_year is None else int(tax_year)
     repo_dir = Path(__file__).resolve().parents[2]
     cache_dir = cache_dir or (repo_dir / "pipeline" / "cache")
     data_dir = data_dir or (repo_dir / "app" / "public" / "data")
@@ -1012,8 +1010,7 @@ def run_campus_and_school_fixes(
 
     print("=== Campus Chronology, Sentinel Re-Resolution & School Situs Pipeline ===")
 
-    with open(cache_dir / "cama_2026_compact.pkl", "rb") as f:
-        cama_lookup: dict[str, tuple[int, int, int, str, str, str]] = pickle.load(f)
+    cama_lookup = load_compact_cama_lookup(cache_dir, tax_year=eff_year) or {}
 
     overrides_path = data_dir / "curated_overrides.json"
     overrides_payload = json.loads(overrides_path.read_text(encoding="utf-8"))
@@ -1060,7 +1057,7 @@ def run_campus_and_school_fixes(
 
                 is_sentinel_permit_or_deed = src in ("hcad_permit", "hcad_deed") and yr <= 1901
                 is_stale_pre45_campus = src == "campus_contiguity" and yr < 1945
-                is_out_of_range = not (MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR)
+                is_out_of_range = not (MIN_VALID_YEAR <= yr <= eff_year)
 
                 if hcad and (is_sentinel_permit_or_deed or is_stale_pre45_campus or is_out_of_range):
                     if hcad not in campus_split_hcads:
@@ -1075,6 +1072,7 @@ def run_campus_and_school_fixes(
                         src,
                         bld_ar,
                         has_curated_override=(hcad in curated_donor_hcads),
+                        max_year=eff_year,
                     ):
                         if hcad not in dated_parcel_year or yr < dated_parcel_year[hcad]:
                             dated_parcel_year[hcad] = yr
@@ -1087,6 +1085,7 @@ def run_campus_and_school_fixes(
             "hcad_cama",
             float(cval[2] or 0.0),
             has_curated_override=(hcad in curated_donor_hcads),
+            max_year=eff_year,
         ):
             dated_parcel_year[hcad] = int(cval[0])
 
@@ -1095,189 +1094,24 @@ def run_campus_and_school_fixes(
         f"queued {len(re_resolve_hcads):,} non-split sentinel/stale-contiguity parcels for re-resolution."
     )
 
-    # 2. Load real_acct.txt, parcel_tieback.txt, permits.txt, and deeds.txt for clean re-resolution + school guards
-    acct_info: dict[str, tuple[str, str, str, str]] = {}  # acct -> (owner_raw, norm_own, state_class, site_addr_1)
-    re_meta: dict[str, dict[str, str]] = {}
-    owner_to_dated: dict[str, list[tuple[int, float, float, str]]] = defaultdict(list)
-    addr_to_dated: dict[tuple[str, str], list[tuple[int, float, float, str]]] = defaultdict(list)
-    street_to_dated_years: dict[tuple[str, str], list[int]] = defaultdict(list)
-    subdiv_to_dated_years: dict[str, list[int]] = defaultdict(list)
-    nbhd_to_dated_years: dict[str, list[int]] = defaultdict(list)
-    mkt_to_dated_years: dict[str, list[int]] = defaultdict(list)
-    tiebacks: dict[str, list[str]] = defaultdict(list)
-    permit_years: dict[str, list[tuple[int, str]]] = defaultdict(list)
-    deed_earliest: dict[str, int] = {}
-
+    # 2. Load real_acct.txt, parcel_tieback.txt, permits.txt, and deeds.txt via shared DRY fallback helper (DF-7)
     t_cama = time.time()
-    with zipfile.ZipFile(cache_dir / "Real_acct_owner.zip", "r") as zf:
-        if "parcel_tieback.txt" in zf.namelist():
-            with zf.open("parcel_tieback.txt", "r") as raw_f:
-                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
-                col = {name: i for i, name in enumerate(header)}
-                i_acct = col.get("acct", 0)
-                i_rel = col.get("related_acct", 3)
-                for line in text_f:
-                    parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_rel:
-                        continue
-                    a = parts[i_acct].strip()
-                    b = parts[i_rel].strip()
-                    if a and b and (a in re_resolve_hcads or b in re_resolve_hcads):
-                        tiebacks[a].append(b)
-                        tiebacks[b].append(a)
-
-        with zf.open("real_acct.txt", "r") as raw_f:
-            text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-            header = text_f.readline().rstrip("\r\n").split("\t")
-            col = {name: i for i, name in enumerate(header)}
-            i_acct = col.get("acct", 0)
-            i_mailto = col.get("mailto", 2)
-            i_addr1 = col.get("site_addr_1", 17)
-            i_zip = col.get("site_addr_3", 19)
-            i_st_cls = col.get("state_class", 20)
-            i_nbhd = col.get("Neighborhood_Code", 24)
-            i_mkt = col.get("Market_Area_1", 26)
-            i_splt = col.get("splt_dt", 35)
-            i_new_own = col.get("new_own_dt", 64)
-            i_lgl2 = col.get("lgl_2", 66)
-
-            for line in text_f:
-                parts = line.rstrip("\r\n").split("\t")
-                if len(parts) <= i_st_cls:
-                    continue
-                acct = parts[i_acct].strip()
-                if not acct:
-                    continue
-                owner_raw = parts[i_mailto].strip()
-                addr1 = parts[i_addr1].strip()
-                st_cls = parts[i_st_cls].strip()
-                norm_own = normalize_owner(owner_raw)
-                acct_info[acct] = (owner_raw, norm_own, st_cls, addr1)
-
-                zip_cd = parts[i_zip].strip()[:5] if len(parts) > i_zip else ""
-                nbhd = parts[i_nbhd].strip() if len(parts) > i_nbhd else ""
-                mkt = parts[i_mkt].strip() if len(parts) > i_mkt else ""
-                lgl2 = parts[i_lgl2].strip() if len(parts) > i_lgl2 else ""
-                st_num, st_name = normalize_street(addr1)
-
-                if acct in re_resolve_hcads:
-                    re_meta[acct] = {
-                        "owner_raw": owner_raw,
-                        "norm_own": norm_own,
-                        "addr1": addr1,
-                        "st_num": st_num,
-                        "st_name": st_name,
-                        "st_cls": st_cls,
-                        "zip_cd": zip_cd,
-                        "nbhd": nbhd,
-                        "mkt": mkt,
-                        "lgl2": lgl2,
-                        "splt_dt": parts[i_splt].strip() if len(parts) > i_splt else "",
-                        "new_own_dt": parts[i_new_own].strip() if len(parts) > i_new_own else "",
-                    }
-
-                dyr = dated_parcel_year.get(acct, 0)
-                if MIN_VALID_YEAR <= dyr <= MAX_VALID_CAMA_DATE_YEAR:
-                    coord = dated_parcel_coord.get(acct)
-                    if coord:
-                        if norm_own and norm_own not in GENERIC_OWNERS:
-                            owner_to_dated[norm_own].append((dyr, coord[0], coord[1], acct))
-                        if st_num and st_name:
-                            addr_to_dated[(st_num, st_name)].append((dyr, coord[0], coord[1], acct))
-                    if st_name and zip_cd:
-                        street_to_dated_years[(zip_cd, st_name)].append(dyr)
-                    if len(lgl2) >= 4:
-                        subdiv_to_dated_years[lgl2].append(dyr)
-                    if nbhd:
-                        nbhd_to_dated_years[nbhd].append(dyr)
-                    if mkt:
-                        mkt_to_dated_years[mkt].append(dyr)
-
-        if "permits.txt" in zf.namelist():
-            with zf.open("permits.txt", "r") as raw_f:
-                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
-                col = {name: i for i, name in enumerate(header)}
-                i_acct = col.get("acct", 0)
-                i_dscr = col.get("dscr", 4)
-                i_tp_dscr = col.get("permit_tp_descr", 7)
-                i_dt = col.get("issue_date", 9)
-                i_yr = col.get("yr", 10)
-                for line in text_f:
-                    parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_dt:
-                        continue
-                    acct = parts[i_acct].strip()
-                    if acct not in re_resolve_hcads:
-                        continue
-                    yr = parse_hcad_date_year(
-                        parts[i_dt].strip(),
-                        parts[i_yr].strip() if len(parts) > i_yr else None,
-                        allow_fallback=False,
-                    )
-                    if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
-                        tp_d = parts[i_tp_dscr].strip() if len(parts) > i_tp_dscr else ""
-                        dscr = parts[i_dscr].strip() if len(parts) > i_dscr else ""
-                        permit_years[acct].append((yr, tp_d or dscr))
-
-        if "deeds.txt" in zf.namelist():
-            with zf.open("deeds.txt", "r") as raw_f:
-                text_f = io.TextIOWrapper(raw_f, encoding="latin1", errors="replace")
-                header = text_f.readline().rstrip("\r\n").split("\t")
-                col = {name: i for i, name in enumerate(header)}
-                i_acct = col.get("acct", 0)
-                i_dos = col.get("dos", 1)
-                i_cyr = col.get("clerk_yr", 2)
-                for line in text_f:
-                    parts = line.rstrip("\r\n").split("\t")
-                    if len(parts) <= i_dos:
-                        continue
-                    acct = parts[i_acct].strip()
-                    if acct not in re_resolve_hcads:
-                        continue
-                    yr = parse_hcad_date_year(
-                        parts[i_dos].strip(),
-                        parts[i_cyr].strip() if len(parts) > i_cyr else None,
-                        allow_fallback=True,
-                    )
-                    if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
-                        if acct not in deed_earliest or yr < deed_earliest[acct]:
-                            deed_earliest[acct] = yr
-
-    for acct, meta in re_meta.items():
-        for dt_field in ("splt_dt", "new_own_dt"):
-            yr = parse_hcad_date_year(meta.get(dt_field, ""), allow_fallback=False)
-            if MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR:
-                if acct not in deed_earliest or yr < deed_earliest[acct]:
-                    deed_earliest[acct] = yr
-
+    fallback_ctx = build_undated_fallback_context(
+        cache_dir / "Real_acct_owner.zip",
+        re_resolve_hcads,
+        dated_parcel_year,
+        dated_parcel_coord,
+        max_year=eff_year,
+        collect_acct_info=True,
+    )
+    acct_info = fallback_ctx["acct_info"]
     print(f"   Loaded CAMA ownership, tieback, permit, and deed tables in {time.time() - t_cama:.1f}s.")
 
-    # Precompute spatial/subdivision medians for Phase 1 re-resolution fallback
-    street_median = {
-        k: int(round(float(np.median(v)))) for k, v in street_to_dated_years.items() if len(v) >= 2
-    }
-    subdiv_median = {
-        k: int(round(float(np.median(v)))) for k, v in subdiv_to_dated_years.items() if len(v) >= 3
-    }
-    nbhd_median = {
-        k: int(round(float(np.median(v)))) for k, v in nbhd_to_dated_years.items() if len(v) >= 3
-    }
-    mkt_median = {
-        k: int(round(float(np.median(v)))) for k, v in mkt_to_dated_years.items() if len(v) >= 5
-    }
-    grid_buckets: dict[tuple[int, int], list[int]] = defaultdict(list)
-    for acct, (dlon, dlat) in dated_parcel_coord.items():
-        dyr = dated_parcel_year.get(acct, 0)
-        if MIN_VALID_YEAR <= dyr <= MAX_VALID_CAMA_DATE_YEAR:
-            grid_buckets[(int(round(dlon * 250.0)), int(round(dlat * 250.0)))].append(dyr)
-
-    re_resolved: dict[str, dict[str, Any]] = {}
+    curated_pre_resolved: dict[str, dict[str, Any]] = {}
     for hcad in sorted(re_resolve_hcads):
         if hcad in ADDITIONAL_CURATED_PARCEL_CHRONOLOGIES:
             cyr, lm_name, style, arch, notes = ADDITIONAL_CURATED_PARCEL_CHRONOLOGIES[hcad]
-            re_resolved[hcad] = {
+            curated_pre_resolved[hcad] = {
                 "year_built": cyr,
                 "year_source": "curated_landmark",
                 "landmark_name": lm_name,
@@ -1285,75 +1119,24 @@ def run_campus_and_school_fixes(
                 "architect": arch,
                 "notes": notes,
             }
-            continue
-        if hcad in PHASE1_CURATED_LANDMARKS:
+        elif hcad in PHASE1_CURATED_LANDMARKS:
             cyr, lm_name, style, notes = PHASE1_CURATED_LANDMARKS[hcad]
-            re_resolved[hcad] = {
+            curated_pre_resolved[hcad] = {
                 "year_built": cyr,
                 "year_source": "curated_landmark",
                 "landmark_name": lm_name,
                 "bld_style": style,
                 "notes": notes,
             }
-            continue
 
-        # Phase 2B tieback
-        best_tb_yr = 0
-        for rel in tiebacks.get(hcad, ()):
-            ryr = dated_parcel_year.get(rel, 0)
-            if ryr >= MIN_VALID_YEAR and (best_tb_yr == 0 or ryr < best_tb_yr):
-                best_tb_yr = ryr
-        if best_tb_yr >= MIN_VALID_YEAR:
-            re_resolved[hcad] = {
-                "year_built": best_tb_yr,
-                "year_source": "hcad_tieback",
-            }
-            continue
-
-        meta = re_meta.get(hcad, {})
-        ucoord = target_coords.get(hcad)
-        if ucoord:
-            cand = resolve_contiguity_candidate(
-                ucoord[0],
-                ucoord[1],
-                meta.get("norm_own", ""),
-                meta.get("st_num", ""),
-                meta.get("st_name", ""),
-                addr_to_dated=addr_to_dated,
-                owner_to_dated=owner_to_dated,
-                exclude_acct=hcad,
-            )
-            if cand is not None:
-                re_resolved[hcad] = cand
-                continue
-
-        local_era = (
-            street_median.get((meta.get("zip_cd", ""), meta.get("st_name", "")))
-            or subdiv_median.get(meta.get("lgl2", ""))
-            or nbhd_median.get(meta.get("nbhd", ""))
-        )
-        nn_med = 0
-        if ucoord:
-            gx, gy = int(round(ucoord[0] * 250.0)), int(round(ucoord[1] * 250.0))
-            cell_yrs: list[int] = []
-            for dx in (-1, 0, 1):
-                for dy in (-1, 0, 1):
-                    cell_yrs.extend(grid_buckets.get((gx + dx, gy + dy), ()))
-            if cell_yrs:
-                nn_med = int(round(float(np.median(cell_yrs))))
-
-        fb_res = resolve_permit_deed_spatial_fallback(
-            permit_candidates=permit_years.get(hcad),
-            earliest_deed_year=deed_earliest.get(hcad, 0),
-            state_class=str(meta.get("st_cls", "")),
-            local_era=int(local_era or 0),
-            nn_median=int(nn_med or 0),
-            market_median=int(mkt_median.get(meta.get("mkt", "")) or 0),
-        )
-        re_resolved[hcad] = {
-            "year_built": int(fb_res["year_built"]),
-            "year_source": str(fb_res["year_source"]),
-        }
+    re_resolved, _ = resolve_undated_feature_batch(
+        re_resolve_hcads,
+        target_coords,
+        dated_parcel_year,
+        fallback_ctx,
+        pre_resolved=curated_pre_resolved,
+        max_year=eff_year,
+    )
 
     print(f"   Re-resolved {len(re_resolved):,} / {len(re_resolve_hcads):,} sentinel & stale-contiguity parcels.")
 
@@ -1537,7 +1320,7 @@ def run_campus_and_school_fixes(
         fp_props = best_cf["props"]
         bid = str(fp_props.get("building_id") or fp_props.get("id") or hcad).strip()
         yr = int(fp_props.get("year_built") or 0)
-        if not (MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR):
+        if not (MIN_VALID_YEAR <= yr <= eff_year):
             continue
 
         item["hcad_num"] = hcad
@@ -1666,6 +1449,7 @@ def run_campus_and_school_fixes(
                         if not cur_a or cur_a.startswith("0 "):
                             new_addr = hydrated_zero_street_by_hcad[hcad]
                             props["address"] = new_addr
+                            props["school_situs_hydrated"] = True
                             mutated = True
                             address_shard_upserts.append((
                                 new_addr,
@@ -1684,7 +1468,7 @@ def run_campus_and_school_fixes(
 
                 yr = int(props.get("year_built") or 0)
                 src = str(props.get("year_source") or "").strip()
-                if not (MIN_VALID_YEAR <= yr <= MAX_VALID_CAMA_DATE_YEAR):
+                if not (MIN_VALID_YEAR <= yr <= eff_year):
                     raise ValueError(f"Completeness violation on {hcad} in {seq_path.name}: year_built={yr}")
                 if src in ("hcad_permit", "hcad_deed") and yr <= 1901:
                     raise ValueError(f"Sentinel leak on {hcad} in {seq_path.name}: {src} year_built={yr}")
@@ -1925,10 +1709,11 @@ def run_campus_and_school_fixes(
 
     stats_path = data_dir / "stats_summary.json"
     existing_stats = json.loads(stats_path.read_text(encoding="utf-8")) if stats_path.exists() else {}
-    ordered_decades = {str(d): decade_counter.get(str(d), 0) for d in range(1830, 2030, 10)}
+    ordered_decades = {str(d): decade_counter.get(str(d), 0) for d in compute_decade_bins(eff_year)}
     ordered_decades["unknown"] = decade_counter.get("unknown", 0)
 
     existing_stats.update({
+        "data_tax_year": eff_year,
         "observed_footprints": existing_stats.get("observed_footprints", total_buildings),
         "total_landmarks": existing_stats.get("total_landmarks", 0),
         "total_historic_districts": existing_stats.get("total_historic_districts", 0),
@@ -1936,7 +1721,7 @@ def run_campus_and_school_fixes(
         "total_buildings": total_buildings,
         "dated_buildings": dated_count,
         "earliest_year": earliest_year if earliest_year != 9999 else MIN_VALID_YEAR,
-        "latest_year": latest_year if latest_year != 0 else MAX_VALID_CAMA_DATE_YEAR,
+        "latest_year": latest_year if latest_year != 0 else eff_year,
         "decade_counts": ordered_decades,
         "contributing_counts": dict(contrib_counter),
         "use_category_counts": dict(use_counter),
@@ -1948,16 +1733,13 @@ def run_campus_and_school_fixes(
     stats_path.write_text(json.dumps(existing_stats, indent=2) + "\n", encoding="utf-8")
 
     manifest_path = data_dir / "pmtiles_manifest.json"
-    existing_manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
-    existing_manifest.update({
-        "version": existing_manifest.get("version", 2),
-        "mode": existing_manifest.get("mode", "full_county"),
-        "cache_bust": ACTIVE_CACHE_BUST,
-        "total_buildings": total_buildings,
-        "building_shards": shard_files,
-        "core_pmtiles": existing_manifest.get("core_pmtiles", "houston_atlas.pmtiles"),
-    })
-    manifest_path.write_text(json.dumps(existing_manifest, indent=2) + "\n", encoding="utf-8")
+    update_pmtiles_manifest_v3(
+        manifest_path,
+        total_buildings=total_buildings,
+        building_shards=shard_files,
+        cache_bust=ACTIVE_CACHE_BUST,
+        data_tax_year=eff_year,
+    )
 
     print(
         f"=== Completed Campus & School Pipeline in {time.time() - t0:.1f}s "

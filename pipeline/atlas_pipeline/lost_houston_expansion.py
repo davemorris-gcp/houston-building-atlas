@@ -13,7 +13,6 @@ from __future__ import annotations
 import csv
 import json
 import math
-import pickle
 import re
 import zipfile
 from collections import Counter
@@ -24,11 +23,13 @@ from shapely.geometry import Point, Polygon, shape
 from shapely.strtree import STRtree
 
 from atlas_pipeline.schema import (
+    ACTIVE_TAX_YEAR,
     LOST_HOUSTON_COHORT_LABELS,
     LOST_HOUSTON_VALID_COHORTS,
     MAX_VALID_CAMA_DATE_YEAR,
     MIN_VALID_YEAR,
     classify_main_structure_demolition_permit,
+    load_compact_cama_lookup,
     normalize_houston_address_keys,
     sanitize_atlas_text,
 )
@@ -1966,22 +1967,24 @@ def evaluate_cohort5_teardown_candidate(
     was_relocated: bool = False,
     min_historic_year: int = MIN_VALID_YEAR,
     max_historic_year: int = 1940,
+    max_year: int | None = None,
 ) -> tuple[bool, dict[str, Any]]:
-    """Two-stage structural validation for Cohort 5 2020-2026 pre-1940 teardowns (DF-5 / UT-2 / MUT-1).
+    """Two-stage structural validation for Cohort 5 2020+ pre-1940 teardowns (DF-5 / UT-2 / MUT-1).
 
     Stage 0: Reject invalid 13-digit account IDs and relocated historic structures.
-    Stage 1: Require a strict 2020-2026 main-structure demolition permit via
+    Stage 1: Require a strict 2020..max_year main-structure demolition permit via
              `classify_main_structure_demolition_permit`.
     Stage A: Prove pre-demolition historic age in `[min_historic_year, max_historic_year]`:
              - Either pre-1927 Houston City Directory verification (`citydir_earliest_year`),
              - Pre-demolition surveyed structure year (`pre_demo_survey_year`),
              - Or HCAD retained pre-teardown `yr_impr` on an improved account now cleared to vacant `C*`.
-    Stage B: Confirm 2026 CAMA clearance or replacement (NEVER accept active historic buildings that
+    Stage B: Confirm active CAMA clearance or replacement (NEVER accept active historic buildings that
              pulled a wing/remodel demolition permit while keeping `cama_year_built <= 1945` and `bld_area > 0`):
              - Vacant land clearance: `cama_bld_area <= 0` AND `cama_state_class` in `{"C1", "C2", "C3"}`.
              - Rebuilt replacement: `cama_bld_area > 0` AND `cama_year_built >= permit_year >= 2020`
                AND historic age proved independently by `citydir_earliest_year` or `pre_demo_survey_year`.
     """
+    eff_max = MAX_VALID_CAMA_DATE_YEAR if max_year is None else int(max_year)
     acct_s = str(acct or "").strip()
     if len(acct_s) != 13 or not acct_s.isdigit():
         return False, {"reason": "invalid_hcad"}
@@ -1996,7 +1999,7 @@ def evaluate_cohort5_teardown_candidate(
         site_apt=permit_site_apt,
         permit_desc=permit_desc,
         min_year=2020,
-        max_year=MAX_VALID_CAMA_DATE_YEAR,
+        max_year=eff_max,
     )
     if not ok_perm:
         return False, {"reason": f"permit_rejected:{perm_reason}"}
@@ -2569,15 +2572,14 @@ def build_cohorts_2_to_5(
     fit_rect_fn: Any,
     buildings_fc: dict[str, Any] | None = None,
     max_cohort5: int = 310,
+    tax_year: int | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
     """Build Cohorts 2, 3, 4, 5 deterministically on top of Cohort 1 (UT-1..UT-7)."""
-    cama_path = cache_dir / "cama_2026_compact.pkl"
-    cama_by_acct: dict[str, Any] = (
-        pickle.loads(cama_path.read_bytes()) if cama_path.exists() else {}
-    )
+    eff_year = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    cama_by_acct: dict[str, Any] = load_compact_cama_lookup(cache_dir, tax_year=eff_year) or {}
     citydir_by_hcad = (citydir_index or {}).get("by_hcad") or {}
 
-    # 1. Scan HCAD permits.txt for strict 2020-2026 main-structure demolition candidates first
+    # 1. Scan HCAD permits.txt for strict 2020..eff_year main-structure demolition candidates first
     raw_demo_permits: dict[str, dict[str, Any]] = {}
     acct_zip = cache_dir / "Real_acct_owner.zip"
     if acct_zip.exists():
@@ -2612,6 +2614,7 @@ def build_cohorts_2_to_5(
                             row.get("issue_date"),
                             raw_address=addr_p,
                             site_apt=row.get("site_apt"),
+                            max_year=eff_year,
                         )
                         if not ok_p:
                             continue
@@ -2647,6 +2650,7 @@ def build_cohorts_2_to_5(
             cama_state_class=str(crow[3] or ""),
             citydir_earliest_year=int(cd_rec.get("e") or 0),
             was_relocated=was_reloc,
+            max_year=eff_year,
         )
         if ok_c5:
             meta_c5["permit"] = pinfo
@@ -3020,7 +3024,7 @@ def build_cohorts_2_to_5(
         sig = (
             f"Documented in 'The Red Book of Houston: A Compendium of Social, Professional, Religious, "
             f"Educational and Industrial Interests of Houston's Colored Population' (Sotex Publishing Co., 1915{page_note}) "
-            f"at {addr_note} in {nh_lbl}{occ_tail}. Cross-referencing against 2026 HCAD CAMA and GIS records confirms "
+            f"at {addr_note} in {nh_lbl}{occ_tail}. Cross-referencing against {eff_year} HCAD CAMA and GIS records confirms "
             f"the 1915-era structure is gone ({rp.get('survival_label') or surv_st})."
         )
 
@@ -3178,8 +3182,8 @@ def build_cohorts_2_to_5(
         cd_rec = meta_c5.get("citydir_rec") or {}
         cd_cite = str(cd_rec.get("c") or "").strip()
         if meta_c5["post_demo_status"] == "vacant_lot":
-            post_txt = f"leaving a vacant parcel (2026 HCAD state class {meta_c5['cama_state_class']}, 0 sq ft improvement area)"
-            repl_by = f"Vacant lot (2026 HCAD {meta_c5['cama_state_class']})"
+            post_txt = f"leaving a vacant parcel ({eff_year} HCAD state class {meta_c5['cama_state_class']}, 0 sq ft improvement area)"
+            repl_by = f"Vacant lot ({eff_year} HCAD {meta_c5['cama_state_class']})"
         else:
             ry = meta_c5["cama_replacement_year"]
             post_txt = f"replaced by new {ry} construction on the parcel"
@@ -3194,7 +3198,7 @@ def build_cohorts_2_to_5(
 
         cits = [
             {
-                "label": f"HCAD Permit Record ({pinfo['issue_date']}: {pinfo['dscr']}) & 2026 Real Property Roll ({acct})",
+                "label": f"HCAD Permit Record ({pinfo['issue_date']}: {pinfo['dscr']}) & {eff_year} Real Property Roll ({acct})",
                 "url": "https://public.hcad.org/",
             }
         ]
@@ -3229,7 +3233,7 @@ def build_cohorts_2_to_5(
                 "sanborn_material_label": "Pink - Historic Commercial Masonry" if is_comm else "Yellow - Historic Wood Frame Residence",
                 "stories": stories,
                 "height_m": height_m,
-                "source": f"HCAD Demolition Permit Archive ({pinfo['issue_date']}) & 2026 CAMA Roll",
+                "source": f"HCAD Demolition Permit Archive ({pinfo['issue_date']}) & {eff_year} CAMA Roll",
                 "historic_significance": sig,
                 "citations": cits,
                 "demo_permit_date": pinfo["issue_date"],

@@ -930,23 +930,23 @@ def build_instructions_rows() -> list[list]:
             "Quarterly / Semi-Annually\nScripts: crawl_haif_forum.py & apply_haif_enrichments.py\nData: app/public/data/haif_index.json",
         ],
         [
-            "16. SOP 9 - Annual HCAD CAMA & Parcel Shapefile Rollover (Full Countywide Rebuild)",
-            "Once per year (typically summer/fall after HCAD certifies the annual appraisal roll), refresh the countywide 1.51M building footprint shards while preserving 100% of Preservation Houston's curated overrides:\n\n"
-            "1. Download Latest HCAD Data into pipeline/cache/hcad_full/ (Parcels.zip, Real_building_land.zip, Real_acct_owner.zip).\n"
-            "2. Run the Full Pipeline Sequence (from houston-building-atlas/pipeline):\n"
-            "   a) uv run python -m atlas_pipeline.sync_curated_edits\n"
-            "   b) uv run python -m atlas_pipeline.full_build\n"
-            "   c) uv run python -m atlas_pipeline.resolve_undated_countywide\n"
-            "   d) uv run python -m atlas_pipeline.fix_industrial_multi_footprints\n"
-            "   e) uv run python -m atlas_pipeline.fix_warehouse_district\n"
-            "   f) uv run python -m atlas_pipeline.apply_landmark_report_enrichments\n"
-            "   g) uv run python -m atlas_pipeline.apply_haif_enrichments\n"
-            "   h) uv run python -m atlas_pipeline.enrich_styles_and_search_index\n"
-            "   i) uv run python -m atlas_pipeline.enrich_building_names\n\n"
-            "3. Verify Shard Sizes & Cache-Busting Before Deploying:\n"
-            "   • Confirm all 5 app/public/data/houston_buildings_*.pmtiles files are < 95 MB.\n"
-            "   • Bump the '?v=YYYYMMDDx' cache-busting query string in lockstep starting from ACTIVE_CACHE_BUST in pipeline/atlas_pipeline/schema.py.",
-            "Annually (After HCAD Appraisal Roll Certification)\nScripts: pipeline/atlas_pipeline/full_build.py et al.",
+            "16. SOP 9 - Annual HCAD CAMA & Parcel Shapefile Rollover (One-Command Annual Refresher)",
+            "Once per year (typically summer/fall after HCAD certifies the annual appraisal roll), run the automated Milestone 4 Annual Refresher (pipeline/atlas_pipeline/update_annual_hcad_roll.py via cli.py --mode annual-refresh) to compute provenance-partitioned parcel/building deltas while protecting 100% of Preservation Houston's curated overrides:\n\n"
+            "1. Pre-Sync Curated Sheet Approvals First (from houston-building-atlas/pipeline):\n"
+            "   uv run python -m atlas_pipeline.sync_curated_edits\n"
+            "   (And perform the SOP 15 Field Surveys sync + SOP 14 Lost Houston photo backfill if new approvals accumulated.)\n\n"
+            "2. Preview the Certified HCAD Roll Delta in Dry-Run Mode (Zero Writes to app/public/data/):\n"
+            "   uv run python -m atlas_pipeline.cli --mode annual-refresh --tax-year YYYY --dry-run\n"
+            "   (Use --discover-latest-year to probe download.hcad.org/data/CAMA/<YYYY>/ automatically, or pass --roll-dir /path/to/downloaded_hcad_zips if you manually saved Real_acct_owner.zip, Real_building_land.zip, Parcels.zip, and optional Code_description_real.zip from https://hcad.org/pdata/pdata-property-downloads.html; staged archives and SHA-256 manifests live under pipeline/cache/rolls/YYYY/.)\n\n"
+            "3. Inspect the Read-Only Staff Review Reports Written Under pipeline/cache/rolls/YYYY/:\n"
+            "   • annual_roll_delta_report_YYYY.json - countywide summary across all 5 categories: UNCHANGED, UPDATED_STANDING (with protected CAMA pre-1940 disagreement counts and rebuilt-on-suppressed-lot alerts), DEMOLISHED_TO_VACANT, REPLATTED_OR_RETIRED (M -> 1 consolidations and 1 -> K replat split lineages), and NEW_CONSTRUCTION.\n"
+            "   • orphaned_curated_entities_YYYY.json - retired or cleared HCAD keys across curated overrides, landmarks, Good Brick awards, watchlist items, and inner-core surfaces resolved via EPSG:2278 spatial overlap + tieback + street-number lineage matching (no silent drops).\n"
+            "   • lost_houston_candidates_YYYY.json - READ-ONLY advisory review queue of vanished authoritative pre-1940 structures with moved houses excluded (NEVER auto-mutates overlays.json['lost_houston'] or property_watchlist.json).\n\n"
+            "4. Promote Atomically Once Reviewed:\n"
+            "   uv run python -m atlas_pipeline.cli --mode annual-refresh --tax-year YYYY --apply --cache-bust YYYYMMDDa\n"
+            "   • Shadow-stages under pipeline/cache/rolls/YYYY/staged/ and automatically reconciles dirty quadrant NDJSON shards + .pmtiles, inner core GeoJSON/PMTiles, address shards, search_index.json, permits/deeds, neighborhood_scorecards.json, historical_audit_queue.json, all 24 export_cache/*.json district bundles, stats_summary.json, pmtiles_manifest.json (version 3 + data_tax_year), and lockstep ?v= cache-bust anchors across HTML/JS.\n"
+            "   • Enforces strict pre-commit gates: RollSanityConfig (>= 95% account/improved/parcel retention floor, >= 90% county bbox floor, > 2.5% mass-demolition circuit breaker, header alias drift detector), < 980 MiB total app/ bundle ceiling, < 95 MiB single-file limit, and backups in pipeline/cache/rolls/YYYY/prior_cache_backup/.",
+            "Annually (After HCAD Appraisal Roll Certification)\nCLI: uv run python -m atlas_pipeline.cli --mode annual-refresh\nReports: pipeline/cache/rolls/YYYY/",
         ],
         [
             "17. SOP 10 - Administrator Maintenance Cadence Summary & Guardrails Checklist",
@@ -960,9 +960,9 @@ def build_instructions_rows() -> list[list]:
             "• QUARTERLY (30 mins):\n"
             "  1. Run sync_curated_edits.py, enrich_building_names.py, and enrich_styles_and_search_index.py to bake live Google Sheet approvals into Git.\n"
             "  2. Refresh HAIF forum threads via crawl_haif_forum.py & apply_haif_enrichments.py.\n\n"
-            "• ANNUALLY (1-2 hours):\n"
+            "• ANNUALLY (30-60 mins):\n"
             "  1. Add the new year's Preservation Houston Good Brick Award recipients to 'Good_Brick_Awards' and run good_brick_awards.py.\n"
-            "  2. Download the new HCAD CAMA & Parcels.gdb release and run the full countywide pipeline sequence in Section 16.\n\n"
+            "  2. Run 'uv run python -m atlas_pipeline.cli --mode annual-refresh --tax-year YYYY --dry-run' (SOP 9 in Section 16 above), review the read-only delta / orphaned-override / Lost Houston candidate reports, then promote via '--apply --cache-bust YYYYMMDDa' and push to main.\n\n"
             "• CRITICAL DATA INTEGRITY GUARDRAILS:\n"
             "  - NEVER format Column B (hcad_num) as a plain number - Harris County HCAD accounts are 13-character strings and ~45% start with a leading zero ('001...' to '099...').\n"
             "  - NEVER move or delete Cell B6 on Instructions_&_Apps_Script (holds the Staff Admin Passkey read by Apps Script).\n"

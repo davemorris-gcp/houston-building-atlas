@@ -626,8 +626,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   const expectedVer = String(manifest.cache_bust || "").trim();
   assert.equal(
     expectedVer,
-    "20261030e",
-    `Expected active Milestone 3 pmtiles_manifest.json cache_bust '20261030e', got '${expectedVer}'`
+    "20261031a",
+    `Expected active Milestone 4 pmtiles_manifest.json cache_bust '20261031a', got '${expectedVer}'`
   );
   assert.match(
     expectedVer,
@@ -787,9 +787,14 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/sync_field_surveys_sheet.py",
     "pipeline/atlas_pipeline/build_social_history_layers.py",
     "pipeline/atlas_pipeline/audit_historical_accuracy.py",
+    "pipeline/atlas_pipeline/update_annual_hcad_roll.py",
+    "pipeline/atlas_pipeline/cli.py",
     "pipeline/tests/test_milestone3_workbench.py",
     "tests/unit/milestone3_staff_workbench.test.mjs",
     "tests/e2e/test_milestone3_staff_workbench.py",
+    "pipeline/tests/test_milestone4_annual_refresh.py",
+    "tests/unit/milestone4_annual_refresh.test.mjs",
+    "tests/e2e/test_milestone4_annual_refresh.py",
     "docs/06-sanborn-maps-and-lost-houston.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
     "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
@@ -823,9 +828,14 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/build_social_history_layers.py",
     "pipeline/atlas_pipeline/build_neighborhood_scorecards.py",
     "pipeline/atlas_pipeline/audit_historical_accuracy.py",
+    "pipeline/atlas_pipeline/update_annual_hcad_roll.py",
+    "pipeline/atlas_pipeline/cli.py",
     "pipeline/tests/test_milestone3_workbench.py",
     "tests/unit/milestone3_staff_workbench.test.mjs",
     "tests/e2e/test_milestone3_staff_workbench.py",
+    "pipeline/tests/test_milestone4_annual_refresh.py",
+    "tests/unit/milestone4_annual_refresh.test.mjs",
+    "tests/e2e/test_milestone4_annual_refresh.py",
     "docs/06-sanborn-maps-and-lost-houston.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
     "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",

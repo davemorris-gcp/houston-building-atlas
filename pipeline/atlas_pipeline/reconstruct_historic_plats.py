@@ -42,6 +42,12 @@ from shapely.geometry import MultiPolygon, Polygon, mapping, shape
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
+from atlas_pipeline.schema import (
+    ACTIVE_TAX_YEAR,
+    MIN_VALID_YEAR,
+    resolve_subdivisions_cache_path,
+)
+
 ROOT_DIR = str(Path(__file__).resolve().parents[2])
 CACHE_DIR = os.path.join(ROOT_DIR, "pipeline", "cache")
 DATA_DIR = os.path.join(ROOT_DIR, "app", "public", "data")
@@ -575,17 +581,25 @@ def format_deed_citation(deed_num: str) -> str:
     return f"Harris County Clerk Instrument #{d}"
 
 
-def extract_modern_filing_year(deed_num: str, recnum: str) -> int:
+def extract_modern_filing_year(
+    deed_num: str,
+    recnum: str,
+    *,
+    max_year: int | None = None,
+) -> int:
+    eff_max = (ACTIVE_TAX_YEAR + 1) if max_year is None else int(max_year)
     for tok in (clean_str(deed_num), clean_str(recnum)):
         if not tok:
             continue
         m_rp = re.match(r"^RP-(20\d{2})-\d+$", tok, re.I)
         if m_rp:
-            return int(m_rp.group(1))
+            yr = int(m_rp.group(1))
+            if 2000 <= yr <= eff_max:
+                return yr
         m_20 = re.match(r"^(20\d{2})\d{7}$", tok)
         if m_20:
             yr = int(m_20.group(1))
-            if 2000 <= yr <= 2027:
+            if 2000 <= yr <= eff_max:
                 return yr
         m_let = re.match(r"^([B-Z])\d{6}$", tok.upper())
         if m_let and m_let.group(1) in CLERK_LETTER_YEAR:
@@ -684,8 +698,11 @@ def estimate_plat_metadata(
     catalog_by_id: dict,
     catalog_by_name: dict,
     standing_years: list[int] | None = None,
+    *,
+    max_year: int | None = None,
 ) -> dict:
     """Computes calibrated platting year, exactness, basis, and Harris County record series."""
+    eff_year = ACTIVE_TAX_YEAR if max_year is None else int(max_year)
     fid = clean_str(props.get("id"))
     vp = clean_str(props.get("vol_page"))
     rec = clean_str(props.get("recnum"))
@@ -694,7 +711,7 @@ def estimate_plat_metadata(
     fn = clean_str(props.get("full_name") or nm)
     vp_prefix = parse_vp_prefix(vp)
     is_replat_named = bool(REPLAT_TOKEN_RE.search(fn) or REPLAT_TOKEN_RE.search(nm))
-    mod_yr = extract_modern_filing_year(deed, rec)
+    mod_yr = extract_modern_filing_year(deed, rec, max_year=eff_year + 1)
 
     # 1. Check primary-source anchor tables first (only if not a modern partial replat sharing name)
     if not (is_replat_named and mod_yr >= 1975):
@@ -735,7 +752,7 @@ def estimate_plat_metadata(
         }
 
     # Compute structural floor year from verified standing buildings (2nd earliest or 10th pct)
-    valid_yrs = sorted(y for y in (standing_years or []) if 1836 <= y <= 2026)
+    valid_yrs = sorted(y for y in (standing_years or []) if MIN_VALID_YEAR <= y <= eff_year + 1)
     pre1965_cnt = sum(1 for y in valid_yrs if y < 1965)
     pre1940_cnt = sum(1 for y in valid_yrs if y < 1940)
     structural_cap = 0
@@ -863,7 +880,7 @@ def estimate_plat_metadata(
             "record_series": "Harris County Clerk Film Code",
         }
     if vp_prefix >= 130:
-        yr = mod_yr or min(2026, int(round(2007 + ((vp_prefix - 130) / 22.0) * 19)))
+        yr = mod_yr or min(eff_year, int(round(2007 + ((vp_prefix - 130) / 22.0) * 19)))
         return {
             "estimated_plat_year": yr,
             "plat_year_is_exact": mod_yr >= 2007,
@@ -888,7 +905,7 @@ def estimate_plat_metadata(
         }
 
     ey = int(props.get("earliest_year") or props.get("median_year") or 1950)
-    if 1836 <= ey <= 2026:
+    if MIN_VALID_YEAR <= ey <= eff_year + 1:
         ser = (
             "Pre-1905 Harris County Deed Records (DR)"
             if ey <= 1904
@@ -1004,11 +1021,13 @@ def is_modern_infill_replat_row(
     deed: str,
     nm: str,
     fn: str,
+    *,
+    max_year: int | None = None,
 ) -> bool:
     if acres <= 0.005 or acres > 2.25:
         return False
     vp_prefix = parse_vp_prefix(vp)
-    mod_yr = extract_modern_filing_year(deed, rec)
+    mod_yr = extract_modern_filing_year(deed, rec, max_year=max_year)
     combined_name = f"{nm} {fn}"
     is_rp = bool(REPLAT_TOKEN_RE.search(combined_name))
     is_infill_style = bool(INFILL_STYLE_NAME_RE.search(combined_name))
@@ -1022,7 +1041,9 @@ def is_modern_infill_replat_row(
     return False
 
 
-def main() -> None:
+def main(*, tax_year: int | None = None) -> None:
+    eff_year = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    eff_max_yr = eff_year + 1
     print("1. Loading overlays.json, deed_restrictions_catalog.json, and HCAD Sub_poly.zip...")
     overlays_path = os.path.join(DATA_DIR, "overlays.json")
     with open(overlays_path, "r", encoding="utf-8") as f:
@@ -1060,9 +1081,9 @@ def main() -> None:
 
     # Load countywide building points from the 5 shards so we have exact standing-year distributions
     print("2. Loading 1.51M countywide building centroids & years for chronological bounds and healed stats...")
-    hcad_sub_pkl = os.path.join(CACHE_DIR, "hcad_subdivisions_2026.pkl")
+    hcad_sub_pkl = resolve_subdivisions_cache_path(Path(CACHE_DIR), tax_year)
     hcad_to_sub = {}
-    if os.path.exists(hcad_sub_pkl):
+    if hcad_sub_pkl.exists():
         with open(hcad_sub_pkl, "rb") as f:
             hcad_to_sub = pickle.load(f)
 
@@ -1099,7 +1120,7 @@ def main() -> None:
     pt_i_arr, poly_i_arr = orig_wgs_tree.query(pts_wgs84, predicate="intersects")
     for pt_i, poly_i in zip(pt_i_arr.tolist(), poly_i_arr.tolist()):
         y = yrs_list[pt_i]
-        if 1836 <= y <= 2026:
+        if MIN_VALID_YEAR <= y <= eff_max_yr:
             init_years_by_idx[poly_i].append(y)
 
     # Project existing features to EPSG:2278 feet and classify historic parent plats vs modern cutouts
@@ -1128,6 +1149,7 @@ def main() -> None:
             catalog_by_id,
             catalog_by_name,
             standing_years=init_years_by_idx.get(idx, []),
+            max_year=eff_year,
         )
         p.update(meta)
 
@@ -1137,7 +1159,7 @@ def main() -> None:
         deed = clean_str(p.get("deed_num"))
         nm = clean_str(p.get("name"))
         fn = clean_str(p.get("full_name") or nm)
-        mod_yr = extract_modern_filing_year(deed, rec)
+        mod_yr = extract_modern_filing_year(deed, rec, max_year=eff_max_yr)
         est_yr = int(meta["estimated_plat_year"] or 0)
         has_docs = bool(p.get("has_deed_docs"))
 
@@ -1149,7 +1171,7 @@ def main() -> None:
             )
         )
         modern_infill_flag = (not has_docs) and is_modern_infill_replat_row(
-            acres, vp, rec, deed, nm, fn
+            acres, vp, rec, deed, nm, fn, max_year=eff_max_yr
         )
         # Standalone modern < 1.5-acre post-1985 townhome replat cutout check
         cutout_flag = (
@@ -1210,7 +1232,7 @@ def main() -> None:
         vp = clean_str(vp_raw)
         rec = clean_str(rec_raw)
         dn = clean_str(dn_raw)
-        if is_modern_infill_replat_row(acres, vp, rec, dn, nm, fn):
+        if is_modern_infill_replat_row(acres, vp, rec, dn, nm, fn, max_year=eff_max_yr):
             g_clean = filter_polygonal(g_raw)
             if not g_clean.is_empty:
                 infill_replats.append(
@@ -1490,7 +1512,7 @@ def main() -> None:
     for pt_i, poly_i in zip(pt_idxs.tolist(), poly_idxs.tolist()):
         st = plat_stats[poly_i]
         yr = yrs_list[pt_i]
-        if 1836 <= yr <= 2026:
+        if MIN_VALID_YEAR <= yr <= eff_max_yr:
             st["years"].append(yr)
         if lms_list[pt_i]:
             st["landmarks"] += 1

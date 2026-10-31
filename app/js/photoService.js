@@ -13,6 +13,8 @@
  * Also builds direct Google Street View Time Machine deep-links (`2007-Present`).
  */
 
+import { getAtlasMaxYear } from './filterStore.js?v=20261031a';
+
 const COMMONS_API_ENDPOINT = 'https://commons.wikimedia.org/w/api.php';
 
 let curatedIndexPromise = null;
@@ -193,7 +195,7 @@ export async function loadCuratedPhotosIndex() {
       allPhotos: [],
     };
     try {
-      const resp = await fetch('./public/data/building_photos.json?v=20261030e');
+      const resp = await fetch('./public/data/building_photos.json?v=20261031a');
       if (resp.ok) {
         const data = await resp.json();
         const photos = Array.isArray(data?.photos) ? data.photos : [];
@@ -272,29 +274,34 @@ export async function getCuratedBuildingPhotos({
 }
 
 function parseCommonsYear(title, ext) {
+  const maxPhotoYear = Math.max(getAtlasMaxYear(), 2035);
   // 1. Check structured EXIF / MediaWiki timestamps first (YYYY-MM-DD) so street numbers
   //    in titles/descriptions (like "1314 Andrews" or "2029") aren't mistaken for photo years.
   const dateFields = [ext?.DateTimeOriginal?.value, ext?.DateTime?.value];
   for (const raw of dateFields) {
     if (!raw) continue;
     const text = stripHtml(raw);
-    const isoMatch = text.match(/\b(18[4-9]\d|19\d{2}|20[01]\d|202[0-6])[-/:]\d{1,2}[-/:]\d{1,2}\b/);
+    const isoMatch = text.match(/\b(18[4-9]\d|19\d{2}|20\d{2})[-/:]\d{1,2}[-/:]\d{1,2}\b/);
     if (isoMatch) {
-      return Number(isoMatch[1]);
+      const yr = Number(isoMatch[1]);
+      if (yr <= maxPhotoYear) return yr;
     }
-    const yearMatch = text.match(/\b(18[4-9]\d|19\d{2}|20[01]\d|202[0-6])\b/);
+    const yearMatch = text.match(/\b(18[4-9]\d|19\d{2}|20\d{2})\b/);
     if (yearMatch) {
-      return Number(yearMatch[1]);
+      const yr = Number(yearMatch[1]);
+      if (yr <= maxPhotoYear) return yr;
     }
   }
 
-  // 2. Fallback to title / description year token (capped at 2026)
+  // 2. Fallback to title / description year token (capped dynamically)
+  const maxFallbackYear = Math.max(getAtlasMaxYear(), new Date().getUTCFullYear());
   for (const raw of [title, ext?.ImageDescription?.value]) {
     if (!raw) continue;
     const text = stripHtml(raw);
-    const match = text.match(/\b(18[4-9]\d|19\d{2}|20[01]\d|202[0-6])\b/);
+    const match = text.match(/\b(18[4-9]\d|19\d{2}|20\d{2})\b/);
     if (match) {
-      return Number(match[1]);
+      const yr = Number(match[1]);
+      if (yr <= maxFallbackYear) return yr;
     }
   }
   return null;

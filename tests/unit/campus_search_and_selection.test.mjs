@@ -293,7 +293,7 @@ test("UT-3: _resolveAndSelectDeepLinkedProperty resolves #<slug> building_id, sc
     assert.equal(selectCalls.length, 2);
     assert.equal(selectCalls[1].featureId, "1223580020001#cy_ridge_hs_main");
 
-    // Case C: Deep link by #q=7600 N ELDRIDGE PKWY fetches versioned addr_76.json?v=20261029a and extracts row[6] building_id
+    // Case C: Deep link by #q=7600 N ELDRIDGE PKWY fetches versioned addr_76.json?v=20261031a and extracts row[6] building_id
     await HoustonAtlasApp.prototype._resolveAndSelectDeepLinkedProperty.call(
       fakeApp,
       { hcadNum: "", featureId: "", query: "7600 N ELDRIDGE PKWY" },

@@ -11,17 +11,18 @@ from atlas_pipeline.spatial_join import join_footprints_to_parcels
 from atlas_pipeline.tile_builder import write_atlas_bundle
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Build the Houston Building Atlas v2 static PMTiles + GeoJSON data bundle."
     )
     parser.add_argument(
         "--mode",
-        choices=("core", "full", "campuses"),
+        choices=("core", "full", "campuses", "annual-refresh"),
         default="core",
         help=(
             "Pipeline mode: 'core' (Historic Houston Core + Landmarks + Districts + OSM Footprints), "
-            "'full' (Harris County bulk HCAD), or 'campuses' (Campus & school dating/situs hydration)."
+            "'full' (Harris County bulk HCAD), 'campuses' (Campus & school dating/situs hydration), "
+            "or 'annual-refresh' (Guarded incremental annual HCAD appraisal roll & parcel refresher)."
         ),
     )
     parser.add_argument(
@@ -42,7 +43,73 @@ def main() -> None:
         default=None,
         help="Optional maximum parcel limit when running --mode full.",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--tax-year",
+        type=int,
+        default=None,
+        help="Target HCAD appraisal roll tax year (e.g. 2027) for --mode annual-refresh / full / campuses.",
+    )
+    parser.add_argument(
+        "--discover-latest-year",
+        action="store_true",
+        help="Probe download.hcad.org/data/CAMA/<YYYY>/ to auto-discover the latest published roll year.",
+    )
+    parser.add_argument(
+        "--roll-dir",
+        type=Path,
+        default=None,
+        help="Local directory holding pre-downloaded HCAD archives (Real_building_land.zip, Real_acct_owner.zip, Parcels.zip).",
+    )
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Run Stage 1-3 validation and emit annual delta/orphan/Cohort-5 audit reports with zero live mutations (default for annual-refresh).",
+    )
+    mode_group.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help="Shadow-stage patched shards/indexes, validate bundle budgets, and atomically promote into app/ and pipeline/cache/.",
+    )
+    parser.add_argument(
+        "--shards-only",
+        action="store_true",
+        default=False,
+        help="Reconcile building shards and core indexes without rebuilding neighborhood_scorecards.json or historical_audit_queue.json.",
+    )
+    parser.add_argument(
+        "--cache-bust",
+        type=str,
+        default=None,
+        help="Explicit cache-bust token (e.g. 20270115a) applied across manifest, JS, and HTML when running --apply.",
+    )
+    parser.add_argument(
+        "--observed-footprints-ndjson",
+        type=Path,
+        default=None,
+        help="Optional GeoJSONSeq/NDJSON of observed Microsoft/OSM building footprints to prefer over parcel synthesis for NEW_CONSTRUCTION.",
+    )
+    parser.add_argument(
+        "--allow-partial-roll",
+        action="store_true",
+        default=False,
+        help="Bypass >= 95%% countywide retention gates (intended solely for hermetic subset tests).",
+    )
+    parser.add_argument(
+        "--allow-pmtiles-fallback",
+        action="store_true",
+        default=False,
+        help="Allow --dry-run to sample baseline features from houston_buildings_*.pmtiles when aligned_ndjson/*.geojsonseq shards are absent.",
+    )
+    parser.add_argument(
+        "--auto-revive-rebuilt-suppressed",
+        action="store_true",
+        default=False,
+        help="Allow suppress_only vacant lots with verified post-suppression construction (>= 400 sq ft) to clear suppression automatically.",
+    )
+    args = parser.parse_args(argv)
 
     t0 = time.time()
     print(f"=== Houston Building Atlas v2 Pipeline (mode={args.mode}) ===")
@@ -67,17 +134,45 @@ def main() -> None:
     elif args.mode == "campuses":
         from atlas_pipeline.fix_campus_anomalies_and_schools import run_campus_and_school_fixes
 
-        stats = run_campus_and_school_fixes(args.cache_dir, args.output_dir, compile_pmtiles=True)
+        stats = run_campus_and_school_fixes(
+            args.cache_dir,
+            args.output_dir,
+            compile_pmtiles=True,
+            tax_year=args.tax_year,
+        )
+    elif args.mode == "annual-refresh":
+        from atlas_pipeline.update_annual_hcad_roll import (
+            format_annual_refresh_cli_summary,
+            run_annual_hcad_refresh,
+        )
+
+        stats = run_annual_hcad_refresh(
+            cache_dir=args.cache_dir,
+            output_dir=args.output_dir,
+            tax_year=args.tax_year,
+            discover_latest_year=bool(args.discover_latest_year),
+            roll_dir=args.roll_dir,
+            apply=bool(args.apply),
+            shards_only=bool(args.shards_only),
+            cache_bust=args.cache_bust,
+            observed_footprints_ndjson=args.observed_footprints_ndjson,
+            allow_partial_roll=bool(args.allow_partial_roll),
+            allow_pmtiles_fallback=bool(args.allow_pmtiles_fallback),
+            auto_revive_rebuilt_suppressed=bool(args.auto_revive_rebuilt_suppressed),
+        )
+        elapsed = time.time() - t0
+        print(format_annual_refresh_cli_summary(stats, elapsed_s=elapsed))
+        return
     else:
         from atlas_pipeline.full_build import run_full_county_build
 
-        stats = run_full_county_build(args.cache_dir, args.output_dir)
+        stats = run_full_county_build(args.cache_dir, args.output_dir, tax_year=args.tax_year)
 
     elapsed = time.time() - t0
     print("=== Pipeline Complete ===")
     print(f"   Elapsed time          : {elapsed:.1f}s")
     print(f"   Total buildings       : {stats['total_buildings']:,} ({stats['observed_footprints']:,} observed footprints)")
-    print(f"   Dated buildings       : {stats['dated_buildings']:,} ({stats['earliest_year']}–{stats['latest_year']})")
+    print(f"   Dated buildings       : {stats['dated_buildings']:,} ({stats['earliest_year']}-{stats['latest_year']})")
     print(f"   Historic landmarks    : {stats['total_landmarks']:,}")
     print(f"   Historic districts    : {stats['total_historic_districts']:,}")
     print(f"   THC markers           : {stats['total_thc_markers']:,}")

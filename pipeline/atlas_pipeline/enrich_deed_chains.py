@@ -23,7 +23,14 @@ import re
 import zipfile
 from pathlib import Path
 
-from atlas_pipeline.schema import MAX_VALID_YEAR, normalize_hcad_date
+from atlas_pipeline.schema import (
+    HARD_MAX_APP_BYTES,
+    MAX_SINGLE_FILE_BYTES,
+    MAX_VALID_YEAR,
+    SOFT_MAX_APP_BYTES,
+    normalize_hcad_date,
+    write_compact_json,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CACHE_DIR = REPO_ROOT / "pipeline" / "cache"
@@ -35,18 +42,17 @@ REAL_ACCT_ZIP = CACHE_DIR / "Real_acct_owner.zip"
 REAL_BLDG_ZIP = CACHE_DIR / "Real_building_land.zip"
 
 MAX_DEEDS_PER_PARCEL = 8
-SOFT_MAX_APP_BYTES = 955 * 1024 * 1024
 
 RE_RP_FLEX = re.compile(
-    r"^(?:\d)?(?:RP[\s\-_]*|P[\s\-_]+)(20(?:1[6-9]|2\d|30))(?:[\s\-_]+\1)?[\s\-_]*0*([1-9]\d{0,6})$",
+    r"^(?:\d)?(?:RP[\s\-_]*|P[\s\-_]+)(20(?:1[6-9]|[2-9]\d))(?:[\s\-_]+\1)?[\s\-_]*0*([1-9]\d{0,6})$",
     re.IGNORECASE,
 )
 RE_YEAR_RP_SWAP = re.compile(
-    r"^(20(?:1[6-9]|2\d))[\s\-_]+RP[\s\-_]*0*([1-9]\d{0,6})$",
+    r"^(20(?:1[6-9]|[2-9]\d))[\s\-_]+RP[\s\-_]*0*([1-9]\d{0,6})$",
     re.IGNORECASE,
 )
 RE_BARE_YEAR_HYPHEN = re.compile(
-    r"^(20(?:1[6-9]|2\d))[\s\-_]+0*([1-9]\d{0,6})$"
+    r"^(20(?:1[6-9]|[2-9]\d))[\s\-_]+0*([1-9]\d{0,6})$"
 )
 RE_LETTER_CODE = re.compile(r"^([A-Z])([0-9O]{6})$")
 RE_FILM_CODE = re.compile(r"^(\d{3}-\d{2}-\d{4})$")
@@ -60,13 +66,19 @@ RE_VOL_PAGE = re.compile(
 )
 
 
-def parse_dos_yyyymmdd(raw_dos: str, raw_yr: str) -> str:
+def parse_dos_yyyymmdd(
+    raw_dos: str,
+    raw_yr: str,
+    *,
+    max_year: int | None = None,
+) -> str:
     """Normalize HCAD date of sale (MM/DD/YYYY or YYYY-MM-DD) to 8-digit YYYYMMDD."""
+    eff_max = MAX_VALID_YEAR if max_year is None else int(max_year)
     iso_dt, yr = normalize_hcad_date(
         raw_dos,
         raw_yr,
         allow_fallback=True,
-        max_year=MAX_VALID_YEAR,
+        max_year=eff_max,
     )
     if iso_dt:
         return iso_dt.replace("-", "")
@@ -75,8 +87,14 @@ def parse_dos_yyyymmdd(raw_dos: str, raw_yr: str) -> str:
     return "00000000"
 
 
-def normalize_hcad_clerk_instrument(clerk_yr: str, clerk_id: str) -> str | None:
+def normalize_hcad_clerk_instrument(
+    clerk_yr: str,
+    clerk_id: str,
+    *,
+    max_year: int | None = None,
+) -> str | None:
     """Normalize HCAD (clerk_yr, clerk_id) to a compact, verified Clerk lookup token."""
+    eff_max = max(2030, MAX_VALID_YEAR if max_year is None else int(max_year))
     cid = (clerk_id or "").strip().upper()
     if not cid or cid in ("0", "NONE", "N/A", "NA", "UNKNOWN", "UNKN", "NULL"):
         return None
@@ -105,6 +123,8 @@ def normalize_hcad_clerk_instrument(clerk_yr: str, clerk_id: str) -> str | None:
         if m:
             y_val = int(m.group(1))
             seq_val = int(m.group(2))
+            if y_val > eff_max:
+                return None
             if y_val == 2016 and seq_val <= 10026:
                 return f"2016{seq_val:07d}"
             return f"R{y_val}-{seq_val}"
@@ -124,7 +144,7 @@ def normalize_hcad_clerk_instrument(clerk_yr: str, clerk_id: str) -> str | None:
                 return cid_nospace
             if p_yr == 2016 and p_seq > 0:
                 return cid_nospace if p_seq <= 10026 else f"R2016-{p_seq}"
-            if 2017 <= p_yr <= 2030 and 0 < p_seq <= 999999:
+            if 2017 <= p_yr <= eff_max and 0 < p_seq <= 999999:
                 return f"R{p_yr}-{p_seq}"
 
         # 2006-2015 numeric sequence (annual Harris County filings never exceeded ~600,000):
@@ -155,7 +175,7 @@ def normalize_hcad_clerk_instrument(clerk_yr: str, clerk_id: str) -> str | None:
             return f"R2016-{val_int}"
 
         # 2017+ numeric sequence without RP- prefix
-        if 2017 <= yr_int <= 2030 and n_len <= 7 and val_int <= 999999:
+        if 2017 <= yr_int <= eff_max and n_len <= 7 and val_int <= 999999:
             return f"R{yr_int}-{val_int}"
 
         return None
@@ -248,9 +268,12 @@ def main(
     data_dir: Path = DATA_DIR,
     real_bldg_zip: Path = REAL_BLDG_ZIP,
     app_dir: Path = APP_DIR,
+    *,
+    tax_year: int | None = None,
 ) -> None:
     if not real_acct_zip.exists():
         raise FileNotFoundError(f"Missing HCAD archive: {real_acct_zip}")
+    max_deed_year = MAX_VALID_YEAR if tax_year is None else int(tax_year) + 1
 
     print("[1/4] Loading existing permit shards from app/public/data/permits/...")
     shards: dict[str, dict[str, dict]] = collections.defaultdict(dict)
@@ -286,11 +309,16 @@ def main(
                 tok = normalize_hcad_clerk_instrument(
                     row.get("clerk_yr") or "",
                     row.get("clerk_id") or "",
+                    max_year=max_deed_year,
                 )
                 if not tok:
                     continue
                 normalized_rows += 1
-                dt8 = parse_dos_yyyymmdd(row.get("dos") or "", row.get("clerk_yr") or "")
+                dt8 = parse_dos_yyyymmdd(
+                    row.get("dos") or "",
+                    row.get("clerk_yr") or "",
+                    max_year=max_deed_year,
+                )
                 prev_dt = deeds_by_acct[acct].get(tok)
                 # Prefer full MM/DD/YYYY dates over year-only YYYY0000 or 00000000 placeholders, then newer date
                 dt_key = (dt8 != "00000000" and not dt8.endswith("0000"), dt8)
@@ -366,21 +394,39 @@ def main(
             shard_dict[acct] = {"d": d_str}
             added_new_accts += 1
 
-    print("[4/4] Writing enriched permit & deed chain shards...")
+    print("[4/4] Validating budget constraints and writing enriched permit & deed chain shards...")
     permits_dir.mkdir(parents=True, exist_ok=True)
+    projected_shards_bytes = 0
     max_shard_bytes = 0
     max_shard_name = ""
+    for prefix3, shard_dict in sorted(shards.items()):
+        if not shard_dict:
+            continue
+        raw_bytes = json.dumps(shard_dict, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        sz = len(raw_bytes)
+        if sz >= MAX_SINGLE_FILE_BYTES:
+            raise RuntimeError(
+                f"Enriched shard permits_{prefix3}.json ({sz} bytes) exceeds "
+                f"MAX_SINGLE_FILE_BYTES ({MAX_SINGLE_FILE_BYTES} bytes)."
+            )
+        projected_shards_bytes += sz
+        if sz > max_shard_bytes:
+            max_shard_bytes = sz
+            max_shard_name = f"permits_{prefix3}.json"
+
+    projected_total_bytes = non_permit_bytes + projected_shards_bytes
+    if projected_total_bytes >= HARD_MAX_APP_BYTES:
+        raise RuntimeError(
+            f"Enriched app/ bundle ({projected_total_bytes} bytes) exceeds "
+            f"HARD_MAX_APP_BYTES ({HARD_MAX_APP_BYTES} bytes)."
+        )
+
     for prefix3, shard_dict in sorted(shards.items()):
         shard_file = permits_dir / f"permits_{prefix3}.json"
         if not shard_dict:
             shard_file.unlink(missing_ok=True)
             continue
-        payload = json.dumps(shard_dict, separators=(",", ":"))
-        shard_file.write_text(payload, encoding="utf-8")
-        sz = shard_file.stat().st_size
-        if sz > max_shard_bytes:
-            max_shard_bytes = sz
-            max_shard_name = shard_file.name
+        write_compact_json(shard_file, shard_dict)
 
     final_app_bytes = compute_app_total_bytes(app_dir)
     sample_key_st = shards.get("062", {}).get("0621100000014", {}).get("d")

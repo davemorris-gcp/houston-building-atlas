@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime
 import json
 import re
 from collections import Counter
@@ -36,10 +37,11 @@ from atlas_pipeline.lost_houston_expansion import (
     sanitize_coh_landmarks_overlay,
 )
 from atlas_pipeline.schema import (
+    ACTIVE_TAX_YEAR,
     HARRIS_COUNTY_BBOX,
     LOST_HOUSTON_VALID_COHORTS,
-    MAX_VALID_CAMA_DATE_YEAR,
     MIN_VALID_YEAR,
+    load_compact_cama_lookup,
     sanitize_atlas_text,
     write_compact_json,
 )
@@ -419,13 +421,23 @@ def run_audit(
     apply_fixes: bool = False,
     *,
     cama_override: dict[str, Any] | None = None,
+    tax_year: int | None = None,
+    cache_dir: Path | None = None,
+    data_dir: Path | None = None,
+    generated_on: str | None = None,
 ) -> dict[str, Any]:
-    haif_path = DATA_DIR / "haif_index.json"
-    overlays_path = DATA_DIR / "overlays.json"
-    overrides_path = DATA_DIR / "curated_overrides.json"
-    buildings_path = DATA_DIR / "buildings.geojson"
-    search_index_path = DATA_DIR / "search_index.json"
-    citydir_path = DATA_DIR / "citydir_index.json"
+    eff_year = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
+    eff_generated_on = (
+        datetime.date.today().isoformat() if generated_on is None else str(generated_on)
+    )
+    cdir = Path(cache_dir) if cache_dir is not None else CACHE_DIR
+    ddir = Path(data_dir) if data_dir is not None else DATA_DIR
+    haif_path = ddir / "haif_index.json"
+    overlays_path = ddir / "overlays.json"
+    overrides_path = ddir / "curated_overrides.json"
+    buildings_path = ddir / "buildings.geojson"
+    search_index_path = ddir / "search_index.json"
+    citydir_path = ddir / "citydir_index.json"
 
     haif_doc = json.loads(haif_path.read_text())
     overlays_doc = json.loads(overlays_path.read_text())
@@ -434,8 +446,8 @@ def run_audit(
     buildings_doc = json.loads(buildings_path.read_text())
     search_index = json.loads(search_index_path.read_text())
     citydir_doc = json.loads(citydir_path.read_text())
-    coh_raw_path = CACHE_DIR / "coh_landmarks.json"
-    coh_enr_path = CACHE_DIR / "coh_landmarks_enriched.json"
+    coh_raw_path = cdir / "coh_landmarks.json"
+    coh_enr_path = cdir / "coh_landmarks_enriched.json"
     coh_raw = json.loads(coh_raw_path.read_text()) if coh_raw_path.exists() else []
     coh_enr = json.loads(coh_enr_path.read_text()) if coh_enr_path.exists() else []
 
@@ -1191,14 +1203,13 @@ def run_audit(
     lost_schema_errors = 0
     lost_extant_collision_errors = 0
 
-    cama_pkl_path = CACHE_DIR / "cama_2026_compact.pkl"
     cama_audit_map: dict[str, Any] = {}
     if cama_override is not None:
         cama_audit_map = cama_override
-    elif cama_pkl_path.exists():
-        import pickle as _pickle
-
-        cama_audit_map = _pickle.loads(cama_pkl_path.read_bytes())
+    else:
+        loaded_cama = load_compact_cama_lookup(cdir, tax_year=tax_year)
+        if loaded_cama is not None:
+            cama_audit_map = loaded_cama
 
     for lf in lost_feats:
         lp = lf.get("properties") or {}
@@ -1245,7 +1256,7 @@ def run_audit(
             or cohort not in LOST_HOUSTON_VALID_COHORTS
             or rank not in (1, 2, 3, 4)
             or mat_key not in VALID_SANBORN_MATERIALS
-            or not (MIN_VALID_YEAR <= yb < yd <= MAX_VALID_CAMA_DATE_YEAR)
+            or not (MIN_VALID_YEAR <= yb < yd <= eff_year)
             or not geom_ok
             or "\u2014" in raw_lp_json
             or "\u2013" in raw_lp_json
@@ -1288,9 +1299,9 @@ def run_audit(
                     not cama_audit_map
                     and cohort in ("red_book_1915_vanished", "historic_teardown_2020_2026")
                     and (
-                        "Vacant lot (2026 HCAD" in str(lp.get("replaced_by") or "")
+                        bool(re.search(r"Vacant lot \(\d{4} HCAD", str(lp.get("replaced_by") or "")))
                         or "replacement structure" in str(lp.get("replaced_by") or "")
-                        or "2026 HCAD CAMA" in str(lp.get("historic_significance") or "")
+                        or bool(re.search(r"\b\d{4} HCAD CAMA\b", str(lp.get("historic_significance") or "")))
                     )
                 )
                 # Verified COH/NRHP demolished multi-lot or rebuilt parcels and certified vacant C1/C2/C3 lots
@@ -1401,10 +1412,10 @@ def run_audit(
         if not bp.get("is_curated_override") and not bp.get("year_source") and 1890 <= yr <= 1950 and yr % 10 == 0:
             rounded_hcad_count += 1
 
-    queue_payload = build_historical_audit_queue_payload(findings, generated_on="2026-10-30")
+    queue_payload = build_historical_audit_queue_payload(findings, generated_on=eff_generated_on)
 
     summary_payload = {
-        "generated_on": "2026-10-30",
+        "generated_on": eff_generated_on,
         "reconciled_fixes": stats_dict,
         "historic_core_hcad_rounded_decade_estimates": rounded_hcad_count,
         "total_queued_contradictions": len(findings),
@@ -1419,12 +1430,10 @@ def run_audit(
         write_compact_json(overrides_path, overrides_doc)
         write_compact_json(buildings_path, buildings_doc)
         write_compact_json(search_index_path, search_index)
-        write_compact_json(DATA_DIR / "historical_audit_queue.json", queue_payload)
-        (DATA_DIR / "historical_audit_summary.json").write_text(
-            json.dumps(summary_payload, indent=2, ensure_ascii=False)
-        )
+        write_compact_json(ddir / "historical_audit_queue.json", queue_payload)
+        write_compact_json(ddir / "historical_audit_summary.json", summary_payload)
 
-        csv_path = CACHE_DIR / "historical_audit_findings.csv"
+        csv_path = cdir / "historical_audit_findings.csv"
         fieldnames = [
             "finding_id",
             "priority_score",
@@ -1472,7 +1481,7 @@ def resolve_citydir_cdm_url(dir_rec: dict[str, Any] | None, fallback_url: str) -
 def build_historical_audit_queue_payload(
     findings: list[dict[str, Any]],
     *,
-    generated_on: str = "2026-10-30",
+    generated_on: str | None = None,
 ) -> dict[str, Any]:
     """Build the compact Milestone 3 `historical_audit_queue.json` bundle (< 1.0 MiB; DF-8, DF-9).
 
@@ -1481,6 +1490,9 @@ def build_historical_audit_queue_payload(
     for all standing historic contradictions while deduplicating repetitive category boilerplate
     into top-level `defaults` so the single-line bundle stays well under 1.0 MiB.
     """
+    eff_generated_on = (
+        datetime.date.today().isoformat() if generated_on is None else str(generated_on)
+    )
     min_lng, min_lat, max_lng, max_lat = HARRIS_COUNTY_BBOX
     seen_fids: set[str] = set()
     items: list[dict[str, Any]] = []
@@ -1609,7 +1621,7 @@ def build_historical_audit_queue_payload(
 
     return {
         "v": 1,
-        "generated_on": generated_on,
+        "generated_on": eff_generated_on,
         "total": len(items),
         "categories": dict(cat_counts),
         "defaults": {

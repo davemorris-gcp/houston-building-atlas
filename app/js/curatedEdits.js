@@ -27,6 +27,7 @@ export const FLAG_SOURCE_TYPES = new Set([
 ]);
 
 export const MIN_VALID_YEAR = 1836;
+// Public UI suggestions cap at ACTIVE_TAX_YEAR (Python schema.MAX_VALID_YEAR allows ACTIVE_TAX_YEAR + 1 for pre-certified HCAD rows).
 export const MAX_VALID_YEAR = 2026;
 export const MAX_STANDING_OVERRIDE_YEAR = 2035;
 
@@ -1365,7 +1366,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261030e", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261031a", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
