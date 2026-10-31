@@ -4254,8 +4254,14 @@ export class StaffWorkbenchController {
       photoInput.addEventListener("change", async (e) => {
         const file = e.target?.files?.[0];
         if (!file) return;
-        await this._handleSurveyPhotoFile(file);
-        photoInput.value = "";
+        try {
+          await this._handleSurveyPhotoFile(file);
+        } catch (err) {
+          this._lastSurveyPhotoError = String(err?.message || err);
+          this._surveyPhotoStep = `error:${this._lastSurveyPhotoError}`;
+        } finally {
+          photoInput.value = "";
+        }
       });
     }
     document.getElementById("btn-survey-clear-photo")?.addEventListener("click", async () => {
@@ -5116,7 +5122,7 @@ export class StaffWorkbenchController {
         } catch (_err) {
           finish(fallbackFile);
         }
-      }, 4000);
+      }, 2500);
       try {
         canvas.toBlob(
           (blob) => {
@@ -5157,13 +5163,40 @@ export class StaffWorkbenchController {
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("2D canvas context unavailable");
+      }
       ctx.drawImage(source, 0, 0, w, h);
       return this._encodeCanvasToJpegBlob(canvas, quality, file);
     };
 
     if (typeof createImageBitmap === "function") {
       try {
-        const bmp = await createImageBitmap(file);
+        let bmpTimedOut = false;
+        const bmp = await new Promise((resolve, reject) => {
+          const guard = setTimeout(() => {
+            bmpTimedOut = true;
+            reject(new Error("createImageBitmap timeout"));
+          }, 2500);
+          Promise.resolve(createImageBitmap(file)).then(
+            (res) => {
+              clearTimeout(guard);
+              if (bmpTimedOut) {
+                try {
+                  res?.close?.();
+                } catch (_closeErr) {
+                  // Ignore late close errors
+                }
+                return;
+              }
+              resolve(res);
+            },
+            (err) => {
+              clearTimeout(guard);
+              reject(err);
+            }
+          );
+        });
         try {
           return await renderSource(bmp, bmp.width, bmp.height);
         } finally {
@@ -5196,7 +5229,7 @@ export class StaffWorkbenchController {
         }
         resolve(res);
       };
-      const guard = setTimeout(() => done(file), 8000);
+      const guard = setTimeout(() => done(file), 4000);
       img.onload = () => {
         renderSource(img, img.naturalWidth || img.width, img.naturalHeight || img.height)
           .then(done)
@@ -5232,12 +5265,16 @@ export class StaffWorkbenchController {
   }
 
   async _handleSurveyPhotoFile(file) {
+    this._surveyPhotoStep = "start";
+    this._lastSurveyPhotoError = "";
     await this._disposeUnsavedSurveyDraftPhoto();
+    this._surveyPhotoStep = "disposed";
     const filename = buildSurveyPhotoFilename(
       this.surveyDraft.hcad_num,
       this.surveyDraft.address
     );
     const compressed = await this._compressPhotoFileToJpegBlob(file);
+    this._surveyPhotoStep = "compressed";
     const tempId = formatSurveyId(this.surveyDraft.hcad_num || "photo");
     const saved = await saveSurveyPhotoBlob({
       photoId: tempId,
@@ -5248,6 +5285,7 @@ export class StaffWorkbenchController {
       hcadNum: this.surveyDraft.hcad_num,
       address: this.surveyDraft.address,
     });
+    this._surveyPhotoStep = "saved_idb";
     let previewUrl = "";
     try {
       previewUrl = URL.createObjectURL(compressed);
@@ -5261,7 +5299,9 @@ export class StaffWorkbenchController {
     this.surveyCardDirty = true;
     this._renderSurveyPhotoPreview();
     this._updateSurveyDetailSummaryText();
+    this._surveyPhotoStep = "rendered";
     await this._refreshSurveyPhotoCounter();
+    this._surveyPhotoStep = "done";
   }
 
   _renderSurveyPhotoPreview() {

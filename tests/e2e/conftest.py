@@ -270,6 +270,7 @@ def browser_type_launch_args(browser_type_launch_args: dict[str, Any]) -> dict[s
         "--use-gl=angle",
         "--use-angle=swiftshader",
         "--ignore-gpu-blocklist",
+        "--disable-accelerated-2d-canvas",
         "--disable-dev-shm-usage",
     ]
     return {

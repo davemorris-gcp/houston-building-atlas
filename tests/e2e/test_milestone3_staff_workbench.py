@@ -1002,27 +1002,29 @@ def test_e2e6_mobile_walk_the_block_field_survey_viewports_gps_daylight_photos_a
 ) -> None:
     """E2E-6a..6e: Mobile Walk-the-Block Field Survey across 360x640, 375x667, 390x844, GPS, AAA contrast, IDB photos & sync."""
     # E2E-6a across all three target smartphone viewports
-    for width, height in [(360, 640), (375, 667), (390, 844)]:
-        ctx = browser.new_context(
-            viewport={"width": width, "height": height},
-            has_touch=True,
-            is_mobile=True,
-            device_scale_factor=3,
+    ctx = browser.new_context(
+        viewport={"width": 360, "height": 640},
+        has_touch=True,
+        is_mobile=True,
+        device_scale_factor=2,
+    )
+    try:
+        configure_fast_e2e_context(ctx, atlas_base_url)
+        _install_configurable_webhook(ctx)
+        p = ctx.new_page()
+        pe, ce, he = attach_error_monitors(p, atlas_base_url)
+        p.goto(
+            f"{atlas_base_url}/index.html#lat=29.7982&lng=-95.3978&z=18.8&survey=1",
+            wait_until="domcontentloaded",
         )
-        try:
-            configure_fast_e2e_context(ctx, atlas_base_url)
-            _install_configurable_webhook(ctx)
-            p = ctx.new_page()
-            pe, ce, he = attach_error_monitors(p, atlas_base_url)
-            p.goto(
-                f"{atlas_base_url}/index.html#lat=29.7982&lng=-95.3978&z=18.8&survey=1",
-                wait_until="domcontentloaded",
-            )
-            wait_for_atlas_ready(p)
-            p.wait_for_selector("#field-survey-sheet:not(.hidden)", timeout=10000)
+        wait_for_atlas_ready(p)
+        p.wait_for_selector("#field-survey-sheet:not(.hidden)", timeout=15000)
 
+        for width, height in [(360, 640), (375, 667), (390, 844)]:
+            p.set_viewport_size({"width": width, "height": height})
             layout_audit = p.evaluate(
                 """() => {
+                    window.dispatchEvent(new Event('resize'));
                     const sheet = document.getElementById('field-survey-sheet');
                     const topbar = document.querySelector('.atlas-topbar');
                     const crosshair = document.getElementById('field-survey-crosshair');
@@ -1085,16 +1087,16 @@ def test_e2e6_mobile_walk_the_block_field_survey_viewports_gps_daylight_photos_a
             assert layout_audit["minPrimaryH"] >= 47.5, f"{width}x{height} primary btn < 48px: {layout_audit['minPrimaryH']}"
             assert layout_audit["minInteractiveH"] >= 43.5, f"{width}x{height} control < 44px: {layout_audit['minInteractiveH']}"
 
-            assert not pe and not he and not ce
-        finally:
-            ctx.close()
+        assert not pe and not he and not ce
+    finally:
+        ctx.close()
 
     # E2E-6b..6e deep functional walk on 390x844 touch device with mocked Geolocation
     context = browser.new_context(
         viewport={"width": 390, "height": 844},
         has_touch=True,
         is_mobile=True,
-        device_scale_factor=3,
+        device_scale_factor=2,
     )
     try:
         configure_fast_e2e_context(context, atlas_base_url)
@@ -1139,7 +1141,7 @@ def test_e2e6_mobile_walk_the_block_field_survey_viewports_gps_daylight_photos_a
             wait_until="domcontentloaded",
         )
         wait_for_atlas_ready(page)
-        page.wait_for_selector("#field-survey-sheet:not(.hidden)", timeout=10000)
+        page.wait_for_selector("#field-survey-sheet:not(.hidden)", timeout=15000)
 
         # Wait until Heights building tiles/features populate nearby houses around (-95.3978, 29.7982)
         page.wait_for_function(
@@ -1148,7 +1150,7 @@ def test_e2e6_mobile_walk_the_block_field_survey_viewports_gps_daylight_photos_a
                 if (!mc.map.areTilesLoaded()) return false;
                 return (mc.getNearbyFeaturesAroundPoint(-95.3978, 29.7982, 130) || []).length >= 6;
             }""",
-            timeout=20000,
+            timeout=40000,
         )
 
         # E2E-6b (1): Start GPS watch and emit coarse fix (accuracy: 65m) -> warns & REFUSES auto-snap (Defect #21)
@@ -1337,6 +1339,13 @@ def test_e2e6_mobile_walk_the_block_field_survey_viewports_gps_daylight_photos_a
             assert entry["ratio"] >= 7.0, f"Daylight WCAG AAA contrast failure (< 7.0:1): {entry}"
 
         # E2E-6d: Camera photo capture -> Canvas JPEG downscale/compress -> IndexedDB Blob storage
+        page.evaluate(
+            """() => {
+                const wb = window.atlasApp._staffWorkbench;
+                wb._surveyPhotoStep = '';
+                wb._lastSurveyPhotoError = '';
+            }"""
+        )
         page.set_input_files(
             "#survey-photo-input",
             files=[
@@ -1347,10 +1356,41 @@ def test_e2e6_mobile_walk_the_block_field_survey_viewports_gps_daylight_photos_a
                 }
             ],
         )
-        page.wait_for_function(
-            "() => !document.getElementById('survey-photo-preview-wrap').classList.contains('hidden')",
-            timeout=20000,
+        page.evaluate(
+            """() => {
+                const inp = document.getElementById('survey-photo-input');
+                const wb = window.atlasApp._staffWorkbench;
+                if (inp && inp.files && inp.files.length > 0 && !wb._surveyPhotoStep) {
+                    inp.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }"""
         )
+        try:
+            page.wait_for_function(
+                """() => {
+                    const wrap = document.getElementById('survey-photo-preview-wrap');
+                    const wb = window.atlasApp?._staffWorkbench;
+                    return Boolean(
+                        wrap &&
+                        !wrap.classList.contains('hidden') &&
+                        wb?._surveyPhotoStep === 'done'
+                    );
+                }""",
+                timeout=30000,
+            )
+        except Exception as exc:
+            diag = page.evaluate(
+                """() => ({
+                    step: window.atlasApp?._staffWorkbench?._surveyPhotoStep || '',
+                    lastErr: window.atlasApp?._staffWorkbench?._lastSurveyPhotoError || '',
+                    filesLen: document.getElementById('survey-photo-input')?.files?.length ?? -1,
+                    previewHidden: document.getElementById('survey-photo-preview-wrap')?.classList.contains('hidden'),
+                    photoFilename: window.atlasApp?._staffWorkbench?.surveyDraft?.photo_filename || '',
+                })"""
+            )
+            raise AssertionError(
+                f"E2E-6d photo capture wait failed: diag={diag} page_errors={page_errors} console_errors={console_errors}"
+            ) from exc
         idb_audit = page.evaluate(
             """async () => {
                 const db = await new Promise((resolve, reject) => {

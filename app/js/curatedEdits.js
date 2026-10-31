@@ -2994,14 +2994,22 @@ export async function saveSurveyPhotoBlob(entry = {}) {
   const db = await openFieldSurveyPhotosIdb();
   if (db) {
     const wroteIdb = await new Promise((resolve) => {
+      let settled = false;
+      const done = (ok) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(txGuard);
+        resolve(ok);
+      };
+      const txGuard = setTimeout(() => done(false), 4000);
       try {
         const tx = db.transaction(IDB_FIELD_SURVEY_PHOTOS_STORE, "readwrite");
         tx.objectStore(IDB_FIELD_SURVEY_PHOTOS_STORE).put(record);
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => resolve(false);
-        tx.onabort = () => resolve(false);
+        tx.oncomplete = () => done(true);
+        tx.onerror = () => done(false);
+        tx.onabort = () => done(false);
       } catch (_e) {
-        resolve(false);
+        done(false);
       }
     });
     try {
@@ -3023,13 +3031,21 @@ export async function getSurveyPhotoBlob(photoId) {
   const db = await openFieldSurveyPhotosIdb();
   if (db) {
     const found = await new Promise((resolve) => {
+      let settled = false;
+      const done = (val) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(txGuard);
+        resolve(val);
+      };
+      const txGuard = setTimeout(() => done(null), 4000);
       try {
         const tx = db.transaction(IDB_FIELD_SURVEY_PHOTOS_STORE, "readonly");
         const req = tx.objectStore(IDB_FIELD_SURVEY_PHOTOS_STORE).get(key);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => resolve(null);
+        req.onsuccess = () => done(req.result || null);
+        req.onerror = () => done(null);
       } catch (_e) {
-        resolve(null);
+        done(null);
       }
     });
     try {
@@ -3048,13 +3064,21 @@ export async function listSurveyPhotoSummaries() {
   const db = await openFieldSurveyPhotosIdb();
   if (db) {
     const rows = await new Promise((resolve) => {
+      let settled = false;
+      const done = (val) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(txGuard);
+        resolve(val);
+      };
+      const txGuard = setTimeout(() => done([]), 4000);
       try {
         const tx = db.transaction(IDB_FIELD_SURVEY_PHOTOS_STORE, "readonly");
         const req = tx.objectStore(IDB_FIELD_SURVEY_PHOTOS_STORE).getAll();
-        req.onsuccess = () => resolve(Array.isArray(req.result) ? req.result : []);
-        req.onerror = () => resolve([]);
+        req.onsuccess = () => done(Array.isArray(req.result) ? req.result : []);
+        req.onerror = () => done([]);
       } catch (_e) {
-        resolve([]);
+        done([]);
       }
     });
     try {
@@ -3088,14 +3112,22 @@ export async function deleteSurveyPhotoBlob(photoId) {
   const db = await openFieldSurveyPhotosIdb();
   if (db) {
     await new Promise((resolve) => {
+      let settled = false;
+      const done = (ok) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(txGuard);
+        resolve(ok);
+      };
+      const txGuard = setTimeout(() => done(false), 4000);
       try {
         const tx = db.transaction(IDB_FIELD_SURVEY_PHOTOS_STORE, "readwrite");
         tx.objectStore(IDB_FIELD_SURVEY_PHOTOS_STORE).delete(key);
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => resolve(false);
-        tx.onabort = () => resolve(false);
+        tx.oncomplete = () => done(true);
+        tx.onerror = () => done(false);
+        tx.onabort = () => done(false);
       } catch (_e) {
-        resolve(false);
+        done(false);
       }
     });
     try {
