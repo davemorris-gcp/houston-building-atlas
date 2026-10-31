@@ -5086,40 +5086,123 @@ export class StaffWorkbenchController {
     this.mapController.setFieldSurveyOverlay(fc);
   }
 
+  _dataUrlToJpegBlob(dataUrl, fallbackFile) {
+    try {
+      const comma = String(dataUrl || "").indexOf(",");
+      if (comma < 0) return fallbackFile;
+      const bin = atob(dataUrl.slice(comma + 1));
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) {
+        u8[i] = bin.charCodeAt(i);
+      }
+      return new Blob([u8], { type: "image/jpeg" });
+    } catch (_err) {
+      return fallbackFile;
+    }
+  }
+
+  _encodeCanvasToJpegBlob(canvas, quality, fallbackFile) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (blobOrFile) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(blobOrFile || fallbackFile);
+      };
+      const timer = setTimeout(() => {
+        try {
+          finish(this._dataUrlToJpegBlob(canvas.toDataURL("image/jpeg", quality), fallbackFile));
+        } catch (_err) {
+          finish(fallbackFile);
+        }
+      }, 4000);
+      try {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              finish(blob);
+            } else {
+              try {
+                finish(this._dataUrlToJpegBlob(canvas.toDataURL("image/jpeg", quality), fallbackFile));
+              } catch (_e) {
+                finish(fallbackFile);
+              }
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      } catch (_err) {
+        try {
+          finish(this._dataUrlToJpegBlob(canvas.toDataURL("image/jpeg", quality), fallbackFile));
+        } catch (_e) {
+          finish(fallbackFile);
+        }
+      }
+    });
+  }
+
   async _compressPhotoFileToJpegBlob(file, maxEdgePx = 1600, quality = 0.82) {
-    if (typeof document === "undefined" || typeof Image === "undefined") return file;
+    if (typeof document === "undefined") return file;
+    const renderSource = async (source, rawW, rawH) => {
+      let w = rawW || 1200;
+      let h = rawH || 900;
+      if (w > maxEdgePx || h > maxEdgePx) {
+        const ratio = Math.min(maxEdgePx / w, maxEdgePx / h);
+        w = Math.max(1, Math.round(w * ratio));
+        h = Math.max(1, Math.round(h * ratio));
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(source, 0, 0, w, h);
+      return this._encodeCanvasToJpegBlob(canvas, quality, file);
+    };
+
+    if (typeof createImageBitmap === "function") {
+      try {
+        const bmp = await createImageBitmap(file);
+        try {
+          return await renderSource(bmp, bmp.width, bmp.height);
+        } finally {
+          if (typeof bmp.close === "function") {
+            bmp.close();
+          }
+        }
+      } catch (_err) {
+        // Fall through to HTMLImageElement decoder below
+      }
+    }
+
+    if (typeof Image === "undefined") return file;
     return new Promise((resolve) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
-      img.onload = () => {
-        try {
-          let w = img.naturalWidth || img.width || 1200;
-          let h = img.naturalHeight || img.height || 900;
-          if (w > maxEdgePx || h > maxEdgePx) {
-            const ratio = Math.min(maxEdgePx / w, maxEdgePx / h);
-            w = Math.max(1, Math.round(w * ratio));
-            h = Math.max(1, Math.round(h * ratio));
-          }
-          const canvas = document.createElement("canvas");
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, w, h);
-          URL.revokeObjectURL(url);
-          canvas.toBlob(
-            (blob) => resolve(blob || file),
-            "image/jpeg",
-            quality
-          );
-        } catch (_err) {
-          URL.revokeObjectURL(url);
-          resolve(file);
+      this._pendingDecodeImg = img;
+      let settled = false;
+      const done = (res) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(guard);
+        if (this._pendingDecodeImg === img) {
+          this._pendingDecodeImg = null;
         }
+        try {
+          URL.revokeObjectURL(url);
+        } catch (_e) {
+          // Ignore revoke errors
+        }
+        resolve(res);
       };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        resolve(file);
+      const guard = setTimeout(() => done(file), 8000);
+      img.onload = () => {
+        renderSource(img, img.naturalWidth || img.width, img.naturalHeight || img.height)
+          .then(done)
+          .catch(() => done(file));
       };
+      img.onerror = () => done(file);
       img.src = url;
     });
   }

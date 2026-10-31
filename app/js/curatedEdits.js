@@ -2947,6 +2947,14 @@ function openFieldSurveyPhotosIdb() {
     return Promise.resolve(null);
   }
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (db) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(guard);
+      resolve(db);
+    };
+    const guard = setTimeout(() => finish(null), 5000);
     try {
       const req = indexedDB.open(IDB_FIELD_SURVEY_PHOTOS_DB, 1);
       req.onupgradeneeded = () => {
@@ -2955,10 +2963,11 @@ function openFieldSurveyPhotosIdb() {
           db.createObjectStore(IDB_FIELD_SURVEY_PHOTOS_STORE, { keyPath: "photoId" });
         }
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
+      req.onsuccess = () => finish(req.result);
+      req.onerror = () => finish(null);
+      req.onblocked = () => finish(null);
     } catch (_e) {
-      resolve(null);
+      finish(null);
     }
   });
 }

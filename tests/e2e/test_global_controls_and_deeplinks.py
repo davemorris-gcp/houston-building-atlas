@@ -32,10 +32,20 @@ def test_cold_boot_preset_and_global_modals(
     assert page.locator("#hahc-modal-list .permit-watch-item-card").count() >= 10
     url_harvester.harvest_from_locator(page.locator("#hahc-tracker-modal"), "modal:hahc_docket_all")
 
-    # Filter HAHC Modal to Norhill + Active Oct 8, 2026 Agenda
+    # Filter HAHC Modal to Norhill historical filings + dynamic live Active Agenda
     page.select_option("#hahc-modal-district-select", value="Norhill")
-    page.click('#hahc-modal-category-pills [data-hahc-modal-cat="active_agenda"]')
     assert "Walling" in (page.locator("#hahc-modal-list").text_content() or "")
+    active_sample = page.evaluate(
+        """() => {
+            const filings = window.atlasApp?.hahcTracker?.filings || [];
+            const hit = filings.find(f => f && f.is_active_agenda && f.historic_district && f.address);
+            return hit ? { district: hit.historic_district, address: hit.address } : null;
+        }"""
+    )
+    if active_sample:
+        page.select_option("#hahc-modal-district-select", value=active_sample["district"])
+        page.click('#hahc-modal-category-pills [data-hahc-modal-cat="active_agenda"]')
+        assert active_sample["address"] in (page.locator("#hahc-modal-list").text_content() or "")
     url_harvester.harvest_from_locator(page.locator("#hahc-tracker-modal"), "modal:hahc_docket_norhill")
     page.click("#btn-close-hahc-modal")
     page.wait_for_selector("#hahc-tracker-modal", state="hidden", timeout=5000)
