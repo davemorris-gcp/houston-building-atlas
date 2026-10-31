@@ -156,6 +156,9 @@ APPS_SCRIPT_CODE = """function isAuthorizedSheetEditor_(payload) {
   return { authorized: false, error: 'Google account is not an Editor on this Sheet or invalid passkey.' };
 }
 
+var DQUOTE_ = String.fromCharCode(34);
+var SQUOTE_ = String.fromCharCode(39);
+
 function extractBalancedTagJson_(text, prefix) {
   var s = String(text || '');
   var idx = s.indexOf(prefix);
@@ -171,9 +174,9 @@ function extractBalancedTagJson_(text, prefix) {
     if (inStr) {
       if (esc) { esc = false; }
       else if (ch === '\\\\') { esc = true; }
-      else if (ch === '"') { inStr = false; }
+      else if (ch === DQUOTE_) { inStr = false; }
     } else {
-      if (ch === '"') { inStr = true; }
+      if (ch === DQUOTE_) { inStr = true; }
       else if (ch === '{') { depth++; }
       else if (ch === '}') {
         depth--;
@@ -190,7 +193,7 @@ function sanitizeSheetFormulaPrefix_(val) {
   var s = String(val === null || val === undefined ? '' : val)
     .replace(/[\\r\\n\\t]+/g, ' ')
     .trim();
-  if (s && /^[=+\\-@']/.test(s)) return "'" + s.replace(/^'+/, '');
+  if (s && /^[=+\\-@']/.test(s)) return SQUOTE_ + s.replace(/^'+/, '');
   return s;
 }
 
@@ -199,10 +202,11 @@ function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName('Approved_Edits');
   var values = sheet ? sheet.getDataRange().getValues() : [];
+  var dqRe = new RegExp(DQUOTE_, 'g');
   var csv = values.map(function(row) {
     return row.map(function(cell) {
       var s = String(cell === null || cell === undefined ? '' : cell);
-      return (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\\n') !== -1) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      return (s.indexOf(',') !== -1 || s.indexOf(DQUOTE_) !== -1 || s.indexOf('\\n') !== -1) ? DQUOTE_ + s.replace(dqRe, DQUOTE_ + DQUOTE_) + DQUOTE_ : s;
     }).join(',');
   }).join('\\n');
   return ContentService.createTextOutput(csv).setMimeType(ContentService.MimeType.CSV);
@@ -240,7 +244,7 @@ function doPost(e) {
         safeSurveyId,
         sanitizeSheetFormulaPrefix_(surveyAt),
         'Unreviewed',
-        rawSurveyHcad ? ("'" + rawSurveyHcad) : '',
+        rawSurveyHcad ? (SQUOTE_ + rawSurveyHcad) : '',
         sanitizeSheetFormulaPrefix_(payload.address || envObj.address || ''),
         sanitizeSheetFormulaPrefix_(payload.district_or_corridor || envObj.district_or_corridor || payload.historic_district || ''),
         sanitizeSheetFormulaPrefix_(payload.integrity_grade || envObj.integrity_grade || ''),
@@ -755,9 +759,9 @@ def build_instructions_rows() -> list[list]:
             "Configured in app/public/data/curated_overrides.json (googleSheetCsvUrl)",
         ],
         [
-            "4. Google Apps Script Code (Copy & Paste into Extensions -> Apps Script -> Deploy as Web App)",
+            "4. Google Apps Script Code (Double-click B5 or copy from Formula Bar -> Paste into Extensions -> Apps Script)",
             APPS_SCRIPT_CODE,
-            "Extensions -> Apps Script -> Deploy -> Manage deployments (Execute as: Me, Who has access: Anyone)",
+            "Double-click inside B5 -> Cmd+A -> Cmd+C -> Extensions -> Apps Script -> Deploy -> Manage deployments (Execute as: Me, Who has access: Anyone)",
         ],
         [
             "5. Sheet Editor Admin Passkey (Private - DO NOT MOVE FROM CELL B6)",

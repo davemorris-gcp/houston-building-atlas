@@ -1235,13 +1235,38 @@ def test_post_review_apps_script_formula_hardening_and_survey_merge_guards(tmp_p
         merge_field_survey_rows,
     )
 
-    # Critical #1: APPS_SCRIPT_CODE hardening invariants
+    # Critical #1: APPS_SCRIPT_CODE hardening invariants + zero literal double quotes (so Google Sheets
+    # single-click cell copy never doubles inner `"` -> `""` and causes V8 SyntaxError or CSV bugs)
+    assert '"' not in APPS_SCRIPT_CODE
     assert "surveyRow = [\n        safeSurveyId,\n        sanitizeSheetFormulaPrefix_(surveyAt),\n        'Unreviewed'," in APPS_SCRIPT_CODE
     assert "revCell.getFormula()" in APPS_SCRIPT_CODE
     assert "allowedReviewStatuses[existingReview] === true" in APPS_SCRIPT_CODE
     assert "setValues([[sanitizeSheetFormulaPrefix_(geomGeoJsonStr)]])" in APPS_SCRIPT_CODE
     assert "sanitizeSheetFormulaPrefix_(citationStr)" in APPS_SCRIPT_CODE
     assert "payload.review_status" not in APPS_SCRIPT_CODE
+
+    apps_js_file = tmp_path / "Code.gs.js"
+    apps_js_file.write_text(APPS_SCRIPT_CODE, encoding="utf-8")
+    node_bin = shutil.which("node") or "node"
+    syntax_res = subprocess.run([node_bin, "--check", str(apps_js_file)], capture_output=True, text=True, check=False)
+    assert syntax_res.returncode == 0, syntax_res.stderr
+    runtime_probe = subprocess.run(
+        [
+            node_bin,
+            "-e",
+            APPS_SCRIPT_CODE
+            + "\nconst assert = require('assert');"
+            + "\nassert.strictEqual(sanitizeSheetFormulaPrefix_('=B6'), \"'=B6\");"
+            + "\nassert.strictEqual(sanitizeSheetFormulaPrefix_(\"'''=B6\"), \"'=B6\");"
+            + "\nconst obj = extractBalancedTagJson_('note [FIELD_SURVEY_JSON:{\"survey_id\":\"S1\",\"address\":\"100 \\\\\"A\\\\\" St\"}]', '[FIELD_SURVEY_JSON:');"
+            + "\nassert.strictEqual(obj.survey_id, 'S1');"
+            + "\nassert.strictEqual(obj.address, '100 \"A\" St');",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert runtime_probe.returncode == 0, runtime_probe.stderr
 
     # Medium #11: Hub rows contain no truncated docs.google.com/document/d/1 link
     hub_dump = json.dumps(build_admin_hub_rows())
