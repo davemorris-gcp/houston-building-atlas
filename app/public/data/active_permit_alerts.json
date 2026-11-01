@@ -1,16 +1,16 @@
 {
-  "updated_at": "2026-10-31T16:36:46Z",
-  "generated_at": "2026-10-31T16:36:46Z",
+  "updated_at": "2026-11-01T17:28:06Z",
+  "generated_at": "2026-11-01T17:28:06Z",
   "lookback_days": 45,
   "coh_fetch_failed": false,
   "dshs_fetch_failed": true,
   "coh_fetch_error": "",
   "dshs_fetch_error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)",
   "summary": {
-    "total_flagged_buildings": 19,
-    "critical_count": 8,
-    "watch_count": 11,
-    "coh_permits_matched": 20,
+    "total_flagged_buildings": 16,
+    "critical_count": 6,
+    "watch_count": 10,
+    "coh_permits_matched": 17,
     "dshs_notifications_matched": 11
   },
   "annual_benchmarks": {
@@ -424,58 +424,6 @@
       ]
     },
     {
-      "hcad_num": "0200580000012",
-      "building_id": "0200580000012",
-      "title": "2224 ARLINGTON ST",
-      "building_name": "",
-      "address": "2224 ARLINGTON ST",
-      "year_built": 1940,
-      "yr_remodel": 0,
-      "style": "",
-      "architect": "",
-      "neighborhood": "",
-      "historic_district": "",
-      "landmark_name": "",
-      "good_brick_summary": "",
-      "owner": "",
-      "lng": -95.394036,
-      "lon": -95.394036,
-      "lat": 29.806938,
-      "severity": "critical",
-      "severity_label": "Critical Alert: Active Demolition & Sewer Disconnection Permits",
-      "badge": "Demo + Sewer Disc",
-      "headline": "City of Houston demolition and sewer disconnection permits (#26073706, issued 2026-09-16: DEMO RES/SEWER DISC).",
-      "preservation_note": "",
-      "latest_filing_date": "2026-09-16",
-      "coh_permits": [
-        {
-          "project_no": "26073706",
-          "date": "2026-09-16",
-          "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
-          "permit_desc": "Demolition",
-          "use_desc": "DEMO RES/SEWER DISC",
-          "fcc_group": "Demo; Single Familty Dwelling",
-          "owner_occupant": "*TOMO DEVELOPMENT LLC",
-          "buyer": "WILLIAMS DENNIS",
-          "buyer_address": "1748 OAK TREE DR 77080",
-          "valuation": "$ 0",
-          "job_address": "2224 ARLINGTON ST 77008",
-          "is_sewer_disconnect": true,
-          "is_garage_only": false,
-          "is_structural_demo": true,
-          "is_interior_only": false
-        }
-      ],
-      "dshs_notifications": [],
-      "related_hcads": [
-        "0200580000012"
-      ],
-      "related_building_ids": [
-        "0200580000012"
-      ]
-    },
-    {
       "hcad_num": "0210590000005",
       "building_id": "0210590000005",
       "title": "101 HEIGHTS BLVD",
@@ -543,60 +491,6 @@
       ],
       "related_building_ids": [
         "0210590000005"
-      ]
-    },
-    {
-      "hcad_num": "1487630010001",
-      "building_id": "1487630010001#b1",
-      "title": "503 SUL ROSS ST",
-      "building_name": "",
-      "address": "503 SUL ROSS ST",
-      "year_built": 1945,
-      "yr_remodel": 2020,
-      "style": "",
-      "architect": "",
-      "neighborhood": "First Montrose Commons",
-      "historic_district": "First Montrose Commons Historic District",
-      "landmark_name": "",
-      "good_brick_summary": "",
-      "owner": "501 PROPERTY INC",
-      "lng": -95.385969,
-      "lon": -95.385969,
-      "lat": 29.737665,
-      "severity": "critical",
-      "severity_label": "Critical Alert: Active Demolition & Sewer Disconnection Permits",
-      "badge": "Demo + Sewer Disc",
-      "headline": "City of Houston demolition and sewer disconnection permits (#26078006, issued 2026-09-16: DEMO BLD /SEWER DISC).",
-      "preservation_note": "",
-      "latest_filing_date": "2026-09-16",
-      "coh_permits": [
-        {
-          "project_no": "26078006",
-          "date": "2026-09-16",
-          "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
-          "permit_desc": "Demolition",
-          "use_desc": "DEMO BLD /SEWER DISC",
-          "fcc_group": "Demo; Other Building(s)",
-          "owner_occupant": "*SHAUNTY HEALING CENTER",
-          "buyer": "*COMPASS ABATEMENT SERVICES LL",
-          "buyer_address": "6730 WINDFERN RD 77040",
-          "valuation": "$ 0",
-          "job_address": "503 SUL ROSS ST A 77006",
-          "is_sewer_disconnect": true,
-          "is_garage_only": false,
-          "is_structural_demo": true,
-          "is_interior_only": false
-        }
-      ],
-      "dshs_notifications": [],
-      "related_hcads": [
-        "1487630010001",
-        "0082710000004"
-      ],
-      "related_building_ids": [
-        "1487630010001#b1",
-        "bld_005866"
       ]
     },
     {
@@ -968,58 +862,6 @@
       ],
       "related_building_ids": [
         "bld_000843"
-      ]
-    },
-    {
-      "hcad_num": "0230580000001",
-      "building_id": "0230580000001#b1",
-      "title": "509 SUL ROSS ST",
-      "building_name": "",
-      "address": "509 SUL ROSS ST",
-      "year_built": 1946,
-      "yr_remodel": 0,
-      "style": "",
-      "architect": "",
-      "neighborhood": "First Montrose Commons",
-      "historic_district": "First Montrose Commons Historic District",
-      "landmark_name": "",
-      "good_brick_summary": "",
-      "owner": "GOLDMAN JORDANA R",
-      "lng": -95.386362,
-      "lon": -95.386362,
-      "lat": 29.737727,
-      "severity": "watch",
-      "severity_label": "Active Watch: Garage / Accessory Demolition Permit",
-      "badge": "Garage Demo Only",
-      "headline": "City of Houston accessory/garage demolition permit (#26078904, issued 2026-09-16: DEMO RES / SEWER DISC (GARAGE ONLY)).",
-      "preservation_note": "",
-      "latest_filing_date": "2026-09-16",
-      "coh_permits": [
-        {
-          "project_no": "26078904",
-          "date": "2026-09-16",
-          "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
-          "permit_desc": "Demolition",
-          "use_desc": "DEMO RES / SEWER DISC (GARAGE ONLY)",
-          "fcc_group": "Demo; Single Familty Dwelling",
-          "owner_occupant": "*THE MONARCH COMMUNITY, INC.",
-          "buyer": "*COMPASS ABATEMENT SERVICES LL",
-          "buyer_address": "6730 WINDFERN RD 77040",
-          "valuation": "$ 0",
-          "job_address": "509 SUL ROSS ST 77006",
-          "is_sewer_disconnect": true,
-          "is_garage_only": true,
-          "is_structural_demo": true,
-          "is_interior_only": false
-        }
-      ],
-      "dshs_notifications": [],
-      "related_hcads": [
-        "0230580000001"
-      ],
-      "related_building_ids": [
-        "0230580000001#b1"
       ]
     },
     {

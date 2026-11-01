@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-31T16:39:43Z",
-  "lastSweepAt": "2026-10-31T16:37:22Z",
+  "generatedAt": "2026-11-01T17:32:10Z",
+  "lastSweepAt": "2026-11-01T17:28:42Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-03",
+  "retentionFloorDate": "2026-08-04",
   "lastSweepHealth": {
-    "timestamp": "2026-10-31T16:37:22Z",
+    "timestamp": "2026-11-01T17:28:42Z",
     "sweepsExecuted": true,
     "propertiesSwept": 29,
     "totalAgencies": 8,
@@ -76,20 +76,41 @@
     }
   },
   "summary": {
-    "totalEvents": 504,
-    "criticalCount": 44,
+    "totalEvents": 505,
+    "criticalCount": 45,
     "warningCount": 144,
     "infoCount": 316,
     "byStream": {
-      "watchlist": 129,
+      "watchlist": 130,
       "agenda": 87,
       "staff": 156,
       "permits": 132
     },
-    "operationalNoticeCount": 3,
-    "daysTracked": 80
+    "operationalNoticeCount": 4,
+    "daysTracked": 81
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-01",
+      "lastRunAt": "2026-11-01T17:32:10Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 29,
+      "totalAgencies": 8,
+      "succeededAgencies": 7,
+      "failedAgencies": [
+        "chk-15"
+      ],
+      "allOk": false,
+      "eventCount": 1,
+      "adverseEventCount": 1,
+      "byStream": {
+        "watchlist": 1,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 0
+      }
+    },
     {
       "date": "2026-10-31",
       "lastRunAt": "2026-10-31T16:39:43Z",
@@ -1694,6 +1715,65 @@
     }
   ],
   "events": [
+    {
+      "id": "wl:auto:prop-kirby-mansion:chk-13:id:coh-311:2600364835",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-01",
+      "localDate": "2026-11-01",
+      "timestamp": "2026-11-01T17:32:10Z",
+      "discoveredAt": "2026-11-01T17:32:10Z",
+      "loggedAt": "",
+      "title": "John Henry Kirby Mansion: Code Complaints & Dangerous Buildings",
+      "summary": "Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
+      "address": "2000 SMITH ST",
+      "hcad": "0152300000001",
+      "watchPropertyId": "prop-kirby-mansion",
+      "checkId": "chk-13",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_004618",
+      "lat": 29.751432,
+      "lng": -95.374833,
+      "yearBuilt": "1894",
+      "designation": "1979 Good Brick Award (No City Protected Landmark designation)",
+      "links": [
+        {
+          "label": "311 Service Request Viewer",
+          "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+        }
+      ]
+    },
+    {
+      "id": "wl:sweep:2026-11-01:degraded:chk-15",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-01",
+      "localDate": "2026-11-01",
+      "timestamp": "2026-11-01T17:28:42Z",
+      "discoveredAt": "2026-11-01T17:28:42Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (7/8 agencies OK)",
+      "summary": "1 agency endpoint(s) did not complete cleanly: TX DSHS Asbestos & Demolition (DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "permit:coh:0621340000009:26093543",
       "stream": "permits",
