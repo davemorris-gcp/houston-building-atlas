@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-01T17:32:10Z",
-  "lastSweepAt": "2026-11-01T17:28:42Z",
+  "generatedAt": "2026-11-02T21:17:11Z",
+  "lastSweepAt": "2026-11-02T21:12:10Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-04",
+  "retentionFloorDate": "2026-08-05",
   "lastSweepHealth": {
-    "timestamp": "2026-11-01T17:28:42Z",
+    "timestamp": "2026-11-02T21:12:10Z",
     "sweepsExecuted": true,
     "propertiesSwept": 29,
     "totalAgencies": 8,
@@ -86,10 +86,31 @@
       "staff": 156,
       "permits": 132
     },
-    "operationalNoticeCount": 4,
-    "daysTracked": 81
+    "operationalNoticeCount": 5,
+    "daysTracked": 82
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-02",
+      "lastRunAt": "2026-11-02T21:17:11Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 29,
+      "totalAgencies": 8,
+      "succeededAgencies": 7,
+      "failedAgencies": [
+        "chk-15"
+      ],
+      "allOk": false,
+      "eventCount": 0,
+      "adverseEventCount": 0,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 0
+      }
+    },
     {
       "date": "2026-11-01",
       "lastRunAt": "2026-11-01T17:32:10Z",
@@ -1715,6 +1736,33 @@
     }
   ],
   "events": [
+    {
+      "id": "wl:sweep:2026-11-02:degraded:chk-15",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-02",
+      "localDate": "2026-11-02",
+      "timestamp": "2026-11-02T21:12:10Z",
+      "discoveredAt": "2026-11-02T21:12:10Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (7/8 agencies OK)",
+      "summary": "1 agency endpoint(s) did not complete cleanly: TX DSHS Asbestos & Demolition (DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "wl:auto:prop-kirby-mansion:chk-13:id:coh-311:2600364835",
       "stream": "watchlist",

@@ -1,7 +1,7 @@
 {
   "app": "Plat Agenda Monitor",
   "version": 3,
-  "generatedAt": "2026-11-01T17:28:42Z",
+  "generatedAt": "2026-11-02T21:12:10Z",
   "autoSweepSchedule": "Daily at 7:00 AM CT",
   "scrapeFailed": false,
   "error": "",
@@ -14233,7 +14233,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93994/OriginalFiles/20261016-PLAT-FERRARI_OF_HOUSTON-60690-P136126_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T18%3A04%3A38Z&sr=b&sp=r&sig=mNaezvO9Dh7YpVeR0xfUyPN440%2FDxhXOo0ARjwW24XM%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-11-01T17:28:42.757526+00:00"
+      "updated": "2026-11-02T21:12:10.761318+00:00"
     },
     "2026-1685": {
       "address": "1615 LITTLE YORK RD",
@@ -14438,7 +14438,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf",
       "followup": "No existing building threatened on the parcel; monitor only if adjacent historic district context applies.",
       "autoEnriched": true,
-      "updated": "2026-11-01T17:28:42.757907+00:00"
+      "updated": "2026-11-02T21:12:10.761642+00:00"
     },
     "DPV-26075937": {
       "address": "1501 WICHMAN ST",
@@ -14526,7 +14526,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-01T17:28:42.758005+00:00"
+      "updated": "2026-11-02T21:12:10.761733+00:00"
     },
     "2026-1701": {
       "address": "5926 and 5930 Grace Lane",
@@ -26967,7 +26967,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.536128+00:00"
+          "updated": "2026-11-02T21:12:10.565229+00:00"
         },
         "2026-1441": {
           "address": "407 ELEANOR ST",
@@ -27129,7 +27129,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93798/OriginalFiles/54_and_58_Patti_Lynn_Lane__-_PARTIAL_REPLAT_OF_SANDALWOOD_SECTIONS_2_and_3_PR_NO_1_-_8-19-26.pdf?sv=2021-08-06&se=2051-09-18T14%3A58%3A56Z&sr=b&sp=r&sig=i5EOm8%2FUi%2FqPHAw4UmSG5wGYhBZuuEx8PIW8dicrzzw%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1520-Partial-Replat-of-Sandalwood-Sec-2-and-3-prno1-PH.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.536343+00:00"
+          "updated": "2026-11-02T21:12:10.565415+00:00"
         },
         "2026-1569": {
           "address": "4710 W ALABAMA ST",
@@ -39891,7 +39891,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93911/OriginalFiles/091602026_Magnolia_Residential-2-MAGNOLIA_RESIDENTIAL.pdf?sv=2021-08-06&se=2051-10-05T15%3A58%3A18Z&sr=b&sp=r&sig=rZX2ju5qnl7Qzi%2FW7kJbCQ7nLivuJ2zUkeB45xeVqfQ%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641304+00:00"
+          "updated": "2026-11-02T21:12:10.658947+00:00"
         },
         "2026-1637": {
           "address": "134 W LITTLE YORK RD",
@@ -39904,7 +39904,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93935/OriginalFiles/VISTA_EYE_CARE.pdf?sv=2021-08-06&se=2051-10-05T12%3A58%3A23Z&sr=b&sp=r&sig=OMe9DH3iy2pikuYcvxMGQ2mxxV6%2B73yjBwuhBkTSWX8%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641408+00:00"
+          "updated": "2026-11-02T21:12:10.659056+00:00"
         },
         "2026-1634": {
           "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -39917,7 +39917,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641427+00:00"
+          "updated": "2026-11-02T21:12:10.659072+00:00"
         },
         "2026-1630": {
           "address": "5930 GRACE LN",
@@ -39930,7 +39930,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93929/OriginalFiles/Quinto_Studio_-_Subdivision_-_Grace_Ln-GRACE_LANE_ESTATES.pdf?sv=2021-08-06&se=2051-10-05T01%3A20%3A40Z&sr=b&sp=r&sig=5C7EZeRjm7n9E8b8rFgsyF673Pg37lSri%2FoYxbhE%2BBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641452+00:00"
+          "updated": "2026-11-02T21:12:10.659095+00:00"
         },
         "2026-1625": {
           "address": "1508 LAWRENCE ST",
@@ -39961,7 +39961,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93908/OriginalFiles/SPRING_BRANCH_COMPLEX-Layout1.pdf?sv=2021-08-06&se=2051-10-02T19%3A57%3A05Z&sr=b&sp=r&sig=O76LkRvquITqH6FNikfZK7dSDBP4u6QHCI9WfVFzuwQ%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641532+00:00"
+          "updated": "2026-11-02T21:12:10.659166+00:00"
         },
         "2026-1605": {
           "address": "4615 SHERMAN ST",
@@ -39974,7 +39974,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641554+00:00"
+          "updated": "2026-11-02T21:12:10.659185+00:00"
         },
         "2026-1603": {
           "address": "7528 GAINESVILLE ST",
@@ -39987,7 +39987,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93883/OriginalFiles/26148150_Tahil_Oaks_Plat.pdf?sv=2021-08-06&se=2051-10-02T16%3A04%3A11Z&sr=b&sp=r&sig=LUF2feRvQXz%2BymknEW22PjRUIqF%2FErowqOS0N2IV1fU%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641575+00:00"
+          "updated": "2026-11-02T21:12:10.659203+00:00"
         },
         "2026-1587": {
           "address": "2501 CANAL ST",
@@ -40018,7 +40018,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93854/OriginalFiles/261061125-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A29%3A14Z&sr=b&sp=r&sig=HAQ59y4hq8lIuOQj%2BwtFqW%2B9pD5ohqNiVquvlJvGy2U%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1570-Bacher-Manor.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641684+00:00"
+          "updated": "2026-11-02T21:12:10.659287+00:00"
         },
         "2026-1557": {
           "address": "5912 HAIGHT ST",
@@ -40129,7 +40129,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641834+00:00"
+          "updated": "2026-11-02T21:12:10.659416+00:00"
         },
         "2026-1449": {
           "address": "6000 VASSER RD",
@@ -40142,7 +40142,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1449/OriginalFiles/2284-2504_Benders_Creek_General_Plan_09-18-2026.pdf?sv=2021-08-06&se=2051-09-22T20%3A29%3A56Z&sr=b&sp=r&sig=%2BFqP9ATYyzZwmqz51cJDcuBt4oQ7hpyv3BNxUi1ztqw%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641845+00:00"
+          "updated": "2026-11-02T21:12:10.659426+00:00"
         },
         "2026-1440": {
           "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
@@ -40155,7 +40155,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1440/OriginalFiles/Woodway_Drive_PRELIMINARY_PLAT_OF_BAYOU_GLEN_PARTIAL_REPLAT_NO_1__92126.pdf?sv=2021-08-06&se=2051-09-22T19%3A50%3A20Z&sr=b&sp=r&sig=s6a0uknskB%2BMe0kDG%2FTTtncjnNfi8j8Qy0LCrvAUqI8%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641872+00:00"
+          "updated": "2026-11-02T21:12:10.659449+00:00"
         },
         "2026-1427": {
           "address": "604 NEYLAND ST",
@@ -40192,7 +40192,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf",
           "followup": "No existing building threatened on the parcel; monitor only if adjacent historic district context applies.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.641925+00:00"
+          "updated": "2026-11-02T21:12:10.659496+00:00"
         },
         "DPV-4801-NMAIN": {
           "address": "4801 N MAIN ST",
@@ -40294,7 +40294,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.642015+00:00"
+          "updated": "2026-11-02T21:12:10.659577+00:00"
         },
         "2026-1620": {
           "hcad": "0451910000150, 0451910000414, 0451910000297, 0451910000296",
@@ -54731,7 +54731,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93994/OriginalFiles/20261016-PLAT-FERRARI_OF_HOUSTON-60690-P136126_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T18%3A04%3A38Z&sr=b&sp=r&sig=mNaezvO9Dh7YpVeR0xfUyPN440%2FDxhXOo0ARjwW24XM%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.757526+00:00"
+          "updated": "2026-11-02T21:12:10.761318+00:00"
         },
         "2026-1685": {
           "address": "1615 LITTLE YORK RD",
@@ -54936,7 +54936,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26073533-801-McGowen-Street.pdf",
           "followup": "No existing building threatened on the parcel; monitor only if adjacent historic district context applies.",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.757907+00:00"
+          "updated": "2026-11-02T21:12:10.761642+00:00"
         },
         "DPV-26075937": {
           "address": "1501 WICHMAN ST",
@@ -55024,7 +55024,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-01T17:28:42.758005+00:00"
+          "updated": "2026-11-02T21:12:10.761733+00:00"
         },
         "2026-1701": {
           "address": "5926 and 5930 Grace Lane",
