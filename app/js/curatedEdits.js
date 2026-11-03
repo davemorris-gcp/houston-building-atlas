@@ -1682,6 +1682,12 @@ export function mergeOverrideRecord(
     incomingOv.good_brick_awards || existingOv.good_brick_awards || null;
   merged.good_brick_summary =
     incomingOv.good_brick_summary || existingOv.good_brick_summary || "";
+  if (incomingOv.own_tier || existingOv.own_tier) {
+    merged.own_tier = incomingOv.own_tier || existingOv.own_tier;
+  }
+  if (incomingOv.port_id !== undefined || existingOv.port_id !== undefined) {
+    merged.port_id = incomingOv.port_id ?? existingOv.port_id ?? "";
+  }
   return merged;
 }
 
@@ -1753,6 +1759,8 @@ export function applyOverrideToProperties(props, overridesMap) {
     id: isGbPoint || isTaxParcel ? props.id : ov.id || props.id || hcadNum,
     building_id: isTaxParcel ? "" : ov.building_id || ov.id || props.building_id || "",
     hcad_num: ov.hcad_num || hcadNum,
+    own_tier: ov.own_tier || props.own_tier || "",
+    port_id: ov.port_id || props.port_id || "",
     year_built: verifiedYear,
     decade: isSuppressOnly ? 0 : computeNormalizedDecade(verifiedYear) || props.decade || 0,
     original_hcad_year: origYear,

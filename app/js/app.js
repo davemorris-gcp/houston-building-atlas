@@ -370,6 +370,7 @@ export class HoustonAtlasApp {
       const urlKey = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       if (urlKey === this._lastHandledUrlKey) return;
       this._lastHandledUrlKey = urlKey;
+      const urlSeq = (this._urlChangeSeq = (this._urlChangeSeq || 0) + 1);
 
       const {
         patch,
@@ -426,6 +427,7 @@ export class HoustonAtlasApp {
             id: activeScorecard.id,
             updateUrl: false,
           });
+          if (urlSeq !== this._urlChangeSeq) return;
         } else if (!document.getElementById("scorecard-modal")?.classList.contains("hidden")) {
           this.closeScorecardModal({ updateUrl: false });
         }
@@ -443,6 +445,7 @@ export class HoustonAtlasApp {
               updateUrl: false,
               respectPresetViewport: Boolean(viewport),
             });
+            if (urlSeq !== this._urlChangeSeq) return;
           } else if (Boolean(curSess.includeOpposing) !== wantOpp) {
             curSess.includeOpposing = wantOpp;
             this._recomputeAndRenderChapter42Session({ updateUrl: false });
@@ -462,6 +465,7 @@ export class HoustonAtlasApp {
             activePolyEdit,
             updateUrl: false,
           });
+          if (urlSeq !== this._urlChangeSeq) return;
         }
 
         if (activeChapterId && activeChapterId !== this._activeChapterId) {
@@ -508,6 +512,7 @@ export class HoustonAtlasApp {
             viewport,
             Boolean(vpChangedSignificantly)
           );
+          if (urlSeq !== this._urlChangeSeq) return;
         } else if (selection?.boundaryId) {
           if (vpChangedSignificantly) {
             this.mapController.flyToLocation({
@@ -581,8 +586,10 @@ export class HoustonAtlasApp {
         this._applyExportStudioHashParams(window.location.hash, window.location.search);
         this._lastHistorySignature = this._computeHistorySignature(this.filterStore.getState());
       } finally {
-        this._suppressUrlUpdate = false;
-        this._isRestoringHistory = false;
+        if (urlSeq === this._urlChangeSeq) {
+          this._suppressUrlUpdate = false;
+          this._isRestoringHistory = false;
+        }
       }
     };
 
@@ -20148,6 +20155,7 @@ export class HoustonAtlasApp {
   async openScorecardModal({ layer = "", id = "", updateUrl = true } = {}) {
     const modal = document.getElementById("scorecard-modal");
     if (!modal) return;
+    const scSeq = (this._scorecardReqSeq = (this._scorecardReqSeq || 0) + 1);
     modal.classList.remove("hidden");
     const hasExplicitTarget = Boolean(layer && id);
     this._setScorecardMobilePane(hasExplicitTarget ? "detail" : "table");
@@ -20159,6 +20167,7 @@ export class HoustonAtlasApp {
 
     try {
       const ds = await this._ensureScorecardsLoaded();
+      if (scSeq !== this._scorecardReqSeq) return;
       const cleanLayer = VALID_SCORECARD_LAYERS.has(String(layer)) ? String(layer) : "";
       let targetRec = null;
 
@@ -20200,13 +20209,14 @@ export class HoustonAtlasApp {
             activeScorecard: { layer: targetRec.layer, id: targetRec.id },
           });
         } else {
+          const prevSuppress = this._suppressUrlUpdate;
           this._suppressUrlUpdate = true;
           try {
             this.filterStore.setState({
               activeScorecard: { layer: targetRec.layer, id: targetRec.id },
             });
           } finally {
-            this._suppressUrlUpdate = false;
+            this._suppressUrlUpdate = prevSuppress;
           }
         }
         await this._renderScorecardModalDetail(targetRec);
@@ -20214,6 +20224,7 @@ export class HoustonAtlasApp {
         detailPane.innerHTML = `<div style="padding:24px;color:var(--text-secondary)">Requested boundary scorecard not found. Select any district or neighborhood on the left.</div>`;
       }
     } catch (err) {
+      if (scSeq !== this._scorecardReqSeq) return;
       console.error("Failed to open Scorecard modal:", err);
       if (detailPane) {
         detailPane.innerHTML = `<div style="padding:24px;color:#fda4af">Failed to load Preservation Scorecards dataset. Please check your connection and try again.</div>`;
@@ -20222,17 +20233,19 @@ export class HoustonAtlasApp {
   }
 
   closeScorecardModal({ updateUrl = true } = {}) {
+    this._scorecardReqSeq = (this._scorecardReqSeq || 0) + 1;
     const modal = document.getElementById("scorecard-modal");
     if (modal) modal.classList.add("hidden");
     if (this.filterStore.getState().activeScorecard) {
       if (updateUrl) {
         this.filterStore.setState({ activeScorecard: null });
       } else {
+        const prevSuppress = this._suppressUrlUpdate;
         this._suppressUrlUpdate = true;
         try {
           this.filterStore.setState({ activeScorecard: null });
         } finally {
-          this._suppressUrlUpdate = false;
+          this._suppressUrlUpdate = prevSuppress;
         }
       }
     }
@@ -20620,11 +20633,12 @@ export class HoustonAtlasApp {
       if (updateUrl) {
         this.filterStore.setState({ activeCh42: nextCh42Spec });
       } else {
+        const prevSuppress = this._suppressUrlUpdate;
         this._suppressUrlUpdate = true;
         try {
           this.filterStore.setState({ activeCh42: nextCh42Spec });
         } finally {
-          this._suppressUrlUpdate = false;
+          this._suppressUrlUpdate = prevSuppress;
         }
       }
     }
@@ -20668,11 +20682,12 @@ export class HoustonAtlasApp {
       if (updateUrl) {
         this.filterStore.setState({ activeCh42: null });
       } else {
+        const prevSuppress = this._suppressUrlUpdate;
         this._suppressUrlUpdate = true;
         try {
           this.filterStore.setState({ activeCh42: null });
         } finally {
-          this._suppressUrlUpdate = false;
+          this._suppressUrlUpdate = prevSuppress;
         }
       }
     }

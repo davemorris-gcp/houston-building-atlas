@@ -3179,6 +3179,7 @@ _RE_CIVIC_OR_HOA_OWNER = re.compile(
     re.IGNORECASE,
 )
 
+# Keep synchronized with RE_CIVIC_LANDMARK_OR_OWNER in app/js/filterStore.js.
 _RE_CIVIC_LANDMARK_NAME = re.compile(
     r"\b("
     r"TOYOTA\s+CENTER|SHELL\s+ENERGY\s+STADIUM|DYNAMO\s+STADIUM|BBVA\s+STADIUM"

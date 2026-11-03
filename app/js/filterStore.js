@@ -28,6 +28,74 @@ export function normalizeComparableAddress(raw) {
 
 export const DEFAULT_ATLAS_MAX_YEAR = 2026;
 let _atlasMaxYear = DEFAULT_ATLAS_MAX_YEAR;
+
+export const OWNERSHIP_TIER_ITEMS = [
+  { key: "homestead", label: "Protected Homestead (Owner-Occupied)", color: "#38BDF8" },
+  { key: "local_small", label: "Local Non-Homestead / Small Landlord (1-4 Parcels)", color: "#34D399" },
+  { key: "regional_portfolio", label: "Regional Portfolio / Builder (5-99 Parcels)", color: "#F59E0B" },
+  { key: "institutional_pe", label: "Institutional / PE Portfolio (100+ Parcels)", color: "#E11D48" },
+  { key: "anonymity_shield", label: "Registered-Agent Anonymity Shield / Confidential", color: "#A855F7" },
+  { key: "civic_nonprofit", label: "Civic / Non-Profit / Religious / HOA Steward", color: "#94A3B8" },
+];
+
+// Keep synchronized with _RE_CIVIC_LANDMARK_NAME / _RE_CIVIC_OR_HOA_OWNER in pipeline/atlas_pipeline/schema.py.
+const RE_CIVIC_LANDMARK_OR_OWNER =
+  /\b(?:TOYOTA\s+CENTER|SHELL\s+ENERGY\s+STADIUM|DYNAMO\s+STADIUM|DAIKIN\s+PARK|MINUTE\s+MAID\s+PARK|NRG\s+STADIUM|NRG\s+ASTRODOME|ASTRODOME|ALLEY\s+THEATRE|WORTHAM|JONES\s+HALL|HOBBY\s+CENTER|MILLER\s+OUTDOOR\s+THEATRE|CONVENTION\s+CENTER|DISCOVERY\s+GREEN|HERMANN\s+PARK|MEMORIAL\s+PARK|EMANCIPATION\s+PARK|BUFFALO\s+BAYOU|CITY\s+HALL|COURTHOUSE|FIRE\s+STATION|CUSTOM\s+HOUSE|POST\s+OFFICE|CITY\s+OF\s+HOUSTON|HARRIS\s+COUNTY|COUNTY\s+OF\s+HARRIS|STATE\s+OF\s+TEXAS|UNITED\s+STATES|SPORTS\s+AUTHORITY|METRO|HOUSTON\s+HOUSING\s+AUTHORITY|CHURCH|CATHEDRAL|CHAPEL|SYNAGOGUE|MOSQUE|TEMPLE|PARISH|DIOCESE|ARCHDIOCESE|BAPTIST|METHODIST|CATHOLIC|LUTHERAN|PRESBYTERIAN|EPISCOPAL|UNIVERSITY|COLLEGE|SCHOOL|ISD|HOSPITAL|MEDICAL\s+CENTER|MUSEUM|MENIL|ROTHKO|BAYOU\s+BEND|LIBRARY|COMMUNITY\s+CENTER|CULTURAL\s+CENTER)\b/i;
+
+export function resolveEffectiveOwnershipTier(ownTier, useCategory = "", landmarkOrOwner = "") {
+  const useClean = String(useCategory || "").trim();
+  const cleanTier = String(ownTier || "").trim().toLowerCase();
+  if (
+    useClean === "Civic / Institutional" ||
+    (landmarkOrOwner && RE_CIVIC_LANDMARK_OR_OWNER.test(String(landmarkOrOwner)))
+  ) {
+    return "civic_nonprofit";
+  }
+  const isKnown = OWNERSHIP_TIER_ITEMS.some((item) => item.key === cleanTier);
+  if (isKnown && cleanTier !== "homestead") {
+    return cleanTier;
+  }
+  if (useClean === "Commercial" || useClean === "Industrial" || useClean === "Vacant / Exempt") {
+    return "local_small";
+  }
+  if (useClean === "Multi-Family") {
+    return cleanTier === "homestead" ? "homestead" : "local_small";
+  }
+  return isKnown ? cleanTier : "homestead";
+}
+
+export function buildEffectiveOwnershipTierExpression() {
+  const rawTierExpr = ["coalesce", ["get", "own_tier"], ""];
+  const isMissingOrHomesteadExpr = [
+    "in",
+    rawTierExpr,
+    ["literal", ["", "homestead"]],
+  ];
+  return [
+    "case",
+    ["==", ["coalesce", ["get", "use_category"], ""], "Civic / Institutional"],
+    "civic_nonprofit",
+    [
+      "all",
+      isMissingOrHomesteadExpr,
+      [
+        "in",
+        ["coalesce", ["get", "use_category"], ""],
+        ["literal", ["Commercial", "Industrial", "Vacant / Exempt"]],
+      ],
+    ],
+    "local_small",
+    [
+      "all",
+      ["==", rawTierExpr, ""],
+      ["==", ["coalesce", ["get", "use_category"], ""], "Multi-Family"],
+    ],
+    "local_small",
+    ["!=", rawTierExpr, ""],
+    rawTierExpr,
+    "homestead",
+  ];
+}
 const _liveStoreRefs = new Set();
 
 export function getAtlasMaxYear() {
@@ -211,26 +279,10 @@ export function buildFeatureFilterExpression(state) {
 
   const extraClauses = [];
   if (ownTier && ownTier !== "all") {
-    const effOwnTierExpr = [
-      "case",
-      ["==", ["get", "use_category"], "Civic / Institutional"],
-      "civic_nonprofit",
-      [
-        "all",
-        ["==", ["coalesce", ["get", "own_tier"], "homestead"], "homestead"],
-        [
-          "in",
-          ["get", "use_category"],
-          ["literal", ["Commercial", "Industrial", "Vacant / Exempt"]],
-        ],
-      ],
-      "local_small",
-      ["coalesce", ["get", "own_tier"], "homestead"],
-    ];
-    extraClauses.push(["==", effOwnTierExpr, ownTier]);
+    extraClauses.push(["==", buildEffectiveOwnershipTierExpression(), ownTier]);
   }
   if (portfolioOnly) {
-    extraClauses.push(["has", "port_id"]);
+    extraClauses.push(["!=", ["coalesce", ["get", "port_id"], ""], ""]);
   }
   if (extraClauses.length === 0) {
     return baseExpr;
@@ -346,18 +398,12 @@ export function featureMatchesLostHoustonFilter(props, state) {
 export function featureMatchesFilter(props, state) {
   if (!props) return false;
   if (state?.ownTier && state.ownTier !== "all") {
-    const rawT = String(props.own_tier || "").trim().toLowerCase();
-    const useC = String(props.use_category || "").trim();
-    const ftier =
-      useC === "Civic / Institutional"
-        ? "civic_nonprofit"
-        : (!rawT || rawT === "homestead") &&
-          (useC === "Commercial" || useC === "Industrial" || useC === "Vacant / Exempt")
-        ? "local_small"
-        : !rawT && useC === "Multi-Family"
-        ? "local_small"
-        : rawT || "homestead";
-    if (ftier !== state.ownTier) return false;
+    const effTier = resolveEffectiveOwnershipTier(
+      props.own_tier,
+      props.use_category,
+      props.landmark_name || props.building_name || props.bld_name || props.owner
+    );
+    if (effTier !== state.ownTier) return false;
   }
   if (state?.portfolioOnly && !props.port_id) {
     return false;

@@ -66,6 +66,7 @@ from atlas_pipeline.schema import (
     is_tax_protest_agent_care_of,
     normalize_hcad_date,
     normalize_postal_billing_key,
+    _normalize_postal_line,
     sanitize_atlas_text,
     write_compact_json,
 )
@@ -1175,27 +1176,7 @@ _CIVIC_OSM_OVERRIDE_KEYS: frozenset[str] = frozenset({
 
 
 def _normalize_street_lookup_key(raw_addr: str) -> str:
-    s = str(raw_addr or "").upper().strip()
-    for pat, rep in (
-        (r"\bSTREET\b", "ST"),
-        (r"\bAVENUE\b", "AVE"),
-        (r"\bBOULEVARD\b", "BLVD"),
-        (r"\bDRIVE\b", "DR"),
-        (r"\bROAD\b", "RD"),
-        (r"\bFREEWAY\b", "FWY"),
-        (r"\bPARKWAY\b", "PKWY"),
-        (r"\bHIGHWAY\b", "HWY"),
-        (r"\bLANE\b", "LN"),
-        (r"\bCOURT\b", "CT"),
-        (r"\bCIRCLE\b", "CIR"),
-        (r"\bPLACE\b", "PL"),
-        (r"\bNORTH\b", "N"),
-        (r"\bSOUTH\b", "S"),
-        (r"\bEAST\b", "E"),
-        (r"\bWEST\b", "W"),
-    ):
-        s = re.sub(pat, rep, s)
-    return re.sub(r"\s+", " ", s).strip()
+    return _normalize_postal_line(str(raw_addr or ""))
 
 
 def stamp_ownership_onto_geojsonseq_and_core(

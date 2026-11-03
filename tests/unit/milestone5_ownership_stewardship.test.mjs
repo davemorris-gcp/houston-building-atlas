@@ -6,11 +6,13 @@ import { fileURLToPath } from "node:url";
 
 import {
   OWNERSHIP_TIER_ITEMS,
+  buildEffectiveOwnershipTierExpression,
   resolveEffectiveOwnershipTier,
   resolveOwnershipTierColor,
   buildColorExpression,
   getLegendItems,
 } from "../../app/js/palettes.js";
+import { applyOverrideToProperties } from "../../app/js/curatedEdits.js";
 import {
   VALID_COLOR_MODES,
   VALID_PORTFOLIO_KINDS,
@@ -57,17 +59,25 @@ test("UT-5: palettes.js ownership_tier color mode expressions and 6-tier Okabe-I
 
   const colorExpr = buildColorExpression("ownership_tier");
   assert.ok(Array.isArray(colorExpr));
-  assert.equal(colorExpr[0], "case");
-  assert.deepEqual(colorExpr[1], ["==", ["get", "use_category"], "Civic / Institutional"]);
-  assert.equal(colorExpr[2], "#94A3B8");
-  const matchFallback = colorExpr[colorExpr.length - 1];
-  assert.equal(matchFallback[0], "match");
-  assert.deepEqual(matchFallback[1], ["coalesce", ["get", "own_tier"], "homestead"]);
-  assert.equal(matchFallback[matchFallback.length - 1], "#38BDF8");
+  assert.equal(colorExpr[0], "match");
+  assert.deepEqual(colorExpr[1], buildEffectiveOwnershipTierExpression());
+  assert.equal(colorExpr[1][0], "case");
+  assert.deepEqual(colorExpr[1][1], ["==", ["coalesce", ["get", "use_category"], ""], "Civic / Institutional"]);
+  assert.equal(colorExpr[1][2], "civic_nonprofit");
+  assert.equal(colorExpr[colorExpr.length - 1], "#38BDF8");
+
+  // Verify applyOverrideToProperties propagates own_tier and port_id onto matched features
+  const mergedOvProps = applyOverrideToProperties(
+    { id: "0010810000007", hcad_num: "0010810000007", use_category: "Commercial", own_tier: "homestead", port_id: "" },
+    { "0010810000007": { hcad_num: "0010810000007", use_category: "Commercial", own_tier: "regional_portfolio", port_id: "port_downtown_1" } }
+  );
+  assert.equal(mergedOvProps.own_tier, "regional_portfolio");
+  assert.equal(mergedOvProps.port_id, "port_downtown_1");
 
   // Verify resolveEffectiveOwnershipTier prevents non-residential structures from defaulting to homestead
   assert.equal(resolveEffectiveOwnershipTier("homestead", "Civic / Institutional", "Toyota Center"), "civic_nonprofit");
   assert.equal(resolveEffectiveOwnershipTier("homestead", "Commercial", "Toyota Center"), "civic_nonprofit");
+  assert.equal(resolveEffectiveOwnershipTier("homestead", "Commercial", "Discovery Green"), "civic_nonprofit");
   assert.equal(resolveEffectiveOwnershipTier("homestead", "Commercial", "Fulbright Tower"), "local_small");
   assert.equal(resolveEffectiveOwnershipTier("homestead", "Multi-Family", "413 Columbia St"), "homestead");
   assert.equal(resolveEffectiveOwnershipTier("", "Multi-Family", "413 Columbia St"), "local_small");

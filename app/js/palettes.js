@@ -3,7 +3,19 @@
  * for The Houston Building Atlas v2 (Preservation Houston).
  */
 
-import { DEFAULT_ATLAS_MAX_YEAR, getAtlasMaxYear } from "./filterStore.js?v=20261031a";
+import {
+  DEFAULT_ATLAS_MAX_YEAR,
+  getAtlasMaxYear,
+  OWNERSHIP_TIER_ITEMS,
+  resolveEffectiveOwnershipTier,
+  buildEffectiveOwnershipTierExpression,
+} from "./filterStore.js?v=20261031a";
+
+export {
+  OWNERSHIP_TIER_ITEMS,
+  resolveEffectiveOwnershipTier,
+  buildEffectiveOwnershipTierExpression,
+};
 
 export const ARCHIVAL_YEAR_STOPS = [
   { year: 1836, maxYear: 1889, label: "1836-1889 (Pioneer & Victorian)", color: "#8B1E24" },
@@ -49,40 +61,6 @@ export const USE_CATEGORY_ITEMS = [
   { key: "Industrial", label: "Industrial / Warehouse", color: "#7F8C8D" },
   { key: "Vacant / Exempt", label: "Vacant / Untaxed Parcel", color: "#4A4A48" },
 ];
-
-export const OWNERSHIP_TIER_ITEMS = [
-  { key: "homestead", label: "Protected Homestead (Owner-Occupied)", color: "#38BDF8" },
-  { key: "local_small", label: "Local Non-Homestead / Small Landlord (1-4 Parcels)", color: "#34D399" },
-  { key: "regional_portfolio", label: "Regional Portfolio / Builder (5-99 Parcels)", color: "#F59E0B" },
-  { key: "institutional_pe", label: "Institutional / PE Portfolio (100+ Parcels)", color: "#E11D48" },
-  { key: "anonymity_shield", label: "Registered-Agent Anonymity Shield / Confidential", color: "#A855F7" },
-  { key: "civic_nonprofit", label: "Civic / Non-Profit / Religious / HOA Steward", color: "#94A3B8" },
-];
-
-const RE_CIVIC_LANDMARK_OR_OWNER =
-  /\b(?:TOYOTA\s+CENTER|SHELL\s+ENERGY\s+STADIUM|DYNAMO\s+STADIUM|DAIKIN\s+PARK|MINUTE\s+MAID\s+PARK|NRG\s+STADIUM|NRG\s+ASTRODOME|ASTRODOME|ALLEY\s+THEATRE|WORTHAM|JONES\s+HALL|HOBBY\s+CENTER|CONVENTION\s+CENTER|CITY\s+OF\s+HOUSTON|HARRIS\s+COUNTY|COUNTY\s+OF\s+HARRIS|SPORTS\s+AUTHORITY|CHURCH|CATHEDRAL|CHAPEL|SYNAGOGUE|MOSQUE|TEMPLE|UNIVERSITY|COLLEGE|SCHOOL|ISD|HOSPITAL|MEDICAL\s+CENTER|MUSEUM|LIBRARY)\b/i;
-
-export function resolveEffectiveOwnershipTier(ownTier, useCategory = "", landmarkOrOwner = "") {
-  const useClean = String(useCategory || "").trim();
-  const cleanTier = String(ownTier || "").trim().toLowerCase();
-  if (
-    useClean === "Civic / Institutional" ||
-    (landmarkOrOwner && RE_CIVIC_LANDMARK_OR_OWNER.test(String(landmarkOrOwner)))
-  ) {
-    return "civic_nonprofit";
-  }
-  const isKnown = OWNERSHIP_TIER_ITEMS.some((item) => item.key === cleanTier);
-  if (isKnown && cleanTier !== "homestead") {
-    return cleanTier;
-  }
-  if (useClean === "Commercial" || useClean === "Industrial" || useClean === "Vacant / Exempt") {
-    return "local_small";
-  }
-  if (useClean === "Multi-Family") {
-    return cleanTier === "homestead" ? "homestead" : "local_small";
-  }
-  return isKnown ? cleanTier : "homestead";
-}
 
 export function resolveOwnershipTierColor(ownTier, useCategory = "", landmarkOrOwner = "") {
   const effTier = resolveEffectiveOwnershipTier(ownTier, useCategory, landmarkOrOwner);
@@ -2833,36 +2811,21 @@ export function buildColorExpression(colorMode = "year_built", paletteStyle = "a
 
   if (colorMode === "ownership_tier") {
     return [
-      "case",
-      ["==", ["get", "use_category"], "Civic / Institutional"],
-      "#94A3B8",
-      [
-        "all",
-        ["==", ["coalesce", ["get", "own_tier"], "homestead"], "homestead"],
-        [
-          "in",
-          ["get", "use_category"],
-          ["literal", ["Commercial", "Industrial", "Vacant / Exempt"]],
-        ],
-      ],
+      "match",
+      buildEffectiveOwnershipTierExpression(),
+      "homestead",
+      "#38BDF8",
+      "local_small",
       "#34D399",
-      [
-        "match",
-        ["coalesce", ["get", "own_tier"], "homestead"],
-        "homestead",
-        "#38BDF8",
-        "local_small",
-        "#34D399",
-        "regional_portfolio",
-        "#F59E0B",
-        "institutional_pe",
-        "#E11D48",
-        "anonymity_shield",
-        "#A855F7",
-        "civic_nonprofit",
-        "#94A3B8",
-        "#38BDF8",
-      ],
+      "regional_portfolio",
+      "#F59E0B",
+      "institutional_pe",
+      "#E11D48",
+      "anonymity_shield",
+      "#A855F7",
+      "civic_nonprofit",
+      "#94A3B8",
+      "#38BDF8",
     ];
   }
 
