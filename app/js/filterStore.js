@@ -59,8 +59,38 @@ export function setAtlasMaxYear(year) {
   return _atlasMaxYear;
 }
 
+export const VALID_COLOR_MODES = new Set([
+  "year_built",
+  "preservation_status",
+  "use_category",
+  "ownership_tier",
+]);
+
+export const VALID_PORTFOLIO_KINDS = new Set([
+  "architect",
+  "style",
+  "owner_portfolio",
+]);
+
+export function normalizePortfolioKind(rawKind) {
+  const k = String(rawKind || "")
+    .trim()
+    .toLowerCase();
+  if (k === "style") return "style";
+  if (
+    k === "owner_portfolio" ||
+    k === "owner" ||
+    k === "portfolio" ||
+    k === "steward" ||
+    k === "landlord"
+  ) {
+    return "owner_portfolio";
+  }
+  return "architect";
+}
+
 export const DEFAULT_FILTER_STATE = {
-  colorMode: "year_built", // 'year_built' | 'preservation_status' | 'use_category'
+  colorMode: "year_built", // 'year_built' | 'preservation_status' | 'use_category' | 'ownership_tier'
   paletteStyle: "archival", // 'archival' | 'classic_ee'
   renderMode: "buildings", // 'buildings' | 'both' | 'parcels' | 'none'
   lastActiveRenderMode: "buildings", // remembers 'buildings' | 'both' | 'parcels' when buildings are toggled off
@@ -87,6 +117,8 @@ export const DEFAULT_FILTER_STATE = {
   redBookCategory: "all", // 'all' | 'church' | 'school' | 'business' | 'residence'
   holcGradeFilter: "all", // 'all' | 'A' | 'B' | 'C' | 'D'
   hahcFilter: "all", // 'all' | 'active_agenda' | 'demolition_relocation' | 'addition_new' | 'designation' | 'denied_or_cor'
+  ownTier: "all", // 'all' | 'homestead' | 'local_small' | 'regional_portfolio' | 'institutional_pe' | 'anonymity_shield' | 'civic_nonprofit'
+  portfolioOnly: false, // when true, filters buildings to parcels belonging to a beneficial portfolio (`port_id` present)
   isolatedBoundary: null, // null or { layerKey, id, name, mode: 'contents' | 'footprints_only' | 'border_only' }
   activeScorecard: null, // null or { layer: string, id: string }
   activeCh42: null, // null or { hcad: string, includeOpposing: boolean }
@@ -132,46 +164,62 @@ export function buildFeatureFilterExpression(state) {
   const minY = Number(state.minYear) || 1836;
   const maxY = Number(state.maxYear) || topY;
   const dec = String(state.selectedDecade || "all");
+  const ownTier = String(state.ownTier || "all").trim();
+  const portfolioOnly = Boolean(state.portfolioOnly);
 
+  let baseExpr;
   if (dec === "unknown") {
-    return ["<", ["to-number", ["get", "year_built"], 0], 1836];
-  }
-
-  if (dec !== "all") {
+    baseExpr = ["<", ["to-number", ["get", "year_built"], 0], 1836];
+  } else if (dec !== "all") {
     const decInt = Number(dec);
     if (!Number.isNaN(decInt) && decInt >= 1830) {
       const lowBound = decInt === 1840 ? 1836 : decInt;
       if (state.historicalSnapshotMode) {
-        return [
+        baseExpr = [
           "all",
           [">=", ["to-number", ["get", "year_built"], 0], 1836],
           ["<=", ["to-number", ["get", "year_built"], 0], decInt + 9],
         ];
+      } else {
+        baseExpr = [
+          "all",
+          [">=", ["to-number", ["get", "year_built"], 0], lowBound],
+          ["<=", ["to-number", ["get", "year_built"], 0], decInt + 9],
+        ];
       }
-      return [
-        "all",
-        [">=", ["to-number", ["get", "year_built"], 0], lowBound],
-        ["<=", ["to-number", ["get", "year_built"], 0], decInt + 9],
-      ];
     }
   }
 
-  const effectiveMinY = state.historicalSnapshotMode ? 1836 : minY;
-  const datedInRange = [
-    "all",
-    [">=", ["to-number", ["get", "year_built"], 0], effectiveMinY],
-    ["<=", ["to-number", ["get", "year_built"], 0], maxY],
-  ];
-
-  if (state.showUnknownYears && !state.historicalSnapshotMode) {
-    return [
-      "any",
-      ["<", ["to-number", ["get", "year_built"], 0], 1836],
-      datedInRange,
+  if (!baseExpr) {
+    const effectiveMinY = state.historicalSnapshotMode ? 1836 : minY;
+    const datedInRange = [
+      "all",
+      [">=", ["to-number", ["get", "year_built"], 0], effectiveMinY],
+      ["<=", ["to-number", ["get", "year_built"], 0], maxY],
     ];
+
+    if (state.showUnknownYears && !state.historicalSnapshotMode) {
+      baseExpr = [
+        "any",
+        ["<", ["to-number", ["get", "year_built"], 0], 1836],
+        datedInRange,
+      ];
+    } else {
+      baseExpr = datedInRange;
+    }
   }
 
-  return datedInRange;
+  const extraClauses = [];
+  if (ownTier && ownTier !== "all") {
+    extraClauses.push(["==", ["coalesce", ["get", "own_tier"], "homestead"], ownTier]);
+  }
+  if (portfolioOnly) {
+    extraClauses.push(["has", "port_id"]);
+  }
+  if (extraClauses.length === 0) {
+    return baseExpr;
+  }
+  return ["all", baseExpr, ...extraClauses];
 }
 
 /**
@@ -281,6 +329,13 @@ export function featureMatchesLostHoustonFilter(props, state) {
  */
 export function featureMatchesFilter(props, state) {
   if (!props) return false;
+  if (state?.ownTier && state.ownTier !== "all") {
+    const ftier = String(props.own_tier || "homestead").trim();
+    if (ftier !== state.ownTier) return false;
+  }
+  if (state?.portfolioOnly && !props.port_id) {
+    return false;
+  }
   const yr = Number(props.year_built) || 0;
   const dec = String(state.selectedDecade || "all");
 
@@ -936,6 +991,11 @@ const SHORT_TO_COLOR_MODE = {
   use_category: "use_category",
   use: "use_category",
   landuse: "use_category",
+  ownership_tier: "ownership_tier",
+  ownership: "ownership_tier",
+  owner: "ownership_tier",
+  who_owns: "ownership_tier",
+  stewardship: "ownership_tier",
 };
 
 let _cachedPresetsYear = null;
@@ -1186,8 +1246,14 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     params.set("chapter", String(activeChapterId).trim());
   }
   if (activePortfolio && activePortfolio.query) {
-    const pKind = activePortfolio.kind === "style" ? "style" : "architect";
+    const pKind = normalizePortfolioKind(activePortfolio.kind);
     params.set("portfolio", `${pKind}:${String(activePortfolio.query).trim()}`);
+  }
+  if (state.ownTier && state.ownTier !== "all") {
+    params.set("ownTier", String(state.ownTier).trim());
+  }
+  if (state.portfolioOnly) {
+    params.set("portfolioOnly", "1");
   }
 
   const effScorecard = normalizeScorecardSpec(
@@ -1687,12 +1753,32 @@ export function parseHashToState(hashString = "", searchString = "") {
   if (rawPortfolio) {
     const cIdx = rawPortfolio.indexOf(":");
     if (cIdx > 0) {
-      const pKind = rawPortfolio.slice(0, cIdx).trim().toLowerCase() === "style" ? "style" : "architect";
+      const pKind = normalizePortfolioKind(rawPortfolio.slice(0, cIdx));
       const pQuery = rawPortfolio.slice(cIdx + 1).trim();
       if (pQuery) activePortfolio = { kind: pKind, query: pQuery };
     } else {
       activePortfolio = { kind: "architect", query: rawPortfolio };
     }
+  }
+  const rawOwnTier = (mergedParams.get("ownTier") || mergedParams.get("own_tier") || "")
+    .trim()
+    .toLowerCase();
+  if (
+    rawOwnTier === "homestead" ||
+    rawOwnTier === "local_small" ||
+    rawOwnTier === "regional_portfolio" ||
+    rawOwnTier === "institutional_pe" ||
+    rawOwnTier === "anonymity_shield" ||
+    rawOwnTier === "civic_nonprofit" ||
+    rawOwnTier === "all"
+  ) {
+    patch.ownTier = rawOwnTier;
+  }
+  if (mergedParams.has("portfolioOnly")) {
+    const rawPo = String(mergedParams.get("portfolioOnly") || "")
+      .trim()
+      .toLowerCase();
+    patch.portfolioOnly = rawPo === "1" || rawPo === "true" || rawPo === "on";
   }
 
   let activeScorecard = null;
@@ -2163,6 +2249,8 @@ export function createFilterStore(initialOverrides = {}) {
       redBookCategory: "all",
       holcGradeFilter: "all",
       hahcFilter: "all",
+      ownTier: "all",
+      portfolioOnly: false,
       isPlaying: false,
       activeAudit: false,
       activeAuditCategory: "all",

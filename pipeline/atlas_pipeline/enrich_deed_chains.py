@@ -15,8 +15,6 @@ Normalized token formats (verified against Harris County Clerk Real Property RP.
 
 from __future__ import annotations
 
-import collections
-import csv
 import io
 import json
 import re
@@ -24,12 +22,8 @@ import zipfile
 from pathlib import Path
 
 from atlas_pipeline.schema import (
-    HARD_MAX_APP_BYTES,
-    MAX_SINGLE_FILE_BYTES,
     MAX_VALID_YEAR,
-    SOFT_MAX_APP_BYTES,
     normalize_hcad_date,
-    write_compact_json,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -270,175 +264,27 @@ def main(
     app_dir: Path = APP_DIR,
     *,
     tax_year: int | None = None,
-) -> None:
-    if not real_acct_zip.exists():
-        raise FileNotFoundError(f"Missing HCAD archive: {real_acct_zip}")
-    max_deed_year = MAX_VALID_YEAR if tax_year is None else int(tax_year) + 1
-
-    print("[1/4] Loading existing permit shards from app/public/data/permits/...")
-    shards: dict[str, dict[str, dict]] = collections.defaultdict(dict)
-    existing_acct_count = 0
-    for shard_file in sorted(permits_dir.glob("permits_*.json")):
-        prefix3 = shard_file.stem.replace("permits_", "")
-        data = json.loads(shard_file.read_text(encoding="utf-8"))
-        # Strip any prior top-level "d" deed-chain keys so re-runs are strictly idempotent
-        # (note: nested permit descriptions live at rec["p"][i]["d"] and remain untouched)
-        cleaned = {}
-        for acct, rec in data.items():
-            if isinstance(rec, dict):
-                rec.pop("d", None)
-                if rec:
-                    cleaned[acct] = rec
-        shards[prefix3] = cleaned
-        existing_acct_count += len(cleaned)
-    print(f"      Loaded {len(shards)} shards with {existing_acct_count:,} existing accounts.")
-
-    print("[2/4] Streaming and normalizing deeds.txt from Real_acct_owner.zip...")
-    # Map acct -> dict[token -> best_yyyymmdd]
-    deeds_by_acct: dict[str, dict[str, str]] = collections.defaultdict(dict)
-    total_rows = 0
-    normalized_rows = 0
-    with zipfile.ZipFile(real_acct_zip) as zf:
-        with zf.open("deeds.txt") as raw_f:
-            rdr = csv.DictReader(io.TextIOWrapper(raw_f, encoding="latin-1"), delimiter="\t")
-            for row in rdr:
-                total_rows += 1
-                acct = (row.get("acct") or "").strip()
-                if len(acct) < 10 or not acct[:3].isdigit():
-                    continue
-                tok = normalize_hcad_clerk_instrument(
-                    row.get("clerk_yr") or "",
-                    row.get("clerk_id") or "",
-                    max_year=max_deed_year,
-                )
-                if not tok:
-                    continue
-                normalized_rows += 1
-                dt8 = parse_dos_yyyymmdd(
-                    row.get("dos") or "",
-                    row.get("clerk_yr") or "",
-                    max_year=max_deed_year,
-                )
-                prev_dt = deeds_by_acct[acct].get(tok)
-                # Prefer full MM/DD/YYYY dates over year-only YYYY0000 or 00000000 placeholders, then newer date
-                dt_key = (dt8 != "00000000" and not dt8.endswith("0000"), dt8)
-                prev_key = (
-                    (prev_dt != "00000000" and not prev_dt.endswith("0000"), prev_dt)
-                    if prev_dt is not None
-                    else None
-                )
-                if prev_key is None or dt_key > prev_key:
-                    deeds_by_acct[acct][tok] = dt8
-
-    print(
-        f"      Normalized {normalized_rows:,} of {total_rows:,} deed rows across "
-        f"{len(deeds_by_acct):,} unique HCAD accounts."
+) -> dict:
+    """Idempotently enrich `permits_<prefix3>.json` shards by delegating to `enrich_permit_shards_with_ownership_and_deeds`."""
+    from atlas_pipeline.build_ownership_and_history import (
+        enrich_permit_shards_with_ownership_and_deeds,
     )
 
-    # Format compact deed chain strings per parcel
-    compact_deed_str_by_acct: dict[str, str] = {}
-    for acct, tok_map in deeds_by_acct.items():
-        # Sort newest first by YYYYMMDD, then token
-        pairs = sorted(tok_map.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)
-        top_pairs = pairs[:MAX_DEEDS_PER_PARCEL]
-        compact_deed_str_by_acct[acct] = "|".join(f"{dt8}:{tok}" for tok, dt8 in top_pairs)
-
-    # Compute baseline non-permit app/ bytes and stripped permit shard bytes (idempotent across re-runs)
-    non_permit_bytes = compute_app_total_bytes(app_dir) - sum(
-        p.stat().st_size for p in permits_dir.glob("permits_*.json")
-    )
-    stripped_permits_bytes = sum(
-        len(json.dumps(shard_dict, separators=(",", ":")).encode("utf-8"))
-        for shard_dict in shards.values()
-        if shard_dict
-    )
-
-    # First check size with improved/mapped parcels (covers 100% of clickable buildings on the Atlas)
-    improved_hcads = collect_improved_and_mapped_hcads(
-        shards, data_dir=data_dir, real_bldg_zip=real_bldg_zip
-    )
-    print(f"[3/4] Collected {len(improved_hcads):,} improved/mapped HCAD accounts.")
-
-    # Estimate whether all deeds.txt accounts fit under SOFT_MAX_APP_BYTES
-    est_all_added = 0
-    for acct, d_str in compact_deed_str_by_acct.items():
-        p3 = acct[:3]
-        if acct in shards.get(p3, {}):
-            est_all_added += len(d_str) + 7  # ,"d":"..."
-        else:
-            est_all_added += len(acct) + len(d_str) + 12  # "<acct>":{"d":"..."},
-
-    include_unimproved = (
-        non_permit_bytes + stripped_permits_bytes + est_all_added
-    ) < SOFT_MAX_APP_BYTES
-    mode_label = (
-        "ALL countywide parcels (including vacant/unimproved)"
-        if include_unimproved
-        else "ALL improved/mapped building parcels"
+    summary = enrich_permit_shards_with_ownership_and_deeds(
+        real_acct_zip=real_acct_zip,
+        permits_dir=permits_dir,
+        data_dir=data_dir,
+        real_bldg_zip=real_bldg_zip,
+        app_dir=app_dir,
+        tax_year=tax_year,
     )
     print(
-        f"      Estimated total app/ size with all deeds: "
-        f"{(non_permit_bytes + stripped_permits_bytes + est_all_added) / (1024 * 1024):.2f} MB -> "
-        f"Mode: {mode_label}"
+        f"Done! Enriched {summary['enriched_existing']:,} existing shard accounts + "
+        f"{summary['added_new_accts']:,} new accounts "
+        f"(largest shard: {summary['max_shard_name']} = {summary['max_shard_bytes'] / (1024 * 1024):.2f} MB, "
+        f"projected app/ total: {summary['projected_total_bytes'] / (1024 * 1024):.2f} MB)."
     )
-
-    enriched_existing = 0
-    added_new_accts = 0
-    for acct, d_str in compact_deed_str_by_acct.items():
-        p3 = acct[:3]
-        shard_dict = shards[p3]
-        if acct in shard_dict:
-            shard_dict[acct]["d"] = d_str
-            enriched_existing += 1
-        elif include_unimproved or acct in improved_hcads:
-            shard_dict[acct] = {"d": d_str}
-            added_new_accts += 1
-
-    print("[4/4] Validating budget constraints and writing enriched permit & deed chain shards...")
-    permits_dir.mkdir(parents=True, exist_ok=True)
-    projected_shards_bytes = 0
-    max_shard_bytes = 0
-    max_shard_name = ""
-    for prefix3, shard_dict in sorted(shards.items()):
-        if not shard_dict:
-            continue
-        raw_bytes = json.dumps(shard_dict, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-        sz = len(raw_bytes)
-        if sz >= MAX_SINGLE_FILE_BYTES:
-            raise RuntimeError(
-                f"Enriched shard permits_{prefix3}.json ({sz} bytes) exceeds "
-                f"MAX_SINGLE_FILE_BYTES ({MAX_SINGLE_FILE_BYTES} bytes)."
-            )
-        projected_shards_bytes += sz
-        if sz > max_shard_bytes:
-            max_shard_bytes = sz
-            max_shard_name = f"permits_{prefix3}.json"
-
-    projected_total_bytes = non_permit_bytes + projected_shards_bytes
-    if projected_total_bytes >= HARD_MAX_APP_BYTES:
-        raise RuntimeError(
-            f"Enriched app/ bundle ({projected_total_bytes} bytes) exceeds "
-            f"HARD_MAX_APP_BYTES ({HARD_MAX_APP_BYTES} bytes)."
-        )
-
-    for prefix3, shard_dict in sorted(shards.items()):
-        shard_file = permits_dir / f"permits_{prefix3}.json"
-        if not shard_dict:
-            shard_file.unlink(missing_ok=True)
-            continue
-        write_compact_json(shard_file, shard_dict)
-
-    final_app_bytes = compute_app_total_bytes(app_dir)
-    sample_key_st = shards.get("062", {}).get("0621100000014", {}).get("d")
-    print(
-        f"Done! Enriched {enriched_existing:,} existing shard accounts + {added_new_accts:,} "
-        f"deed-only accounts across {len(shards)} shards."
-    )
-    print(
-        f"Largest shard: {max_shard_name} ({max_shard_bytes / (1024 * 1024):.2f} MB) | "
-        f"Total app/ bundle: {final_app_bytes / (1024 * 1024):.2f} MB (limit 980.00 MB)"
-    )
-    print(f"Verification 1127 Key St (0621100000014) d = {sample_key_st}")
+    return summary
 
 
 if __name__ == "__main__":

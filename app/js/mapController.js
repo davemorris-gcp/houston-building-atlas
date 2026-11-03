@@ -9,6 +9,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   PRESERVATION_STATUS_ITEMS,
+  resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
@@ -153,8 +154,16 @@ function getSanbornMaterialColors(materialKey) {
   return resolveSanbornMaterialColors(materialKey);
 }
 
-function evaluateFeatureColor(props, colorMode, paletteStyle) {
+export function evaluateFeatureColor(props, colorModeOrState, paletteStyle) {
   if (!props) return "#524E4A";
+  const colorMode =
+    colorModeOrState && typeof colorModeOrState === "object"
+      ? colorModeOrState.colorMode
+      : colorModeOrState;
+  const effPalette =
+    colorModeOrState && typeof colorModeOrState === "object"
+      ? colorModeOrState.paletteStyle
+      : paletteStyle;
   if (colorMode === "preservation_status") {
     if (props.protection_tier === "plm" || props.landmark_type === "Protected Landmark") {
       return "#E63946";
@@ -187,7 +196,10 @@ function evaluateFeatureColor(props, colorMode, paletteStyle) {
     const found = USE_CATEGORY_ITEMS.find((i) => i.key === props.use_category);
     return found ? found.color : "#524E4A";
   }
-  return getYearColorHex(props.year_built, paletteStyle);
+  if (colorMode === "ownership_tier") {
+    return resolveOwnershipTierColor(props.own_tier);
+  }
+  return getYearColorHex(props.year_built, effPalette);
 }
 
 function canCreateWebGLContext() {
@@ -204,6 +216,10 @@ function canCreateWebGLContext() {
 }
 
 export class AtlasMapController {
+  evaluateFeatureColor(props, colorModeOrState, paletteStyle) {
+    return evaluateFeatureColor(props, colorModeOrState, paletteStyle);
+  }
+
   constructor({
     containerId,
     filterStore,
@@ -1034,6 +1050,8 @@ export class AtlasMapController {
             stories: Number(ov.stories) || 1,
             height_m: Number(ov.height_m) || 4.5,
             use_category: ov.use_category || "Residential",
+            own_tier: ov.own_tier || "homestead",
+            port_id: ov.port_id || "",
             historic_district: ov.historic_district || "",
             contributing: ov.contributing || "Contributing",
             footprint_source: "observed",

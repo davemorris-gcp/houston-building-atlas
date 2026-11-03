@@ -492,6 +492,23 @@ def run_full_county_build(
     contrib_counter: Counter[str] = Counter()
     use_counter: Counter[str] = Counter()
     district_counter: Counter[str] = Counter()
+    own_tier_counter: Counter[str] = Counter()
+
+    ownership_lookup: dict[str, Any] = {}
+    acct_zip_candidate = cache_dir / "Real_acct_owner.zip"
+    if acct_zip_candidate.exists():
+        try:
+            from atlas_pipeline.build_ownership_and_history import build_ownership_graph
+
+            ownership_graph = build_ownership_graph(
+                acct_zip_candidate,
+                tax_year=max_yr,
+                comptroller_cache_path=cache_dir / "tx_comptroller_entities.json",
+            )
+            ownership_lookup = ownership_graph.get("accounts") or {}
+        except (OSError, zipfile.BadZipFile, KeyError, ValueError) as exc:
+            print(f"      WARNING: Failed to build ownership graph in full_build: {exc}")
+            ownership_lookup = {}
 
     matched_parcel_mask = np.zeros(len(parcel_geoms_2278), dtype=bool)
     total_buildings = 0
@@ -563,6 +580,14 @@ def run_full_county_build(
         if hist:
             props.update(hist)
 
+        own_rec = ownership_lookup.get(acct)
+        if own_rec is not None:
+            props["own_tier"] = own_rec.own_tier
+            if own_rec.port_id:
+                props["port_id"] = own_rec.port_id
+        else:
+            props.setdefault("own_tier", "homestead")
+
         return props
 
     def record_stats(props: dict[str, Any], is_observed: bool = True) -> None:
@@ -583,6 +608,7 @@ def run_full_county_build(
         contrib = props.get("contributing", "Outside Historic District")
         contrib_counter[contrib] += 1
         use_counter[props["use_category"]] += 1
+        own_tier_counter[str(props.get("own_tier") or "homestead")] += 1
         dist = props.get("historic_district")
         if dist:
             district_counter[dist] += 1
@@ -858,6 +884,11 @@ def run_full_county_build(
         "decade_counts": campus_stats["decade_counts"] if campus_stats else ordered_decades,
         "contributing_counts": campus_stats["contributing_counts"] if campus_stats else dict(contrib_counter),
         "use_category_counts": campus_stats["use_category_counts"] if campus_stats else dict(use_counter),
+        "ownership_tier_counts": (
+            campus_stats["ownership_tier_counts"]
+            if (campus_stats and "ownership_tier_counts" in campus_stats)
+            else dict(own_tier_counter)
+        ),
         "top_historic_districts": (
             campus_stats["top_historic_districts"]
             if campus_stats

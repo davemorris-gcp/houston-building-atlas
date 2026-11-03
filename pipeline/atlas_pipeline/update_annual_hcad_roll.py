@@ -111,6 +111,7 @@ from atlas_pipeline.schema import (
     INFERRED_FALLBACK_YEAR_SOURCES,
     MAX_SINGLE_FILE_BYTES,
     MIN_VALID_YEAR,
+    OWNERSHIP_TIER_KEYS,
     QUAD_NAMES,
     SOFT_MAX_APP_BYTES,
     WATCHLIST_TOMBSTONE_STATUSES,
@@ -308,6 +309,16 @@ class HcadAccountSnapshot:
     owner: str = ""
     mail_addr_1: str = ""
     mail_addr_2: str = ""
+    mail_city: str = ""
+    mail_state: str = ""
+    mail_zip: str = ""
+    own_tier: str = "homestead"
+    port_id: str = ""
+    display_mail: str = ""
+    care_of: str = ""
+    is_protected_homestead: bool = False
+    is_sec_25_025_confidential: bool = False
+    co_owners: list[str] = field(default_factory=list)
     subdivision: str = ""
     lgl_2: str = ""
     neighborhood_code: str = ""
@@ -1072,6 +1083,9 @@ def stream_hcad_account_snapshots(
             i_mailto = col["mailto"]
             i_mail1 = col.get("mail_addr_1", -1)
             i_mail2 = col.get("mail_addr_2", -1)
+            i_mcity = col.get("mail_city", -1)
+            i_mstate = col.get("mail_state", -1)
+            i_mzip = col.get("mail_zip", -1)
             i_spfx = col.get("str_pfx", -1)
             i_snum = col["str_num"]
             i_snumsfx = col.get("str_num_sfx", -1)
@@ -1110,6 +1124,9 @@ def stream_hcad_account_snapshots(
                 snap.owner = sanitize_atlas_text(_cell(parts, i_mailto))
                 snap.mail_addr_1 = sanitize_atlas_text(_cell(parts, i_mail1))
                 snap.mail_addr_2 = sanitize_atlas_text(_cell(parts, i_mail2))
+                snap.mail_city = sanitize_atlas_text(_cell(parts, i_mcity))
+                snap.mail_state = sanitize_atlas_text(_cell(parts, i_mstate))
+                snap.mail_zip = _cell(parts, i_mzip)[:10]
                 raw_addr1 = _cell(parts, i_addr1)
                 snap.raw_site_addr_1 = sanitize_atlas_text(raw_addr1)
                 snap.numbered_address = _assemble_numbered_situs(
@@ -1226,6 +1243,29 @@ def stream_hcad_account_snapshots(
                         snap.demo_permit_desc = sanitize_atlas_text(dscr or tp_dscr)
                         snap.demo_permit_addr = sanitize_atlas_text(p_addr)
                         snap.demo_permit_apt = sanitize_atlas_text(apt_str)
+
+    # Hydrate single-source 6-tier ownership & portfolio classifications (DF-1, DF-2)
+    try:
+        from atlas_pipeline.build_ownership_and_history import build_ownership_graph
+
+        own_graph = build_ownership_graph(
+            acct_zip_path,
+            tax_year=eff_tax,
+            include_owners_table=True,
+            include_permits_table=False,
+        )
+        for acct_k, orec in (own_graph.get("records") or {}).items():
+            sn_target = snapshots.get(acct_k)
+            if sn_target is not None:
+                sn_target.own_tier = orec.own_tier
+                sn_target.port_id = orec.port_id
+                sn_target.display_mail = orec.display_mail
+                sn_target.care_of = orec.care_of
+                sn_target.is_protected_homestead = orec.is_protected_homestead
+                sn_target.is_sec_25_025_confidential = orec.is_sec_25_025_confidential
+                sn_target.co_owners = list(orec.co_owners)
+    except Exception:
+        pass
 
     if cache_dir_for_cama_pkl is not None:
         compact_lookup = {acct: snap.to_cama_tuple() for acct, snap in snapshots.items()}
@@ -1771,11 +1811,15 @@ def _maybe_build_cohort5_candidate(
             "demo_permit_date": snap.demo_permit_date,
             "demo_permit_desc": snap.demo_permit_desc,
             "cama_state_class": snap.state_class,
+            "auto_graduate": True,
+            "graduation_status": "auto_graduated_demo_permit_paired",
             "lon": round(float(center[0]), 6),
             "lat": round(float(center[1]), 6),
         }
 
-    # Annual roll delta clearance / replat teardown with authoritative pre-1940 survey provenance
+    # Annual roll delta clearance / replat teardown with authoritative pre-1940 survey provenance.
+    # Per Emily Ardoin's Two-Key rule, bare $0 improvement flips without a paired main-structure
+    # demolition permit are held in the review queue (`auto_graduate=False`) rather than auto-graduated.
     post_status = "vacant_lot"
     if snap is not None and snap.earliest_year >= max(2020, prior_tax_year - 3):
         post_status = f"rebuilt_{snap.earliest_year}"
@@ -1796,6 +1840,8 @@ def _maybe_build_cohort5_candidate(
         "demo_permit_date": "",
         "demo_permit_desc": "",
         "cama_state_class": snap.state_class if snap is not None else "",
+        "auto_graduate": False,
+        "graduation_status": "hold_for_review_no_demo_permit",
         "lon": round(float(center[0]), 6),
         "lat": round(float(center[1]), 6),
     }
@@ -2034,6 +2080,11 @@ def resolve_replat_lineage(
         if best_snap is not None:
             if best_snap.owner:
                 new_props["owner"] = best_snap.owner
+            new_props["own_tier"] = best_snap.own_tier or "homestead"
+            if best_snap.port_id:
+                new_props["port_id"] = best_snap.port_id
+            else:
+                new_props.pop("port_id", None)
             if best_snap.land_area_sqft > 0.0:
                 new_props["land_area"] = round(best_snap.land_area_sqft, 1)
             if best_snap.max_remodel_year >= MIN_VALID_YEAR:
@@ -2452,12 +2503,23 @@ def classify_feature_delta(
                     np_props["height_m"] = ht_est
 
             if changed:
+                np_props["own_tier"] = snap.own_tier or "homestead"
+                if snap.port_id:
+                    np_props["port_id"] = snap.port_id
+                else:
+                    np_props.pop("port_id", None)
                 parcel_any_updated = True
                 patched_by_quad[q_name].append(new_feat)
                 delta.upserted_features_by_hcad[hcad].append(new_feat)
                 _mark_hcad_touched(delta, core_hcads, hcad, q_name)
                 feature_counts[DeltaCategory.UPDATED_STANDING.value] += 1
             else:
+                fp_mut = feat.setdefault("properties", {})
+                fp_mut["own_tier"] = snap.own_tier or str(fp_mut.get("own_tier") or "homestead")
+                if snap.port_id:
+                    fp_mut["port_id"] = snap.port_id
+                else:
+                    fp_mut.pop("port_id", None)
                 patched_by_quad[q_name].append(feat)
                 feature_counts[DeltaCategory.UNCHANGED.value] += 1
 
@@ -2497,6 +2559,7 @@ def classify_feature_delta(
             f"{cfg.max_annual_demolition_fraction:.2%}."
         )
 
+    sorted_c5 = sorted(cohort5_by_hcad.values(), key=lambda r: (r["year_built"], r["hcad_num"]))
     return {
         "patched_by_quad": patched_by_quad,
         "artifact_delta": delta,
@@ -2506,7 +2569,9 @@ def classify_feature_delta(
         "demolition_fraction": round(demo_fraction, 6),
         "dropped_townhome_splits": int(dropped_townhome_splits),
         "orphan_records": orphan_records,
-        "lost_houston_candidates": sorted(cohort5_by_hcad.values(), key=lambda r: (r["year_built"], r["hcad_num"])),
+        "lost_houston_candidates": sorted_c5,
+        "auto_graduated_lost_houston_candidates": [c for c in sorted_c5 if c.get("auto_graduate") is True],
+        "bare_zero_value_flips_hold_for_review": [c for c in sorted_c5 if not c.get("auto_graduate")],
         "protected_cama_disagreements": protected_cama_disagreements,
         "rebuilt_on_suppressed_lots": rebuilt_on_suppressed_lots,
         "used_building_ids": used_building_ids,
@@ -3031,7 +3096,10 @@ def synthesize_new_construction_features(
                 "is_footprint": g_src == "observed_footprint",
                 "historic_district": hd_name,
                 "contributing": contrib,
+                "own_tier": snap.own_tier or "homestead",
             }
+            if snap.port_id:
+                props_new["port_id"] = snap.port_id
             feat_obj = {
                 "type": "Feature",
                 "id": fid,
@@ -3318,6 +3386,11 @@ def _stream_targeted_enrichment_records(
                         if prev_key is None or dt_key > prev_key:
                             deeds_by_acct[ac][inst_tok] = dt8
 
+    from atlas_pipeline.build_ownership_and_history import (
+        AccountOwnershipRecord,
+        build_account_enrichment_fields,
+    )
+
     for ac, rec in records.items():
         if reloc_by_acct.get(ac):
             rm = reloc_by_acct[ac]
@@ -3326,13 +3399,37 @@ def _stream_targeted_enrichment_records(
             rec["xf"] = xf_by_acct[ac]
         if permits_by_acct.get(ac):
             rec["p"] = finalize_hcad_account_permits(permits_by_acct[ac])
+        sorted_pairs: list[tuple[str, str]] = []
         if deeds_by_acct.get(ac):
-            pairs = sorted(
+            sorted_pairs = sorted(
                 deeds_by_acct[ac].items(),
                 key=lambda kv: (kv[1], kv[0]),
                 reverse=True,
+            )[:MAX_DEEDS_PER_PARCEL]
+            rec["d"] = "|".join(f"{dt8}:{tok}" for tok, dt8 in sorted_pairs)
+
+        sn_ac = new_accounts.get(ac)
+        if sn_ac is not None:
+            orec = AccountOwnershipRecord(
+                acct=ac,
+                own_tier=sn_ac.own_tier or "homestead",
+                port_id=sn_ac.port_id or "",
+                owner_name=sn_ac.owner or "",
+                situs_addr=sn_ac.numbered_address or sn_ac.raw_site_addr_1 or "",
+                state_class=sn_ac.state_class or "",
+                subdivision=sn_ac.subdivision or "",
+                display_mail=sn_ac.display_mail or "",
+                care_of=sn_ac.care_of or "",
+                co_owners=list(sn_ac.co_owners),
+                is_protected_homestead=bool(sn_ac.is_protected_homestead),
+                is_sec_25_025_confidential=bool(sn_ac.is_sec_25_025_confidential),
+                latest_demo_permit_date=sn_ac.demo_permit_date if sn_ac.has_main_demo_permit else "",
             )
-            rec["d"] = "|".join(f"{dt8}:{tok}" for tok, dt8 in pairs[:MAX_DEEDS_PER_PARCEL])
+            own_fields = build_account_enrichment_fields(
+                orec, sorted_pairs, include_non_homestead_mail=True
+            )
+            own_fields.pop("d", None)
+            rec.update(own_fields)
 
     return {ac: r for ac, r in records.items() if r}
 
@@ -4160,6 +4257,7 @@ def reconcile_derived_building_indexes(
     use_counter: Counter[str] = Counter()
     district_counter: Counter[str] = Counter()
     source_counter: Counter[str] = Counter()
+    own_tier_counter: Counter[str] = Counter()
     total_blds = 0
     dated_blds = 0
     observed_fps = 0
@@ -4192,6 +4290,7 @@ def reconcile_derived_building_indexes(
             use_counter[str(p.get("use_category") or "Residential")] += 1
             src_lbl = str(p.get("year_source") or "hcad_cama")
             source_counter[src_lbl] += 1
+            own_tier_counter[str(p.get("own_tier") or "homestead")] += 1
             hd_s = str(p.get("historic_district") or "").strip()
             if hd_s and hd_s.lower() not in ("none", "null", "outside historic district"):
                 district_counter[hd_s] += 1
@@ -4236,6 +4335,7 @@ def reconcile_derived_building_indexes(
         "decade_counts": ordered_decades,
         "contributing_counts": dict(contrib_counter),
         "use_category_counts": dict(use_counter),
+        "ownership_tier_counts": {k: int(own_tier_counter.get(k, 0)) for k in OWNERSHIP_TIER_KEYS},
         "top_historic_districts": dict(district_counter.most_common(25)),
         "year_source_counts": dict(source_counter),
         "pmtiles_size_bytes": effective_pm_bytes,

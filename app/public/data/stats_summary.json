@@ -69,7 +69,7 @@
     "First Montrose Commons Historic District": 1,
     "Glenbrook Valley": 1
   },
-  "pmtiles_size_bytes": 287299743,
+  "pmtiles_size_bytes": 297003367,
   "pmtiles_shards": [
     "houston_buildings_nw_w.pmtiles",
     "houston_buildings_nw_e.pmtiles",
@@ -92,5 +92,13 @@
     "blockface_median": 46,
     "good_brick_award": 79,
     "archival": 16
+  },
+  "ownership_tier_counts": {
+    "homestead": 1087064,
+    "local_small": 160551,
+    "regional_portfolio": 135598,
+    "institutional_pe": 77023,
+    "anonymity_shield": 6876,
+    "civic_nonprofit": 40785
   }
 }

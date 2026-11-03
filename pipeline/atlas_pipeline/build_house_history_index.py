@@ -186,11 +186,148 @@ def extract_concise_citation(source_citation: str) -> str:
     return head
 
 
-def build_index() -> dict:
-    if not CACHE_DB.exists():
-        raise FileNotFoundError(f"Missing city directory SQLite cache: {CACHE_DB}")
+_OCC_ABBREV_EXPANSIONS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bslsldy\b", re.IGNORECASE), "Saleslady"),
+    (re.compile(r"\bslsmn\b", re.IGNORECASE), "Salesman"),
+    (re.compile(r"\bcarp\b", re.IGNORECASE), "Carpenter"),
+    (re.compile(r"\btrav\b", re.IGNORECASE), "Commercial Traveler"),
+    (re.compile(r"\bshoemkr\b", re.IGNORECASE), "Shoemaker"),
+    (re.compile(r"\bblksmith\b", re.IGNORECASE), "Blacksmith"),
+    (re.compile(r"\bmach\b", re.IGNORECASE), "Machinist"),
+    (re.compile(r"\bclk\b", re.IGNORECASE), "Clerk"),
+    (re.compile(r"\bbkpr\b", re.IGNORECASE), "Bookkeeper"),
+    (re.compile(r"\blab\b", re.IGNORECASE), "Laborer"),
+    (re.compile(r"\beng\b", re.IGNORECASE), "Engineer"),
+    (re.compile(r"\bcond\b", re.IGNORECASE), "Conductor"),
+    (re.compile(r"\bwid\b", re.IGNORECASE), "Widow"),
+)
 
-    conn = sqlite3.connect(str(CACHE_DB))
+
+def extract_occupants_from_citydir_citation(
+    source_citation: str,
+    earliest_year: int,
+    address: str = "",
+) -> list[list]:
+    """Parse a Houston City Directory OCR snippet into `[[year, name, role_or_trade], ...]` tuples (`UT-4`)."""
+    if not source_citation or not earliest_year or int(earliest_year) <= 0:
+        return []
+    yr = int(earliest_year)
+    cleaned = sanitize_text(source_citation)
+    m_quote = re.search(r':\s*"([^"]+)"', cleaned)
+    snippet = m_quote.group(1).strip() if m_quote else cleaned
+    if not snippet:
+        return []
+
+    st_num = ""
+    if address:
+        m_num = re.match(r"^\s*(\d+)", str(address))
+        if m_num:
+            st_num = m_num.group(1)
+
+    target_seg = snippet
+    if st_num and st_num in snippet:
+        idx = snippet.find(st_num)
+        before = snippet[max(0, idx - 95) : idx].strip()
+        if before:
+            # Take text after the last sentence boundary (`r. same.`, `r. <num>`, or period)
+            parts_b = re.split(r"(?:\br\.\s*same\.?|\b(?:r|h|res|bds)\.?\s+\d+[^.]*\.|\.\s+)", before)
+            cand = parts_b[-1].strip(" ,;:-") if parts_b else before.strip(" ,;:-")
+            if len(cand) >= 4:
+                target_seg = cand
+
+    # Match `<Surname> <Given>[, <trade/role>]`
+    m_person = re.search(
+        r"([A-Z][a-zA-Z'’-]{1,22}\s+(?:[A-Z][a-zA-Z.]*\s*){1,2}(?:\([cC]\))?)(?:\s*,\s*([^,0-9]{2,45}))?",
+        target_seg,
+    )
+    if m_person:
+        raw_name = re.sub(r"\s+", " ", m_person.group(1)).strip(" ,;.")
+        raw_role = re.sub(r"\s+", " ", (m_person.group(2) or "")).strip(" ,;.")
+        if not raw_role:
+            after_name = target_seg[m_person.end(1) :].strip(" ,;.")
+            raw_role = re.sub(r"\b(?:r|h|res|bds)\b.*$", "", after_name, flags=re.IGNORECASE).strip(" ,;.")
+        for rx, rep in _OCC_ABBREV_EXPANSIONS:
+            raw_role = rx.sub(rep, raw_role)
+        role_out = raw_role[:64] if raw_role else "City Directory Resident"
+        if len(raw_name) >= 3 and raw_name.lower() not in ("houston city", "same", "cor"):
+            return [[yr, sanitize_text(raw_name)[:64], sanitize_text(role_out)]]
+
+    short_excerpt = re.sub(r"\s+", " ", target_seg).strip(" ,;.")[:64]
+    if len(short_excerpt) >= 4:
+        return [[yr, sanitize_text(short_excerpt), "City Directory Listing"]]
+    return []
+
+
+def build_index(
+    *,
+    cache_db: Path = CACHE_DB,
+    overlays_json: Path | None = None,
+    overrides_json: Path | None = None,
+) -> dict:
+    if not cache_db.exists():
+        raise FileNotFoundError(f"Missing city directory SQLite cache: {cache_db}")
+
+    ovl_path = overlays_json if overlays_json is not None else (REPO_ROOT / "app" / "public" / "data" / "overlays.json")
+    ovr_path = overrides_json if overrides_json is not None else (REPO_ROOT / "app" / "public" / "data" / "curated_overrides.json")
+
+    red_book_by_hcad: dict[str, list[list]] = {}
+    if ovl_path.exists():
+        try:
+            ovl_doc = json.loads(ovl_path.read_text(encoding="utf-8"))
+            rb_feats = (ovl_doc.get("red_book_1915") or {}).get("features") or []
+            for feat in rb_feats:
+                props = feat.get("properties") or {}
+                h = re.sub(r"\D", "", str(props.get("hcad_num") or ""))
+                if len(h) != 13:
+                    continue
+                nm = sanitize_text(str(props.get("person_name") or props.get("name") or "")).strip()
+                if not nm:
+                    continue
+                occ = sanitize_text(
+                    str(
+                        props.get("occupation")
+                        or props.get("business_type")
+                        or props.get("category_label")
+                        or "1915 Red Book Proprietor / Resident"
+                    )
+                ).strip()
+                pg = sanitize_text(str(props.get("red_book_page") or "")).strip()
+                role_lbl = f"{occ} (1915 Red Book {pg})".strip() if pg else f"{occ} (1915 Red Book)"
+                tup = [1915, nm[:72], role_lbl[:80]]
+                bucket = red_book_by_hcad.setdefault(h, [])
+                if tup not in bucket and len(bucket) < 3:
+                    bucket.append(tup)
+        except Exception:
+            pass
+
+    contract_by_hcad: dict[str, list[list]] = {}
+    if ovr_path.exists():
+        try:
+            ovr_doc = json.loads(ovr_path.read_text(encoding="utf-8"))
+            ovr_map = ovr_doc.get("overrides") if isinstance(ovr_doc.get("overrides"), dict) else ovr_doc
+            if isinstance(ovr_map, dict):
+                for k, ov in ovr_map.items():
+                    if not isinstance(ov, dict):
+                        continue
+                    hc = ov.get("hist_contract")
+                    if not isinstance(hc, dict):
+                        continue
+                    h = re.sub(r"\D", "", str(ov.get("hcad_num") or str(k).split("#")[0]))
+                    if len(h) != 13:
+                        continue
+                    c_yr = int(hc.get("year") or ov.get("year_built") or 0)
+                    c_own = sanitize_text(str(hc.get("owner") or "")).strip()
+                    if 1836 <= c_yr <= 1965 and c_own:
+                        arch = sanitize_text(str(hc.get("architect") or "")).strip()
+                        role_s = f"Commissioning Owner (Architect: {arch})" if arch else "Commissioning Owner (Contract Record)"
+                        tup = [c_yr, c_own[:72], role_s[:80]]
+                        bucket = contract_by_hcad.setdefault(h, [])
+                        if tup not in bucket and len(bucket) < 2:
+                            bucket.append(tup)
+        except Exception:
+            pass
+
+    conn = sqlite3.connect(str(cache_db))
     cur = conn.cursor()
 
     volumes = []
@@ -245,9 +382,48 @@ def build_index() -> dict:
                 entry["f"] = "undated_hcad"
             else:
                 entry["f"] = "confirmed"
+
+            occ_rows: list[list] = []
+            for occ_t in extract_occupants_from_citydir_citation(
+                data.get("source_citation") or "",
+                int(earliest),
+                str(data.get("address") or ""),
+            ):
+                if occ_t not in occ_rows:
+                    occ_rows.append(occ_t)
+            for rb_t in red_book_by_hcad.get(hcad_clean, ()):
+                if rb_t not in occ_rows:
+                    occ_rows.append(rb_t)
+            for hc_t in contract_by_hcad.get(hcad_clean, ()):
+                if hc_t not in occ_rows:
+                    occ_rows.append(hc_t)
+            if occ_rows:
+                occ_rows.sort(key=lambda r: (int(r[0]), str(r[1])))
+                entry["r"] = occ_rows[:5]
+
             by_hcad[hcad_clean] = entry
         elif classification in ("ABSENT_THROUGH_1926_PREMATURE_HCAD_1920", "NO_PRE_1926_EVIDENCE"):
             absent_pre1926.append(hcad_clean)
+
+    for extra_h in sorted(set(red_book_by_hcad.keys()) | set(contract_by_hcad.keys())):
+        if extra_h in by_hcad:
+            continue
+        merged_occ: list[list] = []
+        for rb_t in red_book_by_hcad.get(extra_h, ()):
+            if rb_t not in merged_occ:
+                merged_occ.append(rb_t)
+        for hc_t in contract_by_hcad.get(extra_h, ()):
+            if hc_t not in merged_occ:
+                merged_occ.append(hc_t)
+        if merged_occ:
+            merged_occ.sort(key=lambda r: (int(r[0]), str(r[1])))
+            ear_yr = int(merged_occ[0][0])
+            by_hcad[extra_h] = {
+                "e": ear_yr,
+                "y": sorted({int(r[0]) for r in merged_occ if int(r[0]) <= 1926}),
+                "f": "confirmed",
+                "r": merged_occ[:5],
+            }
 
     conn.close()
 

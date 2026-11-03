@@ -24,7 +24,9 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "../tests/e2e"]
+testpaths = ["tests"]
+pythonpath = [".", "../tests/e2e"]
+addopts = ["--import-mode=importlib"]
 
 [build-system]
 requires = ["hatchling"]

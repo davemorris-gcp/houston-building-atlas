@@ -7,6 +7,8 @@ import {
   getLegendItems,
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
+  OWNERSHIP_TIER_ITEMS,
+  resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
 } from "./palettes.js?v=20261031a";
@@ -17,6 +19,7 @@ import {
   getAtlasMaxYear,
   HISTORIC_WARD_ERAS,
   normalizeComparableAddress,
+  normalizePortfolioKind,
   parseHashToState,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
@@ -28,7 +31,9 @@ import {
 import { AtlasMapController } from "./mapController.js?v=20261031a";
 import {
   buildPortfolioDataset,
+  buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
+  decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
 } from "./guidedChaptersAndPortfolios.js?v=20261031a";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261031a";
@@ -99,6 +104,10 @@ import {
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
 } from "./preservationOrganizer.js?v=20261031a";
+import {
+  buildHarrisCountyClerkRpUrl,
+  buildTxComptrollerSearchUrl,
+} from "./urlValidators.js?v=20261031a";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -243,6 +252,7 @@ export class HoustonAtlasApp {
     this._syncHahcCounts();
     this._mergeCuratedOverridesIntoSearchIndex();
     this._enrichSearchIndexWithOverlayMetadata();
+    this._populatePortfolioPresetSelect();
 
     if (this.initialChapterId) {
       this.activateCityChapter(this.initialChapterId, {
@@ -881,14 +891,16 @@ export class HoustonAtlasApp {
 
   async _loadMetadataFiles() {
     try {
-      const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261031a"),
-        fetch("public/data/stats_summary.json?v=20261031a"),
-        fetch("public/data/haif_index.json?v=20261031a").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261031a").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261031a").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261031a").catch(() => null),
-      ]);
+      const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes, ownPortRes] =
+        await Promise.all([
+          fetch("public/data/search_index.json?v=20261031a"),
+          fetch("public/data/stats_summary.json?v=20261031a"),
+          fetch("public/data/haif_index.json?v=20261031a").catch(() => null),
+          fetch("public/data/deed_restrictions_catalog.json?v=20261031a").catch(() => null),
+          fetch("public/data/sanborn_catalog.json?v=20261031a").catch(() => null),
+          fetch("public/data/citydir_index.json?v=20261031a").catch(() => null),
+          fetch("public/data/ownership_portfolios.json?v=20261031a").catch(() => null),
+        ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
         if (
@@ -939,6 +951,16 @@ export class HoustonAtlasApp {
         this.citydirIndex = null;
         this.citydirAbsentSet = new Set();
       }
+      if (ownPortRes && ownPortRes.ok) {
+        this.ownershipPortfolios = await ownPortRes.json();
+      } else {
+        this.ownershipPortfolios = null;
+      }
+      this._populatePortfolioPresetSelect(
+        this._activePortfolio
+          ? { kind: this._activePortfolio.kind, query: this._activePortfolio.query }
+          : null
+      );
       if (this.mapController?.overlaysData) {
         this._mergeCuratedOverridesIntoSearchIndex();
         this._enrichSearchIndexWithOverlayMetadata();
@@ -3734,7 +3756,7 @@ export class HoustonAtlasApp {
         const raw = String(e.target.value || "");
         const colonIdx = raw.indexOf(":");
         if (colonIdx > 0) {
-          const pKind = raw.slice(0, colonIdx) === "style" ? "style" : "architect";
+          const pKind = normalizePortfolioKind(raw.slice(0, colonIdx));
           const pQuery = raw.slice(colonIdx + 1).trim();
           if (pQuery) {
             this.activatePortfolioMode(pKind, pQuery);
@@ -7206,16 +7228,50 @@ export class HoustonAtlasApp {
     if (!container) return;
     const state = this.filterStore.getState();
     const items = getLegendItems(state.colorMode, state.paletteStyle);
+    const isOwnershipMode = state.colorMode === "ownership_tier";
+    const activeOwnTier = state.ownTier || "all";
 
     container.innerHTML = items
-      .map(
-        (item) => `
-        <div class="legend-row">
+      .map((item) => {
+        const tierKey = isOwnershipMode && item.key ? item.key : "";
+        const isActiveTier = tierKey && activeOwnTier === tierKey;
+        const isDimmedTier =
+          tierKey && activeOwnTier !== "all" && activeOwnTier !== tierKey;
+        return `
+        <div
+          class="legend-row${tierKey ? " interactive-legend-row" : ""}${
+          isActiveTier ? " active-tier" : ""
+        }${isDimmedTier ? " dimmed-tier" : ""}"
+          ${
+            tierKey
+              ? `data-own-tier-filter="${tierKey}" role="button" tabindex="0" title="Click to isolate '${item.label}' on the map (click again to show all)"`
+              : ""
+          }
+        >
           <span class="legend-swatch" style="background:${item.color}"></span>
-          <span class="legend-label">${item.label}</span>
-        </div>`
-      )
+          <span class="legend-label">${item.label}${isActiveTier ? " ✓" : ""}</span>
+        </div>`;
+      })
       .join("");
+
+    if (isOwnershipMode) {
+      container.querySelectorAll("[data-own-tier-filter]").forEach((rowEl) => {
+        const toggleTier = () => {
+          const clickedTier = rowEl.getAttribute("data-own-tier-filter") || "all";
+          const curTier = this.filterStore.getState().ownTier || "all";
+          this.filterStore.setState({
+            ownTier: curTier === clickedTier ? "all" : clickedTier,
+          });
+        };
+        rowEl.addEventListener("click", toggleTier);
+        rowEl.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            toggleTier();
+          }
+        });
+      });
+    }
   }
 
   _syncControlsFromState(state) {
@@ -13914,6 +13970,13 @@ export class HoustonAtlasApp {
       historicParentPlat,
       subProps: subPropsForDeed,
     };
+    this._activeInspectorStewardshipCtx = {
+      hcadNum,
+      props,
+      cityDirInfo: cityDirResearchInfo,
+      redBookEntries,
+      goodBrickAwards,
+    };
     const initialLegalTokens = parseClerkLegalTokens({
       legalDescription: props.legal_description || "",
       subdivision: subVal,
@@ -13939,6 +14002,19 @@ export class HoustonAtlasApp {
       haifGoogleSearchUrl,
       streetViewUrl,
     });
+    const ownershipXrayCardHtml = this._buildInspectorOwnershipXrayCardHtml(
+      props,
+      hcadNum,
+      null
+    );
+    const stewardshipTimelineCardHtml = this._buildInspectorStewardshipTimelineCardHtml(
+      props,
+      hcadNum,
+      null,
+      cityDirResearchInfo,
+      redBookEntries,
+      goodBrickAwards
+    );
 
     const historyItemCount = [
       Boolean(props.is_curated_override),
@@ -13950,6 +14026,7 @@ export class HoustonAtlasApp {
       lostHoustonAtSite.length > 0,
       haifThreads.length > 0,
       Boolean(cityDirResearchInfo.auditHit),
+      true,
     ].filter(Boolean).length;
 
     const initialTab =
@@ -14384,6 +14461,9 @@ export class HoustonAtlasApp {
                 : ""
             }
             ${haifForumHtml}
+            <div id="inspector-stewardship-timeline-slot" data-hcad-num="${hcadNum}">
+              ${stewardshipTimelineCardHtml}
+            </div>
             ${researchKitHtml}
             ${emptyHistoryFallbackHtml}
           </div>
@@ -14428,6 +14508,10 @@ export class HoustonAtlasApp {
             <div class="inspector-wide-pane-header">
               <span>&#128209; Parcel, Deed &amp; HCAD Appraisal</span>
               <span>Tax Roll &amp; Boundaries</span>
+            </div>
+
+            <div id="inspector-ownership-xray-slot" data-hcad-num="${hcadNum}">
+              ${ownershipXrayCardHtml}
             </div>
 
             ${
@@ -14661,6 +14745,7 @@ export class HoustonAtlasApp {
     this._bindDeedRestrictionsCardEvents(content, props);
     this._bindQuickFlagEvents(content, props);
     this._bindHouseHistoryResearchKitEvents(content);
+    this._bindOwnershipAndStewardshipCardEvents(content, props);
 
     const btnToggleScorecard = content.querySelector("#btn-toggle-protection-scorecard");
     const scorecardEl = content.querySelector("#inspector-protection-scorecard");
@@ -15110,6 +15195,7 @@ export class HoustonAtlasApp {
   async _populateInspectorPermits(props, hcadNum) {
     const rec = hcadNum ? await this._fetchPermitRecord(hcadNum) : null;
     this._populateResearchKitDeedChain(hcadNum, rec);
+    this._hydrateOwnershipAndStewardshipSlots(props, hcadNum, rec);
 
     const card = document.getElementById("inspector-permits-card");
     const badge = document.getElementById("inspector-permits-badge");
@@ -18130,11 +18216,25 @@ export class HoustonAtlasApp {
       : 15;
 
     const cohRowsHtml = cohPermits
-      .map(
-        (cp) => `
+      .map((cp) => {
+        const stageBadge =
+          cp.demo_stage_badge ||
+          (cp.permit_stage === "stage_1_sewer_plumbing"
+            ? "1 of 2 · Sewer Disconnect"
+            : cp.permit_stage === "stage_2_demolition"
+            ? "2 of 2 · Building Demo"
+            : "");
+        return `
         <div class="inspector-permit-filing-box coh">
           <div class="inspector-permit-filing-top">
             <span class="inspector-permit-agency-tag coh">COH Sold Permit #${cp.project_no || "N/A"}</span>
+            ${
+              stageBadge
+                ? `<span class="mono inspector-permit-stage-badge">${this._escapeHtmlAttr(
+                    stageBadge
+                  )}</span>`
+                : ""
+            }
             <span class="mono inspector-permit-filing-date">${cp.date || ""}</span>
           </div>
           <div class="inspector-permit-filing-title">
@@ -18146,8 +18246,8 @@ export class HoustonAtlasApp {
             ${cp.buyer ? `<span><strong>Applicant / Contractor:</strong> ${cp.buyer}</span>` : ""}
             ${cp.owner_occupant ? `<span><strong>Listed Occupant:</strong> ${cp.owner_occupant}</span>` : ""}
           </div>
-        </div>`
-      )
+        </div>`;
+      })
       .join("");
 
     const dshsRowsHtml = dshsFilings
@@ -18315,15 +18415,24 @@ export class HoustonAtlasApp {
         ].filter(Boolean);
 
         const cohSummaryHtml = cohList
-          .map(
-            (cp) => `
+          .map((cp) => {
+            const stageBadge =
+              cp.demo_stage_badge ||
+              (cp.permit_stage === "stage_1_sewer_plumbing"
+                ? "1 of 2 · Sewer Disconnect"
+                : cp.permit_stage === "stage_2_demolition"
+                ? "2 of 2 · Building Demo"
+                : "");
+            return `
             <div class="pw-item-filing coh">
-              <span class="pw-filing-pill coh">COH #${cp.project_no} · ${cp.date}</span>
+              <span class="pw-filing-pill coh">COH #${cp.project_no} · ${cp.date}${
+              stageBadge ? ` · ${this._escapeHtmlAttr(stageBadge)}` : ""
+            }</span>
               <span><strong>${cp.permit_type_label || cp.permit_type}:</strong> ${cp.use_desc || cp.permit_desc}${
               cp.buyer ? ` · Applicant: ${cp.buyer}` : ""
             }</span>
-            </div>`
-          )
+            </div>`;
+          })
           .join("");
 
         const dshsSummaryHtml = dshsList
@@ -18967,20 +19076,74 @@ export class HoustonAtlasApp {
   _populatePortfolioPresetSelect(customSpec = null) {
     const sel = document.getElementById("portfolio-preset-select");
     if (!sel) return;
-    const archPresets = FEATURED_PORTFOLIO_PRESETS.filter((p) => p.kind !== "style");
-    const stylePresets = FEATURED_PORTFOLIO_PRESETS.filter((p) => p.kind === "style");
-    const customVal =
-      customSpec && customSpec.query ? `${customSpec.kind}:${customSpec.query}` : "";
-    const isPreset = FEATURED_PORTFOLIO_PRESETS.some(
-      (p) => `${p.kind}:${p.query}`.toLowerCase() === customVal.toLowerCase()
+    const archPresets = FEATURED_PORTFOLIO_PRESETS.filter(
+      (p) => p.kind !== "style" && p.kind !== "owner_portfolio"
     );
+    const stylePresets = FEATURED_PORTFOLIO_PRESETS.filter((p) => p.kind === "style");
+    const ownerPresets = Object.entries(this.ownershipPortfolios?.portfolios || {})
+      .map(([pid, p]) => {
+        const pCount = Number(p.parcel_count ?? p.c ?? 0);
+        const eCount = Number(p.distinct_entity_count ?? p.distinct_llcs ?? p.ec ?? 0);
+        const pName = p.label || p.primary_entity || p.b || p.n || pid;
+        return {
+          kind: "owner_portfolio",
+          query: pid,
+          label: `${pName} (${pCount.toLocaleString()} parcels${
+            eCount > 1 ? ` · ${eCount} LLCs` : ""
+          })`,
+          count: pCount,
+          entityCount: eCount,
+        };
+      })
+      .sort(
+        (a, b) =>
+          (b.query === "port_7155_old_katy_n260" ? 1 : 0) -
+            (a.query === "port_7155_old_katy_n260" ? 1 : 0) ||
+          (b.entityCount >= 10 ? 1 : 0) - (a.entityCount >= 10 ? 1 : 0) ||
+          b.count - a.count
+      )
+      .slice(0, 20);
+    const normKind = customSpec && customSpec.kind ? normalizePortfolioKind(customSpec.kind) : "architect";
+    const customVal =
+      customSpec && customSpec.query ? `${normKind}:${customSpec.query}` : "";
+    const isPreset =
+      FEATURED_PORTFOLIO_PRESETS.some(
+        (p) => `${p.kind}:${p.query}`.toLowerCase() === customVal.toLowerCase()
+      ) ||
+      ownerPresets.some(
+        (p) => `${p.kind}:${p.query}`.toLowerCase() === customVal.toLowerCase()
+      );
+
+    let customLabel = customSpec?.query || "";
+    if (normKind === "style") {
+      customLabel = `Style: ${customSpec?.query || ""}`;
+    } else if (normKind === "owner_portfolio") {
+      const catRec = this.ownershipPortfolios?.portfolios?.[customSpec?.query || ""];
+      const catName = catRec
+        ? catRec.label || catRec.primary_entity || catRec.b || catRec.n || customSpec?.query
+        : "";
+      const catCount = catRec ? Number(catRec.parcel_count ?? catRec.c ?? 0) : 0;
+      customLabel = catRec
+        ? `Portfolio: ${catName} (${catCount.toLocaleString()} parcels)`
+        : `Portfolio: ${customSpec?.query || ""}`;
+    }
 
     const customOptHtml =
       customVal && !isPreset
         ? `<optgroup label="Selected Portfolio">
-            <option value="${customVal.replace(/"/g, "&quot;")}">${
-            customSpec.kind === "style" ? `Style: ${customSpec.query}` : customSpec.query
-          }</option>
+            <option value="${customVal.replace(/"/g, "&quot;")}">${customLabel}</option>
+          </optgroup>`
+        : "";
+
+    const ownerOptGroupHtml =
+      ownerPresets.length > 0
+        ? `<optgroup label="Stewardship &amp; Multi-LLC Portfolios">
+            ${ownerPresets
+              .map(
+                (p) =>
+                  `<option value="${p.kind}:${p.query.replace(/"/g, "&quot;")}">${p.label}</option>`
+              )
+              .join("")}
           </optgroup>`
         : "";
 
@@ -19002,6 +19165,7 @@ export class HoustonAtlasApp {
           )
           .join("")}
       </optgroup>
+      ${ownerOptGroupHtml}
     `;
 
     if (customVal) {
@@ -19017,7 +19181,7 @@ export class HoustonAtlasApp {
     query = "",
     { fitBounds = true, skipHistoryPush = false } = {}
   ) {
-    const cleanKind = kind === "style" ? "style" : "architect";
+    const cleanKind = normalizePortfolioKind(kind);
     const cleanQuery = String(query || "").trim();
     if (!cleanQuery) return;
 
@@ -19049,6 +19213,7 @@ export class HoustonAtlasApp {
       searchIndex: this.searchIndex,
       overlaysData: this.mapController ? this.mapController.overlaysData : null,
       curatedOverrides: this.mapController ? this.mapController.curatedOverrides : null,
+      ownershipPortfolios: this.ownershipPortfolios,
     });
 
     this._activePortfolio = {
@@ -20511,6 +20676,283 @@ export class HoustonAtlasApp {
         }
       }
     }
+  }
+
+  _hydrateOwnershipAndStewardshipSlots(props, hcadNum, permitShardRec) {
+    const cleanHcad = String(hcadNum || "");
+    const xraySlot = document.getElementById("inspector-ownership-xray-slot");
+    if (xraySlot && xraySlot.getAttribute("data-hcad-num") === cleanHcad) {
+      xraySlot.innerHTML = this._buildInspectorOwnershipXrayCardHtml(
+        props,
+        cleanHcad,
+        permitShardRec
+      );
+      this._bindOwnershipAndStewardshipCardEvents(xraySlot, props);
+    }
+    const timelineSlot = document.getElementById("inspector-stewardship-timeline-slot");
+    if (timelineSlot && timelineSlot.getAttribute("data-hcad-num") === cleanHcad) {
+      const ctx =
+        this._activeInspectorStewardshipCtx &&
+        this._activeInspectorStewardshipCtx.hcadNum === cleanHcad
+          ? this._activeInspectorStewardshipCtx
+          : {
+              cityDirInfo: null,
+              redBookEntries: [],
+              goodBrickAwards: [],
+            };
+      timelineSlot.innerHTML = this._buildInspectorStewardshipTimelineCardHtml(
+        props,
+        cleanHcad,
+        permitShardRec,
+        ctx.cityDirInfo,
+        ctx.redBookEntries,
+        ctx.goodBrickAwards
+      );
+      this._bindOwnershipAndStewardshipCardEvents(timelineSlot, props);
+    }
+  }
+
+  _buildInspectorOwnershipXrayCardHtml(props, hcadNum, permitShardRec = null) {
+    const xray = decodeParcelOwnershipXray({
+      featureProps: props,
+      permitShardRec,
+      ownershipPortfolios: this.ownershipPortfolios,
+    });
+    const tierItem =
+      OWNERSHIP_TIER_ITEMS.find((t) => t.key === xray.ownTier) || OWNERSHIP_TIER_ITEMS[0];
+    const tierColor = resolveOwnershipTierColor(xray.ownTier);
+    const txUrl = xray.txComptrollerUrl || buildTxComptrollerSearchUrl("");
+    const clerkUrl = xray.clerkUrl || buildHarrisCountyClerkRpUrl("");
+
+    const siblingHtml =
+      xray.siblingEntities.length > 0
+        ? `<div class="ownership-xray-row">
+            <span class="ownership-xray-label">Sibling LLCs / Entities (${xray.entityCount}):</span>
+            <span class="ownership-xray-val mono">${xray.siblingEntities
+              .slice(0, 6)
+              .map((s) => this._escapeHtmlAttr(s))
+              .join(" · ")}${
+            xray.siblingEntities.length > 6 ? ` (+${xray.siblingEntities.length - 6} more)` : ""
+          }</span>
+          </div>`
+        : "";
+
+    const officersHtml =
+      xray.officers.length > 0
+        ? `<div class="ownership-xray-row">
+            <span class="ownership-xray-label">TX Comptroller Officers / Agent:</span>
+            <span class="ownership-xray-val">${xray.officers
+              .slice(0, 4)
+              .map((o) => this._escapeHtmlAttr(o))
+              .join(" · ")}</span>
+          </div>`
+        : "";
+
+    const mailHtml =
+      !xray.isRedactedHomestead && xray.mailingAddress
+        ? `<div class="ownership-xray-row">
+            <span class="ownership-xray-label">Tax Billing Hub:</span>
+            <span class="ownership-xray-val mono">${this._escapeHtmlAttr(xray.mailingAddress)}</span>
+          </div>`
+        : xray.isRedactedHomestead
+        ? `<div class="ownership-xray-row">
+            <span class="ownership-xray-label">Privacy Status:</span>
+            <span class="ownership-xray-val">Protected Individual Homestead (TX Tax Code Sec. 25.025) / Owner-Occupied Homestead</span>
+          </div>`
+        : "";
+
+    const careOfHtml =
+      !xray.isRedactedHomestead && xray.careOf
+        ? `<div class="ownership-xray-row">
+            <span class="ownership-xray-label">C/O / Tax Agent:</span>
+            <span class="ownership-xray-val">${this._escapeHtmlAttr(xray.careOf)}</span>
+          </div>`
+        : "";
+
+    const flipBadgeHtml =
+      xray.flipDays !== null
+        ? `<div class="ownership-flip-warning">
+            &#9888; <strong>Pre-Demolition Flip Alert:</strong> Deed transferred <strong>${xray.flipDays} day${
+            xray.flipDays === 1 ? "" : "s"
+          }</strong> prior to main-structure demolition permit filing.
+          </div>`
+        : "";
+
+    return `
+      <div class="ownership-xray-card" id="inspector-ownership-xray-card">
+        <div class="ownership-xray-header">
+          <span class="ownership-xray-kicker">&#127970; Who Owns Your City? Stewardship X-Ray</span>
+          <span class="ownership-tier-pill" style="background:${tierColor}22;color:${tierColor};border:1px solid ${tierColor}66;">
+            ${this._escapeHtmlAttr(tierItem.shortLabel || xray.tierLabel)}
+          </span>
+        </div>
+        <div class="ownership-xray-grid">
+          <div class="ownership-xray-row">
+            <span class="ownership-xray-label">Recorded HCAD Deed Holder:</span>
+            <span class="ownership-xray-val"><strong>${this._escapeHtmlAttr(
+              xray.recordedOwner
+            )}</strong></span>
+          </div>
+          ${
+            xray.beneficialSteward && xray.beneficialSteward !== xray.recordedOwner
+              ? `<div class="ownership-xray-row">
+                  <span class="ownership-xray-label">Unmasked Beneficial Steward:</span>
+                  <span class="ownership-xray-val"><strong style="color:#FDE047;">${this._escapeHtmlAttr(
+                    xray.beneficialSteward
+                  )}</strong>${
+                  xray.portfolioCount > 1
+                    ? ` <span class="mono">(${xray.portfolioCount.toLocaleString()} Harris County parcels)</span>`
+                    : ""
+                }</span>
+                </div>`
+              : xray.portfolioCount > 1
+              ? `<div class="ownership-xray-row">
+                  <span class="ownership-xray-label">Countywide Footprint:</span>
+                  <span class="ownership-xray-val mono"><strong>${xray.portfolioCount.toLocaleString()}</strong> Harris County parcels</span>
+                </div>`
+              : ""
+          }
+          ${careOfHtml}
+          ${mailHtml}
+          ${siblingHtml}
+          ${officersHtml}
+        </div>
+        ${flipBadgeHtml}
+        <div class="ownership-xray-actions">
+          ${
+            xray.portId && xray.portfolioCount >= 2
+              ? `<button
+                  type="button"
+                  class="inspector-btn primary small"
+                  data-activate-owner-portfolio="${this._escapeHtmlAttr(xray.portId)}"
+                  title="Map all ${xray.portfolioCount.toLocaleString()} Harris County parcels linked to this beneficial steward"
+                >
+                  &#128506; Map All ${xray.portfolioCount.toLocaleString()} Portfolio Parcels
+                </button>`
+              : ""
+          }
+          <button
+            type="button"
+            class="inspector-btn secondary small"
+            data-activate-ownership-color-tier="${this._escapeHtmlAttr(xray.ownTier)}"
+            title="Switch map color mode to Who Owns Your City? and filter to ${this._escapeHtmlAttr(
+              tierItem.label
+            )}"
+          >
+            Filter Map by ${this._escapeHtmlAttr(tierItem.shortLabel || xray.tierLabel)}
+          </button>
+          <a
+            href="${txUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inspector-btn secondary small"
+            title="Look up Texas Comptroller Franchise Tax & Public Information Report filings"
+          >
+            TX Comptroller Entity Lookup &#8599;
+          </a>
+          <a
+            href="${clerkUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inspector-btn secondary small"
+            title="Search Harris County Clerk Real Property (RP) Grantor/Grantee index"
+          >
+            Clerk Deed Search &#8599;
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  _buildInspectorStewardshipTimelineCardHtml(
+    props,
+    hcadNum,
+    permitShardRec = null,
+    cityDirInfo = null,
+    redBookEntries = [],
+    goodBrickAwards = []
+  ) {
+    const cleanHcad = String(hcadNum || "").trim();
+    const citydirRec =
+      (cityDirInfo && cityDirInfo.auditHit) ||
+      (cleanHcad && this.citydirIndex?.by_hcad ? this.citydirIndex.by_hcad[cleanHcad] : null);
+    const timeline = buildStewardshipTimelineModel({
+      featureProps: {
+        ...props,
+        good_brick_awards: goodBrickAwards,
+      },
+      permitShardRec,
+      citydirRec,
+      redBookHits: redBookEntries,
+      ownershipPortfolios: this.ownershipPortfolios,
+    });
+
+    const eventsHtml = timeline.events
+      .map(
+        (ev) => `
+        <div class="stewardship-timeline-node cat-${this._escapeHtmlAttr(ev.category || "deed")}">
+          <div class="stewardship-node-top">
+            <span class="stewardship-node-era mono">${this._escapeHtmlAttr(
+              ev.dateLabel || String(ev.year || "")
+            )}</span>
+            <span class="stewardship-node-badge">${this._escapeHtmlAttr(ev.badge || "")}</span>
+          </div>
+          <div class="stewardship-node-title">${this._escapeHtmlAttr(ev.title || "")}</div>
+          ${
+            ev.subtitle
+              ? `<div class="stewardship-node-sub">${this._escapeHtmlAttr(ev.subtitle)}</div>`
+              : ""
+          }
+          ${
+            ev.citation
+              ? `<div class="stewardship-node-cite mono">${this._escapeHtmlAttr(ev.citation)}</div>`
+              : ""
+          }
+        </div>`
+      )
+      .join("");
+
+    return `
+      <section class="stewardship-timeline-card" id="inspector-stewardship-timeline-card">
+        <div class="stewardship-timeline-header">
+          <div>
+            <div class="stewardship-timeline-kicker">&#128220; 1836-${getAtlasMaxYear()} Historical Provenance</div>
+            <h3 class="stewardship-timeline-title">Chain of Stewardship &amp; Occupancy Timeline</h3>
+          </div>
+          <span class="stewardship-timeline-count mono">${timeline.events.length} Milestone${
+      timeline.events.length === 1 ? "" : "s"
+    }</span>
+        </div>
+        <div class="stewardship-timeline-track">
+          ${eventsHtml}
+        </div>
+      </section>
+    `;
+  }
+
+  _bindOwnershipAndStewardshipCardEvents(rootEl, props) {
+    if (!rootEl) return;
+    rootEl.querySelectorAll("[data-activate-owner-portfolio]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const pid = btn.getAttribute("data-activate-owner-portfolio") || "";
+        if (pid) {
+          this.activatePortfolioMode("owner_portfolio", pid);
+        }
+      });
+    });
+    rootEl.querySelectorAll("[data-activate-ownership-color-tier]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const tierKey = btn.getAttribute("data-activate-ownership-color-tier") || "all";
+        this.filterStore.setState({
+          colorMode: "ownership_tier",
+          ownTier: tierKey,
+        });
+      });
+    });
   }
 }
 

@@ -3,7 +3,18 @@
  * Architect / Builder / Architectural Style Map Portfolio Engine (Priority #4).
  */
 
-import { getAtlasMaxYear } from "./filterStore.js?v=20261031a";
+import {
+  getAtlasMaxYear,
+  VALID_PORTFOLIO_KINDS,
+  normalizePortfolioKind,
+} from "./filterStore.js?v=20261031a";
+import { OWNERSHIP_TIER_ITEMS, resolveOwnershipTierColor } from "./palettes.js?v=20261031a";
+import {
+  buildTxComptrollerSearchUrl,
+  buildHarrisCountyClerkRpUrl,
+} from "./urlValidators.js?v=20261031a";
+
+export { VALID_PORTFOLIO_KINDS, normalizePortfolioKind };
 
 export const CITY_HISTORY_CHAPTERS = [
   {
@@ -779,9 +790,97 @@ function normText(s) {
     .trim();
 }
 
-export function resolvePortfolioBiography(kind, query) {
-  const qNorm = normText(query);
+export function resolvePortfolioBiography(kind, query, ownershipPortfolios = null) {
+  const normKind = normalizePortfolioKind(kind);
+  const qRaw = String(query || "").trim();
+  const qNorm = normText(qRaw);
   if (!qNorm) return null;
+
+  if (normKind === "owner_portfolio") {
+    const portMap =
+      ownershipPortfolios && typeof ownershipPortfolios === "object"
+        ? ownershipPortfolios.portfolios || ownershipPortfolios
+        : null;
+    let matchedPort = null;
+    let matchedPid = qRaw;
+    if (portMap && typeof portMap === "object") {
+      if (portMap[qRaw]) {
+        matchedPort = portMap[qRaw];
+      } else {
+        for (const [pid, pObj] of Object.entries(portMap)) {
+          if (!pObj || typeof pObj !== "object") continue;
+          const ents = Array.isArray(pObj.entity_samples)
+            ? pObj.entity_samples
+            : Array.isArray(pObj.entities)
+            ? pObj.entities
+            : [];
+          if (
+            normText(pid) === qNorm ||
+            normText(pObj.label) === qNorm ||
+            normText(pObj.label).includes(qNorm) ||
+            normText(pObj.primary_entity) === qNorm ||
+            ents.some((e) => normText(e).includes(qNorm))
+          ) {
+            matchedPort = pObj;
+            matchedPid = pid;
+            break;
+          }
+        }
+      }
+    }
+    if (matchedPort) {
+      const pTier = matchedPort.own_tier || matchedPort.tier || "regional_portfolio";
+      const tierItem =
+        OWNERSHIP_TIER_ITEMS.find((t) => t.key === pTier) || OWNERSHIP_TIER_ITEMS[2];
+      const ents = Array.isArray(matchedPort.entity_samples)
+        ? matchedPort.entity_samples
+        : Array.isArray(matchedPort.entities)
+        ? matchedPort.entities
+        : [];
+      const entitySample = ents.slice(0, 4).join(", ");
+      const offs = Array.isArray(matchedPort.tx_sos_officers)
+        ? matchedPort.tx_sos_officers
+        : Array.isArray(matchedPort.officers)
+        ? matchedPort.officers
+        : [];
+      const officerSample = offs.slice(0, 4).join(", ");
+      const hoods = Array.isArray(matchedPort.top_neighborhoods)
+        ? matchedPort.top_neighborhoods
+            .slice(0, 3)
+            .map((h) => (Array.isArray(h) ? `${h[0]} (${h[1]})` : String(h)))
+            .join(", ")
+        : "";
+      const pCount =
+        Number(matchedPort.parcel_count ?? matchedPort.c) ||
+        (Array.isArray(matchedPort.works) ? matchedPort.works.length : 0);
+      const eCount =
+        Number(matchedPort.distinct_entity_count ?? matchedPort.distinct_llcs ?? matchedPort.ec) ||
+        Math.max(1, ents.length);
+      return {
+        title: `${matchedPort.label || matchedPid} (${pCount} Parcels · ${eCount} Entities)`,
+        role: `${tierItem.label} · Beneficial Ownership Cluster`,
+        summary: `Tax-billing and Texas Comptroller entity resolution links ${pCount} Harris County parcels across ${eCount} legal names sharing billing address "${
+          matchedPort.billing_address || "On File"
+        }".${entitySample ? ` Shell / entity names include: ${entitySample}.` : ""}${
+          officerSample ? ` Controlling officers / principals: ${officerSample}.` : ""
+        }${hoods ? ` Top neighborhoods: ${hoods}.` : ""}`,
+        citations: [
+          {
+            label: "TX Comptroller Franchise Tax Entity Search",
+            url: buildTxComptrollerSearchUrl(
+              ents[0] || matchedPort.primary_entity || matchedPort.label || ""
+            ),
+          },
+        ],
+      };
+    }
+    return {
+      title: qRaw,
+      role: "Beneficial Ownership Portfolio Cluster",
+      summary: `Beneficial ownership and tax-billing portfolio cluster for ${qRaw} across Harris County appraisal and deed records.`,
+    };
+  }
+
   if (ARCHITECT_AND_STYLE_BIOGRAPHIES[qNorm]) {
     return ARCHITECT_AND_STYLE_BIOGRAPHIES[qNorm];
   }
@@ -791,16 +890,12 @@ export function resolvePortfolioBiography(kind, query) {
     }
   }
   return {
-    title: String(query || "").trim(),
-    role: kind === "style" ? "Architectural Style Portfolio" : "Architect / Builder Portfolio",
+    title: qRaw,
+    role: normKind === "style" ? "Architectural Style Portfolio" : "Architect / Builder Portfolio",
     summary:
-      kind === "style"
-        ? `Chronological portfolio of extant and demolished structures documented in the "${String(
-            query || ""
-          ).trim()}" architectural style across Harris County.`
-        : `Chronological portfolio of extant and demolished structures attributed to ${String(
-            query || ""
-          ).trim()} across Harris County archival, landmark, and curated survey records.`,
+      normKind === "style"
+        ? `Chronological portfolio of extant and demolished structures documented in the "${qRaw}" architectural style across Harris County.`
+        : `Chronological portfolio of extant and demolished structures attributed to ${qRaw} across Harris County archival, landmark, and curated survey records.`,
   };
 }
 
@@ -848,7 +943,8 @@ function geomCentroid(geom) {
 
 /**
  * Deterministically collect and deduplicate all extant + demolished (`Lost Houston`)
- * works matching an architect/builder (`kind = "architect"`) or style (`kind = "style"`).
+ * works matching an architect/builder (`kind = "architect"`), style (`kind = "style"`),
+ * or beneficial ownership portfolio (`kind = "owner_portfolio"`).
  */
 export function buildPortfolioDataset({
   kind = "architect",
@@ -856,12 +952,14 @@ export function buildPortfolioDataset({
   searchIndex = [],
   overlaysData = null,
   curatedOverrides = null,
+  ownershipPortfolios = null,
 }) {
+  const normKind = normalizePortfolioKind(kind);
   const cleanQuery = String(query || "").trim();
   const qNorm = normText(cleanQuery);
   if (!qNorm) {
     return {
-      kind,
+      kind: normKind,
       query: cleanQuery,
       biography: null,
       works: [],
@@ -885,7 +983,7 @@ export function buildPortfolioDataset({
     const lat = Number(entry.lat);
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
     const dedupKey = entry.isDemolished
-      ? `lost:${entry.featureId || entry.title}`
+      ? `lost:${entry.featureId || entry.hcadNum || entry.title}`
       : entry.featureId && String(entry.featureId).includes("#")
       ? `bld:${entry.featureId}`
       : entry.hcadNum
@@ -909,6 +1007,164 @@ export function buildPortfolioDataset({
     existing.isLandmark = Boolean(existing.isLandmark || entry.isLandmark);
     existing.isGoodBrick = Boolean(existing.isGoodBrick || entry.isGoodBrick);
   };
+
+  if (normKind === "owner_portfolio") {
+    const portMap =
+      ownershipPortfolios && typeof ownershipPortfolios === "object"
+        ? ownershipPortfolios.portfolios || ownershipPortfolios
+        : null;
+    let matchedPort = null;
+    let matchedPid = cleanQuery;
+    if (portMap && typeof portMap === "object") {
+      if (portMap[cleanQuery]) {
+        matchedPort = portMap[cleanQuery];
+      } else {
+        for (const [pid, pObj] of Object.entries(portMap)) {
+          if (!pObj || typeof pObj !== "object") continue;
+          const ents = Array.isArray(pObj.entity_samples)
+            ? pObj.entity_samples
+            : Array.isArray(pObj.entities)
+            ? pObj.entities
+            : [];
+          if (
+            normText(pid) === qNorm ||
+            normText(pObj.label) === qNorm ||
+            normText(pObj.label).includes(qNorm) ||
+            normText(pObj.primary_entity) === qNorm ||
+            ents.some((e) => normText(e).includes(qNorm))
+          ) {
+            matchedPort = pObj;
+            matchedPid = pid;
+            break;
+          }
+        }
+      }
+    }
+
+    const lostByHcad = new Map();
+    for (const lf of overlaysData?.lost_houston?.features || []) {
+      const lp = lf?.properties || {};
+      const hc = String(lp.hcad_num || lp.modern_hcad_num || "").trim();
+      if (/^\d{13}$/.test(hc)) {
+        lostByHcad.set(hc, lp);
+      }
+    }
+
+    const rawWorks = Array.isArray(matchedPort?.works) ? matchedPort.works : [];
+    for (const wRow of rawWorks) {
+      if (Array.isArray(wRow)) {
+        // [acct, address, lat, lng, year_built, style_or_use, entity_name, status]
+        const [acct, addr, lat, lng, yr, styleOrUse, entityName, statusFlag] = wRow;
+        const cleanAcct = String(acct || "").trim();
+        const lostRec = lostByHcad.get(cleanAcct);
+        const isLost = statusFlag === "demolished" || Boolean(lostRec);
+        upsertWork({
+          isDemolished: isLost,
+          isLost,
+          hcadNum: cleanAcct,
+          featureId: isLost && lostRec?.id ? String(lostRec.id) : cleanAcct,
+          lostHoustonId: isLost && lostRec?.id ? String(lostRec.id) : "",
+          title: String(addr || entityName || cleanAcct || "Portfolio Parcel"),
+          address: String(addr || ""),
+          yearBuilt: Number(yr) || 0,
+          yearDemolished: isLost && lostRec?.year_demolished ? Number(lostRec.year_demolished) : null,
+          architect: String(entityName || matchedPort?.label || ""),
+          style: String(styleOrUse || ""),
+          district: String(matchedPort?.label || matchedPid),
+          entityName: String(entityName || ""),
+          portfolioId: matchedPid,
+          isLandmark: false,
+          isGoodBrick: false,
+          lat: Number(lat),
+          lng: Number(lng),
+        });
+      } else if (wRow && typeof wRow === "object") {
+        const cleanAcct = String(wRow.acct || wRow.hcad_num || "").trim();
+        const isLost = Boolean(wRow.status === "demolished" || wRow.isDemolished);
+        upsertWork({
+          isDemolished: isLost,
+          isLost,
+          hcadNum: cleanAcct,
+          featureId: String(wRow.featureId || cleanAcct),
+          title: String(wRow.address || wRow.title || cleanAcct || "Portfolio Parcel"),
+          address: String(wRow.address || ""),
+          yearBuilt: Number(wRow.year_built ?? wRow.yearBuilt) || 0,
+          yearDemolished: Number(wRow.year_demolished ?? wRow.yearDemolished) || null,
+          architect: String(wRow.entity_name || wRow.entityName || matchedPort?.label || ""),
+          style: String(wRow.style_or_use || wRow.style || ""),
+          district: String(matchedPort?.label || matchedPid),
+          entityName: String(wRow.entity_name || wRow.entityName || ""),
+          portfolioId: matchedPid,
+          isLandmark: Boolean(wRow.isLandmark),
+          isGoodBrick: Boolean(wRow.isGoodBrick),
+          lat: Number(wRow.lat),
+          lng: Number(wRow.lng ?? wRow.lon),
+        });
+      }
+    }
+
+    const works = Array.from(byKey.values()).sort((a, b) => {
+      const ya = a.yearBuilt >= 1800 ? a.yearBuilt : 9999;
+      const yb = b.yearBuilt >= 1800 ? b.yearBuilt : 9999;
+      if (ya !== yb) return ya - yb;
+      return String(a.title).localeCompare(String(b.title));
+    });
+
+    works.forEach((w, idx) => {
+      w.portfolioIndex = idx + 1;
+    });
+
+    let minLng = Infinity;
+    let minLat = Infinity;
+    let maxLng = -Infinity;
+    let maxLat = -Infinity;
+    let earliestYear = Infinity;
+    let latestYear = -Infinity;
+    let extantCount = 0;
+    let demolishedCount = 0;
+
+    for (const w of works) {
+      if (w.lng < minLng) minLng = w.lng;
+      if (w.lat < minLat) minLat = w.lat;
+      if (w.lng > maxLng) maxLng = w.lng;
+      if (w.lat > maxLat) maxLat = w.lat;
+      if (w.yearBuilt >= 1800 && w.yearBuilt <= Math.max(getAtlasMaxYear(), 2035)) {
+        if (w.yearBuilt < earliestYear) earliestYear = w.yearBuilt;
+        if (w.yearBuilt > latestYear) latestYear = w.yearBuilt;
+      }
+      if (w.isDemolished) demolishedCount += 1;
+      else extantCount += 1;
+    }
+
+    return {
+      kind: "owner_portfolio",
+      query: matchedPid,
+      portfolioMeta: matchedPort || null,
+      biography: resolvePortfolioBiography("owner_portfolio", matchedPid, ownershipPortfolios),
+      works,
+      stats: {
+        totalCount: works.length,
+        extantCount,
+        demolishedCount,
+        landmarkCount: 0,
+        goodBrickCount: 0,
+        distinctLlcs:
+          Number(
+            matchedPort?.distinct_entity_count ?? matchedPort?.distinct_llcs ?? matchedPort?.ec
+          ) || 1,
+        parcelCount: Number(matchedPort?.parcel_count ?? matchedPort?.c) || works.length,
+        earliestYear: Number.isFinite(earliestYear) ? earliestYear : null,
+        latestYear: Number.isFinite(latestYear) ? latestYear : null,
+      },
+      bounds:
+        works.length > 0
+          ? [
+              [minLng, minLat],
+              [maxLng, maxLat],
+            ]
+          : null,
+    };
+  }
 
   const checkMatch = (obj) => {
     if (!obj) return false;
@@ -1139,9 +1395,9 @@ export function buildPortfolioDataset({
   }
 
   return {
-    kind,
+    kind: normKind,
     query: cleanQuery,
-    biography: resolvePortfolioBiography(kind, cleanQuery),
+    biography: resolvePortfolioBiography(normKind, cleanQuery, ownershipPortfolios),
     works,
     stats: {
       totalCount: works.length,
@@ -1161,3 +1417,580 @@ export function buildPortfolioDataset({
         : null,
   };
 }
+
+/**
+ * Pure, DOM-free wire decoder that transforms a compact `permits_<prefix3>.json` shard record,
+ * PMTiles feature properties, and `ownership_portfolios.json` catalog into a normalized
+ * "Who Owns Your City?" Portfolio X-Ray & Entity Unmasking view-model (`DF-5`).
+ *
+ * Accepts either:
+ *   - Options object: `decodeParcelOwnershipXray({ featureProps, permitShardRec, ownershipPortfolios })`
+ *   - Positional arguments: `decodeParcelOwnershipXray(permitShardRec, featureProps, portfolioCatalog)`
+ */
+export function decodeParcelOwnershipXray(
+  arg0 = null,
+  featurePropsArg = null,
+  portfolioCatalogArg = null
+) {
+  let shard = {};
+  let props = {};
+  let portfolioCatalog = null;
+
+  if (
+    arg0 &&
+    typeof arg0 === "object" &&
+    !Array.isArray(arg0) &&
+    ("featureProps" in arg0 ||
+      "permitShardRec" in arg0 ||
+      "ownershipPortfolios" in arg0 ||
+      "portfolioCatalog" in arg0)
+  ) {
+    shard = arg0.permitShardRec && typeof arg0.permitShardRec === "object" ? arg0.permitShardRec : {};
+    props = arg0.featureProps && typeof arg0.featureProps === "object" ? arg0.featureProps : {};
+    portfolioCatalog = arg0.ownershipPortfolios || arg0.portfolioCatalog || null;
+  } else {
+    shard = arg0 && typeof arg0 === "object" ? arg0 : {};
+    props = featurePropsArg && typeof featurePropsArg === "object" ? featurePropsArg : {};
+    portfolioCatalog = portfolioCatalogArg || null;
+  }
+
+  const rawTier = String(shard.ot || props.own_tier || "homestead")
+    .trim()
+    .toLowerCase();
+  const tierObj =
+    OWNERSHIP_TIER_ITEMS.find((item) => item.key === rawTier) || OWNERSHIP_TIER_ITEMS[0];
+  const ownTier = tierObj.key;
+  const portfolioId = String(shard.pid || props.port_id || "").trim();
+
+  const portMap =
+    portfolioCatalog && typeof portfolioCatalog === "object"
+      ? portfolioCatalog.portfolios || portfolioCatalog
+      : null;
+  const portfolioMeta =
+    portfolioId && portMap && typeof portMap === "object" && portMap[portfolioId]
+      ? portMap[portfolioId]
+      : null;
+
+  const hcadNum = String(props.hcad_num || shard.hcad_num || "").trim();
+  let workEntityName = "";
+  if (hcadNum && Array.isArray(portfolioMeta?.works)) {
+    const matchedWork = portfolioMeta.works.find(
+      (w) => (Array.isArray(w) && String(w[0] || "") === hcadNum) || (w && w.acct === hcadNum)
+    );
+    if (Array.isArray(matchedWork) && matchedWork[6]) {
+      workEntityName = String(matchedWork[6]).trim();
+    } else if (matchedWork && typeof matchedWork === "object" && matchedWork.entity_name) {
+      workEntityName = String(matchedWork.entity_name).trim();
+    }
+  }
+
+  const rawOwnerName = String(
+    props.owner_name || props.owner || shard.owner || workEntityName || portfolioMeta?.primary_entity || ""
+  ).trim();
+  const rawBillingAddress = String(
+    shard.m || props.mail_addr || portfolioMeta?.billing_address || ""
+  ).trim();
+  const coOwners = Array.isArray(shard.co)
+    ? shard.co.map((item) => String(item || "").trim()).filter(Boolean)
+    : Array.isArray(props.co_owners)
+    ? props.co_owners.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  const careOfMatch = /^C\/O\s+([^-]+?)\s+-\s+(.+)$/i.exec(rawBillingAddress);
+  const rawCareOf = String(
+    (!Array.isArray(shard.co) && shard.co) ||
+      props.care_of ||
+      portfolioMeta?.care_of ||
+      (careOfMatch ? careOfMatch[1] : "") ||
+      ""
+  ).trim();
+  const rawFlip = shard.flip ?? props.flip_days ?? null;
+  const flipDays =
+    rawFlip !== null && rawFlip !== undefined && rawFlip !== "" && Number.isFinite(Number(rawFlip))
+      ? Number(rawFlip)
+      : null;
+
+  const isConfidential = /CURRENT\s+OWNER|CONFIDENTIAL|WITHHELD/i.test(rawOwnerName);
+  const isRedactedHomestead = Boolean(
+    ownTier === "homestead" && (isConfidential || (!rawBillingAddress && !rawCareOf))
+  );
+  const billingAddress = isRedactedHomestead ? "" : rawBillingAddress;
+  const careOfAgent = isRedactedHomestead ? "" : rawCareOf;
+
+  const recordedOwner =
+    ownTier === "homestead" && isConfidential
+      ? "Protected Individual Homestead (TX Tax Code Sec. 25.025)"
+      : rawOwnerName || "Owner of Record (HCAD)";
+
+  const siblingEntities = Array.isArray(portfolioMeta?.entity_samples)
+    ? portfolioMeta.entity_samples
+    : Array.isArray(portfolioMeta?.entities)
+    ? portfolioMeta.entities
+    : [];
+  const officers = Array.isArray(portfolioMeta?.tx_sos_officers)
+    ? portfolioMeta.tx_sos_officers
+    : Array.isArray(portfolioMeta?.officers)
+    ? portfolioMeta.officers
+    : [];
+  const portfolioCount =
+    Number(portfolioMeta?.parcel_count ?? portfolioMeta?.c) ||
+    (Array.isArray(portfolioMeta?.works) ? portfolioMeta.works.length : 0) ||
+    (portfolioId ? 1 : 0);
+  const entityCount =
+    Number(
+      portfolioMeta?.distinct_entity_count ?? portfolioMeta?.distinct_llcs ?? portfolioMeta?.ec
+    ) || Math.max(1, siblingEntities.length);
+
+  let beneficialSteward = "";
+  if (portfolioMeta) {
+    beneficialSteward = String(portfolioMeta.label || portfolioMeta.primary_entity || "").trim();
+  } else if (ownTier === "anonymity_shield") {
+    beneficialSteward = careOfAgent
+      ? `${careOfAgent} (Registered-Agent / Nominee Shield)`
+      : billingAddress
+      ? `Registered-Agent Hub (${billingAddress})`
+      : "Registered-Agent / Nominee Trust Shield";
+  }
+
+  const isCorporateOrTrust =
+    /\b(?:LLC|L\.L\.C|LP|L\.P|LLP|LTD|INC|CORP|CORPORATION|COMPANY|TRUST|TR\b|HOLDINGS|PROPERTIES|VENTURES|INVESTMENTS|PARTNERS|REALTY|CAPITAL|HOMES|DEVELOPMENT|BUILDER|BUILDERS|BANK|ASSOC|ASSOCIATION|HOA)\b/i.test(
+      rawOwnerName
+    );
+
+  const searchTarget =
+    siblingEntities[0] ||
+    portfolioMeta?.primary_entity ||
+    (!isConfidential && isCorporateOrTrust ? rawOwnerName : "") ||
+    portfolioMeta?.label ||
+    (!isConfidential ? rawOwnerName : "") ||
+    "";
+
+  const rawDeedTokens = String(shard.d || props.deed_chain || "")
+    .split(/[;|]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const latestClerkFileNum =
+    rawDeedTokens.length > 0 ? String(rawDeedTokens[0].split(":")[1] || "").trim() : "";
+  const clerkTarget =
+    latestClerkFileNum || (!isConfidential && rawOwnerName ? rawOwnerName : hcadNum || "HOUSTON");
+
+  return {
+    ownTier,
+    tierLabel: tierObj.label,
+    tierShortLabel: tierObj.shortLabel || tierObj.label,
+    tierColor: resolveOwnershipTierColor(ownTier),
+    portfolioId,
+    portId: portfolioId,
+    portfolioMeta,
+    ownerName: recordedOwner,
+    recordedOwner,
+    beneficialSteward,
+    portfolioCount,
+    entityCount,
+    siblingEntities,
+    officers,
+    coOwners,
+    billingAddress,
+    mailingAddress: billingAddress,
+    careOfAgent,
+    careOf: careOfAgent,
+    flipDays,
+    isConfidential,
+    isRedactedHomestead,
+    isCorporateOrTrust,
+    txComptrollerUrl: buildTxComptrollerSearchUrl(searchTarget),
+    clerkUrl: buildHarrisCountyClerkRpUrl(clerkTarget),
+  };
+}
+
+/**
+ * Pure, DOM-free wire decoder that merges `1836-2026` deed chains (`d`), pre-demolition flip velocity (`flip`),
+ * historical City Directory occupants (`r`), 1915 Red Book entries, original builder/architect citations,
+ * and COH building/demolition permits (`p`) into a single chronological Chain of Stewardship model (`DF-5`).
+ */
+export function buildStewardshipTimelineModel({
+  deeds = null,
+  flipDays = null,
+  permits = null,
+  directoryOccupants = null,
+  yearBuilt = 0,
+  remodelYear = 0,
+  redBookRecord = null,
+  historicContractor = "",
+  landmarkInfo = null,
+  featureProps = null,
+  permitShardRec = null,
+  citydirRec = null,
+  redBookHits = null,
+  ownershipPortfolios = null,
+} = {}) {
+  const events = [];
+  const decodedDeeds = [];
+  const decodedOccupants = [];
+
+  const props = featureProps && typeof featureProps === "object" ? featureProps : {};
+  const shard = permitShardRec && typeof permitShardRec === "object" ? permitShardRec : {};
+  const cdRec = citydirRec && typeof citydirRec === "object" ? citydirRec : null;
+
+  const yrBuilt = Number(yearBuilt || props.year_built || shard.yr) || 0;
+  const effContractor = String(
+    historicContractor || props.architect || props.builder || props.contractor || shard.c || ""
+  ).trim();
+
+  if (yrBuilt >= 1836 && yrBuilt <= 2035) {
+    events.push({
+      kind: "construction",
+      category: "construction",
+      year: yrBuilt,
+      dateLabel: String(yrBuilt),
+      sortKey: `${yrBuilt}-01-01`,
+      title: `Original Structure Built (${yrBuilt})`,
+      subtitle: effContractor
+        ? `Original Architect / Builder: ${effContractor}`
+        : "Recorded on Harris County CAMA / Archival Survey Roll",
+      citation: String(props.source_citation || props.year_source || ""),
+      badge: "Construction",
+      url: null,
+    });
+  }
+
+  const rbList = [];
+  if (redBookRecord && typeof redBookRecord === "object") {
+    rbList.push(redBookRecord.properties || redBookRecord);
+  }
+  if (Array.isArray(redBookHits)) {
+    for (const h of redBookHits) {
+      if (h && typeof h === "object") {
+        rbList.push(h.properties || h);
+      }
+    }
+  }
+  for (const rb of rbList) {
+    const rbTitle = String(
+      rb.title || rb.name || rb.owner_or_business || "1915 Red Book of Houston Entry"
+    ).trim();
+    const rbDesc = String(
+      rb.occupation_or_type || rb.category || rb.subtitle || "Black Houston Resident / Business"
+    ).trim();
+    events.push({
+      kind: "red_book_1915",
+      category: "red_book_1915",
+      year: 1915,
+      dateLabel: "1915",
+      sortKey: "1915-06-19",
+      title: `1915 Red Book of Houston: ${rbTitle}`,
+      subtitle: rbDesc,
+      citation: "1915 Red Book of Houston (Rice Woodson Research Center / HPL)",
+      badge: "1915 Red Book",
+      url: "https://cdm17006.contentdm.oclc.org/digital/collection/p17006coll18/id/297",
+    });
+  }
+
+  const effOccs =
+    Array.isArray(directoryOccupants) && directoryOccupants.length > 0
+      ? directoryOccupants
+      : Array.isArray(cdRec?.r)
+      ? cdRec.r
+      : [];
+
+  if (Array.isArray(effOccs) && effOccs.length > 0) {
+    for (const row of effOccs) {
+      if (Array.isArray(row) && row.length >= 2) {
+        const yr = Number(row[0]) || 0;
+        const name = String(row[1] || "").trim();
+        const role = String(row[2] || "").trim();
+        if (!name) continue;
+        const occ = { year: yr, name, role };
+        decodedOccupants.push(occ);
+        events.push({
+          kind: "city_directory",
+          category: "city_directory",
+          year: yr || 1930,
+          dateLabel: yr >= 1836 ? String(yr) : "Historic",
+          sortKey: yr >= 1836 ? `${yr}-06-01` : "1930-06-01",
+          title: `City Directory Occupant: ${name}`,
+          subtitle: role
+            ? `${role} (Morrison & Fourmy / Polk Houston City Directory)`
+            : "Morrison & Fourmy / Polk Houston City Directory",
+          citation: String(cdRec?.c || ""),
+          badge: "Directory Occupant",
+          url: null,
+        });
+      } else if (row && typeof row === "object") {
+        const yr = Number(row.year) || 0;
+        const name = String(row.name || "").trim();
+        const role = String(row.role || "").trim();
+        if (!name) continue;
+        const occ = { year: yr, name, role };
+        decodedOccupants.push(occ);
+        events.push({
+          kind: "city_directory",
+          category: "city_directory",
+          year: yr || 1930,
+          dateLabel: yr >= 1836 ? String(yr) : "Historic",
+          sortKey: yr >= 1836 ? `${yr}-06-01` : "1930-06-01",
+          title: `City Directory Occupant: ${name}`,
+          subtitle: role
+            ? `${role} (Morrison & Fourmy / Polk Houston City Directory)`
+            : "Morrison & Fourmy / Polk Houston City Directory",
+          citation: String(cdRec?.c || ""),
+          badge: "Directory Occupant",
+          url: null,
+        });
+      }
+    }
+  } else if (cdRec && Number(cdRec.e) >= 1836) {
+    const cdYr = Number(cdRec.e);
+    events.push({
+      kind: "city_directory",
+      category: "city_directory",
+      year: cdYr,
+      dateLabel: String(cdYr),
+      sortKey: `${cdYr}-06-01`,
+      title: `Houston City Directory Citation (${cdYr})`,
+      subtitle: "Morrison & Fourmy / Polk Houston City Directory",
+      citation: String(cdRec.c || ""),
+      badge: "Directory Occupant",
+      url: null,
+    });
+  }
+
+  const yrRemodel =
+    Number(remodelYear || props.remodel_year || props.yr_remodel || shard.remod) || 0;
+  if (yrRemodel >= 1850 && yrRemodel !== yrBuilt) {
+    events.push({
+      kind: "remodel",
+      category: "remodel",
+      year: yrRemodel,
+      dateLabel: String(yrRemodel),
+      sortKey: `${yrRemodel}-07-01`,
+      title: `Major Remodel / Rehabilitation (${yrRemodel})`,
+      subtitle: "Recorded on HCAD Building Improvement History",
+      citation: "",
+      badge: "Rehabilitation",
+      url: null,
+    });
+  }
+
+  const effLandmark =
+    landmarkInfo && typeof landmarkInfo === "object"
+      ? landmarkInfo
+      : props.landmark_name || props.landmark_type
+      ? {
+          title: props.landmark_name || props.landmark_type,
+          subtitle: props.historic_district || "City of Houston / National Register Designation",
+          year: Number(props.designation_year) || 2005,
+        }
+      : null;
+
+  if (effLandmark && effLandmark.title) {
+    const lmYear = Number(effLandmark.year) || 2005;
+    events.push({
+      kind: "landmark",
+      category: "landmark",
+      year: lmYear,
+      dateLabel: effLandmark.year ? String(effLandmark.year) : "Designated",
+      sortKey: `${lmYear}-09-01`,
+      title: String(effLandmark.title),
+      subtitle: String(effLandmark.subtitle || "City of Houston / National Register Designation"),
+      citation: "",
+      badge: "Preservation Milestone",
+      url: effLandmark.url || null,
+    });
+  }
+
+  let effDeeds = [];
+  if (Array.isArray(deeds) && deeds.length > 0) {
+    effDeeds = deeds;
+  } else {
+    const rawDeedStr = typeof deeds === "string" ? deeds : String(shard.d || props.deed_chain || "");
+    if (rawDeedStr.trim()) {
+      for (const seg of rawDeedStr.split("|")) {
+        const cleanSeg = seg.trim();
+        if (!cleanSeg) continue;
+        const parts = cleanSeg.split(":");
+        const dtRaw = String(parts[0] || "").trim();
+        const instRaw = String(parts[1] || "").trim();
+        const idRaw = String(parts[2] || "").trim();
+        const codeRaw = String(parts[3] || "D").trim();
+        let isoDate = dtRaw;
+        if (/^\d{8}$/.test(dtRaw)) {
+          const yPart = dtRaw.slice(0, 4);
+          const mPart = dtRaw.slice(4, 6);
+          const dPart = dtRaw.slice(6, 8);
+          isoDate =
+            mPart === "00" || dPart === "00" ? yPart : `${yPart}-${mPart}-${dPart}`;
+        }
+        effDeeds.push([isoDate, instRaw, idRaw, codeRaw]);
+      }
+    }
+  }
+
+  for (const dRow of effDeeds) {
+    let dt = "";
+    let clerkNum = "";
+    let deedId = "";
+    let code = "D";
+    if (Array.isArray(dRow)) {
+      dt = String(dRow[0] || "").trim();
+      clerkNum = String(dRow[1] || "").trim();
+      deedId = String(dRow[2] || "").trim();
+      code = String(dRow[3] || "D").trim().toUpperCase();
+    } else if (dRow && typeof dRow === "object") {
+      dt = String(dRow.date || dRow.dt || "").trim();
+      clerkNum = String(dRow.clerk_num || dRow.clerkFileNum || "").trim();
+      deedId = String(dRow.deed_id || dRow.deedId || "").trim();
+      code = String(dRow.type || dRow.code || "D").trim().toUpperCase();
+    }
+    if (!dt) continue;
+    const typeLabel =
+      code === "S"
+        ? "Subdivision Plat / Replat Conveyance"
+        : code === "O"
+        ? "Official Public Record Transfer"
+        : "Warranty / Grant Deed Transfer";
+    const clerkUrl = clerkNum ? buildHarrisCountyClerkRpUrl(clerkNum) : null;
+    const deedObj = {
+      date: dt,
+      clerkFileNum: clerkNum,
+      deedId,
+      typeCode: code,
+      typeLabel,
+      clerkUrl,
+    };
+    decodedDeeds.push(deedObj);
+    events.push({
+      kind: "deed",
+      category: "deed",
+      year: parseInt(dt.slice(0, 4), 10) || 2000,
+      dateLabel: dt,
+      sortKey: dt.length === 4 ? `${dt}-01-01` : dt,
+      title: typeLabel,
+      subtitle: clerkNum
+        ? `Harris County Clerk File #${clerkNum}${deedId ? ` · HCAD Deed ID ${deedId}` : ""}`
+        : deedId
+        ? `HCAD Deed Transfer ID ${deedId}`
+        : "Recorded Harris County Real Property Conveyance",
+      citation: clerkNum ? `RP Clerk #${clerkNum}` : "",
+      badge: code === "S" ? "Plat / Replat" : "Deed Transfer",
+      clerkFileNum: clerkNum,
+      url: clerkUrl,
+    });
+  }
+
+  const effPermits =
+    Array.isArray(permits) && permits.length > 0
+      ? permits
+      : Array.isArray(shard.p)
+      ? shard.p
+      : [];
+
+  if (Array.isArray(effPermits)) {
+    for (const pRow of effPermits) {
+      let dt = "";
+      let pType = "";
+      let desc = "";
+      let val = 0;
+      let explicitStage = "";
+      let explicitBadge = "";
+      if (Array.isArray(pRow)) {
+        dt = String(pRow[0] || "").trim();
+        pType = String(pRow[1] || "").trim();
+        desc = String(pRow[2] || "").trim();
+        val = Number(pRow[3]) || 0;
+      } else if (pRow && typeof pRow === "object") {
+        dt = String(pRow.dt || pRow.date || pRow.permit_date || "").trim();
+        pType = String(
+          pRow.tp || pRow.type || pRow.permit_type_label || pRow.permit_type || ""
+        ).trim();
+        desc = String(
+          pRow.d || pRow.desc || pRow.description || pRow.use_desc || pRow.permit_desc || ""
+        ).trim();
+        val = Number(pRow.val ?? pRow.value ?? pRow.declared_value) || 0;
+        explicitStage = String(pRow.demo_stage || "").trim();
+        explicitBadge = String(pRow.demo_stage_badge || "").trim();
+      }
+      if (!dt && !pType && !desc) continue;
+      const u = `${pType} ${desc} ${explicitBadge}`.toUpperCase();
+      const ptUpper = pType.toUpperCase();
+      const isExplicitStage2 =
+        explicitStage === "stage_2_demolition" ||
+        explicitStage === "building_demo_2_of_2" ||
+        u.includes("2 OF 2") ||
+        (ptUpper.includes("BUILDING") && ptUpper.includes("DEMO") && !u.includes("1 OF 2"));
+      const isSewerDisc =
+        !isExplicitStage2 &&
+        (explicitStage === "stage_1_sewer_plumbing" ||
+          explicitStage === "sewer_disconnect_1_of_2" ||
+          u.includes("1 OF 2") ||
+          u.includes("SEWER DISC") ||
+          u.includes("SEWER DISCONNECT") ||
+          u.includes("SW DISC") ||
+          (u.includes("PLUMB") && (u.includes("DEMO") || u.includes("DISC"))));
+      const isDemo =
+        !isSewerDisc &&
+        (isExplicitStage2 ||
+          u.includes("DEMO") ||
+          u.includes("TEARDOWN") ||
+          u.includes("RAZING"));
+      const badge =
+        explicitBadge ||
+        (isDemo
+          ? "Building Demo Permit (2 of 2)"
+          : isSewerDisc
+          ? "Sewer Disconnect (1 of 2)"
+          : "COH Permit");
+      events.push({
+        kind: isDemo ? "demo_permit" : isSewerDisc ? "sewer_disc_permit" : "permit",
+        category: isDemo ? "demolition" : "permit",
+        year: parseInt(String(dt).slice(0, 4), 10) || 2020,
+        dateLabel: dt || "Recorded",
+        sortKey: dt || "2020-01-01",
+        title: `${pType || "COH Permit"}${desc ? `: ${desc}` : ""}`,
+        subtitle:
+          val > 0
+            ? `Declared Valuation: $${val.toLocaleString()}`
+            : isSewerDisc
+            ? "Stage 1 Plumbing Sewer Disconnect Prerequisite (Not Final Building Demolition)"
+            : isDemo
+            ? "Stage 2 Structural Building Demolition Permit"
+            : "City of Houston Permit Record",
+        citation: "",
+        badge,
+        url: null,
+      });
+    }
+  }
+
+  const rawFlip = flipDays ?? shard.flip ?? props.flip_days ?? null;
+  const cleanFlip =
+    rawFlip !== null && rawFlip !== undefined && rawFlip !== "" && Number.isFinite(Number(rawFlip))
+      ? Number(rawFlip)
+      : null;
+
+  if (cleanFlip !== null && cleanFlip >= 0 && cleanFlip <= 730) {
+    const latestDeedSort = decodedDeeds[0]?.date || "2020-01-02";
+    events.push({
+      kind: "rapid_flip",
+      category: "demolition",
+      year: parseInt(String(latestDeedSort).slice(0, 4), 10) || 2020,
+      dateLabel: `${cleanFlip} days`,
+      sortKey: `${latestDeedSort}_flip`,
+      title: `Pre-Demolition Flip Velocity: ${cleanFlip} Days`,
+      subtitle: `Property deed transferred ${cleanFlip} days prior to main-structure demolition permit filing.`,
+      citation: "HCAD Deed History x COH Demolition Permit Cross-Check",
+      badge: `Flip Alert (${cleanFlip} days)`,
+      url: null,
+    });
+  }
+
+  events.sort((a, b) => String(a.sortKey).localeCompare(String(b.sortKey)));
+
+  return {
+    events,
+    deeds: decodedDeeds,
+    directoryOccupants: decodedOccupants,
+    flipDays: cleanFlip,
+    isRapidTeardownFlip: cleanFlip !== null && cleanFlip >= 0 && cleanFlip <= 730,
+  };
+}
+

@@ -60,13 +60,18 @@ import atlas_pipeline.schema as _schema
 from atlas_pipeline.schema import (
     ACTIVE_TAX_YEAR,
     MIN_VALID_YEAR,
+    OWNERSHIP_TIER_KEYS,
+    classify_account_ownership,
     classify_main_structure_demolition_permit,
     compute_decade_bins,
     compute_demo_years,
     extract_parcels_zip_dataset,
     is_boundary_search_entry,
+    is_corporate_or_trust_entity,
     is_demolished_vacant_marker,
+    is_hoa_or_civic_steward,
     is_main_structure_demolition_scope,
+    is_protected_homestead,
     normalize_hcad_date,
     normalize_year,
     resolve_ch42_ordinance_lifecycle,
@@ -220,6 +225,8 @@ SCORECARD_FIELD_LEGEND: dict[str, str] = {
     "hl": "1937 HOLC Redlining metadata {grade, code, temp_f, delta_vs_a}",
     "pl": "Historic Plat metadata {year_label, citation, deed_citation, has_deed_docs}",
     "ad": "Boolean true when a surveyed potential historic district has since been designated as a COH Historic District",
+    "ot": "Positional 6-tier ownership parcel counts [homestead, local_small, regional_portfolio, institutional_pe, anonymity_shield, civic_nonprofit]",
+    "tps": "Top beneficial portfolio stewards inside boundary [[port_id, parcel_count], ...] (primary non-subdivision boundaries)",
 }
 
 SPARSE_ZERO_SCORECARD_KEYS: tuple[str, ...] = (
@@ -239,7 +246,13 @@ SPARSE_ZERO_SCORECARD_KEYS: tuple[str, ...] = (
     "hdp",
     "dmt",
     "dmp40",
+    "ot",
+    "tps",
 )
+
+OWNERSHIP_TIER_INDEX_MAP: dict[str, int] = {
+    tier_key: idx for idx, tier_key in enumerate(OWNERSHIP_TIER_KEYS)
+}
 
 _ADDR_ABBR_RULES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bSTREET\b"), "ST"),
@@ -342,6 +355,8 @@ def classify_parcel_ownership(
     situs_addr_1: Any,
     mail_addr_1: Any,
     mail_addr_2: Any = "",
+    *,
+    state_class: str = "A1",
 ) -> tuple[str, bool]:
     """Classify a parcel owner into (`bucket`, `situs_matched`) (DF-4).
 
@@ -353,14 +368,23 @@ def classify_parcel_ownership(
       - `"family_trust"`: Individual/family living trusts, revocable trusts, trustees, and estates.
         Separately exposes `situs_matched=True` when the family trust mails to the home itself.
       - `"resident"`: Non-corporate, non-trust individual whose normalized mailing address
-        matches the normalized situs property address.
+        matches the normalized situs property address (or TX Tax Code Sec. 25.025 redacted homestead).
       - `"absentee"`: Non-corporate, non-trust individual mailing to a different address.
     """
     owner = str(owner_name or "").upper().strip()
     if _RE_PUBLIC_EXEMPT.search(owner):
         return "public_exempt", False
-    if _RE_CORP_ENTITY.search(owner):
+    is_corp_ent, is_trust_ent = is_corporate_or_trust_entity(owner)
+    if _RE_CORP_ENTITY.search(owner) or (is_corp_ent and not is_trust_ent):
         return "corporate", False
+    is_homestead, is_redacted_hs = is_protected_homestead(
+        state_class,
+        owner,
+        str(mail_addr_1 or ""),
+        str(situs_addr_1 or ""),
+    )
+    if is_homestead and is_redacted_hs:
+        return "resident", True
 
     situs_key = normalize_situs_compare_key(situs_addr_1)
     mail1_key = normalize_situs_compare_key(mail_addr_1)
@@ -1216,7 +1240,7 @@ def main(
                     flags |= FLAG_RES
                     if is_sfr:
                         flags |= FLAG_SFR
-                    bucket, situs_ok = classify_parcel_ownership(owner, situs1, mail1, mail2)
+                    bucket, situs_ok = classify_parcel_ownership(owner, situs1, mail1, mail2, state_class=sc)
                     if situs_ok and bucket in ("resident", "family_trust"):
                         flags |= FLAG_SITUS
                     if bucket == "family_trust":
@@ -1299,6 +1323,22 @@ def main(
         f"{ {y: len(s) for y, s in demo_parcels_by_year.items()} })."
     )
 
+    print("3b. Resolving 6-tier ownership taxonomy & portfolio clusters across HCAD accounts (DF-1, DF-3)...")
+    t_own = time.time()
+    from atlas_pipeline.build_ownership_and_history import build_ownership_graph
+
+    own_graph = build_ownership_graph(
+        cama_zip_path,
+        tax_year=eff_year,
+        include_owners_table=False,
+        include_permits_table=False,
+    )
+    own_accounts = own_graph.get("accounts") or {}
+    print(
+        f"   Resolved {len(own_accounts):,} account ownership classifications & "
+        f"{len(own_graph.get('portfolios') or {}):,} portfolios in {time.time() - t_own:.1f}s."
+    )
+
     # 4. Read Parcels.gdb / Parcels.zip (EPSG:2278) -> UniqueParcelIndex + Dual-Mode Ch. 42 Protection Matching
     print("4. Reading Parcels vector dataset (EPSG:2278) into UniqueParcelIndex...")
     t_pcl = time.time()
@@ -1342,6 +1382,8 @@ def main(
     uniq_hcads: list[str] = []
     uniq_flags: list[int] = []
     uniq_areas: list[float] = []
+    uniq_tiers: list[int] = []
+    uniq_port_ids: list[str] = []
 
     for idx_row in range(len(raw_hcads)):
         wkb = geom_wkb[idx_row]
@@ -1372,12 +1414,27 @@ def main(
             elif bkt == "absentee":
                 fl |= FLAG_ABS
         uniq_flags.append(fl)
+        own_rec = own_accounts.get(hcad)
+        if own_rec is not None:
+            uniq_tiers.append(OWNERSHIP_TIER_INDEX_MAP.get(own_rec.own_tier, 0))
+            uniq_port_ids.append(own_rec.port_id or "")
+        else:
+            fallback_cls = classify_account_ownership(
+                state_class="A1" if (fl & FLAG_RES) else "",
+                owner_name=str(raw_owners[idx_row] or ""),
+                situs_addr=str(raw_locaddrs[idx_row] or ""),
+                mail_addr_1=str(raw_mail1[idx_row] or ""),
+                mail_addr_2=str(raw_mail2[idx_row] or ""),
+            )
+            uniq_tiers.append(OWNERSHIP_TIER_INDEX_MAP.get(fallback_cls["own_tier"], 0))
+            uniq_port_ids.append("")
         a_val = raw_areas[idx_row]
         try:
             uniq_areas.append(float(a_val) if a_val and float(a_val) > 0 else 0.0)
         except (TypeError, ValueError):
             uniq_areas.append(0.0)
 
+    del own_accounts, own_graph
     del _fids_tmp, raw_hcads, raw_owners, raw_locaddrs, raw_mail1, raw_mail2, raw_areas, field_data
 
     keep_wkb = geom_wkb[np.asarray(keep_indices, dtype=np.int64)]
@@ -1401,6 +1458,8 @@ def main(
     pcl_pts_2278 = shapely.point_on_surface(pcl_geoms_2278)
 
     pcl_flags_arr = np.asarray(uniq_flags, dtype=np.uint8)
+    pcl_tier_arr = np.asarray(uniq_tiers, dtype=np.uint8)
+    del uniq_tiers
     pcl_areas_arr = np.asarray(uniq_areas, dtype=np.float64)
     pcl_res_mask = (pcl_flags_arr & FLAG_RES) != 0
     pcl_sfr_mask = (pcl_flags_arr & FLAG_SFR) != 0
@@ -1541,8 +1600,17 @@ def main(
                 continue
 
             # Standing building hits (WGS84)
-            if layer_key == "platted_subdivisions" and not bool(p.get("is_historic_plat")):
-                continue
+            if layer_key == "platted_subdivisions":
+                if not bool(p.get("is_historic_plat")):
+                    continue
+                if fid in (
+                    "plat_2363_guy_bates",
+                    "plat_3431_magnolia_pk_branch_ign",
+                    "plat_4833_richey",
+                    "plat_5296_shively_carlson",
+                    "plat_5863_tod_and_johnson_s_outlot",
+                ):
+                    continue
             b_hits = bldg_tree.query(sg_wgs, predicate="intersects")
             bc = int(len(b_hits))
             if layer_key == "platted_subdivisions" and bc < MIN_SUBDIVISION_STANDING_STRUCTURES:
@@ -1588,9 +1656,30 @@ def main(
                 dm = [int(np.sum(pcl_demo_masks[yr][p_hits])) for yr in demo_years]
                 dmt = int(np.sum(pcl_demo_any_mask[p_hits]))
                 dmp40 = int(np.sum(pcl_demo_pre40_mask[p_hits]))
+                include_ot_tps = layer_key not in ("platted_subdivisions", "neighborhoods") or (
+                    layer_key == "neighborhoods" and bc >= 150
+                )
+                if include_ot_tps:
+                    sub_tiers = pcl_tier_arr[p_hits]
+                    ot_counts = [int(np.sum(sub_tiers == ti)) for ti in range(6)]
+                    port_cnt: Counter[str] = Counter()
+                    for pi in p_hits:
+                        pid_val = uniq_port_ids[int(pi)]
+                        if pid_val:
+                            port_cnt[pid_val] += 1
+                    tps_list = [
+                        [pid_k, int(cnt_v)]
+                        for pid_k, cnt_v in port_cnt.most_common(3)
+                        if cnt_v >= 2
+                    ]
+                else:
+                    ot_counts = []
+                    tps_list = []
             else:
                 rpc = sfc = occ = ftc = llc = abs_c = chp = slp = sbp = chx = dmt = dmp40 = 0
                 dm = [0] * len(demo_years)
+                ot_counts = []
+                tps_list = []
 
             # Designation point counts (exclude demolished former landmarks; separate Protected vs 90-day waiver vs COA-protected HD landmarks)
             lm_hits = lm_tree.query(sg_wgs, predicate="intersects") if lm_tree else []
@@ -1751,6 +1840,10 @@ def main(
                 "dmt": dmt,
                 "dmp40": dmp40,
             }
+            if ot_counts and any(ot_counts):
+                rec["ot"] = ot_counts
+            if tps_list:
+                rec["tps"] = tps_list
             if sn_name:
                 rec["sn"] = sn_name
             if cd_str:
@@ -1831,13 +1924,16 @@ def main(
         "scorecards": scorecards,
     }
     write_compact_json(scorecards_out_path, payload)
-    out_mb = scorecards_out_path.stat().st_size / (1024 * 1024)
+    out_bytes = scorecards_out_path.stat().st_size
+    out_mb = out_bytes / (1024 * 1024)
     print(
         f"=== Wrote {len(scorecards):,} scorecards to {scorecards_out_path.name} "
-        f"({out_mb:.2f} MB) in {time.time() - t0:.1f}s ==="
+        f"({out_mb:.2f} MB / {out_bytes:,} bytes) in {time.time() - t0:.1f}s ==="
     )
-    if out_mb >= 2.5:
-        raise RuntimeError(f"neighborhood_scorecards.json exceeded 2.5 MB budget ({out_mb:.2f} MB)")
+    if out_bytes >= 2_500_000:
+        raise RuntimeError(
+            f"neighborhood_scorecards.json exceeded 2,500,000-byte budget ({out_bytes:,} bytes)"
+        )
     return payload
 
 

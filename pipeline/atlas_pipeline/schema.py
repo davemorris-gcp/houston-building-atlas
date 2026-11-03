@@ -22,7 +22,7 @@ MAX_VALID_CAMA_DATE_YEAR = ACTIVE_TAX_YEAR
 MAX_VALID_YEAR = ACTIVE_TAX_YEAR + 1
 MAX_STANDING_OVERRIDE_YEAR = 2035
 ACTIVE_CACHE_BUST = "20261031a"
-SOFT_MAX_APP_BYTES = 955 * 1024 * 1024
+SOFT_MAX_APP_BYTES = 948 * 1024 * 1024
 HARD_MAX_APP_BYTES = 980 * 1024 * 1024
 MAX_SINGLE_FILE_BYTES = 95 * 1024 * 1024
 ORD_2015_639_CUTOFF_ISO = "2015-07-24"
@@ -3016,6 +3016,595 @@ def sync_repo_tax_year_and_cache_bust(
         "swept_cache_bust_files": swept_files,
         "modified_files": sorted(modified_paths),
     }
+
+
+# ---------------------------------------------------------------------------
+# Milestone 5: Single-Source Ownership Taxonomy, Sec. 25.025 Privacy & Flip Helpers (DF-1, DF-6, DF-7)
+# ---------------------------------------------------------------------------
+
+OWNERSHIP_TIER_KEYS: tuple[str, ...] = (
+    "homestead",
+    "local_small",
+    "regional_portfolio",
+    "institutional_pe",
+    "anonymity_shield",
+    "civic_nonprofit",
+)
+
+ENRICHED_PERMIT_SHARD_KEYS: tuple[str, ...] = (
+    "d",
+    "ot",
+    "pid",
+    "m",
+    "co",
+    "flip",
+)
+
+RESIDENTIAL_HOMESTEAD_STATE_CLASSES: frozenset[str] = frozenset({
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "B2",
+    "B3",
+    "B4",
+})
+
+CONFIDENTIAL_OWNER_TOKENS: frozenset[str] = frozenset({
+    "CURRENT OWNER",
+    "CONFIDENTIAL",
+    "CONFIDENTIAL OWNER",
+    "PROTECTED",
+    "PROTECTED OWNER",
+    "WITHHELD",
+    "REDACTED",
+})
+
+PLACEHOLDER_NON_GRAPH_OWNER_TOKENS: frozenset[str] = frozenset({
+    "CURRENT OWNER",
+    "CONFIDENTIAL",
+    "CONFIDENTIAL OWNER",
+    "PROTECTED",
+    "PROTECTED OWNER",
+    "WITHHELD",
+    "REDACTED",
+    "ET AL",
+    "TRUSTEE",
+    "ESTATE OF",
+    "UNKNOWN",
+    "UNKNOWN OWNER",
+    "OWNER",
+})
+
+KNOWN_REGISTERED_AGENT_ADDRESS_PREFIXES: tuple[str, ...] = (
+    "5900 BALCONES DR",
+    "3225 MCLEOD DR",
+    "17350 SH 249 STE 220",
+    "17350 STATE HWY 249 STE 220",
+    "10601 CLARENCE DR",
+    "1999 BRYAN ST STE 900",
+    "211 E 7TH ST STE 620",
+    "701 BRAZOS ST STE 720",
+    "1501 S MOPAC EXPY STE 220",
+    "815 BRAZOS ST STE 500",
+    "1675 S STATE ST",
+    "1209 ORANGE ST",
+    "251 LITTLE FALLS DR",
+    "30 N GOULD ST",
+)
+
+KNOWN_REGISTERED_AGENT_NAME_TOKENS: tuple[str, ...] = (
+    "REGISTERED AGENT",
+    "CORP SERVICE",
+    "CORPORATION SERVICE",
+    "CT CORPORATION",
+    "LEGALINC",
+    "INCORP SERVICES",
+    "NORTHWEST REGISTERED",
+    "COGENCY GLOBAL",
+    "CAPITOL CORPORATE",
+    "UNITED AGENT GROUP",
+    "REPUBLIC REGISTERED",
+    "REGISTERED AGENTS INC",
+)
+
+KNOWN_TAX_AGENT_TOKENS: tuple[str, ...] = (
+    "O'CONNOR",
+    "OCONNOR",
+    "BETTENCOURT",
+    "RYAN LLC",
+    "POPP HUTCHESON",
+    "MORRISON & HEAD",
+    "CANTRELL MCCULLOCH",
+    "TEXAS PROTAX",
+    "RESIDENTIAL TAX",
+    "KE ANDREWS",
+    "DUFF & PHELPS",
+    "MARVIN F POER",
+    "ALTUS GROUP",
+)
+
+KNOWN_HOA_MANAGEMENT_TOKENS: tuple[str, ...] = (
+    "GOODWIN",
+    "CREST MANAGEMENT",
+    "CIA SERVICES",
+    "SPECTRUM AM",
+    "SPECTRUM ASSOC",
+    "GRAHAM MANAGEMENT",
+    "ASSOCIA",
+    "FIRSTSERVICE",
+    "STERLING ASI",
+    "SCS MANAGEMENT",
+    "PRINCIPAL MANAGEMENT",
+    "VANMOR",
+    "INFRASTRUCTURE SERVICES",
+    "LEAD ASSOCIATION",
+    "CHAPARRAL MANAGEMENT",
+    "KRJ MANAGEMENT",
+    "MACO MANAGEMENT",
+    "COMMUNITY ASSET",
+)
+
+_RE_CARE_OF_PREFIX = re.compile(
+    r"^\s*(?:C\s*/\s*O|C-O|CARE\s+OF|ATTN\s*:?|ATTENTION\s*:?|%\s+)\s*(.+)$",
+    re.IGNORECASE,
+)
+
+_RE_CORP_ENTITY_TOKEN = re.compile(
+    r"\b("
+    r"LLC|L\s+L\s+C|PLLC|LP|L\s+P|LLP|LTD|LIMITED|INC|INCORPORATED|CORP|CORPORATION"
+    r"|COMPANY|PARTNERS|PARTNERSHIP|HOLDINGS|PROPERTIES|PROP|INVESTMENTS|INV"
+    r"|VENTURES|CAPITAL|REALTY|REIT|ENTERPRISES|GROUP|DEVELOPMENT|DEV|HOMES"
+    r"|RESIDENTIAL|ASSET|ASSETS|FUND|EQUITY|MANAGEMENT|MGMT|ACQUISITIONS|PORTFOLIO"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_RE_TRUST_OR_ESTATE_TOKEN = re.compile(
+    r"\b("
+    r"TRUST|TRUSTEE|TRUSTEES|TR|ESTATE|REVOCABLE|IRREVOCABLE|LIVING\s+TRUST|FAMILY\s+TRUST"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_RE_CIVIC_OR_HOA_OWNER = re.compile(
+    r"\b("
+    r"HOA|HOMEOWNERS\s+ASSOC|PROPERTY\s+OWNERS\s+ASSOC|COMMUNITY\s+ASSOC|CIVIC\s+ASSOC"
+    r"|CHURCH|DIOCESE|PARISH|SYNAGOGUE|MOSQUE|TEMPLE|MINISTRIES|BAPTIST|METHODIST"
+    r"|CATHOLIC|LUTHERAN|PRESBYTERIAN|EPISCOPAL|UNIVERSITY|COLLEGE|ISD|SCHOOL\s+DIST"
+    r"|CITY\s+OF\s+HOUSTON|HARRIS\s+COUNTY|STATE\s+OF\s+TEXAS|FLOOD\s+CONTROL"
+    r"|METRO\s+TRANSIT|HOUSING\s+AUTHORITY|MUD\s+\d+|MUNICIPAL\s+UTILITY"
+    r"|LODGE|SCOTTISH\s+RITE|MASONIC|FOUNDATION|MUSEUM|CONSERVANCY"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_RE_COMMERCIAL_SUITE_CUE = re.compile(
+    r"\b(?:STE|SUITE|FL|FLOOR|BLDG|RM|PMB|BOX)\s+[A-Z0-9-]+",
+    re.IGNORECASE,
+)
+
+_POSTAL_ABBREV_SUBS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bP\.?\s*O\.?\s*BOX\b", re.IGNORECASE), "PO BOX"),
+    (re.compile(r"\bPOST\s+OFFICE\s+BOX\b", re.IGNORECASE), "PO BOX"),
+    (re.compile(r"\bSTREET\b", re.IGNORECASE), "ST"),
+    (re.compile(r"\bAVENUE\b", re.IGNORECASE), "AVE"),
+    (re.compile(r"\bBOULEVARD\b", re.IGNORECASE), "BLVD"),
+    (re.compile(r"\bDRIVE\b", re.IGNORECASE), "DR"),
+    (re.compile(r"\bROAD\b", re.IGNORECASE), "RD"),
+    (re.compile(r"\bLANE\b", re.IGNORECASE), "LN"),
+    (re.compile(r"\bCOURT\b", re.IGNORECASE), "CT"),
+    (re.compile(r"\bCIRCLE\b", re.IGNORECASE), "CIR"),
+    (re.compile(r"\bPLACE\b", re.IGNORECASE), "PL"),
+    (re.compile(r"\bPARKWAY\b", re.IGNORECASE), "PKWY"),
+    (re.compile(r"\bPKY\b", re.IGNORECASE), "PKWY"),
+    (re.compile(r"\bFREEWAY\b", re.IGNORECASE), "FWY"),
+    (re.compile(r"\bHIGHWAY\b", re.IGNORECASE), "HWY"),
+    (re.compile(r"\bSPEEDWAY\b", re.IGNORECASE), "SPWY"),
+    (re.compile(r"\bTERRACE\b", re.IGNORECASE), "TER"),
+    (re.compile(r"\bTRAIL\b", re.IGNORECASE), "TRL"),
+    (re.compile(r"\bSQUARE\b", re.IGNORECASE), "SQ"),
+    (re.compile(r"\bSUITE\b", re.IGNORECASE), "STE"),
+    (re.compile(r"\bAPARTMENT\b", re.IGNORECASE), "STE"),
+    (re.compile(r"\bAPT\b", re.IGNORECASE), "STE"),
+    (re.compile(r"\bUNIT\b", re.IGNORECASE), "STE"),
+    (re.compile(r"#\s*([A-Z0-9-]+)", re.IGNORECASE), r"STE \1"),
+    (re.compile(r"\bNORTH\b", re.IGNORECASE), "N"),
+    (re.compile(r"\bSOUTH\b", re.IGNORECASE), "S"),
+    (re.compile(r"\bEAST\b", re.IGNORECASE), "E"),
+    (re.compile(r"\bWEST\b", re.IGNORECASE), "W"),
+    (re.compile(r"\bSOUTHWEST\b", re.IGNORECASE), "SW"),
+    (re.compile(r"\bNORTHWEST\b", re.IGNORECASE), "NW"),
+    (re.compile(r"\bSOUTHEAST\b", re.IGNORECASE), "SE"),
+    (re.compile(r"\bNORTHEAST\b", re.IGNORECASE), "NE"),
+)
+
+
+def extract_care_of_and_clean_mail(
+    mail_addr_1: str,
+    mail_addr_2: str = "",
+) -> tuple[str, str, str]:
+    """Extract `C/O` or `ATTN` lines from HCAD `mail_addr_1` / `mail_addr_2` into `(addr1, addr2, care_of)`."""
+    a1 = sanitize_atlas_text(str(mail_addr_1 or "")).strip()
+    a2 = sanitize_atlas_text(str(mail_addr_2 or "")).strip()
+    care_of = ""
+
+    m1 = _RE_CARE_OF_PREFIX.match(a1)
+    if m1:
+        care_of = m1.group(1).strip()
+        a1 = a2
+        a2 = ""
+    else:
+        m2 = _RE_CARE_OF_PREFIX.match(a2)
+        if m2:
+            care_of = m2.group(1).strip()
+            a2 = ""
+        elif a1 and a2 and not any(ch.isdigit() for ch in a1) and any(ch.isdigit() for ch in a2):
+            care_of = a1
+            a1 = a2
+            a2 = ""
+
+    return a1, a2, care_of
+
+
+def _normalize_postal_line(raw_line: str) -> str:
+    s = sanitize_atlas_text(str(raw_line or "")).upper()
+    s = re.sub(r"[.,;:'\"()]", " ", s)
+    for pat, rep in _POSTAL_ABBREV_SUBS:
+        s = pat.sub(rep, s)
+    s = re.sub(r"\bSTE\s+STE\b", "STE", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def normalize_postal_billing_key(
+    mail_addr_1: str,
+    mail_addr_2: str = "",
+    mail_city: str = "",
+    mail_state: str = "",
+    mail_zip: str = "",
+) -> tuple[str, str, str]:
+    """Normalize an HCAD mailing address into `(billing_key, display_address, care_of)` (DF-1)."""
+    a1, a2, care_of = extract_care_of_and_clean_mail(mail_addr_1, mail_addr_2)
+    n1 = _normalize_postal_line(a1)
+    n2 = _normalize_postal_line(a2)
+    if n2 and n2 not in n1:
+        street_norm = f"{n1} {n2}".strip()
+    else:
+        street_norm = n1
+
+    city_norm = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9\s]", " ", str(mail_city or "").upper())).strip()
+    state_norm = re.sub(r"[^A-Z]", "", str(mail_state or "").upper())[:2]
+    zip5 = re.sub(r"\D", "", str(mail_zip or ""))[:5]
+
+    if not street_norm or street_norm in ("0", "NONE", "UNKNOWN", "N A", "NA", "UNDELIVERABLE"):
+        return "", "", care_of
+
+    billing_key = f"{street_norm}|{city_norm}|{state_norm}"
+    disp_parts = [street_norm]
+    city_st_zip = " ".join(p for p in (f"{city_norm}," if city_norm else "", state_norm, zip5) if p).strip(", ")
+    if city_st_zip:
+        disp_parts.append(city_st_zip)
+    display_addr = ", ".join(disp_parts)
+    return billing_key, display_addr, care_of
+
+
+def _extract_street_num_and_core(addr: str) -> tuple[str, str]:
+    """Return `(house_number, street_core_without_suite)` for situs vs. mailing comparison."""
+    norm = _normalize_postal_line(addr)
+    norm = re.sub(r"\b(?:STE|FL|FLOOR|BLDG|RM|PMB)\s+[A-Z0-9-]+\b.*$", "", norm).strip()
+    m = re.match(r"^(\d+[A-Z]?)\s+(.+)$", norm)
+    if not m:
+        return "", norm
+    st_num = m.group(1)
+    st_body = m.group(2).strip()
+    st_body = re.sub(
+        r"\s+(?:ST|AVE|BLVD|DR|RD|LN|CT|CIR|PL|PKWY|FWY|HWY|WAY|TER|TRL|SQ|LOOP)$",
+        "",
+        st_body,
+    ).strip()
+    return st_num, st_body
+
+
+def is_corporate_or_trust_entity(owner_name: str) -> tuple[bool, bool]:
+    """Return `(is_corporate_entity, is_trust_or_estate)` for an HCAD owner name."""
+    up = re.sub(r"[.,;:'\"()]", " ", str(owner_name or "").upper())
+    up = re.sub(r"\s+", " ", up).strip()
+    if not up or up in PLACEHOLDER_NON_GRAPH_OWNER_TOKENS:
+        return False, False
+    is_corp = bool(_RE_CORP_ENTITY_TOKEN.search(up))
+    is_trust = bool(_RE_TRUST_OR_ESTATE_TOKEN.search(up))
+    return is_corp, is_trust
+
+
+def is_registered_agent_billing_cluster(
+    billing_key: str,
+    owner_name: str = "",
+    care_of: str = "",
+) -> bool:
+    """Return True if a billing address or care-of line matches a known Registered-Agent shield."""
+    bk_up = str(billing_key or "").upper()
+    street_part = bk_up.split("|", 1)[0].strip()
+    for pfx in KNOWN_REGISTERED_AGENT_ADDRESS_PREFIXES:
+        if street_part.startswith(pfx):
+            return True
+    combined_names = f"{owner_name} | {care_of}".upper()
+    return any(tok in combined_names for tok in KNOWN_REGISTERED_AGENT_NAME_TOKENS)
+
+
+def is_tax_protest_agent_care_of(care_of: str, mail_addr_1: str = "") -> bool:
+    """Return True if a `C/O` line or mailing address belongs to a third-party property-tax agent."""
+    combined = f"{care_of} | {mail_addr_1}".upper()
+    return any(tok in combined for tok in KNOWN_TAX_AGENT_TOKENS)
+
+
+def is_hoa_or_civic_steward(
+    state_class: str,
+    owner_name: str,
+    care_of: str = "",
+    subdivision: str = "",
+) -> tuple[bool, str]:
+    """Return `(is_civic_or_hoa, sub_tier)` for `X1..X4` tax-exempt or HOA common-area reserves."""
+    sc = str(state_class or "").strip().upper()
+    own_up = str(owner_name or "").strip().upper()
+    co_up = str(care_of or "").strip().upper()
+    sub_up = str(subdivision or "").strip().upper()
+
+    if sc.startswith("X"):
+        return True, "tax_exempt_steward"
+    if sc == "C3" or "HOA_RE" in sub_up or "RESERVE" in sub_up and "ASSOC" in own_up:
+        return True, "hoa_common"
+    if any(tok in f"{own_up} | {co_up}" for tok in KNOWN_HOA_MANAGEMENT_TOKENS) and (
+        "ASSOC" in own_up or "HOA" in own_up or sc.startswith(("C", "D", "F"))
+    ):
+        return True, "hoa_common"
+    if _RE_CIVIC_OR_HOA_OWNER.search(own_up):
+        if "ASSOC" in own_up or "HOA" in own_up:
+            return True, "hoa_common"
+        return True, "civic_institution"
+    return False, ""
+
+
+def is_protected_homestead(
+    state_class: str,
+    owner_name: str,
+    mail_addr_1: str,
+    situs_addr: str,
+    *,
+    mail_addr_2: str = "",
+    mail_city: str = "",
+    mail_state: str = "",
+    owner_parcel_count: int = 1,
+    cluster_non_situs_commercial_size: int = 0,
+) -> tuple[bool, bool]:
+    """Pre-clustering Texas Tax Code Sec. 25.025 homestead & owner-occupancy guard (`DF-6`).
+
+    Returns `(is_homestead, is_sec_25_025_confidential)`.
+    """
+    sc = str(state_class or "").strip().upper()
+    is_res_class = sc in RESIDENTIAL_HOMESTEAD_STATE_CLASSES or sc.startswith("A")
+    own_clean = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9\s]", " ", str(owner_name or "").upper())).strip()
+    is_conf_token = own_clean in CONFIDENTIAL_OWNER_TOKENS or any(
+        own_clean.startswith(tok) for tok in CONFIDENTIAL_OWNER_TOKENS
+    )
+
+    a1, a2, care_of = extract_care_of_and_clean_mail(mail_addr_1, mail_addr_2)
+    m_num, m_core = _extract_street_num_and_core(a1)
+    s_num, s_core = _extract_street_num_and_core(situs_addr)
+    situs_matches_mail = bool(
+        s_num
+        and s_core
+        and m_num == s_num
+        and (m_core == s_core or m_core.startswith(s_core) or s_core.startswith(m_core))
+    )
+
+    if is_conf_token and sc.startswith("A1"):
+        has_commercial_suite = bool(_RE_COMMERCIAL_SUITE_CUE.search(f"{a1} {a2}"))
+        is_commercial_cluster = (
+            cluster_non_situs_commercial_size >= 3
+            and not situs_matches_mail
+            and bool(m_core)
+            and (has_commercial_suite or not m_core.startswith("PO BOX"))
+        )
+        if not is_commercial_cluster:
+            return True, True
+
+    if not is_res_class:
+        return False, False
+
+    is_corp, _is_trust = is_corporate_or_trust_entity(owner_name)
+    if is_corp:
+        return False, False
+    if is_registered_agent_billing_cluster(
+        f"{_normalize_postal_line(a1)}|{str(mail_city or '').upper()}|{str(mail_state or '').upper()}",
+        owner_name=owner_name,
+        care_of=care_of,
+    ):
+        return False, False
+
+    if situs_matches_mail:
+        return True, is_conf_token
+
+    st_up = str(mail_state or "TX").strip().upper()
+    if sc.startswith("A1") and owner_parcel_count <= 1 and st_up in ("", "TX"):
+        if not _RE_COMMERCIAL_SUITE_CUE.search(f"{a1} {a2}"):
+            return True, is_conf_token
+
+    return False, False
+
+
+def classify_account_ownership(
+    *,
+    state_class: str,
+    owner_name: str,
+    situs_addr: str,
+    mail_addr_1: str = "",
+    mail_addr_2: str = "",
+    mail_city: str = "",
+    mail_state: str = "",
+    mail_zip: str = "",
+    subdivision: str = "",
+    owner_parcel_count: int = 1,
+    cluster_parcel_count: int = 1,
+    cluster_distinct_corps: int = 0,
+    cluster_non_situs_commercial_size: int = 0,
+    port_id: str = "",
+) -> dict[str, Any]:
+    """Single-source deterministic 6-tier ownership classifier shared across pipeline stages (`DF-1`)."""
+    billing_key, display_mail, care_of = normalize_postal_billing_key(
+        mail_addr_1, mail_addr_2, mail_city, mail_state, mail_zip
+    )
+    tax_agent_co = is_tax_protest_agent_care_of(care_of, mail_addr_1)
+
+    is_civic, civic_sub = is_hoa_or_civic_steward(
+        state_class, owner_name, care_of=care_of, subdivision=subdivision
+    )
+    if is_civic:
+        return {
+            "own_tier": "civic_nonprofit",
+            "port_id": "",
+            "is_protected_homestead": False,
+            "is_sec_25_025_confidential": False,
+            "sub_tier": civic_sub,
+            "billing_key": billing_key,
+            "display_mail": display_mail,
+            "care_of": care_of,
+            "is_tax_agent_care_of": tax_agent_co,
+        }
+
+    is_hs, is_conf = is_protected_homestead(
+        state_class,
+        owner_name,
+        mail_addr_1,
+        situs_addr,
+        mail_addr_2=mail_addr_2,
+        mail_city=mail_city,
+        mail_state=mail_state,
+        owner_parcel_count=owner_parcel_count,
+        cluster_non_situs_commercial_size=cluster_non_situs_commercial_size,
+    )
+    if is_hs:
+        return {
+            "own_tier": "homestead",
+            "port_id": "",
+            "is_protected_homestead": True,
+            "is_sec_25_025_confidential": is_conf,
+            "sub_tier": "sec_25_025_confidential" if is_conf else "owner_occupied",
+            "billing_key": "",
+            "display_mail": "",
+            "care_of": "",
+            "is_tax_agent_care_of": False,
+        }
+
+    own_clean = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9\s]", " ", str(owner_name or "").upper())).strip()
+    is_conf_token = own_clean in CONFIDENTIAL_OWNER_TOKENS or any(
+        own_clean.startswith(tok) for tok in CONFIDENTIAL_OWNER_TOKENS
+    )
+    is_corp, is_trust = is_corporate_or_trust_entity(owner_name)
+    is_reg_agent = is_registered_agent_billing_cluster(billing_key, owner_name=owner_name, care_of=care_of)
+
+    if is_reg_agent or (is_conf_token and not is_hs) or (is_trust and "BLIND" in own_clean):
+        return {
+            "own_tier": "anonymity_shield",
+            "port_id": "",
+            "is_protected_homestead": False,
+            "is_sec_25_025_confidential": False,
+            "sub_tier": "registered_agent_shield" if is_reg_agent else "masked_commercial_cluster",
+            "billing_key": billing_key,
+            "display_mail": display_mail,
+            "care_of": care_of,
+            "is_tax_agent_care_of": tax_agent_co,
+        }
+
+    eff_parcels = max(int(owner_parcel_count or 1), int(cluster_parcel_count or 1))
+    st_up = str(mail_state or "TX").strip().upper()
+    is_out_of_state = bool(st_up and st_up != "TX")
+
+    if eff_parcels >= 100 or (is_out_of_state and (is_corp or eff_parcels >= 5)):
+        return {
+            "own_tier": "institutional_pe",
+            "port_id": str(port_id or ""),
+            "is_protected_homestead": False,
+            "is_sec_25_025_confidential": False,
+            "sub_tier": "out_of_state_platform" if is_out_of_state else "institutional_100plus",
+            "billing_key": billing_key,
+            "display_mail": display_mail,
+            "care_of": care_of,
+            "is_tax_agent_care_of": tax_agent_co,
+        }
+
+    if eff_parcels >= 5 or int(cluster_distinct_corps or 0) >= 2:
+        return {
+            "own_tier": "regional_portfolio",
+            "port_id": str(port_id or ""),
+            "is_protected_homestead": False,
+            "is_sec_25_025_confidential": False,
+            "sub_tier": "multi_llc_cluster" if int(cluster_distinct_corps or 0) >= 2 else "regional_5plus",
+            "billing_key": billing_key,
+            "display_mail": display_mail,
+            "care_of": care_of,
+            "is_tax_agent_care_of": tax_agent_co,
+        }
+
+    return {
+        "own_tier": "local_small",
+        "port_id": str(port_id or ""),
+        "is_protected_homestead": False,
+        "is_sec_25_025_confidential": False,
+        "sub_tier": "small_llc" if is_corp else "local_individual",
+        "billing_key": billing_key,
+        "display_mail": display_mail,
+        "care_of": care_of,
+        "is_tax_agent_care_of": tax_agent_co,
+    }
+
+
+def compute_pre_demolition_flip_days(
+    deed_dos_yyyymmdd: str,
+    demo_permit_date_raw: str,
+    *,
+    max_days: int = 365,
+) -> int | None:
+    """Compute days between a complete-date deed transfer (`YYYYMMDD`) and a main-structure demolition permit (`DF-7`).
+
+    Rejects `YYYY0000` partial dates, `00000000`, and `1899`/`1900` sentinel dates.
+    """
+    dos_s = str(deed_dos_yyyymmdd or "").strip()
+    if len(dos_s) != 8 or not dos_s.isdigit():
+        return None
+    d_yr = int(dos_s[:4])
+    d_mo = int(dos_s[4:6])
+    d_dy = int(dos_s[6:8])
+    if d_yr <= 1900 or d_mo < 1 or d_mo > 12 or d_dy < 1 or d_dy > 31:
+        return None
+    try:
+        deed_dt = datetime.date(d_yr, d_mo, d_dy)
+    except ValueError:
+        return None
+
+    p_iso, _p_yr = normalize_hcad_date(
+        str(demo_permit_date_raw or "").strip(),
+        allow_fallback=False,
+        min_year=1901,
+        max_year=MAX_VALID_YEAR,
+    )
+    if not p_iso or len(p_iso) != 10:
+        return None
+    try:
+        p_yr_i = int(p_iso[:4])
+        p_mo_i = int(p_iso[5:7])
+        p_dy_i = int(p_iso[8:10])
+        if p_yr_i <= 1900 or p_mo_i < 1 or p_mo_i > 12 or p_dy_i < 1 or p_dy_i > 31:
+            return None
+        permit_dt = datetime.date(p_yr_i, p_mo_i, p_dy_i)
+    except ValueError:
+        return None
+
+    delta_days = (permit_dt - deed_dt).days
+    if 0 <= delta_days <= int(max_days):
+        return int(delta_days)
+    return None
+
 
 
 

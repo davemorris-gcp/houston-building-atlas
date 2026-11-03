@@ -50,6 +50,21 @@ export const USE_CATEGORY_ITEMS = [
   { key: "Vacant / Exempt", label: "Vacant / Untaxed Parcel", color: "#4A4A48" },
 ];
 
+export const OWNERSHIP_TIER_ITEMS = [
+  { key: "homestead", label: "Protected Homestead (Owner-Occupied)", color: "#38BDF8" },
+  { key: "local_small", label: "Local Non-Homestead / Small Landlord (1-4 Parcels)", color: "#34D399" },
+  { key: "regional_portfolio", label: "Regional Portfolio / Builder (5-99 Parcels)", color: "#F59E0B" },
+  { key: "institutional_pe", label: "Institutional / PE Portfolio (100+ Parcels)", color: "#E11D48" },
+  { key: "anonymity_shield", label: "Registered-Agent Anonymity Shield / Confidential", color: "#A855F7" },
+  { key: "civic_nonprofit", label: "Civic / Non-Profit / Religious / HOA Steward", color: "#94A3B8" },
+];
+
+export function resolveOwnershipTierColor(ownTier) {
+  const clean = String(ownTier || "homestead").trim().toLowerCase();
+  const found = OWNERSHIP_TIER_ITEMS.find((item) => item.key === clean);
+  return found ? found.color : "#38BDF8";
+}
+
 export const CURATED_TOURS = [
   {
     "id": "good_brick_highlights",
@@ -2791,6 +2806,26 @@ export function buildColorExpression(colorMode = "year_built", paletteStyle = "a
     ];
   }
 
+  if (colorMode === "ownership_tier") {
+    return [
+      "match",
+      ["coalesce", ["get", "own_tier"], "homestead"],
+      "homestead",
+      "#38BDF8",
+      "local_small",
+      "#34D399",
+      "regional_portfolio",
+      "#F59E0B",
+      "institutional_pe",
+      "#E11D48",
+      "anonymity_shield",
+      "#A855F7",
+      "civic_nonprofit",
+      "#94A3B8",
+      "#38BDF8",
+    ];
+  }
+
   const stops = paletteStyle === "classic_ee" ? CLASSIC_EE_YEAR_STOPS : ARCHIVAL_YEAR_STOPS;
   const stepArgs = ["step", ["get", "year_built"], UNKNOWN_YEAR_COLOR];
   for (const s of stops) {
@@ -2816,6 +2851,13 @@ export function getLegendItems(colorMode = "year_built", paletteStyle = "archiva
   }
   if (colorMode === "use_category") {
     return USE_CATEGORY_ITEMS.map((item) => ({
+      label: item.label,
+      color: item.color,
+    }));
+  }
+  if (colorMode === "ownership_tier") {
+    return OWNERSHIP_TIER_ITEMS.map((item) => ({
+      key: item.key,
       label: item.label,
       color: item.color,
     }));

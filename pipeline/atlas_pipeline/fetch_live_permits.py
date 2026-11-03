@@ -926,6 +926,105 @@ def is_structural_or_sewer_demo(permit_desc: str, use_desc: str, permit_type: st
     return False
 
 
+def classify_coh_demo_permit_stage(permit_desc: str, use_desc: str, permit_type: str) -> dict:
+    """Classify a single City of Houston permit row into Stage 1 (Plumbing Sewer Disc) vs Stage 2 (Demolition).
+
+    In City of Houston Sold Permits, a main-structure demolition requires two permits under the
+    same 8-digit project number that both carry `use_desc = "DEMO RES/SEWER DISC"` (or `"BLD DEMO/SEWER DISC"`),
+    distinguished by `permit_type` and `permit_desc`:
+      - Stage 1 (`1 of 2`): `permit_type in ("12", "4P")` or `"PLUMB"` in `permit_desc`
+        -> `"Sewer Disconnect Plumbing Permit (1 of 2)"`
+      - Stage 2 (`2 of 2`): `permit_type in ("SD", "4D")` or `"DEMOLITION"` / `"DGR BLDG DEMO"` in `permit_desc`
+        -> `"Building Demolition Permit (2 of 2)"`
+    """
+    u = (use_desc or "").upper()
+    pd = (permit_desc or "").upper()
+    pt = (permit_type or "").strip().upper()
+    is_interior = is_interior_only_demo(use_desc)
+    is_garage = is_garage_or_accessory_only_demo(use_desc)
+    is_struct = is_structural_or_sewer_demo(permit_desc, use_desc, permit_type)
+
+    is_demo_code = (
+        not is_interior
+        and not is_garage
+        and (pt in ("SD", "4D") or "DEMOLITION" in pd or "DGR BLDG DEMO" in pd)
+    )
+    is_plumbing_code = (
+        not is_interior
+        and not is_garage
+        and not is_demo_code
+        and (
+            pt in ("12", "4P")
+            or "PLUMB" in pd
+            or "PLBG" in pd
+            or "SEWER DISC" in u
+        )
+    )
+
+    if is_garage:
+        pt_label = "Garage / Accessory Demolition Permit"
+        stage_code = "accessory_only"
+        demo_stage_badge = ""
+    elif is_demo_code:
+        pt_label = "Building Demolition Permit (2 of 2)"
+        stage_code = "stage_2_demolition"
+        demo_stage_badge = "2 of 2 · Building Demo"
+    elif is_plumbing_code:
+        pt_label = "Sewer Disconnect Plumbing Permit (1 of 2)"
+        stage_code = "stage_1_sewer_plumbing"
+        demo_stage_badge = "1 of 2 · Sewer Disconnect"
+    elif is_struct:
+        pt_label = "Building Demolition Permit (2 of 2)"
+        stage_code = "stage_2_demolition"
+        demo_stage_badge = "2 of 2 · Building Demo"
+    else:
+        pt_label = (permit_desc or "City Permit").strip()
+        stage_code = "other"
+        demo_stage_badge = ""
+
+    return {
+        "permit_type_label": pt_label,
+        "permit_stage": stage_code,
+        "demo_stage_badge": demo_stage_badge,
+        "is_sewer_disconnect": bool(is_plumbing_code),
+        "is_demo_permit_issued": bool(is_demo_code or (is_struct and not is_plumbing_code and not is_garage)),
+        "is_garage_only": bool(is_garage),
+        "is_structural_demo": bool(is_struct),
+        "is_interior_only": bool(is_interior),
+    }
+
+
+def summarize_coh_demo_permit_stage_for_parcel(main_bld_coh: list[dict]) -> dict:
+    """Summarize whether a parcel has Stage 1 (Plumbing 1 of 2), Stage 2 (Demolition 2 of 2), or both."""
+    has_sewer_plumbing = any(
+        bool(c.get("is_sewer_disconnect"))
+        or str(c.get("permit_type") or "").upper() in ("12", "4P")
+        or "PLUMB" in str(c.get("permit_desc") or "").upper()
+        or "PLBG" in str(c.get("permit_desc") or "").upper()
+        for c in main_bld_coh
+    )
+    has_demo_permit = any(
+        bool(c.get("is_demo_permit_issued"))
+        or str(c.get("permit_type") or "").upper() in ("SD", "4D")
+        or "DEMOLITION" in str(c.get("permit_desc") or "").upper()
+        or "DGR BLDG DEMO" in str(c.get("permit_desc") or "").upper()
+        for c in main_bld_coh
+    )
+    if has_demo_permit and has_sewer_plumbing:
+        demo_permit_stage = "stage_2_both"
+    elif has_demo_permit:
+        demo_permit_stage = "stage_2_demo_issued"
+    elif has_sewer_plumbing:
+        demo_permit_stage = "stage_1_sewer_only"
+    else:
+        demo_permit_stage = "none"
+    return {
+        "demo_permit_stage": demo_permit_stage,
+        "has_sewer_disc_plumbing": bool(has_sewer_plumbing),
+        "has_demo_permit": bool(has_demo_permit),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Fetch live City of Houston permits & Texas DSHS asbestos filings.")
     parser.add_argument("--lookback-days", type=int, default=45, help="Days to look back for COH DEMO/SEWER permits.")
@@ -1051,27 +1150,18 @@ def main():
             detail = fut.result()
             na = r["norm_address"]
             use_d = detail.get("use_desc") or r.get("use_desc", "")
-            is_sewer_disc = "SEWER DISC" in use_d.upper()
-            is_garage = is_garage_or_accessory_only_demo(use_d)
-            is_struct = is_structural_or_sewer_demo(
+            stage_meta = classify_coh_demo_permit_stage(
                 r.get("permit_desc", ""),
                 use_d,
-                r.get("permit_type", ""),
+                r.get("permit_type") or detail.get("permit_type", ""),
             )
-            if is_sewer_disc:
-                pt_label = "Sewer Disconnection Permit"
-            elif is_garage:
-                pt_label = "Garage / Accessory Demolition Permit"
-            elif is_struct:
-                pt_label = "Building Demolition Permit"
-            else:
-                pt_label = r.get("permit_desc") or "City Permit"
 
             merged_permit = {
                 "project_no": r["project_no"],
                 "date": detail.get("date") or today.strftime("%Y-%m-%d"),
                 "permit_type": r.get("permit_type") or detail.get("permit_type", ""),
-                "permit_type_label": pt_label,
+                "permit_type_label": stage_meta["permit_type_label"],
+                "permit_stage": stage_meta["permit_stage"],
                 "permit_desc": r.get("permit_desc", ""),
                 "use_desc": use_d,
                 "fcc_group": detail.get("fcc_group", ""),
@@ -1080,10 +1170,11 @@ def main():
                 "buyer_address": detail.get("buyer_address", ""),
                 "valuation": detail.get("valuation_formatted") or r.get("valuation", ""),
                 "job_address": detail.get("job_address") or r.get("raw_address", ""),
-                "is_sewer_disconnect": is_sewer_disc,
-                "is_garage_only": is_garage,
-                "is_structural_demo": is_struct,
-                "is_interior_only": is_interior_only_demo(use_d),
+                "is_sewer_disconnect": stage_meta["is_sewer_disconnect"],
+                "is_demo_permit_issued": stage_meta["is_demo_permit_issued"],
+                "is_garage_only": stage_meta["is_garage_only"],
+                "is_structural_demo": stage_meta["is_structural_demo"],
+                "is_interior_only": stage_meta["is_interior_only"],
             }
             for bld in by_addr[na]:
                 hcad = str(bld.get("hcad_num") or bld.get("id") or "")
@@ -1181,11 +1272,10 @@ def main():
         garage_only_coh = [c for c in structural_coh if c.get("is_garage_only")]
         has_structural_or_sewer = len(structural_coh) > 0
         has_main_bld_demo = len(main_bld_coh) > 0
-        has_sewer_disc = any(c["is_sewer_disconnect"] for c in main_bld_coh)
-        has_demo_permit = any(
-            c["permit_type"] in ("SD", "4D") or "DEMOLITION" in c["permit_desc"].upper()
-            for c in main_bld_coh
-        )
+        stage_summary = summarize_coh_demo_permit_stage_for_parcel(main_bld_coh)
+        has_sewer_disc = stage_summary["has_sewer_disc_plumbing"]
+        has_demo_permit = stage_summary["has_demo_permit"]
+        demo_permit_stage = stage_summary["demo_permit_stage"]
         has_dshs_demo = any("DEMOLITION" in (d.get("work_type") or "").upper() for d in dshs_list)
         has_dshs = len(dshs_list) > 0
 
@@ -1204,11 +1294,20 @@ def main():
             else (garage_only_coh[0] if garage_only_coh else (dedup_coh[0] if dedup_coh else None))
         )
 
-        if has_sewer_disc and has_dshs and primary_coh:
-            severity_label = "Critical Alert: Sewer Disconnection + Asbestos Abatement"
-            badge_short = "Sewer Disc + Asbestos"
+        if has_demo_permit and has_sewer_disc and has_dshs and primary_coh:
+            severity_label = "Critical Alert: Both Demo Permits (1/2 Plumbing + 2/2 Demolition) + Asbestos Abatement"
+            badge_short = "2/2 Demo + Asbestos"
             headline = (
-                f"City sewer disconnection permit (#{primary_coh['project_no']}, issued {primary_coh['date']}) "
+                f"Both required City of Houston demolition permits pulled (#{primary_coh['project_no']}, "
+                f"1/2 Plumbing Permit + 2/2 Demolition Permit, latest {primary_coh['date']}) "
+                f"paired with Texas DSHS asbestos abatement filing (#{dshs_list[0]['notification_number']}, "
+                f"scheduled {dshs_list[0]['start_date']} to {dshs_list[0]['end_date']})."
+            )
+        elif has_sewer_disc and has_dshs and primary_coh:
+            severity_label = "Critical Alert: Stage 1 Sewer Disconnection (1 of 2) + Asbestos Abatement"
+            badge_short = "1/2 Sewer Disc + Asbestos"
+            headline = (
+                f"City sewer disconnection plumbing permit (1 of 2, #{primary_coh['project_no']}, issued {primary_coh['date']}) "
                 f"paired with Texas DSHS asbestos abatement filing (#{dshs_list[0]['notification_number']}, "
                 f"scheduled {dshs_list[0]['start_date']} to {dshs_list[0]['end_date']})."
             )
@@ -1220,25 +1319,25 @@ def main():
                 f"scheduled {dshs_list[0]['start_date']} to {dshs_list[0]['end_date']}."
             )
         elif has_demo_permit and has_sewer_disc and primary_coh:
-            severity_label = "Critical Alert: Active Demolition & Sewer Disconnection Permits"
-            badge_short = "Demo + Sewer Disc"
+            severity_label = "Critical Alert: Both Permits Pulled (1/2 Plumbing Sewer Disc + 2/2 Building Demolition)"
+            badge_short = "2 of 2 Permits: Sewer + Demo"
             headline = (
-                f"City of Houston demolition and sewer disconnection permits (#{primary_coh['project_no']}, "
-                f"issued {primary_coh['date']}: {primary_coh['use_desc']})."
+                f"Both required City of Houston demolition permits issued (#{primary_coh['project_no']}, "
+                f"1/2 Plumbing Permit + 2/2 Demolition Permit, latest {primary_coh['date']}: {primary_coh['use_desc']})."
             )
         elif has_demo_permit and primary_coh:
-            severity_label = "Critical Alert: City of Houston Demolition Permit Issued"
-            badge_short = "Active Demo Permit"
+            severity_label = "Critical Alert: Stage 2 Building Demolition Permit Issued (2 of 2)"
+            badge_short = "Stage 2: Demo Permit Issued"
             headline = (
-                f"City of Houston demolition permit (#{primary_coh['project_no']}, "
+                f"City of Houston Stage 2 building demolition permit (#{primary_coh['project_no']}, "
                 f"issued {primary_coh['date']}: {primary_coh['use_desc']})."
             )
         elif has_sewer_disc and primary_coh:
-            severity_label = "Critical Alert: Pre-Demolition Sewer Disconnection Permit"
-            badge_short = "Pre-Demo Sewer Disc"
+            severity_label = "Critical Alert: Stage 1 Prerequisite Sewer Disconnection Plumbing Permit (1 of 2)"
+            badge_short = "1 of 2 Permits: Sewer Disc Only"
             headline = (
-                f"City of Houston sewer disconnection permit (#{primary_coh['project_no']}, "
-                f"issued {primary_coh['date']}: {primary_coh['use_desc']}), a prerequisite for demolition."
+                f"City of Houston Stage 1 sewer disconnection plumbing permit (1 of 2, #{primary_coh['project_no']}, "
+                f"issued {primary_coh['date']}: {primary_coh['use_desc']}); Stage 2 demolition permit not yet pulled."
             )
         elif garage_only_coh and primary_coh:
             severity_label = "Active Watch: Garage / Accessory Demolition Permit"
@@ -1279,12 +1378,13 @@ def main():
                 "Built in 1894 for businessman J.S. Price and purchased by lumber magnate John Henry Kirby in 1896, "
                 "the 36-room Tudor Revival mansion at 2000 Smith Street achieved its landmark appearance in a 1928 "
                 "remodeling designed by architect James Ruskin Bailey (1979 Preservation Houston Good Brick Award). "
-                "A City of Houston sewer disconnection permit (#26090093, 'BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') "
-                "was issued October 14, 2026 to applicant Robert Camacho, followed by Texas DSHS Notification #2026005825 "
-                "scheduling abatement of 5,010 sq ft of Regulated Asbestos-Containing Material (RACM) from October 27 "
-                "through November 6, 2026 by operator AAR Incorporated for owner OB Texas Properties LLC (Omair Bashir). "
-                "Although the mansion lacks local Protected Landmark designation, Preservation Houston is actively "
-                "monitoring the property and seeking dialogue with the owner."
+                "Under City of Houston Project #26090093 ('BLD DEMO/SEWER DISC'), the Stage 1 sewer disconnection "
+                "plumbing permit (Type 12 Plumbing Pmt) was issued October 14, 2026 to applicant Robert Camacho, "
+                "followed by the Stage 2 building demolition permit (Type SD Demolition) on October 30, 2026 and "
+                "Texas DSHS Notification #2026005825 scheduling abatement of 5,010 sq ft of Regulated Asbestos-Containing "
+                "Material (RACM) from October 27 through November 6, 2026 by operator AAR Incorporated for owner "
+                "OB Texas Properties LLC (Omair Bashir). Although the mansion lacks local Protected Landmark designation, "
+                "Preservation Houston is actively monitoring the property and seeking dialogue with the owner."
             )
 
         alert_obj = {
@@ -1309,6 +1409,9 @@ def main():
             "severity_label": severity_label,
             "badge": badge_short,
             "headline": headline,
+            "demo_permit_stage": demo_permit_stage,
+            "has_sewer_disc_plumbing": has_sewer_disc,
+            "has_demo_permit": has_demo_permit,
             "preservation_note": preservation_note,
             "latest_filing_date": latest_date,
             "coh_permits": structural_coh if structural_coh else dedup_coh,

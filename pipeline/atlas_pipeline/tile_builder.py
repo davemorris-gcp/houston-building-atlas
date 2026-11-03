@@ -14,8 +14,9 @@ from pmtiles.tile import Compression, TileType, zxy_to_tileid
 from pmtiles.writer import write as pmtiles_write
 from shapely.geometry import box, shape
 from shapely.strtree import STRtree
+from shapely.validation import make_valid
 
-from atlas_pipeline.schema import ACTIVE_TAX_YEAR, compute_decade_bins
+from atlas_pipeline.schema import ACTIVE_TAX_YEAR, OWNERSHIP_TIER_KEYS, compute_decade_bins
 
 
 def _lonlat_to_tile(lon: float, lat: float, z: int) -> tuple[int, int]:
@@ -163,6 +164,7 @@ def build_stats_summary(
     contrib_counter: Counter[str] = Counter()
     use_counter: Counter[str] = Counter()
     district_counter: Counter[str] = Counter()
+    own_tier_counter: Counter[str] = Counter()
 
     dated_count = 0
     observed_fp_count = 0
@@ -187,6 +189,11 @@ def build_stats_summary(
         use_cat = str(props.get("use_category") or "Residential")
         use_counter[use_cat] += 1
 
+        own_tier = str(props.get("own_tier") or "homestead").strip()
+        if own_tier not in OWNERSHIP_TIER_KEYS:
+            own_tier = "homestead"
+        own_tier_counter[own_tier] += 1
+
         dist = str(props.get("historic_district") or "").strip()
         if dist:
             district_counter[dist] += 1
@@ -199,6 +206,9 @@ def build_stats_summary(
         for d in compute_decade_bins(max(eff_year, latest_year))
     }
     ordered_decades["unknown"] = decade_counter.get("unknown", 0)
+    ordered_own_tiers = {
+        tk: int(own_tier_counter.get(tk, 0)) for tk in OWNERSHIP_TIER_KEYS
+    }
 
     return {
         "data_tax_year": eff_year,
@@ -215,6 +225,7 @@ def build_stats_summary(
         "decade_counts": ordered_decades,
         "contributing_counts": dict(contrib_counter),
         "use_category_counts": dict(use_counter),
+        "ownership_tier_counts": ordered_own_tiers,
         "top_historic_districts": dict(district_counter.most_common(25)),
     }
 
@@ -227,8 +238,20 @@ def compile_pmtiles_archive(
     max_zoom: int = 15,
 ) -> int:
     """Compile buildings and parcels into a spec-compliant PMTiles v3 MVT vector tile archive."""
-    bld_geoms = [shape(f["geometry"]) for f in buildings if f.get("geometry")]
-    pcl_geoms = [shape(f["geometry"]) for f in parcels if f.get("geometry")]
+    bld_geoms = []
+    for f in buildings:
+        if f.get("geometry"):
+            g = shape(f["geometry"])
+            if not g.is_valid:
+                g = make_valid(g)
+            bld_geoms.append(g)
+    pcl_geoms = []
+    for f in parcels:
+        if f.get("geometry"):
+            g = shape(f["geometry"])
+            if not g.is_valid:
+                g = make_valid(g)
+            pcl_geoms.append(g)
 
     if not bld_geoms and not pcl_geoms:
         return 0

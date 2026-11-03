@@ -107,6 +107,8 @@ export const BROWSER_CHALLENGE_PROTECTED_HOSTS = new Set([
   "www.bizapedia.com",
   "bizapedia.com",
   "direct.sos.state.tx.us",
+  "mycpa.cpa.state.tx.us",
+  "cclerk.hctx.net",
   "houston.novusagenda.com",
   "web.archive.org",
   "texashistory.unt.edu",
@@ -192,6 +194,28 @@ export function validateExternalAtlasUrl(rawUrl) {
 }
 
 /**
+ * Build canonical Texas Comptroller Taxable Entity Search URL.
+ */
+export function buildTxComptrollerSearchUrl(entityNameOrTaxId = "") {
+  const clean = String(entityNameOrTaxId || "").trim();
+  if (!clean) {
+    return "https://mycpa.cpa.state.tx.us/coa/";
+  }
+  return `https://mycpa.cpa.state.tx.us/coa/search.do?userType=public&searchString=${encodeURIComponent(clean)}`;
+}
+
+/**
+ * Build canonical Harris County Clerk Real Property Official Public Records URL.
+ */
+export function buildHarrisCountyClerkRpUrl(fileNum = "") {
+  const clean = String(fileNum || "").trim();
+  if (!clean) {
+    return "https://www.cclerk.hctx.net/Applications/WebSearch/RP.aspx";
+  }
+  return `https://www.cclerk.hctx.net/Applications/WebSearch/RP.aspx?FileNum=${encodeURIComponent(clean)}`;
+}
+
+/**
  * Builds canonical external research URLs for a Harris County parcel or landmark.
  */
 export function buildCanonicalExternalUrls({
@@ -200,6 +224,8 @@ export function buildCanonicalExternalUrls({
   lng = null,
   nrhpRefnum = "",
   thcAtlasNum = "",
+  clerkFileNum = "",
+  entityNameOrTaxId = "",
 } = {}) {
   const cleanHcad = String(hcadNum || "").split("#")[0].trim();
   const numLat = Number(lat);
@@ -233,6 +259,8 @@ export function buildCanonicalExternalUrls({
       cleanRef.length === 8
         ? `https://atlas.thc.texas.gov/NR/pdfs/${cleanRef}/${cleanRef}.pdf`
         : null,
+    harrisCountyClerkRpUrl: buildHarrisCountyClerkRpUrl(clerkFileNum),
+    txComptrollerSearchUrl: buildTxComptrollerSearchUrl(entityNameOrTaxId),
   };
 }
 

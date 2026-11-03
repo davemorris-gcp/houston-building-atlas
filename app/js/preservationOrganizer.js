@@ -808,6 +808,44 @@ export function decodeScorecardRecord(raw, meta = {}) {
     isEstimatedSunset: Boolean(item?.["est"]),
   }));
 
+  const rawOt = Array.isArray(raw["ot"]) && raw["ot"].length >= 6 ? raw["ot"] : null;
+  const ownershipTiers = rawOt
+    ? {
+        homestead: Number(rawOt[0]) || 0,
+        localSmall: Number(rawOt[1]) || 0,
+        regionalPortfolio: Number(rawOt[2]) || 0,
+        institutionalPe: Number(rawOt[3]) || 0,
+        anonymityShield: Number(rawOt[4]) || 0,
+        civicNonprofit: Number(rawOt[5]) || 0,
+      }
+    : {
+        homestead: ownerOccupiedCount,
+        localSmall: absenteeIndividualCount,
+        regionalPortfolio: corporateLlcCount,
+        institutionalPe: 0,
+        anonymityShield: 0,
+        civicNonprofit: familyTrustCount,
+      };
+
+  const rawTps = Array.isArray(raw["tps"]) ? raw["tps"] : [];
+  const topPortfolioStewards = rawTps
+    .map((entry) => {
+      if (Array.isArray(entry) && entry.length >= 2) {
+        return {
+          portfolioId: String(entry[0] || "").trim(),
+          parcelCount: Number(entry[1]) || 0,
+        };
+      }
+      if (entry && typeof entry === "object") {
+        return {
+          portfolioId: String(entry.portfolioId || entry.pid || "").trim(),
+          parcelCount: Number(entry.parcelCount || entry.count) || 0,
+        };
+      }
+      return null;
+    })
+    .filter((x) => x && x.portfolioId && x.parcelCount > 0);
+
   const layer = String(raw["ly"] || "");
   const id = String(raw["id"] || "");
 
@@ -855,6 +893,8 @@ export function decodeScorecardRecord(raw, meta = {}) {
     corporateLlcPct: clampPct(corporateLlcCount, residentialParcelCount),
     absenteeIndividualCount,
     absenteeIndividualPct: clampPct(absenteeIndividualCount, residentialParcelCount),
+    ownershipTiers,
+    topPortfolioStewards,
     ch42ProtectedCount,
     ch42ProtectedPct: clampPct(ch42ProtectedCount, residentialParcelCount),
     smlsProtectedCount,
@@ -3469,6 +3509,21 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
           <div class="sc-stat-meta">
             Resident homestead/trust: <strong>${fmtInt(scorecard.ownerOccupiedCount)}</strong> &middot; Family trusts/estates: <strong>${fmtInt(scorecard.familyTrustCount)}</strong> (${scorecard.familyTrustPct}%)<br/>
             Corporate LLC/LP/Inc: <strong>${fmtInt(scorecard.corporateLlcCount)}</strong> (${scorecard.corporateLlcPct}%) &middot; Absentee ind.: <strong>${fmtInt(scorecard.absenteeIndividualCount)}</strong> (${scorecard.absenteeIndividualPct}%)
+            ${
+              scorecard.ownershipTiers
+                ? `<br/>6-Tier Mix: Homestead <strong>${fmtInt(scorecard.ownershipTiers.homestead)}</strong> &middot; Small (1-4) <strong>${fmtInt(scorecard.ownershipTiers.localSmall)}</strong> &middot; Regional (5-99) <strong>${fmtInt(scorecard.ownershipTiers.regionalPortfolio)}</strong> &middot; Inst./PE (100+) <strong>${fmtInt(scorecard.ownershipTiers.institutionalPe)}</strong> &middot; Anonymity Shield <strong>${fmtInt(scorecard.ownershipTiers.anonymityShield)}</strong> &middot; Civic/Non-Profit <strong>${fmtInt(scorecard.ownershipTiers.civicNonprofit)}</strong>`
+                : ""
+            }
+            ${
+              Array.isArray(scorecard.topPortfolioStewards) && scorecard.topPortfolioStewards.length > 0
+                ? `<br/>Top Portfolio Stewards: ${scorecard.topPortfolioStewards
+                    .map(
+                      (s) =>
+                        `<a href="#portfolio=owner_portfolio:${encodeURIComponent(s.portfolioId)}" class="inline-ext-link"><code>${escapeOrganizerHtml(s.portfolioId)}</code> (${fmtInt(s.parcelCount)} lots)</a>`
+                    )
+                    .join(" &middot; ")}`
+                : ""
+            }
           </div>
         </div>
 

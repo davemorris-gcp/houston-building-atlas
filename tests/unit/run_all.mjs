@@ -11,3 +11,4 @@ import "./milestone1_scorecards_and_ch42.test.mjs";
 import "./lost_houston_expansion.test.mjs";
 import "./milestone3_staff_workbench.test.mjs";
 import "./milestone4_annual_refresh.test.mjs";
+import "./milestone5_ownership_stewardship.test.mjs";

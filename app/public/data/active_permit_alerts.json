@@ -1,16 +1,16 @@
 {
-  "updated_at": "2026-11-02T21:11:36Z",
-  "generated_at": "2026-11-02T21:11:36Z",
+  "updated_at": "2026-10-31T16:36:46Z",
+  "generated_at": "2026-10-31T16:36:46Z",
   "lookback_days": 45,
   "coh_fetch_failed": false,
   "dshs_fetch_failed": true,
   "coh_fetch_error": "",
   "dshs_fetch_error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)",
   "summary": {
-    "total_flagged_buildings": 16,
-    "critical_count": 6,
-    "watch_count": 10,
-    "coh_permits_matched": 17,
+    "total_flagged_buildings": 19,
+    "critical_count": 8,
+    "watch_count": 11,
+    "coh_permits_matched": 20,
     "dshs_notifications_matched": 11
   },
   "annual_benchmarks": {
@@ -207,17 +207,17 @@
       "lon": -95.374833,
       "lat": 29.751432,
       "severity": "critical",
-      "severity_label": "Critical Alert: Sewer Disconnection + Asbestos Abatement",
-      "badge": "Sewer Disc + Asbestos",
-      "headline": "City sewer disconnection permit (#26090093, issued 2026-10-30) paired with Texas DSHS asbestos abatement filing (#2026005825, scheduled 2026-10-27 to 2026-11-06).",
-      "preservation_note": "Built in 1894 for businessman J.S. Price and purchased by lumber magnate John Henry Kirby in 1896, the 36-room Tudor Revival mansion at 2000 Smith Street achieved its landmark appearance in a 1928 remodeling designed by architect James Ruskin Bailey (1979 Preservation Houston Good Brick Award). A City of Houston sewer disconnection permit (#26090093, 'BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') was issued October 14, 2026 to applicant Robert Camacho, followed by Texas DSHS Notification #2026005825 scheduling abatement of 5,010 sq ft of Regulated Asbestos-Containing Material (RACM) from October 27 through November 6, 2026 by operator AAR Incorporated for owner OB Texas Properties LLC (Omair Bashir). Although the mansion lacks local Protected Landmark designation, Preservation Houston is actively monitoring the property and seeking dialogue with the owner.",
+      "severity_label": "Critical Alert: Both Demo Permits (1/2 Plumbing + 2/2 Demolition) + Asbestos Abatement",
+      "badge": "2/2 Demo + Asbestos",
+      "headline": "Both required City of Houston demolition permits pulled (#26090093, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-10-30) paired with Texas DSHS asbestos abatement filing (#2026005825, scheduled 2026-10-27 to 2026-11-06).",
+      "preservation_note": "Built in 1894 for businessman J.S. Price and purchased by lumber magnate John Henry Kirby in 1896, the 36-room Tudor Revival mansion at 2000 Smith Street achieved its landmark appearance in a 1928 remodeling designed by architect James Ruskin Bailey (1979 Preservation Houston Good Brick Award). Under City of Houston Project #26090093 ('BLD DEMO/SEWER DISC'), the Stage 1 sewer disconnection plumbing permit (Type 12 Plumbing Pmt) was issued October 14, 2026 to applicant Robert Camacho, followed by the Stage 2 building demolition permit (Type SD Demolition) on October 30, 2026 and Texas DSHS Notification #2026005825 scheduling abatement of 5,010 sq ft of Regulated Asbestos-Containing Material (RACM) from October 27 through November 6, 2026 by operator AAR Incorporated for owner OB Texas Properties LLC (Omair Bashir). Although the mansion lacks local Protected Landmark designation, Preservation Houston is actively monitoring the property and seeking dialogue with the owner.",
       "latest_filing_date": "2026-10-30",
       "coh_permits": [
         {
           "project_no": "26090093",
           "date": "2026-10-30",
           "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
           "permit_desc": "Demolition",
           "use_desc": "BLD DEMO/SEWER DISC",
           "fcc_group": "Demo; Other Building(s)",
@@ -226,16 +226,18 @@
           "buyer_address": "6300 RICHMOND 77057",
           "valuation": "$ 0",
           "job_address": "2000 SMITH ST 77002",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_2_demolition",
+          "is_demo_permit_issued": true
         },
         {
           "project_no": "26090093",
           "date": "2026-10-14",
           "permit_type": "12",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
           "permit_desc": "Plumbing Pmt",
           "use_desc": "BLD DEMO/SEWER DISC",
           "fcc_group": "Demo; Other Building(s)",
@@ -247,7 +249,9 @@
           "is_sewer_disconnect": true,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_1_sewer_plumbing",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [
@@ -299,7 +303,10 @@
         "bld_004618",
         "0152300000001#aux_1",
         "0152300000001#aux_2"
-      ]
+      ],
+      "demo_permit_stage": "stage_2_both",
+      "has_sewer_disc_plumbing": true,
+      "has_demo_permit": true
     },
     {
       "hcad_num": "0031950000018",
@@ -320,9 +327,9 @@
       "lon": -95.365036,
       "lat": 29.775049,
       "severity": "critical",
-      "severity_label": "Critical Alert: Active Demolition & Sewer Disconnection Permits",
-      "badge": "Demo + Sewer Disc",
-      "headline": "City of Houston demolition and sewer disconnection permits (#26078220, issued 2026-09-18: DEMO RES/SEWER DISC).",
+      "severity_label": "Critical Alert: Stage 2 Building Demolition Permit Issued (2 of 2)",
+      "badge": "Stage 2: Demo Permit Issued",
+      "headline": "City of Houston Stage 2 building demolition permit (#26078220, issued 2026-09-18: DEMO RES/SEWER DISC).",
       "preservation_note": "",
       "latest_filing_date": "2026-09-18",
       "coh_permits": [
@@ -330,7 +337,7 @@
           "project_no": "26078220",
           "date": "2026-09-18",
           "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
           "permit_desc": "Demolition",
           "use_desc": "DEMO RES/SEWER DISC",
           "fcc_group": "Demo; Single Familty Dwelling",
@@ -339,10 +346,12 @@
           "buyer_address": "7010 MARKET ST 77020",
           "valuation": "$ 0",
           "job_address": "213 HOGAN ST 77009",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_2_demolition",
+          "is_demo_permit_issued": true
         }
       ],
       "dshs_notifications": [],
@@ -351,7 +360,10 @@
       ],
       "related_building_ids": [
         "0031950000018"
-      ]
+      ],
+      "demo_permit_stage": "stage_2_demo_issued",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": true
     },
     {
       "hcad_num": "0261900000007",
@@ -372,9 +384,9 @@
       "lon": -95.394479,
       "lat": 29.739435,
       "severity": "critical",
-      "severity_label": "Critical Alert: Active Demolition & Sewer Disconnection Permits",
-      "badge": "Demo + Sewer Disc",
-      "headline": "City of Houston demolition and sewer disconnection permits (#26090831, issued 2026-10-21: DEMO RES/ SEWER DISC).",
+      "severity_label": "Critical Alert: Both Permits Pulled (1/2 Plumbing Sewer Disc + 2/2 Building Demolition)",
+      "badge": "2 of 2 Permits: Sewer + Demo",
+      "headline": "Both required City of Houston demolition permits issued (#26090831, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-10-21: DEMO RES/ SEWER DISC).",
       "preservation_note": "",
       "latest_filing_date": "2026-10-21",
       "coh_permits": [
@@ -382,7 +394,7 @@
           "project_no": "26090831",
           "date": "2026-10-21",
           "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
           "permit_desc": "Demolition",
           "use_desc": "DEMO RES/ SEWER DISC",
           "fcc_group": "Demo; Single Familty Dwelling",
@@ -391,16 +403,18 @@
           "buyer_address": "12702 MORNING GLORY LANE LN 77089",
           "valuation": "$ 0",
           "job_address": "3703 GRAUSTARK ST 77006",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_2_demolition",
+          "is_demo_permit_issued": true
         },
         {
           "project_no": "26090831",
           "date": "2026-10-16",
           "permit_type": "12",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
           "permit_desc": "Plumbing Pmt",
           "use_desc": "DEMO RES/ SEWER DISC",
           "fcc_group": "Demo; Single Familty Dwelling",
@@ -412,7 +426,9 @@
           "is_sewer_disconnect": true,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_1_sewer_plumbing",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [],
@@ -421,7 +437,67 @@
       ],
       "related_building_ids": [
         "bld_006541"
-      ]
+      ],
+      "demo_permit_stage": "stage_2_both",
+      "has_sewer_disc_plumbing": true,
+      "has_demo_permit": true
+    },
+    {
+      "hcad_num": "0200580000012",
+      "building_id": "0200580000012",
+      "title": "2224 ARLINGTON ST",
+      "building_name": "",
+      "address": "2224 ARLINGTON ST",
+      "year_built": 1940,
+      "yr_remodel": 0,
+      "style": "",
+      "architect": "",
+      "neighborhood": "",
+      "historic_district": "",
+      "landmark_name": "",
+      "good_brick_summary": "",
+      "owner": "",
+      "lng": -95.394036,
+      "lon": -95.394036,
+      "lat": 29.806938,
+      "severity": "critical",
+      "severity_label": "Critical Alert: Stage 2 Building Demolition Permit Issued (2 of 2)",
+      "badge": "Stage 2: Demo Permit Issued",
+      "headline": "City of Houston Stage 2 building demolition permit (#26073706, issued 2026-09-16: DEMO RES/SEWER DISC).",
+      "preservation_note": "",
+      "latest_filing_date": "2026-09-16",
+      "coh_permits": [
+        {
+          "project_no": "26073706",
+          "date": "2026-09-16",
+          "permit_type": "SD",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
+          "permit_desc": "Demolition",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "fcc_group": "Demo; Single Familty Dwelling",
+          "owner_occupant": "*TOMO DEVELOPMENT LLC",
+          "buyer": "WILLIAMS DENNIS",
+          "buyer_address": "1748 OAK TREE DR 77080",
+          "valuation": "$ 0",
+          "job_address": "2224 ARLINGTON ST 77008",
+          "is_sewer_disconnect": false,
+          "is_garage_only": false,
+          "is_structural_demo": true,
+          "is_interior_only": false,
+          "permit_stage": "stage_2_demolition",
+          "is_demo_permit_issued": true
+        }
+      ],
+      "dshs_notifications": [],
+      "related_hcads": [
+        "0200580000012"
+      ],
+      "related_building_ids": [
+        "0200580000012"
+      ],
+      "demo_permit_stage": "stage_2_demo_issued",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": true
     },
     {
       "hcad_num": "0210590000005",
@@ -442,35 +518,37 @@
       "lon": -95.39769,
       "lat": 29.770658,
       "severity": "critical",
-      "severity_label": "Critical Alert: Active Demolition & Sewer Disconnection Permits",
-      "badge": "Demo + Sewer Disc",
-      "headline": "City of Houston demolition and sewer disconnection permits (#26080189, issued 2026-11-02: DEMO BLD/SEWER DISC).",
+      "severity_label": "Critical Alert: Both Permits Pulled (1/2 Plumbing Sewer Disc + 2/2 Building Demolition)",
+      "badge": "2 of 2 Permits: Sewer + Demo",
+      "headline": "Both required City of Houston demolition permits issued (#26080189, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-10-01: DEMO BLD/SEWER DISC).",
       "preservation_note": "",
-      "latest_filing_date": "2026-11-02",
+      "latest_filing_date": "2026-10-01",
       "coh_permits": [
         {
           "project_no": "26080189",
-          "date": "2026-11-02",
+          "date": "2026-10-01",
           "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
           "permit_desc": "Demolition",
           "use_desc": "DEMO BLD/SEWER DISC",
-          "fcc_group": "",
+          "fcc_group": "Demo; Other Building(s)",
           "owner_occupant": "*HEIGHTS PITSTOP LLC",
-          "buyer": "",
-          "buyer_address": "",
-          "valuation": "0",
+          "buyer": "SPENCER ERICKA",
+          "buyer_address": "PO BOX 38220 77238",
+          "valuation": "$ 0",
           "job_address": "101 HEIGHTS BLVD 77007",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_2_demolition",
+          "is_demo_permit_issued": true
         },
         {
           "project_no": "26080189",
           "date": "2026-09-24",
           "permit_type": "12",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
           "permit_desc": "Plumbing Pmt",
           "use_desc": "DEMO BLD/SEWER DISC",
           "fcc_group": "Demo; Other Building(s)",
@@ -482,7 +560,9 @@
           "is_sewer_disconnect": true,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_1_sewer_plumbing",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [],
@@ -491,7 +571,69 @@
       ],
       "related_building_ids": [
         "0210590000005"
-      ]
+      ],
+      "demo_permit_stage": "stage_2_both",
+      "has_sewer_disc_plumbing": true,
+      "has_demo_permit": true
+    },
+    {
+      "hcad_num": "1487630010001",
+      "building_id": "1487630010001#b1",
+      "title": "503 SUL ROSS ST",
+      "building_name": "",
+      "address": "503 SUL ROSS ST",
+      "year_built": 1945,
+      "yr_remodel": 2020,
+      "style": "",
+      "architect": "",
+      "neighborhood": "First Montrose Commons",
+      "historic_district": "First Montrose Commons Historic District",
+      "landmark_name": "",
+      "good_brick_summary": "",
+      "owner": "501 PROPERTY INC",
+      "lng": -95.385969,
+      "lon": -95.385969,
+      "lat": 29.737665,
+      "severity": "critical",
+      "severity_label": "Critical Alert: Stage 2 Building Demolition Permit Issued (2 of 2)",
+      "badge": "Stage 2: Demo Permit Issued",
+      "headline": "City of Houston Stage 2 building demolition permit (#26078006, issued 2026-09-16: DEMO BLD /SEWER DISC).",
+      "preservation_note": "",
+      "latest_filing_date": "2026-09-16",
+      "coh_permits": [
+        {
+          "project_no": "26078006",
+          "date": "2026-09-16",
+          "permit_type": "SD",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
+          "permit_desc": "Demolition",
+          "use_desc": "DEMO BLD /SEWER DISC",
+          "fcc_group": "Demo; Other Building(s)",
+          "owner_occupant": "*SHAUNTY HEALING CENTER",
+          "buyer": "*COMPASS ABATEMENT SERVICES LL",
+          "buyer_address": "6730 WINDFERN RD 77040",
+          "valuation": "$ 0",
+          "job_address": "503 SUL ROSS ST A 77006",
+          "is_sewer_disconnect": false,
+          "is_garage_only": false,
+          "is_structural_demo": true,
+          "is_interior_only": false,
+          "permit_stage": "stage_2_demolition",
+          "is_demo_permit_issued": true
+        }
+      ],
+      "dshs_notifications": [],
+      "related_hcads": [
+        "1487630010001",
+        "0082710000004"
+      ],
+      "related_building_ids": [
+        "1487630010001#b1",
+        "bld_005866"
+      ],
+      "demo_permit_stage": "stage_2_demo_issued",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": true
     },
     {
       "hcad_num": "0200230000020",
@@ -512,9 +654,9 @@
       "lon": -95.403277,
       "lat": 29.810815,
       "severity": "critical",
-      "severity_label": "Critical Alert: Active Demolition & Sewer Disconnection Permits",
-      "badge": "Demo + Sewer Disc",
-      "headline": "City of Houston demolition and sewer disconnection permits (#26085478, issued 2026-10-06: DEMO RES/SEWER DISC).",
+      "severity_label": "Critical Alert: Both Permits Pulled (1/2 Plumbing Sewer Disc + 2/2 Building Demolition)",
+      "badge": "2 of 2 Permits: Sewer + Demo",
+      "headline": "Both required City of Houston demolition permits issued (#26085478, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-10-06: DEMO RES/SEWER DISC).",
       "preservation_note": "",
       "latest_filing_date": "2026-10-06",
       "coh_permits": [
@@ -522,7 +664,7 @@
           "project_no": "26085478",
           "date": "2026-10-06",
           "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
           "permit_desc": "Demolition",
           "use_desc": "DEMO RES/SEWER DISC",
           "fcc_group": "Demo; Single Familty Dwelling",
@@ -531,16 +673,18 @@
           "buyer_address": "20 COUNTY ROAD 3567 # 77327",
           "valuation": "$ 0",
           "job_address": "340 W 27TH ST 77008",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_2_demolition",
+          "is_demo_permit_issued": true
         },
         {
           "project_no": "26085478",
           "date": "2026-09-29",
           "permit_type": "12",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
           "permit_desc": "Plumbing Pmt",
           "use_desc": "DEMO RES/SEWER DISC",
           "fcc_group": "Demo; Single Familty Dwelling",
@@ -552,7 +696,9 @@
           "is_sewer_disconnect": true,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_1_sewer_plumbing",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [],
@@ -561,7 +707,10 @@
       ],
       "related_building_ids": [
         "0200230000020"
-      ]
+      ],
+      "demo_permit_stage": "stage_2_both",
+      "has_sewer_disc_plumbing": true,
+      "has_demo_permit": true
     },
     {
       "hcad_num": "0261570000017",
@@ -582,9 +731,9 @@
       "lon": -95.390932,
       "lat": 29.73945,
       "severity": "critical",
-      "severity_label": "Critical Alert: Active Demolition & Sewer Disconnection Permits",
-      "badge": "Demo + Sewer Disc",
-      "headline": "City of Houston demolition and sewer disconnection permits (#26091185, issued 2026-10-27: DEMO BLD/SEWER DISC).",
+      "severity_label": "Critical Alert: Both Permits Pulled (1/2 Plumbing Sewer Disc + 2/2 Building Demolition)",
+      "badge": "2 of 2 Permits: Sewer + Demo",
+      "headline": "Both required City of Houston demolition permits issued (#26091185, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-10-27: DEMO BLD/SEWER DISC).",
       "preservation_note": "",
       "latest_filing_date": "2026-10-27",
       "coh_permits": [
@@ -592,7 +741,7 @@
           "project_no": "26091185",
           "date": "2026-10-27",
           "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
           "permit_desc": "Demolition",
           "use_desc": "DEMO BLD/SEWER DISC",
           "fcc_group": "Demo; Other Building(s)",
@@ -601,16 +750,18 @@
           "buyer_address": "2126 TANGLET 77005",
           "valuation": "$ 0",
           "job_address": "3701 MONTROSE BLVD 77006",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_2_demolition",
+          "is_demo_permit_issued": true
         },
         {
           "project_no": "26091185",
           "date": "2026-10-19",
           "permit_type": "12",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
           "permit_desc": "Plumbing Pmt",
           "use_desc": "DEMO BLD/SEWER DISC",
           "fcc_group": "Demo; Other Building(s)",
@@ -622,7 +773,9 @@
           "is_sewer_disconnect": true,
           "is_garage_only": false,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "stage_1_sewer_plumbing",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [],
@@ -631,7 +784,10 @@
       ],
       "related_building_ids": [
         "bld_010136"
-      ]
+      ],
+      "demo_permit_stage": "stage_2_both",
+      "has_sewer_disc_plumbing": true,
+      "has_demo_permit": true
     },
     {
       "hcad_num": "0011490000001",
@@ -688,7 +844,10 @@
       ],
       "related_building_ids": [
         "bld_003326"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "0621340000009",
@@ -719,7 +878,7 @@
           "project_no": "26093543",
           "date": "2026-10-30",
           "permit_type": "12",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
           "permit_desc": "Plumbing Pmt",
           "use_desc": "DEMO RES/SEWER DISC (GARAGE ONLY)",
           "fcc_group": "Demo; Single Familty Dwelling",
@@ -728,10 +887,12 @@
           "buyer_address": "419 NICAR ST 77037",
           "valuation": "$ 0",
           "job_address": "902 W COTTAGE ST 77009",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": true,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "accessory_only",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [],
@@ -740,7 +901,10 @@
       ],
       "related_building_ids": [
         "bld_001304"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "0210380000001",
@@ -763,33 +927,15 @@
       "severity": "watch",
       "severity_label": "Active Watch: Garage / Accessory Demolition Permit",
       "badge": "Garage Demo Only",
-      "headline": "City of Houston accessory/garage demolition permit (#26085595, issued 2026-11-02: RES DEMO/SEWER DISC (GARAGE ONLY)).",
+      "headline": "City of Houston accessory/garage demolition permit (#26085595, issued 2026-10-23: RES DEMO/SEWER DISC (GARAGE ONLY)).",
       "preservation_note": "",
-      "latest_filing_date": "2026-11-02",
+      "latest_filing_date": "2026-10-23",
       "coh_permits": [
-        {
-          "project_no": "26085595",
-          "date": "2026-11-02",
-          "permit_type": "12",
-          "permit_type_label": "Sewer Disconnection Permit",
-          "permit_desc": "Plumbing Pmt",
-          "use_desc": "RES DEMO/SEWER DISC (GARAGE ONLY)",
-          "fcc_group": "",
-          "owner_occupant": "FARACH             ANDREW",
-          "buyer": "",
-          "buyer_address": "",
-          "valuation": "0",
-          "job_address": "616 E 5TH ST 77007",
-          "is_sewer_disconnect": true,
-          "is_garage_only": true,
-          "is_structural_demo": true,
-          "is_interior_only": false
-        },
         {
           "project_no": "26085595",
           "date": "2026-10-23",
           "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
           "permit_desc": "Demolition",
           "use_desc": "RES DEMO/SEWER DISC (GARAGE ONLY)",
           "fcc_group": "Demo; Single Familty Dwelling",
@@ -798,10 +944,32 @@
           "buyer_address": "10010 GENARD RD 77041",
           "valuation": "$ 0",
           "job_address": "616 E 5TH ST 77007",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": true,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "accessory_only",
+          "is_demo_permit_issued": false
+        },
+        {
+          "project_no": "26085595",
+          "date": "2026-09-29",
+          "permit_type": "12",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
+          "permit_desc": "Plumbing Pmt",
+          "use_desc": "RES DEMO/SEWER DISC (GARAGE ONLY)",
+          "fcc_group": "Demo; Single Familty Dwelling",
+          "owner_occupant": "FARACH ANDREW",
+          "buyer": "SOLORZANO VICTORIA",
+          "buyer_address": "10010 GENARD RD 77041",
+          "valuation": "$ 0",
+          "job_address": "616 E 5TH ST 77007",
+          "is_sewer_disconnect": false,
+          "is_garage_only": true,
+          "is_structural_demo": true,
+          "is_interior_only": false,
+          "permit_stage": "accessory_only",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [],
@@ -810,7 +978,10 @@
       ],
       "related_building_ids": [
         "0210380000001"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "0620910000017",
@@ -841,7 +1012,7 @@
           "project_no": "26087189",
           "date": "2026-10-05",
           "permit_type": "SD",
-          "permit_type_label": "Sewer Disconnection Permit",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
           "permit_desc": "Demolition",
           "use_desc": "DEMO RES/SEWER DISC (NO SD REQUIRED)- GA",
           "fcc_group": "Demo; Single Familty Dwelling",
@@ -850,10 +1021,12 @@
           "buyer_address": "28037 DOVE CHASE DR 77086",
           "valuation": "$ 0",
           "job_address": "4601 OAK RIDGE ST 77009",
-          "is_sewer_disconnect": true,
+          "is_sewer_disconnect": false,
           "is_garage_only": true,
           "is_structural_demo": true,
-          "is_interior_only": false
+          "is_interior_only": false,
+          "permit_stage": "accessory_only",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [],
@@ -862,7 +1035,67 @@
       ],
       "related_building_ids": [
         "bld_000843"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
+    },
+    {
+      "hcad_num": "0230580000001",
+      "building_id": "0230580000001#b1",
+      "title": "509 SUL ROSS ST",
+      "building_name": "",
+      "address": "509 SUL ROSS ST",
+      "year_built": 1946,
+      "yr_remodel": 0,
+      "style": "",
+      "architect": "",
+      "neighborhood": "First Montrose Commons",
+      "historic_district": "First Montrose Commons Historic District",
+      "landmark_name": "",
+      "good_brick_summary": "",
+      "owner": "GOLDMAN JORDANA R",
+      "lng": -95.386362,
+      "lon": -95.386362,
+      "lat": 29.737727,
+      "severity": "watch",
+      "severity_label": "Active Watch: Garage / Accessory Demolition Permit",
+      "badge": "Garage Demo Only",
+      "headline": "City of Houston accessory/garage demolition permit (#26078904, issued 2026-09-16: DEMO RES / SEWER DISC (GARAGE ONLY)).",
+      "preservation_note": "",
+      "latest_filing_date": "2026-09-16",
+      "coh_permits": [
+        {
+          "project_no": "26078904",
+          "date": "2026-09-16",
+          "permit_type": "SD",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
+          "permit_desc": "Demolition",
+          "use_desc": "DEMO RES / SEWER DISC (GARAGE ONLY)",
+          "fcc_group": "Demo; Single Familty Dwelling",
+          "owner_occupant": "*THE MONARCH COMMUNITY, INC.",
+          "buyer": "*COMPASS ABATEMENT SERVICES LL",
+          "buyer_address": "6730 WINDFERN RD 77040",
+          "valuation": "$ 0",
+          "job_address": "509 SUL ROSS ST 77006",
+          "is_sewer_disconnect": false,
+          "is_garage_only": true,
+          "is_structural_demo": true,
+          "is_interior_only": false,
+          "permit_stage": "accessory_only",
+          "is_demo_permit_issued": false
+        }
+      ],
+      "dshs_notifications": [],
+      "related_hcads": [
+        "0230580000001"
+      ],
+      "related_building_ids": [
+        "0230580000001#b1"
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "0532780000005",
@@ -950,7 +1183,10 @@
       ],
       "related_building_ids": [
         "0532780000005"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "0010320000001",
@@ -1030,7 +1266,10 @@
       ],
       "related_building_ids": [
         "0010320000001"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "0261550000006",
@@ -1092,7 +1331,10 @@
       ],
       "related_building_ids": [
         "bld_003789"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "0421790000001#rice_58_lovett_hall_administration_b",
@@ -1154,7 +1396,10 @@
       ],
       "related_building_ids": [
         "0421790000001#rice_58_lovett_hall_administration_b"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "osm_city_44821986",
@@ -1197,7 +1442,9 @@
           "is_sewer_disconnect": false,
           "is_garage_only": false,
           "is_structural_demo": false,
-          "is_interior_only": true
+          "is_interior_only": true,
+          "permit_stage": "other",
+          "is_demo_permit_issued": false
         },
         {
           "project_no": "26087441",
@@ -1215,7 +1462,9 @@
           "is_sewer_disconnect": false,
           "is_garage_only": false,
           "is_structural_demo": false,
-          "is_interior_only": true
+          "is_interior_only": true,
+          "permit_stage": "other",
+          "is_demo_permit_issued": false
         }
       ],
       "dshs_notifications": [
@@ -1248,7 +1497,10 @@
       ],
       "related_building_ids": [
         "osm_city_44821986#bldg_one_shell_plaza"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     },
     {
       "hcad_num": "osm_city_260359937",
@@ -1333,7 +1585,10 @@
       ],
       "related_building_ids": [
         "osm_city_260359937#bldg_marathon_oil_tower"
-      ]
+      ],
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false
     }
   ]
 }
