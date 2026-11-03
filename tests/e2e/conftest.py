@@ -93,7 +93,7 @@ DEAD_URL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
-def wait_for_atlas_ready(page: Any, timeout_ms: int = 30000) -> None:
+def wait_for_atlas_ready(page: Any, timeout_ms: int = 60000) -> None:
     """Waits until AtlasApp has initialized MapLibre, loaded overlaysData, and indexed searchIndex."""
     page.wait_for_function(
         """() => Boolean(

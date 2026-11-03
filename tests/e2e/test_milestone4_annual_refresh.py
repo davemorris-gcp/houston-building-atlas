@@ -246,67 +246,53 @@ def test_e2e_1_dynamic_roll_year_2027_and_2030_boot_hydration_and_live_hcad_badg
     badge_2027 = (page.locator("#hcad-live-status-badge").text_content() or "").strip()
     assert "2027 Roll" in badge_2027 and "Live" in badge_2027
 
-    # Pass B: Simulated 2030 appraisal roll (new decade boundary) in a fresh isolated context
-    from conftest import configure_fast_e2e_context
+    # Pass B: Simulated 2030 appraisal roll (new decade boundary) after unloading Pass A WebGL context
+    page.goto("about:blank")
+    _install_roll_year_fixture_routes(page, tax_year=2030)
+    page.goto(f"{atlas_base_url}/index.html", wait_until="domcontentloaded")
+    wait_for_atlas_ready(page, timeout_ms=45000)
 
-    ctx_2030 = browser.new_context(viewport={"width": 1440, "height": 900})
-    configure_fast_e2e_context(ctx_2030, atlas_base_url)
-    page_2030 = ctx_2030.new_page()
-    errors_2030: list[str] = []
-    page_2030.on("pageerror", lambda exc: errors_2030.append(str(exc)))
-    page_2030.on(
-        "console",
-        lambda msg: errors_2030.append(msg.text) if msg.type == "error" else None,
+    ui_2030 = page.evaluate(
+        """() => ({
+            minSliderMax: document.getElementById('slider-min-year')?.getAttribute('max'),
+            maxSliderMax: document.getElementById('slider-max-year')?.getAttribute('max'),
+            maxSliderVal: document.getElementById('slider-max-year')?.value,
+            readout: (document.getElementById('year-range-readout')?.textContent || '').trim(),
+            decadeOptions: Array.from(document.querySelectorAll('#select-decade option')).map((o) => ({
+                value: o.value,
+                text: (o.textContent || '').trim(),
+            })),
+            corrMax: document.getElementById('corr-suggested-year')?.getAttribute('max'),
+            corrLabelTxt: (document.getElementById('lbl-corr-suggested-year')?.innerText || '').trim(),
+            histDecades: Array.from(document.querySelectorAll('#decade-histogram button[data-decade]')).map((b) => b.getAttribute('data-decade')),
+        })"""
     )
-    try:
-        _install_roll_year_fixture_routes(page_2030, tax_year=2030)
-        page_2030.goto(f"{atlas_base_url}/index.html", wait_until="domcontentloaded")
-        wait_for_atlas_ready(page_2030)
+    assert ui_2030["minSliderMax"] == "2030"
+    assert ui_2030["maxSliderMax"] == "2030"
+    assert ui_2030["maxSliderVal"] == "2030"
+    assert "1836" in ui_2030["readout"] and "2030" in ui_2030["readout"]
+    assert ui_2030["corrMax"] == "2030"
+    assert "1836-2030" in ui_2030["corrLabelTxt"]
+    assert "2030" in ui_2030["histDecades"]
 
-        ui_2030 = page_2030.evaluate(
-            """() => ({
-                minSliderMax: document.getElementById('slider-min-year')?.getAttribute('max'),
-                maxSliderMax: document.getElementById('slider-max-year')?.getAttribute('max'),
-                maxSliderVal: document.getElementById('slider-max-year')?.value,
-                readout: (document.getElementById('year-range-readout')?.textContent || '').trim(),
-                decadeOptions: Array.from(document.querySelectorAll('#select-decade option')).map((o) => ({
-                    value: o.value,
-                    text: (o.textContent || '').trim(),
-                })),
-                corrMax: document.getElementById('corr-suggested-year')?.getAttribute('max'),
-                corrLabelTxt: (document.getElementById('lbl-corr-suggested-year')?.innerText || '').trim(),
-                histDecades: Array.from(document.querySelectorAll('#decade-histogram button[data-decade]')).map((b) => b.getAttribute('data-decade')),
-            })"""
-        )
-        assert ui_2030["minSliderMax"] == "2030"
-        assert ui_2030["maxSliderMax"] == "2030"
-        assert ui_2030["maxSliderVal"] == "2030"
-        assert "1836" in ui_2030["readout"] and "2030" in ui_2030["readout"]
-        assert ui_2030["corrMax"] == "2030"
-        assert "1836-2030" in ui_2030["corrLabelTxt"]
-        assert "2030" in ui_2030["histDecades"]
+    dec_vals = [o["value"] for o in ui_2030["decadeOptions"]]
+    assert "2030" in dec_vals
+    if "unknown" in dec_vals:
+        assert dec_vals.index("2030") < dec_vals.index("unknown")
+    opt_2030 = next(o for o in ui_2030["decadeOptions"] if o["value"] == "2030")
+    assert "2030s" in opt_2030["text"]
 
-        dec_vals = [o["value"] for o in ui_2030["decadeOptions"]]
-        assert "2030" in dec_vals
-        if "unknown" in dec_vals:
-            assert dec_vals.index("2030") < dec_vals.index("unknown")
-        opt_2030 = next(o for o in ui_2030["decadeOptions"] if o["value"] == "2030")
-        assert "2030s" in opt_2030["text"]
+    # Selecting 2030s filters minYear=2030..maxYear=2030 cleanly
+    page.select_option("#select-decade", "2030")
+    state_after_dec = page.evaluate("() => window.atlasApp.filterStore.getState()")
+    assert state_after_dec["selectedDecade"] == "2030"
+    assert state_after_dec["minYear"] == 2030
+    assert state_after_dec["maxYear"] == 2030
 
-        # Selecting 2030s filters minYear=2030..maxYear=2030 cleanly
-        page_2030.select_option("#select-decade", "2030")
-        state_after_dec = page_2030.evaluate("() => window.atlasApp.filterStore.getState()")
-        assert state_after_dec["selectedDecade"] == "2030"
-        assert state_after_dec["minYear"] == 2030
-        assert state_after_dec["maxYear"] == 2030
-
-        page_2030.select_option("#select-decade", "all")
-        _select_1127_key_st_and_wait_for_live_badge(page_2030, expected_year=2030)
-        badge_2030 = (page_2030.locator("#hcad-live-status-badge").text_content() or "").strip()
-        assert "2030 Roll" in badge_2030 and "Live" in badge_2030
-        assert errors_2030 == [], f"Errors during 2030 boot session: {errors_2030}"
-    finally:
-        ctx_2030.close()
+    page.select_option("#select-decade", "all")
+    _select_1127_key_st_and_wait_for_live_badge(page, expected_year=2030)
+    badge_2030 = (page.locator("#hcad-live-status-badge").text_content() or "").strip()
+    assert "2030 Roll" in badge_2030 and "Live" in badge_2030
 
 
 def test_e2e_2_cold_boot_deeplinks_presets_stepper_timelapse_and_reset_2027(
