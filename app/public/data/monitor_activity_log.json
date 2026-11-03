@@ -1,21 +1,19 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-02T21:17:11Z",
-  "lastSweepAt": "2026-11-02T21:12:10Z",
+  "generatedAt": "2026-11-03T18:58:30Z",
+  "lastSweepAt": "2026-11-03T18:54:38Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-05",
+  "retentionFloorDate": "2026-08-06",
   "lastSweepHealth": {
-    "timestamp": "2026-11-02T21:12:10Z",
+    "timestamp": "2026-11-03T18:54:38Z",
     "sweepsExecuted": true,
     "propertiesSwept": 29,
     "totalAgencies": 8,
-    "succeededAgencies": 7,
-    "failedAgencies": [
-      "chk-15"
-    ],
+    "succeededAgencies": 8,
+    "failedAgencies": [],
     "skippedAgencies": [],
-    "allOk": false,
+    "allOk": true,
     "agencies": {
       "chk-04": {
         "status": "ok",
@@ -67,29 +65,48 @@
         "error": ""
       },
       "chk-15": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 29,
-        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
+        "failedPropertyCount": 0,
+        "error": ""
       }
     }
   },
   "summary": {
-    "totalEvents": 505,
-    "criticalCount": 45,
+    "totalEvents": 508,
+    "criticalCount": 47,
     "warningCount": 144,
-    "infoCount": 316,
+    "infoCount": 317,
     "byStream": {
-      "watchlist": 130,
+      "watchlist": 131,
       "agenda": 87,
       "staff": 156,
-      "permits": 132
+      "permits": 134
     },
     "operationalNoticeCount": 5,
-    "daysTracked": 82
+    "daysTracked": 83
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-03",
+      "lastRunAt": "2026-11-03T18:58:30Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 29,
+      "totalAgencies": 8,
+      "succeededAgencies": 8,
+      "failedAgencies": [],
+      "allOk": true,
+      "eventCount": 3,
+      "adverseEventCount": 2,
+      "byStream": {
+        "watchlist": 1,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 2
+      }
+    },
     {
       "date": "2026-11-02",
       "lastRunAt": "2026-11-02T21:17:11Z",
@@ -1736,6 +1753,174 @@
     }
   ],
   "events": [
+    {
+      "id": "permit:dshs:0532780000005:2026006073",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-10-27",
+      "localDate": "2026-11-03",
+      "timestamp": "2026-11-03T18:58:30Z",
+      "discoveredAt": "2026-11-03T18:58:30Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement Filing (#2026006073): 2101 NASA PKY",
+      "summary": "2101 NASA PKY (Built 1963): DSHS Notification #2026006073 filed 2026-10-27 (scheduled 2026-11-16 to 2027-03-25).",
+      "address": "2101 NASA PKY",
+      "hcad": "0532780000005",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0532780000005",
+      "lat": 29.558515,
+      "lng": -95.08889,
+      "yearBuilt": 1963,
+      "designation": "",
+      "links": [
+        {
+          "label": "DSHS #2026006073",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2455278"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=236003"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "2101 NASA PKY",
+        "address": "2101 NASA PKY",
+        "hcad_num": "0532780000005",
+        "related_hcads": [
+          "0532780000005"
+        ],
+        "watchlist_id": "",
+        "building_id": "0532780000005",
+        "year_built": 1963,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.558515,
+        "lng": -95.08889,
+        "record": {
+          "notification_number": "2026006073",
+          "start_date": "2026-11-16",
+          "end_date": "2027-03-25",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2455278",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=236003",
+          "filing_date": "2026-10-27",
+          "work_type": "Abatement",
+          "facility_owner": "NASA - Johnson Space Center"
+        }
+      }
+    },
+    {
+      "id": "permit:dshs:0261740000010:2026005229",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-09-08",
+      "localDate": "2026-11-03",
+      "timestamp": "2026-11-03T18:58:30Z",
+      "discoveredAt": "2026-11-03T18:58:30Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement Filing (#2026005229): 1110 LOVETT BLVD",
+      "summary": "1110 LOVETT BLVD (Built 1958): DSHS Notification #2026005229 filed 2026-09-08 (scheduled 2026-09-22 to 2026-09-25) by ABATEMENT SPECIALISTS LLC.",
+      "address": "1110 LOVETT BLVD",
+      "hcad": "0261740000010",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_003780",
+      "lat": 29.743669,
+      "lng": -95.393059,
+      "yearBuilt": 1958,
+      "designation": "",
+      "links": [
+        {
+          "label": "DSHS #2026005229",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2440928"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=233605"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "1110 LOVETT BLVD",
+        "address": "1110 LOVETT BLVD",
+        "hcad_num": "0261740000010",
+        "related_hcads": [
+          "0261740000010"
+        ],
+        "watchlist_id": "",
+        "building_id": "bld_003780",
+        "year_built": 1958,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "Wamm",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "PRESBYTERY NEW CONVENANT",
+        "lat": 29.743669,
+        "lng": -95.393059,
+        "record": {
+          "notification_number": "2026005229",
+          "start_date": "2026-09-22",
+          "end_date": "2026-09-25",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2440928",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=233605",
+          "filing_date": "2026-09-08",
+          "work_type": "Abatement",
+          "abatement_contractor": "ABATEMENT SPECIALISTS LLC"
+        }
+      }
+    },
+    {
+      "id": "wl:auto:prop-kirby-mansion:chk-13:id:coh-311:2600366173",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-02",
+      "localDate": "2026-11-03",
+      "timestamp": "2026-11-03T18:58:30Z",
+      "discoveredAt": "2026-11-03T18:58:30Z",
+      "loggedAt": "",
+      "title": "John Henry Kirby Mansion: Code Complaints & Dangerous Buildings",
+      "summary": "Houston 311 Case #2600366173: Building Code Violation (Service Completed) at 2000 SMITH ST.",
+      "address": "2000 SMITH ST",
+      "hcad": "0152300000001",
+      "watchPropertyId": "prop-kirby-mansion",
+      "checkId": "chk-13",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_004618",
+      "lat": 29.751432,
+      "lng": -95.374833,
+      "yearBuilt": "1894",
+      "designation": "1979 Good Brick Award (No City Protected Landmark designation)",
+      "links": [
+        {
+          "label": "311 Service Request Viewer",
+          "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+        }
+      ]
+    },
     {
       "id": "wl:sweep:2026-11-02:degraded:chk-15",
       "stream": "watchlist",
