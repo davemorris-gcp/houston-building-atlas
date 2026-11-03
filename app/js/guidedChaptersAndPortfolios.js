@@ -8,7 +8,11 @@ import {
   VALID_PORTFOLIO_KINDS,
   normalizePortfolioKind,
 } from "./filterStore.js?v=20261031a";
-import { OWNERSHIP_TIER_ITEMS, resolveOwnershipTierColor } from "./palettes.js?v=20261031a";
+import {
+  OWNERSHIP_TIER_ITEMS,
+  resolveEffectiveOwnershipTier,
+  resolveOwnershipTierColor,
+} from "./palettes.js?v=20261031a";
 import {
   buildTxComptrollerSearchUrl,
   buildHarrisCountyClerkRpUrl,
@@ -1454,9 +1458,11 @@ export function decodeParcelOwnershipXray(
     portfolioCatalog = portfolioCatalogArg || null;
   }
 
-  const rawTier = String(shard.ot || props.own_tier || "homestead")
-    .trim()
-    .toLowerCase();
+  const rawTier = resolveEffectiveOwnershipTier(
+    shard.ot || props.own_tier,
+    props.use_category,
+    props.landmark_name || props.bld_name || props.owner_name || props.owner || shard.owner
+  );
   const tierObj =
     OWNERSHIP_TIER_ITEMS.find((item) => item.key === rawTier) || OWNERSHIP_TIER_ITEMS[0];
   const ownTier = tierObj.key;
@@ -1573,11 +1579,30 @@ export function decodeParcelOwnershipXray(
   const clerkTarget =
     latestClerkFileNum || (!isConfidential && rawOwnerName ? rawOwnerName : hcadNum || "HOUSTON");
 
+  const useCatClean = String(props.use_category || "").trim();
+  const stateClassClean = String(props.state_class || shard.sc || "")
+    .trim()
+    .toUpperCase();
+  const styleTextClean = String(
+    props.bld_style || props.building_style || props.structure_type || ""
+  ).trim();
+  const isOwnerOccupiedPlex = Boolean(
+    ownTier === "homestead" &&
+      (useCatClean === "Multi-Family" ||
+        /^B[234]/.test(stateClassClean) ||
+        /\b(?:DUPLEX|TRIPLEX|FOURPLEX|QUADPLEX|TWO-FAMILY|THREE-FAMILY|FOUR-FAMILY|2-FAMILY|3-FAMILY|4-FAMILY)\b/i.test(
+          styleTextClean
+        ))
+  );
+  const ownerOccupiedPlexNote = isOwnerOccupiedPlex
+    ? "Owner-Occupied Duplex / Triplex / Fourplex (HCAD Class B2-B4): Owner of record shares situs and tax-billing address with this 2-to-4 unit structure while leasing adjacent units; colored light-blue Homestead on the map."
+    : "";
+
   return {
     ownTier,
     tierLabel: tierObj.label,
     tierShortLabel: tierObj.shortLabel || tierObj.label,
-    tierColor: resolveOwnershipTierColor(ownTier),
+    tierColor: resolveOwnershipTierColor(ownTier, useCatClean),
     portfolioId,
     portId: portfolioId,
     portfolioMeta,
@@ -1596,6 +1621,8 @@ export function decodeParcelOwnershipXray(
     flipDays,
     isConfidential,
     isRedactedHomestead,
+    isOwnerOccupiedPlex,
+    ownerOccupiedPlexNote,
     isCorporateOrTrust,
     txComptrollerUrl: buildTxComptrollerSearchUrl(searchTarget),
     clerkUrl: buildHarrisCountyClerkRpUrl(clerkTarget),

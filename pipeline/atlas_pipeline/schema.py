@@ -3170,11 +3170,28 @@ _RE_TRUST_OR_ESTATE_TOKEN = re.compile(
 _RE_CIVIC_OR_HOA_OWNER = re.compile(
     r"\b("
     r"HOA|HOMEOWNERS\s+ASSOC|PROPERTY\s+OWNERS\s+ASSOC|COMMUNITY\s+ASSOC|CIVIC\s+ASSOC"
-    r"|CHURCH|DIOCESE|PARISH|SYNAGOGUE|MOSQUE|TEMPLE|MINISTRIES|BAPTIST|METHODIST"
+    r"|CHURCH|CATHEDRAL|CHAPEL|DIOCESE|PARISH|SYNAGOGUE|MOSQUE|TEMPLE|MINISTRIES|BAPTIST|METHODIST"
     r"|CATHOLIC|LUTHERAN|PRESBYTERIAN|EPISCOPAL|UNIVERSITY|COLLEGE|ISD|SCHOOL\s+DIST"
-    r"|CITY\s+OF\s+HOUSTON|HARRIS\s+COUNTY|STATE\s+OF\s+TEXAS|FLOOD\s+CONTROL"
-    r"|METRO\s+TRANSIT|HOUSING\s+AUTHORITY|MUD\s+\d+|MUNICIPAL\s+UTILITY"
-    r"|LODGE|SCOTTISH\s+RITE|MASONIC|FOUNDATION|MUSEUM|CONSERVANCY"
+    r"|CITY\s+OF\s+HOUSTON|HARRIS\s+COUNTY|COUNTY\s+OF\s+HARRIS|STATE\s+OF\s+TEXAS|FLOOD\s+CONTROL"
+    r"|METRO\s+TRANSIT|HOUSING\s+AUTHORITY|SPORTS\s+AUTHORITY|HOUSTON\s+FIRST|MUD\s+\d+|MUNICIPAL\s+UTILITY"
+    r"|LODGE|SCOTTISH\s+RITE|MASONIC|FOUNDATION|MUSEUM|CONSERVANCY|HOSPITAL|MEDICAL\s+CENTER|LIBRARY"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_RE_CIVIC_LANDMARK_NAME = re.compile(
+    r"\b("
+    r"TOYOTA\s+CENTER|SHELL\s+ENERGY\s+STADIUM|DYNAMO\s+STADIUM|BBVA\s+STADIUM"
+    r"|DAIKIN\s+PARK|MINUTE\s+MAID\s+PARK|NRG\s+STADIUM|NRG\s+ASTRODOME|ASTRODOME"
+    r"|NRG\s+ARENA|NRG\s+CENTER|TDECU\s+STADIUM|RICE\s+STADIUM|TUDOR\s+FIELDHOUSE"
+    r"|HOUSTON\s+SPORTS\s+AUTHORITY|ALLEY\s+THEATRE|WORTHAM\s+THEATER|WORTHAM\s+CENTER"
+    r"|JONES\s+HALL|HOBBY\s+CENTER|MILLER\s+OUTDOOR\s+THEATRE|CONVENTION\s+CENTER"
+    r"|CITY\s+HALL|COURTHOUSE|POST\s+OFFICE|CUSTOM\s+HOUSE|FIRE\s+STATION|POLICE"
+    r"|CHURCH|CATHEDRAL|CHAPEL|PARISH|SYNAGOGUE|MOSQUE|TEMPLE|MINISTRIES|BAPTIST"
+    r"|METHODIST|CATHOLIC|LUTHERAN|PRESBYTERIAN|EPISCOPAL|DIOCESE"
+    r"|UNIVERSITY|COLLEGE|SCHOOL|ACADEMY|ISD|HOSPITAL|MEDICAL\s+CENTER|CANCER\s+CENTER"
+    r"|MUSEUM|MENIL|ROTHKO|BAYOU\s+BEND|LIBRARY|COMMUNITY\s+CENTER|CULTURAL\s+CENTER"
+    r"|DISCOVERY\s+GREEN|HERMANN\s+PARK|MEMORIAL\s+PARK|EMANCIPATION\s+PARK|BUFFALO\s+BAYOU"
     r")\b",
     re.IGNORECASE,
 )
@@ -3557,6 +3574,71 @@ def classify_account_ownership(
         "care_of": care_of,
         "is_tax_agent_care_of": tax_agent_co,
     }
+
+
+def infer_fallback_ownership_tier(
+    use_category: str = "",
+    owner_name: str = "",
+    landmark_name: str = "",
+    address: str = "",
+    current_tier: str = "",
+) -> str:
+    """Resolve a deterministic 6-tier ownership key when an HCAD account is missing/retired or a feature is an override.
+
+    Ensures non-residential structures (`Civic / Institutional`, `Commercial`, `Industrial`, `Vacant / Exempt`)
+    and civic/public stadiums, churches, museums, schools, and parks never falsely default to `homestead`.
+    Owner-occupied `Multi-Family` structures (duplexes/triplexes/fourplexes, HCAD `B2`-`B4`) with an explicit
+    `current_tier == 'homestead'` from HCAD situs-mail matching preserve `'homestead'`.
+    """
+    use_clean = str(use_category or "").strip()
+    cur_clean = str(current_tier or "").strip().lower()
+    combined_text = f"{owner_name or ''} | {landmark_name or ''} | {address or ''}".upper()
+
+    if use_clean == "Civic / Institutional" or _RE_CIVIC_LANDMARK_NAME.search(combined_text):
+        if (
+            cur_clean in ("institutional_pe", "regional_portfolio")
+            and use_clean != "Civic / Institutional"
+            and not _RE_CIVIC_LANDMARK_NAME.search(combined_text)
+        ):
+            return cur_clean
+        return "civic_nonprofit"
+
+    is_civic, _sub = is_hoa_or_civic_steward("", owner_name)
+    if is_civic:
+        return "civic_nonprofit"
+
+    if cur_clean in OWNERSHIP_TIER_KEYS and cur_clean != "homestead":
+        return cur_clean
+
+    is_corp, _is_trust = is_corporate_or_trust_entity(owner_name)
+
+    # Preserve genuine HCAD-verified owner-occupied duplex/triplex/fourplex (`Multi-Family`) or `Residential` homesteads
+    # strictly when the owner is not a corporate entity (LLCs/LPs/Corps cannot hold a TX homestead).
+    if cur_clean == "homestead" and use_clean in ("Residential", "Multi-Family") and not is_corp:
+        return "homestead"
+
+    # Non-residential structures or corporate-owned structures without a matched HCAD record:
+    if use_clean in ("Commercial", "Industrial", "Vacant / Exempt", "Multi-Family") or is_corp:
+        if owner_name:
+            res = classify_account_ownership(
+                state_class="F1",
+                owner_name=str(owner_name),
+                situs_addr=str(address or ""),
+            )
+            tier = str(res.get("own_tier") or "local_small")
+            if tier != "homestead":
+                return tier
+        return "local_small"
+
+    if owner_name:
+        res = classify_account_ownership(
+            state_class="A1",
+            owner_name=str(owner_name),
+            situs_addr=str(address or ""),
+        )
+        return str(res.get("own_tier") or "homestead")
+
+    return "homestead"
 
 
 def compute_pre_demolition_flip_days(

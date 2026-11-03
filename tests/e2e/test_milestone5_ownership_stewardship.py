@@ -275,5 +275,29 @@ def test_it4_stewardship_timeline_1836_2026_and_sec_25_025_homestead_privacy(
     assert "Protected Individual Homestead (TX Tax Code Sec. 25.025)" in hs_xray_txt
     assert "Tax Billing Hub:" not in hs_xray_txt
     assert "C/O / Tax Agent:" not in hs_xray_txt
+    assert page.locator("#inspector-owner-occupied-plex-row").count() == 0
+
+    # 4. Open an Owner-Occupied Duplex/Triplex/Fourplex (Multi-Family + homestead) and verify #inspector-owner-occupied-plex-row
+    page.evaluate(
+        """() => {
+            window.atlasApp.renderInspectorDrawer({
+                id: '0210360000008',
+                hcad_num: '0210360000008',
+                address: '413 COLUMBIA ST',
+                year_built: 1930,
+                owner: 'MORGAN MICHELLE',
+                own_tier: 'homestead',
+                port_id: null,
+                use_category: 'Multi-Family',
+                state_class: 'B2',
+                neighborhood: 'Houston Heights',
+            });
+        }"""
+    )
+    page.click('#inspector-body [data-inspector-tab="hcad"]')
+    page.wait_for_selector("#inspector-owner-occupied-plex-row", timeout=8000)
+    plex_row_txt = page.inner_text("#inspector-owner-occupied-plex-row")
+    assert "Multi-Family Homestead:" in plex_row_txt
+    assert "Owner-Occupied Duplex / Triplex / Fourplex (HCAD Class B2-B4)" in plex_row_txt
     assert page_errors == []
     assert local_http_errors == []

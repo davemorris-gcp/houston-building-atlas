@@ -211,7 +211,23 @@ export function buildFeatureFilterExpression(state) {
 
   const extraClauses = [];
   if (ownTier && ownTier !== "all") {
-    extraClauses.push(["==", ["coalesce", ["get", "own_tier"], "homestead"], ownTier]);
+    const effOwnTierExpr = [
+      "case",
+      ["==", ["get", "use_category"], "Civic / Institutional"],
+      "civic_nonprofit",
+      [
+        "all",
+        ["==", ["coalesce", ["get", "own_tier"], "homestead"], "homestead"],
+        [
+          "in",
+          ["get", "use_category"],
+          ["literal", ["Commercial", "Industrial", "Vacant / Exempt"]],
+        ],
+      ],
+      "local_small",
+      ["coalesce", ["get", "own_tier"], "homestead"],
+    ];
+    extraClauses.push(["==", effOwnTierExpr, ownTier]);
   }
   if (portfolioOnly) {
     extraClauses.push(["has", "port_id"]);
@@ -330,7 +346,17 @@ export function featureMatchesLostHoustonFilter(props, state) {
 export function featureMatchesFilter(props, state) {
   if (!props) return false;
   if (state?.ownTier && state.ownTier !== "all") {
-    const ftier = String(props.own_tier || "homestead").trim();
+    const rawT = String(props.own_tier || "").trim().toLowerCase();
+    const useC = String(props.use_category || "").trim();
+    const ftier =
+      useC === "Civic / Institutional"
+        ? "civic_nonprofit"
+        : (!rawT || rawT === "homestead") &&
+          (useC === "Commercial" || useC === "Industrial" || useC === "Vacant / Exempt")
+        ? "local_small"
+        : !rawT && useC === "Multi-Family"
+        ? "local_small"
+        : rawT || "homestead";
     if (ftier !== state.ownTier) return false;
   }
   if (state?.portfolioOnly && !props.port_id) {

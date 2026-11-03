@@ -58,6 +58,7 @@ from atlas_pipeline.schema import (
     classify_main_structure_demolition_permit,
     compute_pre_demolition_flip_days,
     extract_care_of_and_clean_mail,
+    infer_fallback_ownership_tier,
     is_corporate_or_trust_entity,
     is_hoa_or_civic_steward,
     is_protected_homestead,
@@ -1164,6 +1165,39 @@ def enrich_permit_shards_with_ownership_and_deeds(
     }
 
 
+_CIVIC_OSM_OVERRIDE_KEYS: frozenset[str] = frozenset({
+    "osm_city_25312761#bldg_toyota_center",
+    "osm_city_119420928#bldg_nrg_astrodome",
+    "osm_city_54369011#bldg_alley_theatre",
+    "osm_city_46185162#bldg_freeway_baptist_church",
+    "osm_city_118780514#bldg_lakewood_church_central_",
+})
+
+
+def _normalize_street_lookup_key(raw_addr: str) -> str:
+    s = str(raw_addr or "").upper().strip()
+    for pat, rep in (
+        (r"\bSTREET\b", "ST"),
+        (r"\bAVENUE\b", "AVE"),
+        (r"\bBOULEVARD\b", "BLVD"),
+        (r"\bDRIVE\b", "DR"),
+        (r"\bROAD\b", "RD"),
+        (r"\bFREEWAY\b", "FWY"),
+        (r"\bPARKWAY\b", "PKWY"),
+        (r"\bHIGHWAY\b", "HWY"),
+        (r"\bLANE\b", "LN"),
+        (r"\bCOURT\b", "CT"),
+        (r"\bCIRCLE\b", "CIR"),
+        (r"\bPLACE\b", "PL"),
+        (r"\bNORTH\b", "N"),
+        (r"\bSOUTH\b", "S"),
+        (r"\bEAST\b", "E"),
+        (r"\bWEST\b", "W"),
+    ):
+        s = re.sub(pat, rep, s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
 def stamp_ownership_onto_geojsonseq_and_core(
     ownership_graph: dict[str, Any],
     *,
@@ -1171,10 +1205,20 @@ def stamp_ownership_onto_geojsonseq_and_core(
     quadrant_dir: Path | None = None,
     data_dir: Path = DATA_DIR,
 ) -> dict[str, Any]:
-    """Stamp `own_tier` and `port_id` onto `.geojsonseq` shards, `buildings.geojson`, and `stats_summary.json`."""
+    """Stamp `own_tier` and `port_id` onto `.geojsonseq` shards, `buildings.geojson`, `parcels.geojson`, `curated_overrides.json`, and `stats_summary.json`."""
     records: dict[str, AccountOwnershipRecord] = ownership_graph["records"]
     bldg_tier_counts: Counter[str] = Counter()
     total_stamped = 0
+
+    situs_to_rec: dict[str, AccountOwnershipRecord] = {}
+    for _acct, rec_item in records.items():
+        s_key = _normalize_street_lookup_key(rec_item.situs_addr)
+        if s_key and not s_key.startswith("0 "):
+            prev_rec = situs_to_rec.get(s_key)
+            if prev_rec is None or rec_item.market_val > prev_rec.market_val:
+                situs_to_rec[s_key] = rec_item
+
+    spatial_grid: dict[tuple[int, int], list[tuple[float, float, str, str, str, str]]] = {}
 
     target_dirs = [
         d
@@ -1204,18 +1248,43 @@ def stamp_ownership_onto_geojsonseq_and_core(
                     if len(h) < 13 and len(h) >= 10:
                         h = h.zfill(13)
                     rec = records.get(h)
-                    if rec is not None:
-                        props["own_tier"] = rec.own_tier
-                        if rec.port_id:
-                            props["port_id"] = rec.port_id
-                        else:
-                            props.pop("port_id", None)
+                    if rec is None:
+                        s_key = _normalize_street_lookup_key(props.get("address") or "")
+                        if s_key:
+                            rec = situs_to_rec.get(s_key)
+                    raw_tier = rec.own_tier if rec is not None else str(props.get("own_tier") or "")
+                    eff_tier = infer_fallback_ownership_tier(
+                        use_category=str(props.get("use_category") or ""),
+                        owner_name=str(props.get("owner") or (rec.owner_name if rec else "") or ""),
+                        landmark_name=str(props.get("landmark_name") or props.get("bld_name") or ""),
+                        address=str(props.get("address") or ""),
+                        current_tier=raw_tier,
+                    )
+                    props["own_tier"] = eff_tier
+                    if rec is not None and rec.port_id and eff_tier in ("regional_portfolio", "institutional_pe"):
+                        props["port_id"] = rec.port_id
                     else:
-                        props["own_tier"] = str(props.get("own_tier") or "homestead")
                         props.pop("port_id", None)
                     if idx_d == 0:
                         bldg_tier_counts[str(props["own_tier"])] += 1
                         total_stamped += 1
+                        geom = feat.get("geometry")
+                        if geom:
+                            pt = geom.get("coordinates")
+                            while isinstance(pt, list) and pt and isinstance(pt[0], (list, tuple)):
+                                pt = pt[0]
+                            if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                                gx, gy = int(pt[0] * 200), int(pt[1] * 200)
+                                spatial_grid.setdefault((gx, gy), []).append(
+                                    (
+                                        float(pt[0]),
+                                        float(pt[1]),
+                                        h,
+                                        eff_tier,
+                                        str(props.get("port_id") or ""),
+                                        str(props.get("use_category") or ""),
+                                    )
+                                )
                     out_bytes = orjson.dumps(feat)
                     if has_rs:
                         wf.write(b"\x1e" + out_bytes + b"\n")
@@ -1232,15 +1301,114 @@ def stamp_ownership_onto_geojsonseq_and_core(
             if len(h) < 13 and len(h) >= 10:
                 h = h.zfill(13)
             rec = records.get(h)
-            if rec is not None:
-                props["own_tier"] = rec.own_tier
-                if rec.port_id:
-                    props["port_id"] = rec.port_id
-                else:
-                    props.pop("port_id", None)
+            if rec is None:
+                s_key = _normalize_street_lookup_key(props.get("address") or "")
+                if s_key:
+                    rec = situs_to_rec.get(s_key)
+            raw_tier = rec.own_tier if rec is not None else str(props.get("own_tier") or "")
+            eff_tier = infer_fallback_ownership_tier(
+                use_category=str(props.get("use_category") or ""),
+                owner_name=str(props.get("owner") or (rec.owner_name if rec else "") or ""),
+                landmark_name=str(props.get("landmark_name") or props.get("bld_name") or ""),
+                address=str(props.get("address") or ""),
+                current_tier=raw_tier,
+            )
+            props["own_tier"] = eff_tier
+            if rec is not None and rec.port_id and eff_tier in ("regional_portfolio", "institutional_pe"):
+                props["port_id"] = rec.port_id
             else:
-                props["own_tier"] = str(props.get("own_tier") or "homestead")
+                props.pop("port_id", None)
         write_compact_json(core_blds_path, core_doc)
+
+    parcels_path = Path(data_dir) / "parcels.geojson"
+    if parcels_path.exists():
+        parcels_doc = json.loads(parcels_path.read_text(encoding="utf-8"))
+        for feat in parcels_doc.get("features") or ():
+            props = feat.setdefault("properties", {})
+            h = re.sub(r"\D", "", str(props.get("hcad_num") or ""))
+            if len(h) < 13 and len(h) >= 10:
+                h = h.zfill(13)
+            rec = records.get(h)
+            if rec is None:
+                s_key = _normalize_street_lookup_key(props.get("address") or "")
+                if s_key:
+                    rec = situs_to_rec.get(s_key)
+            raw_tier = rec.own_tier if rec is not None else str(props.get("own_tier") or "")
+            eff_tier = infer_fallback_ownership_tier(
+                use_category=str(props.get("use_category") or ""),
+                owner_name=str(props.get("owner") or (rec.owner_name if rec else "") or ""),
+                landmark_name=str(props.get("landmark_name") or ""),
+                address=str(props.get("address") or ""),
+                current_tier=raw_tier,
+            )
+            props["own_tier"] = eff_tier
+            if rec is not None and rec.port_id and eff_tier in ("regional_portfolio", "institutional_pe"):
+                props["port_id"] = rec.port_id
+            else:
+                props.pop("port_id", None)
+        write_compact_json(parcels_path, parcels_doc)
+
+    overrides_path = Path(data_dir) / "curated_overrides.json"
+    if overrides_path.exists():
+        ov_doc = json.loads(overrides_path.read_text(encoding="utf-8"))
+        ov_map = ov_doc.get("overrides") if isinstance(ov_doc.get("overrides"), dict) else ov_doc
+        if isinstance(ov_map, dict):
+            for ov_key, ov in ov_map.items():
+                if not isinstance(ov, dict):
+                    continue
+                if ov_key in _CIVIC_OSM_OVERRIDE_KEYS:
+                    ov["use_category"] = "Civic / Institutional"
+                h = re.sub(r"\D", "", str(ov.get("hcad_num") or ""))
+                raw_prefix = re.sub(r"\D", "", ov_key.split("#", 1)[0])
+                eff_h = h if len(h) >= 10 else (raw_prefix if len(raw_prefix) >= 10 else "")
+                if len(eff_h) < 13 and len(eff_h) >= 10:
+                    eff_h = eff_h.zfill(13)
+                rec = records.get(eff_h) if eff_h else None
+                if rec is None:
+                    s_key = _normalize_street_lookup_key(ov.get("address") or "")
+                    if s_key:
+                        cand_rec = situs_to_rec.get(s_key)
+                        if cand_rec is not None:
+                            use_ov = str(ov.get("use_category") or "")
+                            if not (use_ov in ("Commercial", "Civic / Institutional", "Industrial") and cand_rec.own_tier == "homestead"):
+                                rec = cand_rec
+                spatial_tier = ""
+                spatial_pid = ""
+                if rec is None and ov.get("geometry") and spatial_grid:
+                    pt = ov["geometry"].get("coordinates")
+                    while isinstance(pt, list) and pt and isinstance(pt[0], (list, tuple)):
+                        pt = pt[0]
+                    if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                        gx, gy = int(pt[0] * 200), int(pt[1] * 200)
+                        best_d = 999.0
+                        use_ov = str(ov.get("use_category") or "")
+                        for dx in (-1, 0, 1):
+                            for dy in (-1, 0, 1):
+                                for lng, lat, sh_h, sh_tier, sh_pid, sh_use in spatial_grid.get((gx + dx, gy + dy), ()):
+                                    if use_ov in ("Commercial", "Civic / Institutional", "Industrial") and sh_tier == "homestead":
+                                        continue
+                                    if use_ov and sh_use and use_ov != sh_use and not (use_ov == "Commercial" and sh_use == "Civic / Institutional"):
+                                        continue
+                                    d = ((lng - float(pt[0])) ** 2 + (lat - float(pt[1])) ** 2) ** 0.5
+                                    if d < best_d and d < 0.0008:
+                                        best_d = d
+                                        spatial_tier = sh_tier
+                                        spatial_pid = sh_pid
+                raw_tier = rec.own_tier if rec is not None else spatial_tier
+                eff_tier = infer_fallback_ownership_tier(
+                    use_category=str(ov.get("use_category") or ""),
+                    owner_name=str(ov.get("owner") or (rec.owner_name if rec else "") or ""),
+                    landmark_name=str(ov.get("landmark_name") or ""),
+                    address=str(ov.get("address") or ""),
+                    current_tier=raw_tier,
+                )
+                ov["own_tier"] = eff_tier
+                eff_pid = (rec.port_id if rec is not None else spatial_pid) if eff_tier in ("regional_portfolio", "institutional_pe") else ""
+                if eff_pid:
+                    ov["port_id"] = eff_pid
+                else:
+                    ov.pop("port_id", None)
+            write_compact_json(overrides_path, ov_doc)
 
     stats_path = Path(data_dir) / "stats_summary.json"
     if stats_path.exists():

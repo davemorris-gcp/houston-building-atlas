@@ -747,3 +747,48 @@ def test_rp1_and_rp2_annual_rollover_sync_and_live_ownership_bundle_integrity() 
     assert isinstance(stats_data.get("ownership_tier_counts"), dict)
     for tier_k in OWNERSHIP_TIER_KEYS:
         assert tier_k in stats_data["ownership_tier_counts"]
+
+    # Check curated_overrides.json and buildings.geojson non-residential vs owner-occupied plex tiers
+    from atlas_pipeline.schema import infer_fallback_ownership_tier
+
+    assert (
+        infer_fallback_ownership_tier(
+            use_category="Civic / Institutional",
+            owner_name="HARRIS COUNTY HOUSTON SPORTS AUTHORITY",
+            landmark_name="Toyota Center",
+        )
+        == "civic_nonprofit"
+    )
+    assert (
+        infer_fallback_ownership_tier(
+            use_category="Commercial",
+            owner_name="",
+            landmark_name="Fulbright Tower",
+            current_tier="homestead",
+        )
+        == "local_small"
+    )
+    assert (
+        infer_fallback_ownership_tier(
+            use_category="Multi-Family",
+            owner_name="MORGAN MICHELLE",
+            address="413 COLUMBIA ST",
+            current_tier="homestead",
+        )
+        == "homestead"
+    )
+    assert (
+        infer_fallback_ownership_tier(
+            use_category="Multi-Family",
+            owner_name="TSG LEASING LLC",
+            address="1628 HARVARD ST",
+            current_tier="homestead",
+        )
+        == "local_small"
+    )
+
+    ov_doc = json.loads((DATA_DIR / "curated_overrides.json").read_text(encoding="utf-8"))
+    ov_map = ov_doc.get("overrides") if isinstance(ov_doc.get("overrides"), dict) else ov_doc
+    assert ov_map["osm_city_25312761#bldg_toyota_center"]["own_tier"] == "civic_nonprofit"
+    assert ov_map["1420820010001#aux_1"]["own_tier"] == "civic_nonprofit"
+    assert ov_map["1319030010001#aux_1"]["own_tier"] == "civic_nonprofit"

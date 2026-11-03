@@ -9,6 +9,7 @@ import {
   getYearColorHex,
   HISTORICAL_MAP_CATALOG,
   PRESERVATION_STATUS_ITEMS,
+  resolveEffectiveOwnershipTier,
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
@@ -197,7 +198,11 @@ export function evaluateFeatureColor(props, colorModeOrState, paletteStyle) {
     return found ? found.color : "#524E4A";
   }
   if (colorMode === "ownership_tier") {
-    return resolveOwnershipTierColor(props.own_tier);
+    return resolveOwnershipTierColor(
+      props.own_tier,
+      props.use_category,
+      props.landmark_name || props.bld_name || props.owner
+    );
   }
   return getYearColorHex(props.year_built, effPalette);
 }
@@ -1050,7 +1055,11 @@ export class AtlasMapController {
             stories: Number(ov.stories) || 1,
             height_m: Number(ov.height_m) || 4.5,
             use_category: ov.use_category || "Residential",
-            own_tier: ov.own_tier || "homestead",
+            own_tier: resolveEffectiveOwnershipTier(
+              ov.own_tier,
+              ov.use_category,
+              ov.landmark_name || ov.owner || ov.address
+            ),
             port_id: ov.port_id || "",
             historic_district: ov.historic_district || "",
             contributing: ov.contributing || "Contributing",

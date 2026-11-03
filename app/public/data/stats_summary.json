@@ -94,11 +94,11 @@
     "archival": 16
   },
   "ownership_tier_counts": {
-    "homestead": 1087064,
-    "local_small": 160551,
-    "regional_portfolio": 135598,
-    "institutional_pe": 77023,
-    "anonymity_shield": 6876,
-    "civic_nonprofit": 40785
+    "homestead": 1084868,
+    "local_small": 159864,
+    "regional_portfolio": 135070,
+    "institutional_pe": 76775,
+    "anonymity_shield": 6856,
+    "civic_nonprofit": 44464
   }
 }

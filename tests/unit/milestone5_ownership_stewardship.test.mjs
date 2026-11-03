@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   OWNERSHIP_TIER_ITEMS,
+  resolveEffectiveOwnershipTier,
   resolveOwnershipTierColor,
   buildColorExpression,
   getLegendItems,
@@ -56,9 +57,20 @@ test("UT-5: palettes.js ownership_tier color mode expressions and 6-tier Okabe-I
 
   const colorExpr = buildColorExpression("ownership_tier");
   assert.ok(Array.isArray(colorExpr));
-  assert.equal(colorExpr[0], "match");
-  assert.deepEqual(colorExpr[1], ["coalesce", ["get", "own_tier"], "homestead"]);
-  assert.equal(colorExpr[colorExpr.length - 1], "#38BDF8");
+  assert.equal(colorExpr[0], "case");
+  assert.deepEqual(colorExpr[1], ["==", ["get", "use_category"], "Civic / Institutional"]);
+  assert.equal(colorExpr[2], "#94A3B8");
+  const matchFallback = colorExpr[colorExpr.length - 1];
+  assert.equal(matchFallback[0], "match");
+  assert.deepEqual(matchFallback[1], ["coalesce", ["get", "own_tier"], "homestead"]);
+  assert.equal(matchFallback[matchFallback.length - 1], "#38BDF8");
+
+  // Verify resolveEffectiveOwnershipTier prevents non-residential structures from defaulting to homestead
+  assert.equal(resolveEffectiveOwnershipTier("homestead", "Civic / Institutional", "Toyota Center"), "civic_nonprofit");
+  assert.equal(resolveEffectiveOwnershipTier("homestead", "Commercial", "Toyota Center"), "civic_nonprofit");
+  assert.equal(resolveEffectiveOwnershipTier("homestead", "Commercial", "Fulbright Tower"), "local_small");
+  assert.equal(resolveEffectiveOwnershipTier("homestead", "Multi-Family", "413 Columbia St"), "homestead");
+  assert.equal(resolveEffectiveOwnershipTier("", "Multi-Family", "413 Columbia St"), "local_small");
 
   const legend = getLegendItems("ownership_tier");
   assert.equal(legend.length, 6);
@@ -233,6 +245,53 @@ test("UT-7: guidedChaptersAndPortfolios.js X-Ray decoder, 1836-2026 Timeline bui
   );
   assert.equal(homesteadXray.mailingAddress, "");
   assert.equal(homesteadXray.careOf, "");
+  assert.equal(homesteadXray.isOwnerOccupiedPlex, false);
+
+  // 3b. Ownership X-Ray decoder on Owner-Occupied Duplex/Triplex/Fourplex (Multi-Family + homestead)
+  const plexXray = decodeParcelOwnershipXray({
+    featureProps: {
+      hcad_num: "0210360000008",
+      address: "413 COLUMBIA ST",
+      owner: "MORGAN MICHELLE",
+      own_tier: "homestead",
+      port_id: null,
+      use_category: "Multi-Family",
+      state_class: "B2",
+    },
+    permitShardRec: { ot: "homestead" },
+    ownershipPortfolios: portfoliosJson,
+  });
+  assert.equal(plexXray.ownTier, "homestead");
+  assert.equal(plexXray.tierColor, "#38BDF8");
+  assert.equal(plexXray.isOwnerOccupiedPlex, true);
+  assert.ok(
+    plexXray.ownerOccupiedPlexNote.includes("Owner-Occupied Duplex / Triplex / Fourplex (HCAD Class B2-B4)")
+  );
+
+  // 3c. Verify curated_overrides.json and buildings.geojson stadium & non-residential ownership tiers
+  const overridesDoc = JSON.parse(
+    fs.readFileSync(path.join(DATA_DIR, "curated_overrides.json"), "utf8")
+  );
+  const overridesMap = overridesDoc.overrides || overridesDoc;
+  assert.equal(overridesMap["osm_city_25312761#bldg_toyota_center"]?.own_tier, "civic_nonprofit");
+  assert.equal(overridesMap["1420820010001#aux_1"]?.own_tier, "civic_nonprofit");
+  assert.equal(overridesMap["1319030010001#aux_1"]?.own_tier, "civic_nonprofit");
+  for (const [ovKey, ovVal] of Object.entries(overridesMap)) {
+    if (!ovVal || typeof ovVal !== "object") continue;
+    assert.ok(ovVal.own_tier, `Expected own_tier on curated override ${ovKey}`);
+    if (
+      ovVal.use_category === "Civic / Institutional" ||
+      ovVal.use_category === "Commercial" ||
+      ovVal.use_category === "Industrial" ||
+      ovVal.use_category === "Vacant / Exempt"
+    ) {
+      assert.notEqual(
+        ovVal.own_tier,
+        "homestead",
+        `Non-residential override ${ovKey} (${ovVal.use_category}) must not be homestead`
+      );
+    }
+  }
 
   // 4. Historical Chain of Stewardship Timeline on 1107 TULANE ST (0202010000014)
   const tulaneModel = buildStewardshipTimelineModel({

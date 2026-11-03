@@ -59,9 +59,34 @@ export const OWNERSHIP_TIER_ITEMS = [
   { key: "civic_nonprofit", label: "Civic / Non-Profit / Religious / HOA Steward", color: "#94A3B8" },
 ];
 
-export function resolveOwnershipTierColor(ownTier) {
-  const clean = String(ownTier || "homestead").trim().toLowerCase();
-  const found = OWNERSHIP_TIER_ITEMS.find((item) => item.key === clean);
+const RE_CIVIC_LANDMARK_OR_OWNER =
+  /\b(?:TOYOTA\s+CENTER|SHELL\s+ENERGY\s+STADIUM|DYNAMO\s+STADIUM|DAIKIN\s+PARK|MINUTE\s+MAID\s+PARK|NRG\s+STADIUM|NRG\s+ASTRODOME|ASTRODOME|ALLEY\s+THEATRE|WORTHAM|JONES\s+HALL|HOBBY\s+CENTER|CONVENTION\s+CENTER|CITY\s+OF\s+HOUSTON|HARRIS\s+COUNTY|COUNTY\s+OF\s+HARRIS|SPORTS\s+AUTHORITY|CHURCH|CATHEDRAL|CHAPEL|SYNAGOGUE|MOSQUE|TEMPLE|UNIVERSITY|COLLEGE|SCHOOL|ISD|HOSPITAL|MEDICAL\s+CENTER|MUSEUM|LIBRARY)\b/i;
+
+export function resolveEffectiveOwnershipTier(ownTier, useCategory = "", landmarkOrOwner = "") {
+  const useClean = String(useCategory || "").trim();
+  const cleanTier = String(ownTier || "").trim().toLowerCase();
+  if (
+    useClean === "Civic / Institutional" ||
+    (landmarkOrOwner && RE_CIVIC_LANDMARK_OR_OWNER.test(String(landmarkOrOwner)))
+  ) {
+    return "civic_nonprofit";
+  }
+  const isKnown = OWNERSHIP_TIER_ITEMS.some((item) => item.key === cleanTier);
+  if (isKnown && cleanTier !== "homestead") {
+    return cleanTier;
+  }
+  if (useClean === "Commercial" || useClean === "Industrial" || useClean === "Vacant / Exempt") {
+    return "local_small";
+  }
+  if (useClean === "Multi-Family") {
+    return cleanTier === "homestead" ? "homestead" : "local_small";
+  }
+  return isKnown ? cleanTier : "homestead";
+}
+
+export function resolveOwnershipTierColor(ownTier, useCategory = "", landmarkOrOwner = "") {
+  const effTier = resolveEffectiveOwnershipTier(ownTier, useCategory, landmarkOrOwner);
+  const found = OWNERSHIP_TIER_ITEMS.find((item) => item.key === effTier);
   return found ? found.color : "#38BDF8";
 }
 
@@ -2808,21 +2833,36 @@ export function buildColorExpression(colorMode = "year_built", paletteStyle = "a
 
   if (colorMode === "ownership_tier") {
     return [
-      "match",
-      ["coalesce", ["get", "own_tier"], "homestead"],
-      "homestead",
-      "#38BDF8",
-      "local_small",
-      "#34D399",
-      "regional_portfolio",
-      "#F59E0B",
-      "institutional_pe",
-      "#E11D48",
-      "anonymity_shield",
-      "#A855F7",
-      "civic_nonprofit",
+      "case",
+      ["==", ["get", "use_category"], "Civic / Institutional"],
       "#94A3B8",
-      "#38BDF8",
+      [
+        "all",
+        ["==", ["coalesce", ["get", "own_tier"], "homestead"], "homestead"],
+        [
+          "in",
+          ["get", "use_category"],
+          ["literal", ["Commercial", "Industrial", "Vacant / Exempt"]],
+        ],
+      ],
+      "#34D399",
+      [
+        "match",
+        ["coalesce", ["get", "own_tier"], "homestead"],
+        "homestead",
+        "#38BDF8",
+        "local_small",
+        "#34D399",
+        "regional_portfolio",
+        "#F59E0B",
+        "institutional_pe",
+        "#E11D48",
+        "anonymity_shield",
+        "#A855F7",
+        "civic_nonprofit",
+        "#94A3B8",
+        "#38BDF8",
+      ],
     ];
   }
 

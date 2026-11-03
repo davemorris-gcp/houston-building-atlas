@@ -20761,6 +20761,13 @@ export class HoustonAtlasApp {
           </div>`
         : "";
 
+    const plexCalloutHtml = xray.isOwnerOccupiedPlex
+      ? `<div class="ownership-xray-row" id="inspector-owner-occupied-plex-row">
+          <span class="ownership-xray-label">Multi-Family Homestead:</span>
+          <span class="ownership-xray-val"><strong>Owner-Occupied Duplex / Triplex / Fourplex (HCAD Class B2-B4)</strong> · Owner of record shares situs and tax-billing address with this 2-to-4 unit structure while leasing adjacent units; colored light-blue Homestead on the map.</span>
+        </div>`
+      : "";
+
     const careOfHtml =
       !xray.isRedactedHomestead && xray.careOf
         ? `<div class="ownership-xray-row">
@@ -20812,6 +20819,7 @@ export class HoustonAtlasApp {
                 </div>`
               : ""
           }
+          ${plexCalloutHtml}
           ${careOfHtml}
           ${mailHtml}
           ${siblingHtml}
