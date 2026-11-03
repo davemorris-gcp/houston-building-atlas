@@ -20781,7 +20781,7 @@ export class HoustonAtlasApp {
     return `
       <div class="ownership-xray-card" id="inspector-ownership-xray-card">
         <div class="ownership-xray-header">
-          <span class="ownership-xray-kicker">&#127970; Who Owns Your City? Stewardship X-Ray</span>
+          <span class="ownership-xray-kicker">&#127970; Ownership &amp; Stewardship X-Ray</span>
           <span class="ownership-tier-pill" style="background:${tierColor}22;color:${tierColor};border:1px solid ${tierColor}66;">
             ${this._escapeHtmlAttr(tierItem.shortLabel || xray.tierLabel)}
           </span>
@@ -20835,7 +20835,7 @@ export class HoustonAtlasApp {
             type="button"
             class="inspector-btn secondary small"
             data-activate-ownership-color-tier="${this._escapeHtmlAttr(xray.ownTier)}"
-            title="Switch map color mode to Who Owns Your City? and filter to ${this._escapeHtmlAttr(
+            title="Switch map color mode to Ownership and filter to ${this._escapeHtmlAttr(
               tierItem.label
             )}"
           >

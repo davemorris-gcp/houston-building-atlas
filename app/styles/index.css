@@ -1142,8 +1142,8 @@ body {
 /* Cartographic Lens & Legend */
 .lens-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
 }
 
 .lens-tab {
@@ -13221,7 +13221,7 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
 }
 
 /* --------------------------------------------------------------------------
-   Milestone 5: Who Owns Your City? Ownership X-Ray & Stewardship Timeline
+   Milestone 5: Ownership X-Ray & Stewardship Timeline
    -------------------------------------------------------------------------- */
 .interactive-legend-row {
   cursor: pointer;

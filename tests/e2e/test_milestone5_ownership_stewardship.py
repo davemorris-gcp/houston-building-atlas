@@ -1,4 +1,4 @@
-"""Playwright E2E tests for Milestone 5 ("Who Owns Your City?" Ownership Unmasking &
+"""Playwright E2E tests for Milestone 5 (Ownership Unmasking &
 1836-2026 Historical Chain of Stewardship) covering Quality Plan scenarios IT-1..IT-4.
 """
 

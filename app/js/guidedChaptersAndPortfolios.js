@@ -1421,7 +1421,7 @@ export function buildPortfolioDataset({
 /**
  * Pure, DOM-free wire decoder that transforms a compact `permits_<prefix3>.json` shard record,
  * PMTiles feature properties, and `ownership_portfolios.json` catalog into a normalized
- * "Who Owns Your City?" Portfolio X-Ray & Entity Unmasking view-model (`DF-5`).
+ * Ownership Portfolio X-Ray & Entity Unmasking view-model (`DF-5`).
  *
  * Accepts either:
  *   - Options object: `decodeParcelOwnershipXray({ featureProps, permitShardRec, ownershipPortfolios })`

@@ -1,4 +1,4 @@
-"""Milestone 5: 'Who Owns Your City?' Ownership Graph, TX Comptroller Linkage & Stewardship Builder.
+"""Milestone 5: Ownership Graph, TX Comptroller Linkage & Stewardship Builder.
 
 Builds and coordinates:
   1. Countywide HCAD ownership & tax-billing cluster resolution (`build_ownership_graph`) across all
