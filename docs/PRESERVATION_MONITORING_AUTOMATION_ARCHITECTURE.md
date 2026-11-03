@@ -15,7 +15,7 @@
 
 ## 1. Overview of the Three Preservation Monitoring Workspaces
 
-Preservation Houston operates three integrated workspaces inside `app/plat-monitor.html` designed with Emily Ardoin:
+Preservation Houston operates three integrated workspaces inside `app/plat-monitor.html` designed for the Preservation Advocate and preservation staff:
 
 1. **Workspace Mode 1: Biweekly Planning Commission Plat & Variance Review (`mode="agenda"`)**
    - Screens 100 to 140 subdivision plats, replats, Section I.K Development Plat Variances (`DPV`), and Section III/IV Public Hearing notices every two weeks ahead of the Thursday 2:30 p.m. Houston Planning Commission meeting across rolling multi-cycle history (`October 29, 2026`, `October 15, 2026`, `October 1, 2026`, and `All Recent Cycles`).

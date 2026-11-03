@@ -613,7 +613,7 @@ print(json.dumps(out))
         address: "4310 Montrose Blvd",
         keyDates: { monitoringStarted: "2026-10-15" },
         updatedAt: "2026-10-29T14:30:00.000Z", // Strictly post-baseline cloud edit!
-        updatedBy: "Emily",
+        updatedBy: "Preservation Advocate",
         checklist: [],
       },
     ],
@@ -932,7 +932,7 @@ print(json.dumps(out))
         },
       },
     },
-    { reviewer: "Emily", nowIso: "2026-10-29T15:30:00Z" }
+    { reviewer: "Preservation Advocate", nowIso: "2026-10-29T15:30:00Z" }
   );
 
   assert.equal(promotedCoh.id, "prop-watch-0410170020150");
@@ -969,7 +969,7 @@ print(json.dumps(out))
         },
       },
     },
-    { reviewer: "Emily", nowIso: "2026-10-29T15:35:00Z" }
+    { reviewer: "Preservation Advocate", nowIso: "2026-10-29T15:35:00Z" }
   );
   assert.equal(promotedDshs.keyDates.asbestosAbatementWindow, "2026-11-10 to 2026-11-22");
   const dshsChk15 = findChecklistRow(promotedDshs.checklist, "chk-15");
@@ -1017,7 +1017,7 @@ print(json.dumps(out))
       ],
     },
     {
-      reviewer: "Emily",
+      reviewer: "Preservation Advocate",
       nowIso: "2026-10-29T16:00:00Z",
       source: "permit_watch_deeplink",
     }

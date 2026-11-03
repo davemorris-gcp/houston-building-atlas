@@ -5113,7 +5113,7 @@ def build_default_checklist_for_property(
     hcad: str = "",
     last_checked_auto: str = "",
 ) -> list[dict]:
-    """Build the 15-point checklist template with Emily's verified portal URLs (P1-09..P1-14)."""
+    """Build the 15-point checklist template with verified portal URLs (P1-09..P1-14)."""
     q_addr = urllib.parse.quote_plus(f"{address or 'Houston'}, Houston, TX")
     simp_q = urllib.parse.quote(simplify_search_address(address).upper() or "HOUSTON")
     hcad_map_url = (

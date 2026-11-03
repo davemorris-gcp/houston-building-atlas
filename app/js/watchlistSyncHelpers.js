@@ -890,7 +890,7 @@ export function extractWatchPropertySearchContext(prop = {}) {
  * Build a pure, zero-DOM descriptor array of clean portal links and workflow actions for each
  * of the 15 checklist rows (chk-01..chk-15).
  *
- * Per Emily's Pass #2 field feedback (F2-11, DF-10), 1-click copy search pills are omitted so the
+ * Per Preservation Advocate Pass #2 field feedback (F2-11, DF-10), 1-click copy search pills are omitted so the
  * Portal Resources column stays compact and readable while keeping direct agency links and workflow tools.
  */
 export function buildAssistedPortalPillsModel(prop = {}, row = {}) {

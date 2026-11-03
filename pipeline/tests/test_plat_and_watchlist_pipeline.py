@@ -618,7 +618,7 @@ def test_ut13_offline_eight_agency_normalizers_and_cloud_watchlist_merge() -> No
             "notes": "Updated notes from cloud",
             "updatedAt": "2026-10-23T18:00:00Z",
         }),
-        "Emily Ardoin",
+        "Preservation Advocate",
         "approved",
     ])
     writer.writerow([
@@ -632,7 +632,7 @@ def test_ut13_offline_eight_agency_normalizers_and_cloud_watchlist_merge() -> No
             "tier": "1",
             "updatedAt": "2026-10-24T12:00:00Z",
         }),
-        "Emily Ardoin",
+        "Preservation Advocate",
         "approved",
     ])
     writer.writerow([
@@ -1453,7 +1453,7 @@ def test_ut2_four_stream_snapshot_diff_events() -> None:
                     "searchTerms": {"entities": ["OB Texas Properties LLC", "Brake Time Holding LLC"]},
                     "driveLinks": [{"label": "Deed PDF", "url": "https://drive.google.com/file/d/abc123/view"}],
                     "updatedAt": "2026-10-29T11:45:00Z",
-                    "updatedBy": "Emily",
+                    "updatedBy": "Preservation Advocate",
                     "checklist": [
                         {
                             "id": "chk-02",
@@ -1560,7 +1560,7 @@ def test_ut2_four_stream_snapshot_diff_events() -> None:
                         "2026-1585": {
                             "tier": "1",
                             "tierConfirmed": True,
-                            "reviewer": "Emily",
+                            "reviewer": "Preservation Advocate",
                             "threatCategory": "Significant Building Threatened",
                             "why": "1930 masonry courtyard apartments",
                             "updated": "2026-10-29T12:00:00Z",
@@ -2190,7 +2190,7 @@ def test_post_review_producer_failure_flags_and_timestamp_roundtrips(
                     "trackerStatus": "Archived (Tier 3)",
                     "archivedAt": "2026-10-30T01:45:00Z",
                     "updatedAt": "2026-10-30T01:45:00Z",
-                    "updatedBy": "Emily",
+                    "updatedBy": "Preservation Advocate",
                     "_hasExplicitChecklist": True,
                     "checklist": [
                         {
@@ -2211,7 +2211,7 @@ def test_post_review_producer_failure_flags_and_timestamp_roundtrips(
     )
     kirby_merged = next(p for p in merged_wl["watchedProperties"] if p["id"] == "prop-kirby-mansion")
     assert kirby_merged["archivedAt"] == "2026-10-30T01:45:00Z"
-    assert kirby_merged["updatedBy"] == "Emily"
+    assert kirby_merged["updatedBy"] == "Preservation Advocate"
     chk03_merged = next(r for r in kirby_merged["checklist"] if r["id"] == "chk-03")
     assert chk03_merged["statusChangedAt"] == "2026-10-30T01:20:00Z"
 

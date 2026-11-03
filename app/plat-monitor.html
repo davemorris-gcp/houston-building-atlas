@@ -361,7 +361,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
         <button role="menuitem" data-act="print">Print Plat Report or save as PDF<small>Summary counts, Tier 1 write-ups &amp; Tier 2/3 tables</small></button>
         <button role="menuitem" data-act="plat-docx">Download Plat Report (.docx)<small>Editable Word report for the active Planning Commission cycle</small></button>
         <button role="menuitem" data-act="csv">Download Plat Findings Log (CSV)<small>Opens in Google Sheets or Excel; one row per researched item</small></button>
-        <button role="menuitem" data-act="email">Copy email summary for Emily</button>
+        <button role="menuitem" data-act="email">Copy email summary</button>
         <button role="menuitem" data-act="copy-briefing">Copy What's New &amp; Daily Log briefing<small>Morning briefing summary across all 4 monitoring streams</small></button>
         <button role="menuitem" data-act="copy-demo-benchmarks">Copy 2020-2026 Demolition Permit Stats<small>Grant &amp; annual report summary (COH, HCAD &amp; HAHC)</small></button>
         <div class="sep"></div>
@@ -1037,7 +1037,7 @@ function startMultiCycle(platPayload){
     : Object.keys(rawCycles).sort().reverse();
 
   const cycles = {};
-  let reviewer = store.get("phpam:reviewer") || "Emily Ardoin";
+  let reviewer = store.get("phpam:reviewer") || getStaffSession()?.email || "Preservation Houston";
   for (const ck of order) {
     const src = rawCycles[ck];
     if (!src) continue;
@@ -4920,7 +4920,7 @@ function emailText(){
 function showEmail(){
   const back = document.createElement("div");
   back.className = "modal-back";
-  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="emh"><h3 id="emh">Email summary for Emily</h3><textarea id="emt">${esc(emailText())}</textarea><div class="actions"><button type="button" class="btn" id="emClose">Close</button><button type="button" class="btn primary" id="emCopy">Copy text</button></div></div>`;
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="emh"><h3 id="emh">Email summary</h3><textarea id="emt">${esc(emailText())}</textarea><div class="actions"><button type="button" class="btn" id="emClose">Close</button><button type="button" class="btn primary" id="emCopy">Copy text</button></div></div>`;
   document.body.appendChild(back);
   back.addEventListener("click", e => { if (e.target === back || e.target.id === "emClose") back.remove(); });
   $("#emCopy").addEventListener("click", async () => {
@@ -4966,7 +4966,7 @@ function updateStaffAuthButtonUI(){
     btn.style.background = "#1F6B43";
     btn.style.borderColor = "#40916C";
     btn.style.color = "#FFFFFF";
-    if (!$("#reviewer").value && sess.email) {
+    if ((!$("#reviewer").value || $("#reviewer").value === "Preservation Houston") && sess.email) {
       $("#reviewer").value = sess.email;
       store.set("phpam:reviewer", sess.email);
       if (S) S.reviewer = sess.email;

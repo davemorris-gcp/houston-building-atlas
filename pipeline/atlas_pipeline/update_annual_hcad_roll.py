@@ -1818,7 +1818,7 @@ def _maybe_build_cohort5_candidate(
         }
 
     # Annual roll delta clearance / replat teardown with authoritative pre-1940 survey provenance.
-    # Per Emily Ardoin's Two-Key rule, bare $0 improvement flips without a paired main-structure
+    # Per the Two-Key auto-graduation rule, bare $0 improvement flips without a paired main-structure
     # demolition permit are held in the review queue (`auto_graduate=False`) rather than auto-graduated.
     post_status = "vacant_lot"
     if snap is not None and snap.earliest_year >= max(2020, prior_tax_year - 3):

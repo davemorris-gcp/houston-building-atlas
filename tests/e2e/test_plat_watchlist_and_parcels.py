@@ -91,7 +91,7 @@ def _seed_staff_admin_session(page: Any) -> None:
         """
         sessionStorage.setItem('ph_atlas_admin_session', JSON.stringify({
             authorized: true,
-            email: 'eardoin@preservationhouston.org'
+            email: 'advocate@preservationhouston.org'
         }));
         """
     )
@@ -720,7 +720,7 @@ def test_it9_and_rp6_three_way_cloud_sheet_reconciliation_legacy_hydration_and_d
                     ],
                 }
             ),
-            "Emily Ardoin",
+            "Preservation Advocate",
         ]
     )
     cloud_csv_bytes = buf.getvalue().encode("utf-8")
@@ -1270,7 +1270,7 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
                     ],
                 }
             ),
-            "Emily Ardoin",
+            "Preservation Advocate",
         ]
     )
     post_wm_csv = buf.getvalue().encode("utf-8")
@@ -1388,7 +1388,7 @@ def test_activity_it3_permit_watchlist_deduplication_auth_gate_and_cloud_sync_pr
     assert int(page.locator("#modeWatchlistCount").inner_text().strip()) == initial_wl_cnt
 
     # 3. Sign in directly through the staff verification modal
-    page.fill("#sa-email", "eardoin@preservationhouston.org")
+    page.fill("#sa-email", "advocate@preservationhouston.org")
     page.fill("#sa-passkey", "test-passkey")
     page.click("#saVerify")
     page.wait_for_selector(".modal-back", state="detached", timeout=10000)
@@ -1659,7 +1659,7 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
     guarded_page: Any,
     atlas_base_url: str,
 ) -> None:
-    """Verify Emily Pass #2 end-to-end UX contracts (F2-01, F2-02, F2-04..F2-10, F2-12)."""
+    """Verify Pass #2 end-to-end UX contracts (F2-01, F2-02, F2-04..F2-10, F2-12)."""
     page = guarded_page
     _seed_staff_admin_session(page)
 

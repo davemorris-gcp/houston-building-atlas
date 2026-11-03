@@ -1,5 +1,5 @@
 """Milestone 5 unit & regression test suite: Ownership Unmasking, Historical Chain of Stewardship,
-Emily Ardoin's 2-Stage COH Demolition Permit Classifier, and Two-Key Auto-Graduation Rule.
+2-Stage COH Demolition Permit Classifier, and Two-Key Auto-Graduation Rule.
 
 Covers Quality Plan scenarios UT-1, UT-2, UT-3, UT-4, RP-1, RP-2, plus 2-stage COH
 demolition permit classification (1 of 2 Sewer Disconnect Plumbing vs 2 of 2 Building
@@ -460,11 +460,11 @@ def test_ut4_additive_permit_shard_enrichment_and_live_benchmarks() -> None:
 
 
 # ===========================================================================
-# Emily Ardoin's 2-Stage COH Demolition Permit & Two-Key Auto-Graduation Tests
+# 2-Stage COH Demolition Permit & Two-Key Auto-Graduation Tests
 # ===========================================================================
 
 
-def test_emily_two_stage_coh_demolition_permit_classification() -> None:
+def test_two_stage_coh_demolition_permit_classification() -> None:
     """Verify Stage 1 (1 of 2 Sewer Disconnect Plumbing) vs Stage 2 (2 of 2 Building Demolition)."""
     # Stage 1: Plumbing Sewer Disconnect (permit_type 12 or 4P, or PLUMBING in permit_desc)
     s1_12 = classify_coh_demo_permit_stage(
@@ -531,7 +531,7 @@ def test_emily_two_stage_coh_demolition_permit_classification() -> None:
     }
 
 
-def test_emily_two_key_auto_graduation_rule_in_annual_roll_update() -> None:
+def test_two_key_auto_graduation_rule_in_annual_roll_update() -> None:
     """Verify Two-Key Auto-Graduation requires BOTH $0 improvement flip AND Stage 2 main-structure demo permit."""
     prev_feat = {
         "type": "Feature",

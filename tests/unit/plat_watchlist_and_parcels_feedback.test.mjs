@@ -671,7 +671,7 @@ test("UT-11 & SCH-2: 3-way Watchlist reconciliation preserves [AUTO-SWEEP], prot
 
   // 2. Explicit human deletion of a snowball term & Drive link with newer timestamp MUST NOT resurrect
   const localExplicitDelete = {
-    ...serializeWatchPropertyForSync(mergedLegacy, "Emily Ardoin", "2026-10-27T13:30:00Z"),
+    ...serializeWatchPropertyForSync(mergedLegacy, "Preservation Advocate", "2026-10-27T13:30:00Z"),
     searchTerms: {
       entities: ["OB Texas Properties LLC"],
       dbas: [],
@@ -889,13 +889,13 @@ test("UT-11 & SCH-2: 3-way Watchlist reconciliation preserves [AUTO-SWEEP], prot
       cycleKey: "2026-10-29",
       app: "2026-1585",
       review: { tier: "1", tierConfirmed: true, updated: "2026-10-27T12:00:00Z" },
-    }).replace(/"/g, '""')}",Emily Ardoin,approved`,
+    }).replace(/"/g, '""')}",Preservation Advocate,approved`,
     `2026-10-27T14:00:00Z,WATCH_PROP:plat-2026-1700,PROPERTY_WATCHLIST_UPDATE,"${JSON.stringify({
       id: "plat-2026-1700",
       tier: "3",
       trackerStatus: REMOVED_TIER3_TOMBSTONE,
       updatedAt: "2026-10-27T14:00:00Z",
-    }).replace(/"/g, '""')}",Emily Ardoin,approved`,
+    }).replace(/"/g, '""')}",Preservation Advocate,approved`,
   ].join("\n");
   const parsedCloud = parseCloudSheetSyncRows(cloudCsv);
   assert.equal(parsedCloud.platReviews.length, 1);
@@ -1380,7 +1380,7 @@ test("Pass #2 F2-01, F2-02, DF-1 & DF-6: unconfirmed seed purge, Watchlist remov
   const csv = [
     "timestamp,hcad_num,source_type,source_citation,verified_by,status",
     '2026-10-25T10:00:00Z,WATCH_PROP:plat-DPV-26073533,PROPERTY_WATCHLIST_UPDATE,"{""id"":""plat-DPV-26073533"",""appNo"":""DPV-26073533"",""tier"":""2""}",Bot,approved',
-    '2026-10-28T10:00:00Z,WATCH_PROP:plat-2026-9001,PROPERTY_WATCHLIST_UPDATE,"{""id"":""plat-2026-9001"",""appNo"":""2026-9001"",""tier"":""1"",""tierConfirmed"":true}",emily@preservationhouston.org,approved',
+    '2026-10-28T10:00:00Z,WATCH_PROP:plat-2026-9001,PROPERTY_WATCHLIST_UPDATE,"{""id"":""plat-2026-9001"",""appNo"":""2026-9001"",""tier"":""1"",""tierConfirmed"":true}",advocate@preservationhouston.org,approved',
   ].join("\n");
   const parsed = parseCloudSheetSyncRows(csv);
   assert.equal(
@@ -1427,7 +1427,7 @@ test("Pass #2 F2-01, F2-02, DF-1 & DF-6: unconfirmed seed purge, Watchlist remov
   const tombstone = createWatchlistTombstone(dossier, {
     status: REMOVED_WATCHLIST_TOMBSTONE,
     tier: "3",
-    updatedBy: "eardoin@preservationhouston.org",
+    updatedBy: "advocate@preservationhouston.org",
     nowIso: "2026-10-29T15:00:00Z",
   });
   assert.equal(isRemovedWatchlistTombstone(tombstone), true);
@@ -1530,7 +1530,7 @@ test("Pass #2 F2-08, F2-10, DF-7 & DF-8: full 9-field non-destructive carry-forw
       ],
       reviews: {
         "PH-131": {
-          followup: "Hearing speech already drafted by Emily",
+          followup: "Hearing speech already drafted by Preservation Advocate",
           humanEditedFields: ["followup"],
         },
       },
@@ -1546,7 +1546,7 @@ test("Pass #2 F2-08, F2-10, DF-7 & DF-8: full 9-field non-destructive carry-forw
   assert.equal(phRev.threatCategory, "Development Pressure");
   assert.equal(phRev.why, "1920 craftsman bungalow at risk");
   assert.equal(phRev.sources, "HCAD card + Sanborn V4");
-  assert.equal(phRev.followup, "Hearing speech already drafted by Emily", "humanEditedFields must protect newer manual notes");
+  assert.equal(phRev.followup, "Hearing speech already drafted by Preservation Advocate", "humanEditedFields must protect newer manual notes");
 
   // Watched Developer matching: normalizes entity suffixes, blocks 1-word generic leftovers, ignores unconfirmed drafts & tombstones
   assert.equal(normalizeDeveloperEntityKey("Development LLC"), "");
