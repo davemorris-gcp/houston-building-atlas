@@ -3543,6 +3543,17 @@ export class HoustonAtlasApp {
       btnCopyGrantDemoStats.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!btnCopyGrantDemoStats.dataset.origHtml) {
+          btnCopyGrantDemoStats.dataset.origHtml = btnCopyGrantDemoStats.innerHTML;
+        }
+        const origHtml = btnCopyGrantDemoStats.dataset.origHtml;
+        btnCopyGrantDemoStats.innerHTML = "&#10003; Copied Grant Stats";
+        if (btnCopyGrantDemoStats._copyResetTimer) {
+          clearTimeout(btnCopyGrantDemoStats._copyResetTimer);
+        }
+        btnCopyGrantDemoStats._copyResetTimer = setTimeout(() => {
+          btnCopyGrantDemoStats.innerHTML = origHtml;
+        }, 2500);
         const payload = this.mapController?.getPermitAlertsPayload?.();
         const txt = formatDemolitionBenchmarksGrantText(payload);
         try {
@@ -3555,14 +3566,6 @@ export class HoustonAtlasApp {
           document.execCommand("copy");
           ta.remove();
         }
-        if (!btnCopyGrantDemoStats.dataset.origHtml) {
-          btnCopyGrantDemoStats.dataset.origHtml = btnCopyGrantDemoStats.innerHTML;
-        }
-        const origHtml = btnCopyGrantDemoStats.dataset.origHtml;
-        btnCopyGrantDemoStats.innerHTML = "&#10003; Copied Grant Stats";
-        setTimeout(() => {
-          btnCopyGrantDemoStats.innerHTML = origHtml;
-        }, 2500);
       });
     }
     const permitWatchModal = document.getElementById("permit-watch-modal");
@@ -3603,6 +3606,17 @@ export class HoustonAtlasApp {
           if (copyPolicyBtn) {
             e.preventDefault();
             e.stopPropagation();
+            if (!copyPolicyBtn.dataset.origHtml) {
+              copyPolicyBtn.dataset.origHtml = copyPolicyBtn.innerHTML;
+            }
+            const origHtml = copyPolicyBtn.dataset.origHtml;
+            copyPolicyBtn.innerHTML = "&#10003; Copied Rich Tables for Gmail";
+            if (copyPolicyBtn._copyResetTimer) {
+              clearTimeout(copyPolicyBtn._copyResetTimer);
+            }
+            copyPolicyBtn._copyResetTimer = setTimeout(() => {
+              copyPolicyBtn.innerHTML = origHtml;
+            }, 2500);
             const payload = this.mapController?.getPermitAlertsPayload?.();
             const richHtml = formatDemolitionPolicyBriefRichHtml(payload);
             const plainTxt = formatDemolitionPolicyBriefText(payload);
@@ -3632,14 +3646,6 @@ export class HoustonAtlasApp {
                 ta.remove();
               }
             }
-            if (!copyPolicyBtn.dataset.origHtml) {
-              copyPolicyBtn.dataset.origHtml = copyPolicyBtn.innerHTML;
-            }
-            const origHtml = copyPolicyBtn.dataset.origHtml;
-            copyPolicyBtn.innerHTML = "&#10003; Copied Rich Tables for Gmail";
-            setTimeout(() => {
-              copyPolicyBtn.innerHTML = origHtml;
-            }, 2500);
           }
         });
       }
