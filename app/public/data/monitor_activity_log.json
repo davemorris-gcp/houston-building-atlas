@@ -1,19 +1,21 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-03T18:58:30Z",
-  "lastSweepAt": "2026-11-03T18:54:38Z",
+  "generatedAt": "2026-11-04T19:18:30Z",
+  "lastSweepAt": "2026-11-04T19:12:40Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-06",
+  "retentionFloorDate": "2026-08-07",
   "lastSweepHealth": {
-    "timestamp": "2026-11-03T18:54:38Z",
+    "timestamp": "2026-11-04T19:12:40Z",
     "sweepsExecuted": true,
     "propertiesSwept": 29,
     "totalAgencies": 8,
-    "succeededAgencies": 8,
-    "failedAgencies": [],
+    "succeededAgencies": 7,
+    "failedAgencies": [
+      "chk-15"
+    ],
     "skippedAgencies": [],
-    "allOk": true,
+    "allOk": false,
     "agencies": {
       "chk-04": {
         "status": "ok",
@@ -65,29 +67,50 @@
         "error": ""
       },
       "chk-15": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 29,
+        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
       }
     }
   },
   "summary": {
-    "totalEvents": 508,
-    "criticalCount": 47,
+    "totalEvents": 509,
+    "criticalCount": 48,
     "warningCount": 144,
     "infoCount": 317,
     "byStream": {
       "watchlist": 131,
       "agenda": 87,
       "staff": 156,
-      "permits": 134
+      "permits": 135
     },
-    "operationalNoticeCount": 5,
-    "daysTracked": 83
+    "operationalNoticeCount": 6,
+    "daysTracked": 84
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-04",
+      "lastRunAt": "2026-11-04T19:18:30Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 29,
+      "totalAgencies": 8,
+      "succeededAgencies": 7,
+      "failedAgencies": [
+        "chk-15"
+      ],
+      "allOk": false,
+      "eventCount": 1,
+      "adverseEventCount": 1,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 1
+      }
+    },
     {
       "date": "2026-11-03",
       "lastRunAt": "2026-11-03T18:58:30Z",
@@ -1753,6 +1776,98 @@
     }
   ],
   "events": [
+    {
+      "id": "permit:coh:0202150000018:26095535",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-03",
+      "localDate": "2026-11-04",
+      "timestamp": "2026-11-04T19:18:30Z",
+      "discoveredAt": "2026-11-04T19:18:30Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26095535): 1020 CORTLANDT ST",
+      "summary": "1020 CORTLANDT ST (Built 1920): DEMO RES/SEWER DISC \"GARAGE APT ONLY\" issued 2026-11-03 to PLUMMER CHRISTOPHER | Historic District: Houston Heights South Historic District.",
+      "address": "1020 CORTLANDT ST",
+      "hcad": "0202150000018",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0202150000018",
+      "lat": 29.789727,
+      "lng": -95.394812,
+      "yearBuilt": 1920,
+      "designation": "Historic District: Houston Heights South Historic District",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "1020 CORTLANDT ST",
+        "address": "1020 CORTLANDT ST",
+        "hcad_num": "0202150000018",
+        "related_hcads": [
+          "0202150000018"
+        ],
+        "watchlist_id": "",
+        "building_id": "0202150000018",
+        "year_built": 1920,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "Houston Heights South Historic District",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.789727,
+        "lng": -95.394812,
+        "record": {
+          "project_no": "26095535",
+          "date": "2026-11-03",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC \"GARAGE APT ONLY\"",
+          "owner_occupant": "REYES EVARISTO P",
+          "buyer": "PLUMMER CHRISTOPHER",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "wl:sweep:2026-11-04:degraded:chk-15",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-04",
+      "localDate": "2026-11-04",
+      "timestamp": "2026-11-04T19:12:40Z",
+      "discoveredAt": "2026-11-04T19:12:40Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (7/8 agencies OK)",
+      "summary": "1 agency endpoint(s) did not complete cleanly: TX DSHS Asbestos & Demolition (DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "permit:dshs:0532780000005:2026006073",
       "stream": "permits",
