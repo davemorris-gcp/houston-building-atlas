@@ -7,8 +7,12 @@ import { fileURLToPath } from "node:url";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
+  DEFAULT_POLICY_IMPACT_BRIEF,
   resolveAnnualDemolitionBenchmarks,
+  resolvePolicyImpactBrief,
   formatDemolitionBenchmarksGrantText,
+  formatDemolitionPolicyBriefText,
+  formatDemolitionPolicyBriefRichHtml,
 } from "../../app/js/platMonitorHelpers.js";
 import { HoustonAtlasApp } from "../../app/js/app.js";
 
@@ -361,3 +365,56 @@ test("Option B (app/index.html, app/js/app.js, app/styles/index.css): sidebar su
     globalThis.document = origDoc;
   }
 });
+
+test("Ordinance & Age-Threshold Policy Brief: resolvePolicyImpactBrief, 2-pill tab switcher, and Gmail Rich HTML/Text formatters", () => {
+  const brief = resolvePolicyImpactBrief(null);
+  assert.deepEqual(brief, DEFAULT_POLICY_IMPACT_BRIEF);
+  const scorecardsRawForSync = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, "app/public/data/neighborhood_scorecards.json"), "utf8")
+  );
+  assert.deepEqual(
+    brief.standing_buildings_by_age,
+    scorecardsRawForSync.citywide_policy_brief.standing_buildings_by_age
+  );
+  assert.equal(brief.local_designation_coverage.excludes_heritage_districts, true);
+  assert.equal(brief.standing_buildings_by_age.length, 5);
+  assert.equal(brief.standing_buildings_by_age[0].standing_count, 354251);
+  assert.equal(brief.standing_buildings_by_age[3].standing_count, 13586);
+  assert.equal(brief.standing_buildings_by_age[4].standing_count, 306);
+  assert.equal(brief.annual_demolitions_by_age.years.length, 7);
+  assert.equal(brief.speculative_land_clearing.rows[0].demo_before_nb_pct, 99.6);
+  assert.equal(brief.speculative_land_clearing.rows[0].still_vacant_2026_count, 2157);
+  assert.equal(brief.speculative_land_clearing.rows[1].still_vacant_2026_pct, 73.6);
+
+  // Render Policy tab in both modal and drawer variants
+  const modalPolicyHtml = buildDemolitionBenchmarksTablesHtml(null, {
+    variant: "modal",
+    activeTab: "policy",
+  });
+  const drawerPolicyHtml = buildDemolitionBenchmarksTablesHtml(null, {
+    variant: "drawer",
+    activeTab: "policy",
+  });
+
+  for (const html of [modalPolicyHtml, drawerPolicyHtml]) {
+    assert.equal(html.includes("\u2014"), false, "Policy brief HTML must contain zero U+2014 em-dashes");
+    assert.ok(html.includes('data-bench-tab="volume"'));
+    assert.ok(html.includes('data-bench-tab="policy"'));
+    assert.ok(html.includes('data-copy-policy-brief-gmail="1"'));
+    assert.ok(html.includes("354,251"));
+    assert.ok(html.includes("13,586"));
+    assert.ok(html.includes("6,938"));
+    assert.ok(html.includes("6,780"));
+    assert.ok(html.includes("99.6%"));
+    assert.ok(html.includes("73.6%"));
+    assert.ok(html.includes("Excludes Heritage Districts"));
+  }
+
+  const richHtml = formatDemolitionPolicyBriefRichHtml(null);
+  const plainTxt = formatDemolitionPolicyBriefText(null);
+  assert.equal(richHtml.includes("\u2014"), false, "Rich HTML brief must contain zero em-dashes");
+  assert.equal(plainTxt.includes("\u2014"), false, "Plain text brief must contain zero em-dashes");
+  assert.ok(richHtml.includes("<table") && richHtml.includes("354,251") && richHtml.includes("6,938"));
+  assert.ok(plainTxt.includes("354,251") && plainTxt.includes("6,938") && plainTxt.includes("Excludes Heritage Districts"));
+});
+

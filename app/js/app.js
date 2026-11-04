@@ -79,6 +79,8 @@ import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   formatDemolitionBenchmarksGrantText,
+  formatDemolitionPolicyBriefRichHtml,
+  formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
 } from "./platMonitorHelpers.js?v=20261031a";
 import {
@@ -94,6 +96,8 @@ import {
   computeLiveBoundaryThreats,
   fetchBlockfaceParcelsAroundSeed,
   fetchHcadParcelByAccount,
+  formatScorecardPolicyBriefRichHtml,
+  formatScorecardPolicyBriefText,
   loadNeighborhoodScorecards,
   matchCh42OverlaysToBlockface,
   renderBoundaryInlineScorecardHtml,
@@ -3584,6 +3588,61 @@ export class HoustonAtlasApp {
           this._renderPermitWatchModalList(sev);
         });
       });
+      const pwBenchBody = document.getElementById("pw-annual-benchmarks-body");
+      if (pwBenchBody) {
+        pwBenchBody.addEventListener("click", async (e) => {
+          const tabBtn = e.target.closest?.("[data-bench-tab]");
+          if (tabBtn) {
+            e.preventDefault();
+            const nextTab = tabBtn.getAttribute("data-bench-tab") || "volume";
+            this._permitWatchBenchTab = nextTab;
+            this._renderPermitWatchAnnualBenchmarks(null, nextTab);
+            return;
+          }
+          const copyPolicyBtn = e.target.closest?.("[data-copy-policy-brief-gmail]");
+          if (copyPolicyBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            const payload = this.mapController?.getPermitAlertsPayload?.();
+            const richHtml = formatDemolitionPolicyBriefRichHtml(payload);
+            const plainTxt = formatDemolitionPolicyBriefText(payload);
+            let copiedOk = false;
+            if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+              try {
+                await navigator.clipboard.write([
+                  new ClipboardItem({
+                    "text/html": new Blob([richHtml], { type: "text/html" }),
+                    "text/plain": new Blob([plainTxt], { type: "text/plain" }),
+                  }),
+                ]);
+                copiedOk = true;
+              } catch (_err) {
+                copiedOk = false;
+              }
+            }
+            if (!copiedOk) {
+              try {
+                await navigator.clipboard.writeText(plainTxt);
+              } catch (_err2) {
+                const ta = document.createElement("textarea");
+                ta.value = plainTxt;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                ta.remove();
+              }
+            }
+            if (!copyPolicyBtn.dataset.origHtml) {
+              copyPolicyBtn.dataset.origHtml = copyPolicyBtn.innerHTML;
+            }
+            const origHtml = copyPolicyBtn.dataset.origHtml;
+            copyPolicyBtn.innerHTML = "&#10003; Copied Rich Tables for Gmail";
+            setTimeout(() => {
+              copyPolicyBtn.innerHTML = origHtml;
+            }, 2500);
+          }
+        });
+      }
     }
 
     // Priority #5: HAHC COA & Designations Sub-Filters & Docket Modal
@@ -4015,7 +4074,9 @@ export class HoustonAtlasApp {
     const scHubTbody = document.getElementById("scorecard-hub-tbody");
     if (scHubTbody) {
       const handleRowPick = (e) => {
-        const row = e.target.closest?.("tr.scorecard-hub-row[data-scorecard-layer]");
+        const row = e.target.closest?.(
+          "tr.scorecard-hub-row[data-scorecard-layer], tr.scorecard-citywide-rollup-row[data-scorecard-layer]"
+        );
         if (!row) return;
         const layer = row.getAttribute("data-scorecard-layer") || "";
         const id = row.getAttribute("data-scorecard-id") || "";
@@ -4033,7 +4094,7 @@ export class HoustonAtlasApp {
     }
     const scDetailPane = document.getElementById("scorecard-detail-pane");
     if (scDetailPane) {
-      scDetailPane.addEventListener("click", (e) => {
+      scDetailPane.addEventListener("click", async (e) => {
         const backBtn = e.target.closest?.(".btn-scorecard-back-table");
         if (backBtn) {
           this._setScorecardMobilePane("table");
@@ -4049,13 +4110,17 @@ export class HoustonAtlasApp {
             if (storeKey) {
               this.filterStore.setLayerVisibility(storeKey, true);
             }
-            this.mapController.highlightBoundaryByIdOrName({
-              layerKey: layer,
-              id,
-              name: id,
-              flyTo: true,
-              inspect: true,
-            });
+            if (id === "council_dist_coh_all") {
+              this.mapController.map?.flyTo?.({ center: [-95.3698, 29.7604], zoom: 10.4 });
+            } else {
+              this.mapController.highlightBoundaryByIdOrName({
+                layerKey: layer,
+                id,
+                name: id,
+                flyTo: true,
+                inspect: true,
+              });
+            }
           }
           return;
         }
@@ -4076,6 +4141,50 @@ export class HoustonAtlasApp {
           setTimeout(() => {
             copyBtn.textContent = orig;
           }, 1800);
+          return;
+        }
+        const copyGmailBtn = e.target.closest?.(".btn-scorecard-copy-gmail");
+        if (copyGmailBtn) {
+          const ds = this._scorecardsData;
+          const selKey = this._scorecardModalState.selectedKey || "";
+          const curRec =
+            selKey === "council_districts:council_dist_coh_all"
+              ? ds?.citywideScorecard
+              : ds?.byKey?.get?.(selKey) || null;
+          if (curRec) {
+            const richHtml = formatScorecardPolicyBriefRichHtml(
+              curRec,
+              ds?.citywidePolicyBrief || null
+            );
+            const plainTxt = formatScorecardPolicyBriefText(
+              curRec,
+              ds?.citywidePolicyBrief || null
+            );
+            let copiedOk = false;
+            if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+              try {
+                await navigator.clipboard.write([
+                  new ClipboardItem({
+                    "text/html": new Blob([richHtml], { type: "text/html" }),
+                    "text/plain": new Blob([plainTxt], { type: "text/plain" }),
+                  }),
+                ]);
+                copiedOk = true;
+              } catch (_err) {
+                copiedOk = false;
+              }
+            }
+            if (!copiedOk) {
+              navigator.clipboard?.writeText?.(plainTxt).catch(() => {});
+            }
+          }
+          if (!copyGmailBtn.dataset.origHtml) {
+            copyGmailBtn.dataset.origHtml = copyGmailBtn.innerHTML;
+          }
+          copyGmailBtn.textContent = "✓ Copied Rich Tables!";
+          setTimeout(() => {
+            copyGmailBtn.innerHTML = copyGmailBtn.dataset.origHtml;
+          }, 2200);
           return;
         }
         const printBtn = e.target.closest?.(".btn-scorecard-print");
@@ -18151,12 +18260,16 @@ export class HoustonAtlasApp {
     this._renderPermitWatchAnnualBenchmarks(payload);
   }
 
-  _renderPermitWatchAnnualBenchmarks(payload = null) {
+  _renderPermitWatchAnnualBenchmarks(payload = null, activeTab = null) {
     const bodyEl = document.getElementById("pw-annual-benchmarks-body");
     if (!bodyEl) return;
+    if (activeTab) {
+      this._permitWatchBenchTab = activeTab;
+    }
     const resolvedPayload = payload || this.mapController?.getPermitAlertsPayload?.();
     bodyEl.innerHTML = buildDemolitionBenchmarksTablesHtml(resolvedPayload, {
       variant: "modal",
+      activeTab: this._permitWatchBenchTab || "volume",
     });
   }
 
@@ -20061,6 +20174,28 @@ export class HoustonAtlasApp {
     const feats = Array.isArray(fc?.features) ? fc.features : [];
     const targetId = String(boundaryId || "").trim().toLowerCase();
     const targetName = String(boundaryName || "").trim().toLowerCase();
+    if (layerKey === "council_districts" && targetId === "council_dist_coh_all" && feats.length > 0) {
+      const multiCoords = [];
+      for (const f of feats) {
+        const g = f?.geometry;
+        if (g?.type === "Polygon" && Array.isArray(g.coordinates)) {
+          multiCoords.push(g.coordinates);
+        } else if (g?.type === "MultiPolygon" && Array.isArray(g.coordinates)) {
+          multiCoords.push(...g.coordinates);
+        }
+      }
+      if (multiCoords.length > 0) {
+        return {
+          type: "Feature",
+          properties: {
+            id: "council_dist_coh_all",
+            name: "City of Houston (All Districts A-K)",
+            overlay_layer: "council_districts",
+          },
+          geometry: { type: "MultiPolygon", coordinates: multiCoords },
+        };
+      }
+    }
     for (const f of feats) {
       const p = f?.properties || {};
       const pid = String(p.id || p.zone_code || "").trim().toLowerCase();
@@ -20172,7 +20307,14 @@ export class HoustonAtlasApp {
       let targetRec = null;
 
       if (cleanLayer && id) {
-        targetRec = ds.byKey.get(`${cleanLayer}:${id}`) || null;
+        if (
+          cleanLayer === "council_districts" &&
+          String(id).trim().toLowerCase() === "council_dist_coh_all"
+        ) {
+          targetRec = ds.citywideScorecard || null;
+        } else {
+          targetRec = ds.byKey.get(`${cleanLayer}:${id}`) || null;
+        }
         if (!targetRec) {
           const normId = String(id).trim().toLowerCase();
           targetRec =
@@ -20191,7 +20333,12 @@ export class HoustonAtlasApp {
           this._scorecardModalState.family = "council_districts";
         }
         const curKey = this._scorecardModalState.selectedKey;
-        const curRec = curKey ? ds.byKey.get(curKey) : null;
+        const curRec =
+          curKey === "council_districts:council_dist_coh_all"
+            ? ds.citywideScorecard
+            : curKey
+            ? ds.byKey.get(curKey)
+            : null;
         if (!curRec || (cleanLayer && curRec.layer !== cleanLayer)) {
           const famList = ds.byLayer.get(this._scorecardModalState.family) || [];
           targetRec = famList[0] || ds.records[0] || null;
@@ -20349,9 +20496,15 @@ export class HoustonAtlasApp {
 
     const tbody = document.getElementById("scorecard-hub-tbody");
     if (tbody) {
+      const showCitywideRollup =
+        fam === "council_districts" &&
+        ds.citywideScorecard &&
+        (!q ||
+          "city of houston (all districts a-k) council_dist_coh_all pinned citywide rollup".includes(q));
       tbody.innerHTML = renderScorecardHubTableRowsHtml(
         displayRows,
-        this._scorecardModalState.selectedKey
+        this._scorecardModalState.selectedKey,
+        { citywideRollup: showCitywideRollup ? ds.citywideScorecard : null }
       );
     }
   }
@@ -20378,6 +20531,7 @@ export class HoustonAtlasApp {
     detailPane.innerHTML = renderScorecardDetailHtml(scorecard, threats, {
       shareUrl,
       generatedAt: this._scorecardsData?.generatedAt || "October 30, 2026",
+      citywidePolicyBrief: this._scorecardsData?.citywidePolicyBrief || null,
     });
     detailPane.scrollTop = 0;
   }

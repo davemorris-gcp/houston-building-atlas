@@ -22,6 +22,8 @@ import {
   decodeScorecardRecord,
   escapeOrganizerHtml,
   estimateParcelFrontSetbackFt,
+  formatScorecardPolicyBriefRichHtml,
+  formatScorecardPolicyBriefText,
   getHoustonSurveyFeetScale,
   loadNeighborhoodScorecards,
   matchCh42OverlaysToBlockface,
@@ -1479,6 +1481,55 @@ test("UT-JS-6: neighborhood_scorecards.json decodes all boundaries across 9 fami
   assert.equal(emptySparse.ownerOccupiedPct, 0);
   assert.equal(emptySparse.ch42ProtectedPct, 0);
   assert.equal(emptySparse.cohChapter33Pct, 0);
+
+  // Verify Citywide Rollup Scorecard & Policy Brief (Option 1 + Option 3 Pipeline)
+  assert.ok(ds.citywideScorecard, "neighborhood_scorecards.json must decode citywideScorecard");
+  assert.equal(ds.citywideScorecard.id, "council_dist_coh_all");
+  assert.equal(ds.citywideScorecard.key, "council_districts:council_dist_coh_all");
+  assert.equal(ds.citywideScorecard.buildingCount, 629101);
+  assert.equal(ds.citywideScorecard.age50PlusCount, 354251);
+  assert.equal(ds.citywideScorecard.age75PlusCount, 133591);
+  assert.equal(ds.citywideScorecard.pre1940Count, 46060);
+  assert.equal(ds.citywideScorecard.age100PlusCount, 13586);
+  assert.equal(ds.citywideScorecard.pre1900Count, 306);
+  assert.equal(ds.citywideScorecard.demolitionsVacant2026Count, 2126);
+  assert.equal(ds.citywideScorecard.demolitionsBeforeNewBuildPct, 99.6);
+
+  assert.ok(ds.citywidePolicyBrief, "neighborhood_scorecards.json must include citywidePolicyBrief");
+  assert.equal(ds.citywidePolicyBrief.local_designation_coverage.excludes_heritage_districts, true);
+  assert.equal(ds.citywidePolicyBrief.local_designation_coverage.rows[3].unique_parcels, 6938);
+  assert.equal(ds.citywidePolicyBrief.local_designation_coverage.rows[4].unique_parcels, 6780);
+
+  const hubWithRollupHtml = renderScorecardHubTableRowsHtml(
+    ds.byLayer.get("council_districts") || [],
+    "council_districts:council_dist_coh_all",
+    { citywideRollup: ds.citywideScorecard }
+  );
+  assert.ok(hubWithRollupHtml.includes("scorecard-citywide-rollup-row"));
+  assert.ok(hubWithRollupHtml.includes("City of Houston (All Districts A-K)"));
+
+  const citywideDetailHtml = renderScorecardDetailHtml(ds.citywideScorecard, null, {
+    shareUrl: "https://davemorris-gcp.github.io/houston-building-atlas/?scorecard=council_districts%3Acouncil_dist_coh_all",
+    citywidePolicyBrief: ds.citywidePolicyBrief,
+  });
+  assert.equal(citywideDetailHtml.includes("\u2014"), false, "renderScorecardDetailHtml must contain zero em-dashes");
+  assert.ok(citywideDetailHtml.includes("btn-scorecard-copy-gmail"));
+  assert.ok(citywideDetailHtml.includes("scorecard-policy-sim-details"));
+  assert.ok(citywideDetailHtml.includes("354,251"));
+  assert.ok(citywideDetailHtml.includes("13,586"));
+  assert.ok(citywideDetailHtml.includes("Excl. Heritage Districts"));
+
+  const scRichHtml = formatScorecardPolicyBriefRichHtml(ds.citywideScorecard, ds.citywidePolicyBrief);
+  const scPlainTxt = formatScorecardPolicyBriefText(ds.citywideScorecard, ds.citywidePolicyBrief);
+  assert.equal(scRichHtml.includes("\u2014"), false);
+  assert.equal(scPlainTxt.includes("\u2014"), false);
+  assert.ok(scRichHtml.includes("<table") && scRichHtml.includes("354,251"));
+  assert.ok(scPlainTxt.includes("354,251") && scPlainTxt.includes("Heritage Districts"));
+  assert.ok(
+    scPlainTxt.includes("Est. Unprotected: 79") && scPlainTxt.includes("Est. Unprotected: 10,052"),
+    "Citywide scorecard policy brief must report exact cohort unprotected counts (79 Pre-1900 and 10,052 100+ yr)"
+  );
+
   resetNeighborhoodScorecardsCache();
 });
 

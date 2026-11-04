@@ -1773,6 +1773,512 @@ export const DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS = {
   ],
 };
 
+export const DEFAULT_POLICY_IMPACT_BRIEF = {
+  "generated_at": "2026-11-04",
+  "data_tax_year": 2026,
+  "vacant_lot_cutoff_year": 2024,
+  "total_dated_footprints": 629101,
+  "total_improved_cama_accounts": 566355,
+  "standing_buildings_by_age": [
+    {
+      "id": "50_plus",
+      "label": "50+ Years Old (<= 1976)",
+      "cutoff_year": 1976,
+      "standing_count": 354251,
+      "share_of_dated_pct": 56.31,
+      "share_of_all_cama_pct": 62.55,
+      "coh_hd_count": 6651,
+      "coh_lm_count": 478,
+      "protected_count": 6969,
+      "unprotected_count": 347282,
+      "unprotected_pct": 98.0
+    },
+    {
+      "id": "75_plus",
+      "label": "75+ Years Old (<= 1951)",
+      "cutoff_year": 1951,
+      "standing_count": 133591,
+      "share_of_dated_pct": 21.24,
+      "share_of_all_cama_pct": 23.59,
+      "coh_hd_count": 4973,
+      "coh_lm_count": 458,
+      "protected_count": 5272,
+      "unprotected_count": 128319,
+      "unprotected_pct": 96.1
+    },
+    {
+      "id": "pre_1940",
+      "label": "Pre-WWII (< 1940)",
+      "cutoff_year": 1939,
+      "standing_count": 46060,
+      "share_of_dated_pct": 7.32,
+      "share_of_all_cama_pct": 8.13,
+      "coh_hd_count": 4670,
+      "coh_lm_count": 393,
+      "protected_count": 4907,
+      "unprotected_count": 41153,
+      "unprotected_pct": 89.3
+    },
+    {
+      "id": "100_plus",
+      "label": "100+ Years Old (<= 1926)",
+      "cutoff_year": 1926,
+      "standing_count": 13586,
+      "share_of_dated_pct": 2.16,
+      "share_of_all_cama_pct": 2.4,
+      "coh_hd_count": 3410,
+      "coh_lm_count": 271,
+      "protected_count": 3534,
+      "unprotected_count": 10052,
+      "unprotected_pct": 74.0
+    },
+    {
+      "id": "pre_1900",
+      "label": "Pre-1900 (Victorian / 19th C.)",
+      "cutoff_year": 1899,
+      "standing_count": 306,
+      "share_of_dated_pct": 0.05,
+      "share_of_all_cama_pct": 0.05,
+      "coh_hd_count": 200,
+      "coh_lm_count": 52,
+      "protected_count": 227,
+      "unprotected_count": 79,
+      "unprotected_pct": 25.8
+    }
+  ],
+  "annual_demolitions_by_age": {
+    "years": [
+      {
+        "year": 2020,
+        "is_ytd": false,
+        "total_demos": 1472,
+        "known_direct_age_count": 539,
+        "known_best_age_count": 1336,
+        "age_50plus_direct": 432,
+        "age_50plus_best": 1192,
+        "age_50plus_direct_pct": 29.3,
+        "age_50plus_best_pct": 81.0,
+        "age_75plus_direct": 255,
+        "age_75plus_best": 659,
+        "age_pre1940_direct": 117,
+        "age_pre1940_best": 235,
+        "age_100plus_direct": 40,
+        "age_100plus_best": 94,
+        "age_100plus_direct_pct": 2.7,
+        "age_100plus_best_pct": 6.4,
+        "age_pre1900_direct": 1,
+        "age_pre1900_best": 1
+      },
+      {
+        "year": 2021,
+        "is_ytd": false,
+        "total_demos": 1730,
+        "known_direct_age_count": 558,
+        "known_best_age_count": 1571,
+        "age_50plus_direct": 444,
+        "age_50plus_best": 1420,
+        "age_50plus_direct_pct": 25.7,
+        "age_50plus_best_pct": 82.1,
+        "age_75plus_direct": 290,
+        "age_75plus_best": 790,
+        "age_pre1940_direct": 123,
+        "age_pre1940_best": 272,
+        "age_100plus_direct": 46,
+        "age_100plus_best": 106,
+        "age_100plus_direct_pct": 2.7,
+        "age_100plus_best_pct": 6.1,
+        "age_pre1900_direct": 1,
+        "age_pre1900_best": 1
+      },
+      {
+        "year": 2022,
+        "is_ytd": false,
+        "total_demos": 1790,
+        "known_direct_age_count": 562,
+        "known_best_age_count": 1659,
+        "age_50plus_direct": 455,
+        "age_50plus_best": 1520,
+        "age_50plus_direct_pct": 25.4,
+        "age_50plus_best_pct": 84.9,
+        "age_75plus_direct": 294,
+        "age_75plus_best": 864,
+        "age_pre1940_direct": 119,
+        "age_pre1940_best": 250,
+        "age_100plus_direct": 33,
+        "age_100plus_best": 88,
+        "age_100plus_direct_pct": 1.8,
+        "age_100plus_best_pct": 4.9,
+        "age_pre1900_direct": 0,
+        "age_pre1900_best": 0
+      },
+      {
+        "year": 2023,
+        "is_ytd": false,
+        "total_demos": 1751,
+        "known_direct_age_count": 621,
+        "known_best_age_count": 1622,
+        "age_50plus_direct": 492,
+        "age_50plus_best": 1459,
+        "age_50plus_direct_pct": 28.1,
+        "age_50plus_best_pct": 83.3,
+        "age_75plus_direct": 342,
+        "age_75plus_best": 898,
+        "age_pre1940_direct": 128,
+        "age_pre1940_best": 228,
+        "age_100plus_direct": 22,
+        "age_100plus_best": 59,
+        "age_100plus_direct_pct": 1.3,
+        "age_100plus_best_pct": 3.4,
+        "age_pre1900_direct": 1,
+        "age_pre1900_best": 1
+      },
+      {
+        "year": 2024,
+        "is_ytd": false,
+        "total_demos": 1980,
+        "known_direct_age_count": 782,
+        "known_best_age_count": 1832,
+        "age_50plus_direct": 618,
+        "age_50plus_best": 1635,
+        "age_50plus_direct_pct": 31.2,
+        "age_50plus_best_pct": 82.6,
+        "age_75plus_direct": 421,
+        "age_75plus_best": 961,
+        "age_pre1940_direct": 170,
+        "age_pre1940_best": 291,
+        "age_100plus_direct": 45,
+        "age_100plus_best": 95,
+        "age_100plus_direct_pct": 2.3,
+        "age_100plus_best_pct": 4.8,
+        "age_pre1900_direct": 0,
+        "age_pre1900_best": 0
+      },
+      {
+        "year": 2025,
+        "is_ytd": false,
+        "total_demos": 1824,
+        "known_direct_age_count": 1130,
+        "known_best_age_count": 1728,
+        "age_50plus_direct": 958,
+        "age_50plus_best": 1531,
+        "age_50plus_direct_pct": 52.5,
+        "age_50plus_best_pct": 83.9,
+        "age_75plus_direct": 632,
+        "age_75plus_best": 908,
+        "age_pre1940_direct": 248,
+        "age_pre1940_best": 346,
+        "age_100plus_direct": 84,
+        "age_100plus_best": 123,
+        "age_100plus_direct_pct": 4.6,
+        "age_100plus_best_pct": 6.7,
+        "age_pre1900_direct": 1,
+        "age_pre1900_best": 1
+      },
+      {
+        "year": 2026,
+        "is_ytd": true,
+        "total_demos": 1274,
+        "known_direct_age_count": 1240,
+        "known_best_age_count": 1264,
+        "age_50plus_direct": 1140,
+        "age_50plus_best": 1163,
+        "age_50plus_direct_pct": 89.5,
+        "age_50plus_best_pct": 91.3,
+        "age_75plus_direct": 718,
+        "age_75plus_best": 737,
+        "age_pre1940_direct": 258,
+        "age_pre1940_best": 264,
+        "age_100plus_direct": 64,
+        "age_100plus_best": 66,
+        "age_100plus_direct_pct": 5.0,
+        "age_100plus_best_pct": 5.2,
+        "age_pre1900_direct": 1,
+        "age_pre1900_best": 1
+      }
+    ],
+    "full_year_average": {
+      "period_label": "2020-2025 Full-Yr Avg",
+      "total_demos": 1758,
+      "age_50plus_direct": 566,
+      "age_50plus_best": 1460,
+      "age_50plus_direct_pct": 32.2,
+      "age_50plus_best_pct": 83.0,
+      "age_50plus_weekly_direct": 10.9,
+      "age_50plus_weekly_best": 28.1,
+      "age_75plus_direct": 372,
+      "age_75plus_best": 847,
+      "age_pre1940_direct": 151,
+      "age_pre1940_best": 270,
+      "age_100plus_direct": 45,
+      "age_100plus_best": 94,
+      "age_100plus_direct_pct": 2.6,
+      "age_100plus_best_pct": 5.3,
+      "age_100plus_weekly_direct": 0.9,
+      "age_100plus_weekly_best": 1.8,
+      "age_pre1900_direct": 0.7,
+      "age_pre1900_best": 0.7
+    },
+    "cumulative": {
+      "period_label": "2020-2026 Cumulative",
+      "total_demos": 11821,
+      "age_50plus_direct": 4539,
+      "age_50plus_best": 9920,
+      "age_75plus_direct": 2952,
+      "age_75plus_best": 5817,
+      "age_pre1940_direct": 1163,
+      "age_pre1940_best": 1886,
+      "age_100plus_direct": 334,
+      "age_100plus_best": 631,
+      "age_pre1900_direct": 5,
+      "age_pre1900_best": 5
+    }
+  },
+  "local_designation_coverage": {
+    "excludes_heritage_districts": true,
+    "heritage_district_exclusion_note": "Excludes Heritage Districts (such as Freedmen's Town Heritage District), which regulate only public infrastructure on City-owned rights-of-way and do not protect private property or any buildings.",
+    "coh_total_parcels": 686101,
+    "coh_improved_parcels": 566355,
+    "coh_parcel_land_acres": 521280.6,
+    "coh_parcel_land_sq_mi": 814.5,
+    "coh_municipal_boundary_acres": 429919.6,
+    "coh_municipal_boundary_sq_mi": 671.75,
+    "rows": [
+      {
+        "id": "protected_landmarks",
+        "category": "Protected Landmarks (PLM)",
+        "protection_strength": "Strongest (permanent covenant; no 90-day waiver)",
+        "feature_count": 199,
+        "unique_parcels": 99,
+        "outside_hd_parcels": 62,
+        "pct_all_parcels": 0.014,
+        "pct_improved_parcels": 0.017,
+        "parcel_acres": 95.4,
+        "outside_hd_acres": 88.0,
+        "pct_parcel_area": 0.018,
+        "pct_city_boundary_area": 0.022
+      },
+      {
+        "id": "regular_landmarks",
+        "category": "Regular Landmarks (LM, Non-Protected)",
+        "protection_strength": "Weak outside HD (subject to 90-day demolition waiver)",
+        "feature_count": 302,
+        "unique_parcels": 241,
+        "outside_hd_parcels": 158,
+        "pct_all_parcels": 0.035,
+        "pct_improved_parcels": 0.043,
+        "parcel_acres": 114.2,
+        "outside_hd_acres": 92.9,
+        "pct_parcel_area": 0.022,
+        "pct_city_boundary_area": 0.027
+      },
+      {
+        "id": "coh_historic_districts",
+        "category": "COH Historic Districts (23 Active Districts)",
+        "protection_strength": "COA review required (Ch. 33)",
+        "district_count": 23,
+        "unique_parcels": 6718,
+        "pct_all_parcels": 0.98,
+        "pct_improved_parcels": 1.19,
+        "parcel_acres": 1104.8,
+        "polygon_acres": 1537.8,
+        "polygon_sq_mi": 2.4,
+        "pct_parcel_area": 0.21,
+        "pct_city_boundary_area": 0.36
+      },
+      {
+        "id": "combined_local_designation",
+        "category": "Combined Local Historic Designation (Deduplicated: PLM + LM + 23 Historic Districts)",
+        "protection_strength": "All City historic building designations combined",
+        "unique_parcels": 6938,
+        "pct_all_parcels": 1.01,
+        "pct_improved_parcels": 1.23,
+        "parcel_acres": 1285.6,
+        "polygon_acres": 1718.7,
+        "polygon_sq_mi": 2.69,
+        "pct_parcel_area": 0.25,
+        "pct_city_boundary_area": 0.4
+      },
+      {
+        "id": "strict_demolition_protection",
+        "category": "Strict Demolition Protection Only (PLM + 23 COH Historic Districts, Excl. 90-Day Waiver LMs)",
+        "protection_strength": "True non-waiver demolition protection",
+        "unique_parcels": 6780,
+        "pct_all_parcels": 0.99,
+        "pct_improved_parcels": 1.2,
+        "parcel_acres": 1192.7,
+        "polygon_acres": 1625.8,
+        "polygon_sq_mi": 2.54,
+        "pct_parcel_area": 0.23,
+        "pct_city_boundary_area": 0.38
+      }
+    ]
+  },
+  "speculative_land_clearing": {
+    "vacant_lot_cohort_label": "2020-2024 Teardowns Still Vacant ($0 Improvement Value) in 2026",
+    "rows": [
+      {
+        "id": "all",
+        "cohort": "All COH Demolitions (2020-2026)",
+        "total_demos": 11821,
+        "nb_before_or_same_day_count": 48,
+        "nb_before_or_same_day_pct": 0.4,
+        "demo_before_nb_count": 11773,
+        "demo_before_nb_pct": 99.6,
+        "nb_within_1_to_30d_count": 12,
+        "nb_within_31_to_180d_count": 24,
+        "nb_after_180d_count": 61,
+        "no_nb_permit_recorded_count": 11676,
+        "no_nb_permit_recorded_pct": 98.8,
+        "demos_2020_2024_total": 8723,
+        "still_vacant_2026_count": 2157,
+        "still_vacant_2026_pct": 24.7
+      },
+      {
+        "id": "dir_50plus",
+        "cohort": "50+ Year Old Buildings (Direct Year)",
+        "total_demos": 4539,
+        "nb_before_or_same_day_count": 31,
+        "nb_before_or_same_day_pct": 0.7,
+        "demo_before_nb_count": 4508,
+        "demo_before_nb_pct": 99.3,
+        "nb_within_1_to_30d_count": 6,
+        "nb_within_31_to_180d_count": 12,
+        "nb_after_180d_count": 21,
+        "no_nb_permit_recorded_count": 4469,
+        "no_nb_permit_recorded_pct": 98.5,
+        "demos_2020_2024_total": 2441,
+        "still_vacant_2026_count": 1797,
+        "still_vacant_2026_pct": 73.6
+      },
+      {
+        "id": "best_50plus",
+        "cohort": "50+ Year Old Buildings (Incl. Subdivision Age)",
+        "total_demos": 9920,
+        "nb_before_or_same_day_count": 39,
+        "nb_before_or_same_day_pct": 0.4,
+        "demo_before_nb_count": 9881,
+        "demo_before_nb_pct": 99.6,
+        "nb_within_1_to_30d_count": 11,
+        "nb_within_31_to_180d_count": 20,
+        "nb_after_180d_count": 46,
+        "no_nb_permit_recorded_count": 9804,
+        "no_nb_permit_recorded_pct": 98.8,
+        "demos_2020_2024_total": 7226,
+        "still_vacant_2026_count": 1877,
+        "still_vacant_2026_pct": 26.0
+      },
+      {
+        "id": "dir_100plus",
+        "cohort": "100+ Year Old Buildings (Direct Year)",
+        "total_demos": 334,
+        "nb_before_or_same_day_count": 1,
+        "nb_before_or_same_day_pct": 0.3,
+        "demo_before_nb_count": 333,
+        "demo_before_nb_pct": 99.7,
+        "nb_within_1_to_30d_count": 0,
+        "nb_within_31_to_180d_count": 4,
+        "nb_after_180d_count": 0,
+        "no_nb_permit_recorded_count": 329,
+        "no_nb_permit_recorded_pct": 98.5,
+        "demos_2020_2024_total": 186,
+        "still_vacant_2026_count": 114,
+        "still_vacant_2026_pct": 61.3
+      },
+      {
+        "id": "best_100plus",
+        "cohort": "100+ Year Old Buildings (Incl. Subdivision Age)",
+        "total_demos": 631,
+        "nb_before_or_same_day_count": 1,
+        "nb_before_or_same_day_pct": 0.2,
+        "demo_before_nb_count": 630,
+        "demo_before_nb_pct": 99.8,
+        "nb_within_1_to_30d_count": 0,
+        "nb_within_31_to_180d_count": 5,
+        "nb_after_180d_count": 2,
+        "no_nb_permit_recorded_count": 623,
+        "no_nb_permit_recorded_pct": 98.7,
+        "demos_2020_2024_total": 442,
+        "still_vacant_2026_count": 114,
+        "still_vacant_2026_pct": 25.8
+      },
+      {
+        "id": "dir_pre1900",
+        "cohort": "Pre-1900 Buildings (Direct Year)",
+        "total_demos": 5,
+        "nb_before_or_same_day_count": 0,
+        "nb_before_or_same_day_pct": 0.0,
+        "demo_before_nb_count": 5,
+        "demo_before_nb_pct": 100.0,
+        "nb_within_1_to_30d_count": 0,
+        "nb_within_31_to_180d_count": 0,
+        "nb_after_180d_count": 0,
+        "no_nb_permit_recorded_count": 5,
+        "no_nb_permit_recorded_pct": 100.0,
+        "demos_2020_2024_total": 3,
+        "still_vacant_2026_count": 2,
+        "still_vacant_2026_pct": 66.7
+      }
+    ]
+  }
+};
+
+DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.policy_impact_brief = DEFAULT_POLICY_IMPACT_BRIEF;
+
+/**
+ * Resolve citywide Ordinance & Age-Threshold Policy Impact Brief with fallback to defaults.
+ */
+export function resolvePolicyImpactBrief(payload = null) {
+  const candidateBrief =
+    payload && typeof payload === "object"
+      ? payload.policy_impact_brief ||
+        payload.citywide_policy_brief ||
+        (payload.annual_benchmarks && payload.annual_benchmarks.policy_impact_brief) ||
+        null
+      : null;
+  if (
+    !candidateBrief ||
+    typeof candidateBrief !== "object" ||
+    !Array.isArray(candidateBrief.standing_buildings_by_age) ||
+    candidateBrief.standing_buildings_by_age.length === 0
+  ) {
+    return DEFAULT_POLICY_IMPACT_BRIEF;
+  }
+  return {
+    ...DEFAULT_POLICY_IMPACT_BRIEF,
+    ...candidateBrief,
+    standing_buildings_by_age:
+      Array.isArray(candidateBrief.standing_buildings_by_age) &&
+      candidateBrief.standing_buildings_by_age.length > 0
+        ? candidateBrief.standing_buildings_by_age
+        : DEFAULT_POLICY_IMPACT_BRIEF.standing_buildings_by_age,
+    annual_demolitions_by_age:
+      candidateBrief.annual_demolitions_by_age &&
+      Array.isArray(candidateBrief.annual_demolitions_by_age.years)
+        ? {
+            ...DEFAULT_POLICY_IMPACT_BRIEF.annual_demolitions_by_age,
+            ...candidateBrief.annual_demolitions_by_age,
+          }
+        : DEFAULT_POLICY_IMPACT_BRIEF.annual_demolitions_by_age,
+    local_designation_coverage:
+      candidateBrief.local_designation_coverage &&
+      Array.isArray(candidateBrief.local_designation_coverage.rows)
+        ? {
+            ...DEFAULT_POLICY_IMPACT_BRIEF.local_designation_coverage,
+            ...candidateBrief.local_designation_coverage,
+            excludes_heritage_districts: true,
+          }
+        : DEFAULT_POLICY_IMPACT_BRIEF.local_designation_coverage,
+    speculative_land_clearing:
+      candidateBrief.speculative_land_clearing &&
+      Array.isArray(candidateBrief.speculative_land_clearing.rows)
+        ? {
+            ...DEFAULT_POLICY_IMPACT_BRIEF.speculative_land_clearing,
+            ...candidateBrief.speculative_land_clearing,
+          }
+        : DEFAULT_POLICY_IMPACT_BRIEF.speculative_land_clearing,
+  };
+}
+
 /**
  * Resolve annual demolition benchmarks from an active_permit_alerts.json payload,
  * falling back cleanly to DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS when omitted.
@@ -1796,7 +2302,11 @@ export function resolveAnnualDemolitionBenchmarks(payload = null) {
   const hasHahc =
     Array.isArray(candidate.hahc_historic_district_demolitions) &&
     candidate.hahc_historic_district_demolitions.length > 0;
-  if (!hasCoh && !hasHcad && !hasHahc && !candidate.updated_through) {
+  const hasPolicyBrief =
+    candidate.policy_impact_brief &&
+    typeof candidate.policy_impact_brief === "object" &&
+    Array.isArray(candidate.policy_impact_brief.standing_buildings_by_age);
+  if (!hasCoh && !hasHcad && !hasHahc && !hasPolicyBrief && !candidate.updated_through) {
     return DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS;
   }
   const mergeRows = (rows, defRows, idField) => {
@@ -1839,7 +2349,269 @@ export function resolveAnnualDemolitionBenchmarks(payload = null) {
           "period"
         )
       : DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.hahc_historic_district_demolitions,
+    policy_impact_brief: resolvePolicyImpactBrief(candidate),
   };
+}
+
+/**
+ * Format plain-text summary of the 4-table Ordinance & Age-Threshold Policy Impact Brief
+ * (strictly excluding Heritage Districts, which regulate only public infrastructure on City-owned ROW).
+ */
+export function formatDemolitionPolicyBriefText(payload = null) {
+  const pb = resolvePolicyImpactBrief(payload);
+  const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
+  const standingRows = pb.standing_buildings_by_age || [];
+  const demoAge = pb.annual_demolitions_by_age || {};
+  const demoYears = demoAge.years || [];
+  const demoAvg = demoAge.full_year_average || {};
+  const demoCum = demoAge.cumulative || {};
+  const desig = pb.local_designation_coverage || {};
+  const desigRows = desig.rows || [];
+  const specRows = (pb.speculative_land_clearing && pb.speculative_land_clearing.rows) || [];
+
+  const lines = [
+    `CITY OF HOUSTON DEMOLITION REVIEW AGE-THRESHOLD & DESIGNATION POLICY BRIEF (Tax Year ${pb.data_tax_year || 2026})`,
+    `Data Baseline: ${fmt(pb.total_dated_footprints)} dated standing building footprints across ${fmt(pb.total_improved_cama_accounts)} improved HCAD real property accounts in City of Houston (Jurisdiction 061).`,
+    "",
+    "1. STANDING BUILDINGS IN HOUSTON BY AGE THRESHOLD & UNPROTECTED SHARE:",
+  ];
+  for (const r of standingRows) {
+    lines.push(
+      `- ${r.label}: ${fmt(r.standing_count)} standing structures (${r.share_of_dated_pct}% of dated footprints / ${r.share_of_all_cama_pct}% of improved accounts) | Protected by COH Historic District or Landmark: ${fmt(r.protected_count)} (${fmt(r.coh_hd_count)} in COH HDs, ${fmt(r.coh_lm_count)} COH Landmarks) | Unprotected Today: ${fmt(r.unprotected_count)} (${r.unprotected_pct}% unprotected)`
+    );
+  }
+  lines.push("");
+  lines.push("2. ANNUAL DEMOLITIONS BY BUILDING AGE & STAFF REVIEW CASELOAD (2020 - 2026 YTD):");
+  for (const y of demoYears) {
+    lines.push(
+      `- ${y.year}${y.is_ytd ? " YTD" : ""}: ${fmt(y.total_demos)} total demolished parcels | 50+ Yrs: ${fmt(y.age_50plus_direct)} direct (${y.age_50plus_direct_pct}%) / ${fmt(y.age_50plus_best)} incl. subdiv (${y.age_50plus_best_pct}%) | 75+ Yrs: ${fmt(y.age_75plus_direct)}-${fmt(y.age_75plus_best)} | Pre-1940: ${fmt(y.age_pre1940_direct)}-${fmt(y.age_pre1940_best)} | 100+ Yrs: ${fmt(y.age_100plus_direct)} direct (${y.age_100plus_direct_pct}%) / ${fmt(y.age_100plus_best)} incl. subdiv (${y.age_100plus_best_pct}%) | Pre-1900: ${fmt(y.age_pre1900_direct)}-${fmt(y.age_pre1900_best)}`
+    );
+  }
+  if (demoAvg.total_demos) {
+    lines.push(
+      `- ${demoAvg.period_label || "2020-2025 Full-Yr Avg"}: ${fmt(demoAvg.total_demos)}/yr total | 50+ Yrs: ${fmt(demoAvg.age_50plus_direct)}-${fmt(demoAvg.age_50plus_best)}/yr (${demoAvg.age_50plus_weekly_direct}-${demoAvg.age_50plus_weekly_best}/week) | 100+ Yrs: ${fmt(demoAvg.age_100plus_direct)}-${fmt(demoAvg.age_100plus_best)}/yr (${demoAvg.age_100plus_weekly_direct}-${demoAvg.age_100plus_weekly_best}/week) | Pre-1900: ${demoAvg.age_pre1900_direct}-${demoAvg.age_pre1900_best}/yr`
+    );
+  }
+  if (demoCum.total_demos) {
+    lines.push(
+      `- ${demoCum.period_label || "2020-2026 Cumulative"}: ${fmt(demoCum.total_demos)} total | 50+ Yrs: ${fmt(demoCum.age_50plus_direct)}-${fmt(demoCum.age_50plus_best)} | 100+ Yrs: ${fmt(demoCum.age_100plus_direct)}-${fmt(demoCum.age_100plus_best)} | Pre-1900: ${fmt(demoCum.age_pre1900_direct)}-${fmt(demoCum.age_pre1900_best)}`
+    );
+  }
+  lines.push("");
+  lines.push(
+    "3. LOCAL HISTORIC DESIGNATION COVERAGE BY PARCELS & LAND AREA (Excludes Heritage Districts):"
+  );
+  lines.push(`   Note: ${desig.heritage_district_exclusion_note || "Excludes Heritage Districts, which regulate only public infrastructure on City-owned rights-of-way and do not protect private property or any buildings."}`);
+  lines.push(
+    `   Citywide Baseline: ${fmt(desig.coh_total_parcels)} total parcels (${fmt(desig.coh_improved_parcels)} improved parcels), ${fmt(desig.coh_parcel_land_acres)} parcel land acres (${desig.coh_parcel_land_sq_mi} sq mi), ${fmt(desig.coh_municipal_boundary_acres)} municipal boundary acres (${desig.coh_municipal_boundary_sq_mi} sq mi).`
+  );
+  for (const r of desigRows) {
+    const areaLabel = r.polygon_acres
+      ? `${fmt(r.parcel_acres)} parcel ac (${fmt(r.polygon_acres)} polygon ac / ${r.polygon_sq_mi} sq mi)`
+      : `${fmt(r.parcel_acres)} parcel ac (${fmt(r.outside_hd_acres)} ac outside HDs)`;
+    lines.push(
+      `- ${r.category}: ${fmt(r.unique_parcels)} parcels (${r.pct_all_parcels}% of all parcels / ${r.pct_improved_parcels}% of improved parcels) | Land Area: ${areaLabel} (${r.pct_parcel_area}% of parcel land / ${r.pct_city_boundary_area}% of city boundary) | ${r.protection_strength}`
+    );
+  }
+  lines.push("");
+  lines.push(
+    "4. PREMATURE DEMOLITION & SPECULATIVE LAND CLEARING (Demo Permit Sequence & Vacant Lot Persistence):"
+  );
+  for (const r of specRows) {
+    lines.push(
+      `- ${r.cohort} (${fmt(r.total_demos)} demos): Demo Permit Issued BEFORE Any New-Build Permit: ${fmt(r.demo_before_nb_count)} (${r.demo_before_nb_pct}%) | New-Build Permit Issued Before/Same-Day as Demo: ${fmt(r.nb_before_or_same_day_count)} (${r.nb_before_or_same_day_pct}%) | 2020-2024 Teardowns Still Vacant ($0 Improvement Value) in 2026: ${fmt(r.still_vacant_2026_count)} of ${fmt(r.demos_2020_2024_total)} (${r.still_vacant_2026_pct}%)`
+    );
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Build Gmail-compatible rich HTML tables (with inline border/cell styling) for pasting
+ * directly into a Gmail compose window or executive policy memo.
+ */
+export function formatDemolitionPolicyBriefRichHtml(payload = null) {
+  const pb = resolvePolicyImpactBrief(payload);
+  const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
+  const escHtml = (str) =>
+    String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  const standingRows = pb.standing_buildings_by_age || [];
+  const demoAge = pb.annual_demolitions_by_age || {};
+  const demoYears = demoAge.years || [];
+  const demoAvg = demoAge.full_year_average || {};
+  const demoCum = demoAge.cumulative || {};
+  const desig = pb.local_designation_coverage || {};
+  const desigRows = desig.rows || [];
+  const specRows = (pb.speculative_land_clearing && pb.speculative_land_clearing.rows) || [];
+
+  const tblStyle =
+    "border-collapse:collapse;width:100%;max-width:920px;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;color:#1e293b;margin:8px 0 18px 0;border:1px solid #cbd5e1;";
+  const thStyle =
+    "background:#1e293b;color:#ffffff;font-weight:700;text-align:left;padding:7px 9px;border:1px solid #334155;font-size:12px;";
+  const thNumStyle =
+    "background:#1e293b;color:#ffffff;font-weight:700;text-align:right;padding:7px 9px;border:1px solid #334155;font-size:12px;";
+  const tdStyle = "padding:6px 9px;border:1px solid #cbd5e1;vertical-align:top;";
+  const tdNumStyle =
+    "padding:6px 9px;border:1px solid #cbd5e1;text-align:right;font-variant-numeric:tabular-nums;vertical-align:top;";
+  const sumRowStyle = "background:#f1f5f9;font-weight:700;";
+
+  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#1e293b;line-height:1.45;max-width:940px;">
+  <h3 style="margin:0 0 6px 0;font-size:16px;color:#0f172a;">City of Houston Demolition Review Age-Threshold, Local Designation &amp; Speculative Clearing Brief (${escHtml(pb.data_tax_year || 2026)})</h3>
+  <p style="margin:0 0 12px 0;font-size:12.5px;color:#334155;"><strong>Dataset Baseline:</strong> <code>${fmt(pb.total_dated_footprints)}</code> dated standing building footprints across <code>${fmt(pb.total_improved_cama_accounts)}</code> improved HCAD real property accounts in the City of Houston (Jurisdiction 061).</p>
+
+  <h4 style="margin:12px 0 4px 0;font-size:13.5px;color:#0f172a;">1. Standing Buildings in Houston by Age Threshold &amp; Unprotected Share</h4>
+  <table style="${tblStyle}">
+    <thead>
+      <tr>
+        <th style="${thStyle}">Age Cohort</th>
+        <th style="${thNumStyle}">Standing Structures</th>
+        <th style="${thNumStyle}">% of Dated Footprints</th>
+        <th style="${thNumStyle}">% of Improved Parcels</th>
+        <th style="${thNumStyle}">In COH Historic Dist.</th>
+        <th style="${thNumStyle}">COH Landmarks (PLM/LM)</th>
+        <th style="${thNumStyle}">Unprotected Today</th>
+        <th style="${thNumStyle}">% Unprotected</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${standingRows
+        .map(
+          (r) => `<tr>
+        <td style="${tdStyle}"><strong>${escHtml(r.label)}</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmt(r.standing_count)}</strong></td>
+        <td style="${tdNumStyle}">${escHtml(r.share_of_dated_pct)}%</td>
+        <td style="${tdNumStyle}">${escHtml(r.share_of_all_cama_pct)}%</td>
+        <td style="${tdNumStyle}">${fmt(r.coh_hd_count)}</td>
+        <td style="${tdNumStyle}">${fmt(r.coh_lm_count)}</td>
+        <td style="${tdNumStyle}"><strong>${fmt(r.unprotected_count)}</strong></td>
+        <td style="${tdNumStyle};color:#b91c1c;font-weight:700;">${escHtml(r.unprotected_pct)}%</td>
+      </tr>`
+        )
+        .join("")}
+    </tbody>
+  </table>
+
+  <h4 style="margin:12px 0 4px 0;font-size:13.5px;color:#0f172a;">2. Annual Demolitions by Building Age &amp; Estimated Staff Review Caseload (2020 - ${escHtml(pb.data_tax_year || 2026)} YTD)</h4>
+  <p style="margin:0 0 6px 0;font-size:11.5px;color:#475569;"><em>Note:</em> When a building is demolished and rebuilt, HCAD overwrites <code>yr_impr</code> with the new townhome year. Below shows both the <strong>Direct Recorded Pre-Demo Year</strong> (lower bound) and <strong>Including Historic Subdivision Median Age</strong> (upper bound for cleared parcels).</p>
+  <table style="${tblStyle}">
+    <thead>
+      <tr>
+        <th style="${thStyle}">Year</th>
+        <th style="${thNumStyle}">Total Demolished Parcels</th>
+        <th style="${thNumStyle}">50+ Yrs (Direct / Subdiv)</th>
+        <th style="${thNumStyle}">50+ Yrs %</th>
+        <th style="${thNumStyle}">75+ Yrs (Direct / Subdiv)</th>
+        <th style="${thNumStyle}">Pre-1940 (Direct / Subdiv)</th>
+        <th style="${thNumStyle}">100+ Yrs (Direct / Subdiv)</th>
+        <th style="${thNumStyle}">100+ Yrs %</th>
+        <th style="${thNumStyle}">Pre-1900</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${demoYears
+        .map(
+          (y) => `<tr>
+        <td style="${tdStyle}"><strong>${escHtml(y.year)}${y.is_ytd ? " YTD" : ""}</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmt(y.total_demos)}</strong></td>
+        <td style="${tdNumStyle}">${fmt(y.age_50plus_direct)} / ${fmt(y.age_50plus_best)}</td>
+        <td style="${tdNumStyle}">${escHtml(y.age_50plus_direct_pct)}% - ${escHtml(y.age_50plus_best_pct)}%</td>
+        <td style="${tdNumStyle}">${fmt(y.age_75plus_direct)} / ${fmt(y.age_75plus_best)}</td>
+        <td style="${tdNumStyle}">${fmt(y.age_pre1940_direct)} / ${fmt(y.age_pre1940_best)}</td>
+        <td style="${tdNumStyle}"><strong>${fmt(y.age_100plus_direct)} / ${fmt(y.age_100plus_best)}</strong></td>
+        <td style="${tdNumStyle}">${escHtml(y.age_100plus_direct_pct)}% - ${escHtml(y.age_100plus_best_pct)}%</td>
+        <td style="${tdNumStyle}">${fmt(y.age_pre1900_direct)} - ${fmt(y.age_pre1900_best)}</td>
+      </tr>`
+        )
+        .join("")}
+      <tr style="${sumRowStyle}">
+        <td style="${tdStyle}">${escHtml(demoAvg.period_label || "2020-2025 Full-Yr Avg")}</td>
+        <td style="${tdNumStyle}">${fmt(demoAvg.total_demos)}/yr</td>
+        <td style="${tdNumStyle}">${fmt(demoAvg.age_50plus_direct)} - ${fmt(demoAvg.age_50plus_best)}/yr (${escHtml(demoAvg.age_50plus_weekly_direct)}-${escHtml(demoAvg.age_50plus_weekly_best)}/wk)</td>
+        <td style="${tdNumStyle}">${escHtml(demoAvg.age_50plus_direct_pct)}% - ${escHtml(demoAvg.age_50plus_best_pct)}%</td>
+        <td style="${tdNumStyle}">${fmt(demoAvg.age_75plus_direct)} - ${fmt(demoAvg.age_75plus_best)}/yr</td>
+        <td style="${tdNumStyle}">${fmt(demoAvg.age_pre1940_direct)} - ${fmt(demoAvg.age_pre1940_best)}/yr</td>
+        <td style="${tdNumStyle}">${fmt(demoAvg.age_100plus_direct)} - ${fmt(demoAvg.age_100plus_best)}/yr (${escHtml(demoAvg.age_100plus_weekly_direct)}-${escHtml(demoAvg.age_100plus_weekly_best)}/wk)</td>
+        <td style="${tdNumStyle}">${escHtml(demoAvg.age_100plus_direct_pct)}% - ${escHtml(demoAvg.age_100plus_best_pct)}%</td>
+        <td style="${tdNumStyle}">${escHtml(demoAvg.age_pre1900_direct)} - ${escHtml(demoAvg.age_pre1900_best)}/yr</td>
+      </tr>
+      <tr style="${sumRowStyle}">
+        <td style="${tdStyle}">${escHtml(demoCum.period_label || "2020-2026 Cumulative")}</td>
+        <td style="${tdNumStyle}">${fmt(demoCum.total_demos)}</td>
+        <td style="${tdNumStyle}">${fmt(demoCum.age_50plus_direct)} - ${fmt(demoCum.age_50plus_best)}</td>
+        <td style="${tdNumStyle}">-</td>
+        <td style="${tdNumStyle}">${fmt(demoCum.age_75plus_direct)} - ${fmt(demoCum.age_75plus_best)}</td>
+        <td style="${tdNumStyle}">${fmt(demoCum.age_pre1940_direct)} - ${fmt(demoCum.age_pre1940_best)}</td>
+        <td style="${tdNumStyle}">${fmt(demoCum.age_100plus_direct)} - ${fmt(demoCum.age_100plus_best)}</td>
+        <td style="${tdNumStyle}">-</td>
+        <td style="${tdNumStyle}">${fmt(demoCum.age_pre1900_direct)} - ${fmt(demoCum.age_pre1900_best)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4 style="margin:12px 0 4px 0;font-size:13.5px;color:#0f172a;">3. Local Historic Designation Coverage by Parcels &amp; Land Area (Excluding Heritage Districts)</h4>
+  <p style="margin:0 0 6px 0;font-size:11.5px;color:#475569;"><em>Note:</em> ${escHtml(desig.heritage_district_exclusion_note)} Citywide baseline: <code>${fmt(desig.coh_total_parcels)}</code> total parcels (<code>${fmt(desig.coh_improved_parcels)}</code> improved), <code>${fmt(desig.coh_parcel_land_acres)}</code> parcel acres (<code>${escHtml(desig.coh_parcel_land_sq_mi)}</code> sq mi), <code>${fmt(desig.coh_municipal_boundary_acres)}</code> city boundary acres (<code>${escHtml(desig.coh_municipal_boundary_sq_mi)}</code> sq mi).</p>
+  <table style="${tblStyle}">
+    <thead>
+      <tr>
+        <th style="${thStyle}">Designation Category</th>
+        <th style="${thNumStyle}">Unique Parcels</th>
+        <th style="${thNumStyle}">% All Parcels</th>
+        <th style="${thNumStyle}">% Improved Parcels</th>
+        <th style="${thNumStyle}">Parcel Land Acres</th>
+        <th style="${thNumStyle}">% Parcel Land Area</th>
+        <th style="${thNumStyle}">% City Boundary Area</th>
+        <th style="${thStyle}">Demolition Protection Strength</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${desigRows
+        .map(
+          (r) => `<tr${r.id === "combined_local_designation" || r.id === "strict_demolition_protection" ? ` style="${sumRowStyle}"` : ""}>
+        <td style="${tdStyle}"><strong>${escHtml(r.category)}</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmt(r.unique_parcels)}</strong></td>
+        <td style="${tdNumStyle}">${escHtml(r.pct_all_parcels)}%</td>
+        <td style="${tdNumStyle}">${escHtml(r.pct_improved_parcels)}%</td>
+        <td style="${tdNumStyle}">${fmt(r.parcel_acres)} ac${r.polygon_acres ? ` (${fmt(r.polygon_acres)} poly ac)` : ""}</td>
+        <td style="${tdNumStyle}">${escHtml(r.pct_parcel_area)}%</td>
+        <td style="${tdNumStyle}">${escHtml(r.pct_city_boundary_area)}%</td>
+        <td style="${tdStyle}">${escHtml(r.protection_strength)}</td>
+      </tr>`
+        )
+        .join("")}
+    </tbody>
+  </table>
+
+  <h4 style="margin:12px 0 4px 0;font-size:13.5px;color:#0f172a;">4. Premature Demolition &amp; Speculative Land Clearing (Permit Sequence &amp; Vacant Lot Persistence)</h4>
+  <table style="${tblStyle}">
+    <thead>
+      <tr>
+        <th style="${thStyle}">Demolished Building Cohort</th>
+        <th style="${thNumStyle}">Total Demos</th>
+        <th style="${thNumStyle}">New-Build Permit BEFORE/Same-Day</th>
+        <th style="${thNumStyle}">Demo Permit BEFORE Any New-Build Permit</th>
+        <th style="${thNumStyle}">No New-Build Permit Recorded</th>
+        <th style="${thNumStyle}">2020-2024 Teardowns Still Vacant ($0 Impr) in 2026</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${specRows
+        .map(
+          (r) => `<tr>
+        <td style="${tdStyle}"><strong>${escHtml(r.cohort)}</strong></td>
+        <td style="${tdNumStyle}">${fmt(r.total_demos)}</td>
+        <td style="${tdNumStyle}">${fmt(r.nb_before_or_same_day_count)} (${escHtml(r.nb_before_or_same_day_pct)}%)</td>
+        <td style="${tdNumStyle};color:#b91c1c;font-weight:700;">${fmt(r.demo_before_nb_count)} (${escHtml(r.demo_before_nb_pct)}%)</td>
+        <td style="${tdNumStyle}">${fmt(r.no_nb_permit_recorded_count)} (${escHtml(r.no_nb_permit_recorded_pct)}%)</td>
+        <td style="${tdNumStyle};color:#b91c1c;font-weight:700;">${fmt(r.still_vacant_2026_count)} / ${fmt(r.demos_2020_2024_total)} (${escHtml(r.still_vacant_2026_pct)}%)</td>
+      </tr>`
+        )
+        .join("")}
+    </tbody>
+  </table>
+</div>`;
 }
 
 /**
@@ -1904,17 +2676,28 @@ export function formatDemolitionBenchmarksGrantText(payload = null) {
 }
 
 /**
- * Build shared 3-table HTML markup, official agency citations, and screening methodology
- * notes for both Option A (plat-monitor.html drawer) and Option B (index.html modal).
+ * Build shared 3-table Annual Permit Volume HTML + 4-table Ordinance & Age-Threshold Policy Brief HTML
+ * with a non-obtrusive 2-pill tab switcher and one-click Gmail Rich Table Copy button
+ * for both Option A (plat-monitor.html drawer) and Option B (index.html modal).
  */
 export function buildDemolitionBenchmarksTablesHtml(
   payload = null,
-  { variant = "modal" } = {}
+  { variant = "modal", activeTab = "volume" } = {}
 ) {
   const b = resolveAnnualDemolitionBenchmarks(payload);
+  const pb = b.policy_impact_brief || resolvePolicyImpactBrief(payload);
   const cohRows = b.coh_structural_demolitions || [];
   const hcadRows = b.hcad_countywide_demolitions || [];
   const hahcRows = b.hahc_historic_district_demolitions || [];
+  const standingRows = pb.standing_buildings_by_age || [];
+  const demoAge = pb.annual_demolitions_by_age || {};
+  const demoYears = demoAge.years || [];
+  const demoAvg = demoAge.full_year_average || {};
+  const demoCum = demoAge.cumulative || {};
+  const desig = pb.local_designation_coverage || {};
+  const desigRows = desig.rows || [];
+  const specRows = (pb.speculative_land_clearing && pb.speculative_land_clearing.rows) || [];
+  const isPolicyActive = activeTab === "policy";
   const fmt = (n) => Number(n ?? 0).toLocaleString("en-US");
   const escHtml = (str) =>
     String(str ?? "")
@@ -1955,251 +2738,578 @@ export function buildDemolitionBenchmarksTablesHtml(
 
   if (variant === "drawer") {
     return `
-    <div class="demo-bench-grid">
-      <div class="demo-bench-box">
-        <h4>1. City of Houston Permitting Center (Structural Building Demolitions, 2024 - 2026 YTD)</h4>
-        <p class="sub"><strong>Source Citation:</strong> <em>City of Houston, Houston Public Works, Building Code Enforcement - Sold Permits Database</em> (Permit Type SD Standard Demolition + Permit Type 4D Dangerous Building Demolition). Filtering strictly to SD &amp; 4D already excludes Permit Type 13 (<code>BUILDING PMT</code>) interior wall/remodel, rear-addition removal, and standard pool fill-in permits (${cohExcludedInline}).</p>
-        <table class="demo-bench-table">
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Total (SD+4D)</th>
-              <th>Net Main-Bldg Teardowns</th>
-              <th>Unique Addrs</th>
-              <th>Std (SD)</th>
-              <th>Dgr Bldg (4D)</th>
-              <th>Res (1-2 Fam)</th>
-              <th>Comm / Multi</th>
-              <th>Garage / Acc</th>
-              <th>Pool / Canopy Only</th>
-              <th>Historic Index (Pre-1940)</th>
-              <th>Sewer Discs</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${cohRows
-              .map(
-                (r) => `
-              <tr>
-                <td>${escHtml(r.period)} <span style="font-weight:400;color:var(--muted);font-size:11px">(${escHtml(r.date_range)})</span></td>
-                <td><strong>${fmt(r.total_permits)}</strong></td>
-                <td style="color:var(--t1);font-weight:700">${fmt(r.net_main_bldg_teardowns)}</td>
-                <td>${fmt(r.unique_addresses)}</td>
-                <td>${fmt(r.standard_demo_sd)}</td>
-                <td>${fmt(r.dangerous_bldg_4d)}</td>
-                <td>${fmt(r.residential_1_2_fam)}</td>
-                <td>${fmt(r.commercial_multifam)}</td>
-                <td>${fmt(r.garage_accessory)}</td>
-                <td>${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.canopy_porch_partial ?? 0)} canopy</td>
-                <td>${fmt(r.historic_index_matched)} (${fmt(r.pre_1940_matched)})</td>
-                <td>${fmt(r.sewer_disconnect_permits)}</td>
-              </tr>`
-              )
-              .join("")}
-          </tbody>
-        </table>
-
-        <h4 style="margin-top:12px">3. HAHC Demolition &amp; Relocation COA Filings in Designated Historic Districts (2024 - 2026 YTD)</h4>
-        <table class="demo-bench-table">
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Total COAs</th>
-              <th>Demo / Reloc COAs</th>
-              <th>Main Res Approved</th>
-              <th>Main Res Denied</th>
-              <th>Accessory / Partial Approved</th>
-              <th style="text-align:left">Outcome Breakdown</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${hahcRows
-              .map(
-                (r) => `
-              <tr>
-                <td>${escHtml(r.period)}</td>
-                <td>${fmt(r.total_coa_filings)}</td>
-                <td><strong>${fmt(r.demo_reloc_filings)}</strong></td>
-                <td style="color:${r.main_res_approved === 0 ? "var(--ok)" : "var(--t1)"};font-weight:700">${fmt(r.main_res_approved)}</td>
-                <td style="font-weight:700">${fmt(r.main_res_denied)}</td>
-                <td>${fmt(r.accessory_or_partial_approved)}</td>
-                <td style="text-align:left;white-space:normal;min-width:220px;font-size:11.5px;color:#3C4750">${escHtml(r.summary_note)}</td>
-              </tr>`
-              )
-              .join("")}
-          </tbody>
-        </table>
+    <div class="demo-bench-tabs-wrap" data-bench-tabs-root="drawer">
+      <div class="demo-bench-tab-bar" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #CBD5E1;">
+        <div role="tablist" aria-label="Demolition benchmark views" style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button type="button" role="tab" data-bench-tab="volume" aria-selected="${!isPolicyActive}" style="padding:5px 11px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${!isPolicyActive ? "#0F172A" : "#CBD5E1"};background:${!isPolicyActive ? "#0F172A" : "#FFFFFF"};color:${!isPolicyActive ? "#FFFFFF" : "#334155"};">📊 Annual Permit Volume (2020-2026)</button>
+          <button type="button" role="tab" data-bench-tab="policy" aria-selected="${isPolicyActive}" style="padding:5px 11px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${isPolicyActive ? "#0F172A" : "#CBD5E1"};background:${isPolicyActive ? "#0F172A" : "#FFFFFF"};color:${isPolicyActive ? "#FFFFFF" : "#334155"};">🏛️ Ordinance &amp; Age-Threshold Impact Brief (4 Policy Tables)</button>
+        </div>
+        <button type="button" data-copy-policy-brief-gmail="1" style="padding:5px 11px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid #0284C7;background:#F0F9FF;color:#0369A1;" title="Copy all 4 Ordinance & Age-Threshold Policy Tables as rich HTML for pasting directly into Gmail">📋 Copy Rich Policy Tables (Gmail)</button>
       </div>
-      <div class="demo-bench-box">
-        <h4>2. HCAD Countywide Permit Roll (All of Harris County, 2020 - 2025 Calendar Years)</h4>
-        <p class="sub"><strong>Source Citation:</strong> <em>Harris County Appraisal District (HCAD) Real Property CAMA Permit Roll</em> (<code>Real_acct_owner.zip -&gt; permits.txt</code>, Types 13 Residential Demo, 33 Commercial Demo &amp; 43 General Demo; excludes Types 11 &amp; 31 Remodel/Addition permits). Because HCAD appraisers log taxable extra-feature removals under codes 13/33, <strong>Net Main-Bldg Teardowns</strong> screens out pool/spa, partial/addition, and detached garage/shed descriptions. Note: HCAD batch-loads current-year City of Houston (061) permits during winter roll prep; use Table 1 for 2026 YTD.</p>
-        <table class="demo-bench-table">
-          <thead>
-            <tr>
-              <th>Calendar Year</th>
-              <th>Raw Total (13/33/43)</th>
-              <th>Net Main-Bldg Teardowns</th>
-              <th>Unique Parcels</th>
-              <th>Res Demo (13)</th>
-              <th>Comm Demo (33)</th>
-              <th>Gen Demo (43)</th>
-              <th>Garages / Pools / Partial</th>
-              <th>City of Houston (061)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${hcadRows
-              .map(
-                (r) => `
+      <div class="demo-bench-grid" data-bench-pane="volume" style="display:${!isPolicyActive ? "grid" : "none"};">
+        <div class="demo-bench-box">
+          <h4>1. City of Houston Permitting Center (Structural Building Demolitions, 2024 - 2026 YTD)</h4>
+          <p class="sub"><strong>Source Citation:</strong> <em>City of Houston, Houston Public Works, Building Code Enforcement - Sold Permits Database</em> (Permit Type SD Standard Demolition + Permit Type 4D Dangerous Building Demolition). Filtering strictly to SD &amp; 4D already excludes Permit Type 13 (<code>BUILDING PMT</code>) interior wall/remodel, rear-addition removal, and standard pool fill-in permits (${cohExcludedInline}).</p>
+          <table class="demo-bench-table">
+            <thead>
               <tr>
-                <td>${escHtml(r.year)}</td>
-                <td><strong>${fmt(r.total_permits)}</strong></td>
-                <td style="color:var(--t1);font-weight:700">${fmt(r.net_main_bldg_teardowns)}</td>
-                <td>${fmt(r.unique_parcels)}</td>
-                <td>${fmt(r.residential_type_13)}</td>
-                <td>${fmt(r.commercial_type_33)}</td>
-                <td>${fmt(r.general_type_43)}</td>
-                <td style="font-size:11.5px;color:#3C4750">${fmt(r.garage_accessory ?? 0)} gar / ${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.partial_addition_interior ?? 0)} part</td>
-                <td>${fmt(r.coh_agency_061)}</td>
-              </tr>`
-              )
-              .join("")}
-          </tbody>
-        </table>
-        <div style="margin-top:10px;padding:9px 11px;background:#F8FAFC;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;line-height:1.45;color:#334155">
-          <strong>Methodology &amp; Screening Notes (Pool, Partial/Addition &amp; Garage Demolitions):</strong>
-          <ul style="margin:4px 0 0 16px;padding:0">
-            <li><strong>City of Houston (Table 1):</strong> Interior gut/remodels (<code>DEMO OF INTERIOR NON-LOAD BEARING WALLS</code>), rear-addition removals for remodels (<code>RESIDENTIAL DEMO FOR FUTURE REMODEL</code>), and standard swimming pool fill-ins (<code>EXISTING POOL DEMO 2021 IBC</code>) are issued under <strong>Building Permits (Type 13)</strong> rather than Demolition Permits (Types SD/4D), so <code>${cohExcludedRange}</code> remodel/pool permits per year are already excluded. Within SD+4D, detached garages/sheds (<code>118-210/yr</code>) and the rare sewer-connected pool (<code>1-5/yr</code>) or commercial canopy (<code>2-10/yr</code>) are broken out separately so you can cite either <strong>Total Structural Demolition Permits</strong> (${cohTotalSeries}) or <strong>Net Full Main-Building Teardowns</strong> (${cohNetSeries}).</li>
-            <li><strong>HCAD Countywide (Table 2):</strong> Excludes Remodel/Addition permit codes (Types 11 &amp; 31, <code>${hcadExcludedRange}/yr</code>) and screens out <code>40-88</code> pool/spa removals, <code>19-43</code> partial/addition demos, and <code>91-203</code> detached garage/shed demos per year to yield <strong>Net Countywide Full Main-Building Teardowns</strong> (${hcadNetTop3}).</li>
-          </ul>
+                <th>Period</th>
+                <th>Total (SD+4D)</th>
+                <th>Net Main-Bldg Teardowns</th>
+                <th>Unique Addrs</th>
+                <th>Std (SD)</th>
+                <th>Dgr Bldg (4D)</th>
+                <th>Res (1-2 Fam)</th>
+                <th>Comm / Multi</th>
+                <th>Garage / Acc</th>
+                <th>Pool / Canopy Only</th>
+                <th>Historic Index (Pre-1940)</th>
+                <th>Sewer Discs</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cohRows
+                .map(
+                  (r) => `
+                <tr>
+                  <td>${escHtml(r.period)} <span style="font-weight:400;color:var(--muted);font-size:11px">(${escHtml(r.date_range)})</span></td>
+                  <td><strong>${fmt(r.total_permits)}</strong></td>
+                  <td style="color:var(--t1);font-weight:700">${fmt(r.net_main_bldg_teardowns)}</td>
+                  <td>${fmt(r.unique_addresses)}</td>
+                  <td>${fmt(r.standard_demo_sd)}</td>
+                  <td>${fmt(r.dangerous_bldg_4d)}</td>
+                  <td>${fmt(r.residential_1_2_fam)}</td>
+                  <td>${fmt(r.commercial_multifam)}</td>
+                  <td>${fmt(r.garage_accessory)}</td>
+                  <td>${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.canopy_porch_partial ?? 0)} canopy</td>
+                  <td>${fmt(r.historic_index_matched)} (${fmt(r.pre_1940_matched)})</td>
+                  <td>${fmt(r.sewer_disconnect_permits)}</td>
+                </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+
+          <h4 style="margin-top:12px">3. HAHC Demolition &amp; Relocation COA Filings in Designated Historic Districts (2024 - 2026 YTD)</h4>
+          <table class="demo-bench-table">
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Total COAs</th>
+                <th>Demo / Reloc COAs</th>
+                <th>Main Res Approved</th>
+                <th>Main Res Denied</th>
+                <th>Accessory / Partial Approved</th>
+                <th style="text-align:left">Outcome Breakdown</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${hahcRows
+                .map(
+                  (r) => `
+                <tr>
+                  <td>${escHtml(r.period)}</td>
+                  <td>${fmt(r.total_coa_filings)}</td>
+                  <td><strong>${fmt(r.demo_reloc_filings)}</strong></td>
+                  <td style="color:${r.main_res_approved === 0 ? "var(--ok)" : "var(--t1)"};font-weight:700">${fmt(r.main_res_approved)}</td>
+                  <td style="font-weight:700">${fmt(r.main_res_denied)}</td>
+                  <td>${fmt(r.accessory_or_partial_approved)}</td>
+                  <td style="text-align:left;white-space:normal;min-width:220px;font-size:11.5px;color:#3C4750">${escHtml(r.summary_note)}</td>
+                </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="demo-bench-box">
+          <h4>2. HCAD Countywide Permit Roll (All of Harris County, 2020 - 2025 Calendar Years)</h4>
+          <p class="sub"><strong>Source Citation:</strong> <em>Harris County Appraisal District (HCAD) Real Property CAMA Permit Roll</em> (<code>Real_acct_owner.zip -&gt; permits.txt</code>, Types 13 Residential Demo, 33 Commercial Demo &amp; 43 General Demo; excludes Types 11 &amp; 31 Remodel/Addition permits). Because HCAD appraisers log taxable extra-feature removals under codes 13/33, <strong>Net Main-Bldg Teardowns</strong> screens out pool/spa, partial/addition, and detached garage/shed descriptions. Note: HCAD batch-loads current-year City of Houston (061) permits during winter roll prep; use Table 1 for 2026 YTD.</p>
+          <table class="demo-bench-table">
+            <thead>
+              <tr>
+                <th>Calendar Year</th>
+                <th>Raw Total (13/33/43)</th>
+                <th>Net Main-Bldg Teardowns</th>
+                <th>Unique Parcels</th>
+                <th>Res Demo (13)</th>
+                <th>Comm Demo (33)</th>
+                <th>Gen Demo (43)</th>
+                <th>Garages / Pools / Partial</th>
+                <th>City of Houston (061)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${hcadRows
+                .map(
+                  (r) => `
+                <tr>
+                  <td>${escHtml(r.year)}</td>
+                  <td><strong>${fmt(r.total_permits)}</strong></td>
+                  <td style="color:var(--t1);font-weight:700">${fmt(r.net_main_bldg_teardowns)}</td>
+                  <td>${fmt(r.unique_parcels)}</td>
+                  <td>${fmt(r.residential_type_13)}</td>
+                  <td>${fmt(r.commercial_type_33)}</td>
+                  <td>${fmt(r.general_type_43)}</td>
+                  <td style="font-size:11.5px;color:#3C4750">${fmt(r.garage_accessory ?? 0)} gar / ${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.partial_addition_interior ?? 0)} part</td>
+                  <td>${fmt(r.coh_agency_061)}</td>
+                </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <div style="margin-top:10px;padding:9px 11px;background:#F8FAFC;border:1px solid #CBD5E1;border-radius:6px;font-size:11.5px;line-height:1.45;color:#334155">
+            <strong>Methodology &amp; Screening Notes (Pool, Partial/Addition &amp; Garage Demolitions):</strong>
+            <ul style="margin:4px 0 0 16px;padding:0">
+              <li><strong>City of Houston (Table 1):</strong> Interior gut/remodels (<code>DEMO OF INTERIOR NON-LOAD BEARING WALLS</code>), rear-addition removals for remodels (<code>RESIDENTIAL DEMO FOR FUTURE REMODEL</code>), and standard swimming pool fill-ins (<code>EXISTING POOL DEMO 2021 IBC</code>) are issued under <strong>Building Permits (Type 13)</strong> rather than Demolition Permits (Types SD/4D), so <code>${cohExcludedRange}</code> remodel/pool permits per year are already excluded. Within SD+4D, detached garages/sheds (<code>118-210/yr</code>) and the rare sewer-connected pool (<code>1-5/yr</code>) or commercial canopy (<code>2-10/yr</code>) are broken out separately so you can cite either <strong>Total Structural Demolition Permits</strong> (${cohTotalSeries}) or <strong>Net Full Main-Building Teardowns</strong> (${cohNetSeries}).</li>
+              <li><strong>HCAD Countywide (Table 2):</strong> Excludes Remodel/Addition permit codes (Types 11 &amp; 31, <code>${hcadExcludedRange}/yr</code>) and screens out <code>40-88</code> pool/spa removals, <code>19-43</code> partial/addition demos, and <code>91-203</code> detached garage/shed demos per year to yield <strong>Net Countywide Full Main-Building Teardowns</strong> (${hcadNetTop3}).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-bench-grid" data-bench-pane="policy" style="display:${isPolicyActive ? "grid" : "none"};">
+        <div class="demo-bench-box">
+          <h4>1. Standing Buildings in Houston by Age Threshold &amp; Unprotected Share</h4>
+          <p class="sub"><strong>Dataset Baseline:</strong> <code>${fmt(pb.total_dated_footprints)}</code> dated standing building footprints across <code>${fmt(pb.total_improved_cama_accounts)}</code> improved HCAD accounts in the City of Houston (Jurisdiction 061).</p>
+          <table class="demo-bench-table">
+            <thead>
+              <tr>
+                <th>Age Cohort</th>
+                <th>Standing Structures</th>
+                <th>% Dated Footprints</th>
+                <th>% Improved Parcels</th>
+                <th>In COH Historic Dist.</th>
+                <th>COH Landmarks</th>
+                <th>Unprotected Today</th>
+                <th>% Unprotected</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${standingRows
+                .map(
+                  (r) => `
+                <tr>
+                  <td><strong>${escHtml(r.label)}</strong></td>
+                  <td><strong>${fmt(r.standing_count)}</strong></td>
+                  <td>${escHtml(r.share_of_dated_pct)}%</td>
+                  <td>${escHtml(r.share_of_all_cama_pct)}%</td>
+                  <td>${fmt(r.coh_hd_count)}</td>
+                  <td>${fmt(r.coh_lm_count)}</td>
+                  <td><strong>${fmt(r.unprotected_count)}</strong></td>
+                  <td style="color:var(--t1);font-weight:700">${escHtml(r.unprotected_pct)}%</td>
+                </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+
+          <h4 style="margin-top:12px">3. Local Historic Designation Coverage by Parcels &amp; Land Area (Excluding Heritage Districts)</h4>
+          <p class="sub"><strong>Scope Note:</strong> ${escHtml(desig.heritage_district_exclusion_note)} Baseline: <code>${fmt(desig.coh_total_parcels)}</code> total COH parcels (<code>${fmt(desig.coh_improved_parcels)}</code> improved), <code>${fmt(desig.coh_parcel_land_acres)}</code> parcel acres (<code>${escHtml(desig.coh_parcel_land_sq_mi)}</code> sq mi), <code>${fmt(desig.coh_municipal_boundary_acres)}</code> municipal boundary acres (<code>${escHtml(desig.coh_municipal_boundary_sq_mi)}</code> sq mi).</p>
+          <table class="demo-bench-table">
+            <thead>
+              <tr>
+                <th>Designation Category</th>
+                <th>Unique Parcels</th>
+                <th>% All Parcels</th>
+                <th>% Improved Parcels</th>
+                <th>Parcel Land Acres</th>
+                <th>% Parcel Area</th>
+                <th>% City Boundary</th>
+                <th style="text-align:left">Protection Strength</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${desigRows
+                .map(
+                  (r) => `
+                <tr>
+                  <td><strong>${escHtml(r.category)}</strong></td>
+                  <td><strong>${fmt(r.unique_parcels)}</strong></td>
+                  <td>${escHtml(r.pct_all_parcels)}%</td>
+                  <td>${escHtml(r.pct_improved_parcels)}%</td>
+                  <td>${fmt(r.parcel_acres)} ac${r.polygon_acres ? ` (${fmt(r.polygon_acres)} poly ac)` : ""}</td>
+                  <td>${escHtml(r.pct_parcel_area)}%</td>
+                  <td>${escHtml(r.pct_city_boundary_area)}%</td>
+                  <td style="text-align:left;white-space:normal;font-size:11px;color:#3C4750">${escHtml(r.protection_strength)}</td>
+                </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="demo-bench-box">
+          <h4>2. Annual Demolitions by Building Age &amp; Staff Review Caseload (2020 - ${escHtml(pb.data_tax_year || 2026)} YTD)</h4>
+          <p class="sub">Shows both <strong>Direct Recorded Pre-Demo Year</strong> (lower bound) and <strong>Including Historic Subdivision Median Age</strong> (upper bound for rebuilt townhome lots where HCAD overwrote <code>yr_impr</code>).</p>
+          <table class="demo-bench-table">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Total Demos</th>
+                <th>50+ Yrs (Direct / Subdiv)</th>
+                <th>50+ Yrs %</th>
+                <th>75+ Yrs (Direct / Subdiv)</th>
+                <th>Pre-1940 (Direct / Subdiv)</th>
+                <th>100+ Yrs (Direct / Subdiv)</th>
+                <th>100+ Yrs %</th>
+                <th>Pre-1900</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${demoYears
+                .map(
+                  (y) => `
+                <tr>
+                  <td><strong>${escHtml(y.year)}${y.is_ytd ? " YTD" : ""}</strong></td>
+                  <td><strong>${fmt(y.total_demos)}</strong></td>
+                  <td>${fmt(y.age_50plus_direct)} / ${fmt(y.age_50plus_best)}</td>
+                  <td>${escHtml(y.age_50plus_direct_pct)}%-${escHtml(y.age_50plus_best_pct)}%</td>
+                  <td>${fmt(y.age_75plus_direct)} / ${fmt(y.age_75plus_best)}</td>
+                  <td>${fmt(y.age_pre1940_direct)} / ${fmt(y.age_pre1940_best)}</td>
+                  <td style="color:var(--t1);font-weight:700">${fmt(y.age_100plus_direct)} / ${fmt(y.age_100plus_best)}</td>
+                  <td>${escHtml(y.age_100plus_direct_pct)}%-${escHtml(y.age_100plus_best_pct)}%</td>
+                  <td>${fmt(y.age_pre1900_direct)}-${fmt(y.age_pre1900_best)}</td>
+                </tr>`
+                )
+                .join("")}
+              <tr style="background:#F1F5F9;font-weight:700">
+                <td>${escHtml(demoAvg.period_label || "2020-2025 Full-Yr Avg")}</td>
+                <td>${fmt(demoAvg.total_demos)}/yr</td>
+                <td>${fmt(demoAvg.age_50plus_direct)}-${fmt(demoAvg.age_50plus_best)}/yr (${escHtml(demoAvg.age_50plus_weekly_direct)}-${escHtml(demoAvg.age_50plus_weekly_best)}/wk)</td>
+                <td>${escHtml(demoAvg.age_50plus_direct_pct)}%-${escHtml(demoAvg.age_50plus_best_pct)}%</td>
+                <td>${fmt(demoAvg.age_75plus_direct)}-${fmt(demoAvg.age_75plus_best)}/yr</td>
+                <td>${fmt(demoAvg.age_pre1940_direct)}-${fmt(demoAvg.age_pre1940_best)}/yr</td>
+                <td>${fmt(demoAvg.age_100plus_direct)}-${fmt(demoAvg.age_100plus_best)}/yr (${escHtml(demoAvg.age_100plus_weekly_direct)}-${escHtml(demoAvg.age_100plus_weekly_best)}/wk)</td>
+                <td>${escHtml(demoAvg.age_100plus_direct_pct)}%-${escHtml(demoAvg.age_100plus_best_pct)}%</td>
+                <td>${escHtml(demoAvg.age_pre1900_direct)}-${escHtml(demoAvg.age_pre1900_best)}/yr</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4 style="margin-top:12px">4. Premature Demolition &amp; Speculative Land Clearing (Permit Sequence &amp; Vacant Lot Persistence)</h4>
+          <table class="demo-bench-table">
+            <thead>
+              <tr>
+                <th>Demolished Building Cohort</th>
+                <th>Total Demos</th>
+                <th>New-Build Permit BEFORE/Same-Day</th>
+                <th>Demo Permit BEFORE New-Build Permit</th>
+                <th>No New-Build Permit Recorded</th>
+                <th>2020-2024 Teardowns Still Vacant ($0 Impr) in 2026</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${specRows
+                .map(
+                  (r) => `
+                <tr>
+                  <td><strong>${escHtml(r.cohort)}</strong></td>
+                  <td>${fmt(r.total_demos)}</td>
+                  <td>${fmt(r.nb_before_or_same_day_count)} (${escHtml(r.nb_before_or_same_day_pct)}%)</td>
+                  <td style="color:var(--t1);font-weight:700">${fmt(r.demo_before_nb_count)} (${escHtml(r.demo_before_nb_pct)}%)</td>
+                  <td>${fmt(r.no_nb_permit_recorded_count)} (${escHtml(r.no_nb_permit_recorded_pct)}%)</td>
+                  <td style="color:var(--t1);font-weight:700">${fmt(r.still_vacant_2026_count)} / ${fmt(r.demos_2020_2024_total)} (${escHtml(r.still_vacant_2026_pct)}%)</td>
+                </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>`;
   }
 
   return `
-      <div class="pw-bench-tables-grid">
-        <div class="pw-bench-table-card">
-          <div class="pw-bench-table-title">1. City of Houston Permitting Center (Structural Building Demolitions, 2024 - 2026 YTD)</div>
-          <div class="pw-bench-table-sub"><strong>Source Citation:</strong> <em>City of Houston, Houston Public Works, Building Code Enforcement - Sold Permits Database</em> (Permit Type SD Standard Demolition + Permit Type 4D Dangerous Building Demolition). Filtering strictly to SD &amp; 4D already excludes Permit Type 13 (<code>BUILDING PMT</code>) interior remodel, rear-addition removal, and standard pool fill-in permits (${cohExcludedInline}).</div>
-          <div class="pw-bench-table-scroll">
-            <table class="pw-bench-table">
-              <thead>
-                <tr>
-                  <th>Period</th>
-                  <th>Total (SD+4D)</th>
-                  <th>Net Main-Bldg Teardowns</th>
-                  <th>Unique Addrs</th>
-                  <th>Std (SD)</th>
-                  <th>Dgr Bldg (4D)</th>
-                  <th>Res (1-2 Fam)</th>
-                  <th>Comm / Multi</th>
-                  <th>Garage / Acc</th>
-                  <th>Pool / Canopy Only</th>
-                  <th>Historic Index (Pre-1940)</th>
-                  <th>Sewer Discs</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${cohRows
-                  .map(
-                    (r) => `
+      <div class="pw-bench-tabs-wrap" data-bench-tabs-root="modal">
+        <div class="pw-bench-tab-bar" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(148,163,184,0.25);">
+          <div role="tablist" aria-label="Demolition benchmark views" style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button type="button" role="tab" data-bench-tab="volume" aria-selected="${!isPolicyActive}" style="padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid ${!isPolicyActive ? "#38BDF8" : "rgba(148,163,184,0.35)"};background:${!isPolicyActive ? "rgba(56,189,248,0.18)" : "rgba(15,23,42,0.5)"};color:${!isPolicyActive ? "#E0F2FE" : "#CBD5E1"};">📊 Annual Permit Volume (2020-2026)</button>
+            <button type="button" role="tab" data-bench-tab="policy" aria-selected="${isPolicyActive}" style="padding:5px 12px;border-radius:999px;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid ${isPolicyActive ? "#38BDF8" : "rgba(148,163,184,0.35)"};background:${isPolicyActive ? "rgba(56,189,248,0.18)" : "rgba(15,23,42,0.5)"};color:${isPolicyActive ? "#E0F2FE" : "#CBD5E1"};">🏛️ Ordinance &amp; Age-Threshold Impact Brief (4 Policy Tables)</button>
+          </div>
+          <button type="button" data-copy-policy-brief-gmail="1" style="padding:5px 11px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;border:1px solid rgba(56,189,248,0.5);background:rgba(14,116,144,0.35);color:#E0F2FE;" title="Copy all 4 Ordinance & Age-Threshold Policy Tables as rich HTML for pasting directly into Gmail">📋 Copy Rich Policy Tables (Gmail)</button>
+        </div>
+
+        <div class="pw-bench-tables-grid" data-bench-pane="volume" style="display:${!isPolicyActive ? "grid" : "none"};">
+          <div class="pw-bench-table-card">
+            <div class="pw-bench-table-title">1. City of Houston Permitting Center (Structural Building Demolitions, 2024 - 2026 YTD)</div>
+            <div class="pw-bench-table-sub"><strong>Source Citation:</strong> <em>City of Houston, Houston Public Works, Building Code Enforcement - Sold Permits Database</em> (Permit Type SD Standard Demolition + Permit Type 4D Dangerous Building Demolition). Filtering strictly to SD &amp; 4D already excludes Permit Type 13 (<code>BUILDING PMT</code>) interior remodel, rear-addition removal, and standard pool fill-in permits (${cohExcludedInline}).</div>
+            <div class="pw-bench-table-scroll">
+              <table class="pw-bench-table">
+                <thead>
                   <tr>
-                    <td><strong>${escHtml(r.period)}</strong> <span class="pw-bench-range">(${escHtml(r.date_range)})</span></td>
-                    <td class="mono"><strong>${fmt(r.total_permits)}</strong></td>
-                    <td class="mono" style="color:#FCA5A5;font-weight:700;">${fmt(r.net_main_bldg_teardowns)}</td>
-                    <td class="mono">${fmt(r.unique_addresses)}</td>
-                    <td class="mono">${fmt(r.standard_demo_sd)}</td>
-                    <td class="mono">${fmt(r.dangerous_bldg_4d)}</td>
-                    <td class="mono">${fmt(r.residential_1_2_fam)}</td>
-                    <td class="mono">${fmt(r.commercial_multifam)}</td>
-                    <td class="mono">${fmt(r.garage_accessory)}</td>
-                    <td class="mono">${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.canopy_porch_partial ?? 0)} canopy</td>
-                    <td class="mono">${fmt(r.historic_index_matched)} (${fmt(r.pre_1940_matched)})</td>
-                    <td class="mono">${fmt(r.sewer_disconnect_permits)}</td>
-                  </tr>`
-                  )
-                  .join("")}
-              </tbody>
-            </table>
+                    <th>Period</th>
+                    <th>Total (SD+4D)</th>
+                    <th>Net Main-Bldg Teardowns</th>
+                    <th>Unique Addrs</th>
+                    <th>Std (SD)</th>
+                    <th>Dgr Bldg (4D)</th>
+                    <th>Res (1-2 Fam)</th>
+                    <th>Comm / Multi</th>
+                    <th>Garage / Acc</th>
+                    <th>Pool / Canopy Only</th>
+                    <th>Historic Index (Pre-1940)</th>
+                    <th>Sewer Discs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cohRows
+                    .map(
+                      (r) => `
+                    <tr>
+                      <td><strong>${escHtml(r.period)}</strong> <span class="pw-bench-range">(${escHtml(r.date_range)})</span></td>
+                      <td class="mono"><strong>${fmt(r.total_permits)}</strong></td>
+                      <td class="mono" style="color:#FCA5A5;font-weight:700;">${fmt(r.net_main_bldg_teardowns)}</td>
+                      <td class="mono">${fmt(r.unique_addresses)}</td>
+                      <td class="mono">${fmt(r.standard_demo_sd)}</td>
+                      <td class="mono">${fmt(r.dangerous_bldg_4d)}</td>
+                      <td class="mono">${fmt(r.residential_1_2_fam)}</td>
+                      <td class="mono">${fmt(r.commercial_multifam)}</td>
+                      <td class="mono">${fmt(r.garage_accessory)}</td>
+                      <td class="mono">${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.canopy_porch_partial ?? 0)} canopy</td>
+                      <td class="mono">${fmt(r.historic_index_matched)} (${fmt(r.pre_1940_matched)})</td>
+                      <td class="mono">${fmt(r.sewer_disconnect_permits)}</td>
+                    </tr>`
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pw-bench-table-title" style="margin-top:12px;">3. HAHC Demolition &amp; Relocation COA Decisions in Designated Historic Districts (2024 - 2026 YTD)</div>
+            <div class="pw-bench-table-scroll">
+              <table class="pw-bench-table">
+                <thead>
+                  <tr>
+                    <th>Period</th>
+                    <th>Total COAs</th>
+                    <th>Demo / Reloc COAs</th>
+                    <th>Main Res Approved</th>
+                    <th>Main Res Denied</th>
+                    <th>Accessory / Partial Approved</th>
+                    <th style="text-align:left;">Outcome Breakdown</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${hahcRows
+                    .map(
+                      (r) => `
+                    <tr>
+                      <td><strong>${escHtml(r.period)}</strong></td>
+                      <td class="mono">${fmt(r.total_coa_filings)}</td>
+                      <td class="mono"><strong>${fmt(r.demo_reloc_filings)}</strong></td>
+                      <td class="mono" style="color:${r.main_res_approved === 0 ? "#6EE7B7" : "#FCA5A5"};font-weight:700;">${fmt(r.main_res_approved)}</td>
+                      <td class="mono" style="font-weight:700;">${fmt(r.main_res_denied)}</td>
+                      <td class="mono">${fmt(r.accessory_or_partial_approved)}</td>
+                      <td style="text-align:left;white-space:normal;min-width:210px;color:#CBD5E1;font-size:11px;">${escHtml(r.summary_note)}</td>
+                    </tr>`
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div class="pw-bench-table-title" style="margin-top:12px;">3. HAHC Demolition &amp; Relocation COA Decisions in Designated Historic Districts (2024 - 2026 YTD)</div>
-          <div class="pw-bench-table-scroll">
-            <table class="pw-bench-table">
-              <thead>
-                <tr>
-                  <th>Period</th>
-                  <th>Total COAs</th>
-                  <th>Demo / Reloc COAs</th>
-                  <th>Main Res Approved</th>
-                  <th>Main Res Denied</th>
-                  <th>Accessory / Partial Approved</th>
-                  <th style="text-align:left;">Outcome Breakdown</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${hahcRows
-                  .map(
-                    (r) => `
+          <div class="pw-bench-table-card">
+            <div class="pw-bench-table-title">2. HCAD Countywide Permit Roll (All of Harris County, 2020 - 2025 Calendar Years)</div>
+            <div class="pw-bench-table-sub"><strong>Source Citation:</strong> <em>Harris County Appraisal District (HCAD) Real Property CAMA Permit Roll</em> (<code>Real_acct_owner.zip -&gt; permits.txt</code>, Types 13 Residential Demo, 33 Commercial Demo &amp; 43 General Demo; excludes Types 11 &amp; 31 Remodel/Addition permits). Because HCAD appraisers log taxable extra-feature removals under codes 13/33, <strong>Net Main-Bldg Teardowns</strong> screens out pool/spa, partial/addition, and detached garage/shed descriptions. Note: HCAD batch-loads current-year City of Houston (061) permits during winter roll prep; use Table 1 for 2026 YTD.</div>
+            <div class="pw-bench-table-scroll">
+              <table class="pw-bench-table">
+                <thead>
                   <tr>
-                    <td><strong>${escHtml(r.period)}</strong></td>
-                    <td class="mono">${fmt(r.total_coa_filings)}</td>
-                    <td class="mono"><strong>${fmt(r.demo_reloc_filings)}</strong></td>
-                    <td class="mono" style="color:${r.main_res_approved === 0 ? "#6EE7B7" : "#FCA5A5"};font-weight:700;">${fmt(r.main_res_approved)}</td>
-                    <td class="mono" style="font-weight:700;">${fmt(r.main_res_denied)}</td>
-                    <td class="mono">${fmt(r.accessory_or_partial_approved)}</td>
-                    <td style="text-align:left;white-space:normal;min-width:210px;color:#CBD5E1;font-size:11px;">${escHtml(r.summary_note)}</td>
-                  </tr>`
-                  )
-                  .join("")}
-              </tbody>
-            </table>
+                    <th>Year</th>
+                    <th>Raw Total (13/33/43)</th>
+                    <th>Net Main-Bldg Teardowns</th>
+                    <th>Unique Parcels</th>
+                    <th>Res Demo (13)</th>
+                    <th>Comm Demo (33)</th>
+                    <th>Gen Demo (43)</th>
+                    <th>Garages / Pools / Partial</th>
+                    <th>City of Houston (061)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${hcadRows
+                    .map(
+                      (r) => `
+                    <tr>
+                      <td><strong>${escHtml(r.year)}</strong></td>
+                      <td class="mono"><strong>${fmt(r.total_permits)}</strong></td>
+                      <td class="mono" style="color:#FCA5A5;font-weight:700;">${fmt(r.net_main_bldg_teardowns)}</td>
+                      <td class="mono">${fmt(r.unique_parcels)}</td>
+                      <td class="mono">${fmt(r.residential_type_13)}</td>
+                      <td class="mono">${fmt(r.commercial_type_33)}</td>
+                      <td class="mono">${fmt(r.general_type_43)}</td>
+                      <td class="mono" style="font-size:11px;color:#CBD5E1;">${fmt(r.garage_accessory ?? 0)} gar / ${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.partial_addition_interior ?? 0)} part</td>
+                      <td class="mono">${fmt(r.coh_agency_061)}</td>
+                    </tr>`
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-top:10px;padding:8px 10px;background:rgba(15,23,42,0.55);border:1px solid rgba(148,163,184,0.22);border-radius:6px;font-size:11px;line-height:1.45;color:#CBD5E1;">
+              <strong>Screening Methodology (Pools, Partial Remodels &amp; Garages):</strong>
+              <div style="margin-top:3px;">• <strong>City of Houston (Table 1):</strong> Interior gut/remodels, rear-addition removals for remodels, and standard pool fill-ins are issued under <strong>Building Permits (Type 13)</strong> rather than Demolition Permits (SD/4D), so <code>${cohExcludedRange}</code> remodel/pool permits/yr are already excluded. Separating detached garages/sheds (<code>118-210/yr</code>) and sewer-connected pools/canopies (<code>3-15/yr</code>) yields <strong>Net Full Main-Building Teardowns</strong> (${cohNetSeries}).</div>
+              <div style="margin-top:3px;">• <strong>HCAD Countywide (Table 2):</strong> Excludes Remodel/Addition codes (Types 11 &amp; 31, <code>${hcadExcludedRange}/yr</code>) and screens out <code>40-88</code> pool/spa removals, <code>19-43</code> partial/addition demos, and <code>91-203</code> detached garage/shed demos/yr to yield <strong>Net Countywide Full Main-Building Teardowns</strong> (${hcadNetTop3}).</div>
+            </div>
           </div>
         </div>
 
-        <div class="pw-bench-table-card">
-          <div class="pw-bench-table-title">2. HCAD Countywide Permit Roll (All of Harris County, 2020 - 2025 Calendar Years)</div>
-          <div class="pw-bench-table-sub"><strong>Source Citation:</strong> <em>Harris County Appraisal District (HCAD) Real Property CAMA Permit Roll</em> (<code>Real_acct_owner.zip -&gt; permits.txt</code>, Types 13 Residential Demo, 33 Commercial Demo &amp; 43 General Demo; excludes Types 11 &amp; 31 Remodel/Addition permits). Because HCAD appraisers log taxable extra-feature removals under codes 13/33, <strong>Net Main-Bldg Teardowns</strong> screens out pool/spa, partial/addition, and detached garage/shed descriptions. Note: HCAD batch-loads current-year City of Houston (061) permits during winter roll prep; use Table 1 for 2026 YTD.</div>
-          <div class="pw-bench-table-scroll">
-            <table class="pw-bench-table">
-              <thead>
-                <tr>
-                  <th>Year</th>
-                  <th>Raw Total (13/33/43)</th>
-                  <th>Net Main-Bldg Teardowns</th>
-                  <th>Unique Parcels</th>
-                  <th>Res Demo (13)</th>
-                  <th>Comm Demo (33)</th>
-                  <th>Gen Demo (43)</th>
-                  <th>Garages / Pools / Partial</th>
-                  <th>City of Houston (061)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${hcadRows
-                  .map(
-                    (r) => `
+        <div class="pw-bench-tables-grid" data-bench-pane="policy" style="display:${isPolicyActive ? "grid" : "none"};">
+          <div class="pw-bench-table-card">
+            <div class="pw-bench-table-title">1. Standing Buildings in Houston by Age Threshold &amp; Unprotected Share</div>
+            <div class="pw-bench-table-sub"><strong>Dataset Baseline:</strong> <code>${fmt(pb.total_dated_footprints)}</code> dated standing building footprints across <code>${fmt(pb.total_improved_cama_accounts)}</code> improved HCAD real property accounts in the City of Houston (Jurisdiction 061).</div>
+            <div class="pw-bench-table-scroll">
+              <table class="pw-bench-table">
+                <thead>
                   <tr>
-                    <td><strong>${escHtml(r.year)}</strong></td>
-                    <td class="mono"><strong>${fmt(r.total_permits)}</strong></td>
-                    <td class="mono" style="color:#FCA5A5;font-weight:700;">${fmt(r.net_main_bldg_teardowns)}</td>
-                    <td class="mono">${fmt(r.unique_parcels)}</td>
-                    <td class="mono">${fmt(r.residential_type_13)}</td>
-                    <td class="mono">${fmt(r.commercial_type_33)}</td>
-                    <td class="mono">${fmt(r.general_type_43)}</td>
-                    <td class="mono" style="font-size:11px;color:#CBD5E1;">${fmt(r.garage_accessory ?? 0)} gar / ${fmt(r.pool_spa_only ?? 0)} pool / ${fmt(r.partial_addition_interior ?? 0)} part</td>
-                    <td class="mono">${fmt(r.coh_agency_061)}</td>
-                  </tr>`
-                  )
-                  .join("")}
-              </tbody>
-            </table>
+                    <th>Age Cohort</th>
+                    <th>Standing Structures</th>
+                    <th>% Dated Footprints</th>
+                    <th>% Improved Parcels</th>
+                    <th>In COH Historic Dist.</th>
+                    <th>COH Landmarks</th>
+                    <th>Unprotected Today</th>
+                    <th>% Unprotected</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${standingRows
+                    .map(
+                      (r) => `
+                    <tr>
+                      <td><strong>${escHtml(r.label)}</strong></td>
+                      <td class="mono"><strong>${fmt(r.standing_count)}</strong></td>
+                      <td class="mono">${escHtml(r.share_of_dated_pct)}%</td>
+                      <td class="mono">${escHtml(r.share_of_all_cama_pct)}%</td>
+                      <td class="mono">${fmt(r.coh_hd_count)}</td>
+                      <td class="mono">${fmt(r.coh_lm_count)}</td>
+                      <td class="mono"><strong>${fmt(r.unprotected_count)}</strong></td>
+                      <td class="mono" style="color:#FCA5A5;font-weight:700;">${escHtml(r.unprotected_pct)}%</td>
+                    </tr>`
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pw-bench-table-title" style="margin-top:12px;">3. Local Historic Designation Coverage by Parcels &amp; Land Area (Excluding Heritage Districts)</div>
+            <div class="pw-bench-table-sub"><strong>Scope Note:</strong> ${escHtml(desig.heritage_district_exclusion_note)} Baseline: <code>${fmt(desig.coh_total_parcels)}</code> total COH parcels (<code>${fmt(desig.coh_improved_parcels)}</code> improved), <code>${fmt(desig.coh_parcel_land_acres)}</code> parcel acres (<code>${escHtml(desig.coh_parcel_land_sq_mi)}</code> sq mi), <code>${fmt(desig.coh_municipal_boundary_acres)}</code> city boundary acres (<code>${escHtml(desig.coh_municipal_boundary_sq_mi)}</code> sq mi).</div>
+            <div class="pw-bench-table-scroll">
+              <table class="pw-bench-table">
+                <thead>
+                  <tr>
+                    <th>Designation Category</th>
+                    <th>Unique Parcels</th>
+                    <th>% All Parcels</th>
+                    <th>% Improved Parcels</th>
+                    <th>Parcel Land Acres</th>
+                    <th>% Parcel Area</th>
+                    <th>% City Boundary</th>
+                    <th style="text-align:left;">Protection Strength</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${desigRows
+                    .map(
+                      (r) => `
+                    <tr>
+                      <td><strong>${escHtml(r.category)}</strong></td>
+                      <td class="mono"><strong>${fmt(r.unique_parcels)}</strong></td>
+                      <td class="mono">${escHtml(r.pct_all_parcels)}%</td>
+                      <td class="mono">${escHtml(r.pct_improved_parcels)}%</td>
+                      <td class="mono">${fmt(r.parcel_acres)} ac${r.polygon_acres ? ` (${fmt(r.polygon_acres)} poly ac)` : ""}</td>
+                      <td class="mono">${escHtml(r.pct_parcel_area)}%</td>
+                      <td class="mono">${escHtml(r.pct_city_boundary_area)}%</td>
+                      <td style="text-align:left;white-space:normal;min-width:190px;color:#CBD5E1;font-size:11px;">${escHtml(r.protection_strength)}</td>
+                    </tr>`
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div style="margin-top:10px;padding:8px 10px;background:rgba(15,23,42,0.55);border:1px solid rgba(148,163,184,0.22);border-radius:6px;font-size:11px;line-height:1.45;color:#CBD5E1;">
-            <strong>Screening Methodology (Pools, Partial Remodels &amp; Garages):</strong>
-            <div style="margin-top:3px;">• <strong>City of Houston (Table 1):</strong> Interior gut/remodels, rear-addition removals for remodels, and standard pool fill-ins are issued under <strong>Building Permits (Type 13)</strong> rather than Demolition Permits (SD/4D), so <code>${cohExcludedRange}</code> remodel/pool permits/yr are already excluded. Separating detached garages/sheds (<code>118-210/yr</code>) and sewer-connected pools/canopies (<code>3-15/yr</code>) yields <strong>Net Full Main-Building Teardowns</strong> (${cohNetSeries}).</div>
-            <div style="margin-top:3px;">• <strong>HCAD Countywide (Table 2):</strong> Excludes Remodel/Addition codes (Types 11 &amp; 31, <code>${hcadExcludedRange}/yr</code>) and screens out <code>40-88</code> pool/spa removals, <code>19-43</code> partial/addition demos, and <code>91-203</code> detached garage/shed demos/yr to yield <strong>Net Countywide Full Main-Building Teardowns</strong> (${hcadNetTop3}).</div>
+
+          <div class="pw-bench-table-card">
+            <div class="pw-bench-table-title">2. Annual Demolitions by Building Age &amp; Staff Review Caseload (2020 - ${escHtml(pb.data_tax_year || 2026)} YTD)</div>
+            <div class="pw-bench-table-sub">Shows both <strong>Direct Recorded Pre-Demo Year</strong> (lower bound) and <strong>Including Historic Subdivision Median Age</strong> (upper bound for rebuilt townhome lots where HCAD overwrote <code>yr_impr</code>).</div>
+            <div class="pw-bench-table-scroll">
+              <table class="pw-bench-table">
+                <thead>
+                  <tr>
+                    <th>Year</th>
+                    <th>Total Demos</th>
+                    <th>50+ Yrs (Direct / Subdiv)</th>
+                    <th>50+ Yrs %</th>
+                    <th>75+ Yrs (Direct / Subdiv)</th>
+                    <th>Pre-1940 (Direct / Subdiv)</th>
+                    <th>100+ Yrs (Direct / Subdiv)</th>
+                    <th>100+ Yrs %</th>
+                    <th>Pre-1900</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${demoYears
+                    .map(
+                      (y) => `
+                    <tr>
+                      <td><strong>${escHtml(y.year)}${y.is_ytd ? " YTD" : ""}</strong></td>
+                      <td class="mono"><strong>${fmt(y.total_demos)}</strong></td>
+                      <td class="mono">${fmt(y.age_50plus_direct)} / ${fmt(y.age_50plus_best)}</td>
+                      <td class="mono">${escHtml(y.age_50plus_direct_pct)}%-${escHtml(y.age_50plus_best_pct)}%</td>
+                      <td class="mono">${fmt(y.age_75plus_direct)} / ${fmt(y.age_75plus_best)}</td>
+                      <td class="mono">${fmt(y.age_pre1940_direct)} / ${fmt(y.age_pre1940_best)}</td>
+                      <td class="mono" style="color:#FCA5A5;font-weight:700;">${fmt(y.age_100plus_direct)} / ${fmt(y.age_100plus_best)}</td>
+                      <td class="mono">${escHtml(y.age_100plus_direct_pct)}%-${escHtml(y.age_100plus_best_pct)}%</td>
+                      <td class="mono">${fmt(y.age_pre1900_direct)}-${fmt(y.age_pre1900_best)}</td>
+                    </tr>`
+                    )
+                    .join("")}
+                  <tr style="background:rgba(56,189,248,0.12);font-weight:700;">
+                    <td><strong>${escHtml(demoAvg.period_label || "2020-2025 Full-Yr Avg")}</strong></td>
+                    <td class="mono">${fmt(demoAvg.total_demos)}/yr</td>
+                    <td class="mono">${fmt(demoAvg.age_50plus_direct)}-${fmt(demoAvg.age_50plus_best)}/yr (${escHtml(demoAvg.age_50plus_weekly_direct)}-${escHtml(demoAvg.age_50plus_weekly_best)}/wk)</td>
+                    <td class="mono">${escHtml(demoAvg.age_50plus_direct_pct)}%-${escHtml(demoAvg.age_50plus_best_pct)}%</td>
+                    <td class="mono">${fmt(demoAvg.age_75plus_direct)}-${fmt(demoAvg.age_75plus_best)}/yr</td>
+                    <td class="mono">${fmt(demoAvg.age_pre1940_direct)}-${fmt(demoAvg.age_pre1940_best)}/yr</td>
+                    <td class="mono" style="color:#FCA5A5;">${fmt(demoAvg.age_100plus_direct)}-${fmt(demoAvg.age_100plus_best)}/yr (${escHtml(demoAvg.age_100plus_weekly_direct)}-${escHtml(demoAvg.age_100plus_weekly_best)}/wk)</td>
+                    <td class="mono">${escHtml(demoAvg.age_100plus_direct_pct)}%-${escHtml(demoAvg.age_100plus_best_pct)}%</td>
+                    <td class="mono">${escHtml(demoAvg.age_pre1900_direct)}-${escHtml(demoAvg.age_pre1900_best)}/yr</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pw-bench-table-title" style="margin-top:12px;">4. Premature Demolition &amp; Speculative Land Clearing (Permit Sequence &amp; Vacant Lot Persistence)</div>
+            <div class="pw-bench-table-scroll">
+              <table class="pw-bench-table">
+                <thead>
+                  <tr>
+                    <th>Demolished Building Cohort</th>
+                    <th>Total Demos</th>
+                    <th>New-Build Permit BEFORE/Same-Day</th>
+                    <th>Demo Permit BEFORE New-Build Permit</th>
+                    <th>No New-Build Permit Recorded</th>
+                    <th>2020-2024 Teardowns Still Vacant ($0 Impr) in 2026</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${specRows
+                    .map(
+                      (r) => `
+                    <tr>
+                      <td><strong>${escHtml(r.cohort)}</strong></td>
+                      <td class="mono">${fmt(r.total_demos)}</td>
+                      <td class="mono">${fmt(r.nb_before_or_same_day_count)} (${escHtml(r.nb_before_or_same_day_pct)}%)</td>
+                      <td class="mono" style="color:#FCA5A5;font-weight:700;">${fmt(r.demo_before_nb_count)} (${escHtml(r.demo_before_nb_pct)}%)</td>
+                      <td class="mono">${fmt(r.no_nb_permit_recorded_count)} (${escHtml(r.no_nb_permit_recorded_pct)}%)</td>
+                      <td class="mono" style="color:#FCA5A5;font-weight:700;">${fmt(r.still_vacant_2026_count)} / ${fmt(r.demos_2020_2024_total)} (${escHtml(r.still_vacant_2026_pct)}%)</td>
+                    </tr>`
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

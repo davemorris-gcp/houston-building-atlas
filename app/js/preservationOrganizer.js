@@ -766,13 +766,36 @@ export function decodeScorecardRecord(raw, meta = {}) {
     (meta?.demo_latest_year_is_ytd ?? meta?.demo_latest_is_ytd ?? meta?.demo_2026_is_ytd) !==
     false;
 
+  const rawDh = Array.isArray(raw["dh"]) ? raw["dh"] : [];
+  const decadeHistogram = decadeBins.map((decade, idx) => ({
+    decade,
+    count: Number(rawDh[idx]) || 0,
+  }));
+  const histPre1900Sum = decadeHistogram
+    .filter((d) => d.decade < 1900)
+    .reduce((acc, d) => acc + d.count, 0);
+
   const buildingCount = Number(raw["bc"]) || 0;
+  const pre1900Count =
+    raw["p00"] !== undefined ? Number(raw["p00"]) || 0 : histPre1900Sum;
   const pre1920Count = Number(raw["p20"]) || 0;
+  const age100PlusCount =
+    raw["p26"] !== undefined ? Number(raw["p26"]) || 0 : pre1920Count;
   const pre1940Count = Number(raw["p40"]) || 0;
   const pre1960Count = Number(raw["p60"]) || 0;
+  const hist1940sCount = decadeHistogram.find((d) => d.decade === 1940)?.count || 0;
+  const age75PlusCount =
+    raw["p50"] !== undefined
+      ? Number(raw["p50"]) || 0
+      : Math.min(pre1960Count || buildingCount, pre1940Count + hist1940sCount);
   const pre1975Count = Number(raw["p75"]) || 0;
+  const age50PlusCount =
+    raw["p76"] !== undefined ? Number(raw["p76"]) || 0 : pre1975Count;
   const post2020InfillCount = Number(raw["n20"]) || 0;
   const cohDistrictProtectedBuildings = Math.min(buildingCount, Number(raw["hdp"]) || 0);
+  const landmarkCount = Number(raw["lm"]) || 0;
+  const protectedLandmarkCount = Number(raw["plm"]) || 0;
+  const waiverLandmarkCount = Number(raw["vlm"]) || 0;
 
   const parcelCount = Number(raw["pc"]) || 0;
   const residentialParcelCount = Math.min(parcelCount, Number(raw["rpc"]) || 0);
@@ -787,18 +810,21 @@ export function decodeScorecardRecord(raw, meta = {}) {
   const smblProtectedCount = Math.min(residentialParcelCount, Number(raw["sbp"]) || 0);
   const expiringCh42ParcelCount = Math.min(ch42ProtectedCount, Number(raw["chx"]) || 0);
 
-  const rawDh = Array.isArray(raw["dh"]) ? raw["dh"] : [];
-  const decadeHistogram = decadeBins.map((decade, idx) => ({
-    decade,
-    count: Number(rawDh[idx]) || 0,
-  }));
-
   const rawDm = Array.isArray(raw["dm"]) ? raw["dm"] : [];
   const demolitionsByYear = demoYears.map((year, idx) => ({
     year,
     count: Number(rawDm[idx]) || 0,
     isYtd: year === lastDemoYr && demoLatestIsYtd,
   }));
+  const demolitionsTotal = Number(raw["dmt"]) || 0;
+  const demolitionsPre1940Count = Number(raw["dmp40"]) || 0;
+  const demolitions50PlusCount =
+    raw["dm50"] !== undefined ? Number(raw["dm50"]) || 0 : demolitionsPre1940Count;
+  const demolitions100PlusCount = Number(raw["dm26"]) || 0;
+  const demolitionsPre1900Count = Number(raw["dm00"]) || 0;
+  const demolitions2020To2024Count = Number(raw["dmt24"]) || 0;
+  const demolitionsVacant2026Count = Number(raw["dmv"]) || 0;
+  const demolitionsBeforeNewBuildCount = Number(raw["dbn"]) || 0;
 
   const rawExo = Array.isArray(raw["exo"]) ? raw["exo"] : [];
   const expiringOrdinances = rawExo.map((item) => ({
@@ -848,13 +874,24 @@ export function decodeScorecardRecord(raw, meta = {}) {
 
   const layer = String(raw["ly"] || "");
   const id = String(raw["id"] || "");
+  const defaultTypeByLayer = {
+    council_districts: "City of Houston Council District",
+    historic_districts: "City of Houston Historic District",
+    heritage_districts: "City of Houston Heritage District",
+    nrhp_districts: "National Register of Historic Places District",
+    potential_historic_districts: "Surveyed Potential Historic District",
+    super_neighborhoods: "Super Neighborhood",
+    holc_1937_zones: "1937 HOLC Redlining Zone",
+    neighborhoods: "Neighborhood",
+    platted_subdivisions: "Platted Subdivision (HCAD)",
+  };
 
   return {
     key: `${layer}:${id}`,
     id,
     layer,
     name: String(raw["nm"] || ""),
-    typeLabel: String(raw["tp"] || ""),
+    typeLabel: String(raw["tp"] || defaultTypeByLayer[layer] || ""),
     centerLng: Number(raw["cx"]) || 0,
     centerLat: Number(raw["cy"]) || 0,
     bbox: Array.isArray(raw["bb"]) ? raw["bb"].map(Number) : null,
@@ -862,18 +899,26 @@ export function decodeScorecardRecord(raw, meta = {}) {
     buildingCount,
     earliestYear: Number(raw["ey"]) || 0,
     medianYear: Number(raw["my"]) || 0,
+    pre1900Count,
     pre1920Count,
+    age100PlusCount,
     pre1940Count,
+    age75PlusCount,
     pre1960Count,
     pre1975Count,
+    age50PlusCount,
     post2020InfillCount,
+    pre1900Pct: clampPct(pre1900Count, buildingCount),
+    age100PlusPct: clampPct(age100PlusCount, buildingCount),
     pre1940Pct: clampPct(pre1940Count, buildingCount),
+    age75PlusPct: clampPct(age75PlusCount, buildingCount),
     pre1960Pct: clampPct(pre1960Count, buildingCount),
     pre1975Pct: clampPct(pre1975Count, buildingCount),
+    age50PlusPct: clampPct(age50PlusCount, buildingCount),
     decadeHistogram,
-    landmarkCount: Number(raw["lm"]) || 0,
-    protectedLandmarkCount: Number(raw["plm"]) || 0,
-    waiverLandmarkCount: Number(raw["vlm"]) || 0,
+    landmarkCount,
+    protectedLandmarkCount,
+    waiverLandmarkCount,
     goodBrickCount: Number(raw["gb"]) || 0,
     nrhpPropertyCount: Number(raw["nrp"]) || 0,
     lostHoustonCount: Number(raw["lhc"]) || 0,
@@ -909,15 +954,25 @@ export function decodeScorecardRecord(raw, meta = {}) {
     demolitionsByYear,
     demoEndYear: lastDemoYr,
     demoHasYtd: demoLatestIsYtd,
-    demolitionsTotal: Number(raw["dmt"]) || 0,
-    demolitionsTotal2020To2026: Number(raw["dmt"]) || 0,
-    demolitionsPre1940Count: Number(raw["dmp40"]) || 0,
+    demolitionsTotal,
+    demolitionsTotal2020To2026: demolitionsTotal,
+    demolitionsPre1940Count,
+    demolitions50PlusCount,
+    demolitions100PlusCount,
+    demolitionsPre1900Count,
+    demolitions2020To2024Count,
+    demolitionsVacant2026Count,
+    demolitionsVacant2026Pct: clampPct(demolitionsVacant2026Count, demolitions2020To2024Count),
+    demolitionsBeforeNewBuildCount,
+    demolitionsBeforeNewBuildPct: clampPct(demolitionsBeforeNewBuildCount, demolitionsTotal),
     superNeighborhood: String(raw["sn"] || ""),
     councilDistricts: String(raw["cd"] || ""),
     civicClub: String(raw["cc"] || ""),
     councilMemberMeta: raw["cm"] ? { ...raw["cm"] } : null,
     holcMeta: raw["hl"] ? { ...raw["hl"] } : null,
-    platMeta: raw["pl"] ? { ...raw["pl"] } : null,
+    platMeta: raw["pl"]
+      ? { ...raw["pl"], has_deed_docs: Boolean(raw["pl"].has_deed_docs) }
+      : null,
     alreadyDesignatedCohHd: Boolean(raw["ad"]),
   };
 }
@@ -966,6 +1021,85 @@ export async function loadNeighborhoodScorecards({
       byLayer.get(rec.layer).push(rec);
     }
 
+    const cdList = byLayer.get("council_districts") || [];
+    let citywideScorecard = payload?.citywide_scorecard
+      ? decodeScorecardRecord(payload.citywide_scorecard, payload)
+      : null;
+    if (!citywideScorecard && cdList.length > 0) {
+      const sumField = (fn) => cdList.reduce((acc, r) => acc + (Number(fn(r)) || 0), 0);
+      const decBins = Array.isArray(payload?.decade_bins) && payload.decade_bins.length > 0
+        ? payload.decade_bins
+        : [1860, 1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020];
+      const demYrs = Array.isArray(payload?.demo_years) && payload.demo_years.length > 0
+        ? payload.demo_years
+        : [2020, 2021, 2022, 2023, 2024, 2025, 2026];
+      citywideScorecard = decodeScorecardRecord(
+        {
+          id: "council_dist_coh_all",
+          ly: "council_districts",
+          nm: "City of Houston (All Districts A-K)",
+          tp: "Citywide Rollup (All 11 Council Districts)",
+          cx: -95.3698,
+          cy: 29.7604,
+          bb: [-95.90974, 29.52362, -95.0145, 30.11073],
+          ac: Number(sumField((r) => r.areaAcres).toFixed(2)),
+          bc: sumField((r) => r.buildingCount),
+          ey: Math.min(...cdList.map((r) => r.earliestYear || 9999).filter((y) => y < 9999), 1850),
+          my: 1968,
+          p00: sumField((r) => r.pre1900Count),
+          p20: sumField((r) => r.pre1920Count),
+          p26: sumField((r) => r.age100PlusCount),
+          p40: sumField((r) => r.pre1940Count),
+          p50: sumField((r) => r.age75PlusCount),
+          p60: sumField((r) => r.pre1960Count),
+          p75: sumField((r) => r.pre1975Count),
+          p76: sumField((r) => r.age50PlusCount),
+          n20: sumField((r) => r.post2020InfillCount),
+          dh: decBins.map((_, idx) => sumField((r) => r.decadeHistogram?.[idx]?.count)),
+          lm: sumField((r) => r.landmarkCount),
+          plm: sumField((r) => r.protectedLandmarkCount),
+          vlm: sumField((r) => r.waiverLandmarkCount),
+          gb: sumField((r) => r.goodBrickCount),
+          nrp: sumField((r) => r.nrhpPropertyCount),
+          lhc: sumField((r) => r.lostHoustonCount),
+          pc: sumField((r) => r.parcelCount),
+          rpc: sumField((r) => r.residentialParcelCount),
+          sfc: sumField((r) => r.singleFamilyParcelCount),
+          occ: sumField((r) => r.ownerOccupiedCount),
+          ftc: sumField((r) => r.familyTrustCount),
+          llc: sumField((r) => r.corporateLlcCount),
+          abs: sumField((r) => r.absenteeIndividualCount),
+          chp: sumField((r) => r.ch42ProtectedCount),
+          slp: sumField((r) => r.smlsProtectedCount),
+          sbp: sumField((r) => r.smblProtectedCount),
+          chx: sumField((r) => r.expiringCh42ParcelCount),
+          slo: sumField((r) => r.smlsOrdinanceCount),
+          sbo: sumField((r) => r.smblOrdinanceCount),
+          cdo: sumField((r) => r.conservationDistrictCount),
+          hdp: sumField((r) => r.cohDistrictProtectedBuildings),
+          dm: demYrs.map((_, idx) => sumField((r) => r.demolitionsByYear?.[idx]?.count)),
+          dmt: sumField((r) => r.demolitionsTotal),
+          dmp40: sumField((r) => r.demolitionsPre1940Count),
+          dm50: sumField((r) => r.demolitions50PlusCount),
+          dm26: sumField((r) => r.demolitions100PlusCount),
+          dm00: sumField((r) => r.demolitionsPre1900Count),
+          dmt24: sumField((r) => r.demolitions2020To2024Count),
+          dmv: sumField((r) => r.demolitionsVacant2026Count),
+          dbn: sumField((r) => r.demolitionsBeforeNewBuildCount),
+          cd: "A, B, C, D, E, F, G, H, I, J, K",
+          cm: {
+            letter: "A-K",
+            member: "All 11 District + 5 At-Large Council Members",
+            phone: "832-393-1100",
+            email: "citizensnet@houstontx.gov",
+            url: "https://www.houstontx.gov/council/",
+            term_expires: String(payload?.council_term_expires || "2028-01"),
+          },
+        },
+        payload
+      );
+    }
+
     const result = {
       schemaVersion: String(payload?.schema_version || "1.0"),
       generatedAt: String(payload?.generated_at || ""),
@@ -976,6 +1110,8 @@ export async function loadNeighborhoodScorecards({
       demo2026IsYtd: payload?.demo_2026_is_ytd !== false,
       familyCounts: payload?.family_counts || {},
       councilRoster: payload?.council_roster || {},
+      citywideScorecard,
+      citywidePolicyBrief: payload?.citywide_policy_brief || null,
       records,
       byKey,
       byLayer,
@@ -3290,10 +3426,12 @@ export function renderBoundaryInlineScorecardHtml(scorecard, liveThreats = null)
         <div class="scorecard-kpi-cell">
           <div class="scorecard-kpi-val">${fmtInt(scorecard.pre1940Count)} <span class="scorecard-kpi-pct">(${scorecard.pre1940Pct}%)</span></div>
           <div class="scorecard-kpi-lbl">Pre-1940 Buildings (of ${fmtInt(scorecard.buildingCount)})</div>
+          <div class="scorecard-kpi-sub" style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px">50+ yr: <strong>${fmtInt(scorecard.age50PlusCount)}</strong> (${scorecard.age50PlusPct}%) &middot; 100+ yr: <strong>${fmtInt(scorecard.age100PlusCount)}</strong> &middot; Pre-1900: <strong>${fmtInt(scorecard.pre1900Count)}</strong></div>
         </div>
         <div class="scorecard-kpi-cell">
           <div class="scorecard-kpi-val">${scorecard.ch42ProtectedPct}%</div>
           <div class="scorecard-kpi-lbl">Ch. 42 Protected Res. Lots (${fmtInt(scorecard.ch42ProtectedCount)}/${fmtInt(scorecard.residentialParcelCount)})</div>
+          <div class="scorecard-kpi-sub" style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px">COH Ch. 33 HD: <strong>${scorecard.cohChapter33Pct}%</strong> &middot; ${fmtInt(scorecard.protectedLandmarkCount)} PLM (Excl. Heritage Dist.)</div>
         </div>
         <div class="scorecard-kpi-cell">
           <div class="scorecard-kpi-val">${scorecard.ownerOccupiedPct}% / ${scorecard.corporateLlcPct}%</div>
@@ -3302,6 +3440,7 @@ export function renderBoundaryInlineScorecardHtml(scorecard, liveThreats = null)
         <div class="scorecard-kpi-cell">
           <div class="scorecard-kpi-val">${fmtInt(scorecard.demolitionsTotal2020To2026)}</div>
           <div class="scorecard-kpi-lbl">2020-${demoEndYr}${demoYtdTag} Teardowns (${fmtInt(scorecard.post2020InfillCount)} new builds)</div>
+          <div class="scorecard-kpi-sub" style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px">50+ yr demos: <strong>${fmtInt(scorecard.demolitions50PlusCount)}</strong> &middot; Still $0 vacant: <strong>${scorecard.demolitionsVacant2026Pct}%</strong></div>
         </div>
       </div>
       ${
@@ -3323,11 +3462,34 @@ export function renderBoundaryInlineScorecardHtml(scorecard, liveThreats = null)
   `;
 }
 
-export function renderScorecardHubTableRowsHtml(records = [], selectedKey = "") {
-  if (!Array.isArray(records) || records.length === 0) {
+export function renderScorecardHubTableRowsHtml(records = [], selectedKey = "", options = {}) {
+  const citywideRollup = options?.citywideRollup || null;
+  if ((!Array.isArray(records) || records.length === 0) && !citywideRollup) {
     return `<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--text-secondary)">No boundaries match your current search/filter.</td></tr>`;
   }
-  return records
+  let pinnedRollupHtml = "";
+  if (citywideRollup && citywideRollup.id) {
+    const isRollupSel = citywideRollup.key === selectedKey;
+    pinnedRollupHtml = `
+      <tr class="scorecard-citywide-rollup-row${isRollupSel ? " is-selected" : ""}"
+          data-scorecard-layer="${escapeOrganizerHtml(citywideRollup.layer)}"
+          data-scorecard-id="${escapeOrganizerHtml(citywideRollup.id)}"
+          tabindex="0"
+          style="background:rgba(14,116,144,0.12);border-bottom:2px solid var(--border-color, rgba(148,163,184,0.35));">
+        <td class="sc-col-name">
+          <div class="sc-row-title">🏛️ ${escapeOrganizerHtml(citywideRollup.name)}</div>
+          <div class="sc-row-sub">Pinned Citywide Rollup &middot; All 11 Council Districts (A-K) &middot; Excludes Heritage Districts</div>
+        </td>
+        <td class="sc-col-num"><strong>${fmtInt(citywideRollup.buildingCount)}</strong></td>
+        <td class="sc-col-num"><strong>${fmtInt(citywideRollup.pre1940Count)}</strong> <span class="sc-num-sub">(${citywideRollup.pre1940Pct}%)</span></td>
+        <td class="sc-col-num">${citywideRollup.cohChapter33Pct}% / <strong>${citywideRollup.ch42ProtectedPct}%</strong></td>
+        <td class="sc-col-num">${citywideRollup.expiringOrdinances.length > 0 ? `<span class="scorecard-warn-pill">${fmtInt(citywideRollup.expiringOrdinances.length)} (${fmtInt(citywideRollup.expiringCh42ParcelCount)})</span>` : `<span class="sc-muted-zero">0</span>`}</td>
+        <td class="sc-col-num">${citywideRollup.ownerOccupiedPct}% / ${citywideRollup.corporateLlcPct}%</td>
+        <td class="sc-col-num"><strong>${fmtInt(citywideRollup.demolitionsTotal2020To2026)}</strong></td>
+      </tr>
+    `;
+  }
+  const rowsHtml = (records || [])
     .map((r) => {
       const isSel = r.key === selectedKey;
       const cmNote = r.councilMemberMeta
@@ -3354,6 +3516,238 @@ export function renderScorecardHubTableRowsHtml(records = [], selectedKey = "") 
       `;
     })
     .join("");
+  return pinnedRollupHtml + rowsHtml;
+}
+
+function resolveScorecardCohortUnprotectedCounts(scorecard, citywidePolicyBrief = null) {
+  const totalProtBldgs = Math.min(
+    Number(scorecard?.buildingCount) || 0,
+    (Number(scorecard?.cohDistrictProtectedBuildings) || 0) + (Number(scorecard?.landmarkCount) || 0)
+  );
+  const cwAgeMap = new Map(
+    scorecard?.id === "council_dist_coh_all" && Array.isArray(citywidePolicyBrief?.standing_buildings_by_age)
+      ? citywidePolicyBrief.standing_buildings_by_age.map((r) => [r.id, Number(r.unprotected_count)])
+      : []
+  );
+  const estUnprotForCohort = (cohortId, cohortCount) => {
+    if (cwAgeMap.has(cohortId)) return cwAgeMap.get(cohortId);
+    const c = Number(cohortCount) || 0;
+    if (c <= 0) return 0;
+    const baseDenom = Math.max(c, Number(scorecard?.age50PlusCount) || Number(scorecard?.buildingCount) || 1);
+    const estProt = Math.round(Math.min(c, totalProtBldgs * (c / baseDenom)));
+    return Math.max(0, c - estProt);
+  };
+  return {
+    unprot50: estUnprotForCohort("50_plus", scorecard?.age50PlusCount),
+    unprot75: estUnprotForCohort("75_plus", scorecard?.age75PlusCount),
+    unprot40: estUnprotForCohort("pre_1940", scorecard?.pre1940Count),
+    unprot100: estUnprotForCohort("100_plus", scorecard?.age100PlusCount),
+    unprot00: estUnprotForCohort("pre_1900", scorecard?.pre1900Count),
+  };
+}
+
+/**
+ * Formats a boundary Scorecard's Demolition Review Age-Threshold, Local Designation Coverage
+ * (strictly excluding Heritage Districts), and Speculative Land Clearing tables as plain text.
+ */
+export function formatScorecardPolicyBriefText(scorecard, citywidePolicyBrief = null) {
+  if (!scorecard) return "";
+  const demoEndYr = Number(scorecard.demoEndYear) || getAtlasMaxYear();
+  const nYears = Math.max(1, (scorecard.demolitionsByYear || []).length || 7);
+  const { unprot50, unprot100, unprot00 } = resolveScorecardCohortUnprotectedCounts(
+    scorecard,
+    citywidePolicyBrief
+  );
+
+  const lines = [
+    `HOUSTON BUILDING ATLAS - PRESERVATION & DEMOLITION POLICY BRIEF: ${scorecard.name}`,
+    `Boundary Type: ${scorecard.typeLabel} | Area: ${scorecard.areaAcres.toLocaleString("en-US")} acres | Standing Footprints: ${fmtInt(scorecard.buildingCount)} | Total Parcels: ${fmtInt(scorecard.parcelCount)}`,
+    "",
+    "1. STANDING BUILDINGS & DEMOLITIONS BY AGE THRESHOLD (Excludes Heritage Districts):",
+    `- 50+ Years Old (<= ${demoEndYr - 50}): ${fmtInt(scorecard.age50PlusCount)} standing (${scorecard.age50PlusPct}%) | Est. Unprotected: ${fmtInt(unprot50)} | 2020-${demoEndYr} Demos: ${fmtInt(scorecard.demolitions50PlusCount)} (~${(scorecard.demolitions50PlusCount / nYears).toFixed(1)}/yr)`,
+    `- 75+ Years Old (<= ${demoEndYr - 75}): ${fmtInt(scorecard.age75PlusCount)} standing (${scorecard.age75PlusPct}%) | Pre-WWII (<1940): ${fmtInt(scorecard.pre1940Count)} standing (${scorecard.pre1940Pct}%) | 2020-${demoEndYr} Pre-1940 Demos: ${fmtInt(scorecard.demolitionsPre1940Count)}`,
+    `- 100+ Years Old (<= ${demoEndYr - 100}): ${fmtInt(scorecard.age100PlusCount)} standing (${scorecard.age100PlusPct}%) | Est. Unprotected: ${fmtInt(unprot100)} | 2020-${demoEndYr} Demos: ${fmtInt(scorecard.demolitions100PlusCount)} (~${(scorecard.demolitions100PlusCount / nYears).toFixed(1)}/yr)`,
+    `- Pre-1900 (Victorian / 19th C.): ${fmtInt(scorecard.pre1900Count)} standing (${scorecard.pre1900Pct}%) | Est. Unprotected: ${fmtInt(unprot00)} | 2020-${demoEndYr} Demos: ${fmtInt(scorecard.demolitionsPre1900Count)}`,
+    "",
+    "2. LOCAL HISTORIC DESIGNATION & CHAPTER 42 COVERAGE (Excludes Heritage Districts):",
+    "   Note: Excludes Heritage Districts (such as Freedmen's Town Heritage District), which regulate only public infrastructure on City-owned rights-of-way and do not protect private property or any buildings.",
+    `- COH Ch. 33 Historic District Buildings: ${fmtInt(scorecard.cohDistrictProtectedBuildings)} (${scorecard.cohChapter33Pct}% of standing footprints)`,
+    `- COH Landmarks: ${fmtInt(scorecard.landmarkCount)} total (${fmtInt(scorecard.protectedLandmarkCount)} Protected Landmarks [PLM] + ${fmtInt(scorecard.waiverLandmarkCount)} 90-Day Waiver Landmarks [LM])`,
+    `- Ch. 42 Protected Residential Lots: ${fmtInt(scorecard.ch42ProtectedCount)} of ${fmtInt(scorecard.residentialParcelCount)} (${scorecard.ch42ProtectedPct}% | SMLS: ${fmtInt(scorecard.smlsOrdinanceCount)} ord., SMBL: ${fmtInt(scorecard.smblOrdinanceCount)} ord.)`,
+    "",
+    "3. PREMATURE DEMOLITION & SPECULATIVE LAND CLEARING:",
+    `- Total 2020-${demoEndYr} Teardown Parcels: ${fmtInt(scorecard.demolitionsTotal2020To2026)}`,
+    `- Demo Permit Issued BEFORE Any New-Build Permit: ${fmtInt(scorecard.demolitionsBeforeNewBuildCount)} (${scorecard.demolitionsBeforeNewBuildPct}%)`,
+    `- 2020-${demoEndYr - 2} Teardowns Still Sitting as Vacant Lots ($0 Improvement Value) in ${demoEndYr}: ${fmtInt(scorecard.demolitionsVacant2026Count)} of ${fmtInt(scorecard.demolitions2020To2024Count)} (${scorecard.demolitionsVacant2026Pct}%)`,
+    `- Post-2020 New Construction Footprints: ${fmtInt(scorecard.post2020InfillCount)}`,
+  ];
+  if (citywidePolicyBrief?.local_designation_coverage?.rows) {
+    lines.push("");
+    lines.push("4. CITYWIDE LOCAL HISTORIC DESIGNATION COVERAGE BY PARCELS & LAND AREA (Excludes Heritage Districts):");
+    for (const r of citywidePolicyBrief.local_designation_coverage.rows) {
+      lines.push(
+        `- ${r.category}: ${fmtInt(r.unique_parcels)} parcels (${r.pct_all_parcels}% all / ${r.pct_improved_parcels}% improved) | ${r.parcel_acres} parcel ac (${r.pct_parcel_area}% parcel area / ${r.pct_city_boundary_area}% city boundary)`
+      );
+    }
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Formats a boundary Scorecard's Demolition Review Age-Threshold, Local Designation Coverage
+ * (strictly excluding Heritage Districts), and Speculative Land Clearing tables as Gmail-ready Rich HTML.
+ */
+export function formatScorecardPolicyBriefRichHtml(scorecard, citywidePolicyBrief = null) {
+  if (!scorecard) return "";
+  const demoEndYr = Number(scorecard.demoEndYear) || getAtlasMaxYear();
+  const nYears = Math.max(1, (scorecard.demolitionsByYear || []).length || 7);
+  const { unprot50, unprot75, unprot40, unprot100, unprot00 } =
+    resolveScorecardCohortUnprotectedCounts(scorecard, citywidePolicyBrief);
+
+  const tblStyle =
+    "border-collapse:collapse;width:100%;max-width:880px;font-family:Arial,Helvetica,sans-serif;font-size:12.5px;color:#1e293b;margin:8px 0 16px 0;border:1px solid #cbd5e1;";
+  const thStyle =
+    "background:#1e293b;color:#ffffff;font-weight:700;text-align:left;padding:7px 9px;border:1px solid #334155;font-size:12px;";
+  const thNumStyle =
+    "background:#1e293b;color:#ffffff;font-weight:700;text-align:right;padding:7px 9px;border:1px solid #334155;font-size:12px;";
+  const tdStyle = "padding:6px 9px;border:1px solid #cbd5e1;vertical-align:top;";
+  const tdNumStyle =
+    "padding:6px 9px;border:1px solid #cbd5e1;text-align:right;font-variant-numeric:tabular-nums;vertical-align:top;";
+
+  const desigRows = citywidePolicyBrief?.local_designation_coverage?.rows || [];
+
+  return `<div style="font-family:Arial,Helvetica,sans-serif;color:#1e293b;line-height:1.45;max-width:900px;">
+  <h3 style="margin:0 0 6px 0;font-size:16px;color:#0f172a;">Preservation &amp; Demolition Policy Brief: ${escapeOrganizerHtml(scorecard.name)}</h3>
+  <p style="margin:0 0 10px 0;font-size:12.5px;color:#334155;"><strong>${escapeOrganizerHtml(scorecard.typeLabel)}</strong> &middot; ${scorecard.areaAcres.toLocaleString("en-US")} acres &middot; <code>${fmtInt(scorecard.buildingCount)}</code> standing structures &middot; <code>${fmtInt(scorecard.parcelCount)}</code> HCAD parcels (<code>${fmtInt(scorecard.residentialParcelCount)}</code> residential).</p>
+
+  <h4 style="margin:10px 0 4px 0;font-size:13.5px;color:#0f172a;">1. Standing Historic Fabric &amp; Demolition Review Caseload by Age Threshold</h4>
+  <table style="${tblStyle}">
+    <thead>
+      <tr>
+        <th style="${thStyle}">Age Threshold</th>
+        <th style="${thNumStyle}">Standing Structures</th>
+        <th style="${thNumStyle}">% of Boundary</th>
+        <th style="${thNumStyle}">Est. Unprotected</th>
+        <th style="${thNumStyle}">2020-${demoEndYr} Demos</th>
+        <th style="${thNumStyle}">Est. Annual Caseload</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="${tdStyle}"><strong>50+ Years Old (&le; ${demoEndYr - 50})</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(scorecard.age50PlusCount)}</strong></td>
+        <td style="${tdNumStyle}">${scorecard.age50PlusPct}%</td>
+        <td style="${tdNumStyle}">${fmtInt(unprot50)}</td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(scorecard.demolitions50PlusCount)}</strong></td>
+        <td style="${tdNumStyle}">${(scorecard.demolitions50PlusCount / nYears).toFixed(1)}/yr</td>
+      </tr>
+      <tr>
+        <td style="${tdStyle}"><strong>75+ Years Old (&le; ${demoEndYr - 75})</strong></td>
+        <td style="${tdNumStyle}">${fmtInt(scorecard.age75PlusCount)}</td>
+        <td style="${tdNumStyle}">${scorecard.age75PlusPct}%</td>
+        <td style="${tdNumStyle}">${fmtInt(unprot75)}</td>
+        <td style="${tdNumStyle}">-</td>
+        <td style="${tdNumStyle}">-</td>
+      </tr>
+      <tr>
+        <td style="${tdStyle}"><strong>Pre-WWII (&lt; 1940)</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(scorecard.pre1940Count)}</strong></td>
+        <td style="${tdNumStyle}">${scorecard.pre1940Pct}%</td>
+        <td style="${tdNumStyle}">${fmtInt(unprot40)}</td>
+        <td style="${tdNumStyle}">${fmtInt(scorecard.demolitionsPre1940Count)}</td>
+        <td style="${tdNumStyle}">${(scorecard.demolitionsPre1940Count / nYears).toFixed(1)}/yr</td>
+      </tr>
+      <tr>
+        <td style="${tdStyle}"><strong>100+ Years Old (&le; ${demoEndYr - 100})</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(scorecard.age100PlusCount)}</strong></td>
+        <td style="${tdNumStyle}">${scorecard.age100PlusPct}%</td>
+        <td style="${tdNumStyle}">${fmtInt(unprot100)}</td>
+        <td style="${tdNumStyle};color:#b91c1c;font-weight:700;">${fmtInt(scorecard.demolitions100PlusCount)}</td>
+        <td style="${tdNumStyle}">${(scorecard.demolitions100PlusCount / nYears).toFixed(1)}/yr</td>
+      </tr>
+      <tr>
+        <td style="${tdStyle}"><strong>Pre-1900 (Victorian / 19th C.)</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(scorecard.pre1900Count)}</strong></td>
+        <td style="${tdNumStyle}">${scorecard.pre1900Pct}%</td>
+        <td style="${tdNumStyle}">${fmtInt(unprot00)}</td>
+        <td style="${tdNumStyle};color:#b91c1c;font-weight:700;">${fmtInt(scorecard.demolitionsPre1900Count)}</td>
+        <td style="${tdNumStyle}">${(scorecard.demolitionsPre1900Count / nYears).toFixed(1)}/yr</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4 style="margin:10px 0 4px 0;font-size:13.5px;color:#0f172a;">2. Local Historic Designation Coverage (Excluding Heritage Districts) &amp; Speculative Land Clearing</h4>
+  <p style="margin:0 0 6px 0;font-size:11.5px;color:#475569;"><em>Note:</em> Excludes Heritage Districts (such as Freedmen's Town Heritage District), which regulate only public infrastructure on City-owned rights-of-way and do not protect private property or any buildings.</p>
+  <table style="${tblStyle}">
+    <thead>
+      <tr>
+        <th style="${thStyle}">Metric</th>
+        <th style="${thNumStyle}">Count / Share</th>
+        <th style="${thStyle}">Policy &amp; Administrative Context</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="${tdStyle}"><strong>COH Ch. 33 Historic District Buildings</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(scorecard.cohDistrictProtectedBuildings)}</strong> (${scorecard.cohChapter33Pct}%)</td>
+        <td style="${tdStyle}">Certificate of Appropriateness (COA) required before demolition</td>
+      </tr>
+      <tr>
+        <td style="${tdStyle}"><strong>Protected Landmarks (PLM) vs. 90-Day Waiver Landmarks (LM)</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(scorecard.protectedLandmarkCount)} PLM</strong> / ${fmtInt(scorecard.waiverLandmarkCount)} Waiver LM</td>
+        <td style="${tdStyle}">Non-protected Landmarks outside Historic Districts can be demolished after a 90-day waiver</td>
+      </tr>
+      <tr>
+        <td style="${tdStyle}"><strong>Ch. 42 Protected Residential Lots (SMLS / SMBL)</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(scorecard.ch42ProtectedCount)}</strong> / ${fmtInt(scorecard.residentialParcelCount)} (${scorecard.ch42ProtectedPct}%)</td>
+        <td style="${tdStyle}">${fmtInt(scorecard.smlsOrdinanceCount)} SMLS ordinances &middot; ${fmtInt(scorecard.smblOrdinanceCount)} SMBL ordinances</td>
+      </tr>
+      <tr>
+        <td style="${tdStyle}"><strong>Demo Permit Issued BEFORE Any New-Build Permit (2020-${demoEndYr})</strong></td>
+        <td style="${tdNumStyle};color:#b91c1c;font-weight:700;">${fmtInt(scorecard.demolitionsBeforeNewBuildCount)} / ${fmtInt(scorecard.demolitionsTotal2020To2026)} (${scorecard.demolitionsBeforeNewBuildPct}%)</td>
+        <td style="${tdStyle}">Properties cleared before an approved replacement building permit was issued</td>
+      </tr>
+      <tr>
+        <td style="${tdStyle}"><strong>2020-${demoEndYr - 2} Teardowns Still Vacant ($0 Impr) in ${demoEndYr}</strong></td>
+        <td style="${tdNumStyle};color:#b91c1c;font-weight:700;">${fmtInt(scorecard.demolitionsVacant2026Count)} / ${fmtInt(scorecard.demolitions2020To2024Count)} (${scorecard.demolitionsVacant2026Pct}%)</td>
+        <td style="${tdStyle}">Speculative land clearing sitting as unbuilt $0-improvement vacant lots 2-6 years later</td>
+      </tr>
+    </tbody>
+  </table>
+  ${
+    desigRows.length > 0
+      ? `<h4 style="margin:10px 0 4px 0;font-size:13.5px;color:#0f172a;">3. Citywide Local Historic Designation Coverage by Parcels &amp; Land Area (Excluding Heritage Districts)</h4>
+  <table style="${tblStyle}">
+    <thead>
+      <tr>
+        <th style="${thStyle}">Designation Category</th>
+        <th style="${thNumStyle}">Unique Parcels</th>
+        <th style="${thNumStyle}">% All Parcels</th>
+        <th style="${thNumStyle}">% Improved Parcels</th>
+        <th style="${thNumStyle}">Parcel Land Acres</th>
+        <th style="${thNumStyle}">% Parcel Area</th>
+        <th style="${thNumStyle}">% City Boundary</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${desigRows
+        .map(
+          (r) => `<tr>
+        <td style="${tdStyle}"><strong>${escapeOrganizerHtml(r.category)}</strong></td>
+        <td style="${tdNumStyle}"><strong>${fmtInt(r.unique_parcels)}</strong></td>
+        <td style="${tdNumStyle}">${escapeOrganizerHtml(r.pct_all_parcels)}%</td>
+        <td style="${tdNumStyle}">${escapeOrganizerHtml(r.pct_improved_parcels)}%</td>
+        <td style="${tdNumStyle}">${fmtInt(r.parcel_acres)} ac${r.polygon_acres ? ` (${fmtInt(r.polygon_acres)} poly ac)` : ""}</td>
+        <td style="${tdNumStyle}">${escapeOrganizerHtml(r.pct_parcel_area)}%</td>
+        <td style="${tdNumStyle}">${escapeOrganizerHtml(r.pct_city_boundary_area)}%</td>
+      </tr>`
+        )
+        .join("")}
+    </tbody>
+  </table>`
+      : ""
+  }
+</div>`;
 }
 
 /**
@@ -3365,6 +3759,7 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
   }
   const shareUrl = String(options.shareUrl || "");
   const asOfLabel = String(options.generatedAt || "October 2026");
+  const citywidePolicyBrief = options.citywidePolicyBrief || null;
   const PRINT_MAX_EXPIRING_PILLS = 10;
   const PRINT_MAX_THREAT_ROWS = 5;
   const SCREEN_MAX_THREAT_ROWS = 20;
@@ -3375,6 +3770,10 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
   const demoEndYr = Number(scorecard.demoEndYear) || getAtlasMaxYear();
   const watchStartY = demoEndYr;
   const watchEndY = watchStartY + 5;
+  const nYears = Math.max(1, (scorecard.demolitionsByYear || []).length || 7);
+  const { unprot50, unprot75, unprot40, unprot100, unprot00 } =
+    resolveScorecardCohortUnprotectedCounts(scorecard, citywidePolicyBrief);
+  const desigRows = citywidePolicyBrief?.local_designation_coverage?.rows || [];
 
   const histBarsHtml = scorecard.decadeHistogram
     .filter((d) => d.decade >= 1860 || d.count > 0)
@@ -3477,6 +3876,10 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
             data-share-url="${escapeOrganizerHtml(shareUrl)}">
             Copy Scorecard Link
           </button>
+          <button type="button" class="btn-secondary btn-scorecard-copy-gmail"
+            title="Copy rich-text ordinance, age-threshold, designation coverage (excluding Heritage Districts), and speculative land clearing tables ready to paste into Gmail">
+            📋 Copy Rich Tables (Gmail)
+          </button>
           <button type="button" class="btn-primary btn-scorecard-print">
             Print 1-Page Brief
           </button>
@@ -3489,7 +3892,8 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
           <div class="sc-stat-big">${fmtInt(scorecard.pre1940Count)} <span class="sc-stat-sub">pre-1940 (${scorecard.pre1940Pct}%)</span></div>
           <div class="sc-stat-meta">
             ${fmtInt(scorecard.buildingCount)} total structures &middot; Median ${scorecard.medianYear || "N/A"} &middot; Earliest ${scorecard.earliestYear || "N/A"}<br/>
-            Pre-1920: <strong>${fmtInt(scorecard.pre1920Count)}</strong> &middot; Pre-1975 (NRHP 50-yr age): <strong>${fmtInt(scorecard.pre1975Count)}</strong> (${scorecard.pre1975Pct}%)
+            Pre-1920: <strong>${fmtInt(scorecard.pre1920Count)}</strong> &middot; Pre-1975 (NRHP 50-yr age): <strong>${fmtInt(scorecard.pre1975Count)}</strong> (${scorecard.pre1975Pct}%)<span class="no-print"><br/>
+            Pre-1900: <strong>${fmtInt(scorecard.pre1900Count)}</strong> (${scorecard.pre1900Pct}%) &middot; 100+ Yrs (&le;${demoEndYr - 100}): <strong>${fmtInt(scorecard.age100PlusCount)}</strong> (${scorecard.age100PlusPct}%) &middot; 50+ Yrs (&le;${demoEndYr - 50}): <strong>${fmtInt(scorecard.age50PlusCount)}</strong> (${scorecard.age50PlusPct}%)</span>
           </div>
         </div>
 
@@ -3499,7 +3903,8 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
           <div class="sc-stat-meta">
             COH Ch. 33 District coverage: <strong>${scorecard.cohChapter33Pct}%</strong> (${fmtInt(scorecard.cohDistrictProtectedBuildings)} bldgs)<br/>
             Ch. 42 protected res. lots: <strong>${fmtInt(scorecard.ch42ProtectedCount)}</strong> of ${fmtInt(scorecard.residentialParcelCount)} (SMLS: ${fmtInt(scorecard.smlsOrdinanceCount)} ord. / SMBL: ${fmtInt(scorecard.smblOrdinanceCount)} ord.)<br/>
-            Protected Landmarks: <strong>${fmtInt(scorecard.protectedLandmarkCount)}</strong> &middot; 90-Day Waiver LMs: <strong>${fmtInt(scorecard.waiverLandmarkCount)}</strong> &middot; Good Brick: <strong>${fmtInt(scorecard.goodBrickCount)}</strong>
+            Protected Landmarks: <strong>${fmtInt(scorecard.protectedLandmarkCount)}</strong> &middot; 90-Day Waiver LMs: <strong>${fmtInt(scorecard.waiverLandmarkCount)}</strong> &middot; Good Brick: <strong>${fmtInt(scorecard.goodBrickCount)}</strong><span class="no-print"><br/>
+            <span style="font-size:0.71rem;color:var(--text-secondary)">Excludes Heritage Districts (public ROW infrastructure only; 0 protected buildings)</span></span>
           </div>
         </div>
 
@@ -3532,7 +3937,9 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
           <div class="sc-stat-big">${fmtInt(scorecard.demolitionsTotal2020To2026)} <span class="sc-stat-sub">teardown parcels</span></div>
           <div class="sc-stat-meta">
             Matched to pre-1940 parcel history: <strong>${fmtInt(scorecard.demolitionsPre1940Count)}</strong><br/>
-            Post-2020 new construction footprints: <strong>${fmtInt(scorecard.post2020InfillCount)}</strong> &middot; Documented Lost Houston sites: <strong>${fmtInt(scorecard.lostHoustonCount)}</strong>
+            Post-2020 new construction footprints: <strong>${fmtInt(scorecard.post2020InfillCount)}</strong> &middot; Documented Lost Houston sites: <strong>${fmtInt(scorecard.lostHoustonCount)}</strong><span class="no-print"><br/>
+            50+ yr demos: <strong>${fmtInt(scorecard.demolitions50PlusCount)}</strong> &middot; 100+ yr: <strong>${fmtInt(scorecard.demolitions100PlusCount)}</strong> &middot; Pre-1900: <strong>${fmtInt(scorecard.demolitionsPre1900Count)}</strong><br/>
+            Speculative clearing: <strong>${fmtInt(scorecard.demolitionsVacant2026Count)}/${fmtInt(scorecard.demolitions2020To2024Count)}</strong> (${scorecard.demolitionsVacant2026Pct}%) 2020-${demoEndYr - 2} demos still $0 vacant lots &middot; <strong>${scorecard.demolitionsBeforeNewBuildPct}%</strong> demo before new-build permit</span>
           </div>
         </div>
       </div>
@@ -3547,6 +3954,111 @@ export function renderScorecardDetailHtml(scorecard, liveThreats = null, options
           <div class="sc-bars-wrap sc-demo-wrap">${demoBarsHtml}</div>
         </div>
       </div>
+
+      <details class="scorecard-policy-sim-details scorecard-section-block no-print"${scorecard.id === "council_dist_coh_all" ? " open" : ""} style="margin-bottom:12px;border:1px solid var(--border-color, rgba(148,163,184,0.28));border-radius:8px;padding:10px 12px;background:rgba(15,23,42,0.18);">
+        <summary style="cursor:pointer;font-weight:700;font-size:0.82rem;color:var(--text-primary);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <span>⚖️ Demolition Review Age-Threshold, Designation Coverage (Excl. Heritage Districts) &amp; Speculative Clearing Breakdown</span>
+          <span style="font-size:0.72rem;font-weight:600;color:var(--text-secondary)">50+ Yr: ${fmtInt(scorecard.age50PlusCount)} standing (${fmtInt(scorecard.demolitions50PlusCount)} demos) &middot; 100+ Yr: ${fmtInt(scorecard.age100PlusCount)} (${fmtInt(scorecard.demolitions100PlusCount)} demos) &middot; Pre-1900: ${fmtInt(scorecard.pre1900Count)} (${fmtInt(scorecard.demolitionsPre1900Count)} demos)</span>
+        </summary>
+        <div style="margin-top:10px;display:grid;gap:10px">
+          <div style="overflow-x:auto">
+            <table class="scorecard-hub-table" style="width:100%;font-size:0.76rem">
+              <thead>
+                <tr>
+                  <th style="text-align:left">Proposed Review Threshold</th>
+                  <th style="text-align:right">Standing Structures</th>
+                  <th style="text-align:right">% of Boundary</th>
+                  <th style="text-align:right">Est. Unprotected</th>
+                  <th style="text-align:right">2020-${demoEndYr} Demos</th>
+                  <th style="text-align:right">Est. Annual Caseload</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>50+ Years Old (&le; ${demoEndYr - 50})</strong></td>
+                  <td class="sc-col-num"><strong>${fmtInt(scorecard.age50PlusCount)}</strong></td>
+                  <td class="sc-col-num">${scorecard.age50PlusPct}%</td>
+                  <td class="sc-col-num">${fmtInt(unprot50)}</td>
+                  <td class="sc-col-num"><strong>${fmtInt(scorecard.demolitions50PlusCount)}</strong></td>
+                  <td class="sc-col-num">${(scorecard.demolitions50PlusCount / nYears).toFixed(1)}/yr</td>
+                </tr>
+                <tr>
+                  <td><strong>75+ Years Old (&le; ${demoEndYr - 75})</strong></td>
+                  <td class="sc-col-num">${fmtInt(scorecard.age75PlusCount)}</td>
+                  <td class="sc-col-num">${scorecard.age75PlusPct}%</td>
+                  <td class="sc-col-num">${fmtInt(unprot75)}</td>
+                  <td class="sc-col-num">-</td>
+                  <td class="sc-col-num">-</td>
+                </tr>
+                <tr>
+                  <td><strong>Pre-WWII (&lt; 1940)</strong></td>
+                  <td class="sc-col-num"><strong>${fmtInt(scorecard.pre1940Count)}</strong></td>
+                  <td class="sc-col-num">${scorecard.pre1940Pct}%</td>
+                  <td class="sc-col-num">${fmtInt(unprot40)}</td>
+                  <td class="sc-col-num">${fmtInt(scorecard.demolitionsPre1940Count)}</td>
+                  <td class="sc-col-num">${(scorecard.demolitionsPre1940Count / nYears).toFixed(1)}/yr</td>
+                </tr>
+                <tr>
+                  <td><strong>100+ Years Old (&le; ${demoEndYr - 100})</strong></td>
+                  <td class="sc-col-num"><strong>${fmtInt(scorecard.age100PlusCount)}</strong></td>
+                  <td class="sc-col-num">${scorecard.age100PlusPct}%</td>
+                  <td class="sc-col-num">${fmtInt(unprot100)}</td>
+                  <td class="sc-col-num"><strong>${fmtInt(scorecard.demolitions100PlusCount)}</strong></td>
+                  <td class="sc-col-num">${(scorecard.demolitions100PlusCount / nYears).toFixed(1)}/yr</td>
+                </tr>
+                <tr>
+                  <td><strong>Pre-1900 (Victorian / 19th C.)</strong></td>
+                  <td class="sc-col-num"><strong>${fmtInt(scorecard.pre1900Count)}</strong></td>
+                  <td class="sc-col-num">${scorecard.pre1900Pct}%</td>
+                  <td class="sc-col-num">${fmtInt(unprot00)}</td>
+                  <td class="sc-col-num"><strong>${fmtInt(scorecard.demolitionsPre1900Count)}</strong></td>
+                  <td class="sc-col-num">${(scorecard.demolitionsPre1900Count / nYears).toFixed(1)}/yr</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.45">
+            <strong>Premature Demolition &amp; Speculative Land Clearing (${escapeOrganizerHtml(scorecard.name)}):</strong>
+            <strong>${fmtInt(scorecard.demolitionsBeforeNewBuildCount)}</strong> of ${fmtInt(scorecard.demolitionsTotal2020To2026)} teardown parcels (<strong>${scorecard.demolitionsBeforeNewBuildPct}%</strong>) had their demolition permit issued before any replacement new-construction building permit on the same parcel, and <strong>${fmtInt(scorecard.demolitionsVacant2026Count)}</strong> of ${fmtInt(scorecard.demolitions2020To2024Count)} properties demolished in 2020-${demoEndYr - 2} (<strong>${scorecard.demolitionsVacant2026Pct}%</strong>) still sit as vacant lots ($0 improvement value) in ${demoEndYr}.<br/>
+            <strong>Local Historic Designation Scope Note:</strong> Strictly excludes Heritage Districts (such as Freedmen's Town Heritage District), which regulate only public infrastructure on City-owned rights-of-way and do not protect private property or any buildings.
+          </div>
+          ${
+            desigRows.length > 0 && scorecard.id === "council_dist_coh_all"
+              ? `<div style="overflow-x:auto">
+                  <div style="font-size:0.76rem;font-weight:700;margin-bottom:4px;color:var(--text-primary)">Citywide Local Historic Designation Coverage by Parcels &amp; Land Area (Excludes Heritage Districts)</div>
+                  <table class="scorecard-hub-table" style="width:100%;font-size:0.74rem">
+                    <thead>
+                      <tr>
+                        <th style="text-align:left">Designation Category</th>
+                        <th style="text-align:right">Unique Parcels</th>
+                        <th style="text-align:right">% All Parcels</th>
+                        <th style="text-align:right">% Improved Parcels</th>
+                        <th style="text-align:right">Parcel Acres</th>
+                        <th style="text-align:right">% Parcel Area</th>
+                        <th style="text-align:right">% City Boundary</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${desigRows
+                        .map(
+                          (r) => `<tr>
+                        <td><strong>${escapeOrganizerHtml(r.category)}</strong></td>
+                        <td class="sc-col-num"><strong>${fmtInt(r.unique_parcels)}</strong></td>
+                        <td class="sc-col-num">${escapeOrganizerHtml(r.pct_all_parcels)}%</td>
+                        <td class="sc-col-num">${escapeOrganizerHtml(r.pct_improved_parcels)}%</td>
+                        <td class="sc-col-num">${fmtInt(r.parcel_acres)} ac</td>
+                        <td class="sc-col-num">${escapeOrganizerHtml(r.pct_parcel_area)}%</td>
+                        <td class="sc-col-num">${escapeOrganizerHtml(r.pct_city_boundary_area)}%</td>
+                      </tr>`
+                        )
+                        .join("")}
+                    </tbody>
+                  </table>
+                </div>`
+              : ""
+          }
+        </div>
+      </details>
 
       ${
         scorecard.expiringOrdinances.length > 0

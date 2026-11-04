@@ -187,10 +187,14 @@ SCORECARD_FIELD_LEGEND: dict[str, str] = {
     "bc": "Total standing dated building footprints inside boundary (suppress_only & year=0 excluded)",
     "ey": "Earliest recorded construction year among standing footprints",
     "my": "Median construction year among standing footprints",
+    "p00": "Standing footprints built prior to 1900",
     "p20": "Standing footprints built prior to 1920",
+    "p26": "Standing footprints built 100+ years ago (prior to or in eff_year - 100)",
     "p40": "Standing footprints built prior to 1940",
+    "p50": "Standing footprints built 75+ years ago (prior to or in eff_year - 75)",
     "p60": "Standing footprints built prior to 1960",
     "p75": "Standing footprints built prior to 1975 (50-year NRHP age horizon)",
+    "p76": "Standing footprints built 50+ years ago (prior to or in eff_year - 50)",
     "n20": "Standing footprints built in or after 2020 (post-2020 infill volume)",
     "dh": "Decade histogram counts aligned with top-level decade_bins array (1830s..2020s)",
     "lm": "Total designated City of Houston Landmarks inside boundary",
@@ -214,10 +218,16 @@ SCORECARD_FIELD_LEGEND: dict[str, str] = {
     "sbo": "Count of intersecting enacted SMBL ordinances",
     "exo": "List of expiring 2026-2031 Ch. 42 ordinances [{o, t, y, est}] requiring neighborhood renewal",
     "cdo": "Count of intersecting COH Chapter 33 Conservation Districts",
-    "hdp": "Standing building footprints inside an enacted COH Chapter 33 Historic or Heritage District",
+    "hdp": "Standing building footprints inside an enacted COH Chapter 33 Historic District (Heritage Districts excluded)",
     "dm": "Annual unique-parcel main-building structural demolitions aligned with demo_years (2020..2026 YTD)",
     "dmt": "Cumulative unique-parcel structural demolitions recorded across 2020-2026 YTD",
     "dmp40": "2020-2026 structural demolitions matched to a pre-1940 structure history where known",
+    "dm50": "2020-2026 structural demolitions matched to a 50+ year old structure (<= eff_year - 50)",
+    "dm26": "2020-2026 structural demolitions matched to a 100+ year old structure (<= eff_year - 100)",
+    "dm00": "2020-2026 structural demolitions matched to a pre-1900 structure (< 1900)",
+    "dmt24": "Unique parcels with main-structure demolition permits issued in 2020..(eff_year - 2)",
+    "dmv": "2020..(eff_year - 2) main-structure teardowns still sitting as vacant lots in eff_year",
+    "dbn": "2020-2026 main-structure demolitions where demo permit was issued before any new-build permit",
     "sn": "Primary overlapping Super Neighborhood name (where applicable)",
     "cd": "Overlapping City Council District letter(s) (e.g. 'C' or 'C, H')",
     "cc": "Overlapping registered Civic Club / HOA name (where applicable)",
@@ -230,12 +240,29 @@ SCORECARD_FIELD_LEGEND: dict[str, str] = {
 }
 
 SPARSE_ZERO_SCORECARD_KEYS: tuple[str, ...] = (
+    "ey",
+    "my",
+    "p00",
+    "p20",
+    "p26",
+    "p40",
+    "p50",
+    "p60",
+    "p75",
+    "p76",
+    "n20",
     "lm",
     "plm",
     "vlm",
     "gb",
     "nrp",
     "lhc",
+    "rpc",
+    "sfc",
+    "occ",
+    "ftc",
+    "llc",
+    "abs",
     "chp",
     "slp",
     "sbp",
@@ -246,6 +273,12 @@ SPARSE_ZERO_SCORECARD_KEYS: tuple[str, ...] = (
     "hdp",
     "dmt",
     "dmp40",
+    "dm50",
+    "dm26",
+    "dm00",
+    "dmt24",
+    "dmv",
+    "dbn",
     "ot",
     "tps",
 )
@@ -1101,8 +1134,65 @@ def main(
     bldg_xs: list[float] = []
     bldg_ys: list[float] = []
     bldg_years_list: list[int] = []
+    bldg_hcads_list: list[str] = []
     bldg_hcads_set_pre40: set[str] = set()
     hcad_earliest_year: dict[str, int] = {}
+
+    # Pre-index Lost Houston and Curated Overrides pre-demolition construction years + standing Landmark HCADs
+    lost_yr_by_hcad: dict[str, int] = {}
+    for lf in overlays.get("lost_houston", {}).get("features", []):
+        lp = lf.get("properties") or {}
+        lyb = int(lp.get("year_built") or 0)
+        if MIN_VALID_YEAR <= lyb <= eff_year:
+            for lh_raw in [lp.get("hcad_num"), *(lp.get("site_hcad_nums") or [])]:
+                nh = normalize_hcad13(lh_raw)
+                if nh and (nh not in lost_yr_by_hcad or lyb < lost_yr_by_hcad[nh]):
+                    lost_yr_by_hcad[nh] = lyb
+
+    ov_yr_by_hcad: dict[str, int] = {}
+    for ok_key, ov_val in (overrides.items() if isinstance(overrides, dict) else []):
+        if not isinstance(ov_val, dict):
+            continue
+        nh = normalize_hcad13(ov_val.get("hcad_num") or str(ok_key).split("#")[0])
+        oyb = int(ov_val.get("original_hcad_year") or ov_val.get("year_built") or 0)
+        if nh and MIN_VALID_YEAR <= oyb <= eff_year:
+            if nh not in ov_yr_by_hcad or oyb < ov_yr_by_hcad[nh]:
+                ov_yr_by_hcad[nh] = oyb
+
+    standing_plm_hcads: set[str] = set()
+    standing_plm_outside_hd_hcads: set[str] = set()
+    standing_lm_reg_hcads: set[str] = set()
+    standing_lm_reg_outside_hd_hcads: set[str] = set()
+    standing_plm_feat_cnt = 0
+    standing_lm_reg_feat_cnt = 0
+    for lf in overlays.get("landmarks", {}).get("features", []):
+        lp = lf.get("properties") or {}
+        pt_tier = str(lp.get("protection_tier") or "").strip().lower()
+        if lp.get("demolished") or lp.get("is_demolished") or pt_tier == "lm_demolished":
+            continue
+        desig = str(lp.get("designation") or lp.get("landmark_type") or lp.get("type") or "").strip()
+        is_plm_f = (
+            bool(lp.get("is_protected_landmark"))
+            or pt_tier == "plm"
+            or str(lp.get("legal_tier") or "").strip().lower() == "plm"
+            or "protected" in desig.lower()
+            or desig == "PLM"
+        )
+        in_hd_f = bool(lp.get("historic_district") or lp.get("in_historic_district")) or pt_tier == "lm_in_hd"
+        nh = normalize_hcad13(lp.get("hcad_num"))
+        if is_plm_f:
+            standing_plm_feat_cnt += 1
+            if nh:
+                standing_plm_hcads.add(nh)
+                if not in_hd_f:
+                    standing_plm_outside_hd_hcads.add(nh)
+        else:
+            standing_lm_reg_feat_cnt += 1
+            if nh:
+                standing_lm_reg_hcads.add(nh)
+                if not in_hd_f:
+                    standing_lm_reg_outside_hd_hcads.add(nh)
+    standing_all_lm_hcads = standing_plm_hcads | standing_lm_reg_hcads
 
     def _centroid_xy(geom: dict[str, Any] | None) -> list[tuple[float, float]]:
         if not geom:
@@ -1146,6 +1236,7 @@ def main(
             bldg_xs.append(cx)
             bldg_ys.append(cy)
             bldg_years_list.append(yr)
+            bldg_hcads_list.append(hcad or "")
         if hcad:
             prev_yr = hcad_earliest_year.get(hcad)
             if prev_yr is None or yr < prev_yr:
@@ -1161,9 +1252,11 @@ def main(
     bldg_tree = STRtree(bldg_pts_wgs84)
     print(f"   Indexed {len(bldg_years):,} standing dated footprints in {time.time() - t0:.1f}s.")
 
-    # Compute which standing footprints lie inside an active COH Chapter 33 Historic or Heritage District
+    # Compute which standing footprints lie inside an active COH Chapter 33 Historic District.
+    # Note: Heritage Districts (Freedmen's Town Heritage District) regulate only public
+    # infrastructure on City-owned rights-of-way and do NOT protect private property or buildings.
     coh_hd_geoms = []
-    for k_hd in ("historic_districts", "heritage_districts"):
+    for k_hd in ("historic_districts",):
         for feat in overlays.get(k_hd, {}).get("features", []):
             g = feat.get("geometry")
             if g:
@@ -1176,6 +1269,13 @@ def main(
         hits = bldg_tree.query(hg, predicate="intersects")
         if len(hits):
             bldg_in_coh_hd[hits] = True
+    bldg_in_coh_lm = np.fromiter(
+        (bool(h and h in standing_all_lm_hcads) for h in bldg_hcads_list),
+        dtype=bool,
+        count=len(bldg_years),
+    )
+    bldg_is_coh_protected = bldg_in_coh_hd | bldg_in_coh_lm
+    del bldg_hcads_list
 
     # 3. Parse HCAD CAMA real_acct.txt & permits.txt from Real_acct_owner.zip
     print(f"3. Parsing HCAD CAMA real_acct.txt (ownership/state_class/situs) & permits.txt (2020-{eff_year} demos)...")
@@ -1199,6 +1299,92 @@ def main(
     situs_to_hcad_coh: dict[str, str] = {}
     demo_parcels_by_year: dict[int, set[str]] = {yr: set() for yr in demo_years}
     demo_pre40_hcads: set[str] = set()
+    demo_50yr_hcads: set[str] = set()
+    demo_100yr_hcads: set[str] = set()
+    demo_pre1900_hcads: set[str] = set()
+    demo_2020_2024_hcads: set[str] = set()
+    demo_vacant_2020_2024_hcads: set[str] = set()
+    demo_before_nb_hcads: set[str] = set()
+
+    coh_cama_hcads: set[str] = set()
+    coh_improved_cama_cnt = 0
+    acct_acres_map: dict[str, float] = {}
+    acct_vacant_map: dict[str, bool] = {}
+    acct_rebuilt_yr_map: dict[str, int] = {}
+    acct_lgl2_map: dict[str, str] = {}
+    subdiv_pre2000_years: dict[str, list[int]] = {}
+    demo_by_acct_yr: dict[tuple[str, int], dict[str, Any]] = {}
+    new_build_dates_by_acct: dict[str, list[datetime.date]] = {}
+
+    def _parse_permit_date(raw_dt: str) -> datetime.date | None:
+        s_dt = str(raw_dt or "").strip()
+        if not s_dt:
+            return None
+        m_dt = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})$", s_dt)
+        if m_dt:
+            mo, da, yr_d = int(m_dt.group(1)), int(m_dt.group(2)), int(m_dt.group(3))
+            if 1990 <= yr_d <= eff_year + 1 and 1 <= mo <= 12 and 1 <= da <= 31:
+                try:
+                    return datetime.date(yr_d, mo, da)
+                except ValueError:
+                    return None
+        m_iso = re.match(r"^(\d{4})-(\d{2})-(\d{2})", s_dt)
+        if m_iso:
+            yr_d, mo, da = int(m_iso.group(1)), int(m_iso.group(2)), int(m_iso.group(3))
+            if 1990 <= yr_d <= eff_year + 1:
+                try:
+                    return datetime.date(yr_d, mo, da)
+                except ValueError:
+                    return None
+        return None
+
+    def _is_new_construction_permit(ptype_str: str, dscr_str: str) -> bool:
+        pt_u = str(ptype_str or "").strip().upper()
+        ds_u = str(dscr_str or "").strip().upper()
+        if any(
+            kw in ds_u
+            for kw in (
+                "DEMO",
+                "SEWER DISC",
+                "PLUMB",
+                "ELEC",
+                "MECH",
+                "HVAC",
+                "ROOF",
+                "FENCE",
+                "POOL",
+                "SPA",
+                "SIGN",
+                "DRIVEWAY",
+                "SIDEWALK",
+                "SOLAR",
+                "GENERATOR",
+                "WINDOW",
+                "SIDING",
+                "REPAIR",
+                "REMODEL",
+                "ALT",
+                "ADDITION",
+            )
+        ):
+            return False
+        if pt_u in ("01", "02", "11", "01R", "02C", "NEW"):
+            return True
+        return any(
+            kw in ds_u
+            for kw in (
+                "NEW SFD",
+                "NEW RES",
+                "NEW TOWNHOUSE",
+                "NEW DUPLEX",
+                "NEW BLDG",
+                "NEW COMM",
+                "NEW CONSTR",
+                "SFD DETACHED",
+                "SFD ATTACHED",
+                "SINGLE FAMILY DWELLING",
+            )
+        )
 
     with zipfile.ZipFile(cama_zip_path, "r") as zf:
         with zf.open("real_acct.txt") as fp:
@@ -1211,6 +1397,11 @@ def main(
             i_situs1 = col_a.get("site_addr_1", 17)
             i_sc = col_a.get("state_class", 20)
             i_yr_impr = col_a.get("yr_impr", 33)
+            i_bld_ar = col_a.get("bld_ar", 36)
+            i_land_ar = col_a.get("land_ar", 38)
+            i_acreage = col_a.get("acreage", 39)
+            i_impr_val = col_a.get("bld_val", 42)
+            i_lgl2 = col_a.get("lgl_2", 59)
             i_jurs = col_a.get("jurs", 70)
             min_acct_cols = max(i_acct, i_mailto, i_situs1, i_sc, i_yr_impr) + 1
             for raw_line in fp:
@@ -1233,6 +1424,41 @@ def main(
                     if yr_impr < 1940:
                         bldg_hcads_set_pre40.add(hcad)
 
+                try:
+                    bld_ar = float(cols[i_bld_ar] or 0.0) if len(cols) > i_bld_ar else 0.0
+                except ValueError:
+                    bld_ar = 0.0
+                try:
+                    impr_val = float(cols[i_impr_val] or 0.0) if len(cols) > i_impr_val else 0.0
+                except ValueError:
+                    impr_val = 0.0
+                try:
+                    land_sqft = float(cols[i_land_ar] or 0.0) if len(cols) > i_land_ar else 0.0
+                except ValueError:
+                    land_sqft = 0.0
+                try:
+                    ac_val = float(cols[i_acreage] or 0.0) if len(cols) > i_acreage else 0.0
+                except ValueError:
+                    ac_val = 0.0
+                if land_sqft > 0.0:
+                    ac_val = land_sqft / 43560.0
+                acct_acres_map[hcad] = ac_val
+                is_vac_now = (bld_ar <= 0.0) or sc.startswith("C")
+                acct_vacant_map[hcad] = is_vac_now
+                if bld_ar > 0.0 and yr_impr >= 2020:
+                    acct_rebuilt_yr_map[hcad] = yr_impr
+
+                if len(cols) > i_lgl2 and cols[i_lgl2]:
+                    lgl2_clean = re.sub(
+                        r"\s+\b(?:SEC|SECT|SECTION|BLK|BLOCK|LT|LOT|TR|TRACT)\b.*$",
+                        "",
+                        cols[i_lgl2].strip().upper(),
+                    )
+                    if lgl2_clean:
+                        acct_lgl2_map[hcad] = lgl2_clean
+                        if MIN_VALID_YEAR <= yr_impr < 2000 and bld_ar > 0.0:
+                            subdiv_pre2000_years.setdefault(lgl2_clean, []).append(yr_impr)
+
                 is_res = sc.startswith("A") or sc.startswith("B")
                 is_sfr = sc == "A1"
                 flags = 0
@@ -1252,10 +1478,21 @@ def main(
                 acct_flags[hcad] = flags
 
                 jurs = cols[i_jurs] if len(cols) > i_jurs else ""
+                if "061" in jurs:
+                    coh_cama_hcads.add(hcad)
+                    if (bld_ar > 0.0 or impr_val > 0.0) and not sc.startswith("C"):
+                        coh_improved_cama_cnt += 1
                 if ("061" in jurs or not jurs) and situs1:
                     sk = normalize_situs_compare_key(situs1)
                     if sk and sk not in situs_to_hcad_coh:
                         situs_to_hcad_coh[sk] = hcad
+
+        subdiv_median_yr: dict[str, int] = {
+            sub_k: int(np.median(yrs_l))
+            for sub_k, yrs_l in subdiv_pre2000_years.items()
+            if len(yrs_l) >= 5
+        }
+        del subdiv_pre2000_years
 
         if "permits.txt" in zf.namelist():
             with zf.open("permits.txt") as fp:
@@ -1271,11 +1508,14 @@ def main(
                     cols = raw_line.decode("latin1", errors="replace").rstrip("\r\n").split("\t")
                     if len(cols) < min_p_cols:
                         continue
+                    ptype_raw = cols[ip_type].strip()
+                    dscr_raw = cols[ip_dscr].strip()
+                    dt_raw = cols[ip_dt].strip()
                     parsed = parse_demolition_permit_row(
                         acct=cols[ip_acct],
-                        permit_type=cols[ip_type],
-                        dscr=cols[ip_dscr],
-                        issue_date=cols[ip_dt],
+                        permit_type=ptype_raw,
+                        dscr=dscr_raw,
+                        issue_date=dt_raw,
                         roll_yr=cols[ip_yr] if len(cols) > ip_yr else None,
                         min_year=2020,
                         max_year=eff_year,
@@ -1286,6 +1526,19 @@ def main(
                             demo_parcels_by_year[yr].add(hcad)
                         if hcad in bldg_hcads_set_pre40:
                             demo_pre40_hcads.add(hcad)
+                        dt_obj = _parse_permit_date(dt_raw)
+                        d_key = (hcad, yr)
+                        if d_key not in demo_by_acct_yr or (
+                            dt_obj is not None
+                            and (demo_by_acct_yr[d_key]["dt"] is None or dt_obj < demo_by_acct_yr[d_key]["dt"])
+                        ):
+                            demo_by_acct_yr[d_key] = {"hcad": hcad, "demo_yr": yr, "dt": dt_obj}
+                    elif _is_new_construction_permit(ptype_raw, dscr_raw):
+                        hcad_nb = normalize_hcad13(cols[ip_acct])
+                        if hcad_nb:
+                            dt_nb = _parse_permit_date(dt_raw)
+                            if dt_nb is not None and dt_nb.year >= 2019:
+                                new_build_dates_by_acct.setdefault(hcad_nb, []).append(dt_nb)
 
     # Merge active tax_year YTD COH structural demolition permits (`SD` / `4D`), deduplicated by `(hcad13, eff_year)`
     coh_ytd_cache = cdir / f"coh_{eff_year}_structural_demo_permits.json"
@@ -1316,6 +1569,127 @@ def main(
             coh_ytd_matched += 1
             if hcad in bldg_hcads_set_pre40:
                 demo_pre40_hcads.add(hcad)
+            d_key = (hcad, eff_year)
+            if d_key not in demo_by_acct_yr:
+                demo_by_acct_yr[d_key] = {
+                    "hcad": hcad,
+                    "demo_yr": eff_year,
+                    "dt": datetime.date(eff_year, 6, 1),
+                }
+
+    # Resolve pre-demolition structure ages & speculative land clearing across all 2020..eff_year demos
+    vacant_cutoff_yr = eff_year - 2
+    coh_demo_stats_by_yr: dict[int, Counter[str]] = {yr: Counter() for yr in demo_years}
+    coh_speculative_stats: dict[str, Counter[str]] = {
+        k_sp: Counter()
+        for k_sp in ("all", "dir_50plus", "best_50plus", "dir_100plus", "best_100plus", "dir_pre1900")
+    }
+
+    for (hcad, d_yr), d_info in demo_by_acct_yr.items():
+        d_dt = d_info["dt"]
+        direct_yr = 0
+        if hcad in lost_yr_by_hcad and lost_yr_by_hcad[hcad] < d_yr:
+            direct_yr = lost_yr_by_hcad[hcad]
+        elif hcad in ov_yr_by_hcad and ov_yr_by_hcad[hcad] < d_yr:
+            direct_yr = ov_yr_by_hcad[hcad]
+        elif hcad in hcad_earliest_year and hcad_earliest_year[hcad] < d_yr:
+            direct_yr = hcad_earliest_year[hcad]
+
+        best_yr = direct_yr
+        if best_yr == 0:
+            lgl2_val = acct_lgl2_map.get(hcad, "")
+            if lgl2_val and lgl2_val in subdiv_median_yr:
+                best_yr = subdiv_median_yr[lgl2_val]
+
+        if direct_yr > 0:
+            if direct_yr < 1940:
+                demo_pre40_hcads.add(hcad)
+            if (d_yr - direct_yr) >= 50 or direct_yr <= (eff_year - 50):
+                demo_50yr_hcads.add(hcad)
+            if (d_yr - direct_yr) >= 100 or direct_yr <= (eff_year - 100):
+                demo_100yr_hcads.add(hcad)
+            if direct_yr < 1900:
+                demo_pre1900_hcads.add(hcad)
+
+        is_vac_now = acct_vacant_map.get(hcad, False)
+        if d_yr <= vacant_cutoff_yr:
+            demo_2020_2024_hcads.add(hcad)
+            if is_vac_now:
+                demo_vacant_2020_2024_hcads.add(hcad)
+
+        nb_dates = new_build_dates_by_acct.get(hcad, [])
+        earliest_nb_dt: datetime.date | None = None
+        if d_dt is not None and nb_dates:
+            cands = [nd for nd in nb_dates if (nd - d_dt).days >= -180]
+            if cands:
+                earliest_nb_dt = min(cands)
+        if earliest_nb_dt is None or d_dt is None or (earliest_nb_dt - d_dt).days > 0:
+            demo_before_nb_hcads.add(hcad)
+
+        if hcad in coh_cama_hcads and d_yr in coh_demo_stats_by_yr:
+            st = coh_demo_stats_by_yr[d_yr]
+            st["total"] += 1
+            if direct_yr > 0:
+                st["has_direct_yr"] += 1
+                if direct_yr < 1900:
+                    st["dir_pre1900"] += 1
+                if (d_yr - direct_yr) >= 100 or direct_yr <= (eff_year - 100):
+                    st["dir_100plus"] += 1
+                if direct_yr < 1940:
+                    st["dir_pre1940"] += 1
+                if (d_yr - direct_yr) >= 75 or direct_yr <= (eff_year - 75):
+                    st["dir_75plus"] += 1
+                if (d_yr - direct_yr) >= 50 or direct_yr <= (eff_year - 50):
+                    st["dir_50plus"] += 1
+            if best_yr > 0:
+                st["has_best_yr"] += 1
+                if best_yr < 1900:
+                    st["best_pre1900"] += 1
+                if (d_yr - best_yr) >= 100 or best_yr <= (eff_year - 100):
+                    st["best_100plus"] += 1
+                if best_yr < 1940:
+                    st["best_pre1940"] += 1
+                if (d_yr - best_yr) >= 75 or best_yr <= (eff_year - 75):
+                    st["best_75plus"] += 1
+                if (d_yr - best_yr) >= 50 or best_yr <= (eff_year - 50):
+                    st["best_50plus"] += 1
+
+            is_rebuilt_cama = acct_rebuilt_yr_map.get(hcad, 0) >= d_yr
+            q4_buckets = ["all"]
+            if direct_yr > 0 and ((d_yr - direct_yr) >= 50 or direct_yr <= (eff_year - 50)):
+                q4_buckets.append("dir_50plus")
+            if best_yr > 0 and ((d_yr - best_yr) >= 50 or best_yr <= (eff_year - 50)):
+                q4_buckets.append("best_50plus")
+            if direct_yr > 0 and ((d_yr - direct_yr) >= 100 or direct_yr <= (eff_year - 100)):
+                q4_buckets.append("dir_100plus")
+            if best_yr > 0 and ((d_yr - best_yr) >= 100 or best_yr <= (eff_year - 100)):
+                q4_buckets.append("best_100plus")
+            if direct_yr > 0 and direct_yr < 1900:
+                q4_buckets.append("dir_pre1900")
+
+            for b_key in q4_buckets:
+                sp = coh_speculative_stats[b_key]
+                sp["total"] += 1
+                if d_yr <= vacant_cutoff_yr:
+                    sp["total_2020_2024"] += 1
+                    if is_vac_now:
+                        sp["still_vacant_2020_2024"] += 1
+                if earliest_nb_dt is not None and d_dt is not None:
+                    delta_days = (earliest_nb_dt - d_dt).days
+                    if delta_days <= 0:
+                        sp["nb_before_or_same_day"] += 1
+                    elif delta_days <= 30:
+                        sp["nb_within_1_to_30d"] += 1
+                    elif delta_days <= 180:
+                        sp["nb_within_31_to_180d"] += 1
+                    else:
+                        sp["nb_after_180d"] += 1
+                elif is_rebuilt_cama:
+                    sp["rebuilt_cama_no_nb_permit_row"] += 1
+                else:
+                    sp["no_nb_permit_ever_issued"] += 1
+
+    del demo_by_acct_yr, new_build_dates_by_acct, acct_lgl2_map, subdiv_median_yr, acct_vacant_map, acct_rebuilt_yr_map
 
     print(
         f"   Parsed {len(acct_flags):,} HCAD accounts & demo permits in {time.time() - t_cama:.1f}s "
@@ -1475,6 +1849,20 @@ def main(
     all_demo_set: set[str] = set().union(*demo_parcels_by_year.values())
     pcl_demo_any_mask = np.fromiter((h in all_demo_set for h in uniq_hcads), dtype=bool, count=len(uniq_hcads))
     pcl_demo_pre40_mask = np.fromiter((h in demo_pre40_hcads for h in uniq_hcads), dtype=bool, count=len(uniq_hcads))
+    pcl_demo_50yr_mask = np.fromiter((h in demo_50yr_hcads for h in uniq_hcads), dtype=bool, count=len(uniq_hcads))
+    pcl_demo_100yr_mask = np.fromiter((h in demo_100yr_hcads for h in uniq_hcads), dtype=bool, count=len(uniq_hcads))
+    pcl_demo_pre1900_mask = np.fromiter(
+        (h in demo_pre1900_hcads for h in uniq_hcads), dtype=bool, count=len(uniq_hcads)
+    )
+    pcl_demo_2020_2024_mask = np.fromiter(
+        (h in demo_2020_2024_hcads for h in uniq_hcads), dtype=bool, count=len(uniq_hcads)
+    )
+    pcl_demo_vacant_2024_mask = np.fromiter(
+        (h in demo_vacant_2020_2024_hcads for h in uniq_hcads), dtype=bool, count=len(uniq_hcads)
+    )
+    pcl_demo_before_nb_mask = np.fromiter(
+        (h in demo_before_nb_hcads for h in uniq_hcads), dtype=bool, count=len(uniq_hcads)
+    )
 
     print(
         f"   Loaded {len(uniq_hcads):,} unique HCAD parcel geometries in {time.time() - t_pcl:.1f}s "
@@ -1579,6 +1967,15 @@ def main(
 
     scorecards: list[dict[str, Any]] = []
     family_counts: dict[str, int] = {}
+    coh_bldg_mask = np.zeros(len(bldg_years), dtype=bool)
+    coh_pcl_mask = np.zeros(len(uniq_hcads), dtype=bool)
+    coh_hd_pcl_mask = np.zeros(len(uniq_hcads), dtype=bool)
+    coh_smls_ords: set[str] = set()
+    coh_smbl_ords: set[str] = set()
+    coh_expiring_map: dict[tuple[str, str], dict[str, Any]] = {}
+    coh_cons_ords: set[str] = set()
+    coh_total_poly_acres = 0.0
+    coh_hd_poly_acres = 0.0
 
     for layer_key, default_type_label, feat_list in boundary_families:
         t_fam = time.time()
@@ -1620,15 +2017,25 @@ def main(
             if not sg_2278.is_valid:
                 sg_2278 = make_valid(sg_2278)
             area_acres = round(float(sg_2278.area) / 43560.0, 2)
+            if layer_key == "council_districts":
+                coh_total_poly_acres += float(sg_2278.area) / 43560.0
+            elif layer_key == "historic_districts":
+                coh_hd_poly_acres += float(sg_2278.area) / 43560.0
 
             if bc > 0:
+                if layer_key == "council_districts":
+                    coh_bldg_mask[b_hits] = True
                 yrs_sub = bldg_years[b_hits]
                 ey = int(yrs_sub.min())
                 my = int(round(float(np.median(yrs_sub))))
+                p00 = int(np.sum(yrs_sub < 1900))
                 p20 = int(np.sum(yrs_sub < 1920))
+                p26 = int(np.sum(yrs_sub <= (eff_year - 100)))
                 p40 = int(np.sum(yrs_sub < 1940))
+                p50 = int(np.sum(yrs_sub <= (eff_year - 75)))
                 p60 = int(np.sum(yrs_sub < 1960))
                 p75 = int(np.sum(yrs_sub < 1975))
+                p76 = int(np.sum(yrs_sub <= (eff_year - 50)))
                 n20 = int(np.sum(yrs_sub >= 2020))
                 hdp = int(np.sum(bldg_in_coh_hd[b_hits]))
                 dec_vals = np.clip((yrs_sub // 10) * 10, decade_bins[0], decade_bins[-1])
@@ -1636,13 +2043,17 @@ def main(
             else:
                 ey = 0
                 my = 0
-                p20 = p40 = p60 = p75 = n20 = hdp = 0
+                p00 = p20 = p26 = p40 = p50 = p60 = p75 = p76 = n20 = hdp = 0
                 dh = [0] * len(decade_bins)
 
             # Unique parcel hits (EPSG:2278)
             p_hits = pcl_pt_tree_2278.query(sg_2278, predicate="intersects")
             pc = int(len(p_hits))
             if pc > 0:
+                if layer_key == "council_districts":
+                    coh_pcl_mask[p_hits] = True
+                elif layer_key == "historic_districts":
+                    coh_hd_pcl_mask[p_hits] = True
                 rpc = int(np.sum(pcl_res_mask[p_hits]))
                 sfc = int(np.sum(pcl_sfr_mask[p_hits]))
                 occ = int(np.sum(pcl_occ_mask[p_hits]))
@@ -1656,6 +2067,12 @@ def main(
                 dm = [int(np.sum(pcl_demo_masks[yr][p_hits])) for yr in demo_years]
                 dmt = int(np.sum(pcl_demo_any_mask[p_hits]))
                 dmp40 = int(np.sum(pcl_demo_pre40_mask[p_hits]))
+                dm50 = int(np.sum(pcl_demo_50yr_mask[p_hits]))
+                dm26 = int(np.sum(pcl_demo_100yr_mask[p_hits]))
+                dm00 = int(np.sum(pcl_demo_pre1900_mask[p_hits]))
+                dmt24 = int(np.sum(pcl_demo_2020_2024_mask[p_hits]))
+                dmv = int(np.sum(pcl_demo_vacant_2024_mask[p_hits]))
+                dbn = int(np.sum(pcl_demo_before_nb_mask[p_hits]))
                 include_ot_tps = layer_key not in ("platted_subdivisions", "neighborhoods") or (
                     layer_key == "neighborhoods" and bc >= 150
                 )
@@ -1677,6 +2094,7 @@ def main(
                     tps_list = []
             else:
                 rpc = sfc = occ = ftc = llc = abs_c = chp = slp = sbp = chx = dmt = dmp40 = 0
+                dm50 = dm26 = dm00 = dmt24 = dmv = dbn = 0
                 dm = [0] * len(demo_years)
                 ot_counts = []
                 tps_list = []
@@ -1726,24 +2144,33 @@ def main(
                     st = pr["sunset_status"]
                     if pt == "conservation":
                         cons_cnt += 1
+                        if layer_key == "council_districts":
+                            coh_cons_ords.add(f"cons_{int(pri)}")
                         continue
                     if st in ("pending", "inactive", "expired"):
                         continue
                     ord_id = pr["ordinance"] or f"idx_{int(pri)}"
                     if pt == "smls":
                         smls_ords.add(ord_id)
+                        if layer_key == "council_districts":
+                            coh_smls_ords.add(ord_id)
                     elif pt == "smbl":
                         smbl_ords.add(ord_id)
+                        if layer_key == "council_districts":
+                            coh_smbl_ords.add(ord_id)
                     if st == "expiring_soon":
                         ek = (pt, ord_id)
                         if ek not in seen_exp_keys:
                             seen_exp_keys.add(ek)
-                            expiring_list.append({
+                            exp_obj = {
                                 "o": pr["ordinance"] or "Unnumbered",
                                 "t": pt.upper(),
                                 "y": pr["expiration_year"],
                                 "est": bool(pr["is_estimated_sunset"]),
-                            })
+                            }
+                            expiring_list.append(exp_obj)
+                            if layer_key == "council_districts" and ek not in coh_expiring_map:
+                                coh_expiring_map[ek] = exp_obj
             expiring_list.sort(key=lambda x: (x["y"], x["t"], x["o"]))
 
             # Overlapping Council District(s) & Super Neighborhood
@@ -1809,9 +2236,11 @@ def main(
                 "ey": ey,
                 "my": my,
                 "p20": p20,
+                "p26": p26,
                 "p40": p40,
                 "p60": p60,
                 "p75": p75,
+                "p76": p76,
                 "n20": n20,
                 "dh": dh,
                 "lm": lm_total,
@@ -1839,7 +2268,16 @@ def main(
                 "dm": dm,
                 "dmt": dmt,
                 "dmp40": dmp40,
+                "dm50": dm50,
+                "dm26": dm26,
+                "dm00": dm00,
+                "dmt24": dmt24,
+                "dmv": dmv,
+                "dbn": dbn,
             }
+            if layer_key != "platted_subdivisions":
+                rec["p00"] = p00
+                rec["p50"] = p50
             if ot_counts and any(ot_counts):
                 rec["ot"] = ot_counts
             if tps_list:
@@ -1869,30 +2307,454 @@ def main(
                     "delta_vs_a": p.get("af_temp_delta_vs_a"),
                 }
             elif layer_key == "platted_subdivisions":
-                rec["pl"] = {
+                pl_meta: dict[str, Any] = {
                     "year_label": sanitize_atlas_text(str(p.get("plat_year_label") or "")),
                     "citation": sanitize_atlas_text(str(p.get("plat_citation") or "")),
                     "deed_citation": sanitize_atlas_text(str(p.get("deed_citation") or "")),
-                    "has_deed_docs": bool(p.get("has_deed_docs")),
                 }
+                if bool(p.get("has_deed_docs")):
+                    pl_meta["has_deed_docs"] = True
+                rec["pl"] = pl_meta
             elif layer_key == "potential_historic_districts" and p.get("already_designated_coh_hd"):
                 rec["ad"] = True
 
-            # Omit sparse zero fields to keep payload cleanly under 2.5 MB;
+            # Omit sparse zero fields and default type labels to keep payload cleanly under 2.5 MB;
             # decodeScorecardRecord in app/js/preservationOrganizer.js restores defaults.
             for zk in SPARSE_ZERO_SCORECARD_KEYS:
                 if not rec.get(zk):
                     rec.pop(zk, None)
+            if rec.get("tp") == default_type_label:
+                rec.pop("tp", None)
             if not rec.get("exo"):
                 rec.pop("exo", None)
             if not any(rec.get("dm") or ()):
                 rec.pop("dm", None)
+            if not any(rec.get("dh") or ()):
+                rec.pop("dh", None)
 
             scorecards.append(rec)
             kept_in_family += 1
 
         family_counts[layer_key] = kept_in_family
         print(f"   [{layer_key}] computed {kept_in_family:,} scorecards in {time.time() - t_fam:.1f}s")
+
+    # 7b. Build Citywide Rollup Scorecard ("City of Houston (All Districts A-K)") & Citywide Policy Impact Brief
+    coh_yrs_sub = bldg_years[coh_bldg_mask]
+    coh_bc = int(len(coh_yrs_sub))
+    if coh_bc > 0:
+        coh_ey = int(coh_yrs_sub.min())
+        coh_my = int(round(float(np.median(coh_yrs_sub))))
+        coh_p00 = int(np.sum(coh_yrs_sub < 1900))
+        coh_p20 = int(np.sum(coh_yrs_sub < 1920))
+        coh_p26 = int(np.sum(coh_yrs_sub <= (eff_year - 100)))
+        coh_p40 = int(np.sum(coh_yrs_sub < 1940))
+        coh_p50 = int(np.sum(coh_yrs_sub <= (eff_year - 75)))
+        coh_p60 = int(np.sum(coh_yrs_sub < 1960))
+        coh_p75 = int(np.sum(coh_yrs_sub < 1975))
+        coh_p76 = int(np.sum(coh_yrs_sub <= (eff_year - 50)))
+        coh_n20 = int(np.sum(coh_yrs_sub >= 2020))
+        coh_hdp = int(np.sum(bldg_in_coh_hd[coh_bldg_mask]))
+        coh_dec_vals = np.clip((coh_yrs_sub // 10) * 10, decade_bins[0], decade_bins[-1])
+        coh_dh = [int(np.sum(coh_dec_vals == db)) for db in decade_bins]
+    else:
+        coh_ey = coh_my = coh_p00 = coh_p20 = coh_p26 = coh_p40 = coh_p50 = coh_p60 = coh_p75 = coh_p76 = coh_n20 = coh_hdp = 0
+        coh_dh = [0] * len(decade_bins)
+
+    coh_p_indices = np.flatnonzero(coh_pcl_mask)
+    coh_pc = int(len(coh_p_indices))
+    coh_rpc = int(np.sum(pcl_res_mask[coh_pcl_mask]))
+    coh_sfc = int(np.sum(pcl_sfr_mask[coh_pcl_mask]))
+    coh_occ = int(np.sum(pcl_occ_mask[coh_pcl_mask]))
+    coh_ftc = int(np.sum(pcl_trust_mask[coh_pcl_mask]))
+    coh_llc = int(np.sum(pcl_corp_mask[coh_pcl_mask]))
+    coh_abs = int(np.sum(pcl_abs_mask[coh_pcl_mask]))
+    coh_chp = int(np.sum(pcl_ch42_mask[coh_pcl_mask]))
+    coh_slp = int(np.sum(pcl_smls_mask[coh_pcl_mask]))
+    coh_sbp = int(np.sum(pcl_smbl_mask[coh_pcl_mask]))
+    coh_chx = int(np.sum(pcl_ch42_exp_mask[coh_pcl_mask]))
+    coh_dm = [int(np.sum(pcl_demo_masks[yr][coh_pcl_mask])) for yr in demo_years]
+    coh_dmt = int(np.sum(pcl_demo_any_mask[coh_pcl_mask]))
+    coh_dmp40 = int(np.sum(pcl_demo_pre40_mask[coh_pcl_mask]))
+    coh_dm50 = int(np.sum(pcl_demo_50yr_mask[coh_pcl_mask]))
+    coh_dm26 = int(np.sum(pcl_demo_100yr_mask[coh_pcl_mask]))
+    coh_dm00 = int(np.sum(pcl_demo_pre1900_mask[coh_pcl_mask]))
+    coh_dmt24 = int(np.sum(pcl_demo_2020_2024_mask[coh_pcl_mask]))
+    coh_dmv = int(np.sum(pcl_demo_vacant_2024_mask[coh_pcl_mask]))
+    coh_dbn = int(np.sum(pcl_demo_before_nb_mask[coh_pcl_mask]))
+    coh_ot = [int(np.sum(pcl_tier_arr[coh_pcl_mask] == ti)) for ti in range(6)]
+    coh_port_cnt: Counter[str] = Counter()
+    for pi in coh_p_indices:
+        pid_val = uniq_port_ids[int(pi)]
+        if pid_val:
+            coh_port_cnt[pid_val] += 1
+    coh_tps = [[pid_k, int(cnt_v)] for pid_k, cnt_v in coh_port_cnt.most_common(3) if cnt_v >= 2]
+
+    cd_recs = [r for r in scorecards if r["ly"] == "council_districts"]
+    coh_lm_total = sum(int(r.get("lm") or 0) for r in cd_recs)
+    coh_plm_total = sum(int(r.get("plm") or 0) for r in cd_recs)
+    coh_vlm_total = sum(int(r.get("vlm") or 0) for r in cd_recs)
+    coh_gb_total = sum(int(r.get("gb") or 0) for r in cd_recs)
+    coh_nrp_total = sum(int(r.get("nrp") or 0) for r in cd_recs)
+    coh_lhc_total = sum(int(r.get("lhc") or 0) for r in cd_recs)
+    coh_expiring_sorted = sorted(coh_expiring_map.values(), key=lambda x: (x["y"], x["t"], x["o"]))
+
+    citywide_scorecard: dict[str, Any] = {
+        "id": "council_dist_coh_all",
+        "ly": "council_districts",
+        "nm": "City of Houston (All Districts A-K)",
+        "tp": "Citywide Rollup (All 11 Council Districts)",
+        "cx": -95.3698,
+        "cy": 29.7604,
+        "bb": [-95.90974, 29.52362, -95.0145, 30.11073],
+        "ac": round(coh_total_poly_acres, 2),
+        "bc": coh_bc,
+        "ey": coh_ey,
+        "my": coh_my,
+        "p00": coh_p00,
+        "p20": coh_p20,
+        "p26": coh_p26,
+        "p40": coh_p40,
+        "p50": coh_p50,
+        "p60": coh_p60,
+        "p75": coh_p75,
+        "p76": coh_p76,
+        "n20": coh_n20,
+        "dh": coh_dh,
+        "lm": coh_lm_total,
+        "plm": coh_plm_total,
+        "vlm": coh_vlm_total,
+        "gb": coh_gb_total,
+        "nrp": coh_nrp_total,
+        "lhc": coh_lhc_total,
+        "pc": coh_pc,
+        "rpc": coh_rpc,
+        "sfc": coh_sfc,
+        "occ": coh_occ,
+        "ftc": coh_ftc,
+        "llc": coh_llc,
+        "abs": coh_abs,
+        "chp": coh_chp,
+        "slp": coh_slp,
+        "sbp": coh_sbp,
+        "chx": coh_chx,
+        "slo": len(coh_smls_ords),
+        "sbo": len(coh_smbl_ords),
+        "exo": coh_expiring_sorted[:16],
+        "cdo": len(coh_cons_ords),
+        "hdp": coh_hdp,
+        "dm": coh_dm,
+        "dmt": coh_dmt,
+        "dmp40": coh_dmp40,
+        "dm50": coh_dm50,
+        "dm26": coh_dm26,
+        "dm00": coh_dm00,
+        "dmt24": coh_dmt24,
+        "dmv": coh_dmv,
+        "dbn": coh_dbn,
+        "ot": coh_ot,
+        "tps": coh_tps,
+        "cd": "A, B, C, D, E, F, G, H, I, J, K",
+        "cm": {
+            "letter": "A-K",
+            "member": "All 11 District + 5 At-Large Council Members",
+            "phone": "832-393-1100",
+            "email": "citizensnet@houstontx.gov",
+            "url": "https://www.houstontx.gov/council/",
+            "term_expires": COUNCIL_TERM_EXPIRES,
+        },
+    }
+
+    # Build the 4-table Citywide Policy Impact Brief (strictly excluding Heritage Districts)
+    total_dated_bldg = max(1, coh_bc)
+    total_impr_cama = max(1, coh_improved_cama_cnt)
+    age_thresholds_spec = [
+        ("50_plus", f"50+ Years Old (<= {eff_year - 50})", eff_year - 50, coh_bldg_mask & (bldg_years <= (eff_year - 50))),
+        ("75_plus", f"75+ Years Old (<= {eff_year - 75})", eff_year - 75, coh_bldg_mask & (bldg_years <= (eff_year - 75))),
+        ("pre_1940", "Pre-WWII (< 1940)", 1939, coh_bldg_mask & (bldg_years < 1940)),
+        ("100_plus", f"100+ Years Old (<= {eff_year - 100})", eff_year - 100, coh_bldg_mask & (bldg_years <= (eff_year - 100))),
+        ("pre_1900", "Pre-1900 (Victorian / 19th C.)", 1899, coh_bldg_mask & (bldg_years < 1900)),
+    ]
+    standing_buildings_by_age: list[dict[str, Any]] = []
+    for th_id, th_label, cutoff_yr, th_mask in age_thresholds_spec:
+        cnt_st = int(np.sum(th_mask))
+        cnt_hd = int(np.sum(th_mask & bldg_in_coh_hd))
+        cnt_lm = int(np.sum(th_mask & bldg_in_coh_lm))
+        cnt_prot = int(np.sum(th_mask & bldg_is_coh_protected))
+        cnt_unprot = max(0, cnt_st - cnt_prot)
+        standing_buildings_by_age.append({
+            "id": th_id,
+            "label": th_label,
+            "cutoff_year": int(cutoff_yr),
+            "standing_count": cnt_st,
+            "share_of_dated_pct": round(cnt_st * 100.0 / total_dated_bldg, 2),
+            "share_of_all_cama_pct": round(cnt_st * 100.0 / total_impr_cama, 2),
+            "coh_hd_count": cnt_hd,
+            "coh_lm_count": cnt_lm,
+            "protected_count": cnt_prot,
+            "unprotected_count": cnt_unprot,
+            "unprotected_pct": round(cnt_unprot * 100.0 / max(1, cnt_st), 1),
+        })
+
+    demo_age_year_rows: list[dict[str, Any]] = []
+    full_demo_years = [yr for yr in demo_years if yr < eff_year]
+    for yr in demo_years:
+        st_y = coh_demo_stats_by_yr[yr]
+        tot_y = int(st_y["total"])
+        d50 = int(st_y["dir_50plus"])
+        b50 = int(st_y["best_50plus"])
+        d75 = int(st_y["dir_75plus"])
+        b75 = int(st_y["best_75plus"])
+        dp40 = int(st_y["dir_pre1940"])
+        bp40 = int(st_y["best_pre1940"])
+        d100 = int(st_y["dir_100plus"])
+        b100 = int(st_y["best_100plus"])
+        dp00 = int(st_y["dir_pre1900"])
+        bp00 = int(st_y["best_pre1900"])
+        demo_age_year_rows.append({
+            "year": yr,
+            "is_ytd": yr == eff_year,
+            "total_demos": tot_y,
+            "known_direct_age_count": int(st_y["has_direct_yr"]),
+            "known_best_age_count": int(st_y["has_best_yr"]),
+            "age_50plus_direct": d50,
+            "age_50plus_best": b50,
+            "age_50plus_direct_pct": round(d50 * 100.0 / max(1, tot_y), 1),
+            "age_50plus_best_pct": round(b50 * 100.0 / max(1, tot_y), 1),
+            "age_75plus_direct": d75,
+            "age_75plus_best": b75,
+            "age_pre1940_direct": dp40,
+            "age_pre1940_best": bp40,
+            "age_100plus_direct": d100,
+            "age_100plus_best": b100,
+            "age_100plus_direct_pct": round(d100 * 100.0 / max(1, tot_y), 1),
+            "age_100plus_best_pct": round(b100 * 100.0 / max(1, tot_y), 1),
+            "age_pre1900_direct": dp00,
+            "age_pre1900_best": bp00,
+        })
+
+    n_full_yrs = max(1, len(full_demo_years))
+    full_yr_rows = [r for r in demo_age_year_rows if not r["is_ytd"]]
+    avg_tot = round(sum(r["total_demos"] for r in full_yr_rows) / n_full_yrs)
+    avg_d50 = round(sum(r["age_50plus_direct"] for r in full_yr_rows) / n_full_yrs)
+    avg_b50 = round(sum(r["age_50plus_best"] for r in full_yr_rows) / n_full_yrs)
+    avg_d75 = round(sum(r["age_75plus_direct"] for r in full_yr_rows) / n_full_yrs)
+    avg_b75 = round(sum(r["age_75plus_best"] for r in full_yr_rows) / n_full_yrs)
+    avg_dp40 = round(sum(r["age_pre1940_direct"] for r in full_yr_rows) / n_full_yrs)
+    avg_bp40 = round(sum(r["age_pre1940_best"] for r in full_yr_rows) / n_full_yrs)
+    avg_d100 = round(sum(r["age_100plus_direct"] for r in full_yr_rows) / n_full_yrs)
+    avg_b100 = round(sum(r["age_100plus_best"] for r in full_yr_rows) / n_full_yrs)
+    avg_dp00 = round(sum(r["age_pre1900_direct"] for r in full_yr_rows) / n_full_yrs, 1)
+    avg_bp00 = round(sum(r["age_pre1900_best"] for r in full_yr_rows) / n_full_yrs, 1)
+
+    cum_tot = sum(r["total_demos"] for r in demo_age_year_rows)
+    cum_d50 = sum(r["age_50plus_direct"] for r in demo_age_year_rows)
+    cum_b50 = sum(r["age_50plus_best"] for r in demo_age_year_rows)
+    cum_d75 = sum(r["age_75plus_direct"] for r in demo_age_year_rows)
+    cum_b75 = sum(r["age_75plus_best"] for r in demo_age_year_rows)
+    cum_dp40 = sum(r["age_pre1940_direct"] for r in demo_age_year_rows)
+    cum_bp40 = sum(r["age_pre1940_best"] for r in demo_age_year_rows)
+    cum_d100 = sum(r["age_100plus_direct"] for r in demo_age_year_rows)
+    cum_b100 = sum(r["age_100plus_best"] for r in demo_age_year_rows)
+    cum_dp00 = sum(r["age_pre1900_direct"] for r in demo_age_year_rows)
+    cum_bp00 = sum(r["age_pre1900_best"] for r in demo_age_year_rows)
+
+    # Local historic designation coverage (strictly excluding Heritage Districts)
+    coh_hd_hcads: set[str] = {uniq_hcads[int(pi)] for pi in np.flatnonzero(coh_hd_pcl_mask)} & coh_cama_hcads
+    plm_coh_hcads = standing_plm_hcads & coh_cama_hcads
+    plm_outside_hd_coh_hcads = (standing_plm_outside_hd_hcads & coh_cama_hcads) - coh_hd_hcads
+    lm_reg_coh_hcads = standing_lm_reg_hcads & coh_cama_hcads
+    lm_reg_outside_hd_coh_hcads = (standing_lm_reg_outside_hd_hcads & coh_cama_hcads) - coh_hd_hcads
+    combined_desig_hcads = coh_hd_hcads | plm_coh_hcads | lm_reg_coh_hcads
+    strict_prot_hcads = coh_hd_hcads | plm_coh_hcads
+
+    coh_parcel_land_acres = sum(acct_acres_map.get(h, 0.0) for h in coh_cama_hcads)
+    plm_acres = sum(acct_acres_map.get(h, 0.0) for h in plm_coh_hcads)
+    plm_outside_hd_acres = sum(acct_acres_map.get(h, 0.0) for h in plm_outside_hd_coh_hcads)
+    lm_reg_acres = sum(acct_acres_map.get(h, 0.0) for h in lm_reg_coh_hcads)
+    lm_reg_outside_hd_acres = sum(acct_acres_map.get(h, 0.0) for h in lm_reg_outside_hd_coh_hcads)
+    hd_pcl_acres = sum(acct_acres_map.get(h, 0.0) for h in coh_hd_hcads)
+    combined_pcl_acres = sum(acct_acres_map.get(h, 0.0) for h in combined_desig_hcads)
+    strict_pcl_acres = sum(acct_acres_map.get(h, 0.0) for h in strict_prot_hcads)
+    combined_poly_acres = coh_hd_poly_acres + plm_outside_hd_acres + lm_reg_outside_hd_acres
+    strict_poly_acres = coh_hd_poly_acres + plm_outside_hd_acres
+
+    tot_coh_pcls = max(1, len(coh_cama_hcads))
+    tot_coh_pcl_ac = max(1.0, coh_parcel_land_acres)
+    tot_coh_poly_ac = max(1.0, coh_total_poly_acres)
+    num_coh_hds = int(family_counts.get("historic_districts", 22))
+
+    local_designation_coverage = {
+        "excludes_heritage_districts": True,
+        "heritage_district_exclusion_note": (
+            "Excludes Heritage Districts (such as Freedmen's Town Heritage District), which regulate only "
+            "public infrastructure on City-owned rights-of-way and do not protect private property or any buildings."
+        ),
+        "coh_total_parcels": int(len(coh_cama_hcads)),
+        "coh_improved_parcels": int(coh_improved_cama_cnt),
+        "coh_parcel_land_acres": round(coh_parcel_land_acres, 1),
+        "coh_parcel_land_sq_mi": round(coh_parcel_land_acres / 640.0, 2),
+        "coh_municipal_boundary_acres": round(coh_total_poly_acres, 1),
+        "coh_municipal_boundary_sq_mi": round(coh_total_poly_acres / 640.0, 2),
+        "rows": [
+            {
+                "id": "protected_landmarks",
+                "category": "Protected Landmarks (PLM)",
+                "protection_strength": "Strongest (permanent covenant; no 90-day waiver)",
+                "feature_count": standing_plm_feat_cnt,
+                "unique_parcels": len(plm_coh_hcads),
+                "outside_hd_parcels": len(plm_outside_hd_coh_hcads),
+                "pct_all_parcels": round(len(plm_coh_hcads) * 100.0 / tot_coh_pcls, 3),
+                "pct_improved_parcels": round(len(plm_coh_hcads) * 100.0 / total_impr_cama, 3),
+                "parcel_acres": round(plm_acres, 1),
+                "outside_hd_acres": round(plm_outside_hd_acres, 1),
+                "pct_parcel_area": round(plm_acres * 100.0 / tot_coh_pcl_ac, 3),
+                "pct_city_boundary_area": round(plm_acres * 100.0 / tot_coh_poly_ac, 3),
+            },
+            {
+                "id": "regular_landmarks",
+                "category": "Regular Landmarks (LM, Non-Protected)",
+                "protection_strength": "Weak outside HD (subject to 90-day demolition waiver)",
+                "feature_count": standing_lm_reg_feat_cnt,
+                "unique_parcels": len(lm_reg_coh_hcads),
+                "outside_hd_parcels": len(lm_reg_outside_hd_coh_hcads),
+                "pct_all_parcels": round(len(lm_reg_coh_hcads) * 100.0 / tot_coh_pcls, 3),
+                "pct_improved_parcels": round(len(lm_reg_coh_hcads) * 100.0 / total_impr_cama, 3),
+                "parcel_acres": round(lm_reg_acres, 1),
+                "outside_hd_acres": round(lm_reg_outside_hd_acres, 1),
+                "pct_parcel_area": round(lm_reg_acres * 100.0 / tot_coh_pcl_ac, 3),
+                "pct_city_boundary_area": round(lm_reg_acres * 100.0 / tot_coh_poly_ac, 3),
+            },
+            {
+                "id": "coh_historic_districts",
+                "category": f"COH Historic Districts ({num_coh_hds} Active Districts)",
+                "protection_strength": "COA review required (Ch. 33)",
+                "district_count": num_coh_hds,
+                "unique_parcels": len(coh_hd_hcads),
+                "pct_all_parcels": round(len(coh_hd_hcads) * 100.0 / tot_coh_pcls, 2),
+                "pct_improved_parcels": round(len(coh_hd_hcads) * 100.0 / total_impr_cama, 2),
+                "parcel_acres": round(hd_pcl_acres, 1),
+                "polygon_acres": round(coh_hd_poly_acres, 1),
+                "polygon_sq_mi": round(coh_hd_poly_acres / 640.0, 2),
+                "pct_parcel_area": round(hd_pcl_acres * 100.0 / tot_coh_pcl_ac, 2),
+                "pct_city_boundary_area": round(coh_hd_poly_acres * 100.0 / tot_coh_poly_ac, 2),
+            },
+            {
+                "id": "combined_local_designation",
+                "category": f"Combined Local Historic Designation (Deduplicated: PLM + LM + {num_coh_hds} Historic Districts)",
+                "protection_strength": "All City historic building designations combined",
+                "unique_parcels": len(combined_desig_hcads),
+                "pct_all_parcels": round(len(combined_desig_hcads) * 100.0 / tot_coh_pcls, 2),
+                "pct_improved_parcels": round(len(combined_desig_hcads) * 100.0 / total_impr_cama, 2),
+                "parcel_acres": round(combined_pcl_acres, 1),
+                "polygon_acres": round(combined_poly_acres, 1),
+                "polygon_sq_mi": round(combined_poly_acres / 640.0, 2),
+                "pct_parcel_area": round(combined_pcl_acres * 100.0 / tot_coh_pcl_ac, 2),
+                "pct_city_boundary_area": round(combined_poly_acres * 100.0 / tot_coh_poly_ac, 2),
+            },
+            {
+                "id": "strict_demolition_protection",
+                "category": f"Strict Demolition Protection Only (PLM + {num_coh_hds} COH Historic Districts, Excl. 90-Day Waiver LMs)",
+                "protection_strength": "True non-waiver demolition protection",
+                "unique_parcels": len(strict_prot_hcads),
+                "pct_all_parcels": round(len(strict_prot_hcads) * 100.0 / tot_coh_pcls, 2),
+                "pct_improved_parcels": round(len(strict_prot_hcads) * 100.0 / total_impr_cama, 2),
+                "parcel_acres": round(strict_pcl_acres, 1),
+                "polygon_acres": round(strict_poly_acres, 1),
+                "polygon_sq_mi": round(strict_poly_acres / 640.0, 2),
+                "pct_parcel_area": round(strict_pcl_acres * 100.0 / tot_coh_pcl_ac, 2),
+                "pct_city_boundary_area": round(strict_poly_acres * 100.0 / tot_coh_poly_ac, 2),
+            },
+        ],
+    }
+
+    spec_cohort_defs = [
+        ("all", f"All COH Demolitions (2020-{eff_year})"),
+        ("dir_50plus", "50+ Year Old Buildings (Direct Year)"),
+        ("best_50plus", "50+ Year Old Buildings (Incl. Subdivision Age)"),
+        ("dir_100plus", "100+ Year Old Buildings (Direct Year)"),
+        ("best_100plus", "100+ Year Old Buildings (Incl. Subdivision Age)"),
+        ("dir_pre1900", "Pre-1900 Buildings (Direct Year)"),
+    ]
+    speculative_clearing_rows: list[dict[str, Any]] = []
+    for sp_key, sp_label in spec_cohort_defs:
+        sp = coh_speculative_stats[sp_key]
+        tot_sp = int(sp["total"])
+        nb_same = int(sp["nb_before_or_same_day"])
+        demo_first = max(0, tot_sp - nb_same)
+        no_nb_ever = int(sp["no_nb_permit_ever_issued"]) + int(sp["rebuilt_cama_no_nb_permit_row"])
+        tot_24 = int(sp["total_2020_2024"])
+        vac_24 = int(sp["still_vacant_2020_2024"])
+        speculative_clearing_rows.append({
+            "id": sp_key,
+            "cohort": sp_label,
+            "total_demos": tot_sp,
+            "nb_before_or_same_day_count": nb_same,
+            "nb_before_or_same_day_pct": round(nb_same * 100.0 / max(1, tot_sp), 1),
+            "demo_before_nb_count": demo_first,
+            "demo_before_nb_pct": round(demo_first * 100.0 / max(1, tot_sp), 1),
+            "nb_within_1_to_30d_count": int(sp["nb_within_1_to_30d"]),
+            "nb_within_31_to_180d_count": int(sp["nb_within_31_to_180d"]),
+            "nb_after_180d_count": int(sp["nb_after_180d"]),
+            "no_nb_permit_recorded_count": no_nb_ever,
+            "no_nb_permit_recorded_pct": round(no_nb_ever * 100.0 / max(1, tot_sp), 1),
+            "demos_2020_2024_total": tot_24,
+            "still_vacant_2026_count": vac_24,
+            "still_vacant_2026_pct": round(vac_24 * 100.0 / max(1, tot_24), 1),
+        })
+
+    citywide_policy_brief: dict[str, Any] = {
+        "generated_at": datetime.date.today().isoformat(),
+        "data_tax_year": eff_year,
+        "vacant_lot_cutoff_year": vacant_cutoff_yr,
+        "total_dated_footprints": int(coh_bc),
+        "total_improved_cama_accounts": int(coh_improved_cama_cnt),
+        "standing_buildings_by_age": standing_buildings_by_age,
+        "annual_demolitions_by_age": {
+            "years": demo_age_year_rows,
+            "full_year_average": {
+                "period_label": f"2020-{eff_year - 1} Full-Yr Avg",
+                "total_demos": avg_tot,
+                "age_50plus_direct": avg_d50,
+                "age_50plus_best": avg_b50,
+                "age_50plus_direct_pct": round(avg_d50 * 100.0 / max(1, avg_tot), 1),
+                "age_50plus_best_pct": round(avg_b50 * 100.0 / max(1, avg_tot), 1),
+                "age_50plus_weekly_direct": round(avg_d50 / 52.0, 1),
+                "age_50plus_weekly_best": round(avg_b50 / 52.0, 1),
+                "age_75plus_direct": avg_d75,
+                "age_75plus_best": avg_b75,
+                "age_pre1940_direct": avg_dp40,
+                "age_pre1940_best": avg_bp40,
+                "age_100plus_direct": avg_d100,
+                "age_100plus_best": avg_b100,
+                "age_100plus_direct_pct": round(avg_d100 * 100.0 / max(1, avg_tot), 1),
+                "age_100plus_best_pct": round(avg_b100 * 100.0 / max(1, avg_tot), 1),
+                "age_100plus_weekly_direct": round(avg_d100 / 52.0, 1),
+                "age_100plus_weekly_best": round(avg_b100 / 52.0, 1),
+                "age_pre1900_direct": avg_dp00,
+                "age_pre1900_best": avg_bp00,
+            },
+            "cumulative": {
+                "period_label": f"2020-{eff_year} Cumulative",
+                "total_demos": cum_tot,
+                "age_50plus_direct": cum_d50,
+                "age_50plus_best": cum_b50,
+                "age_75plus_direct": cum_d75,
+                "age_75plus_best": cum_b75,
+                "age_pre1940_direct": cum_dp40,
+                "age_pre1940_best": cum_bp40,
+                "age_100plus_direct": cum_d100,
+                "age_100plus_best": cum_b100,
+                "age_pre1900_direct": cum_dp00,
+                "age_pre1900_best": cum_bp00,
+            },
+        },
+        "local_designation_coverage": local_designation_coverage,
+        "speculative_land_clearing": {
+            "vacant_lot_cohort_label": f"2020-{vacant_cutoff_yr} Teardowns Still Vacant ($0 Improvement Value) in {eff_year}",
+            "rows": speculative_clearing_rows,
+        },
+    }
+    del acct_acres_map
 
     # 8. Upsert council_districts into overlays.json and search_index.json AFTER backfilling council feature stats
     updated_search_index = upsert_council_districts_in_overlays_and_search(
@@ -1921,6 +2783,8 @@ def main(
         "family_counts": family_counts,
         "field_legend": SCORECARD_FIELD_LEGEND,
         "council_roster": COH_COUNCIL_ROSTER_2024_2028,
+        "citywide_scorecard": citywide_scorecard,
+        "citywide_policy_brief": citywide_policy_brief,
         "scorecards": scorecards,
     }
     write_compact_json(scorecards_out_path, payload)

@@ -481,6 +481,8 @@ import {
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
   resolveAnnualDemolitionBenchmarks,
   formatDemolitionBenchmarksGrantText,
+  formatDemolitionPolicyBriefText,
+  formatDemolitionPolicyBriefRichHtml,
   buildDemolitionBenchmarksTablesHtml,
 } from "./js/platMonitorHelpers.js?v=20261031a";
 
@@ -1943,7 +1945,7 @@ function renderDemoBenchmarksDrawer(){
         <div class="k-sub">${fmt(activeCrit)} Critical Demo/Sewer Threats · ${fmt(activeWatch)} Abatement/Garage Watch</div>
       </div>
     </div>
-    ${buildDemolitionBenchmarksTablesHtml(payload, { variant: "drawer" })}`;
+    ${buildDemolitionBenchmarksTablesHtml(payload, { variant: "drawer", activeTab: window.__demoBenchActiveTab || "volume" })}`;
 }
 
 function toggleDemoBenchmarksDrawer(forceState){
@@ -1972,6 +1974,44 @@ async function copyDemoBenchmarksSummary(){
     ta.remove();
   }
   toast("Copied 2020-2026 YTD demolition permit statistics for grant/report use.");
+}
+
+async function copyDemoPolicyBriefRichTables(btnEl){
+  const payload = window.__permitAlertsPayload || null;
+  const html = formatDemolitionPolicyBriefRichHtml(payload);
+  const txt = formatDemolitionPolicyBriefText(payload);
+  try {
+    if (navigator.clipboard && typeof window.ClipboardItem === "function") {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([txt], { type: "text/plain" }),
+        }),
+      ]);
+    } else {
+      await navigator.clipboard.writeText(txt);
+    }
+  } catch (_e) {
+    const holder = document.createElement("div");
+    holder.innerHTML = html;
+    holder.style.position = "fixed";
+    holder.style.left = "-9999px";
+    document.body.appendChild(holder);
+    const range = document.createRange();
+    range.selectNodeContents(holder);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand("copy");
+    sel.removeAllRanges();
+    holder.remove();
+  }
+  if (btnEl) {
+    if (!btnEl.dataset.origHtml) btnEl.dataset.origHtml = btnEl.innerHTML;
+    btnEl.textContent = "✓ Copied Rich Tables!";
+    setTimeout(() => { btnEl.innerHTML = btnEl.dataset.origHtml; }, 2200);
+  }
+  toast("Copied 4 rich HTML policy tables to clipboard for pasting directly into Gmail.");
 }
 
 function renderActivityFunnel(actCtx){
@@ -5473,6 +5513,17 @@ document.addEventListener("click", async e => {
   }
   if (e.target.closest("#copyDemoBenchmarksBtn")) {
     await copyDemoBenchmarksSummary();
+    return;
+  }
+  const benchTabBtn = e.target.closest("[data-bench-tab]");
+  if (benchTabBtn) {
+    window.__demoBenchActiveTab = benchTabBtn.getAttribute("data-bench-tab") === "policy" ? "policy" : "volume";
+    renderDemoBenchmarksDrawer();
+    return;
+  }
+  const copyPolicyBtn = e.target.closest("[data-copy-policy-brief-gmail]");
+  if (copyPolicyBtn) {
+    await copyDemoPolicyBriefRichTables(copyPolicyBtn);
     return;
   }
 
