@@ -1,28 +1,31 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-04T19:18:30Z",
-  "lastSweepAt": "2026-11-04T19:12:40Z",
+  "generatedAt": "2026-11-05T19:28:26Z",
+  "lastSweepAt": "2026-11-05T19:17:41Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-07",
+  "retentionFloorDate": "2026-08-08",
   "lastSweepHealth": {
-    "timestamp": "2026-11-04T19:12:40Z",
+    "timestamp": "2026-11-05T19:17:41Z",
     "sweepsExecuted": true,
     "propertiesSwept": 29,
     "totalAgencies": 8,
-    "succeededAgencies": 7,
+    "succeededAgencies": 4,
     "failedAgencies": [
+      "chk-04",
+      "chk-06",
+      "chk-10",
       "chk-15"
     ],
     "skippedAgencies": [],
     "allOk": false,
     "agencies": {
       "chk-04": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "TX Comptroller (Sales & Franchise Tax)",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 3,
+        "error": "TX Comptroller Sales Tax: HTTP request failed or timed out"
       },
       "chk-05": {
         "status": "ok",
@@ -32,11 +35,11 @@
         "error": ""
       },
       "chk-06": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "TABC Liquor Licensing",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 3,
+        "error": "TABC Pending: HTTP request failed or timed out; TABC Active: HTTP request failed or timed out"
       },
       "chk-09": {
         "status": "ok",
@@ -46,11 +49,11 @@
         "error": ""
       },
       "chk-10": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 9,
+        "error": "TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out; TDLR TABS (3827 BROADWAY): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -76,20 +79,44 @@
     }
   },
   "summary": {
-    "totalEvents": 509,
-    "criticalCount": 48,
+    "totalEvents": 510,
+    "criticalCount": 49,
     "warningCount": 144,
     "infoCount": 317,
     "byStream": {
       "watchlist": 131,
       "agenda": 87,
       "staff": 156,
-      "permits": 135
+      "permits": 136
     },
-    "operationalNoticeCount": 6,
-    "daysTracked": 84
+    "operationalNoticeCount": 7,
+    "daysTracked": 85
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-05",
+      "lastRunAt": "2026-11-05T19:28:26Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 29,
+      "totalAgencies": 8,
+      "succeededAgencies": 4,
+      "failedAgencies": [
+        "chk-04",
+        "chk-06",
+        "chk-10",
+        "chk-15"
+      ],
+      "allOk": false,
+      "eventCount": 1,
+      "adverseEventCount": 1,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 0,
+        "staff": 0,
+        "permits": 1
+      }
+    },
     {
       "date": "2026-11-04",
       "lastRunAt": "2026-11-04T19:18:30Z",
@@ -1776,6 +1803,98 @@
     }
   ],
   "events": [
+    {
+      "id": "permit:coh:0622050050010:26094537",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-04",
+      "localDate": "2026-11-05",
+      "timestamp": "2026-11-05T19:28:26Z",
+      "discoveredAt": "2026-11-05T19:28:26Z",
+      "loggedAt": "",
+      "title": "Garage / Accessory Demolition Permit (#26094537): 6642 FAIRFIELD ST",
+      "summary": "6642 FAIRFIELD ST (Built 1945): DEMO RES/SEWER DISC (GARAGE ONLY) issued 2026-11-04 to MONREAL CELESTINO.",
+      "address": "6642 FAIRFIELD ST",
+      "hcad": "0622050050010",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0622050050010",
+      "lat": 29.722403,
+      "lng": -95.310131,
+      "yearBuilt": 1945,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "6642 FAIRFIELD ST",
+        "address": "6642 FAIRFIELD ST",
+        "hcad_num": "0622050050010",
+        "related_hcads": [
+          "0622050050010"
+        ],
+        "watchlist_id": "",
+        "building_id": "0622050050010",
+        "year_built": 1945,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.722403,
+        "lng": -95.310131,
+        "record": {
+          "project_no": "26094537",
+          "date": "2026-11-04",
+          "permit_type": "12",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
+          "use_desc": "DEMO RES/SEWER DISC (GARAGE ONLY)",
+          "owner_occupant": "MILLS S L",
+          "buyer": "MONREAL CELESTINO",
+          "is_sewer_disconnect": false,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "wl:sweep:2026-11-05:degraded:chk-04-chk-06-chk-10-chk-15",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-05",
+      "localDate": "2026-11-05",
+      "timestamp": "2026-11-05T19:17:41Z",
+      "discoveredAt": "2026-11-05T19:17:41Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (4/8 agencies OK)",
+      "summary": "4 agency endpoint(s) did not complete cleanly: TX Comptroller (Sales & Franchise Tax) (TX Comptroller Sales Tax: HTTP request failed or timed out); TABC Liquor Licensing (TABC Pending: HTTP request failed or timed out; TABC Active: HTTP request failed or timed out); TDLR Architectural Barriers (TABS) (TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out; TDLR TABS (3827 BROADWAY): HTTP request failed or timed out); TX DSHS Asbestos & Demolition (DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "permit:coh:0202150000018:26095535",
       "stream": "permits",

@@ -1,16 +1,16 @@
 {
-  "updated_at": "2026-11-04T19:11:56Z",
-  "generated_at": "2026-11-04T19:11:56Z",
+  "updated_at": "2026-11-05T19:17:05Z",
+  "generated_at": "2026-11-05T19:17:05Z",
   "lookback_days": 45,
   "coh_fetch_failed": false,
   "dshs_fetch_failed": true,
   "coh_fetch_error": "",
   "dshs_fetch_error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)",
   "summary": {
-    "total_flagged_buildings": 16,
+    "total_flagged_buildings": 17,
     "critical_count": 6,
-    "watch_count": 10,
-    "coh_permits_matched": 18,
+    "watch_count": 11,
+    "coh_permits_matched": 19,
     "dshs_notifications_matched": 12
   },
   "annual_benchmarks": {
@@ -1390,6 +1390,63 @@
       ],
       "related_building_ids": [
         "bld_000843"
+      ]
+    },
+    {
+      "hcad_num": "0622050050010",
+      "building_id": "0622050050010",
+      "title": "6642 FAIRFIELD ST",
+      "building_name": "",
+      "address": "6642 FAIRFIELD ST",
+      "year_built": 1945,
+      "yr_remodel": 0,
+      "style": "",
+      "architect": "",
+      "neighborhood": "",
+      "historic_district": "",
+      "landmark_name": "",
+      "good_brick_summary": "",
+      "owner": "",
+      "lng": -95.310131,
+      "lon": -95.310131,
+      "lat": 29.722403,
+      "severity": "watch",
+      "severity_label": "Active Watch: Garage / Accessory Demolition Permit",
+      "badge": "Garage Demo Only",
+      "headline": "City of Houston accessory/garage demolition permit (#26094537, issued 2026-11-04: DEMO RES/SEWER DISC (GARAGE ONLY)).",
+      "demo_permit_stage": "none",
+      "has_sewer_disc_plumbing": false,
+      "has_demo_permit": false,
+      "preservation_note": "",
+      "latest_filing_date": "2026-11-04",
+      "coh_permits": [
+        {
+          "project_no": "26094537",
+          "date": "2026-11-04",
+          "permit_type": "12",
+          "permit_type_label": "Garage / Accessory Demolition Permit",
+          "permit_stage": "accessory_only",
+          "permit_desc": "Plumbing Pmt",
+          "use_desc": "DEMO RES/SEWER DISC (GARAGE ONLY)",
+          "fcc_group": "Demo; Single Familty Dwelling",
+          "owner_occupant": "MILLS S L",
+          "buyer": "MONREAL CELESTINO",
+          "buyer_address": "2603 KELLY ST 77026",
+          "valuation": "$ 0",
+          "job_address": "6642 FAIRFIELD ST 77023",
+          "is_sewer_disconnect": false,
+          "is_demo_permit_issued": false,
+          "is_garage_only": true,
+          "is_structural_demo": true,
+          "is_interior_only": false
+        }
+      ],
+      "dshs_notifications": [],
+      "related_hcads": [
+        "0622050050010"
+      ],
+      "related_building_ids": [
+        "0622050050010"
       ]
     },
     {
