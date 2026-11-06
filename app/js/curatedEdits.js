@@ -1366,7 +1366,7 @@ export async function loadCuratedOverrides(customSheetCsvUrl = null) {
   };
 
   try {
-    const res = await fetch("public/data/curated_overrides.json?v=20261031a", { cache: "no-store" });
+    const res = await fetch("public/data/curated_overrides.json?v=20261106a", { cache: "no-store" });
     if (res.ok) {
       const data = await res.json();
       baseConfig = {
@@ -3146,4 +3146,387 @@ export async function deleteSurveyPhotoBlob(photoId) {
   }
   return true;
 }
+
+/**
+ * Compute the exterior-ring vertex centroid `[lng, lat]` for a Polygon, MultiPolygon, or Point.
+ * Excludes a duplicate closing vertex so rotated or MVT-quantized rings yield stable centroids.
+ */
+export function computePolygonRingCentroid(geom) {
+  if (!geom || typeof geom !== "object") return null;
+  const gtype = geom.type;
+  const coords = geom.coordinates;
+  if (!Array.isArray(coords) || !coords.length) return null;
+  if (gtype === "Point" && coords.length >= 2) {
+    const lng = Number(coords[0]);
+    const lat = Number(coords[1]);
+    return Number.isFinite(lng) && Number.isFinite(lat) ? [lng, lat] : null;
+  }
+  const ring =
+    gtype === "Polygon"
+      ? coords[0]
+      : gtype === "MultiPolygon" && Array.isArray(coords[0])
+      ? coords[0][0]
+      : null;
+  if (!Array.isArray(ring) || !ring.length) return null;
+  const endIdx =
+    ring.length > 1 &&
+    Array.isArray(ring[0]) &&
+    Array.isArray(ring[ring.length - 1]) &&
+    ring[0][0] === ring[ring.length - 1][0] &&
+    ring[0][1] === ring[ring.length - 1][1]
+      ? ring.length - 1
+      : ring.length;
+  let sumLng = 0;
+  let sumLat = 0;
+  let count = 0;
+  for (let i = 0; i < endIdx; i++) {
+    const pt = ring[i];
+    if (!Array.isArray(pt) || pt.length < 2) continue;
+    const lng = Number(pt[0]);
+    const lat = Number(pt[1]);
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
+    sumLng += lng;
+    sumLat += lat;
+    count++;
+  }
+  return count > 0 ? [sumLng / count, sumLat / count] : null;
+}
+
+/**
+ * Return true if `candidateCentroid` lies within `tolDeg` (`0.000035` deg ~ `3.89m`) of any
+ * `[lng, lat]` in `existingCentroids`, absorbing MVT 4096-extent tile quantization while
+ * keeping genuine secondary sibling structures (`>= 7.5m` apart) distinct.
+ */
+export function hasMatchingFootprintCentroid(
+  existingCentroids,
+  candidateCentroid,
+  tolDeg = 0.000035
+) {
+  if (!Array.isArray(candidateCentroid) || candidateCentroid.length < 2) return false;
+  if (!Array.isArray(existingCentroids) || !existingCentroids.length) return false;
+  const [cx, cy] = candidateCentroid;
+  for (const pt of existingCentroids) {
+    if (!Array.isArray(pt) || pt.length < 2) continue;
+    if (Math.hypot(cx - pt[0], cy - pt[1]) <= tolDeg) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Return true when `(key, ov)` is a bare 13-digit parcel attribute override (`SOP 4 Case D`)
+ * that omits inline `geometry` and `replace_parcel_shards`, preserving multi-footprint siblings.
+ */
+export function isBareAttributeParcelOverride(key, ov) {
+  return Boolean(
+    key &&
+      !String(key).includes("#") &&
+      ov &&
+      typeof ov === "object" &&
+      !ov.geometry &&
+      !ov.is_building_override &&
+      !ov.keep_shard_footprints &&
+      !ov.suppress_only &&
+      !ov.replace_parcel_shards
+  );
+}
+
+/**
+ * Return true when `(key, ov)` is a countywide parcel override with `replace_parcel_shards: true`
+ * and no inline `geometry`, requiring up to 1 dynamically captured PMTiles footprint to replay.
+ */
+export function isSingleShardReplaceOverride(key, ov) {
+  return Boolean(
+    key &&
+      !String(key).includes("#") &&
+      ov &&
+      typeof ov === "object" &&
+      ov.replace_parcel_shards &&
+      !ov.geometry &&
+      !ov.is_building_override &&
+      !ov.keep_shard_footprints &&
+      !ov.suppress_only
+  );
+}
+
+/**
+ * Assign deterministic `id` and `building_id` properties on sibling footprints (`seqIdx > 0`)
+ * for multi-footprint parcel overrides across both initial tile capture and in-memory refresh.
+ */
+export function assignSiblingOverrideProps(rawProps, baseKey, seqIdx, kind = "shard") {
+  const targetKey = seqIdx === 0 ? baseKey : `${baseKey}#${kind}_fp_${seqIdx}`;
+  if (seqIdx === 0) return { targetKey, props: rawProps };
+  const nextProps = { ...(rawProps || {}) };
+  if (!nextProps.id || nextProps.id === baseKey) {
+    nextProps.id = targetKey;
+  }
+  if (!nextProps.building_id || nextProps.building_id === baseKey) {
+    nextProps.building_id = nextProps.id;
+  }
+  return { targetKey, props: nextProps };
+}
+
+/**
+ * Decompose a GeoJSON Polygon or MultiPolygon into individual Polygon part objects so
+ * centroid deduplication registers every detached sub-polygon on multi-structure parcels.
+ */
+export function explodePolygonParts(geom) {
+  if (!geom || typeof geom !== "object") return [];
+  if (geom.type === "MultiPolygon" && Array.isArray(geom.coordinates)) {
+    return geom.coordinates
+      .filter((poly) => Array.isArray(poly) && poly.length > 0)
+      .map((poly) => ({ type: "Polygon", coordinates: poly }));
+  }
+  return [geom];
+}
+
+/**
+ * Ray-casting point-in-ring containment check for 2D `[lng, lat]` coordinates.
+ */
+export function isPointInPolygonRing(pt, ring) {
+  if (!Array.isArray(pt) || pt.length < 2 || !Array.isArray(ring) || ring.length < 3) {
+    return false;
+  }
+  const px = Number(pt[0]);
+  const py = Number(pt[1]);
+  if (!Number.isFinite(px) || !Number.isFinite(py)) return false;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const vi = ring[i];
+    const vj = ring[j];
+    if (!Array.isArray(vi) || !Array.isArray(vj)) continue;
+    const xi = Number(vi[0]);
+    const yi = Number(vi[1]);
+    const xj = Number(vj[0]);
+    const yj = Number(vj[1]);
+    const intersects =
+      yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Return true when `pt` (`[lng, lat]`) lies inside `geom`'s exterior ring and outside any interior holes.
+ */
+export function isPointInPolygon(pt, geom) {
+  if (!geom || typeof geom !== "object") return false;
+  if (geom.type === "Polygon" && Array.isArray(geom.coordinates) && geom.coordinates.length > 0) {
+    if (!isPointInPolygonRing(pt, geom.coordinates[0])) return false;
+    for (let i = 1; i < geom.coordinates.length; i++) {
+      if (isPointInPolygonRing(pt, geom.coordinates[i])) return false;
+    }
+    return true;
+  }
+  if (geom.type === "MultiPolygon" && Array.isArray(geom.coordinates)) {
+    return geom.coordinates.some((poly) =>
+      isPointInPolygon(pt, { type: "Polygon", coordinates: poly })
+    );
+  }
+  return false;
+}
+
+/**
+ * Extract canonical non-parcel footprint identifier (`building_id || id`, e.g. `bld_002168`)
+ * when distinct from `hcad` and synthetic `#shard_fp_` / `#core_fp_` sibling suffixes.
+ */
+export function extractCanonicalFootprintId(props, hcad = "") {
+  const cleanHcad = String(hcad || props?.hcad_num || "").trim();
+  const fid = String(props?.building_id || props?.id || "").trim();
+  if (
+    !fid ||
+    fid === cleanHcad ||
+    fid.includes("#shard_fp_") ||
+    fid.includes("#core_fp_")
+  ) {
+    return "";
+  }
+  return fid;
+}
+
+/**
+ * Compute exterior-ring bounding-box area sum (`(maxLng - minLng) * (maxLat - minLat)`)
+ * across Polygon or MultiPolygon parts so unclipped primary footprints sort ahead of
+ * smaller MVT tile-boundary roof slivers.
+ */
+export function computePolygonBboxArea(geom) {
+  if (!geom || typeof geom !== "object") return 0;
+  let total = 0;
+  for (const part of explodePolygonParts(geom)) {
+    const ring =
+      part?.type === "Polygon" && Array.isArray(part.coordinates) ? part.coordinates[0] : null;
+    if (!Array.isArray(ring) || ring.length < 3) continue;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const pt of ring) {
+      if (!Array.isArray(pt) || pt.length < 2) continue;
+      const x = Number(pt[0]);
+      const y = Number(pt[1]);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    if (minX < maxX && minY < maxY) {
+      total += (maxX - minX) * (maxY - minY);
+    }
+  }
+  return total;
+}
+
+/**
+ * Shared per-parcel multi-footprint deduplication registry (`SOP 4 Case D`).
+ * Prevents MVT tile-boundary fragment duplication across Z10-Z15 vector tiles and
+ * eliminates parallel state-machine loops across `_applyCuratedOverridesInMemory`
+ * and `_captureDynamicOverrideGeometries` by combining:
+ *   1. Canonical non-parcel `building_id` / `id` matching (`bld_*` across MVT tile seams);
+ *   2. `tolDeg` (`0.000035` deg ~ `3.89m`) exterior-ring centroid matching; and
+ *   3. Bidirectional polygon containment (`isPointInPolygon`) so MVT tile-clipped roof
+ *      slivers whose centroids shift `> 3.89m` are recognized as fragments of an existing building.
+ */
+export function createParcelFootprintRegistry(tolDeg = 0.000035) {
+  const byHcad = new Map();
+
+  function ensureState(hcad) {
+    let st = byHcad.get(hcad);
+    if (!st) {
+      st = {
+        count: 0,
+        centroids: [],
+        polygons: [],
+        footprintIds: new Set(),
+      };
+      byHcad.set(hcad, st);
+    }
+    return st;
+  }
+
+  function evaluatePart(st, partGeom, precomputedCentroid = null) {
+    const centroid = precomputedCentroid || computePolygonRingCentroid(partGeom);
+    if (!centroid) return { duplicate: true, centroid: null };
+    if (hasMatchingFootprintCentroid(st.centroids, centroid, tolDeg)) {
+      return { duplicate: true, centroid };
+    }
+    if (st.polygons.some((existingPoly) => isPointInPolygon(centroid, existingPoly))) {
+      return { duplicate: true, centroid };
+    }
+    if (st.centroids.some((existingPt) => isPointInPolygon(existingPt, partGeom))) {
+      return { duplicate: true, centroid };
+    }
+    return { duplicate: false, centroid };
+  }
+
+  return {
+    getCount(hcad) {
+      return byHcad.get(hcad)?.count || 0;
+    },
+    hasHcad(hcad) {
+      return (byHcad.get(hcad)?.count || 0) > 0;
+    },
+    hasFootprintId(hcad, fid) {
+      if (!fid) return false;
+      const st = byHcad.get(hcad);
+      return Boolean(st && st.footprintIds.has(fid));
+    },
+    addFootprintId(hcad, fid) {
+      if (!hcad || !fid) return;
+      ensureState(hcad).footprintIds.add(fid);
+    },
+    seedExistingFeature(hcad, geom, props) {
+      if (!hcad) return;
+      const st = ensureState(hcad);
+      st.count += 1;
+      const fid = extractCanonicalFootprintId(props, hcad);
+      if (fid) st.footprintIds.add(fid);
+      for (const partGeom of explodePolygonParts(geom)) {
+        const c = computePolygonRingCentroid(partGeom);
+        if (c) st.centroids.push(c);
+        if (partGeom && (partGeom.type === "Polygon" || partGeom.type === "MultiPolygon")) {
+          st.polygons.push(partGeom);
+        }
+      }
+    },
+    registerWholeFeature(hcad, geom, props) {
+      if (!hcad || !geom) return null;
+      const st = ensureState(hcad);
+      const fid = extractCanonicalFootprintId(props, hcad);
+      if (fid && st.footprintIds.has(fid)) return null;
+      const evaluated = explodePolygonParts(geom)
+        .map((partGeom) => ({ partGeom, ...evaluatePart(st, partGeom) }))
+        .filter((entry) => entry.centroid);
+      if (evaluated.length > 0 && evaluated.every((entry) => entry.duplicate)) {
+        return null;
+      }
+      if (fid) st.footprintIds.add(fid);
+      for (const entry of evaluated) {
+        if (!entry.duplicate) {
+          st.centroids.push(entry.centroid);
+          if (
+            entry.partGeom &&
+            (entry.partGeom.type === "Polygon" || entry.partGeom.type === "MultiPolygon")
+          ) {
+            st.polygons.push(entry.partGeom);
+          }
+        }
+      }
+      const seqIdx = st.count;
+      st.count += 1;
+      return seqIdx;
+    },
+    registerCandidatePart(hcad, partGeom, precomputedCentroid = null) {
+      if (!hcad || !partGeom) return null;
+      const st = ensureState(hcad);
+      const { duplicate, centroid } = evaluatePart(st, partGeom, precomputedCentroid);
+      if (duplicate || !centroid) return null;
+      st.centroids.push(centroid);
+      if (partGeom.type === "Polygon" || partGeom.type === "MultiPolygon") {
+        st.polygons.push(partGeom);
+      }
+      const seqIdx = st.count;
+      st.count += 1;
+      return { seqIdx, centroid };
+    },
+    ingestFeatureParts(
+      hcad,
+      geom,
+      props = null,
+      { maxParts = Infinity, precomputedCentroid = null } = {}
+    ) {
+      if (!hcad || !geom) return [];
+      const st = ensureState(hcad);
+      if (st.count >= maxParts) return [];
+      const fid = extractCanonicalFootprintId(props, hcad);
+      if (fid && st.footprintIds.has(fid)) return [];
+      const rawParts = explodePolygonParts(geom);
+      const parts =
+        rawParts.length > 1
+          ? rawParts.slice().sort((a, b) => computePolygonBboxArea(b) - computePolygonBboxArea(a))
+          : rawParts;
+      const accepted = [];
+      for (const partGeom of parts) {
+        if (st.count >= maxParts) break;
+        const seedC = parts.length === 1 ? precomputedCentroid : null;
+        const { duplicate, centroid } = evaluatePart(st, partGeom, seedC);
+        if (duplicate || !centroid) continue;
+        st.centroids.push(centroid);
+        if (partGeom.type === "Polygon" || partGeom.type === "MultiPolygon") {
+          st.polygons.push(partGeom);
+        }
+        const seqIdx = st.count;
+        st.count += 1;
+        accepted.push({ seqIdx, centroid, partGeom });
+      }
+      if (accepted.length > 0 && fid) {
+        st.footprintIds.add(fid);
+      }
+      return accepted;
+    },
+  };
+}
+
+
 

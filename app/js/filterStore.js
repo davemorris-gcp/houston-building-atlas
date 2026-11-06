@@ -191,7 +191,8 @@ export const DEFAULT_FILTER_STATE = {
   activeScorecard: null, // null or { layer: string, id: string }
   activeCh42: null, // null or { hcad: string, includeOpposing: boolean }
   activeAudit: false, // false | true | '<finding_id>'
-  activeAuditCategory: "all", // 'all' or audit category key (`auditCat=...`)
+  activeAuditCategory: "all", // 'all', audit category key, or virtual preset (`auditCat=...`)
+  activeAuditSort: "priority", // 'priority' | 'street_block' (`auditSort=...`)
   activeSurvey: false, // boolean Walk-the-Block Field Survey bottom sheet
   activePolyEdit: null, // null or '<hcad_or_building_id>' (Staff Admin gated)
   layers: {
@@ -962,6 +963,17 @@ function normalizeAuditCategory(raw) {
   return "all";
 }
 
+export const VALID_AUDIT_SORT_MODES = Object.freeze(["priority", "street_block"]);
+
+export function normalizeAuditSort(raw) {
+  if (!raw || typeof raw === "boolean") return VALID_AUDIT_SORT_MODES[0];
+  const s = String(raw).trim().toLowerCase();
+  if (s === "street_block" || s === "street" || s === "walk") {
+    return VALID_AUDIT_SORT_MODES[1];
+  }
+  return VALID_AUDIT_SORT_MODES.includes(s) ? s : VALID_AUDIT_SORT_MODES[0];
+}
+
 function normalizePolyEditSpec(spec) {
   if (!spec || typeof spec === "boolean") return null;
   const s = String(spec).trim();
@@ -1353,10 +1365,16 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
       ? options.activeAuditCategory
       : state.activeAuditCategory
   );
+  const effAuditSort = normalizeAuditSort(
+    options.activeAuditSort !== undefined ? options.activeAuditSort : state.activeAuditSort
+  );
   if (effAudit) {
     params.set("audit", typeof effAudit === "string" ? effAudit : "1");
     if (effAuditCategory && effAuditCategory !== "all") {
       params.set("auditCat", effAuditCategory);
+    }
+    if (effAuditSort && effAuditSort !== "priority") {
+      params.set("auditSort", effAuditSort);
     }
   }
 
@@ -1432,6 +1450,7 @@ export function buildShareableUrl(state, viewport = null, options = {}) {
     activeCh42: options.activeCh42,
     activeAudit: options.activeAudit,
     activeAuditCategory: options.activeAuditCategory,
+    activeAuditSort: options.activeAuditSort,
     activeSurvey: options.activeSurvey,
     activePolyEdit: options.activePolyEdit,
     includeStaffTools: Boolean(options.includeStaffTools),
@@ -1893,6 +1912,14 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.activeAuditCategory = activeAuditCategory;
   }
 
+  let activeAuditSort = "priority";
+  if (mergedParams.has("auditSort") || mergedParams.has("audit_sort")) {
+    activeAuditSort = normalizeAuditSort(
+      mergedParams.get("auditSort") ?? mergedParams.get("audit_sort")
+    );
+    patch.activeAuditSort = activeAuditSort;
+  }
+
   let activeSurvey = false;
   if (mergedParams.has("survey")) {
     const rawSurv = String(mergedParams.get("survey") || "").trim().toLowerCase();
@@ -1929,6 +1956,7 @@ export function parseHashToState(hashString = "", searchString = "") {
     activeCh42,
     activeAudit,
     activeAuditCategory,
+    activeAuditSort,
     activeSurvey,
     activePolyEdit,
   };
@@ -2326,6 +2354,7 @@ export function createFilterStore(initialOverrides = {}) {
       isPlaying: false,
       activeAudit: false,
       activeAuditCategory: "all",
+      activeAuditSort: "priority",
       activeSurvey: false,
       activePolyEdit: null,
     });

@@ -38,10 +38,16 @@ from atlas_pipeline.lost_houston_expansion import (
 )
 from atlas_pipeline.schema import (
     ACTIVE_TAX_YEAR,
+    ALLOWED_PREWAR_FOUNDATIONS,
     HARRIS_COUNTY_BBOX,
     LOST_HOUSTON_VALID_COHORTS,
     MIN_VALID_YEAR,
+    build_citydir_search_url,
+    collect_overridden_hcad_accounts,
+    load_bld1_structural_flags,
     load_compact_cama_lookup,
+    match_earliest_platted_subdivisions,
+    resolve_citydir_cdm_url,
     sanitize_atlas_text,
     write_compact_json,
 )
@@ -784,6 +790,7 @@ def run_audit(
         "ADDRESS_STREET_MISMATCH": "addr_st",
         "CITY_DIRECTORY_EARLIER_THAN_HCAD": "dir_early",
         "CITY_DIRECTORY_ABSENT_THROUGH_1926": "dir_abs",
+        "1930_PLACEHOLDER_PRE1927_PLAT": "plat_1930",
     }
 
     def _safe_geom_point(geom: Any) -> tuple[float, float] | None:
@@ -1137,8 +1144,7 @@ def run_audit(
         vis_bonus = (12 if hcad in landmark_hcads else 0) + (10 if hcad in good_brick_hcads else 0) + (6 if in_hd else 0)
         addr = str(bp.get("address") or "")
         bname = str(bp.get("building_name") or "")
-        search_q = addr.replace(" ", "%20") if addr else hcad
-        dir_url = f"https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search/searchterm/{search_q}"
+        dir_url = build_citydir_search_url(addr, hcad)
 
         dir_rec = by_hcad_dir.get(hcad)
         if isinstance(dir_rec, dict) and dir_rec.get("e"):
@@ -1194,6 +1200,146 @@ def run_audit(
                 suggested_source_type="Houston City Directory",
                 contributing=str(bp.get("contributing") or ""),
             )
+
+    # 3D2. Priority-Bounded 1930 Placeholder Suspects in Pre-1925 Plats & COH Historic Districts (Milestone 7)
+    # Emits <= 240 high-confidence un-overridden 1930 structures inside COH Historic Districts ("Contributing")
+    # or pre-1925 platted subdivisions with pre-war Crawl Space / pier-and-beam foundations so historians can
+    # verify 100-year cutoff undercounts in street-block order while keeping historical_audit_queue.json < 995 KB.
+    MAX_PLAT_1930_QUEUE_ITEMS = 240
+    already_queued_dir_hcads = {
+        hc
+        for (cat_k, hc) in seen_finding_keys
+        if cat_k in ("CITY_DIRECTORY_EARLIER_THAN_HCAD", "CITY_DIRECTORY_ABSENT_THROUGH_1926")
+    }
+
+    overridden_hcads_1930 = collect_overridden_hcad_accounts(overrides)
+
+    yr_1930_candidates: list[dict[str, Any]] = []
+    seen_parcel_1930: set[str] = set()
+    for feat in buildings_doc.get("features", []):
+        bp = feat.get("properties") or {}
+        hcad = str(bp.get("hcad_num") or "").strip()
+        if (
+            not re.match(r"^\d{13}$", hcad)
+            or hcad in seen_parcel_1930
+            or hcad in already_queued_dir_hcads
+            or hcad in overridden_hcads_1930
+            or bp.get("is_curated_override")
+        ):
+            continue
+        if str(bp.get("id") or "") == hcad and len(blds_by_hcad.get(hcad, [])) > 1:
+            continue
+        seen_parcel_1930.add(hcad)
+        yr = int(bp.get("year_built") or 0)
+        if yr != 1930:
+            continue
+        cnt = str(bp.get("contributing") or "").strip()
+        if cnt == "Non-Contributing":
+            continue
+        yr_1930_candidates.append(bp)
+
+    cand_1930_hcads = {str(bp.get("hcad_num") or "").strip() for bp in yr_1930_candidates}
+    bld1_scan = load_bld1_structural_flags(cdir / "Real_building_land.zip", cand_1930_hcads)
+    bld1_fnd_by_hcad: dict[str, set[str]] = bld1_scan["fnds_by_hcad"]
+    bld1_disqualified_hcads: set[str] = bld1_scan["slab_hcads"] | bld1_scan["rebuilt_hcads"]
+
+    active_1930_bps = [
+        bp
+        for bp in yr_1930_candidates
+        if str(bp.get("hcad_num") or "").strip() not in bld1_disqualified_hcads
+    ]
+    pts_1930_hcads: list[str] = []
+    pts_1930_xy: list[tuple[float, float]] = []
+    for bp in active_1930_bps:
+        hc_c = str(bp.get("hcad_num") or "").strip()
+        cpt = coord_by_hcad.get(hc_c)
+        if cpt is not None:
+            pts_1930_hcads.append(hc_c)
+            pts_1930_xy.append(cpt)
+    plat_matches_1930 = match_earliest_platted_subdivisions(
+        pts_1930_xy,
+        overlays_doc.get("platted_subdivisions", {}).get("features", []),
+        min_year=1836,
+        max_year=1925,
+    )
+    pre1925_plat_by_hcad: dict[str, tuple[str, int]] = {
+        hc_c: (pname, py)
+        for hc_c, (pname, py, _pex, _pbas) in zip(pts_1930_hcads, plat_matches_1930)
+        if py > 0
+    }
+
+    scored_plat_1930: list[tuple[tuple[int, int, int, str, str], dict[str, Any]]] = []
+    for bp in active_1930_bps:
+        hcad = str(bp.get("hcad_num") or "").strip()
+        hd = str(bp.get("historic_district") or "").strip()
+        in_hd = bool(hd and hd != "Outside Historic District")
+        cnt = str(bp.get("contributing") or "").strip()
+        plat_name, plat_yr = pre1925_plat_by_hcad.get(hcad, ("", 0))
+
+        fnds = bld1_fnd_by_hcad.get(hcad, set())
+        has_prewar_fnd = bool(fnds & ALLOWED_PREWAR_FOUNDATIONS)
+        is_hd_contrib = in_hd and cnt == "Contributing"
+        is_plat_prewar = (1836 <= plat_yr <= 1925) and has_prewar_fnd
+        if not (is_hd_contrib or is_plat_prewar):
+            continue
+
+        pscore = 78 if is_hd_contrib else 75
+        if 1836 <= plat_yr <= 1925:
+            pscore += 2
+        if has_prewar_fnd:
+            pscore += 2
+        pscore = min(82, pscore)
+
+        fnd_label = sorted(fnds & ALLOWED_PREWAR_FOUNDATIONS)[0] if has_prewar_fnd else ""
+        ev_parts: list[str] = []
+        if is_hd_contrib:
+            ev_parts.append(f"COH Historic District Contributing ({hd})")
+        if 1836 <= plat_yr <= 1925:
+            sub_lbl = f"{plat_name} (platted {plat_yr})" if plat_name else f"pre-1925 plat ({plat_yr})"
+            ev_parts.append(f"inside {sub_lbl}")
+        if fnd_label:
+            ev_parts.append(f"Bldg 1 {fnd_label} foundation")
+        evidence_str = "; ".join(ev_parts) + " - prime <= 1926 (100-yr cutoff) undercount candidate"
+
+        addr = str(bp.get("address") or "")
+        dir_url = build_citydir_search_url(addr, hcad)
+        scored_plat_1930.append(
+            (
+                (-pscore, 0 if is_hd_contrib else 1, plat_yr or 9999, addr, hcad),
+                {
+                    "priority_score": pscore,
+                    "hcad_num": hcad,
+                    "address": addr,
+                    "name": str(bp.get("building_name") or ""),
+                    "district": hd if in_hd else "Outside Historic District",
+                    "conflicting_evidence": evidence_str,
+                    "primary_source_url": dir_url,
+                    "building_id": str(bp.get("building_id") or bp.get("id") or ""),
+                    "contributing": cnt if in_hd else "Outside Historic District",
+                },
+            )
+        )
+
+    scored_plat_1930.sort(key=lambda item: item[0])
+    for _, rec in scored_plat_1930[:MAX_PLAT_1930_QUEUE_ITEMS]:
+        add_finding(
+            category="1930_PLACEHOLDER_PRE1927_PLAT",
+            priority_score=rec["priority_score"],
+            hcad_num=rec["hcad_num"],
+            address=rec["address"],
+            name=rec["name"],
+            district=rec["district"],
+            displayed_claim="HCAD Year Built: 1930 (Rounded Decade Placeholder)",
+            conflicting_evidence=rec["conflicting_evidence"],
+            recommended_action="Verify on 1924-1925 Sanborn map or 1926-1927 City Directory Street Guide whether built <= 1926 (100-yr cutoff)",
+            primary_source_url=rec["primary_source_url"],
+            building_id=rec["building_id"],
+            atlas_year=1930,
+            hcad_year=1930,
+            suggested_year=0,
+            suggested_source_type="Sanborn Fire Insurance Map",
+            contributing=rec["contributing"],
+        )
 
     # 3E. Lost Houston, Demolished COH Landmarks, and Demolished NRHP Integrity Gate (Milestone 2)
     lost_feats = overlays_doc.get("lost_houston", {}).get("features", [])
@@ -1424,6 +1570,10 @@ def run_audit(
     }
 
     if apply_fixes:
+        if lost_extant_collision_errors > 0:
+            raise AssertionError(
+                f"Refusing to apply historical audit with {lost_extant_collision_errors} LOST_HOUSTON_EXTANT_COLLISION error(s)"
+            )
         write_compact_json(haif_path, haif_doc)
         write_compact_json(overlays_path, overlays_doc)
         overrides_doc["overrides"] = overrides
@@ -1432,6 +1582,15 @@ def run_audit(
         write_compact_json(search_index_path, search_index)
         write_compact_json(ddir / "historical_audit_queue.json", queue_payload)
         write_compact_json(ddir / "historical_audit_summary.json", summary_payload)
+        stats_summary_path = ddir / "stats_summary.json"
+        if stats_summary_path.exists():
+            stats_summary_doc = json.loads(stats_summary_path.read_text(encoding="utf-8"))
+            if isinstance(stats_summary_doc, dict):
+                stats_summary_doc["audit_queue_total"] = len(findings)
+                stats_summary_path.write_text(
+                    json.dumps(stats_summary_doc, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
 
         csv_path = cdir / "historical_audit_findings.csv"
         fieldnames = [
@@ -1460,24 +1619,6 @@ def run_audit(
     }
 
 
-def resolve_citydir_cdm_url(dir_rec: dict[str, Any] | None, fallback_url: str) -> tuple[int, str]:
-    """Resolve validated ContentDM integer page pointer (`p`) and direct item URL.
-
-    Never interpolates non-integer OCR citation strings (`c`/`x`) into `/id/<ptr>/rec/1`.
-    """
-    if not isinstance(dir_rec, dict):
-        return 0, fallback_url
-    raw_ptr = dir_rec.get("p")
-    ptr_int = (
-        int(raw_ptr)
-        if isinstance(raw_ptr, int) and not isinstance(raw_ptr, bool)
-        else (int(str(raw_ptr).strip()) if str(raw_ptr or "").strip().isdigit() else 0)
-    )
-    if ptr_int > 0:
-        return ptr_int, f"https://cdm17006.contentdm.oclc.org/digital/collection/citydir/id/{ptr_int}/rec/1"
-    return 0, fallback_url
-
-
 def build_historical_audit_queue_payload(
     findings: list[dict[str, Any]],
     *,
@@ -1501,6 +1642,7 @@ def build_historical_audit_queue_payload(
     default_actions: dict[str, str] = {
         "CITY_DIRECTORY_EARLIER_THAN_HCAD": "Verify same structure on Sanborn map and promote earliest directory year in Approved_Edits",
         "CITY_DIRECTORY_ABSENT_THROUGH_1926": "Check 1928-1935 City Directories & 1924-1951 Sanborn sheets for exact post-1926 construction year",
+        "1930_PLACEHOLDER_PRE1927_PLAT": "Verify on 1924-1925 Sanborn map or 1926-1927 City Directory Street Guide whether built <= 1926 (100-yr cutoff)",
         "LANDMARK_VS_ATLAS_YEAR_MISMATCH": "Disambiguate primary landmark footprint vs. secondary buildings or later remodel year in Approved_Edits",
         "ADDRESS_STREET_MISMATCH": "Confirm corner-lot secondary frontage or reassign to adjacent HCAD account",
         "SUSPECTED_UNMARKED_LANDMARK_DEMOLITION": "Verify via Street View / HAHC minutes; if demolished, mark demolished and move historic record to Lost Houston",
@@ -1509,11 +1651,13 @@ def build_historical_audit_queue_payload(
     default_sources: dict[str, str] = {
         "CITY_DIRECTORY_EARLIER_THAN_HCAD": "Houston City Directory",
         "CITY_DIRECTORY_ABSENT_THROUGH_1926": "Houston City Directory",
+        "1930_PLACEHOLDER_PRE1927_PLAT": "Sanborn Fire Insurance Map",
         "LANDMARK_VS_ATLAS_YEAR_MISMATCH": "COH Landmark Designation Report",
         "ADDRESS_STREET_MISMATCH": "HCAD Parcel GIS",
         "SUSPECTED_UNMARKED_LANDMARK_DEMOLITION": "COH Landmark Designation Report",
         "ARCHITECT_CAREER_WINDOW_CHECK": "Architectural Monograph / Handbook of Texas",
     }
+    plat_1930_default_claim = "HCAD Year Built: 1930 (Rounded Decade Placeholder)"
 
     for row in findings:
         fid = str(row.get("finding_id") or "").strip()
@@ -1559,6 +1703,8 @@ def build_historical_audit_queue_payload(
         elif cat == "CITY_DIRECTORY_ABSENT_THROUGH_1926":
             claim_s = ""
             ev_s = ""
+        elif cat == "1930_PLACEHOLDER_PRE1927_PLAT" and claim_s == plat_1930_default_claim:
+            claim_s = ""
 
         url_s = str(row.get("primary_source_url") or "")
         raw_cdm_ptr = row.get("cdm_pointer")
@@ -1572,7 +1718,17 @@ def build_historical_audit_queue_payload(
             cdm_seg = url_s.split("/collection/citydir/id/", 1)[1].split("/", 1)[0]
             if not cdm_seg.isdigit() or int(cdm_seg) <= 0:
                 raise ValueError(f"Invalid non-integer ContentDM item URL on {fid}: {url_s!r}")
-        if cat == "CITY_DIRECTORY_ABSENT_THROUGH_1926" and ptr == 0 and "/search/searchterm/" in url_s:
+        if (
+            ptr > 0
+            and url_s == f"https://cdm17006.contentdm.oclc.org/digital/collection/citydir/id/{ptr}/rec/1"
+        ):
+            # Reconstructed losslessly from `dp` in `hydrateAuditQueuePayload` (`staffWorkbench.js`).
+            url_s = ""
+        elif (
+            cat in ("CITY_DIRECTORY_ABSENT_THROUGH_1926", "1930_PLACEHOLDER_PRE1927_PLAT")
+            and ptr == 0
+            and "/search/searchterm/" in url_s
+        ):
             url_s = ""
 
         item: dict[str, Any] = {
@@ -1619,7 +1775,7 @@ def build_historical_audit_queue_payload(
             item["arc"] = arc
         items.append(item)
 
-    return {
+    payload = {
         "v": 1,
         "generated_on": eff_generated_on,
         "total": len(items),
@@ -1628,12 +1784,19 @@ def build_historical_audit_queue_payload(
             "district": "Undesignated / Outside HD",
             "contributing": "Outside Historic District",
             "absent_1926_evidence": "Address audited as unimproved / absent through the 1926 Morrison & Fourmy Houston City Directory",
+            "plat_1930_claim": plat_1930_default_claim,
             "cdm_search_prefix": "https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search/searchterm/",
             "actions": default_actions,
             "sources": default_sources,
         },
         "items": items,
     }
+    serialized_bytes = len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    if serialized_bytes >= 995_000:
+        raise ValueError(
+            f"historical_audit_queue.json payload ({serialized_bytes:,} bytes) exceeded 995,000-byte target cap"
+        )
+    return payload
 
 
 def main() -> None:

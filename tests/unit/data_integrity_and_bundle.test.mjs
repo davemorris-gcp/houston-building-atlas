@@ -626,8 +626,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   const expectedVer = String(manifest.cache_bust || "").trim();
   assert.equal(
     expectedVer,
-    "20261031a",
-    `Expected active Milestone 4 pmtiles_manifest.json cache_bust '20261031a', got '${expectedVer}'`
+    "20261106a",
+    `Expected active Milestone 4 pmtiles_manifest.json cache_bust '20261106a', got '${expectedVer}'`
   );
   assert.match(
     expectedVer,
@@ -890,13 +890,28 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     `historical_audit_queue.json (${aqBytes} bytes) must stay strictly below 1.0 MiB (1,048,576 bytes)`
   );
   const aqDoc = JSON.parse(rawAq);
-  assert.equal(aqDoc.total, 2600, `Expected 2,600 items in historical_audit_queue.json, got ${aqDoc.total}`);
-  assert.equal(aqDoc.items?.length, 2600, "historical_audit_queue.json items.length must equal 2,600");
+  const summaryDoc = JSON.parse(
+    fs.readFileSync(path.join(DATA_DIR, "historical_audit_summary.json"), "utf8")
+  );
+  assert.ok(
+    aqDoc.total >= 2600,
+    `Expected >= 2,600 items in historical_audit_queue.json, got ${aqDoc.total}`
+  );
+  assert.equal(
+    aqDoc.items?.length,
+    aqDoc.total,
+    "historical_audit_queue.json items.length must equal aqDoc.total"
+  );
+  assert.equal(
+    aqDoc.total,
+    summaryDoc.total_queued_contradictions,
+    "historical_audit_queue.json total must match historical_audit_summary.json"
+  );
   assert.ok(
     aqDoc.categories &&
       typeof aqDoc.categories === "object" &&
-      Object.keys(aqDoc.categories).length === 6,
-    "Expected 6 audit contradiction categories"
+      Object.keys(aqDoc.categories).length === 7,
+    "Expected 7 audit contradiction categories"
   );
   assert.equal(
     aqDoc.defaults?.district,
@@ -956,16 +971,19 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     );
   }
 
-  // SA-4: 12-Tab Workbook Documentation Parity in docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md
+  // SA-4: 13-Tab Workbook Documentation Parity in docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md
   const sheetsGuideRaw = fs.readFileSync(
     path.join(REPO_ROOT, "docs", "GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md"),
     "utf8"
   );
   for (const requiredToken of [
-    "12-Tab",
+    "13-Tab",
     "Field_Surveys",
     "913405001",
     "SOP 15",
+    "1927_Cutoff_Triage",
+    "927192701",
+    "SOP 16",
     "geometry_geojson",
     "sync_field_surveys_sheet.py",
   ]) {

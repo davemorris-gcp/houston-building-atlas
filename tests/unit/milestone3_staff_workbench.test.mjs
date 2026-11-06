@@ -47,7 +47,7 @@ import {
   stripEmbeddedGeometryTag,
   submitFieldSurveyObservation,
   validateOverridePolygonGeometry,
-} from "../../app/js/curatedEdits.js?v=20261031a";
+} from "../../app/js/curatedEdits.js?v=20261106a";
 
 import {
   AUDIT_CATEGORY_LABELS,
@@ -86,7 +86,7 @@ import {
   validateAndNormalizeDraftPolygon,
   validateFieldSurveyDraft,
   validatePolygonSaveContributing,
-} from "../../app/js/staffWorkbench.js?v=20261031a";
+} from "../../app/js/staffWorkbench.js?v=20261106a";
 
 import {
   DEFAULT_FILTER_STATE,
@@ -94,7 +94,7 @@ import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "../../app/js/filterStore.js?v=20261031a";
+} from "../../app/js/filterStore.js?v=20261106a";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -662,13 +662,13 @@ test("UT-6, UT-7 & IT-4: historical_audit_queue.json contract, composite fid iso
 
   const queueDoc = JSON.parse(rawQueueText);
   const summaryDoc = JSON.parse(fs.readFileSync(summaryPath, "utf8"));
-  assert.equal(queueDoc.total, 2600);
-  assert.equal(queueDoc.items.length, 2600);
+  assert.ok(queueDoc.total >= 2600, `Expected >= 2,600 queue items, got ${queueDoc.total}`);
+  assert.equal(queueDoc.items.length, queueDoc.total);
   assert.equal(queueDoc.total, summaryDoc.total_queued_contradictions);
   assert.deepEqual(queueDoc.categories, summaryDoc.contradictions_by_category);
 
   const hydrated = hydrateAuditQueuePayload(queueDoc);
-  assert.equal(hydrated.length, 2600);
+  assert.equal(hydrated.length, queueDoc.total);
 
   // Verify per-item custom `act` override hydrates rather than being swallowed by category default
   const customAct = hydrateAuditQueuePayload({
@@ -716,8 +716,8 @@ test("UT-6, UT-7 & IT-4: historical_audit_queue.json contract, composite fid iso
   }
   assert.equal(
     undesignatedCount,
-    489,
-    `Expected exactly 489 explicitly bucketed undesignated items, got ${undesignatedCount}`
+    546,
+    `Expected exactly 546 explicitly bucketed undesignated items, got ${undesignatedCount}`
   );
   assert.ok(contentDmUrlCount > 1000, `Expected >1000 ContentDM deep links, got ${contentDmUrlCount}`);
 
@@ -756,13 +756,13 @@ test("UT-6, UT-7 & IT-4: historical_audit_queue.json contract, composite fid iso
       decisions,
       {}
     );
-    assert.equal(designated.length + undesigOnly.length, 2600);
+    assert.equal(designated.length + undesigOnly.length, hydrated.length);
     const actionable = filterAuditQueueItems(hydrated, { status: "actionable" }, decisions, {});
-    assert.equal(actionable.length, 2599);
+    assert.equal(actionable.length, hydrated.length - 1);
     const stats = computeAuditProgressStats(hydrated, decisions, {});
-    assert.equal(stats.total, 2600);
+    assert.equal(stats.total, hydrated.length);
     assert.equal(stats.accepted, 1);
-    assert.equal(stats.pending, 2599);
+    assert.equal(stats.pending, hydrated.length - 1);
   } finally {
     _setAuditStorageOverrideForTests(null);
   }

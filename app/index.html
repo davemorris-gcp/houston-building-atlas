@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261031a" />
+  <link rel="stylesheet" href="styles/index.css?v=20261106a" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -287,9 +287,9 @@
               type="button"
               class="action-pill"
               id="btn-topbar-audit"
-              title="Open Split-Screen Historian Archival Audit Workbench (2,600 Cross-Dataset Date &amp; Directory Contradictions)"
+              title="Open Split-Screen Historian Archival Audit Workbench (Cross-Dataset Date &amp; Directory Contradictions)"
             >
-              &#128270; Archival Audit Queue (2,600)
+              &#128270; Archival Audit Queue
             </button>
 
             <button
@@ -1589,10 +1589,10 @@
                 type="button"
                 class="sanborn-quick-launcher-btn workbench-launch-btn"
                 id="btn-sidebar-open-audit"
-                title="Review 2,600 pre-computed cross-dataset archival contradictions alongside 1866-1926 City Directories and 1877-1955 Sanborn sheets"
+                title="Review pre-computed cross-dataset archival contradictions alongside 1866-1926 City Directories and 1877-1955 Sanborn sheets"
               >
                 <span>&#128270; Historian Archival Audit Queue</span>
-                <span class="mono">2,600 &#8594;</span>
+                <span class="mono">Open &#8594;</span>
               </button>
               <button
                 type="button"
@@ -2161,7 +2161,7 @@
               <strong>Automated Preservation Early-Warning, 2-Stage Demolition Permit Tracking &amp; 3-Mode Companion Monitor:</strong> Tracks daily <strong>City of Houston 2-Stage Demolition Permits</strong> (explicitly distinguishing <code>1 of 2 &middot; Sewer Disconnect</code> plumbing permits [Types <code>12/4P</code>] from <code>2 of 2 &middot; Building Demo</code> structural permits [Types <code>SD/4D</code>] under the same 8-digit project number) and <strong>Texas DSHS 10-day Advance Asbestos Filings</strong>, monthly <strong>HAHC Certificates of Appropriateness (403 filings / 283 parcels)</strong>, <strong>Annual (2020-2025) &amp; 2026 YTD Demolition Permit Benchmarks</strong>, and a 3-mode companion <a href="plat-monitor.html">Plat &amp; Property Monitor</a> (featuring a 90-day <em>What's New &amp; Daily Log</em> morning briefing, <em>Biweekly Plat Review</em>, and a <em>15-Point Property Watchlist</em>).
             </li>
             <li>
-              <strong>Preservation Staff &amp; Field Workbench:</strong> Includes a keyboard-driven <strong>Split-Screen Historian Rapid Audit Queue</strong> across <strong>2,600 pre-computed cross-dataset contradictions</strong> paired side-by-side with 1866-1926 City Directory OCR and 1877-1955 Sanborn plates, an in-browser <strong>Zoom-20 Staff Polygon Editor</strong> with <code>-34.65&deg;</code> Borden Downtown grid rotation and additive auxiliary footprint tracing, and a daylight-contrast <strong>Mobile Walk-the-Block Field Survey Sheet</strong> with offline queuing, GPS blockface cards, and Google Sheet sync.
+              <strong>Preservation Staff &amp; Field Workbench:</strong> Includes a keyboard-driven <strong>Split-Screen Historian Rapid Audit Queue</strong> across pre-computed cross-dataset contradictions (featuring a dedicated <strong>1927 100-Year Cutoff Triage</strong> preset and <strong>Street-Block Walk</strong> odd/even blockface sorting for rapid 1926/1927 City Directory Street Guide and 1924-1925 Sanborn review), an in-browser <strong>Zoom-20 Staff Polygon Editor</strong> with <code>-34.65&deg;</code> Borden Downtown grid rotation and additive auxiliary footprint tracing, and a daylight-contrast <strong>Mobile Walk-the-Block Field Survey Sheet</strong> with offline queuing, GPS blockface cards, and 13-tab Google Sheet sync.
             </li>
           </ul>
 
@@ -3497,6 +3497,10 @@
             <option value="dismissed">Dismissed (Keep Current)</option>
             <option value="skipped">Skipped for Later</option>
           </select>
+          <select id="audit-sort-order" class="form-input workbench-control" aria-label="Sort audit queue">
+            <option value="priority" selected>Sort: Priority Score</option>
+            <option value="street_block">Sort: Street-Block Walk</option>
+          </select>
           <input
             type="search"
             id="audit-filter-search"
@@ -3531,7 +3535,7 @@
         <div class="audit-split-body">
           <section class="audit-pane audit-pane-left" id="audit-pane-left" aria-label="Contradiction and Resolution Form">
             <div id="audit-claim-card-host" class="audit-pane-scroll">
-              <div class="audit-loading">Loading 2,600 pre-computed archival contradictions...</div>
+              <div class="audit-loading">Loading pre-computed archival contradictions...</div>
             </div>
           </section>
           <section class="audit-pane audit-pane-right" id="audit-pane-right" aria-label="Primary Archival Evidence">
@@ -3546,6 +3550,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261031a"></script>
+  <script type="module" src="js/app.js?v=20261106a"></script>
 </body>
 </html>

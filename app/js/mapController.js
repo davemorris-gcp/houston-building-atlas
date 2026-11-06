@@ -14,7 +14,7 @@ import {
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261031a";
+} from "./palettes.js?v=20261106a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -31,18 +31,27 @@ import {
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261031a";
+} from "./filterStore.js?v=20261106a";
 import {
   METERS_PER_DEGREE_LAT,
   OVERRIDE_MODE_ADDITIVE_POLYGON,
   OVERRIDE_MODE_PARCEL_REPLACEMENT,
   OVERRIDE_MODE_SUPPRESS_VACANT,
   applyOverrideToProperties,
+  assignSiblingOverrideProps,
   classifyOverrideFootprintMode,
+  computePolygonBboxArea,
+  computePolygonRingCentroid,
+  createParcelFootprintRegistry,
+  explodePolygonParts,
+  extractCanonicalFootprintId,
+  hasMatchingFootprintCentroid,
+  isBareAttributeParcelOverride,
+  isSingleShardReplaceOverride,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261031a";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261031a";
+} from "./curatedEdits.js?v=20261106a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261106a";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
@@ -51,8 +60,8 @@ import {
   mapHcadStateClassToUseCategory,
   matchHcadParcelFeaturesByAddressQuery,
   normalizeHcad13,
-} from "./hcadViewportParcels.js?v=20261031a";
-import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261031a";
+} from "./hcadViewportParcels.js?v=20261106a";
+import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261106a";
 
 export const LOST_HOUSTON_RANK_EXPR = ["coalesce", ["to-number", ["get", "symbol_rank"]], 4];
 
@@ -276,6 +285,7 @@ export class AtlasMapController {
     this.curatedOverrides = {};
     this.sheetSyncStatus = null;
     this.overridesFC = { type: "FeatureCollection", features: [] };
+    this._dynamicShardGeometriesByHcad = new Map();
     this.polygonEditorFC = { type: "FeatureCollection", features: [] };
     this.fieldSurveyOverlayFC = { type: "FeatureCollection", features: [] };
     this._polygonEditorSession = null;
@@ -356,14 +366,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261031a"),
-      fetch("public/data/parcels.geojson?v=20261031a"),
-      fetch("public/data/overlays.json?v=20261031a"),
-      fetch("public/data/pmtiles_manifest.json?v=20261031a").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261106a"),
+      fetch("public/data/parcels.geojson?v=20261106a"),
+      fetch("public/data/overlays.json?v=20261106a"),
+      fetch("public/data/pmtiles_manifest.json?v=20261106a").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261031a").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261031a").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261031a").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261106a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261106a").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261106a").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1009,6 +1019,8 @@ export class AtlasMapController {
       }
     };
 
+    const footprintRegistry = createParcelFootprintRegistry();
+
     for (const feat of this.buildingsData) {
       const featId = String(feat.properties?.id || "").trim();
       const hcad = String(feat.properties?.hcad_num || "").trim();
@@ -1021,7 +1033,62 @@ export class AtlasMapController {
       if (matchKey) {
         if (ovMap[matchKey].suppress_only) continue;
         feat.properties = applyOverrideToProperties(feat.properties, ovMap);
-        putOverrideFeature(matchKey, ovMap[matchKey].geometry || feat.geometry, feat.properties);
+        const effectiveGeom = ovMap[matchKey].geometry || feat.geometry;
+        if (isBareAttributeParcelOverride(matchKey, ovMap[matchKey])) {
+          const seqIdx = footprintRegistry.registerWholeFeature(
+            matchKey,
+            effectiveGeom,
+            feat.properties
+          );
+          if (seqIdx === null) continue;
+          const { targetKey, props: propsForOverride } = assignSiblingOverrideProps(
+            feat.properties,
+            matchKey,
+            seqIdx,
+            "core"
+          );
+          putOverrideFeature(targetKey, effectiveGeom, propsForOverride);
+        } else {
+          if (!ovMap[matchKey].is_building_override && matchKey === hcad) {
+            footprintRegistry.seedExistingFeature(hcad, effectiveGeom, feat.properties);
+          }
+          putOverrideFeature(matchKey, effectiveGeom, feat.properties);
+        }
+      }
+    }
+
+    if (this._dynamicShardGeometriesByHcad && this._dynamicShardGeometriesByHcad.size > 0) {
+      for (const [hcad, cachedList] of this._dynamicShardGeometriesByHcad.entries()) {
+        const ov = ovMap[hcad];
+        const isSingleReplace = isSingleShardReplaceOverride(hcad, ov);
+        if (
+          (!isBareAttributeParcelOverride(hcad, ov) && !isSingleReplace) ||
+          (isSingleReplace && footprintRegistry.hasHcad(hcad)) ||
+          !Array.isArray(cachedList)
+        ) {
+          continue;
+        }
+        const maxParts = isSingleReplace ? 1 : Infinity;
+        for (const item of cachedList) {
+          if (!item?.geometry) continue;
+          const accepted = footprintRegistry.ingestFeatureParts(
+            hcad,
+            item.geometry,
+            item.rawProps,
+            { maxParts, precomputedCentroid: item.centroid || null }
+          );
+          for (const reg of accepted) {
+            if (!item.centroid) item.centroid = reg.centroid;
+            const rawMerged = applyOverrideToProperties({ ...(item.rawProps || {}) }, ovMap);
+            const { targetKey, props: mergedProps } = assignSiblingOverrideProps(
+              rawMerged,
+              hcad,
+              reg.seqIdx,
+              "shard"
+            );
+            putOverrideFeature(targetKey, reg.partGeom, mergedProps);
+          }
+        }
       }
     }
 
@@ -1419,7 +1486,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261031a";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261106a";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -3927,53 +3994,111 @@ export class AtlasMapController {
         String(f.properties?.building_id || f.properties?.id || f.properties?.hcad_num || "").trim()
       )
     );
-    const existingHcads = new Set(
-      (this.overridesFC?.features || [])
-        .filter((f) => !f.properties?.is_building_override)
-        .map((f) => String(f.properties?.hcad_num || "").trim())
-    );
-    const missingHcads = Object.entries(this.curatedOverrides || {})
+    const footprintRegistry = createParcelFootprintRegistry();
+    const existingShardFeatureByFid = new Map();
+    for (const existingFeat of this.overridesFC?.features || []) {
+      if (existingFeat.properties?.is_building_override) continue;
+      const eh = String(existingFeat.properties?.hcad_num || "").trim();
+      if (!eh) continue;
+      footprintRegistry.seedExistingFeature(eh, existingFeat.geometry, existingFeat.properties);
+      const efid = extractCanonicalFootprintId(existingFeat.properties, eh);
+      if (efid && !existingShardFeatureByFid.has(efid)) {
+        existingShardFeatureByFid.set(efid, existingFeat);
+      }
+    }
+
+    const targetHcads = Object.entries(this.curatedOverrides || {})
       .filter(
         ([k, ov]) =>
-          k &&
-          !ov?.is_building_override &&
-          !ov?.keep_shard_footprints &&
-          !ov?.suppress_only &&
-          !ov?.geometry &&
-          !existingKeys.has(k) &&
-          !existingHcads.has(k)
+          isBareAttributeParcelOverride(k, ov) ||
+          (isSingleShardReplaceOverride(k, ov) &&
+            !existingKeys.has(k) &&
+            !footprintRegistry.hasHcad(k))
       )
       .map(([k]) => k);
-    if (!missingHcads.length) return;
+    if (!targetHcads.length) return;
 
     let added = false;
-    const seenHitCoords = new Set();
+    if (!this._dynamicShardGeometriesByHcad) {
+      this._dynamicShardGeometriesByHcad = new Map();
+    }
     for (const srcId of this.shardSourceIds) {
       try {
         const hits = this.map.querySourceFeatures(srcId, {
           sourceLayer: "buildings",
-          filter: ["in", ["get", "hcad_num"], ["literal", missingHcads]],
+          filter: ["in", ["get", "hcad_num"], ["literal", targetHcads]],
         });
-        for (const hit of hits) {
+        const sortedHits = hits
+          .slice()
+          .sort((a, b) => computePolygonBboxArea(b?.geometry) - computePolygonBboxArea(a?.geometry));
+        for (const hit of sortedHits) {
           const hcad = String(hit.properties?.hcad_num || "").trim();
-          if (hcad && hit.geometry) {
-            const firstPt =
-              hit.geometry.type === "Polygon"
-                ? hit.geometry.coordinates?.[0]?.[0]
-                : hit.geometry.coordinates?.[0]?.[0]?.[0];
-            const dedupKey = firstPt
-              ? `${hcad}:${firstPt[0].toFixed(6)},${firstPt[1].toFixed(6)}`
-              : `${hcad}:${this.overridesFC.features.length}`;
-            if (seenHitCoords.has(dedupKey)) continue;
-            seenHitCoords.add(dedupKey);
-            existingHcads.add(hcad);
-            if (this.curatedOverrides[hcad] && !this.curatedOverrides[hcad].geometry) {
-              this.curatedOverrides[hcad].geometry = hit.geometry;
+          if (!hcad || !hit.geometry) continue;
+          const hitFid = extractCanonicalFootprintId(hit.properties, hcad);
+          if (hitFid && existingShardFeatureByFid.has(hitFid)) {
+            const prevFeat = existingShardFeatureByFid.get(hitFid);
+            const prevArea = computePolygonBboxArea(prevFeat?.geometry);
+            const candParts = explodePolygonParts(hit.geometry);
+            const bestPart =
+              candParts.length > 1
+                ? candParts.slice().sort((a, b) => computePolygonBboxArea(b) - computePolygonBboxArea(a))[0]
+                : candParts[0] || hit.geometry;
+            const nextArea = computePolygonBboxArea(bestPart);
+            if (prevFeat && nextArea > prevArea * 1.05) {
+              const prevGeomRef = prevFeat.geometry;
+              prevFeat.geometry = bestPart;
+              const cacheList = this._dynamicShardGeometriesByHcad.get(hcad) || [];
+              const nextCentroid = computePolygonRingCentroid(bestPart);
+              for (const cItem of cacheList) {
+                if (
+                  cItem.geometry === prevGeomRef ||
+                  extractCanonicalFootprintId(cItem.rawProps, hcad) === hitFid
+                ) {
+                  cItem.geometry = bestPart;
+                  if (nextCentroid) cItem.centroid = nextCentroid;
+                  break;
+                }
+              }
+              added = true;
             }
+            continue;
+          }
+          const ov = this.curatedOverrides?.[hcad];
+          const maxParts = ov?.replace_parcel_shards ? 1 : Infinity;
+          const accepted = footprintRegistry.ingestFeatureParts(hcad, hit.geometry, hit.properties, {
+            maxParts,
+          });
+          for (const reg of accepted) {
+            let cacheList = this._dynamicShardGeometriesByHcad.get(hcad);
+            if (!cacheList) {
+              cacheList = [];
+              this._dynamicShardGeometriesByHcad.set(hcad, cacheList);
+            }
+            const cachedCentroids = cacheList
+              .map((item) => item.centroid || computePolygonRingCentroid(item.geometry))
+              .filter(Boolean);
+            if (!hasMatchingFootprintCentroid(cachedCentroids, reg.centroid)) {
+              cacheList.push({
+                geometry: reg.partGeom,
+                centroid: reg.centroid,
+                rawProps: { ...(hit.properties || {}) },
+              });
+            }
+
+            const rawMerged = applyOverrideToProperties(
+              { ...(hit.properties || {}) },
+              this.curatedOverrides
+            );
+            const { props: mergedProps } = assignSiblingOverrideProps(
+              rawMerged,
+              hcad,
+              reg.seqIdx,
+              "shard"
+            );
             this.overridesFC.features.push({
               type: "Feature",
-              geometry: hit.geometry,
-              properties: applyOverrideToProperties(hit.properties, this.curatedOverrides),
+              geometry: reg.partGeom,
+              properties: mergedProps,
             });
             added = true;
           }

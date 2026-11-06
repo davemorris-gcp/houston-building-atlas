@@ -1086,6 +1086,31 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
     page = guarded_page
     _seed_staff_admin_session(page)
 
+    # Seed an explicit baseline watermark just prior to the latest biweekly Plat Agenda cycle and
+    # Watchlist sweep in monitor_activity_log.json so both modes reliably exhibit unread badges
+    # regardless of which day of the 14-day Planning Commission cycle the E2E suite runs.
+    data_dir = Path(__file__).resolve().parents[2] / "app" / "public" / "data"
+    act_doc = json.loads((data_dir / "monitor_activity_log.json").read_text(encoding="utf-8"))
+    agenda_dates = sorted(
+        str(e.get("localDate") or e.get("date") or "")[:10]
+        for e in act_doc.get("events", [])
+        if e.get("stream") == "agenda" and (e.get("localDate") or e.get("date"))
+    )
+    watch_dates = sorted(
+        str(e.get("localDate") or e.get("date") or "")[:10]
+        for e in act_doc.get("events", [])
+        if e.get("stream") == "watchlist" and (e.get("localDate") or e.get("date"))
+    )
+    earliest_latest_day = min(agenda_dates[-1], watch_dates[-1])
+    seed_watermark_iso = f"{earliest_latest_day}T00:00:00Z"
+    page.context.add_init_script(
+        f"""
+        if (localStorage.getItem('phpam:caughtUpAt') === null) {{
+            localStorage.setItem('phpam:caughtUpAt', JSON.stringify({json.dumps(seed_watermark_iso)}));
+        }}
+        """
+    )
+
     page.goto(f"{atlas_base_url}/plat-monitor.html?mode=activity", wait_until="domcontentloaded")
     page.wait_for_selector("#modeActivityBtn[aria-selected='true']", timeout=15000)
     page.wait_for_function(

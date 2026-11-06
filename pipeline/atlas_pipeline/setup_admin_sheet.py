@@ -1,4 +1,4 @@
-"""Configure the Houston Building Atlas Google Sheet (12-Tab Workbook Architecture):
+"""Configure the Houston Building Atlas Google Sheet (13-Tab Workbook Architecture):
 1. Executive Admin Hub & Interactive Quick-Filter Workbench (`Admin_Hub_&_Quick_Filter`)
 2. Comprehensive Administrator Operations & Maintenance Manual (`Instructions_&_Apps_Script`)
 3. Helper Triage, Direct Map Link, HCAD Link, and Geometry Columns across Data Tabs
@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
+from typing import Any
 
 SID_HUB = 1383259584
 SID_PENDING = 0
@@ -23,21 +25,34 @@ SID_PC_AGENDA = 1664666635
 SID_AUDIT = 464225150
 SID_LOST = 824622001
 SID_SURVEYS = 913405001
+SID_TRIAGE_1927 = 927192701
+
+SHEET_TITLE_SURVEYS = "Field_Surveys"
+SHEET_TITLE_TRIAGE_1927 = "1927_Cutoff_Triage"
+TRIAGE_1927_FILTER_VIEW_COUNT = 7
 
 ATLAS_BASE_URL = "https://davemorris-gcp.github.io/houston-building-atlas/"
 
-# Live Admin_Hub_&_Quick_Filter row coordinates after Milestone 2 (Row 18 Lost Houston)
-# and Milestone 3 (Row 19 Field Surveys):
+# Centralized Admin_Hub_&_Quick_Filter & Instructions_&_Apps_Script row coordinates
+# across Milestone 2 (Row 18 Lost Houston), Milestone 3 (Row 19 Field Surveys), and
+# Milestone 7 (Row 20 1927 Cutoff Undercount Triage; DF-1):
 #   Row 19: Field_Surveys telemetry + Walk-the-Block Quick Link
-#   Row 20: HOW TO USE instructions banner
-#   Row 21: Quick-Filter column labels (1..5 + Matching Rows Found)
-#   Row 22: Interactive dropdown & keyword input cells (A22:E22) + count formula (F22)
-#   Row 23: Spacer row
-#   Row 24: 12-column Query Results header (A24:L24)
-#   Row 25: Live FILTER formula (A25)
-HUB_FILTER_INPUT_ROW = 22
-HUB_RESULTS_HEADER_ROW = 24
-HUB_RESULTS_FORMULA_ROW = 25
+#   Row 20: 1927_Cutoff_Triage telemetry + Street-Block Walk Quick Link
+#   Row 21: HOW TO USE instructions banner (HUB_HOW_TO_USE_ROW = HUB_FILTER_INPUT_ROW - 2)
+#   Row 22: Quick-Filter column labels (1..5 + Matching Rows Found)
+#   Row 23: Interactive dropdown & keyword input cells (A23:E23) + count formula (F23)
+#   Row 24: Spacer row
+#   Row 25: 12-column Query Results header (A25:L25)
+#   Row 26: Live FILTER formula (A26)
+HUB_SURVEYS_ROW = 19
+HUB_TRIAGE_1927_ROW = 20
+HUB_FILTER_INPUT_ROW = 23
+HUB_HOW_TO_USE_ROW = HUB_FILTER_INPUT_ROW - 2
+HUB_RESULTS_HEADER_ROW = 25
+HUB_RESULTS_FORMULA_ROW = 26
+
+SOP15_TARGET_ROW = 26
+SOP16_TARGET_ROW = 27
 
 PENDING_TOTAL_COLS = 23  # A:R data (18) + S:V helper ARRAYFORMULAs (4) + W geometry_geojson (1)
 APPROVED_TOTAL_COLS = 16  # A:O metadata (15) + P geometry_geojson (1)
@@ -396,6 +411,197 @@ def rgb(hex_str: str) -> dict[str, float]:
     }
 
 
+_A1_CELL_RE = re.compile(r"^([A-Za-z]+)?(\d+)?$")
+
+
+def _col_letters_to_idx(letters: str) -> int:
+    val = 0
+    for ch in letters.upper():
+        val = val * 26 + (ord(ch) - ord("A") + 1)
+    return val
+
+
+def _parse_a1_bounds(range_str: str) -> tuple[str, int, int, int, int]:
+    """Parse `Sheet!A1[:Z99]` into `(sheet_name, min_col, max_col, min_row, max_row)` (1-based)."""
+    if "!" not in range_str:
+        raise ValueError(f"Workbook range missing sheet prefix: {range_str!r}")
+    raw_sheet, a1 = range_str.split("!", 1)
+    sheet_name = raw_sheet.strip().strip("'")
+    parts = [p.strip() for p in a1.split(":", 1)]
+    start_m = _A1_CELL_RE.match(parts[0])
+    end_m = _A1_CELL_RE.match(parts[1]) if len(parts) == 2 else start_m
+    if not start_m or not end_m:
+        raise ValueError(f"Unparseable A1 range: {range_str!r}")
+
+    c1_s, r1_s = start_m.group(1), start_m.group(2)
+    c2_s, r2_s = end_m.group(1), end_m.group(2)
+    min_col = _col_letters_to_idx(c1_s) if c1_s else 1
+    max_col = _col_letters_to_idx(c2_s) if c2_s else (999999 if len(parts) == 2 else min_col)
+    min_row = int(r1_s) if r1_s else 1
+    max_row = int(r2_s) if r2_s else (999999 if len(parts) == 2 else min_row)
+    return (sheet_name, min_col, max_col, min_row, max_row)
+
+
+def assert_safe_workbook_write_ranges(
+    ops: list[dict[str, Any]],
+    *,
+    allow_baseline_b6: bool = False,
+) -> None:
+    """Reject workbook batch writes overlapping Cell B6 passkey, Pending S2:V, or typographic dashes (DF-1).
+
+    Incremental sync scripts (`sync_field_surveys_sheet.py`, `build_1927_cutoff_triage.py`,
+    `sync_lost_houston_sheet.py`) call this guard with `allow_baseline_b6=False` so an
+    off-by-one row range can never overwrite `Instructions_&_Apps_Script!B6` (Admin Passkey)
+    or break `Pending_Submissions!S1:V1` `ARRAYFORMULA` helper columns.
+    """
+    for idx, op in enumerate(ops):
+        rng = str(op.get("range") or "").strip()
+        if not rng:
+            raise ValueError(f"Batch op #{idx} missing range: {op!r}")
+        data_rows = op.get("data") or []
+        eff_max_row_from_data: int | None = None
+        eff_max_col_from_data: int | None = None
+        if isinstance(data_rows, list) and data_rows:
+            eff_max_row_from_data = len(data_rows)
+            eff_max_col_from_data = max(
+                (len(r) for r in data_rows if isinstance(r, list)),
+                default=1,
+            )
+            for r_i, row in enumerate(data_rows):
+                if not isinstance(row, list):
+                    continue
+                for c_i, cell in enumerate(row):
+                    if isinstance(cell, str) and ("\u2014" in cell or "\u2013" in cell):
+                        raise ValueError(
+                            f"Typographic dash (U+2014/U+2013) leaked into {rng} r={r_i} c={c_i}: {cell!r}"
+                        )
+
+        sheet_name, min_col, max_col, min_row, max_row = _parse_a1_bounds(rng)
+        if ":" not in rng.split("!", 1)[1]:
+            if eff_max_row_from_data is not None:
+                max_row = min_row + eff_max_row_from_data - 1
+            if eff_max_col_from_data is not None:
+                max_col = min_col + eff_max_col_from_data - 1
+
+        if (
+            not allow_baseline_b6
+            and sheet_name == "Instructions_&_Apps_Script"
+            and min_row <= 6 <= max_row
+            and min_col <= 2 <= max_col
+        ):
+            raise ValueError(
+                f"Unsafe write range {rng!r} overlaps Instructions_&_Apps_Script!B6 (Admin Passkey)"
+            )
+
+        if (
+            sheet_name == "Pending_Submissions"
+            and max_row >= 2
+            and min_col <= 22
+            and max_col >= 19
+        ):
+            raise ValueError(
+                f"Unsafe write range {rng!r} overlaps Pending_Submissions!S2:V ARRAYFORMULA rows"
+            )
+
+
+def inspect_workbook_layout_anchors(
+    *,
+    hub_col_a: list[str],
+    instr_col_a: list[str] | None = None,
+    require_surveys_row: bool = False,
+) -> dict[str, Any]:
+    """Single source of truth for `Admin_Hub_&_Quick_Filter` & `Instructions_&_Apps_Script` row anchors (`DF-1`).
+
+    Centralizes 11-tab -> 12-tab -> 13-tab Hub row detection (`HUB_SURVEYS_ROW`,
+    `HUB_TRIAGE_1927_ROW`, `HUB_HOW_TO_USE_ROW`, `HUB_FILTER_INPUT_ROW`) and
+    `Instructions_&_Apps_Script!B6` Admin Passkey validation so `sync_field_surveys_sheet.py`
+    and `build_1927_cutoff_triage.py` never duplicate 0-based row-index checks.
+    """
+    legacy_12tab_input_row = HUB_FILTER_INPUT_ROW - 1
+    lost_row = HUB_SURVEYS_ROW - 1
+
+    row18_a = hub_col_a[lost_row - 1].strip() if len(hub_col_a) >= lost_row else ""
+    row19_a = hub_col_a[HUB_SURVEYS_ROW - 1].strip() if len(hub_col_a) >= HUB_SURVEYS_ROW else ""
+    row20_a = (
+        hub_col_a[HUB_TRIAGE_1927_ROW - 1].strip()
+        if len(hub_col_a) >= HUB_TRIAGE_1927_ROW
+        else ""
+    )
+    row21_a = (
+        hub_col_a[HUB_HOW_TO_USE_ROW - 1].strip()
+        if len(hub_col_a) >= HUB_HOW_TO_USE_ROW
+        else ""
+    )
+
+    has_surveys_row = "Walk-the-Block Field Surveys" in row19_a
+    has_triage_1927_row = False
+
+    if has_surveys_row:
+        if "1927 (100-Yr) Cutoff" in row20_a:
+            if not row21_a.startswith("HOW TO USE:"):
+                raise ValueError(
+                    "Admin_Hub_&_Quick_Filter Row 21 anchor mismatch on 13-tab layout: "
+                    f"expected 'HOW TO USE:', got {row21_a!r}"
+                )
+            has_triage_1927_row = True
+            filter_input_row = HUB_FILTER_INPUT_ROW
+        elif row20_a.startswith("HOW TO USE:"):
+            filter_input_row = legacy_12tab_input_row
+        else:
+            raise ValueError(
+                "Admin_Hub_&_Quick_Filter Row 20 anchor mismatch: expected 'HOW TO USE:' "
+                f"(12-tab) or '1927 (100-Yr) Cutoff' (13-tab), got {row20_a!r}"
+            )
+    elif not require_surveys_row and row19_a.startswith("HOW TO USE:"):
+        filter_input_row = legacy_12tab_input_row
+    else:
+        expected = (
+            "'Walk-the-Block Field Surveys'"
+            if require_surveys_row
+            else "'HOW TO USE:' (pre-upgrade) or 'Walk-the-Block Field Surveys' (upgraded)"
+        )
+        raise ValueError(
+            f"Admin_Hub_&_Quick_Filter Row {HUB_SURVEYS_ROW} anchor mismatch: "
+            f"expected {expected}, got {row19_a!r}"
+        )
+
+    if instr_col_a is not None:
+        row6_a = instr_col_a[5].strip() if len(instr_col_a) >= 6 else ""
+        if "Passkey" not in row6_a or "B6" not in row6_a:
+            raise ValueError(
+                f"Instructions_&_Apps_Script Row 6 anchor mismatch (refusing to touch sheet near B6): {row6_a!r}"
+            )
+
+    return {
+        "row18_a": row18_a,
+        "has_surveys_row": has_surveys_row,
+        "has_triage_1927_row": has_triage_1927_row,
+        "filter_input_row": filter_input_row,
+    }
+
+
+def build_sop16_row() -> list[str]:
+    """Build SOP 16 (`Instructions_&_Apps_Script!A27:C27`) for 1927 (100-Year Cutoff) Triage."""
+    return [
+        "25. SOP 16 - 1927 (100-Year Demolition Review Cutoff) Undercount Triage & Street-Block Walk Workflow (1927_Cutoff_Triage Tab)",
+        "Use the '1927_Cutoff_Triage' tab (gid=927192701) and Split-Screen Street-Block Walk mode (#audit=1&auditCat=1927_CUTOFF_TRIAGE&auditSort=street_block) to audit HCAD 100-year build-year undercounts and 1920 false positives across City of Houston (jurs=061) parcels:\n\n"
+        "1. Six Operational Triage Buckets (Deduplicated by 13-Digit HCAD Account):\n"
+        "   - Bucket A (1. Pre-1927 City Directory Hold-Back): Addresses appearing in 1866-1926 Houston City Directories that were intentionally held back from auto-promotion due to Non-Contributing status, Slab foundation, New/Rebuilt remodel code, heterogeneous multi-building lot, or pre-1911 street-numbering check lacking post-1911 volume corroboration.\n"
+        "   - Bucket B (2. Rounded Placeholder in Pre-1925 Plat / HD): Un-overridden structures coded 1930, 1935, 1940, or 1950 inside a COH Historic District or pre-1925 platted subdivision with non-slab foundations.\n"
+        "   - Bucket C (3. Annexation-Ring Cluster): Structures coded 1927-1932 in the 1926-1929 annexation ring (Magnolia Park / East End / Independence Heights) or 1949/1950/1956 pier-and-beam structures in the 1949-1956 annexation rings.\n"
+        "   - Bucket D (4. Inner-Loop Pier-and-Beam Overwrite): Structures coded 1945-1985 inside the 610 Loop with Crawl Space / Pier-and-Beam foundations (classic remodel-year or house-move permit overwrites).\n"
+        "   - Bucket E (5. Historic Corridor Masonry Commercial): Commercial / multi-family structures coded 1945-1990 along historic streetcar corridors (Main, Washington, Navigation, Emancipation, Dowling, Lyons, Preston, Congress, Milam, Travis, Fannin, San Jacinto, Caroline, Austin, La Branch, Prairie, Texas, Capitol, Rusk, McKinney, Walker, Polk, Dallas, Westheimer, Montrose, Waugh, Yale, 19th, Telephone, Harrisburg, Lawndale, Broadway, Canal, Sampson, Jensen, Holman, Elgin, Alabama, McGowen) with Masonry Bearing construction and zero slab indicators.\n"
+        "   - Bucket F (6. 1920 False-Positive Audit): Un-overridden structures coded 1920 inside exact Clerk/Map-dated 1921-1929 subdivisions OR audited as absent through the 1926 Morrison & Fourmy City Directory.\n\n"
+        "2. Rapid 90-Second Street-Block Walk Verification:\n"
+        "   - In '1927_Cutoff_Triage', open Data -> Filter views and pick one of the 7 pre-built views (Buckets A-F or High-Priority Unreviewed Score >= 84). Rows are pre-sorted by Neighborhood -> Street Stem -> Parity (Odd blockface first, then Even blockface) -> House Number so staff can scan a full street block in the 1926-1927 City Directory Street Guide or 1924-1925 Sanborn volume in seconds.\n"
+        "   - In the live web Atlas, click '🎯 Open 1927 Cutoff Street-Block Walk ↗' on Admin_Hub_&_Quick_Filter Row 20 (#audit=1&auditCat=1927_CUTOFF_TRIAGE&auditSort=street_block) and step house-by-house down each blockface with J/K/A/D/S.\n\n"
+        "3. Re-Running the Deterministic Census & Safe Auto-Promotion Pipeline:\n"
+        "   - Preview dry-run metrics (zero writes): uv run python -m atlas_pipeline.build_1927_cutoff_triage --dry-run\n"
+        "   - Apply double-vetted promotions + refresh CSV/Sheet batches (preserving moderator statuses via --existing-triage-csv): uv run python -m atlas_pipeline.build_1927_cutoff_triage --apply --existing-triage-csv /tmp/1927_Cutoff_Triage.csv --sheet-batches-dir /tmp/m7_batches && uv run python -m atlas_pipeline.audit_historical_accuracy --apply && uv run python -m atlas_pipeline.build_neighborhood_scorecards && uv run python -m atlas_pipeline.build_1927_cutoff_triage --sync-policy-brief",
+        "Policy Prep & Ongoing Block Walks\nTab: 1927_Cutoff_Triage\nScript: pipeline/atlas_pipeline/build_1927_cutoff_triage.py",
+    ]
+
+
 def build_admin_hub_rows() -> list[list]:
     r = HUB_FILTER_INPUT_ROW
     return [
@@ -535,7 +741,7 @@ def build_admin_hub_rows() -> list[list]:
             "",
             "Complete Administrator Manual & SOPs",
             f'=HYPERLINK("#gid={SID_INSTR}", "📖 Open Full Admin Manual & SOPs Tab ↗")',
-            "Detailed instructions for all 15 administrative workflows + Apps Script code",
+            "Detailed instructions for all 16 administrative workflows + Apps Script code",
             "",
             "",
             "",
@@ -614,12 +820,12 @@ def build_admin_hub_rows() -> list[list]:
             "🔍 Cross-Dataset Historical Contradictions Queue",
             "=COUNTA(IFERROR(Historical_Audit_Queue!A2:A))",
             "Triage top scores weekly",
-            "Landmark, Architect & 1866-1926 City Directory contradictions (2,600 total scanned)",
+            "Landmark, Architect, 1866-1926 City Directory & 1927 Cutoff contradictions",
             f'=HYPERLINK("#gid={SID_AUDIT}", "Open Historical_Audit_Queue ↗")',
             "",
             "Historian Split-Screen Audit Mode (Live Atlas)",
             f'=HYPERLINK("{ATLAS_BASE_URL}#audit=1", "🔍 Open Split-Screen Historian Audit ↗")',
-            "Keyboard-driven (J/K/A/D/S) triage across all 2,600 contradictions",
+            "Keyboard-driven (J/K/A/D/S) triage across all pre-computed archival contradictions",
             "",
             "",
             "",
@@ -648,6 +854,20 @@ def build_admin_hub_rows() -> list[list]:
             "Walk-the-Block Field Survey Mode (Mobile Map)",
             f'=HYPERLINK("{ATLAS_BASE_URL}#survey=1", "📋 Open Walk-the-Block Survey ↗")',
             "Outdoor mobile field survey sheet + offline sync + Staff Polygon Editor",
+            "",
+            "",
+            "",
+        ],
+        [
+            "🎯 1927 (100-Yr) Cutoff Undercount Triage (COH Census)",
+            f"=COUNTA(IFERROR({SHEET_TITLE_TRIAGE_1927}!A2:A))",
+            "Street-block triage / policy prep",
+            f"In {SHEET_TITLE_TRIAGE_1927} -> Data -> Filter views ({TRIAGE_1927_FILTER_VIEW_COUNT} pre-built Bucket A-F & Score >= 84 views)",
+            f'=HYPERLINK("#gid={SID_TRIAGE_1927}", "Open {SHEET_TITLE_TRIAGE_1927} Tab ↗")',
+            "",
+            "1927 Cutoff Street-Block Walk (Audit Mode)",
+            f'=HYPERLINK("{ATLAS_BASE_URL}#audit=1&auditCat=1927_CUTOFF_TRIAGE&auditSort=street_block", "🎯 Open 1927 Cutoff Street-Block Walk ↗")',
+            "Pre-filtered 100-yr cutoff suspects sorted along odd/even street blockfaces",
             "",
             "",
             "",
@@ -1074,6 +1294,7 @@ def main(argv: list[str] | None = None) -> None:
         },
     ]
 
+    assert_safe_workbook_write_ranges(values_batch, allow_baseline_b6=True)
     values_path = args.output_dir / "admin_values_batch.json"
     values_path.write_text(json.dumps(values_batch, indent=2), encoding="utf-8")
     print(f"Wrote {values_path}")
@@ -1337,7 +1558,7 @@ def main(argv: list[str] | None = None) -> None:
         header_style_req(SID_INSTR, 3, row_idx=6, bg=c_slate, fg=c_sage, font_size=10),
         {
             "repeatCell": {
-                "range": {"sheetId": SID_INSTR, "startRowIndex": 1, "endRowIndex": 27, "startColumnIndex": 0, "endColumnIndex": 3},
+                "range": {"sheetId": SID_INSTR, "startRowIndex": 1, "endRowIndex": 28, "startColumnIndex": 0, "endColumnIndex": 3},
                 "cell": {
                     "userEnteredFormat": {
                         "verticalAlignment": "TOP",
@@ -1350,7 +1571,7 @@ def main(argv: list[str] | None = None) -> None:
         },
         {
             "repeatCell": {
-                "range": {"sheetId": SID_INSTR, "startRowIndex": 1, "endRowIndex": 27, "startColumnIndex": 0, "endColumnIndex": 1},
+                "range": {"sheetId": SID_INSTR, "startRowIndex": 1, "endRowIndex": 28, "startColumnIndex": 0, "endColumnIndex": 1},
                 "cell": {
                     "userEnteredFormat": {
                         "backgroundColor": c_offwhite,

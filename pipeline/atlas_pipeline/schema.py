@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import time
+import urllib.parse
 import zipfile
 from collections.abc import Callable
 from pathlib import Path
@@ -21,7 +22,7 @@ ACTIVE_TAX_YEAR = 2026
 MAX_VALID_CAMA_DATE_YEAR = ACTIVE_TAX_YEAR
 MAX_VALID_YEAR = ACTIVE_TAX_YEAR + 1
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261031a"
+ACTIVE_CACHE_BUST = "20261106a"
 SOFT_MAX_APP_BYTES = 948 * 1024 * 1024
 HARD_MAX_APP_BYTES = 980 * 1024 * 1024
 MAX_SINGLE_FILE_BYTES = 95 * 1024 * 1024
@@ -3687,6 +3688,244 @@ def compute_pre_demolition_flip_days(
     if 0 <= delta_days <= int(max_days):
         return int(delta_days)
     return None
+
+
+ALLOWED_PREWAR_FOUNDATIONS: frozenset[str] = frozenset(
+    {
+        "Crawl Space",
+        "Piers 8 ft or Greater",
+        "Piers 8 ft or Greater with Enclosure",
+        "Full Basement",
+        "Partial Basement",
+        "Basement",
+        "Masonry Bearing",
+        "Reinforced Concrete",
+        "Wood or Light Steel",
+    }
+)
+
+
+def load_bld1_structural_flags(
+    bld_zip_path: Path,
+    target_hcads: set[str],
+) -> dict[str, Any]:
+    """Scan HCAD `Real_building_land.zip` for Building 1 structural flags & multi-building years.
+
+    Parses both `building_res.txt` / `building_other.txt` (including commercial col 6
+    `Masonry Bearing` / `Reinforced Concrete` / `Wood or Light Steel` structural descriptors)
+    and `structural_elem1.txt` / `structural_elem2.txt` (`FND`, `SL` / `SLAB`, and
+    `CAD == 'New / Rebuilt'`) so `audit_historical_accuracy.py` and `build_1927_cutoff_triage.py`
+    enforce 1:1 structural classification without silent exception swallowing.
+    """
+    fnds_by_hcad: dict[str, set[str]] = {}
+    slab_hcads: set[str] = set()
+    rebuilt_hcads: set[str] = set()
+    bldg_years_by_hcad: dict[str, list[int]] = {}
+    meta_by_hcad: dict[str, tuple[int, int, str, bool]] = {}
+
+    if not target_hcads or not bld_zip_path.exists():
+        return {
+            "fnds_by_hcad": fnds_by_hcad,
+            "slab_hcads": slab_hcads,
+            "rebuilt_hcads": rebuilt_hcads,
+            "bldg_years_by_hcad": bldg_years_by_hcad,
+            "meta_by_hcad": meta_by_hcad,
+        }
+
+    with zipfile.ZipFile(bld_zip_path, "r") as zf:
+        names = set(zf.namelist())
+        for bfile, i_erect, i_eff, i_rem, is_comm_tbl in (
+            ("building_res.txt", 12, 13, 14, False),
+            ("building_other.txt", 14, 15, 16, True),
+        ):
+            if bfile not in names:
+                continue
+            with zf.open(bfile) as fh:
+                fh.readline()
+                for raw_b in fh:
+                    acct_p = raw_b[:16].decode("latin1", errors="ignore").split("\t", 1)[0].strip()
+                    if acct_p not in target_hcads:
+                        continue
+                    pp = raw_b.decode("latin1", errors="ignore").rstrip("\r\n").split("\t")
+                    if len(pp) <= i_rem:
+                        continue
+                    try:
+                        bnum = int(pp[2].strip() or "0")
+                    except ValueError:
+                        bnum = 0
+                    try:
+                        ey = int(pp[i_erect].strip() or "0")
+                    except ValueError:
+                        ey = 0
+                    try:
+                        eff_y = int(pp[i_eff].strip() or "0")
+                    except ValueError:
+                        eff_y = 0
+                    try:
+                        rem_y = int(pp[i_rem].strip() or "0")
+                    except ValueError:
+                        rem_y = 0
+                    sdscr = pp[6].strip() if len(pp) > 6 else ""
+                    if ey >= MIN_VALID_YEAR:
+                        bldg_years_by_hcad.setdefault(acct_p, []).append(ey)
+                    if bnum == 1 or acct_p not in meta_by_hcad:
+                        meta_by_hcad[acct_p] = (eff_y, rem_y, sdscr, is_comm_tbl)
+                        if is_comm_tbl and sdscr in (
+                            "Masonry Bearing",
+                            "Reinforced Concrete",
+                            "Wood or Light Steel",
+                        ):
+                            fnds_by_hcad.setdefault(acct_p, set()).add(sdscr)
+
+        for sfile in ("structural_elem1.txt", "structural_elem2.txt"):
+            if sfile not in names:
+                continue
+            with zf.open(sfile) as fh:
+                fh.readline()
+                for raw_b in fh:
+                    acct_p = raw_b[:16].decode("latin1", errors="ignore").split("\t", 1)[0].strip()
+                    if acct_p not in target_hcads:
+                        continue
+                    pp = raw_b.decode("latin1", errors="ignore").rstrip("\r\n").split("\t")
+                    if len(pp) < 7:
+                        continue
+                    try:
+                        bnum = int(pp[1].strip() or "0")
+                    except ValueError:
+                        continue
+                    if bnum != 1:
+                        continue
+                    tp = pp[4].strip()
+                    cdscr = pp[6].strip()
+                    if tp == "SL" or "SLAB" in cdscr.upper():
+                        slab_hcads.add(acct_p)
+                    elif tp == "CAD" and cdscr == "New / Rebuilt":
+                        rebuilt_hcads.add(acct_p)
+                    elif tp == "FND" and cdscr:
+                        fnds_by_hcad.setdefault(acct_p, set()).add(cdscr)
+
+    return {
+        "fnds_by_hcad": fnds_by_hcad,
+        "slab_hcads": slab_hcads,
+        "rebuilt_hcads": rebuilt_hcads,
+        "bldg_years_by_hcad": bldg_years_by_hcad,
+        "meta_by_hcad": meta_by_hcad,
+    }
+
+
+def collect_overridden_hcad_accounts(overrides: dict[str, Any]) -> set[str]:
+    """Extract normalized 13-digit HCAD parcel accounts from bare and `<hcad>#<slug>` override entries."""
+    out: set[str] = set()
+    for raw_key, ov in (overrides or {}).items():
+        cand = ""
+        if isinstance(ov, dict):
+            cand = str(ov.get("hcad_num") or "").strip()
+        if not cand:
+            cand = str(raw_key or "").split("#", 1)[0].strip()
+        if len(cand) == 13 and cand.isdigit():
+            out.add(cand)
+    return out
+
+
+def match_earliest_platted_subdivisions(
+    points_xy: list[tuple[float, float]],
+    platted_subdivisions_features: list[dict[str, Any]],
+    *,
+    min_year: int = MIN_VALID_YEAR,
+    max_year: int = 9999,
+) -> list[tuple[str, int, bool, str]]:
+    """Vectorized earliest-subdivision spatial join (`(name, year, is_exact, basis)`) for `(x, y)` points.
+
+    Sanitizes polygon topology via `shapely.validation.make_valid` and uses `STRtree.query(...,
+    predicate='intersects')` so boundary-collinear parcel centroids match consistently across
+    `audit_historical_accuracy.py` and `build_1927_cutoff_triage.py` without bare exception swallowing.
+    """
+    n_pts = len(points_xy)
+    if n_pts == 0 or not platted_subdivisions_features:
+        return [("", 0, False, "")] * n_pts
+
+    import numpy as np
+    import shapely
+    from shapely.geometry import shape
+    from shapely.strtree import STRtree
+    from shapely.validation import make_valid
+
+    xs = np.asarray([pt[0] for pt in points_xy], dtype=np.float64)
+    ys = np.asarray([pt[1] for pt in points_xy], dtype=np.float64)
+    pts_tree = STRtree(shapely.points(xs, ys))
+
+    names = [""] * n_pts
+    years = [0] * n_pts
+    exacts = [False] * n_pts
+    bases = [""] * n_pts
+
+    for pfeat in platted_subdivisions_features:
+        if not isinstance(pfeat, dict):
+            continue
+        pp = pfeat.get("properties") or {}
+        try:
+            py = int(pp.get("estimated_plat_year") or 0)
+        except (ValueError, TypeError):
+            continue
+        if not (min_year <= py <= max_year):
+            continue
+        pg = pfeat.get("geometry")
+        if not isinstance(pg, dict) or not pg.get("type") or not pg.get("coordinates"):
+            continue
+        sg = shape(pg)
+        if not sg.is_valid:
+            sg = make_valid(sg)
+        if sg.is_empty:
+            continue
+        pname = str(pp.get("name") or "").strip()
+        pexact = bool(pp.get("plat_year_is_exact"))
+        pbasis = str(pp.get("plat_year_basis") or "").strip()
+        for idx_h in pts_tree.query(sg, predicate="intersects"):
+            ii = int(idx_h)
+            if years[ii] == 0 or py < years[ii]:
+                names[ii] = pname
+                years[ii] = py
+                exacts[ii] = pexact
+                bases[ii] = pbasis
+
+    return list(zip(names, years, exacts, bases))
+
+
+CONTENTDM_CITYDIR_COLLECTION_URL = "https://cdm17006.contentdm.oclc.org/digital/collection/citydir"
+
+
+def build_citydir_search_url(address: str, fallback_hcad: str = "") -> str:
+    """Build a percent-encoded ContentDM `citydir` search URL matching JS `encodeURIComponent`.
+
+    Encodes path/fragment delimiters (`'/'` in `'1/2'` or `' / '`, `'#'` in unit suffixes, and `'&'`)
+    via `urllib.parse.quote(..., safe='')` so `/search/searchterm/<term>` routes never split or truncate.
+    """
+    raw_query = str(address or "").strip() or str(fallback_hcad or "").strip()
+    if not raw_query:
+        return CONTENTDM_CITYDIR_COLLECTION_URL
+    encoded = urllib.parse.quote(raw_query, safe="")
+    return f"{CONTENTDM_CITYDIR_COLLECTION_URL}/search/searchterm/{encoded}"
+
+
+def resolve_citydir_cdm_url(dir_rec: dict[str, Any] | None, fallback_url: str) -> tuple[int, str]:
+    """Resolve validated ContentDM integer page pointer (`p`) and direct item URL.
+
+    Never interpolates non-integer OCR citation strings (`c`/`x`) into `/id/<ptr>/rec/1`.
+    """
+    if not isinstance(dir_rec, dict):
+        return 0, fallback_url
+    raw_ptr = dir_rec.get("p")
+    ptr_int = (
+        int(raw_ptr)
+        if isinstance(raw_ptr, int) and not isinstance(raw_ptr, bool)
+        else (int(str(raw_ptr).strip()) if str(raw_ptr or "").strip().isdigit() else 0)
+    )
+    if ptr_int > 0:
+        return ptr_int, f"{CONTENTDM_CITYDIR_COLLECTION_URL}/id/{ptr_int}/rec/1"
+    return 0, fallback_url
+
+
+
 
 
 

@@ -5,7 +5,7 @@ Covers:
     `historical_audit_queue.json` lazy-loaded on demand) and intact baseline public UX
     (double-click zoom, share URL safety, map interactions, Back/Forward).
   - E2E-2: Split-Screen Historian Rapid Audit Mode (`#audit=1`, `#audit=<fid>`,
-    `#audit=0200670000010&auditCat=ADDRESS_STREET_MISMATCH`), filters (`489` undesignated),
+    `#audit=0200670000010&auditCat=ADDRESS_STREET_MISMATCH`), filters (`545` undesignated),
     composite `fid` isolation, `J`/`K`/`A`/`D`/`S` at `z >= 19.5` without altering time
     sliders, `tile/18` roof crop, ContentDM integer deep links, historic street alias
     badges, Sanborn local WebP thumbnails, community vs Admin publish, server rejection
@@ -218,7 +218,15 @@ def test_e2e1_zero_public_cold_load_overhead_and_lazy_import_and_rp3_public_ux(
     page.click("#btn-sidebar-open-audit")
     page.wait_for_selector("#historian-audit-modal:not(.hidden)", timeout=10000)
     page.wait_for_function(
-        "() => (window.atlasApp._staffWorkbench?.auditItems?.length || 0) === 2600",
+        """() => {
+            const wb = window.atlasApp?._staffWorkbench;
+            return Boolean(
+              wb &&
+              wb.auditQueueDoc &&
+              wb.auditItems?.length >= 2600 &&
+              wb.auditItems.length === wb.auditQueueDoc.total
+            );
+        }""",
         timeout=10000,
     )
     assert any("staffWorkbench.js" in u for u in local_requests)
@@ -310,12 +318,12 @@ def test_e2e2_historian_rapid_audit_workbench_filters_shortcuts_links_and_dual_p
     assert iso_after["firstStatus"] == "dismissed"
     assert iso_after["secondStatus"] == "pending"
 
-    # District filter check: Undesignated / Outside HD yields exact 489 bucketed contradictions
+    # District filter check: Undesignated / Outside HD yields exact 545 bucketed contradictions
     page.click("#audit-btn-reset-filters")
     page.select_option("#audit-filter-district", "Undesignated / Outside HD")
     page.select_option("#audit-filter-status", "all")
     undesig_count = page.evaluate("() => window.atlasApp._staffWorkbench.auditFilteredItems.length")
-    assert undesig_count == 489
+    assert undesig_count == 545
 
     # Filter to City Directory Earlier Than HCAD to check ContentDM integer scan URL + Sanborn local thumbs
     page.click("#audit-btn-reset-filters")
@@ -390,7 +398,7 @@ def test_e2e2_historian_rapid_audit_workbench_filters_shortcuts_links_and_dual_p
     page.wait_for_function(
         """(fid) => {
             const wb = window.atlasApp?._staffWorkbench;
-            if (!wb || wb.auditItems.length !== 2600) return false;
+            if (!wb || !wb.auditQueueDoc || wb.auditItems.length !== wb.auditQueueDoc.total) return false;
             const raw = JSON.parse(localStorage.getItem('ph_atlas_audit_decisions_v1') || '{}');
             return raw[fid]?.status === 'accepted';
         }""",
@@ -1460,7 +1468,7 @@ def test_e2e6_mobile_walk_the_block_field_survey_viewports_gps_daylight_photos_a
 
         csv_and_queue = page.evaluate(
             """async () => {
-                const mod = await import('/js/curatedEdits.js?v=20261031a');
+                const mod = await import('/js/curatedEdits.js?v=20261106a');
                 const list = mod.getLocalFieldSurveys();
                 return {
                     count: list.length,
@@ -1564,3 +1572,218 @@ def test_e2e7_print_media_isolation(
     assert print_styles["surveyCrosshair"] == "none"
     assert print_styles["surveyToast"] == "none"
     assert print_styles["dossier"] != "none"
+
+
+def test_e2e8_milestone7_1927_cutoff_triage_street_walk_and_route_reset(
+    guarded_page: Any,
+    atlas_base_url: str,
+    url_harvester: ExternalUrlHarvester,
+) -> None:
+    """IT-4, IT-5, RP-1 & RP-3: Verify 1927_CUTOFF_TRIAGE virtual preset, street_block sort, D/S blockface retention, #audit=<fid> reload, and #audit=1 route reset."""
+    page = guarded_page
+    page.goto(
+        f"{atlas_base_url}/index.html#audit=1&auditCat=1927_CUTOFF_TRIAGE&auditSort=street_block",
+        wait_until="domcontentloaded",
+    )
+    wait_for_atlas_ready(page)
+    page.wait_for_selector("#historian-audit-modal:not(.hidden)", timeout=12000)
+    page.wait_for_function(
+        """() => {
+            const wb = window.atlasApp?._staffWorkbench;
+            return Boolean(wb && Array.isArray(wb.auditFilteredItems) && wb.auditFilteredItems.length > 300);
+        }""",
+        timeout=12000,
+    )
+
+    boot_state = page.evaluate(
+        """() => {
+            const wb = window.atlasApp._staffWorkbench;
+            const items = wb.auditFilteredItems;
+            const catEl = document.getElementById('audit-filter-category');
+            const sortEl = document.getElementById('audit-sort-order');
+            const presetOpt = Array.from(catEl.options).find(o => o.value === '1927_CUTOFF_TRIAGE');
+            const platIdx = items.findIndex(it => it.category === '1930_PLACEHOLDER_PRE1927_PLAT');
+            const has020067 = wb.auditItems.some(
+                it => it.hcad_num === '0200670000010' && it.category === 'CITY_DIRECTORY_EARLIER_THAN_HCAD'
+            );
+            return {
+                catVal: catEl.value,
+                sortVal: sortEl.value,
+                presetText: presetOpt ? presetOpt.textContent.trim() : '',
+                filteredLen: items.length,
+                platIdx,
+                has020067,
+            };
+        }"""
+    )
+    assert boot_state["catVal"] == "1927_CUTOFF_TRIAGE"
+    assert boot_state["sortVal"] == "street_block"
+    assert "1927 (100-Yr) Cutoff Triage (" in boot_state["presetText"]
+    assert boot_state["platIdx"] >= 0
+    assert boot_state["has020067"] is True
+
+    # IT-4: Verify 1930_PLACEHOLDER_PRE1927_PLAT card renders full claim/archival evidence with empty #audit-input-year (never '0')
+    plat_card = page.evaluate(
+        """(idx) => {
+            const wb = window.atlasApp._staffWorkbench;
+            wb.auditActiveIndex = idx;
+            wb._renderActiveAuditItem({ syncUrl: true, flyMap: true });
+            const cur = wb.auditFilteredItems[wb.auditActiveIndex];
+            const yrEl = document.getElementById('audit-input-year');
+            return {
+                fid: cur.fid,
+                yearVal: yrEl ? yrEl.value : null,
+                yearPlaceholder: yrEl ? yrEl.getAttribute('placeholder') : null,
+                displayedClaim: cur.displayed_claim || '',
+                recommendedAction: cur.recommended_action || '',
+            };
+        }""",
+        boot_state["platIdx"],
+    )
+    assert plat_card["yearVal"] == ""
+    assert plat_card["yearPlaceholder"] == "1930"
+    assert "1930" in plat_card["displayedClaim"]
+    assert len(plat_card["recommendedAction"]) > 10
+    url_harvester.harvest_from_locator(page.locator("#historian-audit-modal"), "milestone7_plat1930_card")
+
+    # IT-5: Toggle #audit-sort-order ('street_block' -> 'priority' -> 'street_block') and verify URL hash omission of default 'priority'
+    page.select_option("#audit-sort-order", "priority")
+    prio_check = page.evaluate(
+        """() => {
+            const wb = window.atlasApp._staffWorkbench;
+            const items = wb.auditFilteredItems;
+            let monotonic = true;
+            for (let i = 1; i < Math.min(items.length, 50); i++) {
+                if (Number(items[i].priority) > Number(items[i - 1].priority)) monotonic = false;
+            }
+            return { hash: window.location.hash, sortVal: wb.auditFilters.sort, monotonic };
+        }"""
+    )
+    assert prio_check["sortVal"] == "priority"
+    assert prio_check["monotonic"] is True
+    assert "auditSort=" not in prio_check["hash"]
+    assert "auditCat=1927_CUTOFF_TRIAGE" in prio_check["hash"]
+
+    page.select_option("#audit-sort-order", "street_block")
+    assert "auditSort=street_block" in page.evaluate("() => window.location.hash")
+
+    # IT-5: Step J/K and press D (Dismiss) + S (Skip) along a multi-house blockface without losing street_block sequence
+    run3 = page.evaluate(
+        """() => {
+            const wb = window.atlasApp._staffWorkbench;
+            const items = wb.auditFilteredItems;
+            const normStem = (addr) => String(addr || '').replace(/^\\S+\\s+/, '').replace(/\\s+/g, ' ').trim().toUpperCase();
+            for (let i = 0; i < items.length - 3; i++) {
+                const s0 = normStem(items[i].address);
+                const d0 = items[i].district || '';
+                if (
+                    s0 &&
+                    s0 === normStem(items[i + 1].address) &&
+                    s0 === normStem(items[i + 2].address) &&
+                    d0 === (items[i + 1].district || '') &&
+                    d0 === (items[i + 2].district || '')
+                ) {
+                    wb.auditActiveIndex = i;
+                    wb._renderActiveAuditItem({ syncUrl: true, flyMap: true });
+                    return {
+                        fids: [items[i].fid, items[i + 1].fid, items[i + 2].fid],
+                        addrs: [items[i].address, items[i + 1].address, items[i + 2].address],
+                    };
+                }
+            }
+            return null;
+        }"""
+    )
+    assert run3 is not None, "Expected a 3-item blockface run in 1927_CUTOFF_TRIAGE street_block order"
+
+    page.keyboard.press("j")
+    assert page.evaluate("() => window.atlasApp._staffWorkbench.auditFilteredItems[window.atlasApp._staffWorkbench.auditActiveIndex].fid") == run3["fids"][1]
+    page.keyboard.press("k")
+    assert page.evaluate("() => window.atlasApp._staffWorkbench.auditFilteredItems[window.atlasApp._staffWorkbench.auditActiveIndex].fid") == run3["fids"][0]
+
+    # Dismiss [D] item 0 -> auto-advances to item 1 in street_block order (actionable filter removes dismissed item 0)
+    page.keyboard.press("d")
+    after_d = page.evaluate(
+        """() => {
+            const wb = window.atlasApp._staffWorkbench;
+            const cur = wb.auditFilteredItems[wb.auditActiveIndex];
+            return {
+                fid: cur.fid,
+                catFilter: wb.auditFilters.category,
+                sortFilter: wb.auditFilters.sort,
+                hash: window.location.hash,
+            };
+        }"""
+    )
+    assert after_d["fid"] == run3["fids"][1]
+    assert after_d["catFilter"] == "1927_CUTOFF_TRIAGE"
+    assert after_d["sortFilter"] == "street_block"
+    assert "auditCat=1927_CUTOFF_TRIAGE" in after_d["hash"]
+    assert "auditSort=street_block" in after_d["hash"]
+
+    # Skip [S] item 1 -> auto-advances to item 2 in street_block order
+    page.keyboard.press("s")
+    after_s_fid = page.evaluate("() => window.atlasApp._staffWorkbench.auditFilteredItems[window.atlasApp._staffWorkbench.auditActiveIndex].fid")
+    assert after_s_fid == run3["fids"][2]
+
+    # IT-5 & DF-3: Reload #audit=<fid>&auditCat=1927_CUTOFF_TRIAGE&auditSort=street_block and verify preset + sort persist
+    target_fid = run3["fids"][2]
+    page.goto(
+        f"{atlas_base_url}/index.html#audit={target_fid}&auditCat=1927_CUTOFF_TRIAGE&auditSort=street_block",
+        wait_until="domcontentloaded",
+    )
+    wait_for_atlas_ready(page)
+    page.wait_for_selector("#historian-audit-modal:not(.hidden)", timeout=12000)
+    page.wait_for_function(
+        """(fid) => {
+            const wb = window.atlasApp?._staffWorkbench;
+            const cur = wb?.auditFilteredItems?.[wb.auditActiveIndex];
+            return Boolean(cur && cur.fid === fid);
+        }""",
+        arg=target_fid,
+        timeout=12000,
+    )
+    reload_state = page.evaluate(
+        """() => ({
+            catSelect: document.getElementById('audit-filter-category').value,
+            sortSelect: document.getElementById('audit-sort-order').value,
+            wbCat: window.atlasApp._staffWorkbench.auditFilters.category,
+            wbSort: window.atlasApp._staffWorkbench.auditFilters.sort,
+        })"""
+    )
+    assert reload_state == {
+        "catSelect": "1927_CUTOFF_TRIAGE",
+        "sortSelect": "street_block",
+        "wbCat": "1927_CUTOFF_TRIAGE",
+        "wbSort": "street_block",
+    }
+
+    # RP-3: Hash change back to bare #audit=1 resets category to 'all' and sort to 'priority' with clean URL hash
+    page.evaluate("() => { window.location.hash = '#audit=1'; }")
+    page.wait_for_function(
+        """() => {
+            const wb = window.atlasApp?._staffWorkbench;
+            return Boolean(wb && wb.auditFilters.category === 'all' && wb.auditFilters.sort === 'priority');
+        }""",
+        timeout=6000,
+    )
+    bare_audit = page.evaluate(
+        """() => ({
+            catSelect: document.getElementById('audit-filter-category').value,
+            sortSelect: document.getElementById('audit-sort-order').value,
+            hash: window.location.hash,
+        })"""
+    )
+    assert bare_audit["catSelect"] == "all"
+    assert bare_audit["sortSelect"] == "priority"
+    assert "auditCat=" not in bare_audit["hash"]
+    assert "auditSort=" not in bare_audit["hash"]
+
+    # IT-5: Closing modal strips audit/auditCat/auditSort cleanly from URL hash
+    page.click("#btn-close-audit-modal")
+    page.wait_for_selector("#historian-audit-modal", state="hidden", timeout=5000)
+    final_hash = page.evaluate("() => window.location.hash")
+    assert "audit=" not in final_hash
+    assert "auditCat=" not in final_hash
+    assert "auditSort=" not in final_hash
+

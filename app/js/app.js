@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261031a";
+} from "./palettes.js?v=20261106a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -27,21 +27,21 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261031a";
-import { AtlasMapController } from "./mapController.js?v=20261031a";
+} from "./filterStore.js?v=20261106a";
+import { AtlasMapController } from "./mapController.js?v=20261106a";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261031a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261031a";
+} from "./guidedChaptersAndPortfolios.js?v=20261106a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261106a";
 import {
   buildResearchKitDeedChainView,
   formatClerkPartyTokens,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261031a";
+} from "./clerkSearchHelpers.js?v=20261106a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -64,7 +64,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261031a";
+} from "./curatedEdits.js?v=20261106a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -74,7 +74,7 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261031a";
+} from "./photoService.js?v=20261106a";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -82,12 +82,12 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261031a";
+} from "./platMonitorHelpers.js?v=20261106a";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261031a";
+} from "./hcadViewportParcels.js?v=20261106a";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -107,11 +107,11 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261031a";
+} from "./preservationOrganizer.js?v=20261106a";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
-} from "./urlValidators.js?v=20261031a";
+} from "./urlValidators.js?v=20261106a";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -135,6 +135,7 @@ export class HoustonAtlasApp {
       activeCh42,
       activeAudit,
       activeAuditCategory,
+      activeAuditSort,
       activeSurvey,
       activePolyEdit,
     } = parseHashToState(window.location.hash, window.location.search);
@@ -147,6 +148,7 @@ export class HoustonAtlasApp {
     this.initialCh42 = activeCh42 || null;
     this.initialAudit = activeAudit || false;
     this.initialAuditCategory = activeAuditCategory || "all";
+    this.initialAuditSort = activeAuditSort || "priority";
     this.initialSurvey = Boolean(activeSurvey);
     this.initialPolyEdit = activePolyEdit || null;
     this._staffWorkbench = null;
@@ -352,6 +354,7 @@ export class HoustonAtlasApp {
       await this._syncStaffWorkbenchWithRoute({
         activeAudit: this.initialAudit,
         activeAuditCategory: this.initialAuditCategory,
+        activeAuditSort: this.initialAuditSort,
         activeSurvey: this.initialSurvey,
         activePolyEdit: this.initialPolyEdit,
         updateUrl: false,
@@ -387,6 +390,7 @@ export class HoustonAtlasApp {
         activeCh42,
         activeAudit,
         activeAuditCategory,
+        activeAuditSort,
         activeSurvey,
         activePolyEdit,
       } = parseHashToState(window.location.hash, window.location.search);
@@ -411,6 +415,12 @@ export class HoustonAtlasApp {
           this.filterStore.getState().activeAuditCategory !== "all"
         ) {
           patch.activeAuditCategory = "all";
+        }
+        if (
+          (!activeAuditSort || activeAuditSort === "priority") &&
+          this.filterStore.getState().activeAuditSort !== "priority"
+        ) {
+          patch.activeAuditSort = "priority";
         }
         if (!activeSurvey && this.filterStore.getState().activeSurvey) {
           patch.activeSurvey = false;
@@ -465,6 +475,7 @@ export class HoustonAtlasApp {
           await this._syncStaffWorkbenchWithRoute({
             activeAudit,
             activeAuditCategory,
+            activeAuditSort,
             activeSurvey,
             activePolyEdit,
             updateUrl: false,
@@ -744,7 +755,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261031a`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261106a`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -904,13 +915,13 @@ export class HoustonAtlasApp {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes, ownPortRes] =
         await Promise.all([
-          fetch("public/data/search_index.json?v=20261031a"),
-          fetch("public/data/stats_summary.json?v=20261031a"),
-          fetch("public/data/haif_index.json?v=20261031a").catch(() => null),
-          fetch("public/data/deed_restrictions_catalog.json?v=20261031a").catch(() => null),
-          fetch("public/data/sanborn_catalog.json?v=20261031a").catch(() => null),
-          fetch("public/data/citydir_index.json?v=20261031a").catch(() => null),
-          fetch("public/data/ownership_portfolios.json?v=20261031a").catch(() => null),
+          fetch("public/data/search_index.json?v=20261106a"),
+          fetch("public/data/stats_summary.json?v=20261106a"),
+          fetch("public/data/haif_index.json?v=20261106a").catch(() => null),
+          fetch("public/data/deed_restrictions_catalog.json?v=20261106a").catch(() => null),
+          fetch("public/data/sanborn_catalog.json?v=20261106a").catch(() => null),
+          fetch("public/data/citydir_index.json?v=20261106a").catch(() => null),
+          fetch("public/data/ownership_portfolios.json?v=20261106a").catch(() => null),
         ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -940,6 +951,7 @@ export class HoustonAtlasApp {
       this.searchIndex = rawIdx;
       this.globalStats = await statsRes.json();
       this._applyRollYearMetadata(this.globalStats?.data_tax_year);
+      this._syncAuditLaunchButtonBadges(this.globalStats?.audit_queue_total);
       if (haifRes && haifRes.ok) {
         this.haifIndex = await haifRes.json();
       } else {
@@ -988,6 +1000,23 @@ export class HoustonAtlasApp {
       }
     } catch (err) {
       console.error("Failed to load metadata files:", err);
+    }
+  }
+
+  _syncAuditLaunchButtonBadges(rawTotal) {
+    const count = Math.round(Number(rawTotal));
+    if (!Number.isFinite(count) || count <= 0 || typeof document === "undefined") return;
+    const fmt = count.toLocaleString("en-US");
+    const topBtn = document.getElementById("btn-topbar-audit");
+    if (topBtn) {
+      topBtn.innerHTML = `&#128270; Archival Audit Queue (${fmt})`;
+      topBtn.title = `Open Split-Screen Historian Archival Audit Workbench (${fmt} Cross-Dataset Date & Directory Contradictions)`;
+    }
+    const sideBtn = document.getElementById("btn-sidebar-open-audit");
+    if (sideBtn) {
+      sideBtn.title = `Review ${fmt} pre-computed cross-dataset archival contradictions alongside 1866-1926 City Directories and 1877-1955 Sanborn sheets`;
+      const monoSpan = sideBtn.querySelector(".mono");
+      if (monoSpan) monoSpan.innerHTML = `${fmt} &#8594;`;
     }
   }
 
@@ -5946,7 +5975,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261031a`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261106a`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -15305,7 +15334,7 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261031a`)
+      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261106a`)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -17274,7 +17303,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261031a`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261106a`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18711,7 +18740,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261031a")
+          fetch("public/data/sanborn_catalog.json?v=20261106a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -18721,7 +18750,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261031a")
+          fetch("public/data/citydir_index.json?v=20261106a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -18744,13 +18773,14 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261031a")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261106a")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
             getWebhookUrl: () => this._getActiveWebhookUrl(),
             getInspectedRawProps: () => this._currentInspectedRawProps || null,
             requestCanvasRedraw: () => this.mapController?.requestCanvasRedraw?.(),
+            syncAuditLaunchButtonBadges: (n) => this._syncAuditLaunchButtonBadges(n),
           });
           return this._staffWorkbench;
         })
@@ -18799,6 +18829,7 @@ export class HoustonAtlasApp {
   async _syncStaffWorkbenchWithRoute({
     activeAudit = false,
     activeAuditCategory = "all",
+    activeAuditSort = "priority",
     activeSurvey = false,
     activePolyEdit = null,
     updateUrl = false,
@@ -18813,7 +18844,8 @@ export class HoustonAtlasApp {
       await wb.openHistorianAuditModal({
         targetFid: raw && raw !== "1" && raw !== "true" && !cleanHcad ? raw : "",
         hcadNum: cleanHcad || "",
-        auditCategory: activeAuditCategory && activeAuditCategory !== "all" ? activeAuditCategory : "",
+        auditCategory: activeAuditCategory || "all",
+        auditSort: activeAuditSort || "priority",
         updateUrl,
       });
     } else {
@@ -18901,7 +18933,13 @@ export class HoustonAtlasApp {
       state?.activeAuditCategory && state.activeAuditCategory !== "all"
         ? `:${state.activeAuditCategory}`
         : "";
-    const auditSig = state?.activeAudit ? `audit:${state.activeAudit}${auditCatPart}` : "";
+    const auditSortPart =
+      state?.activeAuditSort && state.activeAuditSort !== "priority"
+        ? `:${state.activeAuditSort}`
+        : "";
+    const auditSig = state?.activeAudit
+      ? `audit:${state.activeAudit}${auditCatPart}${auditSortPart}`
+      : "";
     const surveySig = state?.activeSurvey ? "survey:1" : "";
     const polySig = state?.activePolyEdit ? `polyedit:${state.activePolyEdit}` : "";
     return [
@@ -20165,7 +20203,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261031a")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261106a")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

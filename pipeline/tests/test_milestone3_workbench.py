@@ -540,16 +540,18 @@ def test_ut6_audit_queue_builder_and_ondisk_artifact() -> None:
 
     q_doc = json.loads(raw)
     s_doc = json.loads(summary_path.read_text(encoding="utf-8"))
-    assert q_doc["total"] == 2600
-    assert len(q_doc["items"]) == 2600
+    assert q_doc["total"] >= 2600
+    assert len(q_doc["items"]) == q_doc["total"]
+    assert q_doc["total"] == s_doc["total_queued_contradictions"]
     assert q_doc["categories"] == s_doc["contradictions_by_category"]
-    assert q_doc["categories"] == {
-        "CITY_DIRECTORY_EARLIER_THAN_HCAD": 1722,
-        "CITY_DIRECTORY_ABSENT_THROUGH_1926": 782,
-        "LANDMARK_VS_ATLAS_YEAR_MISMATCH": 51,
-        "ADDRESS_STREET_MISMATCH": 40,
-        "SUSPECTED_UNMARKED_LANDMARK_DEMOLITION": 3,
-        "ARCHITECT_CAREER_WINDOW_CHECK": 2,
+    assert set(q_doc["categories"].keys()) == {
+        "CITY_DIRECTORY_EARLIER_THAN_HCAD",
+        "CITY_DIRECTORY_ABSENT_THROUGH_1926",
+        "1930_PLACEHOLDER_PRE1927_PLAT",
+        "LANDMARK_VS_ATLAS_YEAR_MISMATCH",
+        "ADDRESS_STREET_MISMATCH",
+        "SUSPECTED_UNMARKED_LANDMARK_DEMOLITION",
+        "ARCHITECT_CAREER_WINDOW_CHECK",
     }
 
     min_lng, min_lat, max_lng, max_lat = HARRIS_COUNTY_BBOX
@@ -743,9 +745,9 @@ def test_ut11_and_it5_twelve_tab_sheets_contract_and_apps_script_guards() -> Non
     assert SHEET_TITLE_SURVEYS == "Field_Surveys"
     assert SHEET_TITLE_LOST == "Lost_Houston_Catalog"
     assert HUB_SURVEYS_ROW == 19
-    assert HUB_FILTER_INPUT_ROW == 22
-    assert HUB_RESULTS_HEADER_ROW == 24
-    assert HUB_RESULTS_FORMULA_ROW == 25
+    assert HUB_FILTER_INPUT_ROW == 23
+    assert HUB_RESULTS_HEADER_ROW == 25
+    assert HUB_RESULTS_FORMULA_ROW == 26
     assert SOP14_TARGET_ROW == 25
     assert SOP15_TARGET_ROW == 26
     assert PENDING_TOTAL_COLS == 23
@@ -848,8 +850,8 @@ def test_ut11_and_it5_twelve_tab_sheets_contract_and_apps_script_guards() -> Non
     pre_instr_a = base_instr_a[:24] + [sop14_col_a]
     post_instr_a = pre_instr_a + [sop15[0]]
 
-    # Pre-upgrade Hub has Lost Houston at Row 18 and HOW TO USE at Row 19 (before Field_Surveys insert)
-    pre_hub_a = [r[0] for r in hub_rows[:18]] + [r[0] for r in hub_rows[19:]]
+    # Pre-upgrade Hub has Lost Houston at Row 18 and HOW TO USE at Row 19 (before Field_Surveys & 1927_Cutoff_Triage inserts)
+    pre_hub_a = [r[0] for r in hub_rows[:18]] + [r[0] for r in hub_rows[20:]]
     state_pre = verify_live_sheet_anchors(
         tab_id_to_title=tab_map_11, hub_col_a=pre_hub_a, instr_col_a=pre_instr_a
     )

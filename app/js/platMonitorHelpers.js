@@ -1773,8 +1773,9 @@ export const DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS = {
   ],
 };
 
+// BEGIN DEFAULT_POLICY_IMPACT_BRIEF
 export const DEFAULT_POLICY_IMPACT_BRIEF = {
-  "generated_at": "2026-11-04",
+  "generated_at": "2026-11-06",
   "data_tax_year": 2026,
   "vacant_lot_cutoff_year": 2024,
   "total_dated_footprints": 629101,
@@ -1797,12 +1798,12 @@ export const DEFAULT_POLICY_IMPACT_BRIEF = {
       "id": "75_plus",
       "label": "75+ Years Old (<= 1951)",
       "cutoff_year": 1951,
-      "standing_count": 133591,
+      "standing_count": 133593,
       "share_of_dated_pct": 21.24,
       "share_of_all_cama_pct": 23.59,
-      "coh_hd_count": 4973,
+      "coh_hd_count": 4975,
       "coh_lm_count": 458,
-      "protected_count": 5272,
+      "protected_count": 5274,
       "unprotected_count": 128319,
       "unprotected_pct": 96.1
     },
@@ -1810,40 +1811,40 @@ export const DEFAULT_POLICY_IMPACT_BRIEF = {
       "id": "pre_1940",
       "label": "Pre-WWII (< 1940)",
       "cutoff_year": 1939,
-      "standing_count": 46060,
+      "standing_count": 46076,
       "share_of_dated_pct": 7.32,
-      "share_of_all_cama_pct": 8.13,
-      "coh_hd_count": 4670,
+      "share_of_all_cama_pct": 8.14,
+      "coh_hd_count": 4683,
       "coh_lm_count": 393,
-      "protected_count": 4907,
-      "unprotected_count": 41153,
+      "protected_count": 4920,
+      "unprotected_count": 41156,
       "unprotected_pct": 89.3
     },
     {
       "id": "100_plus",
       "label": "100+ Years Old (<= 1926)",
       "cutoff_year": 1926,
-      "standing_count": 13586,
-      "share_of_dated_pct": 2.16,
-      "share_of_all_cama_pct": 2.4,
-      "coh_hd_count": 3410,
+      "standing_count": 13686,
+      "share_of_dated_pct": 2.18,
+      "share_of_all_cama_pct": 2.42,
+      "coh_hd_count": 3497,
       "coh_lm_count": 271,
-      "protected_count": 3534,
-      "unprotected_count": 10052,
-      "unprotected_pct": 74.0
+      "protected_count": 3621,
+      "unprotected_count": 10065,
+      "unprotected_pct": 73.5
     },
     {
       "id": "pre_1900",
       "label": "Pre-1900 (Victorian / 19th C.)",
       "cutoff_year": 1899,
-      "standing_count": 306,
+      "standing_count": 319,
       "share_of_dated_pct": 0.05,
-      "share_of_all_cama_pct": 0.05,
-      "coh_hd_count": 200,
+      "share_of_all_cama_pct": 0.06,
+      "coh_hd_count": 206,
       "coh_lm_count": 52,
-      "protected_count": 227,
-      "unprotected_count": 79,
-      "unprotected_pct": 25.8
+      "protected_count": 233,
+      "unprotected_count": 86,
+      "unprotected_pct": 27.0
     }
   ],
   "annual_demolitions_by_age": {
@@ -2223,6 +2224,7 @@ export const DEFAULT_POLICY_IMPACT_BRIEF = {
 };
 
 DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS.policy_impact_brief = DEFAULT_POLICY_IMPACT_BRIEF;
+// END DEFAULT_POLICY_IMPACT_BRIEF
 
 /**
  * Resolve citywide Ordinance & Age-Threshold Policy Impact Brief with fallback to defaults.

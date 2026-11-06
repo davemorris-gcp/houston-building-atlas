@@ -1,7 +1,7 @@
 /**
  * Preservation Houston Staff & Field Workbench (Milestone 3).
  *
- * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261031a")` strictly when
+ * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261106a")` strictly when
  * staff or field volunteers open:
  *   - Component A (`#4`): Split-Screen Historian Rapid Audit Mode (`#audit=1`)
  *   - Component B (`#5a`): In-Browser Staff Polygon Editor (`#polyedit=<id>`)
@@ -43,8 +43,14 @@ import {
   getSurveyPhotoBlob,
   listSurveyPhotoSummaries,
   deleteSurveyPhotoBlob,
-} from "./curatedEdits.js?v=20261031a";
-import { getAtlasMaxYear, normalizeComparableAddress } from "./filterStore.js?v=20261031a";
+} from "./curatedEdits.js?v=20261106a";
+import {
+  VALID_AUDIT_SORT_MODES,
+  getAtlasMaxYear,
+  normalizeAuditSort,
+  normalizeComparableAddress,
+} from "./filterStore.js?v=20261106a";
+export { VALID_AUDIT_SORT_MODES, normalizeAuditSort };
 
 export const BORDEN_DOWNTOWN_GRID_DEG = -34.65;
 export const LS_AUDIT_DECISIONS_KEY = "ph_atlas_audit_decisions_v1";
@@ -54,10 +60,15 @@ export const AUDIT_UNDESIGNATED_DISTRICT = "Undesignated / Outside HD";
 export const AUDIT_CATEGORY_LABELS = Object.freeze({
   CITY_DIRECTORY_EARLIER_THAN_HCAD: "City Directory Earlier Than HCAD",
   CITY_DIRECTORY_ABSENT_THROUGH_1926: "Absent From 1866-1926 Directories",
+  "1930_PLACEHOLDER_PRE1927_PLAT": "1930 Placeholder in Pre-1925 Plat / HD",
   LANDMARK_VS_ATLAS_YEAR_MISMATCH: "Landmark vs Atlas Year Conflict",
   ADDRESS_STREET_MISMATCH: "Landmark vs HCAD Street Mismatch",
   SUSPECTED_UNMARKED_LANDMARK_DEMOLITION: "Suspected Unmarked Landmark Loss",
   ARCHITECT_CAREER_WINDOW_CHECK: "Architect Career Window Conflict",
+});
+
+export const AUDIT_VIRTUAL_PRESETS = Object.freeze({
+  "1927_CUTOFF_TRIAGE": "1927 (100-Yr) Cutoff Triage",
 });
 
 export const SURVEY_CONTRIBUTING_VALUES = FIELD_SURVEY_CONTRIBUTING_VALUES;
@@ -101,7 +112,7 @@ const ARC_WORLD_IMAGERY_TPL =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const CONTENTDM_CITYDIR_BASE = "https://cdm17006.contentdm.oclc.org/digital/collection/citydir";
 
-const LEADING_DIRS = new Set([
+export const STREET_WALK_DIR_TOKENS = new Set([
   "N",
   "S",
   "E",
@@ -114,9 +125,13 @@ const LEADING_DIRS = new Set([
   "SOUTH",
   "EAST",
   "WEST",
+  "NORTHEAST",
+  "NORTHWEST",
+  "SOUTHEAST",
+  "SOUTHWEST",
 ]);
 
-const STREET_TYPE_SUFFIXES = new Set([
+export const STREET_WALK_TYPE_SUFFIXES = new Set([
   "ST",
   "STREET",
   "AVE",
@@ -135,6 +150,7 @@ const STREET_TYPE_SUFFIXES = new Set([
   "PL",
   "PLACE",
   "PKWY",
+  "PKY",
   "PARKWAY",
   "FWY",
   "FREEWAY",
@@ -150,21 +166,42 @@ const STREET_TYPE_SUFFIXES = new Set([
   "SQ",
   "SQUARE",
   "LOOP",
+  "WALK",
+  "ALY",
+  "ALLEY",
+  "ESPLANADE",
 ]);
 
-const UNIT_TOKENS = new Set([
+// Synchronized 1:1 with `STREET_WALK_*` in `pipeline/atlas_pipeline/build_1927_cutoff_triage.py` (`DF-2`).
+export const STREET_WALK_UNIT_CUT_TOKENS = new Set([
   "APT",
   "UNIT",
   "STE",
   "SUITE",
   "BLDG",
   "BUILDING",
+  "BLD",
   "FL",
   "FLOOR",
   "RM",
   "ROOM",
+  "LOT",
+  "TRLR",
   "REAR",
+  "FRONT",
+  "GARAGE",
 ]);
+export const STREET_WALK_UNNUMBERED_SENTINEL = 999999999;
+export const UNDESIGNATED_DISTRICT_SENTINELS = new Set([
+  "OUTSIDE HISTORIC DISTRICT",
+  "UNDESIGNATED / OUTSIDE HD",
+  "UNDESIGNATED COH",
+  "HISTORIC CORE",
+]);
+const RE_STREET_WALK_HOUSE_PREFIX =
+  /^(\d+)(?:[A-Z])?(?:\s*-\s*\d+[A-Z]?)?(?:\s+\d+\/\d+)?(?:\s+|$)/;
+const RE_STREET_WALK_CITY_TAIL =
+  /\s*,?\s*HOUSTON(?:\s+HARRIS)?(?:\s*,?\s*TX)?(?:\s+\d{5}(?:-\d{4})?)?\s*$/;
 
 function round6(val) {
   return Number(Number(val).toFixed(6));
@@ -856,54 +893,229 @@ export function saveAuditDecision(findingId, status, note = "") {
 }
 
 /**
+ * Shared Houston street-stem tokenizer backing both `normalizeStreetStemForAliases` (`UT-7`)
+ * and `parseAuditStreetWalkKey` (`DF-2`, `UT-5`), synchronized 1:1 with Python `parse_street_walk_key`.
+ */
+function _extractNormalizedStreetStemTokens(rawSection) {
+  let clean = String(rawSection || "")
+    .replace(/\s*#.*$/, "")
+    .replace(/[.,'"\\()/+-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!clean) return [];
+  let tokens = clean.split(" ").filter(Boolean);
+  for (let i = 1; i < tokens.length; i += 1) {
+    if (STREET_WALK_UNIT_CUT_TOKENS.has(tokens[i])) {
+      tokens = tokens.slice(0, i);
+      break;
+    }
+  }
+  while (
+    tokens.length > 1 &&
+    (STREET_WALK_TYPE_SUFFIXES.has(tokens[tokens.length - 1]) ||
+      STREET_WALK_DIR_TOKENS.has(tokens[tokens.length - 1]))
+  ) {
+    tokens.pop();
+  }
+  while (tokens.length > 1 && STREET_WALK_DIR_TOKENS.has(tokens[0])) {
+    tokens.shift();
+  }
+  return tokens;
+}
+
+/**
  * Strip house number, unit suffixes, cardinal directionals, and street type tokens
  * so `citydir_index.json` `historic_streets` lookups resolve reliably (`UT-7`).
  * Example: `"1412 1/2 N Emancipation Ave Apt B"` -> `"EMANCIPATION"`.
  */
 export function normalizeStreetStemForAliases(address) {
-  const raw = String(address || "")
-    .toUpperCase()
-    .replace(/[.,#()]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!raw) return "";
-  let tokens = raw.split(" ").filter(Boolean);
+  const upperAddr = String(address || "").toUpperCase().trim();
+  if (!upperAddr) return "";
+  const slashIdx = upperAddr.indexOf(" / ");
+  let primary = (slashIdx >= 0 ? upperAddr.slice(0, slashIdx) : upperAddr).trim();
+  primary = primary.replace(RE_STREET_WALK_CITY_TAIL, "").trim();
+  const mNum = RE_STREET_WALK_HOUSE_PREFIX.exec(primary);
+  const rem = mNum ? primary.slice(mNum[0].length).trim() : primary;
+  return _extractNormalizedStreetStemTokens(rem).join(" ").trim();
+}
 
-  // Strip leading house numbers, hyphenated ranges, and fractions (`1412`, `1412-B`, `1/2`)
-  while (
-    tokens.length > 0 &&
-    (/^\d+[A-Z]?$/.test(tokens[0]) ||
-      /^\d+-\d+[A-Z]?$/.test(tokens[0]) ||
-      /^\d+\/\d+$/.test(tokens[0]))
-  ) {
-    tokens.shift();
+/**
+ * Normalize an audit/override year token to a valid historic integer (`1836..MAX_STANDING_OVERRIDE_YEAR`)
+ * or `null`, preventing JS relational coercion bugs (`null <= 1927` or `0 <= 1927` evaluating `true`)
+ * and preventing `#audit-input-year` from pre-filling `'0'` (`DF-4`).
+ */
+export function parseHistoricYearOrNull(raw) {
+  if (raw == null || raw === "" || typeof raw === "boolean") return null;
+  const num = Number(raw);
+  if (!Number.isInteger(num) || num < MIN_VALID_YEAR || num > MAX_STANDING_OVERRIDE_YEAR) {
+    return null;
   }
+  return num;
+}
 
-  // Cut trailing apartment/suite/unit descriptors (`APT 2`, `STE 400`, `REAR`)
-  for (let i = 1; i < tokens.length; i += 1) {
-    if (UNIT_TOKENS.has(tokens[i])) {
-      tokens = tokens.slice(0, i);
-      break;
+export function isValidHistoricYear(year) {
+  return Number.isInteger(year) && year >= MIN_VALID_YEAR && year <= MAX_STANDING_OVERRIDE_YEAR;
+}
+
+export function isValidAuditCategoryOrPreset(val) {
+  const clean = String(val || "").trim().toUpperCase();
+  if (!clean || clean === "ALL") return false;
+  return (
+    Object.prototype.hasOwnProperty.call(AUDIT_CATEGORY_LABELS, clean) ||
+    Object.prototype.hasOwnProperty.call(AUDIT_VIRTUAL_PRESETS, clean)
+  );
+}
+
+/**
+ * Pure 1927 (100-year demolition review threshold) triage predicate (`DF-4`, `UT-4`).
+ * Identifies findings that affect whether a structure falls at or before the 1927 cutoff:
+ *   1. `1930_PLACEHOLDER_PRE1927_PLAT`: 1930 rounded placeholder inside pre-1925 plat / COH HD.
+ *   2. `CITY_DIRECTORY_EARLIER_THAN_HCAD`: pre-1928 directory date (`1836..1927`) vs post-1927 or unknown HCAD/Atlas year.
+ *   3. `CITY_DIRECTORY_ABSENT_THROUGH_1926`: pre-1928 Atlas/HCAD year (`1836..1927`) absent from 1866-1926 directories.
+ *   4. `LANDMARK_VS_ATLAS_YEAR_MISMATCH`: landmark year and Atlas year fall on opposite sides of `1927`
+ *      (or pre-1928 landmark with unknown `0`/`null` Atlas year, while excluding post-1927 landmarks missing `sy`).
+ */
+export function is1927CutoffTriageItem(item) {
+  if (!item || typeof item !== "object") return false;
+  const cat = String(item.category || "").trim();
+  const sy = parseHistoricYearOrNull(item.suggested_year);
+  const ay = parseHistoricYearOrNull(item.atlas_year ?? item.hcad_year);
+  const hasSy = isValidHistoricYear(sy);
+  const hasAy = isValidHistoricYear(ay);
+
+  switch (cat) {
+    case "1930_PLACEHOLDER_PRE1927_PLAT":
+      return true;
+    case "CITY_DIRECTORY_EARLIER_THAN_HCAD":
+      return hasSy && ((sy <= 1927 && (!hasAy || ay >= 1928)) || (sy <= 1926 && ay === 1927));
+    case "CITY_DIRECTORY_ABSENT_THROUGH_1926":
+      return hasAy && ay <= 1927;
+    case "LANDMARK_VS_ATLAS_YEAR_MISMATCH":
+      if (!hasSy) return false;
+      if (!hasAy) return sy <= 1927;
+      return (sy <= 1927) !== (ay <= 1927) || (sy <= 1926) !== (ay <= 1926);
+    default:
+      return false;
+  }
+}
+
+export function matchesAuditCategoryFilter(item, categoryFilter = "all") {
+  const clean = String(categoryFilter || "all").trim();
+  const upper = clean.toUpperCase();
+  if (!clean || upper === "ALL") return true;
+  if (upper === "1927_CUTOFF_TRIAGE") return is1927CutoffTriageItem(item);
+  return Boolean(item && String(item.category || "").trim().toUpperCase() === upper);
+}
+
+/**
+ * Canonical 5-tuple Street-Block Walk key synchronized 1:1 with Python `parse_street_walk_key`
+ * in `pipeline/atlas_pipeline/build_1927_cutoff_triage.py` (`DF-2`, `UT-5`):
+ *   `(district, streetStem, parityRank, houseNum, tieBreaker)`
+ *   - `parityRank === 0`: Odd blockface (`houseNum > 0 && houseNum % 2 === 1`)
+ *   - `parityRank === 1`: Even blockface (`houseNum > 0 && houseNum % 2 === 0`)
+ *   - `parityRank === 2`: Unnumbered / zero-address (`houseNum = STREET_WALK_UNNUMBERED_SENTINEL`)
+ */
+export function parseAuditStreetWalkKey(addressOrItem, district = "", tieBreaker = "") {
+  let rawAddress = addressOrItem;
+  let rawDistrict = district;
+  let rawTie = tieBreaker;
+  if (addressOrItem && typeof addressOrItem === "object") {
+    rawAddress = addressOrItem.address ?? "";
+    if (!rawDistrict) {
+      rawDistrict = addressOrItem.district || addressOrItem.historic_district || "";
+    }
+    if (!rawTie) {
+      rawTie = addressOrItem.fid || addressOrItem.finding_id || addressOrItem.hcad_num || "";
     }
   }
 
-  // Strip leading cardinal directional (`N SAN JACINTO ST` -> `SAN JACINTO ST`)
-  if (tokens.length > 1 && LEADING_DIRS.has(tokens[0])) {
-    tokens.shift();
+  const cleanDist = String(rawDistrict || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+  const normDist =
+    !cleanDist || UNDESIGNATED_DISTRICT_SENTINELS.has(cleanDist)
+      ? "ZZZ_UNDESIGNATED"
+      : cleanDist;
+
+  const upperAddr = String(rawAddress || "").toUpperCase().trim();
+  const slashIdx = upperAddr.indexOf(" / ");
+  let primary = (slashIdx >= 0 ? upperAddr.slice(0, slashIdx) : upperAddr).trim();
+  primary = primary.replace(RE_STREET_WALK_CITY_TAIL, "").trim();
+
+  let rawHouseNum = 0;
+  let rem = primary;
+  const mNum = RE_STREET_WALK_HOUSE_PREFIX.exec(primary);
+  if (mNum) {
+    const parsed = Number.parseInt(mNum[1], 10);
+    rawHouseNum = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+    rem = primary.slice(mNum[0].length).trim();
   }
-  // Strip trailing cardinal directional (`WESTHEIMER RD W` -> `WESTHEIMER RD`)
-  if (tokens.length > 1 && LEADING_DIRS.has(tokens[tokens.length - 1])) {
-    tokens.pop();
+
+  const tokens = _extractNormalizedStreetStemTokens(rem);
+  const streetStem = tokens.length > 0 ? tokens.join(" ") : "ZZZ_UNNAMED";
+  let parityRank = 2;
+  let sortHouse = STREET_WALK_UNNUMBERED_SENTINEL;
+  if (rawHouseNum > 0) {
+    parityRank = rawHouseNum % 2 === 1 ? 0 : 1;
+    sortHouse = rawHouseNum;
   }
-  // Strip trailing street suffix (`SAN JACINTO ST` -> `SAN JACINTO`)
-  while (tokens.length > 1 && STREET_TYPE_SUFFIXES.has(tokens[tokens.length - 1])) {
-    tokens.pop();
+  const normTie = String(rawTie || "").trim();
+  return {
+    district: normDist,
+    streetStem,
+    parityRank,
+    houseNum: sortHouse,
+    rawHouseNum,
+    tieBreaker: normTie,
+    tuple: [normDist, streetStem, parityRank, sortHouse, normTie],
+  };
+}
+
+function compareAsciiCodeUnits(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/**
+ * Non-mutating sort of hydrated audit queue items (`DF-2`, `DF-3`, `UT-5`).
+ * - `"priority"` (default): preserves canonical priority-descending queue order (`index` tie-breaker).
+ * - `"street_block"`: orders by 5-tuple `(district, streetStem, parityRank, houseNum, fid)` using
+ *   ASCII code-unit comparisons so JS and Python street-walk orders match 1:1.
+ */
+export function sortAuditQueueItems(items, sortMode = "priority") {
+  if (!Array.isArray(items)) return [];
+  const copy = items.slice();
+  const cleanMode = normalizeAuditSort(sortMode);
+  if (cleanMode !== "street_block") {
+    return copy.sort((a, b) => {
+      const pa = Number.isFinite(Number(a?.priority)) ? Number(a.priority) : 0;
+      const pb = Number.isFinite(Number(b?.priority)) ? Number(b.priority) : 0;
+      if (pb !== pa) return pb - pa;
+      const ia = Number.isFinite(Number(a?.index)) ? Number(a.index) : 0;
+      const ib = Number.isFinite(Number(b?.index)) ? Number(b.index) : 0;
+      if (ia !== ib) return ia - ib;
+      return compareAsciiCodeUnits(String(a?.fid || ""), String(b?.fid || ""));
+    });
   }
-  // Strip secondary trailing directional if written before suffix
-  if (tokens.length > 1 && LEADING_DIRS.has(tokens[tokens.length - 1])) {
-    tokens.pop();
-  }
-  return tokens.join(" ").trim();
+  const keyed = copy.map((item, idx) => ({
+    item,
+    idx,
+    key: parseAuditStreetWalkKey(item),
+  }));
+  keyed.sort((ka, kb) => {
+    const a = ka.key;
+    const b = kb.key;
+    const dCmp = compareAsciiCodeUnits(a.district, b.district);
+    if (dCmp !== 0) return dCmp;
+    const sCmp = compareAsciiCodeUnits(a.streetStem, b.streetStem);
+    if (sCmp !== 0) return sCmp;
+    if (a.parityRank !== b.parityRank) return a.parityRank - b.parityRank;
+    if (a.houseNum !== b.houseNum) return a.houseNum - b.houseNum;
+    const tCmp = compareAsciiCodeUnits(a.tieBreaker, b.tieBreaker);
+    if (tCmp !== 0) return tCmp;
+    return ka.idx - kb.idx;
+  });
+  return keyed.map((entry) => entry.item);
 }
 
 /**
@@ -919,6 +1131,8 @@ export function hydrateAuditQueuePayload(queueDoc) {
   const absentEv =
     defaults.absent_1926_evidence ||
     "Address absent across indexed 1866-1926 Houston City Directories despite pre-1926 HCAD year.";
+  const plat1930Claim =
+    defaults.plat_1930_claim || "HCAD Year Built: 1930 (Rounded Decade Placeholder)";
   const cdmPrefix =
     defaults.cdm_search_prefix || `${CONTENTDM_CITYDIR_BASE}/search/searchterm/`;
   const actionsMap = defaults.actions || {};
@@ -944,6 +1158,9 @@ export function hydrateAuditQueuePayload(queueDoc) {
     const evidence =
       String(it.ev || "").trim() ||
       (cat === "CITY_DIRECTORY_ABSENT_THROUGH_1926" ? absentEv : "");
+    const displayedClaim =
+      String(it.cl || "").trim() ||
+      (cat === "1930_PLACEHOLDER_PRE1927_PLAT" ? plat1930Claim : "");
     const district = String(it.d || "").trim() || defaultDistrict;
     return {
       index: idx,
@@ -958,10 +1175,10 @@ export function hydrateAuditQueuePayload(queueDoc) {
       address,
       lng: Number.isFinite(lng) ? lng : -95.3635,
       lat: Number.isFinite(lat) ? lat : 29.7595,
-      atlas_year: Number.isFinite(Number(it.ay)) ? Number(it.ay) : null,
-      hcad_year: Number.isFinite(Number(it.hy)) ? Number(it.hy) : null,
-      suggested_year: Number.isFinite(Number(it.sy)) ? Number(it.sy) : null,
-      displayed_claim: String(it.cl || "").trim(),
+      atlas_year: parseHistoricYearOrNull(it.ay),
+      hcad_year: parseHistoricYearOrNull(it.hy),
+      suggested_year: parseHistoricYearOrNull(it.sy),
+      displayed_claim: displayedClaim,
       conflicting_evidence: evidence,
       source_type: String(it.st || sourcesMap[cat] || "Archival Cross-Check").trim(),
       source_url: sourceUrl,
@@ -1002,6 +1219,7 @@ export function isFindingResolvedByOverrides(item, overridesMap = {}) {
   switch (item.category) {
     case "CITY_DIRECTORY_EARLIER_THAN_HCAD":
     case "CITY_DIRECTORY_ABSENT_THROUGH_1926":
+    case "1930_PLACEHOLDER_PRE1927_PLAT":
     case "LANDMARK_VS_ATLAS_YEAR_MISMATCH":
       return isDemo || yearChanged;
     case "ADDRESS_STREET_MISMATCH": {
@@ -1036,8 +1254,9 @@ export function resolveAuditItemStatus(item, decisionsMap = {}, overridesMap = {
 }
 
 /**
- * Filter hydrated audit items by category, district (including explicit
- * `"Undesignated / Outside HD"` and `"designated_only"`, `DF-8`), status, and text query.
+ * Filter hydrated audit items by category or virtual preset (`1927_CUTOFF_TRIAGE`),
+ * district (including explicit `"Undesignated / Outside HD"` and `"designated_only"`, `DF-8`),
+ * status, and text query.
  */
 export function filterAuditQueueItems(
   items,
@@ -1052,7 +1271,7 @@ export function filterAuditQueueItems(
   const q = String(filters.query || "").trim().toLowerCase();
 
   return items.filter((item) => {
-    if (catFilter && catFilter !== "all" && item.category !== catFilter) {
+    if (!matchesAuditCategoryFilter(item, catFilter)) {
       return false;
     }
     const itemDist = String(item.district || AUDIT_UNDESIGNATED_DISTRICT).trim();
@@ -1091,6 +1310,21 @@ export function filterAuditQueueItems(
     }
     return true;
   });
+}
+
+/**
+ * Unified filter-then-sort selector shared across `openHistorianAuditModal`,
+ * `_applyAuditFiltersAndRender`, and `_advanceToNextPendingAfterTriage` (`DF-3`).
+ */
+export function selectVisibleAuditQueueItems(
+  items,
+  filters = {},
+  decisionsMap = {},
+  overridesMap = {}
+) {
+  const filtered = filterAuditQueueItems(items, filters, decisionsMap, overridesMap);
+  const sortMode = normalizeAuditSort(filters.sort);
+  return sortAuditQueueItems(filtered, sortMode);
 }
 
 export function computeAuditProgressStats(items, decisionsMap = {}, overridesMap = {}) {
@@ -1908,6 +2142,7 @@ export class StaffWorkbenchController {
       category: "all",
       district: "all",
       status: "actionable",
+      sort: "priority",
       query: "",
     };
     this.auditMobilePane = "claim";
@@ -2032,6 +2267,14 @@ export class StaffWorkbenchController {
     }
   }
 
+  _syncAuditLaunchButtonBadges(total) {
+    if (typeof this.host?.syncAuditLaunchButtonBadges === "function") {
+      this.host.syncAuditLaunchButtonBadges(total);
+    } else if (typeof this.app?.syncAuditLaunchButtonBadges === "function") {
+      this.app.syncAuditLaunchButtonBadges(total);
+    }
+  }
+
   _isTextEntryFocused() {
     if (typeof document === "undefined") return false;
     const el = document.activeElement;
@@ -2152,13 +2395,14 @@ export class StaffWorkbenchController {
     }
     if (this._auditLoadingPromise) return this._auditLoadingPromise;
     this._auditLoadingPromise = (async () => {
-      const resp = await fetch("public/data/historical_audit_queue.json?v=20261031a");
+      const resp = await fetch("public/data/historical_audit_queue.json?v=20261106a");
       if (!resp.ok) {
         throw new Error(`HTTP ${resp.status} loading historical_audit_queue.json`);
       }
       const doc = await resp.json();
       this.auditQueueDoc = doc;
       this.auditItems = hydrateAuditQueuePayload(doc);
+      this._syncAuditLaunchButtonBadges(this.auditItems.length);
       return this.auditItems;
     })();
     try {
@@ -2196,6 +2440,9 @@ export class StaffWorkbenchController {
         document.getElementById("audit-filter-district")?.value || "all";
       this.auditFilters.status =
         document.getElementById("audit-filter-status")?.value || "all";
+      const rawSort =
+        document.getElementById("audit-sort-order")?.value || "priority";
+      this.auditFilters.sort = normalizeAuditSort(rawSort);
       this.auditFilters.query =
         document.getElementById("audit-filter-search")?.value || "";
       this._applyAuditFiltersAndRender({ preserveCurrentFid: false });
@@ -2203,16 +2450,25 @@ export class StaffWorkbenchController {
     document.getElementById("audit-filter-category")?.addEventListener("change", onFilterMutate);
     document.getElementById("audit-filter-district")?.addEventListener("change", onFilterMutate);
     document.getElementById("audit-filter-status")?.addEventListener("change", onFilterMutate);
+    document.getElementById("audit-sort-order")?.addEventListener("change", onFilterMutate);
     document.getElementById("audit-filter-search")?.addEventListener("input", onFilterMutate);
     document.getElementById("audit-btn-reset-filters")?.addEventListener("click", () => {
-      this.auditFilters = { category: "all", district: "all", status: "all", query: "" };
+      this.auditFilters = {
+        category: "all",
+        district: "all",
+        status: "all",
+        sort: "priority",
+        query: "",
+      };
       const catEl = document.getElementById("audit-filter-category");
       const distEl = document.getElementById("audit-filter-district");
       const stEl = document.getElementById("audit-filter-status");
+      const sortEl = document.getElementById("audit-sort-order");
       const qEl = document.getElementById("audit-filter-search");
       if (catEl) catEl.value = "all";
       if (distEl) distEl.value = "all";
       if (stEl) stEl.value = "all";
+      if (sortEl) sortEl.value = "priority";
       if (qEl) qEl.value = "";
       this._applyAuditFiltersAndRender({ preserveCurrentFid: false });
     });
@@ -2247,12 +2503,21 @@ export class StaffWorkbenchController {
     const catSelect = document.getElementById("audit-filter-category");
     const distSelect = document.getElementById("audit-filter-district");
     const statusSelect = document.getElementById("audit-filter-status");
+    const sortSelect = document.getElementById("audit-sort-order");
     if (catSelect && catSelect.options.length <= 1) {
       const catCounts = new Map();
+      let triage1927Count = 0;
       for (const it of this.auditItems) {
         catCounts.set(it.category, (catCounts.get(it.category) || 0) + 1);
+        if (is1927CutoffTriageItem(it)) triage1927Count += 1;
       }
       catSelect.innerHTML = `<option value="all">All Categories (${this.auditItems.length.toLocaleString()})</option>`;
+      catSelect.insertAdjacentHTML(
+        "beforeend",
+        `<option value="1927_CUTOFF_TRIAGE">${escHtml(
+          AUDIT_VIRTUAL_PRESETS["1927_CUTOFF_TRIAGE"]
+        )} (${triage1927Count.toLocaleString()})</option>`
+      );
       for (const [cat, count] of catCounts.entries()) {
         const label = AUDIT_CATEGORY_LABELS[cat] || cat;
         catSelect.insertAdjacentHTML(
@@ -2291,12 +2556,16 @@ export class StaffWorkbenchController {
     if (statusSelect) {
       statusSelect.value = this.auditFilters.status || "all";
     }
+    if (sortSelect) {
+      sortSelect.value = this.auditFilters.sort || "priority";
+    }
   }
 
   async openHistorianAuditModal({
     targetFid = "",
     hcadNum = "",
     auditCategory = "",
+    auditSort = "",
     updateUrl = true,
   } = {}) {
     if (typeof document === "undefined") return;
@@ -2308,7 +2577,7 @@ export class StaffWorkbenchController {
 
     const claimHost = document.getElementById("audit-claim-card-host");
     if (claimHost && this.auditItems.length === 0) {
-      claimHost.innerHTML = `<div class="audit-loading-state">Loading 2,600 archival cross-check findings...</div>`;
+      claimHost.innerHTML = `<div class="audit-loading-state">Loading archival cross-check findings...</div>`;
     }
 
     try {
@@ -2325,19 +2594,31 @@ export class StaffWorkbenchController {
       return;
     }
 
+    const rawCatNorm = String(auditCategory || "").trim();
+    const explicitAllCat = rawCatNorm.toLowerCase() === "all";
     const cleanAuditCat =
-      auditCategory && auditCategory !== "all"
-        ? String(auditCategory).trim().toUpperCase()
+      rawCatNorm && !explicitAllCat
+        ? rawCatNorm.toUpperCase()
         : "";
-    if (cleanAuditCat && Object.prototype.hasOwnProperty.call(AUDIT_CATEGORY_LABELS, cleanAuditCat)) {
+    if (explicitAllCat) {
+      this.auditFilters.category = "all";
+    } else if (cleanAuditCat && isValidAuditCategoryOrPreset(cleanAuditCat)) {
       this.auditFilters.category = cleanAuditCat;
+    }
+    if (auditSort) {
+      this.auditFilters.sort = normalizeAuditSort(auditSort);
     }
 
     this._populateAuditFilterOptions();
-    if (cleanAuditCat && Object.prototype.hasOwnProperty.call(AUDIT_CATEGORY_LABELS, cleanAuditCat)) {
+    if (explicitAllCat) {
+      const catEl = document.getElementById("audit-filter-category");
+      if (catEl) catEl.value = "all";
+    } else if (cleanAuditCat && isValidAuditCategoryOrPreset(cleanAuditCat)) {
       const catEl = document.getElementById("audit-filter-category");
       if (catEl) catEl.value = cleanAuditCat;
     }
+    const sortEl = document.getElementById("audit-sort-order");
+    if (sortEl) sortEl.value = this.auditFilters.sort || "priority";
 
     const cleanTargetFid =
       targetFid && targetFid !== "1" && targetFid !== "true"
@@ -2346,8 +2627,8 @@ export class StaffWorkbenchController {
     const cleanTargetHcad = normalizeHcad13Clean(hcadNum || cleanTargetFid);
 
     if (cleanTargetFid || cleanTargetHcad) {
-      // Ensure filters don't hide a deep-linked item
-      const inCurrent = filterAuditQueueItems(
+      // Ensure filters don't hide a deep-linked item while preserving virtual presets and sort order (`DF-3`).
+      const inCurrent = selectVisibleAuditQueueItems(
         this.auditItems,
         this.auditFilters,
         loadAuditDecisions(),
@@ -2358,7 +2639,7 @@ export class StaffWorkbenchController {
           (cleanTargetFid && it.fid === cleanTargetFid) ||
           (cleanTargetHcad &&
             it.hcad_num === cleanTargetHcad &&
-            (!cleanAuditCat || it.category === cleanAuditCat))
+            (!cleanAuditCat || matchesAuditCategoryFilter(it, cleanAuditCat)))
       );
       if (!matchesFiltered) {
         const keepCat =
@@ -2367,18 +2648,27 @@ export class StaffWorkbenchController {
             (it) =>
               ((cleanTargetFid && it.fid === cleanTargetFid) ||
                 (cleanTargetHcad && it.hcad_num === cleanTargetHcad)) &&
-              it.category === cleanAuditCat
+              matchesAuditCategoryFilter(it, cleanAuditCat)
           )
             ? cleanAuditCat
             : "all";
-        this.auditFilters = { category: keepCat, district: "all", status: "all", query: "" };
+        const preservedSort = this.auditFilters.sort || "priority";
+        this.auditFilters = {
+          category: keepCat,
+          district: "all",
+          status: "all",
+          sort: preservedSort,
+          query: "",
+        };
         const catEl = document.getElementById("audit-filter-category");
         const distEl = document.getElementById("audit-filter-district");
         const stEl = document.getElementById("audit-filter-status");
+        const srtEl = document.getElementById("audit-sort-order");
         const qEl = document.getElementById("audit-filter-search");
         if (catEl) catEl.value = keepCat;
         if (distEl) distEl.value = "all";
         if (stEl) stEl.value = "all";
+        if (srtEl) srtEl.value = preservedSort;
         if (qEl) qEl.value = "";
       }
     }
@@ -2396,10 +2686,24 @@ export class StaffWorkbenchController {
     if (typeof document === "undefined") return;
     const modal = document.getElementById("historian-audit-modal");
     if (modal) modal.classList.add("hidden");
+    this.auditFilters.category = "all";
+    this.auditFilters.sort = "priority";
+    const catEl = document.getElementById("audit-filter-category");
+    if (catEl) catEl.value = "all";
+    const sortEl = document.getElementById("audit-sort-order");
+    if (sortEl) sortEl.value = "priority";
     if (updateUrl && this.filterStore) {
       const curState = this.filterStore.getState();
-      if (curState.activeAudit || (curState.activeAuditCategory && curState.activeAuditCategory !== "all")) {
-        this.filterStore.setState({ activeAudit: false, activeAuditCategory: "all" });
+      if (
+        curState.activeAudit ||
+        (curState.activeAuditCategory && curState.activeAuditCategory !== "all") ||
+        (curState.activeAuditSort && curState.activeAuditSort !== "priority")
+      ) {
+        this.filterStore.setState({
+          activeAudit: false,
+          activeAuditCategory: "all",
+          activeAuditSort: "priority",
+        });
       }
     }
   }
@@ -2411,11 +2715,17 @@ export class StaffWorkbenchController {
     const activeItem = this.auditFilteredItems[this.auditActiveIndex] || null;
     const nextVal = activeItem?.fid || true;
     const nextCat = this.auditFilters.category || "all";
+    const nextSort = normalizeAuditSort(this.auditFilters.sort);
     const curState = this.filterStore.getState();
-    if (curState.activeAudit !== nextVal || (curState.activeAuditCategory || "all") !== nextCat) {
+    if (
+      curState.activeAudit !== nextVal ||
+      (curState.activeAuditCategory || "all") !== nextCat ||
+      (curState.activeAuditSort || "priority") !== nextSort
+    ) {
       this.filterStore.setState({
         activeAudit: nextVal,
         activeAuditCategory: nextCat,
+        activeAuditSort: nextSort,
       });
     }
   }
@@ -2434,7 +2744,7 @@ export class StaffWorkbenchController {
         ? this.auditFilteredItems[this.auditActiveIndex].fid
         : "";
 
-    this.auditFilteredItems = filterAuditQueueItems(
+    this.auditFilteredItems = selectVisibleAuditQueueItems(
       this.auditItems,
       this.auditFilters,
       decisions,
@@ -2455,7 +2765,7 @@ export class StaffWorkbenchController {
       let foundH = -1;
       if (targetCategory) {
         foundH = this.auditFilteredItems.findIndex(
-          (it) => it.hcad_num === targetHcad && it.category === targetCategory
+          (it) => it.hcad_num === targetHcad && matchesAuditCategoryFilter(it, targetCategory)
         );
       }
       if (foundH < 0) {
@@ -2496,7 +2806,7 @@ export class StaffWorkbenchController {
     const decisions = loadAuditDecisions();
     const overrides = this.mapController?.curatedOverrides || {};
     const curPos = this.auditActiveIndex;
-    this.auditFilteredItems = filterAuditQueueItems(
+    this.auditFilteredItems = selectVisibleAuditQueueItems(
       this.auditItems,
       this.auditFilters,
       decisions,

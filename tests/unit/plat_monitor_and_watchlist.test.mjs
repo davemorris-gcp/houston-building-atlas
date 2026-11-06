@@ -379,8 +379,8 @@ test("Ordinance & Age-Threshold Policy Brief: resolvePolicyImpactBrief, 2-pill t
   assert.equal(brief.local_designation_coverage.excludes_heritage_districts, true);
   assert.equal(brief.standing_buildings_by_age.length, 5);
   assert.equal(brief.standing_buildings_by_age[0].standing_count, 354251);
-  assert.equal(brief.standing_buildings_by_age[3].standing_count, 13586);
-  assert.equal(brief.standing_buildings_by_age[4].standing_count, 306);
+  assert.equal(brief.standing_buildings_by_age[3].standing_count, 13686);
+  assert.equal(brief.standing_buildings_by_age[4].standing_count, 319);
   assert.equal(brief.annual_demolitions_by_age.years.length, 7);
   assert.equal(brief.speculative_land_clearing.rows[0].demo_before_nb_pct, 99.6);
   assert.equal(brief.speculative_land_clearing.rows[0].still_vacant_2026_count, 2157);
@@ -402,7 +402,7 @@ test("Ordinance & Age-Threshold Policy Brief: resolvePolicyImpactBrief, 2-pill t
     assert.ok(html.includes('data-bench-tab="policy"'));
     assert.ok(html.includes('data-copy-policy-brief-gmail="1"'));
     assert.ok(html.includes("354,251"));
-    assert.ok(html.includes("13,586"));
+    assert.ok(html.includes("13,686"));
     assert.ok(html.includes("6,938"));
     assert.ok(html.includes("6,780"));
     assert.ok(html.includes("99.6%"));

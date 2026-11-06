@@ -45,24 +45,25 @@ from atlas_pipeline.setup_admin_sheet import (
     APPS_SCRIPT_CODE,
     ATLAS_BASE_URL,
     HUB_FILTER_INPUT_ROW,
-    HUB_RESULTS_FORMULA_ROW,
+    HUB_SURVEYS_ROW,
+    HUB_TRIAGE_1927_ROW,
     HUB_TRIAGE_DROPDOWN_VALUES,
     PENDING_TOTAL_COLS,
     PENDING_TRIAGE_FORMULA,
+    SHEET_TITLE_SURVEYS,
     SID_APPROVED,
     SID_HUB,
     SID_INSTR,
     SID_LOST,
     SID_PENDING,
     SID_SURVEYS,
+    SOP15_TARGET_ROW,
+    assert_safe_workbook_write_ranges,
     build_hub_filter_count_formula,
     build_hub_results_formula,
+    inspect_workbook_layout_anchors,
     rgb,
 )
-
-SHEET_TITLE_SURVEYS = "Field_Surveys"
-HUB_SURVEYS_ROW = 19
-SOP15_TARGET_ROW = 26
 
 MIN_SURVEY_GRID_ROWS = 2000
 SURVEY_ROW_HEADROOM = 250
@@ -149,47 +150,57 @@ def verify_live_sheet_anchors(
         )
     need_add_sheet = existing_survey_title is None
 
-    row18_a = hub_col_a[17].strip() if len(hub_col_a) >= 18 else ""
-    if "Lost Houston" not in row18_a:
+    layout = inspect_workbook_layout_anchors(
+        hub_col_a=hub_col_a,
+        instr_col_a=instr_col_a,
+        require_surveys_row=False,
+    )
+    if "Lost Houston" not in layout["row18_a"]:
         raise ValueError(
-            f"Admin_Hub_&_Quick_Filter Row 18 anchor mismatch: expected Lost Houston row, got {row18_a!r}"
+            f"Admin_Hub_&_Quick_Filter Row 18 anchor mismatch: expected Lost Houston row, got {layout['row18_a']!r}"
         )
-    row19_a = hub_col_a[18].strip() if len(hub_col_a) >= 19 else ""
-    if "Walk-the-Block Field Surveys" in row19_a:
-        need_hub_insert = False
-    elif row19_a.startswith("HOW TO USE:"):
-        need_hub_insert = True
-    else:
-        raise ValueError(
-            "Admin_Hub_&_Quick_Filter Row 19 anchor mismatch: expected 'HOW TO USE:' "
-            f"(pre-upgrade) or 'Walk-the-Block Field Surveys' (upgraded), got {row19_a!r}"
-        )
+    need_hub_insert = not layout["has_surveys_row"]
 
     row5_a = instr_col_a[4].strip() if len(instr_col_a) >= 5 else ""
-    row6_a = instr_col_a[5].strip() if len(instr_col_a) >= 6 else ""
-    row25_a = instr_col_a[24].strip() if len(instr_col_a) >= 25 else ""
+    sop14_row = SOP15_TARGET_ROW - 1
+    row25_a = instr_col_a[sop14_row - 1].strip() if len(instr_col_a) >= sop14_row else ""
     if "Google Apps Script Code" not in row5_a:
         raise ValueError(
             f"Instructions_&_Apps_Script Row 5 anchor mismatch: expected Apps Script row, got {row5_a!r}"
         )
-    if "Passkey" not in row6_a or "B6" not in row6_a:
-        raise ValueError(
-            f"Instructions_&_Apps_Script Row 6 anchor mismatch (refusing to touch sheet near B6): {row6_a!r}"
-        )
     if "SOP 14" not in row25_a:
         raise ValueError(
-            f"Instructions_&_Apps_Script Row 25 anchor mismatch: expected SOP 14, got {row25_a!r}"
+            f"Instructions_&_Apps_Script Row {sop14_row} anchor mismatch: expected SOP 14, got {row25_a!r}"
         )
-    row26_a = instr_col_a[25].strip() if len(instr_col_a) >= 26 else ""
+    row26_a = (
+        instr_col_a[SOP15_TARGET_ROW - 1].strip()
+        if len(instr_col_a) >= SOP15_TARGET_ROW
+        else ""
+    )
     if row26_a and "SOP 15" not in row26_a:
         raise ValueError(
-            f"Instructions_&_Apps_Script Row 26 is already occupied by non-SOP-15 content: {row26_a!r}"
+            f"Instructions_&_Apps_Script Row {SOP15_TARGET_ROW} is already occupied by non-SOP-15 content: {row26_a!r}"
         )
 
     return {
         "need_add_sheet": need_add_sheet,
         "need_hub_insert": need_hub_insert,
     }
+
+
+def resolve_hub_filter_input_row(hub_col_a: list[str]) -> int:
+    """Resolve `Admin_Hub_&_Quick_Filter` input row (`22` on 12-tab, `23` on 13-tab; `DF-1`).
+
+    Delegates to canonical `inspect_workbook_layout_anchors` in `setup_admin_sheet.py` so callers
+    never guess between pre-upgrade 12-tab (`r_in=22`) and 13-tab (`r_in=23`).
+    """
+    return int(
+        inspect_workbook_layout_anchors(
+            hub_col_a=hub_col_a,
+            instr_col_a=None,
+            require_surveys_row=False,
+        )["filter_input_row"]
+    )
 
 
 def _normalize_survey_hcad(raw_val: Any) -> str:
@@ -405,10 +416,10 @@ def build_sop15_row() -> list[str]:
         f"Milestone 3 provides three integrated preservation workbench tools inside the live Atlas "
         f"({ATLAS_BASE_URL}) with zero bundle overhead for public visitors:\n\n"
         "1. Split-Screen Historian Rapid Audit Mode (#audit=1):\n"
-        "   • Launch via Sidebar -> 'Historian Rapid Audit' or direct link #audit=1. Streams all 2,600 "
-        "cross-dataset contradictions (3 Suspected Unmarked Landmark Demolitions, 2 Architect Career Window "
-        "Checks, 1,722 City Directories Earlier Than HCAD, 51 Landmark vs Atlas Year Mismatches, 782 "
-        "Absent Through 1926 Directory Rounding, 40 Address Street Mismatches).\n"
+        "   • Launch via Sidebar -> 'Historian Rapid Audit' or direct link #audit=1. Streams all pre-computed "
+        "cross-dataset contradictions across 7 categories (Suspected Unmarked Landmark Demolitions, Architect Career Window "
+        "Checks, City Directories Earlier Than HCAD, 1930 Placeholders in Pre-1925 Plats / HDs, Landmark vs Atlas Year Mismatches, "
+        "Absent Through 1926 Directory Rounding, and Address Street Mismatches).\n"
         "   • Filter by Category, Priority Score, Search Text, or Historic District (including "
         "'Undesignated / Outside HD'). Left pane compares the displayed claim against archival evidence "
         "with a native Zoom-18 roof preview; Right pane pairs 1877-1955 Sanborn Fire Insurance map plates "
@@ -520,6 +531,8 @@ def build_milestone3_sheet_batches(
     include_hub_insert: bool = False,
     add_filter_views: bool = False,
     write_survey_data_rows: bool = True,
+    hub_filter_input_row: int = HUB_FILTER_INPUT_ROW,
+    allow_legacy_12tab: bool = False,
 ) -> dict[str, Any]:
     """Build all Google Sheets JSON batch payloads for Milestone 3 workbook provisioning or sync.
 
@@ -651,7 +664,16 @@ def build_milestone3_sheet_batches(
     ]
 
     # 3. Formula (USER_ENTERED) values batch
-    r_in = HUB_FILTER_INPUT_ROW
+    # Derive dynamic Quick-Filter coordinates from hub_filter_input_row (22 on 12-tab, 23 on 13-tab; DF-1)
+    # so Field Survey syncs never overwrite Row 20 (1927_Cutoff_Triage) after 13-tab upgrade!
+    r_in = int(hub_filter_input_row)
+    r_how_to = r_in - 2
+    r_results_formula = r_in + 3
+    if not allow_legacy_12tab and r_how_to <= HUB_TRIAGE_1927_ROW:
+        raise ValueError(
+            f"Refusing to clobber Row {HUB_TRIAGE_1927_ROW} (1927_Cutoff_Triage) with "
+            f"hub_filter_input_row={r_in}; pass allow_legacy_12tab=True only on 12-tab workbooks."
+        )
     survey_formula_headers = [
         [
             '={"open_in_atlas"; ARRAYFORMULA(IF(LEN(A2:A)=0, , IF(LEN(D2:D)>0, '
@@ -689,7 +711,7 @@ def build_milestone3_sheet_batches(
                 [
                     "Historian Split-Screen Audit Mode (Live Atlas)",
                     f'=HYPERLINK("{ATLAS_BASE_URL}#audit=1", "🔍 Open Split-Screen Historian Audit ↗")',
-                    "Keyboard-driven (J/K/A/D/S) triage across all 2,600 contradictions",
+                    "Keyboard-driven (J/K/A/D/S) triage across all pre-computed archival contradictions",
                 ]
             ],
         },
@@ -712,7 +734,7 @@ def build_milestone3_sheet_batches(
         },
         {
             "op": "write",
-            "range": f"Admin_Hub_&_Quick_Filter!A{HUB_SURVEYS_ROW + 1}",
+            "range": f"Admin_Hub_&_Quick_Filter!A{r_how_to}",
             "data": [
                 [
                     f"HOW TO USE: Select a Triage Category (A{r_in}), Status (B{r_in}), or Historic District (C{r_in}) "
@@ -729,10 +751,12 @@ def build_milestone3_sheet_batches(
         },
         {
             "op": "write",
-            "range": f"Admin_Hub_&_Quick_Filter!A{HUB_RESULTS_FORMULA_ROW}",
+            "range": f"Admin_Hub_&_Quick_Filter!A{r_results_formula}",
             "data": [[build_hub_results_formula(r_in)]],
         },
     ]
+
+    assert_safe_workbook_write_ranges(raw_values_ops + formula_values_ops, allow_baseline_b6=False)
 
     # 4. Idempotent Style, Validation, BasicFilter & Filter Views raw batch
     c_charcoal = rgb("#272727")
@@ -1235,6 +1259,19 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="Create the 6 Field_Surveys filter views via addFilterView instead of updateFilterView",
     )
+    parser.add_argument(
+        "--allow-legacy-12tab",
+        action="store_true",
+        help="Allow hub_filter_input_row=22 when running against a pre-Milestone-7 12-tab workbook.",
+    )
+    parser.add_argument(
+        "--hub-anchors-json",
+        "--verify-anchors-json",
+        dest="hub_anchors_json",
+        type=Path,
+        default=None,
+        help="Optional JSON file containing {'hub_col_a': [...]} to auto-resolve hub_filter_input_row (22 vs 23).",
+    )
     args = parser.parse_args(argv)
 
     if (
@@ -1270,12 +1307,22 @@ def main(argv: list[str] | None = None) -> None:
     )
     merged_rows = merge_field_survey_rows(existing_rows, recovered_rows) if write_survey_data_rows else []
 
+    resolved_hub_row = HUB_FILTER_INPUT_ROW
+    if args.hub_anchors_json is not None:
+        anchor_doc = json.loads(args.hub_anchors_json.read_text(encoding="utf-8"))
+        hub_col_a = anchor_doc.get("hub_col_a") if isinstance(anchor_doc, dict) else anchor_doc
+        if not isinstance(hub_col_a, list):
+            raise ValueError("--hub-anchors-json must contain a list or {'hub_col_a': [...]}")
+        resolved_hub_row = resolve_hub_filter_input_row([str(v or "") for v in hub_col_a])
+
     batches = build_milestone3_sheet_batches(
         merged_rows,
         include_add_sheet=args.include_add_sheet,
         include_hub_insert=args.include_hub_insert,
         add_filter_views=args.add_filter_views,
         write_survey_data_rows=write_survey_data_rows,
+        hub_filter_input_row=resolved_hub_row,
+        allow_legacy_12tab=args.allow_legacy_12tab or (resolved_hub_row == 22),
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     for name, payload in batches.items():
