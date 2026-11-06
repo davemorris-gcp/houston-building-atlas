@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from copy import deepcopy
 from pathlib import Path
 from unittest import mock
 
@@ -2516,6 +2517,33 @@ def test_pass2_on_meeting_agenda_ph131_linked_app_tax_exempt_and_watchlist_tombs
     assert ph_aisla["app"].startswith("PH-")
     assert ph_aisla["onMeetingAgenda"] is True
     assert ph_aisla["pdf"] == ""
+
+    # F2-07b: Once COH posts a C3N Public Hearing Notice PDF under a new re-filed app number
+    # (e.g. 2026-1736 for Andores Rest), historical submittal linkage (2026-1647) stays preserved.
+    scraped_with_posted_notices = deepcopy(scraped)
+    scraped_with_posted_notices["all_notices"].append(
+        {
+            "ref": "2026-1736",
+            "name": "Andores Rest",
+            "isDpv": False,
+            "meetingDateIso": "2026-12-03",
+            "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1736_Andores-Rest_PH.pdf",
+            "location": "",
+            "requestSummary": "",
+        }
+    )
+    ds_graduated = fpw.build_plat_agenda_dataset(
+        fake_idx,
+        scraped_with_posted_notices,
+        confirmed_baseline_apps=set(),
+    )
+    grad_andores = next(
+        i for i in ds_graduated["cycles"]["2026-10-29"]["items"] if i["name"] == "Andores Rest"
+    )
+    assert grad_andores["app"] == "2026-1736"
+    assert grad_andores["linkedAppNo"] == "2026-1647"
+    assert grad_andores["pdf"].endswith("2026-1647_Andores_Rest.pdf")
+    assert grad_andores["noticePdf"].endswith("2026-1736_Andores-Rest_PH.pdf")
 
     # F2-01 & F2-02: Unconfirmed baseline seed filtered from Watchlist, and Removed from Watchlist tombstone stays gone
     cloud_sync_mock = {

@@ -2640,8 +2640,9 @@ def build_single_cycle_dataset(
                 hist = hist_by_subdiv[sub_key]
         if not hist:
             continue
-        if is_ph_placeholder and hist.get("app"):
-            it["linkedAppNo"] = hist["app"]
+        hist_app = str(hist.get("app") or "").strip()
+        if hist_app and hist_app.upper() != app_upper:
+            it["linkedAppNo"] = hist_app
         if hist.get("sourceCycleIso"):
             it["linkedSourceCycle"] = hist["sourceCycleIso"]
         for fk in (

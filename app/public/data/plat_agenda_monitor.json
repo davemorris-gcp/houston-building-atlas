@@ -10299,7 +10299,7 @@
       "agendaItemNo": "",
       "deferral": "",
       "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-      "noticeLocation": "4705 LIBERTY RD. Pursuant to the City of Houston\u2019s Code of Ordinances, Chapter 42, the Department has mailed written notice of this application with special request to all property owners within 300ft of the boundary of the proposed plat per the most recent property tax records",
+      "noticeLocation": "4705 LIBERTY RD. Pursuant to the City of Houston’s Code of Ordinances, Chapter 42, the Department has mailed written notice of this application with special request to all property owners within 300ft of the boundary of the proposed plat per the most recent property tax records",
       "varianceSummary": "The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
       "hearingDateIso": "2026-12-03",
       "onMeetingAgenda": false,
@@ -14599,7 +14599,7 @@
       "tier": "3",
       "tierConfirmed": true,
       "threatCategory": "No Historic Impact",
-      "why": "Atlas matched HCAD parcel at 5603 BACHER ST with a standing structure built in 1933 in Holleman's Addition. The applicant is requesting a variance for a 5\u2019 side building line on the south side of the property, along an undeveloped local street.",
+      "why": "Atlas matched HCAD parcel at 5603 BACHER ST with a standing structure built in 1933 in Holleman's Addition. The applicant is requesting a variance for a 5’ side building line on the south side of the property, along an undeveloped local street.",
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1570/OriginalFiles/261061125-Model_REV.pdf?sv=2021-08-06&se=2051-10-20T19%3A43%3A19Z&sr=b&sp=r&sig=G9ocyMmNgHm%2FyMvaHn%2FO9NIAzALvNpym0GqoWQYJRjY%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1570-Bacher-Manor.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
@@ -20654,7 +20654,7 @@
           "agendaItemNo": "",
           "deferral": "",
           "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "noticeLocation": "4705 LIBERTY RD. Pursuant to the City of Houston\u2019s Code of Ordinances, Chapter 42, the Department has mailed written notice of this application with special request to all property owners within 300ft of the boundary of the proposed plat per the most recent property tax records",
+          "noticeLocation": "4705 LIBERTY RD. Pursuant to the City of Houston’s Code of Ordinances, Chapter 42, the Department has mailed written notice of this application with special request to all property owners within 300ft of the boundary of the proposed plat per the most recent property tax records",
           "varianceSummary": "The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
           "hearingDateIso": "2026-12-03",
           "onMeetingAgenda": false,
@@ -35931,7 +35931,7 @@
           "agendaItemNo": "",
           "deferral": "",
           "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "noticeLocation": "4705 LIBERTY RD. Pursuant to the City of Houston\u2019s Code of Ordinances, Chapter 42, the Department has mailed written notice of this application with special request to all property owners within 300ft of the boundary of the proposed plat per the most recent property tax records",
+          "noticeLocation": "4705 LIBERTY RD. Pursuant to the City of Houston’s Code of Ordinances, Chapter 42, the Department has mailed written notice of this application with special request to all property owners within 300ft of the boundary of the proposed plat per the most recent property tax records",
           "varianceSummary": "The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
           "hearingDateIso": "2026-12-03",
           "onMeetingAgenda": false,
@@ -51206,7 +51206,7 @@
           "agendaItemNo": "",
           "deferral": "",
           "noticePdf": "https://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "noticeLocation": "4705 LIBERTY RD. Pursuant to the City of Houston\u2019s Code of Ordinances, Chapter 42, the Department has mailed written notice of this application with special request to all property owners within 300ft of the boundary of the proposed plat per the most recent property tax records",
+          "noticeLocation": "4705 LIBERTY RD. Pursuant to the City of Houston’s Code of Ordinances, Chapter 42, the Department has mailed written notice of this application with special request to all property owners within 300ft of the boundary of the proposed plat per the most recent property tax records",
           "varianceSummary": "The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
           "hearingDateIso": "2026-12-03",
           "onMeetingAgenda": false,
@@ -54653,7 +54653,8 @@
               "sources": "",
               "followup": ""
             }
-          ]
+          ],
+          "linkedAppNo": "2026-1522"
         },
         {
           "name": "Scott Wet Weather Facility",
@@ -54916,7 +54917,8 @@
             "inCity": false
           },
           "continuityKey": "app:2026-1735",
-          "priorCycles": []
+          "priorCycles": [],
+          "linkedAppNo": "2026-0818"
         },
         {
           "name": "Andores Rest",
@@ -55020,7 +55022,8 @@
               "sources": "",
               "followup": ""
             }
-          ]
+          ],
+          "linkedAppNo": "2026-1647"
         },
         {
           "name": "Afton Park GP",
@@ -55506,7 +55509,7 @@
           "tier": "3",
           "tierConfirmed": true,
           "threatCategory": "No Historic Impact",
-          "why": "Atlas matched HCAD parcel at 5603 BACHER ST with a standing structure built in 1933 in Holleman's Addition. The applicant is requesting a variance for a 5\u2019 side building line on the south side of the property, along an undeveloped local street.",
+          "why": "Atlas matched HCAD parcel at 5603 BACHER ST with a standing structure built in 1933 in Holleman's Addition. The applicant is requesting a variance for a 5’ side building line on the south side of the property, along an undeveloped local street.",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1570/OriginalFiles/261061125-Model_REV.pdf?sv=2021-08-06&se=2051-10-20T19%3A43%3A19Z&sr=b&sp=r&sig=G9ocyMmNgHm%2FyMvaHn%2FO9NIAzALvNpym0GqoWQYJRjY%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1570-Bacher-Manor.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,

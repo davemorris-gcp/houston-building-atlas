@@ -1688,6 +1688,110 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
     page = guarded_page
     _seed_staff_admin_session(page)
 
+    plat_json_path = Path(__file__).resolve().parents[2] / "app" / "public" / "data" / "plat_agenda_monitor.json"
+
+    def _ensure_unposted_ph_fixture(route: Any) -> None:
+        doc = json.loads(plat_json_path.read_text(encoding="utf-8"))
+        cyc = (doc.get("cycles") or {}).get("2026-10-29")
+        if isinstance(cyc, dict) and isinstance(cyc.get("items"), list):
+            has_unposted_ph = any(
+                str(it.get("app") or "").upper().startswith("PH-")
+                and not str(it.get("pdf") or "").startswith("http")
+                and not str(it.get("noticePdf") or "").startswith("http")
+                for it in cyc["items"]
+            )
+            if not has_unposted_ph:
+                cyc["items"].append(
+                    {
+                        "name": "Unposted Section III Test Replat",
+                        "app": "PH-999",
+                        "pcDate": "46324.6041666667",
+                        "pcDateIso": "2026-10-29",
+                        "submitted": "46324.6041666667",
+                        "submittedIso": "2026-10-29",
+                        "hearingDateIso": "2026-12-03",
+                        "type": "Class 3 Replat - Establish Public Hearing Date (C3N)",
+                        "special": "Establish Public Hearing Date (Dec 3, 2026)",
+                        "section": "III. Establish Public Hearing Date (Dec 3, 2026)",
+                        "council": "",
+                        "city": "City",
+                        "county": "Harris",
+                        "precinct": "",
+                        "keymap": "",
+                        "tract": "",
+                        "zip": "",
+                        "isd": "",
+                        "prevSub": "Unposted Section III Test Replat",
+                        "tirz": "",
+                        "mgmt": "",
+                        "hd": "",
+                        "superN": "",
+                        "park": "",
+                        "thoroughfare": "",
+                        "landUse": "Single Family Residential Replat",
+                        "acreage": "",
+                        "lots": "",
+                        "hcad": "",
+                        "developer": "",
+                        "org": "",
+                        "applicant": "",
+                        "phone": "",
+                        "pdf": "",
+                        "noticePdf": "",
+                        "noticeLocation": "",
+                        "varianceSummary": "",
+                        "agendaItemNo": "Sec. III",
+                        "deferral": "",
+                        "onMeetingAgenda": True,
+                        "occurrenceKey": "2026-10-29::PH-999",
+                        "atlas": {
+                            "addresses": [],
+                            "primaryAddress": "",
+                            "earliestYearBuilt": 0,
+                            "allYearsBuilt": [],
+                            "parcelBreakdown": [],
+                            "lng": None,
+                            "lat": None,
+                            "coordSource": "",
+                            "buildingId": "",
+                            "buildingName": "",
+                            "subdivisionMatch": "",
+                            "subdivisionId": "",
+                            "subdivisionEarliestYear": None,
+                            "subdivisionMedianYear": None,
+                            "subdivisionPre1940Count": 0,
+                            "subdivisionPre1965Count": 0,
+                            "superNeighborhoodMatch": "",
+                            "superNeighborhoodId": "",
+                            "superNeighborhoodEarliestYear": None,
+                            "superNeighborhoodMedianYear": None,
+                            "designations": [],
+                            "smlsProtections": [],
+                            "hasActivePermit": False,
+                            "activePermitHeadline": "",
+                        },
+                        "_c": {
+                            "group": "check",
+                            "reason": "",
+                            "originalReason": "",
+                            "overriddenFromOut": False,
+                            "flags": ["hearing"],
+                            "score": 2,
+                            "code": "C3N",
+                            "inCity": True,
+                        },
+                        "continuityKey": "",
+                        "priorCycles": [],
+                    }
+                )
+        route.fulfill(
+            status=200,
+            content_type="application/json; charset=utf-8",
+            body=json.dumps(doc).encode("utf-8"),
+        )
+
+    page.route("**/data/plat_agenda_monitor.json*", _ensure_unposted_ph_fixture)
+
     page.goto(f"{atlas_base_url}/plat-monitor.html?mode=agenda", wait_until="domcontentloaded")
     page.wait_for_selector("#app:not(.hidden)", timeout=15000)
     page.wait_for_selector("#list .row", timeout=15000)
@@ -1742,19 +1846,36 @@ def test_pass2_typing_stability_agenda_presence_ph_linkage_broker_and_watchlist_
     assert page.locator("#list .row[data-app='2026-1620']").count() == 0
     page.select_option("#fAgendaPresence", "")
 
-    # 5. F2-07: PH-131 (Andores Rest) shows linkedAppNo 2026-1647 + Plat PDF; PH-132 (Aisla Villas) shows unposted notice helper
+    # 5. F2-07: Andores Rest shows linkedAppNo 2026-1647 + Plat PDF (both pre- and post-Notice PDF posting);
+    #    Aisla Villas shows either unposted PH-* notice helper or graduated Public Hearing Notice PDF;
+    #    and unposted PH-* Section III items render the Section III Future Public Hearing Agenda Item helper.
     page.fill("#q", "Andores Rest")
-    page.wait_for_selector("#list .row[data-app='PH-131']", timeout=5000)
-    page.locator("#list .row[data-app='PH-131']").click()
+    andores_row = page.locator("#list .row", has_text="Andores Rest").first
+    andores_row.wait_for(state="visible", timeout=5000)
+    andores_row.click()
     ph131_txt = page.locator("#detail").inner_text()
     assert "2026-1647" in ph131_txt
     assert page.locator("#detail .links a", has_text="Plat PDF").count() >= 1
 
     page.fill("#q", "Aisla Villas")
-    page.wait_for_selector("#list .row[data-app='PH-132']", timeout=5000)
-    page.locator("#list .row[data-app='PH-132']").click()
+    aisla_row = page.locator("#list .row", has_text="Aisla Villas").first
+    aisla_row.wait_for(state="visible", timeout=5000)
+    aisla_app = str(aisla_row.get_attribute("data-app") or "")
+    aisla_row.click()
     ph132_txt = page.locator("#detail").inner_text()
-    assert "Section III Future Public Hearing Agenda Item" in ph132_txt
+    if aisla_app.upper().startswith("PH-"):
+        assert "Section III Future Public Hearing Agenda Item" in ph132_txt
+        assert page.locator("#detail a", has_text="COH Planning Notices").count() >= 1
+    else:
+        assert "Public Hearing Notice PDF" in ph132_txt
+        assert page.locator("#detail a", has_text="Public Hearing Notice PDF").count() >= 1
+
+    page.fill("#q", "")
+    unposted_ph_row = page.locator("#list .row[data-app^='PH-']").first
+    unposted_ph_row.wait_for(state="visible", timeout=5000)
+    unposted_ph_row.click()
+    unposted_ph_txt = page.locator("#detail").inner_text()
+    assert "Section III Future Public Hearing Agenda Item" in unposted_ph_txt
     assert page.locator("#detail a", has_text="COH Planning Notices").count() >= 1
 
     # 6. F2-09: Typing in #r-why must NOT mutate/replace #list DOM nodes or interrupt caret focus until blur/change,
