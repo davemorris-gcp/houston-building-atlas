@@ -1,31 +1,28 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-05T19:28:26Z",
-  "lastSweepAt": "2026-11-05T19:17:41Z",
+  "generatedAt": "2026-11-06T18:50:16Z",
+  "lastSweepAt": "2026-11-06T18:44:49Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-08",
+  "retentionFloorDate": "2026-08-09",
   "lastSweepHealth": {
-    "timestamp": "2026-11-05T19:17:41Z",
+    "timestamp": "2026-11-06T18:44:49Z",
     "sweepsExecuted": true,
-    "propertiesSwept": 29,
+    "propertiesSwept": 30,
     "totalAgencies": 8,
-    "succeededAgencies": 4,
+    "succeededAgencies": 7,
     "failedAgencies": [
-      "chk-04",
-      "chk-06",
-      "chk-10",
       "chk-15"
     ],
     "skippedAgencies": [],
     "allOk": false,
     "agencies": {
       "chk-04": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TX Comptroller (Sales & Franchise Tax)",
-        "failedPropertyCount": 3,
-        "error": "TX Comptroller Sales Tax: HTTP request failed or timed out"
+        "failedPropertyCount": 0,
+        "error": ""
       },
       "chk-05": {
         "status": "ok",
@@ -35,11 +32,11 @@
         "error": ""
       },
       "chk-06": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TABC Liquor Licensing",
-        "failedPropertyCount": 3,
-        "error": "TABC Pending: HTTP request failed or timed out; TABC Active: HTTP request failed or timed out"
+        "failedPropertyCount": 0,
+        "error": ""
       },
       "chk-09": {
         "status": "ok",
@@ -49,11 +46,11 @@
         "error": ""
       },
       "chk-10": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 9,
-        "error": "TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out; TDLR TABS (3827 BROADWAY): HTTP request failed or timed out"
+        "failedPropertyCount": 0,
+        "error": ""
       },
       "chk-13": {
         "status": "ok",
@@ -73,26 +70,47 @@
         "status": "failed",
         "ok": false,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 29,
+        "failedPropertyCount": 30,
         "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
       }
     }
   },
   "summary": {
-    "totalEvents": 510,
-    "criticalCount": 49,
-    "warningCount": 144,
-    "infoCount": 317,
+    "totalEvents": 548,
+    "criticalCount": 52,
+    "warningCount": 164,
+    "infoCount": 332,
     "byStream": {
-      "watchlist": 131,
-      "agenda": 87,
-      "staff": 156,
-      "permits": 136
+      "watchlist": 139,
+      "agenda": 112,
+      "staff": 159,
+      "permits": 138
     },
-    "operationalNoticeCount": 7,
-    "daysTracked": 85
+    "operationalNoticeCount": 8,
+    "daysTracked": 86
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-06",
+      "lastRunAt": "2026-11-06T18:50:16Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 30,
+      "totalAgencies": 8,
+      "succeededAgencies": 7,
+      "failedAgencies": [
+        "chk-15"
+      ],
+      "allOk": false,
+      "eventCount": 34,
+      "adverseEventCount": 4,
+      "byStream": {
+        "watchlist": 7,
+        "agenda": 25,
+        "staff": 0,
+        "permits": 2
+      }
+    },
     {
       "date": "2026-11-05",
       "lastRunAt": "2026-11-05T19:28:26Z",
@@ -253,12 +271,12 @@
         "chk-15"
       ],
       "allOk": false,
-      "eventCount": 178,
+      "eventCount": 180,
       "adverseEventCount": 31,
       "byStream": {
-        "watchlist": 90,
+        "watchlist": 91,
         "agenda": 20,
-        "staff": 66,
+        "staff": 67,
         "permits": 2
       }
     },
@@ -272,12 +290,12 @@
       "succeededAgencies": 8,
       "failedAgencies": [],
       "allOk": true,
-      "eventCount": 38,
+      "eventCount": 39,
       "adverseEventCount": 5,
       "byStream": {
         "watchlist": 7,
         "agenda": 14,
-        "staff": 17,
+        "staff": 18,
         "permits": 0
       }
     },
@@ -292,12 +310,12 @@
       "failedAgencies": [],
       "allOk": true,
       "seededHistory": true,
-      "eventCount": 47,
+      "eventCount": 48,
       "adverseEventCount": 1,
       "byStream": {
         "watchlist": 3,
         "agenda": 0,
-        "staff": 43,
+        "staff": 44,
         "permits": 1
       }
     },
@@ -1803,6 +1821,1253 @@
     }
   ],
   "events": [
+    {
+      "id": "wl:status:plat-2026-1739:chk-10:flagged:2026-11-06",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): Aeric Oaks",
+      "summary": "Accessibility Registration (TDLR TABS) (CHK-10) escalated from 'To Do' to 'Flagged' on 50 BRIAR HOLLOW LN.",
+      "address": "50 BRIAR HOLLOW LN",
+      "hcad": "0451400020105",
+      "watchPropertyId": "plat-2026-1739",
+      "checkId": "chk-10",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.75463,
+      "lng": -95.45142,
+      "yearBuilt": "1978",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "permit:coh:0211200000017:26093503",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-05",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Building Demolition Permit (2 of 2) (#26093503): 321 E  32ND ST",
+      "summary": "321 E  32ND ST (Built 1943): COH D.B./RESIDENTIAL DEMO/2026 DAP LIST/ issued 2026-11-05 to *PEACE OF MIND COMFORT SOLUTIO.",
+      "address": "321 E  32ND ST",
+      "hcad": "0211200000017",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0211200000017",
+      "lat": 29.815742,
+      "lng": -95.39481,
+      "yearBuilt": 1943,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "321 E  32ND ST",
+        "address": "321 E  32ND ST",
+        "hcad_num": "0211200000017",
+        "related_hcads": [
+          "0211200000017"
+        ],
+        "watchlist_id": "",
+        "building_id": "0211200000017",
+        "year_built": 1943,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.815742,
+        "lng": -95.39481,
+        "record": {
+          "project_no": "26093503",
+          "date": "2026-11-05",
+          "permit_type": "4D",
+          "permit_type_label": "Building Demolition Permit (2 of 2)",
+          "use_desc": "COH D.B./RESIDENTIAL DEMO/2026 DAP LIST/",
+          "owner_occupant": "*CITY OF HOUSTON",
+          "buyer": "*PEACE OF MIND COMFORT SOLUTIO",
+          "is_sewer_disconnect": false,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "permit:coh:0202390000002:26096930",
+      "stream": "permits",
+      "kind": "permit_coh_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-05",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Sewer Disconnect Plumbing Permit (1 of 2) (#26096930): 841 RUTLAND ST",
+      "summary": "841 RUTLAND ST (Built 1920): DEMO RES/SEWER DISC issued 2026-11-05 to VILLARREAL JUAN.",
+      "address": "841 RUTLAND ST",
+      "hcad": "0202390000002",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0202390000002",
+      "lat": 29.786682,
+      "lng": -95.40161,
+      "yearBuilt": 1920,
+      "designation": "",
+      "links": [
+        {
+          "label": "Houston Sold Permits",
+          "url": "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "coh",
+        "title": "841 RUTLAND ST",
+        "address": "841 RUTLAND ST",
+        "hcad_num": "0202390000002",
+        "related_hcads": [
+          "0202390000002"
+        ],
+        "watchlist_id": "",
+        "building_id": "0202390000002",
+        "year_built": 1920,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.786682,
+        "lng": -95.40161,
+        "record": {
+          "project_no": "26096930",
+          "date": "2026-11-05",
+          "permit_type": "12",
+          "permit_type_label": "Sewer Disconnect Plumbing Permit (1 of 2)",
+          "use_desc": "DEMO RES/SEWER DISC",
+          "owner_occupant": "SCHIELACK WELDON",
+          "buyer": "VILLARREAL JUAN",
+          "is_sewer_disconnect": true,
+          "is_structural_demo": true
+        }
+      }
+    },
+    {
+      "id": "wl:status:plat-2026-1502:chk-09:flagged:2026-11-06",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): 8017 HOMESTEAD RD",
+      "summary": "Replats & Variances (CHK-09) escalated from 'To Do' to 'Flagged' on 8017 HOMESTEAD RD.",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "plat-2026-1502",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1786:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-29): City North (2026-1786)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Built 1976 | The applicant is requesting a variance to exceed intersection spacing along Greenspoint Drive..",
+      "address": "600 GREENSPOINT MALL; 400 GREENSPOINT MALL; 208 GREENS RD",
+      "hcad": "1086920000005",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1786",
+      "occKey": "2026-10-29::2026-1786",
+      "buildingId": "",
+      "lat": 29.94938,
+      "lng": -95.41159,
+      "yearBuilt": 1976,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93807/OriginalFiles/063319128-City_North_GP_V1.pdf?sv=2021-08-06&se=2051-09-21T15%3A17%3A43Z&sr=b&sp=r&sig=hkR919IwckfITdarlBVnOzcCQbOtnQhkjEbr0nCk22M%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1786-City-North.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1739:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Aeric Oaks (2026-1739)",
+      "summary": "Official Public Hearing Notice PDF posted for Aeric Oaks (Hearing 2026-12-03).",
+      "address": "50 BRIAR HOLLOW LN",
+      "hcad": "0451400020105",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1739",
+      "occKey": "2026-10-29::2026-1739",
+      "buildingId": "",
+      "lat": 29.75463,
+      "lng": -95.45142,
+      "yearBuilt": 1978,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93995/OriginalFiles/26059_-_Plat.pdf?sv=2021-08-06&se=2051-10-19T15%3A09%3A17Z&sr=b&sp=r&sig=tkM6f8a34plILEsJIbBDPorjtsUtiA1ZzqsYsfuHEvk%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1739-Aeric-Oaks-notification.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1716:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Thompson Heights (2026-1716)",
+      "summary": "Official Public Hearing Notice PDF posted for Thompson Heights (Hearing 2026-12-03).",
+      "address": "1816 THOMPSON ST",
+      "hcad": "0342120000004",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1716",
+      "occKey": "2026-10-29::2026-1716",
+      "buildingId": "",
+      "lat": 29.77636,
+      "lng": -95.40413,
+      "yearBuilt": 1941,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94027/OriginalFiles/261063125-Model.pdf?sv=2021-08-06&se=2051-10-19T13%3A38%3A41Z&sr=b&sp=r&sig=TF43byiCA%2FceMXRmsxdGXbD61HZh93lPxOT1%2BSbQT7I%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1716-Thompson-Heights-notification.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1524:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Liberty Green (2026-1524)",
+      "summary": "Official Public Hearing Notice PDF posted for Liberty Green (Hearing 2026-12-03).",
+      "address": "4705 LIBERTY RD",
+      "hcad": "0040570000008",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1524",
+      "occKey": "2026-10-29::2026-1524",
+      "buildingId": "",
+      "lat": 29.78786,
+      "lng": -95.32275,
+      "yearBuilt": 1925,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1649:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Vibe at Little York (2026-1649)",
+      "summary": "Official Public Hearing Notice PDF posted for Vibe at Little York (Hearing 2026-12-03).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1649",
+      "occKey": "2026-10-15::2026-1649",
+      "buildingId": "",
+      "lat": 29.84225,
+      "lng": -95.34214,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93936/OriginalFiles/HOU-I-348_Vibe_at_Little_York_10-05-2026.pdf?sv=2021-08-06&se=2051-10-05T14%3A47%3A01Z&sr=b&sp=r&sig=ROHrnEENNwhTCgSHNUbM3yJypP8ZHWkwHmBr%2BSlr6so%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1649_Vibe-at-Little-York_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1647:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Andores Rest (2026-1647)",
+      "summary": "Official Public Hearing Notice PDF posted for Andores Rest (Hearing 2026-12-03).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1647",
+      "occKey": "2026-10-15::2026-1647",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1647/OriginalFiles/ANDORES_REST_Replat..pdf?sv=2021-08-06&se=2051-10-07T14%3A22%3A46Z&sr=b&sp=r&sig=c5n30qjKopMZqkwJnoH5dNVlPbG4ZIyyizfF2cJt0lE%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1736_Andores-Rest_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1632:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Gallahad Street Homes (2026-1632)",
+      "summary": "Official Public Hearing Notice PDF posted for Gallahad Street Homes (Hearing 2026-12-03).",
+      "address": "",
+      "hcad": "0771530120188",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1632",
+      "occKey": "2026-10-15::2026-1632",
+      "buildingId": "",
+      "lat": 29.85165,
+      "lng": -95.27633,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93922/OriginalFiles/Gallahad_Street_Homes.pdf?sv=2021-08-06&se=2051-10-05T10%3A57%3A56Z&sr=b&sp=r&sig=TAmtR0O1mM7yL7Cq5RRBeh4A2Td3OOCiMaVYxZrmh9s%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1632_Gallahad-Street-Homes_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1614:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Cruz Auto Shop (2026-1614)",
+      "summary": "Official Public Hearing Notice PDF posted for Cruz Auto Shop (Hearing 2026-12-03).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1614",
+      "occKey": "2026-10-15::2026-1614",
+      "buildingId": "",
+      "lat": 29.94422,
+      "lng": -95.37733,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93905/OriginalFiles/4689-PLAT.pdf?sv=2021-08-06&se=2051-10-02T19%3A11%3A57Z&sr=b&sp=r&sig=X1PLjbmLoSS%2FD%2FhZ%2FohKir878DkYSRmFMyEpggz0aZQ%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1614_Cruz-Auto-Shop_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1551:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Churchs Cullen (2026-1551)",
+      "summary": "Official Public Hearing Notice PDF posted for Churchs Cullen (Hearing 2026-12-03).",
+      "address": "8841 CULLEN BLVD",
+      "hcad": "0770330010002",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1551",
+      "occKey": "2026-10-15::2026-1551",
+      "buildingId": "",
+      "lat": 29.66362,
+      "lng": -95.35524,
+      "yearBuilt": 1984,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1551_Churchs-Cullen_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1524:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Liberty Green (2026-1524)",
+      "summary": "Official Public Hearing Notice PDF posted for Liberty Green (Hearing 2026-12-03).",
+      "address": "4705 LIBERTY RD",
+      "hcad": "0040570000008",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1524",
+      "occKey": "2026-10-15::2026-1524",
+      "buildingId": "",
+      "lat": 29.78786,
+      "lng": -95.32275,
+      "yearBuilt": 1925,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1522:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Eastwood Street Villas (2026-1522)",
+      "summary": "Official Public Hearing Notice PDF posted for Eastwood Street Villas (Hearing 2026-12-03).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1522",
+      "occKey": "2026-10-15::2026-1522",
+      "buildingId": "",
+      "lat": 29.68684,
+      "lng": -95.358,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93804/OriginalFiles/Eastwood_Street_Villas-Replat.pdf?sv=2021-08-06&se=2051-09-18T15%3A24%3A56Z&sr=b&sp=r&sig=V3UCRAQIvot98Bn%2BAV%2F%2F8Bdqdxmz06xb2hnTkAIbwLo%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1703_Eastwood-Street-Villas_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:PH-131:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-01): Sevilla Commercial (PH-131)",
+      "summary": "Class 3 Replat - Establish Public Hearing Date (C3N) in IV. Establish Public Hearing Date (Oct 29, 2026) | Built 1950.",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "PH-131",
+      "occKey": "2026-10-01::PH-131",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:PH-128:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-01): Kafi Commons (PH-128)",
+      "summary": "Class 3 Replat - Establish Public Hearing Date (C3N) in IV. Establish Public Hearing Date (Oct 29, 2026) | Built 1956.",
+      "address": "4710 W ALABAMA ST",
+      "hcad": "0780870010001",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "PH-128",
+      "occKey": "2026-10-01::PH-128",
+      "buildingId": "",
+      "lat": 29.73833,
+      "lng": -95.45628,
+      "yearBuilt": 1956,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:2026-1581:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: City North (2026-1581)",
+      "summary": "Official Public Hearing Notice PDF posted for City North (Hearing 2026-12-03).",
+      "address": "600 GREENSPOINT MALL; 400 GREENSPOINT MALL; 208 GREENS RD",
+      "hcad": "1086920000005",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "2026-1581",
+      "occKey": "2026-10-01::2026-1581",
+      "buildingId": "",
+      "lat": 29.94938,
+      "lng": -95.41159,
+      "yearBuilt": 1976,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93807/OriginalFiles/063319128-City_North_GP_V1.pdf?sv=2021-08-06&se=2051-09-21T15%3A17%3A43Z&sr=b&sp=r&sig=hkR919IwckfITdarlBVnOzcCQbOtnQhkjEbr0nCk22M%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1786-City-North.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:2026-1551:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Churchs Cullen (2026-1551)",
+      "summary": "Official Public Hearing Notice PDF posted for Churchs Cullen (Hearing 2026-12-03).",
+      "address": "8841 CULLEN BLVD",
+      "hcad": "0770330010002",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "2026-1551",
+      "occKey": "2026-10-01::2026-1551",
+      "buildingId": "",
+      "lat": 29.66362,
+      "lng": -95.35524,
+      "yearBuilt": 1984,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1551_Churchs-Cullen_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:2026-1524:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Liberty Green (2026-1524)",
+      "summary": "Official Public Hearing Notice PDF posted for Liberty Green (Hearing 2026-12-03).",
+      "address": "4705 LIBERTY RD",
+      "hcad": "0040570000008",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "2026-1524",
+      "occKey": "2026-10-01::2026-1524",
+      "buildingId": "",
+      "lat": 29.78786,
+      "lng": -95.32275,
+      "yearBuilt": 1925,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:2026-1522:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice PDF Posted: Eastwood Street Villas (2026-1522)",
+      "summary": "Official Public Hearing Notice PDF posted for Eastwood Street Villas (Hearing 2026-12-03).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "2026-1522",
+      "occKey": "2026-10-01::2026-1522",
+      "buildingId": "",
+      "lat": 29.68684,
+      "lng": -95.358,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93804/OriginalFiles/Eastwood_Street_Villas-Replat.pdf?sv=2021-08-06&se=2051-09-18T15%3A24%3A56Z&sr=b&sp=r&sig=V3UCRAQIvot98Bn%2BAV%2F%2F8Bdqdxmz06xb2hnTkAIbwLo%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1703_Eastwood-Street-Villas_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-2026-1569:chk-09:id:coh-plat:2026-10-01:PH-128",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-01",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "Kafi Commons: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-10-01) Item PH-128: 'Kafi Commons' (Class 3 Replat - Establish Public Hearing Date (C3N), IV. Establish Public Hearing Date (Oct 29, 2026)), Public Hearing 2026-10-29.",
+      "address": "4710 W ALABAMA ST",
+      "hcad": "0780870010001",
+      "watchPropertyId": "plat-2026-1569",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.73833,
+      "lng": -95.45628,
+      "yearBuilt": "1956",
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-2026-1502:chk-09:id:coh-plat:2026-10-29:2026-1502",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "8017 HOMESTEAD RD: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-10-29) Item 2026-1502: 'Sevilla Commercial' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing).",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "plat-2026-1502",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-2026-1502:chk-09:id:coh-plat:2026-10-01:PH-131",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-01",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "8017 HOMESTEAD RD: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-10-01) Item PH-131: 'Sevilla Commercial' (Class 3 Replat - Establish Public Hearing Date (C3N), IV. Establish Public Hearing Date (Oct 29, 2026)), Public Hearing 2026-10-29.",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "plat-2026-1502",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-2026-1502:chk-05:id:hcad:0731100150468:FRANKLIN & JESSICA SEVILLA:C2:0",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "8017 HOMESTEAD RD: HCAD Ownership & Classification",
+      "summary": "HCAD Account 0731100150468 (8017 HOMESTEAD RD): Owner FRANKLIN & JESSICA SEVILLA, Class C2 (Market $61425, Impr $0, Land $61425), Legal: LT 467 BLK 15|PELHAM PLACE SEC 2.",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "plat-2026-1502",
+      "checkId": "chk-05",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "None found",
+      "links": [
+        {
+          "label": "HCAD Map (0731100150468)",
+          "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0731100150468"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-2026-1502:chk-05:id:hcad:0731100150467:SEVILLA FRANKLIN & JESSICA:F1:107074",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "8017 HOMESTEAD RD: HCAD Ownership & Classification",
+      "summary": "HCAD Account 0731100150467 (8017 HOMESTEAD RD): Owner SEVILLA FRANKLIN & JESSICA, Class F1 (Market $139834, Impr $107074, Land $32760), Legal: TR 466A BLK 15|PELHAM PLACE SEC 2.",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "plat-2026-1502",
+      "checkId": "chk-05",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "None found",
+      "links": [
+        {
+          "label": "HCAD Map (0731100150467)",
+          "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0731100150467"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1752:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-29): Afton Park GP (2026-1752)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Built 2000 | The applicant is requesting a variance To exceed intersection spacing along Afton Road & Antoine Drive by not providing an E/W street through the property..",
+      "address": "1907 AFTON ST",
+      "hcad": "0421300010178",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1752",
+      "occKey": "2026-10-29::2026-1752",
+      "buildingId": "",
+      "lat": 29.80746,
+      "lng": -95.47316,
+      "yearBuilt": 2000,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1752-Afton-Park-GP.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1724:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-29): Aisla Villas (2026-1724)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in III. Establish Public Hearing Date (Dec 3, 2026).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1724",
+      "occKey": "2026-10-29::2026-1724",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1724_Aisla-Villas_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1703:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-29): Eastwood Street Villas (2026-1703)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in III. Establish Public Hearing Date (Dec 3, 2026).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1703",
+      "occKey": "2026-10-29::2026-1703",
+      "buildingId": "",
+      "lat": 29.68684,
+      "lng": -95.358,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93804/OriginalFiles/Eastwood_Street_Villas-Replat.pdf?sv=2021-08-06&se=2051-09-18T15%3A24%3A56Z&sr=b&sp=r&sig=V3UCRAQIvot98Bn%2BAV%2F%2F8Bdqdxmz06xb2hnTkAIbwLo%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1703_Eastwood-Street-Villas_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1649:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-29): Vibe at Little York (2026-1649)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in III. Establish Public Hearing Date (Dec 3, 2026).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1649",
+      "occKey": "2026-10-29::2026-1649",
+      "buildingId": "",
+      "lat": 29.84225,
+      "lng": -95.34214,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93936/OriginalFiles/HOU-I-348_Vibe_at_Little_York_10-05-2026.pdf?sv=2021-08-06&se=2051-10-05T14%3A47%3A01Z&sr=b&sp=r&sig=ROHrnEENNwhTCgSHNUbM3yJypP8ZHWkwHmBr%2BSlr6so%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1649_Vibe-at-Little-York_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1632:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-29): Gallahad Street Homes (2026-1632)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in III. Establish Public Hearing Date (Dec 3, 2026).",
+      "address": "",
+      "hcad": "0771530120188",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1632",
+      "occKey": "2026-10-29::2026-1632",
+      "buildingId": "",
+      "lat": 29.85165,
+      "lng": -95.27633,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93922/OriginalFiles/Gallahad_Street_Homes.pdf?sv=2021-08-06&se=2051-10-05T10%3A57%3A56Z&sr=b&sp=r&sig=TAmtR0O1mM7yL7Cq5RRBeh4A2Td3OOCiMaVYxZrmh9s%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1632_Gallahad-Street-Homes_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-29:2026-1551:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-29): Churchs Cullen (2026-1551)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in III. Establish Public Hearing Date (Dec 3, 2026) | Built 1984.",
+      "address": "8841 CULLEN BLVD",
+      "hcad": "0770330010002",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1551",
+      "occKey": "2026-10-29::2026-1551",
+      "buildingId": "",
+      "lat": 29.66362,
+      "lng": -95.35524,
+      "yearBuilt": 1984,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1551_Churchs-Cullen_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:PH-130:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-01): Richland Drive Villas (PH-130)",
+      "summary": "Class 3 Replat - Establish Public Hearing Date (C3N) in IV. Establish Public Hearing Date (Oct 29, 2026).",
+      "address": "",
+      "hcad": "0760410040102",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "PH-130",
+      "occKey": "2026-10-01::PH-130",
+      "buildingId": "",
+      "lat": 29.84517,
+      "lng": -95.27899,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93836/OriginalFiles/Richland_Drive_Villas.pdf?sv=2021-08-06&se=2051-09-20T17%3A30%3A37Z&sr=b&sp=r&sig=0aTDvzMpDI5Y5FxCm1OGUbbugzGa7oy6fH2jF7Qe3JQ%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:PH-129:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-01): Partial Replat of Sandalwood Sec 2 and 3 partial replat no 1 (PH-129)",
+      "summary": "Class 3 Replat - Establish Public Hearing Date (C3N) in IV. Establish Public Hearing Date (Oct 29, 2026) | Built 2018.",
+      "address": "58 PATTI LYNN LN",
+      "hcad": "0912960000010",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "PH-129",
+      "occKey": "2026-10-01::PH-129",
+      "buildingId": "",
+      "lat": 29.75186,
+      "lng": -95.53469,
+      "yearBuilt": 2018,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93798/OriginalFiles/54_and_58_Patti_Lynn_Lane__-_PARTIAL_REPLAT_OF_SANDALWOOD_SECTIONS_2_and_3_PR_NO_1_-_8-19-26.pdf?sv=2021-08-06&se=2051-09-18T14%3A58%3A56Z&sr=b&sp=r&sig=i5EOm8%2FUi%2FqPHAw4UmSG5wGYhBZuuEx8PIW8dicrzzw%3D"
+        }
+      ]
+    },
+    {
+      "id": "wl:sweep:2026-11-06:degraded:chk-15",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-11-06",
+      "timestamp": "2026-11-06T18:44:49Z",
+      "discoveredAt": "2026-11-06T18:44:49Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (7/8 agencies OK)",
+      "summary": "1 agency endpoint(s) did not complete cleanly: TX DSHS Asbestos & Demolition (DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "permit:coh:0622050050010:26094537",
       "stream": "permits",
@@ -4893,6 +6158,33 @@
       "links": []
     },
     {
+      "id": "staff:prop:plat-2026-1502:added",
+      "stream": "watchlist",
+      "kind": "watchlist_property_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-06",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-11-06T18:50:16Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "2026-10-30T01:37:01.482Z",
+      "title": "Added to Property Watchlist (Tier 1): 8017 HOMESTEAD RD",
+      "summary": "Tracking 8017 HOMESTEAD RD (Built 1950) - None found. Atlas matched HCAD parcel at 8017 HOMESTEAD RD with a standing structure built in 1950 in Pelham Place Sec 2. Proposed land use is Commercial. Public hearing / variance opportunity - evaluate for comment to speakercommen",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "plat-2026-1502",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "None found",
+      "links": []
+    },
+    {
       "id": "staff:prop:plat-2026-1302:added",
       "stream": "watchlist",
       "kind": "watchlist_property_added",
@@ -6304,6 +7596,38 @@
       "yearBuilt": 1956,
       "designation": "",
       "links": []
+    },
+    {
+      "id": "staff:review:2026-10-29:2026-1502:t1",
+      "stream": "staff",
+      "kind": "staff_plat_review",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-10-30T01:37:01.482Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "2026-10-30T01:37:01.482Z",
+      "title": "Plat Review Confirmed (Tier 1): Sevilla Commercial (2026-1502)",
+      "summary": "Confirmed Tier 1 by Preservation Houston (emily@preservationhouston.org) (Neighborhood / District Context Impact): Atlas matched HCAD parcel at 8017 HOMESTEAD RD with a standing structure built in 1950 in Pelham Place Sec 2. Proposed land use is Commercial..",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "2026-1502",
+      "occKey": "2026-10-29::2026-1502",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D"
+        }
+      ]
     },
     {
       "id": "staff:review:2026-10-01:2026-1502:t3",
@@ -10691,6 +12015,33 @@
       "links": []
     },
     {
+      "id": "staff:prop:plat-PH-135:edited:2026-10-28",
+      "stream": "staff",
+      "kind": "watchlist_property_edited",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-28",
+      "localDate": "2026-10-28",
+      "timestamp": "2026-10-29T01:08:02.703Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "2026-10-29T01:08:02.703Z",
+      "title": "Watchlist Dossier Updated: Eastwood Street Villas",
+      "summary": "Updated owner of record, buyer/related entities, developer, design firm by emily@preservationhouston.org.",
+      "address": "7108 EASTWOOD",
+      "hcad": "0332280550022",
+      "watchPropertyId": "plat-PH-135",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.73873,
+      "lng": -95.33217,
+      "yearBuilt": "1949",
+      "designation": "None found",
+      "links": []
+    },
+    {
       "id": "staff:review:2026-10-29:2026-1557:t3",
       "stream": "staff",
       "kind": "staff_plat_review",
@@ -12564,6 +13915,33 @@
           "url": "https://www.houstontx.gov/planning/notices/2026/DPV-26075937-1501-Wichman-Street.pdf"
         }
       ]
+    },
+    {
+      "id": "staff:prop:plat-DPV-26075937:edited:2026-10-27",
+      "stream": "staff",
+      "kind": "watchlist_property_edited",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-27",
+      "localDate": "2026-10-27",
+      "timestamp": "2026-10-27T22:23:04.637Z",
+      "discoveredAt": "2026-11-06T18:50:16Z",
+      "loggedAt": "2026-10-27T22:23:04.637Z",
+      "title": "Watchlist Dossier Updated: 1501 Wichman Street",
+      "summary": "Updated owner of record, developer by emily@preservationhouston.org.",
+      "address": "1501 WICHMAN ST",
+      "hcad": "0352750130042",
+      "watchPropertyId": "plat-DPV-26075937",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.77464,
+      "lng": -95.39341,
+      "yearBuilt": null,
+      "designation": "None found",
+      "links": []
     },
     {
       "id": "staff:review:2026-10-29:2026-1592:t3",

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05T19:28:26Z",
+  "generated_at": "2026-11-06T18:50:15Z",
   "source_url": "https://www.houstontx.gov/planning/Commissions/HAHC.html",
   "current_cycle": {
     "meeting_date": "2026-11-05",
@@ -471,7 +471,7 @@
         {
           "hcad_num": "0230590000003",
           "address": "514 W Main St",
-          "year_built": 1945,
+          "year_built": 1892,
           "meeting_date": "2026-05-21",
           "app_type": "Alteration - Addition New Construction - Garage or",
           "app_category": "new_construction",
@@ -485,7 +485,7 @@
         {
           "hcad_num": "0230590000003",
           "address": "514 W Main St",
-          "year_built": 1945,
+          "year_built": 1892,
           "meeting_date": "2026-05-21",
           "app_type": "Carport",
           "app_category": "addition_alteration",
@@ -2053,7 +2053,7 @@
         {
           "hcad_num": "0373000000010",
           "address": "719 Woodland Street",
-          "year_built": 1930,
+          "year_built": 1911,
           "meeting_date": "2026-08-13",
           "app_type": "Garage or Carport",
           "app_category": "addition_alteration",
@@ -2067,7 +2067,7 @@
         {
           "hcad_num": "0373000000010",
           "address": "719 Woodland Street",
-          "year_built": 1930,
+          "year_built": 1911,
           "meeting_date": "2026-08-13",
           "app_type": "Alteration - Addition",
           "app_category": "addition_alteration",
@@ -3000,7 +3000,7 @@
       "hcad_num": "0373000000010",
       "lng": -95.38032,
       "lat": 29.786168,
-      "year_built": 1930
+      "year_built": 1911
     },
     {
       "meeting_date": "2026-08-13",
@@ -3019,7 +3019,7 @@
       "hcad_num": "0373000000010",
       "lng": -95.38032,
       "lat": 29.786168,
-      "year_built": 1930
+      "year_built": 1911
     },
     {
       "meeting_date": "2026-08-13",
@@ -3893,7 +3893,7 @@
       "hcad_num": "0230590000003",
       "lng": -95.386423,
       "lat": 29.73646,
-      "year_built": 1945
+      "year_built": 1892
     },
     {
       "meeting_date": "2026-05-21",
@@ -3912,7 +3912,7 @@
       "hcad_num": "0230590000003",
       "lng": -95.386423,
       "lat": 29.73646,
-      "year_built": 1945
+      "year_built": 1892
     },
     {
       "meeting_date": "2026-05-21",
@@ -5014,7 +5014,7 @@
       "hcad_num": "0201780000016",
       "lng": -95.402621,
       "lat": 29.792729,
-      "year_built": 1930
+      "year_built": 1922
     },
     {
       "meeting_date": "2026-02-12",
@@ -5033,7 +5033,7 @@
       "hcad_num": "0201780000016",
       "lng": -95.402621,
       "lat": 29.792729,
-      "year_built": 1930
+      "year_built": 1922
     },
     {
       "meeting_date": "2026-02-12",
