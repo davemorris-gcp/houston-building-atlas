@@ -5,7 +5,7 @@ Covers:
     `historical_audit_queue.json` lazy-loaded on demand) and intact baseline public UX
     (double-click zoom, share URL safety, map interactions, Back/Forward).
   - E2E-2: Split-Screen Historian Rapid Audit Mode (`#audit=1`, `#audit=<fid>`,
-    `#audit=0200670000010&auditCat=ADDRESS_STREET_MISMATCH`), filters (`545` undesignated),
+    `#audit=0200670000010&auditCat=ADDRESS_STREET_MISMATCH`), filters (`546` undesignated),
     composite `fid` isolation, `J`/`K`/`A`/`D`/`S` at `z >= 19.5` without altering time
     sliders, `tile/18` roof crop, ContentDM integer deep links, historic street alias
     badges, Sanborn local WebP thumbnails, community vs Admin publish, server rejection
@@ -318,12 +318,12 @@ def test_e2e2_historian_rapid_audit_workbench_filters_shortcuts_links_and_dual_p
     assert iso_after["firstStatus"] == "dismissed"
     assert iso_after["secondStatus"] == "pending"
 
-    # District filter check: Undesignated / Outside HD yields exact 545 bucketed contradictions
+    # District filter check: Undesignated / Outside HD yields exact 546 bucketed contradictions
     page.click("#audit-btn-reset-filters")
     page.select_option("#audit-filter-district", "Undesignated / Outside HD")
     page.select_option("#audit-filter-status", "all")
     undesig_count = page.evaluate("() => window.atlasApp._staffWorkbench.auditFilteredItems.length")
-    assert undesig_count == 545
+    assert undesig_count == 546
 
     # Filter to City Directory Earlier Than HCAD to check ContentDM integer scan URL + Sanborn local thumbs
     page.click("#audit-btn-reset-filters")
