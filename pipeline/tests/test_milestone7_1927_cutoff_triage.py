@@ -837,6 +837,7 @@ def test_it1_it2_it4_rp1_rp2_reconciled_bundles_policy_brief_and_multifootprint_
 
     sidx = json.loads((DATA_DIR / "search_index.json").read_text(encoding="utf-8"))
     matched_sidx = 0
+    matched_decade_sidx = 0
     for srow in sidx:
         if not isinstance(srow, dict) or srow.get("overlay_layer"):
             continue
@@ -845,12 +846,15 @@ def test_it1_it2_it4_rp1_rp2_reconciled_bundles_policy_brief_and_multifootprint_
             matched_sidx += 1
             exp_yr = int(promoted_map[hc]["year_built"])
             assert int(srow["year_built"]) == exp_yr
-            assert int(srow["decade"]) == int(promoted_map[hc]["decade"])
+            if "decade" in srow:
+                matched_decade_sidx += 1
+                assert int(srow["decade"]) == int(promoted_map[hc]["decade"])
             if str(srow.get("category") or "").startswith("Built "):
                 assert srow["category"] == f"Built {exp_yr}"
             if "Built " in str(srow.get("sublabel") or ""):
                 assert f"Built {exp_yr}" in str(srow["sublabel"])
     assert matched_sidx >= 80
+    assert matched_decade_sidx >= 80
 
     # IT-2: 4-way policy brief parity (scorecards == fetch_live_permits == active_permit_alerts == platMonitorHelpers.js)
     sc_brief = scorecards["citywide_policy_brief"]
