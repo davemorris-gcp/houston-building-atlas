@@ -259,18 +259,18 @@ def test_key_street_deed_coverage_and_restored_neighbor_footprints(
 ) -> None:
     page = guarded_page
 
-    # 1. 1133 Key St (0621100000013): 0 post-mid-2004 HCAD deeds -> visible .is-empty-cama explanation
+    # 1. 1133 Key St (0621100000013): continuous pre-2005 tenure (Acq. 2001-01-22, 0 post-mid-2004 HCAD deeds)
     page.goto(f"{atlas_base_url}/index.html#hcad=0621100000013", wait_until="domcontentloaded")
     _wait_for_atlas_ready(page)
     page.wait_for_selector("#inspector-drawer:not(.hidden)", timeout=10000)
     page.locator("#btn-jump-research-kit").click()
-    page.wait_for_selector("#research-kit-deed-chain.is-empty-cama:not(.hidden)", timeout=10000)
-    deed_empty_txt = page.locator("#research-kit-deed-chain").text_content() or ""
-    assert "No Post-2004 HCAD Sales" in deed_empty_txt
-    assert "mid-2004 database cutover" in deed_empty_txt
-    url_harvester.harvest_from_locator(page.locator("#inspector-body"), "key_st:1133_empty_cama")
+    page.wait_for_selector("#research-kit-deed-chain:not(.hidden) .rk-deed-scope-note", timeout=10000)
+    deed_1133_txt = page.locator("#research-kit-deed-chain").text_content() or ""
+    assert "1 Continuous Tenure (2005-2026)" in deed_1133_txt
+    assert "Continuous HCAD Roll Tenure (2005-2026" in deed_1133_txt
+    url_harvester.harvest_from_locator(page.locator("#inspector-body"), "key_st:1133_continuous_tenure")
 
-    # 2. 1127 Key St (0621100000014): curated 1928 override intact + 6 filings + .rk-deed-scope-note
+    # 2. 1127 Key St (0621100000014): curated 1928 override intact + 6 HCAD Owners (2005-2026) + .rk-deed-scope-note
     _select_hcad_and_wait_for_deed_chain(page, "0621100000014", expect_empty_cama=False)
     insp_1127 = page.locator("#inspector-body").text_content() or ""
     assert "1127 KEY ST" in insp_1127.upper()
@@ -280,11 +280,11 @@ def test_key_street_deed_coverage_and_restored_neighbor_footprints(
         hist_tab.click()
     page.wait_for_selector("#research-kit-deed-chain .rk-deed-scope-note", timeout=10000)
     deed_1127_txt = page.locator("#research-kit-deed-chain").text_content() or ""
-    assert "6 Recorded Filings" in deed_1127_txt
-    assert "post-mid-2004 ownership sales only" in deed_1127_txt
+    assert "6 HCAD Owners (2005-2026)" in deed_1127_txt
+    assert "Combines 22 annual HCAD certified appraisal rolls" in deed_1127_txt
     assert page.locator('#research-kit-deed-chain [data-rk-copy="RP-2019-149789"]').count() == 1
 
-    # 3. 1121 Key St (0621100000015): restored 1926 neighbor footprint (not swallowed by 0621100000014#aux_1) + 3 filings
+    # 3. 1121 Key St (0621100000015): restored 1926 neighbor footprint (not swallowed by 0621100000014#aux_1) + 5 HCAD Owners + unpaired deed
     _select_hcad_and_wait_for_deed_chain(page, "0621100000015", expect_empty_cama=False)
     insp_1121 = page.locator("#inspector-body").text_content() or ""
     assert "1121 KEY ST" in insp_1121.upper()
@@ -294,18 +294,69 @@ def test_key_street_deed_coverage_and_restored_neighbor_footprints(
         hist_tab.click()
     page.wait_for_selector("#research-kit-deed-chain .rk-deed-scope-note", timeout=10000)
     deed_1121_txt = page.locator("#research-kit-deed-chain").text_content() or ""
-    assert "3 Recorded Filings" in deed_1121_txt
+    assert "5 HCAD Owners (2005-2026)" in deed_1121_txt
+    assert "Additional Recorded Clerk Transfers" in deed_1121_txt
 
-    # 4. 1119 Key St (0621100000016): second 0-row parcel transitions cleanly back to visible .is-empty-cama
-    _select_hcad_and_wait_for_deed_chain(page, "0621100000016", expect_empty_cama=True)
+    # 4. 1119 Key St (0621100000016): continuous <=1988 HCAD mainframe baseline tenure
+    _select_hcad_and_wait_for_deed_chain(page, "0621100000016", expect_empty_cama=False)
+    hist_tab = page.locator('#inspector-body [data-inspector-tab="history"]')
+    if hist_tab.get_attribute("aria-selected") != "true":
+        hist_tab.click()
+    deed_1119_txt = page.locator("#research-kit-deed-chain").text_content() or ""
+    assert "Continuous HCAD Roll Tenure Since <=1988 (HCAD Mainframe Baseline)" in deed_1119_txt
+
+    # 5. 1115 Key St (0621100000017): 2 HCAD Owners (2005-2026) + RP-2017-512003 copy pill
+    _select_hcad_and_wait_for_deed_chain(page, "0621100000017", expect_empty_cama=False)
+    deed_1115_txt = page.locator("#research-kit-deed-chain").text_content() or ""
+    assert "2 HCAD Owners (2005-2026)" in deed_1115_txt
+    assert page.locator('#research-kit-deed-chain [data-rk-copy="RP-2017-512003"]').count() == 1
+
+    # 5b. Confidential 0-deed parcel (0620180000006, conf === 1 in permits_062.json) fails closed under Sec. 25.025 even when static owner is 'CURRENT OWNER'
+    page.evaluate(
+        """() => {
+            window.atlasApp.renderInspectorDrawer({
+                id: '0620180000006',
+                hcad_num: '0620180000006',
+                address: 'CONFIDENTIAL NORHILL PARCEL',
+                year_built: 1928,
+                owner: 'CURRENT OWNER',
+                own_tier: 'homestead',
+                use_category: 'Residential',
+            });
+        }"""
+    )
+    hist_tab = page.locator('#inspector-body [data-inspector-tab="history"]')
+    if hist_tab.get_attribute("aria-selected") != "true":
+        hist_tab.click()
+    page.wait_for_function(
+        """() => {
+            const box = document.getElementById('research-kit-deed-chain');
+            return Boolean(box && box.getAttribute('data-hcad-num') === '0620180000006' && (box.textContent || '').includes('Protected (TX Tax Code Sec. 25.025)'));
+        }""",
+        timeout=10000,
+    )
+
+    # 5c. Non-confidential 0-deed / 0-owner-history parcel transitions cleanly to .is-empty-cama fallback
+    page.evaluate(
+        """() => {
+            window.atlasApp.renderInspectorDrawer({
+                id: '0629990000001',
+                hcad_num: '0629990000001',
+                address: 'PUBLIC ZERO DEED PARCEL',
+                year_built: 1928,
+                owner: 'PUBLIC STEWARD',
+                own_tier: 'homestead',
+                use_category: 'Residential',
+            });
+        }"""
+    )
     hist_tab = page.locator('#inspector-body [data-inspector-tab="history"]')
     if hist_tab.get_attribute("aria-selected") != "true":
         hist_tab.click()
     page.wait_for_selector("#research-kit-deed-chain.is-empty-cama:not(.hidden)", timeout=10000)
-
-    # 5. 1115 Key St (0621100000017): singular '1 Recorded Filing' + scope note
-    _select_hcad_and_wait_for_deed_chain(page, "0621100000017", expect_empty_cama=False)
-    assert "1 Recorded Filing" in (page.locator("#research-kit-deed-chain").text_content() or "")
+    deed_empty_txt = page.locator("#research-kit-deed-chain").text_content() or ""
+    assert "No Post-2004 HCAD Sales" in deed_empty_txt
+    assert "mid-2004 database cutover" in deed_empty_txt
 
     # 6. Non-parcel feature (#bnd=nrhp_properties:nrhp_84001761): deed chain box stays hidden or absent
     page.evaluate(

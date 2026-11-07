@@ -4,7 +4,9 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
 
+import { isConfidentialOwnerName } from "../../app/js/clerkSearchHelpers.js";
 import {
   extractHttpUrlsFromText,
   validateExternalAtlasUrl,
@@ -378,16 +380,18 @@ test("Repository contains zero internal corporate proxy URLs, workstation paths,
     `pipeline/uv.lock contains non-public PyPI mirror/proxy URLs (use 'uv lock --no-config --default-index https://pypi.org/simple'):\n${nonPublicLockUrls.slice(0, 10).join("\n")}`
   );
 
-  const binaryExts = new Set([".pmtiles", ".webp", ".pdf", ".png", ".jpg", ".jpeg", ".ico", ".gif", ".woff", ".woff2"]);
+  const binaryExts = new Set([".pmtiles", ".webp", ".pdf", ".png", ".jpg", ".jpeg", ".ico", ".gif", ".woff", ".woff2", ".gz"]);
   const selfRelPath = path.relative(REPO_ROOT, fileURLToPath(import.meta.url));
-  const trackedFiles = execFileSync(
+  const allGitPaths = execFileSync(
     "git",
     ["ls-files", "--cached", "--others", "--exclude-standard"],
     { cwd: REPO_ROOT, encoding: "utf8" }
   )
     .split("\n")
     .map((s) => s.trim())
-    .filter((s) => s && s !== selfRelPath && !binaryExts.has(path.extname(s).toLowerCase()));
+    .filter((s) => s && s !== selfRelPath);
+  const trackedFiles = allGitPaths.filter((s) => !binaryExts.has(path.extname(s).toLowerCase()));
+  const trackedJsonGzFiles = allGitPaths.filter((s) => s.toLowerCase().endsWith(".json.gz"));
 
   const forbiddenRules = [
     { label: "internal .goog host/proxy URL", regex: /https?:\/\/[^\s"'<>]*\.goog\b/i },
@@ -409,8 +413,20 @@ test("Repository contains zero internal corporate proxy URLs, workstation paths,
       }
     }
   }
+  for (const relGz of trackedJsonGzFiles) {
+    const fullGz = path.join(REPO_ROOT, relGz);
+    if (!fs.existsSync(fullGz) || !fs.statSync(fullGz).isFile()) continue;
+    const inflated = zlib.gunzipSync(fs.readFileSync(fullGz)).toString("utf8");
+    for (const rule of forbiddenRules) {
+      const m = inflated.match(rule.regex);
+      if (m) {
+        violations.push(`${relGz} (inflated) [${rule.label}]: ${m[0]}`);
+      }
+    }
+  }
 
   assert.ok(trackedFiles.length >= 200, `Expected to scan >= 200 tracked text files, scanned ${trackedFiles.length}`);
+  assert.ok(trackedJsonGzFiles.length >= 150, `Expected to inflate >= 150 tracked .json.gz shards, scanned ${trackedJsonGzFiles.length}`);
   assert.deepEqual(
     violations,
     [],
@@ -626,8 +642,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   const expectedVer = String(manifest.cache_bust || "").trim();
   assert.equal(
     expectedVer,
-    "20261106a",
-    `Expected active Milestone 4 pmtiles_manifest.json cache_bust '20261106a', got '${expectedVer}'`
+    "20261106b",
+    `Expected active Milestone 8 pmtiles_manifest.json cache_bust '20261106b', got '${expectedVer}'`
   );
   assert.match(
     expectedVer,
@@ -771,6 +787,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/styles/index.css",
     "app/js/activityLogHelpers.js",
     "app/js/app.js",
+    "app/js/clerkSearchHelpers.js",
     "app/js/curatedEdits.js",
     "app/js/filterStore.js",
     "app/js/guidedChaptersAndPortfolios.js",
@@ -783,6 +800,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/build_monitor_activity_log.py",
     "pipeline/atlas_pipeline/build_neighborhood_scorecards.py",
     "pipeline/atlas_pipeline/build_ownership_and_history.py",
+    "pipeline/atlas_pipeline/build_historical_ownership_2005_2026.py",
     "pipeline/atlas_pipeline/build_house_history_index.py",
     "pipeline/atlas_pipeline/enrich_deed_chains.py",
     "pipeline/atlas_pipeline/fetch_live_permits.py",
@@ -804,6 +822,12 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/tests/test_milestone4_annual_refresh.py",
     "tests/unit/milestone4_annual_refresh.test.mjs",
     "tests/e2e/test_milestone4_annual_refresh.py",
+    "pipeline/tests/test_milestone5_ownership_stewardship.py",
+    "tests/unit/milestone5_ownership_stewardship.test.mjs",
+    "tests/e2e/test_milestone5_ownership_stewardship.py",
+    "pipeline/tests/test_milestone8_historical_ownership.py",
+    "tests/unit/milestone8_historical_ownership.test.mjs",
+    "tests/e2e/test_milestone8_historical_ownership.py",
     "docs/06-sanborn-maps-and-lost-houston.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
     "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
@@ -825,6 +849,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/index.html",
     "app/styles/index.css",
     "app/js/app.js",
+    "app/js/clerkSearchHelpers.js",
     "app/js/curatedEdits.js",
     "app/js/filterStore.js",
     "app/js/guidedChaptersAndPortfolios.js",
@@ -835,6 +860,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/js/staffWorkbench.js",
     "pipeline/atlas_pipeline/schema.py",
     "pipeline/atlas_pipeline/build_ownership_and_history.py",
+    "pipeline/atlas_pipeline/build_historical_ownership_2005_2026.py",
     "pipeline/atlas_pipeline/build_house_history_index.py",
     "pipeline/atlas_pipeline/enrich_deed_chains.py",
     "pipeline/atlas_pipeline/fetch_live_permits.py",
@@ -855,6 +881,12 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/tests/test_milestone4_annual_refresh.py",
     "tests/unit/milestone4_annual_refresh.test.mjs",
     "tests/e2e/test_milestone4_annual_refresh.py",
+    "pipeline/tests/test_milestone5_ownership_stewardship.py",
+    "tests/unit/milestone5_ownership_stewardship.test.mjs",
+    "tests/e2e/test_milestone5_ownership_stewardship.py",
+    "pipeline/tests/test_milestone8_historical_ownership.py",
+    "tests/unit/milestone8_historical_ownership.test.mjs",
+    "tests/e2e/test_milestone8_historical_ownership.py",
     "docs/06-sanborn-maps-and-lost-houston.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
     "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
@@ -1024,4 +1056,201 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
       `tests/unit/${tf} is missing from tests/unit/run_all.mjs imports`
     );
   }
+});
+
+test("Milestone 8 owner_history/*.json.gz shards: 1:1 manifest parity, deterministic RFC 1952 headers, single-line JSON hygiene, and zero confidential leaks", () => {
+  const pyModPath = path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "build_historical_ownership_2005_2026.py");
+  const schemaModPath = path.join(REPO_ROOT, "pipeline", "atlas_pipeline", "schema.py");
+  assert.equal(fs.existsSync(pyModPath), true, "build_historical_ownership_2005_2026.py must exist");
+  assert.equal(fs.existsSync(schemaModPath), true, "schema.py must exist");
+  const pyModSrc = fs.readFileSync(pyModPath, "utf8");
+  const schemaModSrc = fs.readFileSync(schemaModPath, "utf8");
+  assert.equal(
+    schemaModSrc.includes("def compress_deterministic_gzip_json("),
+    true,
+    "schema.py must define 'def compress_deterministic_gzip_json('"
+  );
+  assert.equal(
+    pyModSrc.includes("compress_deterministic_gzip_json"),
+    true,
+    "build_historical_ownership_2005_2026.py must import 'compress_deterministic_gzip_json'"
+  );
+  for (const requiredFn of [
+    "def consolidate_account_tenures(",
+    "def encode_compact_owner_history(",
+    "def build_owner_history_shards(",
+    "def maybe_rebuild_owner_history_for_staged_roll(",
+  ]) {
+    assert.equal(
+      pyModSrc.includes(requiredFn),
+      true,
+      `build_historical_ownership_2005_2026.py must define '${requiredFn}'`
+    );
+  }
+
+  const manifest = readDataJson("pmtiles_manifest.json");
+  assert.ok(
+    Array.isArray(manifest.owner_history_prefixes) && manifest.owner_history_prefixes.length === 152,
+    `Expected 152 owner_history_prefixes in pmtiles_manifest.json, got ${manifest.owner_history_prefixes?.length}`
+  );
+  assert.deepEqual(
+    manifest.owner_history_span,
+    [2005, manifest.data_tax_year],
+    `Expected owner_history_span [2005, ${manifest.data_tax_year}] in pmtiles_manifest.json`
+  );
+  assert.ok(
+    Number.isInteger(manifest.owner_history_accounts) && manifest.owner_history_accounts >= 1_200_000,
+    `Expected >= 1,200,000 owner_history_accounts in pmtiles_manifest.json, got ${manifest.owner_history_accounts}`
+  );
+
+  const ohDir = path.join(DATA_DIR, "owner_history");
+  assert.equal(fs.existsSync(ohDir), true, "app/public/data/owner_history directory must exist");
+  const ohFiles = fs
+    .readdirSync(ohDir)
+    .filter((f) => f.endsWith(".json.gz"))
+    .sort();
+  const onDiskPrefixes = ohFiles.map((f) => {
+    const m = f.match(/^owners_(\d{3})\.json\.gz$/);
+    assert.ok(m, `Unexpected filename in app/public/data/owner_history: ${f}`);
+    return m[1];
+  });
+  assert.deepEqual(
+    onDiskPrefixes,
+    manifest.owner_history_prefixes,
+    "app/public/data/owner_history/owners_<prefix3>.json.gz must match pmtiles_manifest.owner_history_prefixes 1:1"
+  );
+
+  const MAX_SHARD_COMPRESSED_BYTES = 10 * 1024 * 1024;
+  const confWireLeakRe =
+    /~\s*(?:CURRENT\s+OWNER|CONFIDENTIAL(?:\s+OWNER)?|PROTECTED(?:\s+OWNER)?|WITHHELD|REDACTED)\s*(?:[|"]|$)/i;
+
+  let totalAccounts = 0;
+  let totalCompressedBytes = 0;
+  const benchmarkSamples = new Map();
+
+  for (const fn of ohFiles) {
+    const pfx = fn.slice(7, 10);
+    const fullPath = path.join(ohDir, fn);
+    const rawGz = fs.readFileSync(fullPath);
+    assert.ok(rawGz.length >= 20, `${fn} is unexpectedly empty (${rawGz.length} bytes)`);
+    assert.ok(
+      rawGz.length < MAX_SHARD_COMPRESSED_BYTES,
+      `${fn} (${rawGz.length} bytes) exceeds 10 MiB shard ceiling`
+    );
+    totalCompressedBytes += rawGz.length;
+
+    // RFC 1952 deterministic header invariants (TST-2): magic 0x1f 0x8b, mtime=0, no embedded FNAME flag (0x08)
+    assert.equal(rawGz[0], 0x1f, `${fn} missing gzip magic byte 0 (0x1f)`);
+    assert.equal(rawGz[1], 0x8b, `${fn} missing gzip magic byte 1 (0x8b)`);
+    assert.equal(rawGz[3] & 0x08, 0, `${fn} must omit embedded RFC 1952 FNAME header for deterministic builds`);
+    assert.equal(rawGz.readUInt32LE(4), 0, `${fn} must set RFC 1952 mtime=0 for deterministic builds`);
+
+    const inflated = zlib.gunzipSync(rawGz).toString("utf8");
+    assert.equal(
+      inflated.trimEnd().includes("\n"),
+      false,
+      `${fn} inflated payload must be single-line compact JSON`
+    );
+    assert.equal(inflated.includes("\u2014"), false, `${fn} inflated payload contains forbidden U+2014 em-dash`);
+    assert.equal(inflated.includes("\u2013"), false, `${fn} inflated payload contains forbidden U+2013 en-dash`);
+    assert.equal(
+      confWireLeakRe.test(inflated),
+      false,
+      `${fn} inflated payload contains unredacted TX Tax Code Sec. 25.025 confidential owner token`
+    );
+
+    const parsed = JSON.parse(inflated);
+    assert.equal(
+      Boolean(parsed) && typeof parsed === "object" && !Array.isArray(parsed),
+      true,
+      `${fn} must decode to a top-level JSON object`
+    );
+    const keys = Object.keys(parsed);
+    assert.ok(keys.length >= 1, `${fn} must contain at least 1 parcel account`);
+    totalAccounts += keys.length;
+
+    if (pfx === "001") {
+      assert.equal(
+        "0010020000001" in parsed,
+        false,
+        "Active Sec. 25.025 confidential account 0010020000001 must be completely omitted from owners_001.json.gz"
+      );
+      benchmarkSamples.set("0010020000016", parsed["0010020000016"] || "");
+    } else if (pfx === "015") {
+      benchmarkSamples.set("0152300000001", parsed["0152300000001"] || "");
+    } else if (pfx === "062") {
+      benchmarkSamples.set("0621100000014", parsed["0621100000014"] || "");
+    }
+  }
+
+  assert.equal(
+    totalAccounts,
+    manifest.owner_history_accounts,
+    `Sum of accounts across 152 owners_*.json.gz shards (${totalAccounts}) must equal manifest.owner_history_accounts (${manifest.owner_history_accounts})`
+  );
+  assert.ok(
+    totalCompressedBytes < 60 * 1024 * 1024,
+    `Total compressed owner_history/ size (${totalCompressedBytes} bytes) must stay below 60 MiB`
+  );
+
+  for (const [hcad, wire] of [
+    ["0621100000014", benchmarkSamples.get("0621100000014")],
+    ["0010020000016", benchmarkSamples.get("0010020000016")],
+    ["0152300000001", benchmarkSamples.get("0152300000001")],
+  ]) {
+    assert.ok(wire && wire.length > 0, `Expected benchmark parcel ${hcad} in owner_history shard`);
+    const tenures = wire.split("|");
+    assert.ok(tenures.length >= 1 && tenures.length <= 12, `Unexpected tenure count on ${hcad}: ${tenures.length}`);
+    for (const seg of tenures) {
+      const fields = seg.split("~");
+      assert.ok(fields.length >= 4, `Malformed compact tenure '${seg}' on ${hcad}`);
+      const ownerName = fields.slice(3).join("~");
+      assert.equal(
+        isConfidentialOwnerName(ownerName),
+        false,
+        `Confidential owner name leaked on ${hcad}: '${ownerName}'`
+      );
+    }
+  }
+
+  // Verify static `conf: 1` marker and zero Sec. 25.025 PII/deed/flip leakage across all permits_*.json shards
+  const permitsDir = path.join(DATA_DIR, "permits");
+  const permitFiles = fs
+    .readdirSync(permitsDir)
+    .filter((f) => /^permits_\d{3}\.json$/.test(f))
+    .sort();
+  let totalConfRecords = 0;
+  let checked0071270000013 = false;
+  let checked0071300000001 = false;
+  for (const pf of permitFiles) {
+    const pShard = JSON.parse(fs.readFileSync(path.join(permitsDir, pf), "utf8"));
+    for (const [acct, rec] of Object.entries(pShard)) {
+      if (!rec || typeof rec !== "object") continue;
+      if (rec.conf) {
+        totalConfRecords += 1;
+        assert.equal(rec.conf, 1, `Expected canonical conf === 1 on ${acct}`);
+        for (const forbiddenKey of ["d", "flip", "pid", "m", "co"]) {
+          assert.equal(
+            forbiddenKey in rec,
+            false,
+            `Sec. 25.025 confidential account ${acct} in ${pf} leaked forbidden key '${forbiddenKey}'`
+          );
+        }
+      }
+      if (acct === "0071270000013") {
+        assert.equal(rec.conf, 1, "Expected conf === 1 on confidential PO-Box A1 account 0071270000013");
+        checked0071270000013 = true;
+      } else if (acct === "0071300000001") {
+        assert.equal(rec.conf, 1, "Expected conf === 1 on confidential homestead account 0071300000001");
+        checked0071300000001 = true;
+      }
+    }
+  }
+  // Improved + permitted confidential parcels in 2026 roll = 33,183 (unimproved unpermitted vacant parcels are omitted from permits_*.json)
+  assert.ok(
+    totalConfRecords >= 30_000,
+    `Expected >= 30,000 confidential records flagged with conf === 1 across permits_*.json, got ${totalConfRecords}`
+  );
+  assert.equal(checked0071270000013, true, "Missing benchmark confidential account 0071270000013 in permits_007.json");
+  assert.equal(checked0071300000001, true, "Missing benchmark confidential account 0071300000001 in permits_007.json");
 });

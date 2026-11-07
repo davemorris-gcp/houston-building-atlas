@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261106a";
+} from "./palettes.js?v=20261106b";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -27,21 +27,24 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261106a";
-import { AtlasMapController } from "./mapController.js?v=20261106a";
+} from "./filterStore.js?v=20261106b";
+import { AtlasMapController } from "./mapController.js?v=20261106b";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261106a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261106a";
+} from "./guidedChaptersAndPortfolios.js?v=20261106b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261106b";
 import {
   buildResearchKitDeedChainView,
+  decompressOwnerHistoryBytes,
   formatClerkPartyTokens,
+  isConfidentialOwnerName,
+  isPlaceholderOwnerName,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261106a";
+} from "./clerkSearchHelpers.js?v=20261106b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -64,7 +67,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261106a";
+} from "./curatedEdits.js?v=20261106b";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -74,7 +77,7 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261106a";
+} from "./photoService.js?v=20261106b";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -82,12 +85,12 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261106a";
+} from "./platMonitorHelpers.js?v=20261106b";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261106a";
+} from "./hcadViewportParcels.js?v=20261106b";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -107,16 +110,82 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261106a";
+} from "./preservationOrganizer.js?v=20261106b";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
-} from "./urlValidators.js?v=20261106a";
+} from "./urlValidators.js?v=20261106b";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
 const VACANT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Optional: note approximate demolition timeframe or current lot condition (e.g. 'House demolished; lot currently grass / vacant').";
+
+/**
+ * Resolve effective owner string and synchronized feature properties across static tile/override
+ * attributes (`owner` / `owner_name`), static permit-shard confidential flags (`conf`), and live
+ * HCAD ArcGIS queries (`DF-1`).
+ */
+export function resolveEffectiveInspectorOwner(props, liveOwner = "", permitShardRec = null) {
+  const safeProps = props && typeof props === "object" ? props : {};
+  const rawOwner = String(safeProps.owner || "").trim();
+  const rawOwnerName = String(safeProps.owner_name || "").trim();
+  const shardIsConf = Boolean(permitShardRec?.conf || safeProps.conf);
+  const staticConfToken = isConfidentialOwnerName(rawOwner)
+    ? rawOwner
+    : isConfidentialOwnerName(rawOwnerName)
+    ? rawOwnerName
+    : shardIsConf
+    ? "CONFIDENTIAL OWNER"
+    : "";
+  const propOwner = staticConfToken || rawOwner || rawOwnerName;
+  const cleanLiveOwner = String(liveOwner || "").trim();
+  const liveIsConf = isConfidentialOwnerName(cleanLiveOwner);
+  const staticIsConf = Boolean(staticConfToken);
+  const liveCanFillPlaceholder = Boolean(
+    cleanLiveOwner &&
+      !staticIsConf &&
+      !isPlaceholderOwnerName(cleanLiveOwner) &&
+      (!propOwner || isPlaceholderOwnerName(propOwner))
+  );
+  const shouldApplyLiveOwner = Boolean(liveIsConf || liveCanFillPlaceholder);
+  const effOwner = liveIsConf
+    ? cleanLiveOwner
+    : staticIsConf
+    ? staticConfToken
+    : propOwner && !isPlaceholderOwnerName(propOwner)
+    ? propOwner
+    : liveCanFillPlaceholder
+    ? cleanLiveOwner
+    : propOwner || cleanLiveOwner;
+  const isConfidential = Boolean(
+    liveIsConf || staticIsConf || isConfidentialOwnerName(effOwner)
+  );
+  const shouldOverrideProps = Boolean(
+    effOwner &&
+      (shouldApplyLiveOwner ||
+        staticIsConf ||
+        !rawOwner ||
+        ("owner_name" in safeProps && safeProps.owner_name !== effOwner)) &&
+      (effOwner !== safeProps.owner ||
+        ("owner_name" in safeProps && effOwner !== safeProps.owner_name))
+  );
+  const effProps = shouldOverrideProps
+    ? "owner_name" in safeProps
+      ? { ...safeProps, owner: effOwner, owner_name: effOwner }
+      : { ...safeProps, owner: effOwner }
+    : props;
+  return {
+    effOwner,
+    effProps,
+    isConfidential,
+    shouldApplyLiveOwner,
+    shouldOverrideProps,
+    displayLabel: isConfidential
+      ? "Protected Individual Homestead (TX Tax Code Sec. 25.025)"
+      : effOwner || "Public / Unlisted",
+  };
+}
 
 export class HoustonAtlasApp {
   constructor() {
@@ -160,6 +229,9 @@ export class HoustonAtlasApp {
     this.deedCatalog = null;
     this.sanbornCatalog = null;
     this._permitShardCache = new Map();
+    this._ownerHistoryShardCache = new Map();
+    this._inflightInspectorHydrations = new Set();
+    this._lastInspectorHydrationPromise = Promise.resolve();
     this.lastViewportStats = null;
     this.timelapseTimer = null;
     this._suppressUrlUpdate = false;
@@ -755,7 +827,7 @@ export class HoustonAtlasApp {
         this._addressShardCache = this._addressShardCache || {};
         if (!this._addressShardCache[shardKey]) {
           try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261106a`);
+            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261106b`);
             this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
           } catch (_e) {
             this._addressShardCache[shardKey] = {};
@@ -915,13 +987,13 @@ export class HoustonAtlasApp {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes, ownPortRes] =
         await Promise.all([
-          fetch("public/data/search_index.json?v=20261106a"),
-          fetch("public/data/stats_summary.json?v=20261106a"),
-          fetch("public/data/haif_index.json?v=20261106a").catch(() => null),
-          fetch("public/data/deed_restrictions_catalog.json?v=20261106a").catch(() => null),
-          fetch("public/data/sanborn_catalog.json?v=20261106a").catch(() => null),
-          fetch("public/data/citydir_index.json?v=20261106a").catch(() => null),
-          fetch("public/data/ownership_portfolios.json?v=20261106a").catch(() => null),
+          fetch("public/data/search_index.json?v=20261106b"),
+          fetch("public/data/stats_summary.json?v=20261106b"),
+          fetch("public/data/haif_index.json?v=20261106b").catch(() => null),
+          fetch("public/data/deed_restrictions_catalog.json?v=20261106b").catch(() => null),
+          fetch("public/data/sanborn_catalog.json?v=20261106b").catch(() => null),
+          fetch("public/data/citydir_index.json?v=20261106b").catch(() => null),
+          fetch("public/data/ownership_portfolios.json?v=20261106b").catch(() => null),
         ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -5975,7 +6047,7 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261106a`)
+          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261106b`)
             .then((r) => (r.ok ? r.json() : {}))
             .then((data) => {
               this._addressShardCache[shardKey] = data || {};
@@ -11909,13 +11981,14 @@ export class HoustonAtlasApp {
       .join("");
   }
 
-  _populateResearchKitDeedChain(hcadNum, permitShardRec) {
+  _populateResearchKitDeedChain(hcadNum, permitShardRec, currentOwnerName = "") {
     const box = document.getElementById("research-kit-deed-chain");
     if (!box) return;
     const view = buildResearchKitDeedChainView(
       hcadNum,
       box.getAttribute("data-hcad-num"),
-      permitShardRec
+      permitShardRec,
+      currentOwnerName
     );
     if (view.ignore) return;
     if (view.hidden) {
@@ -14128,6 +14201,8 @@ export class HoustonAtlasApp {
       redBookEntries,
       goodBrickAwards,
     };
+    this._activeInspectorCompositeRec = null;
+    this._activeInspectorLiveOwner = null;
     const initialLegalTokens = parseClerkLegalTokens({
       legalDescription: props.legal_description || "",
       subdivision: subVal,
@@ -14740,7 +14815,9 @@ export class HoustonAtlasApp {
               </div>
               <div class="inspector-cell full">
                 <span class="cell-label">Recorded Property Owner (HCAD)</span>
-                <span class="cell-value" id="inspector-cell-owner">${props.owner || "Public / Unlisted"}</span>
+                <span class="cell-value" id="inspector-cell-owner">${
+                  resolveEffectiveInspectorOwner(props).displayLabel
+                }</span>
               </div>
               <div class="inspector-cell full">
                 <span class="cell-label">Platted Subdivision / Legal Description (HCAD)</span>
@@ -15117,7 +15194,15 @@ export class HoustonAtlasApp {
       streetViewUrl,
     });
 
-    this._populateInspectorPermits(props, hcadNum);
+    const hydrationPromise = this._populateInspectorPermits(props, hcadNum);
+    this._lastInspectorHydrationPromise = hydrationPromise;
+    if (!this._inflightInspectorHydrations) {
+      this._inflightInspectorHydrations = new Set();
+    }
+    this._inflightInspectorHydrations.add(hydrationPromise);
+    hydrationPromise.finally(() => {
+      this._inflightInspectorHydrations?.delete(hydrationPromise);
+    });
 
     const btnSuggestCorr = document.getElementById("btn-suggest-correction");
     if (btnSuggestCorr) {
@@ -15200,8 +15285,43 @@ export class HoustonAtlasApp {
 
           // Enrich any missing Inspector fields with live HCAD record attributes
           const ownerCell = document.getElementById("inspector-cell-owner");
-          if (ownerCell && rec.owner && (!props.owner || ownerCell.textContent === "Public / Unlisted")) {
-            ownerCell.textContent = rec.owner;
+          const activeShardRec =
+            this._activeInspectorCompositeRec?.hcadNum === String(hcadNum)
+              ? this._activeInspectorCompositeRec.rec
+              : null;
+          const resolvedLive = resolveEffectiveInspectorOwner(props, rec.owner, activeShardRec);
+          if (rec.owner) {
+            this._activeInspectorLiveOwner = {
+              hcadNum: String(hcadNum),
+              owner: String(rec.owner),
+            };
+            if (ownerCell) {
+              if (resolvedLive.isConfidential) {
+                ownerCell.textContent = resolvedLive.displayLabel;
+              } else if (
+                resolvedLive.effOwner &&
+                !isPlaceholderOwnerName(resolvedLive.effOwner) &&
+                (resolvedLive.shouldApplyLiveOwner || isPlaceholderOwnerName(ownerCell.textContent))
+              ) {
+                ownerCell.textContent = resolvedLive.effOwner;
+              }
+            }
+          }
+          if (
+            rec.owner &&
+            this._activeInspectorCompositeRec?.hcadNum === String(hcadNum) &&
+            resolvedLive.shouldApplyLiveOwner
+          ) {
+            this._populateResearchKitDeedChain(
+              hcadNum,
+              this._activeInspectorCompositeRec.rec,
+              resolvedLive.effOwner
+            );
+            this._hydrateOwnershipAndStewardshipSlots(
+              resolvedLive.effProps,
+              hcadNum,
+              this._activeInspectorCompositeRec.rec
+            );
           }
           const subCell = document.getElementById("inspector-cell-subdivision");
           if (
@@ -15334,7 +15454,11 @@ export class HoustonAtlasApp {
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
     if (!this._permitShardCache.has(prefix3)) {
-      const p = fetch(`public/data/permits/permits_${prefix3}.json?v=20261106a`)
+      const cb = this.mapController?.pmtilesManifest?.cache_bust;
+      const permitShardUrl = cb
+        ? `public/data/permits/permits_${prefix3}.json?v=${encodeURIComponent(cb)}`
+        : `public/data/permits/permits_${prefix3}.json?v=20261106b`;
+      const p = fetch(permitShardUrl)
         .then((res) => (res.ok ? res.json() : {}))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
@@ -15343,16 +15467,90 @@ export class HoustonAtlasApp {
     return (shard && shard[clean]) || null;
   }
 
-  async _populateInspectorPermits(props, hcadNum) {
-    const rec = hcadNum ? await this._fetchPermitRecord(hcadNum) : null;
-    this._populateResearchKitDeedChain(hcadNum, rec);
-    this._hydrateOwnershipAndStewardshipSlots(props, hcadNum, rec);
+  async _fetchOwnerHistoryRecord(hcadNum) {
+    const clean = String(hcadNum || "").replace(/\D/g, "");
+    if (clean.length < 10) return "";
+    const prefix3 = clean.slice(0, 3);
+    const manifest = this.mapController?.pmtilesManifest;
+    if (manifest?.owner_history_accounts === 0) return "";
+    const knownPrefixes = manifest?.owner_history_prefixes;
+    if (Array.isArray(knownPrefixes) && !knownPrefixes.includes(prefix3)) {
+      return "";
+    }
+    if (!this._ownerHistoryShardCache.has(prefix3)) {
+      const cb = this.mapController?.pmtilesManifest?.cache_bust;
+      const ownerShardUrl = cb
+        ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261106b`;
+      const p = fetch(ownerShardUrl)
+        .then(async (res) => {
+          if (!res.ok) return {};
+          const buf = await res.arrayBuffer();
+          return await decompressOwnerHistoryBytes(buf);
+        })
+        .catch(() => ({}));
+      this._ownerHistoryShardCache.set(prefix3, p);
+    }
+    const shard = await this._ownerHistoryShardCache.get(prefix3);
+    return String((shard && shard[clean]) || "");
+  }
 
+  waitForPendingInspectorHydrations() {
+    const pending = this._inflightInspectorHydrations
+      ? Array.from(this._inflightInspectorHydrations)
+      : [];
+    return Promise.allSettled(pending);
+  }
+
+  async _populateInspectorPermits(props, hcadNum) {
+    const [rec, oh] = hcadNum
+      ? await Promise.all([
+          this._fetchPermitRecord(hcadNum),
+          this._fetchOwnerHistoryRecord(hcadNum),
+        ])
+      : [null, ""];
+    const targetHcad = String(hcadNum || "");
+    const hasDoc = typeof document !== "undefined" && document !== null;
+    if (hasDoc) {
+      const slotIds = [
+        "inspector-permits-card",
+        "inspector-ownership-xray-slot",
+        "inspector-stewardship-timeline-slot",
+        "research-kit-deed-chain",
+      ];
+      for (const sid of slotIds) {
+        const el = document.getElementById(sid);
+        const activeAttr = el?.getAttribute?.("data-hcad-num");
+        if (activeAttr !== null && activeAttr !== undefined && activeAttr !== targetHcad) {
+          return;
+        }
+      }
+    }
+    // Never mutate cached `_permitShardCache` entries; build a shallow composite object (`MOD-3`).
+    const compositeRec = rec || oh ? { ...(rec || {}), ...(oh ? { oh } : {}) } : null;
+    this._activeInspectorCompositeRec = hcadNum ? { hcadNum: targetHcad, rec: compositeRec } : null;
+    const cachedLiveOwner =
+      this._activeInspectorLiveOwner?.hcadNum === targetHcad
+        ? String(this._activeInspectorLiveOwner.owner || "").trim()
+        : "";
+    const resolvedOwner = resolveEffectiveInspectorOwner(props, cachedLiveOwner, compositeRec);
+    if (hasDoc) {
+      if (resolvedOwner.isConfidential) {
+        const ownerCell = document.getElementById("inspector-cell-owner");
+        if (ownerCell) {
+          ownerCell.textContent = resolvedOwner.displayLabel;
+        }
+      }
+      this._populateResearchKitDeedChain(hcadNum, compositeRec, resolvedOwner.effOwner);
+      this._hydrateOwnershipAndStewardshipSlots(resolvedOwner.effProps, hcadNum, compositeRec);
+    }
+
+    if (!hasDoc) return;
     const card = document.getElementById("inspector-permits-card");
     const badge = document.getElementById("inspector-permits-badge");
     const body = document.getElementById("inspector-permits-body");
     if (!card || !body) return;
-    if (card.getAttribute("data-hcad-num") !== String(hcadNum || "")) return;
+    if (card.getAttribute("data-hcad-num") !== targetHcad) return;
 
     // Update Remodel / Effective Year cell in the main grid if shard has richer data
     const remodelCell = document.getElementById("inspector-cell-remodel-year");
@@ -15515,6 +15713,15 @@ export class HoustonAtlasApp {
   }) {
     const requestToken = `${hcadNum}|${props.building_id || props.id || ""}|${Date.now()}`;
     this._latestPhotoRequestToken = requestToken;
+    if (
+      hcadNum &&
+      this._activePhotoState &&
+      this._activePhotoState.hcadNum === String(hcadNum) &&
+      Array.isArray(this._activePhotoState.photos) &&
+      this._activePhotoState.photos.length > 0
+    ) {
+      this._syncPhotoViews();
+    }
 
     const allAltAddrs = [
       props.address || "",
@@ -17303,7 +17510,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261106a`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261106b`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18740,7 +18947,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261106a")
+          fetch("public/data/sanborn_catalog.json?v=20261106b")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -18750,7 +18957,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261106a")
+          fetch("public/data/citydir_index.json?v=20261106b")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -18773,7 +18980,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261106a")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261106b")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -20203,7 +20410,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261106a")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261106b")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {
@@ -20938,7 +21145,7 @@ export class HoustonAtlasApp {
     const clerkUrl = xray.clerkUrl || buildHarrisCountyClerkRpUrl("");
 
     const siblingHtml =
-      xray.siblingEntities.length > 0
+      !xray.isConfidential && xray.siblingEntities.length > 0
         ? `<div class="ownership-xray-row">
             <span class="ownership-xray-label">Sibling LLCs / Entities (${xray.entityCount}):</span>
             <span class="ownership-xray-val mono">${xray.siblingEntities
@@ -20951,7 +21158,7 @@ export class HoustonAtlasApp {
         : "";
 
     const officersHtml =
-      xray.officers.length > 0
+      !xray.isConfidential && xray.officers.length > 0
         ? `<div class="ownership-xray-row">
             <span class="ownership-xray-label">TX Comptroller Officers / Agent:</span>
             <span class="ownership-xray-val">${xray.officers
@@ -20989,6 +21196,33 @@ export class HoustonAtlasApp {
           </div>`
         : "";
 
+    const priorOwnersHtml =
+      !xray.isConfidential && Array.isArray(xray.priorOwners) && xray.priorOwners.length > 0
+        ? `<div class="ownership-xray-row" id="inspector-prior-owners-row">
+            <span class="ownership-xray-label">Prior HCAD Owners (2005-${getAtlasMaxYear()}):</span>
+            <span class="ownership-xray-val">${xray.priorOwners
+              .slice(0, 6)
+              .map(
+                (po) =>
+                  `${this._escapeHtmlAttr(po.ownerName)} <span class="mono">(${this._escapeHtmlAttr(
+                    po.spanLabel
+                  )})</span>`
+              )
+              .join(" · ")}${
+            xray.priorOwners.length > 6
+              ? ` <span class="mono">(+${xray.priorOwners.length - 6} earlier)</span>`
+              : ""
+          }</span>
+          </div>`
+        : !xray.isConfidential && xray.recordedTenureSince
+        ? `<div class="ownership-xray-row" id="inspector-recorded-tenure-row">
+            <span class="ownership-xray-label">Recorded Tenure Since:</span>
+            <span class="ownership-xray-val mono">${this._escapeHtmlAttr(
+              xray.recordedTenureSince
+            )}</span>
+          </div>`
+        : "";
+
     const flipBadgeHtml =
       xray.flipDays !== null
         ? `<div class="ownership-flip-warning">
@@ -21014,7 +21248,7 @@ export class HoustonAtlasApp {
             )}</strong></span>
           </div>
           ${
-            xray.beneficialSteward && xray.beneficialSteward !== xray.recordedOwner
+            !xray.isConfidential && xray.beneficialSteward && xray.beneficialSteward !== xray.recordedOwner
               ? `<div class="ownership-xray-row">
                   <span class="ownership-xray-label">Unmasked Beneficial Steward:</span>
                   <span class="ownership-xray-val"><strong style="color:#FDE047;">${this._escapeHtmlAttr(
@@ -21025,7 +21259,7 @@ export class HoustonAtlasApp {
                     : ""
                 }</span>
                 </div>`
-              : xray.portfolioCount > 1
+              : !xray.isConfidential && xray.portfolioCount > 1
               ? `<div class="ownership-xray-row">
                   <span class="ownership-xray-label">Countywide Footprint:</span>
                   <span class="ownership-xray-val mono"><strong>${xray.portfolioCount.toLocaleString()}</strong> Harris County parcels</span>
@@ -21033,6 +21267,7 @@ export class HoustonAtlasApp {
               : ""
           }
           ${plexCalloutHtml}
+          ${priorOwnersHtml}
           ${careOfHtml}
           ${mailHtml}
           ${siblingHtml}
@@ -21041,7 +21276,7 @@ export class HoustonAtlasApp {
         ${flipBadgeHtml}
         <div class="ownership-xray-actions">
           ${
-            xray.portId && xray.portfolioCount >= 2
+            !xray.isConfidential && xray.portId && xray.portfolioCount >= 2
               ? `<button
                   type="button"
                   class="inspector-btn primary small"

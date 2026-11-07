@@ -17,13 +17,21 @@ from __future__ import annotations
 
 import io
 import json
-import re
 import zipfile
 from pathlib import Path
 
 from atlas_pipeline.schema import (
     MAX_VALID_YEAR,
+    RE_BARE_YEAR_HYPHEN,
+    RE_FILM_CODE,
+    RE_LETTER_CODE,
+    RE_PROBATE,
+    RE_RP_FLEX,
+    RE_VOL_PAGE,
+    RE_YEAR_RP_SWAP,
+    normalize_hcad_clerk_instrument,
     normalize_hcad_date,
+    parse_dos_yyyymmdd,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -36,157 +44,6 @@ REAL_ACCT_ZIP = CACHE_DIR / "Real_acct_owner.zip"
 REAL_BLDG_ZIP = CACHE_DIR / "Real_building_land.zip"
 
 MAX_DEEDS_PER_PARCEL = 8
-
-RE_RP_FLEX = re.compile(
-    r"^(?:\d)?(?:RP[\s\-_]*|P[\s\-_]+)(20(?:1[6-9]|[2-9]\d))(?:[\s\-_]+\1)?[\s\-_]*0*([1-9]\d{0,6})$",
-    re.IGNORECASE,
-)
-RE_YEAR_RP_SWAP = re.compile(
-    r"^(20(?:1[6-9]|[2-9]\d))[\s\-_]+RP[\s\-_]*0*([1-9]\d{0,6})$",
-    re.IGNORECASE,
-)
-RE_BARE_YEAR_HYPHEN = re.compile(
-    r"^(20(?:1[6-9]|[2-9]\d))[\s\-_]+0*([1-9]\d{0,6})$"
-)
-RE_LETTER_CODE = re.compile(r"^([A-Z])([0-9O]{6})$")
-RE_FILM_CODE = re.compile(r"^(\d{3}-\d{2}-\d{4})$")
-RE_PROBATE = re.compile(
-    r"^(?:DKT|DOCKET|CASE|PR|PROBATE)[\s\.#:\-]*([0-9A-Z\-]{3,14})$",
-    re.IGNORECASE,
-)
-RE_VOL_PAGE = re.compile(
-    r"^(?:VOL\.?\s*|V)(\d{1,5}|[A-Z]{1,3})[\s,/\-]*(?:PG\.?\s*|PAGE\s*|P)(\d{1,5})(?:DR|MR)?$",
-    re.IGNORECASE,
-)
-
-
-def parse_dos_yyyymmdd(
-    raw_dos: str,
-    raw_yr: str,
-    *,
-    max_year: int | None = None,
-) -> str:
-    """Normalize HCAD date of sale (MM/DD/YYYY or YYYY-MM-DD) to 8-digit YYYYMMDD."""
-    eff_max = MAX_VALID_YEAR if max_year is None else int(max_year)
-    iso_dt, yr = normalize_hcad_date(
-        raw_dos,
-        raw_yr,
-        allow_fallback=True,
-        max_year=eff_max,
-    )
-    if iso_dt:
-        return iso_dt.replace("-", "")
-    if yr > 0:
-        return f"{yr:04d}0000"
-    return "00000000"
-
-
-def normalize_hcad_clerk_instrument(
-    clerk_yr: str,
-    clerk_id: str,
-    *,
-    max_year: int | None = None,
-) -> str | None:
-    """Normalize HCAD (clerk_yr, clerk_id) to a compact, verified Clerk lookup token."""
-    eff_max = max(2030, MAX_VALID_YEAR if max_year is None else int(max_year))
-    cid = (clerk_id or "").strip().upper()
-    if not cid or cid in ("0", "NONE", "N/A", "NA", "UNKNOWN", "UNKN", "NULL"):
-        return None
-    # Collapse repeated internal spaces around hyphens
-    cid_clean = re.sub(r"\s+", " ", cid)
-    yr_s = (clerk_yr or "").strip()
-    yr_int = int(yr_s) if yr_s.isdigit() else 0
-
-    # 1. Film Code (###-##-####)
-    m_fc = RE_FILM_CODE.match(cid_clean)
-    if m_fc:
-        return f"FC:{m_fc.group(1)}"
-
-    # 2. 1972-2006 Letter + 6 digits (e.g. Y051716, P202281; fixing O->0 typos).
-    # Evaluated before RE_RP_FLEX so 1993-1994 "P20xxxx" codes are never parsed as RP-20xx-SEQ.
-    cid_nospace = cid_clean.replace(" ", "")
-    m_let = RE_LETTER_CODE.match(cid_nospace)
-    if m_let:
-        digits = m_let.group(2).replace("O", "0")
-        if digits != "000000":
-            return f"{m_let.group(1)}{digits}"
-
-    # 3. Explicit RP-YYYY-NNNNNN variants (2016+)
-    for rx in (RE_RP_FLEX, RE_YEAR_RP_SWAP, RE_BARE_YEAR_HYPHEN):
-        m = rx.match(cid_clean)
-        if m:
-            y_val = int(m.group(1))
-            seq_val = int(m.group(2))
-            if y_val > eff_max:
-                return None
-            if y_val == 2016 and seq_val <= 10026:
-                return f"2016{seq_val:07d}"
-            return f"R{y_val}-{seq_val}"
-
-    # 4. Pure numeric clerk_id
-    if cid_nospace.isdigit():
-        val_int = int(cid_nospace)
-        if val_int == 0:
-            return None
-        n_len = len(cid_nospace)
-
-        # Already full 11-digit YYYYNNNNNNN
-        if n_len == 11 and cid_nospace[:4].isdigit():
-            p_yr = int(cid_nospace[:4])
-            p_seq = int(cid_nospace[4:])
-            if 2006 <= p_yr <= 2015 and p_seq > 0:
-                return cid_nospace
-            if p_yr == 2016 and p_seq > 0:
-                return cid_nospace if p_seq <= 10026 else f"R2016-{p_seq}"
-            if 2017 <= p_yr <= eff_max and 0 < p_seq <= 999999:
-                return f"R{p_yr}-{p_seq}"
-
-        # 2006-2015 numeric sequence (annual Harris County filings never exceeded ~600,000):
-        # - n_len <= 7: standard 1..7 digit sequence zero-padded to YYYY + 7 digits.
-        # - n_len == 8 starting with yr[-1] (e.g. 2007 "70115058"): truncated year prefix -> drop first digit.
-        # - n_len == 8 starting with "00" (val_int <= 999,999, e.g. "00043023"): 8-digit zero-padded sequence.
-        # - n_len == 8 starting with "0[1-9]" (val_int > 999,999, e.g. 2014 "01492230"): 7-digit sequence
-        #   with trailing HCAD column-overflow digit -> take cid_nospace[:7] (verified live against RP.aspx).
-        if 2006 <= yr_int <= 2015:
-            if n_len <= 7:
-                return f"{yr_int}{val_int:07d}"
-            if n_len == 8:
-                if cid_nospace[0] == str(yr_int)[-1]:
-                    seq7 = int(cid_nospace[1:])
-                    if seq7 > 0:
-                        return f"{yr_int}{seq7:07d}"
-                if cid_nospace.startswith("0"):
-                    if val_int <= 999999:
-                        return f"{yr_int}{val_int:07d}"
-                    seq7 = int(cid_nospace[:7])
-                    if seq7 > 0:
-                        return f"{yr_int}{seq7:07d}"
-
-        # 2016 transition year (Jan 2016 <= 10026 is 11-digit; >= 10027 is RP-2016-SEQ)
-        if yr_int == 2016 and n_len <= 7:
-            if val_int <= 10026:
-                return f"2016{val_int:07d}"
-            return f"R2016-{val_int}"
-
-        # 2017+ numeric sequence without RP- prefix
-        if 2017 <= yr_int <= eff_max and n_len <= 7 and val_int <= 999999:
-            return f"R{yr_int}-{val_int}"
-
-        return None
-
-    # 5. Probate Docket / Case #
-    m_pr = RE_PROBATE.match(cid_clean)
-    if m_pr:
-        return f"PR:{m_pr.group(1)}"
-
-    # 6. Pre-1961 Bound Book Volume / Page
-    m_vp = RE_VOL_PAGE.match(cid_clean)
-    if m_vp:
-        vol_tok = m_vp.group(1).lstrip("0") or "0"
-        pg_tok = m_vp.group(2).lstrip("0") or "0"
-        return f"VP:{vol_tok}/{pg_tok}"
-
-    return None
 
 
 def collect_improved_and_mapped_hcads(

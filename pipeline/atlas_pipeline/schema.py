@@ -4,17 +4,23 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass, field
+import gzip
+import io
 import json
 import math
+import os
 import pickle
 import re
 import shutil
 import subprocess
+import threading
 import time
+import urllib.error
 import urllib.parse
+import urllib.request
 import zipfile
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 MIN_VALID_YEAR = 1836
@@ -22,8 +28,9 @@ ACTIVE_TAX_YEAR = 2026
 MAX_VALID_CAMA_DATE_YEAR = ACTIVE_TAX_YEAR
 MAX_VALID_YEAR = ACTIVE_TAX_YEAR + 1
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261106a"
-SOFT_MAX_APP_BYTES = 948 * 1024 * 1024
+ACTIVE_CACHE_BUST = "20261106b"
+PERMIT_ENRICHMENT_SOFT_MAX_BYTES = 948 * 1024 * 1024
+SOFT_MAX_APP_BYTES = 968 * 1024 * 1024
 HARD_MAX_APP_BYTES = 980 * 1024 * 1024
 MAX_SINGLE_FILE_BYTES = 95 * 1024 * 1024
 ORD_2015_639_CUTOFF_ISO = "2015-07-24"
@@ -352,7 +359,7 @@ def _sanitize_payload_strings(value: Any) -> Any:
 def write_compact_json(path: Path | str, payload: Any) -> None:
     """Serialize payload as single-line compact UTF-8 JSON to keep data bundles within budget."""
     target = Path(path)
-    tmp_path = target.with_name(f"{target.name}.tmp")
+    tmp_path = target.with_name(f"{target.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     clean_payload = _sanitize_payload_strings(payload)
     serialized = json.dumps(clean_payload, ensure_ascii=False, separators=(",", ":"))
     tmp_path.write_text(serialized, encoding="utf-8")
@@ -2569,12 +2576,15 @@ def normalize_polygon_rings_6dp_ccw(geom: dict[str, Any]) -> dict[str, Any]:
 def update_pmtiles_manifest_v3(
     manifest_path: Path,
     *,
-    total_buildings: int,
-    building_shards: list[str],
+    total_buildings: int | None = None,
+    building_shards: list[str] | None = None,
     data_tax_year: int | None = None,
     cache_bust: str | None = None,
     core_pmtiles: str | None = None,
     mode: str | None = None,
+    owner_history_prefixes: list[str] | None = None,
+    owner_history_span: list[int] | None = None,
+    owner_history_accounts: int | None = None,
 ) -> dict[str, Any]:
     """Atomically write `pmtiles_manifest.json` preserving schema `"version": 3` (DF-4)."""
     existing: dict[str, Any] = {}
@@ -2594,20 +2604,58 @@ def update_pmtiles_manifest_v3(
     eff_cb = str(cache_bust or existing.get("cache_bust") or ACTIVE_CACHE_BUST)
     eff_core = str(core_pmtiles or existing.get("core_pmtiles") or "houston_atlas.pmtiles")
     eff_mode = str(mode or existing.get("mode") or "full_county")
+    eff_total_bldg = (
+        int(total_buildings)
+        if total_buildings is not None
+        else int(existing.get("total_buildings") or 0)
+    )
+    eff_shards = (
+        list(building_shards)
+        if building_shards is not None
+        else list(existing.get("building_shards") or [])
+    )
+
+    eff_oh_prefixes = (
+        sorted({str(p).strip() for p in owner_history_prefixes if str(p).strip()})
+        if owner_history_prefixes is not None
+        else existing.get("owner_history_prefixes")
+    )
+    eff_oh_span = (
+        [int(x) for x in owner_history_span]
+        if owner_history_span is not None
+        else existing.get("owner_history_span")
+    )
+    eff_oh_accounts = (
+        int(owner_history_accounts)
+        if owner_history_accounts is not None
+        else existing.get("owner_history_accounts")
+    )
 
     manifest: dict[str, Any] = {
         "version": 3,
         "mode": eff_mode,
         "cache_bust": eff_cb,
         "data_tax_year": eff_yr,
-        "total_buildings": int(total_buildings),
-        "building_shards": list(building_shards),
+        "total_buildings": eff_total_bldg,
+        "building_shards": eff_shards,
         "core_pmtiles": eff_core,
     }
+    if isinstance(eff_oh_prefixes, list):
+        manifest["owner_history_prefixes"] = eff_oh_prefixes
+    if isinstance(eff_oh_span, list) and len(eff_oh_span) == 2:
+        manifest["owner_history_span"] = [int(eff_oh_span[0]), int(eff_oh_span[1])]
+    if isinstance(eff_oh_accounts, int) and eff_oh_accounts >= 0:
+        manifest["owner_history_accounts"] = eff_oh_accounts
+
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = manifest_path.with_name(f".{manifest_path.name}.tmp")
-    tmp_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    tmp_path.replace(manifest_path)
+    tmp_path = manifest_path.with_name(
+        f".{manifest_path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
+    )
+    try:
+        tmp_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        tmp_path.replace(manifest_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
     return manifest
 
 
@@ -2798,6 +2846,16 @@ REPO_SYNC_ANCHOR_RULES: tuple[AnchorRule, ...] = (
         ),
         expected_min_matches=1,
         render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}{m.group(2)}{cb}{m.group(3)}",
+        optional=True,
+    ),
+    AnchorRule(
+        rel_path="tests/unit/milestone5_ownership_stewardship.test.mjs",
+        description="milestone5_ownership_stewardship.test.mjs manifest.cache_bust assertion",
+        pattern=re.compile(
+            r'(assert\.equal\(\s*manifest\.cache_bust,\s*["\'])\d{8}[a-z]?(["\']\s*\))'
+        ),
+        expected_min_matches=1,
+        render_replacement=lambda m, _yr, cb: f"{m.group(1)}{cb}{m.group(2)}",
         optional=True,
     ),
 )
@@ -3076,6 +3134,101 @@ PLACEHOLDER_NON_GRAPH_OWNER_TOKENS: frozenset[str] = frozenset({
     "UNKNOWN OWNER",
     "OWNER",
 })
+
+EXTRA_PLACEHOLDER_OWNER_TOKENS: frozenset[str] = frozenset({
+    "PUBLIC / UNLISTED",
+    "PUBLIC UNLISTED",
+    "UNLISTED",
+    "OWNER OF RECORD",
+    "OWNER OF RECORD HCAD",
+    "PENDING",
+    "NONE",
+    "NA",
+    "N A",
+    "NULL",
+    "0",
+})
+
+ALL_PLACEHOLDER_OWNER_TOKENS: frozenset[str] = (
+    PLACEHOLDER_NON_GRAPH_OWNER_TOKENS | EXTRA_PLACEHOLDER_OWNER_TOKENS
+)
+
+# Keep 1:1 synchronized with CONFIDENTIAL_OWNER_PHRASE_RE and isConfidentialOwnerName in app/js/clerkSearchHelpers.js.
+_RE_CONFIDENTIAL_OWNER_PHRASE = re.compile(
+    r"\b(?:CURRENT\s+OWNER|CONFIDENTIAL(?:\s+OWNER)?|PROTECTED\s+OWNER|PROTECTED\s+INDIVIDUAL\s+HOMESTEAD|SEC\.?\s*25\.025|WITHHELD|REDACTED)\b",
+    re.IGNORECASE,
+)
+RE_OWNER_CARE_OF_TAIL = re.compile(
+    r"\s*(?:(?<!\d)%|\bC\s*/\s*O\b|\bCARE\s+OF\b|\bATTN\s*:?).*$",
+    re.IGNORECASE,
+)
+_CONFIDENTIAL_FAST_SUBSTRINGS: tuple[str, ...] = (
+    "CURRENT",
+    "CONFIDENT",
+    "PROTECTED",
+    "WITHHELD",
+    "REDACTED",
+    "25.025",
+)
+_RE_CONF_CLEAN_CHARS = re.compile(r"[^A-Za-z0-9\s&/]+")
+_RE_PLACEHOLDER_CLEAN_CHARS = re.compile(r"[^A-Za-z0-9\s]+")
+_RE_MULTI_WS = re.compile(r"\s+")
+_RE_CO_OWNER_SPLIT = re.compile(r"\s*(?:&|/|\bAND\b)\s*")
+
+
+def is_confidential_owner_token(raw_name: Any) -> bool:
+    """Return True if `raw_name` carries a statutory TX Tax Code Sec. 25.025 confidentiality marker (`DF-1`).
+
+    Synchronized 1:1 with `isConfidentialOwnerName` in `app/js/clerkSearchHelpers.js`. Matches
+    whole-phrase confidential markers (`CURRENT OWNER`, `CONFIDENTIAL`, `PROTECTED OWNER`,
+    `PROTECTED INDIVIDUAL HOMESTEAD`, `SEC. 25.025`, `WITHHELD`, `REDACTED`) and exact co-owner
+    segment equality against `CONFIDENTIAL_OWNER_TOKENS` (so bare `'PROTECTED'` is caught without
+    false-positively matching entity names such as `'PROTECTED WILDLIFE FOUNDATION'`).
+    """
+    raw_s = str(raw_name or "").strip()
+    if not raw_s:
+        return False
+    up = raw_s.upper()
+    if not any(sub in up for sub in _CONFIDENTIAL_FAST_SUBSTRINGS):
+        return False
+    stripped = (
+        RE_OWNER_CARE_OF_TAIL.sub("", raw_s)
+        if ("%" in up or "/" in up or "CARE" in up or "ATTN" in up)
+        else raw_s
+    )
+    if _RE_CONFIDENTIAL_OWNER_PHRASE.search(stripped):
+        return True
+    cleaned = _RE_MULTI_WS.sub(" ", _RE_CONF_CLEAN_CHARS.sub(" ", stripped).upper()).strip()
+    if not cleaned:
+        return False
+    if cleaned in CONFIDENTIAL_OWNER_TOKENS:
+        return True
+    for seg in _RE_CO_OWNER_SPLIT.split(cleaned):
+        if seg.strip() in CONFIDENTIAL_OWNER_TOKENS:
+            return True
+    return False
+
+
+def is_placeholder_owner_token(raw_name: Any) -> bool:
+    """Return True if `raw_name` is empty, confidential, or a non-owner placeholder (`DF-1`, `DF-4`).
+
+    Synchronized 1:1 with `isPlaceholderOwnerName` in `app/js/clerkSearchHelpers.js`.
+    """
+    raw_s = str(raw_name or "").strip()
+    if not raw_s:
+        return True
+    if is_confidential_owner_token(raw_s):
+        return True
+    up = raw_s.upper()
+    has_care_tail = "%" in up or "/" in up or "CARE" in up or "ATTN" in up
+    if not has_care_tail and up.isascii() and up.replace(" ", "").isalnum():
+        cleaned = " ".join(up.split())
+        return (not cleaned) or (cleaned in ALL_PLACEHOLDER_OWNER_TOKENS)
+    base_s = RE_OWNER_CARE_OF_TAIL.sub("", raw_s) if has_care_tail else raw_s
+    cleaned = _RE_MULTI_WS.sub(" ", _RE_PLACEHOLDER_CLEAN_CHARS.sub(" ", base_s).upper()).strip()
+    if not cleaned:
+        return True
+    return cleaned in ALL_PLACEHOLDER_OWNER_TOKENS
 
 KNOWN_REGISTERED_AGENT_ADDRESS_PREFIXES: tuple[str, ...] = (
     "5900 BALCONES DR",
@@ -3402,10 +3555,7 @@ def is_protected_homestead(
     """
     sc = str(state_class or "").strip().upper()
     is_res_class = sc in RESIDENTIAL_HOMESTEAD_STATE_CLASSES or sc.startswith("A")
-    own_clean = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9\s]", " ", str(owner_name or "").upper())).strip()
-    is_conf_token = own_clean in CONFIDENTIAL_OWNER_TOKENS or any(
-        own_clean.startswith(tok) for tok in CONFIDENTIAL_OWNER_TOKENS
-    )
+    is_conf_token = is_confidential_owner_token(owner_name)
 
     a1, a2, care_of = extract_care_of_and_clean_mail(mail_addr_1, mail_addr_2)
     m_num, m_core = _extract_street_num_and_core(a1)
@@ -3474,6 +3624,7 @@ def classify_account_ownership(
         mail_addr_1, mail_addr_2, mail_city, mail_state, mail_zip
     )
     tax_agent_co = is_tax_protest_agent_care_of(care_of, mail_addr_1)
+    is_conf_token = is_confidential_owner_token(owner_name)
 
     is_civic, civic_sub = is_hoa_or_civic_steward(
         state_class, owner_name, care_of=care_of, subdivision=subdivision
@@ -3483,12 +3634,12 @@ def classify_account_ownership(
             "own_tier": "civic_nonprofit",
             "port_id": "",
             "is_protected_homestead": False,
-            "is_sec_25_025_confidential": False,
+            "is_sec_25_025_confidential": bool(is_conf_token),
             "sub_tier": civic_sub,
-            "billing_key": billing_key,
-            "display_mail": display_mail,
-            "care_of": care_of,
-            "is_tax_agent_care_of": tax_agent_co,
+            "billing_key": "" if is_conf_token else billing_key,
+            "display_mail": "" if is_conf_token else display_mail,
+            "care_of": "" if is_conf_token else care_of,
+            "is_tax_agent_care_of": False if is_conf_token else tax_agent_co,
         }
 
     is_hs, is_conf = is_protected_homestead(
@@ -3516,9 +3667,6 @@ def classify_account_ownership(
         }
 
     own_clean = re.sub(r"\s+", " ", re.sub(r"[^A-Z0-9\s]", " ", str(owner_name or "").upper())).strip()
-    is_conf_token = own_clean in CONFIDENTIAL_OWNER_TOKENS or any(
-        own_clean.startswith(tok) for tok in CONFIDENTIAL_OWNER_TOKENS
-    )
     is_corp, is_trust = is_corporate_or_trust_entity(owner_name)
     is_reg_agent = is_registered_agent_billing_cluster(billing_key, owner_name=owner_name, care_of=care_of)
 
@@ -3527,12 +3675,12 @@ def classify_account_ownership(
             "own_tier": "anonymity_shield",
             "port_id": "",
             "is_protected_homestead": False,
-            "is_sec_25_025_confidential": False,
+            "is_sec_25_025_confidential": bool(is_conf_token),
             "sub_tier": "registered_agent_shield" if is_reg_agent else "masked_commercial_cluster",
-            "billing_key": billing_key,
-            "display_mail": display_mail,
-            "care_of": care_of,
-            "is_tax_agent_care_of": tax_agent_co,
+            "billing_key": "" if is_conf_token else billing_key,
+            "display_mail": "" if is_conf_token else display_mail,
+            "care_of": "" if is_conf_token else care_of,
+            "is_tax_agent_care_of": False if is_conf_token else tax_agent_co,
         }
 
     eff_parcels = max(int(owner_parcel_count or 1), int(cluster_parcel_count or 1))
@@ -3827,6 +3975,119 @@ def collect_overridden_hcad_accounts(overrides: dict[str, Any]) -> set[str]:
     return out
 
 
+_EXPLICIT_ATLAS_HCAD_JSON_KEYS: frozenset[str] = frozenset({
+    "hcad_num",
+    "HCAD_NUM",
+    "USER_HCAD_NUM",
+    "hcad",
+    "hcadAccount",
+    "hcadAccounts",
+    "related_hcads",
+    "site_hcad_num",
+    "site_hcad_nums",
+    "modern_hcad_num",
+})
+
+
+def normalize_standing_hcad_token(raw_val: Any) -> str:
+    """Canonical fast-path 13-digit HCAD account token normalizer across JSON/TSV roll inputs."""
+    s = str(raw_val or "").strip()
+    if not s:
+        return ""
+    head = s.split("#", 1)[0].strip()
+    if len(head) == 13 and head.isdigit() and head != "0000000000000":
+        return head
+    digits = re.sub(r"\D", "", head)
+    if 10 <= len(digits) <= 13:
+        z = digits.zfill(13)
+        if z != "0000000000000":
+            return z
+    return ""
+
+
+def _walk_standing_hcads_in_json(node: Any, out: set[str]) -> None:
+    if isinstance(node, dict):
+        for k, v in node.items():
+            ks = str(k).strip()
+            kh = ks.split("#", 1)[0].strip()
+            if len(kh) == 13 and kh.isdigit() and kh != "0000000000000":
+                out.add(kh)
+            if ks in _EXPLICIT_ATLAS_HCAD_JSON_KEYS:
+                if isinstance(v, str):
+                    for tok in re.split(r"[,;\s|]+", v):
+                        nh = normalize_standing_hcad_token(tok)
+                        if nh:
+                            out.add(nh)
+                elif isinstance(v, list):
+                    for item in v:
+                        if isinstance(item, str):
+                            nh = normalize_standing_hcad_token(item)
+                            if nh:
+                                out.add(nh)
+            elif ks == "works" and isinstance(v, list):
+                for row in v:
+                    if isinstance(row, list) and row and isinstance(row[0], str):
+                        nh = normalize_standing_hcad_token(row[0])
+                        if nh:
+                            out.add(nh)
+                    elif isinstance(row, dict):
+                        _walk_standing_hcads_in_json(row, out)
+            elif isinstance(v, (dict, list)):
+                _walk_standing_hcads_in_json(v, out)
+    elif isinstance(node, list):
+        for item in node:
+            if isinstance(item, (dict, list)):
+                _walk_standing_hcads_in_json(item, out)
+
+
+def collect_standing_and_referenced_atlas_hcads(
+    data_dir: Path,
+    cache_dir: Path | None = None,
+) -> set[str]:
+    """Collect all 13-digit HCAD accounts mapped or referenced across standing footprints & Atlas JSONs.
+
+    Never scans raw floats or epoch timestamps, guaranteeing zero synthetic prefix pollution.
+    """
+    ddir = Path(data_dir)
+    hcads: set[str] = set()
+
+    if cache_dir is not None:
+        aligned_dir = Path(cache_dir) / "aligned_ndjson"
+        if aligned_dir.is_dir():
+            hcad_re = re.compile(rb'"hcad_num"\s*:\s*"(\d{10,13})"')
+            for seq_p in sorted(aligned_dir.glob("buildings_*.geojsonseq")):
+                with open(seq_p, "rb") as fh:
+                    for line in fh:
+                        for m in hcad_re.finditer(line):
+                            nh = normalize_standing_hcad_token(m.group(1).decode("ascii"))
+                            if nh:
+                                hcads.add(nh)
+
+    skip_top_files = {"pmtiles_manifest.json", "stats_summary.json"}
+    if ddir.is_dir():
+        for entry in sorted(ddir.iterdir()):
+            if not entry.is_file() or entry.name in skip_top_files:
+                continue
+            if entry.suffix.lower() not in (".json", ".geojson"):
+                continue
+            try:
+                doc = json.loads(entry.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            _walk_standing_hcads_in_json(doc, hcads)
+
+        exp_dir = ddir / "export_cache"
+        if exp_dir.is_dir():
+            for ep in sorted(exp_dir.glob("*.json")):
+                try:
+                    edoc = json.loads(ep.read_text(encoding="utf-8"))
+                except Exception:
+                    continue
+                _walk_standing_hcads_in_json(edoc, hcads)
+
+    return hcads
+
+
 def match_earliest_platted_subdivisions(
     points_xy: list[tuple[float, float]],
     platted_subdivisions_features: list[dict[str, Any]],
@@ -3925,9 +4186,283 @@ def resolve_citydir_cdm_url(dir_rec: dict[str, Any] | None, fallback_url: str) -
     return 0, fallback_url
 
 
+def compress_deterministic_gzip_json(shard_obj: dict[str, Any]) -> bytes:
+    """Serialize `shard_obj` to single-line sorted UTF-8 JSON and gzip with `mtime=0` and empty filename (`DF-7`)."""
+    raw_json = json.dumps(
+        shard_obj,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    if "\u2014" in raw_json or "\u2013" in raw_json:
+        raise ValueError("Forbidden U+2014/U+2013 dash detected in owner history shard payload.")
+    return gzip.compress(raw_json.encode("utf-8"), compresslevel=9, mtime=0)
 
 
+RE_RP_FLEX = re.compile(
+    r"^(?:\d)?(?:RP[\s\-_]*|P[\s\-_]+)(20(?:1[6-9]|[2-9]\d))(?:[\s\-_]+\1)?[\s\-_]*0*([1-9]\d{0,6})$",
+    re.IGNORECASE,
+)
+RE_YEAR_RP_SWAP = re.compile(
+    r"^(20(?:1[6-9]|[2-9]\d))[\s\-_]+RP[\s\-_]*0*([1-9]\d{0,6})$",
+    re.IGNORECASE,
+)
+RE_BARE_YEAR_HYPHEN = re.compile(
+    r"^(20(?:1[6-9]|[2-9]\d))[\s\-_]+0*([1-9]\d{0,6})$"
+)
+RE_LETTER_CODE = re.compile(r"^([A-Z])([0-9O]{6})$")
+RE_FILM_CODE = re.compile(r"^(\d{3}-\d{2}-\d{4})$")
+RE_PROBATE = re.compile(
+    r"^(?:DKT|DOCKET|CASE|PR|PROBATE)[\s\.#:\-]*([0-9A-Z\-]{3,14})$",
+    re.IGNORECASE,
+)
+RE_VOL_PAGE = re.compile(
+    r"^(?:VOL\.?\s*|V)(\d{1,5}|[A-Z]{1,3})[\s,/\-]*(?:PG\.?\s*|PAGE\s*|P)(\d{1,5})(?:DR|MR)?$",
+    re.IGNORECASE,
+)
 
 
+def parse_dos_yyyymmdd(
+    raw_dos: str,
+    raw_yr: str,
+    *,
+    max_year: int | None = None,
+) -> str:
+    """Normalize HCAD date of sale (MM/DD/YYYY or YYYY-MM-DD) to 8-digit YYYYMMDD."""
+    eff_max = MAX_VALID_YEAR if max_year is None else int(max_year)
+    iso_dt, yr = normalize_hcad_date(
+        raw_dos,
+        raw_yr,
+        allow_fallback=True,
+        max_year=eff_max,
+    )
+    if iso_dt:
+        return iso_dt.replace("-", "")
+    if yr > 0:
+        return f"{yr:04d}0000"
+    return "00000000"
+
+
+def normalize_hcad_clerk_instrument(
+    clerk_yr: str,
+    clerk_id: str,
+    *,
+    max_year: int | None = None,
+) -> str | None:
+    """Normalize HCAD (clerk_yr, clerk_id) to a compact, verified Clerk lookup token."""
+    eff_max = max(2030, MAX_VALID_YEAR if max_year is None else int(max_year))
+    cid = (clerk_id or "").strip().upper()
+    if not cid or cid in ("0", "NONE", "N/A", "NA", "UNKNOWN", "UNKN", "NULL"):
+        return None
+    cid_clean = re.sub(r"\s+", " ", cid)
+    yr_s = (clerk_yr or "").strip()
+    yr_int = int(yr_s) if yr_s.isdigit() else 0
+
+    # 1. Film Code (###-##-####)
+    m_fc = RE_FILM_CODE.match(cid_clean)
+    if m_fc:
+        return f"FC:{m_fc.group(1)}"
+
+    # 2. 1972-2006 Letter + 6 digits (e.g. Y051716, P202281; fixing O->0 typos).
+    # Evaluated before RE_RP_FLEX so 1993-1994 "P20xxxx" codes are never parsed as RP-20xx-SEQ.
+    cid_nospace = cid_clean.replace(" ", "")
+    m_let = RE_LETTER_CODE.match(cid_nospace)
+    if m_let:
+        digits = m_let.group(2).replace("O", "0")
+        if digits != "000000":
+            return f"{m_let.group(1)}{digits}"
+
+    # 3. Explicit RP-YYYY-NNNNNN variants (2016+)
+    for rx in (RE_RP_FLEX, RE_YEAR_RP_SWAP, RE_BARE_YEAR_HYPHEN):
+        m = rx.match(cid_clean)
+        if m:
+            y_val = int(m.group(1))
+            seq_val = int(m.group(2))
+            if y_val > eff_max:
+                return None
+            if y_val == 2016 and seq_val <= 10026:
+                return f"2016{seq_val:07d}"
+            return f"R{y_val}-{seq_val}"
+
+    # 4. Pure numeric clerk_id
+    if cid_nospace.isdigit():
+        val_int = int(cid_nospace)
+        if val_int == 0:
+            return None
+        n_len = len(cid_nospace)
+
+        if n_len == 11 and cid_nospace[:4].isdigit():
+            p_yr = int(cid_nospace[:4])
+            p_seq = int(cid_nospace[4:])
+            if 2006 <= p_yr <= 2015 and p_seq > 0:
+                return cid_nospace
+            if p_yr == 2016 and p_seq > 0:
+                return cid_nospace if p_seq <= 10026 else f"R2016-{p_seq}"
+            if 2017 <= p_yr <= eff_max and 0 < p_seq <= 999999:
+                return f"R{p_yr}-{p_seq}"
+
+        if 2006 <= yr_int <= 2015:
+            if n_len <= 7:
+                return f"{yr_int}{val_int:07d}"
+            if n_len == 8:
+                if cid_nospace[0] == str(yr_int)[-1]:
+                    seq7 = int(cid_nospace[1:])
+                    if seq7 > 0:
+                        return f"{yr_int}{seq7:07d}"
+                if cid_nospace.startswith("0"):
+                    if val_int <= 999999:
+                        return f"{yr_int}{val_int:07d}"
+                    seq7 = int(cid_nospace[:7])
+                    if seq7 > 0:
+                        return f"{yr_int}{seq7:07d}"
+
+        if yr_int == 2016 and n_len <= 7:
+            if val_int <= 10026:
+                return f"2016{val_int:07d}"
+            return f"R2016-{val_int}"
+
+        if 2017 <= yr_int <= eff_max and n_len <= 7 and val_int <= 999999:
+            return f"R{yr_int}-{val_int}"
+
+        return None
+
+    # 5. Probate Docket / Case #
+    m_pr = RE_PROBATE.match(cid_clean)
+    if m_pr:
+        return f"PR:{m_pr.group(1)}"
+
+    # 6. Pre-1961 Bound Book Volume / Page
+    m_vp = RE_VOL_PAGE.match(cid_clean)
+    if m_vp:
+        vol_tok = m_vp.group(1).lstrip("0") or "0"
+        pg_tok = m_vp.group(2).lstrip("0") or "0"
+        return f"VP:{vol_tok}/{pg_tok}"
+
+    return None
+
+
+def find_zip_member_case_insensitive(zf: zipfile.ZipFile, basename_lower: str) -> str | None:
+    """Find a non-directory ZIP member matching `basename_lower` case-insensitively regardless of parent folder."""
+    target = basename_lower.strip().lower()
+    for name in zf.namelist():
+        if name.endswith("/"):
+            continue
+        if PurePosixPath(name).name.lower() == target:
+            return name
+    return None
+
+
+def peek_real_acct_zip_year(zip_path: Path) -> int | None:
+    """Inspect the first few rows of `real_acct.txt` inside `zip_path` to determine its modal roll year."""
+    try:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            member = find_zip_member_case_insensitive(zf, "real_acct.txt")
+            if member is None:
+                return None
+            with zf.open(member, "r") as raw_f:
+                tf = io.TextIOWrapper(raw_f, encoding="latin-1", errors="replace")
+                hdr_line = tf.readline()
+                if not hdr_line:
+                    return None
+                cols = {c.strip().lower(): idx for idx, c in enumerate(hdr_line.rstrip("\r\n").split("\t"))}
+                i_yr = cols.get("yr", -1)
+                if i_yr < 0:
+                    return None
+                counts: dict[int, int] = {}
+                for _ in range(16):
+                    ln = tf.readline()
+                    if not ln:
+                        break
+                    parts = ln.rstrip("\r\n").split("\t", i_yr + 1)
+                    if len(parts) > i_yr:
+                        s_yr = parts[i_yr].strip()
+                        if len(s_yr) == 4 and s_yr.isdigit():
+                            yv = int(s_yr)
+                            counts[yv] = counts.get(yv, 0) + 1
+                if counts:
+                    return max(counts.items(), key=lambda kv: kv[1])[0]
+    except (OSError, zipfile.BadZipFile):
+        return None
+    return None
+
+
+def verify_zip_file_integrity(
+    path: Path,
+    *,
+    error_cls: type[Exception] = ValueError,
+) -> list[str]:
+    """Verify ZIP local header magic bytes and full archive CRC/readability using stdlib only."""
+    if not path.exists():
+        raise error_cls(f"Missing required roll archive: {path}")
+    size = path.stat().st_size
+    if size < 22:
+        raise error_cls(f"Archive {path.name} is truncated ({size} bytes).")
+    with open(path, "rb") as fh:
+        magic = fh.read(4)
+    if magic != b"PK\x03\x04":
+        raise error_cls(
+            f"Archive {path.name} failed ZIP magic-byte verification "
+            f"(got {magic!r}; upstream may have returned an HTML error page)."
+        )
+    try:
+        with zipfile.ZipFile(path, "r") as zf:
+            bad_member = zf.testzip()
+            if bad_member is not None:
+                raise error_cls(
+                    f"Archive {path.name} failed CRC check on member {bad_member!r}."
+                )
+            return list(zf.namelist())
+    except zipfile.BadZipFile as exc:
+        raise error_cls(f"Archive {path.name} is not a valid ZIP file: {exc}") from exc
+
+
+def download_archive_streaming(
+    url: str,
+    dest_path: Path,
+    *,
+    opener: Callable[..., Any] | None = None,
+    timeout: float = 120.0,
+    error_cls: type[Exception] = RuntimeError,
+) -> None:
+    """Stream an upstream HCAD `.zip` into `<name>.part`, validate ZIP integrity, then rename atomically."""
+    open_fn = opener or urllib.request.urlopen
+    part_path = dest_path.with_name(f"{dest_path.name}.part")
+    part_path.unlink(missing_ok=True)
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "HoustonBuildingAtlas/2.0"},
+    )
+    try:
+        with open_fn(req, timeout=timeout) as resp:
+            status = getattr(resp, "status", None) or resp.getcode()
+            if status != 200:
+                raise error_cls(
+                    f"Download failed for {url}: expected HTTP 200, got HTTP {status}."
+                )
+            ctype = str(resp.headers.get("Content-Type") or "").lower()
+            if "text/html" in ctype:
+                raise error_cls(
+                    f"Download failed for {url}: received Content-Type {ctype!r} (HTML error page)."
+                )
+            with open(part_path, "wb") as out_fh:
+                first_chunk = True
+                while True:
+                    chunk = resp.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    if first_chunk:
+                        first_chunk = False
+                        if len(chunk) < 4 or chunk[:4] != b"PK\x03\x04":
+                            raise error_cls(
+                                f"Download failed for {url}: payload lacks ZIP magic bytes (got {chunk[:16]!r})."
+                            )
+                    out_fh.write(chunk)
+        verify_zip_file_integrity(part_path, error_cls=error_cls)
+        part_path.replace(dest_path)
+    except Exception as exc:
+        part_path.unlink(missing_ok=True)
+        if isinstance(exc, error_cls):
+            raise
+        raise error_cls(f"Failed downloading {url}: {exc}") from exc
 
 

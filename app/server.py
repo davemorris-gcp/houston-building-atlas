@@ -21,6 +21,7 @@ class RangeHTTPRequestHandler(SimpleHTTPRequestHandler):
         ".pmtiles": "application/vnd.pmtiles",
         ".geojson": "application/geo+json",
         ".json": "application/json",
+        ".gz": "application/gzip",
         ".js": "application/javascript",
         ".mjs": "application/javascript",
         ".css": "text/css",

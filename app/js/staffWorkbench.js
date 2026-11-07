@@ -1,7 +1,7 @@
 /**
  * Preservation Houston Staff & Field Workbench (Milestone 3).
  *
- * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261106a")` strictly when
+ * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261106b")` strictly when
  * staff or field volunteers open:
  *   - Component A (`#4`): Split-Screen Historian Rapid Audit Mode (`#audit=1`)
  *   - Component B (`#5a`): In-Browser Staff Polygon Editor (`#polyedit=<id>`)
@@ -43,13 +43,13 @@ import {
   getSurveyPhotoBlob,
   listSurveyPhotoSummaries,
   deleteSurveyPhotoBlob,
-} from "./curatedEdits.js?v=20261106a";
+} from "./curatedEdits.js?v=20261106b";
 import {
   VALID_AUDIT_SORT_MODES,
   getAtlasMaxYear,
   normalizeAuditSort,
   normalizeComparableAddress,
-} from "./filterStore.js?v=20261106a";
+} from "./filterStore.js?v=20261106b";
 export { VALID_AUDIT_SORT_MODES, normalizeAuditSort };
 
 export const BORDEN_DOWNTOWN_GRID_DEG = -34.65;
@@ -2395,7 +2395,7 @@ export class StaffWorkbenchController {
     }
     if (this._auditLoadingPromise) return this._auditLoadingPromise;
     this._auditLoadingPromise = (async () => {
-      const resp = await fetch("public/data/historical_audit_queue.json?v=20261106a");
+      const resp = await fetch("public/data/historical_audit_queue.json?v=20261106b");
       if (!resp.ok) {
         throw new Error(`HTTP ${resp.status} loading historical_audit_queue.json`);
       }

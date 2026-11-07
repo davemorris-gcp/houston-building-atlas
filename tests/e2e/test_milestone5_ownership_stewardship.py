@@ -228,7 +228,7 @@ def test_it4_stewardship_timeline_1836_2026_and_sec_25_025_homestead_privacy(
     page.wait_for_function(
         """() => {
             const card = document.getElementById('inspector-stewardship-timeline-card');
-            return Boolean(card && (card.innerText || '').includes('28 Days') && (card.innerText || '').includes('R2025-495199'));
+            return Boolean(card && (card.innerText || '').includes('28 Days') && (card.innerText || '').includes('RP-2025-495199'));
         }""",
         timeout=10000,
     )
@@ -237,7 +237,7 @@ def test_it4_stewardship_timeline_1836_2026_and_sec_25_025_homestead_privacy(
     assert "Original Structure Built (1920)" in timeline_txt
     assert "City Directory Occupant: Lorena Mrs" in timeline_txt
     assert "Sewer Disconnect (1 of 2)" in timeline_txt
-    assert "R2025-495199" in timeline_txt
+    assert "RP-2025-495199" in timeline_txt
     assert "Pre-Demolition Flip Velocity: 28 Days" in timeline_txt
 
     # 2. Switch to HCAD tab on 1107 TULANE ST to verify Registered-Agent Anonymity Shield X-Ray & Flip Alert

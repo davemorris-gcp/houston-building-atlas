@@ -5143,6 +5143,22 @@ body {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+
+  .rk-owner-tenure-row {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    break-inside: avoid;
+  }
+  .rk-owner-tenure-span,
+  .rk-owner-tenure-acq {
+    background: #f1f5f9 !important;
+    border: 1px solid #94a3b8 !important;
+    color: #0f172a !important;
+  }
+  .rk-owner-tenure-name {
+    color: #0f172a !important;
+  }
 }
 
 /* City of Houston Landmark Designation Report Card */
@@ -9066,6 +9082,86 @@ body {
   line-height: 1.38;
   color: #94a3b8;
   margin-top: 1px;
+}
+
+.rk-owner-tenure-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 4px 0 5px;
+}
+
+.rk-owner-tenure-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.rk-owner-tenure-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.rk-owner-tenure-span {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.36);
+}
+
+.rk-owner-tenure-acq {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 9.5px;
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+}
+
+.rk-owner-tenure-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f1f5f9;
+  overflow-wrap: anywhere;
+}
+
+.rk-owner-tenure-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rk-copy-pill.owner-party {
+  background: rgba(16, 185, 129, 0.11);
+  border-color: rgba(16, 185, 129, 0.34);
+}
+
+.rk-copy-pill.owner-party:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.55);
+}
+
+.rk-unpaired-deeds-subhead {
+  font-size: 9.8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  margin: 3px 0 2px;
 }
 
 .rk-clerk-hint {
@@ -13493,6 +13589,20 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
   .survey-select-grid,
   .survey-queue-actions {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rk-owner-tenure-row {
+    padding: 5px 6px;
+  }
+
+  .rk-owner-tenure-pills {
+    width: 100%;
+  }
+
+  .rk-owner-tenure-pills .rk-copy-pill {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
   }
 }
 

@@ -16,8 +16,8 @@
 
 const ENTITY_KEYWORD_PATTERNS = [
   // Corporate & legal entity suffixes (dotted L.P. / P.C. collapse before matching; bare spaced "L P" omitted for initials)
-  "LLC", "L\\s+L\\s+C", "INC", "INCORPORATED", "CORP", "CORPORATION",
-  "COMPANY", "CO", "LP", "LTD", "LIMITED", "LLP", "L\\s+L\\s+P", "PLC",
+  "LLC", "L\\s+L\\s+C", "PLLC", "P\\s+L\\s+L\\s+C", "INC", "INCORPORATED", "CORP", "CORPORATION",
+  "COMPANY", "CO", "LP", "LTD", "LIMITED", "LLP", "L\\s+L\\s+P", "PLC", "PC",
   // Financial & community associations
   "BANK", "NATIONAL", "FSB", "CREDIT\\s+UNION",
   "ASSOC", "ASSN", "ASSOCIATION", "HOA", "POA", "CONDO", "CONDOMINIUM",
@@ -38,13 +38,16 @@ const ENTITY_KEYWORD_PATTERNS = [
   "HOMES", "HOMEBUILDERS", "BUILDERS", "CONSTRUCTION", "VENTURES", "CAPITAL",
   "GROUP", "MANAGEMENT", "MGMT", "SERVICES", "SOLUTIONS", "SYSTEMS", "OPERATIONS",
   "RETAIL", "COMMERCIAL", "RESIDENTIAL", "APARTMENTS", "VILLAS", "TOWNHOMES",
-  "LOFTS", "PLAZA", "CENTER", "CENTRE", "RR", "RY", "RAILROAD", "RAILWAY",
+  "LOFTS", "PLAZA", "CENTER", "CENTRE", "BUILDS", "BUILDER", "RR", "RY", "RAILROAD", "RAILWAY",
 ];
 
 const ENTITY_KEYWORD_RE = new RegExp(
   `\\b(?:${ENTITY_KEYWORD_PATTERNS.join("|")})\\b`,
   "i"
 );
+
+const TRUST_ENTITY_RE =
+  /\b(?:TRUSTEES?|LIVING\s+TRUST|REVOCABLE\s+TRUST|FAMILY\s+TRUST|IRREVOCABLE\s+TRUST|CHILDRENS\s+TRUST|TRUST|TR)\b/i;
 
 const NAME_SUFFIX_TOKENS = new Set([
   "JR",
@@ -62,6 +65,115 @@ const NAME_SUFFIX_TOKENS = new Set([
 
 const BOILERPLATE_TRAILING_RE =
   /\b(?:ET\s*AL|ETAL|ET\s*UX|ETUX|ET\s*VIR|ETVIR|ESTATE\s+OF|ESTATE|HEIRS|TRUSTEES|TRUSTEE|LIVING\s+TRUST|REVOCABLE\s+TRUST|FAMILY\s+TRUST|IRREVOCABLE\s+TRUST|CHILDRENS\s+TRUST|TRUST|TR|TRS|LIFE\s+ESTATE|LIFE\s+EST)\b/gi;
+
+const OWNER_CARE_OF_TAIL_RE =
+  /\s*(?:(?<!\d)%|\bC\s*\/\s*O\b|\bCARE\s+OF\b|\bATTN\s*:?).*$/i;
+
+const OWNER_DBA_TAIL_RE = /\s*\(DBA\s+[^)]*\)\s*$/i;
+
+// Keep 1:1 synchronized with CONFIDENTIAL_OWNER_TOKENS and is_confidential_owner_token in pipeline/atlas_pipeline/schema.py.
+export const CONFIDENTIAL_OWNER_TOKENS = new Set([
+  "CURRENT OWNER",
+  "CONFIDENTIAL",
+  "CONFIDENTIAL OWNER",
+  "PROTECTED",
+  "PROTECTED OWNER",
+  "WITHHELD",
+  "REDACTED",
+]);
+
+export const PLACEHOLDER_OWNER_TOKENS = new Set([
+  ...CONFIDENTIAL_OWNER_TOKENS,
+  "ET AL",
+  "TRUSTEE",
+  "ESTATE OF",
+  "UNKNOWN",
+  "UNKNOWN OWNER",
+  "OWNER",
+  "PUBLIC / UNLISTED",
+  "PUBLIC UNLISTED",
+  "UNLISTED",
+  "OWNER OF RECORD",
+  "OWNER OF RECORD HCAD",
+  "PENDING",
+  "NONE",
+  "NA",
+  "N A",
+  "NULL",
+  "0",
+]);
+
+const CONFIDENTIAL_OWNER_PHRASE_RE =
+  /\b(?:CURRENT\s+OWNER|CONFIDENTIAL(?:\s+OWNER)?|PROTECTED\s+OWNER|PROTECTED\s+INDIVIDUAL\s+HOMESTEAD|SEC\.?\s*25\.025|WITHHELD|REDACTED)\b/i;
+
+/**
+ * Return true if `rawName` carries a statutory TX Tax Code Sec. 25.025 confidentiality marker (`DF-1`).
+ * Synchronized 1:1 with `is_confidential_owner_token` in `pipeline/atlas_pipeline/schema.py`.
+ */
+export function isConfidentialOwnerName(rawName = "") {
+  const raw = String(rawName || "").trim();
+  if (!raw) return false;
+  const stripped = raw.replace(OWNER_CARE_OF_TAIL_RE, "").trim();
+  if (!stripped) return false;
+  if (CONFIDENTIAL_OWNER_PHRASE_RE.test(stripped)) return true;
+  const cleaned = stripped
+    .replace(/[^A-Za-z0-9\s&/]+/g, " ")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return false;
+  if (CONFIDENTIAL_OWNER_TOKENS.has(cleaned)) return true;
+  const segments = cleaned.split(/\s*(?:&|\/|\bAND\b)\s*/);
+  for (const seg of segments) {
+    if (CONFIDENTIAL_OWNER_TOKENS.has(seg.trim())) return true;
+  }
+  return false;
+}
+
+/**
+ * Return true if `rawName` is empty, confidential, or a non-owner placeholder (`DF-1`, `DF-4`).
+ * Synchronized 1:1 with `is_placeholder_owner_token` in `pipeline/atlas_pipeline/schema.py`.
+ */
+export function isPlaceholderOwnerName(rawName = "") {
+  const raw = String(rawName || "").trim();
+  if (!raw) return true;
+  if (isConfidentialOwnerName(raw)) return true;
+  const cleaned = raw
+    .replace(OWNER_CARE_OF_TAIL_RE, "")
+    .replace(/[^A-Za-z0-9\s]+/g, " ")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return true;
+  return PLACEHOLDER_OWNER_TOKENS.has(cleaned);
+}
+
+/**
+ * Return true if `rawName` represents a corporate, institutional, civic, or trust owner (`ENTITY_KEYWORD_RE` + `TRUST_ENTITY_RE`).
+ */
+export function isEntityOrTrustOwnerName(rawName = "") {
+  const orig = String(rawName || "").trim();
+  if (!orig || isPlaceholderOwnerName(orig)) return false;
+  const upperOrig = orig
+    .replace(OWNER_CARE_OF_TAIL_RE, "")
+    .replace(OWNER_DBA_TAIL_RE, "")
+    .toUpperCase()
+    .trim();
+  if (!upperOrig) return false;
+  const collapsedAbbrev = upperOrig.replace(
+    /\b([A-Z])\.([A-Z])\.(?:([A-Z])\.)?(?:([A-Z])\.)?/g,
+    (_, a, b, c, d) => `${a}${b}${c || ""}${d || ""}`
+  );
+  const looksLikeSpouseHoaGivenName =
+    /\s+(?:&|AND)\s+HOA(?:\s+[A-Z]+|\s*$)/i.test(collapsedAbbrev) &&
+    !/\b(?:ASSOC|ASSN|ASSOCIATION|CONDO|CONDOMINIUM|TOWNHOMES|VILLAS|ESTATES|POA|INC|LLC|PLLC|CORP)\b/i.test(
+      collapsedAbbrev
+    );
+  if (ENTITY_KEYWORD_RE.test(collapsedAbbrev) && !looksLikeSpouseHoaGivenName) {
+    return true;
+  }
+  return TRUST_ENTITY_RE.test(collapsedAbbrev);
+}
 
 const NON_SUBDIVISION_LINE_START_RE =
   /^(?:(?:STATE\s+CLASS|GRADE|LTS?|LOTS?|TRS?|TRACTS?|TRA|RES|RESERVE|BLKS?|BLOCKS?|SEC|SECT|SECTION|UNITS?|BLDG|BUILDING|ABST|ABSTRACT|O\/L|OUTLOT|OUT\s+LOT|PARCEL|CONDO|GARAGE|PARKING|SPACE|SLIP|ESMT|EASEMENT)\b|(?:N|S|E|W|NE|NW|SE|SW|NO|SO|EA|WE|NORTH|SOUTH|EAST|WEST|PT|PART|POR|PORTION|ALL|REM|REMAINDER)\s+(?:OF\s+|\d)|OF\s+(?:LTS?|LOTS?|TRS?|TRACTS?|BLKS?|BLOCKS?|SEC|SECT|RES)\b|\d+\/\d+\s+(?:OF\s+|\b(?:LTS?|LOTS?|TRS?|TRACTS?|BLKS?|BLOCKS?)\b)|\d+(?:\.\d+)?\s*(?:FT|FEET|X|AC|ACRES|SQ\s*FT|SF|%)\b|\d+(?:\.\d+)?X\d+|\()/i;
@@ -441,27 +553,21 @@ export function parseClerkLegalTokens(input = {}, legacySubdivision = "") {
  */
 export function formatClerkPartyTokens(rawOwner = "") {
   const orig = String(rawOwner || "").trim();
-  if (!orig) return [];
-  // Strip HCAD care-of ("% AGENT NAME" or "C/O ...") mailing suffix before entity/person classification
+  if (!orig || isPlaceholderOwnerName(orig)) return [];
+  // Strip HCAD care-of ("% AGENT NAME" / "C/O ...") and trailing "(DBA ...)" suffix before tokenizing (`DF-2`)
   const upperOrig = orig
+    .replace(OWNER_CARE_OF_TAIL_RE, "")
+    .replace(OWNER_DBA_TAIL_RE, "")
     .toUpperCase()
-    .replace(/\s*(?:(?<!\d)%|\bC\/O\b).*$/, "")
     .trim();
-  if (
-    !upperOrig ||
-    upperOrig === "PUBLIC / UNLISTED" ||
-    upperOrig === "CURRENT OWNER" ||
-    upperOrig === "UNLISTED" ||
-    upperOrig === "UNKNOWN" ||
-    upperOrig === "PENDING"
-  ) {
+  if (!upperOrig || isPlaceholderOwnerName(upperOrig)) {
     return [];
   }
 
-  // Collapse dotted abbreviations like "L.L.C." -> "LLC" and "L.P." -> "LP" before punctuation removal
+  // Collapse dotted abbreviations like "L.L.C." -> "LLC", "P.L.L.C." -> "PLLC", and "L.P." -> "LP" before punctuation removal
   const collapsedAbbrev = upperOrig.replace(
-    /\b([A-Z])\.([A-Z])\.(?:([A-Z])\.)?/g,
-    (_, a, b, c) => `${a}${b}${c || ""}`
+    /\b([A-Z])\.([A-Z])\.(?:([A-Z])\.)?(?:([A-Z])\.)?/g,
+    (_, a, b, c, d) => `${a}${b}${c || ""}${d || ""}`
   );
 
   // Guard Vietnamese spouse given name "HOA" after "&" (e.g. "LE HUNG V & HOA T") from matching HOA entity keyword
@@ -552,76 +658,302 @@ export function formatClerkPartyTokens(rawOwner = "") {
 }
 
 /**
- * Decode a compact deed chain string ("20190329:R2019-149789|20120820:20120430232|...")
- * stored in permits_<prefix3>.json["<hcad_num>"].d into structured Clerk lookup items.
+ * Normalize a single compact HCAD Clerk instrument token (`FC:...`, `PR:...`, `VP:vol/pg`,
+ * `R20XX-NNNNN`, or numeric Clerk File Number) into a canonical lookup object (`DF-6`, `MOD-2`).
  */
-export function decodeCompactDeedChain(compactStr = "") {
+export function formatClerkInstrumentToken(rawToken = "", dateDisplay = "") {
+  const token = String(rawToken || "").trim();
+  if (!token) return null;
+
+  if (token.startsWith("FC:")) {
+    const filmCode = token.slice(3).trim();
+    if (!filmCode) return null;
+    return {
+      date: dateDisplay,
+      kind: "film_code",
+      clerkBoxLabel: "Film Code",
+      copyValue: filmCode,
+      displayValue: filmCode,
+      portal: "rp",
+      matchKey: `FC:${filmCode.toUpperCase()}`,
+    };
+  }
+  if (token.startsWith("PR:")) {
+    const caseNo = token.slice(3).trim();
+    if (!caseNo) return null;
+    return {
+      date: dateDisplay,
+      kind: "probate",
+      clerkBoxLabel: "Probate Case #",
+      copyValue: caseNo,
+      displayValue: caseNo,
+      portal: "probate",
+      matchKey: `PR:${caseNo.toUpperCase()}`,
+    };
+  }
+  if (token.startsWith("VP:")) {
+    const [volRaw = "", pgRaw = ""] = token.slice(3).split("/");
+    const vol = volRaw.trim();
+    const pg = pgRaw.trim();
+    if (!vol && !pg) return null;
+    return {
+      date: dateDisplay,
+      kind: "vol_page",
+      clerkBoxLabel: "Vol / Page",
+      copyValue: vol,
+      pageValue: pg,
+      displayValue: `Vol ${vol}, Pg ${pg}`,
+      portal: "archives",
+      matchKey: `VP:${vol.toUpperCase()}/${pg.toUpperCase()}`,
+    };
+  }
+
+  const fileNumber = /^R20\d{2}-\d+$/i.test(token)
+    ? `RP-${token.slice(1).toUpperCase()}`
+    : token.toUpperCase();
+  return {
+    date: dateDisplay,
+    kind: "file_number",
+    clerkBoxLabel: "File Number",
+    copyValue: fileNumber,
+    displayValue: fileNumber,
+    portal: "rp",
+    matchKey: `FN:${fileNumber}`,
+  };
+}
+
+/**
+ * Canonical parser for compact deed wire strings ("20190329:R2019-149789|20120820:20120430232|..."
+ * or 4-part "20190415:R2019-149789:1:D|20010510:FC:123-45-6789:2:D") stored in
+ * permits_<prefix3>.json["<hcad_num>"].d.
+ *
+ * Suppresses undated HCAD sentinel dates ("00000000") (`isoDate = ""`) and reassembles
+ * prefixed Clerk tokens (`FC:...`, `PR:...`, `VP:...`) in one shared place.
+ */
+export function parseCompactDeedWireEntries(compactStr = "") {
   const raw = String(compactStr || "").trim();
   if (!raw) return [];
-
-  const items = [];
+  const out = [];
   for (const entry of raw.split("|")) {
-    if (!entry) continue;
-    const colonIdx = entry.indexOf(":");
+    const cleanEntry = entry.trim();
+    if (!cleanEntry) continue;
+    const colonIdx = cleanEntry.indexOf(":");
     if (colonIdx <= 0) continue;
-    const dt8 = entry.slice(0, colonIdx).trim();
-    const token = entry.slice(colonIdx + 1).trim();
-    if (!token) continue;
-
-    let dateDisplay = "";
+    const dt8 = cleanEntry.slice(0, colonIdx).trim();
+    const restParts = cleanEntry.slice(colonIdx + 1).split(":");
+    const isPrefixTok = restParts.length >= 2 && /^(?:FC|PR|VP)$/i.test(restParts[0].trim());
+    const token = isPrefixTok
+      ? `${restParts[0].trim()}:${restParts[1].trim()}`
+      : String(restParts[0] || "").trim();
+    const extraOffset = isPrefixTok ? 2 : 1;
+    const deedId = String(restParts[extraOffset] || "").trim();
+    const typeCode = String(restParts[extraOffset + 1] || "D").trim();
+    let isoDate = "";
     if (/^\d{8}$/.test(dt8) && dt8 !== "00000000") {
       const yyyy = dt8.slice(0, 4);
       const mm = dt8.slice(4, 6);
       const dd = dt8.slice(6, 8);
-      dateDisplay = mm === "00" || dd === "00" ? yyyy : `${yyyy}-${mm}-${dd}`;
+      isoDate = mm === "00" || dd === "00" ? yyyy : `${yyyy}-${mm}-${dd}`;
+    } else if (!/^\d{8}$/.test(dt8)) {
+      isoDate = dt8;
     }
+    out.push({ dt8, isoDate, token, deedId, typeCode });
+  }
+  return out;
+}
 
-    if (token.startsWith("FC:")) {
-      const filmCode = token.slice(3);
-      items.push({
-        date: dateDisplay,
-        kind: "film_code",
-        clerkBoxLabel: "Film Code",
-        copyValue: filmCode,
-        displayValue: filmCode,
-        portal: "rp",
-      });
-    } else if (token.startsWith("PR:")) {
-      const caseNo = token.slice(3);
-      items.push({
-        date: dateDisplay,
-        kind: "probate",
-        clerkBoxLabel: "Probate Case #",
-        copyValue: caseNo,
-        displayValue: caseNo,
-        portal: "probate",
-      });
-    } else if (token.startsWith("VP:")) {
-      const [vol = "", pg = ""] = token.slice(3).split("/");
-      items.push({
-        date: dateDisplay,
-        kind: "vol_page",
-        clerkBoxLabel: "Vol / Page",
-        copyValue: vol,
-        pageValue: pg,
-        displayValue: `Vol ${vol}, Pg ${pg}`,
-        portal: "archives",
-      });
-    } else {
-      const fileNumber = /^R20\d{2}-\d+$/.test(token)
-        ? `RP-${token.slice(1)}`
-        : token;
-      items.push({
-        date: dateDisplay,
-        kind: "file_number",
-        clerkBoxLabel: "File Number",
-        copyValue: fileNumber,
-        displayValue: fileNumber,
-        portal: "rp",
-      });
+/**
+ * Decode a compact deed chain string ("20190329:R2019-149789|20120820:20120430232|..."
+ * or 4-part "20190415:R2019-149789:1:D|20010510:FC:123-45-6789:2:D")
+ * stored in permits_<prefix3>.json["<hcad_num>"].d into structured Clerk lookup items.
+ */
+export function decodeCompactDeedChain(compactStr = "") {
+  const items = [];
+  for (const { isoDate, token } of parseCompactDeedWireEntries(compactStr)) {
+    if (!token) continue;
+    const formatted = formatClerkInstrumentToken(token, isoDate);
+    if (formatted) {
+      items.push(formatted);
     }
   }
   return items;
+}
+
+/**
+ * Dual-mode decompressor for `owners_<prefix3>.json.gz` static shards (`DF-6`, `ANL-1`).
+ *
+ * Why dual-mode magic-byte inspection is required:
+ *   - Local `app/server.py` serves `.json.gz` with `Content-Type: application/gzip` and NO
+ *     `Content-Encoding` header, so `fetch().arrayBuffer()` delivers raw RFC 1952 gzip bytes (`0x1f 0x8b`).
+ *   - Static CDNs (GitHub Pages / Fastly) or reverse proxies may transparently attach
+ *     `Content-Encoding: gzip` to `.gz` assets, causing the browser's HTTP stack to gunzip at
+ *     the transport layer and deliver plain UTF-8 JSON (`0x7b` `{`) to `arrayBuffer()`.
+ *   - Uses standard Web Streams `DecompressionStream("gzip")` across both browser and Node 22+
+ *     without any `node:zlib` runtime branch so unit tests exercise the exact production codepath.
+ */
+export async function decompressOwnerHistoryBytes(inputBytes) {
+  const bytes =
+    inputBytes instanceof Uint8Array
+      ? inputBytes
+      : inputBytes instanceof ArrayBuffer
+      ? new Uint8Array(inputBytes)
+      : ArrayBuffer.isView(inputBytes)
+      ? new Uint8Array(inputBytes.buffer, inputBytes.byteOffset, inputBytes.byteLength)
+      : null;
+
+  if (!bytes || bytes.byteLength === 0) {
+    throw new Error("Owner history shard payload is empty.");
+  }
+
+  let jsonText = "";
+  if (bytes.byteLength >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    if (typeof DecompressionStream !== "function") {
+      throw new Error("DecompressionStream('gzip') is unavailable in this runtime.");
+    }
+    try {
+      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+      jsonText = await new Response(stream).text();
+    } catch (err) {
+      throw new Error(
+        `Failed to gunzip owner history shard: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  } else {
+    let offset = 0;
+    // Skip optional UTF-8 BOM (`0xEF 0xBB 0xBF`)
+    if (
+      bytes.byteLength >= 3 &&
+      bytes[0] === 0xef &&
+      bytes[1] === 0xbb &&
+      bytes[2] === 0xbf
+    ) {
+      offset = 3;
+    }
+    while (
+      offset < bytes.byteLength &&
+      (bytes[offset] === 0x20 ||
+        bytes[offset] === 0x09 ||
+        bytes[offset] === 0x0a ||
+        bytes[offset] === 0x0d)
+    ) {
+      offset += 1;
+    }
+    if (offset >= bytes.byteLength) {
+      throw new Error("Owner history shard contains only whitespace.");
+    }
+    if (bytes[offset] === 0x3c) {
+      throw new Error("Owner history shard returned HTML (<) instead of gzip/JSON.");
+    }
+    if (bytes[offset] !== 0x7b) {
+      throw new Error(
+        `Unexpected leading byte 0x${bytes[offset].toString(16).padStart(2, "0")} in owner history shard.`
+      );
+    }
+    jsonText = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(offset));
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (err) {
+    throw new Error(
+      `Invalid JSON in owner history shard: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Owner history shard root must be a plain JSON object.");
+  }
+  return parsed;
+}
+
+/**
+ * Decode a compact 22-year HCAD certified-roll ownership chain string (`DF-4`, `ANL-2`).
+ *
+ * Compact Wire Grammar (1:1 synchronized with `encode_compact_owner_history` in
+ * `pipeline/atlas_pipeline/build_historical_ownership_2005_2026.py`):
+ *   - Record string: `<tenure_0>|<tenure_1>|...|<tenure_k>` ordered newest-first (`k < 12`).
+ *   - Each `<tenure_i>` has 4 `~`-delimited fields: `<span_yr>~<acq_dt>~<deed_tok>~<owner_name>`
+ *     1. `<span_yr>`   : `"YYYY"` (single roll year) or `"YYYY-YYYY"` (contiguous roll span).
+ *     2. `<acq_dt>`    : `"YYYYMMDD"`, `"YYYY"`, `"<=1988"` (HCAD `1988-01-02` mainframe baseline), or `""`.
+ *     3. `<deed_tok>`  : Paired Clerk instrument token (`R20XX-NNNNN`, numeric file #, `FC:...`,
+ *                        `PR:...`, `VP:vol/pg`) or `""`.
+ *     4. `<owner_name>`: Sanitized HCAD roll owner name (rest-joined on `~` for defensive tolerance).
+ */
+export function decodeCompactOwnerHistory(compactOhStr = "", currentOwnerName = "") {
+  if (isConfidentialOwnerName(currentOwnerName)) return [];
+  const raw = String(compactOhStr || "").trim();
+  if (!raw) return [];
+
+  const tenures = [];
+  const entries = raw.split("|");
+  for (let i = 0; i < entries.length; i += 1) {
+    const entry = entries[i].trim();
+    if (!entry) continue;
+    const parts = entry.split("~");
+    if (parts.length < 4) continue;
+
+    const spanRaw = parts[0].trim();
+    const acqRaw = parts[1].trim();
+    const deedRaw = parts[2].trim();
+    let ownerName = parts.slice(3).join("~").trim();
+
+    if (!ownerName && i === 0 && !isPlaceholderOwnerName(currentOwnerName)) {
+      ownerName = String(currentOwnerName).trim();
+    }
+    if (!ownerName || isPlaceholderOwnerName(ownerName)) continue;
+
+    const spanMatch = /^(\d{4})(?:-(\d{4}))?$/.exec(spanRaw);
+    if (!spanMatch) continue;
+    const startYear = Number(spanMatch[1]);
+    const endYear = spanMatch[2] ? Number(spanMatch[2]) : startYear;
+    if (!Number.isFinite(startYear) || !Number.isFinite(endYear) || endYear < startYear) continue;
+    const spanLabel = startYear === endYear ? String(startYear) : `${startYear}-${endYear}`;
+
+    let acqDate = "";
+    let acqLabel = "";
+    let isPreMainframe = false;
+    let isPre2005 = false;
+    if (acqRaw === "<=1988") {
+      acqDate = "<=1988";
+      acqLabel = "Acq. <=1988 (Pre-Mainframe)";
+      isPreMainframe = true;
+      isPre2005 = true;
+    } else if (/^\d{8}$/.test(acqRaw) && acqRaw !== "00000000") {
+      const yyyy = acqRaw.slice(0, 4);
+      const mm = acqRaw.slice(4, 6);
+      const dd = acqRaw.slice(6, 8);
+      acqDate = mm === "00" || dd === "00" ? yyyy : `${yyyy}-${mm}-${dd}`;
+      acqLabel = `Acq. ${acqDate}`;
+      isPre2005 = Number(yyyy) < 2005;
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(acqRaw)) {
+      acqDate = acqRaw;
+      acqLabel = `Acq. ${acqDate}`;
+      isPre2005 = Number(acqRaw.slice(0, 4)) < 2005;
+    } else if (/^\d{4}$/.test(acqRaw)) {
+      acqDate = acqRaw;
+      acqLabel = `Acq. ${acqDate}`;
+      isPre2005 = Number(acqRaw) < 2005;
+    }
+
+    const deedDateHint =
+      acqDate && acqDate !== "<=1988" ? acqDate : String(startYear);
+    const deed = deedRaw ? formatClerkInstrumentToken(deedRaw, deedDateHint) : null;
+    const partyTokens = formatClerkPartyTokens(ownerName);
+
+    tenures.push({
+      startYear,
+      endYear,
+      spanLabel,
+      acqDate,
+      acqLabel,
+      isPreMainframe,
+      isPre2005,
+      ownerName,
+      deed,
+      partyTokens,
+    });
+  }
+  return tenures;
 }
 
 function _escapeClerkHtml(val) {
@@ -631,6 +963,48 @@ function _escapeClerkHtml(val) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function _renderClerkDeedPillHtml(item) {
+  if (!item) return "";
+  const dateTag = item.date
+    ? `<span class="rk-deed-date-tag">${_escapeClerkHtml(item.date)}</span>`
+    : "";
+  if (item.kind === "vol_page" && item.pageValue) {
+    const escVol = _escapeClerkHtml(item.copyValue);
+    const escPg = _escapeClerkHtml(item.pageValue);
+    return `<button
+        type="button"
+        class="rk-copy-pill deed-fileno"
+        data-rk-copy="${escVol}"
+        title="Pre-1961 Bound Deed Book transfer (${_escapeClerkHtml(
+          item.date || "Archival"
+        )}): click to copy Volume '${escVol}' (Page '${escPg}')"
+      >
+        ${dateTag}
+        <span class="rk-copy-k">Deed Vol/Pg:</span>
+        <span class="rk-copy-v mono">${_escapeClerkHtml(item.displayValue)}</span>
+        <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
+      </button>`;
+  }
+  const escCopy = _escapeClerkHtml(item.copyValue);
+  const escLbl = _escapeClerkHtml(item.clerkBoxLabel);
+  const escVal = _escapeClerkHtml(item.displayValue);
+  const portalHint =
+    item.portal === "probate"
+      ? "Paste into Harris County Probate Court Search"
+      : `Paste '${item.copyValue}' alone into the '${item.clerkBoxLabel}' box on Harris County Clerk RP and press Search`;
+  return `<button
+      type="button"
+      class="rk-copy-pill deed-fileno"
+      data-rk-copy="${escCopy}"
+      title="${_escapeClerkHtml(portalHint)}"
+    >
+      ${dateTag}
+      <span class="rk-copy-k">${escLbl}:</span>
+      <span class="rk-copy-v mono">${escVal}</span>
+      <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
+    </button>`;
 }
 
 /**
@@ -667,10 +1041,15 @@ export function describeDeedChainCoverage(chainItems = []) {
 }
 
 /**
- * Pure, DOM-free view-model and HTML builder for the Step 3 Recorded Deed Transfers box.
+ * Pure, DOM-free view-model and HTML builder for the Step 3 Recorded Deed & Ownership Chain box.
  * Returns { ignore, hidden, isEmptyCama, count, html }.
  */
-export function buildResearchKitDeedChainView(hcadNum, activeBoxHcadNum, permitShardRec) {
+export function buildResearchKitDeedChainView(
+  hcadNum,
+  activeBoxHcadNum,
+  permitShardRec,
+  currentOwnerName = ""
+) {
   const cleanHcad = String(hcadNum || "").trim();
   if (String(activeBoxHcadNum || "").trim() !== cleanHcad) {
     return { ignore: true, hidden: false, isEmptyCama: false, count: 0, html: "" };
@@ -679,7 +1058,140 @@ export function buildResearchKitDeedChainView(hcadNum, activeBoxHcadNum, permitS
     return { ignore: false, hidden: true, isEmptyCama: false, count: 0, html: "" };
   }
 
+  const effOwner = String(currentOwnerName || permitShardRec?.owner || "").trim();
+  const isConfidential = Boolean(
+    permitShardRec?.conf ||
+      isConfidentialOwnerName(currentOwnerName) ||
+      isConfidentialOwnerName(permitShardRec?.owner)
+  );
+  if (isConfidential) {
+    const html = `
+      <div class="rk-deed-chain-head">
+        <span class="rk-deed-chain-title">&#128220; HCAD Roll Ownership &amp; Deed Chain</span>
+        <span class="rk-deed-chain-count is-muted">Protected (TX Tax Code Sec. 25.025)</span>
+      </div>
+      <div class="rk-clerk-hint">
+        Ownership names and County Clerk instrument links are withheld for statutory confidential homesteads under Texas Tax Code Section 25.025.
+      </div>
+    `;
+    return { ignore: false, hidden: false, isEmptyCama: true, count: 0, html };
+  }
+  const tenures = decodeCompactOwnerHistory(permitShardRec?.oh || "", effOwner);
   const chainItems = decodeCompactDeedChain(permitShardRec?.d || "");
+
+  // When 22-year HCAD certified-roll ownership tenures are available for a non-confidential parcel,
+  // render the integrated Ownership & Deed Chain view while retaining any unpaired Clerk instruments (`REG-1`).
+  if (tenures.length > 0) {
+    const pairedKeys = new Set(
+      tenures.map((t) => t.deed?.matchKey).filter(Boolean)
+    );
+    const unpairedDeeds = chainItems.filter(
+      (it) => !it.matchKey || !pairedKeys.has(it.matchKey)
+    );
+    const maxEndYear = tenures.reduce(
+      (acc, t) => Math.max(acc, t.endYear || tenures[0].endYear),
+      tenures[0].endYear
+    );
+    const minStartYear = tenures.reduce(
+      (acc, t) => Math.min(acc, t.startYear || tenures[0].startYear),
+      tenures[0].startYear
+    );
+
+    const tenureRowsHtml = tenures
+      .map((t, idx) => {
+        const acqTagHtml = t.acqLabel
+          ? `<span class="rk-owner-tenure-acq mono">${_escapeClerkHtml(t.acqLabel)}</span>`
+          : "";
+        const ownerPillsHtml = t.partyTokens
+          .slice(0, 2)
+          .map((pt, pIdx) => {
+            const escCopy = _escapeClerkHtml(pt.copy);
+            const roleLbl =
+              idx === 0
+                ? pIdx === 0
+                  ? "Copy Owner"
+                  : `Copy Owner (${pIdx + 1})`
+                : pIdx === 0
+                ? "Copy Prior Owner"
+                : `Copy Prior (${pIdx + 1})`;
+            return `<button
+              type="button"
+              class="rk-copy-pill owner-party"
+              data-rk-copy="${escCopy}"
+              title="Click to copy '${escCopy}' (Last Name First - No Punctuation) for the Grantee or Grantor box on Harris County Clerk RP"
+            >
+              <span class="rk-copy-k">${_escapeClerkHtml(roleLbl)}:</span>
+              <span class="rk-copy-v mono">${_escapeClerkHtml(pt.display)}</span>
+              <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
+            </button>`;
+          })
+          .join("");
+        const pairedDeedHtml = t.deed ? _renderClerkDeedPillHtml(t.deed) : "";
+        const pillsBlock =
+          ownerPillsHtml || pairedDeedHtml
+            ? `<div class="rk-owner-tenure-pills">${pairedDeedHtml}${ownerPillsHtml}</div>`
+            : "";
+        return `<div class="rk-owner-tenure-row">
+            <div class="rk-owner-tenure-meta">
+              <span class="rk-owner-tenure-span mono">${_escapeClerkHtml(t.spanLabel)}</span>
+              ${acqTagHtml}
+              <span class="rk-owner-tenure-name">${_escapeClerkHtml(t.ownerName)}</span>
+            </div>
+            ${pillsBlock}
+          </div>`;
+      })
+      .join("");
+
+    const unpairedHtml =
+      unpairedDeeds.length > 0
+        ? `<div class="rk-unpaired-deeds-subhead">Additional Recorded Clerk Transfers</div>
+           <div class="rk-copy-pills-wrap">
+             ${unpairedDeeds.map((it) => _renderClerkDeedPillHtml(it)).join("")}
+           </div>`
+        : "";
+
+    let scopeNote =
+      "Combines 22 annual HCAD certified appraisal rolls (2005-present) with HCAD's post-mid-2004 deed index. Copy any File Number or Prior Owner token above into County Clerk Deeds (RP) to pull 1961-present deeds, mortgages (D/T), and mechanic's liens (M/L).";
+    if (tenures.length === 1 && chainItems.length === 0) {
+      const t0 = tenures[0];
+      if (t0.isPreMainframe) {
+        scopeNote =
+          "Continuous HCAD Roll Tenure Since <=1988 (HCAD Mainframe Baseline): Zero post-2004 sales recorded. Copy the Owner token above or Legal Description below into County Clerk Deeds (RP) or Historical Archives (pre-1961 Vol/Page) to trace pre-1988 instruments.";
+      } else if (t0.isPre2005 || t0.startYear <= 2005) {
+        scopeNote = `Continuous HCAD Roll Tenure (${t0.spanLabel}${
+          t0.acqDate ? ` · Acq. ${t0.acqDate}` : ""
+        }): Zero post-2005 HCAD ownership changes recorded. Copy the Owner token above or Legal Description below into County Clerk Deeds (RP) for pre-2004 deeds, mortgages, and liens.`;
+      } else {
+        scopeNote = `Parcel Account Created / Replatted in ${t0.startYear} (${t0.spanLabel}): Search the Historic Parent Plat or Subdivision + Block Tokens below on County Clerk Deeds (RP) to trace pre-${t0.startYear} parent-tract deeds.`;
+      }
+    }
+
+    const countVal = tenures.length + unpairedDeeds.length;
+    const countBadge =
+      tenures.length === 1
+        ? `1 Continuous Tenure (${tenures[0].spanLabel})`
+        : `${tenures.length} HCAD Owners (${minStartYear}-${maxEndYear})`;
+
+    const html = `
+      <div class="rk-deed-chain-head">
+        <span class="rk-deed-chain-title">&#128220; HCAD Roll Ownership &amp; Deed Chain (${minStartYear}-${maxEndYear})</span>
+        <span class="rk-deed-chain-count">${_escapeClerkHtml(countBadge)}</span>
+      </div>
+      <div class="rk-clerk-hint">
+        <strong>1-Click Clerk Search:</strong> copy a <strong>File Number</strong> for an instant deed match, or copy any <strong>Prior Owner</strong> token (formatted <em>Last Name First, No Punctuation</em>) into the <strong>Grantee</strong> or <strong>Grantor</strong> box on County Clerk Deeds (RP).
+      </div>
+      <div class="rk-owner-tenure-list">
+        ${tenureRowsHtml}
+      </div>
+      ${unpairedHtml}
+      <div class="rk-deed-scope-note">
+        ${_escapeClerkHtml(scopeNote)}
+      </div>
+    `;
+    return { ignore: false, hidden: false, isEmptyCama: false, count: countVal, html };
+  }
+
+  // Fallback when `oh` is absent or confidential: preserve legacy HCAD deed index rendering (`REG-1`, `REG-4`).
   const coverage = describeDeedChainCoverage(chainItems);
   if (!coverage.hasRecordedFilings) {
     const html = `
@@ -694,48 +1206,7 @@ export function buildResearchKitDeedChainView(hcadNum, activeBoxHcadNum, permitS
     return { ignore: false, hidden: false, isEmptyCama: true, count: 0, html };
   }
 
-  const pillsHtml = chainItems
-    .map((item) => {
-      const dateTag = item.date
-        ? `<span class="rk-deed-date-tag">${_escapeClerkHtml(item.date)}</span>`
-        : "";
-      if (item.kind === "vol_page" && item.pageValue) {
-        const escVol = _escapeClerkHtml(item.copyValue);
-        const escPg = _escapeClerkHtml(item.pageValue);
-        return `<button
-            type="button"
-            class="rk-copy-pill deed-fileno"
-            data-rk-copy="${escVol}"
-            title="Pre-1961 Bound Deed Book transfer (${_escapeClerkHtml(
-              item.date || "Archival"
-            )}): click to copy Volume '${escVol}' (Page '${escPg}')"
-          >
-            ${dateTag}
-            <span class="rk-copy-k">Deed Vol/Pg:</span>
-            <span class="rk-copy-v mono">${_escapeClerkHtml(item.displayValue)}</span>
-            <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
-          </button>`;
-      }
-      const escCopy = _escapeClerkHtml(item.copyValue);
-      const escLbl = _escapeClerkHtml(item.clerkBoxLabel);
-      const escVal = _escapeClerkHtml(item.displayValue);
-      const portalHint =
-        item.portal === "probate"
-          ? "Paste into Harris County Probate Court Search"
-          : `Paste '${item.copyValue}' alone into the '${item.clerkBoxLabel}' box on Harris County Clerk RP and press Search`;
-      return `<button
-          type="button"
-          class="rk-copy-pill deed-fileno"
-          data-rk-copy="${escCopy}"
-          title="${_escapeClerkHtml(portalHint)}"
-        >
-          ${dateTag}
-          <span class="rk-copy-k">${escLbl}:</span>
-          <span class="rk-copy-v mono">${escVal}</span>
-          <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
-        </button>`;
-    })
-    .join("");
+  const pillsHtml = chainItems.map((item) => _renderClerkDeedPillHtml(item)).join("");
 
   const html = `
       <div class="rk-deed-chain-head">

@@ -7,16 +7,24 @@ import {
   getAtlasMaxYear,
   VALID_PORTFOLIO_KINDS,
   normalizePortfolioKind,
-} from "./filterStore.js?v=20261106a";
+} from "./filterStore.js?v=20261106b";
 import {
   OWNERSHIP_TIER_ITEMS,
   resolveEffectiveOwnershipTier,
   resolveOwnershipTierColor,
-} from "./palettes.js?v=20261106a";
+} from "./palettes.js?v=20261106b";
 import {
   buildTxComptrollerSearchUrl,
   buildHarrisCountyClerkRpUrl,
-} from "./urlValidators.js?v=20261106a";
+} from "./urlValidators.js?v=20261106b";
+import {
+  decodeCompactOwnerHistory,
+  formatClerkInstrumentToken,
+  isConfidentialOwnerName,
+  isEntityOrTrustOwnerName,
+  isPlaceholderOwnerName,
+  parseCompactDeedWireEntries,
+} from "./clerkSearchHelpers.js?v=20261106b";
 
 export { VALID_PORTFOLIO_KINDS, normalizePortfolioKind };
 
@@ -1461,26 +1469,34 @@ export function decodeParcelOwnershipXray(
   const rawTier = resolveEffectiveOwnershipTier(
     shard.ot || props.own_tier,
     props.use_category,
-    props.landmark_name || props.bld_name || props.owner_name || props.owner || shard.owner
+    props.landmark_name || props.bld_name || props.owner || props.owner_name || shard.owner
   );
   const tierObj =
     OWNERSHIP_TIER_ITEMS.find((item) => item.key === rawTier) || OWNERSHIP_TIER_ITEMS[0];
   const ownTier = tierObj.key;
-  const portfolioId = String(shard.pid || props.port_id || "").trim();
+  const directOwnerProbe = String(props.owner || props.owner_name || shard.owner || "").trim();
+  const earlyConfidential = Boolean(
+    shard.conf ||
+      props.conf ||
+      isConfidentialOwnerName(props.owner) ||
+      isConfidentialOwnerName(props.owner_name) ||
+      isConfidentialOwnerName(shard.owner)
+  );
+  const rawPortfolioId = earlyConfidential ? "" : String(shard.pid || props.port_id || "").trim();
 
   const portMap =
-    portfolioCatalog && typeof portfolioCatalog === "object"
+    !earlyConfidential && portfolioCatalog && typeof portfolioCatalog === "object"
       ? portfolioCatalog.portfolios || portfolioCatalog
       : null;
-  const portfolioMeta =
-    portfolioId && portMap && typeof portMap === "object" && portMap[portfolioId]
-      ? portMap[portfolioId]
+  const rawPortfolioMeta =
+    rawPortfolioId && portMap && typeof portMap === "object" && portMap[rawPortfolioId]
+      ? portMap[rawPortfolioId]
       : null;
 
   const hcadNum = String(props.hcad_num || shard.hcad_num || "").trim();
   let workEntityName = "";
-  if (hcadNum && Array.isArray(portfolioMeta?.works)) {
-    const matchedWork = portfolioMeta.works.find(
+  if (hcadNum && Array.isArray(rawPortfolioMeta?.works)) {
+    const matchedWork = rawPortfolioMeta.works.find(
       (w) => (Array.isArray(w) && String(w[0] || "") === hcadNum) || (w && w.acct === hcadNum)
     );
     if (Array.isArray(matchedWork) && matchedWork[6]) {
@@ -1490,13 +1506,22 @@ export function decodeParcelOwnershipXray(
     }
   }
 
-  const rawOwnerName = String(
-    props.owner_name || props.owner || shard.owner || workEntityName || portfolioMeta?.primary_entity || ""
+  const candidateOwnerName = String(
+    directOwnerProbe || workEntityName || rawPortfolioMeta?.primary_entity || ""
   ).trim();
+  const isConfidential = Boolean(earlyConfidential || isConfidentialOwnerName(candidateOwnerName));
+  const portfolioId = isConfidential ? "" : rawPortfolioId;
+  const portfolioMeta = isConfidential ? null : rawPortfolioMeta;
+  const rawOwnerName =
+    !isConfidential && candidateOwnerName && !isPlaceholderOwnerName(candidateOwnerName)
+      ? candidateOwnerName
+      : "";
   const rawBillingAddress = String(
     shard.m || props.mail_addr || portfolioMeta?.billing_address || ""
   ).trim();
-  const coOwners = Array.isArray(shard.co)
+  const coOwners = isConfidential
+    ? []
+    : Array.isArray(shard.co)
     ? shard.co.map((item) => String(item || "").trim()).filter(Boolean)
     : Array.isArray(props.co_owners)
     ? props.co_owners.map((item) => String(item || "").trim()).filter(Boolean)
@@ -1511,43 +1536,81 @@ export function decodeParcelOwnershipXray(
   ).trim();
   const rawFlip = shard.flip ?? props.flip_days ?? null;
   const flipDays =
-    rawFlip !== null && rawFlip !== undefined && rawFlip !== "" && Number.isFinite(Number(rawFlip))
+    !isConfidential &&
+    rawFlip !== null &&
+    rawFlip !== undefined &&
+    rawFlip !== "" &&
+    Number.isFinite(Number(rawFlip))
       ? Number(rawFlip)
       : null;
 
-  const isConfidential = /CURRENT\s+OWNER|CONFIDENTIAL|WITHHELD/i.test(rawOwnerName);
   const isRedactedHomestead = Boolean(
-    ownTier === "homestead" && (isConfidential || (!rawBillingAddress && !rawCareOf))
+    isConfidential || (ownTier === "homestead" && (!rawBillingAddress && !rawCareOf))
   );
   const billingAddress = isRedactedHomestead ? "" : rawBillingAddress;
   const careOfAgent = isRedactedHomestead ? "" : rawCareOf;
 
-  const recordedOwner =
-    ownTier === "homestead" && isConfidential
-      ? "Protected Individual Homestead (TX Tax Code Sec. 25.025)"
-      : rawOwnerName || "Owner of Record (HCAD)";
+  // Decode 22-year (2005-2026) HCAD certified-roll ownership tenures gated strictly on `isConfidential`
+  // (NEVER on `isRedactedHomestead`, which is true for ~650,000+ public owner-occupied homesteads whose mailing address is omitted) (`DF-1`).
+  const ownerHistoryTenures = isConfidential
+    ? []
+    : decodeCompactOwnerHistory(shard.oh || props.owner_history || "", rawOwnerName);
+  const priorOwners = ownerHistoryTenures.slice(1).map((t) => ({
+    ownerName: t.ownerName,
+    spanLabel: t.spanLabel,
+    startYear: t.startYear,
+    endYear: t.endYear,
+    acqDate: t.acqDate,
+    deed: t.deed,
+  }));
+  const recordedTenureSince =
+    !isConfidential && ownerHistoryTenures.length > 0
+      ? ownerHistoryTenures[0].acqDate === "<=1988"
+        ? "<=1988 (HCAD Mainframe Baseline)"
+        : ownerHistoryTenures[0].acqDate || String(ownerHistoryTenures[0].startYear)
+      : "";
 
-  const siblingEntities = Array.isArray(portfolioMeta?.entity_samples)
+  const activeRollOwner =
+    !isConfidential &&
+    ownerHistoryTenures.length > 0 &&
+    ownerHistoryTenures[0].endYear >= getAtlasMaxYear() &&
+    !isPlaceholderOwnerName(ownerHistoryTenures[0].ownerName)
+      ? ownerHistoryTenures[0].ownerName
+      : "";
+
+  const recordedOwner = isConfidential
+    ? "Protected Individual Homestead (TX Tax Code Sec. 25.025)"
+    : rawOwnerName || activeRollOwner || "Owner of Record (HCAD)";
+
+  const siblingEntities = isConfidential
+    ? []
+    : Array.isArray(portfolioMeta?.entity_samples)
     ? portfolioMeta.entity_samples
     : Array.isArray(portfolioMeta?.entities)
     ? portfolioMeta.entities
     : [];
-  const officers = Array.isArray(portfolioMeta?.tx_sos_officers)
+  const officers = isConfidential
+    ? []
+    : Array.isArray(portfolioMeta?.tx_sos_officers)
     ? portfolioMeta.tx_sos_officers
     : Array.isArray(portfolioMeta?.officers)
     ? portfolioMeta.officers
     : [];
-  const portfolioCount =
-    Number(portfolioMeta?.parcel_count ?? portfolioMeta?.c) ||
-    (Array.isArray(portfolioMeta?.works) ? portfolioMeta.works.length : 0) ||
-    (portfolioId ? 1 : 0);
-  const entityCount =
-    Number(
-      portfolioMeta?.distinct_entity_count ?? portfolioMeta?.distinct_llcs ?? portfolioMeta?.ec
-    ) || Math.max(1, siblingEntities.length);
+  const portfolioCount = isConfidential
+    ? 0
+    : Number(portfolioMeta?.parcel_count ?? portfolioMeta?.c) ||
+      (Array.isArray(portfolioMeta?.works) ? portfolioMeta.works.length : 0) ||
+      (portfolioId ? 1 : 0);
+  const entityCount = isConfidential
+    ? 0
+    : Number(
+        portfolioMeta?.distinct_entity_count ?? portfolioMeta?.distinct_llcs ?? portfolioMeta?.ec
+      ) || Math.max(1, siblingEntities.length);
 
   let beneficialSteward = "";
-  if (portfolioMeta) {
+  if (isConfidential) {
+    beneficialSteward = "";
+  } else if (portfolioMeta) {
     beneficialSteward = String(portfolioMeta.label || portfolioMeta.primary_entity || "").trim();
   } else if (ownTier === "anonymity_shield") {
     beneficialSteward = careOfAgent
@@ -1557,25 +1620,28 @@ export function decodeParcelOwnershipXray(
       : "Registered-Agent / Nominee Trust Shield";
   }
 
-  const isCorporateOrTrust =
-    /\b(?:LLC|L\.L\.C|LP|L\.P|LLP|LTD|INC|CORP|CORPORATION|COMPANY|TRUST|TR\b|HOLDINGS|PROPERTIES|VENTURES|INVESTMENTS|PARTNERS|REALTY|CAPITAL|HOMES|DEVELOPMENT|BUILDER|BUILDERS|BANK|ASSOC|ASSOCIATION|HOA)\b/i.test(
-      rawOwnerName
-    );
+  const isCorporateOrTrust = !isConfidential && isEntityOrTrustOwnerName(rawOwnerName);
 
-  const searchTarget =
-    siblingEntities[0] ||
-    portfolioMeta?.primary_entity ||
-    (!isConfidential && isCorporateOrTrust ? rawOwnerName : "") ||
-    portfolioMeta?.label ||
-    (!isConfidential ? rawOwnerName : "") ||
-    "";
+  const searchTarget = isConfidential
+    ? ""
+    : siblingEntities[0] ||
+      portfolioMeta?.primary_entity ||
+      (isCorporateOrTrust ? rawOwnerName : "") ||
+      portfolioMeta?.label ||
+      rawOwnerName ||
+      "";
 
-  const rawDeedTokens = String(shard.d || props.deed_chain || "")
-    .split(/[;|]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const parsedDeedEntries = !isConfidential
+    ? parseCompactDeedWireEntries(String(shard.d || props.deed_chain || "").replace(/;/g, "|"))
+    : [];
+  const latestFormattedDeed =
+    parsedDeedEntries.length > 0
+      ? formatClerkInstrumentToken(parsedDeedEntries[0].token, parsedDeedEntries[0].isoDate)
+      : ownerHistoryTenures[0]?.deed || null;
   const latestClerkFileNum =
-    rawDeedTokens.length > 0 ? String(rawDeedTokens[0].split(":")[1] || "").trim() : "";
+    latestFormattedDeed && latestFormattedDeed.portal === "rp"
+      ? latestFormattedDeed.copyValue
+      : "";
   const clerkTarget =
     latestClerkFileNum || (!isConfidential && rawOwnerName ? rawOwnerName : hcadNum || "HOUSTON");
 
@@ -1621,9 +1687,13 @@ export function decodeParcelOwnershipXray(
     flipDays,
     isConfidential,
     isRedactedHomestead,
+    ownerHistoryTenures,
+    priorOwners,
+    recordedTenureSince,
     isOwnerOccupiedPlex,
     ownerOccupiedPlexNote,
     isCorporateOrTrust,
+    latestClerkFileNum,
     txComptrollerUrl: buildTxComptrollerSearchUrl(searchTarget),
     clerkUrl: buildHarrisCountyClerkRpUrl(clerkTarget),
   };
@@ -1825,50 +1895,81 @@ export function buildStewardshipTimelineModel({
     });
   }
 
+  const rawTimelineOwner = String(props.owner || props.owner_name || shard.owner || "").trim();
+  const isConfidentialTimeline = Boolean(
+    shard.conf ||
+      props.conf ||
+      isConfidentialOwnerName(props.owner) ||
+      isConfidentialOwnerName(props.owner_name) ||
+      isConfidentialOwnerName(shard.owner)
+  );
+  const ohTenures = isConfidentialTimeline
+    ? []
+    : decodeCompactOwnerHistory(shard.oh || props.owner_history || "", rawTimelineOwner);
+
+  // Index `ohTenures` by canonical Clerk instrument key and acquisition date so deed nodes receive
+  // Grantee names without duplicating conveyance rows (`DF-6`, `UT-7`).
+  const tenureByClerkKey = new Map();
+  const tenureByAcqDate = new Map();
+  const consumedTenureIdx = new Set();
+  ohTenures.forEach((t, idx) => {
+    if (t.deed && t.deed.matchKey && !tenureByClerkKey.has(t.deed.matchKey)) {
+      tenureByClerkKey.set(t.deed.matchKey, { tenure: t, idx });
+    }
+    if (t.acqDate && t.acqDate !== "<=1988" && !tenureByAcqDate.has(t.acqDate)) {
+      tenureByAcqDate.set(t.acqDate, { tenure: t, idx });
+    }
+  });
+
   let effDeeds = [];
-  if (Array.isArray(deeds) && deeds.length > 0) {
-    effDeeds = deeds;
-  } else {
-    const rawDeedStr = typeof deeds === "string" ? deeds : String(shard.d || props.deed_chain || "");
-    if (rawDeedStr.trim()) {
-      for (const seg of rawDeedStr.split("|")) {
-        const cleanSeg = seg.trim();
-        if (!cleanSeg) continue;
-        const parts = cleanSeg.split(":");
-        const dtRaw = String(parts[0] || "").trim();
-        const instRaw = String(parts[1] || "").trim();
-        const idRaw = String(parts[2] || "").trim();
-        const codeRaw = String(parts[3] || "D").trim();
-        let isoDate = dtRaw;
-        if (/^\d{8}$/.test(dtRaw)) {
-          const yPart = dtRaw.slice(0, 4);
-          const mPart = dtRaw.slice(4, 6);
-          const dPart = dtRaw.slice(6, 8);
-          isoDate =
-            mPart === "00" || dPart === "00" ? yPart : `${yPart}-${mPart}-${dPart}`;
+  if (!isConfidentialTimeline) {
+    if (Array.isArray(deeds) && deeds.length > 0) {
+      effDeeds = deeds;
+    } else {
+      const rawDeedStr = typeof deeds === "string" ? deeds : String(shard.d || props.deed_chain || "");
+      if (rawDeedStr.trim()) {
+        for (const e of parseCompactDeedWireEntries(rawDeedStr)) {
+          if (!e.isoDate) continue;
+          effDeeds.push([e.isoDate, e.token, e.deedId, e.typeCode]);
         }
-        effDeeds.push([isoDate, instRaw, idRaw, codeRaw]);
       }
     }
   }
 
   for (const dRow of effDeeds) {
     let dt = "";
-    let clerkNum = "";
+    let clerkNumRaw = "";
     let deedId = "";
     let code = "D";
     if (Array.isArray(dRow)) {
       dt = String(dRow[0] || "").trim();
-      clerkNum = String(dRow[1] || "").trim();
+      clerkNumRaw = String(dRow[1] || "").trim();
       deedId = String(dRow[2] || "").trim();
       code = String(dRow[3] || "D").trim().toUpperCase();
     } else if (dRow && typeof dRow === "object") {
       dt = String(dRow.date || dRow.dt || "").trim();
-      clerkNum = String(dRow.clerk_num || dRow.clerkFileNum || "").trim();
+      clerkNumRaw = String(dRow.clerk_num || dRow.clerkFileNum || "").trim();
       deedId = String(dRow.deed_id || dRow.deedId || "").trim();
       code = String(dRow.type || dRow.code || "D").trim().toUpperCase();
     }
     if (!dt) continue;
+    const normInst = clerkNumRaw ? formatClerkInstrumentToken(clerkNumRaw, dt) : null;
+    const clerkNum = normInst ? normInst.copyValue : clerkNumRaw;
+    const clerkDisplay = normInst ? normInst.displayValue : clerkNumRaw;
+
+    let matchedEntry =
+      (normInst && normInst.matchKey ? tenureByClerkKey.get(normInst.matchKey) : null) ||
+      tenureByAcqDate.get(dt) ||
+      null;
+    if (matchedEntry && consumedTenureIdx.has(matchedEntry.idx)) {
+      matchedEntry = null;
+    }
+    if (matchedEntry) {
+      consumedTenureIdx.add(matchedEntry.idx);
+    }
+    const granteeName = matchedEntry ? matchedEntry.tenure.ownerName : "";
+    const granteeSpan = matchedEntry ? matchedEntry.tenure.spanLabel : "";
+
     const typeLabel =
       code === "S"
         ? "Subdivision Plat / Replat Conveyance"
@@ -1882,6 +1983,8 @@ export function buildStewardshipTimelineModel({
       deedId,
       typeCode: code,
       typeLabel,
+      grantee: granteeName,
+      tenureSpan: granteeSpan,
       clerkUrl,
     };
     decodedDeeds.push(deedObj);
@@ -1891,18 +1994,62 @@ export function buildStewardshipTimelineModel({
       year: parseInt(dt.slice(0, 4), 10) || 2000,
       dateLabel: dt,
       sortKey: dt.length === 4 ? `${dt}-01-01` : dt,
-      title: typeLabel,
-      subtitle: clerkNum
-        ? `Harris County Clerk File #${clerkNum}${deedId ? ` · HCAD Deed ID ${deedId}` : ""}`
+      title: granteeName ? `${typeLabel} to ${granteeName}` : typeLabel,
+      subtitle: clerkDisplay
+        ? `${normInst?.kind === "vol_page" ? "Harris County Deed " : "Harris County Clerk File #"}${clerkDisplay}${
+            granteeSpan ? ` · HCAD Roll (${granteeSpan})` : ""
+          }${deedId ? ` · HCAD Deed ID ${deedId}` : ""}`
         : deedId
         ? `HCAD Deed Transfer ID ${deedId}`
         : "Recorded Harris County Real Property Conveyance",
-      citation: clerkNum ? `RP Clerk #${clerkNum}` : "",
+      citation: clerkDisplay ? `RP Clerk #${clerkDisplay}` : "",
       badge: code === "S" ? "Plat / Replat" : "Deed Transfer",
       clerkFileNum: clerkNum,
+      grantee: granteeName,
       url: clerkUrl,
     });
   }
+
+  // Emit `owner_tenure` provenance nodes for un-deeded historical HCAD roll tenures and pre-2005 acquisitions (`DF-6`, `UT-7`).
+  ohTenures.forEach((t, idx) => {
+    if (consumedTenureIdx.has(idx)) return;
+    let sortKey = `${t.startYear}-01-01`;
+    let dateLabel = t.spanLabel;
+    let nodeYear = t.startYear;
+    if (t.acqDate === "<=1988") {
+      // Map `"<=1988"` to `1988-01-02` so ASCII `'<'` (`0x3c`) never sorts ahead of `'1'` (`0x31`, e.g. 1915/1928) (`DF-6`).
+      sortKey = "1988-01-02";
+      dateLabel = "<=1988";
+      nodeYear = 1988;
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(t.acqDate)) {
+      sortKey = t.acqDate;
+      dateLabel = t.acqDate;
+      nodeYear = parseInt(t.acqDate.slice(0, 4), 10) || t.startYear;
+    } else if (/^\d{4}$/.test(t.acqDate)) {
+      sortKey = `${t.acqDate}-01-01`;
+      dateLabel = `${t.acqDate} (${t.spanLabel})`;
+      nodeYear = parseInt(t.acqDate, 10) || t.startYear;
+    }
+    const subtitle = t.isPreMainframe
+      ? `Continuous HCAD roll tenure (${t.spanLabel}) recorded at or before January 2, 1988 mainframe baseline`
+      : t.acqDate
+      ? `HCAD certified appraisal roll tenure (${t.spanLabel}) · Recorded acquisition ${t.acqDate}`
+      : `Recorded on ${t.spanLabel} Harris County certified appraisal rolls`;
+    events.push({
+      kind: "owner_tenure",
+      category: "deed",
+      year: nodeYear,
+      dateLabel,
+      sortKey,
+      title: `HCAD Roll Owner (${t.spanLabel}): ${t.ownerName}`,
+      subtitle,
+      citation: t.deed ? `RP Clerk #${t.deed.displayValue}` : `HCAD Certified Roll (${t.spanLabel})`,
+      badge: "HCAD Roll Tenure",
+      ownerName: t.ownerName,
+      tenureSpan: t.spanLabel,
+      url: t.deed ? buildHarrisCountyClerkRpUrl(t.deed.copyValue) : null,
+    });
+  });
 
   const effPermits =
     Array.isArray(permits) && permits.length > 0
@@ -1988,7 +2135,7 @@ export function buildStewardshipTimelineModel({
     }
   }
 
-  const rawFlip = flipDays ?? shard.flip ?? props.flip_days ?? null;
+  const rawFlip = isConfidentialTimeline ? null : flipDays ?? shard.flip ?? props.flip_days ?? null;
   const cleanFlip =
     rawFlip !== null && rawFlip !== undefined && rawFlip !== "" && Number.isFinite(Number(rawFlip))
       ? Number(rawFlip)
@@ -2015,6 +2162,7 @@ export function buildStewardshipTimelineModel({
   return {
     events,
     deeds: decodedDeeds,
+    ownerTenures: ohTenures,
     directoryOccupants: decodedOccupants,
     flipDays: cleanFlip,
     isRapidTeardownFlip: cleanFlip !== null && cleanFlip >= 0 && cleanFlip <= 730,

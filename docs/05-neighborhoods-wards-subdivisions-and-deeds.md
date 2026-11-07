@@ -117,7 +117,9 @@ Every building and subdivision in the atlas is cross-referenced against three ti
    - **711 Special Minimum Lot Size (`SMLS`) Blocks & Areas** (preventing subdivision of historic single-family lots into high-density townhome flag lots).
    - **192 Special Minimum Building Line (`SMBL`) Blocks** (preserving historic front-yard setback rhythms).
    - **7 Conservation Districts** (*Independence Heights*, *Freedmen's Town*, *Piney Point*, *Manchester*, *Edgewood*, *Pleasantville*).
-3. **Tier 3 - Direct Harris County Clerk Real Property (`RP`) Search Integration:** One-click pre-filled Subdivision Name links to `https://www.cclerk.hctx.net/Applications/WebSearch/RP.aspx` for all 5,573 platted subdivisions.
+3. **Tier 3 - Direct Harris County Clerk Real Property (`RP`) Search Integration & 22-Year (`2005-2026`) Named HCAD Ownership Chains (`build_historical_ownership_2005_2026.py`):**
+   - One-click pre-filled Subdivision Name, Legal Block/Lot, Clerk File Number / Film Code / Volume-Page (`formatClerkInstrumentToken`), and `Last Name First - No Punctuation` Grantor/Grantee party search pills (`formatClerkPartyTokens`, automatically stripping `(DBA ...)` suffixes) for `https://www.cclerk.hctx.net/Applications/WebSearch/RP.aspx` across all 5,573 platted subdivisions.
+   - Backed by `152` on-demand gzipped prefix shards (`app/public/data/owner_history/owners_<prefix3>.json.gz`, `47.72 MiB` total, `0 KB` cold-boot cost) compiling `1,214,414` standing and referenced HCAD accounts across all `22` annual HCAD certified rolls (`2005-2026`), surfacing `845,850` multi-tenure ownership chains, `816,718` pre-2005/`<=1988` acquisition dates, and `1,724,304` paired County Clerk deed references while strictly shielding Texas Tax Code `Sec. 25.025` confidential accounts (including retroactive pre-election tenures, secondary co-owner rows, and `33,183` static `"conf": 1` permit-shard markers omitting `d`/`pid`/`m`/`co`/`flip`).
 
 ---
 

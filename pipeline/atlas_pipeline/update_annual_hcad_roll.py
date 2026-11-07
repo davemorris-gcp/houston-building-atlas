@@ -44,6 +44,7 @@ import copy
 from dataclasses import dataclass, field
 import datetime
 from enum import Enum
+import gzip
 import hashlib
 import io
 import json
@@ -73,11 +74,7 @@ from atlas_pipeline.build_neighborhood_scorecards import (
     main as rebuild_neighborhood_scorecards,
     normalize_hcad13,
 )
-from atlas_pipeline.enrich_deed_chains import (
-    MAX_DEEDS_PER_PARCEL,
-    normalize_hcad_clerk_instrument,
-    parse_dos_yyyymmdd,
-)
+from atlas_pipeline.enrich_deed_chains import MAX_DEEDS_PER_PARCEL
 from atlas_pipeline.fix_campus_anomalies_and_schools import (
     ADDITIONAL_CURATED_PARCEL_CHRONOLOGIES,
     VALID_NUMBERED_SITUS_RE,
@@ -119,24 +116,31 @@ from atlas_pipeline.schema import (
     classify_main_structure_demolition_permit,
     classify_use_category,
     compile_quadrant_pmtiles,
+    compress_deterministic_gzip_json,
     compute_decade,
     compute_decade_bins,
+    download_archive_streaming,
     estimate_stories_and_height,
     extract_parcels_zip_dataset,
     finalize_hcad_account_permits,
+    find_zip_member_case_insensitive,
     is_boundary_search_entry,
     is_demolished_vacant_marker,
     load_compact_cama_lookup,
     normalize_hcad_appraiser_note,
+    normalize_hcad_clerk_instrument,
     normalize_hcad_date,
     normalize_hcad_extra_feature_row,
     normalize_hcad_permit_row,
     normalize_polygon_rings_6dp_ccw,
     normalize_ring_6dp,
     normalize_year,
+    parse_dos_yyyymmdd,
+    peek_real_acct_zip_year,
     sanitize_atlas_text,
     save_compact_cama_lookup,
     update_pmtiles_manifest_v3,
+    verify_zip_file_integrity,
     write_compact_json,
 )
 from atlas_pipeline.tile_builder import compile_pmtiles_archive
@@ -398,28 +402,7 @@ def sha256_file(path: Path) -> str:
 
 def _verify_zip_file_integrity(path: Path) -> list[str]:
     """Verify ZIP local header magic bytes and full archive CRC/readability."""
-    if not path.exists():
-        raise RollValidationError(f"Missing required roll archive: {path}")
-    size = path.stat().st_size
-    if size < 22:
-        raise RollValidationError(f"Archive {path.name} is truncated ({size} bytes).")
-    with open(path, "rb") as fh:
-        magic = fh.read(4)
-    if magic != b"PK\x03\x04":
-        raise RollValidationError(
-            f"Archive {path.name} failed ZIP magic-byte verification "
-            f"(got {magic!r}; upstream may have returned an HTML error page)."
-        )
-    try:
-        with zipfile.ZipFile(path, "r") as zf:
-            bad_member = zf.testzip()
-            if bad_member is not None:
-                raise RollValidationError(
-                    f"Archive {path.name} failed CRC check on member {bad_member!r}."
-                )
-            return list(zf.namelist())
-    except zipfile.BadZipFile as exc:
-        raise RollValidationError(f"Archive {path.name} is not a valid ZIP file: {exc}") from exc
+    return verify_zip_file_integrity(path, error_cls=RollValidationError)
 
 
 def probe_hcad_archive_url(
@@ -490,50 +473,19 @@ def _download_archive_streaming(
     timeout: float = 120.0,
 ) -> None:
     """Stream an upstream HCAD `.zip` into `<name>.part`, validate, then rename atomically."""
-    open_fn = opener or urllib.request.urlopen
-    part_path = dest_path.with_name(f"{dest_path.name}.part")
-    part_path.unlink(missing_ok=True)
-    req = urllib.request.Request(
+    download_archive_streaming(
         url,
-        headers={"User-Agent": "HoustonBuildingAtlas/2.0"},
+        dest_path,
+        opener=opener or urllib.request.urlopen,
+        timeout=timeout,
+        error_cls=RollValidationError,
     )
-    try:
-        with open_fn(req, timeout=timeout) as resp:
-            status = getattr(resp, "status", None) or resp.getcode()
-            if status != 200:
-                raise RollValidationError(
-                    f"Download failed for {url}: expected HTTP 200, got HTTP {status}."
-                )
-            ctype = str(resp.headers.get("Content-Type") or "").lower()
-            if "text/html" in ctype:
-                raise RollValidationError(
-                    f"Download failed for {url}: received Content-Type {ctype!r} (HTML error page)."
-                )
-            with open(part_path, "wb") as out_fh:
-                first_chunk = True
-                while True:
-                    chunk = resp.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    if first_chunk:
-                        first_chunk = False
-                        if len(chunk) < 4 or chunk[:4] != b"PK\x03\x04":
-                            raise RollValidationError(
-                                f"Download failed for {url}: payload lacks ZIP magic bytes (got {chunk[:16]!r})."
-                            )
-                    out_fh.write(chunk)
-        _verify_zip_file_integrity(part_path)
-        part_path.replace(dest_path)
-    except Exception as exc:
-        part_path.unlink(missing_ok=True)
-        if isinstance(exc, RollValidationError):
-            raise
-        raise RollValidationError(f"Failed downloading {url}: {exc}") from exc
 
 
 def _link_or_copy_readonly(src: Path, dst: Path) -> None:
     if src.resolve() == dst.resolve():
         return
+    dst.parent.mkdir(parents=True, exist_ok=True)
     tmp = dst.with_name(f"{dst.name}.part")
     tmp.unlink(missing_ok=True)
     try:
@@ -1263,6 +1215,8 @@ def stream_hcad_account_snapshots(
                 sn_target.care_of = orec.care_of
                 sn_target.is_protected_homestead = orec.is_protected_homestead
                 sn_target.is_sec_25_025_confidential = orec.is_sec_25_025_confidential
+                if orec.is_sec_25_025_confidential:
+                    sn_target.owner = "CONFIDENTIAL OWNER"
                 sn_target.co_owners = list(orec.co_owners)
     except Exception:
         pass
@@ -3289,11 +3243,12 @@ def _stream_targeted_enrichment_records(
     if bldg_zip_path.exists():
         with zipfile.ZipFile(bldg_zip_path, "r") as zf:
             for member in ("extra_features_detail1.txt", "extra_features_detail2.txt"):
-                if member not in zf.namelist():
+                xf_member = find_zip_member_case_insensitive(zf, member)
+                if xf_member is None:
                     continue
-                with zf.open(member, "r") as raw_f:
+                with zf.open(xf_member, "r") as raw_f:
                     tf = io.TextIOWrapper(raw_f, encoding="latin-1", errors="replace")
-                    hdr = [c.strip() for c in tf.readline().rstrip("\r\n").split("\t")]
+                    hdr = [c.strip().lower() for c in tf.readline().rstrip("\r\n").split("\t")]
                     col = {n: i for i, n in enumerate(hdr)}
                     i_a = col.get("acct", 0)
                     i_d = col.get("dscr", -1)
@@ -3321,10 +3276,11 @@ def _stream_targeted_enrichment_records(
     max_deed_year = eff_tax + 1
     if acct_zip_path.exists():
         with zipfile.ZipFile(acct_zip_path, "r") as zf:
-            if "permits.txt" in zf.namelist():
-                with zf.open("permits.txt", "r") as raw_f:
+            permits_member = find_zip_member_case_insensitive(zf, "permits.txt")
+            if permits_member is not None:
+                with zf.open(permits_member, "r") as raw_f:
                     tf = io.TextIOWrapper(raw_f, encoding="latin-1", errors="replace")
-                    hdr = [c.strip() for c in tf.readline().rstrip("\r\n").split("\t")]
+                    hdr = [c.strip().lower() for c in tf.readline().rstrip("\r\n").split("\t")]
                     col = {n: i for i, n in enumerate(hdr)}
                     ip_a = col.get("acct", 0)
                     ip_id = col.get("id", -1)
@@ -3351,10 +3307,11 @@ def _stream_targeted_enrichment_records(
                             reloc_by_acct[ac] = reloc_meta
                         permits_by_acct[ac].append(p_obj)
 
-            if "deeds.txt" in zf.namelist():
-                with zf.open("deeds.txt", "r") as raw_f:
+            deeds_member = find_zip_member_case_insensitive(zf, "deeds.txt")
+            if deeds_member is not None:
+                with zf.open(deeds_member, "r") as raw_f:
                     tf = io.TextIOWrapper(raw_f, encoding="latin-1", errors="replace")
-                    hdr = [c.strip() for c in tf.readline().rstrip("\r\n").split("\t")]
+                    hdr = [c.strip().lower() for c in tf.readline().rstrip("\r\n").split("\t")]
                     col = {n: i for i, n in enumerate(hdr)}
                     id_a = col.get("acct", 0)
                     id_dos = col.get("dos", 1)
@@ -3406,7 +3363,6 @@ def _stream_targeted_enrichment_records(
                 key=lambda kv: (kv[1], kv[0]),
                 reverse=True,
             )[:MAX_DEEDS_PER_PARCEL]
-            rec["d"] = "|".join(f"{dt8}:{tok}" for tok, dt8 in sorted_pairs)
 
         sn_ac = new_accounts.get(ac)
         if sn_ac is not None:
@@ -3428,8 +3384,9 @@ def _stream_targeted_enrichment_records(
             own_fields = build_account_enrichment_fields(
                 orec, sorted_pairs, include_non_homestead_mail=True
             )
-            own_fields.pop("d", None)
             rec.update(own_fields)
+        elif sorted_pairs:
+            rec["d"] = "|".join(f"{dt8}:{tok}" for tok, dt8 in sorted_pairs)
 
     return {ac: r for ac, r in records.items() if r}
 
@@ -4043,10 +4000,36 @@ def reconcile_derived_building_indexes(
     permits_dir = ddir / "permits"
     permit_files_updated = 0
     if permits_dir.exists():
+        existing_permit_hcads: set[str] = set()
+        declassified_conf_hcads: set[str] = set()
+        for existing_ppath in sorted(permits_dir.glob("permits_*.json")):
+            try:
+                existing_pdoc = json.loads(existing_ppath.read_text(encoding="utf-8"))
+            except Exception:
+                existing_pdoc = {}
+            if not isinstance(existing_pdoc, dict):
+                continue
+            for eh, erec in existing_pdoc.items():
+                existing_permit_hcads.add(eh)
+                if (
+                    isinstance(erec, dict)
+                    and erec.get("conf")
+                    and eh in new_accounts
+                    and not new_accounts[eh].is_sec_25_025_confidential
+                ):
+                    declassified_conf_hcads.add(eh)
+
+        conf_hcads = {
+            ac
+            for ac, sn in new_accounts.items()
+            if sn.is_sec_25_025_confidential and (sn.is_improved or ac in existing_permit_hcads)
+        }
         refresh_permit_hcads = (
             set(delta.upserted_features_by_hcad.keys())
             | set(delta.new_construction_hcads)
             | all_successor_hcads
+            | conf_hcads
+            | declassified_conf_hcads
         )
         fresh_permits = _stream_targeted_enrichment_records(
             refresh_permit_hcads,
@@ -4069,6 +4052,17 @@ def reconcile_derived_building_indexes(
             for dh in list(pdoc.keys()):
                 if dh in all_retired_or_deleted_hcads:
                     del pdoc[dh]
+                    p_dirty = True
+                elif (
+                    isinstance(pdoc.get(dh), dict)
+                    and pdoc[dh].get("conf")
+                    and dh not in fresh_permits
+                    and dh in new_accounts
+                    and not new_accounts[dh].is_sec_25_025_confidential
+                ):
+                    pdoc[dh].pop("conf", None)
+                    if not pdoc[dh]:
+                        del pdoc[dh]
                     p_dirty = True
             for fh, frec in fresh_permits.items():
                 if fh.startswith(pfx):
@@ -4434,8 +4428,9 @@ def prune_optional_enrichment_for_soft_budget(
     obsolete_live_rels: set[str] | None = None,
 ) -> dict[str, int]:
     """Trim optional vacant-lot deed/permit details when projected `app/` exceeds `SOFT_MAX_APP_BYTES` (DF-5)."""
+    eff_obsolete = obsolete_live_rels if obsolete_live_rels is not None else set()
     total_before, _ = _compute_projected_app_size_bytes(
-        live_output_dir, staged_data_dir, obsolete_live_rels=obsolete_live_rels
+        live_output_dir, staged_data_dir, obsolete_live_rels=eff_obsolete
     )
     if total_before <= int(soft_max_bytes):
         return {"trimmed_accounts": 0, "bytes_saved": 0, "projected_bytes_after": total_before}
@@ -4443,10 +4438,10 @@ def prune_optional_enrichment_for_soft_budget(
     permits_dir = Path(staged_data_dir) / "permits"
     trimmed_accounts = 0
     if permits_dir.exists():
-        # Pass 1: drop non-standing vacant-lot enrichment rows first
+        # Pass 1: drop non-standing vacant-lot enrichment rows from permits_*.json first
         for ppath in sorted(permits_dir.glob("permits_*.json")):
             total_now, _ = _compute_projected_app_size_bytes(
-                live_output_dir, staged_data_dir, obsolete_live_rels=obsolete_live_rels
+                live_output_dir, staged_data_dir, obsolete_live_rels=eff_obsolete
             )
             if total_now <= int(soft_max_bytes):
                 break
@@ -4460,10 +4455,61 @@ def prune_optional_enrichment_for_soft_budget(
             if dirty:
                 write_compact_json(ppath, pdoc)
 
-        # Pass 2: cap per-account permit/deed history lengths on remaining files if still over soft ceiling
+    # Pass 2: drop non-standing accounts from owner_history/owners_*.json.gz before capping standing buildings
+    owner_hist_dir = Path(staged_data_dir) / "owner_history"
+    if owner_hist_dir.exists():
+        oh_dirty_any = False
+        visited_counts: dict[str, int] = {}
+        all_gz_paths = sorted(owner_hist_dir.glob("owners_*.json.gz"))
+        for gz_path in all_gz_paths:
+            total_now, _ = _compute_projected_app_size_bytes(
+                live_output_dir, staged_data_dir, obsolete_live_rels=eff_obsolete
+            )
+            if total_now <= int(soft_max_bytes):
+                break
+            pfx_cur = gz_path.name.removeprefix("owners_").removesuffix(".json.gz")
+            oh_doc = json.loads(gzip.decompress(gz_path.read_bytes()).decode("utf-8"))
+            dirty_oh = False
+            for acct in list(oh_doc.keys()):
+                if acct not in standing_hcads:
+                    del oh_doc[acct]
+                    trimmed_accounts += 1
+                    dirty_oh = True
+            if dirty_oh:
+                oh_dirty_any = True
+                if oh_doc:
+                    gz_path.write_bytes(compress_deterministic_gzip_json(oh_doc))
+                else:
+                    gz_path.unlink(missing_ok=True)
+                    eff_obsolete.add(f"owner_history/{gz_path.name}")
+            visited_counts[pfx_cur] = len(oh_doc)
+        if oh_dirty_any:
+            mpath = Path(staged_data_dir) / "pmtiles_manifest.json"
+            if mpath.exists():
+                rem_prefixes: list[str] = []
+                rem_accounts = 0
+                for gz_p in all_gz_paths:
+                    pfx = gz_p.name.removeprefix("owners_").removesuffix(".json.gz")
+                    if pfx in visited_counts:
+                        cnt_p = visited_counts[pfx]
+                    elif gz_p.exists():
+                        cnt_p = len(json.loads(gzip.decompress(gz_p.read_bytes()).decode("utf-8")))
+                    else:
+                        cnt_p = 0
+                    if cnt_p > 0:
+                        rem_prefixes.append(pfx)
+                        rem_accounts += cnt_p
+                update_pmtiles_manifest_v3(
+                    mpath,
+                    owner_history_prefixes=rem_prefixes,
+                    owner_history_accounts=rem_accounts,
+                )
+
+    # Pass 3: cap per-account permit/deed history lengths on remaining files if still over soft ceiling
+    if permits_dir.exists():
         for ppath in sorted(permits_dir.glob("permits_*.json")):
             total_now, _ = _compute_projected_app_size_bytes(
-                live_output_dir, staged_data_dir, obsolete_live_rels=obsolete_live_rels
+                live_output_dir, staged_data_dir, obsolete_live_rels=eff_obsolete
             )
             if total_now <= int(soft_max_bytes):
                 break
@@ -4484,7 +4530,7 @@ def prune_optional_enrichment_for_soft_budget(
                 write_compact_json(ppath, pdoc)
 
     total_after, _ = _compute_projected_app_size_bytes(
-        live_output_dir, staged_data_dir, obsolete_live_rels=obsolete_live_rels
+        live_output_dir, staged_data_dir, obsolete_live_rels=eff_obsolete
     )
     return {
         "trimmed_accounts": trimmed_accounts,
@@ -4577,6 +4623,36 @@ def validate_staged_app_bundle(
                 # Re-compact automatically if copied baseline file was multi-line, unless malformed
                 parsed_j = json.loads(raw_txt)
                 write_compact_json(jpath, parsed_j)
+
+    # Single-line compact formatting & dash-free check on staged gzipped JSON artifacts (*.json.gz)
+    for gzpath in sorted(sdir.rglob("*.json.gz")):
+        if not gzpath.is_file() or gzpath.name.startswith("."):
+            continue
+        try:
+            raw_gz_txt = gzip.decompress(gzpath.read_bytes()).decode("utf-8")
+        except Exception as exc:
+            raise RollValidationError(
+                f"Staged {gzpath.relative_to(sdir)} failed gzip/UTF-8 decompression: {exc}"
+            ) from exc
+        if "\u2014" in raw_gz_txt or "\u2013" in raw_gz_txt:
+            raise RollValidationError(
+                f"Staged {gzpath.relative_to(sdir)} contains forbidden U+2014/U+2013 dash character."
+            )
+        gz_lines = [ln for ln in raw_gz_txt.splitlines() if ln.strip()]
+        if len(gz_lines) > 1:
+            raise RollValidationError(
+                f"Staged {gzpath.relative_to(sdir)} must contain single-line compact JSON."
+            )
+        try:
+            parsed_gz = json.loads(raw_gz_txt)
+        except Exception as exc:
+            raise RollValidationError(
+                f"Staged {gzpath.relative_to(sdir)} contains invalid JSON: {exc}"
+            ) from exc
+        if not isinstance(parsed_gz, dict):
+            raise RollValidationError(
+                f"Staged {gzpath.relative_to(sdir)} must decode to a JSON object."
+            )
 
     # Integer decade check on buildings.geojson if present
     core_p = sdir / "buildings.geojson"
@@ -4770,6 +4846,33 @@ class StagedRollPromotion:
                 os.symlink(extracted_parcels.resolve(), staged_extracted)
             except OSError:
                 pass
+        active_cache_acct_zip = self.ctx.cache_dir / "Real_acct_owner.zip"
+        if active_cache_acct_zip.exists():
+            prior_zip_yr = peek_real_acct_zip_year(active_cache_acct_zip)
+            if prior_zip_yr and prior_zip_yr != self.ctx.tax_year:
+                staged_prior_roll_zip = (
+                    self.staged_cache_view / "rolls" / str(prior_zip_yr) / "Real_acct_owner.zip"
+                )
+                if not staged_prior_roll_zip.exists():
+                    _link_or_copy_readonly(active_cache_acct_zip, staged_prior_roll_zip)
+        rolls_root = self.ctx.cache_dir / "rolls"
+        if rolls_root.is_dir():
+            for yr_dir in sorted(rolls_root.iterdir()):
+                if not yr_dir.is_dir() or not yr_dir.name.isdigit():
+                    continue
+                hist_acct_zip = yr_dir / "Real_acct_owner.zip"
+                if hist_acct_zip.exists():
+                    _link_or_copy_readonly(
+                        hist_acct_zip,
+                        self.staged_cache_view / "rolls" / yr_dir.name / "Real_acct_owner.zip",
+                    )
+        hist_rolls = self.ctx.cache_dir / "hcad_historical_rolls"
+        staged_hist_rolls = self.staged_cache_view / "hcad_historical_rolls"
+        if hist_rolls.is_dir() and not staged_hist_rolls.exists():
+            try:
+                os.symlink(hist_rolls.resolve(), staged_hist_rolls)
+            except OSError:
+                pass
         cama_pkl = self.ctx.roll_dir / f"cama_{self.ctx.tax_year}_compact.pkl"
         if cama_pkl.exists():
             _link_or_copy_readonly(cama_pkl, self.staged_cache_view / cama_pkl.name)
@@ -4896,6 +4999,15 @@ class StagedRollPromotion:
                         _link_or_copy_readonly(live_pm, rb_del)
                         obsolete_deletes.append((live_pm, rb_del))
 
+            staged_oh_dir = self.staged_data / "owner_history"
+            live_oh_dir = self.ctx.output_dir / "owner_history"
+            if staged_oh_dir.is_dir() and live_oh_dir.is_dir():
+                for live_gz in sorted(live_oh_dir.glob("owners_*.json.gz")):
+                    if not (staged_oh_dir / live_gz.name).exists():
+                        rb_oh = rb_dir / f"rb_del_oh_{live_gz.name}"
+                        _link_or_copy_readonly(live_gz, rb_oh)
+                        obsolete_deletes.append((live_gz, rb_oh))
+
             staged_all = [
                 p for p in sorted(self.staged_data.rglob("*")) if p.is_file() and not p.name.startswith(".")
             ]
@@ -4918,6 +5030,14 @@ class StagedRollPromotion:
                 if not src_arc.exists():
                     continue
                 dst_arc = self.ctx.cache_dir / arc
+                if arc == "Real_acct_owner.zip" and dst_arc.exists():
+                    prior_zip_yr = peek_real_acct_zip_year(dst_arc)
+                    if prior_zip_yr and prior_zip_yr != self.ctx.tax_year:
+                        hist_dst = (
+                            self.ctx.cache_dir / "rolls" / str(prior_zip_yr) / "Real_acct_owner.zip"
+                        )
+                        if not hist_dst.exists():
+                            _link_or_copy_readonly(dst_arc, hist_dst)
                 if dst_arc.exists():
                     bkp_arc = backup_dir / arc
                     if not bkp_arc.exists():
@@ -5304,6 +5424,7 @@ def run_annual_hcad_refresh(
 
     scorecard_stats: dict[str, Any] = {"skipped": bool(shards_only)}
     audit_refresh_stats: dict[str, Any] = {"skipped": bool(shards_only)}
+    owner_history_stats: dict[str, Any] = {"skipped": bool(shards_only)}
     if not shards_only:
         promoter.populate_cache_view(art_delta.dirty_quadrants)
         if (
@@ -5341,6 +5462,33 @@ def run_annual_hcad_refresh(
                     audit_res["summary"]["total_queued_contradictions"]
                 )
             }
+        from atlas_pipeline.build_historical_ownership_2005_2026 import (
+            MIN_PARSED_ACCOUNTS_PER_ROLL,
+            maybe_rebuild_owner_history_for_staged_roll,
+        )
+
+        eff_oh_min_parsed = (
+            1
+            if allow_partial_roll
+            else (
+                MIN_PARSED_ACCOUNTS_PER_ROLL
+                if int(preflight.get("new_acct_count") or 0) >= MIN_PARSED_ACCOUNTS_PER_ROLL
+                else max(
+                    1,
+                    int(
+                        min(base_acct_cnt, int(preflight.get("new_acct_count") or 1))
+                        * cfg.min_account_retention_ratio
+                    ),
+                )
+            )
+        )
+        owner_history_stats = maybe_rebuild_owner_history_for_staged_roll(
+            cache_dir=promoter.staged_cache_view,
+            staged_roll_zip=acct_zip,
+            tax_year=ctx.tax_year,
+            staged_data_dir=promoter.staged_data,
+            min_parsed_accounts=eff_oh_min_parsed,
+        )
 
     standing_hcads_now = {
         normalize_hcad13((f.get("properties") or {}).get("hcad_num"))
@@ -5353,6 +5501,10 @@ def run_annual_hcad_refresh(
         if not (promoter.staged_data / f"houston_buildings_{q}.pmtiles").exists()
         and (ddir / f"houston_buildings_{q}.pmtiles").exists()
     }
+    if (promoter.staged_data / "owner_history").is_dir() and (ddir / "owner_history").is_dir():
+        for live_oh_p in (ddir / "owner_history").glob("owners_*.json.gz"):
+            if not (promoter.staged_data / "owner_history" / live_oh_p.name).exists():
+                obsolete_live_rels.add(f"owner_history/{live_oh_p.name}")
     soft_trim_stats = prune_optional_enrichment_for_soft_budget(
         promoter.staged_data,
         ddir,
@@ -5386,6 +5538,11 @@ def run_annual_hcad_refresh(
             else 0,
         },
         "historical_audit": audit_refresh_stats,
+        "owner_history": {
+            "skipped": bool(owner_history_stats.get("skipped", False)),
+            "shard_count": int(owner_history_stats.get("shard_count") or 0),
+            "owner_history_accounts": int(owner_history_stats.get("owner_history_accounts") or 0),
+        },
         "soft_budget_trim": soft_trim_stats,
         "bundle_gate": bundle_gate,
         "promotion": commit_stats,
