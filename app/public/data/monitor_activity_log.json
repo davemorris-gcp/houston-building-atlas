@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-06T18:50:16Z",
-  "lastSweepAt": "2026-11-06T18:44:49Z",
+  "generatedAt": "2026-11-07T17:18:49Z",
+  "lastSweepAt": "2026-11-07T17:15:51Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-09",
+  "retentionFloorDate": "2026-08-10",
   "lastSweepHealth": {
-    "timestamp": "2026-11-06T18:44:49Z",
+    "timestamp": "2026-11-07T17:15:51Z",
     "sweepsExecuted": true,
     "propertiesSwept": 30,
     "totalAgencies": 8,
@@ -76,20 +76,41 @@
     }
   },
   "summary": {
-    "totalEvents": 548,
-    "criticalCount": 52,
+    "totalEvents": 549,
+    "criticalCount": 53,
     "warningCount": 164,
     "infoCount": 332,
     "byStream": {
       "watchlist": 139,
-      "agenda": 112,
+      "agenda": 113,
       "staff": 159,
       "permits": 138
     },
-    "operationalNoticeCount": 8,
-    "daysTracked": 86
+    "operationalNoticeCount": 9,
+    "daysTracked": 87
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-07",
+      "lastRunAt": "2026-11-07T17:18:49Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 30,
+      "totalAgencies": 8,
+      "succeededAgencies": 7,
+      "failedAgencies": [
+        "chk-15"
+      ],
+      "allOk": false,
+      "eventCount": 1,
+      "adverseEventCount": 1,
+      "byStream": {
+        "watchlist": 0,
+        "agenda": 1,
+        "staff": 0,
+        "permits": 0
+      }
+    },
     {
       "date": "2026-11-06",
       "lastRunAt": "2026-11-06T18:50:16Z",
@@ -1821,6 +1842,65 @@
     }
   ],
   "events": [
+    {
+      "id": "agenda:item:2026-10-29:DPV-26083840:dpv",
+      "stream": "agenda",
+      "kind": "agenda_item_dpv",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-07",
+      "localDate": "2026-11-07",
+      "timestamp": "2026-11-07T17:18:49Z",
+      "discoveredAt": "2026-11-07T17:18:49Z",
+      "loggedAt": "",
+      "title": "New Section K DPV Added (2026-10-29): 1323 South Boulevard",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1923 | The applicant is requesting To allow a 0\u2019 building line in lieu of the 10\u2019 building line along Bissonnet St, a major collector, for a 10\u2019 high CMU wall..",
+      "address": "1323 SOUTH BLVD",
+      "hcad": "0530390000003",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-29",
+      "appNo": "DPV-26083840",
+      "occKey": "2026-10-29::DPV-26083840",
+      "buildingId": "bld_007584",
+      "lat": 29.72596,
+      "lng": -95.39678,
+      "yearBuilt": 1923,
+      "designation": "City historic district (Broadacres Historic District)",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/DPV-26083840-1323-South-Boulevard-Notice.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:sweep:2026-11-07:degraded:chk-15",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-07",
+      "localDate": "2026-11-07",
+      "timestamp": "2026-11-07T17:15:51Z",
+      "discoveredAt": "2026-11-07T17:15:51Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (7/8 agencies OK)",
+      "summary": "1 agency endpoint(s) did not complete cleanly: TX DSHS Asbestos & Demolition (DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "wl:status:plat-2026-1739:chk-10:flagged:2026-11-06",
       "stream": "watchlist",
