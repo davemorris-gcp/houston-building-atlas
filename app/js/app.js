@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261106b";
+} from "./palettes.js?v=20261108a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -27,24 +27,29 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261106b";
-import { AtlasMapController } from "./mapController.js?v=20261106b";
+} from "./filterStore.js?v=20261108a";
+import { AtlasMapController } from "./mapController.js?v=20261108a";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261106b";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261106b";
+} from "./guidedChaptersAndPortfolios.js?v=20261108a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261108a";
 import {
+  buildAddressShardUrl,
   buildResearchKitDeedChainView,
+  decodeGzipJsonResponse,
+  decompressAddressShardBytes,
   decompressOwnerHistoryBytes,
+  decompressPermitShardBytes,
   formatClerkPartyTokens,
   isConfidentialOwnerName,
   isPlaceholderOwnerName,
+  normalizeAddressShardPrefix,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261106b";
+} from "./clerkSearchHelpers.js?v=20261108a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -67,7 +72,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261106b";
+} from "./curatedEdits.js?v=20261108a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -77,7 +82,7 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261106b";
+} from "./photoService.js?v=20261108a";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -85,12 +90,12 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261106b";
+} from "./platMonitorHelpers.js?v=20261108a";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261106b";
+} from "./hcadViewportParcels.js?v=20261108a";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -110,16 +115,48 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261106b";
+} from "./preservationOrganizer.js?v=20261108a";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
-} from "./urlValidators.js?v=20261106b";
+} from "./urlValidators.js?v=20261108a";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
 const VACANT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Optional: note approximate demolition timeframe or current lot condition (e.g. 'House demolished; lot currently grass / vacant').";
+
+async function _fetchAddressShardForApp(appCtx, shardKey) {
+  const rawKey = normalizeAddressShardPrefix(shardKey);
+  if (!rawKey) return {};
+  appCtx._addressShardCache = appCtx._addressShardCache || {};
+  appCtx._addressShardPending = appCtx._addressShardPending || {};
+  if (appCtx._addressShardCache[rawKey]) {
+    return appCtx._addressShardCache[rawKey];
+  }
+  const knownPrefixes = appCtx.mapController?.pmtilesManifest?.address_shard_prefixes;
+  const key = normalizeAddressShardPrefix(rawKey, knownPrefixes);
+  if (!key) {
+    appCtx._addressShardCache[rawKey] = {};
+    return {};
+  }
+  if (!appCtx._addressShardPending[key]) {
+    const shardUrl = buildAddressShardUrl(key, appCtx.mapController?.pmtilesManifest?.cache_bust);
+    appCtx._addressShardPending[key] = fetch(shardUrl)
+      .then((res) => decodeGzipJsonResponse(res, decompressAddressShardBytes))
+      .then((data) => {
+        appCtx._addressShardCache[key] = data || {};
+        delete appCtx._addressShardPending[key];
+        return appCtx._addressShardCache[key];
+      })
+      .catch(() => {
+        appCtx._addressShardCache[key] = {};
+        delete appCtx._addressShardPending[key];
+        return {};
+      });
+  }
+  return appCtx._addressShardPending[key];
+}
 
 /**
  * Resolve effective owner string and synchronized feature properties across static tile/override
@@ -824,16 +861,7 @@ export class HoustonAtlasApp {
       const streetTokens = typedStreetPart.split(/\s+/).filter(Boolean);
       if (typedDigits.length >= 1 && !typedDigits.startsWith("0")) {
         const shardKey = typedDigits.slice(0, 2).padEnd(2, "0");
-        this._addressShardCache = this._addressShardCache || {};
-        if (!this._addressShardCache[shardKey]) {
-          try {
-            const resp = await fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261106b`);
-            this._addressShardCache[shardKey] = resp.ok ? await resp.json() : {};
-          } catch (_e) {
-            this._addressShardCache[shardKey] = {};
-          }
-        }
-        const shardData = this._addressShardCache[shardKey] || {};
+        const shardData = await _fetchAddressShardForApp(this, shardKey);
         let bestRow = null;
         let bestStreet = "";
         let bestRowScore = -Infinity;
@@ -987,13 +1015,13 @@ export class HoustonAtlasApp {
     try {
       const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes, ownPortRes] =
         await Promise.all([
-          fetch("public/data/search_index.json?v=20261106b"),
-          fetch("public/data/stats_summary.json?v=20261106b"),
-          fetch("public/data/haif_index.json?v=20261106b").catch(() => null),
-          fetch("public/data/deed_restrictions_catalog.json?v=20261106b").catch(() => null),
-          fetch("public/data/sanborn_catalog.json?v=20261106b").catch(() => null),
-          fetch("public/data/citydir_index.json?v=20261106b").catch(() => null),
-          fetch("public/data/ownership_portfolios.json?v=20261106b").catch(() => null),
+          fetch("public/data/search_index.json?v=20261108a"),
+          fetch("public/data/stats_summary.json?v=20261108a"),
+          fetch("public/data/haif_index.json?v=20261108a").catch(() => null),
+          fetch("public/data/deed_restrictions_catalog.json?v=20261108a").catch(() => null),
+          fetch("public/data/sanborn_catalog.json?v=20261108a").catch(() => null),
+          fetch("public/data/citydir_index.json?v=20261108a").catch(() => null),
+          fetch("public/data/ownership_portfolios.json?v=20261108a").catch(() => null),
         ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -4796,7 +4824,7 @@ export class HoustonAtlasApp {
                 fallbackGeometry,
               }
             );
-            this.mapController._refreshCuratedOverridesSource();
+            this.mapController._refreshCuratedOverridesSource({ targetKey: ovKey });
             this._mergeCuratedOverridesIntoSearchIndex();
             this._enrichSearchIndexWithOverlayMetadata();
             this._staffWorkbench?.refreshAfterOverrideChange?.();
@@ -6047,20 +6075,12 @@ export class HoustonAtlasApp {
         this._addressShardPending = this._addressShardPending || {};
         const shardData = this._addressShardCache[shardKey];
         if (!shardData && !this._addressShardPending[shardKey]) {
-          this._addressShardPending[shardKey] = fetch(`public/data/address_shards/addr_${shardKey}.json?v=20261106b`)
-            .then((r) => (r.ok ? r.json() : {}))
-            .then((data) => {
-              this._addressShardCache[shardKey] = data || {};
-              delete this._addressShardPending[shardKey];
-              const curInputVal = String(searchInput?.value || "").trim();
-              if (curInputVal.toLowerCase() === rawQuery.trim().toLowerCase()) {
-                this._runSearchQuery(rawQuery, customHeaderLabel);
-              }
-            })
-            .catch(() => {
-              this._addressShardCache[shardKey] = {};
-              delete this._addressShardPending[shardKey];
-            });
+          _fetchAddressShardForApp(this, shardKey).then(() => {
+            const curInputVal = String(searchInput?.value || "").trim();
+            if (curInputVal.toLowerCase() === rawQuery.trim().toLowerCase()) {
+              this._runSearchQuery(rawQuery, customHeaderLabel);
+            }
+          });
         } else if (shardData) {
           let shardAdded = 0;
           for (const [stName, rows] of Object.entries(shardData)) {
@@ -15449,17 +15469,25 @@ export class HoustonAtlasApp {
     this._refreshShareModalContent();
   }
 
+  async _fetchAddressShard(shardKey) {
+    return _fetchAddressShardForApp(this, shardKey);
+  }
+
   async _fetchPermitRecord(hcadNum) {
     const clean = String(hcadNum || "").replace(/\D/g, "");
     if (clean.length < 10) return null;
     const prefix3 = clean.slice(0, 3);
+    const knownPrefixes = this.mapController?.pmtilesManifest?.permit_shard_prefixes;
+    if (Array.isArray(knownPrefixes) && !knownPrefixes.includes(prefix3)) {
+      return null;
+    }
     if (!this._permitShardCache.has(prefix3)) {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const permitShardUrl = cb
-        ? `public/data/permits/permits_${prefix3}.json?v=${encodeURIComponent(cb)}`
-        : `public/data/permits/permits_${prefix3}.json?v=20261106b`;
+        ? `public/data/permits/permits_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
+        : `public/data/permits/permits_${prefix3}.json.gz?v=20261108a`;
       const p = fetch(permitShardUrl)
-        .then((res) => (res.ok ? res.json() : {}))
+        .then((res) => decodeGzipJsonResponse(res, decompressPermitShardBytes))
         .catch(() => ({}));
       this._permitShardCache.set(prefix3, p);
     }
@@ -15481,7 +15509,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const ownerShardUrl = cb
         ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261106b`;
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261108a`;
       const p = fetch(ownerShardUrl)
         .then(async (res) => {
           if (!res.ok) return {};
@@ -17510,7 +17538,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261106b`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261108a`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18947,7 +18975,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261106b")
+          fetch("public/data/sanborn_catalog.json?v=20261108a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -18957,7 +18985,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261106b")
+          fetch("public/data/citydir_index.json?v=20261108a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -18980,7 +19008,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261106b")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261108a")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -19102,7 +19130,7 @@ export class HoustonAtlasApp {
         fallbackGeometry,
       }
     );
-    this.mapController._refreshCuratedOverridesSource();
+    this.mapController._refreshCuratedOverridesSource({ targetKey: key });
     this._mergeCuratedOverridesIntoSearchIndex();
     this._enrichSearchIndexWithOverlayMetadata();
     this._syncPhotoExclusionRegistries?.();
@@ -20410,7 +20438,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261106b")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261108a")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

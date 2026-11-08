@@ -1,7 +1,7 @@
 /**
  * Preservation Houston Staff & Field Workbench (Milestone 3).
  *
- * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261106b")` strictly when
+ * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261108a")` strictly when
  * staff or field volunteers open:
  *   - Component A (`#4`): Split-Screen Historian Rapid Audit Mode (`#audit=1`)
  *   - Component B (`#5a`): In-Browser Staff Polygon Editor (`#polyedit=<id>`)
@@ -43,13 +43,13 @@ import {
   getSurveyPhotoBlob,
   listSurveyPhotoSummaries,
   deleteSurveyPhotoBlob,
-} from "./curatedEdits.js?v=20261106b";
+} from "./curatedEdits.js?v=20261108a";
 import {
   VALID_AUDIT_SORT_MODES,
   getAtlasMaxYear,
   normalizeAuditSort,
   normalizeComparableAddress,
-} from "./filterStore.js?v=20261106b";
+} from "./filterStore.js?v=20261108a";
 export { VALID_AUDIT_SORT_MODES, normalizeAuditSort };
 
 export const BORDEN_DOWNTOWN_GRID_DEG = -34.65;
@@ -2395,7 +2395,7 @@ export class StaffWorkbenchController {
     }
     if (this._auditLoadingPromise) return this._auditLoadingPromise;
     this._auditLoadingPromise = (async () => {
-      const resp = await fetch("public/data/historical_audit_queue.json?v=20261106b");
+      const resp = await fetch("public/data/historical_audit_queue.json?v=20261108a");
       if (!resp.ok) {
         throw new Error(`HTTP ${resp.status} loading historical_audit_queue.json`);
       }
@@ -4277,14 +4277,17 @@ export class StaffWorkbenchController {
       keep_shard_footprints: false,
     };
     const [cLng, cLat] = computePolygonCentroid(validation.geometry);
-    this.app?.applyLiveCuratedOverrideMapUpdate?.(overrideKey, livePatch, validation.geometry);
-
     if (btnSave) {
       btnSave.disabled = false;
       btnSave.textContent = "Save Approved Footprint";
     }
 
-    this.teardownPolyEditSession({ updateUrl: true, restoreBasemap: false });
+    this.teardownPolyEditSession({
+      updateUrl: true,
+      restoreBasemap: false,
+      skipCanvasRedraw: true,
+    });
+    this.app?.applyLiveCuratedOverrideMapUpdate?.(overrideKey, livePatch, validation.geometry);
     this.mapController?.selectFeatureByIdOrHcad?.({
       hcadNum: normalizeHcad13Clean(overrideKey),
       featureId: overrideKey,
@@ -4306,14 +4309,18 @@ export class StaffWorkbenchController {
    * Strictly idempotent Polygon Editor teardown (`RP-1`).
    * Safe to invoke multiple times in succession on Escape, Cancel, Save, or Lock.
    */
-  teardownPolyEditSession({ updateUrl = true, restoreBasemap = true } = {}) {
+  teardownPolyEditSession({
+    updateUrl = true,
+    restoreBasemap = true,
+    skipCanvasRedraw = false,
+  } = {}) {
     this._pendingPolyEditSpec = null;
     this.polySession = null;
-    if (this.mapController?.setPolygonEditorSession) {
-      this.mapController.setPolygonEditorSession(null);
-    }
     if (typeof document !== "undefined") {
       document.getElementById("polygon-editor-dock")?.classList.add("hidden");
+    }
+    if (this.mapController?.setPolygonEditorSession) {
+      this.mapController.setPolygonEditorSession(null, { skipCanvasRedraw });
     }
     if (this.filterStore) {
       const nextPatch = {};

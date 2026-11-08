@@ -1333,12 +1333,12 @@ def collect_target_atlas_hcads(
     permit_only_hcads: set[str] = set()
 
     if pdir.exists():
-        for pfile in sorted(pdir.glob("permits_*.json")):
-            m = re.fullmatch(r"permits_(\d{3})\.json", pfile.name)
-            if m:
-                permit_prefixes.add(m.group(1))
+        from atlas_pipeline.schema import iter_json_or_gzip_shard_keys, read_json_or_gzip_path
+
+        for pfx_k, pfile in iter_json_or_gzip_shard_keys(pdir, "permits_", r"\d{3}"):
+            permit_prefixes.add(pfx_k)
             if not hcads:
-                doc = json.loads(pfile.read_text(encoding="utf-8"))
+                doc = read_json_or_gzip_path(pfile)
                 if isinstance(doc, dict):
                     for k in doc:
                         nk = normalize_standing_hcad_token(k)

@@ -16,6 +16,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import urllib.error
 import urllib.parse
@@ -24,6 +25,10 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT / "pipeline") not in sys.path:
+    sys.path.insert(0, str(ROOT / "pipeline"))
+
+from atlas_pipeline.schema import read_json_or_gzip_shard
 DATA_DIR = ROOT / "app" / "public" / "data"
 CACHE_DIR = ROOT / "pipeline" / "cache" / "hahc_pdfs"
 HAHC_PAGE_URL = "https://www.houstontx.gov/planning/Commissions/HAHC.html"
@@ -577,8 +582,10 @@ class ParcelGeocoder:
 
     def _load_shard(self, shard_key: str) -> dict:
         if shard_key not in self._shard_cache:
-            sp = DATA_DIR / "address_shards" / f"addr_{shard_key}.json"
-            self._shard_cache[shard_key] = json.loads(sp.read_text()) if sp.exists() else {}
+            self._shard_cache[shard_key] = read_json_or_gzip_shard(
+                DATA_DIR / "address_shards",
+                f"addr_{shard_key}",
+            )
         return self._shard_cache[shard_key]
 
     def resolve(self, address: str, district_hint: str = "") -> dict | None:
@@ -591,7 +598,7 @@ class ParcelGeocoder:
             res["matched_district"] = self._district_at(res["lng"], res["lat"]) or district_hint
             return res
 
-        shard_key = hnum[:2].zfill(2) if len(hnum) >= 2 else f"0{hnum}"
+        shard_key = hnum[:2].ljust(2, "0")
         shard = self._load_shard(shard_key)
         core_toks = [t for t in toks if t not in set(STREET_SUFFIX_MAP.values())]
         target_street = " ".join(toks)

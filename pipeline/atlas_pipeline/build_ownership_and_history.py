@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 from typing import Any
@@ -61,9 +62,11 @@ from atlas_pipeline.schema import (
     QUAD_NAMES,
     RESIDENTIAL_HOMESTEAD_STATE_CLASSES,
     SOFT_MAX_APP_BYTES,
+    TPIA_PERMIT_SHARD_KEYS,
     classify_account_ownership,
     classify_main_structure_demolition_permit,
     collect_standing_and_referenced_atlas_hcads,
+    compress_deterministic_gzip_json,
     compute_pre_demolition_flip_days,
     find_zip_member_case_insensitive,
     infer_fallback_ownership_tier,
@@ -73,13 +76,17 @@ from atlas_pipeline.schema import (
     is_protected_homestead,
     is_registered_agent_billing_cluster,
     is_tax_protest_agent_care_of,
+    iter_json_or_gzip_shard_keys,
     normalize_hcad_clerk_instrument,
     normalize_hcad_date,
     normalize_postal_billing_key,
     normalize_standing_hcad_token,
     _normalize_postal_line,
     parse_dos_yyyymmdd,
+    read_json_or_gzip_path,
     sanitize_atlas_text,
+    sanitize_json_structure_dashes,
+    sum_json_or_gzip_shard_bytes,
     write_compact_json,
 )
 
@@ -1148,7 +1155,7 @@ def enrich_permit_shards_with_ownership_and_deeds(
     tax_year: int | None = None,
     ownership_graph: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Idempotently enrich `permits_<prefix3>.json` shards with `d`, `ot`, `pid`, `m`, `co`, `flip`, `conf` (`DF-1`, `DF-2`, `DF-7`)."""
+    """Idempotently enrich `permits_<prefix3>.json.gz` shards with `d`, `ot`, `pid`, `m`, `co`, `flip`, `conf` (`DF-1`, `DF-2`, `DF-7`)."""
     if not Path(real_acct_zip).exists():
         raise FileNotFoundError(f"Missing HCAD archive: {real_acct_zip}")
     eff_tax = ACTIVE_TAX_YEAR if tax_year is None else int(tax_year)
@@ -1160,17 +1167,25 @@ def enrich_permit_shards_with_ownership_and_deeds(
     )
     own_records: dict[str, AccountOwnershipRecord] = graph["records"]
 
-    # 1. Load existing shards and idempotently strip all ENRICHED_PERMIT_SHARD_KEYS + 'conf' (DF-1, DF-2)
+    # 1. Load existing `.json.gz` (or legacy `.json`) shards and idempotently strip all ENRICHED_PERMIT_SHARD_KEYS + 'conf' (DF-1, DF-2)
     shards: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
     existing_acct_count = 0
-    for shard_file in sorted(Path(permits_dir).glob("permits_*.json")):
-        prefix3 = shard_file.stem.replace("permits_", "")
-        data = json.loads(shard_file.read_text(encoding="utf-8"))
+    for prefix3, shard_file in iter_json_or_gzip_shard_keys(Path(permits_dir), "permits_", r"\d{3}"):
+        data = read_json_or_gzip_path(shard_file)
         cleaned: dict[str, dict[str, Any]] = {}
         for acct, rec in data.items():
             if isinstance(rec, dict):
+                was_conf = bool(rec.get("conf"))
                 for k_strip in (*ENRICHED_PERMIT_SHARD_KEYS, "conf"):
                     rec.pop(k_strip, None)
+                own_rec = own_records.get(acct)
+                if (own_rec is not None and own_rec.is_sec_25_025_confidential) or (
+                    own_rec is None and was_conf
+                ):
+                    for k_tpia in TPIA_PERMIT_SHARD_KEYS:
+                        rec.pop(k_tpia, None)
+                    if own_rec is None and was_conf:
+                        rec["conf"] = 1
                 if rec:
                     cleaned[acct] = rec
         shards[prefix3] = cleaned
@@ -1223,7 +1238,7 @@ def enrich_permit_shards_with_ownership_and_deeds(
         sorted_deeds_by_acct[acct] = pairs[:MAX_DEEDS_PER_PARCEL]
 
     # 3. Compute baseline stripped size and check PERMIT_ENRICHMENT_SOFT_MAX_BYTES / SOFT_MAX_APP_BYTES budgets.
-    # Subtract owner_history/*.json.gz from permit_budget_base_bytes so permits_*.json output stays
+    # Subtract owner_history/*.json.gz from permit_budget_base_bytes so permits_*.json.gz output stays
     # byte-identical regardless of whether build_historical_ownership_2005_2026.py ran before or after (MOD-1).
     owner_hist_dir = Path(data_dir) / "owner_history"
     owner_hist_bytes = (
@@ -1231,12 +1246,12 @@ def enrich_permit_shards_with_ownership_and_deeds(
         if owner_hist_dir.is_dir()
         else 0
     )
-    non_permit_bytes = compute_app_total_bytes(app_dir) - sum(
-        p.stat().st_size for p in Path(permits_dir).glob("permits_*.json")
+    non_permit_bytes = compute_app_total_bytes(app_dir) - sum_json_or_gzip_shard_bytes(
+        Path(permits_dir), "permits_", r"\d{3}"
     )
     permit_budget_base_bytes = max(0, non_permit_bytes - owner_hist_bytes)
     stripped_permits_bytes = sum(
-        len(json.dumps(shard_dict, separators=(",", ":")).encode("utf-8"))
+        len(json.dumps(shard_dict, separators=(",", ":")).encode("utf-8")) // 4
         for shard_dict in shards.values()
         if shard_dict
     )
@@ -1305,27 +1320,46 @@ def enrich_permit_shards_with_ownership_and_deeds(
 
     Path(permits_dir).mkdir(parents=True, exist_ok=True)
 
-    def _measure_shards() -> tuple[int, int, str]:
+    def _compress_one_shard(item: tuple[str, dict[str, dict[str, Any]]]) -> tuple[str, bytes]:
+        pfx_i, s_dict_i = item
+        return pfx_i, compress_deterministic_gzip_json(sanitize_json_structure_dashes(s_dict_i))
+
+    def _measure_and_compress_shards() -> tuple[dict[str, bytes], int, int, str]:
+        non_empty_items = [
+            (pfx, s_dict) for pfx, s_dict in sorted(shards.items()) if s_dict
+        ]
+        compressed_map: dict[str, bytes] = {}
+        if len(non_empty_items) <= 4:
+            for item in non_empty_items:
+                pfx_i, gz_b = _compress_one_shard(item)
+                compressed_map[pfx_i] = gz_b
+        else:
+            from concurrent.futures import ThreadPoolExecutor
+
+            workers = min(8, os.cpu_count() or 4, len(non_empty_items))
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                for pfx_i, gz_b in pool.map(_compress_one_shard, non_empty_items):
+                    compressed_map[pfx_i] = gz_b
+
         tot_s = 0
         max_s = 0
         max_n = ""
-        for pfx, s_dict in sorted(shards.items()):
-            if not s_dict:
-                continue
-            rb = json.dumps(s_dict, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-            sz_i = len(rb)
+        for pfx in sorted(compressed_map.keys()):
+            sz_i = len(compressed_map[pfx])
             if sz_i >= MAX_SINGLE_FILE_BYTES:
                 raise RuntimeError(
-                    f"Enriched shard permits_{pfx}.json ({sz_i} bytes) exceeds "
+                    f"Enriched shard permits_{pfx}.json.gz ({sz_i} bytes) exceeds "
                     f"MAX_SINGLE_FILE_BYTES ({MAX_SINGLE_FILE_BYTES} bytes)."
                 )
             tot_s += sz_i
             if sz_i > max_s:
                 max_s = sz_i
-                max_n = f"permits_{pfx}.json"
-        return tot_s, max_s, max_n
+                max_n = f"permits_{pfx}.json.gz"
+        return compressed_map, tot_s, max_s, max_n
 
-    projected_shards_bytes, max_shard_bytes, max_shard_name = _measure_shards()
+    compressed_by_pfx, projected_shards_bytes, max_shard_bytes, max_shard_name = (
+        _measure_and_compress_shards()
+    )
 
     # Soft-budget guard: if projected app/ exceeds SOFT_MAX_APP_BYTES when standing_hcads exist,
     # prune unmapped non-standing rows first, then cap >6 permits on post-1980 tracts if still needed.
@@ -1334,7 +1368,9 @@ def enrich_permit_shards_with_ownership_and_deeds(
             for acct_k in list(s_dict.keys()):
                 if acct_k not in standing_hcads:
                     del s_dict[acct_k]
-        projected_shards_bytes, max_shard_bytes, max_shard_name = _measure_shards()
+        compressed_by_pfx, projected_shards_bytes, max_shard_bytes, max_shard_name = (
+            _measure_and_compress_shards()
+        )
 
     if standing_hcads and (non_permit_bytes + projected_shards_bytes) > SOFT_MAX_APP_BYTES:
         excess = (non_permit_bytes + projected_shards_bytes) - (SOFT_MAX_APP_BYTES - 2 * 1024 * 1024)
@@ -1352,7 +1388,9 @@ def enrich_permit_shards_with_ownership_and_deeds(
                     saved_est += max(0, before_l - after_l)
                     if saved_est >= excess:
                         break
-        projected_shards_bytes, max_shard_bytes, max_shard_name = _measure_shards()
+        compressed_by_pfx, projected_shards_bytes, max_shard_bytes, max_shard_name = (
+            _measure_and_compress_shards()
+        )
 
     projected_total_bytes = non_permit_bytes + projected_shards_bytes
     if projected_total_bytes >= HARD_MAX_APP_BYTES:
@@ -1361,12 +1399,21 @@ def enrich_permit_shards_with_ownership_and_deeds(
             f"HARD_MAX_APP_BYTES ({HARD_MAX_APP_BYTES} bytes)."
         )
 
-    for prefix3, shard_dict in sorted(shards.items()):
-        shard_file = Path(permits_dir) / f"permits_{prefix3}.json"
-        if not shard_dict:
-            shard_file.unlink(missing_ok=True)
+    pdir_path = Path(permits_dir)
+    for prefix3 in sorted(shards.keys()):
+        gz_file = pdir_path / f"permits_{prefix3}.json.gz"
+        legacy_json = pdir_path / f"permits_{prefix3}.json"
+        if prefix3 not in compressed_by_pfx:
+            gz_file.unlink(missing_ok=True)
+            legacy_json.unlink(missing_ok=True)
             continue
-        write_compact_json(shard_file, shard_dict)
+        tmp_gz = gz_file.with_name(f".{gz_file.name}.{os.getpid()}.tmp")
+        try:
+            tmp_gz.write_bytes(compressed_by_pfx[prefix3])
+            tmp_gz.replace(gz_file)
+        finally:
+            tmp_gz.unlink(missing_ok=True)
+        legacy_json.unlink(missing_ok=True)
 
     return {
         "enriched_existing": enriched_existing,

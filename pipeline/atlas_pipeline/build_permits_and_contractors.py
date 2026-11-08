@@ -33,12 +33,16 @@ from pathlib import Path
 from atlas_pipeline.schema import (
     ACTIVE_TAX_YEAR,
     EXTRA_FEATURES_CAP_PER_ACCOUNT,
+    TPIA_PERMIT_SHARD_KEYS,
     compute_decade,
     finalize_hcad_account_permits,
+    iter_json_or_gzip_shard_keys,
     normalize_hcad_appraiser_note,
     normalize_hcad_extra_feature_row,
     normalize_hcad_permit_row,
+    read_json_or_gzip_path,
     write_compact_json,
+    write_deterministic_gzip_json_shard,
 )
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -1979,25 +1983,34 @@ def main(*, tax_year: int | None = None, cache_dir: Path | None = None):
         shards[acct[:3]][acct] = rec
         kept_accts += 1
 
-    # Preserve existing top-level "d" recorded deed chain strings (authored by enrich_deed_chains.py;
+    # Preserve existing top-level "d" / TPIA fields (authored by enrich_deed_chains.py / ingest-tpia;
     # distinct from nested rec["p"][i]["d"] permit descriptions) so full permit rebuilds never wipe deeds.
-    existing_shard_files = {p.stem.replace("permits_", ""): p for p in PERMITS_DIR.glob("permits_*.json")}
-    for prefix3 in set(shards.keys()) | set(existing_shard_files.keys()):
+    existing_shard_files = dict(iter_json_or_gzip_shard_keys(PERMITS_DIR, "permits_", r"\d{3}"))
+    preserved_top_keys = ("d", *TPIA_PERMIT_SHARD_KEYS)
+    for prefix3 in sorted(set(shards.keys()) | set(existing_shard_files.keys())):
         shard_dict = shards[prefix3]
-        shard_file = PERMITS_DIR / f"permits_{prefix3}.json"
-        if shard_file.exists():
+        prev_path = existing_shard_files.get(prefix3)
+        if prev_path is not None and prev_path.exists():
             try:
-                prev_data = json.loads(shard_file.read_text(encoding="utf-8"))
+                prev_data = read_json_or_gzip_path(prev_path)
                 for acct, prev_rec in prev_data.items():
-                    if isinstance(prev_rec, dict) and prev_rec.get("d"):
+                    if not isinstance(prev_rec, dict) or prev_rec.get("conf"):
+                        continue
+                    keep_fields = {k: prev_rec[k] for k in preserved_top_keys if prev_rec.get(k)}
+                    if keep_fields:
                         if acct in shard_dict:
-                            shard_dict[acct]["d"] = prev_rec["d"]
+                            shard_dict[acct].update(keep_fields)
                         else:
-                            shard_dict[acct] = {"d": prev_rec["d"]}
+                            shard_dict[acct] = keep_fields
             except Exception:
                 pass
         if shard_dict:
-            write_compact_json(shard_file, shard_dict)
+            write_deterministic_gzip_json_shard(
+                PERMITS_DIR / f"permits_{prefix3}.json.gz",
+                shard_dict,
+                unlink_legacy_json=True,
+                sanitize_dashes=True,
+            )
 
     print(f"Wrote {len(shards)} permit shard files covering {kept_accts:,} HCAD accounts.")
 

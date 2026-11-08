@@ -84,11 +84,13 @@ from atlas_pipeline.schema import (
     normalize_standing_override_year,
     normalize_year,
     parse_hcad_date_year,
+    read_json_or_gzip_path,
     resolve_ch42_ordinance_lifecycle,
     save_compact_cama_lookup,
     sync_repo_tax_year_and_cache_bust,
     update_pmtiles_manifest_v3,
     write_compact_json,
+    write_deterministic_gzip_json_shard,
 )
 from atlas_pipeline.tile_builder import compile_pmtiles_archive
 from atlas_pipeline.update_annual_hcad_roll import (
@@ -2363,7 +2365,7 @@ def build_mini_county_workspace(
         "60": {"BELLAIRE BLVD": [["606", -95.6, 29.7, 1974, "0230000000010"]]},
     }
     for sk, sp in addr_payloads.items():
-        write_compact_json(addr_dir / f"addr_{sk}.json", sp)
+        write_deterministic_gzip_json_shard(addr_dir / f"addr_{sk}.json.gz", sp)
 
     # Seed search_index.json with boundary, lost_*, school_*, deleted, replatted, and updated entries
     search_items = [
@@ -2446,21 +2448,21 @@ def build_mini_county_workspace(
     ]
     write_compact_json(data_dir / "search_index.json", search_items)
 
-    # Seed permits/permits_<prefix3>.json shards including old prefixes 012 and 013
-    write_compact_json(
-        permits_dir / "permits_010.json",
+    # Seed permits/permits_<prefix3>.json.gz shards including old prefixes 012 and 013
+    write_deterministic_gzip_json_shard(
+        permits_dir / "permits_010.json.gz",
         {"0100000000001": {"y": 1920, "s": "Bungalow", "d": "19950101:P100001"}},
     )
-    write_compact_json(
-        permits_dir / "permits_011.json",
+    write_deterministic_gzip_json_shard(
+        permits_dir / "permits_011.json.gz",
         {"0110000000002": {"y": 1935, "s": "Frame", "d": "20100505:201000001"}},
     )
-    write_compact_json(
-        permits_dir / "permits_012.json",
+    write_deterministic_gzip_json_shard(
+        permits_dir / "permits_012.json.gz",
         {"0120000000003": {"y": 1918, "s": "Bungalow", "d": "20010303:U100003"}},
     )
-    write_compact_json(
-        permits_dir / "permits_013.json",
+    write_deterministic_gzip_json_shard(
+        permits_dir / "permits_013.json.gz",
         {"0130000000004": {"y": 1928, "s": "Duplex", "d": "20080808:200800004"}},
     )
 
@@ -3062,13 +3064,13 @@ def test_it3_artifact_sync_delta_pruning_across_indexes_and_export_cache(tmp_pat
     assert pcl_by_hcad["0140000000005"]["year_built"] == 2027
 
     # 3. address_shards: 303 removed from addr_30, 404 removed from addr_40, 904 added to addr_90, 505/507 added to addr_50
-    addr_30 = json.loads((data_dir / "address_shards" / "addr_30.json").read_text(encoding="utf-8"))
+    addr_30 = read_json_or_gzip_path(data_dir / "address_shards" / "addr_30.json.gz")
     assert all(r[4] != "0120000000003" for rows in addr_30.values() for r in rows)
-    addr_40 = json.loads((data_dir / "address_shards" / "addr_40.json").read_text(encoding="utf-8"))
+    addr_40 = read_json_or_gzip_path(data_dir / "address_shards" / "addr_40.json.gz")
     assert all(r[4] != "0130000000004" for rows in addr_40.values() for r in rows)
-    addr_90 = json.loads((data_dir / "address_shards" / "addr_90.json").read_text(encoding="utf-8"))
+    addr_90 = read_json_or_gzip_path(data_dir / "address_shards" / "addr_90.json.gz")
     assert any(r[0] == "904" and r[4] == "0990000000004" for r in addr_90.get("HEIGHTS BLVD", []))
-    addr_50 = json.loads((data_dir / "address_shards" / "addr_50.json").read_text(encoding="utf-8"))
+    addr_50 = read_json_or_gzip_path(data_dir / "address_shards" / "addr_50.json.gz")
     h50_ids = {r[4] for r in addr_50.get("HEIGHTS BLVD", [])}
     assert {"0140000000005", "0140000000006"}.issubset(h50_ids)
 
@@ -3086,12 +3088,12 @@ def test_it3_artifact_sync_delta_pruning_across_indexes_and_export_cache(tmp_pat
     replat_it = next(it for it in s_items if it.get("id") == "0990000000004")
     assert replat_it["address"] == "904 HEIGHTS BLVD"
 
-    # 5. permits/permits_<prefix3>.json: old 0130000000004 pruned; 099/014/011 enriched with 2027 deeds & frontend permit keys
-    p013 = json.loads((data_dir / "permits" / "permits_013.json").read_text(encoding="utf-8"))
+    # 5. permits/permits_<prefix3>.json.gz: old 0130000000004 pruned; 099/014/011 enriched with 2027 deeds & frontend permit keys
+    p013 = read_json_or_gzip_path(data_dir / "permits" / "permits_013.json.gz")
     assert "0130000000004" not in p013
-    p099 = json.loads((data_dir / "permits" / "permits_099.json").read_text(encoding="utf-8"))
+    p099 = read_json_or_gzip_path(data_dir / "permits" / "permits_099.json.gz")
     assert "20270601:R2027-990004" in p099["0990000000004"]["d"]
-    p011 = json.loads((data_dir / "permits" / "permits_011.json").read_text(encoding="utf-8"))
+    p011 = read_json_or_gzip_path(data_dir / "permits" / "permits_011.json.gz")
     assert p011["0110000000002"]["p"][0]["id"] == "PRMUPD2027"
     assert p011["0110000000002"]["p"][0]["cat"] == "remodel"
     assert "20270520:R2027-555002" in p011["0110000000002"]["d"]
@@ -3176,7 +3178,8 @@ def test_it4_same_year_idempotence_rollback_and_budget_gates(tmp_path: Path, mon
     )
     assert trim_res["trimmed_accounts"] >= 2
     assert trim_res["bytes_saved"] > 0
-    trimmed_doc = json.loads((staged_trim / "permits" / "permits_011.json").read_text(encoding="utf-8"))
+    assert not (staged_trim / "permits" / "permits_011.json").exists()
+    trimmed_doc = read_json_or_gzip_path(staged_trim / "permits" / "permits_011.json.gz")
     assert "0119999999999" not in trimmed_doc
     assert len(trimmed_doc["0110000000002"]["d"].split("|")) <= 2
     assert len(trimmed_doc["0110000000002"]["p"]) <= 5
@@ -3354,11 +3357,11 @@ def test_it7_observed_footprints_dedup_and_6dp_ccw_normalization(tmp_path: Path)
     core_fc = json.loads((data_dir / "buildings.geojson").read_text(encoding="utf-8"))
     core_fc["features"].append(dup_syn)
     write_compact_json(data_dir / "buildings.geojson", core_fc)
-    addr10_doc = json.loads((data_dir / "address_shards" / "addr_10.json").read_text(encoding="utf-8"))
+    addr10_doc = read_json_or_gzip_path(data_dir / "address_shards" / "addr_10.json.gz")
     addr10_doc["HEIGHTS BLVD"].append(
         ["101", -95.399, 29.79, 2025, "0100000000001", "", "0100000000001#dup_provisional"]
     )
-    write_compact_json(data_dir / "address_shards" / "addr_10.json", addr10_doc)
+    write_deterministic_gzip_json_shard(data_dir / "address_shards" / "addr_10.json.gz", addr10_doc)
     sidx_doc = json.loads((data_dir / "search_index.json").read_text(encoding="utf-8"))
     sidx_doc.append(
         {
@@ -3396,7 +3399,7 @@ def test_it7_observed_footprints_dedup_and_6dp_ccw_normalization(tmp_path: Path)
     ids_out = {f["properties"]["id"] for f in core_blds}
     assert "0100000000001#dup_provisional" not in ids_out  # Older observed 1920 footprint won dedup!
     assert "0100000000001" in ids_out
-    addr10_after = json.loads((data_dir / "address_shards" / "addr_10.json").read_text(encoding="utf-8"))[
+    addr10_after = read_json_or_gzip_path(data_dir / "address_shards" / "addr_10.json.gz")[
         "HEIGHTS BLVD"
     ]
     addr10_ents = {(r[6] if len(r) > 6 else r[4]) for r in addr10_after}
@@ -3942,7 +3945,8 @@ def test_reg_multibuilding_reconciliation_addr_7col_and_partial_split(tmp_path: 
     assert "0300000000004" in exp_by_bid and "0300000000004#n2" in exp_by_bid
 
     # 4. address_shards: 7-col rows preserved for #chapel & #gym while #shed pruned; 6-col Lee Villa row preserved!
-    a20 = json.loads((staged_data / "address_shards" / "addr_20.json").read_text(encoding="utf-8"))["LEE DR"]
+    assert not (staged_data / "address_shards" / "addr_20.json").exists()
+    a20 = read_json_or_gzip_path(staged_data / "address_shards" / "addr_20.json.gz")["LEE DR"]
     a20_by_ent = {(r[6] if len(r) > 6 else r[4]): r for r in a20}
     assert "0300000000001#shed" not in a20_by_ent
     assert len(a20_by_ent["0300000000001#chapel"]) == 7
@@ -3951,14 +3955,14 @@ def test_reg_multibuilding_reconciliation_addr_7col_and_partial_split(tmp_path: 
     assert a20_by_ent["0300000000001#gym"][5] == "Parish Gym"
     assert "0300000000002#front" not in a20_by_ent and "0300000000002#rear" not in a20_by_ent
 
-    a21 = json.loads((staged_data / "address_shards" / "addr_21.json").read_text(encoding="utf-8"))["LEE DR"]
+    a21 = read_json_or_gzip_path(staged_data / "address_shards" / "addr_21.json.gz")["LEE DR"]
     a21_by_ent = {(r[6] if len(r) > 6 else r[4]): r for r in a21}
     assert "0300000000002#front" in a21_by_ent and "0300000000002#rear" in a21_by_ent
 
-    a50 = json.loads((staged_data / "address_shards" / "addr_50.json").read_text(encoding="utf-8"))["LEE DR"]
+    a50 = read_json_or_gzip_path(staged_data / "address_shards" / "addr_50.json.gz")["LEE DR"]
     assert len(a50) == 1 and len(a50[0]) == 6 and a50[0][5] == "Lee Villa"
 
-    a40 = json.loads((staged_data / "address_shards" / "addr_40.json").read_text(encoding="utf-8"))["LEE DR"]
+    a40 = read_json_or_gzip_path(staged_data / "address_shards" / "addr_40.json.gz")["LEE DR"]
     a40_ents = {(r[6] if len(r) > 6 else r[4]) for r in a40}
     assert {"0300000000004", "0300000000004#n2"}.issubset(a40_ents)
 
@@ -4682,12 +4686,14 @@ def test_reg_pass3_review_fixes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
         for f in json.loads((ddir_h / "buildings.geojson").read_text(encoding="utf-8"))["features"]
     }
     assert b_healed["0100000000091"] == 1926
-    a_healed = json.loads((ddir_h / "address_shards" / "addr_10.json").read_text(encoding="utf-8"))["HEIGHTS BLVD"]
+    a_healed = read_json_or_gzip_path(ddir_h / "address_shards" / "addr_10.json.gz")["HEIGHTS BLVD"]
+    assert not (ddir_h / "address_shards" / "addr_10.json").exists()
     assert a_healed[0][3] == 1926
     s_healed = json.loads((ddir_h / "search_index.json").read_text(encoding="utf-8"))[0]
     assert s_healed["year_built"] == 1926
     assert "Built 1926" in s_healed["sublabel"]
-    p_healed = json.loads((ddir_h / "permits" / "permits_010.json").read_text(encoding="utf-8"))
+    p_healed = read_json_or_gzip_path(ddir_h / "permits" / "permits_010.json.gz")
+    assert not (ddir_h / "permits" / "permits_010.json").exists()
     assert p_healed["0100000000091"]["xf"][0]["y"] == 1926
     e_healed = {
         f["properties"]["hcad_num"]: f["properties"]["year_built"]
@@ -4993,9 +4999,12 @@ def test_reg_pass4_review_fixes(tmp_path: Path) -> None:
     assert b_ex_ids == {"0710000000001"}
     p_ex_hcads = {f["properties"]["hcad_num"] for f in json.loads((sd_ex / "parcels.geojson").read_text(encoding="utf-8"))["features"]}
     assert p_ex_hcads == {"0710000000001"}
-    assert json.loads((sd_ex / "address_shards" / "addr_20.json").read_text(encoding="utf-8")) == {}
+    assert read_json_or_gzip_path(sd_ex / "address_shards" / "addr_20.json.gz") == {}
+    assert not (sd_ex / "address_shards" / "addr_20.json").exists()
     assert json.loads((sd_ex / "search_index.json").read_text(encoding="utf-8")) == []
-    assert json.loads((sd_ex / "permits" / "permits_072.json").read_text(encoding="utf-8")) == {}
+    assert read_json_or_gzip_path(sd_ex / "permits" / "permits_072.json.gz") == {}
+    assert not (sd_ex / "permits" / "permits_072.json").exists()
+    assert not (sd_ex / "permits" / "permits_073.json.gz").exists()
     assert not (sd_ex / "permits" / "permits_073.json").exists()
     exp_ex_ids = {f["properties"]["id"] for f in json.loads((sd_ex / "export_cache" / f"{hd_slug}.json").read_text(encoding="utf-8"))["buildings"]}
     assert exp_ex_ids == {"0710000000001"}

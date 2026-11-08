@@ -29,6 +29,7 @@ import json
 import re
 import ssl
 import subprocess
+import sys
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -36,6 +37,13 @@ import zipfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT / "pipeline") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "pipeline"))
+
+from atlas_pipeline.schema import (
+    read_json_or_gzip_shard,
+    write_deterministic_gzip_json_shard,
+)
 BUILDINGS_GEOJSON = REPO_ROOT / "app" / "public" / "data" / "buildings.geojson"
 SEARCH_INDEX_JSON = REPO_ROOT / "app" / "public" / "data" / "search_index.json"
 PERMITS_DIR = REPO_ROOT / "app" / "public" / "data" / "permits"
@@ -1982,12 +1990,8 @@ def main():
 
     shards_updated = 0
     for prefix3, hcads in by_prefix.items():
-        shard_path = PERMITS_DIR / f"permits_{prefix3}.json"
-        if shard_path.exists():
-            with open(shard_path, "r", encoding="utf-8") as f:
-                shard_data = json.load(f)
-        else:
-            shard_data = {}
+        gz_path = PERMITS_DIR / f"permits_{prefix3}.json.gz"
+        shard_data = read_json_or_gzip_shard(PERMITS_DIR, f"permits_{prefix3}")
 
         shard_modified = False
         for hcad in hcads:
@@ -2082,8 +2086,12 @@ def main():
                 shard_data[hcad] = rec
 
         if shard_modified:
-            with open(shard_path, "w", encoding="utf-8") as f:
-                json.dump(shard_data, f, separators=(",", ":"))
+            write_deterministic_gzip_json_shard(
+                gz_path,
+                shard_data,
+                unlink_legacy_json=True,
+                sanitize_dashes=True,
+            )
             shards_updated += 1
 
     print(f"6. Updated {shards_updated} permit shard(s) in {PERMITS_DIR}", flush=True)

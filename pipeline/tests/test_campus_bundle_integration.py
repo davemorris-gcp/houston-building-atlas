@@ -498,9 +498,9 @@ def test_it3_school_linkage_address_shards_and_inner_core_consistency(
         ("80", "W TEXAS AVE", "805", 2008, "1378920010001", "1378920010001#lee_pac_2008"),
     ]
     for shard_prefix, street_key, house_num, exp_yr, exp_hcad, exp_bid in expected_addr_rows:
-        shard_file = ADDRESS_SHARDS_DIR / f"addr_{shard_prefix}.json"
+        shard_file = ADDRESS_SHARDS_DIR / f"addr_{shard_prefix}.json.gz"
         assert shard_file.is_file(), f"Missing address shard {shard_file}"
-        shard_obj = json.loads(shard_file.read_text(encoding="utf-8"))
+        shard_obj = json.loads(gzip.decompress(shard_file.read_bytes()).decode("utf-8"))
         rows = shard_obj.get(street_key) or []
         matching = [
             r
@@ -511,7 +511,7 @@ def test_it3_school_linkage_address_shards_and_inner_core_consistency(
             and len(r) >= 7
             and str(r[6] or "") == exp_bid
         ]
-        assert matching, f"Missing linked row for {house_num} {street_key} ({exp_bid}) in addr_{shard_prefix}.json"
+        assert matching, f"Missing linked row for {house_num} {street_key} ({exp_bid}) in addr_{shard_prefix}.json.gz"
         assert VALID_NUMBERED_SITUS_RE.match(f"{house_num} {street_key}")
 
     # Verify inner-core Pilot Core buildings.geojson is 100% dated and free of sentinel/pre-1945 contiguity leaks

@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
 
 import {
   buildResearchKitDeedChainView,
@@ -59,17 +60,17 @@ test("1127 Key St (0621100000014): resolves NORTH NORHILL plat over HCAD NORHILL
     assert.doesNotMatch(pt.copy, /[&.,'"\-()/]/);
   }
 
-  // Verify permits_062.json on disk contains the normalized recorded deed chain for 0621100000014
+  // Verify permits_062.json.gz on disk contains the normalized recorded deed chain for 0621100000014
   const shard062Path = path.join(
     REPO_ROOT,
     "app",
     "public",
     "data",
     "permits",
-    "permits_062.json"
+    "permits_062.json.gz"
   );
-  assert.ok(fs.existsSync(shard062Path), "permits_062.json must exist");
-  const shard062 = JSON.parse(fs.readFileSync(shard062Path, "utf8"));
+  assert.ok(fs.existsSync(shard062Path), "permits_062.json.gz must exist");
+  const shard062 = JSON.parse(zlib.gunzipSync(fs.readFileSync(shard062Path)).toString("utf8"));
   const keyStRec = shard062["0621100000014"];
   assert.ok(keyStRec && keyStRec.d, "0621100000014 must include compact deed chain field 'd'");
 
@@ -400,12 +401,12 @@ test("Python enrich_deed_chains normalizes all Harris County Clerk eras and repa
     "public",
     "data",
     "permits",
-    "permits_110.json"
+    "permits_110.json.gz"
   );
   if (fs.existsSync(shard110Path)) {
-    const shard110 = JSON.parse(fs.readFileSync(shard110Path, "utf8"));
+    const shard110 = JSON.parse(zlib.gunzipSync(fs.readFileSync(shard110Path)).toString("utf8"));
     const rec = shard110["1105210000001"];
-    assert.ok(rec && rec.d, "1105210000001 must have deed chain in permits_110.json");
+    assert.ok(rec && rec.d, "1105210000001 must have deed chain in permits_110.json.gz");
     const deeds = decodeCompactDeedChain(rec.d);
     assert.ok(
       deeds.some((item) => item.copyValue === "P202281" && item.date === "1993-04-13"),
@@ -415,16 +416,16 @@ test("Python enrich_deed_chains normalizes all Harris County Clerk eras and repa
 });
 
 test("describeDeedChainCoverage summarizes empty pre-2004 HCAD coverage, singular 1-filing, and plural multi-filing chains across Key St accounts", () => {
-  // Given real permits_062.json records for 1115-1133 Key St plus non-array boundary inputs.
+  // Given real permits_062.json.gz records for 1115-1133 Key St plus non-array boundary inputs.
   const shard062Path = path.join(
     REPO_ROOT,
     "app",
     "public",
     "data",
     "permits",
-    "permits_062.json"
+    "permits_062.json.gz"
   );
-  const shard062 = JSON.parse(fs.readFileSync(shard062Path, "utf8"));
+  const shard062 = JSON.parse(zlib.gunzipSync(fs.readFileSync(shard062Path)).toString("utf8"));
 
   // When evaluating 0-filing pre-2004 accounts (1133 Key St / 0621100000013 and 1119 Key St / 0621100000016).
   const empty1133 = describeDeedChainCoverage(
@@ -588,7 +589,7 @@ test("ES module, stylesheet, curated_overrides, permits, and pmtiles_manifest ?v
   versions.add(manifestFetchMatch[1]);
 
   const appTxt = fs.readFileSync(path.join(REPO_ROOT, "app", "js", "app.js"), "utf8");
-  const permitsFetchMatch = appTxt.match(/permits_\$\{prefix3\}\.json\?v=([0-9A-Za-z._\-]+)/);
+  const permitsFetchMatch = appTxt.match(/permits_\$\{prefix3\}\.json\.gz\?v=([0-9A-Za-z._\-]+)/);
   assert.ok(permitsFetchMatch, "app.js must carry ?v= cache-buster on permits shard fetch");
   versions.add(permitsFetchMatch[1]);
 
@@ -619,6 +620,7 @@ test("Modified Clerk search, UI, override repair, and deed chain files contain z
     "pipeline/atlas_pipeline/build_permits_and_contractors.py",
     "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
     "pipeline/atlas_pipeline/fix_polygon_orientations.py",
+    "pipeline/atlas_pipeline/ingest_tpia_clerk_and_hcad.py",
     "pipeline/atlas_pipeline/repair_cross_parcel_aux_overrides.py",
     "tests/unit/clerk_search_and_deed_chains.test.mjs",
   ];

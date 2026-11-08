@@ -56,6 +56,23 @@ To make local development and self-hosted deployments instantaneous, `app/server
 - Parses `Range: bytes=start-end` requests and streams only the requested slice with `HTTP 206 Partial Content`.
 - Wraps `send_head()` and `copyfile()` in socket disconnect handlers (`BrokenPipeError`, `ConnectionResetError`) so rapid map panning never crashes or floods server logs.
 
+### Deterministic RFC 1952 `.json.gz` Shard Compression & Dual-Mode Browser `DecompressionStream("gzip")` (`623.26 MiB` Bundle)
+
+GitHub Pages enforces a strict `1 GiB` (`1,024 MiB`) total artifact ceiling (`actions/upload-pages-artifact`), with the repository enforcing a `968 MiB` soft warning gate and a `980 MiB` pre-write hard ceiling (`HARD_MAX_APP_BYTES`). As countywide parcel histories expanded across `152` permit shards (`permits_<prefix3>`), `90` street-address shards (`addr_<prefix2>`), and `152` 22-year HCAD ownership-chain shards (`owners_<prefix3>`), shipping raw JSON pushed `app/` to `962.04 MiB`.
+
+As of November 8, 2026 (Milestone 9), all three on-demand shard families are compiled via `schema.py` (`compress_deterministic_gzip_json` / `write_deterministic_gzip_json_shard`) into deterministic RFC 1952 header-free `.json.gz` files (`mtime=0`, zero embedded `FNAME` headers, sorted single-line compact UTF-8 JSON with Unicode dashes sanitized):
+
+| On-Demand Shard Family | Shard Count | Uncompressed Size | Deterministic `.json.gz` Size | Space Reclaimed |
+| :--- | ---: | ---: | ---: | ---: |
+| `app/public/data/permits/permits_<prefix3>.json.gz` | `152` | `367.05 MiB` (`384,875,568 B`) | `73.41 MiB` (`76,971,352 B`) | `293.64 MiB` (`5.00x`) |
+| `app/public/data/address_shards/addr_<prefix2>.json.gz` | `90` | `59.67 MiB` (`62,571,654 B`) | `14.52 MiB` (`15,223,135 B`) | `45.15 MiB` (`4.11x`) |
+| `app/public/data/owner_history/owners_<prefix3>.json.gz` | `152` | `~218 MiB` | `47.72 MiB` (`50,040,118 B`) | `~170 MiB` (`4.57x`) |
+| **Complete `app/` Pages Bundle** | **All Assets** | **`962.04 MiB` (pre-M9)** | **`623.26 MiB` (`653,530,687 B`)** | **`338.79 MiB` reclaimed** |
+
+On the client (`app/js/clerkSearchHelpers.js`, `app/js/app.js`, and `app/plat-monitor.html`):
+- **Dual-Mode Byte Inspection (`decompressGzipJsonObjectBytes` / `decodeGzipJsonResponse`):** Both GitHub Pages Fastly CDN and `app/server.py` serve `.json.gz` files as `Content-Type: application/gzip` without `Content-Encoding`, so `clerkSearchHelpers.js` inspects the leading payload bytes: if magic bytes `0x1f 0x8b` are present, it pipes the buffer through the browser's native Web Streams `DecompressionStream("gzip")` API (zero external JS dependencies and zero `node:zlib` imports); if an intermediate proxy already gunzipped the response (`0x7b` `{` after optional UTF-8 BOM/whitespace), it parses the UTF-8 JSON directly.
+- **Manifest Prefix Short-Circuiting (`pmtiles_manifest.json`):** `pmtiles_manifest.json` (`version: 3`) advertises `owner_history_prefixes` (`152`), `permit_shard_prefixes` (`152`), and `address_shard_prefixes` (`90`), allowing `_fetchPermitRecord`, `_fetchAddressShard`, and `_fetchOwnerHistoryRecord` to short-circuit non-existent prefixes in `0 ms` with zero HTTP `404` network requests.
+
 ---
 
 ## 3. Basemap Engineering & Eliminating Missing-Tile Placeholders

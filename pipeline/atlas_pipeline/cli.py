@@ -17,12 +17,13 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=("core", "full", "campuses", "annual-refresh"),
+        choices=("core", "full", "campuses", "annual-refresh", "ingest-tpia"),
         default="core",
         help=(
             "Pipeline mode: 'core' (Historic Houston Core + Landmarks + Districts + OSM Footprints), "
             "'full' (Harris County bulk HCAD), 'campuses' (Campus & school dating/situs hydration), "
-            "or 'annual-refresh' (Guarded incremental annual HCAD appraisal roll & parcel refresher)."
+            "'annual-refresh' (Guarded incremental annual HCAD appraisal roll & parcel refresher), "
+            "or 'ingest-tpia' (Harris County Clerk 1961-present RP/MC & pre-2005 HCAD TPIA ingestion)."
         ),
     )
     parser.add_argument(
@@ -109,6 +110,22 @@ def main(argv: list[str] | None = None) -> None:
         default=False,
         help="Allow suppress_only vacant lots with verified post-suppression construction (>= 400 sq ft) to clear suppression automatically.",
     )
+    parser.add_argument(
+        "--clerk-tpia-dir",
+        "--clerk-dir",
+        dest="clerk_tpia_dir",
+        type=Path,
+        default=None,
+        help="Directory or archive holding Harris County Clerk PIA.aspx tabular index files (for --mode ingest-tpia).",
+    )
+    parser.add_argument(
+        "--hcad-tpia-dir",
+        "--hcad-dir",
+        dest="hcad_tpia_dir",
+        type=Path,
+        default=None,
+        help="Directory or archive holding pre-2005 HCAD TPIA ownership/sales tables (for --mode ingest-tpia).",
+    )
     args = parser.parse_args(argv)
 
     t0 = time.time()
@@ -162,6 +179,31 @@ def main(argv: list[str] | None = None) -> None:
         )
         elapsed = time.time() - t0
         print(format_annual_refresh_cli_summary(stats, elapsed_s=elapsed))
+        return
+    elif args.mode == "ingest-tpia":
+        from atlas_pipeline.ingest_tpia_clerk_and_hcad import (
+            format_tpia_ingestion_cli_summary,
+            run_tpia_ingestion,
+        )
+        from atlas_pipeline.schema import ACTIVE_TAX_YEAR
+
+        app_dir_cand = (
+            args.output_dir.parents[1]
+            if len(args.output_dir.parts) >= 3 and args.output_dir.parts[-2:] == ("public", "data")
+            else None
+        )
+        stats = run_tpia_ingestion(
+            output_dir=args.output_dir,
+            cache_dir=args.cache_dir,
+            app_dir=app_dir_cand,
+            clerk_tpia_dir=args.clerk_tpia_dir,
+            hcad_tpia_dir=args.hcad_tpia_dir,
+            apply=bool(args.apply),
+            cache_bust=args.cache_bust,
+            active_tax_year=args.tax_year if args.tax_year is not None else ACTIVE_TAX_YEAR,
+        )
+        elapsed = time.time() - t0
+        print(format_tpia_ingestion_cli_summary(stats, elapsed_s=elapsed))
         return
     else:
         from atlas_pipeline.full_build import run_full_county_build

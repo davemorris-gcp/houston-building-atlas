@@ -14,3 +14,4 @@ import "./milestone4_annual_refresh.test.mjs";
 import "./milestone5_ownership_stewardship.test.mjs";
 import "./milestone7_1927_cutoff_triage.test.mjs";
 import "./milestone8_historical_ownership.test.mjs";
+import "./milestone9_gzip_and_tpia.test.mjs";

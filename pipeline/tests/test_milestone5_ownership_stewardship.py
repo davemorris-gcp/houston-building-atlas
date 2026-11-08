@@ -38,6 +38,7 @@ from atlas_pipeline.schema import (
     is_registered_agent_billing_cluster,
     is_tax_protest_agent_care_of,
     normalize_postal_billing_key,
+    read_json_or_gzip_path,
     sync_repo_tax_year_and_cache_bust,
 )
 from atlas_pipeline.update_annual_hcad_roll import (
@@ -428,12 +429,12 @@ def test_ut3_pre_demolition_flip_days_and_sentinel_filtering() -> None:
 
 
 def test_ut4_additive_permit_shard_enrichment_and_live_benchmarks() -> None:
-    """Verify ENRICHED_PERMIT_SHARD_KEYS and live benchmark parcels in permits_020.json."""
+    """Verify ENRICHED_PERMIT_SHARD_KEYS and live benchmark parcels in permits_020.json.gz."""
     assert ENRICHED_PERMIT_SHARD_KEYS == ("d", "ot", "pid", "m", "co", "flip")
 
-    shard_020_path = DATA_DIR / "permits" / "permits_020.json"
-    assert shard_020_path.is_file(), "Expected app/public/data/permits/permits_020.json to exist"
-    shard_020 = json.loads(shard_020_path.read_text(encoding="utf-8"))
+    shard_020_path = DATA_DIR / "permits" / "permits_020.json.gz"
+    assert shard_020_path.is_file(), "Expected app/public/data/permits/permits_020.json.gz to exist"
+    shard_020 = read_json_or_gzip_path(shard_020_path)
 
     # Benchmark 1: 1017 RUTLAND ST (0202090000013) -> regional_portfolio, port_7155_old_katy_n260
     rec_rutland = shard_020.get("0202090000013")

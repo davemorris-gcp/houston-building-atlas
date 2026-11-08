@@ -9164,6 +9164,49 @@ body {
   margin: 3px 0 2px;
 }
 
+.rk-deed-parties {
+  font-size: 9.8px;
+  color: #d9f99d;
+  opacity: 0.92;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.rk-ml-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rk-ml-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 6px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.42);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.rk-ml-contractor {
+  font-size: 10.2px;
+  font-weight: 600;
+  color: #fde68a;
+  overflow-wrap: anywhere;
+}
+
+.rk-dt-entry {
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.rk-dt-lender {
+  color: #bae6fd;
+}
+
 .rk-clerk-hint {
   font-size: 10.5px;
   line-height: 1.42;

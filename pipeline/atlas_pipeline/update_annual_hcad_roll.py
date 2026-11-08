@@ -111,6 +111,7 @@ from atlas_pipeline.schema import (
     OWNERSHIP_TIER_KEYS,
     QUAD_NAMES,
     SOFT_MAX_APP_BYTES,
+    TPIA_PERMIT_SHARD_KEYS,
     WATCHLIST_TOMBSTONE_STATUSES,
     RollContext,
     classify_main_structure_demolition_permit,
@@ -126,6 +127,7 @@ from atlas_pipeline.schema import (
     find_zip_member_case_insensitive,
     is_boundary_search_entry,
     is_demolished_vacant_marker,
+    iter_json_or_gzip_shard_keys,
     load_compact_cama_lookup,
     normalize_hcad_appraiser_note,
     normalize_hcad_clerk_instrument,
@@ -137,11 +139,14 @@ from atlas_pipeline.schema import (
     normalize_year,
     parse_dos_yyyymmdd,
     peek_real_acct_zip_year,
+    read_json_or_gzip_path,
+    read_json_or_gzip_shard,
     sanitize_atlas_text,
     save_compact_cama_lookup,
     update_pmtiles_manifest_v3,
     verify_zip_file_integrity,
     write_compact_json,
+    write_deterministic_gzip_json_shard,
 )
 from atlas_pipeline.tile_builder import compile_pmtiles_archive
 
@@ -3759,22 +3764,20 @@ def reconcile_derived_building_indexes(
             | set(delta.old_to_new_building_ids.keys())
             | (upsert_entity_ids - {""})
         )
-        candidate_addr_files = (
-            sorted(addr_dir.glob("addr_*.json"))
+        existing_addr_by_key = dict(iter_json_or_gzip_shard_keys(addr_dir, "addr_", r"\d{2}"))
+        candidate_addr_keys = (
+            sorted(existing_addr_by_key.keys())
             if (prune_parcel_hcads or prune_entity_ids)
-            else [addr_dir / f"addr_{k}.json" for k in sorted(upserts_by_shard.keys())]
+            else sorted(upserts_by_shard.keys())
         )
         seen_shard_keys: set[str] = set()
-        for apath in candidate_addr_files:
-            m_ak = re.fullmatch(r"addr_(\d{2})\.json", apath.name)
-            if not m_ak:
-                continue
-            sk = m_ak.group(1)
+        for sk in candidate_addr_keys:
             seen_shard_keys.add(sk)
+            existing_apath = existing_addr_by_key.get(sk)
             doc_a: dict[str, list[list[Any]]] = (
-                json.loads(apath.read_text(encoding="utf-8")) if apath.exists() else {}
+                read_json_or_gzip_path(existing_apath) if existing_apath is not None else {}
             )
-            shard_dirty = False
+            shard_dirty = existing_apath is not None and existing_apath.suffix != ".gz"
             mig_pairs = delta.migrated_addr_prefixes_by_key.get(sk, set())
             for st_key in list(doc_a.keys()):
                 orig_rows = doc_a[st_key]
@@ -3817,15 +3820,24 @@ def reconcile_derived_building_indexes(
                     shard_dirty = True
 
             if shard_dirty:
-                write_compact_json(apath, doc_a)
+                write_deterministic_gzip_json_shard(
+                    addr_dir / f"addr_{sk}.json.gz",
+                    doc_a,
+                    unlink_legacy_json=True,
+                    sanitize_dashes=True,
+                )
                 addr_shards_updated += 1
 
         for sk in sorted(set(upserts_by_shard.keys()) - seen_shard_keys):
-            apath = addr_dir / f"addr_{sk}.json"
-            doc_a = json.loads(apath.read_text(encoding="utf-8")) if apath.exists() else {}
+            doc_a = read_json_or_gzip_shard(addr_dir, f"addr_{sk}")
             for st_n, new_row in upserts_by_shard[sk]:
                 doc_a.setdefault(st_n, []).append(new_row)
-            write_compact_json(apath, doc_a)
+            write_deterministic_gzip_json_shard(
+                addr_dir / f"addr_{sk}.json.gz",
+                doc_a,
+                unlink_legacy_json=True,
+                sanitize_dashes=True,
+            )
             addr_shards_updated += 1
 
     # 3. Reconcile search_index.json (preserve boundaries, Lost Houston lost_*, school_*, and protected entities)
@@ -3996,15 +4008,16 @@ def reconcile_derived_building_indexes(
         if sidx_dirty:
             write_compact_json(sidx_path, new_sidx)
 
-    # 4. Reconcile permits/permits_<prefix3>.json & embedded deed chains
+    # 4. Reconcile permits/permits_<prefix3>.json.gz & embedded deed chains
     permits_dir = ddir / "permits"
     permit_files_updated = 0
     if permits_dir.exists():
         existing_permit_hcads: set[str] = set()
         declassified_conf_hcads: set[str] = set()
-        for existing_ppath in sorted(permits_dir.glob("permits_*.json")):
+        existing_permit_by_pfx = dict(iter_json_or_gzip_shard_keys(permits_dir, "permits_", r"\d{3}"))
+        for _epfx, existing_ppath in sorted(existing_permit_by_pfx.items()):
             try:
-                existing_pdoc = json.loads(existing_ppath.read_text(encoding="utf-8"))
+                existing_pdoc = read_json_or_gzip_path(existing_ppath)
             except Exception:
                 existing_pdoc = {}
             if not isinstance(existing_pdoc, dict):
@@ -4044,11 +4057,12 @@ def reconcile_derived_building_indexes(
                 touched_pfxs.add(h[:3])
 
         for pfx in sorted(touched_pfxs):
-            ppath = permits_dir / f"permits_{pfx}.json"
+            existing_ppath = existing_permit_by_pfx.get(pfx)
+            ppath_existed = existing_ppath is not None and existing_ppath.exists()
             pdoc: dict[str, Any] = (
-                json.loads(ppath.read_text(encoding="utf-8")) if ppath.exists() else {}
+                read_json_or_gzip_path(existing_ppath) if ppath_existed else {}
             )
-            p_dirty = False
+            p_dirty = ppath_existed and existing_ppath.suffix != ".gz"
             for dh in list(pdoc.keys()):
                 if dh in all_retired_or_deleted_hcads:
                     del pdoc[dh]
@@ -4066,14 +4080,25 @@ def reconcile_derived_building_indexes(
                     p_dirty = True
             for fh, frec in fresh_permits.items():
                 if fh.startswith(pfx):
-                    if pdoc.get(fh) != frec:
-                        pdoc[fh] = frec
+                    merged_frec = dict(frec)
+                    prev_frec = pdoc.get(fh)
+                    if isinstance(prev_frec, dict) and not merged_frec.get("conf"):
+                        for k_tpia in TPIA_PERMIT_SHARD_KEYS:
+                            if prev_frec.get(k_tpia) and k_tpia not in merged_frec:
+                                merged_frec[k_tpia] = prev_frec[k_tpia]
+                    if pdoc.get(fh) != merged_frec:
+                        pdoc[fh] = merged_frec
                         p_dirty = True
             if p_dirty:
+                gz_ppath = permits_dir / f"permits_{pfx}.json.gz"
                 if pdoc:
-                    write_compact_json(ppath, pdoc)
-                elif ppath.exists():
-                    write_compact_json(ppath, {})
+                    write_deterministic_gzip_json_shard(
+                        gz_ppath, pdoc, unlink_legacy_json=True, sanitize_dashes=True
+                    )
+                elif ppath_existed:
+                    write_deterministic_gzip_json_shard(
+                        gz_ppath, {}, unlink_legacy_json=True, sanitize_dashes=True
+                    )
                 permit_files_updated += 1
 
     # 5. Reconcile all 24 export_cache/*.json historic district bundles
@@ -4390,6 +4415,8 @@ def _compute_projected_app_size_bytes(
             rel = p.relative_to(live_data).as_posix()
             if obsolete_live_rels and rel in obsolete_live_rels and rel not in staged_files:
                 continue
+            if rel.endswith(".json") and f"{rel}.gz" in staged_files and rel not in staged_files:
+                continue
             seen_data_rels.add(rel)
             if rel in staged_files:
                 sp, sz = staged_files[rel]
@@ -4438,14 +4465,14 @@ def prune_optional_enrichment_for_soft_budget(
     permits_dir = Path(staged_data_dir) / "permits"
     trimmed_accounts = 0
     if permits_dir.exists():
-        # Pass 1: drop non-standing vacant-lot enrichment rows from permits_*.json first
-        for ppath in sorted(permits_dir.glob("permits_*.json")):
+        # Pass 1: drop non-standing vacant-lot enrichment rows from permits_*.json.gz first
+        for pfx_p1, ppath in iter_json_or_gzip_shard_keys(permits_dir, "permits_", r"\d{3}"):
             total_now, _ = _compute_projected_app_size_bytes(
                 live_output_dir, staged_data_dir, obsolete_live_rels=eff_obsolete
             )
             if total_now <= int(soft_max_bytes):
                 break
-            pdoc = json.loads(ppath.read_text(encoding="utf-8"))
+            pdoc = read_json_or_gzip_path(ppath)
             dirty = False
             for acct in list(pdoc.keys()):
                 if acct not in standing_hcads:
@@ -4453,7 +4480,13 @@ def prune_optional_enrichment_for_soft_budget(
                     trimmed_accounts += 1
                     dirty = True
             if dirty:
-                write_compact_json(ppath, pdoc)
+                write_deterministic_gzip_json_shard(
+                    permits_dir / f"permits_{pfx_p1}.json.gz",
+                    pdoc,
+                    unlink_legacy_json=True,
+                    sanitize_dashes=True,
+                )
+                eff_obsolete.add(f"permits/permits_{pfx_p1}.json")
 
     # Pass 2: drop non-standing accounts from owner_history/owners_*.json.gz before capping standing buildings
     owner_hist_dir = Path(staged_data_dir) / "owner_history"
@@ -4507,13 +4540,13 @@ def prune_optional_enrichment_for_soft_budget(
 
     # Pass 3: cap per-account permit/deed history lengths on remaining files if still over soft ceiling
     if permits_dir.exists():
-        for ppath in sorted(permits_dir.glob("permits_*.json")):
+        for pfx_p3, ppath in iter_json_or_gzip_shard_keys(permits_dir, "permits_", r"\d{3}"):
             total_now, _ = _compute_projected_app_size_bytes(
                 live_output_dir, staged_data_dir, obsolete_live_rels=eff_obsolete
             )
             if total_now <= int(soft_max_bytes):
                 break
-            pdoc = json.loads(ppath.read_text(encoding="utf-8"))
+            pdoc = read_json_or_gzip_path(ppath)
             dirty = False
             for acct, rec in pdoc.items():
                 if not isinstance(rec, dict):
@@ -4527,7 +4560,13 @@ def prune_optional_enrichment_for_soft_budget(
                     trimmed_accounts += 1
                     dirty = True
             if dirty:
-                write_compact_json(ppath, pdoc)
+                write_deterministic_gzip_json_shard(
+                    permits_dir / f"permits_{pfx_p3}.json.gz",
+                    pdoc,
+                    unlink_legacy_json=True,
+                    sanitize_dashes=True,
+                )
+                eff_obsolete.add(f"permits/permits_{pfx_p3}.json")
 
     total_after, _ = _compute_projected_app_size_bytes(
         live_output_dir, staged_data_dir, obsolete_live_rels=eff_obsolete
@@ -4999,14 +5038,21 @@ class StagedRollPromotion:
                         _link_or_copy_readonly(live_pm, rb_del)
                         obsolete_deletes.append((live_pm, rb_del))
 
-            staged_oh_dir = self.staged_data / "owner_history"
-            live_oh_dir = self.ctx.output_dir / "owner_history"
-            if staged_oh_dir.is_dir() and live_oh_dir.is_dir():
-                for live_gz in sorted(live_oh_dir.glob("owners_*.json.gz")):
-                    if not (staged_oh_dir / live_gz.name).exists():
-                        rb_oh = rb_dir / f"rb_del_oh_{live_gz.name}"
-                        _link_or_copy_readonly(live_gz, rb_oh)
-                        obsolete_deletes.append((live_gz, rb_oh))
+            for sub_name, pat_glob, rb_tag in (
+                ("owner_history", "owners_*.json.gz", "oh"),
+                ("permits", "permits_*.json*", "pm"),
+                ("address_shards", "addr_*.json*", "ad"),
+            ):
+                staged_sub = self.staged_data / sub_name
+                live_sub = self.ctx.output_dir / sub_name
+                if staged_sub.is_dir() and live_sub.is_dir():
+                    for live_f in sorted(live_sub.glob(pat_glob)):
+                        if not live_f.is_file() or live_f.name.startswith("."):
+                            continue
+                        if not (staged_sub / live_f.name).exists():
+                            rb_sub = rb_dir / f"rb_del_{rb_tag}_{live_f.name}"
+                            _link_or_copy_readonly(live_f, rb_sub)
+                            obsolete_deletes.append((live_f, rb_sub))
 
             staged_all = [
                 p for p in sorted(self.staged_data.rglob("*")) if p.is_file() and not p.name.startswith(".")

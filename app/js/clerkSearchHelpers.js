@@ -723,9 +723,9 @@ export function formatClerkInstrumentToken(rawToken = "", dateDisplay = "") {
 }
 
 /**
- * Canonical parser for compact deed wire strings ("20190329:R2019-149789|20120820:20120430232|..."
- * or 4-part "20190415:R2019-149789:1:D|20010510:FC:123-45-6789:2:D") stored in
- * permits_<prefix3>.json["<hcad_num>"].d.
+ * Canonical parser for compact deed wire strings ("20190329:R2019-149789|20120820:20120430232|...",
+ * 4-part "20190415:R2019-149789:1:D", or TPIA 6-part "19940615:P812345::D:GRANTOR:GRANTEE") stored in
+ * permits_<prefix3>.json.gz["<hcad_num>"].d.
  *
  * Suppresses undated HCAD sentinel dates ("00000000") (`isoDate = ""`) and reassembles
  * prefixed Clerk tokens (`FC:...`, `PR:...`, `VP:...`) in one shared place.
@@ -748,6 +748,8 @@ export function parseCompactDeedWireEntries(compactStr = "") {
     const extraOffset = isPrefixTok ? 2 : 1;
     const deedId = String(restParts[extraOffset] || "").trim();
     const typeCode = String(restParts[extraOffset + 1] || "D").trim();
+    const grantor = String(restParts[extraOffset + 2] || "").trim();
+    const grantee = String(restParts[extraOffset + 3] || "").trim();
     let isoDate = "";
     if (/^\d{8}$/.test(dt8) && dt8 !== "00000000") {
       const yyyy = dt8.slice(0, 4);
@@ -757,22 +759,24 @@ export function parseCompactDeedWireEntries(compactStr = "") {
     } else if (!/^\d{8}$/.test(dt8)) {
       isoDate = dt8;
     }
-    out.push({ dt8, isoDate, token, deedId, typeCode });
+    out.push({ dt8, isoDate, token, deedId, typeCode, grantor, grantee });
   }
   return out;
 }
 
 /**
- * Decode a compact deed chain string ("20190329:R2019-149789|20120820:20120430232|..."
- * or 4-part "20190415:R2019-149789:1:D|20010510:FC:123-45-6789:2:D")
- * stored in permits_<prefix3>.json["<hcad_num>"].d into structured Clerk lookup items.
+ * Decode a compact deed chain string ("20190329:R2019-149789|20120820:20120430232|...",
+ * 4-part "20190415:R2019-149789:1:D", or TPIA 6-part "19940615:P812345::D:GRANTOR:GRANTEE")
+ * stored in permits_<prefix3>.json.gz["<hcad_num>"].d into structured Clerk lookup items.
  */
 export function decodeCompactDeedChain(compactStr = "") {
   const items = [];
-  for (const { isoDate, token } of parseCompactDeedWireEntries(compactStr)) {
+  for (const { isoDate, token, grantor, grantee } of parseCompactDeedWireEntries(compactStr)) {
     if (!token) continue;
     const formatted = formatClerkInstrumentToken(token, isoDate);
     if (formatted) {
+      if (grantor) formatted.grantor = grantor;
+      if (grantee) formatted.grantee = grantee;
       items.push(formatted);
     }
   }
@@ -780,7 +784,89 @@ export function decodeCompactDeedChain(compactStr = "") {
 }
 
 /**
- * Dual-mode decompressor for `owners_<prefix3>.json.gz` static shards (`DF-6`, `ANL-1`).
+ * Decode compact TPIA Mechanic's Lien / Builder Contract wire strings (`ml`:
+ * "<dt8>~<tok>~<contractor>~<owner>~<amount>|...") from `permits_<prefix3>.json.gz`.
+ */
+export function decodeCompactMechanicsLiens(rawMl = "") {
+  const raw = String(rawMl || "").trim();
+  if (!raw) return [];
+  const items = [];
+  for (const seg of raw.split("|")) {
+    const clean = seg.trim();
+    if (!clean) continue;
+    const parts = clean.split("~");
+    if (parts.length < 3) continue;
+    const dt8 = String(parts[0] || "").trim();
+    const token = String(parts[1] || "").trim();
+    const contractor = String(parts[2] || "").trim();
+    const ownerName = String(parts[3] || "").trim();
+    const amount = String(parts[4] || "").trim();
+    if (!token || !contractor) continue;
+    let isoDate = "";
+    if (/^\d{8}$/.test(dt8) && dt8 !== "00000000") {
+      const yyyy = dt8.slice(0, 4);
+      const mm = dt8.slice(4, 6);
+      const dd = dt8.slice(6, 8);
+      isoDate = mm === "00" || dd === "00" ? yyyy : `${yyyy}-${mm}-${dd}`;
+    } else if (dt8 && dt8 !== "00000000") {
+      isoDate = dt8;
+    }
+    const instrument = formatClerkInstrumentToken(token, isoDate);
+    if (!instrument) continue;
+    items.push({
+      dt8,
+      date: isoDate,
+      token,
+      contractor,
+      ownerName,
+      amount,
+      instrument,
+    });
+  }
+  return items;
+}
+
+/**
+ * Decode compact TPIA Deed of Trust institutional lender wire strings (`dt_lender`:
+ * "<dt8>~<tok>~<lender>|...") from `permits_<prefix3>.json.gz`.
+ */
+export function decodeCompactDeedOfTrustLenders(rawDtLender = "") {
+  const raw = String(rawDtLender || "").trim();
+  if (!raw) return [];
+  const items = [];
+  for (const seg of raw.split("|")) {
+    const clean = seg.trim();
+    if (!clean) continue;
+    const parts = clean.split("~");
+    if (parts.length < 3) continue;
+    const dt8 = String(parts[0] || "").trim();
+    const token = String(parts[1] || "").trim();
+    const lender = parts.slice(2).join("~").trim();
+    if (!token || !lender) continue;
+    let isoDate = "";
+    if (/^\d{8}$/.test(dt8) && dt8 !== "00000000") {
+      const yyyy = dt8.slice(0, 4);
+      const mm = dt8.slice(4, 6);
+      const dd = dt8.slice(6, 8);
+      isoDate = mm === "00" || dd === "00" ? yyyy : `${yyyy}-${mm}-${dd}`;
+    } else if (dt8 && dt8 !== "00000000") {
+      isoDate = dt8;
+    }
+    const instrument = formatClerkInstrumentToken(token, isoDate);
+    if (!instrument) continue;
+    items.push({
+      dt8,
+      date: isoDate,
+      token,
+      lender,
+      instrument,
+    });
+  }
+  return items;
+}
+
+/**
+ * Shared dual-mode decompressor for RFC 1952 `.json.gz` static shards (`owners_`, `permits_`, `addr_`).
  *
  * Why dual-mode magic-byte inspection is required:
  *   - Local `app/server.py` serves `.json.gz` with `Content-Type: application/gzip` and NO
@@ -789,9 +875,12 @@ export function decodeCompactDeedChain(compactStr = "") {
  *     `Content-Encoding: gzip` to `.gz` assets, causing the browser's HTTP stack to gunzip at
  *     the transport layer and deliver plain UTF-8 JSON (`0x7b` `{`) to `arrayBuffer()`.
  *   - Uses standard Web Streams `DecompressionStream("gzip")` across both browser and Node 22+
- *     without any `node:zlib` runtime branch so unit tests exercise the exact production codepath.
+ *     so unit tests exercise the exact production codepath.
  */
-export async function decompressOwnerHistoryBytes(inputBytes) {
+export async function decompressGzipJsonObjectBytes(
+  inputBytes,
+  shardLabel = "Gzipped JSON shard"
+) {
   const bytes =
     inputBytes instanceof Uint8Array
       ? inputBytes
@@ -802,7 +891,7 @@ export async function decompressOwnerHistoryBytes(inputBytes) {
       : null;
 
   if (!bytes || bytes.byteLength === 0) {
-    throw new Error("Owner history shard payload is empty.");
+    throw new Error(`${shardLabel} payload is empty.`);
   }
 
   let jsonText = "";
@@ -815,7 +904,9 @@ export async function decompressOwnerHistoryBytes(inputBytes) {
       jsonText = await new Response(stream).text();
     } catch (err) {
       throw new Error(
-        `Failed to gunzip owner history shard: ${err instanceof Error ? err.message : String(err)}`
+        `Failed to gunzip ${shardLabel.toLowerCase()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
       );
     }
   } else {
@@ -839,14 +930,14 @@ export async function decompressOwnerHistoryBytes(inputBytes) {
       offset += 1;
     }
     if (offset >= bytes.byteLength) {
-      throw new Error("Owner history shard contains only whitespace.");
+      throw new Error(`${shardLabel} contains only whitespace.`);
     }
     if (bytes[offset] === 0x3c) {
-      throw new Error("Owner history shard returned HTML (<) instead of gzip/JSON.");
+      throw new Error(`${shardLabel} returned HTML (<) instead of gzip/JSON.`);
     }
     if (bytes[offset] !== 0x7b) {
       throw new Error(
-        `Unexpected leading byte 0x${bytes[offset].toString(16).padStart(2, "0")} in owner history shard.`
+        `Unexpected leading byte 0x${bytes[offset].toString(16).padStart(2, "0")} in ${shardLabel.toLowerCase()}.`
       );
     }
     jsonText = new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(offset));
@@ -857,13 +948,66 @@ export async function decompressOwnerHistoryBytes(inputBytes) {
     parsed = JSON.parse(jsonText);
   } catch (err) {
     throw new Error(
-      `Invalid JSON in owner history shard: ${err instanceof Error ? err.message : String(err)}`
+      `Invalid JSON in ${shardLabel.toLowerCase()}: ${
+        err instanceof Error ? err.message : String(err)
+      }`
     );
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Owner history shard root must be a plain JSON object.");
+    throw new Error(`${shardLabel} root must be a plain JSON object.`);
   }
   return parsed;
+}
+
+export async function decompressOwnerHistoryBytes(inputBytes) {
+  return decompressGzipJsonObjectBytes(inputBytes, "Owner history shard");
+}
+
+export async function decompressPermitShardBytes(inputBytes) {
+  return decompressGzipJsonObjectBytes(inputBytes, "Permit shard");
+}
+
+export async function decompressAddressShardBytes(inputBytes) {
+  return decompressGzipJsonObjectBytes(inputBytes, "Address shard");
+}
+
+/**
+ * Decode a `fetch()` Response for a `.json.gz` shard using `decompressFn` when `res.arrayBuffer`
+ * is present, falling back to `res.json()` strictly for lightweight `{ ok: true, json }` unit-test stubs.
+ */
+export async function decodeGzipJsonResponse(res, decompressFn = decompressGzipJsonObjectBytes) {
+  if (!res || !res.ok) return {};
+  if (typeof res.arrayBuffer === "function") {
+    const buf = await res.arrayBuffer();
+    return await decompressFn(buf);
+  }
+  if (typeof res.json === "function") {
+    const obj = await res.json();
+    return obj && typeof obj === "object" && !Array.isArray(obj) ? obj : {};
+  }
+  return {};
+}
+
+/**
+ * Normalize a situs house-number prefix into a canonical 2-digit `addr_<10..99>.json.gz` shard key,
+ * right-padding 1-digit numbers (e.g. "5" -> "50"), rejecting "00".."09", and short-circuiting
+ * prefixes absent from `pmtiles_manifest.json` `address_shard_prefixes`.
+ */
+export function normalizeAddressShardPrefix(shardKey, knownPrefixes = null) {
+  const key = String(shardKey || "").trim().padEnd(2, "0").slice(0, 2);
+  if (!/^[1-9][0-9]$/.test(key)) return "";
+  if (Array.isArray(knownPrefixes) && !knownPrefixes.includes(key)) return "";
+  return key;
+}
+
+/**
+ * Build the versioned `.json.gz` URL for a normalized 2-digit address shard key.
+ */
+export function buildAddressShardUrl(key, cacheBust = "") {
+  const cb = String(cacheBust || "").trim();
+  return cb
+    ? `public/data/address_shards/addr_${encodeURIComponent(key)}.json.gz?v=${encodeURIComponent(cb)}`
+    : `public/data/address_shards/addr_${encodeURIComponent(key)}.json.gz?v=20261108a`;
 }
 
 /**
@@ -970,30 +1114,43 @@ function _renderClerkDeedPillHtml(item) {
   const dateTag = item.date
     ? `<span class="rk-deed-date-tag">${_escapeClerkHtml(item.date)}</span>`
     : "";
+  const partyPair =
+    item.grantor && item.grantee
+      ? `${item.grantor} -> ${item.grantee}`
+      : item.grantee
+      ? `Grantee: ${item.grantee}`
+      : item.grantor
+      ? `Grantor: ${item.grantor}`
+      : "";
+  const partyTag = partyPair
+    ? `<span class="rk-deed-parties">${_escapeClerkHtml(partyPair)}</span>`
+    : "";
   if (item.kind === "vol_page" && item.pageValue) {
     const escVol = _escapeClerkHtml(item.copyValue);
     const escPg = _escapeClerkHtml(item.pageValue);
+    const vpHint = `Pre-1961 Bound Deed Book transfer (${
+      item.date || "Archival"
+    })${partyPair ? ` [${partyPair}]` : ""}: click to copy Volume '${item.copyValue}' (Page '${item.pageValue}')`;
     return `<button
         type="button"
         class="rk-copy-pill deed-fileno"
         data-rk-copy="${escVol}"
-        title="Pre-1961 Bound Deed Book transfer (${_escapeClerkHtml(
-          item.date || "Archival"
-        )}): click to copy Volume '${escVol}' (Page '${escPg}')"
+        title="${_escapeClerkHtml(vpHint)}"
       >
         ${dateTag}
         <span class="rk-copy-k">Deed Vol/Pg:</span>
-        <span class="rk-copy-v mono">${_escapeClerkHtml(item.displayValue)}</span>
+        <span class="rk-copy-v mono">${_escapeClerkHtml(item.displayValue)}</span>${partyTag}
         <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
       </button>`;
   }
   const escCopy = _escapeClerkHtml(item.copyValue);
   const escLbl = _escapeClerkHtml(item.clerkBoxLabel);
   const escVal = _escapeClerkHtml(item.displayValue);
-  const portalHint =
+  const basePortalHint =
     item.portal === "probate"
       ? "Paste into Harris County Probate Court Search"
       : `Paste '${item.copyValue}' alone into the '${item.clerkBoxLabel}' box on Harris County Clerk RP and press Search`;
+  const portalHint = partyPair ? `${partyPair} | ${basePortalHint}` : basePortalHint;
   return `<button
       type="button"
       class="rk-copy-pill deed-fileno"
@@ -1002,9 +1159,41 @@ function _renderClerkDeedPillHtml(item) {
     >
       ${dateTag}
       <span class="rk-copy-k">${escLbl}:</span>
-      <span class="rk-copy-v mono">${escVal}</span>
+      <span class="rk-copy-v mono">${escVal}</span>${partyTag}
       <span class="rk-copy-icon" aria-hidden="true">&#10697;</span>
     </button>`;
+}
+
+function _renderMechanicsLiensSubblockHtml(mlItems) {
+  if (!Array.isArray(mlItems) || mlItems.length === 0) return "";
+  const pills = mlItems
+    .map((ml) => {
+      const pillHtml = _renderClerkDeedPillHtml(ml.instrument);
+      const amtTag = ml.amount ? ` ($${_escapeClerkHtml(ml.amount)})` : "";
+      const ownTag = ml.ownerName ? ` for ${_escapeClerkHtml(ml.ownerName)}` : "";
+      return `<div class="rk-ml-entry">
+        <span class="rk-ml-contractor">${_escapeClerkHtml(ml.contractor)}${amtTag}${ownTag}</span>
+        ${pillHtml}
+      </div>`;
+    })
+    .join("");
+  return `<div class="rk-unpaired-deeds-subhead">Recorded Mechanic's Liens &amp; Builder Contracts (M/L)</div>
+    <div class="rk-ml-list">${pills}</div>`;
+}
+
+function _renderDeedOfTrustLendersSubblockHtml(dtItems) {
+  if (!Array.isArray(dtItems) || dtItems.length === 0) return "";
+  const pills = dtItems
+    .map((dt) => {
+      const pillHtml = _renderClerkDeedPillHtml(dt.instrument);
+      return `<div class="rk-ml-entry rk-dt-entry">
+        <span class="rk-ml-contractor rk-dt-lender">${_escapeClerkHtml(dt.lender)}</span>
+        ${pillHtml}
+      </div>`;
+    })
+    .join("");
+  return `<div class="rk-unpaired-deeds-subhead">Recorded Deeds of Trust &amp; Institutional Financing (D/T)</div>
+    <div class="rk-ml-list">${pills}</div>`;
 }
 
 /**
@@ -1078,6 +1267,10 @@ export function buildResearchKitDeedChainView(
   }
   const tenures = decodeCompactOwnerHistory(permitShardRec?.oh || "", effOwner);
   const chainItems = decodeCompactDeedChain(permitShardRec?.d || "");
+  const mlItems = decodeCompactMechanicsLiens(permitShardRec?.ml || "");
+  const dtItems = decodeCompactDeedOfTrustLenders(permitShardRec?.dt_lender || "");
+  const mlHtml = _renderMechanicsLiensSubblockHtml(mlItems);
+  const dtHtml = _renderDeedOfTrustLendersSubblockHtml(dtItems);
 
   // When 22-year HCAD certified-roll ownership tenures are available for a non-confidential parcel,
   // render the integrated Ownership & Deed Chain view while retaining any unpaired Clerk instruments (`REG-1`).
@@ -1166,7 +1359,7 @@ export function buildResearchKitDeedChainView(
       }
     }
 
-    const countVal = tenures.length + unpairedDeeds.length;
+    const countVal = tenures.length + unpairedDeeds.length + mlItems.length + dtItems.length;
     const countBadge =
       tenures.length === 1
         ? `1 Continuous Tenure (${tenures[0].spanLabel})`
@@ -1183,7 +1376,7 @@ export function buildResearchKitDeedChainView(
       <div class="rk-owner-tenure-list">
         ${tenureRowsHtml}
       </div>
-      ${unpairedHtml}
+      ${unpairedHtml}${mlHtml ? `\n      ${mlHtml}` : ""}${dtHtml ? `\n      ${dtHtml}` : ""}
       <div class="rk-deed-scope-note">
         ${_escapeClerkHtml(scopeNote)}
       </div>
@@ -1193,7 +1386,7 @@ export function buildResearchKitDeedChainView(
 
   // Fallback when `oh` is absent or confidential: preserve legacy HCAD deed index rendering (`REG-1`, `REG-4`).
   const coverage = describeDeedChainCoverage(chainItems);
-  if (!coverage.hasRecordedFilings) {
+  if (!coverage.hasRecordedFilings && mlItems.length === 0 && dtItems.length === 0) {
     const html = `
         <div class="rk-deed-chain-head">
           <span class="rk-deed-chain-title">&#128220; ${_escapeClerkHtml(coverage.title)}</span>
@@ -1207,21 +1400,28 @@ export function buildResearchKitDeedChainView(
   }
 
   const pillsHtml = chainItems.map((item) => _renderClerkDeedPillHtml(item)).join("");
+  const extraFilingsCount = mlItems.length + dtItems.length;
+  const effCount = coverage.count + extraFilingsCount;
+  const effCountLabel = coverage.hasRecordedFilings
+    ? coverage.countLabel
+    : mlItems.length > 0 && dtItems.length === 0
+    ? `${mlItems.length} Recorded ${mlItems.length === 1 ? "Lien" : "Liens"}`
+    : `${extraFilingsCount} Recorded ${extraFilingsCount === 1 ? "Filing" : "Filings"}`;
 
   const html = `
       <div class="rk-deed-chain-head">
         <span class="rk-deed-chain-title">&#128220; ${_escapeClerkHtml(coverage.title)}</span>
-        <span class="rk-deed-chain-count">${_escapeClerkHtml(coverage.countLabel)}</span>
+        <span class="rk-deed-chain-count">${_escapeClerkHtml(effCountLabel)}</span>
       </div>
       <div class="rk-clerk-hint">
         <strong>Fastest lookup:</strong> copy any single <strong>File Number</strong> below, paste it alone into the top-left <strong>File Number</strong> box on County Clerk Deeds (RP), and click Search. Open the oldest deed to read the prior Grantor (seller) name.
       </div>
-      <div class="rk-copy-pills-wrap">
-        ${pillsHtml}
-      </div>
+      ${pillsHtml ? `<div class="rk-copy-pills-wrap">\n        ${pillsHtml}\n      </div>` : ""}${
+    mlHtml ? `\n      ${mlHtml}` : ""
+  }${dtHtml ? `\n      ${dtHtml}` : ""}
       <div class="rk-deed-scope-note">
-        ${_escapeClerkHtml(coverage.scopeNote)}
+        ${_escapeClerkHtml(coverage.scopeNote || coverage.emptyExplanation)}
       </div>
     `;
-  return { ignore: false, hidden: false, isEmptyCama: false, count: coverage.count, html };
+  return { ignore: false, hidden: false, isEmptyCama: false, count: effCount, html };
 }

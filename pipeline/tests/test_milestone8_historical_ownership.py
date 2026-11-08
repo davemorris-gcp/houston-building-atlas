@@ -37,8 +37,10 @@ from atlas_pipeline.schema import (
     CONFIDENTIAL_OWNER_TOKENS,
     is_confidential_owner_token,
     is_placeholder_owner_token,
+    read_json_or_gzip_path,
     sync_repo_tax_year_and_cache_bust,
     update_pmtiles_manifest_v3,
+    write_deterministic_gzip_json_shard,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -213,7 +215,7 @@ def test_ut1_statutory_sec25025_active_retroactive_coowner_and_mailing_privacy(t
 
     out_data = tmp_path / "data"
     (out_data / "permits").mkdir(parents=True)
-    (out_data / "permits" / "permits_062.json").write_text('{"0620000000003":{}}', encoding="utf-8")
+    write_deterministic_gzip_json_shard(out_data / "permits" / "permits_062.json.gz", {"0620000000003": {}})
     build_owner_history_shards(
         roll_zips_by_year={2025: z2025},
         data_dir=out_data,
@@ -234,7 +236,7 @@ def test_ut1_statutory_sec25025_active_retroactive_coowner_and_mailing_privacy(t
     assert "9999 SECRET LN" not in inflated
     assert "742 PRIVATE PO BOX" not in inflated
 
-    # 4. Cross-shard parity: permits_<prefix3>.json, buildings.geojson, and portfolios must mask
+    # 4. Cross-shard parity: permits_<prefix3>.json.gz, buildings.geojson, and portfolios must mask
     #    owner_name, m, co, pid, and residential d when secondary owners.txt has PROTECTED OWNER
     from atlas_pipeline.build_ownership_and_history import (
         build_ownership_graph,
@@ -283,9 +285,9 @@ def test_ut1_statutory_sec25025_active_retroactive_coowner_and_mailing_privacy(t
     (parity_permits_dir / "permits_062.json").write_text(
         json.dumps(
             {
-                "0620000000091": {"y": 1930},
-                "0620000000092": {"y": 1930},
-                "0620000000093": {"y": 1930},
+                "0620000000091": {"y": 1930, "ml": "20210101:R2021-100:ACME:HARPER:5000"},
+                "0620000000092": {"y": 1930, "dt_lender": "20210101:R2021-101:BANK NA"},
+                "0620000000093": {"y": 1930, "ml": "20210101:R2021-102:ROOF CO:HARPER:8000"},
             }
         ),
         encoding="utf-8",
@@ -344,11 +346,11 @@ def test_ut1_statutory_sec25025_active_retroactive_coowner_and_mailing_privacy(t
         app_dir=tmp_path / "parity_app",
         tax_year=2026,
     )
-    parity_doc = json.loads((parity_permits_dir / "permits_062.json").read_text(encoding="utf-8"))
+    assert not (parity_permits_dir / "permits_062.json").exists()
+    parity_doc = read_json_or_gzip_path(parity_permits_dir / "permits_062.json.gz")
     for p_ac in ("0620000000091", "0620000000092", "0620000000093"):
-        assert "m" not in parity_doc[p_ac], f"Leaked m for {p_ac}: {parity_doc[p_ac]}"
-        assert "co" not in parity_doc[p_ac], f"Leaked co for {p_ac}: {parity_doc[p_ac]}"
-        assert "pid" not in parity_doc[p_ac], f"Leaked pid for {p_ac}: {parity_doc[p_ac]}"
+        for forbidden_k in ("m", "co", "pid", "ml", "dt_lender"):
+            assert forbidden_k not in parity_doc[p_ac], f"Leaked {forbidden_k} for {p_ac}: {parity_doc[p_ac]}"
     assert "d" not in parity_doc["0620000000093"]
     assert "ot" not in parity_doc["0620000000093"]
 
@@ -566,7 +568,7 @@ console.log(JSON.stringify({{
     with pytest.raises(ValueError, match="dash"):
         compress_deterministic_gzip_json({"0010000000001": "2026~~~BAD\u2014DASH"})
 
-    # 3. MOD-1 & REG-2: Single-writer idempotency across permits_062.json, owners_062.json.gz, and pmtiles_manifest.json
+    # 3. MOD-1 & REG-2: Single-writer idempotency across permits_062.json.gz, owners_062.json.gz, and pmtiles_manifest.json
     data_dir = tmp_path / "data"
     permits_dir = data_dir / "permits"
     oh_dir = data_dir / "owner_history"
@@ -586,7 +588,7 @@ console.log(JSON.stringify({{
             "p": [],
         },
     }
-    (permits_dir / "permits_062.json").write_text(json.dumps(seed_permits, separators=(",", ":")), encoding="utf-8")
+    write_deterministic_gzip_json_shard(permits_dir / "permits_062.json.gz", seed_permits)
     update_pmtiles_manifest_v3(
         data_dir / "pmtiles_manifest.json",
         total_buildings=2,
@@ -642,7 +644,7 @@ console.log(JSON.stringify({{
         ],
     )
 
-    permits_sha_before_oh = hashlib.sha256((permits_dir / "permits_062.json").read_bytes()).hexdigest()
+    permits_sha_before_oh = hashlib.sha256((permits_dir / "permits_062.json.gz").read_bytes()).hexdigest()
     oh_res_1 = build_owner_history_shards(
         roll_zips_by_year={2025: z2025, 2026: z2026},
         data_dir=data_dir,
@@ -655,9 +657,9 @@ console.log(JSON.stringify({{
         min_parsed_accounts=2,
         update_manifest=True,
     )
-    # permits_062.json was NOT touched by build_owner_history_shards, stale owners_999.json.gz was pruned,
+    # permits_062.json.gz was NOT touched by build_owner_history_shards, stale owners_999.json.gz was pruned,
     # and all-confidential prefix "000" produced zero empty shard files!
-    assert hashlib.sha256((permits_dir / "permits_062.json").read_bytes()).hexdigest() == permits_sha_before_oh
+    assert hashlib.sha256((permits_dir / "permits_062.json.gz").read_bytes()).hexdigest() == permits_sha_before_oh
     assert oh_res_1["pruned_stale_shards"] == 1
     assert oh_res_1["owner_history_prefixes"] == ["062"]
     assert not (oh_dir / "owners_999.json.gz").exists()
@@ -683,15 +685,15 @@ console.log(JSON.stringify({{
     enrich_permit_shards_with_ownership_and_deeds(
         z2026, permits_dir=permits_dir, data_dir=data_dir, app_dir=tmp_path / "app", tax_year=2026
     )
-    permits_after_1 = (permits_dir / "permits_062.json").read_bytes()
+    permits_after_1 = (permits_dir / "permits_062.json.gz").read_bytes()
     enrich_permit_shards_with_ownership_and_deeds(
         z2026, permits_dir=permits_dir, data_dir=data_dir, app_dir=tmp_path / "app", tax_year=2026
     )
-    permits_after_2 = (permits_dir / "permits_062.json").read_bytes()
+    permits_after_2 = (permits_dir / "permits_062.json.gz").read_bytes()
     assert permits_after_1 == permits_after_2
     assert hashlib.sha256((oh_dir / "owners_062.json.gz").read_bytes()).hexdigest() == oh_sha_1
 
-    p_doc = json.loads(permits_after_2.decode("utf-8"))
+    p_doc = json.loads(gzip.decompress(permits_after_2).decode("utf-8"))
     # Homestead parcel 0620000000011 omits mailing address "m", while LLC teardown parcel computes flip days (73 days)
     assert "m" not in p_doc["0620000000011"]
     assert p_doc["0620000000010"]["flip"] == 73
@@ -706,9 +708,7 @@ console.log(JSON.stringify({{
     comm_oh = comm_data / "owner_history"
     comm_permits.mkdir(parents=True)
     comm_oh.mkdir(parents=True)
-    (comm_permits / "permits_062.json").write_text(
-        json.dumps(seed_permits, separators=(",", ":")), encoding="utf-8"
-    )
+    write_deterministic_gzip_json_shard(comm_permits / "permits_062.json.gz", seed_permits)
     import atlas_pipeline.build_ownership_and_history as _boh_mod
 
     orig_soft_cap = _boh_mod.PERMIT_ENRICHMENT_SOFT_MAX_BYTES
@@ -718,14 +718,14 @@ console.log(JSON.stringify({{
         enrich_permit_shards_with_ownership_and_deeds(
             z2026, permits_dir=comm_permits, data_dir=comm_data, app_dir=comm_app, tax_year=2026
         )
-        bytes_without_oh = (comm_permits / "permits_062.json").read_bytes()
+        bytes_without_oh = (comm_permits / "permits_062.json.gz").read_bytes()
         (comm_oh / "owners_062.json.gz").write_bytes(b"\x1f\x8b" + (b"x" * 2048))
         enrich_permit_shards_with_ownership_and_deeds(
             z2026, permits_dir=comm_permits, data_dir=comm_data, app_dir=comm_app, tax_year=2026
         )
-        bytes_with_oh = (comm_permits / "permits_062.json").read_bytes()
+        bytes_with_oh = (comm_permits / "permits_062.json.gz").read_bytes()
         assert bytes_with_oh == bytes_without_oh
-        assert json.loads(bytes_with_oh.decode("utf-8"))["0620000000010"]["m"] == "C/O ASSET MGMT - 800 CORP PKWY, DALLAS, TX 75201"
+        assert json.loads(gzip.decompress(bytes_with_oh).decode("utf-8"))["0620000000010"]["m"] == "C/O ASSET MGMT - 800 CORP PKWY, DALLAS, TX 75201"
     finally:
         _boh_mod.PERMIT_ENRICHMENT_SOFT_MAX_BYTES = orig_soft_cap
 
@@ -845,8 +845,9 @@ def test_it1_and_reg5_case_insensitive_archives_account_floor_and_staged_annual_
     try:
         promoter.populate_cache_view(set())
         (promoter.staged_data / "permits").mkdir(parents=True, exist_ok=True)
-        (promoter.staged_data / "permits" / "permits_001.json").write_text(
-            '{"0010020000016":{}}', encoding="utf-8"
+        write_deterministic_gzip_json_shard(
+            promoter.staged_data / "permits" / "permits_001.json.gz",
+            {"0010020000016": {}},
         )
         update_pmtiles_manifest_v3(
             promoter.staged_data / "pmtiles_manifest.json",
@@ -1367,25 +1368,25 @@ def test_pass4_qa_regressions_annual_refresh_conf_taint_and_deed_reservation(
     # Seed pre-refresh shards:
     # - 0072000000001 was public in 2026 (has d, m, co, pid, flip) and newly elects Sec. 25.025 confidentiality in 2027 without CAMA building change
     # - 0081000000001 was confidential in 2026 (has conf: 1) in a prefix with zero 2027 confidential accounts, and is sold to a public LLC in 2027
-    (permits_dir / "permits_007.json").write_text(
-        json.dumps(
-            {
-                "0072000000001": {
-                    "yr": 1926,
-                    "d": "20200115:R2020-55555",
-                    "ot": "regional_portfolio",
-                    "pid": "port_old",
-                    "m": "100 OLD ST, HOUSTON, TX 77002",
-                    "co": ["OLD PARTNER"],
-                    "flip": 42,
-                }
+    write_deterministic_gzip_json_shard(
+        permits_dir / "permits_007.json.gz",
+        {
+            "0072000000001": {
+                "yr": 1926,
+                "d": "20200115:R2020-55555",
+                "ot": "regional_portfolio",
+                "pid": "port_old",
+                "m": "100 OLD ST, HOUSTON, TX 77002",
+                "co": ["OLD PARTNER"],
+                "flip": 42,
+                "ml": "20200101~R2020-99999~ACME BUILDERS~OWNER~5000",
+                "dt_lender": "20200115~R2020-55556~FIRST BANK NA",
             }
-        ),
-        encoding="utf-8",
+        },
     )
-    (permits_dir / "permits_008.json").write_text(
-        json.dumps({"0081000000001": {"yr": 1932, "conf": 1}}),
-        encoding="utf-8",
+    write_deterministic_gzip_json_shard(
+        permits_dir / "permits_008.json.gz",
+        {"0081000000001": {"yr": 1932, "conf": 1}},
     )
 
     acct_zip_2027 = tmp_path / "Acct_2027.zip"
@@ -1500,12 +1501,14 @@ def test_pass4_qa_regressions_annual_refresh_conf_taint_and_deed_reservation(
         total_pmtiles_bytes=0,
         compile_core_pmtiles=False,
     )
-    p007 = json.loads((permits_dir / "permits_007.json").read_text(encoding="utf-8"))
+    p007 = read_json_or_gzip_path(permits_dir / "permits_007.json.gz")
+    assert not (permits_dir / "permits_007.json").exists()
     assert p007["0072000000001"] == {"yr": 1926, "conf": 1}
     assert p007["0071300000001"].get("conf") == 1 and "d" not in p007["0071300000001"] and "flip" not in p007["0071300000001"]
     assert p007["0071270000013"].get("conf") == 1 and "d" not in p007["0071270000013"] and "flip" not in p007["0071270000013"]
 
-    p008 = json.loads((permits_dir / "permits_008.json").read_text(encoding="utf-8"))
+    p008 = read_json_or_gzip_path(permits_dir / "permits_008.json.gz")
+    assert not (permits_dir / "permits_008.json").exists()
     assert "conf" not in p008["0081000000001"]
     assert p008["0081000000001"]["d"] == "20270210:R2027-88888"
     assert p008["0081000000001"]["ot"] == "corporate_llc"

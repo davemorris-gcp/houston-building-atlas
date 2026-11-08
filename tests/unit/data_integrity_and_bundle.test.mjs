@@ -425,8 +425,12 @@ test("Repository contains zero internal corporate proxy URLs, workstation paths,
     }
   }
 
-  assert.ok(trackedFiles.length >= 200, `Expected to scan >= 200 tracked text files, scanned ${trackedFiles.length}`);
-  assert.ok(trackedJsonGzFiles.length >= 150, `Expected to inflate >= 150 tracked .json.gz shards, scanned ${trackedJsonGzFiles.length}`);
+  assert.ok(trackedFiles.length >= 180, `Expected to scan >= 180 tracked text files, scanned ${trackedFiles.length}`);
+  assert.ok(trackedJsonGzFiles.length >= 390, `Expected to inflate >= 390 tracked .json.gz shards, scanned ${trackedJsonGzFiles.length}`);
+  assert.ok(
+    trackedFiles.length + trackedJsonGzFiles.length >= 580,
+    `Expected >= 580 combined tracked text + .json.gz files, scanned ${trackedFiles.length + trackedJsonGzFiles.length}`
+  );
   assert.deepEqual(
     violations,
     [],
@@ -642,8 +646,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   const expectedVer = String(manifest.cache_bust || "").trim();
   assert.equal(
     expectedVer,
-    "20261106b",
-    `Expected active Milestone 8 pmtiles_manifest.json cache_bust '20261106b', got '${expectedVer}'`
+    "20261108a",
+    `Expected active Milestone 9 pmtiles_manifest.json cache_bust '20261108a', got '${expectedVer}'`
   );
   assert.match(
     expectedVer,
@@ -762,14 +766,56 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     false,
     "search_index.json must contain zero U+2014 em-dashes"
   );
+  const manifestForAddrShards = readDataJson("pmtiles_manifest.json");
   const addrShardsDir = path.join(DATA_DIR, "address_shards");
-  for (const fn of fs.readdirSync(addrShardsDir)) {
-    if (!fn.endsWith(".json")) continue;
-    const shardRaw = fs.readFileSync(path.join(addrShardsDir, fn), "utf8");
+  const addrEntries = fs.readdirSync(addrShardsDir).sort();
+  assert.deepEqual(
+    addrEntries.filter((f) => f.endsWith(".json")),
+    [],
+    "address_shards/ must contain zero legacy uncompressed .json files"
+  );
+  const addrGzFiles = addrEntries.filter((f) => /^addr_[0-9A-Z_]+\.json\.gz$/.test(f)).sort();
+  assert.equal(addrGzFiles.length, 90, `Expected 90 addr_*.json.gz shards, found ${addrGzFiles.length}`);
+  assert.equal(
+    Array.isArray(manifestForAddrShards.address_shard_prefixes) &&
+      manifestForAddrShards.address_shard_prefixes.length,
+    90,
+    "pmtiles_manifest.json address_shard_prefixes must contain 90 prefixes"
+  );
+  assert.deepEqual(
+    addrGzFiles.map((f) => f.slice(5, -8)),
+    manifestForAddrShards.address_shard_prefixes,
+    "address_shards/addr_<key>.json.gz must match pmtiles_manifest.address_shard_prefixes 1:1"
+  );
+  for (const fn of addrGzFiles) {
+    const rawAddrGz = fs.readFileSync(path.join(addrShardsDir, fn));
+    assert.equal(rawAddrGz[0], 0x1f, `address_shards/${fn} missing gzip magic byte 0 (0x1f)`);
+    assert.equal(rawAddrGz[1], 0x8b, `address_shards/${fn} missing gzip magic byte 1 (0x8b)`);
+    assert.equal(
+      rawAddrGz[3] & 0x08,
+      0,
+      `address_shards/${fn} must omit embedded RFC 1952 FNAME header`
+    );
+    assert.equal(
+      rawAddrGz.readUInt32LE(4),
+      0,
+      `address_shards/${fn} must set RFC 1952 mtime=0`
+    );
+    const shardRaw = zlib.gunzipSync(rawAddrGz).toString("utf8");
+    assert.equal(
+      shardRaw.trimEnd().includes("\n"),
+      false,
+      `address_shards/${fn} inflated payload must remain single-line compact JSON`
+    );
     assert.equal(
       shardRaw.includes("\u2014"),
       false,
       `address_shards/${fn} must contain zero U+2014 em-dashes`
+    );
+    assert.equal(
+      shardRaw.includes("\u2013"),
+      false,
+      `address_shards/${fn} must contain zero U+2013 en-dashes`
     );
   }
 
@@ -805,6 +851,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/enrich_deed_chains.py",
     "pipeline/atlas_pipeline/fetch_live_permits.py",
     "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+    "pipeline/atlas_pipeline/ingest_tpia_clerk_and_hcad.py",
     "pipeline/atlas_pipeline/schema.py",
     "pipeline/atlas_pipeline/setup_admin_sheet.py",
     "pipeline/atlas_pipeline/sync_curated_edits.py",
@@ -828,7 +875,15 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/tests/test_milestone8_historical_ownership.py",
     "tests/unit/milestone8_historical_ownership.test.mjs",
     "tests/e2e/test_milestone8_historical_ownership.py",
+    "pipeline/tests/test_milestone9_tpia_and_gzip.py",
+    "tests/unit/milestone9_gzip_and_tpia.test.mjs",
+    "tests/e2e/test_milestone9_gzip_and_tpia.py",
+    "README.md",
+    "docs/01-architecture-and-rendering.md",
     "docs/06-sanborn-maps-and-lost-houston.md",
+    "docs/07-waterways-railroads-permits-and-contractors.md",
+    "docs/08-crowdsourcing-and-admin-operations.md",
+    "docs/09-preservation-practice-social-history-and-hahc.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
     "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
     ".github/workflows/update_live_permits.yml",
@@ -864,6 +919,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/build_house_history_index.py",
     "pipeline/atlas_pipeline/enrich_deed_chains.py",
     "pipeline/atlas_pipeline/fetch_live_permits.py",
+    "pipeline/atlas_pipeline/ingest_tpia_clerk_and_hcad.py",
     "pipeline/atlas_pipeline/setup_admin_sheet.py",
     "pipeline/atlas_pipeline/sync_curated_edits.py",
     "pipeline/atlas_pipeline/lost_houston_expansion.py",
@@ -887,7 +943,15 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/tests/test_milestone8_historical_ownership.py",
     "tests/unit/milestone8_historical_ownership.test.mjs",
     "tests/e2e/test_milestone8_historical_ownership.py",
+    "pipeline/tests/test_milestone9_tpia_and_gzip.py",
+    "tests/unit/milestone9_gzip_and_tpia.test.mjs",
+    "tests/e2e/test_milestone9_gzip_and_tpia.py",
+    "README.md",
+    "docs/01-architecture-and-rendering.md",
     "docs/06-sanborn-maps-and-lost-houston.md",
+    "docs/07-waterways-railroads-permits-and-contractors.md",
+    "docs/08-crowdsourcing-and-admin-operations.md",
+    "docs/09-preservation-practice-social-history-and-hahc.md",
     "docs/10-sources-integrations-and-curation-workflows.md",
     "docs/GOOGLE_SHEETS_AND_CITY_DIRECTORY_GUIDE.md",
   ]) {
@@ -1213,23 +1277,68 @@ test("Milestone 8 owner_history/*.json.gz shards: 1:1 manifest parity, determini
     }
   }
 
-  // Verify static `conf: 1` marker and zero Sec. 25.025 PII/deed/flip leakage across all permits_*.json shards
+  // Verify static `conf: 1` marker, RFC 1952 deterministic gzip headers, and zero Sec. 25.025 PII/deed/flip/TPIA leakage across all 152 permits_*.json.gz shards
   const permitsDir = path.join(DATA_DIR, "permits");
-  const permitFiles = fs
-    .readdirSync(permitsDir)
-    .filter((f) => /^permits_\d{3}\.json$/.test(f))
+  const permitsEntries = fs.readdirSync(permitsDir).sort();
+  assert.deepEqual(
+    permitsEntries.filter((f) => f.endsWith(".json")),
+    [],
+    "permits/ must contain zero legacy uncompressed .json files"
+  );
+  const permitFiles = permitsEntries
+    .filter((f) => /^permits_\d{3}\.json\.gz$/.test(f))
     .sort();
+  assert.equal(permitFiles.length, 152, `Expected 152 permits_*.json.gz shards, found ${permitFiles.length}`);
+  assert.equal(
+    Array.isArray(manifest.permit_shard_prefixes) && manifest.permit_shard_prefixes.length,
+    152,
+    "pmtiles_manifest.json permit_shard_prefixes must contain 152 prefixes"
+  );
+  assert.deepEqual(
+    permitFiles.map((f) => f.slice(8, 11)),
+    manifest.permit_shard_prefixes,
+    "permits/permits_<prefix3>.json.gz must match pmtiles_manifest.permit_shard_prefixes 1:1"
+  );
   let totalConfRecords = 0;
   let checked0071270000013 = false;
   let checked0071300000001 = false;
   for (const pf of permitFiles) {
-    const pShard = JSON.parse(fs.readFileSync(path.join(permitsDir, pf), "utf8"));
+    const rawPermitGz = fs.readFileSync(path.join(permitsDir, pf));
+    assert.equal(rawPermitGz[0], 0x1f, `permits/${pf} missing gzip magic byte 0 (0x1f)`);
+    assert.equal(rawPermitGz[1], 0x8b, `permits/${pf} missing gzip magic byte 1 (0x8b)`);
+    assert.equal(
+      rawPermitGz[3] & 0x08,
+      0,
+      `permits/${pf} must omit embedded RFC 1952 FNAME header`
+    );
+    assert.equal(
+      rawPermitGz.readUInt32LE(4),
+      0,
+      `permits/${pf} must set RFC 1952 mtime=0`
+    );
+    const pRaw = zlib.gunzipSync(rawPermitGz).toString("utf8");
+    assert.equal(
+      pRaw.trimEnd().includes("\n"),
+      false,
+      `permits/${pf} inflated payload must remain single-line compact JSON`
+    );
+    assert.equal(
+      pRaw.includes("\u2014"),
+      false,
+      `permits/${pf} must contain zero U+2014 em-dashes`
+    );
+    assert.equal(
+      pRaw.includes("\u2013"),
+      false,
+      `permits/${pf} must contain zero U+2013 en-dashes`
+    );
+    const pShard = JSON.parse(pRaw);
     for (const [acct, rec] of Object.entries(pShard)) {
       if (!rec || typeof rec !== "object") continue;
       if (rec.conf) {
         totalConfRecords += 1;
         assert.equal(rec.conf, 1, `Expected canonical conf === 1 on ${acct}`);
-        for (const forbiddenKey of ["d", "flip", "pid", "m", "co"]) {
+        for (const forbiddenKey of ["d", "flip", "pid", "m", "co", "ml", "dt_lender"]) {
           assert.equal(
             forbiddenKey in rec,
             false,
@@ -1246,11 +1355,11 @@ test("Milestone 8 owner_history/*.json.gz shards: 1:1 manifest parity, determini
       }
     }
   }
-  // Improved + permitted confidential parcels in 2026 roll = 33,183 (unimproved unpermitted vacant parcels are omitted from permits_*.json)
+  // Improved + permitted confidential parcels in 2026 roll = 33,183 (unimproved unpermitted vacant parcels are omitted from permits_*.json.gz)
   assert.ok(
     totalConfRecords >= 30_000,
-    `Expected >= 30,000 confidential records flagged with conf === 1 across permits_*.json, got ${totalConfRecords}`
+    `Expected >= 30,000 confidential records flagged with conf === 1 across permits_*.json.gz, got ${totalConfRecords}`
   );
-  assert.equal(checked0071270000013, true, "Missing benchmark confidential account 0071270000013 in permits_007.json");
-  assert.equal(checked0071300000001, true, "Missing benchmark confidential account 0071300000001 in permits_007.json");
+  assert.equal(checked0071270000013, true, "Missing benchmark confidential account 0071270000013 in permits_007.json.gz");
+  assert.equal(checked0071300000001, true, "Missing benchmark confidential account 0071300000001 in permits_007.json.gz");
 });

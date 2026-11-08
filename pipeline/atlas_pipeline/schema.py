@@ -28,7 +28,7 @@ ACTIVE_TAX_YEAR = 2026
 MAX_VALID_CAMA_DATE_YEAR = ACTIVE_TAX_YEAR
 MAX_VALID_YEAR = ACTIVE_TAX_YEAR + 1
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261106b"
+ACTIVE_CACHE_BUST = "20261108a"
 PERMIT_ENRICHMENT_SOFT_MAX_BYTES = 948 * 1024 * 1024
 SOFT_MAX_APP_BYTES = 968 * 1024 * 1024
 HARD_MAX_APP_BYTES = 980 * 1024 * 1024
@@ -2585,6 +2585,8 @@ def update_pmtiles_manifest_v3(
     owner_history_prefixes: list[str] | None = None,
     owner_history_span: list[int] | None = None,
     owner_history_accounts: int | None = None,
+    permit_shard_prefixes: list[str] | None = None,
+    address_shard_prefixes: list[str] | None = None,
 ) -> dict[str, Any]:
     """Atomically write `pmtiles_manifest.json` preserving schema `"version": 3` (DF-4)."""
     existing: dict[str, Any] = {}
@@ -2630,6 +2632,16 @@ def update_pmtiles_manifest_v3(
         if owner_history_accounts is not None
         else existing.get("owner_history_accounts")
     )
+    eff_permit_prefixes = (
+        sorted({str(p).strip() for p in permit_shard_prefixes if str(p).strip()})
+        if permit_shard_prefixes is not None
+        else existing.get("permit_shard_prefixes")
+    )
+    eff_addr_prefixes = (
+        sorted({str(p).strip() for p in address_shard_prefixes if str(p).strip()})
+        if address_shard_prefixes is not None
+        else existing.get("address_shard_prefixes")
+    )
 
     manifest: dict[str, Any] = {
         "version": 3,
@@ -2646,6 +2658,10 @@ def update_pmtiles_manifest_v3(
         manifest["owner_history_span"] = [int(eff_oh_span[0]), int(eff_oh_span[1])]
     if isinstance(eff_oh_accounts, int) and eff_oh_accounts >= 0:
         manifest["owner_history_accounts"] = eff_oh_accounts
+    if isinstance(eff_permit_prefixes, list):
+        manifest["permit_shard_prefixes"] = eff_permit_prefixes
+    if isinstance(eff_addr_prefixes, list):
+        manifest["address_shard_prefixes"] = eff_addr_prefixes
 
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = manifest_path.with_name(
@@ -3097,6 +3113,11 @@ ENRICHED_PERMIT_SHARD_KEYS: tuple[str, ...] = (
     "m",
     "co",
     "flip",
+)
+
+TPIA_PERMIT_SHARD_KEYS: tuple[str, ...] = (
+    "ml",
+    "dt_lender",
 )
 
 RESIDENTIAL_HOMESTEAD_STATE_CLASSES: frozenset[str] = frozenset({
@@ -4195,8 +4216,135 @@ def compress_deterministic_gzip_json(shard_obj: dict[str, Any]) -> bytes:
         sort_keys=True,
     )
     if "\u2014" in raw_json or "\u2013" in raw_json:
-        raise ValueError("Forbidden U+2014/U+2013 dash detected in owner history shard payload.")
+        raise ValueError("Forbidden U+2014/U+2013 dash detected in gzipped shard payload.")
     return gzip.compress(raw_json.encode("utf-8"), compresslevel=9, mtime=0)
+
+
+def sanitize_json_structure_dashes(obj: Any) -> Any:
+    """Recursively normalize any U+2014 or U+2013 dash characters inside JSON-compatible containers."""
+    if isinstance(obj, str):
+        if "\u2014" in obj or "\u2013" in obj:
+            return sanitize_atlas_text(obj)
+        return obj
+    if isinstance(obj, list):
+        return [sanitize_json_structure_dashes(item) for item in obj]
+    if isinstance(obj, tuple):
+        return [sanitize_json_structure_dashes(item) for item in obj]
+    if isinstance(obj, dict):
+        return {
+            (sanitize_atlas_text(k) if isinstance(k, str) and ("\u2014" in k or "\u2013" in k) else k): sanitize_json_structure_dashes(v)
+            for k, v in obj.items()
+        }
+    return obj
+
+
+def read_json_or_gzip_path(path: Path) -> dict[str, Any]:
+    """Read a JSON object from either a `.json.gz` (RFC 1952 gzip) or plain `.json` file."""
+    p = Path(path)
+    if not p.exists():
+        return {}
+    raw_bytes = p.read_bytes()
+    if not raw_bytes:
+        return {}
+    if len(raw_bytes) >= 2 and raw_bytes[0] == 0x1F and raw_bytes[1] == 0x8B:
+        txt = gzip.decompress(raw_bytes).decode("utf-8")
+    else:
+        txt = raw_bytes.decode("utf-8")
+    parsed = json.loads(txt)
+    if not isinstance(parsed, dict):
+        raise ValueError(f"Expected JSON object in {p}, got {type(parsed).__name__}")
+    return parsed
+
+
+def read_json_or_gzip_shard(shard_dir: Path, stem: str) -> dict[str, Any]:
+    """Load `<shard_dir>/<stem>.json.gz` if present, falling back transparently to `<stem>.json`."""
+    d = Path(shard_dir)
+    clean_stem = stem[:-8] if stem.endswith(".json.gz") else (stem[:-5] if stem.endswith(".json") else stem)
+    gz_path = d / f"{clean_stem}.json.gz"
+    if gz_path.exists():
+        return read_json_or_gzip_path(gz_path)
+    json_path = d / f"{clean_stem}.json"
+    if json_path.exists():
+        return read_json_or_gzip_path(json_path)
+    return {}
+
+
+def write_deterministic_gzip_json_shard(
+    target_path: Path,
+    shard_obj: dict[str, Any],
+    *,
+    unlink_legacy_json: bool = True,
+    sanitize_dashes: bool = False,
+) -> int:
+    """Atomically write `<stem>.json.gz` with deterministic RFC 1952 headers (`mtime=0`, no FNAME)."""
+    p = Path(target_path)
+    if p.name.endswith(".json"):
+        gz_path = p.with_name(f"{p.name}.gz")
+        legacy_json_path = p
+    elif p.name.endswith(".json.gz"):
+        gz_path = p
+        legacy_json_path = p.with_name(p.name[:-3])
+    else:
+        gz_path = p.with_name(f"{p.name}.json.gz")
+        legacy_json_path = p.with_name(f"{p.name}.json")
+
+    payload_obj = sanitize_json_structure_dashes(shard_obj) if sanitize_dashes else shard_obj
+    compressed = compress_deterministic_gzip_json(payload_obj)
+    gz_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = gz_path.with_name(
+        f".{gz_path.name}.{os.getpid()}.{threading.get_ident()}.tmp"
+    )
+    try:
+        tmp_path.write_bytes(compressed)
+        tmp_path.replace(gz_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    if unlink_legacy_json and legacy_json_path != gz_path and legacy_json_path.exists():
+        legacy_json_path.unlink(missing_ok=True)
+    return len(compressed)
+
+
+def iter_json_or_gzip_shard_keys(
+    shard_dir: Path,
+    prefix: str,
+    key_pattern: str = r"\d+",
+) -> list[tuple[str, Path]]:
+    """Discover `<prefix><key>.json.gz` (preferred) and legacy `<prefix><key>.json` shards in sorted key order."""
+    d = Path(shard_dir)
+    if not d.exists():
+        return []
+    re_gz = re.compile(rf"^{re.escape(prefix)}({key_pattern})\.json\.gz$")
+    re_json = re.compile(rf"^{re.escape(prefix)}({key_pattern})\.json$")
+    by_key: dict[str, Path] = {}
+    for f in sorted(d.iterdir()):
+        if not f.is_file() or f.name.startswith("."):
+            continue
+        m_gz = re_gz.fullmatch(f.name)
+        if m_gz:
+            by_key[m_gz.group(1)] = f
+            continue
+        m_js = re_json.fullmatch(f.name)
+        if m_js and m_js.group(1) not in by_key:
+            by_key[m_js.group(1)] = f
+    return [(k, by_key[k]) for k in sorted(by_key.keys())]
+
+
+def sum_json_or_gzip_shard_bytes(
+    shard_dir: Path,
+    prefix: str,
+    key_pattern: str = r"\d+",
+) -> int:
+    """Sum on-disk sizes across all `.json.gz` and legacy `.json` shards matching `prefix`."""
+    d = Path(shard_dir)
+    if not d.exists():
+        return 0
+    re_any = re.compile(rf"^{re.escape(prefix)}(?:{key_pattern})\.json(?:\.gz)?$")
+    return sum(
+        f.stat().st_size
+        for f in d.iterdir()
+        if f.is_file() and not f.name.startswith(".") and re_any.fullmatch(f.name)
+    )
 
 
 RE_RP_FLEX = re.compile(

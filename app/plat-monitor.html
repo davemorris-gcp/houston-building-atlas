@@ -484,7 +484,7 @@ import {
   formatDemolitionPolicyBriefText,
   formatDemolitionPolicyBriefRichHtml,
   buildDemolitionBenchmarksTablesHtml,
-} from "./js/platMonitorHelpers.js?v=20261106b";
+} from "./js/platMonitorHelpers.js?v=20261108a";
 
 import {
   TRACKER_STATUSES,
@@ -514,7 +514,7 @@ import {
   parseCloudSheetSyncRows,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
-} from "./js/watchlistSyncHelpers.js?v=20261106b";
+} from "./js/watchlistSyncHelpers.js?v=20261108a";
 
 import {
   ACTIVITY_STREAM_META,
@@ -532,7 +532,14 @@ import {
   buildWatchPropertyFromPermitAlert,
   sanitizeActivityEventForRender,
   formatActivityBriefingText,
-} from "./js/activityLogHelpers.js?v=20261106b";
+} from "./js/activityLogHelpers.js?v=20261108a";
+
+import {
+  buildAddressShardUrl,
+  decodeGzipJsonResponse,
+  decompressAddressShardBytes,
+  normalizeAddressShardPrefix,
+} from "./js/clerkSearchHelpers.js?v=20261108a";
 
 /* ---------- Storage ---------- */
 const store = {
@@ -793,19 +800,29 @@ let view = {
 };
 
 let atlasLookupCachePromise = null;
+let monitorManifestPromise = null;
 const addressShardCache = new Map();
 const liveHcadParcelCache = new Map();
 const liveHcadGradeCache = new Map();
+
+function ensureMonitorManifest(){
+  if (!monitorManifestPromise) {
+    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261108a")
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null);
+  }
+  return monitorManifestPromise;
+}
 
 /* ---------- Lazy Countywide Atlas & HCAD Lookup Context ---------- */
 async function ensureLocalAtlasLookupContext(){
   if (!atlasLookupCachePromise) {
     atlasLookupCachePromise = (async () => {
       const [ovRes, bldRes, pclRes, ovlRes] = await Promise.all([
-        fetch("public/data/curated_overrides.json?v=20261106b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/buildings.geojson?v=20261106b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/parcels.geojson?v=20261106b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/overlays.json?v=20261106b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/curated_overrides.json?v=20261108a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/buildings.geojson?v=20261108a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/parcels.geojson?v=20261108a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/overlays.json?v=20261108a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
       const localHcadMap = new Map();
       const ingestFc = (fc) => {
@@ -855,10 +872,19 @@ async function ensureLocalAtlasLookupContext(){
 }
 
 async function loadAddressShard(shardKey){
-  const key = String(shardKey || "").padStart(2, "0");
+  const rawKey = normalizeAddressShardPrefix(shardKey);
+  if (!rawKey) return {};
+  if (addressShardCache.has(rawKey)) return addressShardCache.get(rawKey);
+  const manifest = await ensureMonitorManifest();
+  const key = normalizeAddressShardPrefix(rawKey, manifest?.address_shard_prefixes);
+  if (!key) {
+    const emptyPromise = Promise.resolve({});
+    addressShardCache.set(rawKey, emptyPromise);
+    return emptyPromise;
+  }
   if (addressShardCache.has(key)) return addressShardCache.get(key);
-  const p = fetch(`public/data/address_shards/addr_${encodeURIComponent(key)}.json?v=20261106b`)
-    .then(r => r.ok ? r.json() : {})
+  const p = fetch(buildAddressShardUrl(key, manifest?.cache_bust))
+    .then(r => decodeGzipJsonResponse(r, decompressAddressShardBytes))
     .catch(() => ({}));
   addressShardCache.set(key, p);
   return p;
@@ -978,7 +1004,10 @@ async function resolveParcelsMetadataForHcads(hcadIds = []){
     const live = arcgisParcelsByHcad[hid] || null;
     for (const addrGuess of [ov?.address, loc?.address, live?.address]) {
       const m = String(addrGuess || "").trim().match(/^(\d+)/);
-      if (m && Number(m[1]) > 0) neededShards.add(m[1].slice(0, 2).padEnd(2, "0"));
+      if (m && Number(m[1]) > 0) {
+        const sk = normalizeAddressShardPrefix(m[1]);
+        if (sk) neededShards.add(sk);
+      }
     }
   }
   const shardMaps = await Promise.all(
@@ -1824,7 +1853,7 @@ async function copyCurrentActivityBriefing(){
 function ensureLazyHahcTrackerLoaded(){
   if (hahcFetchStarted) return;
   hahcFetchStarted = true;
-  fetch("public/data/hahc_coa_tracker.json?v=20261106b")
+  fetch("public/data/hahc_coa_tracker.json?v=20261108a")
     .then(r => (r.ok ? r.json() : null))
     .then(data => {
       if (data && typeof data === "object") {
@@ -5316,7 +5345,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
     try {
       let alData = window.__permitAlertsPayload || null;
       if (!alData) {
-        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261106b");
+        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261108a");
         if (alResp.ok) alData = await alResp.json();
       }
       const alerts = Array.isArray(alData?.alerts) ? alData.alerts : [];
@@ -5372,7 +5401,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
 async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
   try {
-    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261106b";
+    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261108a";
     const [platResp, wlResp, alResp, actResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json" + cacheQ),
       fetch("public/data/property_watchlist.json" + cacheQ),

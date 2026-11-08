@@ -31,13 +31,13 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
-import glob
 import html
 import io
 import json
 import math
 import re
 import subprocess
+import sys
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -45,6 +45,14 @@ import zipfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT / "pipeline") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "pipeline"))
+
+from atlas_pipeline.schema import (
+    iter_json_or_gzip_shard_keys,
+    read_json_or_gzip_path,
+    read_json_or_gzip_shard,
+)
 DATA_DIR = REPO_ROOT / "app" / "public" / "data"
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) HoustonBuildingAtlas/1.0"
 
@@ -1322,10 +1330,8 @@ def load_atlas_indices():
     addr_nodir: dict[tuple[str, str], dict] = {}
     street_centroids: dict[str, tuple[float, float]] = {}
 
-    shard_paths = sorted(glob.glob(str(DATA_DIR / "address_shards" / "addr_*.json")))
-    for sp in shard_paths:
-        with open(sp, "r", encoding="utf-8") as f:
-            shard = json.load(f)
+    for _shard_key, sp in iter_json_or_gzip_shard_keys(DATA_DIR / "address_shards", "addr_", r"\d{2}"):
+        shard = read_json_or_gzip_path(sp)
         for raw_st, recs in shard.items():
             st = " ".join(raw_st.upper().split())
             st_nodir = re.sub(r"^[NSEW]\s+", "", st)
@@ -4782,13 +4788,14 @@ def sweep_watched_property_agencies(
             chk14_statuses.append(("failed", f"Corrupt active_permit_alerts.json: {exc}"))
             chk15_statuses.append(("failed", f"Corrupt active_permit_alerts.json: {exc}"))
 
+    permits_dir = DATA_DIR / "permits"
     for hid in hcad_ids:
-        shard_file = DATA_DIR / "permits" / f"permits_{hid[:3]}.json"
+        shard_gz = permits_dir / f"permits_{hid[:3]}.json.gz"
+        shard_json = permits_dir / f"permits_{hid[:3]}.json"
+        shard_file = shard_gz if shard_gz.exists() else shard_json
         if shard_file.exists():
             try:
-                shard_doc = json.loads(shard_file.read_text(encoding="utf-8"))
-                if not isinstance(shard_doc, dict):
-                    raise ValueError("Shard payload is not a JSON object")
+                shard_doc = read_json_or_gzip_shard(permits_dir, f"permits_{hid[:3]}")
                 rec = shard_doc.get(hid)
                 if isinstance(rec, dict):
                     for p_item in rec.get("permits") or rec.get("coh_permits") or []:

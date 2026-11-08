@@ -29,11 +29,14 @@ from atlas_pipeline.schema import (
     compile_quadrant_pmtiles,
     compute_decade,
     compute_decade_bins,
+    iter_json_or_gzip_shard_keys,
     load_compact_cama_lookup,
     normalize_override_record,
+    read_json_or_gzip_path,
     sanitize_atlas_text,
     update_pmtiles_manifest_v3,
     write_compact_json,
+    write_deterministic_gzip_json_shard,
 )
 
 CAMPUS_SPLIT_HCADS: frozenset[str] = frozenset({
@@ -1548,7 +1551,7 @@ def run_campus_and_school_fixes(
             write_compact_json(buildings_geojson_path, core_fc)
             print(f"   Synchronized {core_synced:,} overlapping features in buildings.geojson.")
 
-    # 7. Sync app/public/data/address_shards/addr_<2-digit>.json
+    # 7. Sync app/public/data/address_shards/addr_<2-digit>.json.gz
     addr_shards_dir = data_dir / "address_shards"
     if addr_shards_dir.exists():
         upserts_by_shard: dict[str, list[tuple[str, str, float, float, int, str, str, str]]] = defaultdict(list)
@@ -1562,15 +1565,14 @@ def run_campus_and_school_fixes(
                 upserts_by_shard[skey].append((st_name, hnum, round(lon, 5), round(lat, 5), yr, hcad, bname, bid))
 
         touched_addr_shards = 0
-        for shard_file in sorted(addr_shards_dir.glob("addr_*.json")):
-            skey = shard_file.stem.replace("addr_", "")
-            sdata: dict[str, list[list[Any]]] = json.loads(shard_file.read_text(encoding="utf-8"))
-            dirty = False
+        for skey, shard_file in iter_json_or_gzip_shard_keys(addr_shards_dir, "addr_", r"\d{2}"):
+            sdata: dict[str, list[list[Any]]] = read_json_or_gzip_path(shard_file)
+            dirty = shard_file.suffix != ".gz"
 
-            # Update stale year_built on re-resolved single-address parcels and sanitize em-dashes in row[5]
+            # Update stale year_built on re-resolved single-address parcels and sanitize em/en-dashes in row[5]
             for _st, rows in sdata.items():
                 for row in rows:
-                    if len(row) >= 6 and isinstance(row[5], str) and "\u2014" in row[5]:
+                    if len(row) >= 6 and isinstance(row[5], str) and ("\u2014" in row[5] or "\u2013" in row[5]):
                         row[5] = sanitize_atlas_text(row[5]).strip()
                         dirty = True
                     if len(row) >= 5:
@@ -1617,7 +1619,12 @@ def run_campus_and_school_fixes(
                         dirty = True
 
             if dirty:
-                write_compact_json(shard_file, sdata)
+                write_deterministic_gzip_json_shard(
+                    addr_shards_dir / f"addr_{skey}.json.gz",
+                    sdata,
+                    unlink_legacy_json=True,
+                    sanitize_dashes=True,
+                )
                 touched_addr_shards += 1
         print(f"   Synchronized {touched_addr_shards:,} street-address shard files in address_shards/.")
 

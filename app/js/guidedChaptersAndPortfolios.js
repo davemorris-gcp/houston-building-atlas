@@ -7,24 +7,25 @@ import {
   getAtlasMaxYear,
   VALID_PORTFOLIO_KINDS,
   normalizePortfolioKind,
-} from "./filterStore.js?v=20261106b";
+} from "./filterStore.js?v=20261108a";
 import {
   OWNERSHIP_TIER_ITEMS,
   resolveEffectiveOwnershipTier,
   resolveOwnershipTierColor,
-} from "./palettes.js?v=20261106b";
+} from "./palettes.js?v=20261108a";
 import {
   buildTxComptrollerSearchUrl,
   buildHarrisCountyClerkRpUrl,
-} from "./urlValidators.js?v=20261106b";
+} from "./urlValidators.js?v=20261108a";
 import {
+  decodeCompactMechanicsLiens,
   decodeCompactOwnerHistory,
   formatClerkInstrumentToken,
   isConfidentialOwnerName,
   isEntityOrTrustOwnerName,
   isPlaceholderOwnerName,
   parseCompactDeedWireEntries,
-} from "./clerkSearchHelpers.js?v=20261106b";
+} from "./clerkSearchHelpers.js?v=20261108a";
 
 export { VALID_PORTFOLIO_KINDS, normalizePortfolioKind };
 
@@ -1930,7 +1931,7 @@ export function buildStewardshipTimelineModel({
       if (rawDeedStr.trim()) {
         for (const e of parseCompactDeedWireEntries(rawDeedStr)) {
           if (!e.isoDate) continue;
-          effDeeds.push([e.isoDate, e.token, e.deedId, e.typeCode]);
+          effDeeds.push([e.isoDate, e.token, e.deedId, e.typeCode, e.grantor, e.grantee]);
         }
       }
     }
@@ -1941,16 +1942,22 @@ export function buildStewardshipTimelineModel({
     let clerkNumRaw = "";
     let deedId = "";
     let code = "D";
+    let rowGrantor = "";
+    let rowGrantee = "";
     if (Array.isArray(dRow)) {
       dt = String(dRow[0] || "").trim();
       clerkNumRaw = String(dRow[1] || "").trim();
       deedId = String(dRow[2] || "").trim();
       code = String(dRow[3] || "D").trim().toUpperCase();
+      rowGrantor = String(dRow[4] || "").trim();
+      rowGrantee = String(dRow[5] || "").trim();
     } else if (dRow && typeof dRow === "object") {
       dt = String(dRow.date || dRow.dt || "").trim();
       clerkNumRaw = String(dRow.clerk_num || dRow.clerkFileNum || "").trim();
       deedId = String(dRow.deed_id || dRow.deedId || "").trim();
       code = String(dRow.type || dRow.code || "D").trim().toUpperCase();
+      rowGrantor = String(dRow.grantor || "").trim();
+      rowGrantee = String(dRow.grantee || "").trim();
     }
     if (!dt) continue;
     const normInst = clerkNumRaw ? formatClerkInstrumentToken(clerkNumRaw, dt) : null;
@@ -1967,8 +1974,9 @@ export function buildStewardshipTimelineModel({
     if (matchedEntry) {
       consumedTenureIdx.add(matchedEntry.idx);
     }
-    const granteeName = matchedEntry ? matchedEntry.tenure.ownerName : "";
+    const granteeName = matchedEntry ? matchedEntry.tenure.ownerName : rowGrantee;
     const granteeSpan = matchedEntry ? matchedEntry.tenure.spanLabel : "";
+    const grantorName = rowGrantor;
 
     const typeLabel =
       code === "S"
@@ -1983,18 +1991,27 @@ export function buildStewardshipTimelineModel({
       deedId,
       typeCode: code,
       typeLabel,
+      grantor: grantorName,
       grantee: granteeName,
       tenureSpan: granteeSpan,
       clerkUrl,
     };
     decodedDeeds.push(deedObj);
+    const conveyanceTitle =
+      grantorName && granteeName
+        ? `${typeLabel}: ${grantorName} -> ${granteeName}`
+        : granteeName
+        ? `${typeLabel} to ${granteeName}`
+        : grantorName
+        ? `${typeLabel} from ${grantorName}`
+        : typeLabel;
     events.push({
       kind: "deed",
       category: "deed",
       year: parseInt(dt.slice(0, 4), 10) || 2000,
       dateLabel: dt,
       sortKey: dt.length === 4 ? `${dt}-01-01` : dt,
-      title: granteeName ? `${typeLabel} to ${granteeName}` : typeLabel,
+      title: conveyanceTitle,
       subtitle: clerkDisplay
         ? `${normInst?.kind === "vol_page" ? "Harris County Deed " : "Harris County Clerk File #"}${clerkDisplay}${
             granteeSpan ? ` · HCAD Roll (${granteeSpan})` : ""
@@ -2005,9 +2022,36 @@ export function buildStewardshipTimelineModel({
       citation: clerkDisplay ? `RP Clerk #${clerkDisplay}` : "",
       badge: code === "S" ? "Plat / Replat" : "Deed Transfer",
       clerkFileNum: clerkNum,
+      grantor: grantorName,
       grantee: granteeName,
       url: clerkUrl,
     });
+  }
+
+  if (!isConfidentialTimeline && shard.ml) {
+    for (const ml of decodeCompactMechanicsLiens(shard.ml)) {
+      const mlDt = ml.date || String(yrBuilt || 1990);
+      const mlYear = parseInt(mlDt.slice(0, 4), 10) || yrBuilt || 1990;
+      const clerkNum = ml.instrument.copyValue;
+      const clerkDisplay = ml.instrument.displayValue;
+      const amtSuffix = ml.amount ? ` ($${ml.amount})` : "";
+      events.push({
+        kind: "mechanics_lien",
+        category: "construction",
+        year: mlYear,
+        dateLabel: mlDt,
+        sortKey: mlDt.length === 4 ? `${mlDt}-05-01` : mlDt,
+        title: `Recorded Mechanic's Lien / Builder Contract: ${ml.contractor}${amtSuffix}`,
+        subtitle: `${
+          ml.instrument.kind === "vol_page" ? "Harris County Deed " : "Harris County Clerk File #"
+        }${clerkDisplay}${ml.ownerName ? ` · Owner: ${ml.ownerName}` : ""}`,
+        citation: `RP Clerk #${clerkDisplay} (M/L)`,
+        badge: "Mechanic's Lien (M/L)",
+        clerkFileNum: clerkNum,
+        contractor: ml.contractor,
+        url: clerkNum ? buildHarrisCountyClerkRpUrl(clerkNum) : null,
+      });
+    }
   }
 
   // Emit `owner_tenure` provenance nodes for un-deeded historical HCAD roll tenures and pre-2005 acquisitions (`DF-6`, `UT-7`).

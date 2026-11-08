@@ -14,7 +14,7 @@ import {
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261106b";
+} from "./palettes.js?v=20261108a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -31,7 +31,7 @@ import {
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261106b";
+} from "./filterStore.js?v=20261108a";
 import {
   METERS_PER_DEGREE_LAT,
   OVERRIDE_MODE_ADDITIVE_POLYGON,
@@ -50,8 +50,8 @@ import {
   isSingleShardReplaceOverride,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261106b";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261106b";
+} from "./curatedEdits.js?v=20261108a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261108a";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
@@ -60,8 +60,8 @@ import {
   mapHcadStateClassToUseCategory,
   matchHcadParcelFeaturesByAddressQuery,
   normalizeHcad13,
-} from "./hcadViewportParcels.js?v=20261106b";
-import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261106b";
+} from "./hcadViewportParcels.js?v=20261108a";
+import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261108a";
 
 export const LOST_HOUSTON_RANK_EXPR = ["coalesce", ["to-number", ["get", "symbol_rank"]], 4];
 
@@ -366,14 +366,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261106b"),
-      fetch("public/data/parcels.geojson?v=20261106b"),
-      fetch("public/data/overlays.json?v=20261106b"),
-      fetch("public/data/pmtiles_manifest.json?v=20261106b").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261108a"),
+      fetch("public/data/parcels.geojson?v=20261108a"),
+      fetch("public/data/overlays.json?v=20261108a"),
+      fetch("public/data/pmtiles_manifest.json?v=20261108a").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261106b").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261106b").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261106b").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261108a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261108a").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261108a").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1184,7 +1184,7 @@ export class AtlasMapController {
     return this.sheetSyncStatus;
   }
 
-  _refreshCuratedOverridesSource() {
+  _refreshCuratedOverridesSource({ targetKey = null } = {}) {
     this._applyCuratedOverridesInMemory();
     this._captureDynamicOverrideGeometries();
     this._lastDynamicParcelHydrationSig = "";
@@ -1192,10 +1192,38 @@ export class AtlasMapController {
     if (this.map && this.map.getSource("curated-overrides-src")) {
       this.map.getSource("curated-overrides-src").setData(this.overridesFC);
     }
-    if (this.map && this.map.getSource("buildings-src") && this.buildingsFC) {
+    const cleanKey = targetKey ? String(targetKey).trim() : "";
+    const cleanHcad = cleanKey ? cleanKey.split("#")[0].trim() : "";
+    const shouldRefreshBuildingsSrc =
+      !cleanKey ||
+      (this._rawBuildingsData || this.buildingsData || []).some((feat) => {
+        const p = feat?.properties || {};
+        return (
+          p.id === cleanKey ||
+          p.building_id === cleanKey ||
+          (cleanHcad && p.hcad_num === cleanHcad)
+        );
+      });
+    if (
+      shouldRefreshBuildingsSrc &&
+      this.map &&
+      this.map.getSource("buildings-src") &&
+      this.buildingsFC
+    ) {
       this.map.getSource("buildings-src").setData(this.buildingsFC);
     }
-    if (this.map && this.map.getSource("parcels-src") && this.parcelsFC) {
+    const shouldRefreshParcelsSrc =
+      !cleanKey ||
+      (this.parcelsFC?.features || []).some((feat) => {
+        const p = feat?.properties || {};
+        return p.id === cleanKey || (cleanHcad && p.hcad_num === cleanHcad);
+      });
+    if (
+      shouldRefreshParcelsSrc &&
+      this.map &&
+      this.map.getSource("parcels-src") &&
+      this.parcelsFC
+    ) {
       this.map.getSource("parcels-src").setData(this.parcelsFC);
     }
     this.syncWithState(this.filterStore.getState());
@@ -1486,7 +1514,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261106b";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261108a";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -7674,7 +7702,7 @@ export class AtlasMapController {
       );
     };
     const ovFeatures = (this.overridesFC?.features || []).filter(isNotSuppressedFeature);
-    const buildingsPool = (this.buildingsData || []).filter(isNotSuppressedFeature);
+    const rawBuildingsPool = this.buildingsData || [];
 
     const matchesExactBuildingId = (f) => {
       if (candidateBldIds.size === 0) return false;
@@ -7750,7 +7778,7 @@ export class AtlasMapController {
         ? ovFeatures.find(matchesExactBuildingId) ||
           rendered.find(matchesExactBuildingId) ||
           shardHitsAll.find(matchesExactBuildingId) ||
-          buildingsPool.find(matchesExactBuildingId) ||
+          rawBuildingsPool.find((f) => matchesExactBuildingId(f) && isNotSuppressedFeature(f)) ||
           null
         : null;
 
@@ -7765,7 +7793,9 @@ export class AtlasMapController {
       exactMatch ||
       ovFeatures.find(matchesParcelOrAddressFallback) ||
       fallbackTileMatch ||
-      buildingsPool.find(matchesParcelOrAddressFallback) ||
+      rawBuildingsPool.find(
+        (f) => matchesParcelOrAddressFallback(f) && isNotSuppressedFeature(f)
+      ) ||
       gbMatch ||
       (() => {
         if (!featureId && !hcadNum && !normTargetAddr) return null;
@@ -10259,7 +10289,7 @@ export class AtlasMapController {
    * Guaranteed idempotent: calling with `null` multiple times cleanly restores
    * `dragPan`, `doubleClickZoom`, cursors, and empties `polygon-editor-src`.
    */
-  setPolygonEditorSession(sessionOrNull) {
+  setPolygonEditorSession(sessionOrNull, { skipCanvasRedraw = false } = {}) {
     this._polygonEditorSession = sessionOrNull || null;
     this._polyActiveDragVertex = -1;
     this._polySuppressNextClick = false;
@@ -10279,7 +10309,9 @@ export class AtlasMapController {
       }
       if (this.useCanvasFallback && this.canvasState?.canvas) {
         this.canvasState.canvas.style.cursor = "grab";
-        this._renderCanvas2D();
+        if (!skipCanvasRedraw) {
+          this._renderCanvas2D();
+        }
       }
     }
   }
