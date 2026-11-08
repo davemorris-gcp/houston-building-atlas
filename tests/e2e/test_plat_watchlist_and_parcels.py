@@ -1091,15 +1091,36 @@ def test_activity_it2_cross_links_map_hashes_live_edit_badge_and_caught_up_water
     # regardless of which day of the 14-day Planning Commission cycle the E2E suite runs.
     data_dir = Path(__file__).resolve().parents[2] / "app" / "public" / "data"
     act_doc = json.loads((data_dir / "monitor_activity_log.json").read_text(encoding="utf-8"))
+    plat_doc = json.loads((data_dir / "plat_agenda_monitor.json").read_text(encoding="utf-8"))
+    wl_doc = json.loads((data_dir / "property_watchlist.json").read_text(encoding="utf-8"))
+    default_cycle = (plat_doc.get("cycleOrder") or [None])[0]
+    visible_agenda_occs = {
+        it.get("occurrenceKey")
+        for it in plat_doc.get("items", [])
+        if it.get("occurrenceKey")
+        and it.get("onMeetingAgenda") is not False
+        and str(it.get("city") or "").strip().lower() != "etj"
+        and (not default_cycle or str(it.get("occurrenceKey", "")).startswith(f"{default_cycle}::"))
+    }
+    wl_entries = [
+        p
+        for p in ([wl_doc.get("primaryProperty")] + list(wl_doc.get("watchedProperties") or []))
+        if isinstance(p, dict) and p.get("id") and p.get("status") != "Archived (Tier 3)"
+    ]
+    active_wl_ids = {str(p["id"]) for p in wl_entries}
     agenda_dates = sorted(
         str(e.get("localDate") or e.get("date") or "")[:10]
         for e in act_doc.get("events", [])
-        if e.get("stream") == "agenda" and (e.get("localDate") or e.get("date"))
+        if e.get("stream") == "agenda"
+        and e.get("occKey") in visible_agenda_occs
+        and (e.get("localDate") or e.get("date"))
     )
     watch_dates = sorted(
         str(e.get("localDate") or e.get("date") or "")[:10]
         for e in act_doc.get("events", [])
-        if e.get("stream") == "watchlist" and (e.get("localDate") or e.get("date"))
+        if e.get("stream") == "watchlist"
+        and str(e.get("watchPropertyId") or "") in active_wl_ids
+        and (e.get("localDate") or e.get("date"))
     )
     earliest_latest_day = min(agenda_dates[-1], watch_dates[-1])
     seed_watermark_iso = f"{earliest_latest_day}T00:00:00Z"
