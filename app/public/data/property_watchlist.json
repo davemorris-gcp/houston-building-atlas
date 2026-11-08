@@ -1,13 +1,14 @@
 {
-  "updatedAt": "2026-11-07T17:15:51Z",
-  "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+  "updatedAt": "2026-11-08T17:27:22Z",
+  "lastAutoSweepAt": "2026-11-08T17:27:22Z",
   "lastSweepHealth": {
-    "timestamp": "2026-11-07T17:15:51Z",
+    "timestamp": "2026-11-08T17:27:22Z",
     "sweepsExecuted": true,
     "propertiesSwept": 30,
     "totalAgencies": 8,
-    "succeededAgencies": 7,
+    "succeededAgencies": 6,
     "failedAgencies": [
+      "chk-10",
       "chk-15"
     ],
     "skippedAgencies": [],
@@ -42,11 +43,11 @@
         "error": ""
       },
       "chk-10": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 30,
+        "error": "TDLR TABS (2000 SMITH): HTTP request failed or timed out; TDLR TABS (530 Pierce): HTTP request failed or timed out; TDLR TABS (2000 Brazos): HTTP request failed or timed out; TDLR TABS (500 Gray): HTTP request failed or timed out; TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -243,7 +244,7 @@
             "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212"
           }
         ],
-        "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+        "lastAutoSweepAt": "2026-11-08T17:27:22Z"
       },
       {
         "id": "chk-05",
@@ -278,7 +279,7 @@
             ]
           }
         ],
-        "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+        "lastAutoSweepAt": "2026-11-08T17:27:22Z"
       },
       {
         "id": "chk-06",
@@ -317,7 +318,7 @@
             ]
           }
         ],
-        "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+        "lastAutoSweepAt": "2026-11-08T17:27:22Z"
       },
       {
         "id": "chk-07",
@@ -378,7 +379,7 @@
             "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)"
           }
         ],
-        "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+        "lastAutoSweepAt": "2026-11-08T17:27:22Z"
       },
       {
         "id": "chk-10",
@@ -403,7 +404,7 @@
             "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
           }
         ],
-        "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+        "lastAutoSweepAt": "2026-11-08T17:27:22Z"
       },
       {
         "id": "chk-11",
@@ -471,22 +472,6 @@
         "automated": true,
         "checks": [
           {
-            "date": "2026-11-01",
-            "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
-            "source": "auto-sweep",
-            "automated": true,
-            "checkId": "chk-13",
-            "agencyRecordId": "coh-311:2600364835",
-            "adverse": true,
-            "links": [
-              {
-                "label": "311 Service Request Viewer",
-                "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
-              }
-            ],
-            "discoveredAt": "2026-11-07"
-          },
-          {
             "date": "2026-11-02",
             "result": "[AUTO-SWEEP] Houston 311 Case #2600366173: Building Code Violation (Service Completed) at 2000 SMITH ST.",
             "source": "auto-sweep",
@@ -500,10 +485,26 @@
                 "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
               }
             ],
-            "discoveredAt": "2026-11-07"
+            "discoveredAt": "2026-11-08"
+          },
+          {
+            "date": "2026-11-01",
+            "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
+            "source": "auto-sweep",
+            "automated": true,
+            "checkId": "chk-13",
+            "agencyRecordId": "coh-311:2600364835",
+            "adverse": true,
+            "links": [
+              {
+                "label": "311 Service Request Viewer",
+                "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+              }
+            ],
+            "discoveredAt": "2026-11-08"
           }
         ],
-        "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+        "lastAutoSweepAt": "2026-11-08T17:27:22Z"
       },
       {
         "id": "chk-14",
@@ -532,7 +533,7 @@
             "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St"
           }
         ],
-        "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+        "lastAutoSweepAt": "2026-11-08T17:27:22Z"
       },
       {
         "id": "chk-15",
@@ -561,7 +562,7 @@
             "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)"
           }
         ],
-        "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+        "lastAutoSweepAt": "2026-11-08T17:27:22Z"
       }
     ],
     "findingsLog": [
@@ -863,7 +864,7 @@
         "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
         "automated": true,
         "source": "auto-sweep",
-        "discoveredAt": "2026-11-07",
+        "discoveredAt": "2026-11-08",
         "adverse": true,
         "agencyRecordId": "coh-311:2600364835",
         "links": [
@@ -882,7 +883,7 @@
         "result": "[AUTO-SWEEP] Houston 311 Case #2600366173: Building Code Violation (Service Completed) at 2000 SMITH ST.",
         "automated": true,
         "source": "auto-sweep",
-        "discoveredAt": "2026-11-07",
+        "discoveredAt": "2026-11-08",
         "adverse": false,
         "agencyRecordId": "coh-311:2600366173",
         "links": [
@@ -912,7 +913,7 @@
     "archivedAt": "",
     "searchTermsUpdatedAt": "2026-10-26T23:11:29.256Z",
     "driveLinksUpdatedAt": "2026-10-26T23:11:29.256Z",
-    "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+    "lastAutoSweepAt": "2026-11-08T17:27:22Z",
     "autoSweepSchedule": "Daily at 7:00 AM CT"
   },
   "watchedProperties": [
@@ -1086,7 +1087,7 @@
               "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -1121,7 +1122,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -1160,7 +1161,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -1221,7 +1222,7 @@
               "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -1246,7 +1247,7 @@
               "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -1314,22 +1315,6 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-01",
-              "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
-              "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-13",
-              "agencyRecordId": "coh-311:2600364835",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "311 Service Request Viewer",
-                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
-                }
-              ],
-              "discoveredAt": "2026-11-07"
-            },
-            {
               "date": "2026-11-02",
               "result": "[AUTO-SWEEP] Houston 311 Case #2600366173: Building Code Violation (Service Completed) at 2000 SMITH ST.",
               "source": "auto-sweep",
@@ -1343,10 +1328,26 @@
                   "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
+            },
+            {
+              "date": "2026-11-01",
+              "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-13",
+              "agencyRecordId": "coh-311:2600364835",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "311 Service Request Viewer",
+                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+                }
+              ],
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -1375,7 +1376,7 @@
               "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -1404,7 +1405,7 @@
               "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -1706,7 +1707,7 @@
           "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-311:2600364835",
           "links": [
@@ -1725,7 +1726,7 @@
           "result": "[AUTO-SWEEP] Houston 311 Case #2600366173: Building Code Violation (Service Completed) at 2000 SMITH ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-311:2600366173",
           "links": [
@@ -1755,7 +1756,7 @@
       "archivedAt": "",
       "searchTermsUpdatedAt": "2026-10-26T23:11:29.256Z",
       "driveLinksUpdatedAt": "2026-10-26T23:11:29.256Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -1824,7 +1825,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -1905,7 +1906,7 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32059078009"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2023-09-09",
@@ -1921,10 +1922,10 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/17406955108"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -1941,7 +1942,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0201140000001 (1701 HEIGHTS BLVD): Owner THE HOUSTON SAENGERBUND, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 THRU 7 BLK 118|HOUSTON HEIGHTS.",
               "source": "auto-sweep",
               "automated": true,
@@ -1954,10 +1955,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0201140000001"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -1987,7 +1988,7 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2025-09-19",
@@ -2003,7 +2004,7 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-01-22",
@@ -2019,7 +2020,7 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-04-22",
@@ -2035,7 +2036,7 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-05-05",
@@ -2051,7 +2052,7 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-05-05",
@@ -2067,7 +2068,7 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-08-11",
@@ -2083,7 +2084,7 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-09-15",
@@ -2099,7 +2100,7 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-10-08",
@@ -2115,10 +2116,10 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -2164,7 +2165,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -2180,7 +2181,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -2226,7 +2227,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -2242,7 +2243,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -2258,7 +2259,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -2270,7 +2271,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32059078009: CLAIRE SCHOOL OF DANCE LLC at 1703 HEIGHTS BLVD.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-sales:32059078009:1",
           "links": [
@@ -2289,7 +2290,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #17406955108: THE HOUSTON SAENGERBUND at 1703 HEIGHTS BLVD.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-sales:17406955108:5",
           "links": [
@@ -2308,7 +2309,7 @@
           "result": "[AUTO-SWEEP] TABC License #200178334 (NT, Active): The Houston Saengerbund at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200178334",
           "links": [
@@ -2327,7 +2328,7 @@
           "result": "[AUTO-SWEEP] TABC License #200178335 (NT, Active): The Houston Saengerbund at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200178335",
           "links": [
@@ -2346,7 +2347,7 @@
           "result": "[AUTO-SWEEP] TABC License #200187928 (NT, Active): The Houston Saengerbund at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200187928",
           "links": [
@@ -2365,7 +2366,7 @@
           "result": "[AUTO-SWEEP] TABC License #200195668 (NT, Active): Cantare Houston at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200195668",
           "links": [
@@ -2384,7 +2385,7 @@
           "result": "[AUTO-SWEEP] TABC License #200197497 (NT, Active): The Houston Saengerbund at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200197497",
           "links": [
@@ -2403,7 +2404,7 @@
           "result": "[AUTO-SWEEP] TABC License #200197502 (NT, Active): The Houston Saengerbund at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200197502",
           "links": [
@@ -2422,7 +2423,7 @@
           "result": "[AUTO-SWEEP] TABC License #200205467 (NT, Active): The Houston Saengerbund at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200205467",
           "links": [
@@ -2441,7 +2442,7 @@
           "result": "[AUTO-SWEEP] TABC License #200206029 (NT, Active): The Houston Saengerbund at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200206029",
           "links": [
@@ -2460,7 +2461,7 @@
           "result": "[AUTO-SWEEP] TABC License #200210965 (NT, Active): The Houston Saengerbund at 1703 Heights Blvd.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:200210965",
           "links": [
@@ -2472,14 +2473,14 @@
           "entryNo": 11
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0201140000001 (1701 HEIGHTS BLVD): Owner THE HOUSTON SAENGERBUND, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 THRU 7 BLK 118|HOUSTON HEIGHTS.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0201140000001:THE HOUSTON SAENGERBUND:XV:0",
           "links": [
@@ -2598,7 +2599,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -2643,7 +2644,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -2659,7 +2660,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -2745,7 +2746,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -2761,7 +2762,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -2807,7 +2808,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -2823,7 +2824,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -2839,7 +2840,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -2956,7 +2957,7 @@
       "archivedAt": "",
       "searchTermsUpdatedAt": "2026-10-27T19:49:14.057Z",
       "driveLinksUpdatedAt": "2026-10-27T19:49:14.057Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -3025,7 +3026,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -3106,7 +3107,7 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/17602868956"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "1995-11-30",
@@ -3122,10 +3123,10 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/17460013984"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -3142,7 +3143,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 1323260010001 (0 FANNIN ST): Owner PROTESTANT EPISCOPAL CHURCH, Class XV (Market $0, Impr $0, Land $0), Legal: RES A BLK 1|TRINITY CHURCH HOUSTON.",
               "source": "auto-sweep",
               "automated": true,
@@ -3155,10 +3156,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=1323260010001"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -3174,7 +3175,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -3220,7 +3221,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -3236,7 +3237,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -3282,7 +3283,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -3298,7 +3299,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -3314,7 +3315,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -3326,7 +3327,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #17460013984: TRINITY CHURCH, HOUSTON (DBA TRINITY CHURCH HOUSTON) at 1015 HOLMAN ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-sales:17460013984:1",
           "links": [
@@ -3345,7 +3346,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #17602868956: HOUSTON CHILDREN'S CHORUS, INC. (DBA HOUSTON CHILDREN'S CHORUS INC) at 1015 HOLMAN ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-sales:17602868956:4",
           "links": [
@@ -3357,14 +3358,14 @@
           "entryNo": 2
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 1323260010001 (0 FANNIN ST): Owner PROTESTANT EPISCOPAL CHURCH, Class XV (Market $0, Impr $0, Land $0), Legal: RES A BLK 1|TRINITY CHURCH HOUSTON.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:1323260010001:PROTESTANT EPISCOPAL CHURCH:XV:0",
           "links": [
@@ -3410,7 +3411,7 @@
       "pcMeetingDate": "2026-10-15",
       "hearingDateIso": "",
       "keyDates": {
-        "monitoringStarted": "2026-11-07",
+        "monitoringStarted": "2026-11-08",
         "targetClosing": "",
         "planningCommission": "2026-10-15",
         "publicHearingDate": "",
@@ -3497,10 +3498,10 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32100987570"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -3517,7 +3518,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0283120000009 (3827 BROADWAY ST): Owner PARK PLACE METHODISTCHURCH, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 THRU 6|BLK 44|PARK PLACE.",
               "source": "auto-sweep",
               "automated": true,
@@ -3530,10 +3531,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0283120000009"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -3549,7 +3550,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -3607,7 +3608,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -3623,7 +3624,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -3669,7 +3670,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -3685,7 +3686,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -3701,7 +3702,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -3713,7 +3714,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32100987570: BROADWAY ST C STORE LLC (DBA BRAKE TIME) at 3827 BROADWAY ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-sales:32100987570:1",
           "links": [
@@ -3741,14 +3742,14 @@
           "entryNo": 2
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0283120000009 (3827 BROADWAY ST): Owner PARK PLACE METHODISTCHURCH, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 THRU 6|BLK 44|PARK PLACE.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0283120000009:PARK PLACE METHODISTCHURCH:XV:0",
           "links": [
@@ -3775,7 +3776,7 @@
       "documents": [],
       "driveLinks": [],
       "updatedAt": "2026-10-30T01:59:30.712Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -3857,7 +3858,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "2026-10-26T23:56:22.599Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -3944,7 +3945,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -3975,7 +3976,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -3991,7 +3992,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -4037,7 +4038,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -4053,7 +4054,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -4099,7 +4100,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -4115,7 +4116,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -4131,7 +4132,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -4248,7 +4249,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "2026-10-29T15:40:32.219Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -4315,7 +4316,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -4346,7 +4347,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -4362,7 +4363,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -4408,7 +4409,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -4468,7 +4469,7 @@
             }
           ],
           "updatedAt": "2026-10-29T20:43:58.349Z",
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z",
           "humanStatusEdited": true,
           "statusChangedAt": "2026-10-29T20:43:58.349Z"
         },
@@ -4516,7 +4517,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -4532,7 +4533,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -4548,7 +4549,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -4698,7 +4699,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -4765,7 +4766,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -4782,7 +4783,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0222350000001 (701 E 33RD ST): Owner HOUSTON ISD, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 & 2 & TR A BLK 17 &|TR 5 ABST 493 O P KELTON|LINCOLN HEIGHTS.",
               "source": "auto-sweep",
               "automated": true,
@@ -4795,10 +4796,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0222350000001"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -4814,7 +4815,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -4860,7 +4861,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -4876,7 +4877,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -4922,7 +4923,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -4938,7 +4939,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -4954,19 +4955,19 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0222350000001 (701 E 33RD ST): Owner HOUSTON ISD, Class XV (Market $0, Impr $0, Land $0), Legal: LTS 1 & 2 & TR A BLK 17 &|TR 5 ABST 493 O P KELTON|LINCOLN HEIGHTS.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0222350000001:HOUSTON ISD:XV:0",
           "links": [
@@ -5012,7 +5013,7 @@
       "pcMeetingDate": "2026-10-29",
       "hearingDateIso": "",
       "keyDates": {
-        "monitoringStarted": "2026-11-07",
+        "monitoringStarted": "2026-11-08",
         "targetClosing": "",
         "planningCommission": "2026-10-29",
         "publicHearingDate": "",
@@ -5085,7 +5086,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -5102,7 +5103,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0731100150468 (8017 HOMESTEAD RD): Owner FRANKLIN & JESSICA SEVILLA, Class C2 (Market $61425, Impr $0, Land $61425), Legal: LT 467 BLK 15|PELHAM PLACE SEC 2.",
               "source": "auto-sweep",
               "automated": true,
@@ -5115,10 +5116,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0731100150468"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0731100150467 (8017 HOMESTEAD RD): Owner SEVILLA FRANKLIN & JESSICA, Class F1 (Market $139834, Impr $107074, Land $32760), Legal: TR 466A BLK 15|PELHAM PLACE SEC 2.",
               "source": "auto-sweep",
               "automated": true,
@@ -5131,10 +5132,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0731100150467"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -5150,7 +5151,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -5221,7 +5222,7 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-10-29",
@@ -5237,10 +5238,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -5256,7 +5257,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -5302,7 +5303,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -5318,7 +5319,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -5334,7 +5335,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -5346,7 +5347,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-01) Item PH-131: 'Sevilla Commercial' (Class 3 Replat - Establish Public Hearing Date (C3N), IV. Establish Public Hearing Date (Oct 29, 2026)), Public Hearing 2026-10-29.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-01:PH-131",
           "links": [
@@ -5381,7 +5382,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1502: 'Sevilla Commercial' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-29:2026-1502",
           "links": [
@@ -5393,14 +5394,14 @@
           "entryNo": 3
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0731100150468 (8017 HOMESTEAD RD): Owner FRANKLIN & JESSICA SEVILLA, Class C2 (Market $61425, Impr $0, Land $61425), Legal: LT 467 BLK 15|PELHAM PLACE SEC 2.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0731100150468:FRANKLIN & JESSICA SEVILLA:C2:0",
           "links": [
@@ -5412,14 +5413,14 @@
           "entryNo": 4
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0731100150467 (8017 HOMESTEAD RD): Owner SEVILLA FRANKLIN & JESSICA, Class F1 (Market $139834, Impr $107074, Land $32760), Legal: TR 466A BLK 15|PELHAM PLACE SEC 2.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0731100150467:SEVILLA FRANKLIN & JESSICA:F1:107074",
           "links": [
@@ -5446,7 +5447,7 @@
       "documents": [],
       "driveLinks": [],
       "updatedAt": "2026-10-30T01:37:01.482Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -5528,7 +5529,7 @@
         }
       ],
       "driveLinksUpdatedAt": "2026-10-28T01:35:40.997Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -5647,7 +5648,7 @@
               "result": "Tanglewood Marketing Inc: Owner per HCAD. Filed 10/3/1996. Mailing address: 3302 La Salle. Registered Agent: Michael J Clark, 3910 W Main."
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -5678,7 +5679,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -5699,7 +5700,7 @@
               "result": "no records found"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -5745,7 +5746,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -5766,7 +5767,7 @@
               "result": "no results"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -5822,7 +5823,7 @@
               "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -5843,7 +5844,7 @@
               "result": "Checked Oct 26, 2026 by Emily Ardoin - No new filings found."
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -5859,7 +5860,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -6104,7 +6105,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -6121,7 +6122,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 1187350010001 (2320 WILLOWICK RD): Owner RIVER OAKS BAPTIST CHURCH, Class XV (Market $0, Impr $0, Land $0), Legal: RES A BLK 1|RIVER OAKS BAPTIST.",
               "source": "auto-sweep",
               "automated": true,
@@ -6134,10 +6135,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=1187350010001"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0410170010103 (3810 WESTHEIMER RD): Owner 3800 WESTHEIMER LLC, Class XV (Market $0, Impr $0, Land $0), Legal: TRS 10 & 10C (IMPS ONLY)|(LAND*0410170010052)|ABST 61 A C REYNOLDS.",
               "source": "auto-sweep",
               "automated": true,
@@ -6150,10 +6151,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0410170010103"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0410170010056 (3838 WESTHEIMER RD): Owner 3800 WESTHEIMER LLC, Class XV (Market $0, Impr $0, Land $0), Legal: TR 10B|ABST 61 A C REYNOLDS.",
               "source": "auto-sweep",
               "automated": true,
@@ -6166,10 +6167,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0410170010056"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -6185,7 +6186,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -6248,7 +6249,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -6264,7 +6265,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -6310,7 +6311,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -6326,7 +6327,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -6342,7 +6343,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -6373,14 +6374,14 @@
           "entryNo": 2
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 1187350010001 (2320 WILLOWICK RD): Owner RIVER OAKS BAPTIST CHURCH, Class XV (Market $0, Impr $0, Land $0), Legal: RES A BLK 1|RIVER OAKS BAPTIST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:1187350010001:RIVER OAKS BAPTIST CHURCH:XV:0",
           "links": [
@@ -6392,14 +6393,14 @@
           "entryNo": 3
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0410170010103 (3810 WESTHEIMER RD): Owner 3800 WESTHEIMER LLC, Class XV (Market $0, Impr $0, Land $0), Legal: TRS 10 & 10C (IMPS ONLY)|(LAND*0410170010052)|ABST 61 A C REYNOLDS.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0410170010103:3800 WESTHEIMER LLC:XV:0",
           "links": [
@@ -6411,14 +6412,14 @@
           "entryNo": 4
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0410170010056 (3838 WESTHEIMER RD): Owner 3800 WESTHEIMER LLC, Class XV (Market $0, Impr $0, Land $0), Legal: TR 10B|ABST 61 A C REYNOLDS.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0410170010056:3800 WESTHEIMER LLC:XV:0",
           "links": [
@@ -6447,7 +6448,7 @@
       "updatedAt": "2026-10-28T00:37:01.736Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -6564,7 +6565,7 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32074046643"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2016-11-16",
@@ -6580,10 +6581,10 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32062111565"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -6600,7 +6601,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0650100070010 (1131 VERA LOU ST): Owner AMPLIFIED PROPERTIES LLC, Class A1 (Market $174898, Impr $38923, Land $135975), Legal: LT 10 BLK G|BROOKHAVEN R/P.",
               "source": "auto-sweep",
               "automated": true,
@@ -6613,10 +6614,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0650100070010"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -6632,7 +6633,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -6703,10 +6704,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -6722,7 +6723,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -6782,10 +6783,10 @@
                   "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -6801,7 +6802,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -6817,7 +6818,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -6829,7 +6830,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32062111565: AMPLIFIED PROPERTIES MANAGEMENT, LLC (SOS #0802584933), status A, mailing 16360 US HIGHWAY 83 N, LAREDO, TX.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-franchise:32062111565",
           "links": [
@@ -6848,7 +6849,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32074046643: AMPLIFIED PROPERTIES LLC (SOS #0803599960), status A, mailing 1300 S FRAZIER ST, CONROE, TX.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-franchise:32074046643",
           "links": [
@@ -6867,7 +6868,7 @@
           "result": "[AUTO-SWEEP] Houston 311 Case #2600276436: Dangerous Buildings (Routed) at 1131 VERA LOU ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-311:2600276436",
           "links": [
@@ -6902,7 +6903,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1495: 'Amplified Properties' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-15:2026-1495",
           "links": [
@@ -6914,14 +6915,14 @@
           "entryNo": 5
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0650100070010 (1131 VERA LOU ST): Owner AMPLIFIED PROPERTIES LLC, Class A1 (Market $174898, Impr $38923, Land $135975), Legal: LT 10 BLK G|BROOKHAVEN R/P.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0650100070010:AMPLIFIED PROPERTIES LLC:A1:38923",
           "links": [
@@ -6953,7 +6954,7 @@
       "archivedAt": "",
       "searchTermsUpdatedAt": "2026-10-27T19:16:40.135Z",
       "driveLinksUpdatedAt": "2026-10-27T19:16:40.135Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -6985,7 +6986,7 @@
       "pcMeetingDate": "2026-10-29",
       "hearingDateIso": "",
       "keyDates": {
-        "monitoringStarted": "2026-11-07",
+        "monitoringStarted": "2026-11-08",
         "targetClosing": "",
         "planningCommission": "2026-10-29",
         "publicHearingDate": "",
@@ -7072,7 +7073,7 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32074046643"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2016-11-16",
@@ -7088,10 +7089,10 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32062111565"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -7108,7 +7109,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0650100070010 (1131 VERA LOU ST): Owner AMPLIFIED PROPERTIES LLC, Class A1 (Market $174898, Impr $38923, Land $135975), Legal: LT 10 BLK G|BROOKHAVEN R/P.",
               "source": "auto-sweep",
               "automated": true,
@@ -7121,10 +7122,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0650100070010"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -7140,7 +7141,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -7211,10 +7212,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -7230,7 +7231,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -7290,10 +7291,10 @@
                   "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -7309,7 +7310,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -7325,7 +7326,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -7337,7 +7338,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32062111565: AMPLIFIED PROPERTIES MANAGEMENT, LLC (SOS #0802584933), status A, mailing 16360 US HIGHWAY 83 N, LAREDO, TX.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-franchise:32062111565",
           "links": [
@@ -7356,7 +7357,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32074046643: AMPLIFIED PROPERTIES LLC (SOS #0803599960), status A, mailing 1300 S FRAZIER ST, CONROE, TX.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-franchise:32074046643",
           "links": [
@@ -7375,7 +7376,7 @@
           "result": "[AUTO-SWEEP] Houston 311 Case #2600276436: Dangerous Buildings (Routed) at 1131 VERA LOU ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-311:2600276436",
           "links": [
@@ -7394,7 +7395,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1495: 'Amplified Properties' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-15:2026-1495",
           "links": [
@@ -7422,14 +7423,14 @@
           "entryNo": 5
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0650100070010 (1131 VERA LOU ST): Owner AMPLIFIED PROPERTIES LLC, Class A1 (Market $174898, Impr $38923, Land $135975), Legal: LT 10 BLK G|BROOKHAVEN R/P.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0650100070010:AMPLIFIED PROPERTIES LLC:A1:38923",
           "links": [
@@ -7456,7 +7457,7 @@
       "documents": [],
       "driveLinks": [],
       "updatedAt": "2026-10-27T20:06:51.741Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -7523,7 +7524,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -7590,7 +7591,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -7607,7 +7608,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0961080000014 (13515 PERTHSHIRE RD): Owner TURNER JAMESON, Class A1 (Market $939100, Impr $300880, Land $638220), Legal: LT 14 BLK 3|WILCHESTER SEC 2.",
               "source": "auto-sweep",
               "automated": true,
@@ -7620,10 +7621,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0961080000014"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -7639,7 +7640,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -7685,7 +7686,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -7701,7 +7702,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -7747,7 +7748,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -7763,7 +7764,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -7779,19 +7780,19 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0961080000014 (13515 PERTHSHIRE RD): Owner TURNER JAMESON, Class A1 (Market $939100, Impr $300880, Land $638220), Legal: LT 14 BLK 3|WILCHESTER SEC 2.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0961080000014:TURNER JAMESON:A1:300880",
           "links": [
@@ -7908,7 +7909,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -7924,7 +7925,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -7940,7 +7941,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -7993,7 +7994,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -8009,7 +8010,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -8055,7 +8056,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -8071,7 +8072,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -8087,7 +8088,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -8121,7 +8122,7 @@
       "archivedAt": "",
       "searchTermsUpdatedAt": "2026-10-27T19:55:30.869Z",
       "driveLinksUpdatedAt": "2026-10-27T19:55:30.869Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -8224,7 +8225,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -8241,7 +8242,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0561210000025 (2038 SUL ROSS ST): Owner DARK JOSEPH R, Class A1 (Market $840500, Impr $500, Land $840000), Legal: TRS 25 & 26A BLK 1|DEARBORN PLACE.",
               "source": "auto-sweep",
               "automated": true,
@@ -8254,10 +8255,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0561210000025"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -8273,7 +8274,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -8349,10 +8350,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93846/OriginalFiles/SUL_ROSS_VIEWS_9-18-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T11%3A13%3A49Z&sr=b&sp=r&sig=pFbYiGte2Y76NMmSXeKNmSFSgnlgcJTCRB7p5vpv0EM%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -8368,7 +8369,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -8414,7 +8415,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -8430,7 +8431,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -8446,7 +8447,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -8484,7 +8485,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-01) Item 2026-1561: 'Sul Ross Views' (Class 3 subdivision final plat (C3F), A. Consent).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-01:2026-1561",
           "links": [
@@ -8496,14 +8497,14 @@
           "entryNo": 3
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0561210000025 (2038 SUL ROSS ST): Owner DARK JOSEPH R, Class A1 (Market $840500, Impr $500, Land $840000), Legal: TRS 25 & 26A BLK 1|DEARBORN PLACE.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0561210000025:DARK JOSEPH R:A1:500",
           "links": [
@@ -8533,7 +8534,7 @@
       "humanEdited": true,
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -8636,7 +8637,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -8653,7 +8654,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0230120000010 (2107 HARDY ST): Owner MJ SQUARED EQUITY MANAGEMENT LLC, Class C1 (Market $195000, Impr $0, Land $195000), Legal: LT 10 BLK 33|LITTLE & DICKINSON.",
               "source": "auto-sweep",
               "automated": true,
@@ -8666,10 +8667,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0230120000010"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -8685,7 +8686,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -8761,10 +8762,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94003/OriginalFiles/HARDY_PARK_PLAZA-Layout1.pdf?sv=2021-08-06&se=2051-10-19T02%3A09%3A19Z&sr=b&sp=r&sig=rturBQbC4pwqv5CuJwjjtOinRL0qnTiaAFLRX5QkSxQ%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -8780,7 +8781,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -8826,7 +8827,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -8842,7 +8843,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -8858,7 +8859,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -8896,7 +8897,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1704: 'Hardy Park Plaza' (Class 2 subdivision replat (C2R), B. Replats).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-29:2026-1704",
           "links": [
@@ -8908,14 +8909,14 @@
           "entryNo": 3
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0230120000010 (2107 HARDY ST): Owner MJ SQUARED EQUITY MANAGEMENT LLC, Class C1 (Market $195000, Impr $0, Land $195000), Legal: LT 10 BLK 33|LITTLE & DICKINSON.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0230120000010:MJ SQUARED EQUITY MANAGEMENT LLC:C1:0",
           "links": [
@@ -8944,7 +8945,7 @@
       "updatedAt": "2026-10-27T21:15:03.254Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -9064,7 +9065,7 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32051792839"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2017-07-31",
@@ -9080,10 +9081,10 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/13116785307"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -9100,7 +9101,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0200820000051 (235 W 20TH ST): Owner KIMCO REALTY CORPORATION, Class F1 (Market $2660874, Impr $679554, Land $1981320), Legal: LTS 26 THRU 30 & W 1/2 OF|LT 31 BLK 86|HOUSTON HEIGHTS.",
               "source": "auto-sweep",
               "automated": true,
@@ -9113,10 +9114,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0200820000051"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0200820000001 (239 W 20TH ST): Owner KIMCO REALTY CORPORATION, Class F1 (Market $20652527, Impr $1909847, Land $18742680), Legal: LTS 1 THRU 25 32 THRU 50 & W|1/2 OF LT 31 & TR A BLK 86|HOUSTON HEIGHTS.",
               "source": "auto-sweep",
               "automated": true,
@@ -9129,10 +9130,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0200820000001"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -9162,10 +9163,10 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -9241,10 +9242,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93960/OriginalFiles/PL43271-000.pdf?sv=2021-08-06&se=2051-10-16T15%3A22%3A04Z&sr=b&sp=r&sig=nsmfyW84pK1yDBZ9essmqegWceuASQvK1yy1KK9J%2BrM%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -9260,7 +9261,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -9320,10 +9321,10 @@
                   "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -9339,7 +9340,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -9355,7 +9356,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -9367,7 +9368,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #13116785307: KROGER TEXAS L.P. (DBA KROGER #609) at 239 W 20TH ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-sales:13116785307:470",
           "links": [
@@ -9386,7 +9387,7 @@
           "result": "[AUTO-SWEEP] TABC License #105462824 (BQ, Surrendered): KROGER TEXAS L.P. (DBA KROGER #609) at 239 W 20TH STREET.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:105462824",
           "links": [
@@ -9405,7 +9406,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32051792839: JFE FRANCHISING, INC. (DBA D K609-3) at 239 W 20TH ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-sales:32051792839:8",
           "links": [
@@ -9424,7 +9425,7 @@
           "result": "[AUTO-SWEEP] Houston 311 Case #2600189129: Building Code Violation (Routed) at 239 W 20TH ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-311:2600189129",
           "links": [
@@ -9469,7 +9470,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1671: 'Houston Heights partial replat no 33' (Class 2 subdivision replat (C2R), B. Replats).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-29:2026-1671",
           "links": [
@@ -9481,14 +9482,14 @@
           "entryNo": 7
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0200820000051 (235 W 20TH ST): Owner KIMCO REALTY CORPORATION, Class F1 (Market $2660874, Impr $679554, Land $1981320), Legal: LTS 26 THRU 30 & W 1/2 OF|LT 31 BLK 86|HOUSTON HEIGHTS.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0200820000051:KIMCO REALTY CORPORATION:F1:679554",
           "links": [
@@ -9500,14 +9501,14 @@
           "entryNo": 8
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0200820000001 (239 W 20TH ST): Owner KIMCO REALTY CORPORATION, Class F1 (Market $20652527, Impr $1909847, Land $18742680), Legal: LTS 1 THRU 25 32 THRU 50 & W|1/2 OF LT 31 & TR A BLK 86|HOUSTON HEIGHTS.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0200820000001:KIMCO REALTY CORPORATION:F1:1909847",
           "links": [
@@ -9536,7 +9537,7 @@
       "updatedAt": "2026-10-27T22:40:40.347Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -9653,10 +9654,10 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32061610625"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -9673,7 +9674,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 1211140020001 (2531 KUESTER ST): Owner ELYSIUM 1634 WESTHEIMER LP, Class F1 (Market $1952399, Impr $1164794, Land $787605), Legal: RES B BLK 2|WESTHEIMER.",
               "source": "auto-sweep",
               "automated": true,
@@ -9686,10 +9687,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=1211140020001"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -9719,10 +9720,10 @@
                   "url": "https://apps.tabc.texas.gov/publicinquiry/"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -9798,10 +9799,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -9813,28 +9814,11 @@
           "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
           "additionalResourceLabel": "",
           "additionalResourceUrl": "",
-          "status": "Flagged",
+          "status": "To Do",
           "lastChecked": "",
           "automated": true,
-          "checks": [
-            {
-              "date": "2022-08-09",
-              "result": "[AUTO-SWEEP] TDLR TABS #TABS2022025772 (Marigold Club Restaurant) at 2531 Kuester St Houston, TX 77006: $3,862,000 Renovation/Alteration (Interior remodel of a bar into a restaurant.), Owner Elysium 1634 Westheimer LP, Design Firm Fox Fox Studio.",
-              "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-10",
-              "agencyRecordId": "tdlr-tabs:TABS2022025772",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "TDLR TABS (TABS2022025772)",
-                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2022025772"
-                }
-              ],
-              "discoveredAt": "2026-11-07"
-            }
-          ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "checks": [],
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -9880,7 +9864,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -9896,7 +9880,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -9912,7 +9896,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -9924,7 +9908,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Active Sales Tax Permit #32061610625: GOODNIGHT CHARLIE'S, LLC (DBA MARIGOLD CLUB) at 2531 KUESTER ST.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-sales:32061610625:1",
           "links": [
@@ -9943,7 +9927,7 @@
           "result": "[AUTO-SWEEP] TABC License #105082317 (MB, Active): GOODNIGHT CHARLIE'S LLC (DBA Marigold Club) at 2531 Kuester St.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "tabc-active:105082317",
           "links": [
@@ -9953,25 +9937,6 @@
             }
           ],
           "entryNo": 2
-        },
-        {
-          "date": "2022-08-09",
-          "stage": "Plans & Use",
-          "activity": "Accessibility Registration (TDLR TABS)",
-          "checkId": "chk-10",
-          "result": "[AUTO-SWEEP] TDLR TABS #TABS2022025772 (Marigold Club Restaurant) at 2531 Kuester St Houston, TX 77006: $3,862,000 Renovation/Alteration (Interior remodel of a bar into a restaurant.), Owner Elysium 1634 Westheimer LP, Design Firm Fox Fox Studio.",
-          "automated": true,
-          "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
-          "adverse": true,
-          "agencyRecordId": "tdlr-tabs:TABS2022025772",
-          "links": [
-            {
-              "label": "TDLR TABS (TABS2022025772)",
-              "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2022025772"
-            }
-          ],
-          "entryNo": 3
         },
         {
           "date": "2026-10-01",
@@ -9987,7 +9952,7 @@
               "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D"
             }
           ],
-          "entryNo": 4
+          "entryNo": 3
         },
         {
           "date": "2026-10-01",
@@ -9997,7 +9962,7 @@
           "result": "2026-1120 (Class 2 subdivision replat (C2R), D. Variances): EA: Lot size/division isn't changing. Marigold Club off Westheimer.",
           "automated": true,
           "source": "plat-seed",
-          "entryNo": 5
+          "entryNo": 4
         },
         {
           "date": "2026-10-01",
@@ -10007,7 +9972,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-01) Item 2026-1120: 'Westheimer Subdivision partial replat no 1' (Class 2 subdivision replat (C2R), D. Variances).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-plat:2026-10-01:2026-1120",
           "links": [
@@ -10016,17 +9981,17 @@
               "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D"
             }
           ],
-          "entryNo": 6
+          "entryNo": 5
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 1211140020001 (2531 KUESTER ST): Owner ELYSIUM 1634 WESTHEIMER LP, Class F1 (Market $1952399, Impr $1164794, Land $787605), Legal: RES B BLK 2|WESTHEIMER.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:1211140020001:ELYSIUM 1634 WESTHEIMER LP:F1:1164794",
           "links": [
@@ -10035,7 +10000,7 @@
               "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=1211140020001"
             }
           ],
-          "entryNo": 7
+          "entryNo": 6
         }
       ],
       "architectEngineer": "Tom Duecker, Tri-Tech Surveying Company, LP",
@@ -10056,7 +10021,7 @@
       "humanEdited": true,
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -10159,7 +10124,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -10176,7 +10141,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0611650000001 (2802 WHEELER ST): Owner MAJEKODUNMI BUKOLA, Class A1, Legal: LT 1 & TR 2A BLK 31|WASHINGTON TERRACE.",
               "source": "auto-sweep",
               "automated": true,
@@ -10189,10 +10154,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0611650000001"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -10208,7 +10173,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -10284,7 +10249,7 @@
                   "url": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-10-29",
@@ -10300,10 +10265,10 @@
                   "url": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -10319,7 +10284,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -10365,7 +10330,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -10381,7 +10346,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -10397,7 +10362,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -10409,7 +10374,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-15) Item 2026-1641: 'Wheeler Residences' (Class 3 Replat with Public Hearing Notice (C3N), IV. Establish Public Hearing Date (Nov 12, 2026)), Public Hearing 2026-11-12.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-plat:2026-10-15:2026-1641",
           "links": [
@@ -10454,7 +10419,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1641: 'Wheeler Residences' (Class 3 Replat with Public Hearing Notice (C3N), C. Public Hearing Notice Posted (Hearing: Nov 12, 2026)), Public Hearing 2026-11-12.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-plat:2026-10-29:2026-1641",
           "links": [
@@ -10466,14 +10431,14 @@
           "entryNo": 4
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0611650000001 (2802 WHEELER ST): Owner MAJEKODUNMI BUKOLA, Class A1, Legal: LT 1 & TR 2A BLK 31|WASHINGTON TERRACE.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0611650000001:MAJEKODUNMI BUKOLA:A1:None",
           "links": [
@@ -10502,7 +10467,7 @@
       "updatedAt": "2026-10-27T22:23:50.707Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -10605,7 +10570,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -10636,7 +10601,7 @@
               ]
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -10652,7 +10617,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -10721,7 +10686,7 @@
               "adverse": true
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -10737,7 +10702,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -10783,7 +10748,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -10799,7 +10764,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -10815,7 +10780,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -10895,7 +10860,7 @@
       "archivedAt": "",
       "searchTermsUpdatedAt": "2026-10-28T01:02:42.878Z",
       "driveLinksUpdatedAt": "2026-10-28T01:02:42.878Z",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -10998,7 +10963,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -11015,7 +10980,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0660640410042 (407 ELEANOR ST): Owner RESTORED HOMES LLC, Class A1 (Market $672170, Impr $130445, Land $541725), Legal: LTS 43 & 44 & TR 42 BLK 38|LINDALE PARK SEC 6.",
               "source": "auto-sweep",
               "automated": true,
@@ -11028,10 +10993,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0660640410042"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -11047,7 +11012,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -11123,10 +11088,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93736/OriginalFiles/260202_-_Eleanor_Enclave_-_Plat.pdf?sv=2021-08-06&se=2051-09-04T15%3A39%3A32Z&sr=b&sp=r&sig=j0wIh%2FTdoykQZm4%2FdXKTRr2vvPNLSqG7zzhhL1DEzPA%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -11142,7 +11107,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -11188,7 +11153,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -11204,7 +11169,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -11220,7 +11185,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -11258,7 +11223,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-01) Item 2026-1441: 'Eleanor Enclave' (Class 3 subdivision final plat (C3F), A. Consent).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-01:2026-1441",
           "links": [
@@ -11270,14 +11235,14 @@
           "entryNo": 3
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0660640410042 (407 ELEANOR ST): Owner RESTORED HOMES LLC, Class A1 (Market $672170, Impr $130445, Land $541725), Legal: LTS 43 & 44 & TR 42 BLK 38|LINDALE PARK SEC 6.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0660640410042:RESTORED HOMES LLC:A1:130445",
           "links": [
@@ -11307,7 +11272,7 @@
       "humanEdited": true,
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -11410,7 +11375,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -11427,7 +11392,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0780870010001 (4710 W ALABAMA ST): Owner KAFI HAUMED, Class A1 (Market $1000000, Impr $207100, Land $792900), Legal: TRS 1A & 2A BLK 1|GREENWOOD.",
               "source": "auto-sweep",
               "automated": true,
@@ -11440,10 +11405,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0780870010001"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -11459,7 +11424,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -11535,7 +11500,7 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-10-29",
@@ -11551,10 +11516,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -11570,7 +11535,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -11616,7 +11581,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -11632,7 +11597,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -11648,7 +11613,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -11670,7 +11635,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-01) Item PH-128: 'Kafi Commons' (Class 3 Replat - Establish Public Hearing Date (C3N), IV. Establish Public Hearing Date (Oct 29, 2026)), Public Hearing 2026-10-29.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-01:PH-128",
           "links": [
@@ -11705,7 +11670,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1569: 'Kafi Commons' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-29:2026-1569",
           "links": [
@@ -11717,14 +11682,14 @@
           "entryNo": 4
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0780870010001 (4710 W ALABAMA ST): Owner KAFI HAUMED, Class A1 (Market $1000000, Impr $207100, Land $792900), Legal: TRS 1A & 2A BLK 1|GREENWOOD.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0780870010001:KAFI HAUMED:A1:207100",
           "links": [
@@ -11754,7 +11719,7 @@
       "humanEdited": true,
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -11871,10 +11836,10 @@
                   "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32094218693"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -11891,7 +11856,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0451400020105 (50 BRIAR HOLLOW LN): Owner DPEG BRIAR HOLLOW LP, Class F1 (Market $11419819, Impr $5204419, Land $6215400), Legal: TRS 9B 13 & 13A|ABST 826 W WHITE.",
               "source": "auto-sweep",
               "automated": true,
@@ -11904,10 +11869,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0451400020105"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -11923,7 +11888,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -12007,10 +11972,10 @@
                   "url": "https://www.houstontx.gov/planning/notices/2026/2026-1739-Aeric-Oaks-notification.pdf"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -12022,28 +11987,11 @@
           "resourceUrl": "https://www.tdlr.texas.gov/tabs/search",
           "additionalResourceLabel": "",
           "additionalResourceUrl": "",
-          "status": "Flagged",
+          "status": "To Do",
           "lastChecked": "",
           "automated": true,
-          "checks": [
-            {
-              "date": "2019-03-25",
-              "result": "[AUTO-SWEEP] TDLR TABS #TABS2019007758 (50 BRIAR HOLLOW) at 50 BRIAR HOLLOW LANE Houston, TX 77027: $2,800,000 Renovation/Alteration (Presently occupied professional office building will be converted to approx. 65 apartment units. NON other.), Owner VB ACQUISITION SUB NO 3 LLC, Design Firm FD ARCHITECTURE.",
-              "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-10",
-              "agencyRecordId": "tdlr-tabs:TABS2019007758",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "TDLR TABS (TABS2019007758)",
-                  "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2019007758"
-                }
-              ],
-              "discoveredAt": "2026-11-07"
-            }
-          ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "checks": [],
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -12090,6 +12038,22 @@
           "automated": true,
           "checks": [
             {
+              "date": "2026-01-26",
+              "result": "[AUTO-SWEEP] Houston 311 Case #2600028157: Dangerous Buildings (Routed) at 50 BRIAR HOLLOW LN.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-13",
+              "agencyRecordId": "coh-311:2600028157",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "311 Service Request Viewer",
+                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+                }
+              ],
+              "discoveredAt": "2026-11-08"
+            },
+            {
               "date": "2026-04-26",
               "result": "[AUTO-SWEEP] Houston 311 Case #2600133400: Dangerous Buildings (Routed) at 50 BRIAR HOLLOW LN.",
               "source": "auto-sweep",
@@ -12103,7 +12067,7 @@
                   "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             },
             {
               "date": "2026-04-02",
@@ -12119,26 +12083,10 @@
                   "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
                 }
               ],
-              "discoveredAt": "2026-11-07"
-            },
-            {
-              "date": "2026-01-26",
-              "result": "[AUTO-SWEEP] Houston 311 Case #2600028157: Dangerous Buildings (Routed) at 50 BRIAR HOLLOW LN.",
-              "source": "auto-sweep",
-              "automated": true,
-              "checkId": "chk-13",
-              "agencyRecordId": "coh-311:2600028157",
-              "adverse": true,
-              "links": [
-                {
-                  "label": "311 Service Request Viewer",
-                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
-                }
-              ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -12154,7 +12102,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -12170,29 +12118,10 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
-        {
-          "date": "2019-03-25",
-          "stage": "Plans & Use",
-          "activity": "Accessibility Registration (TDLR TABS)",
-          "checkId": "chk-10",
-          "result": "[AUTO-SWEEP] TDLR TABS #TABS2019007758 (50 BRIAR HOLLOW) at 50 BRIAR HOLLOW LANE Houston, TX 77027: $2,800,000 Renovation/Alteration (Presently occupied professional office building will be converted to approx. 65 apartment units. NON other.), Owner VB ACQUISITION SUB NO 3 LLC, Design Firm FD ARCHITECTURE.",
-          "automated": true,
-          "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
-          "adverse": true,
-          "agencyRecordId": "tdlr-tabs:TABS2019007758",
-          "links": [
-            {
-              "label": "TDLR TABS (TABS2019007758)",
-              "url": "https://www.tdlr.texas.gov/TABS/Search/Project/TABS2019007758"
-            }
-          ],
-          "entryNo": 1
-        },
         {
           "date": "2024-03-15",
           "stage": "Sale & Ownership",
@@ -12201,7 +12130,7 @@
           "result": "[AUTO-SWEEP] TX Comptroller Franchise Tax Account #32094218693: DIVYA GROUP OF COMPANIES LLC (SOS #0805465567), status N, mailing 1725 MAIN ST UNIT 207S, HOUSTON, TX.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "comptroller-franchise:32094218693",
           "links": [
@@ -12210,7 +12139,7 @@
               "url": "https://comptroller.texas.gov/taxes/franchise/account-status/search/32094218693"
             }
           ],
-          "entryNo": 2
+          "entryNo": 1
         },
         {
           "date": "2026-01-26",
@@ -12220,7 +12149,7 @@
           "result": "[AUTO-SWEEP] Houston 311 Case #2600028157: Dangerous Buildings (Routed) at 50 BRIAR HOLLOW LN.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-311:2600028157",
           "links": [
@@ -12229,7 +12158,7 @@
               "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
             }
           ],
-          "entryNo": 3
+          "entryNo": 2
         },
         {
           "date": "2026-04-02",
@@ -12239,7 +12168,7 @@
           "result": "[AUTO-SWEEP] Houston 311 Case #2600108738: Building Code Violation (Routed) at 50 BRIAR HOLLOW LN.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-311:2600108738",
           "links": [
@@ -12248,7 +12177,7 @@
               "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
             }
           ],
-          "entryNo": 4
+          "entryNo": 3
         },
         {
           "date": "2026-04-26",
@@ -12258,7 +12187,7 @@
           "result": "[AUTO-SWEEP] Houston 311 Case #2600133400: Dangerous Buildings (Routed) at 50 BRIAR HOLLOW LN.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-311:2600133400",
           "links": [
@@ -12267,7 +12196,7 @@
               "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
             }
           ],
-          "entryNo": 5
+          "entryNo": 4
         },
         {
           "date": "2026-10-29",
@@ -12287,7 +12216,7 @@
               "url": "https://www.houstontx.gov/planning/notices/2026/2026-1739-Aeric-Oaks-notification.pdf"
             }
           ],
-          "entryNo": 6
+          "entryNo": 5
         },
         {
           "date": "2026-10-29",
@@ -12297,7 +12226,7 @@
           "result": "2026-1739 (Class 2 subdivision replat (C2R), D. Variances): EA: Buildings aren't quite historic age and don't appear especially significant; however, 2 multi-story office buildings with underground parking will be demolished for new residences.",
           "automated": true,
           "source": "plat-seed",
-          "entryNo": 7
+          "entryNo": 6
         },
         {
           "date": "2026-10-29",
@@ -12307,7 +12236,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-29) Item 2026-1739: 'Aeric Oaks' (Class 2 subdivision replat (C2R), D. Variances), Public Hearing 2026-12-03.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": true,
           "agencyRecordId": "coh-plat:2026-10-29:2026-1739",
           "links": [
@@ -12320,17 +12249,17 @@
               "url": "https://www.houstontx.gov/planning/notices/2026/2026-1739-Aeric-Oaks-notification.pdf"
             }
           ],
-          "entryNo": 8
+          "entryNo": 7
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0451400020105 (50 BRIAR HOLLOW LN): Owner DPEG BRIAR HOLLOW LP, Class F1 (Market $11419819, Impr $5204419, Land $6215400), Legal: TRS 9B 13 & 13A|ABST 826 W WHITE.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0451400020105:DPEG BRIAR HOLLOW LP:F1:5204419",
           "links": [
@@ -12339,7 +12268,7 @@
               "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0451400020105"
             }
           ],
-          "entryNo": 9
+          "entryNo": 8
         }
       ],
       "architectEngineer": "Pioneer Engineering, LLC",
@@ -12359,7 +12288,7 @@
       "updatedAt": "2026-10-29T00:19:17.978Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -12426,7 +12355,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -12493,7 +12422,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -12510,7 +12439,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0812420000020 (6102 WALTWAY DR): Owner ANAGNOSTOPOULOS ERRIKOS, Class A1 (Market $557105, Impr $101705, Land $455400), Legal: LT 20 BLK 32|TIMBERGROVE MANOR SEC 6.",
               "source": "auto-sweep",
               "automated": true,
@@ -12523,10 +12452,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0812420000020"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -12542,7 +12471,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -12588,7 +12517,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -12604,7 +12533,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -12650,7 +12579,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -12666,7 +12595,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -12682,19 +12611,19 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0812420000020 (6102 WALTWAY DR): Owner ANAGNOSTOPOULOS ERRIKOS, Class A1 (Market $557105, Impr $101705, Land $455400), Legal: LT 20 BLK 32|TIMBERGROVE MANOR SEC 6.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0812420000020:ANAGNOSTOPOULOS ERRIKOS:A1:101705",
           "links": [
@@ -12811,7 +12740,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -12828,7 +12757,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0522690000004 (627 E 14TH ST): Owner HAUGRUD ROLF T, Class B2 (Market $550394, Impr $75394, Land $475000), Legal: LT 4 BLK 1|KUTSCHBACH.",
               "source": "auto-sweep",
               "automated": true,
@@ -12841,10 +12770,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0522690000004"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -12860,7 +12789,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -12936,10 +12865,10 @@
                   "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93848/OriginalFiles/MIRIAM_GROVE_9-16-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T12%3A00%3A30Z&sr=b&sp=r&sig=QAfTt6cX%2B7yLysJOFAwC5PpY%2FgE0VUFqVgeKS3pCXlA%3D"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -12955,7 +12884,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -13001,7 +12930,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -13017,7 +12946,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -13033,7 +12962,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -13071,7 +13000,7 @@
           "result": "[AUTO-SWEEP] COH Planning Commission Agenda (2026-10-01) Item 2026-1564: 'Miriam Grove' (Class 2 subdivision replat (C2R), B. Replats).",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "coh-plat:2026-10-01:2026-1564",
           "links": [
@@ -13083,14 +13012,14 @@
           "entryNo": 3
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0522690000004 (627 E 14TH ST): Owner HAUGRUD ROLF T, Class B2 (Market $550394, Impr $75394, Land $475000), Legal: LT 4 BLK 1|KUTSCHBACH.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0522690000004:HAUGRUD ROLF T:B2:75394",
           "links": [
@@ -13120,7 +13049,7 @@
       "humanEdited": true,
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -13187,7 +13116,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": false,
@@ -13254,7 +13183,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -13271,7 +13200,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0332280550022 (7108 EASTWOOD ST): Owner SIMON DENISE F & RAYMOND JR, Class A1 (Market $167858, Impr $39108, Land $128750), Legal: LT 23 & TR 22 BLK 55|FOSTER PLACE.",
               "source": "auto-sweep",
               "automated": true,
@@ -13284,10 +13213,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0332280550022"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -13303,7 +13232,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -13355,7 +13284,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -13371,7 +13300,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -13417,7 +13346,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -13433,7 +13362,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -13449,7 +13378,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -13464,14 +13393,14 @@
           "entryNo": 1
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0332280550022 (7108 EASTWOOD ST): Owner SIMON DENISE F & RAYMOND JR, Class A1 (Market $167858, Impr $39108, Land $128750), Legal: LT 23 & TR 22 BLK 55|FOSTER PLACE.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0332280550022:SIMON DENISE F & RAYMOND JR:A1:39108",
           "links": [
@@ -13588,7 +13517,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -13605,7 +13534,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 1023520000101 (0 FOREST HOLLOW DR): Owner CITY OF HOUSTON, Class XV (Market $0, Impr $0, Land $0), Legal: COMMON AREA & PRIVATE STREETS|FOREST GREEN SEC 3.",
               "source": "auto-sweep",
               "automated": true,
@@ -13618,10 +13547,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=1023520000101"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -13637,7 +13566,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -13704,7 +13633,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -13720,7 +13649,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -13766,7 +13695,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -13782,7 +13711,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -13798,7 +13727,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -13833,14 +13762,14 @@
           "entryNo": 2
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 1023520000101 (0 FOREST HOLLOW DR): Owner CITY OF HOUSTON, Class XV (Market $0, Impr $0, Land $0), Legal: COMMON AREA & PRIVATE STREETS|FOREST GREEN SEC 3.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:1023520000101:CITY OF HOUSTON:XV:0",
           "links": [
@@ -13870,7 +13799,7 @@
       "humanEdited": true,
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -13973,7 +13902,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -13990,7 +13919,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0032500000003 (908 MORRIS ST): Owner BANA AL, Class B2 (Market $246110, Impr $63044, Land $183066), Legal: LT 3 BLK 63-4|ALLEN.",
               "source": "auto-sweep",
               "automated": true,
@@ -14003,10 +13932,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0032500000003"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -14022,7 +13951,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -14085,7 +14014,7 @@
               "source": "plat-seed"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -14101,7 +14030,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -14147,7 +14076,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -14163,7 +14092,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -14179,7 +14108,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
@@ -14210,14 +14139,14 @@
           "entryNo": 2
         },
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0032500000003 (908 MORRIS ST): Owner BANA AL, Class B2 (Market $246110, Impr $63044, Land $183066), Legal: LT 3 BLK 63-4|ALLEN.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0032500000003:BANA AL:B2:63044",
           "links": [
@@ -14246,7 +14175,7 @@
       "updatedAt": "2026-10-28T23:15:25.418Z",
       "updatedBy": "emily@preservationhouston.org",
       "archivedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT"
     },
     {
@@ -14313,7 +14242,7 @@
       "driveLinks": [],
       "documents": [],
       "driveLinksUpdatedAt": "",
-      "lastAutoSweepAt": "2026-11-07T17:15:51Z",
+      "lastAutoSweepAt": "2026-11-08T17:27:22Z",
       "autoSweepSchedule": "Daily at 7:00 AM CT",
       "autoSweepSummary": null,
       "humanEdited": true,
@@ -14380,7 +14309,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-05",
@@ -14397,7 +14326,7 @@
           "automated": true,
           "checks": [
             {
-              "date": "2026-11-07",
+              "date": "2026-11-08",
               "result": "[AUTO-SWEEP] HCAD Account 0391930200024 (3747 DREYFUS ST): Owner LI CHIANG KAI-LING, Class A1 (Market $143489, Impr $23489, Land $120000), Legal: LT 24 BLK 20|SOUTHLAWN.",
               "source": "auto-sweep",
               "automated": true,
@@ -14410,10 +14339,10 @@
                   "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0391930200024"
                 }
               ],
-              "discoveredAt": "2026-11-07"
+              "discoveredAt": "2026-11-08"
             }
           ],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-06",
@@ -14429,7 +14358,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-07",
@@ -14475,7 +14404,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-10",
@@ -14491,7 +14420,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-11",
@@ -14537,7 +14466,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-14",
@@ -14553,7 +14482,7 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         },
         {
           "id": "chk-15",
@@ -14569,19 +14498,19 @@
           "lastChecked": "",
           "automated": true,
           "checks": [],
-          "lastAutoSweepAt": "2026-11-07T17:15:51Z"
+          "lastAutoSweepAt": "2026-11-08T17:27:22Z"
         }
       ],
       "findingsLog": [
         {
-          "date": "2026-11-07",
+          "date": "2026-11-08",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
           "checkId": "chk-05",
           "result": "[AUTO-SWEEP] HCAD Account 0391930200024 (3747 DREYFUS ST): Owner LI CHIANG KAI-LING, Class A1 (Market $143489, Impr $23489, Land $120000), Legal: LT 24 BLK 20|SOUTHLAWN.",
           "automated": true,
           "source": "auto-sweep",
-          "discoveredAt": "2026-11-07",
+          "discoveredAt": "2026-11-08",
           "adverse": false,
           "agencyRecordId": "hcad:0391930200024:LI CHIANG KAI-LING:A1:23489",
           "links": [

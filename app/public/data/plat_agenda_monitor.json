@@ -1,7 +1,7 @@
 {
   "app": "Plat Agenda Monitor",
   "version": 3,
-  "generatedAt": "2026-11-07T17:15:51Z",
+  "generatedAt": "2026-11-08T17:27:22Z",
   "autoSweepSchedule": "Daily at 7:00 AM CT",
   "scrapeFailed": false,
   "error": "",
@@ -14599,7 +14599,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93994/OriginalFiles/20261016-PLAT-FERRARI_OF_HOUSTON-60690-P136126_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T18%3A04%3A38Z&sr=b&sp=r&sig=mNaezvO9Dh7YpVeR0xfUyPN440%2FDxhXOo0ARjwW24XM%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-11-07T17:15:50.979359+00:00"
+      "updated": "2026-11-08T17:27:22.151123+00:00"
     },
     "2026-1685": {
       "address": "1615 LITTLE YORK RD",
@@ -14749,7 +14749,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-11-07T17:15:50.979640+00:00"
+      "updated": "2026-11-08T17:27:22.151373+00:00"
     },
     "2026-1520": {
       "address": "58 PATTI LYNN LN",
@@ -14817,7 +14817,7 @@
       "sources": "",
       "followup": "No existing building threatened on the parcel; monitor only if adjacent historic district context applies.",
       "autoEnriched": true,
-      "updated": "2026-11-07T17:15:50.979736+00:00"
+      "updated": "2026-11-08T17:27:22.151452+00:00"
     },
     "DPV-26075937": {
       "address": "1501 WICHMAN ST",
@@ -14844,7 +14844,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-07T17:15:50.979769+00:00",
+      "updated": "2026-11-08T17:27:22.151481+00:00",
       "carriedFromCycle": "2026-10-15",
       "carriedFields": [
         "tier",
@@ -14925,7 +14925,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-07T17:15:50.979859+00:00"
+      "updated": "2026-11-08T17:27:22.151554+00:00"
     },
     "2026-1701": {
       "address": "5926 and 5930 Grace Lane",
@@ -14986,7 +14986,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1752-Afton-Park-GP.pdf",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-07T17:15:50.979904+00:00"
+      "updated": "2026-11-08T17:27:22.151589+00:00"
     },
     "2026-1786": {
       "address": "600 GREENSPOINT MALL; 400 GREENSPOINT MALL; 208 GREENS RD",
@@ -14999,7 +14999,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93807/OriginalFiles/063319128-City_North_GP_V1.pdf?sv=2021-08-06&se=2051-09-21T15%3A17%3A43Z&sr=b&sp=r&sig=hkR919IwckfITdarlBVnOzcCQbOtnQhkjEbr0nCk22M%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-11-07T17:15:50.979916+00:00",
+      "updated": "2026-11-08T17:27:22.151598+00:00",
       "carriedFromCycle": "2026-10-01",
       "carriedFields": [
         "tier",
@@ -27400,7 +27400,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.781200+00:00"
+          "updated": "2026-11-08T17:27:21.993804+00:00"
         },
         "2026-1523": {
           "address": "12409 DUMAS ST",
@@ -27431,7 +27431,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.781286+00:00"
+          "updated": "2026-11-08T17:27:21.993883+00:00"
         },
         "2026-1441": {
           "address": "407 ELEANOR ST",
@@ -27574,7 +27574,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.781464+00:00"
+          "updated": "2026-11-08T17:27:21.994035+00:00"
         },
         "PH-129": {
           "address": "58 PATTI LYNN LN",
@@ -27587,7 +27587,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93798/OriginalFiles/54_and_58_Patti_Lynn_Lane__-_PARTIAL_REPLAT_OF_SANDALWOOD_SECTIONS_2_and_3_PR_NO_1_-_8-19-26.pdf?sv=2021-08-06&se=2051-09-18T14%3A58%3A56Z&sr=b&sp=r&sig=i5EOm8%2FUi%2FqPHAw4UmSG5wGYhBZuuEx8PIW8dicrzzw%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.781473+00:00"
+          "updated": "2026-11-08T17:27:21.994043+00:00"
         },
         "PH-131": {
           "address": "8017 HOMESTEAD RD",
@@ -27600,7 +27600,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.781489+00:00"
+          "updated": "2026-11-08T17:27:21.994055+00:00"
         },
         "2026-1164": {
           "address": "0 PECAN PARK CRK",
@@ -40400,7 +40400,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93911/OriginalFiles/091602026_Magnolia_Residential-2-MAGNOLIA_RESIDENTIAL.pdf?sv=2021-08-06&se=2051-10-05T15%3A58%3A18Z&sr=b&sp=r&sig=rZX2ju5qnl7Qzi%2FW7kJbCQ7nLivuJ2zUkeB45xeVqfQ%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873515+00:00"
+          "updated": "2026-11-08T17:27:22.067102+00:00"
         },
         "2026-1637": {
           "address": "134 W LITTLE YORK RD",
@@ -40413,7 +40413,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93935/OriginalFiles/VISTA_EYE_CARE.pdf?sv=2021-08-06&se=2051-10-05T12%3A58%3A23Z&sr=b&sp=r&sig=OMe9DH3iy2pikuYcvxMGQ2mxxV6%2B73yjBwuhBkTSWX8%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873610+00:00"
+          "updated": "2026-11-08T17:27:22.067193+00:00"
         },
         "2026-1634": {
           "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -40426,7 +40426,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873626+00:00"
+          "updated": "2026-11-08T17:27:22.067209+00:00"
         },
         "2026-1630": {
           "address": "5930 GRACE LN",
@@ -40439,7 +40439,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93929/OriginalFiles/Quinto_Studio_-_Subdivision_-_Grace_Ln-GRACE_LANE_ESTATES.pdf?sv=2021-08-06&se=2051-10-05T01%3A20%3A40Z&sr=b&sp=r&sig=5C7EZeRjm7n9E8b8rFgsyF673Pg37lSri%2FoYxbhE%2BBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873649+00:00"
+          "updated": "2026-11-08T17:27:22.067232+00:00"
         },
         "2026-1625": {
           "address": "1508 LAWRENCE ST",
@@ -40470,7 +40470,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93908/OriginalFiles/SPRING_BRANCH_COMPLEX-Layout1.pdf?sv=2021-08-06&se=2051-10-02T19%3A57%3A05Z&sr=b&sp=r&sig=O76LkRvquITqH6FNikfZK7dSDBP4u6QHCI9WfVFzuwQ%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873722+00:00"
+          "updated": "2026-11-08T17:27:22.067307+00:00"
         },
         "2026-1605": {
           "address": "4615 SHERMAN ST",
@@ -40483,7 +40483,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873743+00:00"
+          "updated": "2026-11-08T17:27:22.067328+00:00"
         },
         "2026-1603": {
           "address": "7528 GAINESVILLE ST",
@@ -40496,7 +40496,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93883/OriginalFiles/26148150_Tahil_Oaks_Plat.pdf?sv=2021-08-06&se=2051-10-02T16%3A04%3A11Z&sr=b&sp=r&sig=LUF2feRvQXz%2BymknEW22PjRUIqF%2FErowqOS0N2IV1fU%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873762+00:00"
+          "updated": "2026-11-08T17:27:22.067345+00:00"
         },
         "2026-1587": {
           "address": "2501 CANAL ST",
@@ -40527,7 +40527,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93854/OriginalFiles/261061125-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A29%3A14Z&sr=b&sp=r&sig=HAQ59y4hq8lIuOQj%2BwtFqW%2B9pD5ohqNiVquvlJvGy2U%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873850+00:00"
+          "updated": "2026-11-08T17:27:22.067430+00:00"
         },
         "2026-1557": {
           "address": "5912 HAIGHT ST",
@@ -40602,7 +40602,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873907+00:00"
+          "updated": "2026-11-08T17:27:22.067487+00:00"
         },
         "2026-1495": {
           "address": "1131 VERA LOU ST",
@@ -40651,7 +40651,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.873994+00:00"
+          "updated": "2026-11-08T17:27:22.067557+00:00"
         },
         "2026-1449": {
           "address": "6000 VASSER RD",
@@ -40664,7 +40664,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1449/OriginalFiles/2284-2504_Benders_Creek_General_Plan_09-18-2026.pdf?sv=2021-08-06&se=2051-09-22T20%3A29%3A56Z&sr=b&sp=r&sig=%2BFqP9ATYyzZwmqz51cJDcuBt4oQ7hpyv3BNxUi1ztqw%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.874005+00:00"
+          "updated": "2026-11-08T17:27:22.067566+00:00"
         },
         "2026-1440": {
           "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
@@ -40677,7 +40677,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1440/OriginalFiles/Woodway_Drive_PRELIMINARY_PLAT_OF_BAYOU_GLEN_PARTIAL_REPLAT_NO_1__92126.pdf?sv=2021-08-06&se=2051-09-22T19%3A50%3A20Z&sr=b&sp=r&sig=s6a0uknskB%2BMe0kDG%2FTTtncjnNfi8j8Qy0LCrvAUqI8%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.874030+00:00"
+          "updated": "2026-11-08T17:27:22.067587+00:00"
         },
         "2026-1427": {
           "address": "604 NEYLAND ST",
@@ -40714,7 +40714,7 @@
           "sources": "",
           "followup": "No existing building threatened on the parcel; monitor only if adjacent historic district context applies.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.874079+00:00"
+          "updated": "2026-11-08T17:27:22.067628+00:00"
         },
         "DPV-4801-NMAIN": {
           "address": "4801 N MAIN ST",
@@ -40816,7 +40816,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.874159+00:00"
+          "updated": "2026-11-08T17:27:22.067695+00:00"
         },
         "2026-1620": {
           "hcad": "0451910000150, 0451910000414, 0451910000297, 0451910000296",
@@ -55619,7 +55619,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93994/OriginalFiles/20261016-PLAT-FERRARI_OF_HOUSTON-60690-P136126_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T18%3A04%3A38Z&sr=b&sp=r&sig=mNaezvO9Dh7YpVeR0xfUyPN440%2FDxhXOo0ARjwW24XM%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.979359+00:00"
+          "updated": "2026-11-08T17:27:22.151123+00:00"
         },
         "2026-1685": {
           "address": "1615 LITTLE YORK RD",
@@ -55769,7 +55769,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.979640+00:00"
+          "updated": "2026-11-08T17:27:22.151373+00:00"
         },
         "2026-1520": {
           "address": "58 PATTI LYNN LN",
@@ -55837,7 +55837,7 @@
           "sources": "",
           "followup": "No existing building threatened on the parcel; monitor only if adjacent historic district context applies.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.979736+00:00"
+          "updated": "2026-11-08T17:27:22.151452+00:00"
         },
         "DPV-26075937": {
           "address": "1501 WICHMAN ST",
@@ -55864,7 +55864,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.979769+00:00",
+          "updated": "2026-11-08T17:27:22.151481+00:00",
           "carriedFromCycle": "2026-10-15",
           "carriedFields": [
             "tier",
@@ -55945,7 +55945,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.979859+00:00"
+          "updated": "2026-11-08T17:27:22.151554+00:00"
         },
         "2026-1701": {
           "address": "5926 and 5930 Grace Lane",
@@ -56006,7 +56006,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1752-Afton-Park-GP.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.979904+00:00"
+          "updated": "2026-11-08T17:27:22.151589+00:00"
         },
         "2026-1786": {
           "address": "600 GREENSPOINT MALL; 400 GREENSPOINT MALL; 208 GREENS RD",
@@ -56019,7 +56019,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93807/OriginalFiles/063319128-City_North_GP_V1.pdf?sv=2021-08-06&se=2051-09-21T15%3A17%3A43Z&sr=b&sp=r&sig=hkR919IwckfITdarlBVnOzcCQbOtnQhkjEbr0nCk22M%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-07T17:15:50.979916+00:00",
+          "updated": "2026-11-08T17:27:22.151598+00:00",
           "carriedFromCycle": "2026-10-01",
           "carriedFields": [
             "tier",
