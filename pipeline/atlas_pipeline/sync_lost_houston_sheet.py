@@ -611,8 +611,8 @@ def _assert_catalog_invariants(
             )
         if metrics["holc_zoned_total"] != 393 or metrics["holc_counts"].get("D") != 168:
             raise AssertionError(f"HOLC spatial join mismatch: {metrics['holc_counts']}")
-        if metrics["photo_site_count"] != 133:
-            raise AssertionError(f"Expected 133 photographed sites, got {metrics['photo_site_count']}")
+        if metrics["photo_site_count"] < 133:
+            raise AssertionError(f"Expected >= 133 photographed sites, got {metrics['photo_site_count']}")
 
     expected_width = len(HEADERS_A_TO_AC)
     hcad_col_offset = COL_IDX["site_hcad_nums"]

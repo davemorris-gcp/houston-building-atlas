@@ -5254,6 +5254,210 @@ body {
   padding: 5px 9px;
 }
 
+/* Archival Drawings & Finding Aids (TARO 2.0 & HPL ContentDM) Card */
+.archival-drawings-card {
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.14), rgba(15, 23, 42, 0.74));
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.archival-drawings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.archival-drawings-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fcd34d;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.archival-drawings-count-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3.5px 8.5px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.22);
+  border: 1px solid rgba(245, 158, 11, 0.48);
+  color: #fef3c7;
+}
+
+.archival-record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.archival-record-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.archival-record-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.archival-repo-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fde68a;
+}
+
+.archival-box-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.16);
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  color: #e2e8f0;
+}
+
+.archival-record-date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.archival-record-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+}
+
+.archival-thumb-link {
+  flex-shrink: 0;
+  width: 68px;
+  height: 54px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(245, 158, 11, 0.36);
+  background: rgba(15, 23, 42, 0.8);
+  display: block;
+}
+
+.archival-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.archival-record-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.archival-record-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #f8fafc;
+}
+
+.archival-record-collection {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #cbd5e1;
+}
+
+.archival-record-arch-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 1px;
+}
+
+.archival-record-arch-label {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.archival-arch-chip {
+  font-size: 10.5px;
+  padding: 1.5px 6.5px;
+}
+
+.archival-record-excerpt {
+  font-size: 11px;
+  line-height: 1.42;
+  color: var(--text-cream);
+  opacity: 0.9;
+}
+
+.archival-record-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.archival-record-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4.5px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.archival-record-btn.primary {
+  background: rgba(245, 158, 11, 0.22);
+  border: 1px solid rgba(245, 158, 11, 0.55);
+  color: #fef3c7;
+}
+
+.archival-record-btn.primary:hover {
+  background: rgba(245, 158, 11, 0.34);
+  border-color: rgba(252, 211, 77, 0.85);
+  color: #ffffff;
+}
+
 /* Houston Architecture Info Forum (HAIF) Card */
 .haif-forum-card {
   margin: 0 0 12px;

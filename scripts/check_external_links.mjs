@@ -118,6 +118,7 @@ function collectCandidateUrls(maxCatalogPerDomain) {
     "deed_restrictions_catalog.json",
     "sanborn_catalog.json",
     "citydir_index.json",
+    "archival_index.json",
     "neighborhood_scorecards.json",
     "overlays.json",
   ];

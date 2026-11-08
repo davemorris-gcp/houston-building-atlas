@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261108a";
+} from "./palettes.js?v=20261108b";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -27,16 +27,16 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261108a";
-import { AtlasMapController } from "./mapController.js?v=20261108a";
+} from "./filterStore.js?v=20261108b";
+import { AtlasMapController } from "./mapController.js?v=20261108b";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261108a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261108a";
+} from "./guidedChaptersAndPortfolios.js?v=20261108b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261108b";
 import {
   buildAddressShardUrl,
   buildResearchKitDeedChainView,
@@ -49,7 +49,7 @@ import {
   isPlaceholderOwnerName,
   normalizeAddressShardPrefix,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261108a";
+} from "./clerkSearchHelpers.js?v=20261108b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -72,7 +72,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261108a";
+} from "./curatedEdits.js?v=20261108b";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -82,7 +82,12 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261108a";
+} from "./photoService.js?v=20261108b";
+import {
+  buildArchivalDrawingsCardHtml,
+  buildPost1926CityDirNoteHtml,
+  resolveArchivalRecords,
+} from "./archivalHelpers.js?v=20261108b";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -90,12 +95,12 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261108a";
+} from "./platMonitorHelpers.js?v=20261108b";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261108a";
+} from "./hcadViewportParcels.js?v=20261108b";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -115,11 +120,11 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261108a";
+} from "./preservationOrganizer.js?v=20261108b";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
-} from "./urlValidators.js?v=20261108a";
+} from "./urlValidators.js?v=20261108b";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -265,6 +270,7 @@ export class HoustonAtlasApp {
     this.globalStats = null;
     this.deedCatalog = null;
     this.sanbornCatalog = null;
+    this.archivalIndex = null;
     this._permitShardCache = new Map();
     this._ownerHistoryShardCache = new Map();
     this._inflightInspectorHydrations = new Set();
@@ -1013,16 +1019,25 @@ export class HoustonAtlasApp {
 
   async _loadMetadataFiles() {
     try {
-      const [searchRes, statsRes, haifRes, deedRes, sanbornRes, citydirRes, ownPortRes] =
-        await Promise.all([
-          fetch("public/data/search_index.json?v=20261108a"),
-          fetch("public/data/stats_summary.json?v=20261108a"),
-          fetch("public/data/haif_index.json?v=20261108a").catch(() => null),
-          fetch("public/data/deed_restrictions_catalog.json?v=20261108a").catch(() => null),
-          fetch("public/data/sanborn_catalog.json?v=20261108a").catch(() => null),
-          fetch("public/data/citydir_index.json?v=20261108a").catch(() => null),
-          fetch("public/data/ownership_portfolios.json?v=20261108a").catch(() => null),
-        ]);
+      const [
+        searchRes,
+        statsRes,
+        haifRes,
+        deedRes,
+        sanbornRes,
+        citydirRes,
+        ownPortRes,
+        archivalRes,
+      ] = await Promise.all([
+        fetch("public/data/search_index.json?v=20261108b"),
+        fetch("public/data/stats_summary.json?v=20261108b"),
+        fetch("public/data/haif_index.json?v=20261108b").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261108b").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261108b").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261108b").catch(() => null),
+        fetch("public/data/ownership_portfolios.json?v=20261108b").catch(() => null),
+        fetch("public/data/archival_index.json?v=20261108b").catch(() => null),
+      ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
         if (
@@ -1078,6 +1093,11 @@ export class HoustonAtlasApp {
         this.ownershipPortfolios = await ownPortRes.json();
       } else {
         this.ownershipPortfolios = null;
+      }
+      if (archivalRes && archivalRes.ok) {
+        this.archivalIndex = await archivalRes.json();
+      } else {
+        this.archivalIndex = null;
       }
       this._populatePortfolioPresetSelect(
         this._activePortfolio
@@ -1408,9 +1428,12 @@ export class HoustonAtlasApp {
           this._showQuickFlagToast(
             `Flagged "${contextTitle || "narrative blurb"}" for Preservation Houston historical review.`
           );
-        } else if (shouldSuppress && (field === "building_name" || field === "architect")) {
+        } else if (
+          shouldSuppress &&
+          (field === "building_name" || field === "architect" || field === "archival_record")
+        ) {
           this._showQuickFlagToast(
-            `Hidden unverified ${field.replace("_", " ")} "${disputedValue}" locally and queued for Preservation Houston moderation.`
+            `Hidden unverified ${field.replace(/_/g, " ")} "${disputedValue}" locally and queued for Preservation Houston moderation.`
           );
           if (this._currentInspectedRawProps) {
             this.renderInspectorDrawer(this._currentInspectedRawProps);
@@ -1512,6 +1535,13 @@ export class HoustonAtlasApp {
       }
     }
     return out.slice(0, 4);
+  }
+
+  _resolveArchivalRecords(props = {}) {
+    return resolveArchivalRecords(this.archivalIndex, props, {
+      globalRejections: this._globalRejections,
+      normalizeAddress: (addr) => this._normalizeAddressForHaifLookup(addr),
+    });
   }
 
   /**
@@ -12281,9 +12311,7 @@ export class HoustonAtlasApp {
       .join("");
 
     const post1926NoteHtml = cityDirInfo.isPost1926Build
-      ? `<div class="rk-subtle-note">
-          <strong>Post-1926 Occupant Lookup:</strong> Copyright restricts online HPL directories after 1926. To trace ${yr}-present residents by street address, consult the print <em>Morrison &amp; Fourmy</em> and <em>Polk Criss-Cross</em> directories at HPL's <strong>Houston History Research Center (Julia Ideson Building, 550 McKinney St)</strong>.
-        </div>`
+      ? buildPost1926CityDirNoteHtml(yr, this.citydirIndex?.post_1926_clearance)
       : "";
 
     // Step 3: Chain of Title, Plat & Deed Lookup
@@ -12652,6 +12680,15 @@ export class HoustonAtlasApp {
               )}&rdquo;) &#8599;
             </a>
             ${archArchiveBtnHtml}
+            <a
+              href="https://txarchives.org/home"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn secondary"
+              title="Search Texas Archival Resources Online (TARO 2.0) finding aids across HMRC, Rice Woodson, UH Special Collections, TSU, and UT Alexander Architectural Archive"
+            >
+              TARO Finding Aids (TX Archives) &#8599;
+            </a>
             <a
               href="https://houstonlibrary.org/research"
               target="_blank"
@@ -13335,6 +13372,8 @@ export class HoustonAtlasApp {
       : "";
 
     const haifThreads = this._resolveHaifThreads(props);
+    const archivalRecords = this._resolveArchivalRecords(props);
+    const archivalDrawingsCardHtml = buildArchivalDrawingsCardHtml(archivalRecords);
     const haifSearchTerm =
       (props.address && String(props.address).trim()) ||
       (title && title !== "Houston Structure" ? title : "");
@@ -14270,6 +14309,7 @@ export class HoustonAtlasApp {
       goodBrickAwards.length > 0,
       Boolean(histContractObj || histBuilderVal || histCostVal || histPermitVal || wasRelocatedFlag),
       lostHoustonAtSite.length > 0,
+      archivalRecords.length > 0,
       haifThreads.length > 0,
       Boolean(cityDirResearchInfo.auditHit),
       true,
@@ -14706,6 +14746,7 @@ export class HoustonAtlasApp {
                 ? `<div class="inspector-grid">${buildingNamesGridRowHtml}</div>`
                 : ""
             }
+            ${archivalDrawingsCardHtml}
             ${haifForumHtml}
             <div id="inspector-stewardship-timeline-slot" data-hcad-num="${hcadNum}">
               ${stewardshipTimelineCardHtml}
@@ -14992,6 +15033,12 @@ export class HoustonAtlasApp {
     this._bindInspectorOverlapStackEvents(content);
     this._bindDeedRestrictionsCardEvents(content, props);
     this._bindQuickFlagEvents(content, props);
+    content.querySelectorAll('img[data-archival-thumb="1"]').forEach((imgEl) => {
+      imgEl.addEventListener("error", () => {
+        const linkEl = imgEl.closest(".archival-thumb-link");
+        if (linkEl) linkEl.style.display = "none";
+      });
+    });
     this._bindHouseHistoryResearchKitEvents(content);
     this._bindOwnershipAndStewardshipCardEvents(content, props);
 
@@ -15485,7 +15532,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const permitShardUrl = cb
         ? `public/data/permits/permits_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/permits/permits_${prefix3}.json.gz?v=20261108a`;
+        : `public/data/permits/permits_${prefix3}.json.gz?v=20261108b`;
       const p = fetch(permitShardUrl)
         .then((res) => decodeGzipJsonResponse(res, decompressPermitShardBytes))
         .catch(() => ({}));
@@ -15509,7 +15556,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const ownerShardUrl = cb
         ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261108a`;
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261108b`;
       const p = fetch(ownerShardUrl)
         .then(async (res) => {
           if (!res.ok) return {};
@@ -17538,7 +17585,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261108a`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261108b`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18975,7 +19022,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261108a")
+          fetch("public/data/sanborn_catalog.json?v=20261108b")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -18985,7 +19032,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261108a")
+          fetch("public/data/citydir_index.json?v=20261108b")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -19008,7 +19055,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261108a")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261108b")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -20438,7 +20485,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261108a")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261108b")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

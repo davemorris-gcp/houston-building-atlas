@@ -24,6 +24,7 @@ import {
 } from "../../app/js/guidedChaptersAndPortfolios.js";
 
 import {
+  BROWSER_CHALLENGE_PROTECTED_HOSTS,
   KNOWN_DEAD_URL_PATTERNS,
   buildCanonicalExternalUrls,
   validateExternalAtlasUrl,
@@ -165,8 +166,13 @@ test("Guided Chapters & Portfolio Engine builds deduplicated extant + Lost Houst
   }
 });
 
-test("urlValidators rejects all 12 known retired/broken municipal & archive URL patterns and accepts canonical replacements", () => {
-  assert.equal(KNOWN_DEAD_URL_PATTERNS.length, 12);
+test("urlValidators rejects all 14 known retired/broken municipal & archive URL patterns and accepts canonical replacements", () => {
+  assert.equal(KNOWN_DEAD_URL_PATTERNS.length, 14);
+  const patternIds = new Set(KNOWN_DEAD_URL_PATTERNS.map((r) => r.id));
+  assert.equal(patternIds.has("taro_legacy_utexas_host"), true);
+  assert.equal(patternIds.has("hpl_cdm_unsupported_iiif_collections"), true);
+  assert.equal(BROWSER_CHALLENGE_PROTECTED_HOSTS.has("txarchives.org"), true);
+  assert.equal(BROWSER_CHALLENGE_PROTECTED_HOSTS.has("www.txarchives.org"), true);
 
   const badUrls = [
     "https://maps.lib.utexas.edu/maps/sanborn/texas_cities_g-i.html",
@@ -183,6 +189,9 @@ test("urlValidators rejects all 12 known retired/broken municipal & archive URL 
     "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=undefined",
     "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=12345",
     "https://atlas.thc.texas.gov/Details/84000388",
+    "https://taro.lib.utexas.edu/ricewrc/00034.xml",
+    "https://cdm17006.contentdm.oclc.org/digital/iiif/p17006coll220/115/full/960,/0/default.jpg",
+    "https://cdm17006.contentdm.oclc.org/digital/iiif/p17006coll238/42/full/960,/0/default.jpg",
   ];
 
   for (const bad of badUrls) {
@@ -198,12 +207,20 @@ test("urlValidators rejects all 12 known retired/broken municipal & archive URL 
     "https://www.houstontx.gov/planning/Commissions/hahc_100826/C_Norhill_Redline_Draft_Oct_26.pdf",
     "https://www.houstontx.gov/planning/docs_pdfs/MLS-MBL-Application2026/SMLS-Block-NewApp-0821.pdf",
     "https://cdm17006.contentdm.oclc.org/digital/collection/p17006coll12/id/545/rec/3",
+    "https://txarchives.org/home",
+    "https://txarchives.org/ricewrc/finding_aids/00427.xml",
+    "https://cdm17006.contentdm.oclc.org/digital/api/singleitem/image/p17006coll220/115/default.jpg",
+    "https://cdm17006.contentdm.oclc.org/digital/api/singleitem/image/p17006coll238/42/default.jpg",
+    "https://cdm17006.contentdm.oclc.org/digital/iiif/p17006coll41/8/full/960,/0/default.jpg",
   ];
 
   for (const good of goodUrls) {
     const res = validateExternalAtlasUrl(good);
     assert.equal(res.valid, true, `Expected URL validator to accept valid URL ${good}: ${res.reason}`);
   }
+
+  const taroRes = validateExternalAtlasUrl("https://txarchives.org/ricewrc/finding_aids/00427.xml");
+  assert.equal(taroRes.isBrowserChallengeHost, true);
 
   const built = buildCanonicalExternalUrls({
     hcadNum: "0421790000001#rice_1",

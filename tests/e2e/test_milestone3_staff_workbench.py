@@ -1468,7 +1468,7 @@ def test_e2e6_mobile_walk_the_block_field_survey_viewports_gps_daylight_photos_a
 
         csv_and_queue = page.evaluate(
             """async () => {
-                const mod = await import('/js/curatedEdits.js?v=20261108a');
+                const mod = await import('/js/curatedEdits.js?v=20261108b');
                 const list = mod.getLocalFieldSurveys();
                 return {
                     count: list.length,

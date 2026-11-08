@@ -82,12 +82,25 @@ export const KNOWN_DEAD_URL_PATTERNS = [
     reason:
       "Retired COH /planning/Forms/devregs/ Chapter 42 application PDF path returns HTTP 404; use https://www.houstontx.gov/planning/docs_pdfs/MLS-MBL-Application2026/...",
   },
+  {
+    id: "taro_legacy_utexas_host",
+    regex: /taro\.lib\.utexas\.edu/i,
+    reason:
+      "Retired TARO 1.0 taro.lib.utexas.edu host; use https://txarchives.org/home or https://txarchives.org/<repo>/finding_aids/<id>.xml.",
+  },
+  {
+    id: "hpl_cdm_unsupported_iiif_collections",
+    regex: /cdm17006\.contentdm\.oclc\.org\/digital\/iiif\/(?:p17006coll220|p17006coll238)\//i,
+    reason:
+      "HPL ContentDM returns HTTP 501 Not Implemented on /digital/iiif/ for p17006coll220 and p17006coll238; use /digital/api/singleitem/image/<coll>/<ptr>/default.jpg.",
+  },
 ];
 
 /**
  * Domains protected by interactive browser WAFs (Cloudflare Bot Management, Anubis JS PoW,
- * or stateful Struts JSESSIONID session portals) that return HTTP 403/500/503 to stateless
- * non-browser HTTP clients while working in real interactive browser sessions.
+ * UT Libraries per-IP automated-crawler connection throttling, or stateful Struts JSESSIONID
+ * session portals) that return HTTP 403/500/503 or socket resets to stateless non-browser
+ * HTTP clients while working in real interactive browser sessions.
  */
 export const BROWSER_CHALLENGE_PROTECTED_HOSTS = new Set([
   "search.hcad.org",
@@ -97,6 +110,8 @@ export const BROWSER_CHALLENGE_PROTECTED_HOSTS = new Set([
   "loc.gov",
   "hdl.loc.gov",
   "maps.lib.utexas.edu",
+  "txarchives.org",
+  "www.txarchives.org",
   "www.texaspublicnotices.com",
   "texaspublicnotices.com",
   "www.theaterdistricthouston.org",

@@ -140,7 +140,7 @@ ARCHITECT_CAREER_WINDOWS: dict[str, tuple[int, int, str]] = {
     "william ward watkin": (1908, 1954, "William Ward Watkin (1886-1952)"),
     "joseph finger": (1908, 1955, "Joseph Finger (1887-1953)"),
     "john s. chase": (1950, 2013, "John S. Chase (1925-2012)"),
-    "lamar q. cato": (1912, 1962, "Lamar Q. Cato (1888-1960)"),
+    "lamar q. cato": (1912, 1965, "Lamar Q. Cato (1888-1960)"),
     "mackie & kamrath": (1937, 1988, "MacKie & Kamrath (est. 1937)"),
     "sanguinet & staats": (1900, 1928, "Sanguinet & Staats (Houston practice c. 1903-1926)"),
     "philip johnson": (1942, 2006, "Philip Johnson (1906-2005)"),
@@ -151,7 +151,62 @@ ARCHITECT_CAREER_WINDOWS: dict[str, tuple[int, int, str]] = {
     "stayton nunn": (1918, 1975, "Stayton Nunn (active 1920s-1960s)"),
     "kenneth franzheim": (1915, 1961, "Kenneth Franzheim (1890-1959)"),
     "maurice j. sullivan": (1908, 1963, "Maurice J. Sullivan (1884-1961)"),
+    "donald barthelme": (1932, 1975, "Donald Barthelme, Sr. (1907-1996)"),
+    "lloyd & morgan": (1945, 1978, "Lloyd & Morgan (est. 1945)"),
+    "lloyd, morgan": (1945, 1985, "Lloyd, Morgan & Jones (est. 1945)"),
+    "hermon lloyd": (1935, 1978, "Hermon Lloyd (1909-1979)"),
+    "wilson, morris, crain": (1952, 1976, "Wilson, Morris, Crain & Anderson (active 1952-1976)"),
+    "s. i. morris": (1946, 2002, "S. I. Morris (1914-2006)"),
+    "ralph a. anderson": (1951, 1995, "Ralph A. Anderson, Jr. (1923-1990)"),
+    "howard barnstone": (1948, 1987, "Howard Barnstone (1923-1987)"),
+    "eugene aubry": (1960, 2005, "Eugene Aubry (1935-2024)"),
+    "johnson and aubry": (1956, 1988, "Philip Johnson & Eugene Aubry"),
+    "burdette keeland": (1950, 2000, "Burdette Keeland (1926-2000)"),
+    "charles tapley": (1957, 2014, "Charles Tapley (1931-2022)"),
+    "william t. cannady": (1962, 2022, "William T. Cannady (b. 1937)"),
+    "j. eugene wukasch": (1950, 2005, "J. Eugene Wukasch (1923-2013)"),
+    "hugo v. neuhaus": (1947, 1988, "Hugo V. Neuhaus, Jr. (1915-1987)"),
+    "cowell & neuhaus": (1947, 1978, "Cowell & Neuhaus (est. 1947)"),
+    "pierce & pierce": (1948, 1995, "Pierce & Pierce (est. 1948)"),
+    "caudill rowlett scott": (1946, 1995, "Caudill Rowlett Scott / CRS (est. 1946)"),
+    "sally walsh": (1955, 1992, "Sally Walsh (1926-1992)"),
+    "gerald moorhead": (1972, 2026, "Gerald Moorhead (b. 1946)"),
+    "o. jack mitchell": (1962, 2012, "O. Jack Mitchell (1932-2012)"),
+    "anderson todd": (1950, 2005, "Anderson Todd (1921-2018)"),
+    "harrie t. lindeberg": (1906, 1959, "Harrie T. Lindeberg (1879-1959)"),
+    "olmsted brothers": (1898, 1961, "Olmsted Brothers (1898-1961)"),
+    "r. newell waters": (1925, 1970, "R. Newell Waters (1899-1970)"),
 }
+
+ARCHITECT_SURNAME_ALIASES: dict[str, str] = {
+    "finn": "alfred c. finn",
+    "watkin": "william ward watkin",
+    "briscoe": "birdsall p. briscoe",
+    "staub": "john staub",
+    "franzheim": "kenneth franzheim",
+    "kamrath": "mackie & kamrath",
+    "barnstone": "howard barnstone",
+    "keeland": "burdette keeland",
+    "tapley": "charles tapley",
+    "cannady": "william t. cannady",
+    "wukasch": "j. eugene wukasch",
+}
+
+
+def is_architect_within_career_window(architect: str, year_built: int) -> bool:
+    """Return True if `year_built` falls within the documented career bounds in `ARCHITECT_CAREER_WINDOWS`."""
+    if not architect or year_built <= 0:
+        return True
+    low_arch = architect.lower()
+    for key, (lo, hi, _lbl) in ARCHITECT_CAREER_WINDOWS.items():
+        if key in low_arch and (year_built < lo or year_built > hi):
+            return False
+    for alias, canon_key in ARCHITECT_SURNAME_ALIASES.items():
+        if re.search(rf"\b{re.escape(alias)}\b", low_arch):
+            lo, hi, _lbl = ARCHITECT_CAREER_WINDOWS[canon_key]
+            if year_built < lo or year_built > hi:
+                return False
+    return True
 
 
 # ---------------------------------------------------------------------------

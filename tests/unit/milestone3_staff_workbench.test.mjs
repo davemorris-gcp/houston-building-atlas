@@ -47,7 +47,7 @@ import {
   stripEmbeddedGeometryTag,
   submitFieldSurveyObservation,
   validateOverridePolygonGeometry,
-} from "../../app/js/curatedEdits.js?v=20261108a";
+} from "../../app/js/curatedEdits.js?v=20261108b";
 
 import {
   AUDIT_CATEGORY_LABELS,
@@ -86,7 +86,7 @@ import {
   validateAndNormalizeDraftPolygon,
   validateFieldSurveyDraft,
   validatePolygonSaveContributing,
-} from "../../app/js/staffWorkbench.js?v=20261108a";
+} from "../../app/js/staffWorkbench.js?v=20261108b";
 
 import {
   DEFAULT_FILTER_STATE,
@@ -94,7 +94,7 @@ import {
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "../../app/js/filterStore.js?v=20261108a";
+} from "../../app/js/filterStore.js?v=20261108b";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

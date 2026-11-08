@@ -17,13 +17,14 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=("core", "full", "campuses", "annual-refresh", "ingest-tpia"),
+        choices=("core", "full", "campuses", "annual-refresh", "ingest-tpia", "harvest-archives"),
         default="core",
         help=(
             "Pipeline mode: 'core' (Historic Houston Core + Landmarks + Districts + OSM Footprints), "
             "'full' (Harris County bulk HCAD), 'campuses' (Campus & school dating/situs hydration), "
             "'annual-refresh' (Guarded incremental annual HCAD appraisal roll & parcel refresher), "
-            "or 'ingest-tpia' (Harris County Clerk 1961-present RP/MC & pre-2005 HCAD TPIA ingestion)."
+            "'ingest-tpia' (Harris County Clerk 1961-present RP/MC & pre-2005 HCAD TPIA ingestion), "
+            "or 'harvest-archives' (TARO 2.0 EAD XML finding aids & HPL ContentDM architectural collections)."
         ),
     )
     parser.add_argument(
@@ -126,6 +127,12 @@ def main(argv: list[str] | None = None) -> None:
         default=None,
         help="Directory or archive holding pre-2005 HCAD TPIA ownership/sales tables (for --mode ingest-tpia).",
     )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        default=False,
+        help="Use cached TARO EAD XMLs and HPL ContentDM JSONs without network requests (for --mode harvest-archives).",
+    )
     args = parser.parse_args(argv)
 
     t0 = time.time()
@@ -204,6 +211,22 @@ def main(argv: list[str] | None = None) -> None:
         )
         elapsed = time.time() - t0
         print(format_tpia_ingestion_cli_summary(stats, elapsed_s=elapsed))
+        return
+    elif args.mode == "harvest-archives":
+        from atlas_pipeline.harvest_taro_and_hpl_archives import (
+            format_archive_harvest_cli_summary,
+            run_archive_harvest,
+        )
+
+        stats = run_archive_harvest(
+            cache_dir=args.cache_dir,
+            output_dir=args.output_dir,
+            apply=bool(args.apply),
+            offline=bool(args.offline),
+            cache_bust=args.cache_bust,
+        )
+        elapsed = time.time() - t0
+        print(format_archive_harvest_cli_summary(stats, elapsed_s=elapsed))
         return
     else:
         from atlas_pipeline.full_build import run_full_county_build
