@@ -7,6 +7,8 @@ from __future__ import annotations
 import csv
 import gzip
 import json
+import shutil
+import subprocess
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -17,6 +19,8 @@ from atlas_pipeline import cli
 from atlas_pipeline.harvest_coh_hpo_surveys_and_landmarks import (
     DISTRICT_MANIFEST,
     HPO_DISTRICT_NAME_ALIASES,
+    NON_ARCHITECTURAL_SURVEY_STYLES,
+    STRIP_STREET_TAIL,
     HarvestBundlePaths,
     HarvestInputs,
     OverrideProvenance,
@@ -54,6 +58,7 @@ from atlas_pipeline.schema import (
     EXCLUDED_AUTO_PROMOTION_HCADS,
     GENERIC_STYLE_PLACEHOLDERS,
     HCAD_STYLE_GRADE_CODES,
+    STRUCTURAL_STYLE_CLASSES,
     is_replaceable_style_value,
     is_specific_architectural_style,
     is_structural_class_style,
@@ -1974,3 +1979,153 @@ def test_hpo_survey_year_promotion_respects_earlier_city_directory_occupant(
     assert bld_after["style"] == "Hipped Bungalow"
     surveys_after = json.loads((odir / "hpo_district_surveys.json").read_text(encoding="utf-8"))
     assert cd_hc in surveys_after["by_hcad"]
+
+
+def test_js_python_hpo_normalization_and_style_parity() -> None:
+    """Enforce live 1:1 Node.js <-> Python parity in Layer 1B CI where both Node 22 and pipeline/.venv exist."""
+    node_bin = shutil.which("node")
+    assert node_bin is not None, "node executable must be available for JS/Python HPO parity verification"
+
+    half_frac = chr(0x00BD)
+    nb_hyphen = chr(0x2011)
+    en_dash = chr(0x2013)
+    addr_vectors = [
+        "1119 North Walling Street, Houston, TX 77009",
+        "1119 N. Walling St.",
+        "1511 North Boulevard",
+        "1511 N. Blvd.",
+        "1512 South Boulevard",
+        "1512 S Blvd",
+        "3917 Main Street, #16",
+        "2700 N Albany St Ste 100, Houston TX 77006",
+        "804 Avondale St Apt B",
+        "512 Harvard St Rear",
+        "512 Harvard St (Rear)",
+        f"3410 {half_frac} Burlington St",
+        "3410 1/2 Burlington Street",
+        "18361/2 Columbia St",
+        "2091/2 E WOODLAND ST",
+        "209 E WOODLAND ST 1/2",
+        "701 E 51/2 St",
+        "111 E 31st 1/2 St",
+        f"111 E. 31 {half_frac} Street",
+        f"111 31 {half_frac} ST",
+        "405 Saint Emanuel St",
+        "405 St. Emanuel Street",
+        "1200 Mount Vernon St",
+        "1200 Mt. Vernon Street",
+        "1015 Avenue A",
+        "1015 Ave. A",
+        "7106 Avenue E",
+        "7106 AVE E",
+        "7106 Avenue N",
+        "7106 AVE N",
+        "1000 Heights Blvd N",
+        "1000 Heights Blvd S",
+        "2200 Memorial Dr E",
+        "2200 Memorial Dr W",
+        "4-B West Eleventh Place",
+        f"4{nb_hyphen}B West 11th Pl",
+        "14-D West 11th Place",
+        "14D West 11th Place",
+        f"1414{en_dash}1416 East Austin St",
+        "1647-49 Cortlandt St",
+        "120-122 E 11th St",
+        "802/804 Commerce St",
+        "0 North Blvd",
+        "Avenida De Las Americas",
+        "Main Street",
+        "",
+    ]
+    street_key_inputs = [
+        "1119 North Walling Street",
+        f"1414{en_dash}1416 East Austin St",
+        "1647-49 Cortlandt St",
+        "120-122 E 11th St",
+        "18361/2 Columbia St",
+        "209 E WOODLAND ST 1/2",
+        "701 E 51/2 St",
+        "802/804 Commerce St",
+        "3909--3917 S. Main St.",
+        "14-D West 11th Place",
+        "111 E 31st 1/2 St",
+        "Avenida De Las Americas",
+    ]
+    tail_probes = [f"100 OAK {tok}" for tok in sorted(STRIP_STREET_TAIL)]
+    all_vocab = sorted(
+        GENERIC_STYLE_PLACEHOLDERS
+        | STRUCTURAL_STYLE_CLASSES
+        | HCAD_STYLE_GRADE_CODES
+        | NON_ARCHITECTURAL_SURVEY_STYLES
+        | {
+            "Craftsman Bungalow",
+            "Queen Anne",
+            "Modern Ranch",
+            "Colonial Revival",
+            "Louisiana French Plantation style",
+            "Miesian Steel & Rose-Brick International Style",
+            "Modified Foursquare Frame",
+            "YEAR          BLDG",
+            "CIRCA      BLDG Georgian/Colonial Revival",
+            "1940 Added quarters in back",
+        }
+    )
+
+    helper_url = (REPO_ROOT / "app" / "js" / "hpoSurveyHelpers.js").as_uri()
+    hpo_json_path = str(REPO_ROOT / "app" / "public" / "data" / "hpo_district_surveys.json")
+    js_probe = "\n".join(
+        [
+            "import fs from 'node:fs';",
+            f"import * as H from {json.dumps(helper_url)};",
+            "const payload = JSON.parse(process.argv[1]);",
+            f"const hpo = JSON.parse(fs.readFileSync({json.dumps(hpo_json_path)}, 'utf8'));",
+            "const stripped = { ...hpo, district_aliases: undefined };",
+            "const aliasOut = {};",
+            "for (const k of payload.alias_keys) {",
+            "  aliasOut[k] = H.resolveHpoDistrictDocs(stripped, k)?.districtName || null;",
+            "}",
+            "console.log(JSON.stringify({",
+            "  lookup: payload.addr_vectors.map((v) => H.normalizeHpoLookupAddress(v)),",
+            "  keys: payload.street_key_inputs.map((v) => H.normalizeHpoStreetAddressKeys(v)),",
+            "  tail_norm: payload.tail_probes.map((v) => H.normalizeHpoLookupAddress(v)),",
+            "  usable: payload.all_vocab.map((v) => H.isUsableHpoSurveyStyle(v)),",
+            "  replaceable: payload.all_vocab.map((v) => H.isReplaceableStyleValue(v)),",
+            "  structural: payload.all_vocab.map((v) => H.isStructuralClassStyleValue(v)),",
+            "  district_aliases: hpo.district_aliases,",
+            "  alias_resolved: aliasOut,",
+            "}));",
+        ]
+    )
+    proc = subprocess.run(
+        [
+            node_bin,
+            "--input-type=module",
+            "-e",
+            js_probe,
+            "--",
+            json.dumps(
+                {
+                    "addr_vectors": addr_vectors,
+                    "street_key_inputs": street_key_inputs,
+                    "tail_probes": tail_probes,
+                    "all_vocab": all_vocab,
+                    "alias_keys": sorted(HPO_DISTRICT_NAME_ALIASES.keys()),
+                }
+            ),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+    )
+    js_res = json.loads(proc.stdout.strip())
+
+    assert js_res["lookup"] == [normalize_hpo_lookup_address(v) for v in addr_vectors]
+    assert js_res["keys"] == [normalize_hpo_street_address_keys(v) for v in street_key_inputs]
+    assert js_res["tail_norm"] == [normalize_hpo_lookup_address(v) for v in tail_probes]
+    assert js_res["usable"] == [is_usable_hpo_survey_style(v) for v in all_vocab]
+    assert js_res["replaceable"] == [is_replaceable_style_value(v) for v in all_vocab]
+    assert js_res["structural"] == [is_structural_class_style(v) for v in all_vocab]
+    assert js_res["district_aliases"] == HPO_DISTRICT_NAME_ALIASES
+    assert js_res["alias_resolved"] == HPO_DISTRICT_NAME_ALIASES
+
