@@ -7,16 +7,16 @@ import {
   getAtlasMaxYear,
   VALID_PORTFOLIO_KINDS,
   normalizePortfolioKind,
-} from "./filterStore.js?v=20261108b";
+} from "./filterStore.js?v=20261108c";
 import {
   OWNERSHIP_TIER_ITEMS,
   resolveEffectiveOwnershipTier,
   resolveOwnershipTierColor,
-} from "./palettes.js?v=20261108b";
+} from "./palettes.js?v=20261108c";
 import {
   buildTxComptrollerSearchUrl,
   buildHarrisCountyClerkRpUrl,
-} from "./urlValidators.js?v=20261108b";
+} from "./urlValidators.js?v=20261108c";
 import {
   decodeCompactMechanicsLiens,
   decodeCompactOwnerHistory,
@@ -25,7 +25,7 @@ import {
   isEntityOrTrustOwnerName,
   isPlaceholderOwnerName,
   parseCompactDeedWireEntries,
-} from "./clerkSearchHelpers.js?v=20261108b";
+} from "./clerkSearchHelpers.js?v=20261108c";
 
 export { VALID_PORTFOLIO_KINDS, normalizePortfolioKind };
 

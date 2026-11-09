@@ -67,6 +67,7 @@ Click any URL below to open a pre-configured view demonstrating the latest prese
 | **14. Multi-Era Good Brick Stewardship & Estate Transition (`301 E 5th St`, Lund House & Print Shop)** | [`#hcad=0210200000029&lat=29.77989&lng=-95.39489&z=18`](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0210200000029&lat=29.77989&lng=-95.39489&z=18) | Traces four named HCAD tenures from `1999-07-19` (`2005-2011` -> `2012-2014` Estate -> `2015-2020` `20150566733` -> `2021-2026` `R2021-103607`) on the `c. 1896` NRHP Lund House & `1927` Modern Print Shop (`2026` Good Brick Award). |
 | **15. TARO 2.0 Architectural Finding Aids & HPL ContentDM Drawings (`911 Preston St`, `1926` Ritz Theatre)** | [`#hcad=0010330000012&tab=history`](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0010330000012&tab=history) | Opens the `Archival Drawings, Renderings & Finding Aids` card (`#inspector-archival-card`) on William Ward Watkin's `1926` Ritz Theatre, linking a digitized HPL Houston Architectural Survey (`p17006coll220`) photograph alongside Rice Woodson (`ricewrc/00034` Box 9, Folder 18) and UT Briscoe (`utcah/00451`) architectural folder citations plus the `1927-1963` USCO Public-Domain City Directory clearance note. |
 | **16. Multi-Repository Civic Performance Hall Archives (`615 Louisiana St`, Jesse H. Jones Hall & Old City Auditorium)** | [`#hcad=0010660000001&tab=history`](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0010660000001&tab=history) | Surfaces `8` cross-repository archival records on a single Downtown block, combining HPL Yolita Schmidt Moderne Architecture (`p17006coll41`) photography of Jesse H. Jones Hall with HMRC (`houpub/00004` Box 3, Folder 29) and Rice Woodson (`ricewrc/00536` Box 31, Folder 16) finding-aid folders for the predecessor `1910` Old City Auditorium. |
+| **17. Mobile-Safe Architect Monograph & Safe-Area Responsive Shell (`Alfred C. Finn, FAIA`)** | [`#portfolio=architect:Alfred%20C.%20Finn`](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=architect:Alfred%20C.%20Finn) | Demonstrates the `100dvh` / `viewport-fit=cover` mobile layout on `360px-420px` portrait phones and tablets: 3-row phone topbar with zero horizontal pill clipping, `ResizeObserver`-anchored scrollable Portfolio Monograph card with sticky header below `#atlas-topbar`, and `100dvh` safe-area modal clamping across all 11 modals and `plat-monitor.html`. |
 
 ---
 
@@ -93,7 +94,7 @@ To ensure engineering architecture, archival methodology, third-party server dep
 - RFC 7233 `HTTP 206 Partial Content` byte-range serving in `app/server.py`.
 - **Basemap Engineering:** Replacing watermarked Carto tiles; capping Esri raster underlays at `maxzoom: 16` to eliminate Esri's `HTTP 200` `"Map data not yet available"` placeholder PNGs at `z >= 17`; layering crisp OpenFreeMap vector street casings; and adding `Solid Dark` (`#0B0E11`) and `Solid Light` (`#F5F2EB`) figure-ground poster modes.
 - **3D Extrusion & Hardware Depth Occlusion:** Sub-centimeter prime-modulo height tie-breaker (`(year_built % 97) * 0.0003m`) to stop roof Z-fighting; ground-plane layer ordering; and `selected-feature-3d-extrusion` (`body`, `roof_collar`, `base_collar`, `corner_rib`, and `occluder` meshes sharing the GPU depth buffer).
-- **Client UX:** Four-way overlapping feature cycling (`#map-overlap-bar`), Polygon Isolation Mode (`#isolate=`), High-Resolution Vector `.SVG` / T-Shirt / Coaster Export Studio (`#export-studio-modal`), and native browser Back/Forward history navigation (`pushState` vs. `replaceState`).
+- **Client UX & Mobile Safe-Area Geometry:** Four-way overlapping feature cycling (`#map-overlap-bar`), Polygon Isolation Mode (`#isolate=`), High-Resolution Vector `.SVG` / T-Shirt / Coaster Export Studio (`#export-studio-modal`), native browser Back/Forward history navigation (`pushState` vs. `replaceState`), and `100dvh` / `viewport-fit=cover` responsive mobile architecture (`--topbar-offset` / `--hud-top-offset` `ResizeObserver` docking, monotonic z-index tokens, Row-1 `[x]` modal headers, `16px` anti-zoom inputs, and automated multi-viewport Playwright geometry verification).
 
 ### [Chapter 2: Building Footprints, Spatial Joins & Countywide Geometry Repairs](docs/02-building-footprints-and-geometry-repairs.md)
 - Combining OpenStreetMap, Microsoft US Building Footprints v2 (`1,847,281` polygons), Esri `World_Basemap_v2` vector tiles, and HCAD `Parcels.gdb` (`1,546,683` parcels in `EPSG:2278`).
@@ -192,13 +193,13 @@ Every pull request and push to `main` is gated by a deterministic verification p
 # Regenerate the 45 Stratified Property & Overlay Archetypes (15 equivalence classes x 3)
 node scripts/build_test_archetypes.mjs
 
-# Layer 1: Fast deterministic schema, WGS84 bounds, GitHub Pages bundle size, Staff Workbench geometry/CSV/AAA, Activity Log, Plat/Watchlist, .json.gz Web Streams decompression, TARO/HPL/USCO, TPIA & URL-validator unit tests (122 tests)
+# Layer 1: Fast deterministic schema, WGS84 bounds, GitHub Pages bundle size, Staff Workbench geometry/CSV/AAA, Activity Log, Plat/Watchlist, .json.gz Web Streams decompression, TARO/HPL/USCO, TPIA, Mobile UX Responsive & URL-validator unit tests (128 tests)
 node tests/unit/run_all.mjs
 
 # Layer 1B: Python pipeline tests (schema, multi-cycle Excel layouts, historical PH-* backfill, Page-3 DPV parser, campus sentinels, Staff Workbench Node/Python parity, 22-yr Owner History, TPIA Clerk/HCAD ingestion, TARO/HPL/USCO clearance & Activity Log diffs; 214 tests)
 uv run --directory pipeline pytest tests -v
 
-# Layer 2: Headless Chromium Playwright E2E suite (HTTP 206 PMTiles check, global modals, Guided Chapters 1..6, Portfolios, 3-Mode Plat Monitor, Staff Workbench WebGL/canvas2d/multi-phone Field Survey, .json.gz Owner/Permit/Address Web Streams hydration, live vacant-lot search, and all 45 archetypes; 67 tests)
+# Layer 2: Headless Chromium Playwright E2E suite (HTTP 206 PMTiles check, global modals, Guided Chapters 1..6, Portfolios, 3-Mode Plat Monitor, Staff Workbench WebGL/canvas2d/multi-phone Field Survey, Multi-Viewport Mobile UX Geometry & @media print isolation, .json.gz Owner/Permit/Address Web Streams hydration, live vacant-lot search, and all 45 archetypes; 72 tests)
 uv run --directory pipeline pytest ../tests/e2e -v
 
 # Layer 3: Live external municipal, county, state, university & archival HTTP 200/206 + soft-404 link health crawler (776 unique URLs across 55 domains)

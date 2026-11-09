@@ -38,6 +38,17 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --shadow-panel: 0 14px 36px rgba(0, 0, 0, 0.52);
+
+  /* Monotonic Z-Index Ladder across Map, HUD, Sheets, Topbar & Modals */
+  --z-map: 1;
+  --z-hud: 18;
+  --z-card: 28;
+  --z-inspector-mobile: 48;
+  --z-polyedit: 52;
+  --z-survey-sheet: 55;
+  --z-sidebar-mobile: 60;
+  --z-topbar: 65;
+  --z-modal-base: 120;
 }
 
 *,
@@ -77,6 +88,7 @@ body {
   position: relative;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -85,7 +97,7 @@ body {
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
+  z-index: var(--z-map, 1);
 }
 
 /* --------------------------------------------------------------------------
@@ -97,7 +109,7 @@ body {
   left: 12px;
   right: 12px;
   height: 58px;
-  z-index: 35;
+  z-index: var(--z-topbar, 65);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2067,7 +2079,7 @@ body {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--z-modal-base, 120);
   background: rgba(0, 0, 0, 0.68);
   backdrop-filter: blur(6px);
   display: flex;
@@ -2077,32 +2089,32 @@ body {
 }
 
 #historian-audit-modal {
-  z-index: 61;
+  z-index: 122;
 }
 
 #scorecard-modal {
-  z-index: 62;
+  z-index: 124;
 }
 
 #ch42-modal {
-  z-index: 64;
+  z-index: 126;
 }
 
 #dossier-modal,
 #sanborn-browser-modal {
-  z-index: 66;
+  z-index: 130;
 }
 
 #share-modal {
-  z-index: 68;
+  z-index: 134;
 }
 
 #correction-modal {
-  z-index: 70;
+  z-index: 138;
 }
 
 #photo-lightbox-modal {
-  z-index: 75;
+  z-index: 145;
 }
 
 .modal-card {
@@ -2212,7 +2224,7 @@ body {
   position: absolute;
   bottom: 14px;
   right: 54px;
-  z-index: 18;
+  z-index: var(--z-hud, 18);
   background: var(--bg-panel);
   backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
@@ -2241,7 +2253,7 @@ body {
 .map-canvas .maplibregl-ctrl-top-right,
 .map-canvas .maplibregl-ctrl-bottom-left,
 .map-canvas .maplibregl-ctrl-top-left {
-  z-index: 18;
+  z-index: var(--z-hud, 18);
 }
 
 .inspector-drawer:not(.hidden) ~ .map-canvas .maplibregl-ctrl-bottom-right {
@@ -2692,7 +2704,7 @@ body {
 /* ==========================================================================
    Responsive Layout: Mobile & Portrait Tablet (<= 900px)
    ========================================================================== */
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
   html,
   body,
   .atlas-shell {
@@ -2854,7 +2866,8 @@ body {
 
   /* Keep Basemap menu aligned on screen on narrow phones */
   .basemap-dropdown-menu {
-    right: -68px;
+    left: 0;
+    right: auto;
     min-width: 228px;
   }
 
@@ -2864,7 +2877,7 @@ body {
     top: var(--topbar-offset, 96px);
     left: 8px;
     right: 8px;
-    z-index: 18;
+    z-index: var(--z-hud, 18);
     gap: 6px;
     -webkit-overflow-scrolling: touch;
   }
@@ -2899,13 +2912,13 @@ body {
 
   /* 3. Left Controls Sidebar -> Responsive Slide-Over Drawer on Mobile */
   .atlas-sidebar {
-    top: var(--topbar-offset, 174px);
+    top: var(--topbar-offset, 112px);
     left: 8px;
     right: 8px;
     bottom: 8px;
     width: auto;
     max-width: calc(100vw - 16px);
-    z-index: 45;
+    z-index: var(--z-sidebar-mobile, 60);
     padding-right: 0;
     background: rgba(21, 25, 28, 0.96);
     border: 1px solid var(--border-brass);
@@ -3005,7 +3018,7 @@ body {
   /* 6. Responsive Modals */
   .modal-backdrop {
     padding: 8px;
-    align-items: flex-end;
+    align-items: center;
   }
 
   .modal-card {
@@ -3040,7 +3053,7 @@ body {
 /* ==========================================================================
    Responsive Layout: Small Phones (<= 600px)
    ========================================================================== */
-@media (max-width: 600px) {
+@media screen and (max-width: 600px) {
   /* 2x2 Telemetry Grid so labels never truncate */
   .metrics-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9822,7 +9835,7 @@ body {
   left: 396px;
   width: min(455px, calc(100vw - 786px));
   max-height: calc(100dvh - 134px);
-  z-index: 28;
+  z-index: var(--z-card, 28);
   background: rgba(15, 20, 29, 0.96);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(251, 191, 36, 0.48);
@@ -12514,7 +12527,7 @@ body[data-basemap="solid_light"] .inspector-ch42-cta-sub {
   width: 364px;
   max-height: calc(100vh - 96px);
   max-height: calc(100dvh - 96px);
-  z-index: 52;
+  z-index: var(--z-polyedit, 52);
   display: flex;
   flex-direction: column;
   border-radius: 14px;
@@ -12809,7 +12822,7 @@ body[data-survey-snap="full"] .field-survey-crosshair {
   left: 50%;
   top: 72px;
   transform: translateX(-50%);
-  z-index: 82;
+  z-index: 170;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -12852,7 +12865,7 @@ body[data-survey-snap="full"] .field-survey-crosshair {
   height: 52dvh;
   max-width: 720px;
   margin: 0 auto;
-  z-index: 55;
+  z-index: var(--z-survey-sheet, 55);
   display: flex;
   flex-direction: column;
   background: #0f172a;
@@ -13892,7 +13905,404 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
   }
 }
 
+/* ==========================================================================
+   Milestone 11: Systematic Mobile UX, Safe-Area Dynamic Viewport (100dvh),
+   Modal Close Pinning, HUD De-Crowding & Touch Ergonomics
+   (Strictly @media screen so @media print stylesheets remain untouched)
+   ========================================================================== */
 
+@media screen and (max-width: 960px) {
+  /* 1. Safe-area modal centering & 100dvh cap so tall cards never tuck under mobile URL bars */
+  .modal-backdrop,
+  #scorecard-modal,
+  #ch42-modal {
+    --modal-safe-top: max(8px, env(safe-area-inset-top, 0px));
+    --modal-safe-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    padding: var(--modal-safe-top)
+      max(8px, env(safe-area-inset-right, 0px))
+      var(--modal-safe-bottom)
+      max(8px, env(safe-area-inset-left, 0px));
+    align-items: center;
+  }
 
+  #historian-audit-modal {
+    padding: env(safe-area-inset-top, 0px)
+      env(safe-area-inset-right, 0px)
+      env(safe-area-inset-bottom, 0px)
+      env(safe-area-inset-left, 0px);
+  }
 
+  .audit-modal-card {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
 
+  .modal-card:not(.audit-modal-card),
+  .permit-watch-modal-card,
+  .sanborn-modal-card,
+  .dossier-modal-card,
+  .scorecard-modal-card,
+  .ch42-modal-card,
+  .export-studio-modal-card,
+  .share-modal-card {
+    max-height: calc(100vh - var(--modal-safe-top, 8px) - var(--modal-safe-bottom, 8px));
+    max-height: calc(100dvh - var(--modal-safe-top, 8px) - var(--modal-safe-bottom, 8px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-card > .modal-body:not(.scorecard-modal-body) {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 2. Pin every modal's [x] close button top-right on Row 1 while secondary badges wrap cleanly */
+  .modal-card > .modal-header {
+    position: relative;
+    padding: 12px 52px 12px 14px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .modal-card > .modal-header .icon-btn[id^="btn-close-"],
+  .modal-card > .modal-header .photo-lightbox-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  /* 3. Topbar actions & viewport-clamped dropdown menus */
+  .atlas-topbar {
+    top: max(8px, env(safe-area-inset-top, 0px));
+  }
+
+  #btn-open-scorecards-hub {
+    display: none !important;
+  }
+
+  #btn-toggle-sidebar {
+    min-height: 34px;
+    height: 34px;
+    padding: 0 10px;
+  }
+
+  .topbar-actions .action-pill {
+    min-height: 34px;
+    height: 34px;
+  }
+
+  #btn-topbar-more {
+    min-width: 40px;
+  }
+
+  .basemap-dropdown-menu {
+    left: 0;
+    right: auto;
+    min-width: min(228px, calc(100vw - 32px));
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - var(--topbar-offset, 108px) - 12px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .topbar-more-items {
+    right: 0;
+    left: auto;
+    min-width: min(236px, calc(100vw - 32px));
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - var(--topbar-offset, 108px) - 12px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* 4. Dynamic Topbar/Tour-Bar Offset & Scrollable Sub-Header Monograph/Chapters Cards */
+  .city-chapters-card,
+  .portfolio-monograph-card,
+  .atlas-shell.sidebar-collapsed .city-chapters-card,
+  .atlas-shell.sidebar-collapsed .portfolio-monograph-card {
+    top: var(--hud-top-offset, var(--topbar-offset, 112px));
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: min(52dvh, calc(100dvh - var(--hud-top-offset, var(--topbar-offset, 112px)) - 12px));
+  }
+
+  .portfolio-monograph-card {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .portfolio-card-top {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: rgba(15, 22, 30, 0.97);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+
+  .portfolio-bio-block,
+  .portfolio-stats-grid,
+  .portfolio-subfilter-row {
+    flex-shrink: 0;
+  }
+
+  .portfolio-works-list {
+    max-height: none;
+    overflow-y: visible;
+    flex-shrink: 0;
+  }
+
+  .tour-narrative-banner,
+  .atlas-shell.sidebar-collapsed .tour-narrative-banner {
+    top: var(--hud-top-offset, calc(var(--topbar-offset, 96px) + 36px));
+    max-height: min(46dvh, calc(100dvh - var(--hud-top-offset, 146px) - 12px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    align-items: flex-start;
+  }
+
+  .historic-map-actions-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .historic-tool-btn {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+    min-height: 34px;
+  }
+
+  /* 5. HUD De-Crowding: suppress Tour Bar & 3D Tilt Dock when active cards/workbenches are open */
+  .atlas-shell:has(
+      #city-chapters-card:not(.hidden),
+      #portfolio-monograph-card:not(.hidden),
+      #polygon-editor-dock:not(.hidden),
+      #field-survey-sheet:not(.hidden),
+      #inspector-drawer.sheet-full:not(.hidden)
+    )
+    nav.tour-bar {
+    display: none !important;
+  }
+
+  .atlas-shell:has(
+      #city-chapters-card:not(.hidden),
+      #portfolio-monograph-card:not(.hidden),
+      #tour-narrative-banner:not(.hidden),
+      #polygon-editor-dock:not(.hidden),
+      #field-survey-sheet:not(.hidden),
+      #inspector-drawer:not(.hidden)
+    )
+    .camera-tilt-dock {
+    display: none !important;
+  }
+
+  /* 6. Mobile Sheets & Sidebar Stacking + Safe Dynamic Height Bounds */
+  .atlas-sidebar {
+    z-index: var(--z-sidebar-mobile, 60);
+    top: var(--topbar-offset, 112px);
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .inspector-drawer {
+    z-index: var(--z-inspector-mobile, 48);
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    max-height: min(56dvh, calc(100dvh - var(--hud-top-offset, 148px) - 10px));
+    transition: none;
+  }
+
+  .inspector-drawer.sheet-peek {
+    max-height: min(24dvh, calc(100dvh - var(--hud-top-offset, 148px) - 10px));
+  }
+
+  .inspector-drawer.sheet-half {
+    max-height: min(56dvh, calc(100dvh - var(--hud-top-offset, 148px) - 10px));
+  }
+
+  .inspector-drawer.sheet-full {
+    max-height: calc(100dvh - var(--topbar-offset, 112px) - max(10px, env(safe-area-inset-bottom, 0px) + 8px));
+  }
+
+  .field-survey-sheet {
+    z-index: var(--z-survey-sheet, 55);
+    max-height: calc(100dvh - var(--topbar-offset, 108px) - 8px);
+  }
+
+  /* 7. Primary Touch Targets (>= 34x34px) & 16px Mobile Inputs (zero iOS Safari auto-zoom) */
+  .icon-btn {
+    min-width: 34px;
+    min-height: 34px;
+    width: 34px;
+    height: 34px;
+  }
+
+  #btn-toggle-sidebar.icon-btn {
+    width: auto;
+  }
+
+  .tour-banner-close {
+    min-width: 34px;
+    min-height: 34px;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  #btn-cycle-mobile-sheet {
+    min-height: 34px;
+    min-width: 52px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="color"]):not([type="file"]):not([type="hidden"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .search-input {
+    height: 34px;
+  }
+}
+
+/* Tablet Portrait & Phone Landscape (560px..900px): dock cards & Polygon Editor left of MapLibre zoom controls */
+@media screen and (min-width: 560px) and (max-width: 900px) {
+  .city-chapters-card,
+  .portfolio-monograph-card,
+  .atlas-shell.sidebar-collapsed .city-chapters-card,
+  .atlas-shell.sidebar-collapsed .portfolio-monograph-card,
+  .tour-narrative-banner,
+  .atlas-shell.sidebar-collapsed .tour-narrative-banner {
+    left: 8px;
+    right: auto;
+    width: min(430px, calc(100vw - 76px));
+  }
+
+  .polyedit-dock {
+    top: var(--topbar-offset, 96px);
+    left: 8px;
+    right: auto;
+    bottom: auto;
+    width: min(380px, calc(100vw - 76px));
+    max-height: calc(100dvh - var(--topbar-offset, 96px) - 12px);
+    border-radius: 14px;
+  }
+}
+
+/* Compact Portrait Phones (<= 640px): 3-Row Topbar so Search & all 4 Action Pills fit down to 360px */
+@media screen and (max-width: 640px) {
+  .atlas-topbar {
+    padding: 7px 10px;
+    gap: 6px;
+  }
+
+  .search-wrapper {
+    order: 2;
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .topbar-actions {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .topbar-actions .action-pill {
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
+  #basemap-active-label {
+    max-width: 82px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Narrow Portrait Phones (<= 559px): Polygon Editor bottom sheet + lifted MapLibre zoom controls */
+@media screen and (max-width: 559px) {
+  .tour-narrative-banner,
+  .atlas-shell.sidebar-collapsed .tour-narrative-banner {
+    max-height: min(44dvh, calc(100dvh - var(--hud-top-offset, 146px) - 150px));
+  }
+
+  .polyedit-dock {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: min(48dvh, calc(100dvh - var(--topbar-offset, 146px) - 12px));
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .atlas-shell:has(#polygon-editor-dock:not(.hidden)) .map-canvas .maplibregl-ctrl-bottom-right {
+    bottom: calc(min(48dvh, 100dvh - var(--topbar-offset, 146px) - 12px) + 8px);
+  }
+}
+
+/* Ultra-Compact Portrait Phones (<= 420px, incl. 360px Android): ensure all 4 Row-3 pills fit with breathing room */
+@media screen and (max-width: 420px) {
+  .atlas-topbar {
+    left: 6px;
+    right: 6px;
+    padding: 6px 8px;
+    gap: 5px;
+  }
+
+  .topbar-actions {
+    gap: 3px;
+  }
+
+  .topbar-actions .action-pill {
+    padding: 0 5px;
+    font-size: 10.5px;
+    gap: 3px;
+  }
+
+  #basemap-active-label {
+    max-width: 62px;
+  }
+
+  #btn-topbar-more {
+    min-width: 34px;
+    padding: 0 5px;
+  }
+}

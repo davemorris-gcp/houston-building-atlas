@@ -365,12 +365,12 @@ test("UT-7: guidedChaptersAndPortfolios.js X-Ray decoder, 1836-2026 Timeline bui
   assert.ok(stage2Node.subtitle.includes("Stage 2 Structural Building Demolition Permit"));
 });
 
-test("RP-3: ?v=20261108b cache-bust parity and zero U+2014/U+2013 dashes across frontend and ownership bundle", () => {
+test("RP-3: ?v=20261108c cache-bust parity and zero U+2014/U+2013 dashes across frontend and ownership bundle", () => {
   const manifest = JSON.parse(
     fs.readFileSync(path.join(DATA_DIR, "pmtiles_manifest.json"), "utf8")
   );
   assert.equal(manifest.version, 3);
-  assert.equal(manifest.cache_bust, "20261108b");
+  assert.equal(manifest.cache_bust, "20261108c");
 
   for (const relPath of [
     "app/index.html",

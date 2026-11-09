@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Plat &amp; Property Monitor · Preservation Houston &amp; Houston Building Atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -281,15 +281,32 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 .modal h3{margin:0 0 10px}
 .modal textarea{width:100%;min-height:240px;border:1px solid var(--line);border-radius:4px;padding:10px;font-size:13.5px;line-height:1.45}
 .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:6px;font-size:14px;z-index:60;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+.toast{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:6px;font-size:14px;z-index:60;box-shadow:0 8px 20px rgba(0,0,0,.25);pointer-events:none;max-width:calc(100vw - 24px);text-align:center}
 
-@media (max-width:900px){
-  main{grid-template-columns:1fr}
+@media screen and (max-width:900px){
+  html,body{overflow-x:hidden;max-width:100vw}
+  header.top{padding:max(10px,env(safe-area-inset-top,0px)) 14px 12px;gap:10px}
+  .mode-switch{display:flex;flex-wrap:wrap;width:100%}
+  .mode-btn{flex:1 1 180px;justify-content:space-between;min-height:36px;white-space:normal;text-align:left}
+  header.top .cycle{margin-left:0;width:100%;min-width:0}
+  #agendaHeaderControls,#watchlistHeaderControls,#activityHeaderControls{max-width:100%;min-width:0}
+  .hdr-meta-badge{white-space:normal;max-width:100%;line-height:1.35}
+  .btn{max-width:100%;white-space:normal;text-align:left;min-height:34px}
+  header.top select.dark-sel,header.top input{max-width:100%;min-width:0}
+  .menu-list{min-width:min(290px,calc(100vw - 24px));max-width:calc(100vw - 24px)}
+  .toolbar{padding:10px 14px}
+  .toolbar .filters{margin-left:0;width:100%}
+  .toolbar input,.toolbar select{max-width:100%;flex:1 1 160px;min-width:0}
+  main{grid-template-columns:minmax(0,1fr);min-height:0}
   .list,.detail{max-height:none}
-  .list{border-right:0;border-bottom:1px solid var(--line);max-height:48vh}
-  .funnel{flex-wrap:wrap}.stage{flex:1 1 30%}.stage::after{display:none}
-  .grid2{grid-template-columns:1fr}
-  header.top .cycle{margin-left:0}
+  .list{border-right:0;border-bottom:1px solid var(--line);max-height:48vh;max-height:48dvh}
+  .detail{padding:16px 14px calc(48px + env(safe-area-inset-bottom,0px));min-width:0;overflow-x:hidden}
+  .funnel{flex-wrap:wrap}.stage{flex:1 1 45%;padding:10px 12px}.stage::after{display:none}
+  .grid2,.snowball-grid{grid-template-columns:minmax(0,1fr)}
+  .chk-add input[type="date"],.chk-add input.chk-res-in,.chk-add input.chk-lbl-in,.chk-add input.chk-url-in,.missing-hcad-box .mh-inline input{width:100%;min-width:0;max-width:100%;flex:1 1 100%}
+  .modal-back{--modal-safe-top:max(10px,env(safe-area-inset-top,0px));--modal-safe-bottom:max(10px,env(safe-area-inset-bottom,0px));padding:var(--modal-safe-top) 10px var(--modal-safe-bottom)}
+  .modal{max-height:calc(100vh - 20px);max-height:calc(100dvh - var(--modal-safe-top,10px) - var(--modal-safe-bottom,10px));padding:16px 14px}
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),select,textarea{font-size:16px !important}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}
 </style>
@@ -484,7 +501,7 @@ import {
   formatDemolitionPolicyBriefText,
   formatDemolitionPolicyBriefRichHtml,
   buildDemolitionBenchmarksTablesHtml,
-} from "./js/platMonitorHelpers.js?v=20261108b";
+} from "./js/platMonitorHelpers.js?v=20261108c";
 
 import {
   TRACKER_STATUSES,
@@ -514,7 +531,7 @@ import {
   parseCloudSheetSyncRows,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
-} from "./js/watchlistSyncHelpers.js?v=20261108b";
+} from "./js/watchlistSyncHelpers.js?v=20261108c";
 
 import {
   ACTIVITY_STREAM_META,
@@ -532,14 +549,14 @@ import {
   buildWatchPropertyFromPermitAlert,
   sanitizeActivityEventForRender,
   formatActivityBriefingText,
-} from "./js/activityLogHelpers.js?v=20261108b";
+} from "./js/activityLogHelpers.js?v=20261108c";
 
 import {
   buildAddressShardUrl,
   decodeGzipJsonResponse,
   decompressAddressShardBytes,
   normalizeAddressShardPrefix,
-} from "./js/clerkSearchHelpers.js?v=20261108b";
+} from "./js/clerkSearchHelpers.js?v=20261108c";
 
 /* ---------- Storage ---------- */
 const store = {
@@ -807,7 +824,7 @@ const liveHcadGradeCache = new Map();
 
 function ensureMonitorManifest(){
   if (!monitorManifestPromise) {
-    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261108b")
+    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261108c")
       .then(r => r.ok ? r.json() : null)
       .catch(() => null);
   }
@@ -819,10 +836,10 @@ async function ensureLocalAtlasLookupContext(){
   if (!atlasLookupCachePromise) {
     atlasLookupCachePromise = (async () => {
       const [ovRes, bldRes, pclRes, ovlRes] = await Promise.all([
-        fetch("public/data/curated_overrides.json?v=20261108b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/buildings.geojson?v=20261108b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/parcels.geojson?v=20261108b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/overlays.json?v=20261108b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/curated_overrides.json?v=20261108c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/buildings.geojson?v=20261108c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/parcels.geojson?v=20261108c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/overlays.json?v=20261108c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
       const localHcadMap = new Map();
       const ingestFc = (fc) => {
@@ -1853,7 +1870,7 @@ async function copyCurrentActivityBriefing(){
 function ensureLazyHahcTrackerLoaded(){
   if (hahcFetchStarted) return;
   hahcFetchStarted = true;
-  fetch("public/data/hahc_coa_tracker.json?v=20261108b")
+  fetch("public/data/hahc_coa_tracker.json?v=20261108c")
     .then(r => (r.ok ? r.json() : null))
     .then(data => {
       if (data && typeof data === "object") {
@@ -3957,28 +3974,30 @@ function renderWatchlistDetail(precomputedActCtx = null){
         <span>Chronological Findings Log (${log.length} checks logged)</span>
         <span style="font-size:12px;color:var(--muted);font-weight:400">Compiled automatically from manual &amp; daily auto-sweep checks</span>
       </h3>
-      <table class="wl-table">
-        <thead>
-          <tr>
-            <th style="width:45px">#</th>
-            <th style="width:105px">Date</th>
-            <th style="width:130px">Stage</th>
-            <th style="width:205px">Activity</th>
-            <th>Finding / Result &amp; Linked Files</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${log.length
-            ? log.map(entry => `<tr>
-                <td>${entry.entryNo}</td>
-                <td style="white-space:nowrap;font-weight:600">${esc(entry.date)}</td>
-                <td>${esc(entry.stage)}</td>
-                <td>${esc(entry.activity)}</td>
-                <td>${esc(entry.result)}${renderCheckLinksHtml(entry.links)}</td>
-              </tr>`).join("")
-            : `<tr><td colspan="5" style="color:var(--muted)">No dated checks logged yet.</td></tr>`}
-        </tbody>
-      </table>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <table class="wl-table">
+          <thead>
+            <tr>
+              <th style="width:45px">#</th>
+              <th style="width:105px">Date</th>
+              <th style="width:130px">Stage</th>
+              <th style="width:205px">Activity</th>
+              <th>Finding / Result &amp; Linked Files</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${log.length
+              ? log.map(entry => `<tr>
+                  <td>${entry.entryNo}</td>
+                  <td style="white-space:nowrap;font-weight:600">${esc(entry.date)}</td>
+                  <td>${esc(entry.stage)}</td>
+                  <td>${esc(entry.activity)}</td>
+                  <td>${esc(entry.result)}${renderCheckLinksHtml(entry.links)}</td>
+                </tr>`).join("")
+              : `<tr><td colspan="5" style="color:var(--muted)">No dated checks logged yet.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
     </div>
   `;
   if (view.highlightCheckId) {
@@ -5345,7 +5364,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
     try {
       let alData = window.__permitAlertsPayload || null;
       if (!alData) {
-        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261108b");
+        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261108c");
         if (alResp.ok) alData = await alResp.json();
       }
       const alerts = Array.isArray(alData?.alerts) ? alData.alerts : [];
@@ -5401,7 +5420,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
 async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
   try {
-    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261108b";
+    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261108c";
     const [platResp, wlResp, alResp, actResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json" + cacheQ),
       fetch("public/data/property_watchlist.json" + cacheQ),
@@ -6316,8 +6335,14 @@ document.addEventListener("click", async e => {
   });
   if (menuBtn) {
     const list = menuBtn.nextElementSibling;
+    list.style.left = "";
+    list.style.right = "0";
     list.classList.toggle("hidden");
-    menuBtn.setAttribute("aria-expanded", String(!list.classList.contains("hidden")));
+    const isOpen = !list.classList.contains("hidden");
+    menuBtn.setAttribute("aria-expanded", String(isOpen));
+    if (isOpen) {
+      clampMenuListToViewport(list);
+    }
     return;
   }
   const act = e.target.closest("[data-act]");
@@ -6325,6 +6350,24 @@ document.addEventListener("click", async e => {
     act.closest(".menu-list")?.classList.add("hidden");
     doAction(act.dataset.act);
   }
+});
+
+function clampMenuListToViewport(list){
+  if (!list || list.classList.contains("hidden") || !list.parentElement) return;
+  list.style.left = "";
+  list.style.right = "0";
+  const r = list.getBoundingClientRect();
+  const pr = list.parentElement.getBoundingClientRect();
+  const vw = window.innerWidth || document.documentElement.clientWidth || 390;
+  let targetLeft = pr.right - r.width;
+  if (targetLeft + r.width > vw - 12) targetLeft = vw - 12 - r.width;
+  if (targetLeft < 12) targetLeft = 12;
+  list.style.right = "auto";
+  list.style.left = `${Math.round(targetLeft - pr.left)}px`;
+}
+
+window.addEventListener("resize", () => {
+  document.querySelectorAll(".menu-list:not(.hidden)").forEach(clampMenuListToViewport);
 });
 
 document.addEventListener("keydown", e => {

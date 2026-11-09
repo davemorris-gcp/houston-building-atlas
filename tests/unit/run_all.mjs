@@ -16,3 +16,4 @@ import "./milestone7_1927_cutoff_triage.test.mjs";
 import "./milestone8_historical_ownership.test.mjs";
 import "./milestone9_gzip_and_tpia.test.mjs";
 import "./milestone10_archives_and_copyright.test.mjs";
+import "./mobile_ux_responsive.test.mjs";

@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261108b";
+} from "./palettes.js?v=20261108c";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -27,16 +27,16 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261108b";
-import { AtlasMapController } from "./mapController.js?v=20261108b";
+} from "./filterStore.js?v=20261108c";
+import { AtlasMapController } from "./mapController.js?v=20261108c";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261108b";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261108b";
+} from "./guidedChaptersAndPortfolios.js?v=20261108c";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261108c";
 import {
   buildAddressShardUrl,
   buildResearchKitDeedChainView,
@@ -49,7 +49,7 @@ import {
   isPlaceholderOwnerName,
   normalizeAddressShardPrefix,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261108b";
+} from "./clerkSearchHelpers.js?v=20261108c";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -72,7 +72,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261108b";
+} from "./curatedEdits.js?v=20261108c";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -82,12 +82,12 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261108b";
+} from "./photoService.js?v=20261108c";
 import {
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
   resolveArchivalRecords,
-} from "./archivalHelpers.js?v=20261108b";
+} from "./archivalHelpers.js?v=20261108c";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -95,12 +95,12 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261108b";
+} from "./platMonitorHelpers.js?v=20261108c";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261108b";
+} from "./hcadViewportParcels.js?v=20261108c";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -120,11 +120,11 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261108b";
+} from "./preservationOrganizer.js?v=20261108c";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
-} from "./urlValidators.js?v=20261108b";
+} from "./urlValidators.js?v=20261108c";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -998,23 +998,77 @@ export class HoustonAtlasApp {
     });
   }
 
+  _closeTransientTopbarPopovers() {
+    if (typeof document === "undefined" || typeof document.getElementById !== "function") return;
+    const basemapMenu = document.getElementById("basemap-dropdown-menu");
+    const basemapTrigger = document.getElementById("btn-basemap-trigger");
+    const moreDropdown = document.getElementById("topbar-more-dropdown");
+    const moreTrigger = document.getElementById("btn-topbar-more");
+    const searchResults = document.getElementById("search-results");
+    basemapMenu?.classList?.add?.("hidden");
+    basemapTrigger?.setAttribute?.("aria-expanded", "false");
+    moreDropdown?.classList?.remove?.("open");
+    moreDropdown?.removeAttribute?.("open");
+    moreTrigger?.setAttribute?.("aria-expanded", "false");
+    searchResults?.classList?.add?.("hidden");
+  }
+
+  _syncResponsiveHudOffsets() {
+    if (typeof document === "undefined" || typeof document.getElementById !== "function") return;
+    const topbarEl = document.getElementById("atlas-topbar");
+    if (!topbarEl || typeof topbarEl.getBoundingClientRect !== "function") return;
+    const rect = topbarEl.getBoundingClientRect();
+    if (!rect || !(rect.height > 0) || typeof document.documentElement?.style?.setProperty !== "function") {
+      return;
+    }
+    const topbarOffsetPx = Math.round(rect.bottom + 6);
+    document.documentElement.style.setProperty("--topbar-offset", `${topbarOffsetPx}px`);
+    let hudTopPx = topbarOffsetPx;
+    const tourBarEl =
+      typeof document.querySelector === "function"
+        ? document.querySelector(".tour-bar")
+        : document.getElementById("tour-bar");
+    if (tourBarEl && typeof tourBarEl.getBoundingClientRect === "function") {
+      const tourStyle =
+        typeof window !== "undefined" && typeof window.getComputedStyle === "function"
+          ? window.getComputedStyle(tourBarEl)
+          : tourBarEl.style || null;
+      const tourHidden =
+        Boolean(tourBarEl.classList?.contains?.("hidden")) ||
+        (tourStyle != null && (tourStyle.display === "none" || tourStyle.visibility === "hidden"));
+      if (!tourHidden) {
+        const tr = tourBarEl.getBoundingClientRect();
+        if (tr && tr.height > 0 && tr.bottom > rect.bottom) {
+          hudTopPx = Math.round(tr.bottom + 6);
+        }
+      }
+    }
+    document.documentElement.style.setProperty("--hud-top-offset", `${hudTopPx}px`);
+  }
+
   _setSidebarCollapsed(collapsed) {
+    if (typeof document === "undefined" || typeof document.getElementById !== "function") return;
     const sidebar = document.getElementById("atlas-sidebar");
-    const shell = document.querySelector(".atlas-shell");
+    const shell =
+      typeof document.querySelector === "function" ? document.querySelector(".atlas-shell") : null;
     const btnToggle = document.getElementById("btn-toggle-sidebar");
     if (!sidebar) return;
 
-    sidebar.classList.toggle("collapsed", Boolean(collapsed));
+    if (!collapsed) {
+      this._closeTransientTopbarPopovers?.();
+    }
+    sidebar.classList?.toggle?.("collapsed", Boolean(collapsed));
     if (shell) {
-      shell.classList.toggle("sidebar-collapsed", Boolean(collapsed));
+      shell.classList?.toggle?.("sidebar-collapsed", Boolean(collapsed));
     }
     if (btnToggle) {
-      btnToggle.classList.toggle("active", !collapsed);
+      btnToggle.classList?.toggle?.("active", !collapsed);
     }
     if (!collapsed && typeof window !== "undefined" && window.innerWidth <= 900) {
       const drawer = document.getElementById("inspector-drawer");
-      if (drawer) drawer.classList.add("hidden");
+      drawer?.classList?.add?.("hidden");
     }
+    this._syncResponsiveHudOffsets?.();
   }
 
   async _loadMetadataFiles() {
@@ -1029,14 +1083,14 @@ export class HoustonAtlasApp {
         ownPortRes,
         archivalRes,
       ] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261108b"),
-        fetch("public/data/stats_summary.json?v=20261108b"),
-        fetch("public/data/haif_index.json?v=20261108b").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261108b").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261108b").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261108b").catch(() => null),
-        fetch("public/data/ownership_portfolios.json?v=20261108b").catch(() => null),
-        fetch("public/data/archival_index.json?v=20261108b").catch(() => null),
+        fetch("public/data/search_index.json?v=20261108c"),
+        fetch("public/data/stats_summary.json?v=20261108c"),
+        fetch("public/data/haif_index.json?v=20261108c").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261108c").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261108c").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261108c").catch(() => null),
+        fetch("public/data/ownership_portfolios.json?v=20261108c").catch(() => null),
+        fetch("public/data/archival_index.json?v=20261108c").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -4146,8 +4200,7 @@ export class HoustonAtlasApp {
     const scorecardModal = document.getElementById("scorecard-modal");
     const btnCloseScorecardModal = document.getElementById("btn-close-scorecard-modal");
     const openScorecardsHandler = () => {
-      const moreMenu = document.getElementById("topbar-more-dropdown");
-      if (moreMenu && moreMenu.hasAttribute("open")) moreMenu.removeAttribute("open");
+      this._closeTransientTopbarPopovers?.();
       const selBnd = this.mapController?.selectedBoundaryFeature?.properties;
       const bLayer = String(selBnd?.overlay_layer || "");
       const bId = String(selBnd?.id || "");
@@ -4558,7 +4611,10 @@ export class HoustonAtlasApp {
     const btnCloseModal = document.getElementById("btn-close-about-modal");
     const aboutModal = document.getElementById("about-modal");
     if (btnOpenModal && aboutModal) {
-      btnOpenModal.addEventListener("click", () => aboutModal.classList.remove("hidden"));
+      btnOpenModal.addEventListener("click", () => {
+        this._closeTransientTopbarPopovers?.();
+        aboutModal.classList.remove("hidden");
+      });
     }
     if (btnCloseModal && aboutModal) {
       btnCloseModal.addEventListener("click", () => aboutModal.classList.add("hidden"));
@@ -4648,6 +4704,7 @@ export class HoustonAtlasApp {
         if (csvInput && syncStatus?.csvUrl) csvInput.value = syncStatus.csvUrl;
         if (webhookInput && syncStatus?.webhookUrl) webhookInput.value = syncStatus.webhookUrl;
 
+        this._closeTransientTopbarPopovers?.();
         corrModal.classList.remove("hidden");
         adminAuthPanel.classList.remove("hidden");
         syncAdminUiState();
@@ -5207,23 +5264,19 @@ export class HoustonAtlasApp {
       });
     }
 
-    // Dynamically track topbar bottom edge on mobile/tablet so Tour Bar & Sidebar never overlap
+    // Dynamically track topbar & tour-bar bottom edges on mobile/tablet so Tour Bar, Cards & Sheets never overlap
     const topbarEl = document.getElementById("atlas-topbar");
-    if (topbarEl) {
-      const updateTopbarOffset = () => {
-        const rect = topbarEl.getBoundingClientRect();
-        if (rect.height > 0) {
-          document.documentElement.style.setProperty(
-            "--topbar-offset",
-            `${Math.round(rect.bottom + 6)}px`
-          );
-        }
-      };
+    const tourBarEl = typeof document.querySelector === "function" ? document.querySelector(".tour-bar") : null;
+    if (topbarEl && typeof topbarEl.getBoundingClientRect === "function") {
+      const updateTopbarOffset = () => this._syncResponsiveHudOffsets();
       updateTopbarOffset();
-      window.addEventListener("resize", updateTopbarOffset);
+      if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+        window.addEventListener("resize", updateTopbarOffset);
+      }
       if (typeof ResizeObserver !== "undefined") {
         const ro = new ResizeObserver(updateTopbarOffset);
         ro.observe(topbarEl);
+        if (tourBarEl) ro.observe(tourBarEl);
       }
     }
   }
@@ -6971,6 +7024,7 @@ export class HoustonAtlasApp {
   openCorrectionModal(props, opts = {}) {
     const modal = document.getElementById("correction-modal");
     if (!modal || !props) return;
+    this._closeTransientTopbarPopovers?.();
     if (!opts.focusAdminUnlock && this._staffWorkbench) {
       this._staffWorkbench.cancelPendingPolyEditAuthGate?.({ updateUrl: false });
     }
@@ -7157,6 +7211,7 @@ export class HoustonAtlasApp {
   _exitActiveTour({ restoreViewport = true } = {}) {
     const banner = document.getElementById("tour-narrative-banner");
     if (banner) banner.classList.add("hidden");
+    this._syncResponsiveHudOffsets?.();
 
     const container = document.getElementById("tour-pills");
     if (container) {
@@ -7392,6 +7447,8 @@ export class HoustonAtlasApp {
       compact: true,
     });
     if (banner) banner.classList.remove("hidden");
+    this._closeTransientTopbarPopovers?.();
+    this._syncResponsiveHudOffsets?.();
 
     if (controlsEl && dotsEl) {
       if (stops.length > 0) {
@@ -10610,6 +10667,7 @@ export class HoustonAtlasApp {
       </div>
     `;
 
+    this._closeTransientTopbarPopovers?.();
     drawer.classList.remove("hidden");
 
     this._bindInspectorOverlapStackEvents(content);
@@ -10897,6 +10955,7 @@ export class HoustonAtlasApp {
       drawer.classList.remove("sheet-peek", "sheet-half", "sheet-full");
       drawer.classList.add(`sheet-${sheetMode}`);
     }
+    this._syncResponsiveHudOffsets?.();
 
     if (btnWide) {
       btnWide.classList.toggle("active", isWide);
@@ -14993,6 +15052,7 @@ export class HoustonAtlasApp {
       </div>
     `;
 
+    this._closeTransientTopbarPopovers?.();
     drawer.classList.remove("hidden");
 
     content.querySelectorAll("[data-inspector-tab]").forEach((tabBtn) => {
@@ -15532,7 +15592,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const permitShardUrl = cb
         ? `public/data/permits/permits_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/permits/permits_${prefix3}.json.gz?v=20261108b`;
+        : `public/data/permits/permits_${prefix3}.json.gz?v=20261108c`;
       const p = fetch(permitShardUrl)
         .then((res) => decodeGzipJsonResponse(res, decompressPermitShardBytes))
         .catch(() => ({}));
@@ -15556,7 +15616,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const ownerShardUrl = cb
         ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261108b`;
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261108c`;
       const p = fetch(ownerShardUrl)
         .then(async (res) => {
           if (!res.ok) return {};
@@ -16267,6 +16327,7 @@ export class HoustonAtlasApp {
     const state = this._activePhotoState;
     const modal = document.getElementById("photo-lightbox-modal");
     if (!state || !modal) return;
+    this._closeTransientTopbarPopovers?.();
 
     const titleEl = document.getElementById("lightbox-modal-title");
     const kickerEl = document.getElementById("lightbox-modal-kicker");
@@ -16343,6 +16404,7 @@ export class HoustonAtlasApp {
     const modal = document.getElementById("dossier-modal");
     const bodyEl = document.getElementById("dossier-modal-body");
     if (!modal || !bodyEl || !props) return;
+    this._closeTransientTopbarPopovers?.();
 
     const year = Number(props.year_built) >= 1836 ? Number(props.year_built) : null;
     const eraColor = year ? getYearColorHex(year, this.filterStore.getState().paletteStyle) : "#4d781d";
@@ -16712,6 +16774,7 @@ export class HoustonAtlasApp {
   openShareModal() {
     const shareModal = document.getElementById("share-modal");
     if (!shareModal) return;
+    this._closeTransientTopbarPopovers?.();
     this._refreshShareModalContent();
     shareModal.classList.remove("hidden");
   }
@@ -17301,6 +17364,7 @@ export class HoustonAtlasApp {
   openExportStudioModal(initialBoundarySpec = null, opts = {}) {
     const modal = document.getElementById("export-studio-modal");
     if (!modal) return;
+    this._closeTransientTopbarPopovers?.();
 
     if (initialBoundarySpec && initialBoundarySpec.name) {
       this._exportStudioState.targetSpec = {
@@ -17585,7 +17649,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261108b`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261108c`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18157,6 +18221,7 @@ export class HoustonAtlasApp {
   openSanbornBrowserModal(initialVolId = null, initialSheetCode = null, initialSp = null) {
     const modal = document.getElementById("sanborn-browser-modal");
     if (!modal) return;
+    this._closeTransientTopbarPopovers?.();
     modal.classList.remove("hidden");
 
     const btnActivateMosaic = document.getElementById("btn-sanborn-activate-1907-mosaic");
@@ -18795,6 +18860,7 @@ export class HoustonAtlasApp {
   openPermitWatchModal(filterSeverity = "all", expandBenchmarks = false) {
     const modal = document.getElementById("permit-watch-modal");
     if (!modal) return;
+    this._closeTransientTopbarPopovers?.();
     this._syncPermitWatchCounts();
     modal.classList.remove("hidden");
 
@@ -19022,7 +19088,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261108b")
+          fetch("public/data/sanborn_catalog.json?v=20261108c")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -19032,7 +19098,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261108b")
+          fetch("public/data/citydir_index.json?v=20261108c")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -19055,7 +19121,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261108b")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261108c")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -19075,6 +19141,7 @@ export class HoustonAtlasApp {
   }
 
   async openHistorianAuditMode(targetFidOrHcad = "") {
+    this._closeTransientTopbarPopovers?.();
     const wb = await this._ensureStaffWorkbench();
     const raw = String(targetFidOrHcad || "").trim();
     const cleanHcad = normalizeHcad13(raw);
@@ -19086,6 +19153,7 @@ export class HoustonAtlasApp {
   }
 
   async openPolygonEditorForCurrentOrTarget(spec = {}) {
+    this._closeTransientTopbarPopovers?.();
     const wb = await this._ensureStaffWorkbench();
     const fallbackProps = this._currentInspectedRawProps || {};
     const props = spec.props || fallbackProps;
@@ -19101,11 +19169,14 @@ export class HoustonAtlasApp {
           : null),
       props,
     });
+    this._syncResponsiveHudOffsets?.();
   }
 
   async openFieldSurveyMode(targetProps = null) {
+    this._closeTransientTopbarPopovers?.();
     const wb = await this._ensureStaffWorkbench();
     wb.openFieldSurveySheet({ targetProps, updateUrl: true });
+    this._syncResponsiveHudOffsets?.();
   }
 
   async _syncStaffWorkbenchWithRoute({
@@ -19116,6 +19187,9 @@ export class HoustonAtlasApp {
     activePolyEdit = null,
     updateUrl = false,
   } = {}) {
+    if (activeAudit || activeSurvey || activePolyEdit) {
+      this._closeTransientTopbarPopovers?.();
+    }
     if (!activeAudit && !activeSurvey && !activePolyEdit && !this._staffWorkbench) {
       return;
     }
@@ -19163,6 +19237,7 @@ export class HoustonAtlasApp {
     } else if (wb.surveyOpen) {
       wb.closeFieldSurveySheet({ updateUrl: false });
     }
+    this._syncResponsiveHudOffsets?.();
   }
 
   applyLiveCuratedOverrideMapUpdate(overrideKey, incomingPatch, fallbackGeometry = null) {
@@ -19373,6 +19448,8 @@ export class HoustonAtlasApp {
 
     if (btnLaunch) btnLaunch.classList.add("active");
     if (card) card.classList.remove("hidden");
+    this._closeTransientTopbarPopovers?.();
+    this._syncResponsiveHudOffsets?.();
     if (kickerEl) kickerEl.textContent = chapter.kicker || `Chapter ${chapter.chapterNum}`;
     if (eraEl) eraEl.textContent = chapter.era || "";
     if (titleEl) titleEl.textContent = chapter.title || "";
@@ -19488,6 +19565,7 @@ export class HoustonAtlasApp {
     if (card) card.classList.add("hidden");
     const btnLaunch = document.getElementById("btn-open-city-chapters");
     if (btnLaunch) btnLaunch.classList.remove("active");
+    this._syncResponsiveHudOffsets?.();
 
     const snap = this._preChapterSnapshot;
     this._preChapterSnapshot = null;
@@ -19743,6 +19821,8 @@ export class HoustonAtlasApp {
 
     if (btnQuick) btnQuick.classList.add("active");
     if (card) card.classList.remove("hidden");
+    this._closeTransientTopbarPopovers?.();
+    this._syncResponsiveHudOffsets?.();
 
     this._renderPortfolioWorksList({ fitBounds });
     this._updateUrlHash(this.filterStore.getState(), { push: !skipHistoryPush });
@@ -19886,6 +19966,7 @@ export class HoustonAtlasApp {
     if (card) card.classList.add("hidden");
     const btnQuick = document.getElementById("btn-open-portfolios-quick");
     if (btnQuick) btnQuick.classList.remove("active");
+    this._syncResponsiveHudOffsets?.();
 
     const snap = this._prePortfolioSnapshot;
     this._prePortfolioSnapshot = null;
@@ -20252,6 +20333,7 @@ export class HoustonAtlasApp {
   openHahcTrackerModal({ district = "", category = "", search = "" } = {}) {
     const modal = document.getElementById("hahc-tracker-modal");
     if (!modal) return;
+    this._closeTransientTopbarPopovers?.();
     this._syncHahcCounts();
 
     if (district) {
@@ -20485,7 +20567,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261108b")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261108c")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {
@@ -20616,6 +20698,7 @@ export class HoustonAtlasApp {
   async openScorecardModal({ layer = "", id = "", updateUrl = true } = {}) {
     const modal = document.getElementById("scorecard-modal");
     if (!modal) return;
+    this._closeTransientTopbarPopovers?.();
     const scSeq = (this._scorecardReqSeq = (this._scorecardReqSeq || 0) + 1);
     modal.classList.remove("hidden");
     const hasExplicitTarget = Boolean(layer && id);
@@ -20866,6 +20949,7 @@ export class HoustonAtlasApp {
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
     const modal = document.getElementById("ch42-modal");
     const bodyEl = document.getElementById("ch42-modal-body");
+    this._closeTransientTopbarPopovers?.();
     if (modal) modal.classList.remove("hidden");
     if (bodyEl) {
       bodyEl.innerHTML = `<div style="padding:24px;color:var(--text-secondary)">Locating nearest HCAD parcel at (${lat.toFixed(
@@ -20928,6 +21012,7 @@ export class HoustonAtlasApp {
 
     const modal = document.getElementById("ch42-modal");
     const bodyEl = document.getElementById("ch42-modal-body");
+    this._closeTransientTopbarPopovers?.();
     if (modal) modal.classList.remove("hidden");
     if (bodyEl) {
       bodyEl.innerHTML = `<div style="padding:28px;color:var(--text-secondary)">Assembling live Chapter 42 blockface from HCAD GIS &amp; Atlas footprints for parcel <code>${this._escapeHtmlAttr(
