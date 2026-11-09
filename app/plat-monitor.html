@@ -286,8 +286,9 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 @media screen and (max-width:900px){
   html,body{overflow-x:hidden;max-width:100vw}
   header.top{padding:max(10px,env(safe-area-inset-top,0px)) 14px 12px;gap:10px}
+  header.top > *,.toolbar > *{min-width:0;max-width:100%}
   .mode-switch{display:flex;flex-wrap:wrap;width:100%}
-  .mode-btn{flex:1 1 180px;justify-content:space-between;min-height:36px;white-space:normal;text-align:left}
+  .mode-btn{flex:1 1 180px;justify-content:space-between;min-height:36px;white-space:normal;text-align:left;min-width:0}
   header.top .cycle{margin-left:0;width:100%;min-width:0}
   #agendaHeaderControls,#watchlistHeaderControls,#activityHeaderControls{max-width:100%;min-width:0}
   .hdr-meta-badge{white-space:normal;max-width:100%;line-height:1.35}
@@ -295,15 +296,18 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
   header.top select.dark-sel,header.top input{max-width:100%;min-width:0}
   .menu-list{min-width:min(290px,calc(100vw - 24px));max-width:calc(100vw - 24px)}
   .toolbar{padding:10px 14px}
-  .toolbar .filters{margin-left:0;width:100%}
-  .toolbar input,.toolbar select{max-width:100%;flex:1 1 160px;min-width:0}
+  .toolbar > div,.toolbar .filters{margin-left:0;width:100%;min-width:0;max-width:100%}
+  .toolbar input,.toolbar select{width:100% !important;max-width:100%;flex:1 1 160px;min-width:0}
   main{grid-template-columns:minmax(0,1fr);min-height:0}
-  .list,.detail{max-height:none}
+  .list,.detail{max-height:none;min-width:0;max-width:100%}
   .list{border-right:0;border-bottom:1px solid var(--line);max-height:48vh;max-height:48dvh}
-  .detail{padding:16px 14px calc(48px + env(safe-area-inset-bottom,0px));min-width:0;overflow-x:hidden}
+  .detail{padding:16px 14px calc(48px + env(safe-area-inset-bottom,0px));overflow-x:hidden}
   .funnel{flex-wrap:wrap}.stage{flex:1 1 45%;padding:10px 12px}.stage::after{display:none}
-  .grid2,.snowball-grid{grid-template-columns:minmax(0,1fr)}
-  .chk-add input[type="date"],.chk-add input.chk-res-in,.chk-add input.chk-lbl-in,.chk-add input.chk-url-in,.missing-hcad-box .mh-inline input{width:100%;min-width:0;max-width:100%;flex:1 1 100%}
+  .grid2,.snowball-grid,.facts{grid-template-columns:minmax(0,1fr)}
+  .facts .fact{grid-column:1 / -1 !important;min-width:0}
+  .wl-card{padding:14px 12px;min-width:0;max-width:100%;overflow-x:hidden}
+  .links a,.links button,.links span.dis{max-width:100%;white-space:normal;word-break:break-word}
+  .chk-add input[type="date"],.chk-add input.chk-res-in,.chk-add input.chk-lbl-in,.chk-add input.chk-url-in,.missing-hcad-box .mh-inline input,.doc-links-bar input{width:100% !important;min-width:0 !important;max-width:100%;flex:1 1 100%}
   .modal-back{--modal-safe-top:max(10px,env(safe-area-inset-top,0px));--modal-safe-bottom:max(10px,env(safe-area-inset-bottom,0px));padding:var(--modal-safe-top) 10px var(--modal-safe-bottom)}
   .modal{max-height:calc(100vh - 20px);max-height:calc(100dvh - var(--modal-safe-top,10px) - var(--modal-safe-bottom,10px));padding:16px 14px}
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),select,textarea{font-size:16px !important}

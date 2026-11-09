@@ -713,6 +713,8 @@ def test_e2e_m11_5_plat_monitor_mobile_geometry(warm_mobile_ux_suite: Any) -> No
                 const firstRow = document.querySelector('#list .row');
                 if (firstRow) firstRow.click();
                 checkOverflowX('watchlist');
+                checkCtrlX('#watchlistToolbar');
+                checkCtrlX('#wlThreatFilter');
 
                 const tables = Array.from(document.querySelectorAll('#detail table')).filter(
                     t => window.getComputedStyle(t).display !== 'none' && t.getBoundingClientRect().width > 0
@@ -784,4 +786,24 @@ def test_e2e_m11_5_plat_monitor_mobile_geometry(warm_mobile_ux_suite: Any) -> No
     )
     assert reclamped["width"] > 100 and reclamped["left"] >= 8.0 and reclamped["right"] <= 352.0, (
         f"Expected open #exportMenu to re-clamp inside 360px viewport on resize, got {reclamped}"
+    )
+
+    # Verify zero horizontal overflow at 360x640 even under wider fallback OS font metrics (+0.5px letter-spacing)
+    wide_font_overflow = plat_page.evaluate(
+        """() => {
+            const st = document.createElement('style');
+            st.id = 'test-wide-font';
+            st.textContent = 'body, button, input, select, textarea { letter-spacing: 0.5px !important; }';
+            document.head.appendChild(st);
+            const res = {};
+            for (const btnId of ['modeAgendaBtn', 'modeWatchlistBtn', 'modeActivityBtn']) {
+                document.getElementById(btnId).click();
+                res[btnId] = document.documentElement.scrollWidth - window.innerWidth;
+            }
+            st.remove();
+            return res;
+        }"""
+    )
+    assert all(v <= 1 for v in wide_font_overflow.values()), (
+        f"Expected zero horizontal overflow at 360x640 under wider font metrics, got {wide_font_overflow}"
     )
