@@ -4,7 +4,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const REPO_ROOT = path.resolve(__dirname, "..", "..");
+const DATA_DIR = path.join(REPO_ROOT, "app", "public", "data");
+const ACTIVE_VER = String(
+  JSON.parse(fs.readFileSync(path.join(DATA_DIR, "pmtiles_manifest.json"), "utf8"))
+    .cache_bust || ""
+).trim();
+
+const {
   FIELD_SURVEY_CONDITION_RATINGS,
   FIELD_SURVEY_CONTRIBUTING_VALUES,
   FIELD_SURVEY_CSV_COLUMNS,
@@ -47,9 +56,9 @@ import {
   stripEmbeddedGeometryTag,
   submitFieldSurveyObservation,
   validateOverridePolygonGeometry,
-} from "../../app/js/curatedEdits.js?v=20261109a";
+} = await import(`../../app/js/curatedEdits.js?v=${ACTIVE_VER}`);
 
-import {
+const {
   AUDIT_CATEGORY_LABELS,
   AUDIT_UNDESIGNATED_DISTRICT,
   BORDEN_DOWNTOWN_GRID_DEG,
@@ -86,20 +95,15 @@ import {
   validateAndNormalizeDraftPolygon,
   validateFieldSurveyDraft,
   validatePolygonSaveContributing,
-} from "../../app/js/staffWorkbench.js?v=20261109a";
+} = await import(`../../app/js/staffWorkbench.js?v=${ACTIVE_VER}`);
 
-import {
+const {
   DEFAULT_FILTER_STATE,
   buildShareableUrl,
   createFilterStore,
   parseHashToState,
   serializeStateToHash,
-} from "../../app/js/filterStore.js?v=20261109a";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const DATA_DIR = path.join(REPO_ROOT, "app", "public", "data");
+} = await import(`../../app/js/filterStore.js?v=${ACTIVE_VER}`);
 
 function makeMemoryStorage({ throwOnSet = false } = {}) {
   const map = new Map();

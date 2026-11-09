@@ -28,7 +28,7 @@ ACTIVE_TAX_YEAR = 2026
 MAX_VALID_CAMA_DATE_YEAR = ACTIVE_TAX_YEAR
 MAX_VALID_YEAR = ACTIVE_TAX_YEAR + 1
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261109a"
+ACTIVE_CACHE_BUST = "20261109b"
 PERMIT_ENRICHMENT_SOFT_MAX_BYTES = 948 * 1024 * 1024
 SOFT_MAX_APP_BYTES = 968 * 1024 * 1024
 HARD_MAX_APP_BYTES = 980 * 1024 * 1024
@@ -480,29 +480,236 @@ def normalize_hcad_extra_feature_row(
 
 
 PERMITS_CAP_PER_ACCOUNT = 25
+
+VALID_PERMIT_CAT_CODES: frozenset[str] = frozenset({
+    "new",
+    "remodel",
+    "add",
+    "demo",
+    "asbestos",
+    "reloc",
+    "aux",
+    "roof",
+    "mep",
+    "repair",
+    "other",
+})
+
+# Official 25 HCAD `permits.txt` (`permit_type`, `permit_tp_descr`) mappings verified
+# across all 1,300,027 certified CAMA permit rows, plus legacy pre-2005 / synthetic codes
+# ("01".."06", "18", "TX", "W") preserved for TPIA / historical tables.
 PERMIT_TYPE_CATEGORY: dict[str, tuple[str, str]] = {
+    # Legacy / pre-2005 synthetic permit codes
     "01": ("New Construction", "new"),
     "02": ("Demolition", "demo"),
     "03": ("Addition / Increase Sq Ft", "add"),
     "04": ("Finish Out / Completion", "remodel"),
     "05": ("Remodel / Renovation", "remodel"),
     "06": ("Mechanical / Electrical / Plumbing", "mep"),
-    "07": ("Re-Roof / Roof Structure", "roof"),
-    "08": ("Swimming Pool / Spa", "aux"),
-    "09": ("Enclosure / Carport / Patio", "add"),
-    "11": ("Fire / Storm Damage Repair", "repair"),
-    "13": ("General Repair / Foundation", "repair"),
-    "14": ("Paving / Flatwork / Driveway", "aux"),
+    # Official HCAD CAMA `permits.txt` codes
+    "07": ("Outbuilding / Yard Feature (OB&Y)", "aux"),
+    "08": ("Manufactured / Mobile Home", "aux"),
+    "09": ("New Dwelling (No Municipal Permit)", "new"),
+    "10": ("New Residential Construction", "new"),
+    "11": ("Additions or Remodeling", "remodel"),
+    "12": ("Repairs (Foundation / General Maintenance)", "repair"),
+    "13": ("Residential Demolition", "demo"),
+    "14": ("Manufactured Home (Real Property)", "new"),
     "15": ("Moved / Relocated Structure", "reloc"),
-    "16": ("Storage / Outbuilding / Canopy", "aux"),
-    "17": ("Foundation / Structural Repair", "repair"),
+    "16": ("Fire Damage Report", "repair"),
+    "17": ("Storm / Disaster Repair", "repair"),
     "18": ("Site / Drainage / Utilities", "aux"),
-    "31": ("New Custom Residence", "new"),
-    "33": ("Townhome / Multi-Family New Build", "new"),
-    "50": ("Commercial General Permit", "remodel"),
+    "20": ("New Condominium Unit", "new"),
+    "21": ("Condo Addition / Remodel", "remodel"),
+    "30": ("New Commercial / Multi-Family Building", "new"),
+    "31": ("Commercial Addition / Remodel", "remodel"),
+    "32": ("Paving / Parking Lot / Slab", "aux"),
+    "33": ("Commercial Demolition", "demo"),
+    "35": ("Commercial Fire Damage Report", "repair"),
+    "39": ("New Construction (No Municipal Permit)", "new"),
+    "40": ("New Commercial / Industrial Building", "new"),
+    "41": ("Repair / Addition / Remodel", "repair"),
+    "43": ("Demolition", "demo"),
+    "50": ("Storm / Flood Damage Appraisal Check", "repair"),
+    "60": ("HCAD Property Owner Mailer Check", "other"),
+    "84": ("Tax-Exempt Property Permit", "other"),
     "TX": ("County Tax Permit", "remodel"),
     "W": ("Water / Utility Permit", "mep"),
 }
+
+# Reverse map from official HCAD `permits.txt` `permit_tp_descr` headers (upper-cased)
+# to canonical `permit_type` codes for carried-forward shard rows lacking `permit_type`.
+# Note: Codes 16/35 share "FIRE REPORTS" (both "repair") and 30/40 share "NEW BUILDING" (both "new").
+_HCAD_TP_DESCR_TO_PTYPE: dict[str, str] = {
+    "EXTRA FEATURES (OB&Y)": "07",
+    "TANGIBLE (PP) MOBILE HOME": "08",
+    "NEW DWELLING - NO PERMIT": "09",
+    "NEW DWELLING - PERMIT": "10",
+    "ADDITIONS OR REMODELING": "11",
+    "REPAIRS (FOUNDATION / GM)": "12",
+    "RESIDENTIAL DEMOLITION": "13",
+    "RP MOBILE HOME W/ LAND": "14",
+    "RELOCATION / BLDG MOVE": "15",
+    "FIRE REPORTS": "16",
+    "DISASTER REPAIR": "17",
+    "NEW CONDOMINIUM UNIT": "20",
+    "CONDO ADDT, RMDL, COMBINE": "21",
+    "NEW BUILDING": "30",
+    "ADDTNS, REMODELS, LEASE SPACE": "31",
+    "PAVING, PARKING LOT, SLAB": "32",
+    "COMMERCIAL DEMOLITION": "33",
+    "NEW CONSTRUCTION W/O PERMIT": "39",
+    "REP, ADDTN, RMDL, FIRE DAM": "41",
+    "DEMOLITION": "43",
+    "DISASTER REVIEW": "50",
+    "MAILER GENERATED FIELD CHECK": "60",
+    "EXEMPT PROPERTY": "84",
+}
+
+_RE_ADDITION_WORD = re.compile(r"\b(?:ADDITION|ADDITIONS|ADDTN|ADDTNS|ADDN|ADDT)\b", re.IGNORECASE)
+_RE_REMODEL_WORD = re.compile(r"\b(?:REMODEL|REMODELING|RMDL|RENOVATION|RENOV)\b", re.IGNORECASE)
+_RE_POOL_SPA_WORD = re.compile(r"\b(?:POOL|POOLS|SPA|SPAS)\b", re.IGNORECASE)
+_RE_PRIMARY_DWELLING_WORD = re.compile(r"\b(?:DWELLING|HOUSE|SFD|SFR)\b", re.IGNORECASE)
+
+
+_GENERIC_HCAD_TP_DESCRIPTIONS: frozenset[str] = frozenset(
+    set(_HCAD_TP_DESCR_TO_PTYPE.keys())
+    | {tp_label.upper() for tp_label, _ in PERMIT_TYPE_CATEGORY.values()}
+)
+
+
+def resolve_hcad_permit_display_desc(dscr: Any, pdesc: Any) -> str:
+    """Return the normalized `p.d` display description for an HCAD `permits.txt` row."""
+    dscr_s = sanitize_atlas_text(str(dscr or "").strip())
+    pdesc_s = sanitize_atlas_text(str(pdesc or "").strip())
+    return dscr_s if dscr_s and dscr_s.upper() != pdesc_s.upper() else pdesc_s
+
+
+def classify_hcad_permit_category_and_label(
+    ptype: Any,
+    pdesc: Any,
+    dscr: Any,
+) -> tuple[str, str]:
+    """Return `(tp_label, cat_code)` for an HCAD `permits.txt` row.
+
+    Aligns base `permit_type` codes with HCAD's official `permit_tp_descr` table while
+    applying conservative description-level refinements where City of Houston permit
+    feeds reuse broad codes (e.g., Type 13 non-load-bearing interior partition remodels
+    and pool/garage demolitions, Type 07/11/12 re-roofs, Type 15 `OMITTED IMPS`).
+    """
+    ptype_s = str(ptype or "").strip()
+    pdesc_s = sanitize_atlas_text(str(pdesc or "").strip())
+    dscr_s = sanitize_atlas_text(str(dscr or "").strip())
+    dscr_u = dscr_s.upper()
+    pdesc_u = pdesc_s.upper()
+    if not ptype_s and pdesc_u in _HCAD_TP_DESCR_TO_PTYPE:
+        ptype_s = _HCAD_TP_DESCR_TO_PTYPE[pdesc_u]
+
+    eff_dscr_u = (
+        ""
+        if (dscr_u == pdesc_u or dscr_u in _GENERIC_HCAD_TP_DESCRIPTIONS)
+        else dscr_u
+    )
+
+    if "OMITTED IMPS" in eff_dscr_u or "OMITTED IMPROVEMENTS" in eff_dscr_u:
+        return ("HCAD Omitted Improvement Assessment", "add")
+
+    if ptype_s == "07":
+        if "RE-ROOF" in eff_dscr_u or "REROOF" in eff_dscr_u:
+            return ("Re-Roof / Roof Structure", "roof")
+        if _RE_POOL_SPA_WORD.search(eff_dscr_u):
+            return ("Swimming Pool / Spa", "aux")
+        return PERMIT_TYPE_CATEGORY["07"]
+
+    if ptype_s == "11":
+        if "RE-ROOF" in eff_dscr_u or "REROOF" in eff_dscr_u:
+            return ("Re-Roof / Roof Structure", "roof")
+        has_add = bool(_RE_ADDITION_WORD.search(eff_dscr_u) or "INCREASE SQ" in eff_dscr_u)
+        has_rmdl = bool(_RE_REMODEL_WORD.search(eff_dscr_u))
+        if has_add and has_rmdl:
+            return ("Residential Addition & Remodel", "add")
+        if has_add:
+            return ("Residential Addition", "add")
+        if "INTERIOR" in eff_dscr_u and "NON-LOAD BEARING" in eff_dscr_u:
+            return ("Interior Partition Remodel", "remodel")
+        return PERMIT_TYPE_CATEGORY["11"]
+
+    if ptype_s == "12":
+        if "RE-ROOF" in eff_dscr_u or "REROOF" in eff_dscr_u:
+            return ("Re-Roof / Roof Repair", "roof")
+        if "FOUNDATION" in eff_dscr_u or "UNDERPIN" in eff_dscr_u or "HOUSE LEVEL" in eff_dscr_u:
+            return ("Foundation Repair", "repair")
+        return PERMIT_TYPE_CATEGORY["12"]
+
+    if ptype_s == "13":
+        if "INTERIOR" in eff_dscr_u and "NON-LOAD BEARING" in eff_dscr_u:
+            return ("Interior Partition Remodel", "remodel")
+        if (
+            _RE_POOL_SPA_WORD.search(eff_dscr_u)
+            and "DEMO" in eff_dscr_u
+            and "RES/SEWER" not in eff_dscr_u
+            and not _RE_PRIMARY_DWELLING_WORD.search(eff_dscr_u)
+        ):
+            return ("Swimming Pool / Spa Demolition", "aux")
+        if (
+            any(
+                tok in eff_dscr_u
+                for tok in (
+                    "GARAGE",
+                    "CARPORT",
+                    "SHED",
+                    "CANOPY",
+                    "BARN",
+                    "GAZEBO",
+                    "DETACHED",
+                    "OUTBUILDING",
+                )
+            )
+            and "DEMO" in eff_dscr_u
+            and "RES/SEWER" not in eff_dscr_u
+            and not _RE_PRIMARY_DWELLING_WORD.search(eff_dscr_u)
+        ):
+            return ("Accessory / Garage Demolition", "demo")
+        if "SEWER" in eff_dscr_u:
+            return ("Residential Demo / Sewer Disconnect", "demo")
+        return PERMIT_TYPE_CATEGORY["13"]
+
+    if ptype_s == "31":
+        if any(
+            tok in eff_dscr_u
+            for tok in (
+                "LEASE SPACE",
+                "TENANT",
+                "BUILD-OUT",
+                "BUILDOUT",
+                "BLD-OUT",
+                "BLDOUT",
+                "FINISH OUT",
+                "FINISH-OUT",
+            )
+        ):
+            return ("Commercial Tenant Build-Out / Remodel", "remodel")
+        if _RE_ADDITION_WORD.search(eff_dscr_u):
+            return ("Commercial Addition / Remodel", "add")
+        return PERMIT_TYPE_CATEGORY["31"]
+
+    if ptype_s == "33":
+        if "INTERIOR" in eff_dscr_u and any(
+            tok in eff_dscr_u
+            for tok in ("NON-LOAD BEARING", "INTERIOR DEMO", "SELECTIVE DEMO", "LEASE SPACE")
+        ):
+            return ("Commercial Interior Selective Demo", "remodel")
+        if "SEWER" in eff_dscr_u:
+            return ("Commercial Demo / Sewer Disconnect", "demo")
+        return PERMIT_TYPE_CATEGORY["33"]
+
+    if ptype_s == "41" and "FIRE" in eff_dscr_u:
+        return ("Fire Damage Repair / Remodel", "repair")
+
+    if ptype_s in PERMIT_TYPE_CATEGORY:
+        return PERMIT_TYPE_CATEGORY[ptype_s]
+
+    return (pdesc_s or "Building Permit", "other")
 
 
 def normalize_hcad_permit_row(
@@ -525,7 +732,8 @@ def normalize_hcad_permit_row(
     ptype_s = str(ptype or "").strip()
     pdesc_s = sanitize_atlas_text(str(pdesc or "").strip())
 
-    is_omitted_imps = "OMITTED IMPS" in dscr_s.upper()
+    dscr_u = dscr_s.upper()
+    is_omitted_imps = "OMITTED IMPS" in dscr_u or "OMITTED IMPROVEMENTS" in dscr_u
     reloc_meta: dict[str, str] | None = None
     if ptype_s == "15" and not is_omitted_imps:
         reloc_meta = {
@@ -535,14 +743,9 @@ def normalize_hcad_permit_row(
             "permit_date": iso_dt,
         }
 
-    if is_omitted_imps:
-        cat_label, cat_code = ("HCAD Omitted Improvement Assessment", "add")
-    else:
-        cat_label, cat_code = PERMIT_TYPE_CATEGORY.get(
-            ptype_s, (pdesc_s or "Building Permit", "other")
-        )
+    cat_label, cat_code = classify_hcad_permit_category_and_label(ptype_s, pdesc_s, dscr_s)
 
-    desc_val = dscr_s if dscr_s and dscr_s.upper() != pdesc_s.upper() else pdesc_s
+    desc_val = resolve_hcad_permit_display_desc(dscr_s, pdesc_s)
     permit_obj: dict[str, Any] = {
         "id": pid_s,
         "dt": iso_dt,

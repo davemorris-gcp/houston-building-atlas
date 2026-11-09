@@ -7736,8 +7736,8 @@ body {
 
 .permit-appraiser-note {
   font-size: 11.5px;
-  line-height: 1.4;
-  padding: 7px 9px;
+  line-height: 1.42;
+  padding: 8px 10px;
   border-radius: 6px;
   background: rgba(56, 189, 248, 0.1);
   border-left: 3px solid #38bdf8;
@@ -7748,6 +7748,80 @@ body {
   background: rgba(249, 115, 22, 0.14);
   border-left-color: #f97316;
   color: #ffedd5;
+}
+
+.permit-appraiser-header {
+  margin-bottom: 4px;
+  color: #f0f9ff;
+  font-size: 11.5px;
+}
+
+.permit-appraiser-decoded-list {
+  margin: 0;
+  padding-left: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+  color: #e0f2fe;
+}
+
+.permit-appraiser-decoded-item {
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.permit-appraiser-entry-lead {
+  color: #bae6fd;
+  font-weight: 600;
+}
+
+.permit-verbatim-details {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px dashed rgba(186, 230, 253, 0.24);
+}
+
+.permit-verbatim-summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #7dd3fc;
+}
+
+.permit-verbatim-summary::-webkit-details-marker {
+  display: none;
+}
+
+.permit-verbatim-summary::before {
+  content: "\25B8";
+  font-size: 10px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.permit-verbatim-details[open] .permit-verbatim-summary::before {
+  transform: rotate(90deg);
+}
+
+.permit-verbatim-summary:hover {
+  color: #bae6fd;
+}
+
+.permit-verbatim-raw {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: #bae6fd;
+  opacity: 0.9;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .permit-timeline-list {
@@ -7838,6 +7912,12 @@ body {
   border-color: rgba(56, 189, 248, 0.4);
 }
 
+.permit-cat-badge.cat-repair {
+  background: rgba(251, 146, 60, 0.16);
+  color: #fed7aa;
+  border-color: rgba(251, 146, 60, 0.42);
+}
+
 .permit-date-mono {
   font-family: var(--font-mono);
   font-size: 10.5px;
@@ -7848,6 +7928,21 @@ body {
   font-size: 11.5px;
   color: #f1f5f9;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.permit-plain-english-sub {
+  font-size: 11px;
+  line-height: 1.38;
+  color: #94a3b8;
+  overflow-wrap: anywhere;
+}
+
+@media screen and (max-width: 640px) {
+  .permit-verbatim-summary {
+    min-height: 32px;
+    padding: 4px 0;
+  }
 }
 
 /* ==========================================================================

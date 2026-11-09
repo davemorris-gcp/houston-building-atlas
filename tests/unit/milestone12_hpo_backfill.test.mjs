@@ -1345,10 +1345,16 @@ test("UT-M12-5: HoustonAtlasApp HPO style chip fallback and .coh-landmark-report
     "https://atlas.thc.texas.gov/NR/pdfs/00000001/00000001.pdf"
   );
 
-  // Verify app.js static imports & fetches use active ?v=20261109a cache-buster
+  // Verify app.js static imports & fetches use active pmtiles_manifest.json cache-buster
+  const activeVer = String(
+    JSON.parse(fs.readFileSync(path.join(DATA_DIR, "pmtiles_manifest.json"), "utf8"))
+      .cache_bust || ""
+  ).trim();
   const appJsSrc = fs.readFileSync(path.join(REPO_ROOT, "app", "js", "app.js"), "utf8");
-  assert.ok(appJsSrc.includes('from "./hpoSurveyHelpers.js?v=20261109a"'));
-  assert.ok(appJsSrc.includes('fetch("public/data/hpo_district_surveys.json?v=20261109a")'));
+  assert.ok(appJsSrc.includes(`from "./hpoSurveyHelpers.js?v=${activeVer}"`));
+  assert.ok(
+    appJsSrc.includes(`fetch("public/data/hpo_district_surveys.json?v=${activeVer}")`)
+  );
 });
 
 test("UT-M12-6: Live hpo_district_surveys.json, overlays.json, curated_overrides.json, buildings.geojson, and search_index.json uphold referential integrity, multi-building HCAD isolation, URL validity, and 0 header/confidential/dash leaks", () => {

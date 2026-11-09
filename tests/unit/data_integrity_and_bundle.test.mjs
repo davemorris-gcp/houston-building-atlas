@@ -647,13 +647,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   const expectedVer = String(manifest.cache_bust || "").trim();
   assert.equal(
     expectedVer,
-    "20261109a",
-    `Expected active Milestone 12 pmtiles_manifest.json cache_bust '20261109a', got '${expectedVer}'`
-  );
-  assert.match(
-    expectedVer,
-    /^\d{8}[a-z]?$/,
-    `Expected pmtiles_manifest.json cache_bust to match YYYYMMDD[a-z], got '${expectedVer}'`
+    "20261109b",
+    `Expected active pmtiles_manifest.json cache_bust '20261109b', got '${expectedVer}'`
   );
   assert.equal(
     ORGANIZER_CACHE_BUST,

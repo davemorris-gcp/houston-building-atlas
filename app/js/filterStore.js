@@ -1412,6 +1412,15 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     params.set("bnd", `${bndLayer}:${bndTarget}`);
   }
 
+  const tabSlug = String(options.inspectorTab || "").trim().toLowerCase();
+  if (
+    (selectedHcad || effectiveId) &&
+    VALID_INSPECTOR_TABS.includes(tabSlug) &&
+    tabSlug !== "overview"
+  ) {
+    params.set("tab", tabSlug);
+  }
+
   if (collapseSidebar) {
     params.set("sidebar", "0");
   }
@@ -1443,6 +1452,7 @@ export function buildShareableUrl(state, viewport = null, options = {}) {
     includeViewport: options.includeViewport !== false,
     selectedHcad: options.selectedHcad || "",
     selectedFeatureId: options.selectedFeatureId || options.selectedId || "",
+    inspectorTab: options.inspectorTab || "",
     selectedBoundary: options.selectedBoundary || null,
     activeChapterId: options.activeChapterId || "",
     activePortfolio: options.activePortfolio || null,
@@ -1461,16 +1471,44 @@ export function buildShareableUrl(state, viewport = null, options = {}) {
   return useQuery ? `${baseUrl}?${serialized}` : `${baseUrl}#${serialized}`;
 }
 
+export const VALID_INSPECTOR_TABS = Object.freeze([
+  "overview",
+  "history",
+  "permits",
+  "hcad",
+]);
+
+/**
+ * Extract a validated inspector tab slug (`"overview" | "history" | "permits" | "hcad"`)
+ * from a URL hash and/or query string, giving precedence to explicit hash params over search params.
+ */
+export function extractUrlInspectorTab(hashStr = "", searchStr = "") {
+  for (const rawPart of [
+    hashStr && hashStr.length > 1 ? hashStr.replace(/^#/, "") : "",
+    searchStr && searchStr.length > 1 ? searchStr.replace(/^\?/, "") : "",
+  ]) {
+    if (!rawPart) continue;
+    const tabParam = (new URLSearchParams(rawPart).get("tab") || "")
+      .trim()
+      .toLowerCase();
+    if (VALID_INSPECTOR_TABS.includes(tabParam)) {
+      return tabParam;
+    }
+  }
+  return "";
+}
+
 /**
  * Parse URL query string (`window.location.search`) and/or hash (`window.location.hash`)
  * into partial filter state + optional viewport + optional selected feature.
  */
 export function parseHashToState(hashString = "", searchString = "") {
   const mergedParams = new URLSearchParams();
-  const cleanSearch = (
-    searchString || (typeof window !== "undefined" ? window.location.search : "")
-  ).replace(/^\?/, "");
+  const rawSearch =
+    searchString || (typeof window !== "undefined" ? window.location.search : "");
+  const cleanSearch = rawSearch.replace(/^\?/, "");
   const cleanHash = (hashString || "").replace(/^#/, "");
+  const inspectorTab = extractUrlInspectorTab(hashString, rawSearch);
 
   // Apply query params first, then hash params so either (or both) work seamlessly
   for (const rawPart of [cleanSearch, cleanHash]) {
@@ -1949,6 +1987,7 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch,
     viewport,
     selection,
+    inspectorTab,
     collapseSidebar,
     activeChapterId,
     activePortfolio,

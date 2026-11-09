@@ -34,13 +34,19 @@ from atlas_pipeline.schema import (
     ACTIVE_TAX_YEAR,
     EXTRA_FEATURES_CAP_PER_ACCOUNT,
     TPIA_PERMIT_SHARD_KEYS,
+    classify_hcad_permit_category_and_label,
     compute_decade,
     finalize_hcad_account_permits,
     iter_json_or_gzip_shard_keys,
     normalize_hcad_appraiser_note,
+    normalize_hcad_date,
     normalize_hcad_extra_feature_row,
     normalize_hcad_permit_row,
     read_json_or_gzip_path,
+    resolve_hcad_permit_display_desc,
+    sanitize_atlas_text,
+    sync_repo_tax_year_and_cache_bust,
+    update_pmtiles_manifest_v3,
     write_compact_json,
     write_deterministic_gzip_json_shard,
 )
@@ -2013,6 +2019,191 @@ def main(*, tax_year: int | None = None, cache_dir: Path | None = None):
             )
 
     print(f"Wrote {len(shards)} permit shard files covering {kept_accts:,} HCAD accounts.")
+
+
+def repair_permit_shard_categories(
+    *,
+    cache_dir: Path | None = None,
+    output_dir: Path | None = None,
+    tax_year: int | None = None,
+    apply: bool = False,
+    cache_bust: str | None = None,
+) -> dict[str, int | bool]:
+    """Re-classify HCAD permit `cat` and `tp` labels across `permits_*.json.gz` shards.
+
+    Streams `Real_acct_owner.zip -> permits.txt` once to match official HCAD `(permit_type,
+    permit_tp_descr)` codes while strictly preserving TX Tax Code Sec. 25.025 confidential
+    shields (`"conf": 1`), live COH/TX DSHS surveillance rows (`p["src"]`), and top-level
+    deed / TPIA fields.
+    """
+    eff_year = int(tax_year) if tax_year is not None else ACTIVE_TAX_YEAR
+    eff_cache_dir = Path(cache_dir) if cache_dir is not None else CACHE_DIR
+    eff_data_dir = Path(output_dir) if output_dir is not None else DATA_DIR
+    eff_permits_dir = eff_data_dir / "permits"
+    acct_zip_path = eff_cache_dir / "Real_acct_owner.zip"
+    if not acct_zip_path.exists():
+        raise FileNotFoundError(f"Missing HCAD Real_acct_owner.zip at {acct_zip_path}")
+
+    by_acct_pid_dt_dscr: dict[tuple[str, str, str, str], tuple[str, str, str]] = {}
+    by_acct_pid_dt: dict[tuple[str, str, str], tuple[str, str, str]] = {}
+    by_acct_pid: dict[tuple[str, str], tuple[str, str, str]] = {}
+    by_acct_dt_dscr: dict[tuple[str, str, str], tuple[str, str, str]] = {}
+
+    with zipfile.ZipFile(acct_zip_path) as z_acct, z_acct.open("permits.txt") as f:
+        header = [
+            h.strip() for h in f.readline().decode("latin-1").rstrip("\r\n").split("\t")
+        ]
+        i_acct = header.index("acct")
+        i_id = header.index("id")
+        i_dscr = header.index("dscr")
+        i_ptype = header.index("permit_type")
+        i_pdesc = header.index("permit_tp_descr")
+        i_date = header.index("issue_date")
+        for raw_line in f:
+            row = raw_line.decode("latin-1", errors="replace").rstrip("\r\n").split("\t")
+            if len(row) <= i_date:
+                continue
+            acct = row[i_acct].strip()
+            pid_s = sanitize_atlas_text(row[i_id].strip())
+            dscr_s = sanitize_atlas_text(row[i_dscr].strip())
+            ptype_s = row[i_ptype].strip()
+            pdesc_s = sanitize_atlas_text(row[i_pdesc].strip())
+            iso_dt_parsed, _ = normalize_hcad_date(
+                row[i_date].strip(), allow_fallback=False, max_year=eff_year
+            )
+            iso_dt = iso_dt_parsed or ""
+            meta = (ptype_s, pdesc_s, dscr_s)
+            eff_desc_u = resolve_hcad_permit_display_desc(dscr_s, pdesc_s).upper()
+            if pid_s:
+                if eff_desc_u:
+                    by_acct_pid_dt_dscr[(acct, pid_s, iso_dt, eff_desc_u)] = meta
+                if dscr_s:
+                    by_acct_pid_dt_dscr[(acct, pid_s, iso_dt, dscr_s.upper())] = meta
+                by_acct_pid_dt[(acct, pid_s, iso_dt)] = meta
+                if pid_s.lstrip("0") and pid_s.upper() not in {
+                    "N/A",
+                    "NONE",
+                    "NULL",
+                    "UNKNOWN",
+                }:
+                    by_acct_pid.setdefault((acct, pid_s), meta)
+            if eff_desc_u:
+                by_acct_dt_dscr[(acct, iso_dt, eff_desc_u)] = meta
+            if dscr_s:
+                by_acct_dt_dscr[(acct, iso_dt, dscr_s.upper())] = meta
+
+    shards_scanned = 0
+    shards_modified = 0
+    accounts_updated = 0
+    permits_reclassified = 0
+    confidential_accounts_skipped = 0
+
+    for prefix3, shard_path in iter_json_or_gzip_shard_keys(
+        eff_permits_dir, "permits_", r"\d{3}"
+    ):
+        shards_scanned += 1
+        shard_obj = read_json_or_gzip_path(shard_path)
+        if not isinstance(shard_obj, dict):
+            continue
+        shard_dirty = False
+        for acct, rec in shard_obj.items():
+            if not isinstance(rec, dict):
+                continue
+            if rec.get("conf"):
+                confidential_accounts_skipped += 1
+                continue
+            p_list = rec.get("p")
+            if not isinstance(p_list, list) or not p_list:
+                continue
+            acct_dirty = False
+            for p_item in p_list:
+                if not isinstance(p_item, dict):
+                    continue
+                if str(p_item.get("src") or "").strip():
+                    continue
+                pid_s = str(p_item.get("id") or "").strip()
+                dt_s = str(p_item.get("dt") or "").strip()
+                d_s = str(p_item.get("d") or "").strip()
+
+                matched = None
+                if pid_s:
+                    matched = (
+                        (
+                            by_acct_pid_dt_dscr.get((acct, pid_s, dt_s, d_s.upper()))
+                            if d_s
+                            else None
+                        )
+                        or by_acct_pid_dt.get((acct, pid_s, dt_s))
+                        or by_acct_pid.get((acct, pid_s))
+                    )
+                if matched is None and d_s:
+                    matched = by_acct_dt_dscr.get((acct, dt_s, d_s.upper()))
+
+                if matched is not None:
+                    ptype_s, pdesc_s, roll_dscr = matched
+                    new_tp, new_cat = classify_hcad_permit_category_and_label(
+                        ptype_s, pdesc_s, d_s or roll_dscr
+                    )
+                elif str(p_item.get("cat") or "") == "other" and p_item.get("tp"):
+                    new_tp, new_cat = classify_hcad_permit_category_and_label(
+                        "", str(p_item.get("tp") or ""), d_s
+                    )
+                else:
+                    continue
+
+                if p_item.get("tp") != new_tp or p_item.get("cat") != new_cat:
+                    p_item["tp"] = new_tp
+                    p_item["cat"] = new_cat
+                    permits_reclassified += 1
+                    acct_dirty = True
+
+            if acct_dirty:
+                accounts_updated += 1
+                shard_dirty = True
+
+        if shard_dirty:
+            shards_modified += 1
+            if apply:
+                write_deterministic_gzip_json_shard(
+                    eff_permits_dir / f"permits_{prefix3}.json.gz",
+                    shard_obj,
+                    unlink_legacy_json=True,
+                    sanitize_dashes=True,
+                )
+
+    if apply and cache_bust and (eff_data_dir / "pmtiles_manifest.json").exists():
+        update_pmtiles_manifest_v3(
+            eff_data_dir / "pmtiles_manifest.json", cache_bust=cache_bust
+        )
+        is_canonical = eff_data_dir.resolve() == DATA_DIR.resolve()
+        if is_canonical and (ROOT_DIR / "app" / "index.html").exists():
+            sync_repo_tax_year_and_cache_bust(
+                ROOT_DIR,
+                tax_year=eff_year,
+                cache_bust=cache_bust,
+            )
+
+    return {
+        "apply": bool(apply),
+        "shards_scanned": shards_scanned,
+        "shards_modified": shards_modified,
+        "accounts_updated": accounts_updated,
+        "permits_reclassified": permits_reclassified,
+        "confidential_accounts_skipped": confidential_accounts_skipped,
+    }
+
+
+def format_repair_permit_categories_cli_summary(
+    stats: dict[str, int | bool], *, elapsed_s: float
+) -> str:
+    mode_lbl = "APPLIED" if stats.get("apply") else "DRY-RUN"
+    return (
+        f"=== HCAD Permit Category Shard Repair ({mode_lbl}) Complete in {elapsed_s:.1f}s ===\n"
+        f"   Permit shards scanned / updated : {int(stats['shards_scanned']):,} / {int(stats['shards_modified']):,}\n"
+        f"   HCAD accounts updated           : {int(stats['accounts_updated']):,}\n"
+        f"   Permit rows reclassified        : {int(stats['permits_reclassified']):,}\n"
+        f"   Confidential shields preserved  : {int(stats['confidential_accounts_skipped']):,}"
+    )
 
 
 if __name__ == "__main__":

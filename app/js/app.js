@@ -11,10 +11,11 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261109a";
+} from "./palettes.js?v=20261109b";
 import {
   buildShareableUrl,
   createFilterStore,
+  extractUrlInspectorTab,
   getAtlasMaxDecade,
   getAtlasMaxYear,
   HISTORIC_WARD_ERAS,
@@ -27,16 +28,17 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261109a";
-import { AtlasMapController } from "./mapController.js?v=20261109a";
+  VALID_INSPECTOR_TABS,
+} from "./filterStore.js?v=20261109b";
+import { AtlasMapController } from "./mapController.js?v=20261109b";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261109a";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109a";
+} from "./guidedChaptersAndPortfolios.js?v=20261109b";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109b";
 import {
   buildAddressShardUrl,
   buildResearchKitDeedChainView,
@@ -49,7 +51,7 @@ import {
   isPlaceholderOwnerName,
   normalizeAddressShardPrefix,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261109a";
+} from "./clerkSearchHelpers.js?v=20261109b";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -72,7 +74,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261109a";
+} from "./curatedEdits.js?v=20261109b";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -82,12 +84,12 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261109a";
+} from "./photoService.js?v=20261109b";
 import {
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
   resolveArchivalRecords,
-} from "./archivalHelpers.js?v=20261109a";
+} from "./archivalHelpers.js?v=20261109b";
 import {
   buildCohLandmarkDossierCardHtml,
   buildHpoDistrictDossierCardHtml,
@@ -99,7 +101,7 @@ import {
   resolveCohLandmarkOverlayMetadata,
   resolveHpoDistrictDocs,
   resolveHpoParcelSurvey,
-} from "./hpoSurveyHelpers.js?v=20261109a";
+} from "./hpoSurveyHelpers.js?v=20261109b";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -107,12 +109,13 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261109a";
+} from "./platMonitorHelpers.js?v=20261109b";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261109a";
+} from "./hcadViewportParcels.js?v=20261109b";
+import { buildInspectorPermitsBodyHtml } from "./permitPlainEnglish.js?v=20261109b";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -132,13 +135,13 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261109a";
+} from "./preservationOrganizer.js?v=20261109b";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
   escapeHtml,
   sanitizeHttpUrl,
-} from "./urlValidators.js?v=20261109a";
+} from "./urlValidators.js?v=20261109b";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -253,6 +256,7 @@ export class HoustonAtlasApp {
       patch,
       viewport,
       selection,
+      inspectorTab,
       collapseSidebar,
       activeChapterId,
       activePortfolio,
@@ -266,6 +270,7 @@ export class HoustonAtlasApp {
     } = parseHashToState(window.location.hash, window.location.search);
     this.initialViewport = viewport;
     this.initialSelection = selection;
+    this.initialInspectorTab = inspectorTab;
     this.initialCollapseSidebar = collapseSidebar;
     this.initialChapterId = activeChapterId || "";
     this.initialPortfolio = activePortfolio || null;
@@ -406,6 +411,13 @@ export class HoustonAtlasApp {
       );
     }
 
+    const initialUrlTab =
+      this.initialInspectorTab ||
+      extractUrlInspectorTab(window.location.hash, window.location.search);
+    if (initialUrlTab) {
+      this._activeInspectorTab = initialUrlTab;
+    }
+
     if (this.initialSelection) {
       if (this.initialSelection.boundaryId) {
         const initBLayer = String(this.initialSelection.boundaryLayer || "");
@@ -463,6 +475,9 @@ export class HoustonAtlasApp {
           this.initialViewport,
           false
         );
+        if (initialUrlTab) {
+          this._switchInspectorTab(initialUrlTab);
+        }
       }
     }
 
@@ -513,6 +528,7 @@ export class HoustonAtlasApp {
         patch,
         viewport,
         selection,
+        inspectorTab,
         collapseSidebar,
         activeChapterId,
         activePortfolio,
@@ -650,6 +666,9 @@ export class HoustonAtlasApp {
             Math.abs(curVp.zoom - viewport.zoom) > 0.04 ||
             Math.abs((curVp.pitch || 0) - (viewport.pitch || 0)) > 1);
 
+        const effectiveTab = inspectorTab || "overview";
+        this._activeInspectorTab = effectiveTab;
+
         if (selection?.hcadNum || selection?.featureId || selection?.query) {
           this.mapController.clearHighlightedBoundary();
           await this._resolveAndSelectDeepLinkedProperty(
@@ -658,6 +677,7 @@ export class HoustonAtlasApp {
             Boolean(vpChangedSignificantly)
           );
           if (urlSeq !== this._urlChangeSeq) return;
+          this._switchInspectorTab(effectiveTab);
         } else if (selection?.boundaryId) {
           if (vpChangedSignificantly) {
             this.mapController.flyToLocation({
@@ -716,9 +736,17 @@ export class HoustonAtlasApp {
               inspect: true,
             });
           }
-        } else if (!activeChapterId && !activePortfolio && !activeCh42) {
-          this.mapController.clearSelection();
-          document.getElementById("inspector-drawer")?.classList.add("hidden");
+        } else {
+          const drawerEl = document.getElementById("inspector-drawer");
+          const hasOpenTabbedInspector =
+            !drawerEl?.classList.contains("hidden") &&
+            Boolean(document.querySelector("#inspector-body [data-inspector-tab]"));
+          if (!inspectorTab && !activeChapterId && !activePortfolio && !activeCh42) {
+            this.mapController.clearSelection();
+            drawerEl?.classList.add("hidden");
+          } else if (hasOpenTabbedInspector) {
+            this._switchInspectorTab(inspectorTab || effectiveTab);
+          }
           if (vpChangedSignificantly) {
             this.mapController.flyToLocation({
               lng: viewport.lng,
@@ -1099,15 +1127,15 @@ export class HoustonAtlasApp {
         archivalRes,
         hpoSurveyRes,
       ] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261109a"),
-        fetch("public/data/stats_summary.json?v=20261109a"),
-        fetch("public/data/haif_index.json?v=20261109a").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261109a").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261109a").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261109a").catch(() => null),
-        fetch("public/data/ownership_portfolios.json?v=20261109a").catch(() => null),
-        fetch("public/data/archival_index.json?v=20261109a").catch(() => null),
-        fetch("public/data/hpo_district_surveys.json?v=20261109a").catch(() => null),
+        fetch("public/data/search_index.json?v=20261109b"),
+        fetch("public/data/stats_summary.json?v=20261109b"),
+        fetch("public/data/haif_index.json?v=20261109b").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261109b").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261109b").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261109b").catch(() => null),
+        fetch("public/data/ownership_portfolios.json?v=20261109b").catch(() => null),
+        fetch("public/data/archival_index.json?v=20261109b").catch(() => null),
+        fetch("public/data/hpo_district_surveys.json?v=20261109b").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -10976,9 +11004,8 @@ export class HoustonAtlasApp {
     this._syncInspectorLayoutControls();
   }
 
-  _switchInspectorTab(tabKey, { scrollInWide = false } = {}) {
-    const validTabs = ["overview", "history", "permits", "hcad"];
-    const nextTab = validTabs.includes(tabKey) ? tabKey : "overview";
+  _switchInspectorTab(tabKey, { scrollInWide = false, syncUrl = false } = {}) {
+    const nextTab = VALID_INSPECTOR_TABS.includes(tabKey) ? tabKey : "overview";
     this._activeInspectorTab = nextTab;
 
     const content = document.getElementById("inspector-body");
@@ -11018,6 +11045,11 @@ export class HoustonAtlasApp {
         targetPane.classList.add("wide-focus-pulse");
         setTimeout(() => targetPane.classList.remove("wide-focus-pulse"), 1100);
       }
+    }
+
+    if (syncUrl && !this._suppressUrlUpdate) {
+      this._updateUrlHash(this.filterStore.getState());
+      this._refreshShareModalContent();
     }
   }
 
@@ -12914,7 +12946,7 @@ export class HoustonAtlasApp {
     if (jumpBtn) {
       jumpBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        this._switchInspectorTab("history", { scrollInWide: false });
+        this._switchInspectorTab("history", { scrollInWide: false, syncUrl: true });
         setTimeout(() => {
           const targetKit = document.getElementById("house-history-research-kit");
           if (targetKit) {
@@ -14327,7 +14359,7 @@ export class HoustonAtlasApp {
 
     const initialTab =
       this._activeInspectorTab &&
-      ["overview", "history", "permits", "hcad"].includes(this._activeInspectorTab)
+      VALID_INSPECTOR_TABS.includes(this._activeInspectorTab)
         ? this._activeInspectorTab
         : "overview";
     this._activeInspectorTab = initialTab;
@@ -15012,7 +15044,7 @@ export class HoustonAtlasApp {
       tabBtn.addEventListener("click", (e) => {
         e.preventDefault();
         const tKey = tabBtn.getAttribute("data-inspector-tab") || "overview";
-        this._switchInspectorTab(tKey, { scrollInWide: true });
+        this._switchInspectorTab(tKey, { scrollInWide: true, syncUrl: true });
       });
     });
 
@@ -15020,7 +15052,7 @@ export class HoustonAtlasApp {
       jumpEl.addEventListener("click", (e) => {
         e.preventDefault();
         const tKey = jumpEl.getAttribute("data-switch-inspector-tab") || "permits";
-        this._switchInspectorTab(tKey, { scrollInWide: true });
+        this._switchInspectorTab(tKey, { scrollInWide: true, syncUrl: true });
       });
     });
 
@@ -15513,6 +15545,8 @@ export class HoustonAtlasApp {
           includeViewport: true,
           selectedHcad,
           selectedFeatureId,
+          inspectorTab:
+            selectedHcad || selectedFeatureId ? this._activeInspectorTab || "" : "",
           useQueryString: true,
         });
         if (navigator.clipboard) {
@@ -15545,7 +15579,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const permitShardUrl = cb
         ? `public/data/permits/permits_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/permits/permits_${prefix3}.json.gz?v=20261109a`;
+        : `public/data/permits/permits_${prefix3}.json.gz?v=20261109b`;
       const p = fetch(permitShardUrl)
         .then((res) => decodeGzipJsonResponse(res, decompressPermitShardBytes))
         .catch(() => ({}));
@@ -15569,7 +15603,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const ownerShardUrl = cb
         ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261109a`;
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261109b`;
       const p = fetch(ownerShardUrl)
         .then(async (res) => {
           if (!res.ok) return {};
@@ -15693,101 +15727,20 @@ export class HoustonAtlasApp {
       card.open = true;
     }
 
-    const summaryPills = [];
-    if (origYr > 1800) {
-      summaryPills.push(`<span class="permit-stat-pill">Original Erection: <strong>${origYr}</strong></span>`);
-    }
-    if (remodYr > 1836) {
-      summaryPills.push(`<span class="permit-stat-pill highlight">HCAD Remodel Year: <strong>${remodYr}</strong></span>`);
-    }
-    if (effYr > 1836 && effYr !== origYr) {
-      summaryPills.push(`<span class="permit-stat-pill">Effective Age Basis: <strong>${effYr}</strong></span>`);
-    }
-    if (qualGrade) {
-      summaryPills.push(`<span class="permit-stat-pill">Quality: <strong>${qualGrade}</strong></span>`);
-    }
-
-    let html = "";
-    if (summaryPills.length > 0) {
-      html += `<div class="permit-summary-badges">${summaryPills.join("")}</div>`;
-    }
-
-    if (relocNote) {
-      html += `<div class="permit-appraiser-note reloc">
-        <strong>&#128666; Documented Structure Relocation:</strong> ${relocNote}
-      </div>`;
-    }
-    if (appraiserNote && appraiserNote !== relocNote) {
-      html += `<div class="permit-appraiser-note">
-        <strong>HCAD Appraiser Permit / Renovation Note:</strong> ${appraiserNote}
-      </div>`;
-    }
-
-    const timelineItems = [];
-    if (origPermit || origCost) {
-      timelineItems.push(`
-        <div class="permit-timeline-item">
-          <div class="permit-timeline-top">
-            <span class="permit-cat-badge cat-new">Original Construction Permit</span>
-            <span class="permit-date-mono">${origYr || "Historic"}</span>
-          </div>
-          <div class="permit-desc-text">
-            ${origPermit ? `Permit ${origPermit}` : "Original Building Permit"}${
-        origCost ? ` · Contract / Valuation: ${origCost}` : ""
-      }${props.builder ? ` · Contractor: ${props.builder}` : ""}
-          </div>
-        </div>
-      `);
-    }
-
-    for (const p of permitsList) {
-      const cat = String(p.cat || "other");
-      const tp = String(p.tp || "Building Permit");
-      const dt = String(p.dt || "");
-      const desc = String(p.d || "");
-      const pid = String(p.id || "");
-      const srcLabel =
-        p.src === "TX_DSHS"
-          ? "TX DSHS Notification"
-          : p.src === "COH_LIVE"
-          ? "COH Live Permit"
-          : "";
-      timelineItems.push(`
-        <div class="permit-timeline-item ${
-          cat === "demo" ? "permit-item-demo" : cat === "asbestos" ? "permit-item-asbestos" : ""
-        }">
-          <div class="permit-timeline-top">
-            <span class="permit-cat-badge cat-${cat}">${tp}</span>
-            <span class="permit-date-mono">${dt}${pid ? ` · #${pid}` : ""}${
-        srcLabel ? ` · ${srcLabel}` : ""
-      }</span>
-          </div>
-          ${desc ? `<div class="permit-desc-text">${desc}</div>` : ""}
-        </div>
-      `);
-    }
-
-    if (extraFeatures.length > 0) {
-      for (const xf of extraFeatures) {
-        timelineItems.push(`
-          <div class="permit-timeline-item xf-item">
-            <div class="permit-timeline-top">
-              <span class="permit-cat-badge cat-aux">Dated Site Feature / Sub-Structure</span>
-              <span class="permit-date-mono">${xf.y || "Dated"}</span>
-            </div>
-            <div class="permit-desc-text">${xf.d}</div>
-          </div>
-        `);
-      }
-    }
-
-    if (timelineItems.length > 0) {
-      html += `<div class="permit-timeline-list">${timelineItems.join("")}</div>`;
-    } else if (!appraiserNote && !relocNote) {
-      html += `<div class="permit-empty-note">No itemized 2004-${getAtlasMaxYear()} municipal building permits recorded in HCAD's CAMA permit table for this parcel. Know of a historic building permit or contractor record? Click <strong>Suggest a Date / Shape / Data Correction</strong> below.</div>`;
-    }
-
-    body.innerHTML = html;
+    body.innerHTML = buildInspectorPermitsBodyHtml({
+      origYr,
+      remodYr,
+      effYr,
+      qualGrade,
+      relocNote,
+      appraiserNote,
+      origPermit,
+      origCost,
+      builder: props.builder || "",
+      permitsList,
+      extraFeatures,
+      atlasMaxYear: getAtlasMaxYear(),
+    });
   }
 
   async _populateInspectorPhotos({
@@ -16397,6 +16350,8 @@ export class HoustonAtlasApp {
       includeViewport: true,
       selectedHcad,
       selectedFeatureId,
+      inspectorTab:
+        selectedHcad || selectedFeatureId ? this._activeInspectorTab || "" : "",
       useQueryString: true,
     });
 
@@ -16831,6 +16786,10 @@ export class HoustonAtlasApp {
       includeViewport,
       selectedHcad: includeSelection ? selectedHcad : "",
       selectedFeatureId: includeSelection ? selectedFeatureId : "",
+      inspectorTab:
+        includeSelection && (selectedHcad || selectedFeatureId)
+          ? this._activeInspectorTab || ""
+          : "",
       selectedBoundary,
       activeChapterId: this._activeChapterId || "",
       activePortfolio: activePortfolioSpec,
@@ -16842,6 +16801,10 @@ export class HoustonAtlasApp {
       includeViewport,
       selectedHcad: includeSelection ? selectedHcad : "",
       selectedFeatureId: includeSelection ? selectedFeatureId : "",
+      inspectorTab:
+        includeSelection && (selectedHcad || selectedFeatureId)
+          ? this._activeInspectorTab || ""
+          : "",
       selectedBoundary,
       activeChapterId: this._activeChapterId || "",
       activePortfolio: activePortfolioSpec,
@@ -17602,7 +17565,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261109a`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261109b`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -19041,7 +19004,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261109a")
+          fetch("public/data/sanborn_catalog.json?v=20261109b")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -19051,7 +19014,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261109a")
+          fetch("public/data/citydir_index.json?v=20261109b")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -19074,7 +19037,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261109a")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261109b")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -19295,6 +19258,8 @@ export class HoustonAtlasApp {
       includeViewport: true,
       selectedHcad,
       selectedFeatureId,
+      inspectorTab:
+        selectedHcad || selectedFeatureId ? this._activeInspectorTab || "" : "",
       selectedBoundary,
       activeChapterId: this._activeChapterId || "",
       activePortfolio: activePortfolioSpec,
@@ -20520,7 +20485,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261109a")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261109b")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

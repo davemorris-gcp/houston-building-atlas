@@ -25,6 +25,7 @@ def main(argv: list[str] | None = None) -> None:
             "ingest-tpia",
             "harvest-archives",
             "harvest-hpo",
+            "repair-permit-categories",
         ),
         default="core",
         help=(
@@ -33,7 +34,8 @@ def main(argv: list[str] | None = None) -> None:
             "'annual-refresh' (Guarded incremental annual HCAD appraisal roll & parcel refresher), "
             "'ingest-tpia' (Harris County Clerk 1961-present RP/MC & pre-2005 HCAD TPIA ingestion), "
             "'harvest-archives' (TARO 2.0 EAD XML finding aids & HPL ContentDM architectural collections), "
-            "or 'harvest-hpo' (deterministic cached COH HPO 23 Historic District survey inventories & post-2016 Landmark PDFs)."
+            "'harvest-hpo' (deterministic cached COH HPO 23 Historic District survey inventories & post-2016 Landmark PDFs), "
+            "or 'repair-permit-categories' (reclassify HCAD permit_type category labels across permits_*.json.gz shards)."
         ),
     )
     parser.add_argument(
@@ -251,6 +253,22 @@ def main(argv: list[str] | None = None) -> None:
         )
         elapsed = time.time() - t0
         print(format_hpo_harvest_cli_summary(stats, elapsed_s=elapsed))
+        return
+    elif args.mode == "repair-permit-categories":
+        from atlas_pipeline.build_permits_and_contractors import (
+            format_repair_permit_categories_cli_summary,
+            repair_permit_shard_categories,
+        )
+
+        stats = repair_permit_shard_categories(
+            cache_dir=args.cache_dir,
+            output_dir=args.output_dir,
+            tax_year=args.tax_year,
+            apply=bool(args.apply),
+            cache_bust=args.cache_bust,
+        )
+        elapsed = time.time() - t0
+        print(format_repair_permit_categories_cli_summary(stats, elapsed_s=elapsed))
         return
     else:
         from atlas_pipeline.full_build import run_full_county_build
