@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-08T17:29:25Z",
+  "generated_at": "2026-11-09T21:53:32Z",
   "source_url": "https://www.houstontx.gov/planning/Commissions/HAHC.html",
   "current_cycle": {
     "meeting_date": "2026-11-05",
@@ -172,7 +172,7 @@
         {
           "hcad_num": "0041360000004",
           "address": "206 Stratford St",
-          "year_built": 1910,
+          "year_built": 1914,
           "meeting_date": "2025-10-09",
           "app_type": "Alteration - Windows, Siding",
           "app_category": "addition_alteration",
@@ -186,7 +186,7 @@
         {
           "hcad_num": "0041360000002",
           "address": "202 Stratford St",
-          "year_built": 1940,
+          "year_built": 1914,
           "meeting_date": "2024-06-20",
           "app_type": "New Construction - Garage",
           "app_category": "new_construction",
@@ -1431,7 +1431,7 @@
         {
           "hcad_num": "0010570000005",
           "address": "502 Main St",
-          "year_built": 1900,
+          "year_built": 1879,
           "meeting_date": "2025-02-27",
           "app_type": "New Construction - Commercial Building",
           "app_category": "new_construction",
@@ -1841,7 +1841,7 @@
         {
           "hcad_num": "0621390000051",
           "address": "202 E 31st 1/2 Street",
-          "year_built": 1930,
+          "year_built": 1927,
           "meeting_date": "2026-08-13",
           "app_type": "Demolition - Single Family Residential",
           "app_category": "demolition_relocation",
@@ -1855,7 +1855,7 @@
         {
           "hcad_num": "0621390000051",
           "address": "202 E 31st 1/2 St",
-          "year_built": 1930,
+          "year_built": 1927,
           "meeting_date": "2026-07-16",
           "app_type": "Demolition - Single Family",
           "app_category": "demolition_relocation",
@@ -1869,7 +1869,7 @@
         {
           "hcad_num": "0621390000051",
           "address": "202 E 31st 1/2 St",
-          "year_built": 1930,
+          "year_built": 1927,
           "meeting_date": "2026-05-21",
           "app_type": "Residential",
           "app_category": "addition_alteration",
@@ -1883,7 +1883,7 @@
         {
           "hcad_num": "0621390000051",
           "address": "202 E 31st 1/2 St",
-          "year_built": 1930,
+          "year_built": 1927,
           "meeting_date": "2026-05-21",
           "app_type": "New Construction - Garage or Carport",
           "app_category": "new_construction",
@@ -1897,7 +1897,7 @@
         {
           "hcad_num": "0621390000051",
           "address": "202 E 31st 1/2 St",
-          "year_built": 1930,
+          "year_built": 1927,
           "meeting_date": "2026-04-23",
           "app_type": "Residential",
           "app_category": "addition_alteration",
@@ -1968,7 +1968,7 @@
         {
           "hcad_num": "0370310000014",
           "address": "219 Emerson St",
-          "year_built": 1910,
+          "year_built": 1907,
           "meeting_date": "2025-11-06",
           "app_type": "Alteration - Windows, Doors",
           "app_category": "addition_alteration",
@@ -3133,7 +3133,7 @@
       "hcad_num": "0621390000051",
       "lng": -95.397547,
       "lat": 29.814913,
-      "year_built": 1930
+      "year_built": 1927
     },
     {
       "meeting_date": "2026-08-13",
@@ -3475,7 +3475,7 @@
       "hcad_num": "0621390000051",
       "lng": -95.397547,
       "lat": 29.814913,
-      "year_built": 1930
+      "year_built": 1927
     },
     {
       "meeting_date": "2026-07-16",
@@ -4007,7 +4007,7 @@
       "hcad_num": "0621390000051",
       "lng": -95.397547,
       "lat": 29.814913,
-      "year_built": 1930
+      "year_built": 1927
     },
     {
       "meeting_date": "2026-05-21",
@@ -4026,7 +4026,7 @@
       "hcad_num": "0621390000051",
       "lng": -95.397547,
       "lat": 29.814913,
-      "year_built": 1930
+      "year_built": 1927
     },
     {
       "meeting_date": "2026-05-21",
@@ -4634,7 +4634,7 @@
       "hcad_num": "0621390000051",
       "lng": -95.397547,
       "lat": 29.814913,
-      "year_built": 1930
+      "year_built": 1927
     },
     {
       "meeting_date": "2026-04-23",
@@ -5641,7 +5641,7 @@
       "hcad_num": "0370310000014",
       "lng": -95.384682,
       "lat": 29.741785,
-      "year_built": 1910
+      "year_built": 1907
     },
     {
       "meeting_date": "2025-11-06",
@@ -5831,7 +5831,7 @@
       "hcad_num": "0041360000004",
       "lng": -95.383661,
       "lat": 29.746028,
-      "year_built": 1910
+      "year_built": 1914
     },
     {
       "meeting_date": "2025-10-09",
@@ -6382,7 +6382,7 @@
       "hcad_num": "0201380000010",
       "lng": -95.399423,
       "lat": 29.798336,
-      "year_built": 1906
+      "year_built": 1902
     },
     {
       "meeting_date": "2025-08-14",
@@ -7465,7 +7465,7 @@
       "hcad_num": "0010570000005",
       "lng": -95.362274,
       "lat": 29.760731,
-      "year_built": 1900
+      "year_built": 1879
     },
     {
       "meeting_date": "2025-02-27",
@@ -8035,7 +8035,7 @@
       "hcad_num": "0201690000002",
       "lng": -95.400689,
       "lat": 29.795889,
-      "year_built": 1920
+      "year_built": 1928
     },
     {
       "meeting_date": "2024-12-12",
@@ -8054,7 +8054,7 @@
       "hcad_num": "0201690000002",
       "lng": -95.400689,
       "lat": 29.795889,
-      "year_built": 1920
+      "year_built": 1928
     },
     {
       "meeting_date": "2024-12-12",
@@ -8472,7 +8472,7 @@
       "hcad_num": "0372950000009",
       "lng": -95.379147,
       "lat": 29.78762,
-      "year_built": 1920
+      "year_built": 1924
     },
     {
       "meeting_date": "2024-10-10",
@@ -8662,7 +8662,7 @@
       "hcad_num": "0372950000009",
       "lng": -95.379147,
       "lat": 29.78762,
-      "year_built": 1920
+      "year_built": 1924
     },
     {
       "meeting_date": "2024-09-12",
@@ -9422,7 +9422,7 @@
       "hcad_num": "0041360000002",
       "lng": -95.383347,
       "lat": 29.74611,
-      "year_built": 1940
+      "year_built": 1914
     },
     {
       "meeting_date": "2024-06-20",

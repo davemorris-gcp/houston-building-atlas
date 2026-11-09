@@ -1,18 +1,17 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-08T17:29:26Z",
-  "lastSweepAt": "2026-11-08T17:27:22Z",
+  "generatedAt": "2026-11-09T21:53:32Z",
+  "lastSweepAt": "2026-11-09T21:49:17Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-11",
+  "retentionFloorDate": "2026-08-12",
   "lastSweepHealth": {
-    "timestamp": "2026-11-08T17:27:22Z",
+    "timestamp": "2026-11-09T21:49:17Z",
     "sweepsExecuted": true,
-    "propertiesSwept": 30,
+    "propertiesSwept": 29,
     "totalAgencies": 8,
-    "succeededAgencies": 6,
+    "succeededAgencies": 7,
     "failedAgencies": [
-      "chk-10",
       "chk-15"
     ],
     "skippedAgencies": [],
@@ -47,11 +46,11 @@
         "error": ""
       },
       "chk-10": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 30,
-        "error": "TDLR TABS (2000 SMITH): HTTP request failed or timed out; TDLR TABS (530 Pierce): HTTP request failed or timed out; TDLR TABS (2000 Brazos): HTTP request failed or timed out; TDLR TABS (500 Gray): HTTP request failed or timed out; TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out"
+        "failedPropertyCount": 0,
+        "error": ""
       },
       "chk-13": {
         "status": "ok",
@@ -71,26 +70,47 @@
         "status": "failed",
         "ok": false,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 30,
+        "failedPropertyCount": 29,
         "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
       }
     }
   },
   "summary": {
-    "totalEvents": 549,
-    "criticalCount": 53,
-    "warningCount": 164,
-    "infoCount": 332,
+    "totalEvents": 611,
+    "criticalCount": 57,
+    "warningCount": 210,
+    "infoCount": 344,
     "byStream": {
-      "watchlist": 139,
-      "agenda": 113,
-      "staff": 159,
+      "watchlist": 151,
+      "agenda": 156,
+      "staff": 166,
       "permits": 138
     },
-    "operationalNoticeCount": 10,
-    "daysTracked": 88
+    "operationalNoticeCount": 11,
+    "daysTracked": 89
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-09",
+      "lastRunAt": "2026-11-09T21:53:32Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 29,
+      "totalAgencies": 8,
+      "succeededAgencies": 7,
+      "failedAgencies": [
+        "chk-15"
+      ],
+      "allOk": false,
+      "eventCount": 55,
+      "adverseEventCount": 14,
+      "byStream": {
+        "watchlist": 12,
+        "agenda": 43,
+        "staff": 0,
+        "permits": 0
+      }
+    },
     {
       "date": "2026-11-08",
       "lastRunAt": "2026-11-08T17:29:26Z",
@@ -315,12 +335,12 @@
         "chk-15"
       ],
       "allOk": false,
-      "eventCount": 180,
+      "eventCount": 186,
       "adverseEventCount": 31,
       "byStream": {
         "watchlist": 91,
         "agenda": 20,
-        "staff": 67,
+        "staff": 73,
         "permits": 2
       }
     },
@@ -354,12 +374,12 @@
       "failedAgencies": [],
       "allOk": true,
       "seededHistory": true,
-      "eventCount": 48,
+      "eventCount": 49,
       "adverseEventCount": 1,
       "byStream": {
         "watchlist": 3,
         "agenda": 0,
-        "staff": 44,
+        "staff": 45,
         "permits": 1
       }
     },
@@ -1865,6 +1885,1886 @@
     }
   ],
   "events": [
+    {
+      "id": "wl:status:plat-2026-1739:chk-10:flagged:2026-11-09",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): Aeric Oaks",
+      "summary": "Accessibility Registration (TDLR TABS) (CHK-10) escalated from 'To Do' to 'Flagged' on 50 BRIAR HOLLOW LN.",
+      "address": "50 BRIAR HOLLOW LN",
+      "hcad": "0451400020105",
+      "watchPropertyId": "plat-2026-1739",
+      "checkId": "chk-10",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.75463,
+      "lng": -95.45142,
+      "yearBuilt": "1978",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "wl:status:plat-2026-1120:chk-10:flagged:2026-11-09",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): Westheimer Subdivision partial replat no 1",
+      "summary": "Accessibility Registration (TDLR TABS) (CHK-10) escalated from 'To Do' to 'Flagged' on 2531 KUESTER ST.",
+      "address": "2531 KUESTER ST",
+      "hcad": "1211140020001",
+      "watchPropertyId": "plat-2026-1120",
+      "checkId": "chk-10",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.74344,
+      "lng": -95.40029,
+      "yearBuilt": "2017",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "agenda:item:2026-11-12:DPV-26083840:dpv",
+      "stream": "agenda",
+      "kind": "agenda_item_dpv",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Section K DPV Filed (2026-11-12): 1323 South Boulevard",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1923 | Hearing 2026-12-03 | The applicant is requesting To allow a 0\u2019 building line in lieu of the 10\u2019 building line along Bissonnet St, a major collector, for a 10\u2019 high CMU wall..",
+      "address": "1323 SOUTH BLVD",
+      "hcad": "0530390000003",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "DPV-26083840",
+      "occKey": "2026-11-12::DPV-26083840",
+      "buildingId": "bld_007584",
+      "lat": 29.72596,
+      "lng": -95.39678,
+      "yearBuilt": 1923,
+      "designation": "City historic district (Broadacres Historic District)",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/DPV-26083840-1323-South-Boulevard-Notice.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1760:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): RPS Estates at Crockett Street (2026-1760)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1930.",
+      "address": "1807 CROCKETT ST",
+      "hcad": "0051290000009",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1760",
+      "occKey": "2026-11-12::2026-1760",
+      "buildingId": "bld_010147",
+      "lat": 29.77338,
+      "lng": -95.37623,
+      "yearBuilt": 1930,
+      "designation": "City historic district (High First Ward Historic District)",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94104/OriginalFiles/05-RPS_Estates_at_Crockett_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-30T18%3A23%3A44Z&sr=b&sp=r&sig=IYzijD8JSHXqxtH71a%2B1GpmowqFafdvNOKCppONUp5M%3D"
+        }
+      ]
+    },
+    {
+      "id": "wl:status:plat-DPV-26091362:chk-09:flagged:2026-11-09",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): 13515 Perthshire Road",
+      "summary": "Replats & Variances (CHK-09) escalated from 'To Do' to 'Flagged' on 13515 PERTHSHIRE RD.",
+      "address": "13515 PERTHSHIRE RD",
+      "hcad": "0961080000014",
+      "watchPropertyId": "plat-DPV-26091362",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.77461,
+      "lng": -95.57943,
+      "yearBuilt": "1966",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "wl:status:plat-DPV-26084127:chk-09:flagged:2026-11-09",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): 6102 Waltway Drive",
+      "summary": "Replats & Variances (CHK-09) escalated from 'To Do' to 'Flagged' on 6102 WALTWAY DR.",
+      "address": "6102 WALTWAY DR",
+      "hcad": "0812420000020",
+      "watchPropertyId": "plat-DPV-26084127",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.79321,
+      "lng": -95.42324,
+      "yearBuilt": "1954",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "wl:status:plat-DPV-26080390:chk-09:flagged:2026-11-09",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (To Do -> Flagged): 3747 Dreyfus Street A and B",
+      "summary": "Replats & Variances (CHK-09) escalated from 'To Do' to 'Flagged' on 3747 DREYFUS ST.",
+      "address": "3747 DREYFUS ST",
+      "hcad": "0391930200024",
+      "watchPropertyId": "plat-DPV-26080390",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.68774,
+      "lng": -95.36635,
+      "yearBuilt": "1950",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "wl:auto:plat-DPV-26091362:chk-09:id:coh-plat:2026-11-12:DPV-26091362",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "13515 Perthshire Road: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-11-12) Item DPV-26091362: '13515 Perthshire Road' (Development Plat Variance (DPV), K. Development Plat Variances), Public Hearing 2026-11-12.",
+      "address": "13515 PERTHSHIRE RD",
+      "hcad": "0961080000014",
+      "watchPropertyId": "plat-DPV-26091362",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.77461,
+      "lng": -95.57943,
+      "yearBuilt": "1966",
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-DPV-26084127:chk-09:id:coh-plat:2026-11-12:DPV-26084127",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "6102 Waltway Drive: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-11-12) Item DPV-26084127: '6102 Waltway Drive' (Development Plat Variance (DPV), K. Development Plat Variances), Public Hearing 2026-11-12.",
+      "address": "6102 WALTWAY DR",
+      "hcad": "0812420000020",
+      "watchPropertyId": "plat-DPV-26084127",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.79321,
+      "lng": -95.42324,
+      "yearBuilt": "1954",
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-DPV-26080390:chk-09:id:coh-plat:2026-11-12:DPV-99",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "3747 Dreyfus Street A and B: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-11-12) Item DPV-99: '3747 Dreyfus Street' (Development Plat Variance (DPV), K. Development Plat Variances), Public Hearing 2026-11-12.",
+      "address": "3747 DREYFUS ST",
+      "hcad": "0391930200024",
+      "watchPropertyId": "plat-DPV-26080390",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.68774,
+      "lng": -95.36635,
+      "yearBuilt": "1950",
+      "designation": "None found",
+      "links": []
+    },
+    {
+      "id": "wl:auto:plat-2026-1739:chk-09:id:coh-plat:2026-11-12:2026-1739",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Aeric Oaks: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-11-12) Item 2026-1739: 'Aeric Oaks' (Class 3 Replat with Public Hearing Notice (C3N), C. Public Hearing Notice Posted (Hearing: Dec 3, 2026)), Public Hearing 2026-12-03.",
+      "address": "50 BRIAR HOLLOW LN",
+      "hcad": "0451400020105",
+      "watchPropertyId": "plat-2026-1739",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.75463,
+      "lng": -95.45142,
+      "yearBuilt": "1978",
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93995/OriginalFiles/26059_-_Plat.pdf?sv=2021-08-06&se=2051-10-19T15%3A09%3A17Z&sr=b&sp=r&sig=tkM6f8a34plILEsJIbBDPorjtsUtiA1ZzqsYsfuHEvk%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1739-Aeric-Oaks-notification.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-2026-1641:chk-09:id:coh-plat:2026-11-12:2026-1641",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Wheeler Residences: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-11-12) Item 2026-1641: 'Wheeler Residences' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing), Public Hearing 2026-11-12.",
+      "address": "2802 WHEELER ST",
+      "hcad": "0611650000001",
+      "watchPropertyId": "plat-2026-1641",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.72457,
+      "lng": -95.36754,
+      "yearBuilt": "1940",
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93926/OriginalFiles/WHEELER_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-10-05T13%3A50%3A20Z&sr=b&sp=r&sig=71NGHjmZdmWelOqwT2RmaJJsTKQDeh3Z%2FgJF3AaZwLM%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-2026-1442:chk-09:id:coh-plat:2026-11-12:2026-1442",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Forest Green Reserve: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-11-12) Item 2026-1442: 'Forest Green Reserve' (Class 3 subdivision replat Public Hearing Notification (C3N), C. Public Hearing), Public Hearing 2026-11-12.",
+      "address": "8803 FOREST HOLLOW ST",
+      "hcad": "1023520000101",
+      "watchPropertyId": "plat-2026-1442",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.83308,
+      "lng": -95.67326,
+      "yearBuilt": "1968",
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1442/OriginalFiles/20260122-PLAT-FOREST_GREEN_RESERVE-61365-P136348_1_1.pdf?sv=2021-08-06&se=2051-10-28T16%3A20%3A27Z&sr=b&sp=r&sig=QC0yHIAg%2B3lyGkYNFr%2Bn9RyVJ3uZylGxs0rO9835cik%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:auto:plat-2026-1442:chk-09:id:coh-plat:2026-10-15:2026-1442",
+      "stream": "watchlist",
+      "kind": "watchlist_auto_finding",
+      "severity": "warning",
+      "adverse": true,
+      "date": "2026-10-15",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Forest Green Reserve: Replats & Variances",
+      "summary": "COH Planning Commission Agenda (2026-10-15) Item 2026-1442: 'Forest Green Reserve' (Class 3 Replat with Public Hearing Notice (C3N), IV. Establish Public Hearing Date (Nov 12, 2026)), Public Hearing 2026-11-12.",
+      "address": "8803 FOREST HOLLOW ST",
+      "hcad": "1023520000101",
+      "watchPropertyId": "plat-2026-1442",
+      "checkId": "chk-09",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.83308,
+      "lng": -95.67326,
+      "yearBuilt": "1968",
+      "designation": "None found",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1442/OriginalFiles/20260122-PLAT-FOREST_GREEN_RESERVE-61365-P136348_1_1.pdf?sv=2021-08-06&se=2051-10-28T16%3A20%3A27Z&sr=b&sp=r&sig=QC0yHIAg%2B3lyGkYNFr%2Bn9RyVJ3uZylGxs0rO9835cik%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:DPV-99:dpv",
+      "stream": "agenda",
+      "kind": "agenda_item_dpv",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Section K DPV Filed (2026-11-12): 3747 Dreyfus Street",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1950 | Hearing 2026-11-12.",
+      "address": "3747 DREYFUS ST",
+      "hcad": "0391930200024",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "DPV-99",
+      "occKey": "2026-11-12::DPV-99",
+      "buildingId": "",
+      "lat": 29.68774,
+      "lng": -95.36635,
+      "yearBuilt": 1950,
+      "designation": "",
+      "links": []
+    },
+    {
+      "id": "agenda:item:2026-11-12:DPV-26091362:dpv",
+      "stream": "agenda",
+      "kind": "agenda_item_dpv",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Section K DPV Filed (2026-11-12): 13515 Perthshire Road",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1966 | Hearing 2026-11-12 | The applicant is requesting an 11-foot building line in lieu of the city ordinance 20-foot garage building line along Glenchester Drive, a local street, for a new single-family residence..",
+      "address": "13515 PERTHSHIRE RD",
+      "hcad": "0961080000014",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "DPV-26091362",
+      "occKey": "2026-11-12::DPV-26091362",
+      "buildingId": "",
+      "lat": 29.77461,
+      "lng": -95.57943,
+      "yearBuilt": 1966,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:DPV-26087637:dpv",
+      "stream": "agenda",
+      "kind": "agenda_item_dpv",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Section K DPV Filed (2026-11-12): 403 Yorkchester Road",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1967 | Hearing 2026-11-12 | The applicant is requesting a 14-foot building line in lieu of the city ordinance 20-foot garage building line along Apple Tree Road, a local street, for a new single-family residence..",
+      "address": "403 YORKCHESTER DR",
+      "hcad": "0993320000069",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "DPV-26087637",
+      "occKey": "2026-11-12::DPV-26087637",
+      "buildingId": "",
+      "lat": 29.76976,
+      "lng": -95.58321,
+      "yearBuilt": 1967,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:DPV-26084127:dpv",
+      "stream": "agenda",
+      "kind": "agenda_item_dpv",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Section K DPV Filed (2026-11-12): 6102 Waltway Drive",
+      "summary": "Development Plat Variance (DPV) in K. Development Plat Variances | Built 1954 | Hearing 2026-11-12 | The applicant is requesting a 10-foot building line along W..",
+      "address": "6102 WALTWAY DR",
+      "hcad": "0812420000020",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "DPV-26084127",
+      "occKey": "2026-11-12::DPV-26084127",
+      "buildingId": "",
+      "lat": 29.79321,
+      "lng": -95.42324,
+      "yearBuilt": 1954,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1811:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Residence at New Heights (2026-1811)",
+      "summary": "Class 2 subdivision replat (C2R) in D. Variances | Built 1935.",
+      "address": "506 E 31ST ST",
+      "hcad": "0211110000005",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1811",
+      "occKey": "2026-11-12::2026-1811",
+      "buildingId": "",
+      "lat": 29.81451,
+      "lng": -95.39309,
+      "yearBuilt": 1935,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94139/OriginalFiles/11022026_RESIDENCE_AT_NEW_HEIGHTS.pdf?sv=2021-08-06&se=2051-11-02T16%3A17%3A19Z&sr=b&sp=r&sig=QeCZaTZnuZZjL5ucruQHIMZnOWkRJBC9iznnSRlRqOQ%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1786:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): City North (2026-1786)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Built 1976 | Hearing 2026-12-03 | The applicant is requesting a variance to exceed intersection spacing along Greenspoint Drive..",
+      "address": "600 GREENSPOINT MALL; 400 GREENSPOINT MALL; 208 GREENS RD",
+      "hcad": "1086920000005",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1786",
+      "occKey": "2026-11-12::2026-1786",
+      "buildingId": "",
+      "lat": 29.94938,
+      "lng": -95.41159,
+      "yearBuilt": 1976,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93807/OriginalFiles/063319128-City_North_GP_V1.pdf?sv=2021-08-06&se=2051-09-21T15%3A17%3A43Z&sr=b&sp=r&sig=hkR919IwckfITdarlBVnOzcCQbOtnQhkjEbr0nCk22M%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1786-City-North.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1770:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Plaza Estates at Observatory (2026-1770)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1940.",
+      "address": "8410 OBSERVATORY ST",
+      "hcad": "0701130050005",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1770",
+      "occKey": "2026-11-12::2026-1770",
+      "buildingId": "",
+      "lat": 29.87717,
+      "lng": -95.44831,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94093/OriginalFiles/PLAZA_ESTATES_AT_OBSERVATORY-Layout1.pdf?sv=2021-08-06&se=2051-11-01T16%3A21%3A54Z&sr=b&sp=r&sig=itsPu%2FpAClTnNYhUaG2Rg5UAk6LbJ4c3lMgS9gMUu%2Bc%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1764:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Fourth Church (2026-1764)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1940.",
+      "address": "1901 W ALABAMA ST; 1911 W ALABAMA ST",
+      "hcad": "0382140000004",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1764",
+      "occKey": "2026-11-12::2026-1764",
+      "buildingId": "",
+      "lat": 29.73834,
+      "lng": -95.40745,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94109/OriginalFiles/11-1234-PLAT.pdf?sv=2021-08-06&se=2051-10-30T20%3A33%3A38Z&sr=b&sp=r&sig=9JtUivrc74sMAvYZdbpouqUILSgbnmLlENQoz9xVi3Q%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1757:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): QTH Real Estate at Kenton Street (2026-1757)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1940.",
+      "address": "8213 KENTON ST",
+      "hcad": "0300180410001",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1757",
+      "occKey": "2026-11-12::2026-1757",
+      "buildingId": "",
+      "lat": 29.81564,
+      "lng": -95.27646,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94098/OriginalFiles/05-QTH_Estate_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-30T17%3A28%3A07Z&sr=b&sp=r&sig=GdVSOzup%2BdccSqyk4saIcx3xvS3RTs2pZnr9rQWuQxQ%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1752:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice Posted (2026-11-12): Afton Park GP",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Built 2000 | Hearing 2026-12-03 | The applicant is requesting a variance To exceed intersection spacing along Afton Road & Antoine Drive by not providing an E/W street through the property..",
+      "address": "1907 AFTON ST",
+      "hcad": "0421300010178",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1752",
+      "occKey": "2026-11-12::2026-1752",
+      "buildingId": "",
+      "lat": 29.80746,
+      "lng": -95.47316,
+      "yearBuilt": 2000,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1752-Afton-Park-GP.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1744:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Juliet Row on Lehman (2026-1744)",
+      "summary": "Class 2 subdivision replat (C2R) in B. Replats | Built 1940.",
+      "address": "706 LEHMAN ST",
+      "hcad": "0410500030315",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1744",
+      "occKey": "2026-11-12::2026-1744",
+      "buildingId": "",
+      "lat": 29.83945,
+      "lng": -95.41227,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1744/OriginalFiles/PLAT.pdf?sv=2021-08-06&se=2051-11-03T14%3A24%3A05Z&sr=b&sp=r&sig=zkn%2Bv3MOHfuvxJx%2BkXIDWXmXHffMGlHctCSIUpvZ4d8%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1739:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Aeric Oaks (2026-1739)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Built 1978 | Hearing 2026-12-03 | The applicant is requesting a variance to allow for 5' of right-of-way dedication for widening for Emmett Road, in lieu of the required 15'..",
+      "address": "50 BRIAR HOLLOW LN",
+      "hcad": "0451400020105",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1739",
+      "occKey": "2026-11-12::2026-1739",
+      "buildingId": "",
+      "lat": 29.75463,
+      "lng": -95.45142,
+      "yearBuilt": 1978,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93995/OriginalFiles/26059_-_Plat.pdf?sv=2021-08-06&se=2051-10-19T15%3A09%3A17Z&sr=b&sp=r&sig=tkM6f8a34plILEsJIbBDPorjtsUtiA1ZzqsYsfuHEvk%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1739-Aeric-Oaks-notification.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1736:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Andores Rest (2026-1736)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Hearing 2026-12-03.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1736",
+      "occKey": "2026-11-12::2026-1736",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1647/OriginalFiles/ANDORES_REST_Replat..pdf?sv=2021-08-06&se=2051-10-07T14%3A22%3A46Z&sr=b&sp=r&sig=c5n30qjKopMZqkwJnoH5dNVlPbG4ZIyyizfF2cJt0lE%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1736_Andores-Rest_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1735:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): High Meadows Sec 2 partial replat no 1 (2026-1735)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Hearing 2026-12-03 | The applicant is requesting a dual building line variance to allow the existing structure of the carport and garage area to remain at the 0 feet building line for the duration of its life span and any new future construction should abide by the new 20 feet setback..",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1735",
+      "occKey": "2026-11-12::2026-1735",
+      "buildingId": "",
+      "lat": 29.90704,
+      "lng": -95.33262,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/92629/OriginalFiles/HIGH_MEADOWS_SEC_2_PARTIAL_REPLAT_NO_1_5-14-26.pdf?sv=2021-08-06&se=2051-05-15T17%3A38%3A48Z&sr=b&sp=r&sig=vR%2FafqytwT6GM6X5h3MnW2teuRiPOd8pAGNKWBZRVCY%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1735_High-Meadows-Sec-2-partial-replat-no-1_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1724:notice_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_notice_pdf",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Public Hearing Notice Posted (2026-11-12): Aisla Villas",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Hearing 2026-12-03.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1724",
+      "occKey": "2026-11-12::2026-1724",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1724_Aisla-Villas_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1723:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Scott Wet Weather Facility (2026-1723)",
+      "summary": "Class 2 subdivision plat (C2) in D. Variances | Hearing 2026-11-12.",
+      "address": "0 CANADA DRY ST",
+      "hcad": "0410070140112",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1723",
+      "occKey": "2026-11-12::2026-1723",
+      "buildingId": "",
+      "lat": 29.72437,
+      "lng": -95.33302,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1723/OriginalFiles/01-Scott_Wet_Weather_Facility_Subdivision_11.5.26.pdf?sv=2021-08-06&se=2051-11-06T13%3A46%3A19Z&sr=b&sp=r&sig=VBVgFDbef2u5qRDiNFVijbF1OKavSkX%2B02jTXJwMLds%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1723_ScottWetWeatherFacility.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1716:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Thompson Heights (2026-1716)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Built 1941 | Hearing 2026-12-03 | The applicant is requesting a variance for a reduced building line along IH-10 (Katy Freeway Service Road) of 20' in lieu of the ordinance required 25' and to allow one lot to have direct vehicular access to IH-10 service road..",
+      "address": "1816 THOMPSON ST",
+      "hcad": "0342120000004",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1716",
+      "occKey": "2026-11-12::2026-1716",
+      "buildingId": "",
+      "lat": 29.77636,
+      "lng": -95.40413,
+      "yearBuilt": 1941,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94027/OriginalFiles/261063125-Model.pdf?sv=2021-08-06&se=2051-10-19T13%3A38%3A41Z&sr=b&sp=r&sig=TF43byiCA%2FceMXRmsxdGXbD61HZh93lPxOT1%2BSbQT7I%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1716-Thompson-Heights-notification.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1703:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Eastwood Street Villas (2026-1703)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Hearing 2026-12-03.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1703",
+      "occKey": "2026-11-12::2026-1703",
+      "buildingId": "",
+      "lat": 29.68684,
+      "lng": -95.358,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93804/OriginalFiles/Eastwood_Street_Villas-Replat.pdf?sv=2021-08-06&se=2051-09-18T15%3A24%3A56Z&sr=b&sp=r&sig=V3UCRAQIvot98Bn%2BAV%2F%2F8Bdqdxmz06xb2hnTkAIbwLo%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1703_Eastwood-Street-Villas_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1701:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Grace Lane Estates (2026-1701)",
+      "summary": "Class 2 subdivision plat (C2) in F. Reconsideration Of Req | Built 1938 | Hearing 2026-11-12 | The applicant is requesting a variance to exceed 1,400' intersection spacing along a local street by not providing an east-west street through the property..",
+      "address": "5930 GRACE LN",
+      "hcad": "0460360010017",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1701",
+      "occKey": "2026-11-12::2026-1701",
+      "buildingId": "",
+      "lat": 29.69762,
+      "lng": -95.34344,
+      "yearBuilt": 1938,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94019/OriginalFiles/Quinto_Studio_-_Subdivision_-_Grace_Ln-GRACE_LANE_ESTATES_LLC.pdf?sv=2021-08-06&se=2051-10-18T16%3A06%3A30Z&sr=b&sp=r&sig=sasTdDk7%2FpU2Uh0ZJ%2B%2Fn4xG0FGQ4e6M73VMrDrdw35M%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1669:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Fondren at Court Reserves GP (2026-1669)",
+      "summary": "General plan (GP) in E. Special Exceptions | Hearing 2026-11-12 | The applicant is requesting a special exception to allow an intersection spacing of approximately 3,133 feet along Court Road, a major thoroughfare, between Fondren Road and Blue Ridge Road by not providing a north-south public street and to allow a reduced centerline radius of 1,800-feet for Fondren Road, a major thoroughfare..",
+      "address": "the intersection of Fondren Road and Court Road, bounded by Fort Bend Parkway to the west and Blueridge Road to the east",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1669",
+      "occKey": "2026-11-12::2026-1669",
+      "buildingId": "",
+      "lat": 29.59397,
+      "lng": -95.47759,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93978/OriginalFiles/BG4278.pdf?sv=2021-08-06&se=2051-10-16T01%3A00%3A33Z&sr=b&sp=r&sig=cWdME3p9jFb0ewDROKNdHwSgQjoI07Jr9Ca56GfQPbE%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1650:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): JDS Hopfe Road Sec 5 partial replat no 1 (2026-1650)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
+      "address": "",
+      "hcad": "0431430000042",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1650",
+      "occKey": "2026-11-12::2026-1650",
+      "buildingId": "",
+      "lat": 30.05044,
+      "lng": -95.76566,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93800/OriginalFiles/PLAT_-_JDS_HOPFE_ROAD_SEC_5_PARTIAL_REPLAT_No_1.pdf?sv=2021-08-06&se=2051-10-01T13%3A43%3A13Z&sr=b&sp=r&sig=npYjApDhFMdSFc6TM995FJ8akqod0DHGp74VByy8TFE%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1650_JDS-Hopfe-Road-Sec-5-partial-replat-no-1_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1649:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Vibe at Little York (2026-1649)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Hearing 2026-12-03.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1649",
+      "occKey": "2026-11-12::2026-1649",
+      "buildingId": "",
+      "lat": 29.84225,
+      "lng": -95.34214,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93936/OriginalFiles/HOU-I-348_Vibe_at_Little_York_10-05-2026.pdf?sv=2021-08-06&se=2051-10-05T14%3A47%3A01Z&sr=b&sp=r&sig=ROHrnEENNwhTCgSHNUbM3yJypP8ZHWkwHmBr%2BSlr6so%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1649_Vibe-at-Little-York_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1641:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Wheeler Residences (2026-1641)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 1940 | Hearing 2026-11-12.",
+      "address": "2802 WHEELER ST",
+      "hcad": "0611650000001",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1641",
+      "occKey": "2026-11-12::2026-1641",
+      "buildingId": "",
+      "lat": 29.72457,
+      "lng": -95.36754,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93926/OriginalFiles/WHEELER_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-10-05T13%3A50%3A20Z&sr=b&sp=r&sig=71NGHjmZdmWelOqwT2RmaJJsTKQDeh3Z%2FgJF3AaZwLM%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1639:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Charlesmont Corner (2026-1639)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
+      "address": "",
+      "hcad": "0810960000228",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1639",
+      "occKey": "2026-11-12::2026-1639",
+      "buildingId": "",
+      "lat": 29.85873,
+      "lng": -95.27473,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1639/OriginalFiles/CHARLESMONT_CORNER_PLAT_11.10.26-Model.pdf?sv=2021-08-06&se=2051-10-13T18%3A09%3A42Z&sr=b&sp=r&sig=M96Ab8P%2BPSDR%2BUnnDKdO7rTKlJVsVEfWAiXweoqAGdA%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1639_Charlesmont-Corner_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1632:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Gallahad Street Homes (2026-1632)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Hearing 2026-12-03.",
+      "address": "",
+      "hcad": "0771530120188",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1632",
+      "occKey": "2026-11-12::2026-1632",
+      "buildingId": "",
+      "lat": 29.85165,
+      "lng": -95.27633,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93922/OriginalFiles/Gallahad_Street_Homes.pdf?sv=2021-08-06&se=2051-10-05T10%3A57%3A56Z&sr=b&sp=r&sig=TAmtR0O1mM7yL7Cq5RRBeh4A2Td3OOCiMaVYxZrmh9s%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1632_Gallahad-Street-Homes_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1621:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Haddick Place (2026-1621)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
+      "address": "",
+      "hcad": "1478900010002",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1621",
+      "occKey": "2026-11-12::2026-1621",
+      "buildingId": "",
+      "lat": 29.84118,
+      "lng": -95.2589,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93901/OriginalFiles/HADDICK_PLACE_PLAT_01.10.26-Model.pdf?sv=2021-08-06&se=2051-10-02T22%3A35%3A33Z&sr=b&sp=r&sig=6OoXrqP%2FI9AFOp2%2FtUdOTAGaIS%2B1bve3KSVygN795Lw%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1621_Haddick-Place_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1614:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Cruz Auto Shop (2026-1614)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Hearing 2026-12-03.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1614",
+      "occKey": "2026-11-12::2026-1614",
+      "buildingId": "",
+      "lat": 29.94422,
+      "lng": -95.37733,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93905/OriginalFiles/4689-PLAT.pdf?sv=2021-08-06&se=2051-10-02T19%3A11%3A57Z&sr=b&sp=r&sig=X1PLjbmLoSS%2FD%2FhZ%2FohKir878DkYSRmFMyEpggz0aZQ%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1614_Cruz-Auto-Shop_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1585:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Montrose Residences (2026-1585)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Built 2025 | Hearing 2026-11-12.",
+      "address": "1226-1230 W PIERCE ST",
+      "hcad": "1490700010001",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1585",
+      "occKey": "2026-11-12::2026-1585",
+      "buildingId": "",
+      "lat": 29.75421,
+      "lng": -95.39498,
+      "yearBuilt": 2025,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1585/OriginalFiles/MONTROSE_RESIDENCES_Revised_Replat.pdf?sv=2021-08-06&se=2051-10-21T16%3A00%3A01Z&sr=b&sp=r&sig=ZZwGDOpT0BXwTi8ftG0qqdAdNBeWtUYRfV6vWRdiHe4%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1562:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Highland Heights Green partial replat no 1 (2026-1562)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
+      "address": "within the boundaries of this plat and always available for the general use of said owners and to the public for firefighters, fire fighting equipment, police and emergency vehicles of whatever nature at all times and do hereby bind ourselves, our heirs, successors and established as private streets or permanent access easements",
+      "hcad": "1452860010033",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1562",
+      "occKey": "2026-11-12::2026-1562",
+      "buildingId": "",
+      "lat": 29.78415,
+      "lng": -95.37079,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93849/OriginalFiles/HIGHLAND_HEIGHTS_GREEN_PARTIAL_REPLAT_NO_1_9-16-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T11%3A48%3A16Z&sr=b&sp=r&sig=kjkLsQCr5vXgPXJ24uV0xQqtO4PXnmeutEdPjO3K4yU%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1553:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Denton Street Villas (2026-1553)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1553",
+      "occKey": "2026-11-12::2026-1553",
+      "buildingId": "",
+      "lat": 29.84517,
+      "lng": -95.27899,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1553/OriginalFiles/Denton_Street_Villas_rev.pdf?sv=2021-08-06&se=2051-10-08T15%3A03%3A37Z&sr=b&sp=r&sig=lmFus%2Bm27hHviZP8Cha0lEVPkomCzRE2jZcxG7Vlenw%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1553_Denton-Street-Villas_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1551:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Churchs Cullen (2026-1551)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Built 1984 | Hearing 2026-12-03.",
+      "address": "8841 CULLEN BLVD",
+      "hcad": "0770330010002",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1551",
+      "occKey": "2026-11-12::2026-1551",
+      "buildingId": "",
+      "lat": 29.66362,
+      "lng": -95.35524,
+      "yearBuilt": 1984,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1551_Churchs-Cullen_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1524:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Liberty Green (2026-1524)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Dec 3, 2026) | Built 1925 | Hearing 2026-12-03 | The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road..",
+      "address": "4705 LIBERTY RD",
+      "hcad": "0040570000008",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1524",
+      "occKey": "2026-11-12::2026-1524",
+      "buildingId": "",
+      "lat": 29.78786,
+      "lng": -95.32275,
+      "yearBuilt": 1925,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1485:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Mill Ridge Village Sec 1 (2026-1485)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-10-15.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1485",
+      "occKey": "2026-11-12::2026-1485",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1485/OriginalFiles/Mill_Ridge_Village_Sec_1_-_Prelim_Plat-R5.pdf?sv=2021-08-06&se=2051-10-26T15%3A04%3A59Z&sr=b&sp=r&sig=9QUUZvaj3c7uInLvFpOEXgIu5eyo%2BQE7Lrj0UvGUmhw%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1485_Mill-Ridge-Village-Sec-1_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1481:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Jutland Homes (2026-1481)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-10-29.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1481",
+      "occKey": "2026-11-12::2026-1481",
+      "buildingId": "",
+      "lat": 29.66236,
+      "lng": -95.35181,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93754/OriginalFiles/Jutland_Homes.pdf?sv=2021-08-06&se=2051-09-08T03%3A20%3A37Z&sr=b&sp=r&sig=jfXOYQ7M659GmIQYp8Llcwr%2FgV1fMPS94YVKLwtTxig%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1442:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Forest Green Reserve (2026-1442)",
+      "summary": "Class 3 subdivision replat Public Hearing Notification (C3N) in C. Public Hearing | Hearing 2026-11-12.",
+      "address": "",
+      "hcad": "1023520000101",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1442",
+      "occKey": "2026-11-12::2026-1442",
+      "buildingId": "",
+      "lat": 29.83308,
+      "lng": -95.67326,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1442/OriginalFiles/20260122-PLAT-FOREST_GREEN_RESERVE-61365-P136348_1_1.pdf?sv=2021-08-06&se=2051-10-28T16%3A20%3A27Z&sr=b&sp=r&sig=QC0yHIAg%2B3lyGkYNFr%2Bn9RyVJ3uZylGxs0rO9835cik%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:cycle:2026-11-12",
+      "stream": "agenda",
+      "kind": "agenda_cycle_added",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Planning Commission Agenda Posted: 2026-11-12",
+      "summary": "Ingested 145 agenda items (82 flagged for historic review, 5 Section K Development Plat Variance(s), 35 Public Hearing Notice(s)).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Agenda Spreadsheet (.xlsx)",
+          "url": "https://www.houstontx.gov/planning/DevelopRegs/docs_pdfs/Plat_report/2026/Plat-Current-Agenda-Spreadsheet-11-12-2026.xlsx"
+        },
+        {
+          "label": "PC Draft Agenda Outline (PDF)",
+          "url": "https://www.houstontx.gov/planning/Commissions/docs_pdfs/2026/PC-Draft-Agenda-Outline-111226.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1654:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Benavides Villas on Wellington (2026-1654)",
+      "summary": "Class 2 subdivision plat (C2) in A. Consent | Built 1949.",
+      "address": "626 E WELLINGTON ST",
+      "hcad": "0835190000053",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1654",
+      "occKey": "2026-11-12::2026-1654",
+      "buildingId": "",
+      "lat": 29.85749,
+      "lng": -95.38995,
+      "yearBuilt": 1949,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93942/OriginalFiles/26-0029-001-PLAT.pdf?sv=2021-08-06&se=2051-10-05T15%3A27%3A13Z&sr=b&sp=r&sig=MXD67v0%2Fd1K9qUgR8a%2Fw8f%2FcwZH420ayJ%2F4SPNv4qBw%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-11-12:2026-1634:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-12",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Notable Plat Filing (2026-11-12): Aurora Fields (2026-1634)",
+      "summary": "Class 3 subdivision final plat (C3F) in A. Consent | Built 1948.",
+      "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
+      "hcad": "0600750000011",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1634",
+      "occKey": "2026-11-12::2026-1634",
+      "buildingId": "",
+      "lat": 29.85264,
+      "lng": -95.43757,
+      "yearBuilt": 1948,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1634/OriginalFiles/Mansfield_-_Nov_06_-_V1.pdf?sv=2021-08-06&se=2051-11-06T20%3A24%3A58Z&sr=b&sp=r&sig=ZF%2Bflg4Y1xCdleYgutuVlgh4eOJa5NTjNA4PkslDSOY%3D"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1650:plat_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_plat_pdf",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Plat Drawing PDF Posted: JDS Hopfe Road Sec 5 partial replat no 1 (2026-1650)",
+      "summary": "Submittal plat PDF attached for JDS Hopfe Road Sec 5 partial replat no 1 on the 2026-10-15 agenda.",
+      "address": "",
+      "hcad": "0431430000042",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1650",
+      "occKey": "2026-10-15::2026-1650",
+      "buildingId": "",
+      "lat": 30.05044,
+      "lng": -95.76566,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93800/OriginalFiles/PLAT_-_JDS_HOPFE_ROAD_SEC_5_PARTIAL_REPLAT_No_1.pdf?sv=2021-08-06&se=2051-10-01T13%3A43%3A13Z&sr=b&sp=r&sig=npYjApDhFMdSFc6TM995FJ8akqod0DHGp74VByy8TFE%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1650_JDS-Hopfe-Road-Sec-5-partial-replat-no-1_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1641:plat_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_plat_pdf",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Plat Drawing PDF Posted: Wheeler Residences (2026-1641)",
+      "summary": "Submittal plat PDF attached for Wheeler Residences on the 2026-10-15 agenda.",
+      "address": "2802 WHEELER ST",
+      "hcad": "0611650000001",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1641",
+      "occKey": "2026-10-15::2026-1641",
+      "buildingId": "",
+      "lat": 29.72457,
+      "lng": -95.36754,
+      "yearBuilt": 1940,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93926/OriginalFiles/WHEELER_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-10-05T13%3A50%3A20Z&sr=b&sp=r&sig=71NGHjmZdmWelOqwT2RmaJJsTKQDeh3Z%2FgJF3AaZwLM%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1585:plat_pdf",
+      "stream": "agenda",
+      "kind": "agenda_item_plat_pdf",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:53:32Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "",
+      "title": "Plat Drawing PDF Posted: Montrose Residences (2026-1585)",
+      "summary": "Submittal plat PDF attached for Montrose Residences on the 2026-10-15 agenda.",
+      "address": "1226-1230 W PIERCE ST",
+      "hcad": "1490700010001",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1585",
+      "occKey": "2026-10-15::2026-1585",
+      "buildingId": "",
+      "lat": 29.75421,
+      "lng": -95.39498,
+      "yearBuilt": 2025,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1585/OriginalFiles/MONTROSE_RESIDENCES_Revised_Replat.pdf?sv=2021-08-06&se=2051-10-21T16%3A00%3A01Z&sr=b&sp=r&sig=ZZwGDOpT0BXwTi8ftG0qqdAdNBeWtUYRfV6vWRdiHe4%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:sweep:2026-11-09:degraded:chk-15",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-09",
+      "localDate": "2026-11-09",
+      "timestamp": "2026-11-09T21:49:17Z",
+      "discoveredAt": "2026-11-09T21:49:17Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (7/8 agencies OK)",
+      "summary": "1 agency endpoint(s) did not complete cleanly: TX DSHS Asbestos & Demolition (DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
     {
       "id": "wl:sweep:2026-11-08:degraded:chk-10-chk-15",
       "stream": "watchlist",
@@ -6600,6 +8500,42 @@
       ]
     },
     {
+      "id": "staff:review:2026-11-12:2026-1442:t2",
+      "stream": "staff",
+      "kind": "staff_plat_review",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-10-30T02:21:53.230Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "2026-10-30T02:21:53.230Z",
+      "title": "Plat Review Confirmed (Tier 2): Forest Green Reserve (2026-1442)",
+      "summary": "Confirmed Tier 2 by emily@preservationhouston.org (Neighborhood / District Context Impact): EA: City-owned housing project.",
+      "address": "",
+      "hcad": "1023520000101",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-11-12",
+      "appNo": "2026-1442",
+      "occKey": "2026-11-12::2026-1442",
+      "buildingId": "",
+      "lat": 29.83308,
+      "lng": -95.67326,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Plat PDF",
+          "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1442/OriginalFiles/20260122-PLAT-FOREST_GREEN_RESERVE-61365-P136348_1_1.pdf?sv=2021-08-06&se=2051-10-28T16%3A20%3A27Z&sr=b&sp=r&sig=QC0yHIAg%2B3lyGkYNFr%2Bn9RyVJ3uZylGxs0rO9835cik%3D"
+        },
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1442_Forest-Green-Reserve_PH.pdf"
+        }
+      ]
+    },
+    {
       "id": "staff:review:2026-10-29:2026-1442:t2",
       "stream": "staff",
       "kind": "staff_plat_review",
@@ -6978,6 +8914,33 @@
           "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D"
         }
       ]
+    },
+    {
+      "id": "staff:prop:plat-2026-1120:edited:2026-10-29",
+      "stream": "staff",
+      "kind": "watchlist_property_edited",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-10-30T02:03:14.411Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "2026-10-30T02:03:14.411Z",
+      "title": "Watchlist Dossier Updated: Westheimer Subdivision partial replat no 1",
+      "summary": "Updated buyer/related entities by emily@preservationhouston.org.",
+      "address": "2531 KUESTER ST",
+      "hcad": "1211140020001",
+      "watchPropertyId": "plat-2026-1120",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.74344,
+      "lng": -95.40029,
+      "yearBuilt": "2017",
+      "designation": "None found",
+      "links": []
     },
     {
       "id": "staff:review:2026-10-15:2026-1302:t1",
@@ -7796,6 +9759,33 @@
       ]
     },
     {
+      "id": "staff:prop:plat-2026-1502:removed",
+      "stream": "staff",
+      "kind": "watchlist_property_removed",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-10-30T01:37:01.482Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "2026-10-30T01:37:01.482Z",
+      "title": "Removed from Property Watchlist: 8017 HOMESTEAD RD",
+      "summary": "Removed from Property Watchlist (8017 HOMESTEAD RD).",
+      "address": "8017 HOMESTEAD RD",
+      "hcad": "0731100150467",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.8356,
+      "lng": -95.30232,
+      "yearBuilt": 1950,
+      "designation": "None found",
+      "links": []
+    },
+    {
       "id": "staff:review:2026-10-01:2026-1441:t2",
       "stream": "staff",
       "kind": "staff_plat_review",
@@ -7826,6 +9816,33 @@
           "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93736/OriginalFiles/260202_-_Eleanor_Enclave_-_Plat.pdf?sv=2021-08-06&se=2051-09-04T15%3A39%3A32Z&sr=b&sp=r&sig=j0wIh%2FTdoykQZm4%2FdXKTRr2vvPNLSqG7zzhhL1DEzPA%3D"
         }
       ]
+    },
+    {
+      "id": "staff:prop:plat-2026-1441:edited:2026-10-29",
+      "stream": "staff",
+      "kind": "watchlist_property_edited",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-10-30T01:26:25.654Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "2026-10-30T01:26:25.654Z",
+      "title": "Watchlist Dossier Updated: Eleanor Enclave",
+      "summary": "Updated buyer/related entities by emily@preservationhouston.org.",
+      "address": "407 ELEANOR ST",
+      "hcad": "0660640410042",
+      "watchPropertyId": "plat-2026-1441",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.81258,
+      "lng": -95.36659,
+      "yearBuilt": "1949",
+      "designation": "None found",
+      "links": []
     },
     {
       "id": "staff:review:2026-10-01:2026-1561:t2",
@@ -7860,6 +9877,33 @@
       ]
     },
     {
+      "id": "staff:prop:plat-2026-1561:edited:2026-10-29",
+      "stream": "staff",
+      "kind": "watchlist_property_edited",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-10-30T01:23:39.384Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "2026-10-30T01:23:39.384Z",
+      "title": "Watchlist Dossier Updated: Sul Ross Views",
+      "summary": "Updated buyer/related entities by emily@preservationhouston.org.",
+      "address": "2038 SUL ROSS ST",
+      "hcad": "0561210000025",
+      "watchPropertyId": "plat-2026-1561",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.73792,
+      "lng": -95.40969,
+      "yearBuilt": "1950",
+      "designation": "None found",
+      "links": []
+    },
+    {
       "id": "staff:review:2026-10-01:2026-1564:t2",
       "stream": "staff",
       "kind": "staff_plat_review",
@@ -7890,6 +9934,33 @@
           "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93848/OriginalFiles/MIRIAM_GROVE_9-16-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T12%3A00%3A30Z&sr=b&sp=r&sig=QAfTt6cX%2B7yLysJOFAwC5PpY%2FgE0VUFqVgeKS3pCXlA%3D"
         }
       ]
+    },
+    {
+      "id": "staff:prop:plat-2026-1564:edited:2026-10-29",
+      "stream": "staff",
+      "kind": "watchlist_property_edited",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-10-30T00:54:29.586Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "2026-10-30T00:54:29.586Z",
+      "title": "Watchlist Dossier Updated: Miriam Grove",
+      "summary": "Updated buyer/related entities by emily@preservationhouston.org.",
+      "address": "627 E 14TH ST",
+      "hcad": "0522690000004",
+      "watchPropertyId": "plat-2026-1564",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.79659,
+      "lng": -95.39082,
+      "yearBuilt": "1929",
+      "designation": "None found",
+      "links": []
     },
     {
       "id": "staff:review:2026-10-29:2026-1569:t2",
@@ -14013,6 +16084,33 @@
           "url": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf"
         }
       ]
+    },
+    {
+      "id": "staff:prop:plat-2026-1641:edited:2026-10-27",
+      "stream": "staff",
+      "kind": "watchlist_property_edited",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-27",
+      "localDate": "2026-10-27",
+      "timestamp": "2026-10-27T22:23:50.707Z",
+      "discoveredAt": "2026-11-09T21:53:32Z",
+      "loggedAt": "2026-10-27T22:23:50.707Z",
+      "title": "Watchlist Dossier Updated: Wheeler Residences",
+      "summary": "Updated owner of record by emily@preservationhouston.org.",
+      "address": "2802 WHEELER ST",
+      "hcad": "0611650000001",
+      "watchPropertyId": "plat-2026-1641",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": 29.72457,
+      "lng": -95.36754,
+      "yearBuilt": "1940",
+      "designation": "None found",
+      "links": []
     },
     {
       "id": "staff:review:2026-10-29:DPV-26075937:t2",
