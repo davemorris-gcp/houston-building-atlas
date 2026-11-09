@@ -14306,3 +14306,280 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
     padding: 0 5px;
   }
 }
+
+/* ==========================================================================
+   Milestone 12: COH HPO Historic District Survey Card & Boundary Dossier Card
+   ========================================================================== */
+
+.hpo-survey-card,
+.hpo-district-dossier-card {
+  --hpo-card-bg: rgba(15, 23, 42, 0.76);
+  --hpo-card-border: rgba(56, 189, 248, 0.34);
+  --hpo-card-accent: #38bdf8;
+  --hpo-kicker-color: #7dd3fc;
+  --hpo-label-color: #94a3b8;
+  --hpo-val-color: #f1f5f9;
+  --hpo-chip-bg: rgba(30, 41, 59, 0.88);
+  --hpo-chip-border: rgba(148, 163, 184, 0.38);
+  --hpo-chip-color: #e2e8f0;
+  --hpo-chip-total-bg: rgba(14, 165, 233, 0.14);
+  --hpo-chip-total-border: rgba(56, 189, 248, 0.45);
+  --hpo-contrib-bg: rgba(16, 185, 129, 0.2);
+  --hpo-contrib-border: rgba(52, 211, 153, 0.55);
+  --hpo-contrib-color: #a7f3d0;
+  --hpo-potential-bg: rgba(56, 189, 248, 0.18);
+  --hpo-potential-border: rgba(125, 211, 252, 0.52);
+  --hpo-potential-color: #bae6fd;
+  --hpo-vacant-bg: rgba(245, 158, 11, 0.16);
+  --hpo-vacant-border: rgba(251, 191, 36, 0.45);
+  --hpo-vacant-color: #fde68a;
+  --hpo-note-bg: rgba(30, 41, 59, 0.72);
+  --hpo-note-border: rgba(148, 163, 184, 0.24);
+  --hpo-note-color: #cbd5e1;
+  --hpo-btn-bg: rgba(14, 165, 233, 0.2);
+  --hpo-btn-border: rgba(56, 189, 248, 0.5);
+  --hpo-btn-color: #e0f2fe;
+  --hpo-btn-hover-bg: rgba(14, 165, 233, 0.32);
+  --hpo-btn-hover-border: rgba(125, 211, 252, 0.8);
+  --hpo-btn-sec-bg: rgba(30, 41, 59, 0.85);
+  --hpo-btn-sec-border: rgba(148, 163, 184, 0.38);
+  --hpo-btn-sec-color: #e2e8f0;
+  --hpo-btn-sec-hover-bg: rgba(51, 65, 85, 0.9);
+  --hpo-btn-sec-hover-border: rgba(148, 163, 184, 0.65);
+
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--hpo-card-bg);
+  border: 1px solid var(--hpo-card-border);
+  border-left: 3px solid var(--hpo-card-accent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hpo-survey-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hpo-survey-kicker {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--hpo-kicker-color);
+}
+
+.hpo-survey-status-pill,
+.hpo-district-date-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--hpo-chip-border);
+  background: var(--hpo-chip-bg);
+  color: var(--hpo-chip-color);
+  white-space: nowrap;
+}
+
+.hpo-survey-status-pill.status-contributing,
+.hpo-district-count-chip.contributing {
+  background: var(--hpo-contrib-bg);
+  border-color: var(--hpo-contrib-border);
+  color: var(--hpo-contrib-color);
+}
+
+.hpo-survey-status-pill.status-potentially,
+.hpo-district-count-chip.potentially {
+  background: var(--hpo-potential-bg);
+  border-color: var(--hpo-potential-border);
+  color: var(--hpo-potential-color);
+}
+
+.hpo-survey-status-pill.status-noncontributing {
+  background: var(--hpo-chip-bg);
+  border-color: var(--hpo-chip-border);
+  color: var(--hpo-chip-color);
+}
+
+.hpo-survey-status-pill.status-vacant,
+.hpo-district-count-chip.vacant {
+  background: var(--hpo-vacant-bg);
+  border-color: var(--hpo-vacant-border);
+  color: var(--hpo-vacant-color);
+}
+
+.hpo-survey-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.hpo-survey-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 3px 0;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.16);
+}
+
+.hpo-survey-row:last-child {
+  border-bottom: none;
+}
+
+.hpo-survey-label {
+  color: var(--hpo-label-color);
+  font-size: 11.2px;
+}
+
+.hpo-survey-val {
+  color: var(--hpo-val-color);
+  text-align: right;
+  word-break: break-word;
+}
+
+.hpo-survey-aka {
+  color: var(--hpo-label-color);
+  font-size: 11px;
+}
+
+.coh-landmark-tpia-note {
+  --hpo-note-bg: rgba(30, 41, 59, 0.72);
+  --hpo-note-border: rgba(148, 163, 184, 0.24);
+  --hpo-note-color: #cbd5e1;
+}
+
+.hpo-survey-note,
+.coh-landmark-tpia-note {
+  margin-top: 2px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: var(--hpo-note-bg);
+  border: 1px solid var(--hpo-note-border);
+  color: var(--hpo-note-color);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.hpo-district-counts-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hpo-district-count-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--hpo-chip-bg);
+  border: 1px solid var(--hpo-chip-border);
+  color: var(--hpo-chip-color);
+}
+
+.hpo-district-count-chip.total {
+  background: var(--hpo-chip-total-bg);
+  border-color: var(--hpo-chip-total-border);
+  font-weight: 600;
+}
+
+.hpo-survey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.hpo-survey-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--hpo-btn-border);
+  background: var(--hpo-btn-bg);
+  color: var(--hpo-btn-color);
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+
+.hpo-survey-btn:hover {
+  background: var(--hpo-btn-hover-bg);
+  border-color: var(--hpo-btn-hover-border);
+}
+
+.hpo-survey-btn.secondary {
+  background: var(--hpo-btn-sec-bg);
+  border-color: var(--hpo-btn-sec-border);
+  color: var(--hpo-btn-sec-color);
+}
+
+.hpo-survey-btn.secondary:hover {
+  background: var(--hpo-btn-sec-hover-bg);
+  border-color: var(--hpo-btn-sec-hover-border);
+}
+
+:is(body[data-basemap="warm_parchment"], body[data-basemap="solid_light"])
+  :is(.hpo-survey-card, .hpo-district-dossier-card, .coh-landmark-tpia-note) {
+  --hpo-card-bg: rgba(248, 250, 252, 0.96);
+  --hpo-card-border: rgba(2, 132, 199, 0.35);
+  --hpo-card-accent: #0284c7;
+  --hpo-kicker-color: #0369a1;
+  --hpo-label-color: #475569;
+  --hpo-val-color: #0f172a;
+  --hpo-chip-bg: #f1f5f9;
+  --hpo-chip-border: rgba(100, 116, 139, 0.38);
+  --hpo-chip-color: #0f172a;
+  --hpo-chip-total-bg: #e0f2fe;
+  --hpo-chip-total-border: rgba(2, 132, 199, 0.45);
+  --hpo-contrib-bg: #d1fae5;
+  --hpo-contrib-border: #10b981;
+  --hpo-contrib-color: #065f46;
+  --hpo-potential-bg: #e0f2fe;
+  --hpo-potential-border: #0284c7;
+  --hpo-potential-color: #075985;
+  --hpo-vacant-bg: #fef3c7;
+  --hpo-vacant-border: #d97706;
+  --hpo-vacant-color: #92400e;
+  --hpo-note-bg: #f1f5f9;
+  --hpo-note-border: rgba(100, 116, 139, 0.3);
+  --hpo-note-color: #334155;
+  --hpo-btn-bg: #0284c7;
+  --hpo-btn-border: #0369a1;
+  --hpo-btn-color: #ffffff;
+  --hpo-btn-hover-bg: #0369a1;
+  --hpo-btn-hover-border: #075985;
+  --hpo-btn-sec-bg: #ffffff;
+  --hpo-btn-sec-border: rgba(100, 116, 139, 0.45);
+  --hpo-btn-sec-color: #0f172a;
+  --hpo-btn-sec-hover-bg: #f1f5f9;
+  --hpo-btn-sec-hover-border: #475569;
+}
+
+@media screen and (max-width: 559px) {
+  .hpo-survey-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .hpo-survey-val {
+    text-align: left;
+  }
+
+  .hpo-survey-actions .hpo-survey-btn {
+    flex: 1 1 auto;
+    min-height: 36px;
+  }
+}

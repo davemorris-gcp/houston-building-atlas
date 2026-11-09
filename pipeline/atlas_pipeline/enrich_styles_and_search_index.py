@@ -4,7 +4,12 @@ import glob
 import json
 import os
 
-from atlas_pipeline.schema import is_boundary_search_entry, write_compact_json
+from atlas_pipeline.schema import (
+    HCAD_STYLE_GRADE_CODES,
+    is_boundary_search_entry,
+    is_specific_architectural_style,
+    write_compact_json,
+)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SEARCH_INDEX_PATH = os.path.join(ROOT, "app/public/data/search_index.json")
@@ -13,63 +18,11 @@ OVERRIDES_PATH = os.path.join(ROOT, "app/public/data/curated_overrides.json")
 OVERLAYS_PATH = os.path.join(ROOT, "app/public/data/overlays.json")
 SHARD_GLOB = os.path.join(ROOT, "pipeline/cache/aligned_ndjson/*.geojsonseq")
 
-GENERIC_PLACEHOLDER_STYLES = {
-    "",
-    "Historical / Architectural Structure",
-    "Houston Historic Structure",
-    "Historic Structure",
-    "Structure",
-    "None",
-    "null",
-}
-
-SINGLE_LETTER_GRADES = {
-    "A++",
-    "A+",
-    "A",
-    "A-",
-    "B+",
-    "B",
-    "B-",
-    "C+",
-    "C",
-    "C-",
-    "D+",
-    "D",
-    "D-",
-    "E+",
-    "E",
-    "E-",
-    "F",
-    "X",
-}
-
-STRUCTURAL_CLASSES = {
-    "Wood or Light Steel",
-    "Masonry Bearing",
-    "Open Steel Skeleton",
-    "Reinforced Concrete",
-    "Fireproofed Steel",
-    "Mobile Home/Manufactured Housing",
-    "Storage Tank",
-    "Petrochemical Complex",
-    "Educational Campus Structure",
-    "Frame Utility Shed",
-    "Carport - Residential",
-    "Canopy - Residential",
-    "Frame Detached Garage",
-    "Utility Building - Metal",
-    "Portable/Modular Office - Average",
-}
+SINGLE_LETTER_GRADES: frozenset[str] = frozenset(code.upper() for code in HCAD_STYLE_GRADE_CODES)
 
 
 def is_specific_style(val: str) -> bool:
-  v = (val or "").strip()
-  return (
-      bool(v)
-      and v not in GENERIC_PLACEHOLDER_STYLES
-      and v not in SINGLE_LETTER_GRADES
-  )
+  return is_specific_architectural_style(val, allow_structural_class=True)
 
 
 def main():
@@ -339,24 +292,9 @@ def main():
     # Prefer true architectural style over structural frame class when available
     arch_st = (
         lm.get("style")
-        or (
-            ov.get("style")
-            if is_specific_style(ov.get("style"))
-            and ov.get("style") not in STRUCTURAL_CLASSES
-            else ""
-        )
-        or (
-            bm.get("style")
-            if is_specific_style(bm.get("style"))
-            and bm.get("style") not in STRUCTURAL_CLASSES
-            else ""
-        )
-        or (
-            sm.get("style")
-            if is_specific_style(sm.get("style"))
-            and sm.get("style") not in STRUCTURAL_CLASSES
-            else ""
-        )
+        or (ov.get("style") if is_specific_architectural_style(ov.get("style")) else "")
+        or (bm.get("style") if is_specific_architectural_style(bm.get("style")) else "")
+        or (sm.get("style") if is_specific_architectural_style(sm.get("style")) else "")
         or ""
     )
     struct_bs = (

@@ -316,3 +316,36 @@ export function extractHttpUrlsFromText(text) {
   }
   return Array.from(found);
 }
+
+/**
+ * Escapes `&`, `<`, `>`, `"`, and `'` prior to HTML attribute or text-node interpolation.
+ *
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function escapeHtml(raw) {
+  return String(raw ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Validates that a candidate external URL uses an explicit `http:` or `https:` protocol,
+ * returning an empty string for `javascript:`, `data:`, `vbscript:`, or malformed URIs.
+ *
+ * @param {unknown} rawUrl
+ * @returns {string}
+ */
+export function sanitizeHttpUrl(rawUrl) {
+  const trimmed = String(rawUrl ?? "").trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? trimmed : "";
+  } catch {
+    return "";
+  }
+}

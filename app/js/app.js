@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261108c";
+} from "./palettes.js?v=20261109a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -27,16 +27,16 @@ import {
   SHARE_VIEW_PRESETS,
   toLayerStateKey,
   toOverlayDataKey,
-} from "./filterStore.js?v=20261108c";
-import { AtlasMapController } from "./mapController.js?v=20261108c";
+} from "./filterStore.js?v=20261109a";
+import { AtlasMapController } from "./mapController.js?v=20261109a";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261108c";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261108c";
+} from "./guidedChaptersAndPortfolios.js?v=20261109a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109a";
 import {
   buildAddressShardUrl,
   buildResearchKitDeedChainView,
@@ -49,7 +49,7 @@ import {
   isPlaceholderOwnerName,
   normalizeAddressShardPrefix,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261108c";
+} from "./clerkSearchHelpers.js?v=20261109a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -72,7 +72,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261108c";
+} from "./curatedEdits.js?v=20261109a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -82,12 +82,24 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261108c";
+} from "./photoService.js?v=20261109a";
 import {
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
   resolveArchivalRecords,
-} from "./archivalHelpers.js?v=20261108c";
+} from "./archivalHelpers.js?v=20261109a";
+import {
+  buildCohLandmarkDossierCardHtml,
+  buildHpoDistrictDossierCardHtml,
+  buildHpoParcelSurveyCardHtml,
+  HCAD_GRADE_LABELS,
+  isArchitecturalStyleDisplayCandidate,
+  isReplaceableStyleValue,
+  isStructuralClassStyleValue,
+  resolveCohLandmarkOverlayMetadata,
+  resolveHpoDistrictDocs,
+  resolveHpoParcelSurvey,
+} from "./hpoSurveyHelpers.js?v=20261109a";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -95,12 +107,12 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261108c";
+} from "./platMonitorHelpers.js?v=20261109a";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261108c";
+} from "./hcadViewportParcels.js?v=20261109a";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -120,11 +132,13 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261108c";
+} from "./preservationOrganizer.js?v=20261109a";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
-} from "./urlValidators.js?v=20261108c";
+  escapeHtml,
+  sanitizeHttpUrl,
+} from "./urlValidators.js?v=20261109a";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -271,6 +285,7 @@ export class HoustonAtlasApp {
     this.deedCatalog = null;
     this.sanbornCatalog = null;
     this.archivalIndex = null;
+    this.hpoSurveyIndex = null;
     this._permitShardCache = new Map();
     this._ownerHistoryShardCache = new Map();
     this._inflightInspectorHydrations = new Set();
@@ -1082,15 +1097,17 @@ export class HoustonAtlasApp {
         citydirRes,
         ownPortRes,
         archivalRes,
+        hpoSurveyRes,
       ] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261108c"),
-        fetch("public/data/stats_summary.json?v=20261108c"),
-        fetch("public/data/haif_index.json?v=20261108c").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261108c").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261108c").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261108c").catch(() => null),
-        fetch("public/data/ownership_portfolios.json?v=20261108c").catch(() => null),
-        fetch("public/data/archival_index.json?v=20261108c").catch(() => null),
+        fetch("public/data/search_index.json?v=20261109a"),
+        fetch("public/data/stats_summary.json?v=20261109a"),
+        fetch("public/data/haif_index.json?v=20261109a").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261109a").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261109a").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261109a").catch(() => null),
+        fetch("public/data/ownership_portfolios.json?v=20261109a").catch(() => null),
+        fetch("public/data/archival_index.json?v=20261109a").catch(() => null),
+        fetch("public/data/hpo_district_surveys.json?v=20261109a").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -1152,6 +1169,11 @@ export class HoustonAtlasApp {
         this.archivalIndex = await archivalRes.json();
       } else {
         this.archivalIndex = null;
+      }
+      if (hpoSurveyRes && hpoSurveyRes.ok) {
+        this.hpoSurveyIndex = await hpoSurveyRes.json();
+      } else {
+        this.hpoSurveyIndex = null;
       }
       this._populatePortfolioPresetSelect(
         this._activePortfolio
@@ -1598,6 +1620,12 @@ export class HoustonAtlasApp {
     });
   }
 
+  _resolveHpoParcelSurvey(props = {}) {
+    return resolveHpoParcelSurvey(this.hpoSurveyIndex, props, {
+      globalRejections: this._globalRejections,
+    });
+  }
+
   /**
    * Resolves the authoritative Primary Building Name (`primaryName`), Historical / Colloquial
    * Alternate Names (`altNames`), and Name Provenance (`nameSource`) across:
@@ -1836,53 +1864,7 @@ export class HoustonAtlasApp {
     };
   }
 
-  _resolveStyleAndClassInfo(props = {}) {
-    const GENERIC_STYLES = new Set([
-      "",
-      "Historical / Architectural Structure",
-      "Houston Historic Structure",
-      "Historic Structure",
-      "Structure",
-      "None",
-      "null",
-    ]);
-    const GRADE_LABELS = {
-      "A++": "Luxury Custom Residential (HCAD Grade A++)",
-      "A+": "High-Grade Custom Residential (HCAD Grade A+)",
-      A: "High-Grade Residential (HCAD Grade A)",
-      "A-": "Upper-Grade Residential (HCAD Grade A-)",
-      "B+": "Good-Grade Residential (HCAD Grade B+)",
-      B: "Good-Grade Residential (HCAD Grade B)",
-      "B-": "Above-Average Residential (HCAD Grade B-)",
-      "C+": "Average Residential (HCAD Grade C+)",
-      C: "Standard Residential (HCAD Grade C)",
-      "C-": "Standard Economy Residential (HCAD Grade C-)",
-      "D+": "Economy Residential (HCAD Grade D+)",
-      D: "Economy Residential (HCAD Grade D)",
-      "D-": "Basic Frame Residential (HCAD Grade D-)",
-      "E+": "Vernacular Frame Cottage (HCAD Grade E+)",
-      E: "Vernacular Frame / Cottage (HCAD Grade E)",
-      "E-": "Minimal Frame Structure (HCAD Grade E-)",
-      X: "Tax-Exempt / Institutional Class (HCAD X)",
-    };
-    const STRUCTURAL_CLASSES = new Set([
-      "Wood or Light Steel",
-      "Masonry Bearing",
-      "Open Steel Skeleton",
-      "Reinforced Concrete",
-      "Fireproofed Steel",
-      "Mobile Home/Manufactured Housing",
-      "Storage Tank",
-      "Petrochemical Complex",
-      "Educational Campus Structure",
-      "Frame Utility Shed",
-      "Carport - Residential",
-      "Canopy - Residential",
-      "Frame Detached Garage",
-      "Utility Building - Metal",
-      "Portable/Modular Office - Average",
-    ]);
-
+  _resolveStyleAndClassInfo(props = {}, preResolvedHpoSurvey = undefined) {
     const splitParenNote = (str) => {
       const s = String(str || "").trim();
       const m = s.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
@@ -1898,41 +1880,38 @@ export class HoustonAtlasApp {
     const rawBldStyle = String(props.bld_style || "").trim();
     const rawGrade = String(
       props.hcad_grade ||
-        (GRADE_LABELS[rawBldStyle] ? rawBldStyle : GRADE_LABELS[rawStyle] ? rawStyle : "")
+        (HCAD_GRADE_LABELS[rawBldStyle.toUpperCase()]
+          ? rawBldStyle.toUpperCase()
+          : HCAD_GRADE_LABELS[rawStyle.toUpperCase()]
+          ? rawStyle.toUpperCase()
+          : "")
     ).trim();
     const useCat = String(props.use_category || "").trim();
     const landuseDesc = String(props.landuse_desc || "").trim();
 
-    const cleanArchStyle =
-      rawStyle && !GENERIC_STYLES.has(rawStyle) && !GRADE_LABELS[rawStyle] ? rawStyle : "";
-    const cleanBldStyle =
-      rawBldStyle && !GENERIC_STYLES.has(rawBldStyle) && !GRADE_LABELS[rawBldStyle]
-        ? rawBldStyle
-        : "";
+    const cleanArchStyle = isArchitecturalStyleDisplayCandidate(rawStyle) ? rawStyle : "";
+    const cleanBldStyle = isArchitecturalStyleDisplayCandidate(rawBldStyle) ? rawBldStyle : "";
 
-    const chips = [];
-
-    if (cleanArchStyle && !STRUCTURAL_CLASSES.has(cleanArchStyle)) {
-      const { core, note } = splitParenNote(cleanArchStyle);
-      chips.push({
-        label: core,
-        query: core,
-        note,
-        headerLabel: `Architectural Style: ${core}`,
-        isSecondary: false,
-      });
+    const buildPrimaryAndSecondaryStyleResult = (primaryRaw, provenanceTag = "") => {
+      const { core, note } = splitParenNote(primaryRaw);
+      const combinedNote = [note, provenanceTag].filter(Boolean).join(" · ");
+      const chips = [
+        {
+          label: core,
+          query: core,
+          note: combinedNote,
+          headerLabel: `Architectural Style: ${core}`,
+          isSecondary: false,
+        },
+      ];
       if (
         cleanBldStyle &&
-        cleanBldStyle.toLowerCase() !== cleanArchStyle.toLowerCase() &&
+        cleanBldStyle.toLowerCase() !== primaryRaw.toLowerCase() &&
         cleanBldStyle.toLowerCase() !== core.toLowerCase() &&
         cleanBldStyle.toLowerCase() !== useCat.toLowerCase()
       ) {
         const bSplit = splitParenNote(cleanBldStyle);
-        const isStruct =
-          STRUCTURAL_CLASSES.has(cleanBldStyle) ||
-          /steel|masonry|concrete|frame|tank|canopy|carport|mobile|utility|paving|plant/i.test(
-            cleanBldStyle
-          );
+        const isStruct = isStructuralClassStyleValue(cleanBldStyle);
         chips.push({
           label: bSplit.core,
           query: bSplit.core,
@@ -1947,14 +1926,25 @@ export class HoustonAtlasApp {
         headerLabel: `Architectural Style: ${core}`,
         chips,
       };
+    };
+
+    if (!isReplaceableStyleValue(rawStyle)) {
+      return buildPrimaryAndSecondaryStyleResult(cleanArchStyle);
     }
 
+    const hpoSurveyForStyle =
+      preResolvedHpoSurvey !== undefined
+        ? preResolvedHpoSurvey
+        : this._resolveHpoParcelSurvey(props);
+    const hpoArchStyle = hpoSurveyForStyle?.usableStyle || "";
+    if (hpoArchStyle) {
+      return buildPrimaryAndSecondaryStyleResult(hpoArchStyle, "COH HPO Survey");
+    }
+
+    const chips = [];
+
     if (cleanBldStyle) {
-      const isStructClass =
-        STRUCTURAL_CLASSES.has(cleanBldStyle) ||
-        /steel|masonry|concrete|frame|tank|canopy|carport|mobile|utility|paving|plant/i.test(
-          cleanBldStyle
-        );
+      const isStructClass = isStructuralClassStyleValue(cleanBldStyle);
       const { core, note } = splitParenNote(cleanBldStyle);
       const hdr = `${isStructClass ? "Building Class" : "Architectural Style"}: ${core}`;
       chips.push({
@@ -1972,8 +1962,8 @@ export class HoustonAtlasApp {
       };
     }
 
-    if (rawGrade && GRADE_LABELS[rawGrade]) {
-      const gradeLabel = GRADE_LABELS[rawGrade];
+    if (rawGrade && HCAD_GRADE_LABELS[rawGrade]) {
+      const gradeLabel = HCAD_GRADE_LABELS[rawGrade];
       const hdr = `Building Class: ${gradeLabel}`;
       chips.push({
         label: gradeLabel,
@@ -1992,8 +1982,8 @@ export class HoustonAtlasApp {
 
     const fallbackCat = useCat || landuseDesc || "Residential";
     const isHistNote =
-      rawStyle === "Historical / Architectural Structure" ||
-      rawBldStyle === "Historical / Architectural Structure";
+      rawStyle.toLowerCase() === "historical / architectural structure" ||
+      rawBldStyle.toLowerCase() === "historical / architectural structure";
     const hdr = `Building Category: ${fallbackCat}`;
     chips.push({
       label: fallbackCat,
@@ -9656,7 +9646,11 @@ export class HoustonAtlasApp {
           return `${inspectBldBtn}${parcelCard}${distCard}`;
         }
         if (overlayLayer === "historic_districts") {
-          return this._buildHahcDistrictPrecedentsCardHtml(name, "");
+          const hpoDistCard = buildHpoDistrictDossierCardHtml(
+            name,
+            resolveHpoDistrictDocs(this.hpoSurveyIndex, name)
+          );
+          return `${hpoDistCard}${this._buildHahcDistrictPrecedentsCardHtml(name, "")}`;
         }
         return "";
       })()}
@@ -11240,6 +11234,24 @@ export class HoustonAtlasApp {
         demoLinks.push({
           label: "COH Protected Landmark Guide (PDF)",
           url: COH_PLM_BROCHURE_URL,
+          cls: "",
+        });
+      }
+    }
+
+    if (cohHdName) {
+      const hdDocs = resolveHpoDistrictDocs(this.hpoSurveyIndex, cohHdName);
+      if (hdDocs?.guidelinesPdfUrl) {
+        demoLinks.push({
+          label: "District Design Guidelines (PDF)",
+          url: hdDocs.guidelinesPdfUrl,
+          cls: "",
+        });
+      }
+      if (hdDocs?.inventoryPdfUrl) {
+        demoLinks.push({
+          label: "Official District Inventory (PDF)",
+          url: hdDocs.inventoryPdfUrl,
           cls: "",
         });
       }
@@ -13190,56 +13202,23 @@ export class HoustonAtlasApp {
         : "";
 
     // Resolve City of Houston Landmark Designation Report metadata (including runtime fallback from overlaysData.landmarks)
-    let reportPdfUrl = props.landmark_report_url || props.report_pdf_url || "";
-    let secondaryPdfUrl = props.secondary_pdf_url || "";
-    let landmarkCode = props.landmark_code || props.plm_num || props.lm_num || "";
-    let landmarkSummary = props.landmark_summary || props.pdf_summary || "";
-    if (!reportPdfUrl && this.mapController?.overlaysData?.landmarks?.features) {
-      const lmFeatures = this.mapController.overlaysData.landmarks.features;
-      const normTitle = String(title || "").trim().toLowerCase();
-      const normAddr = String(props.address || "").trim().toLowerCase();
-      for (const f of lmFeatures) {
-        const lp = f.properties || {};
-        const lHcad = String(lp.hcad_num || "").trim();
-        const lName = String(lp.name || "").trim().toLowerCase();
-        const lAddr = String(lp.address || "").trim().toLowerCase();
-        if (
-          (hcadNum && lHcad === hcadNum) ||
-          (normTitle && lName && normTitle === lName) ||
-          (normAddr && lAddr && normAddr === lAddr)
-        ) {
-          reportPdfUrl = lp.report_pdf_url || "";
-          secondaryPdfUrl = lp.secondary_pdf_url || "";
-          if (!landmarkCode) landmarkCode = lp.plm_num || lp.lm_num || "";
-          if (!landmarkSummary) landmarkSummary = lp.pdf_summary || "";
-          if (!props.builder && lp.builder) props.builder = lp.builder;
-          if (!props.builder_source && lp.builder_source) props.builder_source = lp.builder_source;
-          if (!props.original_permit && lp.original_permit) props.original_permit = lp.original_permit;
-          if (!props.original_cost && lp.original_cost) props.original_cost = lp.original_cost;
-          if (!props.engineers && lp.engineers) props.engineers = lp.engineers;
-          break;
-        }
-      }
-    }
+    // without mutating caller `props` or cross-contaminating `#<slug>` sub-buildings / shared-HCAD landmarks.
+    const {
+      reportPdfUrl,
+      secondaryPdfUrl,
+      landmarkCode,
+      landmarkSummary,
+      builder: effBuilder,
+      builderSource: effBuilderSource,
+      originalPermit: effOriginalPermit,
+      originalCost: effOriginalCost,
+      engineers: effEngineers,
+      wasRelocated: effWasRelocated,
+      relocationNote: effRelocationNote,
+      histContract: effHistContract,
+    } = resolveCohLandmarkOverlayMetadata(this.mapController?.overlaysData, props, title);
 
-    // Runtime fallback from overlaysData.relocated_structures by hcadNum
-    if (hcadNum && this.mapController?.overlaysData?.relocated_structures?.features) {
-      for (const rf of this.mapController.overlaysData.relocated_structures.features) {
-        const rp = rf.properties || {};
-        if (String(rp.hcad_num || "").trim() === hcadNum) {
-          if (!props.builder && rp.builder) props.builder = rp.builder;
-          if (!props.builder_source && rp.builder_source) props.builder_source = rp.builder_source;
-          if (!props.was_relocated && rp.was_relocated) props.was_relocated = true;
-          if (!props.relocation_note && rp.relocation_note) props.relocation_note = rp.relocation_note;
-          if (!props.hist_contract && rp.hist_contract) props.hist_contract = rp.hist_contract;
-          if (!props.original_cost && rp.original_cost) props.original_cost = rp.original_cost;
-          if (!props.original_permit && rp.original_permit) props.original_permit = rp.original_permit;
-          break;
-        }
-      }
-    }
-
-    let histContractObj = props.hist_contract || null;
+    let histContractObj = effHistContract;
     if (typeof histContractObj === "string" && histContractObj.trim().startsWith("{")) {
       try {
         histContractObj = JSON.parse(histContractObj);
@@ -13248,23 +13227,25 @@ export class HoustonAtlasApp {
       }
     }
 
-    const histBuilderVal = String(props.builder || histContractObj?.builder || histContractObj?.contractor || "").trim();
-    const histCostVal = String(props.original_cost || histContractObj?.cost || "").trim();
-    const histPermitVal = String(props.original_permit || "").trim();
+    const histBuilderVal = String(effBuilder || histContractObj?.builder || histContractObj?.contractor || "").trim();
+    const histCostVal = String(effOriginalCost || histContractObj?.cost || "").trim();
+    const histPermitVal = String(effOriginalPermit || "").trim();
     const histSourceLabel = String(
-      histContractObj?.source_title || histContractObj?.source || props.builder_source || (histPermitVal ? "COH Historic Building Permit / Landmark Dossier" : "")
+      histContractObj?.source_title || histContractObj?.source || effBuilderSource || (histPermitVal ? "COH Historic Building Permit / Landmark Dossier" : "")
     ).trim();
-    const histSourceUrl = String(histContractObj?.source_url || props.source_url || "")
-      .trim()
-      .replace(
-        /^https?:\/\/digital\.houstonlibrary\.org\/digital\//i,
-        "https://cdm17006.contentdm.oclc.org/digital/"
-      );
-    const histImageUrl = String(histContractObj?.image_url || "").trim();
+    const histSourceUrl = sanitizeHttpUrl(
+      String(histContractObj?.source_url || props.source_url || "")
+        .trim()
+        .replace(
+          /^https?:\/\/digital\.houstonlibrary\.org\/digital\//i,
+          "https://cdm17006.contentdm.oclc.org/digital/"
+        )
+    );
+    const histImageUrl = sanitizeHttpUrl(histContractObj?.image_url);
     const histSubcontractorsVal = String(histContractObj?.subcontractors || "").trim();
     const histNotesVal = String(histContractObj?.scope || histContractObj?.notes || "").trim();
-    const wasRelocatedFlag = Boolean(props.was_relocated);
-    const relocationNoteVal = String(props.relocation_note || "").trim();
+    const wasRelocatedFlag = Boolean(effWasRelocated);
+    const relocationNoteVal = String(effRelocationNote || "").trim();
 
     const histContractHtml =
       histContractObj || histBuilderVal || histCostVal || histPermitVal || wasRelocatedFlag
@@ -13275,7 +13256,7 @@ export class HoustonAtlasApp {
                 wasRelocatedFlag
                   ? `<span class="hist-relocated-badge" title="Structure has a documented move or relocation permit">&#128666; Relocated Structure</span>`
                   : histContractObj?.date
-                  ? `<span class="hist-contract-date-badge">${histContractObj.date}</span>`
+                  ? `<span class="hist-contract-date-badge">${escapeHtml(histContractObj.date)}</span>`
                   : ""
               }
             </div>
@@ -13284,15 +13265,15 @@ export class HoustonAtlasApp {
                 histBuilderVal
                   ? `<div class="hist-contract-row">
                       <span class="hist-contract-label">General Contractor / Builder:</span>
-                      <span class="hist-contract-val"><strong>${histBuilderVal}</strong></span>
+                      <span class="hist-contract-val"><strong>${escapeHtml(histBuilderVal)}</strong></span>
                     </div>`
                   : ""
               }
               ${
-                props.engineers
+                effEngineers
                   ? `<div class="hist-contract-row">
                       <span class="hist-contract-label">Structural / MEP Engineers:</span>
-                      <span class="hist-contract-val">${props.engineers}</span>
+                      <span class="hist-contract-val">${escapeHtml(effEngineers)}</span>
                     </div>`
                   : ""
               }
@@ -13300,7 +13281,7 @@ export class HoustonAtlasApp {
                 histCostVal
                   ? `<div class="hist-contract-row">
                       <span class="hist-contract-label">Original Contract Cost:</span>
-                      <span class="hist-contract-val mono">${histCostVal}</span>
+                      <span class="hist-contract-val mono">${escapeHtml(histCostVal)}</span>
                     </div>`
                   : ""
               }
@@ -13308,7 +13289,7 @@ export class HoustonAtlasApp {
                 histPermitVal
                   ? `<div class="hist-contract-row">
                       <span class="hist-contract-label">Historic Building Permit:</span>
-                      <span class="hist-contract-val mono">${histPermitVal}</span>
+                      <span class="hist-contract-val mono">${escapeHtml(histPermitVal)}</span>
                     </div>`
                   : ""
               }
@@ -13316,7 +13297,7 @@ export class HoustonAtlasApp {
                 histSubcontractorsVal
                   ? `<div class="hist-contract-row">
                       <span class="hist-contract-label">Subcontractors / Trades:</span>
-                      <span class="hist-contract-val">${histSubcontractorsVal}</span>
+                      <span class="hist-contract-val">${escapeHtml(histSubcontractorsVal)}</span>
                     </div>`
                   : ""
               }
@@ -13324,7 +13305,7 @@ export class HoustonAtlasApp {
                 histNotesVal
                   ? `<div class="hist-contract-row">
                       <span class="hist-contract-label">Contract Scope:</span>
-                      <span class="hist-contract-val">${histNotesVal}</span>
+                      <span class="hist-contract-val">${escapeHtml(histNotesVal)}</span>
                     </div>`
                   : ""
               }
@@ -13332,23 +13313,23 @@ export class HoustonAtlasApp {
                 relocationNoteVal
                   ? `<div class="hist-contract-row">
                       <span class="hist-contract-label">Relocation / Move Record:</span>
-                      <span class="hist-contract-val">${relocationNoteVal}</span>
+                      <span class="hist-contract-val">${escapeHtml(relocationNoteVal)}</span>
                     </div>`
                   : ""
               }
               ${
                 histSourceLabel
                   ? `<div class="hist-contract-source-line">
-                      <span><strong>Archival Source:</strong> ${histSourceLabel}</span>
+                      <span><strong>Archival Source:</strong> ${escapeHtml(histSourceLabel)}</span>
                       <div class="hist-contract-source-actions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
                         ${
                           histSourceUrl
-                            ? `<a href="${histSourceUrl}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View HMRC Archive Page &#8599;</a>`
+                            ? `<a href="${escapeHtml(histSourceUrl)}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View HMRC Archive Page &#8599;</a>`
                             : ""
                         }
                         ${
                           histImageUrl
-                            ? `<a href="${histImageUrl}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View Scanned Page (PDF) &#8599;</a>`
+                            ? `<a href="${escapeHtml(histImageUrl)}" target="_blank" rel="noopener noreferrer" class="hist-contract-source-link">View Scanned Page (PDF) &#8599;</a>`
                             : ""
                         }
                       </div>
@@ -13359,70 +13340,36 @@ export class HoustonAtlasApp {
           </div>`
         : "";
 
-    const landmarkReportHtml =
-      reportPdfUrl || landmarkCode
-        ? `<div class="coh-landmark-report-card">
-            <div class="coh-landmark-report-header">
-              <span class="coh-landmark-report-kicker">&#127963; COH Landmark Designation Dossier</span>
-              ${
-                landmarkCode
-                  ? `<span class="coh-landmark-code-badge" title="City of Houston Historic Preservation Office File #">HPO #${landmarkCode}</span>`
-                  : ""
-              }
-            </div>
-            ${
-              landmarkSummary &&
-              (!props.is_curated_override || !String(props.source_citation || "").includes(landmarkSummary.slice(0, 40)))
-                ? `<div class="coh-landmark-report-summary">${landmarkSummary}</div>`
-                : ""
-            }
-            ${
-              reportPdfUrl
-                ? `<div class="coh-landmark-report-actions">
-                    <a
-                      href="${reportPdfUrl}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="coh-landmark-pdf-btn"
-                      title="Open the official City of Houston Archaeological & Historical Commission (HAHC) Landmark Designation Report PDF"
-                    >
-                      &#128196; Open Official Landmark Report (PDF) &#8599;
-                    </a>
-                    ${
-                      secondaryPdfUrl && secondaryPdfUrl !== reportPdfUrl
-                        ? `<a
-                            href="${secondaryPdfUrl}"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="coh-landmark-pdf-btn secondary"
-                          >
-                            Supplemental HAHC Filing / Action Report (PDF) &#8599;
-                          </a>`
-                        : ""
-                    }
-                  </div>`
-                : ""
-            }
-          </div>`
-        : "";
+    const landmarkReportHtml = buildCohLandmarkDossierCardHtml({
+      landmarkCode,
+      reportPdfUrl,
+      secondaryPdfUrl,
+      landmarkSummary,
+      isCuratedOverride: Boolean(props.is_curated_override),
+      sourceCitation: props.source_citation || "",
+    });
 
+    const safeOverrideSourceUrl = sanitizeHttpUrl(props.source_url);
     const verifiedBannerHtml = props.is_curated_override
       ? `<div class="ph-verified-override-card">
           <div class="ph-verified-header">
-            <span>&#10003; Verified by ${props.verified_by || "Preservation Houston"}</span>
+            <span>&#10003; Verified by ${escapeHtml(props.verified_by || "Preservation Houston")}</span>
             ${
               props.original_hcad_year && props.original_hcad_year !== yr
-                ? `<span class="ph-verified-orig-year">HCAD lists ${props.original_hcad_year}</span>`
+                ? `<span class="ph-verified-orig-year">HCAD lists ${escapeHtml(props.original_hcad_year)}</span>`
                 : ""
             }
           </div>
           <div class="ph-verified-citation">
-            <strong>${props.source_type || "Archival Source"}:</strong>
-            ${props.source_citation || "Verified historical completion date overrides HCAD appraisal estimate."}
+            <strong>${escapeHtml(props.source_type || "Archival Source")}:</strong>
+            ${escapeHtml(
+              props.source_citation ||
+                "Verified historical completion date overrides HCAD appraisal estimate."
+            )}
           </div>
           ${
-            props.source_url && props.source_url !== reportPdfUrl
-              ? `<a href="${props.source_url}" target="_blank" rel="noopener noreferrer" class="ph-verified-link">
+            safeOverrideSourceUrl && safeOverrideSourceUrl !== reportPdfUrl
+              ? `<a href="${escapeHtml(safeOverrideSourceUrl)}" target="_blank" rel="noopener noreferrer" class="ph-verified-link">
                   View Historical Directory / Source Archive &#8599;
                 </a>`
               : ""
@@ -13604,6 +13551,9 @@ export class HoustonAtlasApp {
         props._council_district_props = geoCtx.council_district_props;
       }
     }
+
+    const hpoSurveyHit = this._resolveHpoParcelSurvey(props);
+    const hpoParcelSurveyCardHtml = buildHpoParcelSurveyCardHtml(hpoSurveyHit);
 
     let neighborhoodAliases = [];
     if (Array.isArray(props.neighborhood_aliases)) {
@@ -13861,7 +13811,7 @@ export class HoustonAtlasApp {
           </div>`;
         })()
       : "";
-    const styleInfo = this._resolveStyleAndClassInfo(props);
+    const styleInfo = this._resolveStyleAndClassInfo(props, hpoSurveyHit);
     const styleChipsHtml = (styleInfo.chips || [])
       .map((c) => {
         const isArchStylePortfolio =
@@ -14362,7 +14312,8 @@ export class HoustonAtlasApp {
 
     const historyItemCount = [
       Boolean(props.is_curated_override),
-      Boolean(reportPdfUrl || landmarkCode),
+      Boolean(reportPdfUrl || secondaryPdfUrl || landmarkCode),
+      Boolean(hpoParcelSurveyCardHtml),
       Boolean(nrhpHistoryCardHtml),
       redBookEntries.length > 0,
       goodBrickAwards.length > 0,
@@ -14413,6 +14364,7 @@ export class HoustonAtlasApp {
     const emptyHistoryFallbackHtml =
       !verifiedBannerHtml &&
       !landmarkReportHtml &&
+      !hpoParcelSurveyCardHtml &&
       !nrhpHistoryCardHtml &&
       !redBookHistoryCardHtml &&
       !goodBrickHtml &&
@@ -14795,6 +14747,7 @@ export class HoustonAtlasApp {
             </div>
             ${verifiedBannerHtml}
             ${landmarkReportHtml}
+            ${hpoParcelSurveyCardHtml}
             ${nrhpHistoryCardHtml}
             ${redBookHistoryCardHtml}
             ${goodBrickHtml}
@@ -15592,7 +15545,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const permitShardUrl = cb
         ? `public/data/permits/permits_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/permits/permits_${prefix3}.json.gz?v=20261108c`;
+        : `public/data/permits/permits_${prefix3}.json.gz?v=20261109a`;
       const p = fetch(permitShardUrl)
         .then((res) => decodeGzipJsonResponse(res, decompressPermitShardBytes))
         .catch(() => ({}));
@@ -15616,7 +15569,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const ownerShardUrl = cb
         ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261108c`;
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261109a`;
       const p = fetch(ownerShardUrl)
         .then(async (res) => {
           if (!res.ok) return {};
@@ -17649,7 +17602,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261108c`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261109a`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -19088,7 +19041,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261108c")
+          fetch("public/data/sanborn_catalog.json?v=20261109a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -19098,7 +19051,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261108c")
+          fetch("public/data/citydir_index.json?v=20261109a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -19121,7 +19074,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261108c")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261109a")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -20567,7 +20520,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261108c")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261109a")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

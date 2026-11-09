@@ -14,7 +14,7 @@ import {
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261108c";
+} from "./palettes.js?v=20261109a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -31,7 +31,7 @@ import {
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261108c";
+} from "./filterStore.js?v=20261109a";
 import {
   METERS_PER_DEGREE_LAT,
   OVERRIDE_MODE_ADDITIVE_POLYGON,
@@ -50,8 +50,8 @@ import {
   isSingleShardReplaceOverride,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261108c";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261108c";
+} from "./curatedEdits.js?v=20261109a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261109a";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
@@ -60,8 +60,8 @@ import {
   mapHcadStateClassToUseCategory,
   matchHcadParcelFeaturesByAddressQuery,
   normalizeHcad13,
-} from "./hcadViewportParcels.js?v=20261108c";
-import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261108c";
+} from "./hcadViewportParcels.js?v=20261109a";
+import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261109a";
 
 export const LOST_HOUSTON_RANK_EXPR = ["coalesce", ["to-number", ["get", "symbol_rank"]], 4];
 
@@ -366,14 +366,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261108c"),
-      fetch("public/data/parcels.geojson?v=20261108c"),
-      fetch("public/data/overlays.json?v=20261108c"),
-      fetch("public/data/pmtiles_manifest.json?v=20261108c").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261109a"),
+      fetch("public/data/parcels.geojson?v=20261109a"),
+      fetch("public/data/overlays.json?v=20261109a"),
+      fetch("public/data/pmtiles_manifest.json?v=20261109a").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261108c").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261108c").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261108c").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261109a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261109a").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261109a").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1514,7 +1514,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261108c";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261109a";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href

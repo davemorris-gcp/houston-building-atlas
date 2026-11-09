@@ -21,24 +21,23 @@ Standard geocoders (US Census TIGER / Nominatim) return coordinates interpolated
 
 ---
 
-## 2. City of Houston Landmark Designation Reports (`448` Official HPO PDFs)
+## 2. City of Houston Landmark Designation Reports (`482 / 509` Official HPO PDFs) & `23 / 23` Historic District Survey Inventories
 
 The City of Houston's official ArcGIS layer for **Protected Landmarks and Landmarks** (`COH_HISTORIC_LANDMARKS`, `509` points) suffered from severe metadata omissions in the city's public GIS table:
 - **48% (`244` of `509`)** had `USER_YR_BUILT = 0` or `NULL`.
 - **52% (`265` of `509`)** had `USER_STYLE = NULL`.
-- **120 landmarks** lacked an `HCAD_NUM` link.
+- **257 standing landmarks** lacked a clean 13-digit `HCAD_NUM` link (`120` recovered in the initial build + `137` recovered via spatial/address reconciliation in Milestone 12).
 - None of the GIS points linked to the City's official **Landmark Designation Report PDFs** prepared by the Historic Preservation Office (`HPO`).
 
 ![City of Houston Official Landmark Designation Report Dossier](images/04_coh_landmark_report_dossier.jpg)
 
-### 2.1 Crawling `archaeology.houstontx.gov` & Wayback Machine CDX (`crawl_landmark_reports.py`)
+### 2.1 Crawling `archaeology.houstontx.gov`, `houstontx.gov/planning/HistoricPres/docs_pdfs/` & Wayback Machine CDX (`crawl_landmark_reports.py`, `harvest_coh_hpo_surveys_and_landmarks.py`)
 To recover the missing dates, architectural styles, architects, and full-text PDF reports:
 1. We inspected the City of Houston Historic Preservation Office portal (`https://archaeology.houstontx.gov/designated_landmarks.html`) and discovered an embedded JavaScript array (`var mydata = [...]`) containing metadata and relative PDF filenames for hundreds of landmarks.
-2. We queried the **Internet Archive Wayback Machine CDX API** across `houstontx.gov/planning/HistoricPres/*` and `archaeology.houstontx.gov/*`, indexing **628 unique historical PDF URLs** across two directory trees (`/landmarks/*.pdf` and `/docs_pdfs/*.pdf`).
-3. Using PyMuPDF (`fitz`) text extraction across the downloaded PDFs, `apply_landmark_report_enrichments.py` linked **448 of the 509 designated landmarks (`88.0%`)** to their official HPO Landmark Designation Report PDF (`pdf_url`, `hpo_code`), extracting:
-   - **`+140` missing construction years** (bringing landmark date coverage from `52%` to **99.8%**, with the sole undated point being the natural `1836` **Allen's Landing** bayou confluence site).
-   - **`+144` missing architectural styles** and **`+27` verified architects**.
-   - **`75` HCAD year overrides** where the official HPO archival deed/mechanic's-lien research proved HCAD's CAMA date was wrong.
+2. We queried the **Internet Archive Wayback Machine CDX API** across `houstontx.gov/planning/HistoricPres/*` and `archaeology.houstontx.gov/*`, plus active HAHC staff packets and `houstontx.gov/planning/HistoricPres/docs_pdfs/*`, verifying every candidate PDF's page-1 designation header via PyMuPDF (`fitz`) and rejecting Certificate of Appropriateness (`COA`) or neighboring-address false matches.
+3. Across `apply_landmark_report_enrichments.py` and `harvest_coh_hpo_surveys_and_landmarks.py` (`cli.py --mode harvest-hpo`), the pipeline now links **482 of the 509 designated landmarks (`94.7%`)** to their official HPO Landmark Designation Report PDF (`report_pdf_url`, `lm_num` / `plm_num`), extracting:
+   - **`+34` newly recovered post-2016 COH Landmark Designation Report PDFs** (raising verified PDF coverage from `448/509` [`88.0%`] to `482/509` [`94.7%`]), plus **`+3` scanned Texas Historical Commission NRHP nomination PDFs** (`atlas.thc.texas.gov/NR/pdfs/...`) and Olivewood Cemetery's State Board of Review NRHP draft PDF wired as `secondary_pdf_url` fallbacks.
+   - **`+140` missing construction years** (bringing landmark date coverage from `52%` to **99.8%**, with the sole undated point being the natural `1836` **Allen's Landing** bayou confluence site), **`+144` missing architectural styles**, **`+27` verified architects**, and **`+85` guarded HCAD year overrides** (`75` initial + `10` post-2016 PDF overrides).
 
 ### 2.2 Fixing 11 Off-By-One HPO Server Filename Typos
 During PDF verification, 11 landmarks listed in the City's `var mydata` table returned `HTTP 404 Not Found` because City staff had mistyped the HPO file code by one digit or swapped the `L` (Landmark) / `PL` (Protected Landmark) prefix when uploading the PDF to the server:
@@ -51,10 +50,21 @@ During PDF verification, 11 landmarks listed in the City's `var mydata` table re
 | **William L. Clayton Summer House** | `3376 Inwood Dr` | `08PL62.pdf` (`404`) | `08PL062.pdf` (`200 OK`) |
 | *(+ 7 additional off-by-one HPO filename repairs)* | *Various* | *Broken link in City table* | *Resolved via CDX filename directory scan* |
 
-### 2.3 Isolating the 61 Unuploaded Post-2016 Landmark Reports for TPIA Request
-Why did `61` of the `509` landmarks (`12.0%`) have no PDF on `archaeology.houstontx.gov` or in the Wayback Machine?
-- Cross-tabulating by designation date revealed that the City of Houston HPO stopped uploading newly designated landmark PDFs (`16L319+` and `17PL135+`, designated between `2016` and `2024`) when the static `archaeology.houstontx.gov` site stopped being updated.
-- Even for those 61 landmarks, our pipeline achieved **100% construction-year and HCAD coverage** by cross-referencing City Council agenda ordinances, HCAD records, and Preservation Houston archives, and exported a ready-to-file Texas Public Information Act (`TPIA`) checklist (`pipeline/data/coh_landmarks_missing_pdfs_tpia.csv`) so Preservation Houston staff can request the 61 post-2016 PDFs from the Planning Department in a single batch.
+### 2.3 Narrowing the Unpublished Landmark TPIA Checklist from `61` Down to `27` Landmarks
+Why do **`27`** of the `509` landmarks (`5.3%`, reduced from `61` after Milestone 12's `+34` post-2016 recovery) still lack a hosted HPO PDF?
+- Cross-tabulating by `USER_ILMS_HOLD` and designation date confirms that these remaining `27` landmarks were never published to `archaeology.houstontx.gov` or `houstontx.gov/planning/HistoricPres/docs_pdfs/`.
+- Even for those `27` landmarks, our pipeline maintains **100% construction-year and 13-digit HCAD coverage**, attaches NRHP `secondary_pdf_url` fallbacks where listed on the National Register, displays a clear `.coh-landmark-tpia-note` status badge in the Property Inspector, and synchronizes the narrowed 27-item Texas Public Information Act (`TPIA`) checklist across `Missing_Landmark_PDFs_TPIA` (`Admin_Hub_&_Quick_Filter!B13 = 27`) and the standalone TPIA request workbook (`coh_landmarks_missing_pdfs_tpia.csv`).
+
+### 2.4 Harvesting All `23` COH Historic District Parcel Survey Inventories, Design Guidelines & Boundary Maps (`hpo_district_surveys.json`)
+`harvest_coh_hpo_surveys_and_landmarks.py` (`cli.py --mode harvest-hpo`) parses all **`23 / 23` City of Houston Historic District official parcel survey inventory PDFs**, design guideline volumes, designation reports, and official boundary/lot maps into `app/public/data/hpo_district_surveys.json` (`1.04 MiB` compact single-line JSON) and `app/js/hpoSurveyHelpers.js`:
+- **`6,169` Surveyed Parcel Rows across `5,537` Matched HCAD Parcels (`+757` Secondary Garage/Quarters Structures):** Normalizes all 8 distinct HPO municipal PDF table layouts while strictly stripping `OWNER(S):` / `APPLICANT(S):` / tabular owner-name columns and `TX Tax Code Sec. 25.025` confidential accounts.
+- **Guarded Chronology & Style Promotion:** Backfills **`+5,118` HPO architectural style attributions** across address-compatible primary footprints and `search_index.json` (`_resolveStyleAndClassInfo`) and promotes **`+100` guarded HPO exact-year overrides** (`+10` COH Landmark exact-year overrides; `curated_overrides.json`), enforcing `1866-1926` Houston City Directory precedence (`citydir_index.json`), `is_architect_within_career_window`, post-1965 replacement-building guards, `#<slug>` sub-building and `CAMPUS_SPLIT_HCADS` routing isolation, multi-footprint secondary-structure year protection, and `EXCLUDED_AUTO_PROMOTION_HCADS` audit-queue protections.
+- **3-Surface Client Integration:** Renders `#inspector-hpo-survey-card` on Tab 2 (`History`) of surveyed parcels (respecting `isClaimSuppressed` on `field: "hpo_survey"`), `#boundary-hpo-district-docs-card` on Historic District boundary dossiers (`#bnd=historic_districts:<Name>`), and inline Design Guidelines & Inventory PDF links inside the Overview Protection Scorecard.
+- **Sample Live Deep Links:**
+  - [1016 Algregg St (`0620950000004`, Norhill Historic District Contributing `1925` Bungalow + `1950` Garage)](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0620950000004&tab=history)
+  - [Norhill Historic District Official Inventory, Design Guidelines & Boundary Map Dossier](https://davemorris-gcp.github.io/houston-building-atlas/#bnd=historic_districts:Norhill%20Historic%20District)
+  - [Proebstle-Whorton House (`0513790000023`, `20PL182` Recovered Post-2016 Protected Landmark Report PDF)](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0513790000023&tab=history)
+  - [Anderson and Lucie Todd Residence (`0523230000010`, `17PL160` Shadow Lawn Survey + Scanned THC NRHP PDF Fallback)](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0523230000010&tab=history)
 
 ---
 

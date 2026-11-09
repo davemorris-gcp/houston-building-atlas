@@ -33,6 +33,7 @@ from atlas_pipeline.schema import (
     ALLOWED_PREWAR_FOUNDATIONS,
     MIN_VALID_YEAR,
     OWNERSHIP_TIER_KEYS,
+    RESERVED_E2E_FIXTURE_HCADS,
     build_citydir_search_url,
     classify_account_ownership,
     classify_main_structure_demolition_permit,
@@ -75,10 +76,6 @@ CACHE_DIR = REPO_ROOT / "pipeline" / "cache"
 DATA_DIR = REPO_ROOT / "app" / "public" / "data"
 
 AUTO_PROMOTED_VERIFIED_BY = "Archival City Directory Cross-Check (Double-Vetted)"
-
-# Reserved multi-category E2E fixture (2009 Harvard St) excluded from auto-promotion (RP-1)
-# so Playwright E2E tests continue exercising independent per-category resolution semantics.
-RESERVED_E2E_FIXTURE_HCADS: frozenset[str] = frozenset({"0200670000010"})
 
 ROUNDED_PLACEHOLDER_YEARS: frozenset[int] = frozenset({1930, 1935, 1940, 1945, 1950})
 BUCKET_B_PLACEHOLDER_YEARS: frozenset[int] = frozenset({1930, 1935, 1940, 1950})

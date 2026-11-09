@@ -179,6 +179,7 @@ ARCHITECT_CAREER_WINDOWS: dict[str, tuple[int, int, str]] = {
 }
 
 ARCHITECT_SURNAME_ALIASES: dict[str, str] = {
+    "heiner": "eugene t. heiner",
     "finn": "alfred c. finn",
     "watkin": "william ward watkin",
     "briscoe": "birdsall p. briscoe",
@@ -198,8 +199,10 @@ def is_architect_within_career_window(architect: str, year_built: int) -> bool:
     if not architect or year_built <= 0:
         return True
     low_arch = architect.lower()
+    dotless_arch = re.sub(r"\s+", " ", low_arch.replace(".", " ")).strip()
     for key, (lo, hi, _lbl) in ARCHITECT_CAREER_WINDOWS.items():
-        if key in low_arch and (year_built < lo or year_built > hi):
+        dotless_key = re.sub(r"\s+", " ", key.replace(".", " ")).strip()
+        if (key in low_arch or dotless_key in dotless_arch) and (year_built < lo or year_built > hi):
             return False
     for alias, canon_key in ARCHITECT_SURNAME_ALIASES.items():
         if re.search(rf"\b{re.escape(alias)}\b", low_arch):

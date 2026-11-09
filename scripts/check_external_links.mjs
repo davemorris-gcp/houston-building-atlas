@@ -119,6 +119,7 @@ function collectCandidateUrls(maxCatalogPerDomain) {
     "sanborn_catalog.json",
     "citydir_index.json",
     "archival_index.json",
+    "hpo_district_surveys.json",
     "neighborhood_scorecards.json",
     "overlays.json",
   ];

@@ -17,14 +17,23 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=("core", "full", "campuses", "annual-refresh", "ingest-tpia", "harvest-archives"),
+        choices=(
+            "core",
+            "full",
+            "campuses",
+            "annual-refresh",
+            "ingest-tpia",
+            "harvest-archives",
+            "harvest-hpo",
+        ),
         default="core",
         help=(
             "Pipeline mode: 'core' (Historic Houston Core + Landmarks + Districts + OSM Footprints), "
             "'full' (Harris County bulk HCAD), 'campuses' (Campus & school dating/situs hydration), "
             "'annual-refresh' (Guarded incremental annual HCAD appraisal roll & parcel refresher), "
             "'ingest-tpia' (Harris County Clerk 1961-present RP/MC & pre-2005 HCAD TPIA ingestion), "
-            "or 'harvest-archives' (TARO 2.0 EAD XML finding aids & HPL ContentDM architectural collections)."
+            "'harvest-archives' (TARO 2.0 EAD XML finding aids & HPL ContentDM architectural collections), "
+            "or 'harvest-hpo' (deterministic cached COH HPO 23 Historic District survey inventories & post-2016 Landmark PDFs)."
         ),
     )
     parser.add_argument(
@@ -227,6 +236,21 @@ def main(argv: list[str] | None = None) -> None:
         )
         elapsed = time.time() - t0
         print(format_archive_harvest_cli_summary(stats, elapsed_s=elapsed))
+        return
+    elif args.mode == "harvest-hpo":
+        from atlas_pipeline.harvest_coh_hpo_surveys_and_landmarks import (
+            format_hpo_harvest_cli_summary,
+            run_hpo_harvest,
+        )
+
+        stats = run_hpo_harvest(
+            cache_dir=args.cache_dir,
+            output_dir=args.output_dir,
+            apply=bool(args.apply),
+            cache_bust=args.cache_bust,
+        )
+        elapsed = time.time() - t0
+        print(format_hpo_harvest_cli_summary(stats, elapsed_s=elapsed))
         return
     else:
         from atlas_pipeline.full_build import run_full_county_build

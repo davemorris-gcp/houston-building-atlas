@@ -4,7 +4,7 @@
  * Houston City Directory copyright clearance metadata.
  */
 
-import { isClaimSuppressed } from "./curatedEdits.js?v=20261108c";
+import { isClaimSuppressed } from "./curatedEdits.js?v=20261109a";
 
 export const HPL_SURVEY_CEILINGS = Object.freeze({
   "hpl:p17006coll220": 1981,

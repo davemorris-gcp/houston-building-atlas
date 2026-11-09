@@ -28,7 +28,7 @@ ACTIVE_TAX_YEAR = 2026
 MAX_VALID_CAMA_DATE_YEAR = ACTIVE_TAX_YEAR
 MAX_VALID_YEAR = ACTIVE_TAX_YEAR + 1
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261108c"
+ACTIVE_CACHE_BUST = "20261109a"
 PERMIT_ENRICHMENT_SOFT_MAX_BYTES = 948 * 1024 * 1024
 SOFT_MAX_APP_BYTES = 968 * 1024 * 1024
 HARD_MAX_APP_BYTES = 980 * 1024 * 1024
@@ -4612,5 +4612,147 @@ def download_archive_streaming(
         if isinstance(exc, error_cls):
             raise
         raise error_cls(f"Failed downloading {url}: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Canonical Pipeline-Wide Guard & Classification Sets
+# ---------------------------------------------------------------------------
+
+# Primary multi-category E2E verification fixture (2009 Harvard St) excluded from
+# 1927 cutoff auto-promotion so Playwright E2E tests exercise per-category resolution.
+RESERVED_E2E_FIXTURE_HCADS: frozenset[str] = frozenset({"0200670000010"})
+
+# Extended E2E & regression test fixture HCADs excluded from automated override creation
+# across Milestone 7 and Milestone 12 enrichment passes.
+EXCLUDED_AUTO_PROMOTION_HCADS: frozenset[str] = RESERVED_E2E_FIXTURE_HCADS | frozenset(
+    {
+        "0102490000006",
+        "0202160000012",
+        "0090860000002",
+        "0202010000014",  # 1107 Tulane St (Milestone 5 Chain of Stewardship E2E fixture)
+    }
+)
+
+# Multi-building educational & institutional campus HCAD accounts decomposed into
+# `<hcad>#<slug>` sub-building records (`fix_campus_anomalies_and_schools.py`).
+CAMPUS_SPLIT_HCADS: frozenset[str] = frozenset(
+    {
+        "0410210010510",  # Ashbel Smith Elementary School
+        "0451440030163",  # IMPACT Early College High School / Lee College Main Campus
+        "0451440050245",  # George Washington Carver Elementary School (Historic Horace Mann Jr. High)
+        "0500500000006",  # Lee College - Campus Security Facility
+        "0500580000001",  # Lee College - Tech-Voc 10
+        "0500610000001",  # Lee College - Tech-Voc 5, 6, 7 & 9
+        "0500620000001",  # Lee College - Physical Plant & Transportation Facility
+        "1223580020001",  # Cypress Ridge High School
+        "1378920010001",  # Lee College Performing Arts Center & McNulty-Haddick Nursing Complex
+        "1468640010001",  # Robert E. Lee High School
+    }
+)
+
+# Lowercase non-specific placeholder style strings eligible for authoritative backfill.
+GENERIC_STYLE_PLACEHOLDERS: frozenset[str] = frozenset(
+    {
+        "",
+        "residential",
+        "historical / architectural structure",
+        "houston historic structure",
+        "historic structure",
+        "structure",
+        "none",
+        "null",
+        "n/a",
+        "na",
+        "-",
+    }
+)
+
+# Lowercase HCAD CAMA structural framing / industrial classification labels (distinct from
+# architectural design styles such as Craftsman Bungalow or Queen Anne).
+STRUCTURAL_STYLE_CLASSES: frozenset[str] = frozenset(
+    {
+        "wood or light steel",
+        "masonry bearing",
+        "open steel skeleton",
+        "reinforced concrete",
+        "fireproofed steel",
+        "mobile home/manufactured housing",
+        "storage tank",
+        "petrochemical complex",
+        "educational campus structure",
+        "frame utility shed",
+        "carport - residential",
+        "canopy - residential",
+        "frame detached garage",
+        "utility building - metal",
+        "portable/modular office - average",
+    }
+)
+
+# Lowercase HCAD residential/institutional quality grade codes ("A++".."E-", "F", "X") that
+# sometimes appear in raw `style` / `bld_style` fields instead of an architectural design style.
+HCAD_STYLE_GRADE_CODES: frozenset[str] = frozenset(
+    {
+        "a++",
+        "a+",
+        "a",
+        "a-",
+        "b+",
+        "b",
+        "b-",
+        "c+",
+        "c",
+        "c-",
+        "d+",
+        "d",
+        "d-",
+        "e+",
+        "e",
+        "e-",
+        "f",
+        "x",
+    }
+)
+
+_REPLACEABLE_STYLE_TOKENS: frozenset[str] = (
+    GENERIC_STYLE_PLACEHOLDERS | STRUCTURAL_STYLE_CLASSES | HCAD_STYLE_GRADE_CODES
+)
+
+
+STRUCTURAL_CLASS_PATTERN: re.Pattern[str] = re.compile(
+    r"^(?:canopy\b|carport\b|paving\s*-|utility\s+(?:building|bldg)\b|portable/modular\b|"
+    r"plant\s+assets\b|petroleum\s+stg\s+tank\b|shed,\s|miscellaneous\s*-|"
+    r"concrete\s+tennis\s+court\b|brick\s+or\s+stone\s+detached\s+garage$|"
+    r"(?:tilt-up|precast|prestressed)\s+concrete$|light\s+steel\b|steel\s+frame$)",
+    re.I,
+)
+
+
+def is_structural_class_style(raw_val: Any) -> bool:
+    """Return True when `raw_val` matches a known HCAD CAMA structural/site-asset class."""
+    s = str(raw_val or "").strip()
+    if not s:
+        return False
+    return s.lower() in STRUCTURAL_STYLE_CLASSES or bool(STRUCTURAL_CLASS_PATTERN.search(s))
+
+
+def is_replaceable_style_value(raw_val: Any) -> bool:
+    """Return True when `raw_val` is empty, generic placeholder, HCAD grade, or CAMA structural class."""
+    low = str(raw_val or "").strip().lower()
+    return low in _REPLACEABLE_STYLE_TOKENS or is_structural_class_style(raw_val)
+
+
+def is_specific_architectural_style(
+    raw_val: Any, *, allow_structural_class: bool = False
+) -> bool:
+    """Return True when `raw_val` names a specific style (optionally allowing CAMA structural classes)."""
+    low = str(raw_val or "").strip().lower()
+    if not low or low in GENERIC_STYLE_PLACEHOLDERS or low in HCAD_STYLE_GRADE_CODES:
+        return False
+    if not allow_structural_class and is_structural_class_style(raw_val):
+        return False
+    return True
+
+
 
 

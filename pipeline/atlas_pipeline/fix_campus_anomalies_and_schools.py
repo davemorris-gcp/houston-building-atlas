@@ -23,6 +23,7 @@ from atlas_pipeline.resolve_undated_countywide import (
 )
 from atlas_pipeline.schema import (
     ACTIVE_CACHE_BUST,
+    CAMPUS_SPLIT_HCADS,
     MAX_VALID_CAMA_DATE_YEAR,
     MIN_VALID_YEAR,
     QUAD_NAMES,
@@ -38,19 +39,6 @@ from atlas_pipeline.schema import (
     write_compact_json,
     write_deterministic_gzip_json_shard,
 )
-
-CAMPUS_SPLIT_HCADS: frozenset[str] = frozenset({
-    "1223580020001",
-    "1468640010001",
-    "0451440030163",
-    "0500610000001",
-    "0500620000001",
-    "0500580000001",
-    "0500500000006",
-    "1378920010001",
-    "0451440050245",
-    "0410210010510",
-})
 
 # Positive street number followed by street name (blocks '0 ELDRIDGE', '', 'TUCKERTON RD').
 VALID_NUMBERED_SITUS_RE = re.compile(r"^([1-9]\d*[A-Z]?)\s+([A-Z0-9].*)$")

@@ -336,6 +336,7 @@ test("All static external URLs across HTML, JS, and authoritative data catalogs 
     path.join(DATA_DIR, "property_watchlist.json"),
     path.join(DATA_DIR, "monitor_activity_log.json"),
     path.join(DATA_DIR, "citydir_index.json"),
+    path.join(DATA_DIR, "hpo_district_surveys.json"),
     path.join(DATA_DIR, "neighborhood_scorecards.json"),
     path.join(DATA_DIR, "historical_audit_queue.json"),
   ];
@@ -646,8 +647,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   const expectedVer = String(manifest.cache_bust || "").trim();
   assert.equal(
     expectedVer,
-    "20261108c",
-    `Expected active Milestone 9 pmtiles_manifest.json cache_bust '20261108c', got '${expectedVer}'`
+    "20261109a",
+    `Expected active Milestone 12 pmtiles_manifest.json cache_bust '20261109a', got '${expectedVer}'`
   );
   assert.match(
     expectedVer,
@@ -826,6 +827,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/public/data/ownership_portfolios.json",
     "app/public/data/active_permit_alerts.json",
     "app/public/data/overlays.json",
+    "app/public/data/hpo_district_surveys.json",
     "app/public/data/building_photos.json",
     "app/public/data/historical_audit_queue.json",
     "app/index.html",
@@ -837,6 +839,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/js/curatedEdits.js",
     "app/js/filterStore.js",
     "app/js/guidedChaptersAndPortfolios.js",
+    "app/js/hpoSurveyHelpers.js",
     "app/js/mapController.js",
     "app/js/palettes.js",
     "app/js/preservationOrganizer.js",
@@ -851,6 +854,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/enrich_deed_chains.py",
     "pipeline/atlas_pipeline/fetch_live_permits.py",
     "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+    "pipeline/atlas_pipeline/harvest_coh_hpo_surveys_and_landmarks.py",
     "pipeline/atlas_pipeline/ingest_tpia_clerk_and_hcad.py",
     "pipeline/atlas_pipeline/schema.py",
     "pipeline/atlas_pipeline/setup_admin_sheet.py",
@@ -878,6 +882,9 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/tests/test_milestone9_tpia_and_gzip.py",
     "tests/unit/milestone9_gzip_and_tpia.test.mjs",
     "tests/e2e/test_milestone9_gzip_and_tpia.py",
+    "pipeline/tests/test_milestone12_hpo_backfill.py",
+    "tests/unit/milestone12_hpo_backfill.test.mjs",
+    "tests/e2e/test_milestone12_hpo_backfill.py",
     "README.md",
     "docs/01-architecture-and-rendering.md",
     "docs/06-sanborn-maps-and-lost-houston.md",
@@ -895,6 +902,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
 
   for (const relStrictNoDash of [
     "app/public/data/overlays.json",
+    "app/public/data/hpo_district_surveys.json",
     "app/public/data/search_index.json",
     "app/public/data/building_photos.json",
     "app/public/data/neighborhood_scorecards.json",
@@ -908,6 +916,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "app/js/curatedEdits.js",
     "app/js/filterStore.js",
     "app/js/guidedChaptersAndPortfolios.js",
+    "app/js/hpoSurveyHelpers.js",
     "app/js/mapController.js",
     "app/js/palettes.js",
     "app/js/preservationOrganizer.js",
@@ -919,6 +928,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/atlas_pipeline/build_house_history_index.py",
     "pipeline/atlas_pipeline/enrich_deed_chains.py",
     "pipeline/atlas_pipeline/fetch_live_permits.py",
+    "pipeline/atlas_pipeline/harvest_coh_hpo_surveys_and_landmarks.py",
     "pipeline/atlas_pipeline/ingest_tpia_clerk_and_hcad.py",
     "pipeline/atlas_pipeline/setup_admin_sheet.py",
     "pipeline/atlas_pipeline/sync_curated_edits.py",
@@ -946,6 +956,9 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
     "pipeline/tests/test_milestone9_tpia_and_gzip.py",
     "tests/unit/milestone9_gzip_and_tpia.test.mjs",
     "tests/e2e/test_milestone9_gzip_and_tpia.py",
+    "pipeline/tests/test_milestone12_hpo_backfill.py",
+    "tests/unit/milestone12_hpo_backfill.test.mjs",
+    "tests/e2e/test_milestone12_hpo_backfill.py",
     "README.md",
     "docs/01-architecture-and-rendering.md",
     "docs/06-sanborn-maps-and-lost-houston.md",
@@ -965,6 +978,7 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
 
   for (const compactRel of [
     "overlays.json",
+    "hpo_district_surveys.json",
     "search_index.json",
     "building_photos.json",
     "historical_audit_queue.json",
