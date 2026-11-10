@@ -720,8 +720,8 @@ test("UT-6, UT-7 & IT-4: historical_audit_queue.json contract, composite fid iso
   }
   assert.equal(
     undesignatedCount,
-    546,
-    `Expected exactly 546 explicitly bucketed undesignated items, got ${undesignatedCount}`
+    545,
+    `Expected exactly 545 explicitly bucketed undesignated items, got ${undesignatedCount}`
   );
   assert.ok(contentDmUrlCount > 1000, `Expected >1000 ContentDM deep links, got ${contentDmUrlCount}`);
 

@@ -90,7 +90,7 @@ test("Phase A & C: Lost Houston excludes extant landmarks and building_photos.js
     lostFeatures.length >= 550 && lostFeatures.length <= 700,
     `Expected 550-700 verified demolished Lost Houston structures across 5 cohorts, got ${lostFeatures.length}`
   );
-  assert.equal(lostFeatures.length, 622, "Expected exact Milestone 2 total of 622 Lost Houston structures");
+  assert.equal(lostFeatures.length, 623, "Expected exact total of 623 Lost Houston structures (including graduated Kirby Mansion)");
 
   const cohortCounts = {};
   for (const f of lostFeatures) {
@@ -100,13 +100,13 @@ test("Phase A & C: Lost Houston excludes extant landmarks and building_photos.js
   assert.deepEqual(
     cohortCounts,
     {
-      curated_landmark: 85,
+      curated_landmark: 86,
       coh_landmark_demolished: 7,
       nrhp_demolished: 15,
       red_book_1915_vanished: 205,
       historic_teardown_2020_2026: 310,
     },
-    "Expected exact 5-cohort composition (85 curated + 7 COH + 15 NRHP + 205 Red Book + 310 teardowns = 622)"
+    "Expected exact 5-cohort composition (86 curated + 7 COH + 15 NRHP + 205 Red Book + 310 teardowns = 623)"
   );
 
   const extantFalsePositives = [

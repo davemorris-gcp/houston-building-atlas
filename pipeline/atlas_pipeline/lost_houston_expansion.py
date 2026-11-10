@@ -1406,6 +1406,34 @@ def get_all_coh_demolished_landmarks_meta() -> dict[str, dict[str, Any]]:
     return merged
 
 
+def extract_curated_demolished_hcads(
+    curated_overrides: dict[str, Any] | None,
+    *,
+    include_suppressed: bool = False,
+) -> set[str]:
+    """Extract 13-digit HCAD account numbers marked demolished (or suppressed) in curated_overrides.json."""
+    raw_ov_dict = (
+        curated_overrides.get("overrides")
+        if isinstance(curated_overrides, dict) and isinstance(curated_overrides.get("overrides"), dict)
+        else (curated_overrides or {})
+    )
+    out: set[str] = set()
+    for key, ov in raw_ov_dict.items():
+        if not isinstance(ov, dict):
+            continue
+        is_demo = bool(
+            ov.get("is_demolished") is True
+            or ov.get("demolished_date")
+            or ov.get("lost_houston_id")
+            or (include_suppressed and ov.get("suppress_only") is True)
+        )
+        if is_demo:
+            k_base = str(ov.get("hcad_num") or str(key).split("#")[0]).strip()
+            if len(k_base) == 13 and k_base.isdigit():
+                out.add(k_base)
+    return out
+
+
 class ZeroExtantCollisionGate:
     """Deterministic accuracy gate rejecting collisions with extant or relocated monuments (DF-2 / MUT-2)."""
 
@@ -1497,10 +1525,18 @@ class ZeroExtantCollisionGate:
             )
 
         # 2. Good Brick awards (unless explicitly marked demolished after award)
+        curated_demolished_hcads = extract_curated_demolished_hcads(curated_overrides)
+        raw_ov_dict = (
+            curated_overrides.get("overrides")
+            if isinstance(curated_overrides, dict) and isinstance(curated_overrides.get("overrides"), dict)
+            else (curated_overrides or {})
+        )
+
         for feat in overlays.get("good_brick_awards", {}).get("features", []):
             p = feat.get("properties") or {}
             fid = str(p.get("id") or "")
-            if fid in post_demo or p.get("demolished") is True:
+            hs_gb = str(p.get("hcad_num") or "").strip()
+            if fid in post_demo or p.get("demolished") is True or hs_gb in curated_demolished_hcads:
                 continue
             _rec_extant(
                 p.get("hcad_num"),
@@ -1572,7 +1608,7 @@ class ZeroExtantCollisionGate:
                 )
 
         # 6. Curated overrides with `was_relocated == True`
-        for key, ov in (curated_overrides or {}).items():
+        for key, ov in raw_ov_dict.items():
             if not isinstance(ov, dict):
                 continue
             if ov.get("was_relocated") is True:
@@ -1588,6 +1624,9 @@ class ZeroExtantCollisionGate:
         cama_rebuilt_map: dict[str, int] = {}
         for acct, row in (cama_by_acct or {}).items():
             acct_s = str(acct)
+            if acct_s in curated_demolished_hcads:
+                cama_vacant_set.add(acct_s)
+                continue
             if isinstance(row, dict):
                 yr = int(row.get("year_built") or row.get("yr_impr") or 0)
                 ar = float(row.get("bld_ar") or 0)
@@ -1613,7 +1652,12 @@ class ZeroExtantCollisionGate:
             ey = int(bp.get("year_built") or 0)
             if ey < MIN_VALID_YEAR or not (len(hs) == 13 and hs.isdigit()):
                 continue
-            if hs in cama_vacant_set or hs in coh_lm_demo_hcads or hs in nrhp_demo_hcads:
+            if (
+                hs in cama_vacant_set
+                or hs in curated_demolished_hcads
+                or hs in coh_lm_demo_hcads
+                or hs in nrhp_demo_hcads
+            ):
                 continue
             if hs in cama_rebuilt_map:
                 continue
@@ -2203,6 +2247,10 @@ def compact_lost_houston_feature(
         "coh_landmark_id",
         "coh_landmark_code",
         "nrhp_refnum",
+        "demolished_date",
+        "good_brick_years",
+        "good_brick_summary",
+        "watchlist_id",
         "red_book_id",
         "historic_address_1915",
         "demo_permit_date",
@@ -2669,11 +2717,15 @@ def build_cohorts_2_to_5(
         if len(rh) == 13 and rh.isdigit():
             target_hcads.add(rh)
 
+    curated_demo_hcads_c2 = extract_curated_demolished_hcads(curated_overrides)
     # Standing pre-1945 accounts in inner Houston for polygon overlap shielding
     standing_pre1945_set = {
         str(a)
         for a, r in cama_by_acct.items()
-        if 1836 <= int(r[0] or 0) <= 1945 and float(r[2] or 0) > 0 and not str(r[3] or "").startswith("C")
+        if str(a) not in curated_demo_hcads_c2
+        and 1836 <= int(r[0] or 0) <= 1945
+        and float(r[2] or 0) > 0
+        and not str(r[3] or "").startswith("C")
     }
     aligned_by_hcad, standing_polys = _load_aligned_footprints_index(
         cache_dir, target_hcads, standing_pre1945_set

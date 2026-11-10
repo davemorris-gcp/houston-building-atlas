@@ -125,8 +125,8 @@ test("UT-1, UT-2, UT-4 & UT-7: Expanded 622-structure Lost Houston schema, COH l
   const auditSummary = readDataJson("historical_audit_summary.json");
   const lostFeatures = overlays.lost_houston?.features || [];
 
-  assert.equal(lostFeatures.length, 622);
-  assert.equal(auditSummary.reconciled_fixes?.lost_houston_features_audited, 622);
+  assert.equal(lostFeatures.length, 623);
+  assert.equal(auditSummary.reconciled_fixes?.lost_houston_features_audited, 623);
   assert.equal(auditSummary.reconciled_fixes?.lost_houston_schema_errors, 0);
   assert.equal(auditSummary.reconciled_fixes?.lost_houston_extant_collision_errors, 0);
   assert.equal(auditSummary.reconciled_fixes?.landmarks_marked_demolished, 8);
@@ -178,7 +178,7 @@ test("UT-1, UT-2, UT-4 & UT-7: Expanded 622-structure Lost Houston schema, COH l
     }
   }
 
-  assert.deepEqual(rankCounts, { 1: 92, 2: 51, 3: 48, 4: 431 });
+  assert.deepEqual(rankCounts, { 1: 93, 2: 51, 3: 48, 4: 431 });
 
   // Verify shared Sanborn material palette resolver normalizes all 7 production keys + aliases (High #3)
   assert.equal(resolveSanbornMaterialColors("wood_frame").color, "#FACC15");
@@ -625,11 +625,11 @@ test("IT-2 & IT-4: Scorecards/HOLC rollups align cleanly and Source Cohort filte
 
   const gradeSummary = overlays.holc_1937_grade_summary || [];
   const byGrade = Object.fromEntries(gradeSummary.map((g) => [g.grade, g.lost_houston_count]));
-  assert.deepEqual(byGrade, { A: 44, B: 42, C: 139, D: 168 });
+  assert.deepEqual(byGrade, { A: 45, B: 41, C: 138, D: 169 });
 
   // IT-4: Cohort chip filtering matches exact cohort counts without cross-cohort leakage
   const expectedByCohort = {
-    curated_landmark: { label: "Curated Survey & Archival Landmark", count: 85 },
+    curated_landmark: { label: "Curated Survey & Archival Landmark", count: 86 },
     coh_landmark_demolished: { label: "City of Houston Designated Landmark (Demolished)", count: 7 },
     nrhp_demolished: { label: "National Register Property (Demolished / Gone)", count: 15 },
     red_book_1915_vanished: { label: "1915 Red Book of Houston (Vanished Place)", count: 205 },

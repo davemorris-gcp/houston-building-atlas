@@ -1283,7 +1283,7 @@ def test_ut1_watchlist_sweep_health_fault_detection_and_rollup(
         sweep_timestamp_iso="2026-10-29T12:15:00Z",
     )
     sh = wl_built["lastSweepHealth"]
-    assert sh["propertiesSwept"] == 2
+    assert sh["propertiesSwept"] == 1
     assert sh["totalAgencies"] == 8
     assert sh["succeededAgencies"] == 7
     assert sh["failedAgencies"] == ["chk-10"]

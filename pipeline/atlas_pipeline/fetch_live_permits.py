@@ -40,10 +40,40 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT / "pipeline") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "pipeline"))
 
+from atlas_pipeline.lost_houston_expansion import extract_curated_demolished_hcads
 from atlas_pipeline.schema import (
     read_json_or_gzip_shard,
     write_deterministic_gzip_json_shard,
 )
+
+KIRBY_MANSION_PERMIT_HEADLINE = (
+    "Demolished October 30 - November 2, 2026 following City of Houston Project #26090093 "
+    "(1/2 Plumbing Sewer Disconnect on 2026-10-14 + 2/2 Building Demolition Permit on 2026-10-30) "
+    "and Texas DSHS Asbestos Abatement Notification #2026005825 (scheduled 10/27/2026 to 11/06/2026)."
+)
+
+KIRBY_MANSION_PRESERVATION_NOTE = (
+    "Built in 1894 for businessman J. S. Price and purchased by lumber magnate John Henry Kirby in 1896, "
+    "the 36-room Tudor Revival mansion at 2000 Smith Street achieved its landmark appearance in a 1926-1928 "
+    "remodeling designed by architect James Ruskin Bailey (1979 Preservation Houston Good Brick Award). "
+    "Sold September 30, 2026 to OB Texas Properties LLC (Omair Bashir / Smith St C Store LLC for a planned "
+    "13,254 SF Brake Time convenience store & gas station, TDLR #TABS2026022839), the unprotected structure "
+    "was demolished between Friday, October 30 and Monday, November 2, 2026 under COH Project #26090093 and "
+    "TX DSHS Notification #2026005825, and has been graduated to the Lost Houston catalog (lost_kirby_mansion_1894)."
+)
+
+
+def format_demolished_permit_badge_and_severity(demolished_date_str: str) -> tuple[str, str]:
+    """Format human-readable badge and severity label for confirmed-demolished permit alerts."""
+    raw = str(demolished_date_str or "").strip()
+    try:
+        pretty_dt = datetime.date.fromisoformat(raw).strftime("%b %-d, %Y")
+    except ValueError:
+        pretty_dt = raw or "2026"
+    return (
+        f"⚫ Demolished ({pretty_dt})",
+        f"Confirmed Demolished ({pretty_dt}) • Graduated to Lost Houston",
+    )
 BUILDINGS_GEOJSON = REPO_ROOT / "app" / "public" / "data" / "buildings.geojson"
 SEARCH_INDEX_JSON = REPO_ROOT / "app" / "public" / "data" / "search_index.json"
 PERMITS_DIR = REPO_ROOT / "app" / "public" / "data" / "permits"
@@ -1553,19 +1583,27 @@ def main():
         if hcad:
             by_hcad[hcad] = p_with_geom
 
-    # Also index curated_overrides.json so campus/landmark overrides have exact polygon centroids
+    # Also index curated_overrides.json so campus/landmark overrides (including recently demolished landmarks) have exact polygon centroids
     overrides_json_path = REPO_ROOT / "app" / "public" / "data" / "curated_overrides.json"
+    demolished_overrides_by_hcad: dict[str, dict] = {}
     if overrides_json_path.exists():
         with open(overrides_json_path, "r", encoding="utf-8") as f:
-            ov_map = json.load(f)
+            ov_raw = json.load(f)
+        ov_map = ov_raw.get("overrides", ov_raw) if isinstance(ov_raw, dict) else {}
+        demolished_hcads_set = extract_curated_demolished_hcads(ov_raw)
         for ov_key, ov in ov_map.items():
-            if not isinstance(ov, dict) or ov.get("suppress_only"):
+            if not isinstance(ov, dict):
                 continue
-            hcad = str(ov.get("hcad_num") or ov_key).strip()
+            hcad = str(ov.get("hcad_num") or str(ov_key).split("#")[0]).strip()
+            if hcad in demolished_hcads_set:
+                demolished_overrides_by_hcad[hcad] = ov
+            if ov.get("suppress_only") and hcad not in demolished_hcads_set:
+                continue
             bid = str(ov.get("building_id") or ov.get("id") or ov_key).strip()
             addr = ov.get("address") or ""
             na = normalize_address(addr)
-            c = compute_feature_centroid(ov.get("geometry")) if ov.get("geometry") else None
+            geom_obj = ov.get("geometry") or ov.get("_pre_suppress_geometry")
+            c = compute_feature_centroid(geom_obj) if geom_obj else None
             if not c or (abs(c[0] - (-95.3698)) < 1e-4 and abs(c[1] - 29.7604) < 1e-4):
                 continue
             rec = {
@@ -1573,7 +1611,7 @@ def main():
                 "building_id": bid,
                 "hcad_num": hcad,
                 "address": addr,
-                "year_built": ov.get("year_built") or 0,
+                "year_built": ov.get("year_built") or ov.get("original_hcad_year") or 0,
                 "landmark_name": ov.get("landmark_name") or ov.get("building_name") or "",
                 "building_name": ov.get("building_name") or ov.get("landmark_name") or "",
                 "historic_district": ov.get("historic_district") or "",
@@ -1871,18 +1909,27 @@ def main():
 
         preservation_note = ""
         if hcad == "0152300000001":
-            preservation_note = (
-                "Built in 1894 for businessman J.S. Price and purchased by lumber magnate John Henry Kirby in 1896, "
-                "the 36-room Tudor Revival mansion at 2000 Smith Street achieved its landmark appearance in a 1928 "
-                "remodeling designed by architect James Ruskin Bailey (1979 Preservation Houston Good Brick Award). "
-                "Under City of Houston Project #26090093 ('BLD DEMO/SEWER DISC'), the Stage 1 sewer disconnection "
-                "plumbing permit (Type 12 Plumbing Pmt) was issued October 14, 2026 to applicant Robert Camacho, "
-                "followed by the Stage 2 building demolition permit (Type SD Demolition) on October 30, 2026 and "
-                "Texas DSHS Notification #2026005825 scheduling abatement of 5,010 sq ft of Regulated Asbestos-Containing "
-                "Material (RACM) from October 27 through November 6, 2026 by operator AAR Incorporated for owner "
-                "OB Texas Properties LLC (Omair Bashir). Although the mansion lacks local Protected Landmark designation, "
-                "Preservation Houston is actively monitoring the property and seeking dialogue with the owner."
+            preservation_note = KIRBY_MANSION_PRESERVATION_NOTE
+
+        demo_ov = demolished_overrides_by_hcad.get(hcad) or {}
+        is_confirmed_demo = bool(
+            hcad == "0152300000001"
+            or demo_ov.get("is_demolished")
+            or demo_ov.get("demolished_date")
+            or demo_ov.get("lost_houston_id")
+        )
+        demolished_date_str = str(
+            demo_ov.get("demolished_date") or ("2026-11-02" if hcad == "0152300000001" else "")
+        ).strip()
+        lost_id_str = str(
+            demo_ov.get("lost_houston_id") or ("lost_kirby_mansion_1894" if hcad == "0152300000001" else "")
+        ).strip()
+        if is_confirmed_demo:
+            badge_short, severity_label = format_demolished_permit_badge_and_severity(
+                demolished_date_str
             )
+            if hcad == "0152300000001":
+                headline = KIRBY_MANSION_PERMIT_HEADLINE
 
         alert_obj = {
             "hcad_num": hcad,
@@ -1909,6 +1956,11 @@ def main():
             "demo_permit_stage": demo_permit_stage,
             "has_sewer_disc_plumbing": has_sewer_disc,
             "has_demo_permit": has_demo_permit,
+            "demolition_status": "demolished" if is_confirmed_demo else "active_watch",
+            "is_demolished": is_confirmed_demo,
+            "demolished_date": demolished_date_str,
+            "year_demolished": int(demolished_date_str[:4]) if len(demolished_date_str) >= 4 and demolished_date_str[:4].isdigit() else (2026 if is_confirmed_demo else None),
+            "lost_houston_id": lost_id_str,
             "preservation_note": preservation_note,
             "latest_filing_date": latest_date,
             "coh_permits": structural_coh if structural_coh else dedup_coh,

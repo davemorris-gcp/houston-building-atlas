@@ -1239,6 +1239,10 @@ export function normalizeWatchProperty(rawProp = {}) {
         : null,
     humanEdited: Boolean(rawProp.humanEdited),
     archivedAt: String(rawProp.archivedAt || ""),
+    demolishedDate: String(rawProp.demolishedDate || ""),
+    lostHoustonId: String(rawProp.lostHoustonId || ""),
+    likelyDemolishedReviewNeeded: Boolean(rawProp.likelyDemolishedReviewNeeded),
+    likelyDemolishedReason: String(rawProp.likelyDemolishedReason || ""),
     updatedAt: String(rawProp.updatedAt || ""),
     updatedBy: String(rawProp.updatedBy || ""),
     checklist,
@@ -1380,6 +1384,21 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     if (!base.pcMeetingDate && sNorm.pcMeetingDate) base.pcMeetingDate = sNorm.pcMeetingDate;
     if (!base.sourceCycleKey && sNorm.sourceCycleKey) base.sourceCycleKey = sNorm.sourceCycleKey;
     if (!base.hearingDateIso && sNorm.hearingDateIso) base.hearingDateIso = sNorm.hearingDateIso;
+    if (!base.demolishedDate && sNorm.demolishedDate) base.demolishedDate = sNorm.demolishedDate;
+    if (!base.lostHoustonId && sNorm.lostHoustonId) base.lostHoustonId = sNorm.lostHoustonId;
+    if (
+      base.trackerStatus !== "Lost" &&
+      base.trackerStatus !== "Saved" &&
+      base.trackerStatus !== "Archived (Tier 3)" &&
+      sNorm.likelyDemolishedReviewNeeded
+    ) {
+      base.likelyDemolishedReviewNeeded = true;
+      base.likelyDemolishedReason = sNorm.likelyDemolishedReason || base.likelyDemolishedReason;
+    }
+  }
+  if (["Lost", "Saved", "Archived (Tier 3)"].includes(base.trackerStatus)) {
+    base.likelyDemolishedReviewNeeded = false;
+    base.likelyDemolishedReason = "";
   }
 
   base.searchTerms = JSON.parse(JSON.stringify(termsWinner.searchTerms));
@@ -1736,15 +1755,169 @@ export function syncPlatTierToWatchlist(
 }
 
 /**
- * Sort Watchlist properties strictly Tier 1 -> Tier 2 -> Tier 3, keeping Archived (Tier 3)
- * entries at the bottom when shown.
+ * Build a deterministic default Lost Houston catalog ID (`lost_<slug>_<year>`) for a watched property.
+ */
+export function buildDefaultLostHoustonId(prop) {
+  if (!prop || typeof prop !== "object") return "lost_building";
+  if (prop.lostHoustonId) return String(prop.lostHoustonId).trim();
+  const slugBase = String(prop.propertyName || prop.address || prop.id || "building")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const yrSuffix = prop.yearBuilt ? `_${prop.yearBuilt}` : "";
+  return `lost_${slugBase}${yrSuffix}`;
+}
+
+/**
+ * Evaluate whether a watched property shows strong multi-agency signals that physical
+ * demolition is likely complete and needs staff confirmation to graduate to Lost Houston.
+ */
+export function evaluateWatchlistLikelyDemolished(prop, todayIso = "") {
+  if (!prop || typeof prop !== "object") {
+    return { likelyDemolished: false, reason: "" };
+  }
+  const status = String(prop.trackerStatus || "").trim();
+  if (status === "Lost" || status === "Saved" || status === "Archived (Tier 3)") {
+    return { likelyDemolished: false, reason: "" };
+  }
+  const today = String(todayIso || new Date().toISOString().slice(0, 10)).slice(0, 10);
+  const reasons = [];
+  const kd = prop.keyDates || {};
+  const asbWin = String(kd.asbestosAbatementWindow || "");
+  const asbMatches = [...(asbWin.match(/\b(20\d{2}-\d{2}-\d{2})\b/g) || [])];
+  let hasStage1Or2 = false;
+  let hasActiveDemo311 = false;
+  const isNegatedCheck = (t) =>
+    /^\s*NO\b|\bNO\s+(?:NEW\s+)?(?:DEMO|DEMOLITION|PERMIT|RESULT|FILING|VIOLATION|COMPLAINT)/i.test(t);
+  for (const row of prop.checklist || []) {
+    const rid = String(row?.id || "");
+    for (const c of row?.checks || []) {
+      const txt = String(c?.result || "").toUpperCase();
+      if (!txt || isNegatedCheck(txt)) continue;
+      if (rid === "chk-15" && asbMatches.length === 0) {
+        const rowDates = txt.match(/\b(20\d{2}-\d{2}-\d{2})\b/g) || [];
+        if (rowDates.length >= 2) {
+          asbMatches.push(...rowDates);
+        }
+      }
+      if (
+        rid === "chk-14" &&
+        (txt.includes("PLUMBING PMT") ||
+          txt.includes("SEWER DISCONNECT") ||
+          txt.includes("BLD DEMO") ||
+          txt.includes("DEMOLITION") ||
+          txt.includes("DEMO PERMIT"))
+      ) {
+        hasStage1Or2 = true;
+      }
+      if (
+        rid === "chk-13" &&
+        (txt.includes("DANGEROUS BUILDINGS") ||
+          txt.includes("BUILDING CODE VIOLATION") ||
+          txt.includes("DEMOLISH") ||
+          txt.includes("UNPERMITTED DEMO"))
+      ) {
+        hasActiveDemo311 = true;
+      }
+    }
+  }
+  if (asbMatches.length > 0) {
+    const asbEnd = asbMatches[asbMatches.length - 1];
+    if (asbEnd < today) {
+      reasons.push(`TX DSHS asbestos abatement window ended ${asbEnd}`);
+    }
+  }
+  if (hasStage1Or2) {
+    reasons.push("COH Sewer Disconnection / Demolition permit activity logged (chk-14)");
+  }
+  if (hasActiveDemo311) {
+    reasons.push("Houston 311 Dangerous Buildings / Demolition complaint logged (chk-13)");
+  }
+  const likely = Boolean(
+    (asbMatches.length > 0 && reasons.some((r) => r.includes("TX DSHS")) && (hasStage1Or2 || hasActiveDemo311)) ||
+      (hasStage1Or2 && hasActiveDemo311)
+  );
+  return {
+    likelyDemolished: likely,
+    reason: likely ? reasons.join("; ") : "",
+  };
+}
+
+/**
+ * Graduate a watched property to `trackerStatus = "Lost"` and link its Lost Houston catalog ID,
+ * stamping `chk-13`, `chk-14`, and `chk-15` as `"Complete"` and preserving its 15-point case history.
+ */
+export function graduateWatchlistPropertyToLost(
+  prop,
+  {
+    demolishedDate = "",
+    lostHoustonId = "",
+    summaryNote = "",
+    reviewer = "PH Staff",
+    nowIso = "",
+  } = {}
+) {
+  const norm = normalizeWatchProperty(prop);
+  if (!norm) return null;
+  const ts = nowIso || new Date().toISOString();
+  const dDate = String(demolishedDate || norm.demolishedDate || ts.slice(0, 10)).trim();
+  const resolvedLostId = String(
+    lostHoustonId || norm.lostHoustonId || buildDefaultLostHoustonId(norm)
+  ).trim();
+
+  norm.trackerStatus = "Lost";
+  norm.demolishedDate = dDate;
+  norm.lostHoustonId = resolvedLostId;
+  norm.likelyDemolishedReviewNeeded = false;
+  norm.likelyDemolishedReason = "";
+  norm.keyDates = {
+    ...(norm.keyDates || {}),
+    expectedDemolition: `Demolished ${dDate} (Confirmed Lost)`,
+  };
+  const checkNote =
+    summaryNote ||
+    `Confirmed demolished (${dDate}) by ${reviewer}; graduated from active Watchlist to Lost Houston catalog (${resolvedLostId}).`;
+
+  for (const rowId of ["chk-13", "chk-14", "chk-15"]) {
+    const row = findChecklistRow(norm.checklist, rowId);
+    if (row) {
+      row.checks = Array.isArray(row.checks) ? row.checks : [];
+      row.checks.push({
+        date: dDate,
+        result: checkNote,
+        source: "manual",
+        loggedAt: ts,
+      });
+      row.lastChecked = dDate;
+      row.status = "Complete";
+      row.statusChangedAt = ts;
+      row.updatedAt = ts;
+      row.humanStatusEdited = true;
+    }
+  }
+  norm.humanEdited = true;
+  norm.updatedAt = ts;
+  norm.updatedBy = reviewer;
+  rebuildFindingsLog(norm);
+  return norm;
+}
+
+/**
+ * Sort Watchlist properties strictly Tier 1 -> Tier 2 -> Tier 3, keeping completed
+ * (Lost / Saved) and Archived (Tier 3) entries below active watched properties.
  */
 export function sortWatchedProperties(list = []) {
   const tierOrder = { "1": 0, "2": 1, "3": 2 };
+  const inactiveRank = (p) => {
+    const st = String(p?.trackerStatus || "");
+    if (st === "Archived (Tier 3)") return 2;
+    if (st === "Lost" || st === "Saved") return 1;
+    return 0;
+  };
   return (Array.isArray(list) ? list : []).slice().sort((a, b) => {
-    const aArch = a?.trackerStatus === "Archived (Tier 3)" ? 1 : 0;
-    const bArch = b?.trackerStatus === "Archived (Tier 3)" ? 1 : 0;
-    if (aArch !== bArch) return aArch - bArch;
+    const aInact = inactiveRank(a);
+    const bInact = inactiveRank(b);
+    if (aInact !== bInact) return aInact - bInact;
     const ta = tierOrder[String(a?.tier || "1")] ?? 2;
     const tb = tierOrder[String(b?.tier || "1")] ?? 2;
     if (ta !== tb) return ta - tb;

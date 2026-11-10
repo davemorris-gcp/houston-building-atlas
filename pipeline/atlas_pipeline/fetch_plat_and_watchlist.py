@@ -5442,6 +5442,14 @@ def normalize_watch_property_record(raw: dict) -> dict:
     p.setdefault("pcMeetingDate", "")
     p.setdefault("sourceCycleKey", "")
     p.setdefault("hearingDateIso", "")
+    p["demolishedDate"] = str(p.get("demolishedDate") or p.get("demolished_date") or "").strip()
+    p["lostHoustonId"] = str(p.get("lostHoustonId") or p.get("lost_houston_id") or "").strip()
+    p["likelyDemolishedReviewNeeded"] = bool(
+        p.get("likelyDemolishedReviewNeeded") or p.get("likely_demolished_review_needed")
+    )
+    p["likelyDemolishedReason"] = str(
+        p.get("likelyDemolishedReason") or p.get("likely_demolished_reason") or ""
+    ).strip()
     st = p.get("searchTerms") if isinstance(p.get("searchTerms"), dict) else {}
     p["searchTerms"] = {
         "entities": list(st.get("entities") or []),
@@ -5498,6 +5506,55 @@ def normalize_watch_property_record(raw: dict) -> dict:
     p["checklist"] = upgraded_checklist
     p["findingsLog"] = _rebuild_property_findings_log(upgraded_checklist)
     return p
+
+
+def evaluate_likely_demolished_signal(prop: dict, today_iso: str = "") -> tuple[bool, str]:
+    """Detect when a watched property has crossed all demolition prerequisites and needs human demolition confirmation."""
+    if not isinstance(prop, dict):
+        return False, ""
+    status = str(prop.get("trackerStatus") or "").strip()
+    if status in ("Lost", "Saved", "Archived (Tier 3)") or prop.get("demolishedDate"):
+        return False, ""
+    if not today_iso:
+        today_iso = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+    checklist = prop.get("checklist") if isinstance(prop.get("checklist"), list) else []
+    chk13 = _find_checklist_row_by_id(checklist, "chk-13") or {}
+    chk14 = _find_checklist_row_by_id(checklist, "chk-14") or {}
+    chk15 = _find_checklist_row_by_id(checklist, "chk-15") or {}
+
+    c14_texts = " ".join(str(c.get("result") or "") for c in (chk14.get("checks") or []) if isinstance(c, dict)).upper()
+    c15_texts = " ".join(str(c.get("result") or "") for c in (chk15.get("checks") or []) if isinstance(c, dict)).upper()
+    c13_texts = " ".join(str(c.get("result") or "") for c in (chk13.get("checks") or []) if isinstance(c, dict)).upper()
+
+    has_demo_permit = any(
+        kw in c14_texts
+        for kw in ("STAGE 2", "TYPE SD DEMOLITION", "BLD DEMO", "BUILDING DEMOLITION PERMIT", "2 OF 2 PERMITS")
+    )
+    has_asbestos_filing = "DSHS" in c15_texts or "ABATEMENT" in c15_texts or "RACM" in c15_texts
+    has_311_demo_violation = any(
+        kw in c13_texts for kw in ("DANGEROUS BUILDINGS", "BUILDING CODE VIOLATION", "UNPERMITTED DEMOLITION")
+    )
+
+    abatement_win = str((prop.get("keyDates") or {}).get("asbestosAbatementWindow") or "").strip()
+    abatement_started = False
+    m_iso = re.search(r"\b(20\d{2}-\d{2}-\d{2})\b", abatement_win)
+    if m_iso and m_iso.group(1) <= today_iso:
+        abatement_started = True
+    else:
+        for m_sl in re.finditer(r"\b(1[0-2]|0?[1-9])/([12]\d|3[01]|0?[1-9])/(20\d{2})\b", c15_texts):
+            dt_iso = f"{int(m_sl.group(3)):04d}-{int(m_sl.group(1)):02d}-{int(m_sl.group(2)):02d}"
+            if dt_iso <= today_iso:
+                abatement_started = True
+                break
+
+    if has_demo_permit and (abatement_started or (has_asbestos_filing and has_311_demo_violation)):
+        reasons = ["COH building demolition permit issued"]
+        if abatement_started or has_asbestos_filing:
+            reasons.append("TX DSHS asbestos abatement window active/elapsed")
+        if has_311_demo_violation:
+            reasons.append("Houston 311 Dangerous Buildings / Code Violation logged")
+        return True, " + ".join(reasons)
+    return False, ""
 
 
 def pull_cloud_sheet_sync_rows(csv_text: str | None = None) -> dict:
@@ -5588,11 +5645,19 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             ],
         ),
         "chk-02": (
-            "In Progress",
-            "2026-10-14",
+            "Complete",
+            "2026-11-02",
             [
-                {"date": "2026-10-07", "result": "Reported by Paul Homeyer: new 'For Information' banner from Greenberg & Company"},
+                {"date": "2026-10-07", "result": "Reported by Preservation Advocate: new 'For Information' banner from Greenberg & Company"},
                 {"date": "2026-10-14", "result": "Called Greenberg & Company. Took message; have not called back"},
+                {
+                    "date": "2026-10-30",
+                    "result": "Excavators began demolishing the 1894/1928 mansion on Friday morning Oct 30, 2026; City of Houston inspectors briefly issued a stop-work order until the Stage 2 building demolition permit (#26090093) cleared later that day.",
+                },
+                {
+                    "date": "2026-11-02",
+                    "result": "Site visit confirmed the 36-room Tudor Revival mansion at 2000 Smith St was completely reduced to rubble over the weekend of Oct 31 - Nov 2, 2026.",
+                },
             ],
         ),
         "chk-03": (
@@ -5682,28 +5747,41 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
                 {"date": "2026-10-20", "result": "no new results"},
             ],
         ),
-        "chk-13": ("N/A", "2026-10-23", []),
+        "chk-13": (
+            "Complete",
+            "2026-11-02",
+            [
+                {
+                    "date": "2026-11-01",
+                    "result": "Houston 311 Case #2600364835 ('Dangerous Buildings' at 2000 Smith St) and Case #2600366173 ('Building Code Violation' logged 11/2/2026) filed during weekend demolition of the mansion.",
+                }
+            ],
+        ),
         "chk-14": (
-            "Flagged",
-            "2026-10-23",
+            "Complete",
+            "2026-11-02",
             [
                 {"date": "2026-09-22", "result": "no demo permit"},
                 {"date": "2026-10-05", "result": "no demo permit"},
                 {
                     "date": "2026-10-14",
-                    "result": "COH Permit #26090093 ('BLD DEMO/SEWER DISC', occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St",
+                    "result": "COH Stage 1 Sewer Disconnection Plumbing Permit #26090093 ('BLD DEMO/SEWER DISC', Type 12 Plumbing Pmt, occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St",
+                },
+                {
+                    "date": "2026-10-30",
+                    "result": "COH Stage 2 Building Demolition Permit #26090093 ('BLD DEMO', Type SD Demolition, occupant '*KIRBY MANSION') issued 10/30/2026 after unpermitted morning demolition was briefly halted by a COH stop-work order; structure completely demolished by 11/2/2026.",
                 },
             ],
         ),
         "chk-15": (
-            "Flagged",
-            "2026-10-23",
+            "Complete",
+            "2026-11-02",
             [
                 {"date": "2026-09-22", "result": "no results"},
                 {"date": "2026-10-05", "result": "no results"},
                 {
                     "date": "2026-10-13",
-                    "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC)",
+                    "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC); abatement completed and mansion demolished 11/2/2026.",
                 },
             ],
         ),
@@ -5735,10 +5813,16 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             "architect": "James Ruskin Bailey (1928 Tudor Revival remodel)",
             "designation": "1979 Good Brick Award (No City Protected Landmark designation)",
             "neighborhood": "Midtown",
-            "trackerStatus": "Active / High Priority",
+            "trackerStatus": "Lost",
+            "demolishedDate": "2026-11-02",
+            "lostHoustonId": "lost_kirby_mansion_1894",
             "threatCategory": "Significant Building Threatened",
-            "reportedBy": "Paul Homeyer",
-            "phPastActions": "Contacted listing broker and new owner Omair Bashir; monitoring October 27 - November 6, 2026 asbestos abatement window.",
+            "reportedBy": "Preservation Advocate",
+            "phPastActions": (
+                "Contacted listing broker and new owner Omair Bashir; tracked October 2026 asbestos abatement "
+                "and permit filings; documented unpermitted Oct 30 demolition start and final Nov 2, 2026 loss; "
+                "graduated to Lost Houston catalog (lost_kirby_mansion_1894)."
+            ),
             "ownerOfRecord": "OB Texas Properties LLC (acquired 9/30/2026 from Hi Tech Auto Realty LLC)",
             "buyerRelatedEntities": "Omair Bashir / OB Texas Properties LLC / Smith St C Store LLC / BTCM National Retail Operations LLC (Brake Time)",
             "lender": "Greenberg Finance Co. ($7,000,000 loan recorded 10/1/2026)",
@@ -5748,7 +5832,7 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
                 "targetClosing": "2026-09-30",
                 "planningCommission": "2026-05-28",
                 "asbestosAbatementWindow": "2026-10-27 to 2026-11-06",
-                "expectedDemolition": "Imminent risk following Nov 6, 2026 abatement window",
+                "expectedDemolition": "Demolished 2026-10-30 to 2026-11-02 (Confirmed Lost)",
                 "tdlrScheduledConstruction": "2026-09-01 to 2027-09-01",
             },
             "searchTerms": {
@@ -5766,10 +5850,15 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
                 "projectNumbers": ["26052089", "26090093"],
             },
             "notes": (
+                "DEMOLISHED NOV 2, 2026 (Graduated to Lost Houston: lost_kirby_mansion_1894). "
                 "Sale closed effective 9/30/2026 (recorded 10/1/2026, Special Warranty Deed #RP-2026-399473). "
-                "Multi-agency filings across 2000 Smith St and perimeter block address 530 Pierce St reveal plans "
+                "Multi-agency filings across 2000 Smith St and perimeter block address 530 Pierce St revealed plans "
                 "for a $2M, 13,254 SF 'Brake Time' convenience store and gas station (TDLR #TABS2026022839, "
-                "COH Plan Review #26052089). Emailed Omair Bashir, who responded positively about meeting to discuss plans."
+                "COH Plan Review #26052089). Following Stage 1 sewer disconnection (#26090093 on 10/14/2026) and "
+                "TX DSHS asbestos notification (#2026005825), demolition crews began tearing down the 1894/1928 "
+                "Tudor Revival mansion on Friday morning 10/30/2026 (briefly halted by a COH stop-work order until "
+                "Stage 2 Demolition Permit #26090093 was issued later on 10/30/2026), reducing the structure to "
+                "rubble by Monday, November 2, 2026."
             ),
             "lng": -95.374833,
             "lat": 29.751432,
@@ -6028,6 +6117,10 @@ def build_property_watchlist(
                 "updatedAt",
                 "updatedBy",
                 "archivedAt",
+                "demolishedDate",
+                "lostHoustonId",
+                "likelyDemolishedReviewNeeded",
+                "likelyDemolishedReason",
             ):
                 if norm_cp.get(k_meta) not in (None, "", [], {}, False):
                     merged_p[k_meta] = norm_cp[k_meta]
@@ -6093,9 +6186,11 @@ def build_property_watchlist(
     # Execute 8-agency sweeps for every active watched property and roll up worst-case sweep health
     per_property_healths: list[dict] = []
     for pid, prop in watched_by_id.items():
-        if prop.get("trackerStatus") == "Archived (Tier 3)":
+        if prop.get("trackerStatus") in ("Archived (Tier 3)", "Lost", "Saved"):
             prop["lastAutoSweepAt"] = now_iso
             prop["autoSweepSchedule"] = AUTO_SWEEP_SCHEDULE
+            prop["likelyDemolishedReviewNeeded"] = False
+            prop["likelyDemolishedReason"] = ""
             continue
         if run_live_sweeps:
             sweep_res = sweep_watched_property_agencies(prop, plat_data, idx, sweep_date)
@@ -6105,6 +6200,9 @@ def build_property_watchlist(
         else:
             prop["lastAutoSweepAt"] = now_iso
             prop["autoSweepSchedule"] = AUTO_SWEEP_SCHEDULE
+        needs_demo_rev, demo_reason = evaluate_likely_demolished_signal(prop, sweep_date)
+        prop["likelyDemolishedReviewNeeded"] = needs_demo_rev
+        prop["likelyDemolishedReason"] = demo_reason
 
     last_sweep_health = aggregate_watchlist_sweep_health(
         per_property_healths, now_iso, run_live_sweeps=run_live_sweeps
@@ -6114,13 +6212,23 @@ def build_property_watchlist(
     ordered_props = sorted(
         watched_by_id.values(),
         key=lambda p: (
-            1 if p.get("trackerStatus") == "Archived (Tier 3)" else 0,
+            2
+            if p.get("trackerStatus") == "Archived (Tier 3)"
+            else (1 if p.get("trackerStatus") in ("Lost", "Saved") else 0),
             tier_rank.get(str(p.get("tier") or "2"), 9),
             0 if p.get("id") == "prop-kirby-mansion" else 1,
             str(p.get("address") or p.get("propertyName") or ""),
         ),
     )
-    primary = watched_by_id.get("prop-kirby-mansion") or (ordered_props[0] if ordered_props else {})
+    primary = next(
+        (
+            p
+            for p in ordered_props
+            if p.get("trackerStatus") not in ("Archived (Tier 3)", "Lost", "Saved")
+            and p.get("hcadAccount")
+        ),
+        watched_by_id.get("prop-kirby-mansion") or (ordered_props[0] if ordered_props else {}),
+    )
 
     return {
         "updatedAt": now_iso,
@@ -6135,6 +6243,12 @@ def build_property_watchlist(
 
 def enrich_kirby_mansion_permit_alert() -> None:
     """Ensure active_permit_alerts.json links Kirby Mansion to TDLR /tabs/search and verified Harris County filings."""
+    from atlas_pipeline.fetch_live_permits import (
+        KIRBY_MANSION_PERMIT_HEADLINE,
+        KIRBY_MANSION_PRESERVATION_NOTE,
+        format_demolished_permit_badge_and_severity,
+    )
+
     print("[5/6] Syncing Kirby Mansion multi-agency timeline in active_permit_alerts.json...")
     alerts_path = DATA_DIR / "active_permit_alerts.json"
     if not alerts_path.exists():
@@ -6146,11 +6260,21 @@ def enrich_kirby_mansion_permit_alert() -> None:
     for al in data.get("alerts", []):
         if al.get("hcad_num") == "0152300000001":
             al["watchlist_id"] = "prop-kirby-mansion"
+            al["demolition_status"] = "demolished"
+            al["is_demolished"] = True
+            al["demolished_date"] = "2026-11-02"
+            al["year_demolished"] = 2026
+            al["lost_houston_id"] = "lost_kirby_mansion_1894"
+            al["badge"], al["severity_label"] = format_demolished_permit_badge_and_severity(
+                "2026-11-02"
+            )
+            al["headline"] = KIRBY_MANSION_PERMIT_HEADLINE
+            al["preservation_note"] = KIRBY_MANSION_PRESERVATION_NOTE
+            changed = True
             for mf in al.get("multi_agency_filings") or []:
                 if "tdlr.texas.gov" in str(mf.get("url") or "").lower():
                     if mf["url"] != TDLR_TABS_PORTAL_URL:
                         mf["url"] = TDLR_TABS_PORTAL_URL
-                        changed = True
             break
 
     if changed:

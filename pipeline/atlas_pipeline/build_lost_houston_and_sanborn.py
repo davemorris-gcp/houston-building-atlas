@@ -17,6 +17,7 @@ from atlas_pipeline.lost_houston_expansion import (
     build_lost_houston_search_item,
     compact_lost_houston_feature,
     enrich_nrhp_demolished_overlay_and_search,
+    extract_curated_demolished_hcads,
     reconcile_holc_lost_houston_rollups,
     sanitize_coh_landmarks_overlay,
 )
@@ -229,6 +230,79 @@ LOST_HOUSTON_PART_3 = [
         "angle": 0.0,
         "shape": "rect",
         "blurb": "Because cotton fires were the single greatest underwriting hazard in Texas, Sanborn cartographers drew Houston's massive steam cotton compresses in extraordinary detail, noting every fire hydrant, night watchman clock, and brick firewall.",
+    },
+    {
+        "id": "lost_kirby_mansion_1894",
+        "name": "John Henry Kirby Mansion (1894)",
+        "subtitle": "36-Room Tudor Revival Residence of Lumber Baron John Henry Kirby (1894-2026)",
+        "category": "Gilded Age Mansion",
+        "address": "2000 Smith St.",
+        "neighborhood": "Midtown / Fourth Ward",
+        "year_built": 1894,
+        "year_demolished": 2026,
+        "demolished_date": "2026-11-02",
+        "demolition_cause": (
+            "Sold September 30, 2026 (Special Warranty Deed #RP-2026-399473) to OB Texas Properties LLC "
+            "(Omair Bashir / Smith St C Store LLC) and demolished between October 30 and November 2, 2026 "
+            "under COH Project #26090093 and TX DSHS Notification #2026005825 for a convenience store and fuel station."
+        ),
+        "replaced_by": "Cleared site (planned 13,254 SF Brake Time convenience store & gas station, TDLR #TABS2026022839)",
+        "site_hcad_nums": ["0152300000001"],
+        "architect": "James Ruskin Bailey (1926-1928 Tudor Revival remodeling)",
+        "style": "Tudor Revival",
+        "sanborn_material": "brick",
+        "sanborn_material_label": "Pink/Yellow - Brick Veneer & Half-Timbered Tudor Revival over 1894 Frame Core",
+        "stories": 3,
+        "height_m": 12.5,
+        "sanborn_ref": "1907 Vol. 1 Sheet 48 (Block 417 SSBB: 2000 Smith St bounded by Pierce, Brazos & Gray)",
+        "loc_volume_id": "sanborn08580_004",
+        "loc_sheet_num": 48,
+        "lon": -95.374742,
+        "lat": 29.751469,
+        "width_m": 32.0,
+        "depth_m": 24.0,
+        "angle": -34.65,
+        "shape": "L",
+        "explicit_ring": [
+            [-95.3745939, 29.7515247],
+            [-95.3748371, 29.7516614],
+            [-95.3748859, 29.7516023],
+            [-95.3749116, 29.7516162],
+            [-95.3749459, 29.7515768],
+            [-95.3748242, 29.7515004],
+            [-95.3748694, 29.7514369],
+            [-95.3749608, 29.7514142],
+            [-95.3749667, 29.7514298],
+            [-95.3750157, 29.7514158],
+            [-95.3749941, 29.7513498],
+            [-95.3749444, 29.7513635],
+            [-95.3749296, 29.7513213],
+            [-95.3749158, 29.7513244],
+            [-95.3749103, 29.7513056],
+            [-95.37484, 29.7513229],
+            [-95.3748359, 29.751307],
+            [-95.3747449, 29.751327],
+            [-95.3746934, 29.7513964],
+            [-95.3746566, 29.7513754],
+            [-95.3746302, 29.7514093],
+            [-95.3746665, 29.7514312],
+            [-95.3745939, 29.7515247],
+        ],
+        "good_brick_years": [1979],
+        "good_brick_summary": "1979 Good Brick Award (Thomas Thompson)",
+        "watchlist_id": "prop-kirby-mansion",
+        "photo_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Kirby_Mansion_Houston.jpg/960px-Kirby_Mansion_Houston.jpg",
+        "photo_credit": "Wikimedia Commons (CC BY-SA 4.0) - Historic view of John Henry Kirby Mansion at 2000 Smith St.",
+        "photo_year": 2012,
+        "photo_era_label": "Pre-Demolition Photograph (2000 Smith St., 1894-2026)",
+        "source_url": "https://www.tshaonline.org/handbook/entries/kirby-john-henry",
+        "blurb": (
+            "Built in 1894 for businessman J. S. Price and purchased in 1896 by Texas lumber magnate John Henry Kirby "
+            "(founder of the Kirby Lumber Company and Kirby Petroleum), this full-block Midtown residence at 2000 Smith Street "
+            "was transformed between 1926 and 1928 into a 36-room Tudor Revival mansion by architect James Ruskin Bailey. "
+            "Restored into law offices by Thomas Thompson (receiving a 1979 Preservation Houston Good Brick Award), the "
+            "unprotected landmark was sold in September 2026 and demolished between October 30 and November 2, 2026."
+        ),
     },
 ]
 
@@ -1548,6 +1622,12 @@ VERIFIED_SANBORN_REFS: dict[str, tuple[str | None, int | None, str, list[tuple[s
         "1907 Vol. 2 Sheet 68 & Sheet 7 (Fifth Ward Steam Cotton Compress & Special Industrial Risks)",
         [("sanborn08580_005", 7, "1907 Vol. 2 Sheet 7 (Planters Compress Co. & MKT Freight Yards)")],
     ),
+    "lost_kirby_mansion_1894": (
+        "sanborn08580_004",
+        48,
+        "1907 Vol. 1 Sheet 48 (Block 417 SSBB: 2000 Smith St bounded by Pierce, Brazos & Gray)",
+        [("sanborn08580_027", 36, "1924-1950 Vol. 11 Sheet 36 (Post-1928 James Ruskin Bailey Tudor Revival Mansion Footprint)")],
+    ),
 }
 
 
@@ -1666,30 +1746,36 @@ def main() -> None:
         else:
             ang = -34.65 if abs(cat_ang - 35.0) < 5.0 else cat_ang
 
-        if (
-            rings
-            and max(width_m, depth_m) <= 95.0
-            and eid
-            not in (
-                "lost_grand_central_station_1887",
-                "lost_southern_pacific_station_1934",
-                "lost_mkt_station_1914",
-                "lost_magnolia_brewery_foot_of_main_1893",
-                "lost_frost_town_germantown_cottages_1850",
-            )
-        ):
-            lon, lat, width_m, depth_m = fit_rect_in_parcel(
-                lon, lat, width_m, depth_m, ang, rings, setback_m=1.5, max_shift_m=35.0
-            )
+        explicit_ring = entry.get("explicit_ring")
+        if isinstance(explicit_ring, list) and len(explicit_ring) >= 4:
+            coords = [explicit_ring]
+            fp_prov = "surveyed_sanborn_or_parcel"
+        else:
+            if (
+                rings
+                and max(width_m, depth_m) <= 95.0
+                and eid
+                not in (
+                    "lost_grand_central_station_1887",
+                    "lost_southern_pacific_station_1934",
+                    "lost_mkt_station_1914",
+                    "lost_magnolia_brewery_foot_of_main_1893",
+                    "lost_frost_town_germantown_cottages_1850",
+                )
+            ):
+                lon, lat, width_m, depth_m = fit_rect_in_parcel(
+                    lon, lat, width_m, depth_m, ang, rings, setback_m=1.5, max_shift_m=35.0
+                )
 
-        coords = make_footprint_polygon(
-            lon=lon,
-            lat=lat,
-            width_m=width_m,
-            depth_m=depth_m,
-            angle_deg=ang,
-            shape=entry.get("shape", "rect"),
-        )
+            coords = make_footprint_polygon(
+                lon=lon,
+                lat=lat,
+                width_m=width_m,
+                depth_m=depth_m,
+                angle_deg=ang,
+                shape=entry.get("shape", "rect"),
+            )
+            fp_prov = "surveyed_sanborn_or_parcel" if rings else "surveyed_catalog"
         loc_vol = entry.get("loc_volume_id")
         loc_sheet = entry.get("loc_sheet_num")
         sanborn_ref = str(entry.get("sanborn_ref", ""))
@@ -1777,6 +1863,10 @@ def main() -> None:
             "photo_credit": photo_credit,
             "coh_landmark_id": coh_enrich.get("coh_landmark_id"),
             "coh_landmark_code": coh_enrich.get("coh_landmark_code"),
+            "demolished_date": entry.get("demolished_date"),
+            "good_brick_years": entry.get("good_brick_years"),
+            "good_brick_summary": entry.get("good_brick_summary"),
+            "watchlist_id": entry.get("watchlist_id"),
             "historic_significance": entry["blurb"],
             "citations": citations,
             "lon": lon,
@@ -1865,7 +1955,7 @@ def main() -> None:
                 props,
                 coords[0],
                 source_cohort="curated_landmark",
-                footprint_provenance="surveyed_sanborn_or_parcel" if rings else "surveyed_catalog",
+                footprint_provenance=fp_prov,
             )
         )
 
@@ -2037,6 +2127,31 @@ def main() -> None:
     )
     print(f"Enriched {nrhp_updated} demolished NRHP properties in overlays & search_index.")
 
+    def _apply_demolished_good_brick_fields(target_dict: dict, lost_props: dict) -> None:
+        target_dict["demolished"] = True
+        target_dict["year_demolished"] = int(lost_props.get("year_demolished") or 2026)
+        if lost_props.get("demolished_date"):
+            target_dict["demolished_date"] = str(lost_props["demolished_date"])
+        target_dict["lost_houston_id"] = str(lost_props.get("id") or "")
+
+    # Synchronize Good Brick Award features whose historic structure was demolished (e.g. Kirby Mansion 0152300000001)
+    lost_by_hcad: dict[str, dict] = {}
+    for lf in features:
+        lp = lf.get("properties") or {}
+        for sh in lp.get("site_hcad_nums") or ([lp.get("hcad_num")] if lp.get("hcad_num") else []):
+            sh_s = str(sh or "").strip()
+            if sh_s:
+                lost_by_hcad[sh_s] = lp
+    gb_demo_sync = 0
+    for gb_feat in overlays.get("good_brick_awards", {}).get("features", []):
+        gp = gb_feat.get("properties") or {}
+        gh = str(gp.get("hcad_num") or "").strip()
+        if gh and gh in lost_by_hcad:
+            _apply_demolished_good_brick_fields(gp, lost_by_hcad[gh])
+            gb_demo_sync += 1
+    if gb_demo_sync:
+        print(f"Synchronized {gb_demo_sync} demolished Good Brick Award feature(s) in overlays.json.")
+
     overlays["lost_houston"] = {
         "type": "FeatureCollection",
         "features": features,
@@ -2050,9 +2165,27 @@ def main() -> None:
 
     # 3. Also index Lost Houston landmarks into search_index.json strictly via upsert_search_index_slice!
     if sdata is not None and isinstance(items, list):
+        suppressed_hcads = extract_curated_demolished_hcads(
+            curated_overrides, include_suppressed=True
+        )
+        filtered_items = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            it_hcad = str(it.get("hcad_num") or it.get("h") or "").strip()
+            it_id = str(it.get("id") or "").strip()
+            it_type = str(it.get("type") or "").strip()
+            if it_type == "building" and (
+                it_hcad in suppressed_hcads or it_id.split("#")[0] in suppressed_hcads
+            ):
+                continue
+            if it_type == "good_brick" and it_hcad in lost_by_hcad:
+                _apply_demolished_good_brick_fields(it, lost_by_hcad[it_hcad])
+            filtered_items.append(it)
+
         new_search_entries = [build_lost_houston_search_item(f) for f in features]
         updated_si = upsert_search_index_slice(
-            items,
+            filtered_items,
             slice_predicate=lambda it: (
                 isinstance(it, dict)
                 and (

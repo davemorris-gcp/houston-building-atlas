@@ -1081,6 +1081,18 @@ export function parseOverridesFromSheetRows(rows) {
       verified_by: String(row.verified_by || "Preservation Houston").trim(),
       updated_at: String(row.updated_at || "").trim(),
       geometry,
+      ...(row.is_demolished || (isSuppressOnly && /\bdemolished\b/i.test(cleanCitation))
+        ? { is_demolished: true }
+        : {}),
+      ...(Number(row.year_demolished) >= 1836
+        ? { year_demolished: Number(row.year_demolished) }
+        : {}),
+      ...(row.demolished_date
+        ? { demolished_date: String(row.demolished_date).trim() }
+        : {}),
+      ...(row.lost_houston_id
+        ? { lost_houston_id: String(row.lost_houston_id).trim() }
+        : {}),
       ...(explicitReplace !== null ? { replace_parcel_shards: explicitReplace } : {}),
       ...(hasBuildingSuffix
         ? {
@@ -1595,11 +1607,23 @@ export function mergeOverrideRecord(
     const stashedGeom =
       existingOv.geometry || existingOv._pre_suppress_geometry || fallbackGeometry || null;
     delete merged._pre_suppress_geometry;
+    const isDemolished = Boolean(incomingOv.is_demolished || existingOv.is_demolished);
+    const yrDemolished = Number(incomingOv.year_demolished || existingOv.year_demolished || 0);
+    const demolishedDate = String(
+      incomingOv.demolished_date || existingOv.demolished_date || ""
+    ).trim();
+    const lostHoustonId = String(
+      incomingOv.lost_houston_id || existingOv.lost_houston_id || ""
+    ).trim();
     return {
       ...merged,
       ...(stashedGeom ? { _pre_suppress_geometry: stashedGeom } : {}),
       ...(isSub ? { building_id: key, is_building_override: true } : {}),
       suppress_only: true,
+      ...(isDemolished ? { is_demolished: true } : {}),
+      ...(yrDemolished >= 1836 ? { year_demolished: yrDemolished } : {}),
+      ...(demolishedDate ? { demolished_date: demolishedDate } : {}),
+      ...(lostHoustonId ? { lost_houston_id: lostHoustonId } : {}),
       year_built: 0,
       decade: 0,
       geometry: null,

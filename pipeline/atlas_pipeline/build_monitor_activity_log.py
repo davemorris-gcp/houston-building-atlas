@@ -587,6 +587,8 @@ def _diff_property_watchlist(
                 ("designFirm", "design firm"),
                 ("phPastActions", "past PH actions"),
                 ("trackerStatus", "tracker status"),
+                ("demolishedDate", "demolition date"),
+                ("lostHoustonId", "Lost Houston graduation"),
                 ("threatCategory", "threat category"),
                 ("designation", "designation"),
                 ("ilmsProjectNo", "ILMS project #"),

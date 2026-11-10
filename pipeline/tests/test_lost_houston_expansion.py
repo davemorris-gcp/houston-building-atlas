@@ -633,11 +633,11 @@ def test_it1_it2_it3_live_artifacts_rollups_idempotency_and_audit(tmp_path: Path
     scorecards_doc = json.loads((DATA_DIR / "neighborhood_scorecards.json").read_text())
 
     lh_feats = overlays["lost_houston"]["features"]
-    assert len(lh_feats) == 622
+    assert len(lh_feats) == 623
     cohorts = Counter(f["properties"]["source_cohort"] for f in lh_feats)
     assert set(cohorts.keys()) == set(LOST_HOUSTON_VALID_COHORTS)
     assert cohorts == {
-        "curated_landmark": 85,
+        "curated_landmark": 86,
         "coh_landmark_demolished": 7,
         "nrhp_demolished": 15,
         "red_book_1915_vanished": 205,
@@ -648,8 +648,8 @@ def test_it1_it2_it3_live_artifacts_rollups_idempotency_and_audit(tmp_path: Path
     lh_ids = [f["properties"]["id"] for f in lh_feats]
     si_lh = [r for r in search_index if r.get("overlay_layer") == "lost_houston" or r.get("type") == "lost_houston"]
     si_lh_ids = [r["id"] for r in si_lh]
-    assert len(si_lh_ids) == 622
-    assert len(set(si_lh_ids)) == 622
+    assert len(si_lh_ids) == 623
+    assert len(set(si_lh_ids)) == 623
     assert set(si_lh_ids) == set(lh_ids)
 
     # IT-2: HOLC 1937 zones & grade_summary sync + scorecard lhc parity
@@ -676,10 +676,10 @@ def test_it1_it2_it3_live_artifacts_rollups_idempotency_and_audit(tmp_path: Path
     stats_rerun = reconcile_holc_lost_houston_rollups(holc_copy)
     assert stats_rerun == {
         "assigned_in_holc": 393,
-        "grade_A": 44,
-        "grade_B": 42,
-        "grade_C": 139,
-        "grade_D": 168,
+        "grade_A": 45,
+        "grade_B": 41,
+        "grade_C": 138,
+        "grade_D": 169,
     }
     assert holc_copy["holc_1937_grade_summary"] == overlays["holc_1937_grade_summary"]
     assert [
@@ -723,7 +723,7 @@ def test_it1_it2_it3_live_artifacts_rollups_idempotency_and_audit(tmp_path: Path
         audit_cache_free = run_audit(apply_fixes=False, cama_override={})
     for label, res in (("live", audit_res), ("cache_free", audit_cache_free)):
         rf = res["summary"]["reconciled_fixes"]
-        assert rf["lost_houston_features_audited"] == 622, label
+        assert rf["lost_houston_features_audited"] == 623, label
         assert rf["lost_houston_schema_errors"] == 0, label
         assert rf["lost_houston_extant_collision_errors"] == 0, label
         assert rf["landmarks_marked_demolished"] == 8, label

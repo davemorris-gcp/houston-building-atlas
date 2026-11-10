@@ -430,7 +430,7 @@ export const CITY_HISTORY_CHAPTERS = [
     },
     sites: [
       {
-        label: "Kirby Mansion (1894 · Active Watch)",
+        label: "Kirby Mansion (1894-2026 · Demolished Nov 2026)",
         hcadNum: "0152300000001",
         lng: -95.37474,
         lat: 29.75147,

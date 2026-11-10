@@ -600,16 +600,16 @@ def _assert_catalog_invariants(
         raise AssertionError("Photographed + unphotographed site counts do not sum to total_sites")
 
     if verify_milestone2_counts:
-        if metrics["total_sites"] != 622:
-            raise AssertionError(f"Expected 622 Lost Houston sites, got {metrics['total_sites']}")
-        expected_cohorts = {1: 85, 2: 7, 3: 15, 4: 205, 5: 310}
+        if metrics["total_sites"] != 623:
+            raise AssertionError(f"Expected 623 Lost Houston sites, got {metrics['total_sites']}")
+        expected_cohorts = {1: 86, 2: 7, 3: 15, 4: 205, 5: 310}
         if metrics["cohort_counts"] != expected_cohorts:
             raise AssertionError(f"Cohort mismatch: {metrics['cohort_counts']} != {expected_cohorts}")
         if metrics["designated_landmark_count"] != 23:
             raise AssertionError(
                 f"Expected 23 designated COH/NRHP landmarks, got {metrics['designated_landmark_count']}"
             )
-        if metrics["holc_zoned_total"] != 393 or metrics["holc_counts"].get("D") != 168:
+        if metrics["holc_zoned_total"] != 393 or metrics["holc_counts"].get("D") != 169:
             raise AssertionError(f"HOLC spatial join mismatch: {metrics['holc_counts']}")
         if metrics["photo_site_count"] < 133:
             raise AssertionError(f"Expected >= 133 photographed sites, got {metrics['photo_site_count']}")

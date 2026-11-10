@@ -532,6 +532,9 @@ import {
   reconcileWatchlistProperty,
   syncWatchlistTierToPlatReviews,
   syncPlatTierToWatchlist,
+  buildDefaultLostHoustonId,
+  evaluateWatchlistLikelyDemolished,
+  graduateWatchlistPropertyToLost,
   sortWatchedProperties,
   parseCsvRfc4180,
   parseCloudSheetSyncRows,
@@ -1650,7 +1653,8 @@ function populateHeaderAndFilterControls(){
   }
 
   $("#wlStatusFilter").innerHTML = [
-    `<option value="ALL_ACTIVE" ${view.wlStatus === "ALL_ACTIVE" ? "selected" : ""}>Active Watchlist (Excl. Archived)</option>`,
+    `<option value="ALL_ACTIVE" ${view.wlStatus === "ALL_ACTIVE" ? "selected" : ""}>Watchlist &amp; Case Archive (Excl. Tier 3 Archive)</option>`,
+    `<option value="ONLY_ACTIVE" ${view.wlStatus === "ONLY_ACTIVE" ? "selected" : ""}>Active Threats Only (Excl. Lost, Saved &amp; Archived)</option>`,
     `<option value="ALL" ${view.wlStatus === "ALL" ? "selected" : ""}>All Properties (Incl. Archived Tier 3)</option>`,
     ...TRACKER_STATUSES.map(st => `<option value="${esc(st)}" ${view.wlStatus === st ? "selected" : ""}>Status: ${esc(st)}</option>`),
   ].join("");
@@ -1912,7 +1916,9 @@ function counts(){
 
 function activeWatchlistCount(){
   return (WL.watchedProperties || []).filter(
-    p => p.trackerStatus !== "Archived (Tier 3)" && !isRemovedWatchlistTombstone(p)
+    p =>
+      !["Archived (Tier 3)", "Lost", "Saved"].includes(p.trackerStatus) &&
+      !isRemovedWatchlistTombstone(p)
   ).length;
 }
 
@@ -3274,6 +3280,8 @@ function getFilteredWatchedProperties(){
     if (isRemovedWatchlistTombstone(p)) return false;
     if (view.wlStatus === "ALL_ACTIVE") {
       if (p.trackerStatus === "Archived (Tier 3)") return false;
+    } else if (view.wlStatus === "ONLY_ACTIVE") {
+      if (["Archived (Tier 3)", "Lost", "Saved"].includes(p.trackerStatus)) return false;
     } else if (view.wlStatus && view.wlStatus !== "ALL") {
       if (p.trackerStatus !== view.wlStatus) return false;
     }
@@ -3318,7 +3326,15 @@ function getSelectedWatchProp(){
 
 function renderWatchlistFunnel(){
   const activeCount = activeWatchlistCount();
-  const t1Count = (WL.watchedProperties || []).filter(p => !isRemovedWatchlistTombstone(p) && p.trackerStatus !== "Archived (Tier 3)" && String(p.tier || "1") === "1").length;
+  const t1Count = (WL.watchedProperties || []).filter(
+    p =>
+      !isRemovedWatchlistTombstone(p) &&
+      !["Archived (Tier 3)", "Lost", "Saved"].includes(p.trackerStatus) &&
+      String(p.tier || "1") === "1"
+  ).length;
+  const lostCount = (WL.watchedProperties || []).filter(
+    p => !isRemovedWatchlistTombstone(p) && p.trackerStatus === "Lost"
+  ).length;
   const p = getSelectedWatchProp();
   const ck = (p && p.checklist) || [];
   const flagged = ck.filter(r => r.status === "Flagged").length;
@@ -3326,7 +3342,7 @@ function renderWatchlistFunnel(){
   const inProg = ck.filter(r => r.status === "In Progress").length;
   const totalChecks = (p && p.findingsLog ? p.findingsLog.length : 0);
   $("#funnel").innerHTML = `
-    <div class="stage"><div class="n">${activeCount}</div><div class="l">active watched properties (${t1Count} Tier 1)</div></div>
+    <div class="stage"><div class="n">${activeCount}</div><div class="l">active watched properties (${t1Count} Tier 1${lostCount ? ` · ${lostCount} Lost/Graduated` : ""})</div></div>
     <div class="stage t1"><div class="n">${flagged}</div><div class="l">flagged risk signals (selected)</div></div>
     <div class="stage auto"><div class="n">${complete + inProg} / ${ck.length || 15}</div><div class="l">checklist activities in progress/complete</div></div>
     <div class="stage t2"><div class="n">${totalChecks}</div><div class="l">dated checks in Findings Log</div></div>
@@ -3344,12 +3360,19 @@ function renderWatchlistSidebar(precomputedActCtx = null){
   $("#list").innerHTML = list.map(p => {
     const t = String(p.tier || "1");
     const isArchived = p.trackerStatus === "Archived (Tier 3)";
+    const isLost = p.trackerStatus === "Lost";
     const checksCount = (p.findingsLog && p.findingsLog.length) || 0;
     const primaryTitle = p.address || p.propertyName || "(Unnamed Property)";
     const subtitleParts = [];
     if (p.propertyName && p.propertyName !== primaryTitle) subtitleParts.push(p.propertyName);
     else if (p.platProjectName && p.platProjectName !== primaryTitle) subtitleParts.push(p.platProjectName);
-    if (p.yearBuilt) subtitleParts.push(`Built ${p.yearBuilt}`);
+    if (p.yearBuilt) {
+      subtitleParts.push(
+        isLost && p.demolishedDate
+          ? `${p.yearBuilt}-${p.demolishedDate.slice(0, 4)}`
+          : `Built ${p.yearBuilt}`
+      );
+    }
     if (p.neighborhood) subtitleParts.push(p.neighborhood);
 
     const isPlatOriginated = Boolean(p.appNo || p.pcMeetingDate || p.sourceCycleKey || String(p.id || "").startsWith("plat-"));
@@ -3362,6 +3385,12 @@ function renderWatchlistSidebar(precomputedActCtx = null){
       : p.trackerStatus === "For Sale"
       ? "strong"
       : "";
+    const statusLabel = isLost
+      ? `⚫ Lost (${p.demolishedDate || "Demolished"}${p.lostHoustonId ? " · Lost Houston" : ""})`
+      : p.trackerStatus;
+    const isInactiveStatus = isLost || p.trackerStatus === "Saved" || p.trackerStatus === "Archived (Tier 3)";
+    const likelyDemoEval = !isInactiveStatus ? evaluateWatchlistLikelyDemolished(p) : { likelyDemolished: false };
+    const showLikelyDemoBadge = !isInactiveStatus && (p.likelyDemolishedReviewNeeded || likelyDemoEval.likelyDemolished);
     const unreadInfo = unreadIdx.watchPropUnread.get(p.id) || null;
     const unreadChip = unreadInfo
       ? `<span class="unread-dot ${unreadInfo.hasCritical ? "crit" : ""}" data-unread-badge="watchlist" title="${unreadInfo.count} unread check/dossier update(s) since last visit">● ${unreadInfo.count} Updated</span>`
@@ -3375,7 +3404,8 @@ function renderWatchlistSidebar(precomputedActCtx = null){
       </div>
       <div class="sub">${esc(subtitleParts.join(" · ") || (p.hcadAccount ? "HCAD " + p.hcadAccount : ""))}</div>
       <div class="chips">
-        ${p.trackerStatus ? `<span class="chip ${statusChipCls}">${esc(p.trackerStatus)}</span>` : ""}
+        ${statusLabel ? `<span class="chip ${statusChipCls}" ${isLost ? 'style="background:#27272A;color:#F4F4F5;border-color:#52525B;"' : ""}>${esc(statusLabel)}</span>` : ""}
+        ${showLikelyDemoBadge ? `<span class="chip critical" title="${esc(p.likelyDemolishedReason || likelyDemoEval.reason || "Demolition window elapsed")} ">⚠ Confirm Demo Status</span>` : ""}
         ${pcShort ? `<span class="chip hearing" title="Planning Commission Meeting Date">PC ${esc(pcShort)}</span>` : ""}
         ${hearingShort && hearingShort !== pcShort ? `<span class="chip hearing" title="Scheduled Public Hearing Date">Hearing ${esc(hearingShort)}</span>` : ""}
         ${p.secondaryAddresses && p.secondaryAddresses.length ? `<span class="chip">Perimeter: ${esc(p.secondaryAddresses[0])}</span>` : ""}
@@ -3400,19 +3430,26 @@ function watchlistHcadLinks(p){
 function watchlistAtlasMapLink(p){
   const ids = parseHcadAccountList(p.hcadAccount || "").hcadIds;
   const firstHcad = ids[0] || "";
+  const lostLink = p.lostHoustonId
+    ? `<a class="atlas-link" style="background:#3B0764;color:#F5F3FF;border-color:#9333EA;" href="index.html?id=${encodeURIComponent(p.lostHoustonId)}&layers=lost_houston${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=18` : ""}" target="_blank" rel="noopener">🏛️ View in Lost Houston (${esc(p.yearBuilt ? `${p.yearBuilt}-${(p.demolishedDate || "2026").slice(0, 4)}` : "Catalog")}) ↗</a>`
+    : "";
   if (firstHcad && (p.buildingId || p.coordSource !== "super_neighborhood")) {
     const q = encodeURIComponent(p.address || p.propertyName || firstHcad);
-    const idParam = p.buildingId ? `&id=${encodeURIComponent(p.buildingId)}` : "";
-    return `<a class="atlas-link" href="index.html?hcad=${firstHcad}${idParam}&q=${q}${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=18` : ""}" target="_blank" rel="noopener">View Property in Houston Building Atlas Map ↗</a>`;
+    const idParam = p.lostHoustonId
+      ? `&id=${encodeURIComponent(p.lostHoustonId)}&layers=lost_houston`
+      : p.buildingId
+      ? `&id=${encodeURIComponent(p.buildingId)}`
+      : "";
+    return lostLink + `<a class="atlas-link" href="index.html?hcad=${firstHcad}${idParam}&q=${q}${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=18` : ""}" target="_blank" rel="noopener">View Property in Houston Building Atlas Map ↗</a>`;
   }
   if (p.subdivisionMatch || p.subdivisionId) {
     const bndTarget = encodeURIComponent(p.subdivisionId || p.subdivisionMatch);
-    return `<a class="atlas-link" href="index.html?bnd=platted_subdivisions:${bndTarget}&layers=platted_subdivisions,super_neighborhoods,landmarks,historic_districts,plat_watch${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=16` : ""}" target="_blank" rel="noopener">🗺️ Fly to Subdivision (${esc(p.subdivisionMatch)}) on Atlas Map ↗</a>`;
+    return lostLink + `<a class="atlas-link" href="index.html?bnd=platted_subdivisions:${bndTarget}&layers=platted_subdivisions,super_neighborhoods,landmarks,historic_districts,plat_watch${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=16` : ""}" target="_blank" rel="noopener">🗺️ Fly to Subdivision (${esc(p.subdivisionMatch)}) on Atlas Map ↗</a>`;
   }
   if (p.lat && p.lng) {
-    return `<a class="atlas-link" href="index.html?lat=${p.lat}&lng=${p.lng}&z=18" target="_blank" rel="noopener">Locate in Houston Building Atlas Map ↗</a>`;
+    return lostLink + `<a class="atlas-link" href="index.html?lat=${p.lat}&lng=${p.lng}&z=18" target="_blank" rel="noopener">Locate in Houston Building Atlas Map ↗</a>`;
   }
-  return "";
+  return lostLink;
 }
 
 function renderPortalPillsHtml(p, row){
@@ -3777,6 +3814,14 @@ function renderWatchlistDetail(precomputedActCtx = null){
   const driveLinks = sanitizeExternalLinksList(p.driveLinks);
   const st = p.searchTerms || {};
   const curTier = String(p.tier || "1");
+  const isLost = p.trackerStatus === "Lost";
+  const isInactiveStatus = isLost || p.trackerStatus === "Saved" || p.trackerStatus === "Archived (Tier 3)";
+  const likelyDemoEval = !isInactiveStatus ? evaluateWatchlistLikelyDemolished(p) : { likelyDemolished: false, reason: "" };
+  const showLikelyDemoBanner = !isInactiveStatus && (p.likelyDemolishedReviewNeeded || likelyDemoEval.likelyDemolished);
+  const likelyDemoReasonText = p.likelyDemolishedReason || likelyDemoEval.reason || "";
+  const lostAtlasHref = p.lostHoustonId
+    ? `index.html?id=${encodeURIComponent(p.lostHoustonId)}&layers=lost_houston${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=18` : ""}`
+    : "";
 
   $("#detail").innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -3787,6 +3832,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
           ${p.platProjectName && p.platProjectName !== p.propertyName ? `Plat: <b>${esc(p.platProjectName)}</b> · ` : ""}
           <span class="tierbadge t${esc(curTier)}">Tier ${esc(curTier)}</span> ·
           <b>${esc(p.trackerStatus || "Active / High Priority")}</b>
+          ${p.demolishedDate ? ` (Demolished <b>${esc(p.demolishedDate)}</b>)` : ""}
           ${p.threatCategory ? ` · <span>${esc(p.threatCategory)}</span>` : ""}
           · HCAD <b>${esc(p.hcadAccount || "N/A")}</b>
           ${p.yearBuilt ? ` · Built <b>${esc(p.yearBuilt)}</b>` : ""}${p.yearRemodeled ? ` / Remodeled ${esc(p.yearRemodeled)}` : ""}
@@ -3800,10 +3846,31 @@ function renderWatchlistDetail(precomputedActCtx = null){
             `<button type="button" class="btn sm ${curTier === tv ? "primary" : ""}" data-wl-inline-tier="${tv}" style="padding:3px 8px;font-size:11.5px" title="Set to Tier ${tv} and auto-sync matching Biweekly Plat Monitor items">${lbl}</button>`
           ).join("")}
         </div>
+        ${!isLost ? `<button type="button" class="btn sm" id="confirmWatchlistDemolishedBtn" style="color:#4C1D95;border-color:#C4B5FD;background:#F5F3FF" title="Confirm physical demolition and graduate this property to Lost Houston">⚫ Mark Demolished / Graduate to Lost Houston</button>` : ""}
         <button type="button" class="btn sm" id="removeFromWatchlistBtn" style="color:var(--t1);border-color:#E5B4B0" title="Remove or archive this property from the Watchlist">🗑 Remove from Watchlist</button>
         ${p.appNo && S ? `<button type="button" class="btn sm" id="jumpBackToPlatItemBtn" data-app="${esc(p.appNo)}" data-cycle="${esc(p.sourceCycleKey || S.cycleKey)}">← View Plat Item (${esc(p.appNo)})</button>` : ""}
       </div>
     </div>
+
+    ${isLost ? `
+    <div style="margin:8px 0 12px;padding:12px 14px;border-radius:6px;background:#18181B;color:#F4F4F5;border:1px solid #52525B;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <div style="font-weight:700;font-size:13.5px;color:#FAFAFA;margin-bottom:3px">⚫ Confirmed Demolished (${esc(p.yearBuilt ? `${p.yearBuilt}-${(p.demolishedDate || "2026").slice(0, 4)}` : p.demolishedDate || "2026")}) · Graduated to Lost Houston Catalog</div>
+        <div style="font-size:12.5px;color:#D4D4D8;line-height:1.45">
+          ${p.demolishedDate ? `Demolished on <b>${esc(p.demolishedDate)}</b>` : "Confirmed demolished"}${p.lostHoustonId ? ` · Catalog ID: <code>${esc(p.lostHoustonId)}</code>` : ""}. Daily 8-agency live portal sweeps are paused for this property while its full 15-point investigative dossier and chronological findings log remain preserved below in the Watchlist Case Archive.
+        </div>
+      </div>
+      ${lostAtlasHref ? `<a href="${esc(lostAtlasHref)}" target="_blank" rel="noopener" class="btn sm primary" style="background:#7C3AED;border-color:#A78BFA;color:#fff;text-decoration:none;white-space:nowrap">🏛️ Open in Lost Houston Catalog &amp; Map ↗</a>` : ""}
+    </div>` : showLikelyDemoBanner ? `
+    <div style="margin:8px 0 12px;padding:12px 14px;border-radius:6px;background:#FEF2F2;color:#7F1D1D;border:1px solid #FCA5A5;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <div style="font-weight:700;font-size:13.5px;color:#991B1B;margin-bottom:3px">⚠ Early-Completion Demolition Signal Detected - Staff Confirmation Needed</div>
+        <div style="font-size:12.5px;color:#7F1D1D;line-height:1.45">
+          Automated multi-agency checks indicate physical demolition may be underway or complete: <b>${esc(likelyDemoReasonText)}</b>. Because HCAD tax rolls and satellite tiles lag by months, confirm on-site status and graduate this structure to <b>Lost Houston</b> if demolished.
+        </div>
+      </div>
+      <button type="button" class="btn sm primary" data-trigger-confirm-demolished="1" style="background:#991B1B;border-color:#7F1D1D;color:#fff;white-space:nowrap">⚫ Confirm Demolished &amp; Graduate to Lost Houston</button>
+    </div>` : ""}
 
     <div class="links">
       ${watchlistAtlasMapLink(p)}
@@ -4167,6 +4234,65 @@ function showAddWatchPropertyModal(){
     back.remove();
     render();
     toast(`Created 15-Point Property Dossier for ${saved.address || saved.propertyName}.`);
+  });
+}
+
+function showConfirmWatchlistDemolishedModal(p){
+  if (!p) return;
+  if (!requireStaffAuth("confirming physical demolition and graduating to Lost Houston")) return;
+  const existingModal = document.querySelector(".modal-back");
+  if (existingModal) existingModal.remove();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const defaultLostId = buildDefaultLostHoustonId(p);
+  const defaultDemoDate = p.demolishedDate || todayIso;
+  const back = document.createElement("div");
+  back.className = "modal-back";
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" style="max-width:640px">
+    <h3>⚫ Confirm Physical Demolition &amp; Graduate to Lost Houston</h3>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.45">
+      Graduating <b>${esc(p.propertyName || p.address)}</b> (${esc(p.address)}) marks its Watchlist status as <b>Lost</b>, stamps <code>chk-13</code> (311 / Dangerous Buildings), <code>chk-14</code> (COH Permits), and <code>chk-15</code> (TX DSHS Asbestos) as <b>Complete</b>, pauses daily 8-agency live portal sweeps, preserves the full 15-point investigative dossier in the Watchlist Case Archive, and links it to the <b>Lost Houston</b> catalog.
+    </p>
+    <div class="grid2">
+      <div class="field">
+        <label for="cd-date">Confirmed Demolition Date</label>
+        <input type="date" id="cd-date" value="${esc(defaultDemoDate)}">
+      </div>
+      <div class="field">
+        <label for="cd-lost-id">Lost Houston Catalog ID</label>
+        <input type="text" id="cd-lost-id" value="${esc(defaultLostId)}" placeholder="e.g. lost_kirby_mansion_1894">
+      </div>
+    </div>
+    <div class="field">
+      <label for="cd-note">Final Demolition Summary Note (appended to chk-13, chk-14 &amp; chk-15)</label>
+      <textarea id="cd-note" rows="3" placeholder="e.g. Confirmed demolished on site; structure razed following COH Permit #...">${esc(
+        `Confirmed demolished (${defaultDemoDate}); graduated from active Watchlist to Lost Houston catalog (${defaultLostId}).`
+      )}</textarea>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" id="cdCancel">Cancel</button>
+      <button type="button" class="btn primary" id="cdConfirm" style="background:#4C1D95;border-color:#4C1D95">⚫ Confirm Demolished &amp; Sync</button>
+    </div>
+  </div>`;
+  document.body.appendChild(back);
+  back.addEventListener("click", e => { if (e.target === back || e.target.id === "cdCancel") back.remove(); });
+  $("#cdConfirm")?.addEventListener("click", () => {
+    const dDate = ($("#cd-date")?.value || todayIso).trim();
+    const lId = ($("#cd-lost-id")?.value || defaultLostId).trim();
+    const note = ($("#cd-note")?.value || "").trim();
+    const reviewer = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
+    const graduated = graduateWatchlistPropertyToLost(p, {
+      demolishedDate: dDate,
+      lostHoustonId: lId,
+      summaryNote: note,
+      reviewer,
+      nowIso: new Date().toISOString(),
+    });
+    if (!graduated) return;
+    const saved = persistWatchlistPropertyEdit(graduated);
+    queueCloudSyncWatchProperty(saved);
+    back.remove();
+    render();
+    toast(`Graduated ${saved.propertyName || saved.address} to Lost (${dDate}) and synced to Google Sheet.`);
   });
 }
 
@@ -5820,6 +5946,12 @@ document.addEventListener("click", async e => {
     }
     if (act === "focus-snowball-entity") { $("#snowIn-entities")?.focus(); return; }
     if (act === "focus-snowball-project") { $("#snowIn-projectNumbers")?.focus(); return; }
+  }
+
+  if (e.target.closest("#confirmWatchlistDemolishedBtn, [data-trigger-confirm-demolished]")) {
+    const p = getSelectedWatchProp();
+    if (p) showConfirmWatchlistDemolishedModal(p);
+    return;
   }
 
   if (e.target.closest("[data-open-govqa-modal]")) {

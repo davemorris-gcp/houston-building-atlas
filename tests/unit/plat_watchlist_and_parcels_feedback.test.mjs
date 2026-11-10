@@ -58,6 +58,8 @@ import {
   pointInGeoJsonGeometry,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
+  evaluateWatchlistLikelyDemolished,
+  graduateWatchlistPropertyToLost,
 } from "../../app/js/watchlistSyncHelpers.js";
 
 import {
@@ -1654,3 +1656,159 @@ test("Pass #2 F2-08, F2-10, DF-7 & DF-8: full 9-field non-destructive carry-forw
   assert.equal(scottMatches[0].feature.properties.hcad_num, "1330170010001");
   assert.equal(scottMatches[0].feature.properties.use_category, "Vacant / Unimproved");
 });
+
+test("Watchlist Likely-Demolished Detector, graduateWatchlistPropertyToLost, and John Henry Kirby Mansion (1894-2026) Lost Houston graduation", () => {
+  // 1. Active property with elapsed TX DSHS asbestos abatement end date (chk-15) + chk-14 demolition permit triggers likelyDemolished
+  const activeThreatProp = normalizeWatchProperty({
+    id: "prop-demo-test",
+    propertyName: "Historic Test House",
+    address: "2000 Smith St.",
+    hcadAccount: "0152300000001",
+    tier: "1",
+    tierConfirmed: true,
+    trackerStatus: "Active / High Priority",
+    keyDates: {
+      asbestosAbatementWindow: "2026-10-27 to 2026-11-06",
+    },
+    checklist: buildDefaultChecklist("2000 Smith St.").map((r) => {
+      if (r.id === "chk-14") {
+        return {
+          ...r,
+          status: "Flagged",
+          checks: [
+            {
+              date: "2026-09-22",
+              source: "manual",
+              result: "no demo permit",
+            },
+            {
+              date: "2026-10-30",
+              source: "auto-sweep",
+              adverse: true,
+              result:
+                "[AUTO-SWEEP] COH Permit #26090093 (SD Demolition): Stage 2 Demolition Permit issued 2026-10-30.",
+            },
+          ],
+        };
+      }
+      if (r.id === "chk-15") {
+        return {
+          ...r,
+          status: "Flagged",
+          checks: [
+            {
+              date: "2026-10-13",
+              source: "auto-sweep",
+              adverse: true,
+              result:
+                "[AUTO-SWEEP] TX DSHS Asbestos Abatement Notification #2026005825: 5,010 sq ft RACM scheduled 2026-10-27 to 2026-11-06.",
+            },
+          ],
+        };
+      }
+      return r;
+    }),
+  });
+
+  // Baseline "no demo permit" alone must never trigger likelyDemolished even after abatement end date
+  const baselineOnlyProp = normalizeWatchProperty({
+    ...activeThreatProp,
+    checklist: buildDefaultChecklist("2000 Smith St.").map((r) =>
+      r.id === "chk-14"
+        ? { ...r, checks: [{ date: "2026-10-05", result: "no demo permit" }] }
+        : r
+    ),
+  });
+  assert.equal(evaluateWatchlistLikelyDemolished(baselineOnlyProp, "2026-11-10").likelyDemolished, false);
+
+  const evalBeforeEnd = evaluateWatchlistLikelyDemolished(activeThreatProp, "2026-10-28");
+  assert.equal(
+    evalBeforeEnd.likelyDemolished,
+    false,
+    "Before abatement end date and without concurrent 311 Dangerous Buildings demolition complaint, detector must wait"
+  );
+
+  const evalAfterEnd = evaluateWatchlistLikelyDemolished(activeThreatProp, "2026-11-07");
+  assert.equal(evalAfterEnd.likelyDemolished, true, "After TX DSHS abatement window elapses, detector must flag for review");
+  assert.match(evalAfterEnd.reason, /2026-11-06/);
+  assert.match(evalAfterEnd.reason, /Demolition permit activity/);
+
+  // 2. Graduating property to Lost sets trackerStatus='Lost', demolishedDate, lostHoustonId, and resolves chk-13, chk-14, and chk-15
+  const graduated = graduateWatchlistPropertyToLost(activeThreatProp, {
+    demolishedDate: "2026-11-02",
+    lostHoustonId: "lost_kirby_mansion_1894",
+    summaryNote: "Structure completely demolished by November 2, 2026.",
+    reviewer: "Preservation Advocate",
+    nowIso: "2026-11-10T15:00:00Z",
+  });
+  assert.equal(graduated.trackerStatus, "Lost");
+  assert.equal(graduated.demolishedDate, "2026-11-02");
+  assert.equal(graduated.lostHoustonId, "lost_kirby_mansion_1894");
+  assert.equal(graduated.likelyDemolishedReviewNeeded, false);
+  assert.equal(findChecklistRow(graduated.checklist, "chk-13").status, "Complete");
+  assert.equal(findChecklistRow(graduated.checklist, "chk-14").status, "Complete");
+  assert.equal(findChecklistRow(graduated.checklist, "chk-15").status, "Complete");
+
+  // Once trackerStatus === "Lost", detector returns likelyDemolished: false
+  assert.equal(evaluateWatchlistLikelyDemolished(graduated, "2026-11-10").likelyDemolished, false);
+
+  // reconcileWatchlistProperty clears likelyDemolishedReviewNeeded for Archived (Tier 3) or Saved properties
+  const reconciledArchived = reconcileWatchlistProperty(
+    { ...activeThreatProp, likelyDemolishedReviewNeeded: true, likelyDemolishedReason: "test" },
+    null,
+    { ...activeThreatProp, trackerStatus: "Archived (Tier 3)", updatedAt: "2026-11-10T16:00:00Z", humanEdited: true }
+  );
+  assert.equal(reconciledArchived.likelyDemolishedReviewNeeded, false);
+  assert.equal(reconciledArchived.likelyDemolishedReason, "");
+
+  // 3. sortWatchedProperties places active Tier 1 -> active Tier 2 -> Lost -> Archived (Tier 3)
+  const sortedWithLost = sortWatchedProperties([
+    normalizeWatchProperty({
+      id: "p-archived",
+      address: "100 Archived St",
+      tier: "3",
+      trackerStatus: "Archived (Tier 3)",
+    }),
+    graduated,
+    normalizeWatchProperty({ id: "p-active-2", address: "200 Active St", tier: "2" }),
+    normalizeWatchProperty({ id: "p-active-1", address: "300 Active St", tier: "1" }),
+  ]);
+  assert.deepEqual(
+    sortedWithLost.map((p) => p.id),
+    ["p-active-1", "p-active-2", "prop-demo-test", "p-archived"]
+  );
+
+  // 4. Verify John Henry Kirby Mansion is graduated across property_watchlist.json, overlays.json, and active_permit_alerts.json
+  const wlData = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "property_watchlist.json"), "utf8")
+  );
+  const kirbyWatch = wlData.watchedProperties.find((p) => p.id === "prop-kirby-mansion");
+  assert.ok(kirbyWatch);
+  assert.equal(kirbyWatch.trackerStatus, "Lost");
+  assert.equal(kirbyWatch.demolishedDate, "2026-11-02");
+  assert.equal(kirbyWatch.lostHoustonId, "lost_kirby_mansion_1894");
+  assert.notEqual(wlData.primaryProperty?.id, "prop-kirby-mansion");
+
+  const overlays = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "overlays.json"), "utf8")
+  );
+  const kirbyLost = overlays.lost_houston.features.find(
+    (f) => f.properties.id === "lost_kirby_mansion_1894"
+  );
+  assert.ok(kirbyLost, "lost_kirby_mansion_1894 must exist in overlays.json['lost_houston']");
+  assert.equal(kirbyLost.properties.year_built, 1894);
+  assert.equal(kirbyLost.properties.year_demolished, 2026);
+  assert.equal(kirbyLost.properties.demolished_date, "2026-11-02");
+  assert.match(kirbyLost.properties.architect, /^James Ruskin Bailey/);
+
+  const alertsData = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "active_permit_alerts.json"), "utf8")
+  );
+  const kirbyAlert = alertsData.alerts.find((a) => String(a.hcad_num).startsWith("0152300000001"));
+  assert.ok(kirbyAlert, "0152300000001 must remain tracked in active_permit_alerts.json with demolished status");
+  assert.equal(kirbyAlert.demolition_status, "demolished");
+  assert.equal(kirbyAlert.is_demolished, true);
+  assert.equal(kirbyAlert.demolished_date, "2026-11-02");
+  assert.equal(kirbyAlert.lost_houston_id, "lost_kirby_mansion_1894");
+});
+

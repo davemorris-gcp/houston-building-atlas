@@ -640,7 +640,7 @@
       "hcad_num": "0152300000001",
       "building_id": "bld_004618",
       "title": "John Henry Kirby Mansion",
-      "building_name": "John Henry Kirby Mansion",
+      "building_name": "John Henry Kirby Mansion (1894-2026)",
       "address": "2000 SMITH ST",
       "year_built": 1894,
       "yr_remodel": 1928,
@@ -655,8 +655,8 @@
       "lon": -95.374833,
       "lat": 29.751432,
       "severity": "critical",
-      "severity_label": "Critical Alert: Both Demo Permits (1/2 Plumbing + 2/2 Demolition) + Asbestos Abatement",
-      "badge": "2/2 Demo + Asbestos",
+      "severity_label": "Confirmed Demolished (Nov 2, 2026) • Graduated to Lost Houston",
+      "badge": "⚫ Demolished (Nov 2, 2026)",
       "headline": "Both required City of Houston demolition permits pulled (#26090093, 1/2 Plumbing Permit + 2/2 Demolition Permit, latest 2026-10-30) paired with Texas DSHS asbestos abatement filing (#2026005825, scheduled 2026-10-27 to 2026-10-30).",
       "demo_permit_stage": "stage_2_both",
       "has_sewer_disc_plumbing": true,
@@ -754,7 +754,12 @@
         "bld_004618",
         "0152300000001#aux_1",
         "0152300000001#aux_2"
-      ]
+      ],
+      "demolition_status": "demolished",
+      "is_demolished": true,
+      "demolished_date": "2026-11-02",
+      "year_demolished": 2026,
+      "lost_houston_id": "lost_kirby_mansion_1894"
     },
     {
       "hcad_num": "0202150000018",

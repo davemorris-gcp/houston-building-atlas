@@ -19021,11 +19021,21 @@ export class HoustonAtlasApp {
       })
       .join("");
 
+    const isDemolished =
+      alert.demolition_status === "demolished" || Boolean(alert.is_demolished);
+    const lostHoustonId = String(alert.lost_houston_id || "").trim();
+
     return `
       <div class="inspector-permit-alert-card ${isCritical ? "critical" : "watch"}" id="inspector-permit-alert-card">
         <div class="inspector-permit-alert-header">
           <span class="inspector-permit-alert-kicker">
-            ${isCritical ? "&#128680; Active Demolition / Sewer Disconnection Alert" : "&#9888; Active Permit &amp; Abatement Watch"}
+            ${
+              isDemolished
+                ? "&#9899; Confirmed Demolished &middot; Graduated to Lost Houston"
+                : isCritical
+                ? "&#128680; Active Demolition / Sewer Disconnection Alert"
+                : "&#9888; Active Permit &amp; Abatement Watch"
+            }
           </span>
           <span class="inspector-permit-alert-badge mono">${alert.badge || "Active Filing"}</span>
         </div>
@@ -19046,9 +19056,21 @@ export class HoustonAtlasApp {
           ${multiRowsHtml}
         </div>
         <div class="inspector-permit-alert-actions" style="flex-wrap:wrap;gap:6px;">
+          ${
+            lostHoustonId
+              ? `<a
+                  href="?id=${encodeURIComponent(lostHoustonId)}&layers=lost_houston"
+                  class="inspector-permit-watch-btn primary"
+                  style="text-decoration:none;background:#4C1D95;border-color:#A78BFA;color:#F5F3FF;"
+                  data-open-lost-houston-id="${this._escapeHtmlAttr(lostHoustonId)}"
+                >
+                  &#127963; View in Lost Houston${alert.year_built ? ` (${alert.year_built}-${alert.year_demolished || 2026})` : ""}
+                </a>`
+              : ""
+          }
           <button
             type="button"
-            class="inspector-permit-watch-btn primary"
+            class="inspector-permit-watch-btn ${lostHoustonId ? "secondary" : "primary"}"
             data-open-permit-watchlist="all"
           >
             &#9888; Open Active Watchlist (${totalAlertsCount} Flagged Structures)
@@ -19201,13 +19223,23 @@ export class HoustonAtlasApp {
           })
           .join("");
 
+        const isDemolished =
+          al.demolition_status === "demolished" || Boolean(al.is_demolished);
+        const lostHoustonId = String(al.lost_houston_id || "").trim();
+
         return `
           <div class="permit-watch-item-card ${isCritical ? "critical" : "watch"}">
             <div class="pw-item-top">
               <div class="pw-item-title-group">
                 <div class="pw-item-badges">
                   <span class="pw-severity-badge ${isCritical ? "critical" : "watch"}">
-                    ${isCritical ? "&#128680; Critical Threat" : "&#9888; Watch"} · ${al.badge || "Active Filing"}
+                    ${
+                      isDemolished
+                        ? "&#9899; Confirmed Demolished"
+                        : isCritical
+                        ? "&#128680; Critical Threat"
+                        : "&#9888; Watch"
+                    } · ${al.badge || "Active Filing"}
                   </span>
                   <span class="pw-year-badge mono">${yrText}</span>
                   ${
@@ -19228,6 +19260,20 @@ export class HoustonAtlasApp {
                 }
               </div>
               <div class="pw-item-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${
+                  lostHoustonId
+                    ? `<a
+                        href="?id=${encodeURIComponent(lostHoustonId)}&layers=lost_houston"
+                        class="action-pill"
+                        style="text-decoration:none;background:#4C1D95;border-color:#A78BFA;color:#F5F3FF;"
+                        data-pw-open-lost="${this._escapeHtmlAttr(lostHoustonId)}"
+                        data-pw-lon="${al.lon}"
+                        data-pw-lat="${al.lat}"
+                      >
+                        &#127963; View in Lost Houston
+                      </a>`
+                    : ""
+                }
                 <a
                   href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(String(al.hcad_num || "").split("#")[0])}&address=${encodeURIComponent(al.address || "")}&name=${encodeURIComponent(al.building_name || "")}"
                   target="_blank"
@@ -19241,7 +19287,7 @@ export class HoustonAtlasApp {
                   type="button"
                   class="action-pill pw-inspect-btn"
                   data-pw-inspect-hcad="${al.hcad_num || ""}"
-                  data-pw-inspect-id="${al.building_id || ""}"
+                  data-pw-inspect-id="${lostHoustonId || al.building_id || ""}"
                   data-pw-lon="${al.lon}"
                   data-pw-lat="${al.lat}"
                 >
@@ -19266,6 +19312,35 @@ export class HoustonAtlasApp {
       })
       .join("");
 
+    listEl.querySelectorAll("[data-pw-open-lost]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const lostId = btn.getAttribute("data-pw-open-lost") || "";
+        const lon = parseFloat(btn.getAttribute("data-pw-lon"));
+        const lat = parseFloat(btn.getAttribute("data-pw-lat"));
+        const modal = document.getElementById("permit-watch-modal");
+        if (modal) modal.classList.add("hidden");
+        if (!this.filterStore.getState().layers.lostHouston) {
+          this.filterStore.setLayerVisibility("lostHouston", true);
+        }
+        if (this.mapController) {
+          if (Number.isFinite(lon) && Number.isFinite(lat)) {
+            this.mapController.flyToLocation({
+              lng: lon,
+              lat: lat,
+              zoom: 17.6,
+              featureId: lostId,
+            });
+          } else {
+            this.mapController.selectFeatureByIdOrHcad({
+              featureId: lostId,
+              flyTo: true,
+            });
+          }
+        }
+      });
+    });
+
     listEl.querySelectorAll("[data-pw-inspect-hcad]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const hcad = btn.getAttribute("data-pw-inspect-hcad") || "";
@@ -19277,6 +19352,9 @@ export class HoustonAtlasApp {
 
         if (!this.filterStore.getState().layers.permitWatch) {
           this.filterStore.setLayerVisibility("permitWatch", true);
+        }
+        if (bldId.startsWith("lost_") && !this.filterStore.getState().layers.lostHouston) {
+          this.filterStore.setLayerVisibility("lostHouston", true);
         }
 
         if (this.mapController) {
