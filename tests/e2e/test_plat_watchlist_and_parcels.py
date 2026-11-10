@@ -303,7 +303,11 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
         timeout=5000,
     )
     assert page.locator("#list .row").count() >= 1
-    page.locator("#list .row").first.click()
+    oct29_montrose_row = page.locator("#list .row[data-occ='2026-10-29::2026-1585']")
+    if oct29_montrose_row.count() >= 1:
+        oct29_montrose_row.first.click()
+    else:
+        page.locator("#list .row").first.click()
     montrose_detail = page.locator("#detail").inner_text()
     assert "Nov 12, 2026" in montrose_detail or "11/12/2026" in montrose_detail
     assert page.locator("#detail a", has_text="Public Hearing Notice PDF").count() >= 1

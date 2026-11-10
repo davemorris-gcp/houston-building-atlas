@@ -2041,8 +2041,8 @@ def _extract_outline_cycle_iso_from_url(url: str) -> str:
     return ""
 
 
-def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 3) -> dict:
-    """Fetch up to the 3 most recent Planning Commission .xlsx spreadsheets, matching Outline PDFs, and Notice PDFs."""
+def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
+    """Fetch up to the 4 most recent Planning Commission .xlsx spreadsheets, matching Outline PDFs, and Notice PDFs."""
     print("[2/6] Fetching recent COH Plat Agenda .xlsx cycles, Agenda Outline PDFs, and Notice PDFs...")
     scrape_errors: list[str] = []
     dev_html_b = fetch_bytes(DEV_REPORTS_URL)
@@ -2483,8 +2483,20 @@ def build_single_cycle_dataset(
             name.lower() == s4.lower() for s4 in cycle_scraped["sec4_hearing_names"]
         )
         notice_hearing_iso = ninfo.get("meetingDateIso") or ""
-        belongs_to_cycle = is_in_establish_sec or (notice_hearing_iso == default_pc_iso) or (
-            is_latest_cycle and notice_hearing_iso and notice_hearing_iso >= default_pc_iso
+        days_until_hearing = None
+        if notice_hearing_iso and default_pc_iso:
+            try:
+                days_until_hearing = (
+                    dt.date.fromisoformat(notice_hearing_iso)
+                    - dt.date.fromisoformat(default_pc_iso)
+                ).days
+            except ValueError:
+                days_until_hearing = None
+        belongs_to_cycle = (
+            is_in_establish_sec
+            or (notice_hearing_iso == default_pc_iso)
+            or (days_until_hearing is not None and 0 <= days_until_hearing <= 18)
+            or (is_latest_cycle and notice_hearing_iso and notice_hearing_iso >= default_pc_iso)
         )
         if not belongs_to_cycle:
             continue
@@ -2638,12 +2650,18 @@ def build_single_cycle_dataset(
         hist: dict | None = None
         if not is_ph_placeholder and app_upper in hist_by_app:
             cand_h = hist_by_app[app_upper]
-            if _notice_name_compatible(it.get("name", ""), cand_h.get("name", "")):
+            cand_cyc = str(cand_h.get("sourceCycleIso") or "")
+            if (not cand_cyc or cand_cyc <= default_pc_iso) and _notice_name_compatible(
+                it.get("name", ""), cand_h.get("name", "")
+            ):
                 hist = cand_h
         if hist is None:
             sub_key = normalize_historical_subdivision_key(it.get("name", ""))
             if sub_key and sub_key in hist_by_subdiv:
-                hist = hist_by_subdiv[sub_key]
+                cand_s = hist_by_subdiv[sub_key]
+                cand_cyc = str(cand_s.get("sourceCycleIso") or "")
+                if not cand_cyc or cand_cyc <= default_pc_iso:
+                    hist = cand_s
         if not hist:
             continue
         hist_app = str(hist.get("app") or "").strip()
@@ -2753,7 +2771,7 @@ def build_single_cycle_dataset(
             else {}
         )
         if ov:
-            if not it.get("hcad") and ov.get("hcad"):
+            if (not it.get("hcad") or ov.get("prefer_override_address")) and ov.get("hcad"):
                 it["hcad"] = ov["hcad"]
             if not it.get("superN") and ov.get("superN"):
                 it["superN"] = ov["superN"]
@@ -6143,7 +6161,7 @@ def enrich_kirby_mansion_permit_alert() -> None:
 def main() -> None:
     idx = load_atlas_indices()
     cloud_sync = pull_cloud_sheet_sync_rows()
-    scraped_multi = fetch_multi_cycle_agendas_and_notices(max_cycles=3)
+    scraped_multi = fetch_multi_cycle_agendas_and_notices(max_cycles=4)
     plat_dataset = build_plat_agenda_dataset(
         idx,
         scraped_multi,
