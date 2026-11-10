@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-09T21:53:32Z",
-  "lastSweepAt": "2026-11-09T21:49:17Z",
+  "generatedAt": "2026-11-10T19:19:21Z",
+  "lastSweepAt": "2026-11-10T19:08:46Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
-  "retentionFloorDate": "2026-08-12",
+  "retentionFloorDate": "2026-08-13",
   "lastSweepHealth": {
-    "timestamp": "2026-11-09T21:49:17Z",
+    "timestamp": "2026-11-10T19:08:46Z",
     "sweepsExecuted": true,
-    "propertiesSwept": 29,
+    "propertiesSwept": 28,
     "totalAgencies": 8,
     "succeededAgencies": 7,
     "failedAgencies": [
-      "chk-15"
+      "chk-10"
     ],
     "skippedAgencies": [],
     "allOk": false,
@@ -46,11 +46,11 @@
         "error": ""
       },
       "chk-10": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "TDLR Architectural Barriers (TABS)",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 26,
+        "error": "TDLR TABS (2000 SMITH): HTTP request failed or timed out; TDLR TABS (530 Pierce): HTTP request failed or timed out; TDLR TABS (2000 Brazos): HTTP request failed or timed out; TDLR TABS (500 Gray): HTTP request failed or timed out; TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out"
       },
       "chk-13": {
         "status": "ok",
@@ -67,29 +67,50 @@
         "error": ""
       },
       "chk-15": {
-        "status": "failed",
-        "ok": false,
+        "status": "ok",
+        "ok": true,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 29,
-        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
+        "failedPropertyCount": 0,
+        "error": ""
       }
     }
   },
   "summary": {
-    "totalEvents": 611,
-    "criticalCount": 57,
+    "totalEvents": 622,
+    "criticalCount": 64,
     "warningCount": 210,
-    "infoCount": 344,
+    "infoCount": 348,
     "byStream": {
-      "watchlist": 151,
-      "agenda": 156,
-      "staff": 166,
-      "permits": 138
+      "watchlist": 154,
+      "agenda": 159,
+      "staff": 167,
+      "permits": 142
     },
-    "operationalNoticeCount": 11,
-    "daysTracked": 89
+    "operationalNoticeCount": 12,
+    "daysTracked": 90
   },
   "dailyRuns": [
+    {
+      "date": "2026-11-10",
+      "lastRunAt": "2026-11-10T19:19:21Z",
+      "runCount": 1,
+      "sweepsExecuted": true,
+      "propertiesSwept": 28,
+      "totalAgencies": 8,
+      "succeededAgencies": 7,
+      "failedAgencies": [
+        "chk-10"
+      ],
+      "allOk": false,
+      "eventCount": 9,
+      "adverseEventCount": 6,
+      "byStream": {
+        "watchlist": 2,
+        "agenda": 3,
+        "staff": 0,
+        "permits": 4
+      }
+    },
     {
       "date": "2026-11-09",
       "lastRunAt": "2026-11-09T21:53:32Z",
@@ -251,10 +272,10 @@
         "chk-15"
       ],
       "allOk": false,
-      "eventCount": 0,
-      "adverseEventCount": 0,
+      "eventCount": 1,
+      "adverseEventCount": 1,
       "byStream": {
-        "watchlist": 0,
+        "watchlist": 1,
         "agenda": 0,
         "staff": 0,
         "permits": 0
@@ -335,12 +356,12 @@
         "chk-15"
       ],
       "allOk": false,
-      "eventCount": 186,
+      "eventCount": 187,
       "adverseEventCount": 31,
       "byStream": {
         "watchlist": 91,
         "agenda": 20,
-        "staff": 73,
+        "staff": 74,
         "permits": 2
       }
     },
@@ -1886,31 +1907,447 @@
   ],
   "events": [
     {
-      "id": "act-watchlist-graduated-lost-kirby-mansion-2026-11-02",
+      "id": "wl:status:prop-kirby-mansion:chk-15:flagged:2026-11-10",
       "stream": "watchlist",
-      "kind": "watchlist_status_change",
+      "kind": "watchlist_status_escalation",
       "severity": "critical",
-      "occurredAt": "2026-11-02T18:00:00Z",
-      "localDate": "2026-11-02",
-      "entityId": "prop-kirby-mansion",
-      "hcadAccount": "0152300000001",
-      "address": "2000 Smith St.",
-      "propertyName": "John Henry Kirby Mansion",
-      "neighborhood": "Midtown",
-      "actor": "Preservation Advocate",
-      "headline": "Confirmed Demolished (1894-2026) \u00b7 Graduated to Lost Houston Catalog",
-      "detail": "Following October 30, 2026 unpermitted demolition start and COH Stage 2 Demolition Permit #26090093, the 1894 John Henry Kirby Mansion was completely reduced to rubble by November 2, 2026. Transitioned Watchlist status to Lost and graduated to Lost Houston (lost_kirby_mansion_1894).",
-      "deepLink": {
-        "mode": "watchlist",
-        "watchId": "prop-kirby-mansion",
-        "checkRowId": "chk-14"
-      },
+      "adverse": true,
+      "date": "2026-11-10",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (Complete -> Flagged): John Henry Kirby Mansion",
+      "summary": "Asbestos & Demolition Notification (DSHS) (CHK-15) escalated from 'Complete' to 'Flagged' on 2000 SMITH ST.",
+      "address": "2000 SMITH ST",
+      "hcad": "0152300000001",
+      "watchPropertyId": "prop-kirby-mansion",
+      "checkId": "chk-15",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_004618",
+      "lat": 29.751432,
+      "lng": -95.374833,
+      "yearBuilt": "1894",
+      "designation": "1979 Good Brick Award (No City Protected Landmark designation)",
+      "links": []
+    },
+    {
+      "id": "wl:status:prop-kirby-mansion:chk-14:flagged:2026-11-10",
+      "stream": "watchlist",
+      "kind": "watchlist_status_escalation",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-10",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "Checklist Escalated (Complete -> Flagged): John Henry Kirby Mansion",
+      "summary": "Demolition & Building Permits (CHK-14) escalated from 'Complete' to 'Flagged' on 2000 SMITH ST.",
+      "address": "2000 SMITH ST",
+      "hcad": "0152300000001",
+      "watchPropertyId": "prop-kirby-mansion",
+      "checkId": "chk-14",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_004618",
+      "lat": 29.751432,
+      "lng": -95.374833,
+      "yearBuilt": "1894",
+      "designation": "1979 Good Brick Award (No City Protected Landmark designation)",
+      "links": []
+    },
+    {
+      "id": "permit:dshs:osm-city-51815686:2026006286",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-09",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement Filing (#2026006286): University of Texas MD Anderson Cancer Center",
+      "summary": "1515 HOLCOMBE BOULEVARD (Built 1941): DSHS Notification #2026006286 filed 2026-11-09 (scheduled 2026-11-10 to 2026-11-12) by SITEK OMNI SERVICES LLC | City Landmark: University of Texas MD Anderson Cancer Center.",
+      "address": "1515 HOLCOMBE BOULEVARD",
+      "hcad": "osm_city_51815686",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "osm_city_51815686#bldg_university_of_texas_md_a",
+      "lat": 29.707451,
+      "lng": -95.397329,
+      "yearBuilt": 1941,
+      "designation": "City Landmark: University of Texas MD Anderson Cancer Center",
       "links": [
         {
-          "label": "View in Lost Houston (1894-2026)",
-          "url": "index.html?id=lost_kirby_mansion_1894&layers=lost_houston"
+          "label": "DSHS #2026006286",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2459218"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=236613"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "University of Texas MD Anderson Cancer Center",
+        "address": "1515 HOLCOMBE BOULEVARD",
+        "hcad_num": "osm-city-51815686",
+        "related_hcads": [
+          "osm_city_51815686"
+        ],
+        "watchlist_id": "",
+        "building_id": "osm_city_51815686#bldg_university_of_texas_md_a",
+        "year_built": 1941,
+        "yr_remodel": 0,
+        "architect": "Kenneth Franzheim",
+        "style": "",
+        "neighborhood": "Texas Medical Center",
+        "historic_district": "",
+        "landmark_name": "University of Texas MD Anderson Cancer Center",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.707451,
+        "lng": -95.397329,
+        "record": {
+          "notification_number": "2026006286",
+          "start_date": "2026-11-10",
+          "end_date": "2026-11-12",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2459218",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=236613",
+          "filing_date": "2026-11-09",
+          "work_type": "Abatement",
+          "abatement_contractor": "SITEK OMNI SERVICES LLC"
+        }
+      }
+    },
+    {
+      "id": "permit:dshs:osm-city-43666730:2026006302",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-10",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement Filing (#2026006302): Baylor St. Luke's Medical Center",
+      "summary": "6720 BERTNER AVENUE (Built 1954): DSHS Notification #2026006302 filed 2026-11-10 (scheduled 2026-11-30 to 2026-12-04) | City Landmark: Baylor St. Luke's Medical Center.",
+      "address": "6720 BERTNER AVENUE",
+      "hcad": "osm_city_43666730",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "osm_city_43666730#bldg_baylor_st_luke_s_medical",
+      "lat": 29.707969,
+      "lng": -95.400224,
+      "yearBuilt": 1954,
+      "designation": "City Landmark: Baylor St. Luke's Medical Center",
+      "links": [
+        {
+          "label": "DSHS #2026006302",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2459348"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=236639"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "Baylor St. Luke's Medical Center",
+        "address": "6720 BERTNER AVENUE",
+        "hcad_num": "osm-city-43666730",
+        "related_hcads": [
+          "osm_city_43666730"
+        ],
+        "watchlist_id": "",
+        "building_id": "osm_city_43666730#bldg_baylor_st_luke_s_medical",
+        "year_built": 1954,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "Texas Medical Center",
+        "historic_district": "",
+        "landmark_name": "Baylor St. Luke's Medical Center",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.707969,
+        "lng": -95.400224,
+        "record": {
+          "notification_number": "2026006302",
+          "start_date": "2026-11-30",
+          "end_date": "2026-12-04",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2459348",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=236639",
+          "filing_date": "2026-11-10",
+          "work_type": "Abatement"
+        }
+      }
+    },
+    {
+      "id": "permit:dshs:0440980000065:2026005518",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-09-24",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement Filing (#2026005518): Rice Memorial Center",
+      "summary": "6100 MAIN ST (RICE MEMORIAL CENTER (RMC)) (Built 1958): DSHS Notification #2026005518 filed 2026-09-24 (scheduled 2026-10-10 to 2026-10-11) by D & T CONTRACTING LP | City Landmark: Rice Memorial Center | Historic District: Rice University Campus.",
+      "address": "6100 MAIN ST (RICE MEMORIAL CENTER (RMC))",
+      "hcad": "0440980000065",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "0440980000065#rice_4_rice_memorial_center_rmc",
+      "lat": 29.718091,
+      "lng": -95.401478,
+      "yearBuilt": 1958,
+      "designation": "City Landmark: Rice Memorial Center | Historic District: Rice University Campus",
+      "links": [
+        {
+          "label": "DSHS #2026005518",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2445916"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=234374"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "Rice Memorial Center",
+        "address": "6100 MAIN ST (RICE MEMORIAL CENTER (RMC))",
+        "hcad_num": "0440980000065",
+        "related_hcads": [
+          "0440980000065"
+        ],
+        "watchlist_id": "",
+        "building_id": "0440980000065#rice_4_rice_memorial_center_rmc",
+        "year_built": 1958,
+        "yr_remodel": 0,
+        "architect": "Harvin C. Moore",
+        "style": "",
+        "neighborhood": "Rice University",
+        "historic_district": "Rice University Campus",
+        "landmark_name": "Rice Memorial Center",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.718091,
+        "lng": -95.401478,
+        "record": {
+          "notification_number": "2026005518",
+          "start_date": "2026-10-10",
+          "end_date": "2026-10-11",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2445916",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=234374",
+          "filing_date": "2026-09-24",
+          "work_type": "Abatement",
+          "abatement_contractor": "D & T CONTRACTING LP"
+        }
+      }
+    },
+    {
+      "id": "permit:dshs:0410100020031:2026006195",
+      "stream": "permits",
+      "kind": "permit_dshs_alert",
+      "severity": "critical",
+      "adverse": true,
+      "date": "2026-11-04",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "TX DSHS Abatement Filing (#2026006195): 6565 FANNIN ST",
+      "summary": "6565 FANNIN ST (Built 1963): DSHS Notification #2026006195 filed 2026-11-04 (scheduled 2026-11-18 to 2026-11-18) by D & T CONTRACTING LP.",
+      "address": "6565 FANNIN ST",
+      "hcad": "0410100020031",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "good_brick_HCAD:0410100020031",
+      "lat": 29.7105,
+      "lng": -95.3992,
+      "yearBuilt": 1963,
+      "designation": "",
+      "links": [
+        {
+          "label": "DSHS #2026006195",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2457533"
+        },
+        {
+          "label": "DSHS Record",
+          "url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=236359"
+        }
+      ],
+      "permitMeta": {
+        "alertKind": "dshs",
+        "title": "6565 FANNIN ST",
+        "address": "6565 FANNIN ST",
+        "hcad_num": "0410100020031",
+        "related_hcads": [
+          "0410100020031"
+        ],
+        "watchlist_id": "",
+        "building_id": "good_brick_HCAD:0410100020031",
+        "year_built": 1963,
+        "yr_remodel": 0,
+        "architect": "",
+        "style": "",
+        "neighborhood": "",
+        "historic_district": "",
+        "landmark_name": "",
+        "good_brick_summary": "",
+        "owner": "",
+        "lat": 29.7105,
+        "lng": -95.3992,
+        "record": {
+          "notification_number": "2026006195",
+          "start_date": "2026-11-18",
+          "end_date": "2026-11-18",
+          "print_action_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationPrintAction.do?licId=2457533",
+          "pdf_url": "https://vo.ras.dshs.state.tx.us/datamart/notificationSearchResultAction.do?noteId=236359",
+          "filing_date": "2026-11-04",
+          "work_type": "Abatement",
+          "abatement_contractor": "D & T CONTRACTING LP"
+        }
+      }
+    },
+    {
+      "id": "agenda:item:2026-10-15:2026-1481:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-10",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-15): Jutland Homes (2026-1481)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 29, 2026).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-15",
+      "appNo": "2026-1481",
+      "occKey": "2026-10-15::2026-1481",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1481-Jutland-Homes-PH.pdf"
         }
       ]
+    },
+    {
+      "id": "agenda:item:2026-10-01:PH-132:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-10",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-01): Sevilla Commercial (PH-132)",
+      "summary": "Class 3 Replat - Establish Public Hearing Date (C3N) in IV. Establish Public Hearing Date (Oct 29, 2026).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "PH-132",
+      "occKey": "2026-10-01::PH-132",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
+    },
+    {
+      "id": "agenda:item:2026-10-01:2026-1485:added",
+      "stream": "agenda",
+      "kind": "agenda_item_added",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-11-10",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:19:21Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "",
+      "title": "New Agenda Item Added (2026-10-01): Mill Ridge Village Sec 1 (2026-1485)",
+      "summary": "Class 3 Replat with Public Hearing Notice (C3N) in C. Public Hearing Notice Posted (Hearing: Oct 15, 2026).",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "2026-10-01",
+      "appNo": "2026-1485",
+      "occKey": "2026-10-01::2026-1485",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": [
+        {
+          "label": "Public Hearing Notice PDF",
+          "url": "https://www.houstontx.gov/planning/notices/2026/2026-1485_Mill-Ridge-Village-Sec-1_PHS.pdf"
+        }
+      ]
+    },
+    {
+      "id": "wl:sweep:2026-11-10:degraded:chk-10",
+      "stream": "watchlist",
+      "kind": "watchlist_sweep_degraded",
+      "severity": "warning",
+      "adverse": false,
+      "date": "2026-11-10",
+      "localDate": "2026-11-10",
+      "timestamp": "2026-11-10T19:08:46Z",
+      "discoveredAt": "2026-11-10T19:08:46Z",
+      "loggedAt": "",
+      "title": "Daily 8-Agency Sweep Degraded (7/8 agencies OK)",
+      "summary": "1 agency endpoint(s) did not complete cleanly: TDLR Architectural Barriers (TABS) (TDLR TABS (2000 SMITH): HTTP request failed or timed out; TDLR TABS (530 Pierce): HTTP request failed or timed out; TDLR TABS (2000 Brazos): HTTP request failed or timed out; TDLR TABS (500 Gray): HTTP request failed or timed out; TDLR TABS (627 E 14TH): HTTP request failed or timed out; TDLR TABS (2038 SUL ROSS): HTTP request failed or timed out). Verify affected checks manually if time-sensitive.",
+      "address": "",
+      "hcad": "",
+      "watchPropertyId": "",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "",
+      "lat": null,
+      "lng": null,
+      "yearBuilt": null,
+      "designation": "",
+      "links": []
     },
     {
       "id": "wl:status:plat-2026-1739:chk-10:flagged:2026-11-09",
@@ -5503,6 +5940,33 @@
       "yearBuilt": null,
       "designation": "",
       "links": []
+    },
+    {
+      "id": "act-watchlist-graduated-lost-kirby-mansion-2026-11-02",
+      "stream": "watchlist",
+      "kind": "watchlist_status_change",
+      "severity": "critical",
+      "occurredAt": "2026-11-02T18:00:00Z",
+      "localDate": "2026-11-02",
+      "entityId": "prop-kirby-mansion",
+      "hcadAccount": "0152300000001",
+      "address": "2000 Smith St.",
+      "propertyName": "John Henry Kirby Mansion",
+      "neighborhood": "Midtown",
+      "actor": "Preservation Advocate",
+      "headline": "Confirmed Demolished (1894-2026) \u00b7 Graduated to Lost Houston Catalog",
+      "detail": "Following October 30, 2026 unpermitted demolition start and COH Stage 2 Demolition Permit #26090093, the 1894 John Henry Kirby Mansion was completely reduced to rubble by November 2, 2026. Transitioned Watchlist status to Lost and graduated to Lost Houston (lost_kirby_mansion_1894).",
+      "deepLink": {
+        "mode": "watchlist",
+        "watchId": "prop-kirby-mansion",
+        "checkRowId": "chk-14"
+      },
+      "links": [
+        {
+          "label": "View in Lost Houston (1894-2026)",
+          "url": "index.html?id=lost_kirby_mansion_1894&layers=lost_houston"
+        }
+      ]
     },
     {
       "id": "wl:auto:prop-kirby-mansion:chk-13:id:coh-311:2600364835",
@@ -10092,6 +10556,33 @@
           "url": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93886/OriginalFiles/05-Refoka_Estates_at_Canal_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-02T11%3A52%3A10Z&sr=b&sp=r&sig=3X6mU%2FTN4SLbAbeflBdaFZ%2FkBde5plfmUAuJ%2FmIAfJc%3D"
         }
       ]
+    },
+    {
+      "id": "staff:prop:prop-kirby-mansion:edited:2026-10-29",
+      "stream": "staff",
+      "kind": "watchlist_property_edited",
+      "severity": "info",
+      "adverse": false,
+      "date": "2026-10-29",
+      "localDate": "2026-10-29",
+      "timestamp": "2026-10-30T00:16:59.853Z",
+      "discoveredAt": "2026-11-10T19:19:21Z",
+      "loggedAt": "2026-10-30T00:16:59.853Z",
+      "title": "Watchlist Dossier Updated: John Henry Kirby Mansion",
+      "summary": "Updated dossier notes, past PH actions, tracker status by emily@preservationhouston.org.",
+      "address": "2000 SMITH ST",
+      "hcad": "0152300000001",
+      "watchPropertyId": "prop-kirby-mansion",
+      "checkId": "",
+      "cycleKey": "",
+      "appNo": "",
+      "occKey": "",
+      "buildingId": "bld_004618",
+      "lat": 29.751432,
+      "lng": -95.374833,
+      "yearBuilt": "1894",
+      "designation": "1979 Good Brick Award (No City Protected Landmark designation)",
+      "links": []
     },
     {
       "id": "wl:auto:plat-2026-1728:chk-09:id:coh-plat:2026-10-15:2026-1495",
