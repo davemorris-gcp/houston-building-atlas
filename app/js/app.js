@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261109d";
+} from "./palettes.js?v=20261110a";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -29,8 +29,8 @@ import {
   toLayerStateKey,
   toOverlayDataKey,
   VALID_INSPECTOR_TABS,
-} from "./filterStore.js?v=20261109d";
-import { AtlasMapController } from "./mapController.js?v=20261109d";
+} from "./filterStore.js?v=20261110a";
+import { AtlasMapController } from "./mapController.js?v=20261110a";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
@@ -38,8 +38,8 @@ import {
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
   normalizePortfolioQuery,
-} from "./guidedChaptersAndPortfolios.js?v=20261109d";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109d";
+} from "./guidedChaptersAndPortfolios.js?v=20261110a";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261110a";
 import {
   buildAddressShardUrl,
   buildResearchKitDeedChainView,
@@ -52,7 +52,7 @@ import {
   isPlaceholderOwnerName,
   normalizeAddressShardPrefix,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261109d";
+} from "./clerkSearchHelpers.js?v=20261110a";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -75,7 +75,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261109d";
+} from "./curatedEdits.js?v=20261110a";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -85,12 +85,12 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261109d";
+} from "./photoService.js?v=20261110a";
 import {
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
   resolveArchivalRecords,
-} from "./archivalHelpers.js?v=20261109d";
+} from "./archivalHelpers.js?v=20261110a";
 import {
   buildCohLandmarkDossierCardHtml,
   buildHpoDistrictDossierCardHtml,
@@ -102,7 +102,7 @@ import {
   resolveCohLandmarkOverlayMetadata,
   resolveHpoDistrictDocs,
   resolveHpoParcelSurvey,
-} from "./hpoSurveyHelpers.js?v=20261109d";
+} from "./hpoSurveyHelpers.js?v=20261110a";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -110,18 +110,18 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261109d";
+} from "./platMonitorHelpers.js?v=20261110a";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261109d";
+} from "./hcadViewportParcels.js?v=20261110a";
 import {
   buildInspectorPermitsBodyHtml,
   explainCohWatchPermit,
   explainDshsNotification,
   explainMultiAgencyFiling,
-} from "./permitPlainEnglish.js?v=20261109d";
+} from "./permitPlainEnglish.js?v=20261110a";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -141,19 +141,19 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261109d";
+} from "./preservationOrganizer.js?v=20261110a";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
   escapeHtml,
   sanitizeHttpUrl,
-} from "./urlValidators.js?v=20261109d";
+} from "./urlValidators.js?v=20261110a";
 import {
   buildThcSurveyFormModel,
   collectEditedThcSurveyFormModel,
   renderThcSurveyFormHtml,
   serializeThcSurveyFormToTsv,
-} from "./thcSurveyFormGenerator.js?v=20261109d";
+} from "./thcSurveyFormGenerator.js?v=20261110a";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -380,6 +380,9 @@ export class HoustonAtlasApp {
       onOverlapStackChange: (stack, activeIdx) =>
         this._renderMapOverlapBar(stack, activeIdx),
       onIsolationChange: (iso) => this._renderIsolationBanner(iso),
+      isInspectorHidden: () =>
+        typeof document !== "undefined" &&
+        Boolean(document.getElementById("inspector-drawer")?.classList?.contains("hidden")),
     });
   }
 
@@ -1207,15 +1210,15 @@ export class HoustonAtlasApp {
         archivalRes,
         hpoSurveyRes,
       ] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261109d"),
-        fetch("public/data/stats_summary.json?v=20261109d"),
-        fetch("public/data/haif_index.json?v=20261109d").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261109d").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261109d").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261109d").catch(() => null),
-        fetch("public/data/ownership_portfolios.json?v=20261109d").catch(() => null),
-        fetch("public/data/archival_index.json?v=20261109d").catch(() => null),
-        fetch("public/data/hpo_district_surveys.json?v=20261109d").catch(() => null),
+        fetch("public/data/search_index.json?v=20261110a"),
+        fetch("public/data/stats_summary.json?v=20261110a"),
+        fetch("public/data/haif_index.json?v=20261110a").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261110a").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261110a").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261110a").catch(() => null),
+        fetch("public/data/ownership_portfolios.json?v=20261110a").catch(() => null),
+        fetch("public/data/archival_index.json?v=20261110a").catch(() => null),
+        fetch("public/data/hpo_district_surveys.json?v=20261110a").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -9873,7 +9876,9 @@ export class HoustonAtlasApp {
             buildingId: rawProps.id || "",
           });
           if (lostAlert) {
-            return this._buildInspectorPermitAlertHtml(lostAlert);
+            return this._buildInspectorPermitAlertCardHtml(lostAlert, null, {
+              hideSelfLostHoustonLink: true,
+            });
           }
         }
         return "";
@@ -10077,7 +10082,16 @@ export class HoustonAtlasApp {
                 rawProps.architect
                   ? `<div class="inspector-cell full">
                       <span class="cell-label">Architect / Builder</span>
-                      <span class="cell-value">${rawProps.architect}</span>
+                      <span class="cell-value">
+                        <button
+                          type="button"
+                          class="inspector-filter-chip"
+                          data-filter-chip="${this._escapeHtmlAttr(rawProps.architect)}"
+                          data-filter-label="Architect: ${this._escapeHtmlAttr(rawProps.architect)}"
+                          data-portfolio-kind="architect"
+                          title="Open Architect Portfolio for ${this._escapeHtmlAttr(rawProps.architect)}"
+                        >${rawProps.architect} &#128269;</button>
+                      </span>
                     </div>`
                   : ""
               }
@@ -10085,7 +10099,16 @@ export class HoustonAtlasApp {
                 rawProps.style
                   ? `<div class="inspector-cell full">
                       <span class="cell-label">Architectural Style</span>
-                      <span class="cell-value">${rawProps.style}</span>
+                      <span class="cell-value">
+                        <button
+                          type="button"
+                          class="inspector-filter-chip"
+                          data-filter-chip="${this._escapeHtmlAttr(rawProps.style)}"
+                          data-filter-label="Style: ${this._escapeHtmlAttr(rawProps.style)}"
+                          data-portfolio-kind="style"
+                          title="Open Architectural Style Portfolio for ${this._escapeHtmlAttr(rawProps.style)}"
+                        >${rawProps.style} &#128269;</button>
+                      </span>
                     </div>`
                   : ""
               }
@@ -10945,6 +10968,17 @@ export class HoustonAtlasApp {
           }
         });
       }
+
+      this._bindPermitAlertCardActions(
+        content,
+        {
+          ...rawProps,
+          hcad_num: primarySiteHcad || rawProps.hcad_num || "",
+          building_name: name,
+          address: rawProps.address || subtitle || "",
+        },
+        "Lost Houston Observation"
+      );
     }
 
     if (overlayLayer === "red_book_1915") {
@@ -11169,7 +11203,7 @@ export class HoustonAtlasApp {
     const sheetMode = this._mobileSheetMode || "half";
 
     if (drawer) {
-      drawer.classList.toggle("wide-mode", isWide && !drawer.classList.contains("boundary-mode"));
+      drawer.classList.toggle("wide-mode", isWide);
       drawer.classList.remove("sheet-peek", "sheet-half", "sheet-full");
       drawer.classList.add(`sheet-${sheetMode}`);
     }
@@ -15346,39 +15380,7 @@ export class HoustonAtlasApp {
       });
     }
 
-    content.querySelectorAll("[data-open-permit-watchlist]").forEach((pwBtn) => {
-      pwBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const sev = pwBtn.getAttribute("data-open-permit-watchlist") || "all";
-        this.openPermitWatchModal(sev);
-      });
-    });
-
-    content.querySelectorAll("[data-report-site-activity]").forEach((repBtn) => {
-      repBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const repAddr = repBtn.getAttribute("data-report-address") || props.address || "";
-        const repBadge = repBtn.getAttribute("data-report-badge") || "Active Permit Watch";
-        this.openCorrectionModal(props);
-        const citeEl = document.getElementById("corr-citation");
-        const sourceTypeEl = document.getElementById("corr-source-type");
-        if (sourceTypeEl) {
-          sourceTypeEl.value = "Field Survey / Architectural Guide";
-        }
-        if (citeEl) {
-          const prefix = `[SITE ACTIVITY OBSERVATION - ${repBadge}${repAddr ? ` at ${repAddr}` : ""}] `;
-          if (!String(citeEl.value || "").startsWith("[SITE ACTIVITY OBSERVATION")) {
-            citeEl.value = prefix + (citeEl.value || "");
-          }
-          setTimeout(() => {
-            citeEl.focus();
-            citeEl.setSelectionRange(citeEl.value.length, citeEl.value.length);
-          }, 80);
-        }
-      });
-    });
+    this._bindPermitAlertCardActions(content, props, "Active Permit Watch");
 
     content
       .querySelectorAll("[data-inspect-lost-houston], [data-open-lost-houston-id]")
@@ -15825,7 +15827,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const permitShardUrl = cb
         ? `public/data/permits/permits_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/permits/permits_${prefix3}.json.gz?v=20261109d`;
+        : `public/data/permits/permits_${prefix3}.json.gz?v=20261110a`;
       const p = fetch(permitShardUrl)
         .then((res) => decodeGzipJsonResponse(res, decompressPermitShardBytes))
         .catch(() => ({}));
@@ -15849,7 +15851,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const ownerShardUrl = cb
         ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261109d`;
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261110a`;
       const p = fetch(ownerShardUrl)
         .then(async (res) => {
           if (!res.ok) return {};
@@ -17928,7 +17930,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261109d`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261110a`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18985,7 +18987,47 @@ export class HoustonAtlasApp {
     `;
   }
 
-  _buildInspectorPermitAlertCardHtml(alert, platItem = null) {
+  _bindPermitAlertCardActions(content, contextProps, defaultBadge = "Active Permit Watch") {
+    if (!content) return;
+    content.querySelectorAll("[data-open-permit-watchlist]").forEach((pwBtn) => {
+      pwBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const sev = pwBtn.getAttribute("data-open-permit-watchlist") || "all";
+        this.openPermitWatchModal(sev);
+      });
+    });
+
+    content.querySelectorAll("[data-report-site-activity]").forEach((repBtn) => {
+      repBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const repAddr =
+          repBtn.getAttribute("data-report-address") || contextProps?.address || "";
+        const repBadge = repBtn.getAttribute("data-report-badge") || defaultBadge;
+        this.openCorrectionModal(contextProps || {});
+        const citeEl = document.getElementById("corr-citation");
+        const sourceTypeEl = document.getElementById("corr-source-type");
+        if (sourceTypeEl) {
+          sourceTypeEl.value = "Field Survey / Architectural Guide";
+        }
+        if (citeEl) {
+          const prefix = `[SITE ACTIVITY OBSERVATION - ${repBadge}${
+            repAddr ? ` at ${repAddr}` : ""
+          }] `;
+          if (!String(citeEl.value || "").startsWith("[SITE ACTIVITY OBSERVATION")) {
+            citeEl.value = prefix + (citeEl.value || "");
+          }
+          setTimeout(() => {
+            citeEl.focus();
+            citeEl.setSelectionRange(citeEl.value.length, citeEl.value.length);
+          }, 80);
+        }
+      });
+    });
+  }
+
+  _buildInspectorPermitAlertCardHtml(alert, platItem = null, opts = {}) {
     if (!alert) return "";
     const isCritical = alert.severity === "critical";
     const cohPermits = Array.isArray(alert.coh_permits) ? alert.coh_permits : [];
@@ -19134,7 +19176,7 @@ export class HoustonAtlasApp {
         </div>
         <div class="inspector-permit-alert-actions" style="flex-wrap:wrap;gap:6px;">
           ${
-            lostHoustonId
+            lostHoustonId && !opts?.hideSelfLostHoustonLink
               ? `<a
                   href="?id=${encodeURIComponent(lostHoustonId)}&layers=lost_houston"
                   class="inspector-permit-watch-btn primary"
@@ -19481,7 +19523,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261109d")
+          fetch("public/data/sanborn_catalog.json?v=20261110a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -19491,7 +19533,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261109d")
+          fetch("public/data/citydir_index.json?v=20261110a")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -19514,7 +19556,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261109d")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261110a")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -20980,7 +21022,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261109d")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261110a")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

@@ -1007,7 +1007,7 @@ export function buildAddressShardUrl(key, cacheBust = "") {
   const cb = String(cacheBust || "").trim();
   return cb
     ? `public/data/address_shards/addr_${encodeURIComponent(key)}.json.gz?v=${encodeURIComponent(cb)}`
-    : `public/data/address_shards/addr_${encodeURIComponent(key)}.json.gz?v=20261109d`;
+    : `public/data/address_shards/addr_${encodeURIComponent(key)}.json.gz?v=20261110a`;
 }
 
 /**

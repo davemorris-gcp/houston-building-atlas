@@ -8,16 +8,16 @@ import {
   VALID_PORTFOLIO_KINDS,
   normalizePortfolioKind,
   normalizePortfolioQuery,
-} from "./filterStore.js?v=20261109d";
+} from "./filterStore.js?v=20261110a";
 import {
   OWNERSHIP_TIER_ITEMS,
   resolveEffectiveOwnershipTier,
   resolveOwnershipTierColor,
-} from "./palettes.js?v=20261109d";
+} from "./palettes.js?v=20261110a";
 import {
   buildTxComptrollerSearchUrl,
   buildHarrisCountyClerkRpUrl,
-} from "./urlValidators.js?v=20261109d";
+} from "./urlValidators.js?v=20261110a";
 import {
   decodeCompactMechanicsLiens,
   decodeCompactOwnerHistory,
@@ -26,7 +26,7 @@ import {
   isEntityOrTrustOwnerName,
   isPlaceholderOwnerName,
   parseCompactDeedWireEntries,
-} from "./clerkSearchHelpers.js?v=20261109d";
+} from "./clerkSearchHelpers.js?v=20261110a";
 
 export { VALID_PORTFOLIO_KINDS, normalizePortfolioKind, normalizePortfolioQuery };
 
@@ -1031,6 +1031,9 @@ export function buildPortfolioDataset({
         }
       }
     }
+    const normalizedLost = Boolean(entry.isLost || entry.isDemolished);
+    entry.isLost = normalizedLost;
+    entry.isDemolished = normalizedLost;
     if (!existing) {
       byKey.set(dedupKey, entry);
       return;

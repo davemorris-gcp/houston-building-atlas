@@ -1834,5 +1834,24 @@ test("Watchlist Likely-Demolished Detector, graduateWatchlistPropertyToLost, and
     0,
     "Graduated Lost property must have 0 Flagged checklist rows after reconciliation"
   );
+
+  // 6. Verify app.js Lost Houston inspector uses _buildInspectorPermitAlertCardHtml (never nonexistent _buildInspectorPermitAlertHtml) and preserves wide-mode
+  const appJsSrc = fs.readFileSync(path.join(REPO_ROOT, "app", "js", "app.js"), "utf8");
+  assert.equal(
+    appJsSrc.includes("_buildInspectorPermitAlertHtml("),
+    false,
+    "app.js must never call nonexistent _buildInspectorPermitAlertHtml"
+  );
+  assert.match(
+    appJsSrc,
+    /this\._buildInspectorPermitAlertCardHtml\(\s*lostAlert\b/,
+    "app.js Lost Houston inspector must render permit alert card via _buildInspectorPermitAlertCardHtml"
+  );
+  assert.equal(
+    appJsSrc.includes('!drawer.classList.contains("boundary-mode")'),
+    false,
+    "_syncInspectorLayoutControls must not strip wide-mode when boundary-mode is active"
+  );
 });
+
 

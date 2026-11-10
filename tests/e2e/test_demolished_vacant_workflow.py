@@ -473,3 +473,108 @@ def test_staff_admin_direct_approve_sub_building_campus_isolation(
     assert sibling_check["suppressedSelect"] is False
     assert sibling_check["siblingSearchable"] is True
     assert sibling_check["siblingSelect"] is True
+
+
+def test_kirby_mansion_lost_houston_outline_click_and_ruskin_bailey_portfolio(
+    guarded_page: Any,
+    atlas_base_url: str,
+) -> None:
+    """Verify #portfolio=arch_james_ruskin_bailey slug resolution and clicking Kirby Mansion Lost Houston outline when sidebar is collapsed or open in wide mode."""
+    page = guarded_page
+    page.goto(
+        f"{atlas_base_url}/index.html#portfolio=arch_james_ruskin_bailey",
+        wait_until="domcontentloaded",
+    )
+    wait_for_atlas_ready(page)
+
+    portfolio_state = page.evaluate(
+        """() => {
+            const p = window.atlasApp?._activePortfolio;
+            return {
+                query: p?.query || '',
+                title: document.getElementById('portfolio-card-title')?.textContent?.trim() || '',
+                extantStat: document.getElementById('portfolio-stat-extant')?.textContent?.trim() || '',
+                lostStat: document.getElementById('portfolio-stat-lost')?.textContent?.trim() || '',
+                works: (p?.works || []).map((w) => ({
+                    title: w.title,
+                    isDemolished: Boolean(w.isDemolished),
+                    isLost: Boolean(w.isLost),
+                    lostHoustonId: w.lostHoustonId || '',
+                })),
+            };
+        }"""
+    )
+    assert portfolio_state["query"] == "James Ruskin Bailey"
+    assert portfolio_state["title"] == "James Ruskin Bailey (1889-1959)"
+    assert portfolio_state["extantStat"] == "2"
+    assert portfolio_state["lostStat"] == "1"
+    kirby_works = [w for w in portfolio_state["works"] if "Kirby" in w["title"]]
+    assert len(kirby_works) == 1
+    assert kirby_works[0]["isDemolished"] is True
+    assert kirby_works[0]["lostHoustonId"] == "lost_kirby_mansion_1894"
+    sterne_works = [w for w in portfolio_state["works"] if "Sterne" in w["title"]]
+    assert len(sterne_works) == 1
+
+    # Case 1: Collapse/close the property viewer sidebar (#inspector-drawer.hidden), then click Kirby Mansion Lost Houston outline
+    collapsed_click = page.evaluate(
+        """() => {
+            const app = window.atlasApp;
+            const mc = app.mapController;
+            const drawer = document.getElementById('inspector-drawer');
+            app._inspectorWideMode = true;
+            app._syncInspectorLayoutControls();
+            drawer.classList.add('hidden');
+            mc.map.stop();
+            mc.map.jumpTo({ center: [-95.374742, 29.751469], zoom: 17.2, pitch: 0, bearing: 0 });
+            const pt = mc.map.project([-95.374742, 29.751469]);
+            mc._handleMapPointClick(
+                { x: pt.x, y: pt.y },
+                { lng: -95.374742, lat: 29.751469 }
+            );
+            return {
+                isHidden: drawer.classList.contains('hidden'),
+                isWide: drawer.classList.contains('wide-mode'),
+                title: document.getElementById('inspector-property-title')?.textContent?.trim() || '',
+                hasPermitCard: Boolean(document.getElementById('inspector-permit-alert-card')),
+            };
+        }"""
+    )
+    assert collapsed_click["isHidden"] is False
+    assert collapsed_click["isWide"] is True
+    assert collapsed_click["title"] == "John Henry Kirby Mansion (1894-2026)"
+    assert collapsed_click["hasPermitCard"] is True
+
+    # Case 2: Open another extant property in wide mode, then click Kirby Mansion Lost Houston outline
+    open_switch_click = page.evaluate(
+        """() => {
+            const app = window.atlasApp;
+            const mc = app.mapController;
+            const drawer = document.getElementById('inspector-drawer');
+            app._inspectorWideMode = true;
+            mc.selectFeatureByIdOrHcad({
+                hcadNum: '0010250000013',
+                flyTo: false,
+            });
+            const titleBefore = document.getElementById('inspector-property-title')?.textContent?.trim() || '';
+            const centerBefore = mc.map.getCenter();
+            const pt = mc.map.project([-95.374742, 29.751469]);
+            mc._handleMapPointClick(
+                { x: pt.x, y: pt.y },
+                { lng: -95.374742, lat: 29.751469 }
+            );
+            const centerAfter = mc.map.getCenter();
+            return {
+                titleBefore,
+                titleAfter: document.getElementById('inspector-property-title')?.textContent?.trim() || '',
+                isHidden: drawer.classList.contains('hidden'),
+                isWide: drawer.classList.contains('wide-mode'),
+                centerMovedDeg: Math.hypot(centerAfter.lng - centerBefore.lng, centerAfter.lat - centerBefore.lat),
+            };
+        }"""
+    )
+    assert open_switch_click["titleBefore"] != "John Henry Kirby Mansion (1894-2026)"
+    assert open_switch_click["titleAfter"] == "John Henry Kirby Mansion (1894-2026)"
+    assert open_switch_click["isHidden"] is False
+    assert open_switch_click["isWide"] is True
+    assert open_switch_click["centerMovedDeg"] < 1e-5
+

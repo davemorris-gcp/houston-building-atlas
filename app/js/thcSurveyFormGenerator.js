@@ -13,7 +13,7 @@
  * Strictly enforces TX Tax Code Sec. 25.025 homeowner confidentiality fail-closed.
  */
 
-import { decodeAppraiserNote, explainPermitRecord } from "./permitPlainEnglish.js?v=20261109d";
+import { decodeAppraiserNote, explainPermitRecord } from "./permitPlainEnglish.js?v=20261110a";
 
 export const THC_FORM_VERSION = "3/2013";
 

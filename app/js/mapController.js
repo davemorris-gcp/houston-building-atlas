@@ -14,7 +14,7 @@ import {
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
   USE_CATEGORY_ITEMS,
-} from "./palettes.js?v=20261109d";
+} from "./palettes.js?v=20261110a";
 import {
   buildAnnexationFilterExpression,
   buildFeatureFilterExpression,
@@ -31,7 +31,7 @@ import {
   normalizeComparableAddress,
   resolveActiveAnnexationDecade,
   resolveActiveWardEra,
-} from "./filterStore.js?v=20261109d";
+} from "./filterStore.js?v=20261110a";
 import {
   METERS_PER_DEGREE_LAT,
   OVERRIDE_MODE_ADDITIVE_POLYGON,
@@ -50,8 +50,8 @@ import {
   isSingleShardReplaceOverride,
   isEntitySuppressedByOverrides,
   loadCuratedOverrides,
-} from "./curatedEdits.js?v=20261109d";
-import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261109d";
+} from "./curatedEdits.js?v=20261110a";
+import { fetchHcadLiveRecord } from "./hcadLink.js?v=20261110a";
 import {
   buildUnifiedParcelCollection,
   collectMinBuildingYearsByHcad,
@@ -60,8 +60,8 @@ import {
   mapHcadStateClassToUseCategory,
   matchHcadParcelFeaturesByAddressQuery,
   normalizeHcad13,
-} from "./hcadViewportParcels.js?v=20261109d";
-import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261109d";
+} from "./hcadViewportParcels.js?v=20261110a";
+import { CH42_BLOCKFACE_ROLE_PROP } from "./preservationOrganizer.js?v=20261110a";
 
 export const LOST_HOUSTON_RANK_EXPR = ["coalesce", ["to-number", ["get", "symbol_rank"]], 4];
 
@@ -244,6 +244,7 @@ export class AtlasMapController {
     onSelectPortfolioWork,
     onOverlapStackChange,
     onIsolationChange,
+    isInspectorHidden,
   }) {
     this.containerId = containerId;
     this.filterStore = filterStore;
@@ -254,6 +255,7 @@ export class AtlasMapController {
     this.onSelectPortfolioWork = onSelectPortfolioWork || null;
     this.onOverlapStackChange = onOverlapStackChange || null;
     this.onIsolationChange = onIsolationChange || null;
+    this.isInspectorHidden = typeof isInspectorHidden === "function" ? isInspectorHidden : null;
     this.map = null;
     this.popup = null;
     this.useCanvasFallback = false;
@@ -366,14 +368,14 @@ export class AtlasMapController {
       platWatchRes,
       hahcTrackerRes,
     ] = await Promise.all([
-      fetch("public/data/buildings.geojson?v=20261109d"),
-      fetch("public/data/parcels.geojson?v=20261109d"),
-      fetch("public/data/overlays.json?v=20261109d"),
-      fetch("public/data/pmtiles_manifest.json?v=20261109d").catch(() => null),
+      fetch("public/data/buildings.geojson?v=20261110a"),
+      fetch("public/data/parcels.geojson?v=20261110a"),
+      fetch("public/data/overlays.json?v=20261110a"),
+      fetch("public/data/pmtiles_manifest.json?v=20261110a").catch(() => null),
       loadCuratedOverrides(),
-      fetch("public/data/active_permit_alerts.json?v=20261109d").catch(() => null),
-      fetch("public/data/plat_agenda_monitor.json?v=20261109d").catch(() => null),
-      fetch("public/data/hahc_coa_tracker.json?v=20261109d").catch(() => null),
+      fetch("public/data/active_permit_alerts.json?v=20261110a").catch(() => null),
+      fetch("public/data/plat_agenda_monitor.json?v=20261110a").catch(() => null),
+      fetch("public/data/hahc_coa_tracker.json?v=20261110a").catch(() => null),
     ]);
 
     const buildingsFC = await buildingsRes.json();
@@ -1516,7 +1518,7 @@ export class AtlasMapController {
   _addMapLibreSourcesAndLayers() {
     const overlays = this.overlaysData;
     const cacheBust =
-      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261109d";
+      (this.pmtilesManifest && this.pmtilesManifest.cache_bust) || "20261110a";
     const pmtilesUrl = new URL(
       `public/data/houston_atlas.pmtiles?v=${encodeURIComponent(cacheBust)}`,
       window.location.href
@@ -5994,18 +5996,19 @@ export class AtlasMapController {
         const [sx, sy] = this._lngLatToScreen(w.lng, w.lat, width, height);
         if (sx < 0 || sx > width || sy < 0 || sy > height) continue;
         const isAct = i === this.activePortfolioWorkIndex;
+        const isLostWork = this._isPortfolioWorkLost(w);
         const outerR = showNums ? (isAct ? 16 : 13.5) : isAct ? 12.5 : 9.2;
         const innerR = showNums ? (isAct ? 11.5 : 9.8) : isAct ? 7.6 : 6.0;
         ctx.beginPath();
         ctx.arc(sx, sy, outerR, 0, Math.PI * 2);
-        ctx.fillStyle = w.isLost ? "rgba(244, 63, 94, 0.34)" : "rgba(251, 191, 36, 0.34)";
+        ctx.fillStyle = isLostWork ? "rgba(244, 63, 94, 0.34)" : "rgba(251, 191, 36, 0.34)";
         ctx.fill();
         ctx.beginPath();
         ctx.arc(sx, sy, innerR, 0, Math.PI * 2);
-        ctx.fillStyle = w.isLost ? "#BE123C" : "#D97706";
+        ctx.fillStyle = isLostWork ? "#BE123C" : "#D97706";
         ctx.fill();
         ctx.lineWidth = isAct ? 2.4 : 1.8;
-        ctx.strokeStyle = isAct ? "#FFFFFF" : w.isLost ? "#FECDD3" : "#FEF3C7";
+        ctx.strokeStyle = isAct ? "#FFFFFF" : isLostWork ? "#FECDD3" : "#FEF3C7";
         ctx.stroke();
         if (showNums) {
           ctx.save();
@@ -6013,7 +6016,7 @@ export class AtlasMapController {
           ctx.font = "700 9.5px ui-monospace, SFMono-Regular, Menlo, monospace";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(w.isLost ? `†${i + 1}` : String(i + 1), sx, sy + 0.5);
+          ctx.fillText(isLostWork ? `†${i + 1}` : String(i + 1), sx, sy + 0.5);
           ctx.restore();
         }
         cs.renderedBBoxes.push({
@@ -6028,7 +6031,7 @@ export class AtlasMapController {
             year_built: w.yearBuilt,
             year_demolished: w.yearDemolished || 0,
             lifespan_label: w.lifespanLabel || "",
-            is_lost: Boolean(w.isLost),
+            is_lost: isLostWork,
             portfolio_index: i,
             overlay_layer: "portfolio_work",
             is_boundary_feature: true,
@@ -8384,6 +8387,10 @@ export class AtlasMapController {
     }
   }
 
+  _isPortfolioWorkLost(w) {
+    return Boolean(w?.isLost || w?.isDemolished);
+  }
+
   setPortfolioWorks(works = [], activeIndex = -1, { fit = false } = {}) {
     if (Array.isArray(this.portfolioMarkers)) {
       for (const m of this.portfolioMarkers) {
@@ -8440,7 +8447,7 @@ export class AtlasMapController {
             year_built: Number(w.yearBuilt) || 0,
             year_demolished: Number(w.yearDemolished) || 0,
             lifespan_label: w.lifespanLabel || "",
-            is_lost: Boolean(w.isLost),
+            is_lost: this._isPortfolioWorkLost(w),
             is_active: idx === activeIndex,
             portfolio_index: idx,
           },
@@ -8451,18 +8458,19 @@ export class AtlasMapController {
     if (validWorks.length > 0 && validWorks.length <= 60 && window.maplibregl && window.maplibregl.Marker) {
       for (let i = 0; i < validWorks.length; i++) {
         const w = validWorks[i];
+        const isLostWork = this._isPortfolioWorkLost(w);
         const isActive = i === activeIndex;
         const pinBtn = document.createElement("button");
         pinBtn.type = "button";
-        pinBtn.className = `portfolio-map-pin mono${w.isLost ? " is-lost" : ""}${
+        pinBtn.className = `portfolio-map-pin mono${isLostWork ? " is-lost" : ""}${
           isActive ? " active" : ""
         }`;
-        const yrText = w.isLost
+        const yrText = isLostWork
           ? w.lifespanLabel || `${w.yearBuilt || "?"}-${w.yearDemolished || "?"}`
           : w.yearBuilt || "Undated";
-        pinBtn.title = `${i + 1}. ${w.title} (${yrText})${w.isLost ? " [Lost Houston]" : ""}`;
+        pinBtn.title = `${i + 1}. ${w.title} (${yrText})${isLostWork ? " [Lost Houston]" : ""}`;
         pinBtn.setAttribute("aria-label", pinBtn.title);
-        pinBtn.innerHTML = `<span class="portfolio-map-pin-num">${w.isLost ? `†${i + 1}` : i + 1}</span>`;
+        pinBtn.innerHTML = `<span class="portfolio-map-pin-num">${isLostWork ? `†${i + 1}` : i + 1}</span>`;
         pinBtn.addEventListener("click", (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -10090,6 +10098,41 @@ export class AtlasMapController {
         },
       };
 
+      const renderedLostHoustonIds = new Set();
+      if (
+        LAYER_META.lost_houston.enabled &&
+        !this.useCanvasFallback &&
+        this.map &&
+        point &&
+        Number.isFinite(point.x) &&
+        Number.isFinite(point.y) &&
+        typeof this.map.queryRenderedFeatures === "function"
+      ) {
+        const lhLayers = [
+          "lost-houston-fill",
+          "lost-houston-line",
+          "lost-houston-extrusion",
+          "lost-houston-label",
+          "lost-houston-label-r2",
+          "lost-houston-label-r34",
+        ].filter((id) => this.map.getLayer(id));
+        if (lhLayers.length) {
+          try {
+            const lhHits = this.map.queryRenderedFeatures(
+              [
+                [point.x - 6, point.y - 6],
+                [point.x + 6, point.y + 6],
+              ],
+              { layers: lhLayers }
+            );
+            for (const lhf of lhHits || []) {
+              const lhid = String(lhf?.properties?.id || "").trim();
+              if (lhid) renderedLostHoustonIds.add(lhid);
+            }
+          } catch (_e) {}
+        }
+      }
+
       const matchingBoundaries = [];
       for (const entry of this.boundarySpatialIndex) {
         const meta = LAYER_META[entry.overlayKey];
@@ -10112,8 +10155,13 @@ export class AtlasMapController {
           }
         }
         const [minLng, minLat, maxLng, maxLat] = entry.bbox;
-        if (lng < minLng || lng > maxLng || lat < minLat || lat > maxLat) continue;
-        if (!this._pointInPolygonGeometry(lng, lat, entry.feature.geometry)) continue;
+        const matchedRenderedLh =
+          entry.overlayKey === "lost_houston" &&
+          renderedLostHoustonIds.has(String(entry.props.id || "").trim());
+        if (!matchedRenderedLh) {
+          if (lng < minLng || lng > maxLng || lat < minLat || lat > maxLat) continue;
+          if (!this._pointInPolygonGeometry(lng, lat, entry.feature.geometry)) continue;
+        }
         let dynBadge = meta.typeBadge;
         let dynSwatch = entry.props.color || meta.swatchColor;
         if (entry.overlayKey === "lost_houston") {
@@ -10652,8 +10700,14 @@ export class AtlasMapController {
     }
     if (!stack.length) return;
 
+    const inspectorHidden =
+      typeof this.isInspectorHidden === "function"
+        ? Boolean(this.isInspectorHidden())
+        : typeof document !== "undefined" &&
+          Boolean(document.getElementById("inspector-drawer")?.classList?.contains("hidden"));
     let nextIndex = 0;
     if (
+      !inspectorHidden &&
       point &&
       this._lastOverlapClickPoint &&
       Array.isArray(this.overlapStack) &&
@@ -10683,12 +10737,16 @@ export class AtlasMapController {
 
     if (item.kind === "boundary") {
       this.clearSelection({ keepOverlapStack: true, keepBoundary: true });
+      const curZoom = this.useCanvasFallback
+        ? Number(this.canvasState?.zoom || 13)
+        : Number(this.map?.getZoom?.() || 13);
+      const shouldFlyBoundary = item.overlayKey !== "lost_houston" || curZoom < 16.5;
       const highlighted = this.highlightBoundaryByIdOrName({
         id: item.props.id || "",
         name: item.props.name || item.props.era_label || item.title || "",
         layerKey: item.overlayKey,
         eraYear: item.props.era || item.props.ward_era || item.props.era_year || null,
-        flyTo: true,
+        flyTo: shouldFlyBoundary,
         inspect: true,
         keepOverlapStack: true,
       });
