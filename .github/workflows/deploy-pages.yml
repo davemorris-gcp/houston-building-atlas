@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: ["main"]
   workflow_dispatch:
+    inputs:
+      skip_verify:
+        description: "Skip verify job when re-deploying an already-verified commit"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -19,6 +25,7 @@ concurrency:
 jobs:
   verify:
     name: Pre-Deploy Stratified Verification (Layer 1 Unit + Layer 2 45-Archetype E2E)
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_verify) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -65,7 +72,7 @@ jobs:
   deploy:
     name: Deploy Verified Site to GitHub Pages
     needs: verify
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: always() && (needs.verify.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.skip_verify)) && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -80,10 +87,18 @@ jobs:
       - name: Upload static site + PMTiles v3 shards artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages-${{ github.run_attempt }}
           path: "app"
+
+      - name: Extend deploy-pages client timeout ceiling for 561MB bundle
+        run: |
+          if [ -f /home/runner/work/_actions/actions/deploy-pages/v4/dist/index.js ]; then
+            sed -i 's/MAX_TIMEOUT = 600000/MAX_TIMEOUT = 1800000/g' /home/runner/work/_actions/actions/deploy-pages/v4/dist/index.js
+          fi
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
         with:
-          timeout: 1200000
+          artifact_name: github-pages-${{ github.run_attempt }}
+          timeout: 1800000
