@@ -4432,9 +4432,24 @@ body {
    5. Printable Archival Property Dossier Modal & @media print
    ========================================================================== */
 .dossier-modal-card {
-  width: min(820px, 95vw);
-  max-width: min(820px, 95vw);
+  width: min(920px, 95vw);
+  max-width: min(920px, 95vw);
   max-height: 90dvh;
+}
+
+.dossier-modal-card > .modal-header {
+  position: relative;
+  padding-right: 52px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.dossier-modal-card > .modal-header #btn-close-dossier-modal {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  margin: 0;
+  z-index: 3;
 }
 
 .dossier-modal-header-actions {
@@ -4695,6 +4710,373 @@ body {
   color: #44403c;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+/* Official Texas Historical Commission (THC) Historic Resources Survey Form */
+.dossier-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dossier-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.thc-survey-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  color: #0f172a;
+}
+
+.thc-form-page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1.5px solid #1e293b;
+  background: #ffffff;
+  padding: 12px 14px;
+  border-radius: 6px;
+}
+
+.thc-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 6px;
+}
+
+.thc-agency-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.thc-agency-name {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.thc-form-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.thc-section-pill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-align: right;
+}
+
+.thc-sec-num {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.thc-sec-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.thc-meta-bar {
+  display: grid;
+  grid-template-columns: 1.6fr 1.1fr 0.7fr 0.8fr 1.6fr;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.thc-meta-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.thc-k {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #334155;
+}
+
+.thc-k-cb {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 3px;
+}
+
+.thc-field-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 6px 8px;
+  border-radius: 4px;
+  min-width: 0;
+}
+
+.thc-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.thc-grid-3col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.thc-grid-owner {
+  display: grid;
+  grid-template-columns: 1.6fr 0.7fr 1.4fr;
+  gap: 6px;
+}
+
+.thc-line-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #94a3b8;
+  background: transparent;
+  color: #0f172a;
+  font-size: 12px;
+  padding: 2px 3px;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.thc-bold-input {
+  font-weight: 700;
+}
+
+.thc-textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 11.5px;
+  line-height: 1.42;
+  padding: 5px 7px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.thc-cb-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.thc-cb-grid {
+  display: grid;
+  gap: 3px 8px;
+}
+
+.thc-cb-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.thc-cb-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.thc-cb-grid-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.thc-cb-label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: 10.5px;
+  line-height: 1.28;
+  color: #0f172a;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.thc-cb-input {
+  margin: 1px 0 0;
+  width: 13px;
+  height: 13px;
+  accent-color: #0f172a;
+  flex-shrink: 0;
+}
+
+.thc-inline-subrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 10.5px;
+  color: #1e293b;
+}
+
+.thc-inline-label {
+  font-weight: 700;
+  color: #334155;
+}
+
+.thc-subline-muted {
+  font-size: 10px;
+  color: #475569;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.thc-latlng-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: #0f172a;
+}
+
+.thc-subbanner {
+  background: #1e293b;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 3px;
+}
+
+.thc-image-and-recorder-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.thc-recorder-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.thc-kv-pair {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #1e293b;
+}
+
+.thc-kv-pair label {
+  font-weight: 700;
+  color: #334155;
+}
+
+.thc-image-preview-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.thc-photo-figure {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thc-photo-figure img {
+  width: 100%;
+  max-height: 155px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #94a3b8;
+}
+
+.thc-photo-figure figcaption {
+  font-size: 9.5px;
+  color: #475569;
+  line-height: 1.25;
+}
+
+.thc-photo-placeholder {
+  width: 100%;
+  min-height: 110px;
+  border: 1.5px dashed #94a3b8;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px;
+  text-align: center;
+  color: #475569;
+}
+
+.thc-photo-placeholder-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #1e293b;
+}
+
+.thc-criteria-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thc-criterion-item {
+  padding: 2px 0;
+}
+
+.thc-elig-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  font-size: 10.5px;
+  color: #0f172a;
+  padding: 2px 0;
+  border-bottom: 1px dotted #e2e8f0;
 }
 
 /* Mobile Layout Guardrails for New Features */
@@ -5171,6 +5553,22 @@ body {
   }
   .rk-owner-tenure-name {
     color: #0f172a !important;
+  }
+
+  .thc-survey-sheet {
+    border: none !important;
+    padding: 0 !important;
+    gap: 10px !important;
+  }
+  .thc-form-page {
+    border: 1.5px solid #0f172a !important;
+    padding: 8px 10px !important;
+    gap: 5px !important;
+    break-inside: avoid-page;
+  }
+  .thc-page-break {
+    break-before: page;
+    page-break-before: always;
   }
 }
 
@@ -14734,5 +15132,26 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
   .hpo-survey-actions .hpo-survey-btn {
     flex: 1 1 auto;
     min-height: 36px;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .thc-meta-bar,
+  .thc-grid-owner,
+  .thc-grid-3col,
+  .thc-grid-2col,
+  .thc-image-and-recorder-row {
+    grid-template-columns: 1fr;
+  }
+
+  .thc-cb-grid-5,
+  .thc-cb-grid-4,
+  .thc-cb-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .thc-line-input,
+  .thc-textarea {
+    font-size: 16px !important;
   }
 }

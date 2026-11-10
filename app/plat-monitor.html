@@ -507,7 +507,7 @@ import {
   formatDemolitionPolicyBriefText,
   formatDemolitionPolicyBriefRichHtml,
   buildDemolitionBenchmarksTablesHtml,
-} from "./js/platMonitorHelpers.js?v=20261109c";
+} from "./js/platMonitorHelpers.js?v=20261109d";
 
 import {
   TRACKER_STATUSES,
@@ -537,7 +537,7 @@ import {
   parseCloudSheetSyncRows,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
-} from "./js/watchlistSyncHelpers.js?v=20261109c";
+} from "./js/watchlistSyncHelpers.js?v=20261109d";
 
 import {
   ACTIVITY_STREAM_META,
@@ -555,18 +555,18 @@ import {
   buildWatchPropertyFromPermitAlert,
   sanitizeActivityEventForRender,
   formatActivityBriefingText,
-} from "./js/activityLogHelpers.js?v=20261109c";
+} from "./js/activityLogHelpers.js?v=20261109d";
 
 import {
   buildAddressShardUrl,
   decodeGzipJsonResponse,
   decompressAddressShardBytes,
   normalizeAddressShardPrefix,
-} from "./js/clerkSearchHelpers.js?v=20261109c";
+} from "./js/clerkSearchHelpers.js?v=20261109d";
 
 import {
   explainWatchlistCheckText,
-} from "./js/permitPlainEnglish.js?v=20261109c";
+} from "./js/permitPlainEnglish.js?v=20261109d";
 
 /* ---------- Storage ---------- */
 const store = {
@@ -834,7 +834,7 @@ const liveHcadGradeCache = new Map();
 
 function ensureMonitorManifest(){
   if (!monitorManifestPromise) {
-    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261109c")
+    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261109d")
       .then(r => r.ok ? r.json() : null)
       .catch(() => null);
   }
@@ -846,10 +846,10 @@ async function ensureLocalAtlasLookupContext(){
   if (!atlasLookupCachePromise) {
     atlasLookupCachePromise = (async () => {
       const [ovRes, bldRes, pclRes, ovlRes] = await Promise.all([
-        fetch("public/data/curated_overrides.json?v=20261109c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/buildings.geojson?v=20261109c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/parcels.geojson?v=20261109c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/overlays.json?v=20261109c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/curated_overrides.json?v=20261109d").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/buildings.geojson?v=20261109d").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/parcels.geojson?v=20261109d").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/overlays.json?v=20261109d").then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
       const localHcadMap = new Map();
       const ingestFc = (fc) => {
@@ -1880,7 +1880,7 @@ async function copyCurrentActivityBriefing(){
 function ensureLazyHahcTrackerLoaded(){
   if (hahcFetchStarted) return;
   hahcFetchStarted = true;
-  fetch("public/data/hahc_coa_tracker.json?v=20261109c")
+  fetch("public/data/hahc_coa_tracker.json?v=20261109d")
     .then(r => (r.ok ? r.json() : null))
     .then(data => {
       if (data && typeof data === "object") {
@@ -5381,7 +5381,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
     try {
       let alData = window.__permitAlertsPayload || null;
       if (!alData) {
-        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261109c");
+        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261109d");
         if (alResp.ok) alData = await alResp.json();
       }
       const alerts = Array.isArray(alData?.alerts) ? alData.alerts : [];
@@ -5437,7 +5437,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
 async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
   try {
-    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261109c";
+    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261109d";
     const [platResp, wlResp, alResp, actResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json" + cacheQ),
       fetch("public/data/property_watchlist.json" + cacheQ),

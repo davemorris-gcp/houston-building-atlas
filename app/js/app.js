@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261109c";
+} from "./palettes.js?v=20261109d";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -29,16 +29,16 @@ import {
   toLayerStateKey,
   toOverlayDataKey,
   VALID_INSPECTOR_TABS,
-} from "./filterStore.js?v=20261109c";
-import { AtlasMapController } from "./mapController.js?v=20261109c";
+} from "./filterStore.js?v=20261109d";
+import { AtlasMapController } from "./mapController.js?v=20261109d";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261109c";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109c";
+} from "./guidedChaptersAndPortfolios.js?v=20261109d";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109d";
 import {
   buildAddressShardUrl,
   buildResearchKitDeedChainView,
@@ -51,7 +51,7 @@ import {
   isPlaceholderOwnerName,
   normalizeAddressShardPrefix,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261109c";
+} from "./clerkSearchHelpers.js?v=20261109d";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -74,7 +74,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261109c";
+} from "./curatedEdits.js?v=20261109d";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -84,12 +84,12 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261109c";
+} from "./photoService.js?v=20261109d";
 import {
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
   resolveArchivalRecords,
-} from "./archivalHelpers.js?v=20261109c";
+} from "./archivalHelpers.js?v=20261109d";
 import {
   buildCohLandmarkDossierCardHtml,
   buildHpoDistrictDossierCardHtml,
@@ -101,7 +101,7 @@ import {
   resolveCohLandmarkOverlayMetadata,
   resolveHpoDistrictDocs,
   resolveHpoParcelSurvey,
-} from "./hpoSurveyHelpers.js?v=20261109c";
+} from "./hpoSurveyHelpers.js?v=20261109d";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -109,18 +109,18 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261109c";
+} from "./platMonitorHelpers.js?v=20261109d";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261109c";
+} from "./hcadViewportParcels.js?v=20261109d";
 import {
   buildInspectorPermitsBodyHtml,
   explainCohWatchPermit,
   explainDshsNotification,
   explainMultiAgencyFiling,
-} from "./permitPlainEnglish.js?v=20261109c";
+} from "./permitPlainEnglish.js?v=20261109d";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -140,13 +140,19 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261109c";
+} from "./preservationOrganizer.js?v=20261109d";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
   escapeHtml,
   sanitizeHttpUrl,
-} from "./urlValidators.js?v=20261109c";
+} from "./urlValidators.js?v=20261109d";
+import {
+  buildThcSurveyFormModel,
+  collectEditedThcSurveyFormModel,
+  renderThcSurveyFormHtml,
+  serializeThcSurveyFormToTsv,
+} from "./thcSurveyFormGenerator.js?v=20261109d";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -262,6 +268,7 @@ export class HoustonAtlasApp {
       viewport,
       selection,
       inspectorTab,
+      thcSurvey,
       collapseSidebar,
       activeChapterId,
       activePortfolio,
@@ -276,7 +283,12 @@ export class HoustonAtlasApp {
     this.initialViewport = viewport;
     this.initialSelection = selection;
     this.initialInspectorTab = inspectorTab;
+    this.initialThcSurvey = Boolean(thcSurvey);
     this.initialCollapseSidebar = collapseSidebar;
+    this._activeDossierMode = "sheet";
+    this._activeDossierProps = null;
+    this._activeDossierSurveyDraft = null;
+    this._activeThcSurveyModel = null;
     this.initialChapterId = activeChapterId || "";
     this.initialPortfolio = activePortfolio || null;
     this.initialScorecard = activeScorecard || null;
@@ -483,7 +495,32 @@ export class HoustonAtlasApp {
         if (initialUrlTab) {
           this._switchInspectorTab(initialUrlTab);
         }
+        if (this.initialThcSurvey) {
+          await this.waitForPendingInspectorHydrations();
+          const thcProps =
+            this._activeInspectorProps ||
+            this.mapController?.selectedFeatureProps || {
+              hcad_num: this.initialSelection?.hcadNum || "",
+              id: this.initialSelection?.featureId || "",
+              address: this.initialSelection?.query || "",
+            };
+          await this.openPropertyDossierModal(thcProps, {
+            mode: "thc",
+            updateUrl: false,
+          });
+        }
       }
+    } else if (this.initialThcSurvey) {
+      const fallbackProps = this.mapController?.selectedFeatureProps || {
+        hcad_num: "0550140020008",
+        address: "3700 N MAIN ST",
+        landmark_name: "Granada Theater",
+        year_built: 1926,
+      };
+      await this.openPropertyDossierModal(fallbackProps, {
+        mode: "thc",
+        updateUrl: false,
+      });
     }
 
     if (this.initialScorecard) {
@@ -534,6 +571,7 @@ export class HoustonAtlasApp {
         viewport,
         selection,
         inspectorTab,
+        thcSurvey,
         collapseSidebar,
         activeChapterId,
         activePortfolio,
@@ -683,6 +721,26 @@ export class HoustonAtlasApp {
           );
           if (urlSeq !== this._urlChangeSeq) return;
           this._switchInspectorTab(effectiveTab);
+          if (thcSurvey) {
+            await this.waitForPendingInspectorHydrations();
+            if (urlSeq !== this._urlChangeSeq) return;
+            const thcProps =
+              this._activeInspectorProps ||
+              this.mapController?.selectedFeatureProps || {
+                hcad_num: selection.hcadNum || "",
+                id: selection.featureId || "",
+                address: selection.query || "",
+              };
+            await this.openPropertyDossierModal(thcProps, {
+              mode: "thc",
+              updateUrl: false,
+            });
+          } else if (
+            this._activeDossierMode === "thc" &&
+            !document.getElementById("dossier-modal")?.classList.contains("hidden")
+          ) {
+            document.getElementById("dossier-modal")?.classList.add("hidden");
+          }
         } else if (selection?.boundaryId) {
           if (vpChangedSignificantly) {
             this.mapController.flyToLocation({
@@ -1132,15 +1190,15 @@ export class HoustonAtlasApp {
         archivalRes,
         hpoSurveyRes,
       ] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261109c"),
-        fetch("public/data/stats_summary.json?v=20261109c"),
-        fetch("public/data/haif_index.json?v=20261109c").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261109c").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261109c").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261109c").catch(() => null),
-        fetch("public/data/ownership_portfolios.json?v=20261109c").catch(() => null),
-        fetch("public/data/archival_index.json?v=20261109c").catch(() => null),
-        fetch("public/data/hpo_district_surveys.json?v=20261109c").catch(() => null),
+        fetch("public/data/search_index.json?v=20261109d"),
+        fetch("public/data/stats_summary.json?v=20261109d"),
+        fetch("public/data/haif_index.json?v=20261109d").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261109d").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261109d").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261109d").catch(() => null),
+        fetch("public/data/ownership_portfolios.json?v=20261109d").catch(() => null),
+        fetch("public/data/archival_index.json?v=20261109d").catch(() => null),
+        fetch("public/data/hpo_district_surveys.json?v=20261109d").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -3382,6 +3440,12 @@ export class HoustonAtlasApp {
               e.preventDefault();
               e.stopPropagation();
               utilEl.classList.add("hidden");
+              if (topUtilityId === "dossier-modal") {
+                this._activeDossierMode = "sheet";
+                if (typeof this._updateUrlHash === "function" && this.filterStore) {
+                  this._updateUrlHash(this.filterStore.getState());
+                }
+              }
               if (topUtilityId === "correction-modal" && this._staffWorkbench) {
                 this._staffWorkbench.cancelPendingPolyEditAuthGate?.();
               }
@@ -4196,16 +4260,82 @@ export class HoustonAtlasApp {
       });
     }
 
-    // Printable Archival Property Dossier Modal
+    // Printable Archival Property Dossier & Official THC Survey Form Modal
     const dossierModal = document.getElementById("dossier-modal");
     const btnCloseDossierModal = document.getElementById("btn-close-dossier-modal");
     const btnPrintDossierNow = document.getElementById("btn-print-dossier-now");
+    const btnDossierModeSheet = document.getElementById("btn-dossier-mode-sheet");
+    const btnDossierModeThc = document.getElementById("btn-dossier-mode-thc");
+    const btnCopyThcTsv = document.getElementById("btn-copy-thc-tsv");
+    const btnDownloadThcJson = document.getElementById("btn-download-thc-json");
+    const closeDossierModalHandler = () => {
+      if (dossierModal) dossierModal.classList.add("hidden");
+      if (this._activeDossierMode === "thc") {
+        this._activeDossierMode = "sheet";
+        this._updateUrlHash(this.filterStore.getState());
+      }
+    };
     if (btnCloseDossierModal && dossierModal) {
-      btnCloseDossierModal.addEventListener("click", () => dossierModal.classList.add("hidden"));
+      btnCloseDossierModal.addEventListener("click", closeDossierModalHandler);
     }
     if (dossierModal) {
       dossierModal.addEventListener("click", (e) => {
-        if (e.target === dossierModal) dossierModal.classList.add("hidden");
+        if (e.target === dossierModal) closeDossierModalHandler();
+      });
+    }
+    if (btnDossierModeSheet) {
+      btnDossierModeSheet.addEventListener("click", () => {
+        if (this._activeDossierProps) {
+          this.openPropertyDossierModal(this._activeDossierProps, {
+            mode: "sheet",
+            surveyDraft: this._activeDossierSurveyDraft,
+          });
+        }
+      });
+    }
+    if (btnDossierModeThc) {
+      btnDossierModeThc.addEventListener("click", () => {
+        if (this._activeDossierProps) {
+          this.openPropertyDossierModal(this._activeDossierProps, {
+            mode: "thc",
+            surveyDraft: this._activeDossierSurveyDraft,
+          });
+        }
+      });
+    }
+    if (btnCopyThcTsv) {
+      btnCopyThcTsv.addEventListener("click", () => {
+        const bodyEl = document.getElementById("dossier-modal-body");
+        const model = collectEditedThcSurveyFormModel(this._activeThcSurveyModel, bodyEl);
+        if (!model) return;
+        const tsv = serializeThcSurveyFormToTsv(model);
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(tsv);
+        }
+        const origHtml = btnCopyThcTsv.innerHTML;
+        btnCopyThcTsv.innerHTML = "&#10003; Copied THC TSV!";
+        setTimeout(() => {
+          btnCopyThcTsv.innerHTML = origHtml;
+        }, 1800);
+      });
+    }
+    if (btnDownloadThcJson) {
+      btnDownloadThcJson.addEventListener("click", () => {
+        const bodyEl = document.getElementById("dossier-modal-body");
+        const model = collectEditedThcSurveyFormModel(this._activeThcSurveyModel, bodyEl);
+        if (!model) return;
+        const cleanId = String(model.localId || "Parcel").replace(/[^0-9A-Za-z_-]/g, "_");
+        const blob = new Blob([JSON.stringify(model, null, 2)], {
+          type: "application/json;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `THC_Survey_Form_${cleanId}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
       });
     }
     if (btnPrintDossierNow) {
@@ -12578,6 +12708,14 @@ export class HoustonAtlasApp {
         </a>`;
     }
     step5BtnsHtml += `
+      <button
+        type="button"
+        class="rk-action-btn primary"
+        data-rk-open-thc-survey="1"
+        title="Open the pre-populated 3-Section Texas Historical Commission (THC) Historic Resources Survey Form for this property"
+      >
+        &#127963; Pre-Filled THC Survey Form
+      </button>
       <a
         href="https://www.preservationhouston.org/services/research"
         target="_blank"
@@ -12898,6 +13036,16 @@ export class HoustonAtlasApp {
       });
     });
 
+    kitEl.querySelectorAll("[data-rk-open-thc-survey]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this._activeInspectorProps) {
+          this.openPropertyDossierModal(this._activeInspectorProps, { mode: "thc" });
+        }
+      });
+    });
+
     kitEl.querySelectorAll("[data-rk-drape-map]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -13044,6 +13192,7 @@ export class HoustonAtlasApp {
       rawProps,
       this.mapController ? this.mapController.curatedOverrides : {}
     );
+    this._activeInspectorProps = props;
 
     // Parse good_brick_awards if serialized as a JSON string by MapLibre GL queryRenderedFeatures
     let goodBrickAwards = [];
@@ -14760,6 +14909,14 @@ export class HoustonAtlasApp {
                   &#128424; Print Property Sheet
                 </button>
               </div>
+              <button
+                type="button"
+                class="inspector-btn secondary"
+                id="btn-open-thc-survey-form"
+                title="Open the pre-populated 3-Section Texas Historical Commission (THC) Historic Resources Survey Form for this property"
+              >
+                &#127963; Pre-Filled THC Survey Form
+              </button>
               <a
                 href="${googleMapsUrl}"
                 target="_blank"
@@ -15284,7 +15441,14 @@ export class HoustonAtlasApp {
     const btnPrintDossier = document.getElementById("btn-print-property-sheet");
     if (btnPrintDossier) {
       btnPrintDossier.addEventListener("click", () => {
-        this.openPropertyDossierModal(props);
+        this.openPropertyDossierModal(props, { mode: "sheet" });
+      });
+    }
+
+    const btnOpenThcSurvey = document.getElementById("btn-open-thc-survey-form");
+    if (btnOpenThcSurvey) {
+      btnOpenThcSurvey.addEventListener("click", () => {
+        this.openPropertyDossierModal(props, { mode: "thc" });
       });
     }
 
@@ -15584,7 +15748,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const permitShardUrl = cb
         ? `public/data/permits/permits_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/permits/permits_${prefix3}.json.gz?v=20261109c`;
+        : `public/data/permits/permits_${prefix3}.json.gz?v=20261109d`;
       const p = fetch(permitShardUrl)
         .then((res) => decodeGzipJsonResponse(res, decompressPermitShardBytes))
         .catch(() => ({}));
@@ -15608,7 +15772,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const ownerShardUrl = cb
         ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261109c`;
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261109d`;
       const p = fetch(ownerShardUrl)
         .then(async (res) => {
           if (!res.ok) return {};
@@ -16311,11 +16475,39 @@ export class HoustonAtlasApp {
     return `<svg viewBox="0 0 ${size * 4} ${size * 4}" width="64" height="64" class="dossier-qr-svg" aria-hidden="true">${rects}</svg>`;
   }
 
-  async openPropertyDossierModal(props) {
+  async openPropertyDossierModal(props, { mode = "sheet", surveyDraft = null, updateUrl = true } = {}) {
     const modal = document.getElementById("dossier-modal");
     const bodyEl = document.getElementById("dossier-modal-body");
     if (!modal || !bodyEl || !props) return;
     this._closeTransientTopbarPopovers?.();
+
+    const effMode = mode === "thc" ? "thc" : "sheet";
+    this._activeDossierMode = effMode;
+    this._activeDossierProps = props;
+    this._activeDossierSurveyDraft =
+      surveyDraft || this._staffWorkbench?.surveyDraft || null;
+
+    const btnModeSheet = document.getElementById("btn-dossier-mode-sheet");
+    const btnModeThc = document.getElementById("btn-dossier-mode-thc");
+    const btnCopyTsv = document.getElementById("btn-copy-thc-tsv");
+    const btnDownloadJson = document.getElementById("btn-download-thc-json");
+    const modalTitleEl = document.getElementById("dossier-modal-title");
+    if (btnModeSheet) {
+      btnModeSheet.classList.toggle("active", effMode === "sheet");
+      btnModeSheet.setAttribute("aria-selected", effMode === "sheet" ? "true" : "false");
+    }
+    if (btnModeThc) {
+      btnModeThc.classList.toggle("active", effMode === "thc");
+      btnModeThc.setAttribute("aria-selected", effMode === "thc" ? "true" : "false");
+    }
+    if (btnCopyTsv) btnCopyTsv.classList.toggle("hidden", effMode !== "thc");
+    if (btnDownloadJson) btnDownloadJson.classList.toggle("hidden", effMode !== "thc");
+    if (modalTitleEl) {
+      modalTitleEl.textContent =
+        effMode === "thc"
+          ? "THC Historic Resources Survey Form"
+          : "Printable Property Sheet";
+    }
 
     const year = Number(props.year_built) >= 1836 ? Number(props.year_built) : null;
     const eraColor = year ? getYearColorHex(year, this.filterStore.getState().paletteStyle) : "#4d781d";
@@ -16357,6 +16549,7 @@ export class HoustonAtlasApp {
       selectedFeatureId,
       inspectorTab:
         selectedHcad || selectedFeatureId ? this._activeInspectorTab || "" : "",
+      thcSurvey: effMode === "thc",
       useQueryString: true,
     });
 
@@ -16498,6 +16691,87 @@ export class HoustonAtlasApp {
       : `Search "${dossierAddrInfo.cleanQuery || title}" in HPL 1866-1926 Directories${
           year && year > 1926 ? " + HHRC Print Criss-Cross (1927+)" : ""
         }`;
+
+    if (effMode === "thc") {
+      const permitShardRec =
+        this._activeInspectorCompositeRec?.hcadNum === String(hcadAcct)
+          ? this._activeInspectorCompositeRec.rec
+          : hcadAcct
+          ? await this._fetchPermitRecord(hcadAcct).catch(() => null)
+          : null;
+      const distName = String(props.historic_district || "").trim();
+      const hpoSurveyRec =
+        this.hpoSurveyIndex && hcadAcct
+          ? resolveHpoParcelSurvey(this.hpoSurveyIndex, {
+              hcadNum: hcadAcct,
+              address,
+              historicDistrict: distName,
+            })
+          : null;
+      const archivalRes = this.archivalIndex
+        ? resolveArchivalRecords(this.archivalIndex, {
+            hcadNum: hcadAcct,
+            buildingId: props.building_id || props.id || "",
+            architect: props.architect || "",
+            subdivision: props.subdivision || dossierLegal.cleanAdditionSearch || "",
+            historicDistrict: distName,
+          })
+        : null;
+      const archivalCitations = Array.isArray(archivalRes?.parcelCitations)
+        ? archivalRes.parcelCitations
+        : [];
+      const watchlistAlerts = this._resolveWatchlistAlertsForProperty?.(props, hcadAcct) || [];
+      const isConfidential = Boolean(
+        props.is_confidential ||
+          permitShardRec?.conf === 1 ||
+          isConfidentialOwnerName(liveOwner)
+      );
+      const plattedYear = String(
+        activeCtx.subProps?.plat_year ||
+          activeCtx.historicParentPlat?.estimated_plat_year ||
+          props.plat_year ||
+          ""
+      ).trim();
+
+      this._activeThcSurveyModel = buildThcSurveyFormModel(props, {
+        hcadNum: hcadAcct,
+        title,
+        altNames: nameInfo.altNames,
+        ownerDisplay: liveOwner,
+        isConfidential,
+        liveHcadRec: liveRec,
+        permitShardRec,
+        photos,
+        goodBrickAwards,
+        hpoSurveyRec,
+        archivalCitations,
+        watchlistAlerts,
+        sanbornCoverage: dossierSanborn,
+        cityDirData: dossierCityDir,
+        cityDirSummary: dossierCityDirSummary,
+        legalSummary: dossierLegalSummary,
+        subdivisionName:
+          dossierLegal.cleanAdditionSearch ||
+          props.subdivision ||
+          liveRec?.legalSubdivision ||
+          "",
+        plattedYear,
+        lat: dLat,
+        lng: dLng,
+        displayStyle,
+        shareUrl,
+        surveyDraft: this._activeDossierSurveyDraft,
+      });
+
+      bodyEl.innerHTML = renderThcSurveyFormHtml(this._activeThcSurveyModel, {
+        qrSvg: this._buildQrMatrixSvg(shareUrl),
+      });
+      modal.classList.remove("hidden");
+      if (updateUrl && typeof this._updateUrlHash === "function" && this.filterStore) {
+        this._updateUrlHash(this.filterStore.getState());
+      }
+      return;
+    }
 
     bodyEl.innerHTML = `
       <article class="dossier-sheet" id="printable-dossier-sheet">
@@ -16682,6 +16956,9 @@ export class HoustonAtlasApp {
     `;
 
     modal.classList.remove("hidden");
+    if (updateUrl && typeof this._updateUrlHash === "function" && this.filterStore) {
+      this._updateUrlHash(this.filterStore.getState());
+    }
   }
 
   openShareModal() {
@@ -16753,7 +17030,11 @@ export class HoustonAtlasApp {
 
     const state = this.filterStore.getState();
     const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
-    const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
+    const selProps =
+      (this.mapController && this.mapController.selectedFeatureProps) ||
+      this._activeInspectorProps ||
+      this._activeDossierProps ||
+      null;
     const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(selProps);
 
     const chkViewport = document.getElementById("chk-share-include-viewport");
@@ -17570,7 +17851,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261109c`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261109d`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -19045,7 +19326,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261109c")
+          fetch("public/data/sanborn_catalog.json?v=20261109d")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -19055,7 +19336,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261109c")
+          fetch("public/data/citydir_index.json?v=20261109d")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -19078,7 +19359,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261109c")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261109d")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -19217,7 +19498,11 @@ export class HoustonAtlasApp {
   }
 
   _computeHistorySignature(state) {
-    const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
+    const selProps =
+      (this.mapController && this.mapController.selectedFeatureProps) ||
+      this._activeInspectorProps ||
+      this._activeDossierProps ||
+      null;
     const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(selProps);
     const selBnd = this.mapController?.selectedBoundaryFeature?.properties || null;
     const bndLayer = selBnd?.overlay_layer || "neighborhoods";
@@ -19281,7 +19566,11 @@ export class HoustonAtlasApp {
       : this.lastViewportStats
       ? this.lastViewportStats.viewport
       : null;
-    const selProps = this.mapController ? this.mapController.selectedFeatureProps : null;
+    const selProps =
+      (this.mapController && this.mapController.selectedFeatureProps) ||
+      this._activeInspectorProps ||
+      this._activeDossierProps ||
+      null;
     const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(selProps);
     const selBnd = this.mapController?.selectedBoundaryFeature?.properties || null;
     const selectedBoundary =
@@ -19295,12 +19584,22 @@ export class HoustonAtlasApp {
       ? { kind: this._activePortfolio.kind, query: this._activePortfolio.query }
       : null;
 
+    const dossierModal =
+      typeof document !== "undefined" && typeof document.getElementById === "function"
+        ? document.getElementById("dossier-modal")
+        : null;
+    const isThcSurveyOpen = Boolean(
+      this._activeDossierMode === "thc" &&
+        dossierModal &&
+        !dossierModal.classList?.contains?.("hidden")
+    );
     let hash = serializeStateToHash(state, vp, {
       includeViewport: true,
       selectedHcad,
       selectedFeatureId,
       inspectorTab:
         selectedHcad || selectedFeatureId ? this._activeInspectorTab || "" : "",
+      thcSurvey: isThcSurveyOpen,
       selectedBoundary,
       activeChapterId: this._activeChapterId || "",
       activePortfolio: activePortfolioSpec,
@@ -20526,7 +20825,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261109c")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261109d")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

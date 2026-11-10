@@ -1421,6 +1421,10 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     params.set("tab", tabSlug);
   }
 
+  if (options.thcSurvey) {
+    params.set("thcSurvey", "1");
+  }
+
   if (collapseSidebar) {
     params.set("sidebar", "0");
   }
@@ -1453,6 +1457,7 @@ export function buildShareableUrl(state, viewport = null, options = {}) {
     selectedHcad: options.selectedHcad || "",
     selectedFeatureId: options.selectedFeatureId || options.selectedId || "",
     inspectorTab: options.inspectorTab || "",
+    thcSurvey: Boolean(options.thcSurvey),
     selectedBoundary: options.selectedBoundary || null,
     activeChapterId: options.activeChapterId || "",
     activePortfolio: options.activePortfolio || null,
@@ -1833,8 +1838,14 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.syncAnnexationToTime = patch.layers.annexations;
   }
 
-  // Optional Selected Property (`hcad` or `id` or `selected` or `q` or `bnd`)
-  const selHcad = (mergedParams.get("hcad") || "").trim();
+  // Optional Selected Property (`hcad` or `id` or `selected` or `q` or `bnd` or `thcSurvey=<hcad>`)
+  const rawThcSurvey = (mergedParams.get("thcSurvey") || mergedParams.get("thc_survey") || "").trim();
+  const thcSurveyHcad = /^\d{10,13}$/.test(rawThcSurvey) ? rawThcSurvey.padStart(13, "0") : "";
+  const thcSurvey = Boolean(
+    thcSurveyHcad ||
+      /^(1|true|on|yes)$/i.test(rawThcSurvey)
+  );
+  const selHcad = (mergedParams.get("hcad") || thcSurveyHcad || "").trim();
   const selId = (mergedParams.get("id") || mergedParams.get("selected") || "").trim();
   const selQuery = (
     mergedParams.get("q") ||
@@ -1988,6 +1999,7 @@ export function parseHashToState(hashString = "", searchString = "") {
     viewport,
     selection,
     inspectorTab,
+    thcSurvey,
     collapseSidebar,
     activeChapterId,
     activePortfolio,

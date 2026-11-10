@@ -1066,8 +1066,8 @@ test("UT-M14-5: Activity log helpers, DOM wiring in app.js & plat-monitor.html, 
     `Expected at least 30 activity log events with Plain-English notes, got ${plainEventCount}`
   );
 
-  // 3. Verify app.js, plat-monitor.html, and index.css DOM classes and cache-bust 20261109c
-  assert.equal(ACTIVE_VER, "20261109c");
+  // 3. Verify app.js, plat-monitor.html, and index.css DOM classes and active cache-bust
+  assert.match(ACTIVE_VER, /^\d{8}[a-z]?$/);
   const appJs = fs.readFileSync(path.join(REPO_ROOT, "app", "js", "app.js"), "utf8");
   const platMonitorHtml = fs.readFileSync(
     path.join(REPO_ROOT, "app", "plat-monitor.html"),

@@ -647,8 +647,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   const expectedVer = String(manifest.cache_bust || "").trim();
   assert.equal(
     expectedVer,
-    "20261109c",
-    `Expected active pmtiles_manifest.json cache_bust '20261109c', got '${expectedVer}'`
+    "20261109d",
+    `Expected active pmtiles_manifest.json cache_bust '20261109d', got '${expectedVer}'`
   );
   assert.equal(
     ORGANIZER_CACHE_BUST,

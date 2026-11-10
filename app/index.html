@@ -18,7 +18,7 @@
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
   />
-  <link rel="stylesheet" href="styles/index.css?v=20261109c" />
+  <link rel="stylesheet" href="styles/index.css?v=20261109d" />
 </head>
 <body>
   <div class="atlas-shell">
@@ -2089,6 +2089,9 @@
             <p class="survey-queue-summary" id="survey-queue-summary-text">0 total observations on device.</p>
             <div class="survey-banner info hidden" id="survey-queue-sync-status"></div>
             <div class="survey-queue-actions">
+              <button type="button" class="survey-queue-btn primary" id="btn-survey-open-thc-form" title="Open the pre-filled 3-section Texas Historical Commission (THC) Historic Resources Survey Form with your live field survey notes merged in">
+                &#127963; THC Survey Form
+              </button>
               <button type="button" class="survey-queue-btn primary" id="btn-survey-sync-now">
                 &#9729; Sync Queue Now
               </button>
@@ -2779,6 +2782,20 @@
             </div>
           </div>
           <div class="dossier-header-actions">
+            <div class="dossier-mode-switch" role="tablist" aria-label="Property Sheet Format">
+              <button type="button" class="action-pill active" id="btn-dossier-mode-sheet" role="tab" aria-selected="true">
+                &#128196; Archival Dossier
+              </button>
+              <button type="button" class="action-pill" id="btn-dossier-mode-thc" role="tab" aria-selected="false">
+                &#127963; THC Survey Form
+              </button>
+            </div>
+            <button type="button" class="action-pill hidden" id="btn-copy-thc-tsv" title="Copy all 38 THC Survey Form fields as a tab-separated row for Google Sheets or Excel">
+              &#128203; Copy THC TSV
+            </button>
+            <button type="button" class="action-pill hidden" id="btn-download-thc-json" title="Download the structured 3-section THC Survey Form JSON record">
+              &#11015; THC JSON
+            </button>
             <button type="button" class="action-pill active" id="btn-print-dossier-now">
               &#128424; Print / Save PDF
             </button>
@@ -3550,6 +3567,6 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
-  <script type="module" src="js/app.js?v=20261109c"></script>
+  <script type="module" src="js/app.js?v=20261109d"></script>
 </body>
 </html>

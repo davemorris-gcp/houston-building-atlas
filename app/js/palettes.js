@@ -9,7 +9,7 @@ import {
   OWNERSHIP_TIER_ITEMS,
   resolveEffectiveOwnershipTier,
   buildEffectiveOwnershipTierExpression,
-} from "./filterStore.js?v=20261109c";
+} from "./filterStore.js?v=20261109d";
 
 export {
   OWNERSHIP_TIER_ITEMS,

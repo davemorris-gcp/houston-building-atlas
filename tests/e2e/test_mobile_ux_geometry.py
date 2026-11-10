@@ -807,3 +807,115 @@ def test_e2e_m11_5_plat_monitor_mobile_geometry(warm_mobile_ux_suite: Any) -> No
     assert all(v <= 1 for v in wide_font_overflow.values()), (
         f"Expected zero horizontal overflow at 360x640 under wider font metrics, got {wide_font_overflow}"
     )
+
+
+def test_e2e_m15_thc_survey_form_generator_and_deep_link(warm_mobile_ux_suite: Any) -> None:
+    atlas_page = warm_mobile_ux_suite["atlas_page"]
+    atlas_page.set_viewport_size({"width": 390, "height": 664})
+    atlas_page.evaluate(_reset_atlas_overlays_js())
+
+    # 1. Navigate via URL hash to Granada Theater (#hcad=0550140020008&thcSurvey=1)
+    thc_state = atlas_page.evaluate(
+        """async () => {
+            window.history.replaceState(null, '', `${window.location.pathname}#hcad=0550140020008&thcSurvey=1`);
+            await window.atlasApp._handleUrlChange();
+            const modal = document.getElementById('dossier-modal');
+            const sheet = document.getElementById('printable-thc-survey-sheet');
+            const copyTsvBtn = document.getElementById('btn-copy-thc-tsv');
+            const dlJsonBtn = document.getElementById('btn-download-thc-json');
+            const modeThcBtn = document.getElementById('btn-dossier-mode-thc');
+            const modeSheetBtn = document.getElementById('btn-dossier-mode-sheet');
+            const vw = window.innerWidth;
+            const ox = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - vw;
+
+            const modalOpen = Boolean(modal && !modal.classList.contains('hidden'));
+            const hasThcSheet = Boolean(sheet);
+            const tsvVisible = Boolean(copyTsvBtn && !copyTsvBtn.classList.contains('hidden'));
+            const jsonVisible = Boolean(dlJsonBtn && !dlJsonBtn.classList.contains('hidden'));
+            const thcActive = Boolean(modeThcBtn?.classList.contains('active'));
+
+            const smallInputs = [];
+            if (sheet) {
+                const inputs = sheet.querySelectorAll('input:not([type="checkbox"]), textarea');
+                for (const el of inputs) {
+                    const cs = window.getComputedStyle(el);
+                    const r = el.getBoundingClientRect();
+                    if (cs.display === 'none' || cs.visibility === 'hidden' || r.width < 1) continue;
+                    const px = parseFloat(cs.fontSize || '0');
+                    if (px < 15.9) smallInputs.push(`${el.getAttribute('data-thc-field') || el.tagName}:${px}`);
+                }
+            }
+
+            const histNameVal = sheet?.querySelector('[data-thc-field="section1.historicName"]')?.value || '';
+            const addrVal = sheet?.querySelector('[data-thc-field="address"]')?.value || '';
+            const yrVal = sheet?.querySelector('[data-thc-field="section1.constructionDate"]')?.value || '';
+            const archDescVal = sheet?.querySelector('[data-thc-field="section2.generalArchitecturalDescription"]')?.value || '';
+            const secTitles = Array.from(sheet?.querySelectorAll('.thc-section-pill') || []).map(el => el.textContent.trim());
+
+            // Switch to Archival Dossier mode and back to THC Survey Form mode
+            await window.atlasApp.openPropertyDossierModal(window.atlasApp._activeDossierProps, {
+                mode: 'sheet',
+                surveyDraft: window.atlasApp._activeDossierSurveyDraft,
+            });
+            const sheetModeHasDossier = Boolean(document.getElementById('printable-dossier-sheet'));
+            const sheetModeTsvHidden = Boolean(copyTsvBtn?.classList.contains('hidden'));
+            const hashInSheetMode = window.location.hash;
+
+            await window.atlasApp.openPropertyDossierModal(window.atlasApp._activeDossierProps, {
+                mode: 'thc',
+                surveyDraft: window.atlasApp._activeDossierSurveyDraft,
+            });
+            const thcModeRestored = Boolean(document.getElementById('printable-thc-survey-sheet'));
+            const hashInThcMode = window.location.hash;
+
+            // Close modal and verify thcSurvey=1 is cleared from URL hash
+            document.getElementById('btn-close-dossier-modal')?.click();
+            const hashAfterClose = window.location.hash;
+
+            return {
+                modalOpen,
+                hasThcSheet,
+                tsvVisible,
+                jsonVisible,
+                thcActive,
+                docOverflowX: ox,
+                smallInputs,
+                histNameVal,
+                addrVal,
+                yrVal,
+                archDescLen: archDescVal.length,
+                secTitles,
+                sheetModeHasDossier,
+                sheetModeTsvHidden,
+                hashInSheetMode,
+                thcModeRestored,
+                hashInThcMode,
+                hashAfterClose,
+            };
+        }"""
+    )
+
+    assert thc_state["modalOpen"] and thc_state["hasThcSheet"], f"Expected THC Survey Form modal open: {thc_state}"
+    assert thc_state["tsvVisible"] and thc_state["jsonVisible"] and thc_state["thcActive"], (
+        f"Expected THC toolbar controls active: {thc_state}"
+    )
+    assert thc_state["docOverflowX"] <= 1, f"Expected zero horizontal overflow at 390x664: {thc_state}"
+    assert not thc_state["smallInputs"], f"Expected all mobile THC inputs >= 16px: {thc_state['smallInputs']}"
+    assert "Granada" in thc_state["histNameVal"], f"Expected Granada Theater historic name: {thc_state}"
+    assert "3700" in thc_state["addrVal"], f"Expected 3700 N Main St address: {thc_state}"
+    assert thc_state["yrVal"] == "1930", f"Expected 1930 construction date: {thc_state}"
+    assert thc_state["archDescLen"] >= 120, f"Expected synthesized architectural narrative: {thc_state}"
+    assert len(thc_state["secTitles"]) == 3, f"Expected 3 official THC sections: {thc_state['secTitles']}"
+    assert thc_state["sheetModeHasDossier"] and thc_state["sheetModeTsvHidden"], (
+        f"Expected mode switch to Archival Dossier to hide THC TSV button: {thc_state}"
+    )
+    assert "thcSurvey=1" not in thc_state["hashInSheetMode"], (
+        f"Expected sheet mode to clear thcSurvey=1 from URL hash: {thc_state['hashInSheetMode']}"
+    )
+    assert thc_state["thcModeRestored"] and "thcSurvey=1" in thc_state["hashInThcMode"], (
+        f"Expected THC mode switch to restore thcSurvey=1 in URL hash: {thc_state}"
+    )
+    assert "thcSurvey=1" not in thc_state["hashAfterClose"], (
+        f"Expected closing dossier modal to remove thcSurvey=1 from URL hash: {thc_state['hashAfterClose']}"
+    )
+    atlas_page.evaluate(_reset_atlas_overlays_js())

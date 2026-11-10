@@ -1,7 +1,7 @@
 /**
  * Preservation Houston Staff & Field Workbench (Milestone 3).
  *
- * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261109c")` strictly when
+ * Lazy-loaded via dynamic `import("./staffWorkbench.js?v=20261109d")` strictly when
  * staff or field volunteers open:
  *   - Component A (`#4`): Split-Screen Historian Rapid Audit Mode (`#audit=1`)
  *   - Component B (`#5a`): In-Browser Staff Polygon Editor (`#polyedit=<id>`)
@@ -43,13 +43,13 @@ import {
   getSurveyPhotoBlob,
   listSurveyPhotoSummaries,
   deleteSurveyPhotoBlob,
-} from "./curatedEdits.js?v=20261109c";
+} from "./curatedEdits.js?v=20261109d";
 import {
   VALID_AUDIT_SORT_MODES,
   getAtlasMaxYear,
   normalizeAuditSort,
   normalizeComparableAddress,
-} from "./filterStore.js?v=20261109c";
+} from "./filterStore.js?v=20261109d";
 export { VALID_AUDIT_SORT_MODES, normalizeAuditSort };
 
 export const BORDEN_DOWNTOWN_GRID_DEG = -34.65;
@@ -2395,7 +2395,7 @@ export class StaffWorkbenchController {
     }
     if (this._auditLoadingPromise) return this._auditLoadingPromise;
     this._auditLoadingPromise = (async () => {
-      const resp = await fetch("public/data/historical_audit_queue.json?v=20261109c");
+      const resp = await fetch("public/data/historical_audit_queue.json?v=20261109d");
       if (!resp.ok) {
         throw new Error(`HTTP ${resp.status} loading historical_audit_queue.json`);
       }
@@ -4602,6 +4602,25 @@ export class StaffWorkbenchController {
           this.setFieldSurveySnap("half");
         }
       }
+    });
+    document.getElementById("btn-survey-open-thc-form")?.addEventListener("click", () => {
+      const candProps = this.surveyActiveCandidate?.props || {};
+      const targetProps = {
+        ...candProps,
+        hcad_num: this.surveyDraft.hcad_num || candProps.hcad_num || "",
+        building_id: this.surveyDraft.building_id || candProps.building_id || candProps.id || "",
+        address:
+          this.surveyDraft.address ||
+          this.surveyActiveCandidate?.address ||
+          candProps.address ||
+          "Houston, TX",
+        historic_district:
+          this.surveyDraft.district || candProps.historic_district || "",
+      };
+      this.app?.openPropertyDossierModal?.(targetProps, {
+        mode: "thc",
+        surveyDraft: { ...this.surveyDraft },
+      });
     });
     document.getElementById("btn-survey-sync-now")?.addEventListener("click", () => {
       this.syncOfflineSurveyQueueNow();
