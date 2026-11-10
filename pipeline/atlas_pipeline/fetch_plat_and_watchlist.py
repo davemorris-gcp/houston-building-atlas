@@ -5686,12 +5686,26 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
         ),
         "chk-05": (
             "In Progress",
-            "2026-10-23",
+            "2026-10-29",
             [
                 {
                     "date": "2026-10-23",
                     "result": "HCAD Account 0152300000001 (Tracts 1-16, Block 417 SSBB, 62,500 SF full city block bounded by Smith, Pierce, Brazos, and Gray); deed transfer to OB Texas Properties LLC closed 9/30/2026",
-                }
+                },
+                {
+                    "date": "2026-10-29",
+                    "result": "[AUTO-SWEEP] HCAD Account 0152300000001 (2000 SMITH ST): Owner HI TECH AUTO REALTY LLC, Class F1 (Market $6414729, Impr $1727229, Land $4687500), Legal: LTS 1 2 3 & 4 BLK 12|HADLEY & FRANKLIN.",
+                    "source": "auto-sweep",
+                    "discoveredAt": "2026-10-27",
+                    "agencyRecordId": "hcad:0152300000001:HI TECH AUTO REALTY LLC:F1:1727229",
+                    "adverse": False,
+                    "links": [
+                        {
+                            "label": "HCAD Map (0152300000001)",
+                            "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001",
+                        }
+                    ],
+                },
             ],
         ),
         "chk-06": (
@@ -5700,6 +5714,20 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             [
                 {"date": "2026-09-22", "result": "TABC permit for 2000 Smith under Smith St C Store LLC issued 4/1/26"},
                 {"date": "2026-10-07", "result": "Submitted public records request for application materials, including site plan; denied due to confidentiality"},
+                {
+                    "date": "2026-04-01",
+                    "result": "[AUTO-SWEEP] TABC License #200183169 (BQ, Active): Smith St C Store LLC (DBA Brake Time) at 2000 Smith St.",
+                    "source": "auto-sweep",
+                    "discoveredAt": "2026-10-27",
+                    "agencyRecordId": "tabc-active:200183169",
+                    "adverse": False,
+                    "links": [
+                        {
+                            "label": "TABC Public Inquiry",
+                            "url": "https://apps.tabc.texas.gov/publicinquiry/",
+                        }
+                    ],
+                },
             ],
         ),
         "chk-07": (
@@ -5734,7 +5762,11 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
                 {
                     "date": "2026-10-22",
                     "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road', Harris County 2101) registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munir Ishaq, P.E.), owner Hi Tech Auto Realty LLC / tenant Brake Time",
-                }
+                },
+                {
+                    "date": "2026-10-22",
+                    "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+                },
             ],
         ),
         "chk-12": (
@@ -5752,9 +5784,41 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             "2026-11-02",
             [
                 {
+                    "date": "2026-11-02",
+                    "result": "[AUTO-SWEEP] Houston 311 Case #2600366173: Building Code Violation (Service Completed) at 2000 SMITH ST.",
+                    "source": "auto-sweep",
+                    "automated": True,
+                    "checkId": "chk-13",
+                    "agencyRecordId": "coh-311:2600366173",
+                    "adverse": False,
+                    "links": [
+                        {
+                            "label": "311 Service Request Viewer",
+                            "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
+                        }
+                    ],
+                    "discoveredAt": "2026-11-09",
+                },
+                {
+                    "date": "2026-11-01",
+                    "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
+                    "source": "auto-sweep",
+                    "automated": True,
+                    "checkId": "chk-13",
+                    "agencyRecordId": "coh-311:2600364835",
+                    "adverse": True,
+                    "links": [
+                        {
+                            "label": "311 Service Request Viewer",
+                            "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f",
+                        }
+                    ],
+                    "discoveredAt": "2026-11-09",
+                },
+                {
                     "date": "2026-11-01",
                     "result": "Houston 311 Case #2600364835 ('Dangerous Buildings' at 2000 Smith St) and Case #2600366173 ('Building Code Violation' logged 11/2/2026) filed during weekend demolition of the mansion.",
-                }
+                },
             ],
         ),
         "chk-14": (

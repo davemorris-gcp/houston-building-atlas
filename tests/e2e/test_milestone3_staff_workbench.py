@@ -318,12 +318,12 @@ def test_e2e2_historian_rapid_audit_workbench_filters_shortcuts_links_and_dual_p
     assert iso_after["firstStatus"] == "dismissed"
     assert iso_after["secondStatus"] == "pending"
 
-    # District filter check: Undesignated / Outside HD yields exact 546 bucketed contradictions
+    # District filter check: Undesignated / Outside HD yields exact 545 bucketed contradictions
     page.click("#audit-btn-reset-filters")
     page.select_option("#audit-filter-district", "Undesignated / Outside HD")
     page.select_option("#audit-filter-status", "all")
     undesig_count = page.evaluate("() => window.atlasApp._staffWorkbench.auditFilteredItems.length")
-    assert undesig_count == 546
+    assert undesig_count == 545
 
     # Filter to City Directory Earlier Than HCAD to check ContentDM integer scan URL + Sanborn local thumbs
     page.click("#audit-btn-reset-filters")

@@ -2316,6 +2316,7 @@ export class HoustonAtlasApp {
       const cleanHcad = String(
         ov.hcad_num || (ovKey.includes("#") ? ovKey.split("#")[0] : ovKey)
       ).trim();
+      if (cleanHcad && suppressedHcads.has(cleanHcad)) continue;
       const existingIdx = isSubBuildingOv
         ? existingByEntityId.get(ovKey)
         : existingByEntityId.get(ovKey) ??
@@ -2514,7 +2515,7 @@ export class HoustonAtlasApp {
       const ovKey = String(ovKeyRaw || "").trim();
       if (ovKey.includes("#") && !ovKey.endsWith("#b1")) {
         const h = String(ov.hcad_num || ovKey.split("#")[0]).trim();
-        if (h) multiEntityHcads.add(h);
+        if (h && !suppressedHcads.has(h)) multiEntityHcads.add(h);
       }
     }
     for (const item of this.searchIndex) {
@@ -9814,6 +9815,15 @@ export class HoustonAtlasApp {
             resolveHpoDistrictDocs(this.hpoSurveyIndex, name)
           );
           return `${hpoDistCard}${this._buildHahcDistrictPrecedentsCardHtml(name, "")}`;
+        }
+        if (overlayLayer === "lost_houston" && primarySiteHcad && this.mapController) {
+          const lostAlert = this.mapController.getPermitAlertForBuilding?.({
+            hcadNum: primarySiteHcad,
+            buildingId: rawProps.id || "",
+          });
+          if (lostAlert) {
+            return this._buildInspectorPermitAlertHtml(lostAlert);
+          }
         }
         return "";
       })()}

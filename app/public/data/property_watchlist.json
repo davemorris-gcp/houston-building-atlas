@@ -13031,12 +13031,26 @@
           "additionalResourceLabel": "HCAD GIS Parcel Map",
           "additionalResourceUrl": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001",
           "status": "In Progress",
-          "lastChecked": "2026-10-23",
+          "lastChecked": "2026-10-29",
           "automated": true,
           "checks": [
             {
               "date": "2026-10-23",
               "result": "HCAD Account 0152300000001 (Tracts 1-16, Block 417 SSBB, 62,500 SF full city block bounded by Smith, Pierce, Brazos, and Gray); deed transfer to OB Texas Properties LLC closed 9/30/2026"
+            },
+            {
+              "date": "2026-10-29",
+              "result": "[AUTO-SWEEP] HCAD Account 0152300000001 (2000 SMITH ST): Owner HI TECH AUTO REALTY LLC, Class F1 (Market $6414729, Impr $1727229, Land $4687500), Legal: LTS 1 2 3 & 4 BLK 12|HADLEY & FRANKLIN.",
+              "source": "auto-sweep",
+              "discoveredAt": "2026-10-27",
+              "agencyRecordId": "hcad:0152300000001:HI TECH AUTO REALTY LLC:F1:1727229",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "HCAD Map (0152300000001)",
+                  "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001"
+                }
+              ]
             }
           ]
         },
@@ -13061,6 +13075,20 @@
             {
               "date": "2026-10-07",
               "result": "Submitted public records request for application materials, including site plan; denied due to confidentiality"
+            },
+            {
+              "date": "2026-04-01",
+              "result": "[AUTO-SWEEP] TABC License #200183169 (BQ, Active): Smith St C Store LLC (DBA Brake Time) at 2000 Smith St.",
+              "source": "auto-sweep",
+              "discoveredAt": "2026-10-27",
+              "agencyRecordId": "tabc-active:200183169",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "TABC Public Inquiry",
+                  "url": "https://apps.tabc.texas.gov/publicinquiry/"
+                }
+              ]
             }
           ]
         },
@@ -13141,6 +13169,10 @@
             {
               "date": "2026-10-22",
               "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road', Harris County 2101) registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munir Ishaq, P.E.), owner Hi Tech Auto Realty LLC / tenant Brake Time"
+            },
+            {
+              "date": "2026-10-22",
+              "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time"
             }
           ]
         },
@@ -13205,6 +13237,38 @@
           "lastChecked": "2026-11-02",
           "automated": true,
           "checks": [
+            {
+              "date": "2026-11-02",
+              "result": "[AUTO-SWEEP] Houston 311 Case #2600366173: Building Code Violation (Service Completed) at 2000 SMITH ST.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-13",
+              "agencyRecordId": "coh-311:2600366173",
+              "adverse": false,
+              "links": [
+                {
+                  "label": "311 Service Request Viewer",
+                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+                }
+              ],
+              "discoveredAt": "2026-11-09"
+            },
+            {
+              "date": "2026-11-01",
+              "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
+              "source": "auto-sweep",
+              "automated": true,
+              "checkId": "chk-13",
+              "agencyRecordId": "coh-311:2600364835",
+              "adverse": true,
+              "links": [
+                {
+                  "label": "311 Service Request Viewer",
+                  "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+                }
+              ],
+              "discoveredAt": "2026-11-09"
+            },
             {
               "date": "2026-11-01",
               "result": "Houston 311 Case #2600364835 ('Dangerous Buildings' at 2000 Smith St) and Case #2600366173 ('Building Code Violation' logged 11/2/2026) filed during weekend demolition of the mansion."
@@ -13274,13 +13338,32 @@
       ],
       "findingsLog": [
         {
+          "date": "2026-04-01",
+          "stage": "Plans & Use",
+          "activity": "Liquor Licensing",
+          "checkId": "chk-06",
+          "result": "[AUTO-SWEEP] TABC License #200183169 (BQ, Active): Smith St C Store LLC (DBA Brake Time) at 2000 Smith St.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-10-27",
+          "adverse": false,
+          "agencyRecordId": "tabc-active:200183169",
+          "links": [
+            {
+              "label": "TABC Public Inquiry",
+              "url": "https://apps.tabc.texas.gov/publicinquiry/"
+            }
+          ],
+          "entryNo": 1
+        },
+        {
           "date": "2026-09-22",
           "stage": "Every Check",
           "activity": "Public Notices",
           "checkId": "chk-01",
           "result": "3 notices from February - March 2026 related to TABC permit",
           "automated": false,
-          "entryNo": 1
+          "entryNo": 2
         },
         {
           "date": "2026-09-22",
@@ -13289,7 +13372,7 @@
           "checkId": "chk-04",
           "result": "Smith St C Store LLC (formed Oct 2025, Active Sales Tax Permit #32102472084 for 'Brake Time' at 2000 Smith St); BTCM National Retail Operations LLC",
           "automated": true,
-          "entryNo": 2
+          "entryNo": 3
         },
         {
           "date": "2026-09-22",
@@ -13298,7 +13381,7 @@
           "checkId": "chk-06",
           "result": "TABC permit for 2000 Smith under Smith St C Store LLC issued 4/1/26",
           "automated": true,
-          "entryNo": 3
+          "entryNo": 4
         },
         {
           "date": "2026-09-22",
@@ -13307,7 +13390,7 @@
           "checkId": "chk-07",
           "result": "'Retail Hemp Registration' for Smith St C Store LLC at 2000 Smith (applied Feb-Mar 2026)",
           "automated": false,
-          "entryNo": 4
+          "entryNo": 5
         },
         {
           "date": "2026-09-22",
@@ -13316,7 +13399,7 @@
           "checkId": "chk-09",
           "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)",
           "automated": true,
-          "entryNo": 5
+          "entryNo": 6
         },
         {
           "date": "2026-09-22",
@@ -13325,7 +13408,7 @@
           "checkId": "chk-12",
           "result": "old/irrelevant results. RN for location: RN101872331",
           "automated": false,
-          "entryNo": 6
+          "entryNo": 7
         },
         {
           "date": "2026-09-22",
@@ -13334,7 +13417,7 @@
           "checkId": "chk-14",
           "result": "no demo permit",
           "automated": true,
-          "entryNo": 7
+          "entryNo": 8
         },
         {
           "date": "2026-09-22",
@@ -13343,7 +13426,7 @@
           "checkId": "chk-15",
           "result": "no results",
           "automated": true,
-          "entryNo": 8
+          "entryNo": 9
         },
         {
           "date": "2026-10-05",
@@ -13352,7 +13435,7 @@
           "checkId": "chk-01",
           "result": "no new results",
           "automated": false,
-          "entryNo": 9
+          "entryNo": 10
         },
         {
           "date": "2026-10-05",
@@ -13361,7 +13444,7 @@
           "checkId": "chk-03",
           "result": "Special Warranty Deed (#RP-2026-399473) & Deed of Trust ($7M loan from Greenberg Finance Co.) dated 9/30/2026 and recorded 10/1/2026 to OB Texas Properties LLC (Omair Bashir)",
           "automated": false,
-          "entryNo": 10
+          "entryNo": 11
         },
         {
           "date": "2026-10-05",
@@ -13370,7 +13453,7 @@
           "checkId": "chk-04",
           "result": "OB Texas Properties LLC (Taxpayer #32062633212, Manager Omair Bashir, 6300 Richmond Ave Ste 300) https://comptroller.texas.gov/taxes/franchise/account-status/search/32062633212",
           "automated": true,
-          "entryNo": 11
+          "entryNo": 12
         },
         {
           "date": "2026-10-05",
@@ -13379,7 +13462,7 @@
           "checkId": "chk-12",
           "result": "no new results",
           "automated": false,
-          "entryNo": 12
+          "entryNo": 13
         },
         {
           "date": "2026-10-05",
@@ -13388,7 +13471,7 @@
           "checkId": "chk-14",
           "result": "no demo permit",
           "automated": true,
-          "entryNo": 13
+          "entryNo": 14
         },
         {
           "date": "2026-10-05",
@@ -13397,7 +13480,7 @@
           "checkId": "chk-15",
           "result": "no results",
           "automated": true,
-          "entryNo": 14
+          "entryNo": 15
         },
         {
           "date": "2026-10-07",
@@ -13406,7 +13489,7 @@
           "checkId": "chk-02",
           "result": "Reported by Preservation Advocate: new 'For Information' banner from Greenberg & Company",
           "automated": false,
-          "entryNo": 15
+          "entryNo": 16
         },
         {
           "date": "2026-10-07",
@@ -13415,7 +13498,7 @@
           "checkId": "chk-06",
           "result": "Submitted public records request for application materials, including site plan; denied due to confidentiality",
           "automated": true,
-          "entryNo": 16
+          "entryNo": 17
         },
         {
           "date": "2026-10-09",
@@ -13424,7 +13507,7 @@
           "checkId": "chk-01",
           "result": "no new results",
           "automated": false,
-          "entryNo": 17
+          "entryNo": 18
         },
         {
           "date": "2026-10-09",
@@ -13433,7 +13516,7 @@
           "checkId": "chk-12",
           "result": "OB Texas Properties is registered as a customer since 10/9/2020, but no affiliated regulated entities. CN605820570",
           "automated": false,
-          "entryNo": 18
+          "entryNo": 19
         },
         {
           "date": "2026-10-13",
@@ -13442,7 +13525,7 @@
           "checkId": "chk-15",
           "result": "DSHS Notification #2026005825 filed 10/13/2026 for 2000 Smith St: abatement of 5,010 SF RACM scheduled 10/27/2026 - 11/6/2026 by AAR Incorporated for owner Omair Bashir (OB Texas Properties LLC); abatement completed and mansion demolished 11/2/2026.",
           "automated": true,
-          "entryNo": 19
+          "entryNo": 20
         },
         {
           "date": "2026-10-14",
@@ -13451,7 +13534,7 @@
           "checkId": "chk-02",
           "result": "Called Greenberg & Company. Took message; have not called back",
           "automated": false,
-          "entryNo": 20
+          "entryNo": 21
         },
         {
           "date": "2026-10-14",
@@ -13460,7 +13543,7 @@
           "checkId": "chk-14",
           "result": "COH Stage 1 Sewer Disconnection Plumbing Permit #26090093 ('BLD DEMO/SEWER DISC', Type 12 Plumbing Pmt, occupant '*KIRBY MANSION') issued 10/14/2026 to Robert Camacho at 2000 Smith St",
           "automated": true,
-          "entryNo": 21
+          "entryNo": 22
         },
         {
           "date": "2026-10-20",
@@ -13469,7 +13552,7 @@
           "checkId": "chk-01",
           "result": "no results",
           "automated": false,
-          "entryNo": 22
+          "entryNo": 23
         },
         {
           "date": "2026-10-20",
@@ -13478,7 +13561,7 @@
           "checkId": "chk-12",
           "result": "no new results",
           "automated": false,
-          "entryNo": 23
+          "entryNo": 24
         },
         {
           "date": "2026-10-22",
@@ -13487,7 +13570,7 @@
           "checkId": "chk-08",
           "result": "COH Plan Review Project #26052089 filed under perimeter block address 530 Pierce St on 6/24/2026 for a proposed gas station; plans submitted 8 times and returned for revisions 10/2/2026",
           "automated": false,
-          "entryNo": 24
+          "entryNo": 25
         },
         {
           "date": "2026-10-22",
@@ -13496,7 +13579,16 @@
           "checkId": "chk-10",
           "result": "TDLR Project #TABS2026022839 ('Braketime Smith Road', Harris County 2101) registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munir Ishaq, P.E.), owner Hi Tech Auto Realty LLC / tenant Brake Time",
           "automated": true,
-          "entryNo": 25
+          "entryNo": 26
+        },
+        {
+          "date": "2026-10-22",
+          "stage": "Plans & Use",
+          "activity": "Accessibility Registration (TDLR TABS)",
+          "checkId": "chk-10",
+          "result": "TDLR Project #TABS2027004269 ('Pittsford Samuels, PLLC') registered 6/17/2026 at perimeter address 530 Pierce St: $2,000,000 new construction of 13,254 SF convenience store (scheduled 9/1/2026 - 9/1/2027), design firm Heights Engineering (Munirishaq@heightsengineering.com), owner Hi Tech Auto Realty LLC / tenant Brake Time",
+          "automated": true,
+          "entryNo": 27
         },
         {
           "date": "2026-10-23",
@@ -13505,7 +13597,26 @@
           "checkId": "chk-05",
           "result": "HCAD Account 0152300000001 (Tracts 1-16, Block 417 SSBB, 62,500 SF full city block bounded by Smith, Pierce, Brazos, and Gray); deed transfer to OB Texas Properties LLC closed 9/30/2026",
           "automated": true,
-          "entryNo": 26
+          "entryNo": 28
+        },
+        {
+          "date": "2026-10-29",
+          "stage": "Sale & Ownership",
+          "activity": "HCAD Ownership & Classification",
+          "checkId": "chk-05",
+          "result": "[AUTO-SWEEP] HCAD Account 0152300000001 (2000 SMITH ST): Owner HI TECH AUTO REALTY LLC, Class F1 (Market $6414729, Impr $1727229, Land $4687500), Legal: LTS 1 2 3 & 4 BLK 12|HADLEY & FRANKLIN.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-10-27",
+          "adverse": false,
+          "agencyRecordId": "hcad:0152300000001:HI TECH AUTO REALTY LLC:F1:1727229",
+          "links": [
+            {
+              "label": "HCAD Map (0152300000001)",
+              "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001"
+            }
+          ],
+          "entryNo": 29
         },
         {
           "date": "2026-10-30",
@@ -13514,7 +13625,7 @@
           "checkId": "chk-02",
           "result": "Excavators began demolishing the 1894/1928 mansion on Friday morning Oct 30, 2026; City of Houston inspectors briefly issued a stop-work order until the Stage 2 building demolition permit (#26090093) cleared later that day.",
           "automated": false,
-          "entryNo": 27
+          "entryNo": 30
         },
         {
           "date": "2026-10-30",
@@ -13523,7 +13634,26 @@
           "checkId": "chk-14",
           "result": "COH Stage 2 Building Demolition Permit #26090093 ('BLD DEMO', Type SD Demolition, occupant '*KIRBY MANSION') issued 10/30/2026 after unpermitted morning demolition was briefly halted by a COH stop-work order; structure completely demolished by 11/2/2026.",
           "automated": true,
-          "entryNo": 28
+          "entryNo": 31
+        },
+        {
+          "date": "2026-11-01",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "checkId": "chk-13",
+          "result": "[AUTO-SWEEP] Houston 311 Case #2600364835: Dangerous Buildings (Routed) at 2000 SMITH ST.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-11-09",
+          "adverse": true,
+          "agencyRecordId": "coh-311:2600364835",
+          "links": [
+            {
+              "label": "311 Service Request Viewer",
+              "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+            }
+          ],
+          "entryNo": 32
         },
         {
           "date": "2026-11-01",
@@ -13532,7 +13662,7 @@
           "checkId": "chk-13",
           "result": "Houston 311 Case #2600364835 ('Dangerous Buildings' at 2000 Smith St) and Case #2600366173 ('Building Code Violation' logged 11/2/2026) filed during weekend demolition of the mansion.",
           "automated": true,
-          "entryNo": 29
+          "entryNo": 33
         },
         {
           "date": "2026-11-02",
@@ -13541,7 +13671,26 @@
           "checkId": "chk-02",
           "result": "Site visit confirmed the 36-room Tudor Revival mansion at 2000 Smith St was completely reduced to rubble over the weekend of Oct 31 - Nov 2, 2026.",
           "automated": false,
-          "entryNo": 30
+          "entryNo": 34
+        },
+        {
+          "date": "2026-11-02",
+          "stage": "Demolition Signals",
+          "activity": "Code Complaints & Dangerous Buildings",
+          "checkId": "chk-13",
+          "result": "[AUTO-SWEEP] Houston 311 Case #2600366173: Building Code Violation (Service Completed) at 2000 SMITH ST.",
+          "automated": true,
+          "source": "auto-sweep",
+          "discoveredAt": "2026-11-09",
+          "adverse": false,
+          "agencyRecordId": "coh-311:2600366173",
+          "links": [
+            {
+              "label": "311 Service Request Viewer",
+              "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
+            }
+          ],
+          "entryNo": 35
         }
       ],
       "appNo": "",
@@ -13557,10 +13706,7 @@
       "likelyDemolishedReviewNeeded": false,
       "likelyDemolishedReason": "",
       "documents": [],
-      "driveLinks": [],
-      "lastAutoSweepAt": "2026-11-09T21:49:17Z",
-      "updatedAt": "2026-11-10T15:00:00Z",
-      "updatedBy": "Preservation Advocate"
+      "driveLinks": []
     },
     {
       "id": "plat-DPV-26080390",

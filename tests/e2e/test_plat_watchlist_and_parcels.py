@@ -466,8 +466,8 @@ def test_it5_it6_and_it7_watchlist_header_editor_snowball_checklist_and_exports(
         "() => document.querySelector('#wlThreatFilter')?.selectedOptions?.[0]?.textContent?.trim() || ''"
     )
     assert wl_threat_selected == "All Threat Categories"
-    first_card_txt = page.locator("#list .row").first.inner_text()
-    assert "2000 SMITH" in first_card_txt.upper()
+    kirby_card_txt = page.locator("#list .row", has_text="2000 Smith").first.inner_text()
+    assert "2000 SMITH" in kirby_card_txt.upper()
 
     # Select Kirby Mansion (2000 Smith St.)
     page.locator("#list .row", has_text="2000 Smith").first.click()

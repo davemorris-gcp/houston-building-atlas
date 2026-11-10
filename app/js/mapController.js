@@ -1105,6 +1105,8 @@ export class AtlasMapController {
 
     for (const [ovKey, ov] of Object.entries(ovMap)) {
       if (!ov || ov.keep_shard_footprints || ov.suppress_only) continue;
+      const rawOvHcad = String(ov.hcad_num || ovKey.split("#")[0] || "").trim();
+      if (rawOvHcad && suppressedHcads.has(rawOvHcad)) continue;
       if (!overrideFeaturesByKey.has(ovKey) && ov.geometry) {
         const rawPrefix = String(ovKey.split("#")[0] || "").trim();
         const hcadNum = String(
@@ -7606,7 +7608,9 @@ export class AtlasMapController {
       ? normAddrStr(addressQuery)
       : "";
 
-    const alertsList = Array.isArray(this.permitAlertsPayload?.alerts)
+    const alertsList = Array.isArray(this.permitAlertsData?.alerts)
+      ? this.permitAlertsData.alerts
+      : Array.isArray(this.permitAlertsPayload?.alerts)
       ? this.permitAlertsPayload.alerts
       : [];
     const matchedAlert =
@@ -8000,7 +8004,7 @@ export class AtlasMapController {
               featureId: cleanFeatureId,
               hcadNum: effectiveHcad,
             });
-      if (isTargetSuppressed) {
+      if (isTargetSuppressed && (!matchedAlert || hasExplicitSubBuildingId)) {
         return false;
       }
       const cachedParcelFeat = effectiveHcad
@@ -8078,6 +8082,7 @@ export class AtlasMapController {
             ...(cp?.use_category ? { use_category: cp.use_category } : {}),
             ...(cp?.state_class ? { state_class: cp.state_class } : {}),
             ...(cp?.is_vacant_parcel ? { is_vacant_parcel: true } : {}),
+            ...(isTargetSuppressed ? { is_tax_parcel: true } : {}),
             ...(Number.isFinite(Number(cp?.impr_val)) ? { impr_val: Number(cp.impr_val) } : {}),
             ...(Number.isFinite(Number(cp?.land_val)) ? { land_val: Number(cp.land_val) } : {}),
             ...(Number.isFinite(Number(cp?.mkt_val)) ? { mkt_val: Number(cp.mkt_val) } : {}),
@@ -8097,7 +8102,9 @@ export class AtlasMapController {
             ? { type: "Point", coordinates: [effLng, effLat] }
             : null);
         this.highlightAndInspectFeature(initialProps, initialGeom);
-        schedulePostFlightTileUpgrade();
+        if (!isTargetSuppressed) {
+          schedulePostFlightTileUpgrade();
+        }
       }
 
       if (effectiveHcad) {
@@ -8150,6 +8157,7 @@ export class AtlasMapController {
                 state_class: resolvedStateClass,
                 use_category: resolvedUseCategory,
                 is_vacant_parcel: isVacant,
+                ...(isTargetSuppressed ? { is_tax_parcel: true } : {}),
                 ...(Number.isFinite(Number(rec.imprVal))
                   ? { impr_val: Number(rec.imprVal) }
                   : Number.isFinite(Number(cp?.impr_val))
@@ -8181,13 +8189,17 @@ export class AtlasMapController {
                 ? null
                 : rec.geometry || cachedParcelFeat?.geometry || null
             );
-            schedulePostFlightTileUpgrade();
+            if (!isTargetSuppressed) {
+              schedulePostFlightTileUpgrade();
+            }
           })
           .catch(() => {});
         return true;
       }
       if (matchedAlert || matchedPlat || effectiveAddr || hasCoords) {
-        schedulePostFlightTileUpgrade();
+        if (!isTargetSuppressed) {
+          schedulePostFlightTileUpgrade();
+        }
         return true;
       }
       return false;

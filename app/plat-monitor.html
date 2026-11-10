@@ -1861,7 +1861,7 @@ async function copyCurrentActivityBriefing(){
     : "All History (90 Days)";
   const targetDayRun = view.actSelectedDate
     ? actCtx.bundle.dailyRuns.find(r => r.date === view.actSelectedDate) || actCtx.bundle.dailyRuns[0]
-    : actCtx.bundle.dailyRuns[0] || null;
+    : actCtx.bundle.dailyRuns.find(r => !r.liveOnlyDay) || actCtx.bundle.dailyRuns[0] || null;
   const txt = formatActivityBriefingText({
     events: actCtx.filteredEvents,
     dailyRun: targetDayRun,
