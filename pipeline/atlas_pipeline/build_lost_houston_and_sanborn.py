@@ -233,7 +233,7 @@ LOST_HOUSTON_PART_3 = [
     },
     {
         "id": "lost_kirby_mansion_1894",
-        "name": "John Henry Kirby Mansion (1894)",
+        "name": "John Henry Kirby Mansion (1894-2026)",
         "subtitle": "36-Room Tudor Revival Residence of Lumber Baron John Henry Kirby (1894-2026)",
         "category": "Gilded Age Mansion",
         "address": "2000 Smith St.",
@@ -2128,11 +2128,21 @@ def main() -> None:
     print(f"Enriched {nrhp_updated} demolished NRHP properties in overlays & search_index.")
 
     def _apply_demolished_good_brick_fields(target_dict: dict, lost_props: dict) -> None:
+        yd = int(lost_props.get("year_demolished") or 2026)
         target_dict["demolished"] = True
-        target_dict["year_demolished"] = int(lost_props.get("year_demolished") or 2026)
+        target_dict["is_demolished"] = True
+        target_dict["year_demolished"] = yd
         if lost_props.get("demolished_date"):
             target_dict["demolished_date"] = str(lost_props["demolished_date"])
         target_dict["lost_houston_id"] = str(lost_props.get("id") or "")
+        if "sublabel" in target_dict:
+            yb = target_dict.get("year_built") or lost_props.get("year_built") or ""
+            addr = target_dict.get("address") or lost_props.get("address") or ""
+            gb_yr = str(target_dict.get("good_brick_years") or "1979")
+            target_dict["sublabel"] = (
+                f"Demolished {yd} • {addr} • Good Brick ({gb_yr}) • {yb}-{yd}"
+            )
+            target_dict["category"] = f"Good Brick ({gb_yr} · Demolished {yd})"
 
     # Synchronize Good Brick Award features whose historic structure was demolished (e.g. Kirby Mansion 0152300000001)
     lost_by_hcad: dict[str, dict] = {}

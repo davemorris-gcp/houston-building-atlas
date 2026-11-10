@@ -1799,6 +1799,10 @@ export function applyOverrideToProperties(props, overridesMap) {
     replace_parcel_shards: Boolean(ov.replace_parcel_shards),
     keep_shard_footprints: isSuppressOnly ? false : Boolean(ov.keep_shard_footprints),
     suppress_only: isTaxParcel ? false : isSuppressOnly,
+    is_demolished: Boolean(ov.is_demolished || props.is_demolished || isSuppressOnly),
+    year_demolished: Number(ov.year_demolished) || Number(props.year_demolished) || 0,
+    demolished_date: ov.demolished_date || props.demolished_date || "",
+    lost_houston_id: ov.lost_houston_id || props.lost_houston_id || "",
     ...(isTaxParcel
       ? {
           is_tax_parcel: true,

@@ -1396,6 +1396,33 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
       base.likelyDemolishedReason = sNorm.likelyDemolishedReason || base.likelyDemolishedReason;
     }
   }
+  const lostCandidate = [sNorm, lNorm, cNorm].find(
+    (cand) =>
+      cand &&
+      (cand.trackerStatus === "Lost" ||
+        Boolean(cand.demolishedDate && cand.lostHoustonId))
+  );
+  if (
+    lostCandidate &&
+    base.trackerStatus !== "Saved" &&
+    base.trackerStatus !== "Archived (Tier 3)" &&
+    !base.archivedAt
+  ) {
+    base.trackerStatus = "Lost";
+    base.demolishedDate = lostCandidate.demolishedDate || base.demolishedDate;
+    base.lostHoustonId = lostCandidate.lostHoustonId || base.lostHoustonId;
+    if (parseIsoMs(lostCandidate.updatedAt) > parseIsoMs(base.updatedAt)) {
+      base.updatedAt = lostCandidate.updatedAt;
+    }
+    if (base.demolishedDate) {
+      base.keyDates = {
+        ...(base.keyDates || {}),
+        expectedDemolition:
+          lostCandidate.keyDates?.expectedDemolition ||
+          `Demolished ${base.demolishedDate} (Confirmed Lost)`,
+      };
+    }
+  }
   if (["Lost", "Saved", "Archived (Tier 3)"].includes(base.trackerStatus)) {
     base.likelyDemolishedReviewNeeded = false;
     base.likelyDemolishedReason = "";
@@ -1526,18 +1553,27 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
       : humanLastChecked;
 
     let nextStatus = humanStatus;
-    const hasUnseenAdverseAutoHit = autoChecks.some((chk) => {
-      if (!isAdverseAutoSweepFinding(chk)) return false;
-      const effectiveHitDate =
-        [String(chk.discoveredAt || ""), String(chk.date || "")]
-          .filter(Boolean)
-          .sort()
-          .pop() || "";
-      if (!humanAckDate) return true;
-      return effectiveHitDate > humanAckDate;
-    });
+    const isTerminalStatus = ["Lost", "Saved", "Archived (Tier 3)"].includes(base.trackerStatus);
+    const hasUnseenAdverseAutoHit =
+      !isTerminalStatus &&
+      autoChecks.some((chk) => {
+        if (!isAdverseAutoSweepFinding(chk)) return false;
+        const effectiveHitDate =
+          [String(chk.discoveredAt || ""), String(chk.date || "")]
+            .filter(Boolean)
+            .sort()
+            .pop() || "";
+        if (!humanAckDate) return true;
+        return effectiveHitDate > humanAckDate;
+      });
 
-    if (hasUnseenAdverseAutoHit && humanStatus !== "N/A") {
+    if (base.trackerStatus === "Lost") {
+      if (["chk-13", "chk-14", "chk-15"].includes(tpl.id) || humanStatus === "Flagged") {
+        nextStatus = "Complete";
+      } else if (humanStatus === "To Do" && combinedChecks.length > 0) {
+        nextStatus = "In Progress";
+      }
+    } else if (hasUnseenAdverseAutoHit && humanStatus !== "N/A") {
       nextStatus = "Flagged";
     } else if (humanStatus === "To Do" && autoChecks.length > 0 && !hasUnseenAdverseAutoHit) {
       nextStatus = "In Progress";
@@ -1777,7 +1813,13 @@ export function evaluateWatchlistLikelyDemolished(prop, todayIso = "") {
     return { likelyDemolished: false, reason: "" };
   }
   const status = String(prop.trackerStatus || "").trim();
-  if (status === "Lost" || status === "Saved" || status === "Archived (Tier 3)") {
+  if (
+    status === "Lost" ||
+    status === "Saved" ||
+    status === "Archived (Tier 3)" ||
+    Boolean(prop.demolishedDate) ||
+    Boolean(prop.lostHoustonId)
+  ) {
     return { likelyDemolished: false, reason: "" };
   }
   const today = String(todayIso || new Date().toISOString().slice(0, 10)).slice(0, 10);
@@ -1984,14 +2026,24 @@ export function parseCloudSheetSyncRows(csvText = "") {
     return { platReviews: [], watchProperties: [] };
   }
   const hdr = rows[0].map((h) => String(h || "").trim().toLowerCase());
-  const idxStatus = hdr.indexOf("status");
-  const idxHcad = hdr.indexOf("hcad_num");
-  const idxYr = hdr.indexOf("year_built");
-  const idxDesig = hdr.indexOf("historic_district");
-  const idxTier = hdr.indexOf("contributing");
-  const idxType = hdr.indexOf("source_type");
-  const idxCit = hdr.indexOf("source_citation");
-  const idxVer = hdr.indexOf("verified_by");
+  const findCol = (...names) => {
+    for (const nm of names) {
+      const idx = hdr.indexOf(nm);
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  };
+  const idxStatus = findCol("status");
+  const idxHcad = findCol("hcad_num", "record key (cycle/property)");
+  const idxYr = findCol("year_built");
+  const idxDesig = findCol("historic_district", "designation / neighborhood");
+  const idxTier = findCol("contributing", "tier");
+  const idxType = findCol("source_type", "record type");
+  const idxCit = findCol(
+    "source_citation",
+    "json state payload (synced to plat & property monitor)"
+  );
+  const idxVer = findCol("verified_by", "reviewer");
   if (idxHcad < 0 || idxCit < 0) {
     return { platReviews: [], watchProperties: [] };
   }

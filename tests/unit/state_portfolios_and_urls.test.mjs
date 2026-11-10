@@ -13,6 +13,7 @@ import {
   buildRedBookFilterExpression,
   buildShareableUrl,
   createFilterStore,
+  normalizePortfolioQuery,
   parseHashToState,
   serializeStateToHash,
 } from "../../app/js/filterStore.js";
@@ -164,6 +165,68 @@ test("Guided Chapters & Portfolio Engine builds deduplicated extant + Lost Houst
       `Featured portfolio preset '${preset.kind}:${preset.query}' returned only ${ds.stats.totalCount} works`
     );
   }
+
+  // Slug query normalization (#portfolio=arch_james_ruskin_bailey) + Kirby Mansion in Demolished + Sterne deduplicated
+  assert.equal(normalizePortfolioQuery("architect", "arch_james_ruskin_bailey"), "James Ruskin Bailey");
+  assert.equal(normalizePortfolioQuery("style", "style_tudor_revival"), "Tudor Revival");
+  const parsedSlugPortfolio = parseHashToState("#portfolio=arch_james_ruskin_bailey", "");
+  assert.deepEqual(parsedSlugPortfolio.activePortfolio, {
+    kind: "architect",
+    query: "James Ruskin Bailey",
+  });
+
+  const bailey = buildPortfolioDataset({
+    kind: "architect",
+    query: "arch_james_ruskin_bailey",
+    searchIndex,
+    overlaysData,
+    curatedOverrides,
+  });
+  assert.equal(bailey.query, "James Ruskin Bailey");
+  assert.equal(
+    bailey.works.some((w) => !w.isDemolished && w.hcadNum === "0152300000001"),
+    false,
+    "Demolished Kirby Mansion (0152300000001) must never appear as an extant work"
+  );
+  assert.equal(
+    bailey.works.some(
+      (w) =>
+        w.isDemolished &&
+        (w.lostHoustonId === "lost_kirby_mansion_1894" || w.featureId === "lost_kirby_mansion_1894")
+    ),
+    true,
+    "Demolished Kirby Mansion must appear as a demolished work"
+  );
+  const sterneHits = bailey.works.filter((w) => !w.isDemolished && w.hcadNum === "0010330000005");
+  assert.equal(sterneHits.length, 1, "Sterne Building (0010330000005 / #bld_006812) must be deduplicated to 1 entry");
+  assert.equal(normalizePortfolioQuery("style", "style_a_frame"), "A Frame");
+
+  // Multi-building #bld_<digits> works on the same HCAD parcel must remain distinct
+  const multiBldPortfolio = buildPortfolioDataset({
+    kind: "architect",
+    query: "Alfred C. Finn",
+    searchIndex: [
+      {
+        hcad_num: "0010000000001",
+        id: "0010000000001#bld_0001",
+        building_name: "Campus Hall North",
+        address: "6100 MAIN ST",
+        architect: "Alfred C. Finn",
+        lon: -95.398,
+        lat: 29.718,
+      },
+      {
+        hcad_num: "0010000000001",
+        id: "0010000000001#bld_0002",
+        building_name: "Campus Hall South",
+        address: "6102 MAIN ST",
+        architect: "Alfred C. Finn",
+        lon: -95.397,
+        lat: 29.717,
+      },
+    ],
+  });
+  assert.equal(multiBldPortfolio.works.length, 2, "Distinct #bld_<digits> buildings on the same HCAD parcel must both remain in works");
 });
 
 test("urlValidators rejects all 14 known retired/broken municipal & archive URL patterns and accepts canonical replacements", () => {

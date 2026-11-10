@@ -5736,8 +5736,8 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             [{"date": "2026-09-22", "result": "'Retail Hemp Registration' for Smith St C Store LLC at 2000 Smith (applied Feb-Mar 2026)"}],
         ),
         "chk-08": (
-            "Flagged",
-            "2026-10-22",
+            "Complete",
+            "2026-11-02",
             [
                 {
                     "date": "2026-10-22",
@@ -5747,7 +5747,7 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
         ),
         "chk-09": (
             "Complete",
-            "2026-10-23",
+            "2026-11-02",
             [
                 {
                     "date": "2026-09-22",
@@ -5756,8 +5756,8 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             ],
         ),
         "chk-10": (
-            "Flagged",
-            "2026-10-23",
+            "Complete",
+            "2026-11-02",
             [
                 {
                     "date": "2026-10-22",
@@ -5855,6 +5855,8 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
         if row:
             row["status"] = st_val
             row["lastChecked"] = lc_val
+            row["updatedAt"] = "2026-11-10T18:00:00Z"
+            row["humanStatusEdited"] = True
             row["checks"] = chk_list
             if cid == "chk-15":
                 row["additionalResourceLabel"] = "DSHS Notification #2026005825"
@@ -5928,6 +5930,9 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             "lat": 29.751432,
             "tier": "1",
             "tierConfirmed": True,
+            "humanEdited": True,
+            "updatedAt": "2026-11-10T18:00:00Z",
+            "updatedBy": "Preservation Advocate",
             "checklist": kirby_checklist,
             "findingsLog": _rebuild_property_findings_log(kirby_checklist),
         }
@@ -6188,6 +6193,24 @@ def build_property_watchlist(
             ):
                 if norm_cp.get(k_meta) not in (None, "", [], {}, False):
                     merged_p[k_meta] = norm_cp[k_meta]
+            if (
+                base_p.get("trackerStatus") == "Lost"
+                or (base_p.get("demolishedDate") and base_p.get("lostHoustonId"))
+            ) and norm_cp.get("trackerStatus") not in ("Archived (Tier 3)", "Saved") and not norm_cp.get("archivedAt"):
+                merged_p["trackerStatus"] = "Lost"
+                merged_p["demolishedDate"] = norm_cp.get("demolishedDate") or base_p.get("demolishedDate")
+                merged_p["lostHoustonId"] = norm_cp.get("lostHoustonId") or base_p.get("lostHoustonId")
+                merged_p["likelyDemolishedReviewNeeded"] = False
+                merged_p["likelyDemolishedReason"] = ""
+                if merged_p["demolishedDate"]:
+                    merged_kd = dict(merged_p.get("keyDates") or {})
+                    merged_kd["expectedDemolition"] = (
+                        (base_p.get("keyDates") or {}).get("expectedDemolition")
+                        or f"Demolished {merged_p['demolishedDate']} (Confirmed Lost)"
+                    )
+                    merged_p["keyDates"] = merged_kd
+                if str(base_p.get("updatedAt") or "") > str(norm_cp.get("updatedAt") or ""):
+                    merged_p["updatedAt"] = base_p["updatedAt"]
             if merged_p.get("tier") == "3" and merged_p.get("trackerStatus") in (
                 "Active / High Priority",
                 "Monitoring",
@@ -6207,20 +6230,36 @@ def build_property_watchlist(
                     merged_p["driveLinksUpdatedAt"] = norm_cp["driveLinksUpdatedAt"]
             if has_explicit_checklist and isinstance(norm_cp.get("checklist"), list):
                 merged_rows = [dict(r) for r in (base_p.get("checklist") or [])]
+                is_lost_merged = merged_p.get("trackerStatus") == "Lost"
                 for c_row in norm_cp["checklist"]:
                     b_row = _find_checklist_row_by_id(merged_rows, c_row.get("id", ""))
                     if not b_row:
                         continue
                     c_status = c_row.get("status")
+                    c_row_newer = (
+                        not b_row.get("updatedAt")
+                        or not c_row.get("updatedAt")
+                        or str(c_row.get("updatedAt") or "") >= str(b_row.get("updatedAt") or "")
+                    )
                     if c_status and c_status != "To Do":
-                        b_row["status"] = c_status
+                        if is_lost_merged and (
+                            b_row.get("id") in ("chk-13", "chk-14", "chk-15")
+                            or c_status == "Flagged"
+                        ):
+                            b_row["status"] = "Complete"
+                        elif c_row_newer or b_row.get("status") in (None, "", "To Do"):
+                            b_row["status"] = c_status
                     if str(c_row.get("lastChecked") or "") > str(b_row.get("lastChecked") or ""):
                         b_row["lastChecked"] = c_row["lastChecked"]
-                    if c_row.get("updatedAt"):
+                    if str(c_row.get("updatedAt") or "") > str(b_row.get("updatedAt") or ""):
                         b_row["updatedAt"] = c_row["updatedAt"]
                     if c_row.get("humanStatusEdited") is True:
                         b_row["humanStatusEdited"] = True
-                    if isinstance(c_row.get("statusChangedAt"), str) and c_row["statusChangedAt"].strip():
+                    if (
+                        isinstance(c_row.get("statusChangedAt"), str)
+                        and c_row["statusChangedAt"].strip()
+                        and (c_row_newer or not b_row.get("statusChangedAt"))
+                    ):
                         b_row["statusChangedAt"] = c_row["statusChangedAt"].strip()
                     seen_chk = {
                         (str(ch.get("date") or ""), str(ch.get("result") or "").strip())

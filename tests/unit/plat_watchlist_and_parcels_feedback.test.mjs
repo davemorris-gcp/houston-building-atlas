@@ -1810,5 +1810,29 @@ test("Watchlist Likely-Demolished Detector, graduateWatchlistPropertyToLost, and
   assert.equal(kirbyAlert.is_demolished, true);
   assert.equal(kirbyAlert.demolished_date, "2026-11-02");
   assert.equal(kirbyAlert.lost_houston_id, "lost_kirby_mansion_1894");
+
+  // 5. Verify reconcileWatchlistProperty preserves terminal Lost status and 0 Flagged rows even when merged with a stale Active cloud snapshot
+  const staleActiveCloud = normalizeWatchProperty({
+    ...kirbyWatch,
+    trackerStatus: "Active / High Priority",
+    demolishedDate: "",
+    lostHoustonId: "",
+    updatedAt: "2026-10-30T00:16:59.853Z",
+    checklist: kirbyWatch.checklist.map((r) =>
+      ["chk-09", "chk-13", "chk-14", "chk-15"].includes(r.id)
+        ? { ...r, status: "Flagged", updatedAt: "2026-10-30T00:16:59.853Z" }
+        : r
+    ),
+  });
+  const reconciledKirby = reconcileWatchlistProperty(kirbyWatch, staleActiveCloud, null);
+  assert.equal(reconciledKirby.trackerStatus, "Lost");
+  assert.equal(reconciledKirby.demolishedDate, "2026-11-02");
+  assert.equal(reconciledKirby.lostHoustonId, "lost_kirby_mansion_1894");
+  assert.equal(reconciledKirby.likelyDemolishedReviewNeeded, false);
+  assert.equal(
+    reconciledKirby.checklist.filter((r) => r.status === "Flagged").length,
+    0,
+    "Graduated Lost property must have 0 Flagged checklist rows after reconciliation"
+  );
 });
 

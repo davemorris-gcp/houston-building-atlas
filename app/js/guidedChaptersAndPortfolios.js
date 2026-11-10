@@ -7,6 +7,7 @@ import {
   getAtlasMaxYear,
   VALID_PORTFOLIO_KINDS,
   normalizePortfolioKind,
+  normalizePortfolioQuery,
 } from "./filterStore.js?v=20261109d";
 import {
   OWNERSHIP_TIER_ITEMS,
@@ -27,7 +28,7 @@ import {
   parseCompactDeedWireEntries,
 } from "./clerkSearchHelpers.js?v=20261109d";
 
-export { VALID_PORTFOLIO_KINDS, normalizePortfolioKind };
+export { VALID_PORTFOLIO_KINDS, normalizePortfolioKind, normalizePortfolioQuery };
 
 export const CITY_HISTORY_CHAPTERS = [
   {
@@ -642,7 +643,7 @@ export const ARCHITECT_AND_STYLE_BIOGRAPHIES = {
     title: "James Ruskin Bailey (1889-1959)",
     role: "Eclectic Revival & Residential Architect",
     summary:
-      "Designed prominent Period Revival residences and remodels for Houston civic leaders, including the 1926 Tudor Revival transformation of the John Henry Kirby Mansion at 2000 Smith Street.",
+      "Designed prominent Period Revival residences and commercial landmarks for Houston civic leaders, including the 1926-1928 Tudor Revival transformation of the 1894 John Henry Kirby Mansion at 2000 Smith Street (demolished November 2026).",
     citations: [
       {
         label: "COH Landmark Report 00L085 (506 Main St)",
@@ -805,7 +806,7 @@ function normText(s) {
 
 export function resolvePortfolioBiography(kind, query, ownershipPortfolios = null) {
   const normKind = normalizePortfolioKind(kind);
-  const qRaw = String(query || "").trim();
+  const qRaw = normalizePortfolioQuery(normKind, query);
   const qNorm = normText(qRaw);
   if (!qNorm) return null;
 
@@ -967,8 +968,12 @@ export function buildPortfolioDataset({
   curatedOverrides = null,
   ownershipPortfolios = null,
 }) {
-  const normKind = normalizePortfolioKind(kind);
-  const cleanQuery = String(query || "").trim();
+  const normKind =
+    (!kind || String(kind).trim().toLowerCase() === "architect") &&
+    /^style_/i.test(String(query || "").trim())
+      ? "style"
+      : normalizePortfolioKind(kind);
+  const cleanQuery = normalizePortfolioQuery(normKind, query);
   const qNorm = normText(cleanQuery);
   if (!qNorm) {
     return {
@@ -995,15 +1000,37 @@ export function buildPortfolioDataset({
     const lng = Number(entry.lng);
     const lat = Number(entry.lat);
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+    const fid = String(entry.featureId || "").trim();
+    const hcad = String(entry.hcadNum || "").trim();
     const dedupKey = entry.isDemolished
-      ? `lost:${entry.featureId || entry.hcadNum || entry.title}`
-      : entry.featureId && String(entry.featureId).includes("#")
-      ? `bld:${entry.featureId}`
-      : entry.hcadNum
-      ? `hcad:${entry.hcadNum}`
+      ? `lost:${fid || hcad || entry.title}`
+      : fid && fid.includes("#")
+      ? `bld:${fid}`
+      : hcad
+      ? `hcad:${hcad}`
       : `pt:${lng.toFixed(4)}_${lat.toFixed(4)}`;
 
-    const existing = byKey.get(dedupKey);
+    let existing = byKey.get(dedupKey);
+    if (!existing && !entry.isDemolished && hcad) {
+      if (dedupKey.startsWith("bld:") && byKey.has(`hcad:${hcad}`)) {
+        existing = byKey.get(`hcad:${hcad}`);
+        byKey.delete(`hcad:${hcad}`);
+        byKey.set(dedupKey, existing);
+      } else if (dedupKey === `hcad:${hcad}`) {
+        const matchingBldKey = Array.from(byKey.keys()).find((k) => {
+          if (!k.startsWith(`bld:${hcad}#`)) return false;
+          const bldEntry = byKey.get(k);
+          return (
+            normText(bldEntry?.address) === normText(entry.address) ||
+            normText(bldEntry?.title) === normText(entry.title) ||
+            normText(bldEntry?.title).includes(normText(entry.address))
+          );
+        });
+        if (matchingBldKey) {
+          existing = byKey.get(matchingBldKey);
+        }
+      }
+    }
     if (!existing) {
       byKey.set(dedupKey, entry);
       return;
@@ -1181,7 +1208,7 @@ export function buildPortfolioDataset({
 
   const checkMatch = (obj) => {
     if (!obj) return false;
-    if (kind === "style") {
+    if (normKind === "style") {
       return (
         matchesPortfolioField(obj.style, qNorm) ||
         matchesPortfolioField(obj.bld_style, qNorm) ||
@@ -1194,12 +1221,39 @@ export function buildPortfolioDataset({
     );
   };
 
+  const ovMap =
+    curatedOverrides && typeof curatedOverrides === "object"
+      ? curatedOverrides.overrides || curatedOverrides
+      : null;
+
   const demolishedLandmarkHcads = new Set();
+  if (ovMap && typeof ovMap === "object") {
+    for (const [ovKey, rec] of Object.entries(ovMap)) {
+      if (!rec || typeof rec !== "object") continue;
+      if (
+        rec.suppress_only === true ||
+        rec.is_demolished === true ||
+        rec.demolished === true ||
+        Number(rec.year_demolished) > 0
+      ) {
+        const rawHcad = String(
+          rec.hcad_num || (ovKey.includes("#") ? ovKey.split("#")[0] : ovKey)
+        ).trim();
+        if (/^\d{13}$/.test(rawHcad)) demolishedLandmarkHcads.add(rawHcad);
+      }
+    }
+  }
   for (const lf of overlaysData?.lost_houston?.features || []) {
     const lp = lf?.properties || {};
-    if (lp.source_cohort === "coh_landmark_demolished" || lp.coh_landmark_id) {
+    if (
+      lp.source_cohort === "coh_landmark_demolished" ||
+      lp.source_cohort === "watchlist_graduated" ||
+      lp.coh_landmark_id ||
+      Boolean(lp.demolished_date)
+    ) {
       const candList = [
         lp.hcad_num,
+        lp.modern_hcad_num,
         ...(Array.isArray(lp.site_hcad_nums) ? lp.site_hcad_nums : []),
       ];
       for (const rawH of candList) {
@@ -1230,6 +1284,8 @@ export function buildPortfolioDataset({
         row.kind === "lost_houston" ||
         row.type === "lost_houston" ||
         row.demolished === true ||
+        row.is_demolished === true ||
+        row.suppress_only === true ||
         row.hcad_num === "Demolished" ||
         row.overlay_layer ||
         row.year_demolished ||
@@ -1262,13 +1318,18 @@ export function buildPortfolioDataset({
   }
 
   // 2. Scan curatedOverrides directly (catches multi-building campus overrides with polygon geometry)
-  const ovMap =
-    curatedOverrides && typeof curatedOverrides === "object"
-      ? curatedOverrides.overrides || curatedOverrides
-      : null;
   if (ovMap && typeof ovMap === "object") {
     for (const [ovKey, rec] of Object.entries(ovMap)) {
       if (!rec || typeof rec !== "object" || !checkMatch(rec)) continue;
+      if (
+        rec.suppress_only === true ||
+        rec.is_demolished === true ||
+        rec.demolished === true ||
+        Number(rec.year_demolished) > 0 ||
+        Number(rec.year_built) <= 0
+      ) {
+        continue;
+      }
       const [lng, lat] = geomCentroid(rec.geometry);
       if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
       const rawHcad = String(rec.hcad_num || (ovKey.includes("#") ? ovKey.split("#")[0] : ovKey)).trim();
@@ -1341,19 +1402,33 @@ export function buildPortfolioDataset({
       ...(Array.isArray(p.site_hcad_nums) ? p.site_hcad_nums.map((x) => String(x || "").trim()) : []),
     ];
     for (const hc of lostCandidateHcads) {
-      if (!hc || !byKey.has(`hcad:${hc}`)) continue;
-      const ext = byKey.get(`hcad:${hc}`);
-      if (ext && !ext.isDemolished && ((demoYr > 0 && ext.yearBuilt >= demoYr - 1) || demolishedLandmarkHcads.has(hc))) {
-        byKey.delete(`hcad:${hc}`);
+      if (!hc) continue;
+      if (byKey.has(`hcad:${hc}`)) {
+        const ext = byKey.get(`hcad:${hc}`);
+        if (ext && !ext.isDemolished && ((demoYr > 0 && ext.yearBuilt >= demoYr - 1) || demolishedLandmarkHcads.has(hc))) {
+          byKey.delete(`hcad:${hc}`);
+        }
+      }
+      if (demolishedLandmarkHcads.has(hc)) {
+        for (const existingKey of Array.from(byKey.keys())) {
+          if (existingKey.startsWith(`bld:${hc}#`)) {
+            byKey.delete(existingKey);
+          }
+        }
       }
     }
+    const rawLostTitle = String(p.name || "Lost Houston Structure");
+    const cleanLostTitle =
+      p.lifespan_label && rawLostTitle.endsWith(`(${p.year_built})`)
+        ? rawLostTitle.slice(0, -`(${p.year_built})`.length).trim()
+        : rawLostTitle;
     upsertWork({
       isDemolished: true,
       isLost: true,
       hcadNum: canonicalHcad,
       featureId: String(p.id || ""),
       lostHoustonId: String(p.id || ""),
-      title: String(p.name || "Lost Houston Structure"),
+      title: cleanLostTitle,
       address: String(p.historic_address_1915 || p.historic_address || p.address || ""),
       yearBuilt: Number(p.year_built) || 0,
       yearDemolished: Number(p.year_demolished) || null,
@@ -1364,7 +1439,11 @@ export function buildPortfolioDataset({
       style: String(p.style || ""),
       district: String(p.neighborhood || "Demolished Landmark"),
       isLandmark: Boolean(p.coh_landmark_code || p.nrhp_refnum),
-      isGoodBrick: false,
+      isGoodBrick: Boolean(
+        p.good_brick_years ||
+          p.good_brick_award ||
+          /good brick/i.test(String(p.description || p.narrative || ""))
+      ),
       lng,
       lat,
     });

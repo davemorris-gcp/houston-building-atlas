@@ -157,6 +157,31 @@ export function normalizePortfolioKind(rawKind) {
   return "architect";
 }
 
+export function normalizePortfolioQuery(rawKind, rawQuery) {
+  const normKind = normalizePortfolioKind(rawKind);
+  const q = String(rawQuery || "").trim();
+  if (!q || normKind === "owner_portfolio" || /^port_/i.test(q)) {
+    return q;
+  }
+  if (/^(?:arch|architect|builder|style)_/i.test(q) || (q.includes("_") && !q.includes(" "))) {
+    const stripped = q
+      .replace(/^(?:arch|architect|builder|style)_+/i, "")
+      .replace(/_+/g, " ")
+      .trim();
+    if (stripped) {
+      return stripped
+        .split(/\s+/)
+        .map((w) =>
+          w.length === 1 && normKind === "architect" && /^[a-z]$/i.test(w)
+            ? `${w.toUpperCase()}.`
+            : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+        )
+        .join(" ");
+    }
+  }
+  return q;
+}
+
 export const DEFAULT_FILTER_STATE = {
   colorMode: "year_built", // 'year_built' | 'preservation_status' | 'use_category' | 'ownership_tier'
   paletteStyle: "archival", // 'archival' | 'classic_ee'
@@ -1894,10 +1919,16 @@ export function parseHashToState(hashString = "", searchString = "") {
     const cIdx = rawPortfolio.indexOf(":");
     if (cIdx > 0) {
       const pKind = normalizePortfolioKind(rawPortfolio.slice(0, cIdx));
-      const pQuery = rawPortfolio.slice(cIdx + 1).trim();
+      const pQuery = normalizePortfolioQuery(pKind, rawPortfolio.slice(cIdx + 1).trim());
       if (pQuery) activePortfolio = { kind: pKind, query: pQuery };
     } else {
-      activePortfolio = { kind: "architect", query: rawPortfolio };
+      const inferredKind = /^port_/i.test(rawPortfolio)
+        ? "owner_portfolio"
+        : /^style_/i.test(rawPortfolio)
+        ? "style"
+        : "architect";
+      const pQuery = normalizePortfolioQuery(inferredKind, rawPortfolio);
+      if (pQuery) activePortfolio = { kind: inferredKind, query: pQuery };
     }
   }
   const rawOwnTier = (mergedParams.get("ownTier") || mergedParams.get("own_tier") || "")

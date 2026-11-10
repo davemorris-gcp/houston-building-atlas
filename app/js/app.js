@@ -37,6 +37,7 @@ import {
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
+  normalizePortfolioQuery,
 } from "./guidedChaptersAndPortfolios.js?v=20261109d";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109d";
 import {
@@ -851,6 +852,22 @@ export class HoustonAtlasApp {
       this.mapController?.inspectHahcById?.(featureId, {
         flyTo: !viewport || vpChangedSignificantly,
       });
+      return;
+    }
+    if (featureId.startsWith("lost_")) {
+      this.filterStore.setLayerVisibility("lostHouston", true);
+      this.mapController?.highlightBoundaryByIdOrName?.(
+        {
+          id: featureId,
+          name: featureId,
+          layerKey: "lost_houston",
+        },
+        {
+          layerKey: "lost_houston",
+          fitBounds: !viewport || vpChangedSignificantly,
+          openInspector: true,
+        }
+      );
       return;
     }
     const rawQuery = String(selection.query || "").trim();
@@ -2925,10 +2942,14 @@ export class HoustonAtlasApp {
     for (const al of permitAlerts) {
       const hcad = String(al.hcad_num || "").trim();
       const target = hcad && byHcad.get(hcad);
-      const badgeLabel =
-        al.severity === "critical"
-          ? `🚨 ${al.badge || "Active Demo / Sewer Disc"}`
-          : `⚠ ${al.badge || "Permit / Asbestos Watch"}`;
+      const isAlDemolished = Boolean(
+        al.is_demolished || al.demolished || al.demolition_status === "demolished"
+      );
+      const badgeLabel = isAlDemolished
+        ? `⚫ ${al.badge || "Confirmed Demolished"}`
+        : al.severity === "critical"
+        ? `🚨 ${al.badge || "Active Demo / Sewer Disc"}`
+        : `⚠ ${al.badge || "Permit / Asbestos Watch"}`;
       if (target) {
         if (al.building_name && !target.building_name) {
           target.building_name = al.building_name;
@@ -2939,6 +2960,13 @@ export class HoustonAtlasApp {
         if (al.architect && !target.architect) target.architect = al.architect;
         if (al.style && !target.style) target.style = al.style;
         if (al.yr_remodel && !target.yr_remodel) target.yr_remodel = al.yr_remodel;
+        if (isAlDemolished) {
+          target.demolished = true;
+          target.is_demolished = true;
+          if (al.year_demolished) target.year_demolished = al.year_demolished;
+          if (al.demolished_date) target.demolished_date = al.demolished_date;
+          if (al.lost_houston_id) target.lost_houston_id = al.lost_houston_id;
+        }
         if (!String(target.sublabel || "").includes(badgeLabel)) {
           target.sublabel = `${badgeLabel} • ${target.sublabel || al.address || ""}`;
         }
@@ -2966,8 +2994,17 @@ export class HoustonAtlasApp {
           ]
             .filter(Boolean)
             .join(" • "),
-          category: al.year_built ? `Built ${al.year_built}` : badgeLabel,
+          category: isAlDemolished
+            ? `${al.year_built || ""}-${al.year_demolished || getAtlasMaxYear()} (Demolished)`.replace(/^-/,"")
+            : al.year_built
+            ? `Built ${al.year_built}`
+            : badgeLabel,
           year_built: al.year_built || 0,
+          demolished: isAlDemolished,
+          is_demolished: isAlDemolished,
+          year_demolished: al.year_demolished || null,
+          demolished_date: al.demolished_date || "",
+          lost_houston_id: al.lost_houston_id || "",
           architect: al.architect || "",
           style: al.style || "",
           bld_style: al.style || "",
@@ -6869,10 +6906,22 @@ export class HoustonAtlasApp {
           }
 
           const chosenIdStr = String(chosen.id || "").trim();
-          if (chosen.type === "landmark" && chosen.demolished) {
+          const isChosenDemolished = Boolean(chosen.demolished || chosen.is_demolished);
+          if (
+            isChosenDemolished &&
+            (chosen.type === "landmark" ||
+              chosen.type === "good_brick" ||
+              Boolean(chosen.lost_houston_id))
+          ) {
             const matchedLost = (
               this.mapController?.overlaysData?.lost_houston?.features || []
-            ).find((f) => f.properties && f.properties.coh_landmark_id === chosenIdStr);
+            ).find(
+              (f) =>
+                f.properties &&
+                ((chosen.lost_houston_id && f.properties.id === chosen.lost_houston_id) ||
+                  (chosenIdStr && f.properties.coh_landmark_id === chosenIdStr) ||
+                  (chosen.hcad_num && f.properties.hcad_num === chosen.hcad_num))
+            );
             if (matchedLost?.properties) {
               const curLayers = this.store.getState().layers || {};
               if (!curLayers.lostHouston) {
@@ -6898,22 +6947,24 @@ export class HoustonAtlasApp {
               }
               return;
             }
-            const fullLmFeat = (
-              this.mapController?.overlaysData?.landmarks?.features || []
-            ).find((f) => f.properties && f.properties.id === chosenIdStr);
-            this.mapController.flyToLocation({
-              lng: chosen.lon,
-              lat: chosen.lat,
-              zoom: chosen.zoom || 17.5,
-            });
-            this.renderInspectorDrawer({
-              ...(fullLmFeat?.properties || chosen),
-              hcad_num: "",
-              overlay_layer: "landmarks",
-              lng: chosen.lon,
-              lat: chosen.lat,
-            });
-            return;
+            if (chosen.type === "landmark") {
+              const fullLmFeat = (
+                this.mapController?.overlaysData?.landmarks?.features || []
+              ).find((f) => f.properties && f.properties.id === chosenIdStr);
+              this.mapController.flyToLocation({
+                lng: chosen.lon,
+                lat: chosen.lat,
+                zoom: chosen.zoom || 17.5,
+              });
+              this.renderInspectorDrawer({
+                ...(fullLmFeat?.properties || chosen),
+                hcad_num: "",
+                overlay_layer: "landmarks",
+                lng: chosen.lon,
+                lat: chosen.lat,
+              });
+              return;
+            }
           }
 
           const targetFeatureId = String(
@@ -14543,7 +14594,12 @@ export class HoustonAtlasApp {
           >
             <span>
               <strong>${
-                activePermitAlert && activePermitAlert.severity === "critical"
+                activePermitAlert &&
+                (activePermitAlert.demolished ||
+                  activePermitAlert.is_demolished ||
+                  activePermitAlert.demolition_status === "demolished")
+                  ? "&#9899; Confirmed Demolished (Graduated to Lost Houston):"
+                  : activePermitAlert && activePermitAlert.severity === "critical"
                   ? "&#128680; Active Demolition / Abatement Alert:"
                   : "&#9888; Active Permit / Plat Watch:"
               }</strong>
@@ -14637,7 +14693,13 @@ export class HoustonAtlasApp {
                   activePermitAlert.severity === "critical"
                     ? "rgba(248,113,113,0.65)"
                     : "rgba(251,191,36,0.55)"
-                };cursor:pointer;" data-switch-inspector-tab="permits" title="Click to open Permits & Watch tab">&#9888; ${activePermitAlert.badge || "Active Permit Watch"}</span>`
+                };cursor:pointer;" data-switch-inspector-tab="permits" title="Click to open Permits & Watch tab">${
+                  activePermitAlert.demolished ||
+                  activePermitAlert.is_demolished ||
+                  activePermitAlert.demolition_status === "demolished"
+                    ? "&#9899;"
+                    : "&#9888;"
+                } ${activePermitAlert.badge || "Active Permit Watch"}</span>`
               : ""
           }
         </div>
@@ -15318,28 +15380,33 @@ export class HoustonAtlasApp {
       });
     });
 
-    content.querySelectorAll("[data-inspect-lost-houston]").forEach((lhBtn) => {
-      lhBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const lhId = lhBtn.getAttribute("data-inspect-lost-houston") || "";
-        if (lhId && this.mapController) {
-          this.filterStore.setLayerVisibility("lostHouston", true);
-          this.mapController.highlightBoundaryByIdOrName(
-            {
-              id: lhId,
-              name: lhId,
-              layerKey: "lost_houston",
-            },
-            {
-              layerKey: "lost_houston",
-              fitBounds: true,
-              openInspector: true,
-            }
-          );
-        }
+    content
+      .querySelectorAll("[data-inspect-lost-houston], [data-open-lost-houston-id]")
+      .forEach((lhBtn) => {
+        lhBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const lhId =
+            lhBtn.getAttribute("data-inspect-lost-houston") ||
+            lhBtn.getAttribute("data-open-lost-houston-id") ||
+            "";
+          if (lhId && this.mapController) {
+            this.filterStore.setLayerVisibility("lostHouston", true);
+            this.mapController.highlightBoundaryByIdOrName(
+              {
+                id: lhId,
+                name: lhId,
+                layerKey: "lost_houston",
+              },
+              {
+                layerKey: "lost_houston",
+                fitBounds: true,
+                openInspector: true,
+              }
+            );
+          }
+        });
       });
-    });
 
     content.querySelectorAll("[data-overlay-lost-sanborn]").forEach((sbBtn) => {
       sbBtn.addEventListener("click", (e) => {
@@ -19152,9 +19219,16 @@ export class HoustonAtlasApp {
     listEl.innerHTML = filtered
       .map((al) => {
         const isCritical = al.severity === "critical";
+        const isDemolished = Boolean(
+          al.demolished ||
+            al.is_demolished ||
+            al.demolition_status === "demolished"
+        );
         const yrText =
           Number(al.year_built) > 1800
-            ? `Built ${al.year_built}${al.yr_remodel ? ` (Remod ${al.yr_remodel})` : ""}`
+            ? isDemolished
+              ? `${al.year_built}-${al.year_demolished || getAtlasMaxYear()} (Demolished)`
+              : `Built ${al.year_built}${al.yr_remodel ? ` (Remod ${al.yr_remodel})` : ""}`
             : "Historic Parcel";
         const cohList = Array.isArray(al.coh_permits) ? al.coh_permits : [];
         const dshsList = Array.isArray(al.dshs_notifications) ? al.dshs_notifications : [];
@@ -19233,8 +19307,6 @@ export class HoustonAtlasApp {
           })
           .join("");
 
-        const isDemolished =
-          al.demolition_status === "demolished" || Boolean(al.is_demolished);
         const lostHoustonId = String(al.lost_houston_id || "").trim();
 
         return `
@@ -19277,8 +19349,6 @@ export class HoustonAtlasApp {
                         class="action-pill"
                         style="text-decoration:none;background:#4C1D95;border-color:#A78BFA;color:#F5F3FF;"
                         data-pw-open-lost="${this._escapeHtmlAttr(lostHoustonId)}"
-                        data-pw-lon="${al.lon}"
-                        data-pw-lat="${al.lat}"
                       >
                         &#127963; View in Lost Houston
                       </a>`
@@ -19326,27 +19396,24 @@ export class HoustonAtlasApp {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         const lostId = btn.getAttribute("data-pw-open-lost") || "";
-        const lon = parseFloat(btn.getAttribute("data-pw-lon"));
-        const lat = parseFloat(btn.getAttribute("data-pw-lat"));
         const modal = document.getElementById("permit-watch-modal");
         if (modal) modal.classList.add("hidden");
         if (!this.filterStore.getState().layers.lostHouston) {
           this.filterStore.setLayerVisibility("lostHouston", true);
         }
-        if (this.mapController) {
-          if (Number.isFinite(lon) && Number.isFinite(lat)) {
-            this.mapController.flyToLocation({
-              lng: lon,
-              lat: lat,
-              zoom: 17.6,
-              featureId: lostId,
-            });
-          } else {
-            this.mapController.selectFeatureByIdOrHcad({
-              featureId: lostId,
-              flyTo: true,
-            });
-          }
+        if (this.mapController && lostId) {
+          this.mapController.highlightBoundaryByIdOrName(
+            {
+              id: lostId,
+              name: lostId,
+              layerKey: "lost_houston",
+            },
+            {
+              layerKey: "lost_houston",
+              fitBounds: true,
+              openInspector: true,
+            }
+          );
         }
       });
     });
@@ -20052,7 +20119,7 @@ export class HoustonAtlasApp {
     { fitBounds = true, skipHistoryPush = false } = {}
   ) {
     const cleanKind = normalizePortfolioKind(kind);
-    const cleanQuery = String(query || "").trim();
+    const cleanQuery = normalizePortfolioQuery(cleanKind, query);
     if (!cleanQuery) return;
 
     if (this._activeTour) {
