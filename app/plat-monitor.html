@@ -5144,7 +5144,14 @@ function emailText(){
   if (back.length) body += `Returning from earlier cycles:\n${back.map(i => `- ${i.app} ${i.name} (PC ${formatShortUsDate(i._hist.cycle) || i._hist.cycle}${i._hist.tier ? ", Tier " + i._hist.tier : ""})`).join("\n")}\n\n`;
   const devs = [...new Set(items.filter(i => i._dev).map(i => i.developer))];
   if (devs.length) body += `Developers seen on earlier flagged items: ${devs.join("; ")}\n\n`;
-  body += `All confirmed Watchlist properties and review notes are synced to the shared Preservation Houston Google Sheet and Plat & Property Monitor:\nhttps://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html\n\n${S.reviewer || ""}`;
+  const monitorShareUrl =
+    typeof window !== "undefined" &&
+    window.location &&
+    /^https?:$/i.test(window.location.protocol) &&
+    !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname || "")
+      ? `${window.location.origin}${window.location.pathname}`
+      : "https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html";
+  body += `All confirmed Watchlist properties and review notes are synced to the shared Preservation Houston Google Sheet and Plat & Property Monitor:\n${monitorShareUrl}\n\n${S.reviewer || ""}`;
   return body.trim();
 }
 

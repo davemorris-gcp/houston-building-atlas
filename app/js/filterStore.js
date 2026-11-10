@@ -27,7 +27,26 @@ export function normalizeComparableAddress(raw) {
 }
 
 export const DEFAULT_ATLAS_MAX_YEAR = 2026;
+export const DEFAULT_ATLAS_BASE_URL = "https://davemorris-gcp.github.io/houston-building-atlas/";
+export const DEFAULT_ATLAS_SANDBOX_URL = "https://davemorris-gcp.github.io/houston-building-atlas/";
 let _atlasMaxYear = DEFAULT_ATLAS_MAX_YEAR;
+
+export function resolveAtlasBaseOriginPath(options = {}) {
+  if (options && typeof options.baseOriginPath === "string" && options.baseOriginPath.trim()) {
+    return options.baseOriginPath.trim();
+  }
+  if (
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.__ATLAS_BASE_URL__ === "string" &&
+    globalThis.__ATLAS_BASE_URL__.trim()
+  ) {
+    return globalThis.__ATLAS_BASE_URL__.trim();
+  }
+  if (typeof window !== "undefined" && window.location && window.location.origin) {
+    return `${window.location.origin}${window.location.pathname || "/"}`;
+  }
+  return DEFAULT_ATLAS_BASE_URL;
+}
 
 export const OWNERSHIP_TIER_ITEMS = [
   { key: "homestead", label: "Protected Homestead (Owner-Occupied)", color: "#38BDF8" },
@@ -1450,6 +1469,18 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
     params.set("thcSurvey", "1");
   }
 
+  if (options.aiCompanion) {
+    const rawAiTab =
+      typeof options.aiCompanion === "string" &&
+      /^(chatgpt|claude|gemini|cli)$/i.test(options.aiCompanion.trim())
+        ? options.aiCompanion.trim().toLowerCase()
+        : typeof options.aiCompanionTab === "string" &&
+          /^(claude|gemini|cli)$/i.test(options.aiCompanionTab.trim())
+        ? options.aiCompanionTab.trim().toLowerCase()
+        : "1";
+    params.set("aiCompanion", rawAiTab);
+  }
+
   if (collapseSidebar) {
     params.set("sidebar", "0");
   }
@@ -1471,11 +1502,7 @@ export function serializeStateToHash(state, viewport = null, options = {}) {
  * Build a complete shareable URL from the current origin + pathname.
  */
 export function buildShareableUrl(state, viewport = null, options = {}) {
-  const baseUrl =
-    options.baseOriginPath ||
-    (typeof window !== "undefined"
-      ? `${window.location.origin}${window.location.pathname}`
-      : "https://davemorris-gcp.github.io/houston-building-atlas/");
+  const baseUrl = resolveAtlasBaseOriginPath(options);
   const useQuery = options.useQueryParams !== false && options.useQueryString !== false;
   const serialized = serializeStateToHash(state, viewport, {
     includeViewport: options.includeViewport !== false,
@@ -1483,6 +1510,8 @@ export function buildShareableUrl(state, viewport = null, options = {}) {
     selectedFeatureId: options.selectedFeatureId || options.selectedId || "",
     inspectorTab: options.inspectorTab || "",
     thcSurvey: Boolean(options.thcSurvey),
+    aiCompanion: options.aiCompanion || false,
+    aiCompanionTab: options.aiCompanionTab || "",
     selectedBoundary: options.selectedBoundary || null,
     activeChapterId: options.activeChapterId || "",
     activePortfolio: options.activePortfolio || null,
@@ -1863,14 +1892,29 @@ export function parseHashToState(hashString = "", searchString = "") {
     patch.syncAnnexationToTime = patch.layers.annexations;
   }
 
-  // Optional Selected Property (`hcad` or `id` or `selected` or `q` or `bnd` or `thcSurvey=<hcad>`)
+  // Optional Selected Property (`hcad` or `id` or `selected` or `q` or `bnd` or `thcSurvey=<hcad>` or `aiCompanion=<hcad|tab>`)
   const rawThcSurvey = (mergedParams.get("thcSurvey") || mergedParams.get("thc_survey") || "").trim();
   const thcSurveyHcad = /^\d{10,13}$/.test(rawThcSurvey) ? rawThcSurvey.padStart(13, "0") : "";
   const thcSurvey = Boolean(
     thcSurveyHcad ||
       /^(1|true|on|yes)$/i.test(rawThcSurvey)
   );
-  const selHcad = (mergedParams.get("hcad") || thcSurveyHcad || "").trim();
+  const rawAiCompanion = (
+    mergedParams.get("aiCompanion") ||
+    mergedParams.get("ai_companion") ||
+    mergedParams.get("ai") ||
+    ""
+  ).trim();
+  const aiCompanionHcad = /^\d{10,13}$/.test(rawAiCompanion) ? rawAiCompanion.padStart(13, "0") : "";
+  const aiCompanionTab = /^(chatgpt|claude|gemini|cli)$/i.test(rawAiCompanion)
+    ? rawAiCompanion.toLowerCase()
+    : "";
+  const aiCompanion = Boolean(
+    aiCompanionHcad ||
+      aiCompanionTab ||
+      /^(1|true|on|yes)$/i.test(rawAiCompanion)
+  );
+  const selHcad = (mergedParams.get("hcad") || thcSurveyHcad || aiCompanionHcad || "").trim();
   const selId = (mergedParams.get("id") || mergedParams.get("selected") || "").trim();
   const selQuery = (
     mergedParams.get("q") ||
@@ -2031,6 +2075,8 @@ export function parseHashToState(hashString = "", searchString = "") {
     selection,
     inspectorTab,
     thcSurvey,
+    aiCompanion,
+    aiCompanionTab: aiCompanionTab || (aiCompanion ? "chatgpt" : ""),
     collapseSidebar,
     activeChapterId,
     activePortfolio,

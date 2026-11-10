@@ -35,7 +35,7 @@ from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
 from atlas_pipeline.lost_houston_expansion import build_lost_houston_photo_record
-from atlas_pipeline.schema import sanitize_atlas_text, write_compact_json
+from atlas_pipeline.schema import DEFAULT_ATLAS_BASE_URL, sanitize_atlas_text, write_compact_json
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OVERLAYS_PATH = REPO_ROOT / "app" / "public" / "data" / "overlays.json"
@@ -50,7 +50,7 @@ SHEET_TITLE_LOST = "Lost_Houston_Catalog"
 # Row 7 divider, Rows 8..24 Sections 7..22 (SOP 1..13 + Master Docs section at Row 24).
 # Verify A24:A26 before changing so --include-sop14 never overwrites Row 24 or touches Cell B6.
 SOP14_TARGET_ROW = 25
-ATLAS_BASE_URL = "https://davemorris-gcp.github.io/houston-building-atlas/"
+ATLAS_BASE_URL = DEFAULT_ATLAS_BASE_URL
 # Must stay synchronized with Building_Photos!L1 in setup_admin_sheet.py so DF-6
 # lost_* rows (blank Col A hcad_num) retain deep links alongside standing HCAD rows.
 BUILDING_PHOTOS_OPEN_IN_ATLAS_FORMULA = (

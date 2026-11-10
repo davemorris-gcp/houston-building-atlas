@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "active_environment": "production",
+  "canonical_base_url": "https://davemorris-gcp.github.io/houston-building-atlas/",
+  "vanity_cutover_ready": true,
+  "is_sandbox_split_active": false,
+  "cache_bust": "20261110a",
+  "tax_year": 2026,
+  "environments": {
+    "production": {
+      "label": "Live Production",
+      "base_url": "https://davemorris-gcp.github.io/houston-building-atlas/",
+      "plat_monitor_url": "https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html",
+      "llms_txt_url": "https://davemorris-gcp.github.io/houston-building-atlas/llms.txt",
+      "llms_full_txt_url": "https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt",
+      "ai_companion_dir_url": "https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/",
+      "show_sandbox_badge": false
+    },
+    "sandbox": {
+      "label": "Sandbox / Staging Preview",
+      "base_url": "https://davemorris-gcp.github.io/houston-building-atlas/",
+      "plat_monitor_url": "https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html",
+      "llms_txt_url": "https://davemorris-gcp.github.io/houston-building-atlas/llms.txt",
+      "llms_full_txt_url": "https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt",
+      "ai_companion_dir_url": "https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/",
+      "show_sandbox_badge": true
+    }
+  },
+  "discovery_urls": [
+    "https://davemorris-gcp.github.io/houston-building-atlas/public/data/atlas_environments.json",
+    "https://davemorris-gcp.github.io/houston-building-atlas/public/data/atlas_environments.json"
+  ]
+}

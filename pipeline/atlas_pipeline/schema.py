@@ -36,6 +36,41 @@ MAX_SINGLE_FILE_BYTES = 95 * 1024 * 1024
 ORD_2015_639_CUTOFF_ISO = "2015-07-24"
 ORD_2015_639_CUTOFF_ORD_NUM = 639
 QUAD_NAMES: tuple[str, ...] = ("nw_w", "nw_e", "ne", "sw", "se")
+DEFAULT_ATLAS_BASE_URL = "https://davemorris-gcp.github.io/houston-building-atlas/"
+DEFAULT_ATLAS_SANDBOX_URL = "https://davemorris-gcp.github.io/houston-building-atlas/"
+
+
+def resolve_atlas_base_url(
+    env: str | None = None,
+    *,
+    environments_path: Path | None = None,
+) -> str:
+    """Resolve the canonical Atlas base URL from explicit URL, ATLAS_BASE_URL env var, atlas_environments.json, or fallback constant."""
+    if isinstance(env, str) and (env.startswith("http://") or env.startswith("https://")):
+        clean_explicit = env.strip()
+        return clean_explicit if clean_explicit.endswith("/") else f"{clean_explicit}/"
+    env_override = os.environ.get("ATLAS_BASE_URL", "").strip()
+    if env is None and (env_override.startswith("http://") or env_override.startswith("https://")):
+        return env_override if env_override.endswith("/") else f"{env_override}/"
+    env_path = environments_path or (
+        Path(__file__).resolve().parents[2] / "app" / "public" / "data" / "atlas_environments.json"
+    )
+    if env_path.is_file():
+        try:
+            payload = json.loads(env_path.read_text(encoding="utf-8"))
+            target_env = (env or payload.get("active_environment") or "production").strip().lower()
+            envs = payload.get("environments") or {}
+            if target_env in envs and isinstance(envs[target_env], dict):
+                url = str(envs[target_env].get("base_url") or "").strip()
+                if url:
+                    return url if url.endswith("/") else f"{url}/"
+            canon = str(payload.get("canonical_base_url") or "").strip()
+            if canon:
+                return canon if canon.endswith("/") else f"{canon}/"
+        except (OSError, ValueError, TypeError):
+            pass
+    fallback = DEFAULT_ATLAS_SANDBOX_URL if env == "sandbox" else DEFAULT_ATLAS_BASE_URL
+    return fallback if fallback.endswith("/") else f"{fallback}/"
 
 
 @dataclass(frozen=True)

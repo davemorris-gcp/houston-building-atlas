@@ -73,6 +73,7 @@ Click any URL below to open a pre-configured view demonstrating the latest prese
 | **20. Newly Backfilled Post-2016 COH Landmark Designation Report PDF (`20PL182`, `911 Woodland St`)** | [`#hcad=0513790000023&tab=history`](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0513790000023&tab=history) | Demonstrates one of the `34` newly recovered post-2016 COH Landmark Designation Report PDFs (`482/509` [`94.7%`] verified PDF coverage; `The Proebstle-Whorton House`), paired with NRHP nomination `secondary_pdf_url` fallbacks (`#hcad=0523230000010&tab=history` for `17PL160` `Anderson and Lucie Todd Residence`) for the `27` remaining unpublished TPIA-tracked landmarks. |
 | **21. Plain-English HCAD Appraiser Note & Municipal Permit Decoder (`1016 Algregg St`, Norhill HD)** | [`#hcad=0620950000004&tab=permits`](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0620950000004&tab=permits) | Opens the `Permits` tab directly (`&tab=permits`) on a `1920` Norhill bungalow, translating cryptic multi-date HCAD CAMA inspection notes (`4/1/26 NC:` + `11/22/24 FR:`, `@ TOI`, `DWG`, `CDU @ GD`) into dated Plain-English bullets above a 1-tap `Verbatim HCAD text` `<details>` disclosure while preserving verbatim municipal permit text (`ONE-STOP REMODEL`, `AS PER SPEC LIST`) with quiet Plain-English explanations and official 25-code HCAD `permit_type` badges (`Additions or Remodeling`, `Repairs (Foundation / General Maintenance)`). |
 | **22. Early-Warning Permit Watchlist & Plat/Property Monitor Plain-English Decoder (`2000 Smith St` & `plat-monitor.html`)** | [`plat-monitor.html?mode=activity`](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html?mode=activity) & [`plat-monitor.html?tab=watchlist&hcad=0152300000001`](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html?tab=watchlist&hcad=0152300000001) | Translates City of Houston early-warning `use_desc` strings (`BLD DEMO/SEWER DISC` Stage 1 Type `12/4P` vs. Stage 2 Type `SD`, `COH D.B./RESIDENTIAL DEMO/2026 DAP LIST/` Type `4D`, `GARAGE ONLY`, `GARAGE APT ONLY`, `(NO SD REQUIRED)- GA`, `PPR DEMO OF NON-LOAD BEARING/NON- FIRE R` Type `13`/`PX`), Texas DSHS 10-working-day NESHAP asbestos/demolition scopes (`Full Containment (296.212)`, `Category II NonFriable`, `O & M Work`), and 8-agency Watchlist/Plat codes (`TDLR TABS`, `Houston 311 Dangerous Buildings`, `Section K DPV`, `Class 3 Replat C3N`) into compact Plain-English sub-lines across `#permit-watch-modal`, `#inspector-permit-alert-card`, and `plat-monitor.html`. |
+| **23. Public AI Research Companion Skill, 1-Click Property Research Dossier & `/llms.txt` (`#aiCompanion=1`)** | [`#aiCompanion=1`](https://davemorris-gcp.github.io/houston-building-atlas/#aiCompanion=1) & [`#hcad=0550140020008&aiCompanion=1`](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0550140020008&aiCompanion=1) | Opens the **AI Research Companion & Public Skill Kit** (`#ai-companion-modal`) with 1-click **Copy AI Research Dossier** for any selected property (`3700 N Main St`, Granada Theater), platform-tailored system instructions for **ChatGPT Plus/Web**, **Claude Web/Desktop**, **Google Gemini**, and **CLI Agents**, standard [`/llms.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms.txt) & [`/llms-full.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt) machine-readable catalogs, and centralized `atlas_environments.json` vanity-URL / sandbox promotion support. |
 
 ---
 
@@ -192,6 +193,12 @@ uv run python -m atlas_pipeline.cli --mode harvest-archives --offline --dry-run
 
 # Example: Harvest COH HPO 23 Historic District parcel survey inventories & post-2016 Landmark Designation Report PDFs (from cached PDF extracts)
 uv run python -m atlas_pipeline.cli --mode harvest-hpo --dry-run
+
+# Example: Rebuild /llms.txt, /llms-full.txt, atlas_environments.json & app/public/ai-companion/ skill kit
+uv run python -m atlas_pipeline.cli --mode build-ai-companion
+
+# Example: Promote production to a vanity URL and convert GitHub Pages into the sandbox environment
+uv run python -m atlas_pipeline.cli --mode set-environment-urls --production-url https://atlas.preservationhouston.org --sandbox-url https://davemorris-gcp.github.io/houston-building-atlas
 ```
 
 ### 3. Automated Testing, 45-Archetype Verification & Live External Archive Link Health
@@ -248,12 +255,15 @@ houston-building-atlas/
 │   ├── unit/                                  # Layer 1 Node.js unit, schema, bundle & URL-validator tests
 │   └── e2e/                                   # Layer 2 Playwright Headless Chromium WebGL & DOM E2E suite
 ├── app/                                       # Zero-build static WebGL + PMTiles web applications
-│   ├── index.html                             # Main Atlas UI, 4-Tab Inspector, Research Kit & Modals
+│   ├── index.html                             # Main Atlas UI, 4-Tab Inspector, Research Kit, AI Companion & Modals
 │   ├── plat-monitor.html                      # 3-Mode Companion Monitor (What's New & Daily Log, Plat Review & Watchlist)
+│   ├── llms.txt                               # Standard llmstxt.org AI index & deep-link syntax reference
+│   ├── llms-full.txt                          # Complete 37-dataset schema, 4-tier provenance & AI research guide
 │   ├── server.py                              # Local RFC 7233 HTTP 206 Partial Content & HCAD proxy server
 │   ├── css/styles.css                         # Preservation Houston Archival Dark/Light design system
 │   ├── js/
 │   │   ├── app.js                             # Main controller, 4-Tab Inspector, Scorecard, Research Kit & Export Studio
+│   │   ├── aiCompanion.js                     # AI Research Companion modal (#aiCompanion=1), platform instructions & 1-click Property Dossier
 │   │   ├── mapController.js                   # MapLibre GL JS v4.7.1 + 5-shard PMTiles + 3D + Spyglass
 │   │   ├── filterStore.js                     # Reactive filter state, 23 layer flags & URL query/hash codec
 │   │   ├── preservationOrganizer.js           # 4,242 Neighborhood Scorecards & COH Code Ch. 42 SMLS/SMBL Block-Face Kit
@@ -273,8 +283,10 @@ houston-building-atlas/
 │   │   ├── thcSurveyFormGenerator.js          # Official 3-Section THC Historic Resources Survey Form (v3/2013) auto-generator (#thcSurvey=1)
 │   │   └── urlValidators.js                   # Canonical external URL validator & retired-pattern blocker
 │   └── public/
+│       ├── ai-companion/                      # Publicly hosted AI Research Companion skill kit (SKILL.md, query_atlas.py/.mjs, PLATFORM_SETUP_GUIDE.md)
 │       ├── deeds/                             # 65 mirrored full-text searchable deed restriction PDFs
 │       └── data/
+│           ├── atlas_environments.json        # Centralized production vs. sandbox base URL & environment manifest
 │           ├── houston_buildings_nw_w.pmtiles # Far NW Shard (<80 MB, Zoom-11 Web Mercator tile-aligned)
 │           ├── houston_buildings_nw_e.pmtiles # Near NW Shard (<70 MB, Zoom-11 Web Mercator tile-aligned)
 │           ├── houston_buildings_ne.pmtiles   # NE Shard (<55 MB, Zoom-11 Web Mercator tile-aligned)
@@ -304,7 +316,9 @@ houston-building-atlas/
 │           ├── address_shards/                # 90 gzipped countywide street-address shards (addr_10..99.json.gz, 14.5 MiB)
 │           ├── owner_history/                 # 152 gzipped 22-yr (2005-2026) HCAD ownership chain shards (owners_001..970.json.gz, 47.7 MiB)
 │           └── permits/                       # 152 gzipped HCAD permit + 1836-2026 stewardship shards (permits_001..970.json.gz, 73.4 MiB)
-└── pipeline/                                  # 56-script geospatial & archival Python pipeline (uv / Python 3.13)
+├── skills/
+│   └── houston-building-atlas/                # Portable public AI Research Companion skill (SKILL.md, query_atlas.py/.mjs, PLATFORM_SETUP_GUIDE.md)
+└── pipeline/                                  # 57-script geospatial & archival Python pipeline (uv / Python 3.13)
     ├── pyproject.toml
     └── atlas_pipeline/
 ```

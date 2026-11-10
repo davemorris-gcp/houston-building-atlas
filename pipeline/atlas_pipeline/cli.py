@@ -6,10 +6,6 @@ import argparse
 import time
 from pathlib import Path
 
-from atlas_pipeline.fetch_data import fetch_core_parcels_and_footprints
-from atlas_pipeline.spatial_join import join_footprints_to_parcels
-from atlas_pipeline.tile_builder import write_atlas_bundle
-
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
@@ -26,6 +22,8 @@ def main(argv: list[str] | None = None) -> None:
             "harvest-archives",
             "harvest-hpo",
             "repair-permit-categories",
+            "build-ai-companion",
+            "set-environment-urls",
         ),
         default="core",
         help=(
@@ -35,7 +33,9 @@ def main(argv: list[str] | None = None) -> None:
             "'ingest-tpia' (Harris County Clerk 1961-present RP/MC & pre-2005 HCAD TPIA ingestion), "
             "'harvest-archives' (TARO 2.0 EAD XML finding aids & HPL ContentDM architectural collections), "
             "'harvest-hpo' (deterministic cached COH HPO 23 Historic District survey inventories & post-2016 Landmark PDFs), "
-            "or 'repair-permit-categories' (reclassify HCAD permit_type category labels across permits_*.json.gz shards)."
+            "'repair-permit-categories' (reclassify HCAD permit_type category labels across permits_*.json.gz shards), "
+            "'build-ai-companion' (generate atlas_environments.json, llms.txt, llms-full.txt, and mirror AI skill files), "
+            "or 'set-environment-urls' (update production vanity URL and sandbox URL across repo)."
         ),
     )
     parser.add_argument(
@@ -144,6 +144,24 @@ def main(argv: list[str] | None = None) -> None:
         default=False,
         help="Use cached TARO EAD XMLs and HPL ContentDM JSONs without network requests (for --mode harvest-archives).",
     )
+    parser.add_argument(
+        "--production-url",
+        type=str,
+        default=None,
+        help="Canonical production base URL (e.g. https://atlas.preservationhouston.org/) for --mode set-environment-urls.",
+    )
+    parser.add_argument(
+        "--sandbox-url",
+        type=str,
+        default=None,
+        help="Sandbox preview base URL (e.g. https://davemorris-gcp.github.io/houston-building-atlas/) for --mode set-environment-urls.",
+    )
+    parser.add_argument(
+        "--active-environment",
+        choices=("production", "sandbox"),
+        default="production",
+        help="Active environment profile for this deployment target (default: production).",
+    )
     args = parser.parse_args(argv)
 
     t0 = time.time()
@@ -152,6 +170,10 @@ def main(argv: list[str] | None = None) -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     if args.mode == "core":
+        from atlas_pipeline.fetch_data import fetch_core_parcels_and_footprints
+        from atlas_pipeline.spatial_join import join_footprints_to_parcels
+        from atlas_pipeline.tile_builder import write_atlas_bundle
+
         parcels, footprints, overlays = fetch_core_parcels_and_footprints(args.cache_dir)
         print("-> Running spatial join (matching observed building footprints + deriving architectural footprints)...")
         joined_buildings, valid_parcels = join_footprints_to_parcels(parcels, footprints)
@@ -269,6 +291,34 @@ def main(argv: list[str] | None = None) -> None:
         )
         elapsed = time.time() - t0
         print(format_repair_permit_categories_cli_summary(stats, elapsed_s=elapsed))
+        return
+    elif args.mode == "build-ai-companion":
+        from atlas_pipeline.build_ai_companion import sync_ai_companion_bundle
+
+        res = sync_ai_companion_bundle()
+        elapsed = time.time() - t0
+        print(
+            f"=== AI Companion Bundle Synced ({elapsed:.1f}s): "
+            f"llms.txt={res['llms_txt_bytes']:,}B, llms-full.txt={res['llms_full_txt_bytes']:,}B, "
+            f"mirrored={len(res['mirrored_files'])} files ==="
+        )
+        return
+    elif args.mode == "set-environment-urls":
+        from atlas_pipeline.build_ai_companion import set_environment_urls, sync_ai_companion_bundle
+        from atlas_pipeline.schema import DEFAULT_ATLAS_BASE_URL, DEFAULT_ATLAS_SANDBOX_URL
+
+        env_res = set_environment_urls(
+            production_url=args.production_url or DEFAULT_ATLAS_BASE_URL,
+            sandbox_url=args.sandbox_url or DEFAULT_ATLAS_SANDBOX_URL,
+            active_environment=args.active_environment,
+        )
+        comp_res = sync_ai_companion_bundle()
+        elapsed = time.time() - t0
+        print(
+            f"=== Environment URLs Updated ({elapsed:.1f}s): production={env_res['production_url']}, "
+            f"sandbox={env_res['sandbox_url']}, active={env_res['active_environment']}, "
+            f"llms-full.txt={comp_res['llms_full_txt_bytes']:,}B ==="
+        )
         return
     else:
         from atlas_pipeline.full_build import run_full_county_build

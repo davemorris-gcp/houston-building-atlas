@@ -20,3 +20,4 @@ import "./milestone12_hpo_backfill.test.mjs";
 import "./milestone13_permit_plain_english.test.mjs";
 import "./mobile_ux_responsive.test.mjs";
 import "./thc_survey_form_generator.test.mjs";
+import "./ai_companion_and_environments.test.mjs";

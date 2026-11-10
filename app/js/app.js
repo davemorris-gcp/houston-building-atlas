@@ -154,6 +154,12 @@ import {
   renderThcSurveyFormHtml,
   serializeThcSurveyFormToTsv,
 } from "./thcSurveyFormGenerator.js?v=20261110a";
+import {
+  AI_COMPANION_PLATFORMS,
+  buildPlatformSystemInstructions,
+  buildPropertyAiResearchDossier,
+  SAMPLE_AI_RESEARCH_PROMPTS,
+} from "./aiCompanion.js?v=20261110a";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -270,6 +276,8 @@ export class HoustonAtlasApp {
       selection,
       inspectorTab,
       thcSurvey,
+      aiCompanion,
+      aiCompanionTab,
       collapseSidebar,
       activeChapterId,
       activePortfolio,
@@ -285,6 +293,9 @@ export class HoustonAtlasApp {
     this.initialSelection = selection;
     this.initialInspectorTab = inspectorTab;
     this.initialThcSurvey = Boolean(thcSurvey);
+    this.initialAiCompanion = Boolean(aiCompanion);
+    this.initialAiCompanionTab = aiCompanionTab || "chatgpt";
+    this._activeAiCompanionTab = this.initialAiCompanionTab;
     this.initialCollapseSidebar = collapseSidebar;
     this._activeDossierMode = "sheet";
     this._activeDossierProps = null;
@@ -527,6 +538,13 @@ export class HoustonAtlasApp {
       });
     }
 
+    if (this.initialAiCompanion) {
+      await this.waitForPendingInspectorHydrations();
+      this.openAiCompanionModal(this.initialAiCompanionTab || "chatgpt", {
+        updateUrl: false,
+      });
+    }
+
     if (this.initialScorecard) {
       await this.openScorecardModal({
         layer: this.initialScorecard.layer,
@@ -576,6 +594,8 @@ export class HoustonAtlasApp {
         selection,
         inspectorTab,
         thcSurvey,
+        aiCompanion,
+        aiCompanionTab,
         collapseSidebar,
         activeChapterId,
         activePortfolio,
@@ -822,6 +842,15 @@ export class HoustonAtlasApp {
               pitch: viewport.pitch,
             });
           }
+        }
+        if (aiCompanion) {
+          await this.waitForPendingInspectorHydrations();
+          if (urlSeq !== this._urlChangeSeq) return;
+          this.openAiCompanionModal(aiCompanionTab || this._activeAiCompanionTab || "chatgpt", {
+            updateUrl: false,
+          });
+        } else if (!document.getElementById("ai-companion-modal")?.classList.contains("hidden")) {
+          this.closeAiCompanionModal({ updateUrl: false });
         }
         this._applyExportStudioHashParams(window.location.hash, window.location.search);
         this._lastHistorySignature = this._computeHistorySignature(this.filterStore.getState());
@@ -4816,6 +4845,99 @@ export class HoustonAtlasApp {
     if (aboutModal) {
       aboutModal.addEventListener("click", (e) => {
         if (e.target === aboutModal) aboutModal.classList.add("hidden");
+      });
+    }
+
+    // AI Research Companion & Portable Skill Modal
+    const aiCompanionModal = document.getElementById("ai-companion-modal");
+    const btnMoreAiCompanion = document.getElementById("btn-more-ai-companion");
+    const btnOpenAiFromAbout = document.getElementById("btn-open-ai-companion-from-about");
+    const btnCloseAiCompanion = document.getElementById("btn-close-ai-companion-modal");
+    if (btnMoreAiCompanion) {
+      btnMoreAiCompanion.addEventListener("click", () => {
+        this.openAiCompanionModal(this._activeAiCompanionTab || "chatgpt");
+      });
+    }
+    if (btnOpenAiFromAbout) {
+      btnOpenAiFromAbout.addEventListener("click", () => {
+        if (aboutModal) aboutModal.classList.add("hidden");
+        this.openAiCompanionModal(this._activeAiCompanionTab || "chatgpt");
+      });
+    }
+    if (btnCloseAiCompanion) {
+      btnCloseAiCompanion.addEventListener("click", () => this.closeAiCompanionModal());
+    }
+    if (aiCompanionModal) {
+      aiCompanionModal.addEventListener("click", (e) => {
+        if (e.target === aiCompanionModal) this.closeAiCompanionModal();
+      });
+    }
+    document.querySelectorAll("[data-ai-platform]").forEach((tabBtn) => {
+      tabBtn.addEventListener("click", () => {
+        const plat = tabBtn.getAttribute("data-ai-platform") || "chatgpt";
+        this.openAiCompanionModal(plat);
+      });
+    });
+    const btnCopyAiInstructions = document.getElementById("btn-copy-ai-platform-instructions");
+    if (btnCopyAiInstructions) {
+      btnCopyAiInstructions.addEventListener("click", () => {
+        const previewEl =
+          document.getElementById("ai-platform-instructions-preview") ||
+          document.getElementById("ai-companion-instructions-textarea");
+        const fb = document.getElementById("ai-companion-copy-feedback");
+        const txt = previewEl
+          ? typeof previewEl.value === "string" && previewEl.value
+            ? previewEl.value
+            : previewEl.textContent || ""
+          : buildPlatformSystemInstructions(this._activeAiCompanionTab || "chatgpt");
+        if (txt && navigator.clipboard) {
+          navigator.clipboard.writeText(txt).catch(() => {});
+        }
+        if (previewEl && typeof previewEl.select === "function") previewEl.select();
+        btnCopyAiInstructions.textContent = "✓ Copied Instructions!";
+        if (fb) fb.textContent = "✓ System instructions copied to clipboard";
+        setTimeout(() => {
+          const activePlat =
+            AI_COMPANION_PLATFORMS.find((p) => p.id === this._activeAiCompanionTab) ||
+            AI_COMPANION_PLATFORMS[0];
+          btnCopyAiInstructions.innerHTML = `&#128203; ${this._escapeHtmlAttr(
+            activePlat.actionLabel || `Copy Instructions for ${activePlat.shortLabel || activePlat.label}`
+          )}`;
+          if (fb) fb.textContent = "";
+        }, 2200);
+      });
+    }
+    const btnCopyAiDossier = document.getElementById("btn-copy-ai-active-dossier");
+    if (btnCopyAiDossier) {
+      btnCopyAiDossier.addEventListener("click", () => {
+        const dossierTxt = this._buildActivePropertyAiDossier();
+        if (dossierTxt && navigator.clipboard) {
+          navigator.clipboard.writeText(dossierTxt).catch(() => {});
+        }
+        btnCopyAiDossier.textContent = "✓ Copied Property AI Dossier!";
+        setTimeout(() => {
+          btnCopyAiDossier.innerHTML = "&#128203; Copy Property Dossier + Prompt";
+        }, 2200);
+      });
+    }
+    const aiSamplePromptsEl =
+      document.getElementById("ai-sample-prompts-grid") ||
+      document.getElementById("ai-companion-sample-prompts");
+    if (aiSamplePromptsEl) {
+      aiSamplePromptsEl.addEventListener("click", (e) => {
+        const copyBtn = e.target.closest?.("[data-copy-ai-sample-prompt]");
+        if (!copyBtn) return;
+        const promptIdx = parseInt(copyBtn.getAttribute("data-copy-ai-sample-prompt"), 10);
+        const item = SAMPLE_AI_RESEARCH_PROMPTS[promptIdx];
+        if (!item) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(item.prompt).catch(() => {});
+        }
+        const origText = copyBtn.textContent;
+        copyBtn.textContent = "✓ Copied Prompt!";
+        setTimeout(() => {
+          copyBtn.textContent = origText || "Copy Research Prompt";
+        }, 2000);
       });
     }
 
@@ -15023,6 +15145,14 @@ export class HoustonAtlasApp {
               >
                 &#127963; Pre-Filled THC Survey Form
               </button>
+              <button
+                type="button"
+                class="inspector-btn secondary"
+                id="btn-inspector-ai-companion"
+                title="Open the AI Research Companion or copy a structured research dossier for ChatGPT, Claude, or Gemini"
+              >
+                &#129302; Ask AI / Copy Research Dossier
+              </button>
               <a
                 href="${googleMapsUrl}"
                 target="_blank"
@@ -15529,6 +15659,16 @@ export class HoustonAtlasApp {
       btnOpenThcSurvey.addEventListener("click", () => {
         this.openPropertyDossierModal(props, { mode: "thc" });
       });
+    }
+
+    const btnOpenAiCompanion = document.getElementById("btn-inspector-ai-companion");
+    if (btnOpenAiCompanion) {
+      btnOpenAiCompanion.addEventListener("click", () => {
+        this.openAiCompanionModal(this._activeAiCompanionTab || "chatgpt");
+      });
+    }
+    if (!document.getElementById("ai-companion-modal")?.classList.contains("hidden")) {
+      this._renderAiCompanionModalContent();
     }
 
     for (const ch42BtnId of ["btn-open-ch42-calculator", "btn-open-ch42-calculator-hcad"]) {
@@ -17037,6 +17177,200 @@ export class HoustonAtlasApp {
     modal.classList.remove("hidden");
     if (updateUrl && typeof this._updateUrlHash === "function" && this.filterStore) {
       this._updateUrlHash(this.filterStore.getState());
+    }
+  }
+
+  _buildActivePropertyAiDossier() {
+    const props =
+      this._activeInspectorProps ||
+      this.mapController?.selectedFeatureProps ||
+      this._activeDossierProps ||
+      null;
+    if (!props) {
+      return buildPropertyAiResearchDossier({});
+    }
+    const nameInfo = this._resolveBuildingNameAndAliases(props);
+    const displayStyle = this._resolveStyleAndClassInfo(props).displayStyle;
+    const hcadNum = String(props.hcad_num || "").trim();
+    const permitShardRec =
+      this._activeInspectorCompositeRec?.hcadNum === hcadNum
+        ? this._activeInspectorCompositeRec.rec
+        : null;
+    const haifThreads = this._resolveHaifThreads(props);
+    const archivalRes = this._resolveArchivalRecords(props);
+    const hpoSurveyRec = this._resolveHpoParcelSurvey(props);
+    const goodBrickAwards = Array.isArray(props.good_brick_awards)
+      ? props.good_brick_awards
+      : hcadNum && this.goodBrickByHcad?.get(hcadNum)
+      ? this.goodBrickByHcad.get(hcadNum)
+      : [];
+    const vp = this.mapController ? this.mapController.getCurrentViewport() : null;
+    const { selectedHcad, selectedFeatureId } = this._getSelectionUrlIds(props);
+    const shareUrl = buildShareableUrl(this.filterStore.getState(), vp, {
+      includeViewport: false,
+      selectedHcad,
+      selectedFeatureId,
+      useQueryString: true,
+    });
+    return buildPropertyAiResearchDossier(props, {
+      title: nameInfo.primaryName,
+      altNames: nameInfo.altNames,
+      displayStyle,
+      ownerDisplay: resolveEffectiveInspectorOwner(props).displayLabel,
+      permitShardRec,
+      goodBrickAwards,
+      haifThreads,
+      archivalCitations: Array.isArray(archivalRes?.parcelCitations)
+        ? archivalRes.parcelCitations
+        : [],
+      hpoSurveyRec,
+      shareUrl,
+    });
+  }
+
+  openAiCompanionModal(platform = "chatgpt", { updateUrl = true } = {}) {
+    const modal = document.getElementById("ai-companion-modal");
+    if (!modal) return;
+    this._closeTransientTopbarPopovers?.();
+    const validIds = new Set(AI_COMPANION_PLATFORMS.map((p) => p.id));
+    this._activeAiCompanionTab = validIds.has(platform) ? platform : "chatgpt";
+    this._renderAiCompanionModalContent();
+    modal.classList.remove("hidden");
+    if (updateUrl && typeof this._updateUrlHash === "function" && this.filterStore) {
+      this._updateUrlHash(this.filterStore.getState());
+    }
+  }
+
+  closeAiCompanionModal({ updateUrl = true } = {}) {
+    const modal = document.getElementById("ai-companion-modal");
+    if (modal) modal.classList.add("hidden");
+    if (updateUrl && typeof this._updateUrlHash === "function" && this.filterStore) {
+      this._updateUrlHash(this.filterStore.getState());
+    }
+  }
+
+  _renderAiCompanionModalContent() {
+    const activeTab = this._activeAiCompanionTab || "chatgpt";
+    const platform =
+      AI_COMPANION_PLATFORMS.find((p) => p.id === activeTab) || AI_COMPANION_PLATFORMS[0];
+    document.querySelectorAll("[data-ai-platform]").forEach((btn) => {
+      const pid = btn.getAttribute("data-ai-platform") || "";
+      const isSelected = pid === platform.id;
+      btn.classList.toggle("active", isSelected);
+      btn.setAttribute("aria-selected", isSelected ? "true" : "false");
+    });
+
+    const titleEl = document.getElementById("ai-companion-platform-title");
+    const subEl = document.getElementById("ai-companion-platform-sub");
+    const stepsEl =
+      document.getElementById("ai-platform-steps-list") ||
+      document.getElementById("ai-companion-platform-steps");
+    const btnCopyInstructions = document.getElementById("btn-copy-ai-platform-instructions");
+    const btnLaunchPlatform = document.getElementById("btn-launch-ai-platform");
+    const previewEl =
+      document.getElementById("ai-platform-instructions-preview") ||
+      document.getElementById("ai-companion-instructions-textarea");
+
+    if (titleEl) titleEl.textContent = platform.label;
+    if (subEl) subEl.textContent = platform.subtitle;
+    if (stepsEl) {
+      stepsEl.innerHTML = (platform.steps || [])
+        .map((s) => `<li>${this._escapeHtmlAttr(s)}</li>`)
+        .join("");
+    }
+    if (btnCopyInstructions) {
+      btnCopyInstructions.innerHTML = `&#128203; ${this._escapeHtmlAttr(
+        platform.actionLabel || `Copy Instructions for ${platform.shortLabel || platform.label}`
+      )}`;
+    }
+    if (btnLaunchPlatform && platform.launchUrl) {
+      btnLaunchPlatform.setAttribute("href", platform.launchUrl);
+      btnLaunchPlatform.innerHTML = `Open ${this._escapeHtmlAttr(
+        platform.shortLabel || platform.label
+      )} &#8599;`;
+    }
+    if (previewEl) {
+      const instructionsText = buildPlatformSystemInstructions(platform.id);
+      if ("value" in previewEl) {
+        previewEl.value = instructionsText;
+      } else {
+        previewEl.textContent = instructionsText;
+      }
+    }
+
+    const activeProps =
+      this._activeInspectorProps ||
+      this.mapController?.selectedFeatureProps ||
+      this._activeDossierProps ||
+      null;
+    const dossierPreviewEl = document.getElementById("ai-companion-dossier-preview");
+    const activeTitleEl = document.getElementById("ai-companion-active-title");
+    const bannerEl = document.getElementById("ai-companion-active-property-banner");
+    const activeLabelEl = document.getElementById("ai-companion-active-property-label");
+    if (dossierPreviewEl) {
+      dossierPreviewEl.textContent = this._buildActivePropertyAiDossier();
+    }
+    if (
+      activeProps &&
+      (activeProps.address ||
+        activeProps.hcad_num ||
+        activeProps.building_name ||
+        activeProps.landmark_name)
+    ) {
+      const nameInfo = this._resolveBuildingNameAndAliases(activeProps);
+      const labelParts = [
+        nameInfo.primaryName,
+        activeProps.address && activeProps.address !== nameInfo.primaryName
+          ? activeProps.address
+          : "",
+        activeProps.hcad_num ? `HCAD ${activeProps.hcad_num}` : "",
+      ].filter(Boolean);
+      if (activeTitleEl) {
+        activeTitleEl.textContent = `1. Instant 1-Click Property Research Dossier: ${labelParts.join(" · ")}`;
+      }
+      if (activeLabelEl) activeLabelEl.textContent = labelParts.join(" · ");
+      if (bannerEl) bannerEl.classList.remove("hidden");
+    } else {
+      if (activeTitleEl) {
+        activeTitleEl.textContent =
+          "1. Instant 1-Click Property Research Dossier (Zero Setup Needed)";
+      }
+      if (bannerEl) bannerEl.classList.add("hidden");
+    }
+
+    const sampleGrid =
+      document.getElementById("ai-sample-prompts-grid") ||
+      document.getElementById("ai-companion-sample-prompts");
+    if (sampleGrid) {
+      sampleGrid.innerHTML = SAMPLE_AI_RESEARCH_PROMPTS.map(
+        (item, idx) => {
+          const linkTarget = item.deepLink || item.atlasHash || "#";
+          return `
+        <div class="ai-sample-prompt-card ai-companion-prompt-card">
+          <div class="ai-sample-prompt-kicker">${this._escapeHtmlAttr(item.category || "Houston Built Environment")}</div>
+          <div class="ai-sample-prompt-title ai-companion-prompt-title">${this._escapeHtmlAttr(item.title)}</div>
+          <p class="ai-sample-prompt-text ai-companion-prompt-text">${this._escapeHtmlAttr(item.prompt)}</p>
+          <div class="ai-sample-prompt-actions ai-companion-prompt-actions">
+            <button
+              type="button"
+              class="action-pill active"
+              data-copy-ai-sample-prompt="${idx}"
+              style="padding: 4px 10px; font-size: 11px;"
+            >
+              &#128203; Copy Research Prompt
+            </button>
+            <a
+              href="${this._escapeHtmlAttr(linkTarget)}"
+              class="action-pill subtle mono"
+              style="padding: 4px 8px; font-size: 10.5px; text-decoration: none;"
+              title="Open this view in the Atlas"
+            >
+              ${this._escapeHtmlAttr(linkTarget)} &#8599;
+            </a>
+          </div>
+        </div>`;
+        }
+      ).join("");
     }
   }
 
@@ -19738,6 +20072,16 @@ export class HoustonAtlasApp {
       : "";
     const surveySig = state?.activeSurvey ? "survey:1" : "";
     const polySig = state?.activePolyEdit ? `polyedit:${state.activePolyEdit}` : "";
+    const aiCompanionModal =
+      typeof document !== "undefined" && typeof document.getElementById === "function"
+        ? document.getElementById("ai-companion-modal")
+        : null;
+    const isAiCompanionOpen = Boolean(
+      aiCompanionModal && !aiCompanionModal.classList?.contains?.("hidden")
+    );
+    const aiSig = isAiCompanionOpen
+      ? `ai:${this._activeAiCompanionTab || "chatgpt"}`
+      : "";
     return [
       selectedHcad ? `hcad:${selectedHcad}` : "",
       selectedFeatureId ? `id:${selectedFeatureId}` : "",
@@ -19751,6 +20095,7 @@ export class HoustonAtlasApp {
       auditSig,
       surveySig,
       polySig,
+      aiSig,
     ]
       .filter(Boolean)
       .join("|");
@@ -19790,6 +20135,13 @@ export class HoustonAtlasApp {
         dossierModal &&
         !dossierModal.classList?.contains?.("hidden")
     );
+    const aiCompanionModal =
+      typeof document !== "undefined" && typeof document.getElementById === "function"
+        ? document.getElementById("ai-companion-modal")
+        : null;
+    const isAiCompanionOpen = Boolean(
+      aiCompanionModal && !aiCompanionModal.classList?.contains?.("hidden")
+    );
     let hash = serializeStateToHash(state, vp, {
       includeViewport: true,
       selectedHcad,
@@ -19797,6 +20149,8 @@ export class HoustonAtlasApp {
       inspectorTab:
         selectedHcad || selectedFeatureId ? this._activeInspectorTab || "" : "",
       thcSurvey: isThcSurveyOpen,
+      aiCompanion: isAiCompanionOpen,
+      aiCompanionTab: this._activeAiCompanionTab || "chatgpt",
       selectedBoundary,
       activeChapterId: this._activeChapterId || "",
       activePortfolio: activePortfolioSpec,

@@ -13,6 +13,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from atlas_pipeline.schema import DEFAULT_ATLAS_BASE_URL
+
 SID_HUB = 1383259584
 SID_PENDING = 0
 SID_APPROVED = 1876369840
@@ -31,7 +33,7 @@ SHEET_TITLE_SURVEYS = "Field_Surveys"
 SHEET_TITLE_TRIAGE_1927 = "1927_Cutoff_Triage"
 TRIAGE_1927_FILTER_VIEW_COUNT = 7
 
-ATLAS_BASE_URL = "https://davemorris-gcp.github.io/houston-building-atlas/"
+ATLAS_BASE_URL = DEFAULT_ATLAS_BASE_URL
 
 # Centralized Admin_Hub_&_Quick_Filter & Instructions_&_Apps_Script row coordinates
 # across Milestone 2 (Row 18 Lost Houston), Milestone 3 (Row 19 Field Surveys), and

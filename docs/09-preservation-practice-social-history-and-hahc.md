@@ -240,4 +240,32 @@ Compiled into the 14th tab (`HAHC_Landmark_Candidates`, `gid=944200101`, `1,616`
 
 ---
 
+## 10. Public AI Research Companion Skill, 1-Click Property Research Dossier, `/llms.txt` & Centralized Environment/Vanity-URL Configuration (`#aiCompanion=1`, `app/js/aiCompanion.js`, `skills/houston-building-atlas/`)
+
+Added in Milestone 16 (November 10, 2026) so members of the public, architectural historians, students, and civic advocates can use their own AI accounts (**ChatGPT Plus/Web**, **Claude Web/Desktop**, **Google Gemini**, or **CLI Coding Agents**) to query the Houston Building Atlas and its `37` primary archival sources accurately while citing clickable Atlas deep links:
+
+### 10.1 Three-Layer AI Companion Architecture
+1. **Standard Machine-Readable Web Discovery (`/llms.txt` & `/llms-full.txt`):**
+   - Generated automatically by `pipeline/atlas_pipeline/build_ai_companion.py` (`cli.py --mode build-ai-companion`) following the [`llmstxt.org`](https://llmstxt.org/) specification.
+   - Indexable by any web-browsing LLM (`ChatGPT Search`, `Claude Web Fetch`, `Google Gemini`), documenting the Atlas URL deep-link parameter syntax (`#hcad=`, `?id=lost_...&layers=lost_houston`, `#portfolio=architect:...`, `#scorecard=...`, `#ch42=...`, `#thcSurvey=1`), the 4-Tier Evidentiary Provenance System (warning LLMs against treating rounded-decade `1900`/`1910`/`1920`/`1930` HCAD tax-roll estimates as exact construction years), Houston Chapter 33 Sec. 33-250 `90-Day Waiver Landmark` and NRHP private-demolition rules, `TX Tax Code Sec. 25.025` statutory confidentiality, and direct JSON/gzipped-shard endpoints.
+2. **Portable Cross-Platform Skill Package (`skills/houston-building-atlas/` & `app/public/ai-companion/`):**
+   - [`SKILL.md`](../skills/houston-building-atlas/SKILL.md) - Portable YAML-frontmatter agent skill compatible with Claude Projects/Skills, ChatGPT Custom GPTs/Projects, Gemini Gems, Cursor, Claude Code, and Gemini CLI.
+   - [`scripts/query_atlas.py`](../skills/houston-building-atlas/scripts/query_atlas.py) & [`scripts/query_atlas.mjs`](../skills/houston-building-atlas/scripts/query_atlas.mjs) - Zero-dependency Python 3 stdlib and Node 18+ CLI helpers that query live or local Atlas JSON and `.json.gz` shards (`--hcad`, `--address`, `--search`, `--architect`, `--scorecard`, `--lost`) and output structured Markdown dossiers with verified deep links.
+   - [`references/PLATFORM_SETUP_GUIDE.md`](../skills/houston-building-atlas/references/PLATFORM_SETUP_GUIDE.md) - Step-by-step setup instructions for ChatGPT, Claude, Gemini, and CLI tools.
+3. **In-App `🤖 AI Research Companion` Modal (`#ai-companion-modal`, `#aiCompanion=1`) & 1-Click Property Research Dossier:**
+   - Accessible from the Topbar (`More -> 🤖 AI Research Companion`), the `About` modal (`🤖 Open AI Research Companion`), any Property Inspector drawer (`🤖 AI Research Companion`), or via `#aiCompanion=1` (`#aiCompanion=chatgpt|claude|gemini|cli`).
+   - When a property is selected in the Inspector, clicking **`📋 Copy Property AI Research Dossier`** (`buildPropertyAiResearchDossier` in `app/js/aiCompanion.js`) compiles a rich Markdown research prompt bundling the parcel's verified year + provenance tier, legal protections, Sanborn volumes, City Directory sightings/absences, COH Historic District survey rows, TARO/HPL archival finding aids, `2005-2026` named HCAD ownership tenures (strictly respecting `Sec. 25.025` redaction), permit/remodel timeline, and clickable deep links ready to paste into any AI chat.
+
+### 10.2 Centralized Environment & Vanity-URL Configuration (`atlas_environments.json`, `cli.py --mode set-environment-urls`)
+To support seamless future promotion to a permanent vanity URL (e.g., `https://atlas.preservationhouston.org`) while converting `https://davemorris-gcp.github.io/houston-building-atlas/` into a pre-production `sandbox` environment:
+- `app/public/data/atlas_environments.json` and `pipeline/atlas_pipeline/schema.py` (`resolve_atlas_base_url()`) act as the single source of truth across Python pipeline scripts, Google Sheet `ARRAYFORMULA` deep links (`setup_admin_sheet.py`, `sync_lost_houston_sheet.py`), `/llms.txt`, `/llms-full.txt`, and the AI Research Companion skill kit.
+- Running `uv run python -m atlas_pipeline.cli --mode set-environment-urls --production-url <VANITY_URL> --sandbox-url <SANDBOX_URL>` updates `atlas_environments.json` and regenerates all companion indexes in a single command.
+
+### 10.3 Verified Sample Deep Links for the AI Research Companion (`#aiCompanion=1`)
+- **AI Research Companion & Platform Setup Modal (`ChatGPT`, `Claude`, `Gemini`, `CLI`):** [`https://davemorris-gcp.github.io/houston-building-atlas/#aiCompanion=1`](https://davemorris-gcp.github.io/houston-building-atlas/#aiCompanion=1)
+- **Pre-Populated Property AI Research Dossier (`3700 N Main St`, Granada Theater):** [`https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0550140020008&aiCompanion=1`](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0550140020008&aiCompanion=1)
+- **Machine-Readable LLM Index (`/llms.txt` & `/llms-full.txt`):** [`https://davemorris-gcp.github.io/houston-building-atlas/llms.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms.txt) & [`https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt)
+
+---
+
 [← Chapter 8: Crowdsourcing, Live HCAD API & Admin Operations](08-crowdsourcing-and-admin-operations.md) | [Back to Master README](../README.md) | [Next: Chapter 10 - Master Data Sources, External Integrations & Curation Playbooks →](10-sources-integrations-and-curation-workflows.md)
