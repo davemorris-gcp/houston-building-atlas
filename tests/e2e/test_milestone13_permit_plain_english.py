@@ -227,3 +227,176 @@ def test_m13_e2e_permit_plain_english_decoder_and_repaired_badges_desktop_and_mo
     assert not page_errors, f"Uncaught JS pageerror(s): {page_errors}"
     assert not local_http_errors, f"Local HTTP >= 400 asset failure(s): {local_http_errors}"
     assert not console_errors, f"Console error(s): {console_errors}"
+
+
+def test_milestone14_early_warning_permit_and_watchlist_plain_english(
+    page: Any, atlas_base_url: str
+) -> None:
+    """Verify Milestone 14 Early-Warning Permit Watchlist & Plat/Property Monitor Plain-English DOM rendering."""
+    configure_fast_e2e_context(page.context, atlas_base_url)
+    page_errors, console_errors, local_http_errors = attach_error_monitors(page, atlas_base_url)
+
+    # 1. Open main map at flagged property 2000 Smith St (John Henry Kirby Mansion, HCAD 0152300000001)
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto(
+        f"{atlas_base_url}/#hcad=0152300000001",
+        wait_until="domcontentloaded",
+    )
+
+    page.wait_for_function(
+        """() => {
+            const box = document.querySelector('#inspector-body .inspector-permit-filing-box');
+            const plain = box ? box.querySelector('.inspector-permit-filing-plain') : null;
+            return Boolean(plain && plain.textContent.trim().length > 20);
+        }""",
+        timeout=25000,
+    )
+
+    inspector_plain_notes = page.locator(
+        "#inspector-body .inspector-permit-filing-box .inspector-permit-filing-plain"
+    ).all_inner_texts()
+    assert len(inspector_plain_notes) >= 1, (
+        "Expected .inspector-permit-filing-plain inside .inspector-permit-filing-box for 2000 Smith St"
+    )
+    assert any(
+        "Texas DSHS" in t or "asbestos" in t.lower() or "TDLR" in t or "311" in t
+        for t in inspector_plain_notes
+    ), f"Unexpected inspector plain notes for 2000 Smith St: {inspector_plain_notes}"
+    for note in inspector_plain_notes:
+        assert "\u2010" not in note and "\u2013" not in note and "\u2014" not in note
+
+    # 2. Open the Early-Warning Permit Watch Modal and verify .pw-item-filing-plain inside .pw-item-filing
+    page.evaluate("() => window.atlasApp.openPermitWatchModal('all')")
+    page.wait_for_function(
+        """() => {
+            const modal = document.getElementById('permit-watch-modal');
+            const plain = modal ? modal.querySelector('.pw-item-filing .pw-item-filing-plain') : null;
+            return Boolean(
+                modal && !modal.classList.contains('hidden')
+                && plain && plain.textContent.trim().length > 20
+            );
+        }""",
+        timeout=15000,
+    )
+
+    modal_plain_notes = page.locator(
+        "#permit-watch-modal .pw-item-filing .pw-item-filing-plain"
+    ).all_inner_texts()
+    assert len(modal_plain_notes) >= 10, (
+        f"Expected at least 10 .pw-item-filing-plain notes in Permit Watch Modal, got {len(modal_plain_notes)}"
+    )
+    assert any("Stage 1 pre-demolition plumbing permit" in t for t in modal_plain_notes)
+    assert any("Texas DSHS" in t or "asbestos" in t.lower() for t in modal_plain_notes)
+    for note in modal_plain_notes:
+        assert "\u2010" not in note and "\u2013" not in note and "\u2014" not in note
+
+    # Verify mobile portrait (390x844) wrapping and zero horizontal overflow inside #permit-watch-modal
+    page.set_viewport_size({"width": 390, "height": 844})
+    pw_mobile_metrics = page.evaluate(
+        """() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
+            const docEl = document.documentElement;
+            const modalList = document.getElementById('permit-watch-modal-list');
+            resolve({
+                docScrollWidth: docEl.scrollWidth,
+                winInnerWidth: window.innerWidth,
+                listScrollWidth: modalList ? modalList.scrollWidth : 0,
+                listClientWidth: modalList ? modalList.clientWidth : 0,
+            });
+        })))"""
+    )
+    assert pw_mobile_metrics["docScrollWidth"] <= pw_mobile_metrics["winInnerWidth"], (
+        f"Mobile 390x844 document horizontal overflow with Permit Watch Modal open: {pw_mobile_metrics}"
+    )
+    assert pw_mobile_metrics["listScrollWidth"] <= pw_mobile_metrics["listClientWidth"] + 1, (
+        f"#permit-watch-modal-list horizontal overflow at 390x844: {pw_mobile_metrics}"
+    )
+    page.set_viewport_size({"width": 1440, "height": 900})
+
+    # 3. Navigate to plat-monitor.html in Activity ("What's New & Daily Log") mode with All History
+    page.goto(
+        f"{atlas_base_url}/plat-monitor.html?mode=activity",
+        wait_until="domcontentloaded",
+    )
+    page.wait_for_selector('#activityRangeTabs .tab[data-act-range="all"]', state="visible", timeout=20000)
+    page.click('#activityRangeTabs .tab[data-act-range="all"]')
+    page.wait_for_function(
+        """() => {
+            const cards = document.querySelectorAll('#detail .act-card');
+            const plainNotes = document.querySelectorAll('#detail .act-card .act-card-plain-note');
+            return cards.length >= 10 && plainNotes.length >= 5;
+        }""",
+        timeout=20000,
+    )
+
+    act_plain_notes = page.locator("#detail .act-card .act-card-plain-note").all_inner_texts()
+    assert len(act_plain_notes) >= 5
+    for note in act_plain_notes:
+        assert "\u2010" not in note and "\u2013" not in note and "\u2014" not in note
+
+    # Verify degraded sweep cards do NOT render .act-card-plain-note
+    degraded_plain_count = page.evaluate(
+        """() => {
+            const cards = Array.from(document.querySelectorAll('#detail .act-card'));
+            const degradedCards = cards.filter(c =>
+                (c.getAttribute('data-event-id') || '').includes('degraded') ||
+                (c.querySelector('.act-card-title')?.textContent || '').includes('Sweep Degraded')
+            );
+            return degradedCards.reduce(
+                (acc, c) => acc + c.querySelectorAll('.act-card-plain-note').length,
+                0
+            );
+        }"""
+    )
+    assert degraded_plain_count == 0, (
+        f"Expected 0 .act-card-plain-note on degraded sweep cards, got {degraded_plain_count}"
+    )
+
+    # 4. Switch to Property Watchlist mode for John Henry Kirby Mansion (prop-kirby-mansion)
+    page.goto(
+        f"{atlas_base_url}/plat-monitor.html?mode=watchlist&watch=prop-kirby-mansion",
+        wait_until="domcontentloaded",
+    )
+    page.wait_for_function(
+        """() => {
+            const detail = document.getElementById('detail');
+            const notes = detail ? detail.querySelectorAll('.wl-check-plain-note') : [];
+            return notes.length >= 4;
+        }""",
+        timeout=20000,
+    )
+
+    watchlist_plain_info = page.evaluate(
+        """() => {
+            const detail = document.getElementById('detail');
+            const checklistLiNotes = Array.from(
+                detail.querySelectorAll('ul.chk-list li .wl-check-plain-note')
+            ).map(el => el.textContent.trim());
+            const findingsLogNotes = Array.from(
+                detail.querySelectorAll('table.wl-table tbody tr td .wl-check-plain-note')
+            ).filter(el => !el.closest('ul.chk-list')).map(el => el.textContent.trim());
+            const quietLiWithNote = Array.from(detail.querySelectorAll('ul.chk-list li')).filter(li => {
+                const txt = li.textContent || '';
+                const isQuiet = /\\b(?:no results|no demo permit|no new filings found)\\b/i.test(txt);
+                return isQuiet && Boolean(li.querySelector('.wl-check-plain-note'));
+            }).length;
+            return {
+                checklistLiNotes,
+                findingsLogNotes,
+                quietLiWithNote,
+            };
+        }"""
+    )
+    assert len(watchlist_plain_info["checklistLiNotes"]) >= 2, (
+        f"Expected .wl-check-plain-note in 15-Point Checklist: {watchlist_plain_info}"
+    )
+    assert len(watchlist_plain_info["findingsLogNotes"]) >= 2, (
+        f"Expected .wl-check-plain-note in Chronological Findings Log: {watchlist_plain_info}"
+    )
+    assert watchlist_plain_info["quietLiWithNote"] == 0, (
+        f"Quiet check rows must not render .wl-check-plain-note: {watchlist_plain_info}"
+    )
+
+    assert not page_errors, f"Uncaught JS pageerror(s): {page_errors}"
+    assert not local_http_errors, f"Local HTTP >= 400 asset failure(s): {local_http_errors}"
+    assert not console_errors, f"Console error(s): {console_errors}"
+

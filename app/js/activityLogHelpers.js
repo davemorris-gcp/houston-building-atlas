@@ -25,7 +25,12 @@
  *      any daily run where `failedAgencies.length > 0` or `allOk === false`.
  */
 
-import { parseHcadAccountList } from "./platMonitorHelpers.js?v=20261109b";
+import { parseHcadAccountList } from "./platMonitorHelpers.js?v=20261109c";
+import {
+  explainCohWatchPermit,
+  explainDshsNotification,
+  explainWatchlistCheckText,
+} from "./permitPlainEnglish.js?v=20261109c";
 import {
   REMOVED_TIER3_TOMBSTONE,
   REMOVED_WATCHLIST_TOMBSTONE,
@@ -35,7 +40,7 @@ import {
   normalizeWatchProperty,
   sanitizeExternalLinksList,
   simplifySearchAddress,
-} from "./watchlistSyncHelpers.js?v=20261109b";
+} from "./watchlistSyncHelpers.js?v=20261109c";
 
 export const ACTIVITY_RETENTION_DAYS = 90;
 export const MAX_STORED_READ_EVENT_IDS = 500;
@@ -2169,6 +2174,22 @@ export function sanitizeActivityEventForRender(ev = {}) {
     safeUrl: escapeHtmlText(lk.url),
   }));
   const atlasMapHref = buildEventAtlasMapHref(ev);
+  let plainEnglishNote = "";
+  const pMeta = ev?.permitMeta;
+  if (pMeta && typeof pMeta === "object" && pMeta.record && typeof pMeta.record === "object") {
+    if (pMeta.alertKind === "coh") {
+      plainEnglishNote = explainCohWatchPermit(pMeta.record);
+    } else if (pMeta.alertKind === "dshs") {
+      plainEnglishNote = explainDshsNotification(pMeta.record);
+    }
+  }
+  if (!plainEnglishNote && ev?.kind !== "watchlist_sweep_degraded") {
+    plainEnglishNote = explainWatchlistCheckText(
+      `${ev?.title || ""} ${ev?.summary || ""}`.trim(),
+      ev?.checkId || ev?.kind || ""
+    );
+  }
+  const cleanPlainNote = sanitizeActivityText(plainEnglishNote);
   return {
     id: String(ev?.id || ""),
     safeId: escapeHtmlText(ev?.id || ""),
@@ -2181,6 +2202,8 @@ export function sanitizeActivityEventForRender(ev = {}) {
     date: parseIsoDatePrefix(ev?.date) || parseIsoDatePrefix(ev?.localDate),
     safeTitle: escapeHtmlText(sanitizeActivityText(ev?.title || "")),
     safeSummary: escapeHtmlText(sanitizeActivityText(ev?.summary || "")),
+    plainEnglishNote: cleanPlainNote,
+    safePlainEnglishNote: escapeHtmlText(cleanPlainNote),
     safeAddress: escapeHtmlText(sanitizeActivityText(ev?.address || "")),
     safeHcad: escapeHtmlText(sanitizeActivityText(ev?.hcad || "")),
     safeDesignation: escapeHtmlText(sanitizeActivityText(ev?.designation || "")),

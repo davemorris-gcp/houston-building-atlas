@@ -8142,6 +8142,17 @@ body {
   line-height: 1.35;
 }
 
+.inspector-permit-filing-plain {
+  font-size: 11px;
+  line-height: 1.38;
+  color: #cbd5e1;
+  border-left: 2px solid rgba(148, 163, 184, 0.45);
+  padding-left: 7px;
+  margin-top: 2px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 .inspector-permit-filing-meta {
   display: flex;
   flex-wrap: wrap;
@@ -8337,6 +8348,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .permit-watch-item-card.critical {
@@ -8362,7 +8376,8 @@ body {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  flex: 1 1 320px;
+  max-width: 100%;
+  flex: 1 1 220px;
 }
 
 .pw-item-badges {
@@ -8370,6 +8385,8 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .pw-severity-badge {
@@ -8377,6 +8394,10 @@ body {
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pw-severity-badge.critical {
@@ -8399,6 +8420,10 @@ body {
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #e2e8f0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pw-item-title {
@@ -8406,6 +8431,8 @@ body {
   font-size: 15px;
   font-weight: 700;
   color: #ffffff;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pw-item-addr-inline {
@@ -8439,6 +8466,9 @@ body {
   border-radius: 7px;
   background: rgba(0, 0, 0, 0.32);
   border-left: 3px solid #ef4444;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .permit-watch-item-card.watch .pw-item-narrative {
@@ -8450,6 +8480,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  min-width: 0;
 }
 
 .pw-item-filing {
@@ -8463,6 +8494,16 @@ body {
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.pw-item-filing > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pw-filing-pill {
@@ -8471,6 +8512,10 @@ body {
   font-weight: 700;
   padding: 1.5px 6px;
   border-radius: 4px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pw-filing-pill.coh {
@@ -8483,6 +8528,19 @@ body {
   background: rgba(245, 158, 11, 0.22);
   border: 1px solid rgba(251, 191, 36, 0.45);
   color: #fde68a;
+}
+
+.pw-item-filing-plain {
+  flex: 1 1 100%;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.38;
+  color: #cbd5e1;
+  border-left: 2px solid rgba(148, 163, 184, 0.45);
+  padding-left: 7px;
+  margin-top: 1px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 820px) {

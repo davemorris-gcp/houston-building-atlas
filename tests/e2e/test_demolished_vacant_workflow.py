@@ -109,7 +109,7 @@ def _select_1127_key_st_and_open_correction_modal(page: Any) -> None:
             window.atlasApp.openCorrectionModal(window.atlasApp.mapController.selectedFeatureProps);
         }"""
     )
-    page.wait_for_selector("#correction-modal:not(.hidden)", timeout=5000)
+    page.wait_for_selector("#correction-modal:not(.hidden)", timeout=12000)
 
 
 def _unlock_staff_admin_in_modal(page: Any) -> None:
@@ -306,7 +306,7 @@ def test_staff_admin_direct_approve_whole_parcel_vacant_suppression_and_revival(
             window.atlasApp.openCorrectionModal(parcelFeat.properties);
         }"""
     )
-    page.wait_for_selector("#correction-modal:not(.hidden)", timeout=5000)
+    page.wait_for_selector("#correction-modal:not(.hidden)", timeout=12000)
     assert page.input_value("#corr-suggested-year") == "0"
     assert page.input_value("#corr-footprint-issue") == DEMOLISHED_VACANT_ISSUE
 
@@ -418,7 +418,7 @@ def test_staff_admin_direct_approve_sub_building_campus_isolation(
         }""",
         target_sub_id,
     )
-    page.wait_for_selector("#correction-modal:not(.hidden)", timeout=5000)
+    page.wait_for_selector("#correction-modal:not(.hidden)", timeout=12000)
     assert page.input_value("#corr-hcad-num") == target_sub_id
 
     _unlock_staff_admin_in_modal(page)

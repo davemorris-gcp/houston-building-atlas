@@ -11,7 +11,7 @@ import {
   resolveOwnershipTierColor,
   resolveSanbornMaterialColors,
   SANBORN_MATERIAL_ITEMS,
-} from "./palettes.js?v=20261109b";
+} from "./palettes.js?v=20261109c";
 import {
   buildShareableUrl,
   createFilterStore,
@@ -29,16 +29,16 @@ import {
   toLayerStateKey,
   toOverlayDataKey,
   VALID_INSPECTOR_TABS,
-} from "./filterStore.js?v=20261109b";
-import { AtlasMapController } from "./mapController.js?v=20261109b";
+} from "./filterStore.js?v=20261109c";
+import { AtlasMapController } from "./mapController.js?v=20261109c";
 import {
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
-} from "./guidedChaptersAndPortfolios.js?v=20261109b";
-import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109b";
+} from "./guidedChaptersAndPortfolios.js?v=20261109c";
+import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261109c";
 import {
   buildAddressShardUrl,
   buildResearchKitDeedChainView,
@@ -51,7 +51,7 @@ import {
   isPlaceholderOwnerName,
   normalizeAddressShardPrefix,
   parseClerkLegalTokens,
-} from "./clerkSearchHelpers.js?v=20261109b";
+} from "./clerkSearchHelpers.js?v=20261109c";
 import {
   applyOverrideToProperties,
   authenticateAdminSession,
@@ -74,7 +74,7 @@ import {
   submitAdminApprovedOverride,
   submitCorrectionSuggestion,
   submitQuickFlagReport,
-} from "./curatedEdits.js?v=20261109b";
+} from "./curatedEdits.js?v=20261109c";
 import {
   buildStreetViewUrl,
   clearRegisteredPhotoExclusions,
@@ -84,12 +84,12 @@ import {
   registerKnownLandmarksForPhotoExclusion,
   registerSessionPhoto,
   resolveBuildingPhotos,
-} from "./photoService.js?v=20261109b";
+} from "./photoService.js?v=20261109c";
 import {
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
   resolveArchivalRecords,
-} from "./archivalHelpers.js?v=20261109b";
+} from "./archivalHelpers.js?v=20261109c";
 import {
   buildCohLandmarkDossierCardHtml,
   buildHpoDistrictDossierCardHtml,
@@ -101,7 +101,7 @@ import {
   resolveCohLandmarkOverlayMetadata,
   resolveHpoDistrictDocs,
   resolveHpoParcelSurvey,
-} from "./hpoSurveyHelpers.js?v=20261109b";
+} from "./hpoSurveyHelpers.js?v=20261109c";
 import {
   buildDemolitionBenchmarksTablesHtml,
   DEFAULT_ANNUAL_DEMOLITION_BENCHMARKS,
@@ -109,13 +109,18 @@ import {
   formatDemolitionPolicyBriefRichHtml,
   formatDemolitionPolicyBriefText,
   resolveAnnualDemolitionBenchmarks,
-} from "./platMonitorHelpers.js?v=20261109b";
+} from "./platMonitorHelpers.js?v=20261109c";
 import {
   buildHcadAddressPrefixWhere,
   normalizeHcad13,
   searchHcadParcelsByAddressPrefix,
-} from "./hcadViewportParcels.js?v=20261109b";
-import { buildInspectorPermitsBodyHtml } from "./permitPlainEnglish.js?v=20261109b";
+} from "./hcadViewportParcels.js?v=20261109c";
+import {
+  buildInspectorPermitsBodyHtml,
+  explainCohWatchPermit,
+  explainDshsNotification,
+  explainMultiAgencyFiling,
+} from "./permitPlainEnglish.js?v=20261109c";
 import {
   assembleBlockfaceFromSeedParcel,
   buildChapter42BlockfaceGeoJson,
@@ -135,13 +140,13 @@ import {
   resolveCh42OrdinanceLifecycle,
   SCORECARD_FAMILIES,
   VALID_SCORECARD_LAYERS,
-} from "./preservationOrganizer.js?v=20261109b";
+} from "./preservationOrganizer.js?v=20261109c";
 import {
   buildHarrisCountyClerkRpUrl,
   buildTxComptrollerSearchUrl,
   escapeHtml,
   sanitizeHttpUrl,
-} from "./urlValidators.js?v=20261109b";
+} from "./urlValidators.js?v=20261109c";
 
 const DEFAULT_FOOTPRINT_NOTES_PLACEHOLDER =
   "Describe what looks wrong compared to the actual building or satellite view (e.g. 'Polygon is rotated ~30 degrees off the street grid' or 'Only the rear garage is outlined, missing the L-shaped main house fronting the street').";
@@ -1127,15 +1132,15 @@ export class HoustonAtlasApp {
         archivalRes,
         hpoSurveyRes,
       ] = await Promise.all([
-        fetch("public/data/search_index.json?v=20261109b"),
-        fetch("public/data/stats_summary.json?v=20261109b"),
-        fetch("public/data/haif_index.json?v=20261109b").catch(() => null),
-        fetch("public/data/deed_restrictions_catalog.json?v=20261109b").catch(() => null),
-        fetch("public/data/sanborn_catalog.json?v=20261109b").catch(() => null),
-        fetch("public/data/citydir_index.json?v=20261109b").catch(() => null),
-        fetch("public/data/ownership_portfolios.json?v=20261109b").catch(() => null),
-        fetch("public/data/archival_index.json?v=20261109b").catch(() => null),
-        fetch("public/data/hpo_district_surveys.json?v=20261109b").catch(() => null),
+        fetch("public/data/search_index.json?v=20261109c"),
+        fetch("public/data/stats_summary.json?v=20261109c"),
+        fetch("public/data/haif_index.json?v=20261109c").catch(() => null),
+        fetch("public/data/deed_restrictions_catalog.json?v=20261109c").catch(() => null),
+        fetch("public/data/sanborn_catalog.json?v=20261109c").catch(() => null),
+        fetch("public/data/citydir_index.json?v=20261109c").catch(() => null),
+        fetch("public/data/ownership_portfolios.json?v=20261109c").catch(() => null),
+        fetch("public/data/archival_index.json?v=20261109c").catch(() => null),
+        fetch("public/data/hpo_district_surveys.json?v=20261109c").catch(() => null),
       ]);
       const rawIdx = await searchRes.json();
       for (const item of rawIdx) {
@@ -15579,7 +15584,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const permitShardUrl = cb
         ? `public/data/permits/permits_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/permits/permits_${prefix3}.json.gz?v=20261109b`;
+        : `public/data/permits/permits_${prefix3}.json.gz?v=20261109c`;
       const p = fetch(permitShardUrl)
         .then((res) => decodeGzipJsonResponse(res, decompressPermitShardBytes))
         .catch(() => ({}));
@@ -15603,7 +15608,7 @@ export class HoustonAtlasApp {
       const cb = this.mapController?.pmtilesManifest?.cache_bust;
       const ownerShardUrl = cb
         ? `public/data/owner_history/owners_${prefix3}.json.gz?v=${encodeURIComponent(cb)}`
-        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261109b`;
+        : `public/data/owner_history/owners_${prefix3}.json.gz?v=20261109c`;
       const p = fetch(ownerShardUrl)
         .then(async (res) => {
           if (!res.ok) return {};
@@ -17565,7 +17570,7 @@ export class HoustonAtlasApp {
     this._loadedExportFootprintSlugs.add(slug);
 
     try {
-      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261109b`);
+      const res = await fetch(`public/data/export_cache/${slug}.json?v=20261109c`);
       if (!res.ok) return false;
       const data = await res.json();
       if (!Array.isArray(data?.buildings) || data.buildings.length === 0) return false;
@@ -18642,6 +18647,7 @@ export class HoustonAtlasApp {
             : cp.permit_stage === "stage_2_demolition"
             ? "2 of 2 · Building Demo"
             : "");
+        const plainSub = explainCohWatchPermit(cp);
         return `
         <div class="inspector-permit-filing-box coh">
           <div class="inspector-permit-filing-top">
@@ -18659,6 +18665,11 @@ export class HoustonAtlasApp {
             <strong>${cp.permit_type_label || cp.permit_type || "Permit"}:</strong>
             ${cp.use_desc || cp.permit_desc || ""}
           </div>
+          ${
+            plainSub
+              ? `<div class="inspector-permit-filing-plain">${this._escapeHtmlAttr(plainSub)}</div>`
+              : ""
+          }
           <div class="inspector-permit-filing-meta">
             ${cp.fcc_group ? `<span><strong>Group:</strong> ${cp.fcc_group}</span>` : ""}
             ${cp.buyer ? `<span><strong>Applicant / Contractor:</strong> ${cp.buyer}</span>` : ""}
@@ -18669,8 +18680,9 @@ export class HoustonAtlasApp {
       .join("");
 
     const dshsRowsHtml = dshsFilings
-      .map(
-        (dn) => `
+      .map((dn) => {
+        const plainSub = explainDshsNotification(dn);
+        return `
         <div class="inspector-permit-filing-box dshs">
           <div class="inspector-permit-filing-top">
             <span class="inspector-permit-agency-tag dshs">TX DSHS #${dn.notification_number || "N/A"} (${dn.amendment_number || "O"})</span>
@@ -18682,6 +18694,11 @@ export class HoustonAtlasApp {
           dn.racm_sqft ? ` (${Number(dn.racm_sqft).toLocaleString()} sq ft RACM)` : ""
         }
           </div>
+          ${
+            plainSub
+              ? `<div class="inspector-permit-filing-plain">${this._escapeHtmlAttr(plainSub)}</div>`
+              : ""
+          }
           <div class="inspector-permit-filing-meta">
             ${dn.containment_method ? `<span><strong>Containment:</strong> ${dn.containment_method}</span>` : ""}
             ${dn.facility_owner ? `<span><strong>Facility Owner:</strong> ${dn.facility_owner}</span>` : ""}
@@ -18689,13 +18706,14 @@ export class HoustonAtlasApp {
             ${dn.project_consultant ? `<span><strong>Licensed Consultant:</strong> ${dn.project_consultant}</span>` : ""}
             ${dn.disposal_site ? `<span><strong>Waste Disposal:</strong> ${dn.disposal_site}</span>` : ""}
           </div>
-        </div>`
-      )
+        </div>`;
+      })
       .join("");
 
     const multiRowsHtml = multiFilings
-      .map(
-        (mf) => `
+      .map((mf) => {
+        const plainSub = explainMultiAgencyFiling(mf);
+        return `
         <div class="inspector-permit-filing-box" style="border-left:3px solid #A78BFA;background:rgba(139,92,246,0.11);padding:8px 10px;border-radius:6px;margin-top:6px;">
           <div class="inspector-permit-filing-top">
             <span class="inspector-permit-agency-tag" style="background:rgba(139,92,246,0.25);color:#DDD6FE;border:1px solid rgba(167,139,250,0.45);">${mf.agency || "State / County Filing"} · ${mf.filing_id || ""}</span>
@@ -18705,6 +18723,11 @@ export class HoustonAtlasApp {
             <strong>${mf.status || "Filing"} (${mf.address_used || alert.address || ""}):</strong>
             ${mf.title || ""}
           </div>
+          ${
+            plainSub
+              ? `<div class="inspector-permit-filing-plain">${this._escapeHtmlAttr(plainSub)}</div>`
+              : ""
+          }
           <div class="inspector-permit-filing-meta">
             ${mf.details ? `<span>${mf.details}</span>` : ""}
             ${
@@ -18713,8 +18736,8 @@ export class HoustonAtlasApp {
                 : ""
             }
           </div>
-        </div>`
-      )
+        </div>`;
+      })
       .join("");
 
     return `
@@ -18750,7 +18773,7 @@ export class HoustonAtlasApp {
             &#9888; Open Active Watchlist (${totalAlertsCount} Flagged Structures)
           </button>
           <a
-            href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(alert.hcad_num || "")}&address=${encodeURIComponent(alert.address || "")}&name=${encodeURIComponent(alert.building_name || "")}"
+            href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(String(alert.hcad_num || "").split("#")[0])}&address=${encodeURIComponent(alert.address || "")}&name=${encodeURIComponent(alert.building_name || "")}"
             target="_blank"
             rel="noopener"
             class="inspector-permit-watch-btn secondary"
@@ -18842,6 +18865,7 @@ export class HoustonAtlasApp {
                 : cp.permit_stage === "stage_2_demolition"
                 ? "2 of 2 · Building Demo"
                 : "");
+            const plainSub = explainCohWatchPermit(cp);
             return `
             <div class="pw-item-filing coh">
               <span class="pw-filing-pill coh">COH #${cp.project_no} · ${cp.date}${
@@ -18850,13 +18874,19 @@ export class HoustonAtlasApp {
               <span><strong>${cp.permit_type_label || cp.permit_type}:</strong> ${cp.use_desc || cp.permit_desc}${
               cp.buyer ? ` · Applicant: ${cp.buyer}` : ""
             }</span>
+              ${
+                plainSub
+                  ? `<div class="pw-item-filing-plain">${this._escapeHtmlAttr(plainSub)}</div>`
+                  : ""
+              }
             </div>`;
           })
           .join("");
 
         const dshsSummaryHtml = dshsList
-          .map(
-            (dn) => `
+          .map((dn) => {
+            const plainSub = explainDshsNotification(dn);
+            return `
             <div class="pw-item-filing dshs">
               <span class="pw-filing-pill dshs">TX DSHS #${dn.notification_number} · ${dn.start_date} &#8594; ${dn.end_date}</span>
               <span><strong>${dn.work_type || "Asbestos Abatement"}:</strong> ${
@@ -18864,19 +18894,30 @@ export class HoustonAtlasApp {
             }${dn.racm_sqft ? ` (${Number(dn.racm_sqft).toLocaleString()} sq ft)` : ""}${
               dn.abatement_contractor ? ` · Operator: ${dn.abatement_contractor}` : ""
             }${dn.facility_owner ? ` · Owner: ${dn.facility_owner}` : ""}</span>
-            </div>`
-          )
+              ${
+                plainSub
+                  ? `<div class="pw-item-filing-plain">${this._escapeHtmlAttr(plainSub)}</div>`
+                  : ""
+              }
+            </div>`;
+          })
           .join("");
 
         const multiList = Array.isArray(al.multi_agency_filings) ? al.multi_agency_filings : [];
         const multiSummaryHtml = multiList
-          .map(
-            (mf) => `
+          .map((mf) => {
+            const plainSub = explainMultiAgencyFiling(mf);
+            return `
             <div class="pw-item-filing" style="border-left:3px solid #A78BFA;background:rgba(139,92,246,0.11);">
               <span class="pw-filing-pill" style="background:rgba(139,92,246,0.28);color:#DDD6FE;">${mf.agency || "State/County"} · ${mf.filing_id || ""} · ${mf.date || ""}</span>
               <span><strong>${mf.status || "Filing"} (${mf.address_used || al.address || ""}):</strong> ${mf.title || ""}${mf.details ? ` · ${mf.details}` : ""}</span>
-            </div>`
-          )
+              ${
+                plainSub
+                  ? `<div class="pw-item-filing-plain">${this._escapeHtmlAttr(plainSub)}</div>`
+                  : ""
+              }
+            </div>`;
+          })
           .join("");
 
         return `
@@ -18890,7 +18931,7 @@ export class HoustonAtlasApp {
                   <span class="pw-year-badge mono">${yrText}</span>
                   ${
                     al.hcad_num
-                      ? `<span class="pw-hcad-badge mono">HCAD ${al.hcad_num}</span>`
+                      ? `<span class="pw-hcad-badge mono">HCAD ${String(al.hcad_num).split("#")[0]}</span>`
                       : ""
                   }
                 </div>
@@ -18907,7 +18948,7 @@ export class HoustonAtlasApp {
               </div>
               <div class="pw-item-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
                 <a
-                  href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(al.hcad_num || "")}&address=${encodeURIComponent(al.address || "")}&name=${encodeURIComponent(al.building_name || "")}"
+                  href="plat-monitor.html?tab=watchlist&hcad=${encodeURIComponent(String(al.hcad_num || "").split("#")[0])}&address=${encodeURIComponent(al.address || "")}&name=${encodeURIComponent(al.building_name || "")}"
                   target="_blank"
                   rel="noopener"
                   class="action-pill"
@@ -19004,7 +19045,7 @@ export class HoustonAtlasApp {
       const tasks = [];
       if (!this.sanbornCatalog) {
         tasks.push(
-          fetch("public/data/sanborn_catalog.json?v=20261109b")
+          fetch("public/data/sanborn_catalog.json?v=20261109c")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) this.sanbornCatalog = j;
@@ -19014,7 +19055,7 @@ export class HoustonAtlasApp {
       }
       if (!this.citydirIndex) {
         tasks.push(
-          fetch("public/data/citydir_index.json?v=20261109b")
+          fetch("public/data/citydir_index.json?v=20261109c")
             .then((r) => (r.ok ? r.json() : null))
             .then((j) => {
               if (j) {
@@ -19037,7 +19078,7 @@ export class HoustonAtlasApp {
   async _ensureStaffWorkbench() {
     if (this._staffWorkbench) return this._staffWorkbench;
     if (!this._staffWorkbenchPromise) {
-      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261109b")
+      this._staffWorkbenchPromise = import("./staffWorkbench.js?v=20261109c")
         .then((mod) => {
           this._staffWorkbench = new mod.StaffWorkbenchController(this, {
             showToast: (msg) => this._showQuickFlagToast(msg),
@@ -20485,7 +20526,7 @@ export class HoustonAtlasApp {
   async _ensureWatchlistPayload() {
     if (this._watchlistPayloadCache) return this._watchlistPayloadCache;
     if (this._watchlistPayloadPromise) return this._watchlistPayloadPromise;
-    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261109b")
+    this._watchlistPayloadPromise = fetch("public/data/property_watchlist.json?v=20261109c")
       .then((res) => (res && res.ok ? res.json() : null))
       .catch(() => null)
       .then((data) => {

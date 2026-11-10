@@ -843,6 +843,323 @@ export function explainExtraFeatureDesc(rawDesc) {
 }
 
 /**
+ * Return a concise Plain-English explanation for a City of Houston (`coh_permits`)
+ * early-warning permit entry in `active_permit_alerts.json` or `monitor_activity_log.json`.
+ *
+ * @param {Record<string, unknown> | null | undefined} cp
+ * @returns {string}
+ */
+export function explainCohWatchPermit(cp) {
+  if (!cp || typeof cp !== "object") return "";
+  const permitType = String(cp.permit_type ?? "")
+    .trim()
+    .toUpperCase();
+  const stage = String(cp.permit_stage ?? "")
+    .trim()
+    .toLowerCase();
+  const typeLabel = String(cp.permit_type_label ?? "").trim();
+  const useDesc = String(cp.use_desc ?? cp.permit_desc ?? "").trim();
+  const upperDesc = useDesc.toUpperCase();
+
+  const isSewerDisconnect =
+    Boolean(cp.is_sewer_disconnect) ||
+    stage === "stage_1_sewer_plumbing" ||
+    permitType === "12" ||
+    permitType === "4P" ||
+    /\b1\s*OF\s*2\b/i.test(typeLabel);
+
+  const isGarageAptOnly = /\bGARAGE\s+APT\s+ONLY\b/i.test(upperDesc);
+  const isNoSdRequired =
+    /\bNO\s+SD\s+REQ(?:UIRED)?\b|\bNO\s+SEWER\s+DISC(?:ONNECT)?\s+REQ/i.test(upperDesc);
+  const isGarageOnly =
+    Boolean(cp.is_garage_only) ||
+    stage === "accessory_only" ||
+    isGarageAptOnly ||
+    /\b(?:GARAGE|CARPORT|ACCESSORY|SHED|POOL)\s*(?:APT\s*)?ONLY\b/i.test(upperDesc) ||
+    /\(NO\s+SD\s+REQUIRED\)\s*-\s*GA/i.test(upperDesc);
+
+  const isInteriorOnly =
+    Boolean(cp.is_interior_only) ||
+    permitType === "PX" ||
+    /\bNON[-\s]*LOAD\s+BEARING\b|\bNON[-\s]*FIRE\s+R|\bINTERIOR\s+DEMO|\bPPR\s+DEMO\b/i.test(
+      upperDesc
+    );
+
+  const isDangerousBldg =
+    permitType === "4D" ||
+    /\bCOH\s+D\.?B\.?\b|\bDAP\s+LIST\b|\bDANGEROUS\s+B(?:LDG|UILDING)\b/i.test(upperDesc);
+
+  if (isInteriorOnly) {
+    if (permitType === "PX" || /\bPLAN\s+REVIEW\s+FEE\b/i.test(typeLabel)) {
+      return "City of Houston commercial plan-review fee (Type PX) for interior non-load-bearing, non-fire-rated partition removal only (not a structural building demolition).";
+    }
+    if (/\bPPR\b/i.test(upperDesc)) {
+      return "Private Provider Review (PPR) commercial building permit (Type 13) for interior non-load-bearing, non-fire-rated partition removal only (not a structural building demolition).";
+    }
+    return "Interior non-load-bearing partition or tenant remodel permit only (not a structural building demolition).";
+  }
+
+  if (isGarageAptOnly) {
+    if (isSewerDisconnect) {
+      return "Stage 1 pre-demolition plumbing permit to cap the sewer line for a detached garage apartment on the parcel (the main residence is not covered by this permit).";
+    }
+    return "Demolition permit limited to a detached garage apartment on the parcel (the main residence is not covered by this permit).";
+  }
+
+  if (isGarageOnly) {
+    if (isNoSdRequired) {
+      return "Detached garage or accessory structure teardown permit (no separate sewer disconnection permit required because the structure has no plumbing tap; main house is not covered).";
+    }
+    if (isSewerDisconnect) {
+      return "Stage 1 pre-demolition plumbing permit to cap the sewer line for a detached garage or accessory structure teardown (main building is not covered by this permit).";
+    }
+    return "Demolition permit limited to a detached garage, carport, or accessory structure (the main building on the parcel is not covered by this permit).";
+  }
+
+  if (isDangerousBldg) {
+    return "City of Houston Dangerous Building (Code Enforcement / Demolition Assistance Program Type 4D) structural demolition permit authorizing full building teardown.";
+  }
+
+  if (isSewerDisconnect) {
+    return "Stage 1 pre-demolition plumbing permit (Type 12/4P) to cap the municipal sewer line; a separate Stage 2 Building Demolition (SD) permit is still required before structural teardown.";
+  }
+
+  if (
+    stage === "stage_2_demolition" ||
+    permitType === "SD" ||
+    Boolean(cp.is_structural_demo) ||
+    /\b(?:BLD|RES|BUILDING|RESIDENTIAL)\s+DEMO\b|\bDEMO\s+(?:RES|BLD)\b/i.test(upperDesc)
+  ) {
+    return "Stage 2 structural demolition permit (Type SD) authorizing physical teardown of the building now that sewer disconnection is cleared.";
+  }
+
+  return explainPermitRecord({
+    d: useDesc,
+    tp: typeLabel,
+    cat: cp.is_structural_demo ? "demo" : "other",
+  });
+}
+
+/**
+ * Return a concise Plain-English explanation for a Texas DSHS (`dshs_notifications`)
+ * asbestos or demolition filing in `active_permit_alerts.json` or `monitor_activity_log.json`.
+ *
+ * @param {Record<string, unknown> | null | undefined} dn
+ * @returns {string}
+ */
+export function explainDshsNotification(dn) {
+  if (!dn || typeof dn !== "object") return "";
+  const workType = String(dn.work_type ?? "").trim();
+  const workDesc = String(dn.work_description ?? "").trim();
+  const containment = String(dn.containment_method ?? "").trim();
+  const combined = `${workType} ${workDesc} ${containment}`.trim();
+  if (!combined) return "";
+
+  const upper = combined.toUpperCase();
+
+  if (/\bDEMOLITION\b/i.test(workType) && !/\bABATEMENT\b/i.test(workType)) {
+    return "State-mandated 10-working-day advance notice of structural demolition filed with Texas DSHS under federal NESHAP asbestos regulations.";
+  }
+
+  if (/\bO\s*&\s*M\s+WORK\b|\bOPERATIONS?\s*(?:AND|&)\s*MAINTENANCE\b/i.test(upper)) {
+    return "Routine Operations and Maintenance (O&M) asbestos management filing for localized building maintenance (not a full building teardown).";
+  }
+
+  if (
+    /\b296\.212\b|\bFULL\s+CONTAINMENT\b|\bNEGATIVE\s+(?:AIR\s+)?PRESSURE\b|\bD-CON\b|\bDECON(?:TAMINATION)?\b/i.test(
+      upper
+    )
+  ) {
+    if (
+      /\bFLOOR\s+TILE\b|\bFLOOR(?:ING)?\s+AND\s+ASSOC|\bMASTIC\b|\bNON[-\s]*FRIABLE\b/i.test(
+        workDesc
+      ) &&
+      !/\bFIREPROOFING\b|\bPIPE\s+INSULATION\b|\bSPRAY\s+APPLIED\b/i.test(workDesc)
+    ) {
+      return "State-mandated 10-working-day advance notice to remove asbestos floor tile or adhesive mastic under sealed containment (25 TAC Sec. 296.212) before interior renovation or demolition.";
+    }
+    return "State-mandated 10-working-day advance asbestos abatement filing under sealed negative-pressure containment (25 TAC Sec. 296.212) to strip regulated asbestos materials before renovation or demolition.";
+  }
+
+  if (
+    /\bNON[-\s]*FRIABLE\b|\bCATEGORY\s+(?:I|II|1|2)\b|\bFLOOR\s+TILE\b|\bMASTIC\b|\bRFCI\b/i.test(
+      upper
+    )
+  ) {
+    return "State-mandated 10-working-day advance notice to remove non-friable asbestos-containing floor tile, adhesive mastic, or caulking before renovation or demolition.";
+  }
+
+  return "State-mandated 10-working-day advance notice to remove Regulated Asbestos-Containing Material (RACM) before renovation or demolition work begins.";
+}
+
+/**
+ * Return a concise Plain-English explanation for a `multi_agency_filings` entry
+ * in `active_permit_alerts.json`.
+ *
+ * @param {Record<string, unknown> | null | undefined} mf
+ * @returns {string}
+ */
+export function explainMultiAgencyFiling(mf) {
+  if (!mf || typeof mf !== "object") return "";
+  const agency = String(mf.agency ?? "").trim();
+  const status = String(mf.status ?? "").trim();
+  const title = String(mf.title ?? "").trim();
+  const details = String(mf.details ?? "").trim();
+  const combined = `${agency} ${status} ${title} ${details}`.trim();
+  if (!combined) return "";
+
+  if (/\bTDLR\b|\bTABS\b|\bARCHITECTURAL\s+BARRIERS\b/i.test(combined)) {
+    return "Texas Department of Licensing and Regulation (TDLR) Architectural Barriers registration required for commercial construction or renovation projects over $50,000.";
+  }
+  if (/\b311\b|\bDANGEROUS\s+BUILDINGS?\b|\bDONDB\b/i.test(combined)) {
+    return "City of Houston Department of Neighborhoods (DON) Dangerous Building investigation for structural hazard or code enforcement.";
+  }
+  if (/\bDPV\b|\bDEVELOPMENT\s+PLAT\s+(?:WITH\s+)?VARIANCE\b/i.test(combined)) {
+    if (/\bCMU\b/i.test(combined)) {
+      return "Chapter 42 Development Plat Variance (Section K DPV) requesting a building-line or site-design exception (CMU = concrete masonry unit / cinder-block wall).";
+    }
+    return "Chapter 42 Development Plat Variance (Section K DPV) requesting a setback, building line, or site-design exception before building permits issue.";
+  }
+  if (/\bC3N\b|\bCLASS\s+3\b.*\bREPLAT\b/i.test(combined)) {
+    return "Chapter 42 Class 3 Subdivision Replat (C3N) requiring mailed public hearing notices to neighboring property owners before replatting existing lots.";
+  }
+  if (/\bC2R\b|\bCLASS\s+2\b.*\bREPLAT\b/i.test(combined)) {
+    return "Chapter 42 Class 2 Subdivision Replat (C2R) reviewed on the Planning Commission replat docket.";
+  }
+  if (/\bC3F\b|\bCLASS\s+3\b.*\bFINAL\s+PLAT\b/i.test(combined)) {
+    return "Chapter 42 Class 3 Final Subdivision Plat (C3F) on the Planning Commission consent docket.";
+  }
+  if (/\bTABC\b|\bLIQUOR\b|\bALCOHOL\b/i.test(combined)) {
+    return "Texas Alcoholic Beverage Commission (TABC) license or permit filing indicating new hospitality or retail tenant activity.";
+  }
+  return "";
+}
+
+const QUIET_WATCHLIST_CHECK_RE =
+  /^(?:no\s+(?:new\s+|active\s+)?(?:results?|records?|demo\s+permits?|filings?)(?:\s+found)?\.?|none\s+found\.?|not\s+yet\.?|n\/a|clear|old\/irrelevant\s+results?\.?)$/i;
+
+/**
+ * Return a concise Plain-English explanation for a Watchlist 15-point check finding
+ * (`chk-01`..`chk-15`) or `monitor_activity_log.json` event summary string.
+ * Returns `""` on quiet/routine strings so quiet check rows stay uncluttered.
+ *
+ * @param {string} rawText
+ * @param {string} [checkIdOrKind]
+ * @returns {string}
+ */
+export function explainWatchlistCheckText(rawText, checkIdOrKind = "") {
+  const clean = String(rawText ?? "").trim();
+  const tag = String(checkIdOrKind ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    !clean ||
+    tag === "watchlist_sweep_degraded" ||
+    QUIET_WATCHLIST_CHECK_RE.test(clean) ||
+    /\b(?:no\s+new\b|0\s+active\b|no\s+matching\b|no\s+open\b|none\s+found\b|confirmed\s+match\s+to\s+current\s+owner\b|no\s+(?:new\s+|active\s+)?(?:filings?|results?|records?|demo\s+permits?|cases?|projects?|registrations?|notifications?|violations?)(?:\s+found)?)/i.test(
+      clean
+    ) ||
+    /\b\d+\s+agency\s+endpoint\(s\)\s+did\s+not\s+complete\s+cleanly\b|\bdaily\s+\d+-agency\s+sweep\s+degraded\b/i.test(
+      clean
+    )
+  ) {
+    return "";
+  }
+
+  // 1. City of Houston Demolition / Sewer Disconnect / PPR Demo shorthand
+  if (
+    /\b(?:BLD|RES|DEMO)\s+(?:DEMO|RES|BLD)\s*\/\s*SEWER\s+DISC/i.test(clean) ||
+    /\bCOH\s+D\.?B\.?\s*\/\s*RESIDENTIAL\s+DEMO/i.test(clean) ||
+    /\bPPR\s+DEMO\s+OF\s+NON[-\s]*LOAD\s+BEARING/i.test(clean) ||
+    /\bGARAGE\s+(?:APT\s+)?ONLY\b/i.test(clean) ||
+    /\(NO\s+SD\s+REQUIRED\)/i.test(clean)
+  ) {
+    const isSewerStage1 =
+      /\b1\s*OF\s*2\b|\bSEWER\s+DISCONNECT\s+PLUMBING\b/i.test(clean) &&
+      !/\b2\s*OF\s*2\b/i.test(clean);
+    const isDemoStage2 = /\b2\s*OF\s*2\b|\bBUILDING\s+DEMOLITION\s+PERMIT\b/i.test(clean);
+    if (
+      /\bGARAGE\s+APT\s+ONLY\b/i.test(clean) ||
+      /\bGARAGE\s+ONLY\b/i.test(clean) ||
+      /\(NO\s+SD\s+REQUIRED\)/i.test(clean) ||
+      /\bPPR\s+DEMO\b|\bNON[-\s]*LOAD\s+BEARING\b/i.test(clean) ||
+      /\bCOH\s+D\.?B\.?\b|\bDAP\s+LIST\b/i.test(clean) ||
+      isSewerStage1 ||
+      isDemoStage2
+    ) {
+      return explainCohWatchPermit({
+        use_desc: clean,
+        permit_type: /\bCOH\s+D\.?B\.?\b|\bDAP\s+LIST\b/i.test(clean)
+          ? "4D"
+          : isDemoStage2
+          ? "SD"
+          : isSewerStage1
+          ? "12"
+          : "",
+        is_sewer_disconnect: isSewerStage1,
+        is_structural_demo: isDemoStage2,
+      });
+    }
+    return "City of Houston pre-demolition sewer disconnection (Type 12/4P) or structural building demolition (Type SD) permit filing.";
+  }
+
+  // 2. Texas DSHS Asbestos & Demolition notifications
+  if (
+    tag === "chk-15" ||
+    tag === "permit_dshs_alert" ||
+    /\bDSHS\s+NOTIFICATION\s*#/i.test(clean) ||
+    /\bTX\s+DSHS\s+(?:ABATEMENT|DEMOLITION)\s+FILING\b/i.test(clean) ||
+    /\bRACM\b/i.test(clean)
+  ) {
+    const isDemoFiling =
+      /\bTX\s+DSHS\s+DEMOLITION\s+FILING\b/i.test(clean) && !/\bABATEMENT\b/i.test(clean);
+    return explainDshsNotification({
+      work_type: isDemoFiling ? "Demolition" : "Abatement",
+      work_description: clean,
+    });
+  }
+
+  // 3. TDLR TABS, Houston 311 Dangerous Buildings, and Chapter 42 (`DPV`, `C3N`, `C2R`, `C3F`)
+  if (
+    tag === "chk-10" ||
+    /\bTDLR\s+(?:PROJECT\s+|TABS\s*)?#?TABS\d+/i.test(clean) ||
+    /\bARCHITECTURAL\s+BARRIERS\s*\(TABS\)/i.test(clean)
+  ) {
+    return explainMultiAgencyFiling({ agency: "TDLR TABS", title: clean });
+  }
+  if (
+    tag === "chk-13" ||
+    /\bHOUSTON\s+311\b.*\bDANGEROUS\s+BUILDINGS?\b/i.test(clean)
+  ) {
+    return explainMultiAgencyFiling({ agency: "Houston 311 Dangerous Buildings", title: clean });
+  }
+  if (
+    /\bDPV\b|\bDEVELOPMENT\s+PLAT\s+(?:WITH\s+)?VARIANCE\b|\bC3N\b|\bC2R\b|\bC3F\b|\bCLASS\s+[23]\b.*\b(?:REPLAT|FINAL\s+PLAT)\b/i.test(
+      clean
+    )
+  ) {
+    const ch42Note = explainMultiAgencyFiling({ agency: "Planning Commission", title: clean });
+    if (ch42Note) return ch42Note;
+  }
+
+  // 6. HCAD Ownership & Classification Sweep (`Impr $0`)
+  if (
+    /\bIMPR\s+\$0\b/i.test(clean) &&
+    (tag === "chk-05" || /\bCLASS\s+[A-Z0-9]+\b|\bHCAD\b/i.test(clean))
+  ) {
+    return "HCAD appraisal roll lists $0 improvement value (land-only assessment or structure value zeroed out on the current tax roll).";
+  }
+
+  // 7. HAHC Certificate of Remediation (`COR`)
+  if (/\bCERTIFICATE\s+OF\s+REMEDIATION\b|\bDENIAL\s+OF\s+COA,\s*COR\b/i.test(clean)) {
+    return "HAHC denied the Certificate of Appropriateness (COA) and issued a Certificate of Remediation (COR) requiring unpermitted or non-compliant work to be corrected.";
+  }
+
+  return "";
+}
+
+/**
  * Render the complete innerHTML of `#inspector-permits-body` with strict HTML escaping,
  * Plain-English HCAD appraiser note decoding + collapsible verbatim disclosure, and
  * conditional Plain-English permit / extra-feature sub-lines.
