@@ -1406,32 +1406,7 @@ def get_all_coh_demolished_landmarks_meta() -> dict[str, dict[str, Any]]:
     return merged
 
 
-def extract_curated_demolished_hcads(
-    curated_overrides: dict[str, Any] | None,
-    *,
-    include_suppressed: bool = False,
-) -> set[str]:
-    """Extract 13-digit HCAD account numbers marked demolished (or suppressed) in curated_overrides.json."""
-    raw_ov_dict = (
-        curated_overrides.get("overrides")
-        if isinstance(curated_overrides, dict) and isinstance(curated_overrides.get("overrides"), dict)
-        else (curated_overrides or {})
-    )
-    out: set[str] = set()
-    for key, ov in raw_ov_dict.items():
-        if not isinstance(ov, dict):
-            continue
-        is_demo = bool(
-            ov.get("is_demolished") is True
-            or ov.get("demolished_date")
-            or ov.get("lost_houston_id")
-            or (include_suppressed and ov.get("suppress_only") is True)
-        )
-        if is_demo:
-            k_base = str(ov.get("hcad_num") or str(key).split("#")[0]).strip()
-            if len(k_base) == 13 and k_base.isdigit():
-                out.add(k_base)
-    return out
+from atlas_pipeline.schema import extract_curated_demolished_hcads
 
 
 class ZeroExtantCollisionGate:

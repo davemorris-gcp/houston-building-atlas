@@ -40,8 +40,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT / "pipeline") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "pipeline"))
 
-from atlas_pipeline.lost_houston_expansion import extract_curated_demolished_hcads
 from atlas_pipeline.schema import (
+    extract_curated_demolished_hcads,
     read_json_or_gzip_shard,
     write_deterministic_gzip_json_shard,
 )
