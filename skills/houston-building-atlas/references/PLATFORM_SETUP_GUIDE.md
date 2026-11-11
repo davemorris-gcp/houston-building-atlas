@@ -4,12 +4,12 @@ This guide shows Preservation Staff, historians, board members, and members of t
 
 ---
 
-## Quick Option 0: Zero-Setup 1-Click Launch (`Ask Claude ↗` & `Ask ChatGPT ↗`)
+## Quick Option 0: Zero-Setup 1-Click Launch (`Ask Claude ↗`, `Ask ChatGPT ↗` & `Ask Gemini ↗`)
 
 You do not need to install a Skill or create a Project to use the AI Research Companion right away:
 1. Open [The Houston Building Atlas AI Research Companion](https://davemorris-gcp.github.io/houston-building-atlas/#aiCompanion=claude) (or inspect any building/parcel on the map and click **`🤖 Ask AI / Copy Dossier`**).
-2. Click **`🚀 Ask Claude (1-Click) ↗`** or **`🚀 Ask ChatGPT (1-Click) ↗`** on the Property Dossier or on any of the 6 Sample Questions.
-3. Claude (`claude.ai/new?q=...`) or ChatGPT (`chatgpt.com/?q=...`) opens in a new tab with the Atlas context and question already filled into the prompt box (and the full dossier copied to your clipboard). Just press **`Enter`**.
+2. Click **`🚀 Ask Claude (1-Click) ↗`**, **`🚀 Ask ChatGPT (1-Click) ↗`**, or **`🚀 Ask Gemini (1-Click) ↗`** on the Property Dossier or on any of the 6 Sample Questions.
+3. For **Claude** (`claude.ai/new?q=...`) and **ChatGPT** (`chatgpt.com/?q=...`), the prompt box is pre-filled automatically (just press **`Enter`**). For **Google Gemini** (`gemini.google.com/app`), the full self-contained Atlas prompt and dossier are copied to your clipboard automatically while Gemini opens in a new tab (just press **`Paste`** [`Ctrl+V` / `Cmd+V`] and **`Enter`**).
 
 ---
 

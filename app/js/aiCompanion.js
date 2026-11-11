@@ -15,6 +15,23 @@ import { DEFAULT_ATLAS_BASE_URL, resolveAtlasBaseOriginPath } from "./filterStor
 const SAMPLE_AI_RESEARCH_PROMPTS_SEED_QUESTION =
   "Using The Houston Building Atlas, explain what happened to the 1894 John Henry Kirby Mansion at 2000 Smith St (HCAD 0152300000001), including the October 28, 2026 Smith Street Plaza replat (#RP-2026-435651), the 2-stage City of Houston demolition permits, and the Texas DSHS asbestos filings that preceded its November 2, 2026 loss. Which buildings by its 1928 Tudor Revival remodel architect James Ruskin Bailey are still standing in Houston? Include clickable Atlas links for each.";
 
+export function buildSelfContainedAiPrompt(queryOrDossier = "", options = {}) {
+  const baseUrl = resolveAtlasBaseOriginPath(options);
+  const cleanBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const rawInput = _sanitizeDashes(String(queryOrDossier || "").trim());
+  if (rawInput.startsWith("# Houston Building Atlas - Property Research Dossier")) {
+    return rawInput;
+  }
+  const questionText =
+    rawInput ||
+    "Summarize what datasets The Houston Building Atlas covers and give 3 example questions I can ask about Houston historic buildings, architects, or demolition permits.";
+  return [
+    `Use The Houston Building Atlas (${cleanBase}llms.txt and ${cleanBase}llms-full.txt) to answer accurately with verified 4-tier construction dates, statutory protection rules (Protected Landmark vs Historic District vs Heritage District), Lost Houston status, and clickable Atlas deep links:`,
+    "",
+    questionText,
+  ].join("\n");
+}
+
 export function buildOneClickAiLaunchUrl(platform = "claude", queryOrDossier = "", options = {}) {
   const baseUrl = resolveAtlasBaseOriginPath(options);
   const cleanBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
@@ -27,22 +44,7 @@ export function buildOneClickAiLaunchUrl(platform = "claude", queryOrDossier = "
   }
 
   const maxChars = Number(options.maxQueryChars) > 200 ? Number(options.maxQueryChars) : 3200;
-  const rawInput = _sanitizeDashes(String(queryOrDossier || "").trim());
-  const isPropertyDossier = rawInput.startsWith("# Houston Building Atlas - Property Research Dossier");
-
-  let promptBody = "";
-  if (isPropertyDossier) {
-    promptBody = rawInput;
-  } else {
-    const questionText =
-      rawInput ||
-      "Summarize what datasets The Houston Building Atlas covers and give 3 example questions I can ask about Houston historic buildings, architects, or demolition permits.";
-    promptBody = [
-      `Use The Houston Building Atlas (${cleanBase}llms.txt and ${cleanBase}llms-full.txt) to answer accurately with verified 4-tier construction dates, statutory protection rules (Protected Landmark vs Historic District vs Heritage District), Lost Houston status, and clickable Atlas deep links:`,
-      "",
-      questionText,
-    ].join("\n");
-  }
+  let promptBody = buildSelfContainedAiPrompt(queryOrDossier, options);
 
   if (promptBody.length > maxChars) {
     promptBody = `${promptBody.slice(0, maxChars - 120).trimEnd()}\n\n[Full corpus & live shards: ${cleanBase}llms-full.txt]`;
@@ -51,6 +53,9 @@ export function buildOneClickAiLaunchUrl(platform = "claude", queryOrDossier = "
   const encoded = encodeURIComponent(promptBody);
   if (platKey === "claude") {
     return `https://claude.ai/new?q=${encoded}`;
+  }
+  if (platKey === "google_ai") {
+    return `https://www.google.com/search?udm=50&q=${encoded}`;
   }
   return `https://chatgpt.com/?q=${encoded}`;
 }
@@ -86,10 +91,10 @@ export const AI_COMPANION_PLATFORMS = Object.freeze([
     label: "Google Gemini",
     shortLabel: "Gemini",
     actionLabel: "Copy Instructions for Gemini",
-    subtitle: "Google Gemini Gems & Web Chat with Python Execution",
+    subtitle: "1-Click Copy & Launch, Google Gemini Gems & Web Chat",
     launchUrl: "https://gemini.google.com/app",
     steps: [
-      "Option A (Fast Chat): Click 'Copy Property Dossier + Prompt' above (or 'Copy Research Prompt' on any question below) and paste straight into Google Gemini.",
+      "Option A (Zero Setup - 1 Click): Click 'Open Gemini (1-Click Copy & Launch)' below (or click 'Ask Gemini' on any Property Dossier or Sample Prompt). It automatically copies the self-contained Atlas prompt to your clipboard and opens gemini.google.com/app so you just press Paste (Ctrl+V / Cmd+V) and Enter.",
       "Option B (Reusable Gemini Gem): In Google Gemini, create a Gem named 'Houston Building Atlas Historian', attach llms-full.txt and query_atlas.py, and paste the instructions below.",
     ],
   },

@@ -159,6 +159,7 @@ import {
   buildOneClickAiLaunchUrl,
   buildPlatformSystemInstructions,
   buildPropertyAiResearchDossier,
+  buildSelfContainedAiPrompt,
   SAMPLE_AI_RESEARCH_PROMPTS,
 } from "./aiCompanion.js?v=20261110a";
 
@@ -4921,7 +4922,11 @@ export class HoustonAtlasApp {
         }, 2200);
       });
     }
-    for (const launchId of ["btn-launch-dossier-claude", "btn-launch-dossier-chatgpt"]) {
+    for (const launchId of [
+      "btn-launch-dossier-claude",
+      "btn-launch-dossier-chatgpt",
+      "btn-launch-dossier-gemini",
+    ]) {
       const launchEl = document.getElementById(launchId);
       if (launchEl) {
         launchEl.addEventListener("click", () => {
@@ -4929,26 +4934,64 @@ export class HoustonAtlasApp {
           if (dossierTxt && navigator.clipboard) {
             navigator.clipboard.writeText(dossierTxt).catch(() => {});
           }
+          if (launchId === "btn-launch-dossier-gemini") {
+            launchEl.textContent = "✓ Copied - Paste in Gemini!";
+            setTimeout(() => {
+              launchEl.innerHTML = "&#128640; Ask Gemini (1-Click) &#8599;";
+            }, 2500);
+          }
         });
       }
+    }
+    const btnLaunchAiPlatform = document.getElementById("btn-launch-ai-platform");
+    if (btnLaunchAiPlatform) {
+      btnLaunchAiPlatform.addEventListener("click", () => {
+        const seedQuestion = SAMPLE_AI_RESEARCH_PROMPTS[0]?.prompt || "";
+        const selfContained = buildSelfContainedAiPrompt(seedQuestion);
+        if (selfContained && navigator.clipboard) {
+          navigator.clipboard.writeText(selfContained).catch(() => {});
+        }
+        if (this._activeAiCompanionTab === "gemini") {
+          btnLaunchAiPlatform.textContent = "✓ Prompt Copied - Paste in Gemini!";
+          setTimeout(() => {
+            btnLaunchAiPlatform.innerHTML = "Open Gemini (1-Click Copy &amp; Launch) &#8599;";
+          }, 2500);
+        }
+      });
     }
     const aiSamplePromptsEl =
       document.getElementById("ai-sample-prompts-grid") ||
       document.getElementById("ai-companion-sample-prompts");
     if (aiSamplePromptsEl) {
       aiSamplePromptsEl.addEventListener("click", (e) => {
+        const geminiLaunchBtn = e.target.closest?.("[data-launch-ai-sample-gemini]");
+        if (geminiLaunchBtn) {
+          const promptIdx = parseInt(
+            geminiLaunchBtn.getAttribute("data-launch-ai-sample-gemini"),
+            10
+          );
+          const item = SAMPLE_AI_RESEARCH_PROMPTS[promptIdx];
+          if (item && navigator.clipboard) {
+            navigator.clipboard.writeText(buildSelfContainedAiPrompt(item.prompt)).catch(() => {});
+          }
+          geminiLaunchBtn.textContent = "✓ Copied - Paste in Gemini!";
+          setTimeout(() => {
+            geminiLaunchBtn.innerHTML = "&#128640; Ask Gemini &#8599;";
+          }, 2500);
+          return;
+        }
         const copyBtn = e.target.closest?.("[data-copy-ai-sample-prompt]");
         if (!copyBtn) return;
         const promptIdx = parseInt(copyBtn.getAttribute("data-copy-ai-sample-prompt"), 10);
         const item = SAMPLE_AI_RESEARCH_PROMPTS[promptIdx];
         if (!item) return;
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(item.prompt).catch(() => {});
+          navigator.clipboard.writeText(buildSelfContainedAiPrompt(item.prompt)).catch(() => {});
         }
         const origText = copyBtn.textContent;
         copyBtn.textContent = "✓ Copied Prompt!";
         setTimeout(() => {
-          copyBtn.textContent = origText || "Copy Research Prompt";
+          copyBtn.textContent = origText || "Copy Prompt";
         }, 2000);
       });
     }
@@ -17297,9 +17340,13 @@ export class HoustonAtlasApp {
     }
     if (btnLaunchPlatform && platform.launchUrl) {
       btnLaunchPlatform.setAttribute("href", platform.launchUrl);
-      btnLaunchPlatform.innerHTML = `Open ${this._escapeHtmlAttr(
-        platform.shortLabel || platform.label
-      )} &#8599;`;
+      const launchLabel =
+        platform.id === "gemini"
+          ? "Open Gemini (1-Click Copy & Launch)"
+          : platform.id === "claude" || platform.id === "chatgpt"
+          ? `Open ${platform.shortLabel || platform.label} (Pre-Loaded)`
+          : `Open ${platform.shortLabel || platform.label}`;
+      btnLaunchPlatform.innerHTML = `${this._escapeHtmlAttr(launchLabel)} &#8599;`;
     }
     if (previewEl) {
       const instructionsText = buildPlatformSystemInstructions(platform.id);
@@ -17393,6 +17440,17 @@ export class HoustonAtlasApp {
               title="Open ChatGPT with this question and the Atlas /llms.txt index pre-loaded in the chat input"
             >
               &#128640; Ask ChatGPT &#8599;
+            </a>
+            <a
+              href="https://gemini.google.com/app"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="action-pill"
+              data-launch-ai-sample-gemini="${idx}"
+              style="padding: 4px 10px; font-size: 11px; text-decoration: none;"
+              title="Copy this self-contained Atlas question to your clipboard and open Google Gemini in 1 click"
+            >
+              &#128640; Ask Gemini &#8599;
             </a>
             <button
               type="button"

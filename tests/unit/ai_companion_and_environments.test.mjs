@@ -10,6 +10,7 @@ import {
   buildOneClickAiLaunchUrl,
   buildPlatformSystemInstructions,
   buildPropertyAiResearchDossier,
+  buildSelfContainedAiPrompt,
 } from "../../app/js/aiCompanion.js";
 import {
   DEFAULT_ATLAS_BASE_URL,
@@ -348,6 +349,7 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
     "ai-companion-dossier-preview",
     "btn-launch-dossier-claude",
     "btn-launch-dossier-chatgpt",
+    "btn-launch-dossier-gemini",
     "btn-copy-ai-active-dossier",
     "btn-ai-tab-chatgpt",
     "btn-ai-tab-claude",
@@ -375,6 +377,11 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
   const chatgptUrl = buildOneClickAiLaunchUrl("chatgpt", "What happened to the Kirby Mansion?");
   assert.ok(chatgptUrl.startsWith("https://chatgpt.com/?q="));
   assert.ok(decodeURIComponent(chatgptUrl).includes("llms-full.txt"));
+
+  const geminiUrl = buildOneClickAiLaunchUrl("gemini", "What happened to the Kirby Mansion?");
+  assert.equal(geminiUrl, "https://gemini.google.com/app");
+  const selfPrompt = buildSelfContainedAiPrompt("What happened to the Kirby Mansion?");
+  assert.ok(selfPrompt.includes("llms.txt") && selfPrompt.includes("What happened to the Kirby Mansion?"));
 
   const zipPath = path.join(APP_DIR, "public", "ai-companion", "houston-building-atlas-skill.zip");
   assert.ok(fs.existsSync(zipPath), "houston-building-atlas-skill.zip must exist on disk");
