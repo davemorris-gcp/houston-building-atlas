@@ -688,9 +688,22 @@ def sync_ai_companion_bundle(
                 skill_dir / "references" / "PLATFORM_SETUP_GUIDE.md",
                 pub_ai_dir / "PLATFORM_SETUP_GUIDE.md",
             ),
+            (
+                skill_dir / "scripts" / "query_atlas.py",
+                pub_ai_dir / "scripts" / "query_atlas.py",
+            ),
+            (
+                skill_dir / "scripts" / "query_atlas.mjs",
+                pub_ai_dir / "scripts" / "query_atlas.mjs",
+            ),
+            (
+                skill_dir / "references" / "PLATFORM_SETUP_GUIDE.md",
+                pub_ai_dir / "references" / "PLATFORM_SETUP_GUIDE.md",
+            ),
         ]
         for src_p, dst_p in mirror_map:
             if src_p.is_file():
+                dst_p.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(src_p, dst_p)
                 mirrored_files.append(str(dst_p.relative_to(root)))
         pycache_dir = pub_ai_dir / "__pycache__"

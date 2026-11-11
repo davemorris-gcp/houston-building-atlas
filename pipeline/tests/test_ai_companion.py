@@ -215,7 +215,11 @@ def test_sync_ai_companion_bundle_and_cli_modes_roundtrip(
     res = sync_ai_companion_bundle()
     assert res["llms_txt_bytes"] > 5000
     assert res["llms_full_txt_bytes"] > 100000
-    assert len(res["mirrored_files"]) == 4
+    assert len(res["mirrored_files"]) == 7
+    assert "app/public/ai-companion/PLATFORM_SETUP_GUIDE.md" in res["mirrored_files"]
+    assert "app/public/ai-companion/references/PLATFORM_SETUP_GUIDE.md" in res["mirrored_files"]
+    assert "app/public/ai-companion/scripts/query_atlas.py" in res["mirrored_files"]
+    assert "app/public/ai-companion/scripts/query_atlas.mjs" in res["mirrored_files"]
 
     # Test CLI --mode build-ai-companion
     cli.main(["--mode", "build-ai-companion"])

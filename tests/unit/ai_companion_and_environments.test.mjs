@@ -363,6 +363,7 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
   assert.ok(indexCss.includes(".ai-sample-prompt-card"));
 
   // Verify byte-for-byte parity between skills/houston-building-atlas/ and app/public/ai-companion/
+  // (supporting both flat download URLs and standard Agent Skill scripts/ + references/ subdirectories)
   const mirrorPairs = [
     ["skills/houston-building-atlas/SKILL.md", "app/public/ai-companion/SKILL.md"],
     ["skills/houston-building-atlas/scripts/query_atlas.py", "app/public/ai-companion/query_atlas.py"],
@@ -370,6 +371,18 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
     [
       "skills/houston-building-atlas/references/PLATFORM_SETUP_GUIDE.md",
       "app/public/ai-companion/PLATFORM_SETUP_GUIDE.md",
+    ],
+    [
+      "skills/houston-building-atlas/scripts/query_atlas.py",
+      "app/public/ai-companion/scripts/query_atlas.py",
+    ],
+    [
+      "skills/houston-building-atlas/scripts/query_atlas.mjs",
+      "app/public/ai-companion/scripts/query_atlas.mjs",
+    ],
+    [
+      "skills/houston-building-atlas/references/PLATFORM_SETUP_GUIDE.md",
+      "app/public/ai-companion/references/PLATFORM_SETUP_GUIDE.md",
     ],
   ];
   for (const [srcRel, dstRel] of mirrorPairs) {
