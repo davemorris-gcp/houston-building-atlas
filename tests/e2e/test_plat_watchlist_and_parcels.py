@@ -1026,6 +1026,10 @@ def test_activity_it1_morning_briefing_layout_sweep_health_ledger_filters_and_ex
     )
     page.reload(wait_until="domcontentloaded")
     page.wait_for_selector("#app:not(.hidden)", timeout=15000)
+    page.wait_for_function(
+        "() => (document.getElementById('activitySweepHealthBadge')?.innerText || '').includes('8/8')",
+        timeout=15000,
+    )
     assert "8/8" in page.locator("#activitySweepHealthBadge").inner_text()
     assert page.locator("[data-degraded-sweep-banner='1']").count() == 0
     page.unroute("**/data/monitor_activity_log.json*")
