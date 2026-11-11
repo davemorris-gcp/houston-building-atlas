@@ -535,7 +535,13 @@ test("REG-4 & RP-3: buildPortfolioDataset deduplicates demolished COH landmarks 
       portfolio.stats.totalCount,
       `extantCount + demolishedCount !== totalCount for ${preset.query}`
     );
-    assert.ok(extantWorks.length >= 1, `Expected >= 1 extant work in ${preset.query} portfolio`);
+    const isLostOnlyPreset =
+      Number(preset.workCount) > 0 && Number(preset.lostCount) === Number(preset.workCount);
+    if (!isLostOnlyPreset) {
+      assert.ok(extantWorks.length >= 1, `Expected >= 1 extant work in ${preset.query} portfolio`);
+    } else {
+      assert.ok(lostWorks.length >= 2, `Expected >= 2 lost works in Lost-Houston preset ${preset.query}`);
+    }
     if (requiresLost.has(preset.query)) {
       assert.ok(lostWorks.length >= 1, `Expected >= 1 demolished work in ${preset.query} portfolio`);
     }
