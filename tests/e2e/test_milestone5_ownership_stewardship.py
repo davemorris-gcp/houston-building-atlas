@@ -137,15 +137,61 @@ def test_it2_inspector_ownership_xray_card_and_portfolio_explorer_pin_mode(
     page.wait_for_selector("#portfolio-monograph-card:not(.hidden)", timeout=8000)
 
     banner_info = page.evaluate(
-        """() => ({
-            title: (document.getElementById('portfolio-card-title')?.textContent || '').trim(),
-            hash: window.location.hash,
-            selectVal: document.getElementById('portfolio-preset-select')?.value || '',
-        })"""
+        """() => {
+            const card = document.getElementById('portfolio-monograph-card');
+            const cardRect = card ? card.getBoundingClientRect() : { right: 0 };
+            const pad = window.atlasApp?.mapController?.lastPortfolioFitPadding || { left: 0, right: 0 };
+            const hasCollapseBtn = Boolean(document.getElementById('btn-portfolio-collapse-card'));
+            return {
+                title: (document.getElementById('portfolio-card-title')?.textContent || '').trim(),
+                hash: window.location.hash,
+                selectVal: document.getElementById('portfolio-preset-select')?.value || '',
+                cardRight: Math.round(cardRect.right),
+                padLeft: Math.round(pad.left || 0),
+                padRight: Math.round(pad.right || 0),
+                hasCollapseBtn,
+            };
+        }"""
     )
     assert "7155 Old Katy Rd" in banner_info["title"]
     assert "portfolio=owner_portfolio%3Aport_7155_old_katy_n260" in banner_info["hash"]
     assert banner_info["selectVal"] == "owner_portfolio:port_7155_old_katy_n260"
+    assert banner_info["hasCollapseBtn"] is True
+    assert banner_info["padLeft"] > banner_info["cardRight"]
+    assert banner_info["padLeft"] > banner_info["padRight"]
+
+    # Click List collapse toggle and verify card minimizes and left fit-padding shrinks
+    page.click("#btn-portfolio-collapse-card")
+    minimized_info = page.evaluate(
+        """() => {
+            const card = document.getElementById('portfolio-monograph-card');
+            const btn = document.getElementById('btn-portfolio-collapse-card');
+            const pad = window.atlasApp?.mapController?.lastPortfolioFitPadding || { left: 0, top: 0 };
+            return {
+                minimized: Boolean(card?.classList.contains('card-minimized')),
+                ariaExpanded: btn?.getAttribute('aria-expanded'),
+                padLeft: Math.round(pad.left || 0),
+            };
+        }"""
+    )
+    assert minimized_info["minimized"] is True
+    assert minimized_info["ariaExpanded"] == "false"
+    assert minimized_info["padLeft"] < banner_info["padLeft"]
+
+    # Click again to restore expanded monograph card
+    page.click("#btn-portfolio-collapse-card")
+    restored_info = page.evaluate(
+        """() => {
+            const card = document.getElementById('portfolio-monograph-card');
+            const btn = document.getElementById('btn-portfolio-collapse-card');
+            return {
+                minimized: Boolean(card?.classList.contains('card-minimized')),
+                ariaExpanded: btn?.getAttribute('aria-expanded'),
+            };
+        }"""
+    )
+    assert restored_info["minimized"] is False
+    assert restored_info["ariaExpanded"] == "true"
     assert page_errors == []
     assert local_http_errors == []
 

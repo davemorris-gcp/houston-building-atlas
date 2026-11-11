@@ -1258,7 +1258,7 @@ export class AtlasMapController {
       pitch,
       bearing: 0,
       maxPitch: 65,
-      minZoom: 9.5,
+      minZoom: 8.5,
       maxZoom: 20.5,
       preserveDrawingBuffer: true,
       attributionControl: false,
@@ -8391,6 +8391,157 @@ export class AtlasMapController {
     return Boolean(w?.isLost || w?.isDemolished);
   }
 
+  _computePortfolioVisiblePadding() {
+    const defaultPad = { top: 120, right: 64, bottom: 72, left: 64 };
+    if (typeof document === "undefined") return defaultPad;
+
+    const mapEl =
+      (this.map && typeof this.map.getContainer === "function" && this.map.getContainer()) ||
+      (typeof document.getElementById === "function"
+        ? document.getElementById(this.containerId || "map-canvas") || document.getElementById("map")
+        : null);
+    const mapRect =
+      mapEl && typeof mapEl.getBoundingClientRect === "function"
+        ? mapEl.getBoundingClientRect()
+        : null;
+    const vw =
+      mapRect && mapRect.width > 0
+        ? mapRect.width
+        : typeof window !== "undefined" && Number(window.innerWidth) > 0
+        ? Number(window.innerWidth)
+        : 1440;
+    const vh =
+      mapRect && mapRect.height > 0
+        ? mapRect.height
+        : typeof window !== "undefined" && Number(window.innerHeight) > 0
+        ? Number(window.innerHeight)
+        : 900;
+    const mLeft = mapRect && mapRect.width > 0 ? mapRect.left : 0;
+    const mTop = mapRect && mapRect.height > 0 ? mapRect.top : 0;
+    const mRight = mLeft + vw;
+    const mBottom = mTop + vh;
+
+    const isElemVisible = (el) => {
+      if (!el || el.classList?.contains?.("hidden")) return false;
+      if (typeof window !== "undefined" && typeof window.getComputedStyle === "function") {
+        const cs = window.getComputedStyle(el);
+        if (!cs || cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    let top = 88;
+    let right = 64;
+    let bottom = 72;
+    let left = 64;
+
+    // 1. Top HUD bars (#atlas-topbar and .tour-bar)
+    for (const sel of ["#atlas-topbar", ".tour-bar"]) {
+      const el =
+        typeof document.querySelector === "function"
+          ? document.querySelector(sel)
+          : sel.startsWith("#") && typeof document.getElementById === "function"
+          ? document.getElementById(sel.slice(1))
+          : null;
+      if (!isElemVisible(el) || typeof el.getBoundingClientRect !== "function") continue;
+      const r = el.getBoundingClientRect();
+      if (r && r.height > 0 && r.bottom > mTop && r.top < mTop + vh * 0.35) {
+        top = Math.max(top, Math.round(r.bottom - mTop + 24));
+      }
+    }
+
+    // 2. Left / Top floating HUD panels (#atlas-sidebar, #portfolio-monograph-card, #city-chapters-card)
+    const sidebarEl =
+      typeof document.getElementById === "function" ? document.getElementById("atlas-sidebar") : null;
+    const shellEl =
+      typeof document.querySelector === "function" ? document.querySelector(".atlas-shell") : null;
+    const sidebarCollapsed =
+      Boolean(sidebarEl?.classList?.contains?.("collapsed")) ||
+      Boolean(shellEl?.classList?.contains?.("sidebar-collapsed"));
+
+    for (const id of ["atlas-sidebar", "portfolio-monograph-card", "city-chapters-card"]) {
+      const el = typeof document.getElementById === "function" ? document.getElementById(id) : null;
+      if (!isElemVisible(el)) continue;
+      if (id === "atlas-sidebar" && sidebarCollapsed) continue;
+      const r = typeof el.getBoundingClientRect === "function" ? el.getBoundingClientRect() : null;
+      const isMinimizedCard = Boolean(el.classList?.contains?.("card-minimized"));
+
+      // Fallback when running in headless JSDOM where getBoundingClientRect() returns 0x0
+      if (!r || (r.width === 0 && r.height === 0)) {
+        if (vw <= 900) {
+          top = Math.max(top, isMinimizedCard ? 168 : Math.round(vh * 0.54));
+        } else if (id === "atlas-sidebar") {
+          left = Math.max(left, 418);
+        } else if (isMinimizedCard) {
+          top = Math.max(top, 176);
+        } else {
+          left = Math.max(left, sidebarCollapsed ? 542 : 887);
+        }
+        continue;
+      }
+
+      if (r.width <= 4 || r.height <= 4) continue;
+      if (id !== "atlas-sidebar") {
+        if (r.right <= mLeft + 8 || r.bottom <= mTop + 8 || r.left >= mRight - 8 || r.top >= mBottom - 8) {
+          continue;
+        }
+      }
+
+      const isFullWidthMobileCard = vw <= 900 || r.width >= vw * 0.68;
+      const isCompactHeaderBar = isMinimizedCard || (r.height <= 76 && r.top < mTop + vh * 0.35);
+
+      if (isFullWidthMobileCard || isCompactHeaderBar) {
+        if (mBottom - r.bottom >= 140) {
+          top = Math.max(top, Math.round(r.bottom - mTop + 24));
+        }
+      } else if (r.left < mLeft + vw * 0.58) {
+        // .atlas-sidebar animates transform over 0.24s when expanding; floor at its
+        // resting right edge (12px left + 370px visible width) if sampled mid-slide.
+        const panelRight = id === "atlas-sidebar" ? Math.max(r.right, mLeft + 382) : r.right;
+        const candidateLeft = Math.round(panelRight - mLeft + 36);
+        if (vw - candidateLeft - right >= 160) {
+          left = Math.max(left, candidateLeft);
+        }
+      }
+    }
+
+    // 3. Right / Bottom Inspector Drawer (#inspector-drawer) when open
+    const insp =
+      typeof document.getElementById === "function" ? document.getElementById("inspector-drawer") : null;
+    if (isElemVisible(insp) && typeof insp.getBoundingClientRect === "function") {
+      const r = insp.getBoundingClientRect();
+      if (r && r.width > 4 && r.height > 4 && r.right > mLeft + 8 && r.left < mRight - 8) {
+        if ((vw <= 900 || r.width >= vw * 0.68) && r.top > mTop + vh * 0.25) {
+          const candidateBottom = Math.round(mBottom - r.top + 24);
+          if (vh - top - candidateBottom >= 140) {
+            bottom = Math.max(bottom, candidateBottom);
+          }
+        } else if (r.left > mLeft + vw * 0.45) {
+          const candidateRight = Math.round(mRight - r.left + 32);
+          if (vw - left - candidateRight >= 160) {
+            right = Math.max(right, candidateRight);
+          }
+        }
+      }
+    }
+
+    // Safety clamp so left+right and top+bottom always leave a positive visible viewport box
+    if (left + right > vw - 120) {
+      const excess = left + right - (vw - 120);
+      right = Math.max(24, right - Math.ceil(excess / 2));
+      left = Math.max(24, Math.min(left, vw - 120 - right));
+    }
+    if (top + bottom > vh - 120) {
+      const excess = top + bottom - (vh - 120);
+      bottom = Math.max(24, bottom - Math.ceil(excess / 2));
+      top = Math.max(24, Math.min(top, vh - 120 - bottom));
+    }
+
+    return { top, right, bottom, left };
+  }
+
   setPortfolioWorks(works = [], activeIndex = -1, { fit = false } = {}) {
     if (Array.isArray(this.portfolioMarkers)) {
       for (const m of this.portfolioMarkers) {
@@ -8405,6 +8556,10 @@ export class AtlasMapController {
       : [];
     this.portfolioWorks = validWorks;
     this.activePortfolioWorkIndex = activeIndex;
+    const visiblePadding = fit ? this._computePortfolioVisiblePadding() : null;
+    if (visiblePadding) {
+      this.lastPortfolioFitPadding = visiblePadding;
+    }
 
     if (this.useCanvasFallback) {
       if (fit && validWorks.length > 0 && this.canvasState) {
@@ -8418,10 +8573,28 @@ export class AtlasMapController {
           minLat = Math.min(minLat, Number(w.lat));
           maxLat = Math.max(maxLat, Number(w.lat));
         }
-        this.canvasState.lng = (minLng + maxLng) / 2;
-        this.canvasState.lat = (minLat + maxLat) / 2;
         const span = Math.max(maxLng - minLng, maxLat - minLat);
-        this.canvasState.zoom = span < 0.015 ? 15.2 : span < 0.06 ? 13.4 : span < 0.16 ? 11.9 : 10.8;
+        this.canvasState.zoom =
+          validWorks.length === 1
+            ? 16.2
+            : span < 0.015
+            ? 15.2
+            : span < 0.06
+            ? 13.4
+            : span < 0.16
+            ? 11.9
+            : 10.8;
+        const vw = (typeof window !== "undefined" && Number(window.innerWidth)) || 1440;
+        const vh = (typeof window !== "undefined" && Number(window.innerHeight)) || 900;
+        const dxFrac = visiblePadding
+          ? (visiblePadding.left - visiblePadding.right) / 2 / Math.max(vw, 320)
+          : 0;
+        const dyFrac = visiblePadding
+          ? (visiblePadding.top - visiblePadding.bottom) / 2 / Math.max(vh, 320)
+          : 0;
+        const degSpan = Math.max(span * 1.35, 0.02);
+        this.canvasState.lng = (minLng + maxLng) / 2 - dxFrac * degSpan;
+        this.canvasState.lat = (minLat + maxLat) / 2 + dyFrac * degSpan;
       }
       this._renderCanvas2D();
       return;
@@ -8489,37 +8662,97 @@ export class AtlasMapController {
     }
 
     if (fit && validWorks.length > 0) {
-      if (validWorks.length === 1) {
-        this.flyToLocation({
-          lng: Number(validWorks[0].lng),
-          lat: Number(validWorks[0].lat),
-          zoom: 16.5,
-        });
-      } else {
-        let minLng = Infinity;
-        let maxLng = -Infinity;
-        let minLat = Infinity;
-        let maxLat = -Infinity;
-        for (const w of validWorks) {
-          minLng = Math.min(minLng, Number(w.lng));
-          maxLng = Math.max(maxLng, Number(w.lng));
-          minLat = Math.min(minLat, Number(w.lat));
-          maxLat = Math.max(maxLat, Number(w.lat));
-        }
-        try {
+      const padding = visiblePadding || this._computePortfolioVisiblePadding();
+      this.lastPortfolioFitPadding = padding;
+      let minLng = Infinity;
+      let maxLng = -Infinity;
+      let minLat = Infinity;
+      let maxLat = -Infinity;
+      for (const w of validWorks) {
+        minLng = Math.min(minLng, Number(w.lng));
+        maxLng = Math.max(maxLng, Number(w.lng));
+        minLat = Math.min(minLat, Number(w.lat));
+        maxLat = Math.max(maxLat, Number(w.lat));
+      }
+      if (maxLng - minLng < 0.0005) {
+        minLng -= 0.00025;
+        maxLng += 0.00025;
+      }
+      if (maxLat - minLat < 0.0005) {
+        minLat -= 0.00025;
+        maxLat += 0.00025;
+      }
+      try {
+        const tr = this.map.transform;
+        if (
+          tr &&
+          typeof tr.project === "function" &&
+          typeof tr.unproject === "function" &&
+          typeof tr.scaleZoom === "function" &&
+          typeof tr.zoomScale === "function" &&
+          window.maplibregl &&
+          window.maplibregl.LngLat
+        ) {
+          const mapEl =
+            typeof this.map.getContainer === "function" ? this.map.getContainer() : null;
+          const rect =
+            mapEl && typeof mapEl.getBoundingClientRect === "function"
+              ? mapEl.getBoundingClientRect()
+              : null;
+          if (
+            rect &&
+            rect.width > 0 &&
+            rect.height > 0 &&
+            (Math.abs(tr.width - rect.width) > 2 || Math.abs(tr.height - rect.height) > 2) &&
+            typeof this.map.resize === "function"
+          ) {
+            try {
+              this.map.resize();
+            } catch (_e) {}
+          }
+          if (typeof tr.setPadding === "function") {
+            try {
+              tr.setPadding({ top: 0, right: 0, bottom: 0, left: 0 });
+            } catch (_e) {}
+          }
+          const nw = tr.project(new window.maplibregl.LngLat(minLng, maxLat));
+          const se = tr.project(new window.maplibregl.LngLat(maxLng, minLat));
+          const boxW = Math.max(1e-6, Math.abs(se.x - nw.x));
+          const boxH = Math.max(1e-6, Math.abs(se.y - nw.y));
+          const availW = Math.max(120, tr.width - (padding.left + padding.right));
+          const availH = Math.max(120, tr.height - (padding.top + padding.bottom));
+          const rawZoom = tr.scaleZoom(tr.scale * Math.min(availW / boxW, availH / boxH));
+          const capMaxZoom = validWorks.length === 1 ? 16.3 : 15.8;
+          const minAllowedZoom = Number.isFinite(tr.minZoom) ? tr.minZoom : 8.5;
+          const targetZoom = Math.max(minAllowedZoom, Math.min(rawZoom, capMaxZoom));
+          const scaleRatio = tr.scale / tr.zoomScale(targetZoom);
+          const shiftX = ((padding.left - padding.right) / 2) * scaleRatio;
+          const shiftY = ((padding.top - padding.bottom) / 2) * scaleRatio;
+          const midPt = nw.add(se).div(2);
+          midPt.x -= shiftX;
+          midPt.y -= shiftY;
+          const targetCenter = tr.unproject(midPt);
+          this.map.flyTo({
+            center: [targetCenter.lng, targetCenter.lat],
+            zoom: targetZoom,
+            padding: { top: 0, right: 0, bottom: 0, left: 0 },
+            duration: 950,
+            essential: true,
+          });
+        } else {
           this.map.fitBounds(
             [
               [minLng, minLat],
               [maxLng, maxLat],
             ],
             {
-              padding: { top: 84, right: 380, bottom: 260, left: 84 },
-              maxZoom: 15.8,
-              duration: 1050,
+              padding,
+              maxZoom: validWorks.length === 1 ? 16.3 : 15.8,
+              duration: 950,
             }
           );
-        } catch (_e) {}
-      }
+        }
+      } catch (_e) {}
     }
   }
 
@@ -8528,6 +8761,7 @@ export class AtlasMapController {
     let lat;
     let zoom = 16.5;
     let pitch = null;
+    let padding = null;
     let hcadNum = "";
     let featureId = "";
     let addressQuery = "";
@@ -8539,6 +8773,7 @@ export class AtlasMapController {
       lat = Number(arg1.lat);
       if (Number.isFinite(Number(arg1.zoom))) zoom = Number(arg1.zoom);
       if (arg1.pitch !== undefined && arg1.pitch !== null) pitch = Number(arg1.pitch);
+      if (arg1.padding && typeof arg1.padding === "object") padding = arg1.padding;
       hcadNum = arg1.hcadNum || "";
       featureId = arg1.featureId || "";
       addressQuery = arg1.addressQuery || "";
@@ -8561,13 +8796,18 @@ export class AtlasMapController {
       this.computeViewportHistogram();
     } else if (this.map) {
       const state = this.filterStore.getState();
-      this.map.flyTo({
+      const flyOpts = {
         center: [lng, lat],
         zoom,
         pitch: pitch !== null ? pitch : state.extrude3D ? 50 : 0,
+        padding:
+          padding && typeof padding === "object"
+            ? padding
+            : { top: 0, right: 0, bottom: 0, left: 0 },
         duration: 1100,
         essential: true,
-      });
+      };
+      this.map.flyTo(flyOpts);
     }
 
     if (featureId || hcadNum || addressQuery) {

@@ -1213,6 +1213,7 @@ export class HoustonAtlasApp {
     const btnToggle = document.getElementById("btn-toggle-sidebar");
     if (!sidebar) return;
 
+    const wasCollapsed = Boolean(sidebar.classList?.contains?.("collapsed"));
     if (!collapsed) {
       this._closeTransientTopbarPopovers?.();
     }
@@ -1228,6 +1229,29 @@ export class HoustonAtlasApp {
       drawer?.classList?.add?.("hidden");
     }
     this._syncResponsiveHudOffsets?.();
+
+    if (
+      wasCollapsed !== Boolean(collapsed) &&
+      this._activePortfolio &&
+      this.mapController &&
+      (this._activePortfolio.activeIndex ?? -1) < 0 &&
+      (typeof window === "undefined" || window.innerWidth > 900)
+    ) {
+      const reFit = () => {
+        if (this._activePortfolio && this.mapController) {
+          this.mapController.setPortfolioWorks(
+            this._activePortfolio.filteredWorks || this._activePortfolio.works || [],
+            this._activePortfolio.activeIndex ?? -1,
+            { fit: true }
+          );
+        }
+      };
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(reFit);
+      } else {
+        reFit();
+      }
+    }
   }
 
   async _loadMetadataFiles() {
@@ -4296,11 +4320,34 @@ export class HoustonAtlasApp {
     const btnPortfolioFitAll = document.getElementById("btn-portfolio-fit-all");
     if (btnPortfolioFitAll) {
       btnPortfolioFitAll.addEventListener("click", () => {
+        if (!this._activePortfolio || !this.mapController) return;
+        this._activePortfolio.activeIndex = -1;
+        const listEl = document.getElementById("portfolio-works-list");
+        if (listEl) {
+          listEl
+            .querySelectorAll("[data-portfolio-work-idx].active")
+            .forEach((btn) => btn.classList.remove("active"));
+        }
+        if (typeof window !== "undefined" && window.innerWidth <= 900) {
+          this._setPortfolioCardMinimized(true);
+          document.getElementById("inspector-drawer")?.classList?.add?.("hidden");
+        }
+        this.mapController.setPortfolioWorks(
+          this._activePortfolio.filteredWorks || this._activePortfolio.works || [],
+          -1,
+          { fit: true }
+        );
+      });
+    }
+    const btnPortfolioCollapse = document.getElementById("btn-portfolio-collapse-card");
+    if (btnPortfolioCollapse) {
+      btnPortfolioCollapse.addEventListener("click", () => {
+        this._setPortfolioCardMinimized();
         if (this._activePortfolio && this.mapController) {
           this.mapController.setPortfolioWorks(
             this._activePortfolio.filteredWorks || this._activePortfolio.works || [],
             this._activePortfolio.activeIndex ?? -1,
-            { fit: true }
+            { fit: (this._activePortfolio.activeIndex ?? -1) < 0 }
           );
         }
       });
@@ -20631,6 +20678,29 @@ export class HoustonAtlasApp {
   /* ========================================================================
      Priority #4B: Architect, Master Builder & Architectural Style Portfolios
      ======================================================================== */
+  _setPortfolioCardMinimized(minimized = null) {
+    if (typeof document === "undefined" || typeof document.getElementById !== "function") {
+      return false;
+    }
+    const card = document.getElementById("portfolio-monograph-card");
+    const btnCollapse = document.getElementById("btn-portfolio-collapse-card");
+    if (!card) return false;
+    const isCurrentlyMinimized = Boolean(card.classList?.contains?.("card-minimized"));
+    const nextMinimized = minimized === null ? !isCurrentlyMinimized : Boolean(minimized);
+    if (nextMinimized) {
+      this._closePortfolioPickerPopover();
+    }
+    card.classList?.toggle?.("card-minimized", nextMinimized);
+    if (btnCollapse) {
+      btnCollapse.setAttribute("aria-expanded", nextMinimized ? "false" : "true");
+      btnCollapse.innerHTML = nextMinimized ? "List &#9662;" : "List &#9652;";
+      btnCollapse.title = nextMinimized
+        ? "Expand portfolio card and building list"
+        : "Minimize portfolio card to view full map";
+    }
+    return nextMinimized;
+  }
+
   _togglePortfolioPickerPopover(forceOpen = null) {
     const pop = document.getElementById("portfolio-picker-popover");
     const trig = document.getElementById("portfolio-picker-trigger");
@@ -20641,6 +20711,9 @@ export class HoustonAtlasApp {
     if (!shouldOpen) {
       this._closePortfolioPickerPopover();
       return;
+    }
+    if (card?.classList?.contains?.("card-minimized")) {
+      this._setPortfolioCardMinimized(false);
     }
     pop.classList.remove("hidden");
     trig.setAttribute("aria-expanded", "true");
@@ -21188,6 +21261,7 @@ export class HoustonAtlasApp {
     });
 
     if (btnQuick) btnQuick.classList.add("active");
+    this._setPortfolioCardMinimized(false);
     if (card) card.classList.remove("hidden");
     this._closeTransientTopbarPopovers?.();
     this._syncResponsiveHudOffsets?.();
@@ -21300,6 +21374,10 @@ export class HoustonAtlasApp {
       });
     }
 
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+      this._setPortfolioCardMinimized(true);
+    }
+
     if (work.isDemolished) {
       if (!this.filterStore.getState().layers?.lostHouston) {
         this.filterStore.setLayerVisibility("lostHouston", true);
@@ -21326,8 +21404,10 @@ export class HoustonAtlasApp {
         lng: work.lng,
         lat: work.lat,
         zoom: 17.3,
-        hcadNum: work.hcadNum || "",
-        featureId: work.featureId || "",
+        padding:
+          typeof this.mapController._computePortfolioVisiblePadding === "function"
+            ? this.mapController._computePortfolioVisiblePadding()
+            : null,
       });
     }
   }
@@ -21335,6 +21415,7 @@ export class HoustonAtlasApp {
   exitPortfolioMode({ restoreState = true, skipUrlUpdate = false } = {}) {
     this._activePortfolio = null;
     this._closePortfolioPickerPopover();
+    this._setPortfolioCardMinimized(false);
     if (this.mapController) {
       this.mapController.clearPortfolioWorks();
     }

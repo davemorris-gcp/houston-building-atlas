@@ -10565,6 +10565,25 @@ body {
   min-height: min(565px, calc(100dvh - 134px));
 }
 
+.portfolio-monograph-card.card-minimized {
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.portfolio-monograph-card.card-minimized .portfolio-card-top {
+  border-bottom: none;
+  border-radius: 10px;
+}
+
+.portfolio-monograph-card.card-minimized .portfolio-bio-block,
+.portfolio-monograph-card.card-minimized .portfolio-stats-grid,
+.portfolio-monograph-card.card-minimized .portfolio-subfilter-row,
+.portfolio-monograph-card.card-minimized .portfolio-works-list {
+  display: none !important;
+}
+
 .atlas-shell.sidebar-collapsed .city-chapters-card,
 .atlas-shell.sidebar-collapsed .portfolio-monograph-card {
   left: 16px;
@@ -15137,6 +15156,10 @@ body.field-survey-daylight .field-survey-toast-undo-btn {
     background: rgba(15, 22, 30, 0.97);
     backdrop-filter: blur(12px);
     flex-shrink: 0;
+  }
+
+  .portfolio-preset-label {
+    display: none;
   }
 
   .portfolio-bio-block,
