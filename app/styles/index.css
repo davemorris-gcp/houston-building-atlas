@@ -5158,8 +5158,22 @@ body {
 
 .ai-companion-download-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-companion-download-row .action-pill {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+
+@media (max-width: 780px) {
+  .ai-companion-download-row {
+    flex-wrap: wrap;
+  }
 }
 
 .ai-companion-section {
@@ -5242,6 +5256,8 @@ body {
   flex-direction: column;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ai-sample-prompt-kicker {
@@ -5270,6 +5286,14 @@ body {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 4px;
+  min-width: 0;
+}
+
+.ai-sample-prompt-actions .action-pill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 @media print {

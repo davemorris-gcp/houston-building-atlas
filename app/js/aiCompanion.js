@@ -144,6 +144,7 @@ export const SAMPLE_AI_RESEARCH_PROMPTS = Object.freeze([
       "Using The Houston Building Atlas, explain what happened to the 1894 John Henry Kirby Mansion at 2000 Smith St (HCAD 0152300000001), including the 2-stage City of Houston demolition permits and Texas DSHS asbestos filings that preceded its November 2, 2026 loss. Which buildings by its 1928 Tudor Revival remodel architect James Ruskin Bailey are still standing in Houston? Include clickable Atlas links for each.",
     atlasHash: "?id=lost_kirby_mansion_1894&layers=lost_houston",
     deepLink: "?id=lost_kirby_mansion_1894&layers=lost_houston",
+    linkLabel: "Open Kirby Mansion in Atlas",
   },
   {
     id: "hahc_landmark_candidates",
@@ -153,6 +154,7 @@ export const SAMPLE_AI_RESEARCH_PROMPTS = Object.freeze([
       "We are preparing unprotected landmark nomination candidates for the Houston Archaeological and Historical Commission (HAHC). Using The Houston Building Atlas, provide the 13-digit HCAD accounts, construction dates, architectural/cultural significance, and 1-click printable THC Historic Resources Survey Form links (#thcSurvey=1) for Granada Theater (3700 N Main St), LULAC Council 60 Clubhouse (3004 Bagby St), and Talento Bilingue de Houston (333 S Jensen Dr).",
     atlasHash: "#hcad=0550140020008&thcSurvey=1",
     deepLink: "#hcad=0550140020008&thcSurvey=1",
+    linkLabel: "Open THC Survey Form",
   },
   {
     id: "heritage_vs_historic_district",
@@ -162,6 +164,7 @@ export const SAMPLE_AI_RESEARCH_PROMPTS = Object.freeze([
       "Does the City of Houston's Freedmen's Town Heritage District protect private historic homes from demolition? Compare its legal authority under City of Houston ordinances with a designated COH Historic District like Old Sixth Ward, and include links to both in The Houston Building Atlas.",
     atlasHash: "#scorecard=historic_districts:hist_dist_old_sixth_ward",
     deepLink: "#scorecard=historic_districts:hist_dist_old_sixth_ward",
+    linkLabel: "Open Old Sixth Ward Scorecard",
   },
   {
     id: "freedmens_town_stewardship",
@@ -171,6 +174,7 @@ export const SAMPLE_AI_RESEARCH_PROMPTS = Object.freeze([
       "Using The Houston Building Atlas, trace the historical resident and ownership chain for 1318 Andrews St (HCAD 0090790000009) in Freedmen's Town / Fourth Ward from the 1892 City Directory and 1915 Red Book of Houston through recent Harris County Clerk deeds, and share the Atlas History Tab link.",
     atlasHash: "?color=ownership_tier#hcad=0090790000009&tab=history",
     deepLink: "?color=ownership_tier#hcad=0090790000009&tab=history",
+    linkLabel: "Open 1318 Andrews History",
   },
   {
     id: "permit_shorthand_decoder",
@@ -180,6 +184,7 @@ export const SAMPLE_AI_RESEARCH_PROMPTS = Object.freeze([
       "A Houston property record shows a City of Houston Type 12 permit for 'BLD DEMO/SEWER DISC' under project #26090093 and an HCAD appraiser note reading '4/1/26 NC ... CDU @ GD'. Translate both into clear plain English for a homeowner or journalist, explaining the difference between Stage 1 and Stage 2 demolition permits.",
     atlasHash: "#hcad=0152300000001&tab=permits",
     deepLink: "#hcad=0152300000001&tab=permits",
+    linkLabel: "Open Permits & Appraiser Tab",
   },
   {
     id: "council_district_scorecard",
@@ -189,6 +194,7 @@ export const SAMPLE_AI_RESEARCH_PROMPTS = Object.freeze([
       "Using The Houston Building Atlas Preservation Scorecards, summarize how historic pre-1940 housing stock, statutory landmark/district protection, and Chapter 42 minimum lot size (SMLS) block-face tools work in City Council District C compared with the citywide rollup, with links to both scorecards.",
     atlasHash: "#scorecard=council_districts:council_dist_coh_all",
     deepLink: "#scorecard=council_districts:council_dist_coh_all",
+    linkLabel: "Open Citywide Scorecard",
   },
 ]);
 

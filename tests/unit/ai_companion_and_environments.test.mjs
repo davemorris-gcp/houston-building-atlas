@@ -172,7 +172,7 @@ test("UT-AI-3: AI_COMPANION_PLATFORMS, SAMPLE_AI_RESEARCH_PROMPTS, and buildPlat
 
   assert.equal(SAMPLE_AI_RESEARCH_PROMPTS.length, 6);
   for (const item of SAMPLE_AI_RESEARCH_PROMPTS) {
-    assert.ok(item.id && item.category && item.title && item.prompt);
+    assert.ok(item.id && item.category && item.title && item.prompt && item.linkLabel);
     assert.ok(item.atlasHash && item.deepLink);
     assert.equal(item.atlasHash, item.deepLink);
     assert.ok(!/[\u2013\u2014]/.test(item.prompt), `Sample prompt ${item.id} contains forbidden dashes`);

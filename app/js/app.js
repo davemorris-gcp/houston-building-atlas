@@ -17501,11 +17501,11 @@ export class HoustonAtlasApp {
             </button>
             <a
               href="${this._escapeHtmlAttr(linkTarget)}"
-              class="action-pill subtle mono"
-              style="padding: 4px 8px; font-size: 10.5px; text-decoration: none;"
-              title="Open this view in the Atlas"
+              class="action-pill subtle ai-sample-atlas-link"
+              style="padding: 4px 10px; font-size: 11px; text-decoration: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis;"
+              title="Open ${this._escapeHtmlAttr(linkTarget)} in the Atlas"
             >
-              ${this._escapeHtmlAttr(linkTarget)} &#8599;
+              &#128506; ${this._escapeHtmlAttr(item.linkLabel || "Open in Atlas")} &#8599;
             </a>
           </div>
         </div>`;
