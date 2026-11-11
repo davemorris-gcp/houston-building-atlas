@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-11T16:59:56Z",
-  "lastSweepAt": "2026-11-11T16:59:31Z",
+  "generatedAt": "2026-11-11T19:05:25Z",
+  "lastSweepAt": "2026-11-11T19:04:55Z",
   "timezone": "America/Chicago",
   "retentionDays": 90,
   "retentionFloorDate": "2026-08-14",
   "lastSweepHealth": {
-    "timestamp": "2026-11-11T16:59:31Z",
+    "timestamp": "2026-11-11T19:04:55Z",
     "sweepsExecuted": false,
     "propertiesSwept": 0,
     "totalAgencies": 8,
@@ -99,8 +99,8 @@
   "dailyRuns": [
     {
       "date": "2026-11-11",
-      "lastRunAt": "2026-11-11T16:59:56Z",
-      "runCount": 1,
+      "lastRunAt": "2026-11-11T19:05:25Z",
+      "runCount": 2,
       "sweepsExecuted": false,
       "propertiesSwept": 0,
       "totalAgencies": 8,
