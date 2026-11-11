@@ -16113,7 +16113,12 @@ export class HoustonAtlasApp {
       }
       this._populateResearchKitDeedChain(hcadNum, compositeRec, resolvedOwner.effOwner);
       this._hydrateOwnershipAndStewardshipSlots(resolvedOwner.effProps, hcadNum, compositeRec);
-      if (!document.getElementById("ai-companion-modal")?.classList.contains("hidden")) {
+      const aiModalEl = document.getElementById("ai-companion-modal");
+      if (
+        aiModalEl?.classList &&
+        !aiModalEl.classList.contains("hidden") &&
+        typeof this._renderAiCompanionModalContent === "function"
+      ) {
         this._renderAiCompanionModalContent();
       }
     }
