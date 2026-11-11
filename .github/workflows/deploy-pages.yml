@@ -18,14 +18,13 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages-${{ github.ref }}"
-  cancel-in-progress: false
-
 jobs:
   verify:
     name: Pre-Deploy Stratified Verification (Layer 1 Unit + Layer 2 45-Archetype E2E)
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_verify) }}
+    concurrency:
+      group: "pages-verify-${{ github.ref }}"
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -73,6 +72,9 @@ jobs:
     name: Deploy Verified Site to GitHub Pages
     needs: verify
     if: always() && (needs.verify.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.skip_verify)) && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: "pages-deploy-${{ github.ref }}"
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
