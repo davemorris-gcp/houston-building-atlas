@@ -5751,8 +5751,12 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             [
                 {
                     "date": "2026-09-22",
-                    "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)",
-                }
+                    "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026",
+                },
+                {
+                    "date": "2026-10-28",
+                    "result": "Harris County Clerk recorded 'Smith Street Plaza' subdivision plat on 10/28/2026 under File #RP-2026-435651 (Map Film Code #716912, 2 pages, Obedience Smith Survey Abstract 696), two days before physical demolition began.",
+                },
             ],
         ),
         "chk-10": (
@@ -5917,7 +5921,9 @@ def _build_kirby_mansion_seed(sweep_date: str) -> dict:
             },
             "notes": (
                 "DEMOLISHED NOV 2, 2026 (Graduated to Lost Houston: lost_kirby_mansion_1894). "
-                "Sale closed effective 9/30/2026 (recorded 10/1/2026, Special Warranty Deed #RP-2026-399473). "
+                "Sale closed effective 9/30/2026 (recorded 10/1/2026, Special Warranty Deed #RP-2026-399473), "
+                "and the 'Smith Street Plaza' replat consolidating Block 417 SSBB into 1 unrestricted reserve "
+                "was recorded with the Harris County Clerk on 10/28/2026 (File #RP-2026-435651, Map Film Code #716912). "
                 "Multi-agency filings across 2000 Smith St and perimeter block address 530 Pierce St revealed plans "
                 "for a $2M, 13,254 SF 'Brake Time' convenience store and gas station (TDLR #TABS2026022839, "
                 "COH Plan Review #26052089). Following Stage 1 sewer disconnection (#26090093 on 10/14/2026) and "

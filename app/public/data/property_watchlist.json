@@ -12906,7 +12906,7 @@
           "26090093"
         ]
       },
-      "notes": "DEMOLISHED NOV 2, 2026 (Graduated to Lost Houston: lost_kirby_mansion_1894). Sale closed effective 9/30/2026 (recorded 10/1/2026, Special Warranty Deed #RP-2026-399473). Multi-agency filings across 2000 Smith St and perimeter block address 530 Pierce St revealed plans for a $2M, 13,254 SF 'Brake Time' convenience store and gas station (TDLR #TABS2026022839, COH Plan Review #26052089). Following Stage 1 sewer disconnection (#26090093 on 10/14/2026) and TX DSHS asbestos notification (#2026005825), demolition crews began tearing down the 1894/1928 Tudor Revival mansion on Friday morning 10/30/2026 (briefly halted by a COH stop-work order until Stage 2 Demolition Permit #26090093 was issued later on 10/30/2026), reducing the structure to rubble by Monday, November 2, 2026.",
+      "notes": "DEMOLISHED NOV 2, 2026 (Graduated to Lost Houston: lost_kirby_mansion_1894). Sale closed effective 9/30/2026 (recorded 10/1/2026, Special Warranty Deed #RP-2026-399473), and the 'Smith Street Plaza' replat consolidating Block 417 SSBB into 1 unrestricted reserve was recorded with the Harris County Clerk on 10/28/2026 (File #RP-2026-435651, Map Film Code #716912). Multi-agency filings across 2000 Smith St and perimeter block address 530 Pierce St revealed plans for a $2M, 13,254 SF 'Brake Time' convenience store and gas station (TDLR #TABS2026022839, COH Plan Review #26052089). Following Stage 1 sewer disconnection (#26090093 on 10/14/2026) and TX DSHS asbestos notification (#2026005825), demolition crews began tearing down the 1894/1928 Tudor Revival mansion on Friday morning 10/30/2026 (briefly halted by a COH stop-work order until Stage 2 Demolition Permit #26090093 was issued later on 10/30/2026), reducing the structure to rubble by Monday, November 2, 2026.",
       "lng": -95.374833,
       "lat": 29.751432,
       "tier": "1",
@@ -13167,7 +13167,11 @@
           "checks": [
             {
               "date": "2026-09-22",
-              "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)"
+              "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026"
+            },
+            {
+              "date": "2026-10-28",
+              "result": "Harris County Clerk recorded 'Smith Street Plaza' subdivision plat on 10/28/2026 under File #RP-2026-435651 (Map Film Code #716912, 2 pages, Obedience Smith Survey Abstract 696), two days before physical demolition began."
             }
           ],
           "updatedAt": "2026-11-10T18:00:00Z",
@@ -13428,7 +13432,7 @@
           "stage": "Plans & Use",
           "activity": "Replats & Variances",
           "checkId": "chk-09",
-          "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026 (not yet recorded in County Clerk plat records)",
+          "result": "Planning Commission approved 'Smith Street Plaza' replat consolidating block into 1 unrestricted reserve on 5/28/2026",
           "automated": true,
           "entryNo": 6
         },
@@ -13631,6 +13635,15 @@
           "entryNo": 28
         },
         {
+          "date": "2026-10-28",
+          "stage": "Plans & Use",
+          "activity": "Replats & Variances",
+          "checkId": "chk-09",
+          "result": "Harris County Clerk recorded 'Smith Street Plaza' subdivision plat on 10/28/2026 under File #RP-2026-435651 (Map Film Code #716912, 2 pages, Obedience Smith Survey Abstract 696), two days before physical demolition began.",
+          "automated": true,
+          "entryNo": 29
+        },
+        {
           "date": "2026-10-29",
           "stage": "Sale & Ownership",
           "activity": "HCAD Ownership & Classification",
@@ -13647,7 +13660,7 @@
               "url": "https://arcweb.hcad.org/parcel-viewer-v2.0/?hcad_num=0152300000001"
             }
           ],
-          "entryNo": 29
+          "entryNo": 30
         },
         {
           "date": "2026-10-30",
@@ -13656,7 +13669,7 @@
           "checkId": "chk-02",
           "result": "Excavators began demolishing the 1894/1928 mansion on Friday morning Oct 30, 2026; City of Houston inspectors briefly issued a stop-work order until the Stage 2 building demolition permit (#26090093) cleared later that day.",
           "automated": false,
-          "entryNo": 30
+          "entryNo": 31
         },
         {
           "date": "2026-10-30",
@@ -13665,7 +13678,7 @@
           "checkId": "chk-14",
           "result": "COH Stage 2 Building Demolition Permit #26090093 ('BLD DEMO', Type SD Demolition, occupant '*KIRBY MANSION') issued 10/30/2026 after unpermitted morning demolition was briefly halted by a COH stop-work order; structure completely demolished by 11/2/2026.",
           "automated": true,
-          "entryNo": 31
+          "entryNo": 32
         },
         {
           "date": "2026-11-01",
@@ -13684,7 +13697,7 @@
               "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
             }
           ],
-          "entryNo": 32
+          "entryNo": 33
         },
         {
           "date": "2026-11-01",
@@ -13693,7 +13706,7 @@
           "checkId": "chk-13",
           "result": "Houston 311 Case #2600364835 ('Dangerous Buildings' at 2000 Smith St) and Case #2600366173 ('Building Code Violation' logged 11/2/2026) filed during weekend demolition of the mansion.",
           "automated": true,
-          "entryNo": 33
+          "entryNo": 34
         },
         {
           "date": "2026-11-02",
@@ -13702,7 +13715,7 @@
           "checkId": "chk-02",
           "result": "Site visit confirmed the 36-room Tudor Revival mansion at 2000 Smith St was completely reduced to rubble over the weekend of Oct 31 - Nov 2, 2026.",
           "automated": false,
-          "entryNo": 34
+          "entryNo": 35
         },
         {
           "date": "2026-11-02",
@@ -13721,7 +13734,7 @@
               "url": "https://experience.arcgis.com/experience/cf006ed734814cee9f5b9bcf7abc839f"
             }
           ],
-          "entryNo": 35
+          "entryNo": 36
         }
       ],
       "appNo": "",
@@ -13737,8 +13750,7 @@
       "likelyDemolishedReviewNeeded": false,
       "likelyDemolishedReason": "",
       "documents": [],
-      "driveLinks": [],
-      "lastAutoSweepAt": "2026-11-09T21:49:17Z"
+      "driveLinks": []
     },
     {
       "id": "plat-DPV-26080390",

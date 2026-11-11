@@ -961,3 +961,99 @@ def test_tpia_review_regressions_conf_history_option_a_aliases_and_bare_python3_
             check=False,
         )
         assert imp_proc.returncode == 0, f"{script_name} failed under bare /usr/bin/python3: {imp_proc.stderr}"
+
+
+def test_hcco_data_sales_subscriber_pipe_delimited_schema(tmp_path: Path) -> None:
+    """Verify exact HCCO Data Sales pipe-delimited headers (FileDate, Film Code No., NType, RelDocNo, FileNo, MapCode, MapDesc, VolumnPage, L AFFT, SEE INSTRUMENT)."""
+    from atlas_pipeline.ingest_tpia_clerk_and_hcad import ingest_clerk_tpia_tables
+
+    clerk_dir = tmp_path / "hcco_datasales"
+    clerk_dir.mkdir()
+
+    # Lookup files included by HCCO Data Sales that must not pollute instrument counts
+    (clerk_dir / "RPCodes.txt").write_text("RPCodeID|RPCode|Active\n1|W/D|True\n", encoding="utf-8")
+    (clerk_dir / "RPNamesTypes.txt").write_text("NType|NTypeDesc|NTypeAlias\n1|Grantor|OR\n2|Grantee|EE\n", encoding="utf-8")
+
+    (clerk_dir / "20261029_RPI_Instruments.txt").write_text(
+        "\n".join(
+            [
+                "File No|Document Type|FileDate|Film Code No.|No. of Pages",
+                "RP-2026-429524|L AFFT|2026-10-23|RP-2026-429524|4",
+                "RP-2026-430978|CORREC|2026-10-26|RP-2026-430978|3",
+                "RP-2026-435651|MAP|2026-10-28|RP-2026-435651|1",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (clerk_dir / "20261029_RPI_LegalDesc.txt").write_text(
+        "\n".join(
+            [
+                "File No|SubDivision|Section|Lot|Block|Misc|Map Page|Unit|Abstract|OutLot|Tract|Reserve|Comment",
+                "RP-2026-429524|FIFTY NINE THIRTY RICHMOND AVE|||1||||||||",
+                "RP-2026-430978|FALL MEADOW SUBDIVISION||14|1||||||||",
+                "RP-2026-435651|SMITH STREET PLAZA|||||||||||",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (clerk_dir / "20261029_RPI_Names.txt").write_text(
+        "\n".join(
+            [
+                "File No|Name|NType|Document Type",
+                "RP-2026-429524|HOUSTON FOODS INC|1|L AFFT",
+                "RP-2026-429524|AARONS ELECTRICAL SERVICE INC|2|L AFFT",
+                "RP-2026-430978|CARANTALI INC|1|CORREC",
+                "RP-2026-430978|SEE INSTRUMENT|2|CORREC",
+                "RP-2026-430978|GUTIERREZ ANTONIO|2|CORREC",
+                "RP-2026-435651|SMITH STREET PLAZA|1|MAP",
+                "RP-2026-435651|SMITH OBEDIENCE A0696|2|MAP",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (clerk_dir / "20261029_RPI_RelatedDocs.txt").write_text(
+        "\n".join(
+            [
+                "File No|RelDocNo|RelDocDesc",
+                "RP-2026-430978|D265185|Related Harris County Real Property File Number",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (clerk_dir / "20261029_MAP_Instruments.txt").write_text(
+        "\n".join(
+            [
+                "FileNo|MapCode|MapDesc|FileDate|VolumnPage|NoPages",
+                "RP-2026-435651|M|SMITH STREET PLAZA|2026-10-28 00:00:00|716912|2",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    res = ingest_clerk_tpia_tables(clerk_dir)
+    assert res["kept_target_instruments"] == 3
+    by_tok = {r.clerk_token: r for r in res["instruments"]}
+
+    lafft = by_tok["R2026-429524"]
+    assert lafft.category == "MECHANICS_LIEN"
+    assert lafft.dt8 == "20261023"
+    assert lafft.grantors == ["HOUSTON FOODS INC"]
+    assert lafft.grantees == ["AARONS ELECTRICAL SERVICE INC"]
+
+    correc = by_tok["R2026-430978"]
+    assert correc.category == "CONVEYANCE"
+    assert correc.dt8 == "20261026"
+    assert correc.grantors == ["CARANTALI INC"]
+    assert correc.grantees == ["GUTIERREZ ANTONIO"]  # 'SEE INSTRUMENT' stripped!
+    assert "FN:D265185" in correc.related_match_keys
+
+    plat = by_tok["R2026-435651"]
+    assert plat.category == "RESTRICTION_PLAT"
+    assert plat.dt8 == "20261028"
+    assert plat.grantors == ["SMITH STREET PLAZA"]
+

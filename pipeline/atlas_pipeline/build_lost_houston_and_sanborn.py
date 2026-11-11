@@ -243,8 +243,10 @@ LOST_HOUSTON_PART_3 = [
         "demolished_date": "2026-11-02",
         "demolition_cause": (
             "Sold September 30, 2026 (Special Warranty Deed #RP-2026-399473) to OB Texas Properties LLC "
-            "(Omair Bashir / Smith St C Store LLC) and demolished between October 30 and November 2, 2026 "
-            "under COH Project #26090093 and TX DSHS Notification #2026005825 for a convenience store and fuel station."
+            "(Omair Bashir / Smith St C Store LLC), replatted as 'Smith Street Plaza' on October 28, 2026 "
+            "(Harris County Clerk File #RP-2026-435651, Map Film Code #716912), and demolished between "
+            "October 30 and November 2, 2026 under COH Project #26090093 and TX DSHS Notification #2026005825 "
+            "for a convenience store and fuel station."
         ),
         "replaced_by": "Cleared site (planned 13,254 SF Brake Time convenience store & gas station, TDLR #TABS2026022839)",
         "site_hcad_nums": ["0152300000001"],

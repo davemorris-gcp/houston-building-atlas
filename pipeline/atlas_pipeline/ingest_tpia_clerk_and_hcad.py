@@ -149,7 +149,13 @@ _CONVEYANCE_CODES: frozenset[str] = frozenset({
     "BARGAIN AND SALE DEED",
     "CORRECTION DEED",
     "CORR DEED",
+    "CORREC",
     "PARTITION DEED",
+    "DECREE",
+    "CONVEY",
+    "CONDMN",
+    "RWD",
+    "R/W/D",
 })
 
 _MECHANICS_LIEN_CODES: frozenset[str] = frozenset({
@@ -160,6 +166,10 @@ _MECHANICS_LIEN_CODES: frozenset[str] = frozenset({
     "MECHANIC LIEN",
     "MECHANIC'S LIEN",
     "MECHANICS LIEN CONTRACT",
+    "L AFFT",
+    "LAFFT",
+    "LIEN AFFT",
+    "LIEN AFFIDAVIT",
     "BLDG CONT",
     "BUILDING CONTRACT",
     "CONSTRUCTION CONTRACT",
@@ -170,6 +180,8 @@ _MECHANICS_LIEN_CODES: frozenset[str] = frozenset({
 _DEED_OF_TRUST_CODES: frozenset[str] = frozenset({
     "D/T",
     "DT",
+    "SUPD/T",
+    "SUP D/T",
     "DEED OF TRUST",
     "MORTGAGE",
     "MTG",
@@ -187,7 +199,19 @@ _PLAT_OR_RESTRICTION_CODES: frozenset[str] = frozenset({
     "RESTR",
     "RESTRICTIONS",
     "DEED RESTRICTIONS",
+    "DED",
     "DEDICATION",
+})
+
+_TPIA_PLACEHOLDER_PARTY_TOKENS: frozenset[str] = frozenset({
+    "SEE INSTRUMENT",
+    "SEE RECORD",
+    "SEE DEED",
+    "SEE PLAT",
+    "SEE MAP",
+    "N/A",
+    "NA",
+    "NONE",
 })
 
 
@@ -218,6 +242,7 @@ class ClerkInstrumentRecord:
     amount: str = ""
     explicit_hcads: set[str] = field(default_factory=set)
     legal_keys: set[LegalCrosswalkKey] = field(default_factory=set)
+    related_match_keys: set[str] = field(default_factory=set)
     has_confidential_party: bool = False
 
 
@@ -527,7 +552,19 @@ def extract_clerk_row_legal_keys(row: dict[str, str]) -> list[LegalCrosswalkKey]
     """Extract canonical `LegalCrosswalkKey`s from a County Clerk Legal or flat tabular row."""
     raw_subd = _first_present(
         row,
-        ("subdivision", "subd", "subd_desc", "subdivision_name", "addition", "condo_name", "legal_desc", "description"),
+        (
+            "subdivision",
+            "subd",
+            "subd_desc",
+            "subdivision_name",
+            "addition",
+            "condo_name",
+            "mapdesc",
+            "map_desc",
+            "map_description",
+            "legal_desc",
+            "description",
+        ),
     )
     if not raw_subd:
         return []
@@ -559,7 +596,7 @@ def extract_clerk_row_legal_keys(row: dict[str, str]) -> list[LegalCrosswalkKey]
         if r_clean:
             return [LegalCrosswalkKey(subd_norm, sec_norm, blk_norm, "RES", r_clean)]
 
-    raw_tr = _first_present(row, ("tract", "tr", "tract_no"))
+    raw_tr = _first_present(row, ("tract", "tr", "tract_no", "outlot", "out_lot"))
     if raw_tr:
         t_clean = re.sub(r"[^0-9A-Z]", "", raw_tr.upper()).lstrip("0")
         if t_clean:
@@ -840,6 +877,7 @@ def _merge_clerk_instrument_records(
         dst.amount = src.amount
     dst.explicit_hcads |= src.explicit_hcads
     dst.legal_keys |= src.legal_keys
+    dst.related_match_keys |= src.related_match_keys
     if src.has_confidential_party:
         dst.has_confidential_party = True
     for g in src.grantors:
@@ -990,15 +1028,17 @@ def ingest_clerk_tpia_tables(
         "type_code",
         "type_desc",
         "instrument_code",
+        "mapcode",
+        "map_code",
     }
 
     for _label, headers, rows in iter_tpia_tabular_files(clerk_tpia_dir):
-        files_scanned += 1
         hdr_set = set(headers)
         if not (
             hdr_set
             & {
                 "file_no",
+                "fileno",
                 "file_number",
                 "clerk_file_no",
                 "instrument_no",
@@ -1007,14 +1047,19 @@ def ingest_clerk_tpia_tables(
                 "document_id",
                 "instrument_id",
                 "film_code",
+                "film_code_no",
                 "microfilm",
                 "microfilm_code",
                 "vol",
                 "volume",
+                "volumnpage",
+                "volumn_page",
+                "volume_page",
                 "book",
             }
         ):
             continue
+        files_scanned += 1
         if hdr_set & inst_type_cols:
             saw_inst_type_column = True
 
@@ -1022,15 +1067,28 @@ def ingest_clerk_tpia_tables(
             rows_scanned += 1
             raw_fn = _first_present(
                 row,
-                ("file_no", "file_number", "clerk_file_no", "instrument_no", "instrument_number"),
+                ("file_no", "fileno", "file_number", "clerk_file_no", "instrument_no", "instrument_number"),
             )
-            raw_fc = _first_present(row, ("film_code", "microfilm", "microfilm_code"))
+            raw_fc = _first_present(
+                row,
+                ("film_code", "film_code_no", "microfilm", "microfilm_code", "volumnpage", "volumn_page", "volume_page"),
+            )
             raw_vol = _first_present(row, ("vol", "volume", "book"))
             raw_pg = _first_present(row, ("pg", "page"))
             raw_doc_id = _first_present(row, ("doc_id", "document_id", "instrument_id"))
             raw_dt = _first_present(
                 row,
-                ("file_date", "record_date", "recording_date", "rec_dt", "rec_date", "date_filed", "instrument_date", "dos"),
+                (
+                    "file_date",
+                    "filedate",
+                    "record_date",
+                    "recording_date",
+                    "rec_dt",
+                    "rec_date",
+                    "date_filed",
+                    "instrument_date",
+                    "dos",
+                ),
             )
             raw_yr = _first_present(row, ("file_year", "rec_year", "clerk_yr", "year"))
             cand_dt8 = parse_dos_yyyymmdd(raw_dt, raw_yr, max_year=max_year) if (raw_dt or raw_yr) else "00000000"
@@ -1093,11 +1151,24 @@ def ingest_clerk_tpia_tables(
                 row,
                 ("inst_type", "instrument_type", "doc_type", "document_type", "type_code", "type_desc", "instrument_code"),
             )
+            raw_map_code = _first_present(row, ("mapcode", "map_code")).upper()
+            if not raw_type and raw_map_code in ("M", "C", "MAP", "CONDO", "PLAT"):
+                raw_type = "MAP" if raw_map_code == "M" else ("CONDO" if raw_map_code == "C" else raw_map_code)
             if raw_type and not rec.raw_inst_type:
                 rec.raw_inst_type = raw_type
                 cat, wcode = classify_clerk_instrument_type(raw_type)
                 rec.category = cat
                 rec.wire_type_code = wcode
+
+            raw_rel = _first_present(
+                row,
+                ("reldocno", "rel_doc_no", "related_doc_no", "related_document_number", "related_file_no"),
+            )
+            if raw_rel:
+                rel_tok = normalize_clerk_tpia_instrument(file_no=raw_rel, rec_year=yr_hint, max_year=max_year)
+                rel_mkey = format_clerk_match_key(rel_tok) if rel_tok else ""
+                if rel_mkey and rel_mkey != rec.match_key:
+                    rec.related_match_keys.add(rel_mkey)
 
             raw_amt = _first_present(row, ("consideration", "amount", "contract_amount", "lien_amount"))
             if raw_amt and not rec.amount:
@@ -1121,27 +1192,38 @@ def ingest_clerk_tpia_tables(
                     return
                 if is_confidential_owner_token(raw_val):
                     rec.has_confidential_party = True
-                elif not is_placeholder_owner_token(raw_val):
+                elif (
+                    not is_placeholder_owner_token(raw_val)
+                    and raw_val.strip().upper() not in _TPIA_PLACEHOLDER_PARTY_TOKENS
+                ):
                     clean_p = sanitize_tpia_party_name(raw_val)
-                    if clean_p and clean_p not in dest:
+                    if (
+                        clean_p
+                        and clean_p.upper() not in _TPIA_PLACEHOLDER_PARTY_TOKENS
+                        and clean_p not in dest
+                    ):
                         dest.append(clean_p)
 
             _add_party(
                 rec.grantors,
-                _first_present(row, ("grantor", "grantor_name", "direct_name", "seller", "owner_name")),
+                _first_present(row, ("grantor", "grantor_name", "direct_name", "seller", "owner_name", "mapdesc", "map_desc")),
             )
             _add_party(
                 rec.grantees,
                 _first_present(row, ("grantee", "grantee_name", "reverse_name", "buyer", "contractor", "lender")),
             )
 
-            party_role = _first_present(row, ("party_type", "party_role", "role", "party_code", "direct_reverse")).upper()
+            party_role = _first_present(
+                row,
+                ("party_type", "party_role", "role", "party_code", "direct_reverse", "ntype", "type_of_name", "name_type"),
+            ).upper()
             party_nm = _first_present(row, ("party_name", "name", "full_name"))
             if party_role and party_nm:
-                if party_role in ("1", "D", "DIR", "DIRECT", "GRANTOR", "SELLER", "BORROWER", "TRUSTOR", "OWNER"):
+                if party_role in ("1", "OR", "D", "DIR", "DIRECT", "GRANTOR", "SELLER", "BORROWER", "TRUSTOR", "OWNER"):
                     _add_party(rec.grantors, party_nm)
                 elif party_role in (
                     "2",
+                    "EE",
                     "R",
                     "REV",
                     "REVERSE",
@@ -1160,6 +1242,15 @@ def ingest_clerk_tpia_tables(
 
             for lkey in extract_clerk_row_legal_keys(row):
                 rec.legal_keys.add(lkey)
+
+    # Propagate symmetric related_match_keys edges across assembled instruments (e.g. RelatedDocs.txt)
+    for rec in list(instruments.values()):
+        if not rec.match_key or not rec.related_match_keys:
+            continue
+        for rel_mk in list(rec.related_match_keys):
+            rel_rec = instruments.get(rel_mk)
+            if rel_rec is not None and rec.match_key != rel_mk:
+                rel_rec.related_match_keys.add(rec.match_key)
 
     kept_instruments: list[ClerkInstrumentRecord] = []
     for rec in instruments.values():
@@ -1277,6 +1368,16 @@ def run_tpia_ingestion(
         if inst.match_key and inst.match_key in tier1_inst_to_hcads:
             matched_hcads |= tier1_inst_to_hcads[inst.match_key]
             matched_via_tier1 = True
+
+        if not matched_hcads and inst.related_match_keys:
+            rel_hits: set[str] = set()
+            for rmk in inst.related_match_keys:
+                r_accts = tier1_inst_to_hcads.get(rmk)
+                if r_accts:
+                    rel_hits.update(r_accts)
+            if 1 <= len(rel_hits) <= max_parcels_per_legal_key:
+                matched_hcads |= rel_hits
+                matched_via_tier1 = True
 
         if not matched_hcads and inst.legal_keys:
             legal_hits: set[str] = set()
