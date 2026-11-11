@@ -329,6 +329,70 @@ test("UT-AI-4: buildPropertyAiResearchDossier supports dual signatures, fail-clo
     preMaskedDossier.includes("HISTORIC NORHILL COTTAGE"),
     "Non-confidential alternate names should be preserved"
   );
+
+  // 6. Full 1-click Claude/ChatGPT launch URL for 1917 WASHINGTON AVE (0052090000011) preserves
+  //    top Research Question, camelCase HPO Contributing status, compact oh tenures, cd hit,
+  //    storefront number clarification, and full untruncated Section 6 deep links.
+  const washingtonDossier = buildPropertyAiResearchDossier(
+    {
+      hcad_num: "0052090000011",
+      address: "1917 WASHINGTON AVE",
+      year_built: 1920,
+      remodel_year: 2023,
+      historic_district: "Old Sixth Ward Historic District",
+    },
+    {
+      title: "1917 WASHINGTON AVE",
+      displayStyle: "Masonry Bearing",
+      ownerDisplay: "BE 1911 WASHINGTON REALTY LTD",
+      hpoSurveyRec: {
+        districtName: "Old Sixth Ward Historic District",
+        statusCode: "C",
+        statusLabel: "Contributing",
+        surveyYearLabel: "",
+        usableStyle: "",
+      },
+      permitShardRec: {
+        yr: 1920,
+        remod: 2023,
+        co: ["1601 RICHMOND REALT Y LTD 55%"],
+        cd: {
+          e: 1892,
+          q: 'Houston city directory for 1892-93 (page 115): "end San Jacinto. Fortney Mary (wid John), r. 1917 Washington cor White."',
+        },
+        oh: "2026~20260128~~BE 1911 WASHINGTON REALTY LTD|2022-2025~20220526~~1911 WASHINGTON HOLDING LLC (DBA JULEP)|2016-2021~20160801~R2016-337670~WASHINGTON WHITE LTD (DBA JULEP/WASHINGTON GYM)",
+        note: "1919- JULEP BAR  1923- WASHINGTON OFFICE CO  1925- SOHOU BAR",
+        p: [
+          { id: "1871524", dt: "2022-03-22", tp: "Commercial Addition / Remodel", d: "ADD GREASE TRAP TO EXISTING BAR/LOUNGE  1-2-5-A2-B" },
+          { id: "1841709", dt: "2021-08-09", tp: "Commercial Addition / Remodel", d: "4 712 SQ FT FITNESS CENTER REMODEL 1-1-5-A3-B '12" },
+          { id: "1666445", dt: "2018-05-09", tp: "Commercial Addition / Remodel", d: "CONVERT 8 003 SQ FT TO OFFICE 1-2-5-B-B '12 IBC 10" },
+          { id: "1494816", dt: "2016-01-08", tp: "Commercial Addition / Remodel", d: "CORE RESTROOM OFFICE REMODEL 1-2-5-B-B 2006 IBC" },
+          { id: "1373262", dt: "2013-10-04", tp: "Commercial Addition / Remodel", d: "BAR REMODEL" },
+          { id: "1357699", dt: "2013-06-17", tp: "Commercial Addition / Remodel", d: "DEMO OF INTERIOR NON-LOAD BEARING NON-FIRE RATED W" },
+          { id: "1348988", dt: "2013-04-11", tp: "Commercial Addition / Remodel", d: "EXTERIOR BRICK REPAIRS PER WORKSHEET 2006 IBC" },
+          { id: "1321515", dt: "2012-08-29", tp: "Commercial Addition / Remodel", d: "DEMO OF NON LOAD BEARING NON FIRE RATED INTERIOR P" },
+          { id: "1296047", dt: "2012-01-13", tp: "Commercial Addition / Remodel", d: "DEMO OF NON LOAD BEARING NON FIRE RATED INTERIOR P" },
+          { id: "1292933", dt: "2011-12-27", tp: "Commercial Addition / Remodel", d: "CONV. RETAIL FOR GYM EXPANSION 1-2-5-A3-B 100% '06" },
+        ],
+      },
+      shareUrl:
+        "https://davemorris-gcp.github.io/houston-building-atlas/?base=dark&buildings=buildings&layers=permit_watch,good_brick,landmarks,historic_districts,heritage_districts,lost_houston&hcad=0052090000011",
+    }
+  );
+  assert.equal(
+    buildSelfContainedAiPrompt(washingtonDossier),
+    washingtonDossier,
+    "buildSelfContainedAiPrompt must not prepend a duplicate header to a Property Research Dossier"
+  );
+  const claudeLaunchUrl = buildOneClickAiLaunchUrl("claude", washingtonDossier);
+  const decodedClaudeQuery = decodeURIComponent(claudeLaunchUrl.split("?q=")[1] || "");
+  assert.ok(decodedClaudeQuery.includes("**Research Question:** Summarize the architectural and historical significance of 1917 WASHINGTON AVE"));
+  assert.ok(decodedClaudeQuery.includes("Earliest verified listing `1892`"));
+  assert.ok(decodedClaudeQuery.includes("Contributing (Protected under COH Code Ch. 33"));
+  assert.ok(decodedClaudeQuery.includes("2022-2025`: 1911 WASHINGTON HOLDING LLC (DBA JULEP)"));
+  assert.ok(decodedClaudeQuery.includes("street storefront numbers on the parcel, not calendar years"));
+  assert.ok(decodedClaudeQuery.includes("1-Click Printable THC Historic Resources Survey Form:"));
+  assert.ok(decodedClaudeQuery.includes("#hcad=0052090000011&thcSurvey=1"));
 });
 
 test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, and zero forbidden dashes or staff personal names", () => {

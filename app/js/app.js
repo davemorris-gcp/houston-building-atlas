@@ -4931,6 +4931,11 @@ export class HoustonAtlasApp {
       if (launchEl) {
         launchEl.addEventListener("click", () => {
           const dossierTxt = this._buildActivePropertyAiDossier();
+          if (launchId === "btn-launch-dossier-claude") {
+            launchEl.setAttribute("href", buildOneClickAiLaunchUrl("claude", dossierTxt));
+          } else if (launchId === "btn-launch-dossier-chatgpt") {
+            launchEl.setAttribute("href", buildOneClickAiLaunchUrl("chatgpt", dossierTxt));
+          }
           if (dossierTxt && navigator.clipboard) {
             navigator.clipboard.writeText(dossierTxt).catch(() => {});
           }
@@ -16108,6 +16113,9 @@ export class HoustonAtlasApp {
       }
       this._populateResearchKitDeedChain(hcadNum, compositeRec, resolvedOwner.effOwner);
       this._hydrateOwnershipAndStewardshipSlots(resolvedOwner.effProps, hcadNum, compositeRec);
+      if (!document.getElementById("ai-companion-modal")?.classList.contains("hidden")) {
+        this._renderAiCompanionModalContent();
+      }
     }
 
     if (!hasDoc) return;
@@ -17291,6 +17299,32 @@ export class HoustonAtlasApp {
     this._activeAiCompanionTab = validIds.has(platform) ? platform : "chatgpt";
     this._renderAiCompanionModalContent();
     modal.classList.remove("hidden");
+    const activeProps =
+      this._activeInspectorProps ||
+      this.mapController?.selectedFeatureProps ||
+      this._activeDossierProps ||
+      null;
+    const hcadNum = String(activeProps?.hcad_num || "").trim();
+    if (
+      hcadNum &&
+      /^\d{10,13}$/.test(hcadNum) &&
+      this._activeInspectorCompositeRec?.hcadNum !== hcadNum
+    ) {
+      Promise.all([
+        this._fetchPermitRecord(hcadNum),
+        this._fetchOwnerHistoryRecord(hcadNum),
+      ])
+        .then(([rec, oh]) => {
+          const compositeRec = rec || oh ? { ...(rec || {}), ...(oh ? { oh } : {}) } : null;
+          if (compositeRec && (!this._activeInspectorCompositeRec || this._activeInspectorCompositeRec.hcadNum === hcadNum)) {
+            this._activeInspectorCompositeRec = { hcadNum, rec: compositeRec };
+            if (!modal.classList.contains("hidden")) {
+              this._renderAiCompanionModalContent();
+            }
+          }
+        })
+        .catch(() => {});
+    }
     if (updateUrl && typeof this._updateUrlHash === "function" && this.filterStore) {
       this._updateUrlHash(this.filterStore.getState());
     }

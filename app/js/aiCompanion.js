@@ -11,6 +11,7 @@
  */
 
 import { DEFAULT_ATLAS_BASE_URL, resolveAtlasBaseOriginPath } from "./filterStore.js?v=20261110a";
+import { decodeAppraiserNote } from "./permitPlainEnglish.js?v=20261110a";
 
 const SAMPLE_AI_RESEARCH_PROMPTS_SEED_QUESTION =
   "Using The Houston Building Atlas, explain what happened to the 1894 John Henry Kirby Mansion at 2000 Smith St (HCAD 0152300000001), including the October 28, 2026 Smith Street Plaza replat (#RP-2026-435651), the 2-stage City of Houston demolition permits, and the Texas DSHS asbestos filings that preceded its November 2, 2026 loss. Which buildings by its 1928 Tudor Revival remodel architect James Ruskin Bailey are still standing in Houston? Include clickable Atlas links for each.";
@@ -19,7 +20,7 @@ export function buildSelfContainedAiPrompt(queryOrDossier = "", options = {}) {
   const baseUrl = resolveAtlasBaseOriginPath(options);
   const cleanBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   const rawInput = _sanitizeDashes(String(queryOrDossier || "").trim());
-  if (rawInput.startsWith("# Houston Building Atlas - Property Research Dossier")) {
+  if (rawInput.startsWith("# Houston Building Atlas -")) {
     return rawInput;
   }
   const questionText =
@@ -30,6 +31,27 @@ export function buildSelfContainedAiPrompt(queryOrDossier = "", options = {}) {
     "",
     questionText,
   ].join("\n");
+}
+
+function _trimDossierPreservingLinksAndQuestion(promptBody, maxChars, cleanBase) {
+  if (promptBody.length <= maxChars) return promptBody;
+  const footerMarker = "\n## 6. Verified Deep Links";
+  const footerIdx = promptBody.indexOf(footerMarker);
+  const suffixNote = `\n\n[Full corpus & live shards: ${cleanBase}llms-full.txt]`;
+  if (footerIdx > 0) {
+    const tailSection = promptBody.slice(footerIdx);
+    const headBudget = maxChars - tailSection.length - suffixNote.length - 40;
+    if (headBudget > 300) {
+      const rawHead = promptBody.slice(0, headBudget);
+      const lastNewline = rawHead.lastIndexOf("\n");
+      const cleanHead = (lastNewline > 200 ? rawHead.slice(0, lastNewline) : rawHead).trimEnd();
+      return `${cleanHead}\n- *(Additional permit rows omitted for URL length)*${tailSection}${suffixNote}`;
+    }
+  }
+  const rawSlice = promptBody.slice(0, Math.max(200, maxChars - suffixNote.length));
+  const lastNl = rawSlice.lastIndexOf("\n");
+  const cleanSlice = (lastNl > 160 ? rawSlice.slice(0, lastNl) : rawSlice).trimEnd();
+  return `${cleanSlice}${suffixNote}`;
 }
 
 export function buildOneClickAiLaunchUrl(platform = "claude", queryOrDossier = "", options = {}) {
@@ -43,11 +65,11 @@ export function buildOneClickAiLaunchUrl(platform = "claude", queryOrDossier = "
     return "https://gemini.google.com/app";
   }
 
-  const maxChars = Number(options.maxQueryChars) > 200 ? Number(options.maxQueryChars) : 3200;
+  const maxChars = Number(options.maxQueryChars) > 200 ? Number(options.maxQueryChars) : 8000;
   let promptBody = buildSelfContainedAiPrompt(queryOrDossier, options);
 
   if (promptBody.length > maxChars) {
-    promptBody = `${promptBody.slice(0, maxChars - 120).trimEnd()}\n\n[Full corpus & live shards: ${cleanBase}llms-full.txt]`;
+    promptBody = _trimDossierPreservingLinksAndQuestion(promptBody, maxChars, cleanBase);
   }
 
   const encoded = encodeURIComponent(promptBody);
@@ -419,10 +441,24 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
     );
   }
 
+  const yearSourceRaw = String(override.year_source || props.year_source || "").trim();
+  const isRoundedHcadDecade =
+    !override.year_built &&
+    /^(?:1880|1890|1900|1910|1920|1930|1940|1950)$/.test(String(yearBuilt || "").trim()) &&
+    (!yearSourceRaw || /hcad/i.test(yearSourceRaw));
+  const yearSourceLabel = yearSourceRaw
+    ? yearSourceRaw
+    : isRoundedHcadDecade
+    ? "HCAD Appraisal Roll Tier 3 - note: HCAD frequently uses rounded decade years like 1920/1930 as placeholders; check City Directory & HPO Survey below"
+    : "Atlas Multi-Source Chronology";
+
   const lines = [
     `# Houston Building Atlas - Pre-Joined Property Research Dossier: ${name}`,
     "",
-    "Please use the verified multi-dataset dossier below from The Houston Building Atlas (Preservation Houston) to answer my research question accurately, and include the clickable Atlas deep links in your response.",
+    `**Research Question:** Summarize the architectural and historical significance of ${name}${
+      address ? ` (${address})` : ""
+    }, explain what its chronology, HPO survey status, permits, and ownership records show, and highlight its statutory preservation protection status (COH Code Ch. 33 / Ch. 42) or demolition risks. Include the clickable Atlas deep links below in your response.`,
+    `**Atlas Reference Index:** ${cleanBase}llms.txt | **Full Corpus:** ${cleanBase}llms-full.txt`,
     "",
     "## 1. Core Property Identity & Chronology",
     `- **Property / Building Name:** ${name}`,
@@ -434,11 +470,15 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
         ? `DEMOLISHED / LOST HOUSTON (${yearDemolished || "Confirmed Demolished"})`
         : "EXTANT (Standing)"
     }`,
-    `- **Verified Construction Year:** \`${yearBuilt || "Unknown"}\` (${
-      override.year_source || props.year_source || "Atlas Multi-Source Chronology"
-    })`,
+    `- **Verified Construction Year:** \`${yearBuilt || "Unknown"}\` (${yearSourceLabel})`,
   ];
 
+  if (permitRecord.cd && typeof permitRecord.cd === "object" && permitRecord.cd.e) {
+    const cdQuote = permitRecord.cd.q ? ` - ${permitRecord.cd.q}` : "";
+    lines.push(
+      `- **1866-1926 Houston City Directory Verification (Tier 1/2):** Earliest verified listing \`${permitRecord.cd.e}\`${cdQuote}`
+    );
+  }
   if (permitRecord.remod || props.remodel_year || props.yr_remodel) {
     lines.push(
       `- **HCAD Remodel / Effective Year:** \`${
@@ -479,15 +519,49 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
   if (hpoRows.length > 0) {
     lines.push("", "## 2. City of Houston HPO Historic District Survey Status");
     for (const r of hpoRows) {
+      const distLabel =
+        r.districtName || r.district_name || r.district || props.historic_district || "Historic District";
+      const rawStatus =
+        r.statusLabel || r.contributing_status || r.status || r.statusCode || "Surveyed";
+      const isContrib =
+        /^contributing$/i.test(String(rawStatus).trim()) ||
+        String(r.statusCode || "").toUpperCase() === "C";
+      const statusDetail = isContrib
+        ? `${rawStatus} (Protected under COH Code Ch. 33: requires HAHC Certificate of Appropriateness before exterior alteration or demolition)`
+        : rawStatus;
+      const surveyYr = r.surveyYearLabel || r.surveyYear || r.survey_year || r.year || "N/A";
+      const surveySty = r.usableStyle || r.surveyStyle || r.style || "N/A";
       lines.push(
-        `- **District:** ${r.district_name || r.district || props.historic_district || "Historic District"} | **Status:** ${
-          r.contributing_status || r.status || "Surveyed"
-        } | **Survey Year:** \`${r.survey_year || r.year || "N/A"}\` | **Style:** ${
-          r.style || "N/A"
-        }`
+        `- **District:** ${distLabel} | **Status:** ${statusDetail} | **Survey Year:** \`${surveyYr}\` | **Style:** ${surveySty}`
       );
     }
   }
+
+  const parsedOhTenures = [];
+  if (!isConf && ownerTenures.length === 0 && typeof permitRecord.oh === "string" && permitRecord.oh.trim()) {
+    for (const seg of permitRecord.oh.split("|")) {
+      const parts = seg.trim().split("~");
+      if (parts.length >= 4) {
+        const spanYr = parts[0].trim();
+        const acqRaw = parts[1].trim();
+        const deedTok = parts[2].trim();
+        const ownName = parts.slice(3).join("~").trim();
+        if (spanYr && ownName) {
+          const fmtDate =
+            /^\d{8}$/.test(acqRaw) && acqRaw !== "00000000"
+              ? `${acqRaw.slice(0, 4)}-${acqRaw.slice(4, 6)}-${acqRaw.slice(6, 8)}`
+              : acqRaw;
+          parsedOhTenures.push({
+            roll_years: spanYr,
+            owner_name: ownName,
+            deed_date: fmtDate,
+            clerk_file_num: deedTok,
+          });
+        }
+      }
+    }
+  }
+  const effectiveTenures = ownerTenures.length > 0 ? ownerTenures : parsedOhTenures;
 
   lines.push("", "## 3. Ownership & Chain of Stewardship (TX Tax Code Sec. 25.025 Safe)");
   if (isConf) {
@@ -502,9 +576,9 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
     } else if (props.owner_name || props.owner) {
       lines.push(`- **Current Owner:** ${props.owner_name || props.owner}`);
     }
-    if (ownerTenures.length > 0) {
+    if (effectiveTenures.length > 0) {
       lines.push("- **22-Year Certified HCAD Ownership Chain (2005-2026):**");
-      for (const t of ownerTenures.slice(0, 8)) {
+      for (const t of effectiveTenures.slice(0, 8)) {
         const clerk =
           t.clerk_file_num || t.clerkFile
             ? ` (Clerk File \`${t.clerk_file_num || t.clerkFile}\`)`
@@ -524,7 +598,22 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
   ) {
     lines.push("", "## 4. Permits, Appraiser Notes & Multi-Agency Demolition Signals");
     if (permitRecord.note) {
-      lines.push(`- **Verbatim HCAD Appraiser Note:** \`${permitRecord.note}\``);
+      const rawNoteStr = String(permitRecord.note).trim();
+      const hasMultiStorefrontNums =
+        /(?:^|\s)\d{3,5}\s*-\s*[A-Z]{2,}.*\s+\d{3,5}\s*-\s*[A-Z]{2,}/.test(rawNoteStr);
+      const storefrontClarification = hasMultiStorefrontNums
+        ? " *(Note: Numbers followed by '-' and tenant names here are street storefront numbers on the parcel, not calendar years)*"
+        : "";
+      lines.push(`- **Verbatim HCAD Appraiser Note:** \`${rawNoteStr}\`${storefrontClarification}`);
+      const decodedNote = decodeAppraiserNote(rawNoteStr);
+      if (decodedNote?.hasShorthand && Array.isArray(decodedNote.entries) && decodedNote.entries.length > 0) {
+        const plainEntries = decodedNote.entries
+          .map((e) => `${e.date ? `${e.date} ` : ""}${e.kind ? `[${e.kind}] ` : ""}${e.text}`)
+          .join("; ");
+        if (plainEntries && plainEntries !== rawNoteStr) {
+          lines.push(`- **Plain-English Appraiser Translation:** ${plainEntries}`);
+        }
+      }
     }
     for (const al of activeAlerts.slice(0, 5)) {
       lines.push(
@@ -565,9 +654,6 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
   }
 
   lines.push("", "## 6. Verified Deep Links (Include in Response)");
-  if (options.shareUrl) {
-    lines.push(`- **Direct Shareable Link:** ${options.shareUrl}`);
-  }
   if (hcad) {
     lines.push(`- **Atlas Property Overview:** ${cleanBase}#hcad=${hcad}`);
     lines.push(`- **Atlas Permits & Appraiser Shorthand Tab:** ${cleanBase}#hcad=${hcad}&tab=permits`);
@@ -579,14 +665,9 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
   if (lostId) {
     lines.push(`- **Lost Houston Demolished Footprint:** ${cleanBase}?id=${lostId}&layers=lost_houston`);
   }
-  lines.push(
-    "",
-    "---",
-    "## My Question About This Property:",
-    `Summarize the architectural and historical significance of ${name}${
-      address ? ` (${address})` : ""
-    }, explain what the permits and ownership records show, and highlight any preservation status or risks.`
-  );
+  if (options.shareUrl && (!hcad || options.shareUrl.length <= 140)) {
+    lines.push(`- **Direct Shareable Link:** ${options.shareUrl}`);
+  }
 
   return _sanitizeDashes(lines.join("\n"));
 }
