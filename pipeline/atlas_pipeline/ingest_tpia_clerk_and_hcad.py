@@ -31,6 +31,7 @@ Architecture (Milestone 9):
 from __future__ import annotations
 
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 import csv
 from dataclasses import dataclass, field
 import gzip
@@ -70,6 +71,7 @@ from atlas_pipeline.schema import (
     sanitize_json_structure_dashes,
     sum_json_or_gzip_shard_bytes,
     update_pmtiles_manifest_v3,
+    write_compact_json,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -92,12 +94,26 @@ _TABULAR_SUFFIXES: frozenset[str] = frozenset({
 
 _RE_COL_NORM = re.compile(r"[^a-z0-9]+")
 _RE_SUBD_STRIP_SUFFIX = re.compile(
-    r"\b(?:PARTIAL\s+REPLAT|PAR\s+R\s*/?\s*P|REPLAT|R\s*/?\s*P|AMENDED|AMEND|"
-    r"ADDITION|ADDN|ADD|SUBDIVISION|SUBD|SUB|CONDOMINIUMS?|CONDOS?|TOWNHOMES?|T\s*/?\s*H)\b",
+    r"\b(?:"
+    r"(?:PARTIAL\s+REPLAT|PAR\s+R\s*/?\s*P|REPLAT|R\s*/?\s*P|AMENDING\s+PLAT|AMENDED\s+PLAT)"
+    r"(?:\s+NO\.?\s*[0-9A-Z]+)?(?:\s+AND\s+EXTENSION)?"
+    r"|(?:(?:FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH|[0-9]+(?:ST|ND|RD|TH))\s+)?"
+    r"AMEND(?:ED|MENT|ING)?"
+    r"|DECLARATION\s+OF\s+CONDOMINIUM(?:S)?"
+    r"|ADDITION|ADDN|ADD|SUBDIVISION|SUBD|SUB|CONDOMINIUMS?|CONDOS?|TOWNHOMES?|T\s*/?\s*H"
+    r")\b",
+    re.IGNORECASE,
+)
+_RE_IS_REPLAT_DESC = re.compile(
+    r"\b(?:PARTIAL\s+REPLAT|PAR\s+R\s*/?\s*P|REPLAT|R\s*/?\s*P|AMENDING\s+PLAT|AMENDED\s+PLAT|"
+    r"AMEND(?:ED|MENT|ING)?|DECLARATION\s+OF\s+CONDOMINIUM)\b",
     re.IGNORECASE,
 )
 _RE_NM_TAG = re.compile(r"\(\s*NM\s*\)", re.IGNORECASE)
-_RE_SEC_EXTRACT = re.compile(r"\b(?:SEC(?:TION)?)\s*0*([0-9A-Z]{1,4})\b", re.IGNORECASE)
+_RE_SEC_EXTRACT = re.compile(
+    r"\b(?:SEC(?:TION)?(?:\b|\s+|(?=[0-9])))\s*0*([0-9A-Z]{1,4})\b",
+    re.IGNORECASE,
+)
 _RE_BLK_EXTRACT = re.compile(r"\b(?:BLK|BLOCK)\s*0*([0-9A-Z]{1,5})\b", re.IGNORECASE)
 _RE_UNIT_EXTRACT = re.compile(r"\b(?:UNIT|APT|BLDG\s+[0-9A-Z]+\s+UNIT)\s*0*([0-9A-Z\-]{1,8})\b", re.IGNORECASE)
 _RE_RES_EXTRACT = re.compile(r"\b(?:RES(?:ERVE)?)\s+([0-9A-Z]{1,5})\b", re.IGNORECASE)
@@ -244,6 +260,12 @@ class ClerkInstrumentRecord:
     legal_keys: set[LegalCrosswalkKey] = field(default_factory=set)
     related_match_keys: set[str] = field(default_factory=set)
     has_confidential_party: bool = False
+    map_code: str = ""
+    map_desc: str = ""
+    map_vol_page: str = ""
+    page_count: int = 0
+    surveys: list[str] = field(default_factory=list)
+    abstracts: list[str] = field(default_factory=list)
 
 
 def _norm_col_name(raw_col: str) -> str:
@@ -311,22 +333,41 @@ def iter_tpia_tabular_files(input_dir: Path | None) -> Iterator[tuple[str, list[
 
         return label, norm_hdr, _row_iter()
 
+    def _iter_zip_archive(
+        outer_label: str, zf_source: Path | bytes, depth: int = 0
+    ) -> Iterator[tuple[str, list[str], Iterator[dict[str, str]]]]:
+        try:
+            zf_ctx = (
+                zipfile.ZipFile(zf_source, "r")
+                if isinstance(zf_source, Path)
+                else zipfile.ZipFile(io.BytesIO(zf_source), "r")
+            )
+            with zf_ctx as zf:
+                for member in sorted(zf.namelist()):
+                    if member.endswith("/") or Path(member).name.startswith("."):
+                        continue
+                    m_low = member.lower()
+                    m_suf = Path(m_low).suffix
+                    m_label = f"{outer_label}:{member}"
+                    if m_suf == ".zip" and depth < 2:
+                        yield from _iter_zip_archive(m_label, zf.read(member), depth + 1)
+                    elif m_suf == ".gz" and not m_low.endswith(".json.gz"):
+                        inner_suf = Path(m_low[:-3]).suffix
+                        if inner_suf in _TABULAR_SUFFIXES or not inner_suf:
+                            parsed = _parse_text_stream(m_label, gzip.decompress(zf.read(member)))
+                            if parsed is not None:
+                                yield parsed
+                    elif m_suf in _TABULAR_SUFFIXES:
+                        parsed = _parse_text_stream(m_label, zf.read(member))
+                        if parsed is not None:
+                            yield parsed
+        except (zipfile.BadZipFile, OSError):
+            return
+
     for fpath in files:
         low_name = fpath.name.lower()
         if low_name.endswith(".zip"):
-            try:
-                with zipfile.ZipFile(fpath, "r") as zf:
-                    for member in sorted(zf.namelist()):
-                        if member.endswith("/") or Path(member).name.startswith("."):
-                            continue
-                        m_suf = Path(member).suffix.lower()
-                        if m_suf not in _TABULAR_SUFFIXES:
-                            continue
-                        parsed = _parse_text_stream(f"{fpath.name}:{member}", zf.read(member))
-                        if parsed is not None:
-                            yield parsed
-            except zipfile.BadZipFile:
-                continue
+            yield from _iter_zip_archive(fpath.name, fpath, depth=0)
         elif low_name.endswith(".gz") and not low_name.endswith(".json.gz"):
             base_suf = Path(low_name[:-3]).suffix.lower()
             if base_suf in _TABULAR_SUFFIXES or not base_suf:
@@ -875,6 +916,14 @@ def _merge_clerk_instrument_records(
         dst.wire_type_code = src.wire_type_code
     if not dst.amount and src.amount:
         dst.amount = src.amount
+    if not dst.map_code and src.map_code:
+        dst.map_code = src.map_code
+    if not dst.map_desc and src.map_desc:
+        dst.map_desc = src.map_desc
+    if not dst.map_vol_page and src.map_vol_page:
+        dst.map_vol_page = src.map_vol_page
+    if not dst.page_count and src.page_count:
+        dst.page_count = src.page_count
     dst.explicit_hcads |= src.explicit_hcads
     dst.legal_keys |= src.legal_keys
     dst.related_match_keys |= src.related_match_keys
@@ -886,7 +935,21 @@ def _merge_clerk_instrument_records(
     for g in src.grantees:
         if g not in dst.grantees:
             dst.grantees.append(g)
+    for sv in src.surveys:
+        if sv not in dst.surveys:
+            dst.surveys.append(sv)
+    for ab in src.abstracts:
+        if ab not in dst.abstracts:
+            dst.abstracts.append(ab)
     return dst
+
+
+def format_clerk_display_token(clerk_token: str) -> str:
+    """Render a compact Atlas Clerk token (`R2026-435651`) in official public display form (`RP-2026-435651`)."""
+    tok = str(clerk_token or "").strip().upper()
+    if re.fullmatch(r"R20\d{2}-\d+", tok):
+        return f"RP-{tok[1:]}"
+    return tok
 
 
 def ingest_hcad_tpia_tables(
@@ -1012,14 +1075,44 @@ def ingest_clerk_tpia_tables(
     *,
     max_year: int = ACTIVE_TAX_YEAR + 1,
 ) -> dict[str, Any]:
-    """Assemble County Clerk `PIA.aspx` relational (Header + Party + Legal) or flat export tables."""
+    """Assemble County Clerk `PIA.aspx` relational (Header + Party + Legal) or flat export tables.
+
+    Uses a Two-Pass Streaming Pre-Filter:
+      - Pass 1 scans typed Instrument/Header/Flat tables (`inst_type` / `document_type` / `mapcode`)
+        and immediately rejects non-target codes (`REL`, `A/J`, `CONSNT`, etc.) before allocating
+        `ClerkInstrumentRecord` objects.
+      - Pass 2 scans untyped child tables (`Names`, `LegalDesc`, `RelatedDocs`) and skips rows
+        whose `join_id` is not in `instruments` whenever Pass 1 saw at least one typed table.
+    """
     instruments: dict[str, ClerkInstrumentRecord] = {}
     doc_id_aliases: dict[str, str] = {}
+    skipped_join_ids: set[str] = set()
+    type_cache: dict[str, tuple[str, str]] = {}
     saw_inst_type_column = False
     files_scanned = 0
     rows_scanned = 0
-    skipped_non_target = 0
 
+    id_cols = {
+        "file_no",
+        "fileno",
+        "file_number",
+        "clerk_file_no",
+        "instrument_no",
+        "instrument_number",
+        "doc_id",
+        "document_id",
+        "instrument_id",
+        "film_code",
+        "film_code_no",
+        "microfilm",
+        "microfilm_code",
+        "vol",
+        "volume",
+        "volumnpage",
+        "volumn_page",
+        "volume_page",
+        "book",
+    }
     inst_type_cols = {
         "inst_type",
         "instrument_type",
@@ -1032,39 +1125,62 @@ def ingest_clerk_tpia_tables(
         "map_code",
     }
 
-    for _label, headers, rows in iter_tpia_tabular_files(clerk_tpia_dir):
-        hdr_set = set(headers)
-        if not (
-            hdr_set
-            & {
-                "file_no",
-                "fileno",
-                "file_number",
-                "clerk_file_no",
-                "instrument_no",
-                "instrument_number",
-                "doc_id",
-                "document_id",
-                "instrument_id",
-                "film_code",
-                "film_code_no",
-                "microfilm",
-                "microfilm_code",
-                "vol",
-                "volume",
-                "volumnpage",
-                "volumn_page",
-                "volume_page",
-                "book",
-            }
-        ):
-            continue
-        files_scanned += 1
-        if hdr_set & inst_type_cols:
-            saw_inst_type_column = True
+    def _classify_cached(raw_t: str) -> tuple[str, str]:
+        hit = type_cache.get(raw_t)
+        if hit is None:
+            hit = classify_clerk_instrument_type(raw_t)
+            type_cache[raw_t] = hit
+        return hit
 
+    def _process_table_rows(rows: Iterator[dict[str, str]], *, is_typed_pass: bool) -> None:
+        nonlocal rows_scanned
         for row in rows:
             rows_scanned += 1
+            raw_type = _first_present(
+                row,
+                ("inst_type", "instrument_type", "doc_type", "document_type", "type_code", "type_desc", "instrument_code"),
+            )
+            raw_map_code = _first_present(row, ("mapcode", "map_code")).upper()
+            if not raw_type and raw_map_code in ("M", "C", "MAP", "CONDO", "PLAT"):
+                raw_type = "MAP" if raw_map_code == "M" else ("CONDO" if raw_map_code == "C" else raw_map_code)
+
+            cat = ""
+            wcode = "D"
+            if raw_type:
+                cat, wcode = _classify_cached(raw_type)
+                if is_typed_pass and not cat:
+                    raw_fn_skip = _first_present(
+                        row,
+                        ("file_no", "fileno", "file_number", "clerk_file_no", "instrument_no", "instrument_number"),
+                    )
+                    raw_fc_skip = _first_present(
+                        row,
+                        ("film_code", "film_code_no", "microfilm", "microfilm_code", "volumnpage", "volumn_page", "volume_page"),
+                    )
+                    raw_vol_skip = _first_present(row, ("vol", "volume", "book"))
+                    raw_pg_skip = _first_present(row, ("pg", "page"))
+                    skip_tok = normalize_clerk_tpia_instrument(
+                        file_no=raw_fn_skip,
+                        film_code=raw_fc_skip,
+                        vol=raw_vol_skip,
+                        page=raw_pg_skip,
+                        max_year=max_year,
+                    )
+                    skip_key = (
+                        format_clerk_match_key(skip_tok)
+                        if skip_tok
+                        else (
+                            raw_fn_skip
+                            or _first_present(row, ("doc_id", "document_id", "instrument_id"))
+                            or raw_fc_skip
+                        )
+                        .strip()
+                        .upper()
+                    )
+                    if skip_key:
+                        skipped_join_ids.add(skip_key)
+                    continue
+
             raw_fn = _first_present(
                 row,
                 ("file_no", "fileno", "file_number", "clerk_file_no", "instrument_no", "instrument_number"),
@@ -1137,6 +1253,9 @@ def ingest_clerk_tpia_tables(
 
             rec = instruments.get(join_id)
             if rec is None:
+                if not is_typed_pass and saw_inst_type_column:
+                    # Fast Pre-Filter: skip child rows belonging to non-target instruments rejected in Pass 1
+                    continue
                 rec = ClerkInstrumentRecord(join_id=join_id)
                 instruments[join_id] = rec
 
@@ -1147,18 +1266,38 @@ def ingest_clerk_tpia_tables(
                 rec.clerk_token = norm_tok
                 rec.match_key = canon_key
 
-            raw_type = _first_present(
-                row,
-                ("inst_type", "instrument_type", "doc_type", "document_type", "type_code", "type_desc", "instrument_code"),
-            )
-            raw_map_code = _first_present(row, ("mapcode", "map_code")).upper()
-            if not raw_type and raw_map_code in ("M", "C", "MAP", "CONDO", "PLAT"):
-                raw_type = "MAP" if raw_map_code == "M" else ("CONDO" if raw_map_code == "C" else raw_map_code)
             if raw_type and not rec.raw_inst_type:
                 rec.raw_inst_type = raw_type
-                cat, wcode = classify_clerk_instrument_type(raw_type)
                 rec.category = cat
                 rec.wire_type_code = wcode
+
+            if raw_map_code and not rec.map_code:
+                rec.map_code = raw_map_code
+            raw_map_desc = _first_present(row, ("mapdesc", "map_desc", "map_description"))
+            if raw_map_desc and not rec.map_desc:
+                rec.map_desc = sanitize_tpia_party_name(raw_map_desc)
+            raw_vp = _first_present(row, ("volumnpage", "volumn_page", "volume_page"))
+            if raw_vp and not rec.map_vol_page:
+                rec.map_vol_page = sanitize_atlas_text(raw_vp).strip()
+            raw_pages = _first_present(row, ("nopages", "no_pages", "no_of_pages", "pages", "page_count"))
+            if raw_pages and raw_pages.isdigit() and not rec.page_count:
+                rec.page_count = int(raw_pages)
+
+            raw_surv = _first_present(row, ("survey", "surevey", "orig_survey", "original_survey"))
+            if raw_surv and raw_surv.strip().upper() not in ("N/A", "NA", "NONE", "NULL", "UNKNOWN", "-"):
+                clean_surv = sanitize_tpia_party_name(raw_surv).upper()
+                if (
+                    len(clean_surv) > 1
+                    and clean_surv not in _TPIA_PLACEHOLDER_PARTY_TOKENS
+                    and clean_surv not in ("N/A", "NA", "NONE", "NULL", "UNKNOWN")
+                    and clean_surv not in rec.surveys
+                ):
+                    rec.surveys.append(clean_surv)
+            raw_abst = _first_present(row, ("abstract", "abstracts", "abst", "abstract_no"))
+            if raw_abst and raw_abst.strip().upper() not in ("N/A", "NA", "NONE", "NULL", "UNKNOWN", "-"):
+                clean_abst = re.sub(r"^A", "", re.sub(r"[^0-9A-Z]", "", raw_abst.upper())).lstrip("0")
+                if clean_abst and any(ch.isdigit() for ch in clean_abst) and clean_abst not in rec.abstracts:
+                    rec.abstracts.append(clean_abst)
 
             raw_rel = _first_present(
                 row,
@@ -1243,6 +1382,24 @@ def ingest_clerk_tpia_tables(
             for lkey in extract_clerk_row_legal_keys(row):
                 rec.legal_keys.add(lkey)
 
+    # Pass 1: Process typed Header / Instrument / Flat tables first
+    for _label, headers, rows in iter_tpia_tabular_files(clerk_tpia_dir):
+        hdr_set = set(headers)
+        if not (hdr_set & id_cols):
+            continue
+        if hdr_set & inst_type_cols:
+            files_scanned += 1
+            saw_inst_type_column = True
+            _process_table_rows(rows, is_typed_pass=True)
+
+    # Pass 2: Process untyped child tables (Names, LegalDesc, RelatedDocs) or standalone untyped tables
+    for _label, headers, rows in iter_tpia_tabular_files(clerk_tpia_dir):
+        hdr_set = set(headers)
+        if not (hdr_set & id_cols) or (hdr_set & inst_type_cols):
+            continue
+        files_scanned += 1
+        _process_table_rows(rows, is_typed_pass=False)
+
     # Propagate symmetric related_match_keys edges across assembled instruments (e.g. RelatedDocs.txt)
     for rec in list(instruments.values()):
         if not rec.match_key or not rec.related_match_keys:
@@ -1252,6 +1409,7 @@ def ingest_clerk_tpia_tables(
             if rel_rec is not None and rec.match_key != rel_mk:
                 rel_rec.related_match_keys.add(rec.match_key)
 
+    skipped_non_target = len(skipped_join_ids)
     kept_instruments: list[ClerkInstrumentRecord] = []
     for rec in instruments.values():
         if not rec.clerk_token:
@@ -1268,10 +1426,219 @@ def ingest_clerk_tpia_tables(
     return {
         "files_scanned": files_scanned,
         "rows_scanned": rows_scanned,
-        "total_assembled_instruments": len(instruments),
+        "total_assembled_instruments": len(instruments) + len(skipped_join_ids),
         "kept_target_instruments": len(kept_instruments),
         "skipped_non_target_instruments": skipped_non_target,
         "instruments": kept_instruments,
+    }
+
+
+def calibrate_platted_subdivisions_from_clerk(
+    overlays_doc: dict[str, Any],
+    clerk_instruments: list[ClerkInstrumentRecord],
+    *,
+    max_replats_per_subdivision: int = 12,
+) -> dict[str, int]:
+    """Cross-link County Clerk `MAP_Instruments.txt` and `MAP_LegalDesc.txt` into `overlays.json['platted_subdivisions']`.
+
+    - Tier 1 (Exact Citation Match): Matches 6-digit Map Film Code (`recnum` == `map_vol_page`),
+      Clerk File Number (`deed_num`), or Map Book Volume/Page (`VP:vol/page`).
+    - Tier 2 (Original Subdivision Name Match): Matches normalized `full_name` / `name` when the
+      Clerk filing is an original subdivision plat (`not is_replat_filing`).
+    - Tier 3 (Parent Addition Replat Linkage): Links subsequent partial replat or amendment filings
+      (`HIGHLAND VILLAGE PARTIAL REPLAT NO 3`, `RIVERSIDE TERRACE SEC 6 PARTIAL REPLAT NO 4`) to
+      their parent subdivision polygon's `clerk_replats` list and enriches Texas GLO `survey` and
+      `abstract` without overwriting the historic addition's original dedication year.
+    """
+    raw_subd = overlays_doc.get("platted_subdivisions")
+    features = (
+        raw_subd.get("features")
+        if isinstance(raw_subd, dict)
+        else (raw_subd if isinstance(raw_subd, list) else None)
+    )
+    if not isinstance(features, list) or not features or not clerk_instruments:
+        return {
+            "calibrated_subdivisions": 0,
+            "subdivision_replats_linked": 0,
+            "subdivision_surveys_enriched": 0,
+        }
+
+    by_recnum: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_deed_key: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_vol_page: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_norm_name: dict[str, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+
+    for feat in features:
+        if not isinstance(feat, dict):
+            continue
+        props = feat.get("properties")
+        if not isinstance(props, dict):
+            continue
+        recnum = str(props.get("recnum") or "").strip().lstrip("0")
+        if recnum:
+            by_recnum[recnum].append(props)
+        deed_num = str(props.get("deed_num") or "").strip()
+        if deed_num:
+            d_tok = normalize_clerk_tpia_instrument(file_no=deed_num)
+            d_mk = format_clerk_match_key(d_tok) if d_tok else ""
+            if d_mk:
+                by_deed_key[d_mk].append(props)
+        vol = str(props.get("vol") or "").strip().lstrip("0")
+        pg = str(props.get("page") or "").strip().lstrip("0")
+        if vol and pg:
+            by_vol_page[f"VP:{vol}/{pg}"].append(props)
+
+        full_nm = str(props.get("full_name") or props.get("name") or "").strip()
+        short_nm = str(props.get("name") or "").strip()
+        p_norm, p_sec = normalize_legal_subdivision_name(full_nm)
+        if p_norm:
+            by_norm_name[p_norm].append((p_sec, props))
+        if short_nm and short_nm.upper() != full_nm.upper():
+            s_norm, s_sec = normalize_legal_subdivision_name(short_nm)
+            if s_norm and s_norm != p_norm:
+                by_norm_name[s_norm].append((s_sec, props))
+
+    calibrated_props_ids: set[int] = set()
+    replat_props_ids: set[int] = set()
+    survey_props_ids: set[int] = set()
+
+    for inst in clerk_instruments:
+        if inst.category != "RESTRICTION_PLAT" and not inst.map_code:
+            continue
+        if len(inst.dt8) != 8 or not inst.dt8[:4].isdigit() or inst.dt8 == "00000000":
+            continue
+        clerk_year = int(inst.dt8[:4])
+        if clerk_year < 1823 or clerk_year > ACTIVE_TAX_YEAR + 1:
+            continue
+        iso_date = (
+            f"{inst.dt8[:4]}-{inst.dt8[4:6]}-{inst.dt8[6:8]}"
+            if inst.dt8[4:6] != "00" and inst.dt8[6:8] != "00"
+            else f"{inst.dt8[:4]}-01-01"
+        )
+        display_file_no = format_clerk_display_token(inst.clerk_token)
+        raw_desc = (
+            inst.map_desc
+            or (inst.grantors[0] if inst.grantors else "")
+            or (next(iter(inst.legal_keys)).subdivision if inst.legal_keys else "")
+        ).strip()
+        is_replat_filing = bool(_RE_IS_REPLAT_DESC.search(raw_desc))
+
+        matched_targets: list[tuple[str, dict[str, Any]]] = []
+        seen_prop_ids: set[int] = set()
+
+        vp_clean = str(inst.map_vol_page or "").strip().lstrip("0")
+        if vp_clean and vp_clean in by_recnum:
+            for p_hit in by_recnum[vp_clean]:
+                if id(p_hit) not in seen_prop_ids:
+                    seen_prop_ids.add(id(p_hit))
+                    matched_targets.append(("recnum", p_hit))
+
+        if inst.match_key and inst.match_key in by_deed_key:
+            for p_hit in by_deed_key[inst.match_key]:
+                if id(p_hit) not in seen_prop_ids:
+                    seen_prop_ids.add(id(p_hit))
+                    matched_targets.append(("deed_num", p_hit))
+
+        if inst.clerk_token.startswith("VP:") and inst.clerk_token in by_vol_page:
+            for p_hit in by_vol_page[inst.clerk_token]:
+                if id(p_hit) not in seen_prop_ids:
+                    seen_prop_ids.add(id(p_hit))
+                    matched_targets.append(("vol_page", p_hit))
+
+        if not matched_targets and raw_desc:
+            subd_norm, subd_sec = normalize_legal_subdivision_name(raw_desc)
+            if subd_norm and subd_norm in by_norm_name:
+                candidates = by_norm_name[subd_norm]
+                sec_filtered = (
+                    [p for sec, p in candidates if not sec or sec == subd_sec]
+                    if subd_sec
+                    else [p for _sec, p in candidates]
+                )
+                for p_hit in (sec_filtered or [p for _sec, p in candidates]):
+                    if id(p_hit) not in seen_prop_ids:
+                        seen_prop_ids.add(id(p_hit))
+                        matched_targets.append(("replat_name" if is_replat_filing else "orig_name", p_hit))
+
+        if not matched_targets:
+            continue
+
+        surv_str = " / ".join(inst.surveys[:2]) if inst.surveys else ""
+        abst_str = (
+            ", ".join(f"A-{a}" if not a.startswith("A-") else a for a in inst.abstracts[:2])
+            if inst.abstracts
+            else ""
+        )
+
+        for match_tier, props in matched_targets:
+            if surv_str and not props.get("survey"):
+                props["survey"] = surv_str
+                survey_props_ids.add(id(props))
+            if abst_str and not props.get("abstract"):
+                props["abstract"] = abst_str
+                survey_props_ids.add(id(props))
+
+            poly_full_nm = str(props.get("full_name") or props.get("name") or "")
+            is_poly_replat = bool(_RE_IS_REPLAT_DESC.search(poly_full_nm))
+            earliest_yr = int(props.get("earliest_year") or 0)
+            pre_1965_cnt = int(props.get("pre_1965_count") or 0)
+            is_unreplatted_historic_addition = bool(
+                1836 <= earliest_yr < 1965 and pre_1965_cnt >= 2 and not is_poly_replat
+            )
+
+            treat_as_replat = (
+                (is_replat_filing and not is_poly_replat)
+                or (is_unreplatted_historic_addition and clerk_year > earliest_yr + 5)
+            )
+
+            if not treat_as_replat:
+                cur_est = int(props.get("estimated_plat_year") or 0)
+                if not props.get("plat_year_is_exact") or cur_est == 0 or clerk_year < cur_est:
+                    props["estimated_plat_year"] = clerk_year
+                    props["plat_year_is_exact"] = True
+                    props["plat_year_label"] = str(clerk_year)
+                    props["plat_file_date"] = iso_date
+                    if display_file_no:
+                        props["plat_clerk_file"] = display_file_no
+                    if inst.map_vol_page and not props.get("recnum") and inst.map_vol_page.isdigit():
+                        props["recnum"] = inst.map_vol_page
+                    props["plat_year_basis"] = (
+                        f"Harris County Clerk Maps & Condos Index ({display_file_no}, filed {iso_date})"
+                        if display_file_no
+                        else f"Harris County Clerk Maps & Condos Index (filed {iso_date})"
+                    )
+                    if clerk_year < 1950:
+                        props["is_historic_plat"] = True
+                    calibrated_props_ids.add(id(props))
+            else:
+                existing_replats = list(props.get("clerk_replats") or [])
+                by_fno = {
+                    str(item.get("file_no") or ""): dict(item)
+                    for item in existing_replats
+                    if isinstance(item, dict) and item.get("file_no")
+                }
+                entry: dict[str, Any] = {
+                    "file_no": display_file_no,
+                    "date": iso_date,
+                    "name": raw_desc or display_file_no,
+                }
+                if inst.map_vol_page:
+                    entry["film_code"] = inst.map_vol_page
+                if inst.page_count > 0:
+                    entry["pages"] = inst.page_count
+                if display_file_no and by_fno.get(display_file_no) != entry:
+                    by_fno[display_file_no] = entry
+                    ordered_replats = sorted(
+                        by_fno.values(),
+                        key=lambda r: (str(r.get("date") or ""), str(r.get("file_no") or "")),
+                        reverse=True,
+                    )[:max_replats_per_subdivision]
+                    props["clerk_replats"] = ordered_replats
+                    replat_props_ids.add(id(props))
+
+    return {
+        "calibrated_subdivisions": len(calibrated_props_ids),
+        "subdivision_replats_linked": len(replat_props_ids),
+        "subdivision_surveys_enriched": len(survey_props_ids),
     }
 
 
@@ -1331,11 +1698,14 @@ def run_tpia_ingestion(
             if not norm_a:
                 continue
             target_hcads.add(norm_a)
-            _snaps, p_deeds = expand_compact_owner_history_to_snapshots(wire)
-            for _dt8, dtok in p_deeds:
-                mkey = format_clerk_match_key(dtok)
-                if mkey:
-                    tier1_inst_to_hcads[mkey].add(norm_a)
+            for seg in wire.split("|"):
+                parts = seg.split("~", 3)
+                if len(parts) >= 3:
+                    dtok = parts[2].strip()
+                    if dtok:
+                        mkey = format_clerk_match_key(dtok)
+                        if mkey:
+                            tier1_inst_to_hcads[mkey].add(norm_a)
 
     # 2. Build HCAD legal crosswalk index + confidential set from Real_acct_owner.zip (when available)
     legal_index, zip_conf_hcads, ambiguous_legal_keys_count = build_hcad_legal_crosswalk_index(
@@ -1610,28 +1980,58 @@ def run_tpia_ingestion(
             touched_permit_prefixes.add(pfx)
             updated_permit_accounts += 1
 
-    # 6. Pre-compress touched `.json.gz` shards and validate bundle size ceilings before any disk write
-    staged_permit_gz: dict[str, bytes] = {}
-    for pfx in sorted(touched_permit_prefixes):
-        s_dict = permit_shards.get(pfx) or {}
-        if s_dict:
-            gz_b = compress_deterministic_gzip_json(sanitize_json_structure_dashes(s_dict))
-            if len(gz_b) >= MAX_SINGLE_FILE_BYTES:
-                raise RuntimeError(
-                    f"TPIA permit shard permits_{pfx}.json.gz ({len(gz_b)} bytes) exceeds MAX_SINGLE_FILE_BYTES."
-                )
-            staged_permit_gz[pfx] = gz_b
+    # 5b. Calibrate `overlays.json["platted_subdivisions"]` from County Clerk Maps & Condos Index
+    overlays_path = ddir / "overlays.json"
+    overlays_doc: dict[str, Any] | None = None
+    overlays_dirty = False
+    subd_stats = {
+        "calibrated_subdivisions": 0,
+        "subdivision_replats_linked": 0,
+        "subdivision_surveys_enriched": 0,
+    }
+    if clerk_res["instruments"] and overlays_path.exists():
+        loaded_ov = read_json_or_gzip_path(overlays_path)
+        raw_subd = loaded_ov.get("platted_subdivisions") if isinstance(loaded_ov, dict) else None
+        has_subd = (
+            (isinstance(raw_subd, dict) and isinstance(raw_subd.get("features"), list))
+            or isinstance(raw_subd, list)
+        )
+        if has_subd:
+            subd_stats = calibrate_platted_subdivisions_from_clerk(
+                loaded_ov, clerk_res["instruments"]
+            )
+            if any(subd_stats.values()):
+                overlays_doc = sanitize_json_structure_dashes(loaded_ov)
+                overlays_dirty = True
 
-    staged_oh_gz: dict[str, bytes] = {}
-    for pfx in sorted(touched_oh_prefixes):
-        oh_dict = oh_shards.get(pfx) or {}
-        if oh_dict:
-            gz_b = compress_deterministic_gzip_json(sanitize_json_structure_dashes(oh_dict))
+    # 6. Pre-compress touched `.json.gz` shards and validate bundle size ceilings before any disk write
+    def _compress_shard_pair(item: tuple[str, dict[str, Any]]) -> tuple[str, bytes]:
+        pfx_k, s_dict_k = item
+        return pfx_k, compress_deterministic_gzip_json(sanitize_json_structure_dashes(s_dict_k))
+
+    def _stage_shards_gz(
+        shards_by_pfx: dict[str, dict[str, Any]],
+        touched_pfxs: set[str],
+        shard_desc: str,
+        file_prefix: str,
+    ) -> dict[str, bytes]:
+        work = [(pfx, shards_by_pfx[pfx]) for pfx in sorted(touched_pfxs) if shards_by_pfx.get(pfx)]
+        staged: dict[str, bytes] = {}
+        if len(work) > 4:
+            with ThreadPoolExecutor(max_workers=min(8, os.cpu_count() or 4)) as pool:
+                pairs = list(pool.map(_compress_shard_pair, work))
+        else:
+            pairs = [_compress_shard_pair(item) for item in work]
+        for pfx_k, gz_b in pairs:
             if len(gz_b) >= MAX_SINGLE_FILE_BYTES:
                 raise RuntimeError(
-                    f"TPIA owner_history shard owners_{pfx}.json.gz ({len(gz_b)} bytes) exceeds MAX_SINGLE_FILE_BYTES."
+                    f"TPIA {shard_desc} shard {file_prefix}_{pfx_k}.json.gz ({len(gz_b)} bytes) exceeds MAX_SINGLE_FILE_BYTES."
                 )
-            staged_oh_gz[pfx] = gz_b
+            staged[pfx_k] = gz_b
+        return staged
+
+    staged_permit_gz = _stage_shards_gz(permit_shards, touched_permit_prefixes, "permit", "permits")
+    staged_oh_gz = _stage_shards_gz(oh_shards, touched_oh_prefixes, "owner_history", "owners")
 
     projected_app_bytes = 0
     if app_dir is not None and Path(app_dir).exists():
@@ -1648,7 +2048,19 @@ def run_tpia_ingestion(
             if pfx_k not in touched_oh_prefixes:
                 next_oh_bytes += ohpath_k.stat().st_size
         next_oh_bytes += sum(len(b) for b in staged_oh_gz.values())
-        projected_app_bytes = max(0, base_app - cur_p_bytes - cur_oh_bytes) + next_p_bytes + next_oh_bytes
+        ov_delta = 0
+        if overlays_dirty and overlays_doc is not None and overlays_path.exists():
+            next_ov_bytes = len(
+                json.dumps(overlays_doc, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+            )
+            if next_ov_bytes >= MAX_SINGLE_FILE_BYTES:
+                raise RuntimeError(
+                    f"Calibrated overlays.json ({next_ov_bytes} bytes) exceeds MAX_SINGLE_FILE_BYTES."
+                )
+            ov_delta = next_ov_bytes - overlays_path.stat().st_size
+        projected_app_bytes = (
+            max(0, base_app - cur_p_bytes - cur_oh_bytes) + next_p_bytes + next_oh_bytes + ov_delta
+        )
         if projected_app_bytes >= HARD_MAX_APP_BYTES:
             raise RuntimeError(
                 f"Projected app/ bundle after TPIA ingestion ({projected_app_bytes} bytes) "
@@ -1684,6 +2096,9 @@ def run_tpia_ingestion(
                     tmp_oh.unlink(missing_ok=True)
             else:
                 gz_path.unlink(missing_ok=True)
+
+        if overlays_dirty and overlays_doc is not None:
+            write_compact_json(overlays_path, overlays_doc)
 
         manifest_path = ddir / "pmtiles_manifest.json"
         if manifest_path.exists():
@@ -1727,6 +2142,9 @@ def run_tpia_ingestion(
         "updated_permit_accounts": updated_permit_accounts,
         "touched_owner_history_shards": len(touched_oh_prefixes),
         "touched_permit_shards": len(touched_permit_prefixes),
+        "calibrated_subdivisions": subd_stats["calibrated_subdivisions"],
+        "subdivision_replats_linked": subd_stats["subdivision_replats_linked"],
+        "subdivision_surveys_enriched": subd_stats["subdivision_surveys_enriched"],
         "owner_history_min_year": min_observed_roll_year,
         "projected_app_bytes": projected_app_bytes,
     }
@@ -1742,6 +2160,7 @@ def format_tpia_ingestion_cli_summary(stats: dict[str, Any], *, elapsed_s: float
         f"   HCAD TPIA files / snaps/deeds: {stats['hcad_files_scanned']} files / {stats['hcad_snapshot_rows_parsed']:,} snapshots / {stats['hcad_deed_rows_parsed']:,} deeds",
         f"   Clerk TPIA files / filings   : {stats['clerk_files_scanned']} files / {stats['clerk_target_instruments']:,} target ({stats['clerk_skipped_non_target']:,} non-target skipped)",
         f"   Crosswalk matches (T1 / T2)  : {stats['tier1_matched_instruments']:,} exact instrument / {stats['tier2_matched_instruments']:,} legal description ({stats['ambiguous_legal_keys_skipped']:,} ambiguous keys capped)",
+        f"   Subdivision plats calibrated : {stats.get('calibrated_subdivisions', 0):,} original plats / {stats.get('subdivision_replats_linked', 0):,} replats / {stats.get('subdivision_surveys_enriched', 0):,} surveys",
         f"   Sec. 25.025 shielded filings : {stats['confidential_suppressed_instruments']:,}",
         f"   Updated accounts (oh / perm) : {stats['updated_owner_history_accounts']:,} owner_history / {stats['updated_permit_accounts']:,} permits",
         f"   Projected app/ bundle size   : {proj_mib:.2f} MiB",

@@ -8945,6 +8945,47 @@ export class HoustonAtlasApp {
     return null;
   }
 
+  _formatLandGrantLabel(props) {
+    const platSurvey = String(props?.survey || "").trim();
+    const platAbstract = String(props?.abstract || "").trim();
+    if (platSurvey && platAbstract) return `${platSurvey} Survey (${platAbstract})`;
+    if (platSurvey) return `${platSurvey} Survey`;
+    return platAbstract;
+  }
+
+  _parseClerkReplatsList(props) {
+    const raw = props?.clerk_replats;
+    let arr = [];
+    if (Array.isArray(raw)) {
+      arr = raw;
+    } else if (typeof raw === "string" && raw.trim().startsWith("[")) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) arr = parsed;
+      } catch (_e) {
+        arr = [];
+      }
+    }
+    return arr.filter((r) => r && r.file_no);
+  }
+
+  _formatClerkReplatsHtml(replats, maxVisible = 4) {
+    const list = Array.isArray(replats) ? replats.filter((r) => r && r.file_no) : [];
+    if (!list.length) return "";
+    const rowsHtml = list
+      .slice(0, maxVisible)
+      .map(
+        (r) =>
+          `${r.file_no}${r.date ? ` (${r.date})` : ""}${r.name ? ` · ${r.name}` : ""}${
+            r.film_code ? ` · Film #${r.film_code}` : ""
+          }`
+      )
+      .join("<br>");
+    const overflowHtml =
+      list.length > maxVisible ? `<br>+${list.length - maxVisible} additional replat filing(s)` : "";
+    return `${rowsHtml}${overflowHtml}`;
+  }
+
   _buildDeedRestrictionsCardHtml({
     subProps = null,
     catalogEntry = null,
@@ -9015,6 +9056,8 @@ export class HoustonAtlasApp {
     ).trim();
     const platYearBasis = String(subProps?.plat_year_basis || "").trim();
     const recordSeries = String(subProps?.record_series || "").trim();
+    const platLandGrantLabel = HoustonAtlasApp.prototype._formatLandGrantLabel.call(this, subProps);
+    const clerkReplats = HoustonAtlasApp.prototype._parseClerkReplatsList.call(this, subProps);
     const healedReplatCount = Number(subProps?.healed_replat_count || 0);
     const survivingAcres = Number(subProps?.surviving_acres || 0);
     const reconstructedAcres = Number(subProps?.reconstructed_acres || 0);
@@ -9366,6 +9409,14 @@ export class HoustonAtlasApp {
               : ""
           }
           ${
+            platLandGrantLabel
+              ? `<div class="deed-citation-row">
+                  <span class="deed-cit-label">Original Land Grant:</span>
+                  <span class="deed-cit-val mono">${platLandGrantLabel}</span>
+                </div>`
+              : ""
+          }
+          ${
             recordSeries
               ? `<div class="deed-citation-row">
                   <span class="deed-cit-label">Clerk Record Series:</span>
@@ -9386,6 +9437,14 @@ export class HoustonAtlasApp {
               ? `<div class="deed-citation-row">
                   <span class="deed-cit-label">Root Deed / Filing:</span>
                   <span class="deed-cit-val">${deedCitation}</span>
+                </div>`
+              : ""
+          }
+          ${
+            clerkReplats.length > 0
+              ? `<div class="deed-citation-row">
+                  <span class="deed-cit-label">Recorded Clerk Replats:</span>
+                  <span class="deed-cit-val mono" style="font-size:11px;">${HoustonAtlasApp.prototype._formatClerkReplatsHtml.call(this, clerkReplats)}</span>
                 </div>`
               : ""
           }
@@ -10572,6 +10631,23 @@ export class HoustonAtlasApp {
               </div>`
             : ""
         }
+        ${
+          overlayLayer === "platted_subdivisions" && this._formatLandGrantLabel(rawProps)
+            ? `<div class="inspector-cell full">
+                <span class="cell-label">Texas GLO Land Grant (Survey &amp; Abstract)</span>
+                <span class="cell-value mono">${this._formatLandGrantLabel(rawProps)}</span>
+              </div>`
+            : ""
+        }
+        ${(() => {
+          if (overlayLayer !== "platted_subdivisions") return "";
+          const ovReplats = this._parseClerkReplatsList(rawProps);
+          if (!ovReplats.length) return "";
+          return `<div class="inspector-cell full">
+                <span class="cell-label">Recorded County Clerk Replats (${ovReplats.length})</span>
+                <span class="cell-value mono" style="font-size:11px;">${this._formatClerkReplatsHtml(ovReplats)}</span>
+              </div>`;
+        })()}
         ${
           overlayLayer === "land_use_protections" && rawProps.ordinance
             ? `<div class="inspector-cell">

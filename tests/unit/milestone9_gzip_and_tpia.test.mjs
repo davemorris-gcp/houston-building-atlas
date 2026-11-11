@@ -479,3 +479,50 @@ test("IT-M9-6: Live countywide bundle ships 152 permit .json.gz + 90 address .js
     `Expected app/ bundle < 700 MiB after Milestone 9 shard compression, got ${totalAppMiB.toFixed(2)} MiB`
   );
 });
+
+test("UT-M9-7: _buildDeedRestrictionsCardHtml renders Original Land Grant (Survey & Abstract) and Recorded Clerk Replats from Maps & Condos Index", () => {
+  const fakeApp = {
+    _buildNarrativeCitationsHtml: () => "",
+  };
+  const cardHtml = HoustonAtlasApp.prototype._buildDeedRestrictionsCardHtml.call(fakeApp, {
+    subProps: {
+      name: "Highland Village",
+      full_name: "HIGHLAND VILLAGE",
+      estimated_plat_year: 1948,
+      plat_year_label: "c. 1948",
+      plat_year_basis: "HCAD earliest standing building (1948)",
+      survey: "A C REYNOLDS",
+      abstract: "A-62",
+      clerk_replats: [
+        {
+          file_no: "RP-2026-438440",
+          date: "2026-10-30",
+          name: "HIGHLAND VILLAGE PARTIAL REPLAT NO 3",
+          film_code: "716967",
+          pages: 2,
+        },
+      ],
+    },
+  });
+
+  assert.match(cardHtml, /Original Land Grant:/);
+  assert.match(cardHtml, /A C REYNOLDS Survey \(A-62\)/);
+  assert.match(cardHtml, /Recorded Clerk Replats:/);
+  assert.match(cardHtml, /RP-2026-438440 \(2026-10-30\) · HIGHLAND VILLAGE PARTIAL REPLAT NO 3 · Film #716967/);
+
+  // MapLibre queryRenderedFeatures serializes nested array properties into JSON strings; verify _parseClerkReplatsList + >4 overflow
+  const stringifiedProps = {
+    clerk_replats: JSON.stringify([
+      { file_no: "RP-2026-1", date: "2026-10-30", name: "REPLAT 1" },
+      { file_no: "RP-2026-2", date: "2026-10-29", name: "REPLAT 2" },
+      { file_no: "RP-2026-3", date: "2026-10-28", name: "REPLAT 3" },
+      { file_no: "RP-2026-4", date: "2026-10-27", name: "REPLAT 4" },
+      { file_no: "RP-2026-5", date: "2026-10-26", name: "REPLAT 5" },
+      { file_no: "", date: "2026-10-25", name: "INVALID BLANK" },
+    ]),
+  };
+  const parsedReplats = HoustonAtlasApp.prototype._parseClerkReplatsList.call(fakeApp, stringifiedProps);
+  assert.equal(parsedReplats.length, 5);
+  const formattedReplatsHtml = HoustonAtlasApp.prototype._formatClerkReplatsHtml.call(fakeApp, parsedReplats);
+  assert.match(formattedReplatsHtml, /\+1 additional replat filing\(s\)/);
+});

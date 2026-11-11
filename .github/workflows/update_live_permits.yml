@@ -30,8 +30,13 @@ jobs:
 
       - name: Install poppler-utils (pdftotext for Texas DSHS PDFs)
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y poppler-utils
+          # Strip flaky azure.archive.ubuntu.com mirror entries and soft-fail (`|| true`)
+          # so transient runner apt mirror outages do not abort non-DSHS permit ingestion.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            sudo sed -i '/azure\.archive\.ubuntu\.com/d' /etc/apt/apt-mirrors.txt || true
+          fi
+          sudo apt-get update -y -o Acquire::Retries=3 || true
+          sudo apt-get install -y --fix-missing -o Acquire::Retries=3 poppler-utils || true
 
       - name: Snapshot pre-run monitoring datasets for Daily Activity Log diff
         run: |

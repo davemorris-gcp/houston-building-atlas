@@ -1056,4 +1056,159 @@ def test_hcco_data_sales_subscriber_pipe_delimited_schema(tmp_path: Path) -> Non
     assert plat.category == "RESTRICTION_PLAT"
     assert plat.dt8 == "20261028"
     assert plat.grantors == ["SMITH STREET PLAZA"]
+    assert plat.map_code == "M"
+    assert plat.map_desc == "SMITH STREET PLAZA"
+    assert plat.map_vol_page == "716912"
+    assert plat.page_count == 2
+
+
+def test_hcco_nested_zip_subdivision_plat_calibration_and_replat_regex(tmp_path: Path) -> None:
+    """Verify nested .zip archives, normalize_legal_subdivision_name replat/amendment regexes, MAP_LegalDesc.txt Surevey|Abstracts, and calibrate_platted_subdivisions_from_clerk."""
+    from atlas_pipeline.ingest_tpia_clerk_and_hcad import (
+        calibrate_platted_subdivisions_from_clerk,
+        ingest_clerk_tpia_tables,
+        normalize_legal_subdivision_name,
+    )
+
+    # 1. Regex guards: 'SECOND AMENDMENT' must not parse as sec='OND'; 'PARTIAL REPLAT NO 3' strips cleanly
+    assert normalize_legal_subdivision_name(
+        "INFINITY OFFICE PARK AT FALL CREEK CONDOMINIUMS DECLARATION OF CONDOMINIUM SECOND AMENDMENT"
+    ) == ("INFINITY OFFICE PARK AT FALL CREEK", "")
+    assert normalize_legal_subdivision_name("HIGHLAND VILLAGE PARTIAL REPLAT NO 3") == ("HIGHLAND VILLAGE", "")
+    assert normalize_legal_subdivision_name("RIVERSIDE TERRACE SEC 6 PARTIAL REPLAT NO 4") == (
+        "RIVERSIDE TERRACE",
+        "6",
+    )
+    assert normalize_legal_subdivision_name("CRESMERE PLACE SEC 3 PARTIAL REPLAT NO 2") == (
+        "CRESMERE PLACE",
+        "3",
+    )
+
+    # 2. Build an outer .zip containing inner .zip subscriber archives (RPISubscriber.zip + MAPSubscriber.zip)
+    inner_rpi_path = tmp_path / "20261029_RPISubscriber.zip"
+    with zipfile.ZipFile(inner_rpi_path, "w") as zf_rpi:
+        zf_rpi.writestr(
+            "20261029_RPI_Instruments.txt",
+            "\n".join(
+                [
+                    "File No|Document Type|FileDate|Film Code No.|No. of Pages",
+                    "RP-2026-435651|MAP|2026-10-28|RP-2026-435651|2",
+                    "RP-2026-438440|MAP|2026-10-30|RP-2026-438440|2",
+                    "RP-2026-499999|REL|2026-10-30|RP-2026-499999|1",
+                ]
+            )
+            + "\n",
+        )
+        zf_rpi.writestr(
+            "20261029_RPI_Names.txt",
+            "\n".join(
+                [
+                    "File No|Name|NType|Document Type",
+                    "RP-2026-435651|SMITH STREET PLAZA|1|MAP",
+                    "RP-2026-438440|HIGHLAND VILLAGE PARTIAL REPLAT NO 3|1|MAP",
+                    "RP-2026-499999|IGNORED RELEASE PARTY|1|REL",
+                ]
+            )
+            + "\n",
+        )
+
+    inner_map_path = tmp_path / "20261029_MAPSubscriber.zip"
+    with zipfile.ZipFile(inner_map_path, "w") as zf_map:
+        zf_map.writestr(
+            "20261029_MAP_Instruments.txt",
+            "\n".join(
+                [
+                    "FileNo|MapCode|MapDesc|FileDate|VolumnPage|NoPages",
+                    "RP-2026-435651|M|SMITH STREET PLAZA|2026-10-28 00:00:00|716912|2",
+                    "RP-2026-438440|M|HIGHLAND VILLAGE PARTIAL REPLAT NO 3|2026-10-30 00:00:00|716967|2",
+                ]
+            )
+            + "\n",
+        )
+        zf_map.writestr(
+            "20261029_MAP_LegalDesc.txt",
+            "\n".join(
+                [
+                    "File No|Surevey|Abstracts",
+                    "RP-2026-435651|OBEDIENCE SMITH|0696",
+                    "RP-2026-438440|A C REYNOLDS|A0062",
+                    "RP-2026-438440|N/A|N/A",
+                ]
+            )
+            + "\n",
+        )
+
+    outer_bundle_zip = tmp_path / "hcco_outer_bundle.zip"
+    with zipfile.ZipFile(outer_bundle_zip, "w") as zf_outer:
+        zf_outer.write(inner_rpi_path, arcname="20261029_RPISubscriber.zip")
+        zf_outer.write(inner_map_path, arcname="20261029_MAPSubscriber.zip")
+
+    res = ingest_clerk_tpia_tables(outer_bundle_zip)
+    assert res["kept_target_instruments"] == 2
+    assert res["skipped_non_target_instruments"] == 1
+    by_tok = {r.clerk_token: r for r in res["instruments"]}
+    assert by_tok["R2026-435651"].surveys == ["OBEDIENCE SMITH"]
+    assert by_tok["R2026-435651"].abstracts == ["696"]
+    assert by_tok["R2026-438440"].surveys == ["A C REYNOLDS"]
+    assert by_tok["R2026-438440"].abstracts == ["62"]
+
+    # 3. Calibrate GeoJSON FeatureCollection in overlays_doc["platted_subdivisions"]
+    overlays_doc = {
+        "platted_subdivisions": {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Smith Street Plaza",
+                        "full_name": "SMITH STREET PLAZA",
+                        "recnum": "716912",
+                        "estimated_plat_year": 0,
+                        "plat_year_is_exact": False,
+                    },
+                },
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "name": "Highland Village",
+                        "full_name": "HIGHLAND VILLAGE",
+                        "estimated_plat_year": 1948,
+                        "plat_year_is_exact": False,
+                        "earliest_year": 1948,
+                        "pre_1965_count": 140,
+                    },
+                },
+            ],
+        }
+    }
+    subd_stats = calibrate_platted_subdivisions_from_clerk(overlays_doc, res["instruments"])
+    assert subd_stats == {
+        "calibrated_subdivisions": 1,
+        "subdivision_replats_linked": 1,
+        "subdivision_surveys_enriched": 2,
+    }
+
+    smith_props = overlays_doc["platted_subdivisions"]["features"][0]["properties"]
+    assert smith_props["estimated_plat_year"] == 2026
+    assert smith_props["plat_year_is_exact"] is True
+    assert smith_props["plat_file_date"] == "2026-10-28"
+    assert smith_props["plat_clerk_file"] == "RP-2026-435651"
+    assert smith_props["survey"] == "OBEDIENCE SMITH"
+    assert smith_props["abstract"] == "A-696"
+
+    hv_props = overlays_doc["platted_subdivisions"]["features"][1]["properties"]
+    # Historic 1948 addition must NOT have its dedication year overwritten by a 2026 partial replat
+    assert hv_props["estimated_plat_year"] == 1948
+    assert hv_props["survey"] == "A C REYNOLDS"
+    assert hv_props["abstract"] == "A-62"
+    assert hv_props["clerk_replats"] == [
+        {
+            "file_no": "RP-2026-438440",
+            "date": "2026-10-30",
+            "name": "HIGHLAND VILLAGE PARTIAL REPLAT NO 3",
+            "film_code": "716967",
+            "pages": 2,
+        }
+    ]
+
 
