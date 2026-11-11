@@ -303,9 +303,13 @@ def normalize_acquisition_date_token(
     """Normalize HCAD `new_own_dt` into `'YYYYMMDD'`, `'<=1988'`, or `''` (`DF-2`, `DF-6`, `DF-7`).
 
     Domain rationale (`pdataCodebook.pdf`):
-      - HCAD converted paper tax cards to its CAMA mainframe on January 2, 1988 (`01/02/1988`).
-        Parcels whose ownership predated that mainframe load carry `01/02/1988` as a synthetic
-        floor sentinel rather than an actual closing date, so it is normalized to `'<=1988'`.
+      - Prior to HCAD opening in 1983, tax value assessments were handled by the Harris County
+        Tax Assessor-Collector's Office; in 1983, microfilm assessment rolls were transferred to
+        HCAD, and on January 2, 1988 (`01/02/1988`) HCAD digitized and transitioned those
+        microfilm records onto its Windows server system (with 1983-1985 physical/microfilm rolls
+        archived at the Harris County Archives, `archives@hctx.net`). Parcels whose ownership
+        predated that digitization carry `01/02/1988` as a synthetic floor sentinel rather than an
+        actual closing date, so it is normalized to `'<=1988'`.
       - Microsoft COM/OLE (`12/30/1899`, `12/31/1899`) and SQL Server (`01/01/1900`, `01/02/1900`)
         null-epoch placeholders are rejected via `schema.normalize_hcad_date`, while genuine
         historic 1900 conveyance dates (e.g. `06/15/1900`) are preserved.

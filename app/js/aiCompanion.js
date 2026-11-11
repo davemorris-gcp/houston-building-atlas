@@ -10,6 +10,10 @@
  *   4. Environment & Sandbox badge resolution from `public/data/atlas_environments.json`.
  */
 
+import {
+  decodeCompactOwnerHistory,
+  isConfidentialOwnerName,
+} from "./clerkSearchHelpers.js?v=20261110a";
 import { DEFAULT_ATLAS_BASE_URL, resolveAtlasBaseOriginPath } from "./filterStore.js?v=20261110a";
 import { decodeAppraiserNote } from "./permitPlainEnglish.js?v=20261110a";
 
@@ -258,7 +262,7 @@ export function buildPlatformSystemInstructions(platform = "chatgpt", options = 
     "   - National Register (NRHP) & Recorded Texas Historic Landmark (RTHL): federal/state honors that do not block private demolition using private funds unless paired with a local Protected Landmark designation.",
     "3. Check Lost Houston (623 Demolished Sites) & the 15-Point Watchlist (34 Sites): Before stating that a historic building is still standing, check whether it has been demolished and graduated to Lost Houston (for example, the 1894 John Henry Kirby Mansion at 2000 Smith St, HCAD 0152300000001, remodeled 1928 by James Ruskin Bailey, demolished Nov 2, 2026 -> lost_kirby_mansion_1894).",
     "4. Decode HCAD Appraiser Shorthand & COH Permits into Plain English: Distinguish Stage 1 Sewer Disconnect plumbing permits (Type 12/4P, 'BLD DEMO/SEWER DISC') from Stage 2 structural Building Demolition permits (Type SD/4D, 'BLD DEMO'), and translate HCAD shorthand (NC = New Construction, CDU = Condition/Desirability/Utility grade, REMOD = Remodel, ADDN = Addition) while citing the verbatim record.",
-    "5. Trace 5-Era Harris County Clerk Deed Chains (1836-2026): Vol/Page (1836-1960), 7-digit Film Code (1961-1999), 10-digit File # (2000-2015), and RP-YYYY-NNNNNN (2016-present).",
+    "5. Trace 5-Era Harris County Clerk Deed Chains (1836-2026) & HCAD's 01/02/1988 Digitization Baseline: Vol/Page (1836-1960), 7-digit Film Code (1960-1999), 10-digit File # (2000-2015), and RP-YYYY-NNNNNN (2016-present), plus 1823-present subdivision plats (MC.aspx). Note that an HCAD acquisition date of 01/02/1988 (<=1988 on 89,970 accounts) is NOT a literal closing date: prior to HCAD opening in 1983, assessments were handled by the Harris County Tax Assessor-Collector's Office; in 1983 microfilm rolls transferred to HCAD and were digitized on January 2, 1988 (with 1983-1985 rolls held at the Harris County Archives, archives@hctx.net, and pre-2005 electronic CAMA tables lost in subsequent HCAD server conversions).",
     "6. Respect Texas Tax Code Sec. 25.025 Confidentiality: Never speculate on or attempt to deanonymize homeowner identities on parcels flagged conf: 1.",
     "7. Always Emit Clickable Deep Links to the Live Atlas and Primary Sources:",
     `   - Property Overview: ${cleanBase}#hcad=<13-digit-hcad>`,
@@ -360,8 +364,7 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
       override.conf === 1 ||
       override.confidential ||
       options.isConfidential ||
-      /^confidential\b/i.test(rawOwnerCandidate) ||
-      /25\.025/.test(rawOwnerCandidate)
+      isConfidentialOwnerName(rawOwnerCandidate)
   );
   const secretOwnerTokens = isConf
     ? [
@@ -543,30 +546,15 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
     }
   }
 
-  const parsedOhTenures = [];
-  if (!isConf && ownerTenures.length === 0 && typeof permitRecord.oh === "string" && permitRecord.oh.trim()) {
-    for (const seg of permitRecord.oh.split("|")) {
-      const parts = seg.trim().split("~");
-      if (parts.length >= 4) {
-        const spanYr = parts[0].trim();
-        const acqRaw = parts[1].trim();
-        const deedTok = parts[2].trim();
-        const ownName = parts.slice(3).join("~").trim();
-        if (spanYr && ownName) {
-          const fmtDate =
-            /^\d{8}$/.test(acqRaw) && acqRaw !== "00000000"
-              ? `${acqRaw.slice(0, 4)}-${acqRaw.slice(4, 6)}-${acqRaw.slice(6, 8)}`
-              : acqRaw;
-          parsedOhTenures.push({
-            roll_years: spanYr,
-            owner_name: ownName,
-            deed_date: fmtDate,
-            clerk_file_num: deedTok,
-          });
-        }
-      }
-    }
-  }
+  const parsedOhTenures =
+    !isConf && ownerTenures.length === 0 && typeof permitRecord.oh === "string" && permitRecord.oh.trim()
+      ? decodeCompactOwnerHistory(permitRecord.oh, rawOwnerCandidate).map((t) => ({
+          roll_years: t.spanLabel,
+          owner_name: t.ownerName,
+          deed_date: t.acqDate,
+          clerk_file_num: t.deed ? t.deed.displayValue : "",
+        }))
+      : [];
   const effectiveTenures = ownerTenures.length > 0 ? ownerTenures : parsedOhTenures;
 
   lines.push("", "## 3. Ownership & Chain of Stewardship (TX Tax Code Sec. 25.025 Safe)");
@@ -589,7 +577,12 @@ export function buildPropertyAiResearchDossier(contextOrProps = {}, options = {}
           t.clerk_file_num || t.clerkFile
             ? ` (Clerk File \`${t.clerk_file_num || t.clerkFile}\`)`
             : "";
-        const ddate = t.deed_date || t.deedDate ? `, Deed \`${t.deed_date || t.deedDate}\`` : "";
+        const rawDate = String(t.deed_date || t.deedDate || "").trim();
+        const ddate = rawDate
+          ? rawDate === "<=1988" || rawDate === "1988-01-02" || rawDate === "01/02/1988"
+            ? ", Acq. `<=1988` (HCAD Jan 2, 1988 digitization baseline of 1983 Tax Assessor-Collector microfilm rolls)"
+            : `, Deed \`${rawDate}\``
+          : "";
         lines.push(
           `  - \`${t.roll_years || t.years}\`: ${t.owner_name || t.owner}${ddate}${clerk}`
         );

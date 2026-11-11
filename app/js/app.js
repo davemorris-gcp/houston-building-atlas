@@ -22908,7 +22908,11 @@ export class HoustonAtlasApp {
           }</span>
           </div>`
         : !xray.isConfidential && xray.recordedTenureSince
-        ? `<div class="ownership-xray-row" id="inspector-recorded-tenure-row">
+        ? `<div class="ownership-xray-row" id="inspector-recorded-tenure-row"${
+            xray.recordedTenureTooltip
+              ? ` title="${this._escapeHtmlAttr(xray.recordedTenureTooltip)}"`
+              : ""
+          }>
             <span class="ownership-xray-label">Recorded Tenure Since:</span>
             <span class="ownership-xray-val mono">${this._escapeHtmlAttr(
               xray.recordedTenureSince

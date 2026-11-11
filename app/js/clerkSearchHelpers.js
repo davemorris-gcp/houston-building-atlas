@@ -1344,12 +1344,12 @@ export function buildResearchKitDeedChainView(
         : "";
 
     let scopeNote =
-      "Combines 22 annual HCAD certified appraisal rolls (2005-present) with HCAD's post-mid-2004 deed index. Copy any File Number or Prior Owner token above into County Clerk Deeds (RP) to pull 1961-present deeds, mortgages (D/T), and mechanic's liens (M/L).";
+      "Combines 22 annual HCAD certified appraisal rolls (2005-present) with HCAD's post-mid-2004 deed index (pre-2005 HCAD CAMA tables were not retained across HCAD server conversions). Copy any File Number or Prior Owner token above into County Clerk Deeds (RP, 1960-present) to pull deeds, mortgages (D/T), and mechanic's liens (M/L).";
     if (tenures.length === 1 && chainItems.length === 0) {
       const t0 = tenures[0];
       if (t0.isPreMainframe) {
         scopeNote =
-          "Continuous HCAD Roll Tenure Since <=1988 (HCAD Mainframe Baseline): Zero post-2004 sales recorded. Copy the Owner token above or Legal Description below into County Clerk Deeds (RP) or Historical Archives (pre-1961 Vol/Page) to trace pre-1988 instruments.";
+          "Continuous HCAD Roll Tenure Since <=1988 (HCAD Mainframe Baseline): On January 2, 1988 (01/02/1988), HCAD digitized the 1983 microfilm tax rolls transferred from the Harris County Tax Assessor-Collector's Office, and subsequent server migrations dropped pre-2005 electronic CAMA tables. Copy the Owner token above or Legal Description below into County Clerk Deeds (RP, 1960-present), or contact Harris County Archives (archives@hctx.net, 1983-1985 rolls) to trace pre-1988 instruments.";
       } else if (t0.isPre2005 || t0.startYear <= 2005) {
         scopeNote = `Continuous HCAD Roll Tenure (${t0.spanLabel}${
           t0.acqDate ? ` · Acq. ${t0.acqDate}` : ""

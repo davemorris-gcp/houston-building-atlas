@@ -76,11 +76,13 @@ python3 scripts/query_atlas.py --watchlist
 4. **Translate HCAD Appraiser Shorthand & COH Permit Codes into Plain English (While Preserving Verbatim Text):**
    - **2-Stage COH Demolition Permits:** Distinguish **Stage 1 Sewer Disconnect** (`Type 12` or `4P` Plumbing Permit, `BLD DEMO/SEWER DISC`) from **Stage 2 Building Demolition** (`Type SD` or `4D`, `BLD DEMO`) issued under the same 8-digit project number.
    - **HCAD Shorthand:** `NC` = New Construction; `CDU` = Condition/Desirability/Utility (`EX` Excellent, `VG` Very Good, `GD` Good, `AV` Average, `FR` Fair, `PR` Poor, `UN` Unsound); `REMOD` = Remodel; `ADDN` = Addition; `GARAGE ONLY` / `GARAGE APT ONLY` = Accessory structure work only.
-5. **Trace 5-Era Harris County Clerk Deed Chains (`1836-2026`):**
+5. **Trace 5-Era Harris County Clerk Deed Chains (`1836-2026`) & HCAD's `01/02/1988` (`<=1988`) Digitization Baseline:**
+   - `1823-present`: Subdivision Plats, Condominium Declarations & Original Texas Land Grants (`Maps & Condos Index`, `MC.aspx`)
    - `1836-1960`: Deed Book Volume & Page (`Vol 1234 Pg 567`)
-   - `1961-1999`: 7-digit Microfilm Code (`NNN-NN-NNNN`) & Letter-Prefixed Clerk File # (`C123456` - `Z999999`)
+   - `1960-1999`: 7-digit Microfilm Code (`NNN-NN-NNNN`) & Letter-Prefixed Clerk File # (`C123456` - `Z999999`; digital Real Property Index begins November 1, 1960)
    - `2000-2015`: 10-digit Annual Clerk File # (`YYYYNNNNNN`)
    - `2016-present`: Real Property e-Recording File # (`RP-YYYY-NNNNNN`)
+   - **HCAD `01/02/1988` (`<=1988`) Baseline Provenance:** An HCAD acquisition date of `01/02/1988` (`<=1988` on `89,970` accounts) is NOT a literal January 2, 1988 closing date. Prior to HCAD opening in `1983`, tax value assessments were handled by the Harris County Tax Assessor-Collector's Office; in `1983`, microfilm assessment rolls were transferred to HCAD, and on **January 2, 1988 (`01/02/1988`)** HCAD digitized and transitioned those microfilm records onto its Windows server system (`1983-1985` physical/microfilm rolls are held at the **Harris County Archives**, `archives@hctx.net`, `713-274-9680`, `11525 Todd St, Suite 300, Houston, TX 77055`, `https://harriscountyarchives.com/`). Because subsequent HCAD server conversions dropped pre-2005 electronic CAMA tables, pre-2005 (`1960-2004`) Grantor/Grantee deed chains are traced through the Harris County Clerk Real Property Index.
 6. **Enforce Texas Tax Code `Sec. 25.025` Statutory Confidentiality:**
    - Never speculate on or attempt to deanonymize homeowner identities on parcels flagged `"conf": 1` (`Confidential Owner`).
 7. **Always Surface Clickable Deep Links to the Atlas and Primary Public Sources:**

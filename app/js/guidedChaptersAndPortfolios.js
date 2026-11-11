@@ -2165,6 +2165,10 @@ export function decodeParcelOwnershipXray(
         ? "<=1988 (HCAD Mainframe Baseline)"
         : ownerHistoryTenures[0].acqDate || String(ownerHistoryTenures[0].startYear)
       : "";
+  const recordedTenureTooltip =
+    !isConfidential && ownerHistoryTenures.length > 0 && ownerHistoryTenures[0].acqDate === "<=1988"
+      ? "Prior to HCAD opening in 1983, tax assessments were handled by the Harris County Tax Assessor-Collector's Office; in 1983 microfilm rolls transferred to HCAD and were digitized on January 2, 1988 (01/02/1988). 1983-1985 rolls are held at Harris County Archives (archives@hctx.net)."
+      : "";
 
   const activeRollOwner =
     !isConfidential &&
@@ -2286,6 +2290,7 @@ export function decodeParcelOwnershipXray(
     ownerHistoryTenures,
     priorOwners,
     recordedTenureSince,
+    recordedTenureTooltip,
     isOwnerOccupiedPlex,
     ownerOccupiedPlexNote,
     isCorporateOrTrust,
@@ -2670,7 +2675,7 @@ export function buildStewardshipTimelineModel({
       nodeYear = parseInt(t.acqDate, 10) || t.startYear;
     }
     const subtitle = t.isPreMainframe
-      ? `Continuous HCAD roll tenure (${t.spanLabel}) recorded at or before January 2, 1988 mainframe baseline`
+      ? `Continuous HCAD roll tenure (${t.spanLabel}) recorded at or before HCAD's January 2, 1988 digitization of 1983 Tax Assessor-Collector microfilm rolls (1983-1985 rolls at Harris County Archives)`
       : t.acqDate
       ? `HCAD certified appraisal roll tenure (${t.spanLabel}) · Recorded acquisition ${t.acqDate}`
       : `Recorded on ${t.spanLabel} Harris County certified appraisal rolls`;

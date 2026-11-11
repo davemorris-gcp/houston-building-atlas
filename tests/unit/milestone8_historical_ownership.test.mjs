@@ -383,6 +383,18 @@ test("UT-7, REG-1, REG-3 & REG-4: 3-surface view models, Clerk token deduplicati
   );
   assert.equal(singleXray.priorOwners.length, 0);
   assert.equal(singleXray.recordedTenureSince, "<=1988 (HCAD Mainframe Baseline)");
+  assert.match(singleXray.recordedTenureTooltip, /January 2, 1988/);
+  assert.match(singleXray.recordedTenureTooltip, /Harris County Archives/);
+  assert.match(singleXray.recordedTenureTooltip, /archives@hctx\.net/);
+  const singleRk = buildResearchKitDeedChainView(
+    "0152300000001",
+    "0152300000001",
+    { ot: "corporate_llc", oh: "2005-2026~<=1988~~SMITH TOWER CORP" },
+    "SMITH TOWER CORP"
+  );
+  assert.match(singleRk.html, /Continuous HCAD Roll Tenure Since &lt;=1988 \(HCAD Mainframe Baseline\):/);
+  assert.match(singleRk.html, /January 2, 1988/);
+  assert.match(singleRk.html, /Harris County Archives/);
 
   // 2b. Countywide PMTiles shape ({ hcad_num } with props.owner === undefined) + static permit-shard `conf: 1`
   //     suppresses all deed instruments, prior owners, and rapid_flip nodes across all 3 surfaces before live HCAD resolves

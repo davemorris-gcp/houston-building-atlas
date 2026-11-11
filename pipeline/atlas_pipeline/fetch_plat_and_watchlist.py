@@ -6391,9 +6391,67 @@ def enrich_kirby_mansion_permit_alert() -> None:
             json.dump(data, f, indent=2)
 
 
+_MIN_CLOUD_SYNC_FALLBACK_ROWS = 5
+
+
+def _merge_prior_disk_watchlist_and_reviews(cloud_sync: dict) -> dict:
+    """Preserve prior on-disk Watchlist dossiers and Plat Reviews if Google Sheets CSV returns a truncated/#REF! feed."""
+    plat_reviews = dict(cloud_sync.get("platReviews") or {})
+    watch_props = dict(cloud_sync.get("watchProperties") or {})
+
+    wl_out = DATA_DIR / "property_watchlist.json"
+    if len(watch_props) < _MIN_CLOUD_SYNC_FALLBACK_ROWS and wl_out.exists():
+        try:
+            prior_wl = json.loads(wl_out.read_text(encoding="utf-8"))
+            for wp in prior_wl.get("watchedProperties") or []:
+                if not isinstance(wp, dict):
+                    continue
+                pid = str(wp.get("id") or "").strip()
+                if not pid or pid in watch_props or is_legacy_unconfirmed_plat_seed(wp):
+                    continue
+                norm_rec = normalize_watch_property_record(wp)
+                norm_rec["_hasExplicitSearchTerms"] = isinstance(wp.get("searchTerms"), dict) or bool(
+                    wp.get("searchTermsUpdatedAt")
+                )
+                norm_rec["_hasExplicitDriveLinks"] = (
+                    isinstance(wp.get("driveLinks"), list)
+                    or isinstance(wp.get("documents"), list)
+                    or bool(wp.get("driveLinksUpdatedAt"))
+                )
+                norm_rec["_hasExplicitChecklist"] = (
+                    isinstance(wp.get("checklist"), list) and len(wp.get("checklist")) > 0
+                )
+                watch_props[pid] = norm_rec
+            print(
+                f"[warn] Seeded {len(watch_props)} Watchlist properties from prior {wl_out.name} "
+                f"(published Sheet CSV returned < {_MIN_CLOUD_SYNC_FALLBACK_ROWS} rows)."
+            )
+        except Exception as exc:
+            print(f"[warn] Could not seed Watchlist fallback from {wl_out.name}: {exc}")
+
+    plat_out = DATA_DIR / "plat_agenda_monitor.json"
+    if len(plat_reviews) < _MIN_CLOUD_SYNC_FALLBACK_ROWS and plat_out.exists():
+        try:
+            prior_plat = json.loads(plat_out.read_text(encoding="utf-8"))
+            for c_iso, cyc in (prior_plat.get("cycles") or {}).items():
+                if not isinstance(cyc, dict):
+                    continue
+                for app_no, rev_obj in (cyc.get("reviews") or {}).items():
+                    if isinstance(rev_obj, dict) and (c_iso, app_no) not in plat_reviews:
+                        plat_reviews[(str(c_iso), str(app_no))] = dict(rev_obj)
+            print(
+                f"[warn] Seeded {len(plat_reviews)} Plat Reviews from prior {plat_out.name} "
+                f"(published Sheet CSV returned < {_MIN_CLOUD_SYNC_FALLBACK_ROWS} rows)."
+            )
+        except Exception as exc:
+            print(f"[warn] Could not seed Plat Reviews fallback from {plat_out.name}: {exc}")
+
+    return {"platReviews": plat_reviews, "watchProperties": watch_props}
+
+
 def main() -> None:
     idx = load_atlas_indices()
-    cloud_sync = pull_cloud_sheet_sync_rows()
+    cloud_sync = _merge_prior_disk_watchlist_and_reviews(pull_cloud_sheet_sync_rows())
     scraped_multi = fetch_multi_cycle_agendas_and_notices(max_cycles=4)
     plat_dataset = build_plat_agenda_dataset(
         idx,

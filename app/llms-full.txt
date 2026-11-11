@@ -30,11 +30,13 @@
 4. **Decode HCAD Appraiser Shorthand & 2-Stage COH Demolition Permits into Plain English:**
    - In COH demolition permits, distinguish **Stage 1 Sewer Disconnect** (`Type 12` or `4P` Plumbing Permit, `BLD DEMO/SEWER DISC`) from **Stage 2 Building Demolition** (`Type SD` or `4D`, `BLD DEMO`) sharing the same 8-digit project number.
    - In HCAD permits/notes, decode `NC` (New Construction), `CDU` (Condition/Desirability/Utility grade: `EX` Excellent, `VG` Very Good, `GD` Good, `AV` Average, `FR` Fair, `PR` Poor, `UN` Unsound), `REMOD` (Remodel), `ADDN` (Addition), and `GARAGE ONLY` / `GARAGE APT ONLY` (partial accessory work).
-5. **Trace 5-Era Harris County Clerk Deed Chains (`1836-2026`):**
+5. **Trace 5-Era Harris County Clerk Deed Chains (`1836-2026`) & HCAD's `01/02/1988` (`<=1988`) Digitization Baseline:**
+   - `1823-present`: Subdivision Plats, Condominium Declarations & Original Texas Land Grants (`Maps & Condos Index`, `MC.aspx`)
    - `1836-1960`: Deed Book Volume & Page (`Vol 1234 Pg 567`)
-   - `1961-1999`: 7-digit Microfilm Code (`NNN-NN-NNNN`) & Letter-Prefixed Clerk File # (`C123456` - `Z999999`)
+   - `1960-1999`: 7-digit Microfilm Code (`NNN-NN-NNNN`) & Letter-Prefixed Clerk File # (`C123456` - `Z999999`; digital Real Property Index begins November 1, 1960)
    - `2000-2015`: 10-digit Annual Clerk File # (`YYYYNNNNNN` / `20070123456`)
    - `2016-present`: Real Property e-Recording File # (`RP-YYYY-NNNNNN`)
+   - **HCAD `01/02/1988` (`<=1988`) Baseline Provenance:** An HCAD acquisition date of `01/02/1988` (`<=1988` on `89,970` accounts) is NOT a literal January 2, 1988 closing date. Prior to HCAD opening in `1983`, tax value assessments were handled by the Harris County Tax Assessor-Collector's Office; in `1983`, microfilm assessment rolls were transferred to HCAD, and on **January 2, 1988 (`01/02/1988`)** HCAD digitized and transitioned those microfilm records onto its Windows server system (`1983-1985` physical/microfilm rolls are held at the **Harris County Archives**, `archives@hctx.net`, `713-274-9680`, `11525 Todd St, Suite 300, Houston, TX 77055`, `https://harriscountyarchives.com/`). Because subsequent HCAD server conversions dropped pre-2005 electronic CAMA tables, pre-2005 (`1960-2004`) Grantor/Grantee deed chains are traced through the Harris County Clerk Real Property Index.
 6. **Respect Texas Tax Code `Sec. 25.025` Statutory Confidentiality:** Never speculate on or attempt to deanonymize individual homeowner names on parcels flagged with `"conf": 1` (`Confidential Owner`).
 7. **Always Emit Clickable Deep Links to the Atlas and Public Primary Sources:** Every property, architect, district, or demolished site mentioned in an answer should include a working clickable link using the templates below.
 
@@ -54,7 +56,9 @@
 ## Primary Public Data & Archive URL Templates
 
 - **HCAD Property Search:** `https://search.hcad.org/` (query by 13-digit account number or street address)
-- **Harris County Clerk Real Property Records (`1961-present`):** `https://www.cclerk.hctx.net/Applications/WebSearch/RP.aspx`
+- **Harris County Clerk Real Property Records (`1960-present`):** `https://www.cclerk.hctx.net/Applications/WebSearch/RP.aspx`
+- **Harris County Clerk Maps & Condos Plats (`1823-present`):** `https://www.cclerk.hctx.net/Applications/WebSearch/MC.aspx`
+- **Harris County Archives (`1983-1985` HCAD Microfilm & Pre-1983 Tax Assessor-Collector Rolls):** `https://harriscountyarchives.com/` (`archives@hctx.net`, `713-274-9680`, `11525 Todd St, Suite 300, Houston, TX 77055`)
 - **City of Houston Historic Preservation Office (HPO):** `https://www.houstontx.gov/planning/HistoricPres/historic_preservation.html`
 - **Library of Congress Sanborn Fire Insurance Maps (Houston):** `https://www.loc.gov/collections/sanborn-maps/?fa=location:texas%7Clocation:harris+county%7Clocation:houston`
 - **Texas Archival Resources Online (TARO 2.0):** `https://txarchives.org/`
@@ -91,8 +95,8 @@ These properties are tracked in the Preservation Houston 15-Point Property Watch
 | Active / High Priority | Tier 1 | 701 E 33RD ST | James D. Burrus Elementary |  | `0222350000001` | None | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=prop-1793290290811) |
 | For Sale | Tier 1 | 802 LOVETT BLVD | Hamman House | 1926 | `0261520000021` | Harrie T. Lindeberg | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=prop-1792765566494) |
 | Active / High Priority | Tier 1 | River Oaks Baptist Church (2320 Willowick) | River Oaks Baptist replat no 1 and extension | 1950 | `1187350010001,0410170010103,0410170010056` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-2026-1720) |
+| Monitoring | Tier 2 | 1131 VERA LOU ST | 1131 VERA LOU ST | 1942 | `0650100070010` | Undesignated | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-2026-1728) |
 | Active / High Priority | Tier 2 | 1131 VERA LOU ST | Amplified Properties | 1942 | `0650100070010` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-2026-1495) |
-| Monitoring | Tier 2 | 1131 VERA LOU ST | 1131 VERA LOU ST | 1942 | `0650100070010` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-2026-1728) |
 | Active / High Priority | Tier 2 | 13515 PERTHSHIRE RD | 13515 Perthshire Road | 1966 | `0961080000014` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-DPV-26091362) |
 | Monitoring | Tier 2 | 1501 WICHMAN ST | 1501 Wichman Street |  | `0352750130042` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-DPV-26075937) |
 | Monitoring | Tier 2 | 2038 SUL ROSS ST | Sul Ross Views | 1950 | `0561210000025` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-2026-1561) |
@@ -109,7 +113,7 @@ These properties are tracked in the Preservation Houston 15-Point Property Watch
 | Monitoring | Tier 2 | 7108 EASTWOOD | Eastwood Street Villas | 1949 | `0332280550022` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-PH-135) |
 | Monitoring | Tier 2 | 8803 FOREST HOLLOW ST | Forest Green Reserve | 1968 | `1023520000101` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-2026-1442) |
 | Monitoring | Tier 2 | 908 Morris St | Granger Place | c. 1930 | `0032500000003` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-2026-1660) |
-| Lost (Demolished 2026-11-02) | Tier 1 | 2000 Smith St. | John Henry Kirby Mansion | 1894 | `0152300000001` | James Ruskin Bailey (1928 Tudor Revival remodel) | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=prop-kirby-mansion) |
+| Lost (Demolished 2026-11-02) | Tier 1 | 2000 SMITH ST | John Henry Kirby Mansion | 1894 | `0152300000001` | James Ruskin Bailey (1928 Tudor Revival remodel) | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=prop-kirby-mansion) |
 | Lost | Tier 3 | 3747 DREYFUS ST | 3747 Dreyfus Street A and B | 1950 | `0391930200024` | None found | [Watchlist](https://davemorris-gcp.github.io/houston-building-atlas/plat-monitor.html#tab=watchlist&watch=plat-DPV-26080390) |
 
 ---
@@ -120,16 +124,15 @@ These properties are tracked in the Preservation Houston 15-Point Property Watch
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | CRITICAL | ⚫ Demolished (Nov 2, 2026) | 2000 SMITH ST | John Henry Kirby Mansion (1894-2026) | 1894 | `0152300000001` | `26090093` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/?id=lost_kirby_mansion_1894&layers=lost_houston) |
 | CRITICAL | 1 of 2 Permits: Sewer Disc Only | 1020 CORTLANDT ST | 1020 CORTLANDT ST | 1920 | `0202150000018` | `26095535` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0202150000018&tab=permits) |
+| CRITICAL | 1 of 2 Permits: Sewer Disc Only | 529 EUCLID ST | 529 EUCLID ST | 1920 | `0372870000009` | `26094287` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0372870000009&tab=permits) |
 | CRITICAL | 2 of 2 Permits: Sewer + Demo | 3703 GRAUSTARK ST | 3703 GRAUSTARK ST | 1928 | `0261900000007` | `26090831` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0261900000007&tab=permits) |
 | CRITICAL | Stage 2: Demo Permit Issued | 101 HEIGHTS BLVD | 101 HEIGHTS BLVD | 1940 | `0210590000005` | `26080189` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0210590000005&tab=permits) |
 | CRITICAL | Stage 2: Demo Permit Issued | 321 E  32ND ST | 321 E  32ND ST | 1943 | `0211200000017` | `26093503` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0211200000017&tab=permits) |
 | CRITICAL | 2 of 2 Permits: Sewer + Demo | 340 W  27TH ST | 340 W  27TH ST | 1947 | `0200230000020` | `26085478` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0200230000020&tab=permits) |
 | CRITICAL | 2 of 2 Permits: Sewer + Demo | 3701 MONTROSE BLVD | 3701 MONTROSE BLVD | 1950 | `0261570000017` | `26091185` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0261570000017&tab=permits) |
-| WATCH | DSHS Abatement | 6100 MAIN ST (WILL RICE COLLEGE - OLD DORM (ORIGINAL SOUTH HALL)) | Will Rice College - Old Dorm | 1912 | `0421790000001` | `2026005518` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0421790000001&tab=permits) |
 | WATCH | DSHS Abatement | 901 BAGBY ST | Houston City Hall and Hermann Square | 1939 | `0011490000001` | `2026005783` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0011490000001&tab=permits) |
 | WATCH | DSHS Abatement | 1515 HOLCOMBE BOULEVARD | University of Texas MD Anderson Cancer Center | 1941 | `osm_city_51815686` | `2026006286` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/?id=osm_city_51815686#bldg_university_of_texas_md_a) |
 | WATCH | DSHS Abatement | 6720 BERTNER AVENUE | Baylor St. Luke's Medical Center | 1954 | `osm_city_43666730` | `2026006302` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/?id=osm_city_43666730#bldg_baylor_st_luke_s_medical) |
-| WATCH | DSHS Abatement | 6100 MAIN ST (RICE MEMORIAL CENTER (RMC)) | Rice Memorial Center | 1958 | `0440980000065` | `2026005518` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0440980000065&tab=permits) |
 | WATCH | DSHS Abatement | 910 LOUISIANA STREET | One Shell Plaza | 1971 | `osm_city_44821986` | `26087441` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/?id=osm_city_44821986#bldg_one_shell_plaza) |
 | WATCH | DSHS Abatement | 5555 SAN FELIPE STREET | Marathon Oil Tower | 1983 | `osm_city_260359937` | `2026005618` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/?id=osm_city_260359937#bldg_marathon_oil_tower) |
 | WATCH | Garage Demo Only | 902 W COTTAGE ST | 902 W COTTAGE ST | 1926 | `0621340000009` | `26093543` | [Inspect](https://davemorris-gcp.github.io/houston-building-atlas/#hcad=0621340000009&tab=permits) |

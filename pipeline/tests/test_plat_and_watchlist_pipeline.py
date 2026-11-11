@@ -2778,7 +2778,7 @@ def test_build_col_map_across_all_four_2026_coh_xlsx_layouts_and_bad_zip_guard()
     assert fpw.parse_xlsx_bytes(b"") == []
 
 
-def test_post_review_cross_language_parity_and_activity_sanitization() -> None:
+def test_post_review_cross_language_parity_and_activity_sanitization(tmp_path: Path) -> None:
     """Verify Python/JS constant & behavior parity across overlay merges, multi-parcel tiers, canonical IDs, and activity log retraction cleanup."""
     import shutil
     import subprocess
@@ -2991,6 +2991,78 @@ console.log(JSON.stringify(out));
     assert ev0["adverse"] is False
     assert ev0["yearBuilt"] is None
     assert "Built 1922" not in ev0["summary"]
+
+    # 6. _merge_prior_disk_watchlist_and_reviews preserves prior on-disk watchProperties and platReviews
+    #    when Google Sheet Approved_Edits returns < 5 rows (e.g. #REF! formula blockage)
+    fake_wl_path = tmp_path / "property_watchlist.json"
+    fake_plat_path = tmp_path / "plat_agenda_monitor.json"
+    fake_wl_path.write_text(
+        json.dumps(
+            {
+                "watchedProperties": [
+                    {
+                        "id": "prop-1793288661917",
+                        "address": "2506 NAVIGATION BLVD",
+                        "hcad": "0031520000001",
+                        "name": "Navigation Historic Warehouse",
+                        "tier": "1",
+                    },
+                    {
+                        "id": "prop-kirby-mansion",
+                        "address": "2000 SMITH ST",
+                        "hcad": "0010530000001",
+                        "name": "John H. Kirby Mansion",
+                        "tier": "1",
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    fake_plat_path.write_text(
+        json.dumps(
+            {
+                "cycles": {
+                    "2026-10-29": {
+                        "reviews": {
+                            "2026-1659": {
+                                "tier": "2",
+                                "tierConfirmed": True,
+                                "disposition": "Reviewed - Monitor",
+                                "staffNotes": "Verify setback",
+                            }
+                        }
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    with mock.patch.object(fpw, "DATA_DIR", tmp_path):
+        merged_sync = fpw._merge_prior_disk_watchlist_and_reviews(
+            {
+                "platReviews": {},
+                "watchProperties": {
+                    "prop-kirby-mansion": {
+                        "id": "prop-kirby-mansion",
+                        "address": "2000 SMITH ST",
+                        "hcad": "0010530000001",
+                        "name": "John H. Kirby Mansion",
+                        "tier": "1",
+                        "staffNotes": "Live cloud override note",
+                    }
+                },
+            }
+        )
+        assert "prop-1793288661917" in merged_sync["watchProperties"]
+        assert "prop-kirby-mansion" in merged_sync["watchProperties"]
+        assert (
+            merged_sync["watchProperties"]["prop-kirby-mansion"]["staffNotes"]
+            == "Live cloud override note"
+        )
+        assert ("2026-10-29", "2026-1659") in merged_sync["platReviews"]
+        assert merged_sync["platReviews"][("2026-10-29", "2026-1659")]["tier"] == "2"
+
 
 
 
