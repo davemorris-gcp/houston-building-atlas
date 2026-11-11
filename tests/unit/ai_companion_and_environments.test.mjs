@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   AI_COMPANION_PLATFORMS,
   SAMPLE_AI_RESEARCH_PROMPTS,
+  buildOneClickAiLaunchUrl,
   buildPlatformSystemInstructions,
   buildPropertyAiResearchDossier,
 } from "../../app/js/aiCompanion.js";
@@ -151,7 +152,7 @@ test("UT-AI-3: AI_COMPANION_PLATFORMS, SAMPLE_AI_RESEARCH_PROMPTS, and buildPlat
     assert.ok(plat.actionLabel, `Platform ${plat.id} missing actionLabel`);
     assert.ok(plat.subtitle, `Platform ${plat.id} missing subtitle`);
     assert.ok(plat.launchUrl, `Platform ${plat.id} missing launchUrl`);
-    assert.ok(Array.isArray(plat.steps) && plat.steps.length >= 3);
+    assert.ok(Array.isArray(plat.steps) && plat.steps.length >= 2);
 
     const instructions = buildPlatformSystemInstructions(plat.id, {
       baseOriginPath: "https://atlas.preservationhouston.org/",
@@ -339,11 +340,14 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
     "btn-open-ai-companion-from-about",
     "ai-companion-modal",
     "btn-close-ai-companion-modal",
+    "btn-download-skill-zip",
     "btn-download-llms-full",
     "btn-download-query-py",
     "btn-download-skill-md",
     "btn-open-llms-txt",
     "ai-companion-dossier-preview",
+    "btn-launch-dossier-claude",
+    "btn-launch-dossier-chatgpt",
     "btn-copy-ai-active-dossier",
     "btn-ai-tab-chatgpt",
     "btn-ai-tab-claude",
@@ -361,6 +365,20 @@ test("UT-AI-5: DOM wiring in index.html/app.js, portable skill mirror parity, an
   assert.ok(appJs.includes('id="btn-inspector-ai-companion"'));
   assert.ok(indexCss.includes(".ai-companion-modal-card"));
   assert.ok(indexCss.includes(".ai-sample-prompt-card"));
+
+  // Verify buildOneClickAiLaunchUrl generates valid pre-filled URLs for Claude and ChatGPT
+  const claudeUrl = buildOneClickAiLaunchUrl("claude", "What happened to the Kirby Mansion?");
+  assert.ok(claudeUrl.startsWith("https://claude.ai/new?q="));
+  assert.ok(decodeURIComponent(claudeUrl).includes("llms.txt"));
+  assert.ok(decodeURIComponent(claudeUrl).includes("What happened to the Kirby Mansion?"));
+
+  const chatgptUrl = buildOneClickAiLaunchUrl("chatgpt", "What happened to the Kirby Mansion?");
+  assert.ok(chatgptUrl.startsWith("https://chatgpt.com/?q="));
+  assert.ok(decodeURIComponent(chatgptUrl).includes("llms-full.txt"));
+
+  const zipPath = path.join(APP_DIR, "public", "ai-companion", "houston-building-atlas-skill.zip");
+  assert.ok(fs.existsSync(zipPath), "houston-building-atlas-skill.zip must exist on disk");
+  assert.ok(fs.statSync(zipPath).size > 2000, "houston-building-atlas-skill.zip must be non-empty");
 
   // Verify byte-for-byte parity between skills/houston-building-atlas/ and app/public/ai-companion/
   // (supporting both flat download URLs and standard Agent Skill scripts/ + references/ subdirectories)

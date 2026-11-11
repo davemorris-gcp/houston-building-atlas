@@ -12,18 +12,60 @@
 
 import { DEFAULT_ATLAS_BASE_URL, resolveAtlasBaseOriginPath } from "./filterStore.js?v=20261110a";
 
+const SAMPLE_AI_RESEARCH_PROMPTS_SEED_QUESTION =
+  "Using The Houston Building Atlas, explain what happened to the 1894 John Henry Kirby Mansion at 2000 Smith St (HCAD 0152300000001), including the October 28, 2026 Smith Street Plaza replat (#RP-2026-435651), the 2-stage City of Houston demolition permits, and the Texas DSHS asbestos filings that preceded its November 2, 2026 loss. Which buildings by its 1928 Tudor Revival remodel architect James Ruskin Bailey are still standing in Houston? Include clickable Atlas links for each.";
+
+export function buildOneClickAiLaunchUrl(platform = "claude", queryOrDossier = "", options = {}) {
+  const baseUrl = resolveAtlasBaseOriginPath(options);
+  const cleanBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const platKey = String(platform || "claude").trim().toLowerCase();
+  if (platKey === "cli") {
+    return "public/ai-companion/SKILL.md";
+  }
+  if (platKey === "gemini") {
+    return "https://gemini.google.com/app";
+  }
+
+  const maxChars = Number(options.maxQueryChars) > 200 ? Number(options.maxQueryChars) : 3200;
+  const rawInput = _sanitizeDashes(String(queryOrDossier || "").trim());
+  const isPropertyDossier = rawInput.startsWith("# Houston Building Atlas - Property Research Dossier");
+
+  let promptBody = "";
+  if (isPropertyDossier) {
+    promptBody = rawInput;
+  } else {
+    const questionText =
+      rawInput ||
+      "Summarize what datasets The Houston Building Atlas covers and give 3 example questions I can ask about Houston historic buildings, architects, or demolition permits.";
+    promptBody = [
+      `Use The Houston Building Atlas (${cleanBase}llms.txt and ${cleanBase}llms-full.txt) to answer accurately with verified 4-tier construction dates, statutory protection rules (Protected Landmark vs Historic District vs Heritage District), Lost Houston status, and clickable Atlas deep links:`,
+      "",
+      questionText,
+    ].join("\n");
+  }
+
+  if (promptBody.length > maxChars) {
+    promptBody = `${promptBody.slice(0, maxChars - 120).trimEnd()}\n\n[Full corpus & live shards: ${cleanBase}llms-full.txt]`;
+  }
+
+  const encoded = encodeURIComponent(promptBody);
+  if (platKey === "claude") {
+    return `https://claude.ai/new?q=${encoded}`;
+  }
+  return `https://chatgpt.com/?q=${encoded}`;
+}
+
 export const AI_COMPANION_PLATFORMS = Object.freeze([
   {
     id: "chatgpt",
     label: "ChatGPT Plus / Web",
     shortLabel: "ChatGPT",
     actionLabel: "Copy Instructions for ChatGPT",
-    subtitle: "ChatGPT Projects, Custom GPTs & Web Chat with Data Analysis",
-    launchUrl: "https://chatgpt.com/",
+    subtitle: "1-Click Web Launch, ChatGPT Projects & Custom GPTs",
+    launchUrl: buildOneClickAiLaunchUrl("chatgpt", SAMPLE_AI_RESEARCH_PROMPTS_SEED_QUESTION),
     steps: [
-      "In ChatGPT Plus/Web, create a Project (or Custom GPT) named 'Houston Building Atlas Research Companion'.",
-      "Download and attach llms-full.txt and query_atlas.py below to the Project files.",
-      "Click 'Copy Instructions for ChatGPT' below and paste into Project Instructions (or click 'Copy Property Dossier + Prompt' to ask about a single building right away).",
+      "Option A (Zero Setup - 1 Click): Click 'Open ChatGPT (Pre-Loaded)' below (or click 'Ask ChatGPT' on any Property Dossier or Sample Prompt) to open chatgpt.com with the Atlas context already loaded in the chat box.",
+      "Option B (Reusable Project or Custom GPT): Create a Project in ChatGPT, attach llms-full.txt and query_atlas.py, and paste the instructions below.",
     ],
   },
   {
@@ -31,12 +73,12 @@ export const AI_COMPANION_PLATFORMS = Object.freeze([
     label: "Claude Web / Desktop",
     shortLabel: "Claude",
     actionLabel: "Copy Instructions for Claude",
-    subtitle: "Claude Projects, Claude Web Chat & Claude Desktop Skills",
-    launchUrl: "https://claude.ai/",
+    subtitle: "1-Click Web Launch, 1-File Skill (.zip) Upload & Claude Projects",
+    launchUrl: buildOneClickAiLaunchUrl("claude", SAMPLE_AI_RESEARCH_PROMPTS_SEED_QUESTION),
     steps: [
-      "In Claude Web or Desktop, create a Project named 'Houston Building Atlas' (or add skills/houston-building-atlas/ to Claude Desktop).",
-      "Upload llms-full.txt, SKILL.md, and query_atlas.py into Project Knowledge.",
-      "Click 'Copy Instructions for Claude' below and paste into Project Instructions.",
+      "Option A (Zero Setup - 1 Click): Click 'Open Claude (Pre-Loaded)' below (or click 'Ask Claude' on any Property Dossier or Sample Prompt) to open claude.ai/new with the Atlas context already loaded in the chat box.",
+      "Option B (1-File Permanent Skill Upload): Click 'Download Claude Skill (.zip)' at the top of this window, then in Claude go to Settings -> Capabilities -> Skills -> Upload a skill and select houston-building-atlas-skill.zip.",
+      "Option C (Claude Project): Create a Project in Claude and attach llms-full.txt for offline access to all 1,622 landmark/historic records and 623 Lost Houston sites.",
     ],
   },
   {
@@ -45,11 +87,10 @@ export const AI_COMPANION_PLATFORMS = Object.freeze([
     shortLabel: "Gemini",
     actionLabel: "Copy Instructions for Gemini",
     subtitle: "Google Gemini Gems & Web Chat with Python Execution",
-    launchUrl: "https://gemini.google.com/",
+    launchUrl: "https://gemini.google.com/app",
     steps: [
-      "In Google Gemini, create a Gem named 'Houston Building Atlas Historian' (or start a standard chat).",
-      "Attach llms-full.txt and query_atlas.py to the Gem Knowledge files.",
-      "Click 'Copy Instructions for Gemini' below and paste into the Gem Instructions box.",
+      "Option A (Fast Chat): Click 'Copy Property Dossier + Prompt' above (or 'Copy Research Prompt' on any question below) and paste straight into Google Gemini.",
+      "Option B (Reusable Gemini Gem): In Google Gemini, create a Gem named 'Houston Building Atlas Historian', attach llms-full.txt and query_atlas.py, and paste the instructions below.",
     ],
   },
   {
@@ -60,7 +101,7 @@ export const AI_COMPANION_PLATFORMS = Object.freeze([
     subtitle: "Claude Code, Gemini CLI, Cursor & Local Python / Node Scripts",
     launchUrl: "public/ai-companion/SKILL.md",
     steps: [
-      "Download SKILL.md and query_atlas.py (or query_atlas.mjs) into your agent's skills/houston-building-atlas/ folder.",
+      "Unzip houston-building-atlas-skill.zip into your agent's skills/ folder (or download query_atlas.py directly).",
       "Run python3 query_atlas.py --address \"2000 Smith St\" or --architect \"James Ruskin Bailey\" to query all 37 datasets over HTTPS in < 1 second.",
       "The script automatically checks atlas_environments.json so future vanity URL cutovers work with zero reconfiguration.",
     ],

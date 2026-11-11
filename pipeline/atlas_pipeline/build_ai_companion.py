@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import shutil
 from typing import Any
+import zipfile
 
 from atlas_pipeline.schema import (
     ACTIVE_CACHE_BUST,
@@ -231,6 +232,7 @@ def build_llms_txt_content(
         "",
         "## AI Research Companion Skill & Scripts (ChatGPT, Claude, Gemini, CLI)",
         "",
+        f"- [1-File Claude Skill Package (houston-building-atlas-skill.zip)]({base}public/ai-companion/houston-building-atlas-skill.zip): Ready-to-upload `.zip` archive for Claude Web / Claude Desktop (`Settings -> Capabilities -> Skills -> Upload a skill`).",
         f"- [Universal Agent Skill Definition (SKILL.md)]({base}public/ai-companion/SKILL.md): Portable skill and system instructions for ChatGPT Plus/Web, Claude Web/Desktop, Google Gemini, and coding agents.",
         f"- [Platform Setup & Pilot Guide (PLATFORM_SETUP_GUIDE.md)]({base}public/ai-companion/PLATFORM_SETUP_GUIDE.md): 2-minute setup guide and 6 test prompts for ChatGPT Plus/Web, Claude Web/Desktop, and Google Gemini.",
         f"- [Zero-Dependency Python Lookup Script (query_atlas.py)]({base}public/ai-companion/query_atlas.py): Standard-library Python 3 CLI and Code Interpreter helper that queries any Harris County street address, 13-digit HCAD account, architect, or neighborhood across static `.json.gz` shards.",
@@ -648,12 +650,41 @@ def build_llms_full_txt_content(
     return _clean_dash_text("\n".join(sections)) + "\n"
 
 
+def build_claude_skill_zip(skill_dir: Path, out_zip_path: Path) -> Path:
+    """Build a deterministic `.zip` archive with `houston-building-atlas/` as its root folder for 1-step Claude Skill upload (`Settings -> Capabilities -> Skills -> Upload a skill`)."""
+    out_zip_path.parent.mkdir(parents=True, exist_ok=True)
+    archive_members = [
+        (skill_dir / "SKILL.md", "houston-building-atlas/SKILL.md"),
+        (
+            skill_dir / "references" / "PLATFORM_SETUP_GUIDE.md",
+            "houston-building-atlas/references/PLATFORM_SETUP_GUIDE.md",
+        ),
+        (
+            skill_dir / "scripts" / "query_atlas.py",
+            "houston-building-atlas/scripts/query_atlas.py",
+        ),
+        (
+            skill_dir / "scripts" / "query_atlas.mjs",
+            "houston-building-atlas/scripts/query_atlas.mjs",
+        ),
+    ]
+    with zipfile.ZipFile(out_zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for src_p, arc_name in archive_members:
+            if not src_p.is_file():
+                continue
+            info = zipfile.ZipInfo(arc_name, date_time=(2026, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            zf.writestr(info, src_p.read_bytes())
+    return out_zip_path
+
+
 def sync_ai_companion_bundle(
     *,
     repo_root: Path | None = None,
     base_url: str | None = None,
 ) -> dict[str, Any]:
-    """Generate `atlas_environments.json`, `app/llms.txt`, `app/llms-full.txt`, and mirror `skills/houston-building-atlas/` into `app/public/ai-companion/`."""
+    """Generate `atlas_environments.json`, `app/llms.txt`, `app/llms-full.txt`, and mirror `skills/houston-building-atlas/` + `houston-building-atlas-skill.zip` into `app/public/ai-companion/`."""
     root = repo_root or REPO_ROOT
     app_dir = root / "app"
     data_dir = app_dir / "public" / "data"
@@ -706,6 +737,10 @@ def sync_ai_companion_bundle(
                 dst_p.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(src_p, dst_p)
                 mirrored_files.append(str(dst_p.relative_to(root)))
+        zip_dst = build_claude_skill_zip(
+            skill_dir, pub_ai_dir / "houston-building-atlas-skill.zip"
+        )
+        mirrored_files.append(str(zip_dst.relative_to(root)))
         pycache_dir = pub_ai_dir / "__pycache__"
         if pycache_dir.is_dir():
             shutil.rmtree(pycache_dir, ignore_errors=True)

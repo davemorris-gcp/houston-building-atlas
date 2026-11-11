@@ -4,32 +4,31 @@ This guide shows Preservation Staff, historians, board members, and members of t
 
 ---
 
-## Quick Option 0: Instant 1-Click Property Dossier Copy (Zero Setup Required)
+## Quick Option 0: Zero-Setup 1-Click Launch (`Ask Claude ↗` & `Ask ChatGPT ↗`)
 
-When inspecting any building, parcel, or *Lost Houston* site in [The Houston Building Atlas](https://davemorris-gcp.github.io/houston-building-atlas/):
-1. Click **`🤖 Ask AI / Copy Dossier`** inside the Property Inspector (or open **`More -> 🤖 AI Research Companion`**).
-2. Click **`📋 Copy Property Dossier + Research Prompt`**.
-3. Paste directly into **ChatGPT**, **Claude**, or **Google Gemini**.
-
-This copies the property's complete pre-joined record (verified construction year and 4-tier provenance, plain-English decoded HCAD/COH permits, 22-year certified ownership chain, HPO Historic District survey status, 1866-1926 City Directory appearance, TARO 2.0 / HPL archival box/folder citations, *Lost Houston* context, and verified deep links) straight into your chat window.
+You do not need to install a Skill or create a Project to use the AI Research Companion right away:
+1. Open [The Houston Building Atlas AI Research Companion](https://davemorris-gcp.github.io/houston-building-atlas/#aiCompanion=claude) (or inspect any building/parcel on the map and click **`🤖 Ask AI / Copy Dossier`**).
+2. Click **`🚀 Ask Claude (1-Click) ↗`** or **`🚀 Ask ChatGPT (1-Click) ↗`** on the Property Dossier or on any of the 6 Sample Questions.
+3. Claude (`claude.ai/new?q=...`) or ChatGPT (`chatgpt.com/?q=...`) opens in a new tab with the Atlas context and question already filled into the prompt box (and the full dossier copied to your clipboard). Just press **`Enter`**.
 
 ---
 
-## Option 1: ChatGPT Plus / Web (Project or Custom GPT)
+## Option 1: Claude Web / Claude Desktop (1-File `.zip` Skill Upload or Project)
 
-1. Open [ChatGPT](https://chatgpt.com/) and create a new **Project** (or **Custom GPT**) named **`Houston Building Atlas Research Companion`**.
-2. Download and attach these two files from the Atlas **`🤖 AI Research Companion`** modal (or from `https://davemorris-gcp.github.io/houston-building-atlas/`):
-   - [`llms-full.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt) (Complete pre-indexed catalog of 623 *Lost Houston* landmarks, 501 standing COH Landmarks, unprotected NRHP/cultural landmark candidates, 95+ Architect/Style portfolios, 23 Historic District surveys, 11 Council District scorecards, and 34 Watchlist dossiers)
-   - [`query_atlas.py`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/query_atlas.py) (Python lookup helper for Code Interpreter / Data Analysis)
-3. Paste the **System Instructions** from [`SKILL.md`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/SKILL.md) (or click **`📋 Copy ChatGPT Instructions`** inside the Atlas `#aiCompanion=1` modal) into the Project Instructions box.
+### Fast 1-File Skill Upload (`Settings -> Capabilities -> Skills`)
+1. Download the single packaged Skill archive: [`houston-building-atlas-skill.zip`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/houston-building-atlas-skill.zip).
+2. In [Claude](https://claude.ai/) or Claude Desktop, open **Settings -> Capabilities -> Skills** (or **Customize -> Skills**), click **`+ Upload a skill`**, and select `houston-building-atlas-skill.zip`.
+3. Toggle the skill **On**. Claude now automatically knows the Houston Building Atlas schema, 7 Golden Rules, and lookup script across all your chats.
+
+### Alternative: Claude Project (Offline Full Corpus)
+- If you want the entire `442 KB` offline table of 1,622 landmark/historic properties and 623 *Lost Houston* structures pinned inside a dedicated Claude Project, create a Project named **`Houston Building Atlas`** and attach [`llms-full.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt) to Project Knowledge.
 
 ---
 
-## Option 2: Claude Web / Claude Desktop (Project or Skill)
+## Option 2: ChatGPT Plus / Web (1-Click Launch, Project, or Custom GPT)
 
-1. Open [Claude](https://claude.ai/) and create a **Project** named **`Houston Building Atlas`** (or install `skills/houston-building-atlas/` in Claude Desktop / Claude Code).
-2. Upload [`llms-full.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt), [`SKILL.md`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/SKILL.md), and [`query_atlas.py`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/query_atlas.py) to **Project Knowledge**.
-3. Paste the **Claude Project Instructions** (available via 1-click copy in the Atlas `#aiCompanion=claude` modal).
+1. **Zero-Setup 1-Click Launch:** Click **`🚀 Ask ChatGPT (1-Click) ↗`** inside the [Atlas AI Companion modal](https://davemorris-gcp.github.io/houston-building-atlas/#aiCompanion=chatgpt) to open `chatgpt.com` with the Atlas `/llms.txt` index and your question pre-loaded in the chat input.
+2. **Reusable Project / Custom GPT:** Create a Project (or Custom GPT) named **`Houston Building Atlas Research Companion`**, attach [`llms-full.txt`](https://davemorris-gcp.github.io/houston-building-atlas/llms-full.txt) and [`query_atlas.py`](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/query_atlas.py), and paste the instructions from the `#aiCompanion=chatgpt` modal.
 
 ---
 

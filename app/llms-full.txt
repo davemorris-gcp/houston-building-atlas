@@ -11,6 +11,7 @@
 
 ## AI Research Companion Skill & Scripts (ChatGPT, Claude, Gemini, CLI)
 
+- [1-File Claude Skill Package (houston-building-atlas-skill.zip)](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/houston-building-atlas-skill.zip): Ready-to-upload `.zip` archive for Claude Web / Claude Desktop (`Settings -> Capabilities -> Skills -> Upload a skill`).
 - [Universal Agent Skill Definition (SKILL.md)](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/SKILL.md): Portable skill and system instructions for ChatGPT Plus/Web, Claude Web/Desktop, Google Gemini, and coding agents.
 - [Platform Setup & Pilot Guide (PLATFORM_SETUP_GUIDE.md)](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/PLATFORM_SETUP_GUIDE.md): 2-minute setup guide and 6 test prompts for ChatGPT Plus/Web, Claude Web/Desktop, and Google Gemini.
 - [Zero-Dependency Python Lookup Script (query_atlas.py)](https://davemorris-gcp.github.io/houston-building-atlas/public/ai-companion/query_atlas.py): Standard-library Python 3 CLI and Code Interpreter helper that queries any Harris County street address, 13-digit HCAD account, architect, or neighborhood across static `.json.gz` shards.

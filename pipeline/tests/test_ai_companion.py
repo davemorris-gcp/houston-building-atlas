@@ -215,11 +215,23 @@ def test_sync_ai_companion_bundle_and_cli_modes_roundtrip(
     res = sync_ai_companion_bundle()
     assert res["llms_txt_bytes"] > 5000
     assert res["llms_full_txt_bytes"] > 100000
-    assert len(res["mirrored_files"]) == 7
+    assert len(res["mirrored_files"]) == 8
     assert "app/public/ai-companion/PLATFORM_SETUP_GUIDE.md" in res["mirrored_files"]
     assert "app/public/ai-companion/references/PLATFORM_SETUP_GUIDE.md" in res["mirrored_files"]
     assert "app/public/ai-companion/scripts/query_atlas.py" in res["mirrored_files"]
     assert "app/public/ai-companion/scripts/query_atlas.mjs" in res["mirrored_files"]
+    assert "app/public/ai-companion/houston-building-atlas-skill.zip" in res["mirrored_files"]
+
+    import zipfile
+    from atlas_pipeline.build_ai_companion import REPO_ROOT as _ROOT
+    zip_path = _ROOT / "app" / "public" / "ai-companion" / "houston-building-atlas-skill.zip"
+    assert zip_path.is_file()
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        names = set(zf.namelist())
+        assert "houston-building-atlas/SKILL.md" in names
+        assert "houston-building-atlas/scripts/query_atlas.py" in names
+        assert "houston-building-atlas/scripts/query_atlas.mjs" in names
+        assert "houston-building-atlas/references/PLATFORM_SETUP_GUIDE.md" in names
 
     # Test CLI --mode build-ai-companion
     cli.main(["--mode", "build-ai-companion"])

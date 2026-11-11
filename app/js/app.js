@@ -156,6 +156,7 @@ import {
 } from "./thcSurveyFormGenerator.js?v=20261110a";
 import {
   AI_COMPANION_PLATFORMS,
+  buildOneClickAiLaunchUrl,
   buildPlatformSystemInstructions,
   buildPropertyAiResearchDossier,
   SAMPLE_AI_RESEARCH_PROMPTS,
@@ -4919,6 +4920,17 @@ export class HoustonAtlasApp {
           btnCopyAiDossier.innerHTML = "&#128203; Copy Property Dossier + Prompt";
         }, 2200);
       });
+    }
+    for (const launchId of ["btn-launch-dossier-claude", "btn-launch-dossier-chatgpt"]) {
+      const launchEl = document.getElementById(launchId);
+      if (launchEl) {
+        launchEl.addEventListener("click", () => {
+          const dossierTxt = this._buildActivePropertyAiDossier();
+          if (dossierTxt && navigator.clipboard) {
+            navigator.clipboard.writeText(dossierTxt).catch(() => {});
+          }
+        });
+      }
     }
     const aiSamplePromptsEl =
       document.getElementById("ai-sample-prompts-grid") ||
@@ -17307,8 +17319,17 @@ export class HoustonAtlasApp {
     const activeTitleEl = document.getElementById("ai-companion-active-title");
     const bannerEl = document.getElementById("ai-companion-active-property-banner");
     const activeLabelEl = document.getElementById("ai-companion-active-property-label");
+    const dossierText = this._buildActivePropertyAiDossier();
     if (dossierPreviewEl) {
-      dossierPreviewEl.textContent = this._buildActivePropertyAiDossier();
+      dossierPreviewEl.textContent = dossierText;
+    }
+    const btnLaunchDossierClaude = document.getElementById("btn-launch-dossier-claude");
+    if (btnLaunchDossierClaude) {
+      btnLaunchDossierClaude.setAttribute("href", buildOneClickAiLaunchUrl("claude", dossierText));
+    }
+    const btnLaunchDossierChatgpt = document.getElementById("btn-launch-dossier-chatgpt");
+    if (btnLaunchDossierChatgpt) {
+      btnLaunchDossierChatgpt.setAttribute("href", buildOneClickAiLaunchUrl("chatgpt", dossierText));
     }
     if (
       activeProps &&
@@ -17345,19 +17366,41 @@ export class HoustonAtlasApp {
       sampleGrid.innerHTML = SAMPLE_AI_RESEARCH_PROMPTS.map(
         (item, idx) => {
           const linkTarget = item.deepLink || item.atlasHash || "#";
+          const claudeHref = buildOneClickAiLaunchUrl("claude", item.prompt);
+          const chatgptHref = buildOneClickAiLaunchUrl("chatgpt", item.prompt);
           return `
         <div class="ai-sample-prompt-card ai-companion-prompt-card">
           <div class="ai-sample-prompt-kicker">${this._escapeHtmlAttr(item.category || "Houston Built Environment")}</div>
           <div class="ai-sample-prompt-title ai-companion-prompt-title">${this._escapeHtmlAttr(item.title)}</div>
           <p class="ai-sample-prompt-text ai-companion-prompt-text">${this._escapeHtmlAttr(item.prompt)}</p>
           <div class="ai-sample-prompt-actions ai-companion-prompt-actions">
+            <a
+              href="${this._escapeHtmlAttr(claudeHref)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="action-pill active"
+              style="padding: 4px 10px; font-size: 11px; text-decoration: none;"
+              title="Open Claude with this question and the Atlas /llms.txt index pre-loaded in the chat input"
+            >
+              &#128640; Ask Claude &#8599;
+            </a>
+            <a
+              href="${this._escapeHtmlAttr(chatgptHref)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="action-pill"
+              style="padding: 4px 10px; font-size: 11px; text-decoration: none;"
+              title="Open ChatGPT with this question and the Atlas /llms.txt index pre-loaded in the chat input"
+            >
+              &#128640; Ask ChatGPT &#8599;
+            </a>
             <button
               type="button"
-              class="action-pill active"
+              class="action-pill"
               data-copy-ai-sample-prompt="${idx}"
               style="padding: 4px 10px; font-size: 11px;"
             >
-              &#128203; Copy Research Prompt
+              &#128203; Copy Prompt
             </button>
             <a
               href="${this._escapeHtmlAttr(linkTarget)}"

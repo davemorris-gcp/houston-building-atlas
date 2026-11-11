@@ -3600,8 +3600,11 @@
               Use your own <strong>ChatGPT Plus/Web</strong>, <strong>Claude Web/Desktop</strong>, or <strong>Google Gemini</strong> account to research Houston's built environment across all <strong>37 pre-joined datasets</strong> (exact 4-tier construction dates, 623 <em>Lost Houston</em> sites, 2005-2026 certified ownership chains, plain-English decoded HCAD/COH permits, HPO Historic District surveys, and TARO/HPL archival finding aids) with verifiable deep links into the Atlas.
             </p>
             <div class="ai-companion-download-row">
-              <a href="llms-full.txt" download="houston-building-atlas-llms-full.txt" class="action-pill active" id="btn-download-llms-full">
-                &#11015; Download Knowledge Corpus (llms-full.txt)
+              <a href="public/ai-companion/houston-building-atlas-skill.zip" download="houston-building-atlas-skill.zip" class="action-pill active" id="btn-download-skill-zip">
+                &#11015; 1-File Claude Skill (.zip)
+              </a>
+              <a href="llms-full.txt" download="houston-building-atlas-llms-full.txt" class="action-pill" id="btn-download-llms-full">
+                &#11015; Knowledge Corpus (llms-full.txt)
               </a>
               <a href="public/ai-companion/query_atlas.py" download="query_atlas.py" class="action-pill" id="btn-download-query-py">
                 &#11015; Python Helper (query_atlas.py)
@@ -3621,12 +3624,20 @@
               <div>
                 <h3 id="ai-companion-active-title">1. Instant 1-Click Property Research Dossier (Zero Setup Needed)</h3>
                 <p class="ai-companion-sub" id="ai-companion-active-sub">
-                  Copy the pre-joined multi-dataset dossier for the currently selected building or parcel and paste it straight into ChatGPT, Claude, or Gemini.
+                  Launch straight into Claude or ChatGPT with this building's pre-joined record pre-filled in the prompt box, or copy the full dossier to paste into any AI tool.
                 </p>
               </div>
-              <button type="button" class="action-pill active" id="btn-copy-ai-active-dossier">
-                &#128203; Copy Property Dossier + Prompt
-              </button>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer" class="action-pill active" id="btn-launch-dossier-claude">
+                  &#128640; Ask Claude (1-Click) &#8599;
+                </a>
+                <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer" class="action-pill active" id="btn-launch-dossier-chatgpt">
+                  &#128640; Ask ChatGPT (1-Click) &#8599;
+                </a>
+                <button type="button" class="action-pill" id="btn-copy-ai-active-dossier">
+                  &#128203; Copy Property Dossier + Prompt
+                </button>
+              </div>
             </div>
             <pre class="ai-companion-code-box" id="ai-companion-dossier-preview"></pre>
           </div>
