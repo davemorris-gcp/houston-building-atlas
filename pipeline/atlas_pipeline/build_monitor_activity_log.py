@@ -1607,6 +1607,13 @@ def compute_snapshot_diff_events(
 
     by_id: dict[str, dict] = {}
     for ev in raw_events:
+        if seed_mode and ev["localDate"] > today_str:
+            ev = dict(ev)
+            ev["localDate"] = today_str
+            ev["timestamp"] = now_iso
+            ev["discoveredAt"] = now_iso
+            if ev.get("loggedAt"):
+                ev["loggedAt"] = now_iso
         if ev["localDate"] >= floor_iso:
             by_id[ev["id"]] = ev
     return list(by_id.values())
