@@ -102,8 +102,31 @@ OWNERSHIP_PORTFOLIOS_JSON = DATA_DIR / "ownership_portfolios.json"
 OWNERSHIP_GRAPH_CACHE_PKL = CACHE_DIR / "ownership_graph_2026.json"
 
 MAX_PORTFOLIOS_EXPORT = 240
-MAX_WORKS_PER_PORTFOLIO = 50
+MAX_WORKS_PER_PORTFOLIO = 500
 MAX_OWNERSHIP_PORTFOLIOS_BYTES = int(2.5 * 1024 * 1024)
+
+CANONICAL_PORTFOLIO_OFFICERS: dict[str, list[str]] = {
+    "port_2410_polk_200": [
+        "Frank Liu (Founder & Chairman, Lovett Homes / InTown Homes / Fenway Development)"
+    ],
+    "port_401_franklin_st_ste_2555_0dff7f": [
+        "Frank Liu (Founder & Chairman, Lovett Homes / InTown Homes / Fenway Development)",
+        "Frank Liu (Lovett Industrial)",
+    ],
+    "port_po_box_1524_35e7ca": [
+        "Jon Deal (Founder, Deal Co. / Sawyer Yards)"
+    ],
+    "port_5353_w_alabama_st_ste_20_a33acc": [
+        "Dan Braun (President, Braun Enterprises)",
+        "Gabriel Sambrooks",
+    ],
+    "port_4412_almeda_650d7e": [
+        "Sharone Mayberry (President, Mayberry Homes Inc.)"
+    ],
+    "port_611_w_22nd_st_ste_203_f09202": [
+        "Steve Radom (Managing Principal, Radom Capital)"
+    ],
+}
 
 SOCRATA_FRANCHISE_URL = "https://data.texas.gov/resource/9cir-efmm.json"
 SOCRATA_EXEMPT_URL = "https://data.texas.gov/resource/8gur-z4cy.json"
@@ -995,6 +1018,12 @@ def build_and_write_ownership_portfolios_catalog(
 
     # Collect standing building coordinates & styles from aligned_ndjson shards (or buildings.geojson fallback)
     bldg_info_by_acct: dict[str, tuple[str, float, float, int, str, str]] = {}
+    bldg_info_by_addr: dict[str, tuple[str, float, float, int, str, str]] = {}
+    target_port_addrs: set[str] = {
+        re.sub(r"\s+", " ", rec.situs_addr.upper()).strip()
+        for rec in records.values()
+        if rec.port_id and rec.situs_addr and not str(rec.state_class or "").upper().startswith("C")
+    }
     search_aligned = aligned_dir if aligned_dir is not None else (CACHE_DIR / "aligned_ndjson")
     if search_aligned.exists():
         for q in QUAD_NAMES:
@@ -1011,30 +1040,38 @@ def build_and_write_ownership_portfolios_catalog(
                     feat = orjson.loads(line)
                     props = feat.get("properties") or {}
                     h = re.sub(r"\D", "", str(props.get("hcad_num") or ""))
-                    if len(h) != 13 or h not in records:
-                        continue
-                    rec = records[h]
-                    if not rec.port_id:
-                        continue
-                    if h in bldg_info_by_acct:
+                    raw_addr = sanitize_atlas_text(str(props.get("address") or ""))
+                    norm_addr = re.sub(r"\s+", " ", raw_addr.upper()).strip()
+                    rec = records.get(h) if len(h) == 13 else None
+                    has_acct_match = bool(rec is not None and rec.port_id and h not in bldg_info_by_acct)
+                    has_addr_match = bool(norm_addr and norm_addr in target_port_addrs and norm_addr not in bldg_info_by_addr)
+                    if not has_acct_match and not has_addr_match:
                         continue
                     lat_lng = _compute_feature_centroid_lat_lng(feat.get("geometry"))
                     if lat_lng is None:
                         continue
-                    yr = int(props.get("year_built") or rec.year_built or 0)
-                    addr = sanitize_atlas_text(str(props.get("address") or rec.situs_addr or ""))
+                    yr = int(props.get("year_built") or (rec.year_built if rec is not None else 0) or 0)
+                    addr = raw_addr or (rec.situs_addr if rec is not None else "")
                     style_or_use = sanitize_atlas_text(
                         str(props.get("bld_style") or props.get("use_category") or "Building")
                     )
                     nbhd = sanitize_atlas_text(
                         str(props.get("historic_district") or props.get("super_neighborhood") or "")
                     )
-                    bldg_info_by_acct[h] = (addr, lat_lng[0], lat_lng[1], yr, style_or_use, nbhd)
+                    info_tuple = (addr, lat_lng[0], lat_lng[1], yr, style_or_use, nbhd)
+                    if has_acct_match:
+                        bldg_info_by_acct[h] = info_tuple
+                    if has_addr_match:
+                        bldg_info_by_addr[norm_addr] = info_tuple
 
     # Rank portfolios by historic significance (pre-1940 count + multi-LLC count) and parcel count
     scored_pids: list[tuple[tuple[int, int, int, int, str], str]] = []
     valid_accts_by_pid: dict[str, list[str]] = {}
     for pid, pmeta in port_meta_by_id.items():
+        bk_str = str(pmeta.get("billing_key") or "").upper()
+        baddr_str = str(pmeta.get("billing_address") or "").upper()
+        if "ADDRESS UNKNOWN" in bk_str or "ADDRESS UNKNOWN" in baddr_str or pid == "port_address_unknown_c9ad96":
+            continue
         accts = [
             a
             for a in (pmeta.get("accts") or ())
@@ -1084,18 +1121,21 @@ def build_and_write_ownership_portfolios_catalog(
                 ent_counter[rec.owner_name] += 1
             total_mkt += float(rec.market_val or 0.0)
             binfo = bldg_info_by_acct.get(a)
-            yr = binfo[3] if binfo is not None else int(rec.year_built or 0)
-            if yr >= MIN_VALID_YEAR or binfo is not None:
-                standing_cnt += 1
-            if MIN_VALID_YEAR <= yr < 1940:
-                pre1940_cnt += 1
+            if binfo is None and rec.year_built >= MIN_VALID_YEAR and not str(rec.state_class or "").upper().startswith("C"):
+                norm_situs = re.sub(r"\s+", " ", (rec.situs_addr or "").upper()).strip()
+                if norm_situs:
+                    binfo = bldg_info_by_addr.get(norm_situs)
             if binfo is not None:
                 addr, lat, lng, b_yr, style_use, nbhd = binfo
+                eff_yr = int(b_yr or rec.year_built or 0)
+                standing_cnt += 1
+                if MIN_VALID_YEAR <= eff_yr < 1940:
+                    pre1940_cnt += 1
                 if nbhd:
                     nbhd_counter[nbhd] += 1
                 w_rank = (
-                    1 if (MIN_VALID_YEAR <= b_yr < 1940) else 0,
-                    -(b_yr if b_yr >= MIN_VALID_YEAR else 9999),
+                    1 if (MIN_VALID_YEAR <= eff_yr < 1940) else 0,
+                    -(eff_yr if eff_yr >= MIN_VALID_YEAR else 9999),
                     float(rec.market_val or 0.0),
                     a,
                 )
@@ -1106,7 +1146,7 @@ def build_and_write_ownership_portfolios_catalog(
                         addr or rec.situs_addr or f"HCAD {a}",
                         lat,
                         lng,
-                        int(b_yr or 0),
+                        eff_yr,
                         style_use[:40],
                         (rec.owner_name or pmeta.get("primary_entity") or "")[:64],
                         "standing",
@@ -1153,6 +1193,8 @@ def build_and_write_ownership_portfolios_catalog(
         }
         if comp_match:
             port_entry["comptroller"] = comp_match
+        if pid in CANONICAL_PORTFOLIO_OFFICERS:
+            port_entry["tx_sos_officers"] = list(CANONICAL_PORTFOLIO_OFFICERS[pid])
         portfolios_out[pid] = port_entry
 
     catalog_doc = {

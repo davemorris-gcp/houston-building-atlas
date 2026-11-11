@@ -204,6 +204,28 @@ test("UT-7: guidedChaptersAndPortfolios.js X-Ray decoder, 1836-2026 Timeline bui
     ds.works.some((w) => w.hcadNum === "0202090000013" && w.entityName === "1017 RUTLAND LLC")
   );
 
+  // 1b. Verify full standing building expansion & parcel breakdown on Lovett (port_2410_polk_200)
+  const bioLovett = resolvePortfolioBiography(
+    "owner_portfolio",
+    "port_2410_polk_200",
+    portfoliosJson
+  );
+  assert.ok(bioLovett.title.includes("Lovett Homes"));
+  assert.ok(bioLovett.summary.includes("2,639 Harris County parcels"));
+  assert.ok(bioLovett.summary.includes("unimproved townhome lots"));
+  const dsLovett = buildPortfolioDataset({
+    kind: "owner_portfolio",
+    query: "port_2410_polk_200",
+    ownershipPortfolios: portfoliosJson,
+  });
+  assert.equal(dsLovett.stats.parcelCount, 2639);
+  assert.ok(dsLovett.stats.totalCount >= 180, `Expected >=180 mapped Lovett works, got ${dsLovett.stats.totalCount}`);
+  assert.equal(dsLovett.stats.totalCount, dsLovett.stats.standingBuildingCount);
+  assert.equal(dsLovett.stats.unimprovedLotCount, 2639 - dsLovett.stats.totalCount);
+  assert.ok(dsLovett.stats.pre1940Count >= 60);
+  assert.ok(dsLovett.stats.totalMarketVal > 600000000);
+  assert.ok(dsLovett.works.some((w) => w.address.includes("2410 POLK ST")));
+
   // 2. Ownership X-Ray decoder on 1017 RUTLAND ST (0202090000013) using both object and positional signatures
   const rutlandProps = {
     hcad_num: "0202090000013",

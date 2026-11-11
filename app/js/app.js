@@ -21107,6 +21107,10 @@ export class HoustonAtlasApp {
     const statLost = document.getElementById("portfolio-stat-lost");
     const statSpan = document.getElementById("portfolio-stat-span");
     const statHonors = document.getElementById("portfolio-stat-honors");
+    const lblExtant = document.getElementById("portfolio-stat-lbl-extant");
+    const lblLost = document.getElementById("portfolio-stat-lbl-lost");
+    const lblSpan = document.getElementById("portfolio-stat-lbl-span");
+    const lblHonors = document.getElementById("portfolio-stat-lbl-honors");
     const pillAll = document.getElementById("portfolio-pill-all");
     const pillExtant = document.getElementById("portfolio-pill-extant");
     const pillLost = document.getElementById("portfolio-pill-lost");
@@ -21115,7 +21119,15 @@ export class HoustonAtlasApp {
     const st = dataset.stats;
     if (titleEl) titleEl.textContent = bio.title || dataset.query;
     if (lifeEl) {
-      lifeEl.textContent = `${st.totalCount} Mapped Work${st.totalCount === 1 ? "" : "s"}`;
+      if (cleanKind === "owner_portfolio") {
+        const pTotal = Number(st.parcelCount) || st.totalCount;
+        lifeEl.textContent =
+          pTotal > st.totalCount
+            ? `${st.totalCount.toLocaleString()} Standing Bldgs Mapped · ${pTotal.toLocaleString()} Total Parcels`
+            : `${st.totalCount.toLocaleString()} Standing Bldg${st.totalCount === 1 ? "" : "s"} Mapped`;
+      } else {
+        lifeEl.textContent = `${st.totalCount} Mapped Work${st.totalCount === 1 ? "" : "s"}`;
+      }
     }
     if (roleEl) roleEl.textContent = bio.role || "";
     if (bioEl) bioEl.textContent = bio.summary || "";
@@ -21125,18 +21137,47 @@ export class HoustonAtlasApp {
       contextTitle: `Portfolio: ${bio.title || dataset.query}`,
       excerpt: bio.summary || "",
     });
-    if (statExtant) statExtant.textContent = String(st.extantCount);
-    if (statLost) statLost.textContent = String(st.demolishedCount);
-    if (statSpan) {
-      statSpan.textContent =
-        st.earliestYear && st.latestYear
-          ? st.earliestYear === st.latestYear
-            ? String(st.earliestYear)
-            : `${st.earliestYear}-${st.latestYear}`
-          : "-";
-    }
-    if (statHonors) {
-      statHonors.textContent = `${st.landmarkCount} LM · ${st.goodBrickCount} GB`;
+    if (statExtant) statExtant.textContent = st.extantCount.toLocaleString();
+    if (statLost) statLost.textContent = st.demolishedCount.toLocaleString();
+    if (cleanKind === "owner_portfolio") {
+      if (lblExtant) lblExtant.textContent = "Standing Bldgs";
+      if (lblLost) lblLost.textContent = "Lost Houston";
+      if (statSpan) {
+        statSpan.textContent = (Number(st.parcelCount) || st.totalCount).toLocaleString();
+      }
+      if (lblSpan) lblSpan.textContent = "Total Parcels";
+      if (statHonors) {
+        const mkt = Number(st.totalMarketVal) || 0;
+        const mktStr =
+          mkt >= 1e9
+            ? `$${(mkt / 1e9).toFixed(2)}B`
+            : mkt >= 1e6
+            ? `$${(mkt / 1e6).toFixed(1)}M`
+            : mkt >= 1e3
+            ? `$${Math.round(mkt / 1e3).toLocaleString()}K`
+            : `${st.distinctLlcs || 1} LLCs`;
+        statHonors.textContent = mktStr;
+      }
+      if (lblHonors) {
+        const pre40 = Number(st.pre1940Count) || 0;
+        lblHonors.textContent = pre40 > 0 ? `Value (${pre40} Pre-40)` : "HCAD Value";
+      }
+    } else {
+      if (lblExtant) lblExtant.textContent = "Extant";
+      if (lblLost) lblLost.textContent = "Lost Houston";
+      if (statSpan) {
+        statSpan.textContent =
+          st.earliestYear && st.latestYear
+            ? st.earliestYear === st.latestYear
+              ? String(st.earliestYear)
+              : `${st.earliestYear}-${st.latestYear}`
+            : "-";
+      }
+      if (lblSpan) lblSpan.textContent = "Career / Era";
+      if (statHonors) {
+        statHonors.textContent = `${st.landmarkCount} LM · ${st.goodBrickCount} GB`;
+      }
+      if (lblHonors) lblHonors.textContent = "Landmarks / GB";
     }
     if (pillAll) pillAll.textContent = String(st.totalCount);
     if (pillExtant) pillExtant.textContent = String(st.extantCount);
@@ -21179,9 +21220,13 @@ export class HoustonAtlasApp {
       return;
     }
 
-    // For large style portfolios (>250 works), cap DOM list at 200 chronological works while keeping all points on WebGL map
-    const displayWorks = filtered.slice(0, 200);
+    // For large style portfolios (>250 works), cap DOM list at 200 chronological works while keeping all points on WebGL map;
+    // for owner_portfolio, allow up to 500 works so full developer portfolios render without truncation.
+    const maxListRows = p.kind === "owner_portfolio" ? 500 : 200;
+    const displayWorks = filtered.slice(0, maxListRows);
     const moreCount = filtered.length - displayWorks.length;
+    const unimprovedLotCount =
+      p.kind === "owner_portfolio" ? Number(p.stats?.unimprovedLotCount) || 0 : 0;
 
     listEl.innerHTML =
       displayWorks
@@ -21195,7 +21240,7 @@ export class HoustonAtlasApp {
             : "Undated";
           const subParts = [
             w.address && w.address !== w.title ? w.address : "",
-            w.district || "",
+            p.kind === "owner_portfolio" ? w.entityName || "" : w.district || "",
             p.kind === "style" && w.architect ? w.architect : w.style || "",
             isLost ? "Lost Houston Archive" : w.isLandmark ? "COH Landmark" : "",
           ].filter(Boolean);
@@ -21219,6 +21264,9 @@ export class HoustonAtlasApp {
         .join("") +
       (moreCount > 0
         ? `<div style="padding:8px 10px;font-size:11px;color:#94a3b8;text-align:center;">All ${filtered.length.toLocaleString()} structures are lit on the map (${displayWorks.length} earliest chronological works listed above).</div>`
+        : "") +
+      (unimprovedLotCount > 0
+        ? `<div style="padding:10px 12px;margin-top:4px;border-radius:8px;background:rgba(15,23,42,0.65);border:1px solid rgba(148,163,184,0.18);font-size:11px;line-height:1.45;color:#cbd5e1;"><strong>Why ${(p.stats?.totalCount || filtered.length).toLocaleString()} mapped buildings vs. ${(p.stats?.parcelCount || 0).toLocaleString()} total parcels?</strong> All ${(p.stats?.totalCount || filtered.length).toLocaleString()} parcels in this portfolio with standing or Lost Houston building footprints are mapped and listed above. The remaining ${unimprovedLotCount.toLocaleString()} HCAD tax accounts are unimproved replatted townhome lots, HOA common-area reserves, or cleared land-assembly tracts.</div>`
         : "");
 
     listEl.querySelectorAll("[data-portfolio-work-idx]").forEach((rowBtn) => {

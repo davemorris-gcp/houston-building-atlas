@@ -1306,6 +1306,28 @@ export function resolvePortfolioBiography(kind, query, ownershipPortfolios = nul
       const eCount =
         Number(matchedPort.distinct_entity_count ?? matchedPort.distinct_llcs ?? matchedPort.ec) ||
         Math.max(1, ents.length);
+      const standingCount =
+        Number(matchedPort.standing_building_count) ||
+        (Array.isArray(matchedPort.works) ? matchedPort.works.length : 0);
+      const pre1940Count = Number(matchedPort.pre1940_count) || 0;
+      const totalMktVal = Number(matchedPort.total_market_val) || 0;
+      const mappedCount = Math.max(
+        standingCount,
+        Array.isArray(matchedPort.works) ? matchedPort.works.length : 0
+      );
+      const unimprovedCount = Math.max(0, pCount - mappedCount);
+      const mktNote =
+        totalMktVal > 0 ? ` (${formatPortfolioCompactUsd(totalMktVal)} HCAD certified market value)` : "";
+      const parcelBreakdownNote =
+        unimprovedCount > 0 && mappedCount > 0
+          ? ` Portfolio composition: ${mappedCount.toLocaleString()} parcels with standing or historic building footprints mapped below${
+              pre1940Count > 0
+                ? ` (including ${pre1940Count.toLocaleString()} pre-1940 historic structures)`
+                : ""
+            } and ${unimprovedCount.toLocaleString()} unimproved townhome lots, common-area reserves, or cleared land-assembly tracts.`
+          : pre1940Count > 0
+          ? ` Includes ${pre1940Count.toLocaleString()} pre-1940 historic structures.`
+          : "";
       const cleanBioLabel = cleanOwnerPortfolioDisplayLabel(
         matchedPort.label || matchedPid,
         matchedPort.primary_entity || "",
@@ -1314,11 +1336,13 @@ export function resolvePortfolioBiography(kind, query, ownershipPortfolios = nul
       return {
         title: `${cleanBioLabel} (${pCount.toLocaleString()} Parcels · ${eCount} Entities)`,
         role: `${tierItem.label} · Beneficial Ownership Cluster`,
-        summary: `Tax-billing and Texas Comptroller entity resolution links ${pCount} Harris County parcels across ${eCount} legal names sharing billing address "${
+        summary: `Tax-billing and Texas Comptroller entity resolution links ${pCount.toLocaleString()} Harris County parcels across ${eCount} legal names sharing billing address "${
           matchedPort.billing_address || "On File"
-        }".${entitySample ? ` Shell / entity names include: ${entitySample}.` : ""}${
-          officerSample ? ` Controlling officers / principals: ${officerSample}.` : ""
-        }${hoods ? ` Top neighborhoods: ${hoods}.` : ""}`,
+        }"${mktNote}.${parcelBreakdownNote}${
+          entitySample ? ` Shell / entity names include: ${entitySample}.` : ""
+        }${officerSample ? ` Controlling officers / principals: ${officerSample}.` : ""}${
+          hoods ? ` Top neighborhoods: ${hoods}.` : ""
+        }`,
         citations: [
           {
             label: "TX Comptroller Franchise Tax Entity Search",
@@ -1375,6 +1399,14 @@ export function resolvePortfolioBiography(kind, query, ownershipPortfolios = nul
         ? `Chronological portfolio of extant and demolished structures documented in the "${qRaw}" architectural style across Harris County.`
         : `Chronological portfolio of extant and demolished structures attributed to ${qRaw} across Harris County archival, landmark, and curated survey records.`,
   };
+}
+
+function formatPortfolioCompactUsd(val) {
+  const num = Number(val) || 0;
+  if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+  if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
+  if (num >= 1e3) return `$${Math.round(num / 1e3).toLocaleString()}K`;
+  return num > 0 ? `$${Math.round(num).toLocaleString()}` : "";
 }
 
 function matchesPortfolioField(candidateValue, queryNorm) {
@@ -1666,6 +1698,17 @@ export function buildPortfolioDataset({
             matchedPort?.distinct_entity_count ?? matchedPort?.distinct_llcs ?? matchedPort?.ec
           ) || 1,
         parcelCount: Number(matchedPort?.parcel_count ?? matchedPort?.c) || works.length,
+        standingBuildingCount:
+          Math.max(Number(matchedPort?.standing_building_count) || 0, works.length),
+        pre1940Count:
+          Number(matchedPort?.pre1940_count) ||
+          works.filter((w) => w.yearBuilt >= 1800 && w.yearBuilt < 1940).length,
+        totalMarketVal: Number(matchedPort?.total_market_val) || 0,
+        unimprovedLotCount: Math.max(
+          0,
+          (Number(matchedPort?.parcel_count ?? matchedPort?.c) || works.length) -
+            Math.max(Number(matchedPort?.standing_building_count) || 0, works.length)
+        ),
         earliestYear: Number.isFinite(earliestYear) ? earliestYear : null,
         latestYear: Number.isFinite(latestYear) ? latestYear : null,
       },
