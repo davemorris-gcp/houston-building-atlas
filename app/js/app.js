@@ -32,9 +32,11 @@ import {
 } from "./filterStore.js?v=20261110a";
 import { AtlasMapController } from "./mapController.js?v=20261110a";
 import {
+  buildCategorizedPortfolioCatalog,
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
   CITY_HISTORY_CHAPTERS,
+  cleanOwnerPortfolioDisplayLabel,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
   normalizePortfolioQuery,
@@ -4203,11 +4205,94 @@ export class HoustonAtlasApp {
           const pKind = normalizePortfolioKind(raw.slice(0, colonIdx));
           const pQuery = raw.slice(colonIdx + 1).trim();
           if (pQuery) {
+            this._closePortfolioPickerPopover();
             this.activatePortfolioMode(pKind, pQuery);
           }
         }
       });
     }
+    const portfolioPickerTrigger = document.getElementById("portfolio-picker-trigger");
+    if (portfolioPickerTrigger) {
+      portfolioPickerTrigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._togglePortfolioPickerPopover();
+      });
+    }
+    const portfolioPickerSearch = document.getElementById("portfolio-picker-search");
+    const portfolioPickerClear = document.getElementById("portfolio-picker-clear");
+    if (portfolioPickerSearch) {
+      portfolioPickerSearch.addEventListener("input", () => {
+        const val = String(portfolioPickerSearch.value || "");
+        if (portfolioPickerClear) {
+          portfolioPickerClear.classList.toggle("hidden", val.trim().length === 0);
+        }
+        this._renderPortfolioPickerPopover();
+      });
+      portfolioPickerSearch.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (portfolioPickerSearch.value) {
+            portfolioPickerSearch.value = "";
+            if (portfolioPickerClear) portfolioPickerClear.classList.add("hidden");
+            this._renderPortfolioPickerPopover();
+          } else {
+            this._closePortfolioPickerPopover();
+          }
+          return;
+        }
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          const listEl = document.getElementById("portfolio-picker-list");
+          const items = listEl
+            ? Array.from(listEl.querySelectorAll(".portfolio-picker-item"))
+            : [];
+          if (items.length > 0) {
+            e.preventDefault();
+            items[0].focus();
+          }
+          return;
+        }
+        if (e.key === "Enter") {
+          const listEl = document.getElementById("portfolio-picker-list");
+          const firstItem = listEl ? listEl.querySelector(".portfolio-picker-item") : null;
+          if (firstItem) {
+            e.preventDefault();
+            firstItem.click();
+          }
+        }
+      });
+    }
+    if (portfolioPickerClear && portfolioPickerSearch) {
+      portfolioPickerClear.addEventListener("click", (e) => {
+        e.stopPropagation();
+        portfolioPickerSearch.value = "";
+        portfolioPickerClear.classList.add("hidden");
+        this._renderPortfolioPickerPopover();
+        portfolioPickerSearch.focus();
+      });
+    }
+    document.querySelectorAll("[data-portfolio-cat]").forEach((tabBtn) => {
+      tabBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const cat = String(tabBtn.getAttribute("data-portfolio-cat") || "all");
+        this._portfolioPickerCategory = cat;
+        document.querySelectorAll("[data-portfolio-cat]").forEach((b) => {
+          const isAct = b === tabBtn;
+          b.classList.toggle("active", isAct);
+          b.setAttribute("aria-selected", isAct ? "true" : "false");
+        });
+        this._renderPortfolioPickerPopover();
+        const listEl = document.getElementById("portfolio-picker-list");
+        if (listEl) listEl.scrollTop = 0;
+      });
+    });
+    document.addEventListener("click", (e) => {
+      const pop = document.getElementById("portfolio-picker-popover");
+      const trig = document.getElementById("portfolio-picker-trigger");
+      if (!pop || pop.classList.contains("hidden")) return;
+      if (pop.contains(e.target) || (trig && trig.contains(e.target))) return;
+      this._closePortfolioPickerPopover();
+    });
     const btnPortfolioFitAll = document.getElementById("btn-portfolio-fit-all");
     if (btnPortfolioFitAll) {
       btnPortfolioFitAll.addEventListener("click", () => {
@@ -20546,106 +20631,399 @@ export class HoustonAtlasApp {
   /* ========================================================================
      Priority #4B: Architect, Master Builder & Architectural Style Portfolios
      ======================================================================== */
+  _togglePortfolioPickerPopover(forceOpen = null) {
+    const pop = document.getElementById("portfolio-picker-popover");
+    const trig = document.getElementById("portfolio-picker-trigger");
+    const card = document.getElementById("portfolio-monograph-card");
+    if (!pop || !trig) return;
+    const isCurrentlyOpen = !pop.classList.contains("hidden");
+    const shouldOpen = forceOpen === null ? !isCurrentlyOpen : Boolean(forceOpen);
+    if (!shouldOpen) {
+      this._closePortfolioPickerPopover();
+      return;
+    }
+    pop.classList.remove("hidden");
+    trig.setAttribute("aria-expanded", "true");
+    trig.classList.add("open");
+    if (card) card.classList.add("picker-open");
+    this._renderPortfolioPickerPopover();
+    const searchInput = document.getElementById("portfolio-picker-search");
+    if (searchInput) {
+      requestAnimationFrame(() => {
+        try {
+          searchInput.focus();
+          searchInput.select();
+        } catch (_err) {
+          /* ignore */
+        }
+      });
+    }
+  }
+
+  _closePortfolioPickerPopover() {
+    const pop = document.getElementById("portfolio-picker-popover");
+    const trig = document.getElementById("portfolio-picker-trigger");
+    const card = document.getElementById("portfolio-monograph-card");
+    if (pop) pop.classList.add("hidden");
+    if (trig) {
+      trig.setAttribute("aria-expanded", "false");
+      trig.classList.remove("open");
+    }
+    if (card) card.classList.remove("picker-open");
+  }
+
   _populatePortfolioPresetSelect(customSpec = null) {
     const sel = document.getElementById("portfolio-preset-select");
-    if (!sel) return;
-    const archPresets = FEATURED_PORTFOLIO_PRESETS.filter(
-      (p) => p.kind !== "style" && p.kind !== "owner_portfolio"
-    );
-    const stylePresets = FEATURED_PORTFOLIO_PRESETS.filter((p) => p.kind === "style");
-    const ownerPresets = Object.entries(this.ownershipPortfolios?.portfolios || {})
-      .map(([pid, p]) => {
-        const pCount = Number(p.parcel_count ?? p.c ?? 0);
-        const eCount = Number(p.distinct_entity_count ?? p.distinct_llcs ?? p.ec ?? 0);
-        const pName = p.label || p.primary_entity || p.b || p.n || pid;
-        return {
-          kind: "owner_portfolio",
-          query: pid,
-          label: `${pName} (${pCount.toLocaleString()} parcels${
-            eCount > 1 ? ` · ${eCount} LLCs` : ""
-          })`,
-          count: pCount,
-          entityCount: eCount,
-        };
-      })
-      .sort(
-        (a, b) =>
-          (b.query === "port_7155_old_katy_n260" ? 1 : 0) -
-            (a.query === "port_7155_old_katy_n260" ? 1 : 0) ||
-          (b.entityCount >= 10 ? 1 : 0) - (a.entityCount >= 10 ? 1 : 0) ||
-          b.count - a.count
-      )
-      .slice(0, 20);
-    const normKind = customSpec && customSpec.kind ? normalizePortfolioKind(customSpec.kind) : "architect";
+    if (
+      !this._portfolioCatalogCache ||
+      this._portfolioCatalogSourceRef !== this.ownershipPortfolios
+    ) {
+      this._portfolioCatalogCache = buildCategorizedPortfolioCatalog(this.ownershipPortfolios);
+      this._portfolioCatalogSourceRef = this.ownershipPortfolios;
+    }
+    const catalog = this._portfolioCatalogCache;
+    const archPresets = catalog.architects || [];
+    const stylePresets = catalog.styles || [];
+    const ownerPresets = catalog.owners || [];
+
+    const normKind =
+      customSpec && customSpec.kind ? normalizePortfolioKind(customSpec.kind) : "architect";
     const customVal =
       customSpec && customSpec.query ? `${normKind}:${customSpec.query}` : "";
-    const isPreset =
-      FEATURED_PORTFOLIO_PRESETS.some(
-        (p) => `${p.kind}:${p.query}`.toLowerCase() === customVal.toLowerCase()
-      ) ||
-      ownerPresets.some(
-        (p) => `${p.kind}:${p.query}`.toLowerCase() === customVal.toLowerCase()
-      );
+    const allPresets = [...archPresets, ...stylePresets, ...ownerPresets];
+    const matchedPreset = allPresets.find(
+      (p) => String(p.value || "").toLowerCase() === customVal.toLowerCase()
+    );
+    const isPreset = Boolean(matchedPreset);
 
     let customLabel = customSpec?.query || "";
-    if (normKind === "style") {
-      customLabel = `Style: ${customSpec?.query || ""}`;
+    let customBadge = "Architect";
+    let customCountText = "";
+    if (matchedPreset) {
+      customLabel = matchedPreset.title || matchedPreset.label || customLabel;
+      customBadge =
+        matchedPreset.category === "style"
+          ? "Style"
+          : matchedPreset.category === "owner_portfolio"
+          ? "LLC"
+          : "Architect";
+      const mCount = Number(matchedPreset.count || matchedPreset.workCount || 0);
+      customCountText =
+        mCount > 0
+          ? matchedPreset.category === "owner_portfolio"
+            ? `${mCount.toLocaleString()} parcels`
+            : `${mCount.toLocaleString()} work${mCount === 1 ? "" : "s"}`
+          : matchedPreset.countBadge || "";
+    } else if (normKind === "style") {
+      customBadge = "Style";
+      customLabel = `${customSpec?.query || ""} Style`;
     } else if (normKind === "owner_portfolio") {
+      customBadge = "LLC";
       const catRec = this.ownershipPortfolios?.portfolios?.[customSpec?.query || ""];
-      const catName = catRec
+      const rawCatName = catRec
         ? catRec.label || catRec.primary_entity || catRec.b || catRec.n || customSpec?.query
         : "";
+      const catName = rawCatName
+        ? cleanOwnerPortfolioDisplayLabel(
+            rawCatName,
+            catRec?.primary_entity || "",
+            customSpec?.query || ""
+          )
+        : "";
       const catCount = catRec ? Number(catRec.parcel_count ?? catRec.c ?? 0) : 0;
-      customLabel = catRec
-        ? `Portfolio: ${catName} (${catCount.toLocaleString()} parcels)`
-        : `Portfolio: ${customSpec?.query || ""}`;
+      customLabel = catName || customSpec?.query || "";
+      customCountText = catCount > 0 ? `${catCount.toLocaleString()} parcels` : "";
     }
 
-    const customOptHtml =
-      customVal && !isPreset
-        ? `<optgroup label="Selected Portfolio">
-            <option value="${customVal.replace(/"/g, "&quot;")}">${customLabel}</option>
-          </optgroup>`
-        : "";
+    if (this._activePortfolio && this._activePortfolio.stats) {
+      const st = this._activePortfolio.stats;
+      if (normKind !== "owner_portfolio" && st.totalCount > 0) {
+        customCountText = `${st.totalCount.toLocaleString()} work${
+          st.totalCount === 1 ? "" : "s"
+        }`;
+      }
+    }
 
-    const ownerOptGroupHtml =
-      ownerPresets.length > 0
-        ? `<optgroup label="Stewardship &amp; Multi-LLC Portfolios">
-            ${ownerPresets
-              .map(
-                (p) =>
-                  `<option value="${p.kind}:${p.query.replace(/"/g, "&quot;")}">${p.label}</option>`
-              )
-              .join("")}
-          </optgroup>`
-        : "";
+    const catBadgeEl = document.getElementById("portfolio-picker-cat-badge");
+    const activeLabelEl = document.getElementById("portfolio-picker-active-label");
+    const activeCountEl = document.getElementById("portfolio-picker-active-count");
+    if (catBadgeEl) {
+      catBadgeEl.textContent = customBadge;
+      catBadgeEl.setAttribute("data-cat", normKind);
+    }
+    if (activeLabelEl) {
+      activeLabelEl.textContent = customLabel || "Select Portfolio";
+      activeLabelEl.title = customLabel || "";
+    }
+    if (activeCountEl) {
+      activeCountEl.textContent = customCountText;
+      activeCountEl.classList.toggle("hidden", !customCountText);
+    }
 
-    sel.innerHTML = `
-      ${customOptHtml}
-      <optgroup label="Master Architects &amp; Builders">
-        ${archPresets
-          .map(
-            (p) =>
-              `<option value="${p.kind}:${p.query.replace(/"/g, "&quot;")}">${p.label}</option>`
-          )
-          .join("")}
-      </optgroup>
-      <optgroup label="Architectural Styles">
-        ${stylePresets
-          .map(
-            (p) =>
-              `<option value="${p.kind}:${p.query.replace(/"/g, "&quot;")}">${p.label}</option>`
-          )
-          .join("")}
-      </optgroup>
-      ${ownerOptGroupHtml}
-    `;
+    if (sel) {
+      const escAttr = (s) => this._escapeHtmlAttr(s);
+      const customOptHtml =
+        customVal && !isPreset
+          ? `<optgroup label="Selected Portfolio">
+              <option value="${escAttr(customVal)}">${escAttr(customLabel)}${
+                customCountText ? ` (${escAttr(customCountText)})` : ""
+              }</option>
+            </optgroup>`
+          : "";
 
-    if (customVal) {
-      const matchOpt = Array.from(sel.options).find(
-        (o) => o.value.toLowerCase() === customVal.toLowerCase()
-      );
-      if (matchOpt) sel.value = matchOpt.value;
+      const ownerOptGroupHtml =
+        ownerPresets.length > 0
+          ? `<optgroup label="Stewardship &amp; Multi-LLC Portfolios">
+              ${ownerPresets
+                .map(
+                  (p) =>
+                    `<option value="${escAttr(`${p.kind}:${p.query}`)}">${escAttr(
+                      p.label
+                    )}</option>`
+                )
+                .join("")}
+            </optgroup>`
+          : "";
+
+      sel.innerHTML = `
+        ${customOptHtml}
+        <optgroup label="Master Architects &amp; Builders">
+          ${archPresets
+            .map(
+              (p) =>
+                `<option value="${escAttr(`${p.kind}:${p.query}`)}">${escAttr(p.label)}${
+                  p.countBadge ? ` (${escAttr(p.countBadge)})` : ""
+                }</option>`
+            )
+            .join("")}
+        </optgroup>
+        <optgroup label="Architectural Styles">
+          ${stylePresets
+            .map(
+              (p) =>
+                `<option value="${escAttr(`${p.kind}:${p.query}`)}">${escAttr(p.label)}${
+                  p.countBadge ? ` (${escAttr(p.countBadge)})` : ""
+                }</option>`
+            )
+            .join("")}
+        </optgroup>
+        ${ownerOptGroupHtml}
+      `;
+
+      if (customVal) {
+        const matchOpt = Array.from(sel.options).find(
+          (o) => o.value.toLowerCase() === customVal.toLowerCase()
+        );
+        if (matchOpt) sel.value = matchOpt.value;
+      }
+    }
+
+    this._activePortfolioValue = customVal;
+    this._renderPortfolioPickerPopover(customVal);
+  }
+
+  _renderPortfolioPickerPopover(customValOverride = null) {
+    const listEl = document.getElementById("portfolio-picker-list");
+    if (!listEl) return;
+
+    if (
+      !this._portfolioCatalogCache ||
+      this._portfolioCatalogSourceRef !== this.ownershipPortfolios
+    ) {
+      this._portfolioCatalogCache = buildCategorizedPortfolioCatalog(this.ownershipPortfolios);
+      this._portfolioCatalogSourceRef = this.ownershipPortfolios;
+    }
+    const catalog = this._portfolioCatalogCache;
+
+    const searchInput = document.getElementById("portfolio-picker-search");
+    const rawSearch = String(searchInput?.value || "").trim();
+    const normQuery = rawSearch
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const tokens = normQuery ? normQuery.split(" ").filter(Boolean) : [];
+
+    const matchesTokens = (item) => {
+      if (tokens.length === 0) return true;
+      const blob = item.searchBlob || "";
+      return tokens.every((tk) => blob.includes(tk));
+    };
+
+    const archMatches = (catalog.architects || []).filter(matchesTokens);
+    const styleMatches = (catalog.styles || []).filter(matchesTokens);
+    const ownerMatches = (catalog.owners || []).filter(matchesTokens);
+    const totalMatches = archMatches.length + styleMatches.length + ownerMatches.length;
+
+    const countAllEl = document.getElementById("portfolio-tab-count-all");
+    const countArchEl = document.getElementById("portfolio-tab-count-arch");
+    const countStyleEl = document.getElementById("portfolio-tab-count-style");
+    const countOwnerEl = document.getElementById("portfolio-tab-count-owner");
+    if (countAllEl) countAllEl.textContent = String(totalMatches);
+    if (countArchEl) countArchEl.textContent = String(archMatches.length);
+    if (countStyleEl) countStyleEl.textContent = String(styleMatches.length);
+    if (countOwnerEl) countOwnerEl.textContent = String(ownerMatches.length);
+
+    const activeCat = this._portfolioPickerCategory || "all";
+    let visibleItems = [];
+    if (activeCat === "architect") {
+      visibleItems = archMatches;
+    } else if (activeCat === "style") {
+      visibleItems = styleMatches;
+    } else if (activeCat === "owner_portfolio") {
+      visibleItems = ownerMatches;
+    } else {
+      visibleItems = [...archMatches, ...styleMatches, ...ownerMatches];
+    }
+
+    const activeVal = String(customValOverride ?? this._activePortfolioValue ?? "").toLowerCase();
+
+    const grouped = new Map();
+    for (const item of visibleItems) {
+      const gKey = item.subGroup || "Portfolios";
+      if (!grouped.has(gKey)) grouped.set(gKey, []);
+      grouped.get(gKey).push(item);
+    }
+
+    const escHtml = (s) => this._escapeHtmlAttr(s);
+
+    let html = "";
+    for (const [subGroupLabel, items] of grouped.entries()) {
+      html += `<div class="portfolio-picker-group-header">${escHtml(
+        subGroupLabel
+      )} <span class="portfolio-picker-group-count mono">${items.length}</span></div>`;
+      for (const item of items) {
+        const isSelected = String(item.value || "").toLowerCase() === activeVal;
+        html += `
+          <button
+            type="button"
+            role="option"
+            aria-selected="${isSelected ? "true" : "false"}"
+            class="portfolio-picker-item${isSelected ? " active" : ""}"
+            data-portfolio-kind="${escHtml(item.kind)}"
+            data-portfolio-query="${escHtml(item.query)}"
+          >
+            <div class="portfolio-picker-item-main">
+              <div class="portfolio-picker-item-title-row">
+                <span class="portfolio-picker-item-title">${escHtml(
+                  item.title || item.label
+                )}</span>
+              </div>
+              ${
+                item.subtitle
+                  ? `<div class="portfolio-picker-item-sub">${escHtml(item.subtitle)}</div>`
+                  : ""
+              }
+            </div>
+            <div class="portfolio-picker-item-right">
+              <span class="portfolio-picker-item-badge mono">${escHtml(
+                item.countBadge || ""
+              )}</span>
+              ${
+                isSelected
+                  ? `<span class="portfolio-picker-check" aria-hidden="true">&#10003;</span>`
+                  : ""
+              }
+            </div>
+          </button>
+        `;
+      }
+    }
+
+    if (rawSearch.length >= 2) {
+      html += `
+        <div class="portfolio-picker-group-header">Custom Atlas-Wide Portfolio Query</div>
+        <button
+          type="button"
+          role="option"
+          aria-selected="false"
+          class="portfolio-picker-item custom-query-item"
+          data-portfolio-kind="architect"
+          data-portfolio-query="${escHtml(rawSearch)}"
+        >
+          <div class="portfolio-picker-item-main">
+            <div class="portfolio-picker-item-title-row">
+              <span class="portfolio-picker-item-cat" data-cat="architect">Custom Architect</span>
+              <span class="portfolio-picker-item-title">Search all Atlas buildings for Architect / Builder &ldquo;${escHtml(
+                rawSearch
+              )}&rdquo;</span>
+            </div>
+            <div class="portfolio-picker-item-sub">Scans all HCAD, landmark, National Register, and Lost Houston records for this name</div>
+          </div>
+          <div class="portfolio-picker-item-right">
+            <span class="portfolio-picker-item-badge mono">Live Scan &rarr;</span>
+          </div>
+        </button>
+        <button
+          type="button"
+          role="option"
+          aria-selected="false"
+          class="portfolio-picker-item custom-query-item"
+          data-portfolio-kind="style"
+          data-portfolio-query="${escHtml(rawSearch)}"
+        >
+          <div class="portfolio-picker-item-main">
+            <div class="portfolio-picker-item-title-row">
+              <span class="portfolio-picker-item-cat" data-cat="style">Custom Style</span>
+              <span class="portfolio-picker-item-title">Search all Atlas buildings for Architectural Style &ldquo;${escHtml(
+                rawSearch
+              )}&rdquo;</span>
+            </div>
+            <div class="portfolio-picker-item-sub">Scans HPO Historic District surveys, landmarks, and architectural style classifications</div>
+          </div>
+          <div class="portfolio-picker-item-right">
+            <span class="portfolio-picker-item-badge mono">Live Scan &rarr;</span>
+          </div>
+        </button>
+      `;
+    } else if (visibleItems.length === 0) {
+      html = `<div class="portfolio-picker-empty">No matching portfolios in this category. Try the <strong>All</strong> tab or type a name above.</div>`;
+    }
+
+    listEl.innerHTML = html;
+
+    if (listEl.dataset.delegatedBound !== "1") {
+      listEl.dataset.delegatedBound = "1";
+      listEl.addEventListener("click", (e) => {
+        const btn = e.target.closest?.(".portfolio-picker-item");
+        if (!btn) return;
+        e.stopPropagation();
+        const pKind = normalizePortfolioKind(
+          btn.getAttribute("data-portfolio-kind") || "architect"
+        );
+        const pQuery = String(btn.getAttribute("data-portfolio-query") || "").trim();
+        if (pQuery) {
+          this._closePortfolioPickerPopover();
+          this.activatePortfolioMode(pKind, pQuery);
+        }
+      });
+      listEl.addEventListener("keydown", (e) => {
+        const btn = e.target.closest?.(".portfolio-picker-item");
+        if (!btn) return;
+        const itemBtns = Array.from(listEl.querySelectorAll(".portfolio-picker-item"));
+        const idx = itemBtns.indexOf(btn);
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const next = itemBtns[idx + 1] || itemBtns[0];
+          if (next) next.focus();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          const searchEl = document.getElementById("portfolio-picker-search");
+          if (idx === 0 && searchEl) {
+            searchEl.focus();
+          } else {
+            const prev = itemBtns[idx - 1];
+            if (prev) prev.focus();
+          }
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          this._closePortfolioPickerPopover();
+          const trig = document.getElementById("portfolio-picker-trigger");
+          if (trig) trig.focus();
+        }
+      });
     }
   }
 
@@ -20908,6 +21286,7 @@ export class HoustonAtlasApp {
 
   exitPortfolioMode({ restoreState = true, skipUrlUpdate = false } = {}) {
     this._activePortfolio = null;
+    this._closePortfolioPickerPopover();
     if (this.mapController) {
       this.mapController.clearPortfolioWorks();
     }

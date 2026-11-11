@@ -116,11 +116,19 @@ CANONICAL_BILLING_PORTFOLIO_SLUGS: dict[str, tuple[str, str]] = {
     ),
     "1925 SOUTHWEST FWY|HOUSTON|TX": (
         "port_1925_southwest_fwy",
-        "1925 Southwest Fwy Historic Adaptive-Reuse Portfolio",
+        "BMI Investments / 1925 Southwest Fwy Adaptive-Reuse Portfolio",
+    ),
+    "1925 SW FWY|HOUSTON|TX": (
+        "port_1925_sw_f785c6",
+        "BMI Investments / Markman Martinez (1925 Southwest Fwy)",
     ),
     "2410 POLK ST STE 200|HOUSTON|TX": (
         "port_2410_polk_200",
-        "2410 Polk St Ste 200 Residential Rental Portfolio",
+        "Lovett Homes / InTown Homes / Fenway Dev. (Frank Liu · 2410 Polk St Ste 200)",
+    ),
+    "401 FRANKLIN ST STE 2555|HOUSTON|TX": (
+        "port_401_franklin_st_ste_2555_0dff7f",
+        "Lovett Industrial (Frank Liu · 401 Franklin St Ste 2555)",
     ),
     "13101 NORTHWEST FWY STE 310|HOUSTON|TX": (
         "port_camillo_sfr",
@@ -149,6 +157,82 @@ CANONICAL_BILLING_PORTFOLIO_SLUGS: dict[str, tuple[str, str]] = {
     "1717 ST JAMES PL STE 118|HOUSTON|TX": (
         "port_1717_st_james_118",
         "1717 St James Pl Ste 118 Masked Trust Cluster",
+    ),
+    "110 AVE B STE 100|STAFFORD|TX": (
+        "port_110_ave_b_ste_100_6e8cac",
+        "Allison Partners / Home Site Residential (110 Ave B Ste 100)",
+    ),
+    "6502 ALDER DR|HOUSTON|TX": (
+        "port_6502_alder_61a07e",
+        "Oracle City Homes / Oracle Partners (6502 Alder Dr)",
+    ),
+    "4808 GIBSON ST|HOUSTON|TX": (
+        "port_4808_gibson_c0b6f9",
+        "Greenpawn Properties / Bay Residential (4808 Gibson St)",
+    ),
+    "3800 GARROTT ST|HOUSTON|TX": (
+        "port_3800_garrott_7507ab",
+        "3800 Garrott St Montrose Rental Portfolio (Online Songs LLC)",
+    ),
+    "1027 YALE ST|HOUSTON|TX": (
+        "port_1027_yale_bd540e",
+        "Riverway Builders (1027 Yale St)",
+    ),
+    "1405 DURHAM DR|HOUSTON|TX": (
+        "port_1405_durham_bfe6c5",
+        "Sandcastle Homes (1405 Durham Dr)",
+    ),
+    "4112 LA BRANCH ST|HOUSTON|TX": (
+        "port_4112_la_branch_b9b104",
+        "Hearthstone Homes / Diamond Properties (4112 La Branch St)",
+    ),
+    "5353 W ALABAMA ST STE 200|HOUSTON|TX": (
+        "port_5353_w_alabama_st_ste_20_a33acc",
+        "Braun Enterprises / Sambrooks Realty (5353 W Alabama St)",
+    ),
+    "4300 LYONS AVE STE 300|HOUSTON|TX": (
+        "port_4300_lyons_ave_ste_300_c6c07c",
+        "Fifth Ward Community Redevelopment Corp. (4300 Lyons Ave)",
+    ),
+    "1519 BRANARD ST|HOUSTON|TX": (
+        "port_1519_branard_9efe55",
+        "The Menil Foundation / Menil Properties (1519 Branard St)",
+    ),
+    "611 W 22ND ST STE 203|HOUSTON|TX": (
+        "port_611_w_22nd_st_ste_203_f09202",
+        "Radom Capital (Steve Radom · 611 W 22nd St)",
+    ),
+    "4412 ALMEDA RD|HOUSTON|TX": (
+        "port_4412_almeda_650d7e",
+        "Mayberry Homes (Sharone Mayberry · 4412 Almeda Rd)",
+    ),
+    "PO BOX 1524|HOUSTON|TX": (
+        "port_po_box_1524_35e7ca",
+        "Deal Co. / Sawyer Yards & Winter St Studios (Dart Holly LLC)",
+    ),
+    "3300 CHIMNEY ROCK RD STE 301|HOUSTON|TX": (
+        "port_3300_chimney_rock_rd_ste_dc1424",
+        "Kensinger Properties (3300 Chimney Rock Rd)",
+    ),
+    "1215 GESSNER RD|HOUSTON|TX": (
+        "port_1215_gessner_e00f7d",
+        "Festival Properties / Sweetgrass Development (1215 Gessner Rd)",
+    ),
+    "802 W 17TH ST STE 100|HOUSTON|TX": (
+        "port_802_w_17th_st_ste_100_48d868",
+        "Heights Hollow / Donovan Court (802 W 17th St)",
+    ),
+    "2240 BISSONNET ST|HOUSTON|TX": (
+        "port_2240_bissonnet_681033",
+        "Lema Properties (2240 Bissonnet St)",
+    ),
+    "1912 W MAIN ST|HOUSTON|TX": (
+        "port_1912_w_main_ba40c8",
+        "Midtown Beths / Montrose Holdings (1912 W Main St)",
+    ),
+    "1000 LOUISIANA ST STE 7000|HOUSTON|TX": (
+        "port_1000_louisiana_st_ste_70_877c99",
+        "Cathexis / FCH East End Holdings (1000 Louisiana St)",
     ),
 }
 
@@ -270,15 +354,24 @@ def _format_portfolio_label(
     if bk in CANONICAL_BILLING_PORTFOLIO_SLUGS:
         return CANONICAL_BILLING_PORTFOLIO_SLUGS[bk][1]
     clean_own = sanitize_atlas_text(primary_owner).strip()
+    clean_own = re.sub(r"\s+(?:ATTN\b|%|C/O\b).*$", "", clean_own, flags=re.IGNORECASE).strip()
     street_disp = (display_mail.split(",", 1)[0] if display_mail else "").strip()
-    if distinct_corps >= 2 and street_disp and not street_disp.startswith("PO BOX"):
-        return f"{street_disp} Multi-LLC Portfolio ({distinct_corps} Entities / {parcel_count:,} Parcels)"
+    if (
+        clean_own
+        and clean_own not in PLACEHOLDER_NON_GRAPH_OWNER_TOKENS
+        and street_disp
+        and not street_disp.startswith("PO BOX")
+        and street_disp.upper() != "ADDRESS UNKNOWN"
+    ):
+        if distinct_corps >= 2:
+            return f"{clean_own} & Affiliates ({street_disp})"
+        return f"{clean_own} ({street_disp})"
     if clean_own and clean_own not in PLACEHOLDER_NON_GRAPH_OWNER_TOKENS:
         if distinct_corps >= 2:
-            return f"{clean_own} & Affiliates ({distinct_corps} Entities)"
+            return f"{clean_own} & Affiliates"
         return clean_own
     if street_disp:
-        return f"{street_disp} Billing Cluster ({parcel_count:,} Parcels)"
+        return f"{street_disp} Multi-LLC Portfolio"
     return f"Portfolio ({parcel_count:,} Parcels)"
 
 

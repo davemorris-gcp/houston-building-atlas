@@ -470,8 +470,27 @@
     >
       <div class="portfolio-card-top">
         <div class="portfolio-preset-row">
-          <label for="portfolio-preset-select" class="portfolio-preset-label">Portfolio:</label>
-          <select id="portfolio-preset-select" class="portfolio-preset-select"></select>
+          <label for="portfolio-picker-trigger" class="portfolio-preset-label">Portfolio:</label>
+          <button
+            type="button"
+            id="portfolio-picker-trigger"
+            class="portfolio-picker-trigger"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-controls="portfolio-picker-popover"
+            title="Search &amp; browse Architects, Architectural Styles, and Multi-LLC / Developer Portfolios"
+          >
+            <span class="portfolio-picker-cat-badge" id="portfolio-picker-cat-badge">Architect</span>
+            <span class="portfolio-picker-active-label" id="portfolio-picker-active-label">Alfred C. Finn</span>
+            <span class="portfolio-picker-active-count mono" id="portfolio-picker-active-count">32 works</span>
+            <span class="portfolio-picker-chevron" aria-hidden="true">&#9662;</span>
+          </button>
+          <select
+            id="portfolio-preset-select"
+            class="portfolio-preset-select sr-only-select"
+            aria-label="Select Architect, Style, or Stewardship Portfolio"
+            tabindex="-1"
+          ></select>
         </div>
         <div class="portfolio-top-actions">
           <button
@@ -490,6 +509,80 @@
             aria-label="Exit Portfolio Mode"
           >&times;</button>
         </div>
+      </div>
+
+      <!-- Custom Searchable Tabbed Portfolio Explorer Popover -->
+      <div
+        class="portfolio-picker-popover hidden"
+        id="portfolio-picker-popover"
+        role="dialog"
+        aria-label="Searchable Portfolio Explorer"
+      >
+        <div class="portfolio-picker-header">
+          <div class="portfolio-picker-search-wrap">
+            <span class="portfolio-picker-search-icon" aria-hidden="true">&#128269;</span>
+            <input
+              type="search"
+              id="portfolio-picker-search"
+              class="portfolio-picker-search-input"
+              placeholder="Search architects, styles, developers, or LLCs (e.g. Bailey, Queen Anne, Lovett, Frank Liu)..."
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Filter portfolios by architect, style, developer, principal, or address"
+            />
+            <button
+              type="button"
+              id="portfolio-picker-clear"
+              class="portfolio-picker-clear-btn hidden"
+              title="Clear search"
+              aria-label="Clear portfolio search"
+            >&times;</button>
+          </div>
+          <div class="portfolio-picker-tabs" role="tablist" aria-label="Portfolio Categories">
+            <button
+              type="button"
+              role="tab"
+              class="portfolio-picker-tab active"
+              data-portfolio-cat="all"
+              aria-selected="true"
+            >
+              All <span class="portfolio-tab-count mono" id="portfolio-tab-count-all">116</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="portfolio-picker-tab"
+              data-portfolio-cat="architect"
+              aria-selected="false"
+            >
+              Architects &amp; Builders <span class="portfolio-tab-count mono" id="portfolio-tab-count-arch">46</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="portfolio-picker-tab"
+              data-portfolio-cat="style"
+              aria-selected="false"
+            >
+              Styles <span class="portfolio-tab-count mono" id="portfolio-tab-count-style">30</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="portfolio-picker-tab"
+              data-portfolio-cat="owner_portfolio"
+              aria-selected="false"
+            >
+              LLCs &amp; Stewards <span class="portfolio-tab-count mono" id="portfolio-tab-count-owner">40</span>
+            </button>
+          </div>
+        </div>
+        <div
+          class="portfolio-picker-list"
+          id="portfolio-picker-list"
+          role="listbox"
+          aria-label="Matching Portfolios"
+        ></div>
       </div>
 
       <div class="portfolio-bio-block">

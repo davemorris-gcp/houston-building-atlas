@@ -21,6 +21,7 @@ import {
 import {
   CITY_HISTORY_CHAPTERS,
   FEATURED_PORTFOLIO_PRESETS,
+  buildCategorizedPortfolioCatalog,
   buildPortfolioDataset,
 } from "../../app/js/guidedChaptersAndPortfolios.js";
 
@@ -164,6 +165,40 @@ test("Guided Chapters & Portfolio Engine builds deduplicated extant + Lost Houst
       ds.stats.totalCount >= 3,
       `Featured portfolio preset '${preset.kind}:${preset.query}' returned only ${ds.stats.totalCount} works`
     );
+  }
+
+  // Verify buildCategorizedPortfolioCatalog covers 46 architects (including James Ruskin Bailey),
+  // 30 architectural styles, and 40 deduplicated LLC/Stewardship portfolios (with Frank Liu / Lovett Homes #1)
+  const ownershipPortfolios = JSON.parse(
+    fs.readFileSync(path.join(DATA_DIR, "ownership_portfolios.json"), "utf8")
+  );
+  const catalog = buildCategorizedPortfolioCatalog(ownershipPortfolios);
+  assert.ok(catalog.architects.length >= 45, `Expected >= 45 architects, got ${catalog.architects.length}`);
+  assert.ok(catalog.styles.length >= 28, `Expected >= 28 styles, got ${catalog.styles.length}`);
+  assert.equal(catalog.owners.length, 40, `Expected 40 owner portfolios, got ${catalog.owners.length}`);
+  assert.ok(
+    catalog.architects.some((a) => a.query === "James Ruskin Bailey"),
+    "James Ruskin Bailey must be included in catalog.architects"
+  );
+  assert.ok(
+    catalog.styles.some((s) => s.query === "Queen Anne") &&
+      catalog.styles.some((s) => s.query === "Colonial Revival") &&
+      catalog.styles.some((s) => s.query === "Mid-Century Modern") &&
+      catalog.styles.some((s) => s.query === "Bungalow"),
+    "Major architectural styles must be included in catalog.styles"
+  );
+  assert.equal(catalog.owners[0].query, "port_2410_polk_200", "Lovett Homes / Frank Liu (port_2410_polk_200) must be #1 in catalog.owners");
+  assert.ok(
+    catalog.owners[0].title.includes("Lovett Homes") && catalog.owners[0].title.includes("Frank Liu"),
+    `Expected Lovett Homes & Frank Liu in #1 owner portfolio title, got ${catalog.owners[0].title}`
+  );
+  assert.ok(
+    catalog.owners[0].searchBlob.includes("frank liu") && catalog.owners[0].searchBlob.includes("frank lu"),
+    "Lovett Homes portfolio must match both 'Frank Liu' and 'Frank Lu' searches"
+  );
+  for (const own of catalog.owners) {
+    assert.ok(!own.title.toUpperCase().includes("ADDRESS UNKNOWN"), `Noise portfolio leaked: ${own.title}`);
+    assert.ok(!/\(\d+\s*Entities\s*\/\s*[\d,]+\s*Parcels\)/i.test(own.label), `Duplicate Entities/Parcels suffix in: ${own.label}`);
   }
 
   // Slug query normalization (#portfolio=arch_james_ruskin_bailey) + Kirby Mansion in Demolished + Sterne deduplicated

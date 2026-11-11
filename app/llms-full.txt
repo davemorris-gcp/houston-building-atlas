@@ -1426,10 +1426,86 @@ Properties with National Register (NRHP), Recorded Texas Historic Landmark (RTHL
 
 ---
 
-## Section 6: Curated Architect, Builder & Style Portfolios (0 Architects, 0 Styles)
+## Section 6: Curated Architect, Builder & Style Portfolios (46 Architects, 30 Styles)
 
 | Type | Name | Era / Span | Subtitle / Role | Portfolio Deep Link |
 | :--- | :--- | :--- | :--- | :--- |
+| Architect | Alfred C. Finn | 1883-1964 | 1883-1964 · Gulf Bldg, San Jacinto Monument & Downtown Towers | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_alfred_c_finn) |
+| Architect | American Construction Company |  | Gulf Bldg, Niels Esperson Bldg & Major Downtown High-Rise Builder | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_american_construction_company) |
+| Architect | Birdsall P. Briscoe | 1876-1971 | 1876-1971 · Courtlandt Place, River Oaks & HABS Preservationist | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_birdsall_p_briscoe) |
+| Architect | Cameron D. Fairchild | 1902-1985 | 1902-1985 · Texas Regionalist & Regency Homes in River Oaks | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_cameron_d_fairchild) |
+| Architect | Caudill Rowlett Scott (CRS) |  | Pioneering Modernist Educational, Civic & Jones Hall Architecture | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_caudill_rowlett_scott_crs) |
+| Architect | Cesar Pelli & Associates |  | Four Leaf Towers, Herring Hall (Rice) & 1500 Louisiana | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_cesar_pelli_associates) |
+| Architect | Charles W. Oliver | 1892-1960 | 1892-1960 · River Oaks, Montrose & Boulevard Oaks Residences | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_charles_w_oliver) |
+| Architect | Cram, Goodhue & Ferguson | 1910 | Rice Institute 1910 Campus Plan, Lovett Hall & Trinity Church | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_cram_goodhue_ferguson) |
+| Architect | Eugene T. Heiner | 1852-1901 | 1852-1901 · 1884 Cotton Exchange, American Brewing & Victorian Blocks | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_eugene_t_heiner) |
+| Architect | George E. Dickey | 1840-c.1906 | 1840-c.1906 · Gilded Age Romanesque & Victorian Main St Landmarks | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_george_e_dickey) |
+| Architect | George Pierce & Abel B. Pierce |  | Mid-Century Modernist Campus, Civic & Commercial Landmarks | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_george_pierce_abel_b_pierce) |
+| Architect | Golemon & Rolfe |  | Mid-Century Modernist Schools, Churches, St. Joseph Hospital & IAH | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_golemon_rolfe) |
+| Architect | Hamilton Brown |  | Mid-Century Modern Churches, Schools & Residential Architecture | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_hamilton_brown) |
+| Architect | Hart Oil & Well Co. (Builder) |  | Historic Residential & Commercial Builder in Houston | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_hart_oil_well_co_builder) |
+| Architect | Harvin C. Moore & Hermon Lloyd |  | Period Revival Residences, Astrodome Co-Architects & Civic Modernism | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_harvin_c_moore_hermon_lloyd) |
+| Architect | Hedrick & Gottlieb |  | 1920s Skyscrapers, Niels Esperson Bldg & Medical Arts Towers | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_hedrick_gottlieb) |
+| Architect | Hopkins Architects |  | Rice University Duncan Hall, Brockman Hall & Contemporary Campus Works | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_hopkins_architects) |
+| Architect | Independence Heights Builders |  | Early-20th-Century Black Contractors in Texas's First Black Municipality | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_independence_heights_builders) |
+| Architect | James Ruskin Bailey | 1889-1959 | 1889-1959 · Kirby Mansion 1928 Remodel, Sterne & Barringer-Norton Bldgs | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_james_ruskin_bailey) |
+| Architect | Jeff Bland Lumber Co. (Freedmen's Town) |  | Early-1900s Freedmen's Town Folk Victorian & Shotgun Home Builder | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_jeff_bland_lumber_co_freedmen_s_town) |
+| Architect | John F. Staub | 1892-1981 | 1892-1981 · Bayou Bend, River Oaks, Broadacres & Rice/UH | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_john_f_staub) |
+| Architect | John S. Chase | 1925-2012 | 1925-2012 · First Licensed Black Architect in TX, NOMA Co-Founder | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_john_s_chase) |
+| Architect | Joseph Finger | 1887-1953 | 1887-1953 · City Hall, 1940 Airport Terminal & Art Deco Master | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_joseph_finger) |
+| Architect | Joseph W. Northrop Jr. | 1886-1969 | 1886-1969 · Cram-Trained Residential & Church Architect | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_joseph_w_northrop_jr) |
+| Architect | Kenneth Franzheim | 1890-1959 | 1890-1959 · Bank of the Southwest, Foley's & Mid-Century Corporate Towers | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_kenneth_franzheim) |
+| Architect | Lake|Flato Architects |  | Texas Regional Modernism, Rice University & Hermann Park Pavilions | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_lake_flato_architects) |
+| Architect | Lamar Q. Cato | 1888-1948 | 1888-1948 · UH Cullen Bldg, TSU Campus & HISD Schools | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_lamar_q_cato) |
+| Architect | MacKie & Kamrath | 1937 | Est. 1937 · Wrightian Organic Modernism, Temple Emanu El & MDA | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_mackie_kamrath) |
+| Architect | Machado and Silvetti |  | Rice University Campus Halls & Contemporary Institutional Design | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_machado_and_silvetti) |
+| Architect | Maurice J. Sullivan | 1884-1961 | 1884-1961 · Houston City Architect, Catholic Churches & Schools | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_maurice_j_sullivan) |
+| Architect | Morris Architects |  | Wortham Theater Center, Downtown Civic & Cultural Landmarks | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_morris_architects) |
+| Architect | Nicholas J. Clayton | 1840-1916 | 1840-1916 · High Victorian Gothic & Sacred Heart Co-Cathedral | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_nicholas_j_clayton) |
+| Architect | Olle J. Lorehn | 1864-1939 | 1864-1939 · Binz Bldg, Fire Station No. 7 & Civic Landmarks | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_olle_j_lorehn) |
+| Architect | PGAL (Pierce Goodwin Alexander) | 1946 | Houston Civic, Aviation, Museum & Campus Architecture (Est. 1946) | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_pgal_pierce_goodwin_alexander) |
+| Architect | Philip Johnson & John Burgee | 1906-2005 | 1906-2005 · Pennzoil Place, Menil/UST, Bank of America & Williams Tower | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_philip_johnson_john_burgee) |
+| Architect | R. D. Steele | 1855-1934 | 1855-1934 · First National Bank Bldg, Carnegie Library & Mansions | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_r_d_steele) |
+| Architect | Russell Brown Co. |  | Early-20th-Century Pattern-Book Residences in Montrose & Courtlandt Pl | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_russell_brown_co) |
+| Architect | SOM (Skidmore, Owings & Merrill) | 1961 | First City National Bank (1961), Wells Fargo Plaza & Tenneco Bldg | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_som_skidmore_owings_merrill) |
+| Architect | Salisbury & McHale |  | 1920s English Cottage, Tudor & Colonial Revival Builder-Architects | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_salisbury_mchale) |
+| Architect | Sanguinet & Staats |  | Early Steel-Frame Downtown Skyscrapers & Courtlandt Place | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_sanguinet_staats) |
+| Architect | Stayton Nunn | 1899-1960 | 1899-1960 · HISD Coordinating Architect, River Oaks & Civic Works | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_stayton_nunn) |
+| Architect | Ulrich Franzen | 1968 | 1968 Alley Theatre Brutalist Landmark | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_ulrich_franzen) |
+| Architect | W. L. Webber & Associates |  | Early-20th-Century Streetcar Suburb Residential Builder | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_w_l_webber_associates) |
+| Architect | W. S. Bellows Construction Corp. |  | San Jacinto Monument, City Hall & Major Houston Skyscraper Builder | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_w_s_bellows_construction_corp) |
+| Architect | William Ward Watkin | 1886-1952 | 1886-1952 · Julia Ideson Bldg, MFAH & Founding Rice Arch. Chair | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_william_ward_watkin) |
+| Architect | Wilson, Morris, Crain & Anderson | 1965 | 1965 Astrodome, Houston Post, One Shell Plaza & Museum Wings | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=arch_wilson_morris_crain_anderson) |
+| Style | American Foursquare | 1900-1925 | 1900-1925 · Two-Story Cubic Massing, Hipped Dormer & Full Porch | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_american_foursquare) |
+| Style | Art Deco Style | 1925-1942 | 1925-1942 · Stepped Setbacks, Zigzag Terra-Cotta & Vertical Piers | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_art_deco_style) |
+| Style | Beaux-Arts Classicism | 1895-1930 | 1895-1930 · Paired Columns, Sculptural Cartouches & Civic Grandeur | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_beaux_arts_classicism) |
+| Style | Brutalist & Late Modern | 1965-1985 | 1965-1985 · Board-Formed Concrete, Sculptural Massing & Bold Geometry | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_brutalist_late_modern) |
+| Style | Bungalow (All Variants) | 1900-1938 | 1900-1938 · Norhill, Heights, Woodland Heights & Eastwood Bungalows | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_bungalow_all_variants) |
+| Style | Colonial Revival | 1895-1955 | 1895-1955 · Symmetrical Facades, Pedimented Entries & Multi-Pane Sash | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_colonial_revival) |
+| Style | Craftsman Style | 1905-1935 | 1905-1935 · Exposed Rafter Tails, Tapered Columns & Deep Eaves | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_craftsman_style) |
+| Style | English Cottage & Picturesque | 1920-1940 | 1920-1940 · Asymmetrical Brick Gables, Arched Doors & Storybook Massing | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_english_cottage_picturesque) |
+| Style | Folk Victorian | 1875-1910 | 1875-1910 · Turned Spindlework Trim on Simple Gable Forms | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_folk_victorian) |
+| Style | French Eclectic & Normandy | 1920-1945 | 1920-1945 · Steep Hipped Roofs, Round Stair Towers & Casement Windows | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_french_eclectic_normandy) |
+| Style | Gable-Front & Pyramid Cottages | 1885-1930 | 1885-1930 · Hipped-Roof & Gable-Front Streetcar Suburb Cottages | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_gable_front_pyramid_cottages) |
+| Style | Georgian Revival | 1910-1945 | 1910-1945 · Formal Red-Brick Symmetry, Dentil Cornices & Palladian Motifs | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_georgian_revival) |
+| Style | Gothic Revival | 1865-1940 | 1865-1940 · Pointed-Arch Lancet Windows, Buttresses & Spires | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_gothic_revival) |
+| Style | Greek Revival | 1840-1885 | 1840-1885 · Classical Pediments, Transom Doors & Full-Width Porches | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_greek_revival) |
+| Style | International Style | 1950-1975 | 1950-1975 · Steel-and-Glass Curtain Walls, Pilotis & Rectilinear Grids | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_international_style) |
+| Style | Italianate | 1860-1895 | 1860-1895 · Bracketed Cornices, Tall Hooded Windows & Cupolas | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_italianate) |
+| Style | Mid-Century Modern | 1946-1972 | 1946-1972 · Low Horizontal Lines, Roman Brick & Floor-to-Ceiling Glass | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_mid_century_modern) |
+| Style | Mission Revival | 1905-1935 | 1905-1935 · Shaped Espadana Parapets, Clay Tile & Stucco Arcades | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_mission_revival) |
+| Style | Neoclassical & Classical Revival | 1895-1940 | 1895-1940 · Monumental Colonnades, Porticos & Limestone Facades | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_neoclassical_classical_revival) |
+| Style | Postmodern & Contemporary | 1975-Present | 1975-Present · Sculptural Towers, Contextual Forms & Modern Campus Works | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_postmodern_contemporary) |
+| Style | Prairie School | 1905-1925 | 1905-1925 · Low Hipped Roofs, Horizontal Banding & Broad Eaves | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_prairie_school) |
+| Style | Queen Anne Victorian | 1880-1910 | 1880-1910 · Turrets, Wraparound Porches & Shingle Gables | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_queen_anne_victorian) |
+| Style | Renaissance Revival | 1900-1935 | 1900-1935 · Rusticated Ground Stories, Quoins & Bracketed Cornices | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_renaissance_revival) |
+| Style | Romanesque Revival | 1880-1905 | 1880-1905 · Heavy Round Masonry Arches & Rusticated Stone Trim | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_romanesque_revival) |
+| Style | Second Empire | 1870-1895 | 1870-1895 · Mansard Roofs with Dormers & Cast-Iron Cresting | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_second_empire) |
+| Style | Shotgun & Folk Vernacular | 1875-1925 | 1875-1925 · Single-Room-Wide Linear Homes Across Historic Wards | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_shotgun_folk_vernacular) |
+| Style | Spanish Eclectic & Mediterranean | 1915-1940 | 1915-1940 · Red Barrel Tile Roofs, Stucco Walls & Arched Loggias | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_spanish_eclectic_mediterranean) |
+| Style | Streamline & PWA Moderne | 1933-1948 | 1933-1948 · Curved Corners, Glass Block, Speed Lines & Civic Limestone | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_streamline_pwa_moderne) |
+| Style | Traditional & Mid-Century Ranch | 1945-1975 | 1945-1975 · Single-Story Postwar Suburban & Tudor/Modern Ranch Homes | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_traditional_mid_century_ranch) |
+| Style | Tudor Revival Style | 1915-1940 | 1915-1940 · Steep Cross Gables, Half-Timbering & Leaded Casements | [Portfolio](https://davemorris-gcp.github.io/houston-building-atlas/#portfolio=style_tudor_revival_style) |
 
 ---
 

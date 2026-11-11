@@ -456,20 +456,90 @@ export const CITY_HISTORY_CHAPTERS = [
 ];
 
 export const FEATURED_PORTFOLIO_PRESETS = [
-  { kind: "architect", query: "Alfred C. Finn", label: "Alfred C. Finn" },
-  { kind: "architect", query: "John Staub", label: "John F. Staub" },
-  { kind: "architect", query: "Birdsall P. Briscoe", label: "Birdsall P. Briscoe" },
-  { kind: "architect", query: "John S. Chase", label: "John S. Chase" },
-  { kind: "architect", query: "Joseph Finger", label: "Joseph Finger" },
-  { kind: "architect", query: "MacKie & Kamrath", label: "MacKie & Kamrath" },
-  { kind: "architect", query: "Sanguinet & Staats", label: "Sanguinet & Staats" },
-  { kind: "architect", query: "Russell Brown Company", label: "Russell Brown Co." },
-  { kind: "architect", query: "Philip Johnson", label: "Philip Johnson" },
-  { kind: "style", query: "Art Deco", label: "Art Deco Style" },
-  { kind: "style", query: "Tudor Revival", label: "Tudor Revival Style" },
-  { kind: "style", query: "Craftsman", label: "Craftsman Style" },
+  // Pre-1945 Master Architects
+  { kind: "architect", query: "Alfred C. Finn", label: "Alfred C. Finn", subGroup: "Pre-1945 Master Architects", subtitle: "1883-1964 · Gulf Bldg, San Jacinto Monument & Downtown Towers", workCount: 29, lostCount: 8 },
+  { kind: "architect", query: "John Staub", label: "John F. Staub", subGroup: "Pre-1945 Master Architects", subtitle: "1892-1981 · Bayou Bend, River Oaks, Broadacres & Rice/UH", workCount: 16, lostCount: 0 },
+  { kind: "architect", query: "Birdsall P. Briscoe", label: "Birdsall P. Briscoe", subGroup: "Pre-1945 Master Architects", subtitle: "1876-1971 · Courtlandt Place, River Oaks & HABS Preservationist", workCount: 21, lostCount: 0 },
+  { kind: "architect", query: "William Ward Watkin", label: "William Ward Watkin", subGroup: "Pre-1945 Master Architects", subtitle: "1886-1952 · Julia Ideson Bldg, MFAH & Founding Rice Arch. Chair", workCount: 18, lostCount: 2 },
+  { kind: "architect", query: "Joseph Finger", label: "Joseph Finger", subGroup: "Pre-1945 Master Architects", subtitle: "1887-1953 · City Hall, 1940 Airport Terminal & Art Deco Master", workCount: 17, lostCount: 4 },
+  { kind: "architect", query: "Sanguinet & Staats", label: "Sanguinet & Staats", subGroup: "Pre-1945 Master Architects", subtitle: "Early Steel-Frame Downtown Skyscrapers & Courtlandt Place", workCount: 16, lostCount: 7 },
+  { kind: "architect", query: "Olle J. Lorehn", label: "Olle J. Lorehn", subGroup: "Pre-1945 Master Architects", subtitle: "1864-1939 · Binz Bldg, Fire Station No. 7 & Civic Landmarks", workCount: 16, lostCount: 7 },
+  { kind: "architect", query: "Lamar Q. Cato", label: "Lamar Q. Cato", subGroup: "Pre-1945 Master Architects", subtitle: "1888-1948 · UH Cullen Bldg, TSU Campus & HISD Schools", workCount: 13, lostCount: 0 },
+  { kind: "architect", query: "Charles Oliver", label: "Charles W. Oliver", subGroup: "Pre-1945 Master Architects", subtitle: "1892-1960 · River Oaks, Montrose & Boulevard Oaks Residences", workCount: 10, lostCount: 1 },
+  { kind: "architect", query: "Maurice J. Sullivan", label: "Maurice J. Sullivan", subGroup: "Pre-1945 Master Architects", subtitle: "1884-1961 · Houston City Architect, Catholic Churches & Schools", workCount: 9, lostCount: 0 },
+  { kind: "architect", query: "Eugene T. Heiner", label: "Eugene T. Heiner", subGroup: "Pre-1945 Master Architects", subtitle: "1852-1901 · 1884 Cotton Exchange, American Brewing & Victorian Blocks", workCount: 8, lostCount: 5 },
+  { kind: "architect", query: "George E. Dickey", label: "George E. Dickey", subGroup: "Pre-1945 Master Architects", subtitle: "1840-c.1906 · Gilded Age Romanesque & Victorian Main St Landmarks", workCount: 5, lostCount: 5 },
+  { kind: "architect", query: "Stayton Nunn", label: "Stayton Nunn", subGroup: "Pre-1945 Master Architects", subtitle: "1899-1960 · HISD Coordinating Architect, River Oaks & Civic Works", workCount: 8, lostCount: 0 },
+  { kind: "architect", query: "Cameron Fairchild", label: "Cameron D. Fairchild", subGroup: "Pre-1945 Master Architects", subtitle: "1902-1985 · Texas Regionalist & Regency Homes in River Oaks", workCount: 5, lostCount: 0 },
+  { kind: "architect", query: "Hedrick & Gottlieb", label: "Hedrick & Gottlieb", subGroup: "Pre-1945 Master Architects", subtitle: "1920s Skyscrapers, Niels Esperson Bldg & Medical Arts Towers", workCount: 6, lostCount: 1 },
+  { kind: "architect", query: "Cram, Goodhue & Ferguson", label: "Cram, Goodhue & Ferguson", subGroup: "Pre-1945 Master Architects", subtitle: "Rice Institute 1910 Campus Plan, Lovett Hall & Trinity Church", workCount: 7, lostCount: 0 },
+  { kind: "architect", query: "Nicholas J. Clayton", label: "Nicholas J. Clayton", subGroup: "Pre-1945 Master Architects", subtitle: "1840-1916 · High Victorian Gothic & Sacred Heart Co-Cathedral", workCount: 5, lostCount: 2 },
+  { kind: "architect", query: "James Ruskin Bailey", label: "James Ruskin Bailey", subGroup: "Pre-1945 Master Architects", subtitle: "1889-1959 · Kirby Mansion 1928 Remodel, Sterne & Barringer-Norton Bldgs", workCount: 3, lostCount: 1 },
+  { kind: "architect", query: "Joseph W. Northrop", label: "Joseph W. Northrop Jr.", subGroup: "Pre-1945 Master Architects", subtitle: "1886-1969 · Cram-Trained Residential & Church Architect", workCount: 3, lostCount: 0 },
+  { kind: "architect", query: "R. D. Steele", label: "R. D. Steele", subGroup: "Pre-1945 Master Architects", subtitle: "1855-1934 · First National Bank Bldg, Carnegie Library & Mansions", workCount: 3, lostCount: 2 },
+  // Modernist & Contemporary Architects
+  { kind: "architect", query: "John S. Chase", label: "John S. Chase", subGroup: "Modernist & Contemporary Architects", subtitle: "1925-2012 · First Licensed Black Architect in TX, NOMA Co-Founder", workCount: 14, lostCount: 0 },
+  { kind: "architect", query: "MacKie & Kamrath", label: "MacKie & Kamrath", subGroup: "Modernist & Contemporary Architects", subtitle: "Est. 1937 · Wrightian Organic Modernism, Temple Emanu El & MDA", workCount: 24, lostCount: 0 },
+  { kind: "architect", query: "Philip Johnson", label: "Philip Johnson & John Burgee", subGroup: "Modernist & Contemporary Architects", subtitle: "1906-2005 · Pennzoil Place, Menil/UST, Bank of America & Williams Tower", workCount: 14, lostCount: 0 },
+  { kind: "architect", query: "Caudill Rowlett Scott", label: "Caudill Rowlett Scott (CRS)", subGroup: "Modernist & Contemporary Architects", subtitle: "Pioneering Modernist Educational, Civic & Jones Hall Architecture", workCount: 12, lostCount: 0 },
+  { kind: "architect", query: "Kenneth Franzheim", label: "Kenneth Franzheim", subGroup: "Modernist & Contemporary Architects", subtitle: "1890-1959 · Bank of the Southwest, Foley's & Mid-Century Corporate Towers", workCount: 11, lostCount: 5 },
+  { kind: "architect", query: "Wilson, Morris, Crain & Anderson", label: "Wilson, Morris, Crain & Anderson", subGroup: "Modernist & Contemporary Architects", subtitle: "1965 Astrodome, Houston Post, One Shell Plaza & Museum Wings", workCount: 10, lostCount: 0 },
+  { kind: "architect", query: "Harvin C. Moore", label: "Harvin C. Moore & Hermon Lloyd", subGroup: "Modernist & Contemporary Architects", subtitle: "Period Revival Residences, Astrodome Co-Architects & Civic Modernism", workCount: 9, lostCount: 0 },
+  { kind: "architect", query: "Golemon & Rolfe", label: "Golemon & Rolfe", subGroup: "Modernist & Contemporary Architects", subtitle: "Mid-Century Modernist Schools, Churches, St. Joseph Hospital & IAH", workCount: 7, lostCount: 0 },
+  { kind: "architect", query: "PGAL", label: "PGAL (Pierce Goodwin Alexander)", subGroup: "Modernist & Contemporary Architects", subtitle: "Houston Civic, Aviation, Museum & Campus Architecture (Est. 1946)", workCount: 11, lostCount: 0 },
+  { kind: "architect", query: "George Pierce", label: "George Pierce & Abel B. Pierce", subGroup: "Modernist & Contemporary Architects", subtitle: "Mid-Century Modernist Campus, Civic & Commercial Landmarks", workCount: 4, lostCount: 0 },
+  { kind: "architect", query: "Morris Architects", label: "Morris Architects", subGroup: "Modernist & Contemporary Architects", subtitle: "Wortham Theater Center, Downtown Civic & Cultural Landmarks", workCount: 8, lostCount: 0 },
+  { kind: "architect", query: "Cesar Pelli", label: "Cesar Pelli & Associates", subGroup: "Modernist & Contemporary Architects", subtitle: "Four Leaf Towers, Herring Hall (Rice) & 1500 Louisiana", workCount: 8, lostCount: 0 },
+  { kind: "architect", query: "Skidmore, Owings & Merrill", label: "SOM (Skidmore, Owings & Merrill)", subGroup: "Modernist & Contemporary Architects", subtitle: "First City National Bank (1961), Wells Fargo Plaza & Tenneco Bldg", workCount: 5, lostCount: 0 },
+  { kind: "architect", query: "Hopkins Architects", label: "Hopkins Architects", subGroup: "Modernist & Contemporary Architects", subtitle: "Rice University Duncan Hall, Brockman Hall & Contemporary Campus Works", workCount: 7, lostCount: 0 },
+  { kind: "architect", query: "Lake|Flato", label: "Lake|Flato Architects", subGroup: "Modernist & Contemporary Architects", subtitle: "Texas Regional Modernism, Rice University & Hermann Park Pavilions", workCount: 4, lostCount: 0 },
+  { kind: "architect", query: "Machado and Silvetti", label: "Machado and Silvetti", subGroup: "Modernist & Contemporary Architects", subtitle: "Rice University Campus Halls & Contemporary Institutional Design", workCount: 4, lostCount: 0 },
+  { kind: "architect", query: "Ulrich Franzen", label: "Ulrich Franzen", subGroup: "Modernist & Contemporary Architects", subtitle: "1968 Alley Theatre Brutalist Landmark", workCount: 6, lostCount: 0 },
+  { kind: "architect", query: "Hamilton Brown", label: "Hamilton Brown", subGroup: "Modernist & Contemporary Architects", subtitle: "Mid-Century Modern Churches, Schools & Residential Architecture", workCount: 3, lostCount: 0 },
+  // Master Builders & Historic Contractors
+  { kind: "architect", query: "Russell Brown Company", label: "Russell Brown Co.", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-20th-Century Pattern-Book Residences in Montrose & Courtlandt Pl", workCount: 36, lostCount: 8 },
+  { kind: "architect", query: "Salisbury & McHale", label: "Salisbury & McHale", subGroup: "Master Builders & Historic Contractors", subtitle: "1920s English Cottage, Tudor & Colonial Revival Builder-Architects", workCount: 11, lostCount: 0 },
+  { kind: "architect", query: "American Construction Company", label: "American Construction Company", subGroup: "Master Builders & Historic Contractors", subtitle: "Gulf Bldg, Niels Esperson Bldg & Major Downtown High-Rise Builder", workCount: 11, lostCount: 0 },
+  { kind: "architect", query: "W. S. Bellows", label: "W. S. Bellows Construction Corp.", subGroup: "Master Builders & Historic Contractors", subtitle: "San Jacinto Monument, City Hall & Major Houston Skyscraper Builder", workCount: 8, lostCount: 0 },
+  { kind: "architect", query: "Webber", label: "W. L. Webber & Associates", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-20th-Century Streetcar Suburb Residential Builder", workCount: 6, lostCount: 0 },
+  { kind: "architect", query: "Hart Oil and Well Company", label: "Hart Oil & Well Co. (Builder)", subGroup: "Master Builders & Historic Contractors", subtitle: "Historic Residential & Commercial Builder in Houston", workCount: 4, lostCount: 0 },
+  { kind: "architect", query: "Independence Heights Vernacular Builder", label: "Independence Heights Builders", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-20th-Century Black Contractors in Texas's First Black Municipality", workCount: 3, lostCount: 3 },
+  { kind: "architect", query: "Jeff Bland Lumber", label: "Jeff Bland Lumber Co. (Freedmen's Town)", subGroup: "Master Builders & Historic Contractors", subtitle: "Early-1900s Freedmen's Town Folk Victorian & Shotgun Home Builder", workCount: 3, lostCount: 0 },
+  // Craftsman, Bungalow & Streetcar Suburbs
+  { kind: "style", query: "Bungalow", label: "Bungalow (All Variants)", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1900-1938 · Norhill, Heights, Woodland Heights & Eastwood Bungalows", workCount: 1935, lostCount: 275 },
+  { kind: "style", query: "Craftsman", label: "Craftsman Style", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1905-1935 · Exposed Rafter Tails, Tapered Columns & Deep Eaves", workCount: 1095, lostCount: 328 },
+  { kind: "style", query: "Cottage", label: "Gable-Front & Pyramid Cottages", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1885-1930 · Hipped-Roof & Gable-Front Streetcar Suburb Cottages", workCount: 188, lostCount: 4 },
+  { kind: "style", query: "Foursquare", label: "American Foursquare", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1900-1925 · Two-Story Cubic Massing, Hipped Dormer & Full Porch", workCount: 79, lostCount: 1 },
+  { kind: "style", query: "Prairie", label: "Prairie School", subGroup: "Craftsman, Bungalow & Streetcar Suburbs", subtitle: "1905-1925 · Low Hipped Roofs, Horizontal Banding & Broad Eaves", workCount: 67, lostCount: 6 },
+  // Victorian & 19th-Century Styles
+  { kind: "style", query: "Queen Anne", label: "Queen Anne Victorian", subGroup: "Victorian & 19th-Century Styles", subtitle: "1880-1910 · Turrets, Wraparound Porches & Shingle Gables", workCount: 413, lostCount: 8 },
+  { kind: "style", query: "Folk Victorian", label: "Folk Victorian", subGroup: "Victorian & 19th-Century Styles", subtitle: "1875-1910 · Turned Spindlework Trim on Simple Gable Forms", workCount: 60, lostCount: 3 },
+  { kind: "style", query: "Gothic Revival", label: "Gothic Revival", subGroup: "Victorian & 19th-Century Styles", subtitle: "1865-1940 · Pointed-Arch Lancet Windows, Buttresses & Spires", workCount: 32, lostCount: 4 },
+  { kind: "style", query: "Italianate", label: "Italianate", subGroup: "Victorian & 19th-Century Styles", subtitle: "1860-1895 · Bracketed Cornices, Tall Hooded Windows & Cupolas", workCount: 26, lostCount: 6 },
+  { kind: "style", query: "Romanesque", label: "Romanesque Revival", subGroup: "Victorian & 19th-Century Styles", subtitle: "1880-1905 · Heavy Round Masonry Arches & Rusticated Stone Trim", workCount: 26, lostCount: 11 },
+  { kind: "style", query: "Greek Revival", label: "Greek Revival", subGroup: "Victorian & 19th-Century Styles", subtitle: "1840-1885 · Classical Pediments, Transom Doors & Full-Width Porches", workCount: 20, lostCount: 3 },
+  { kind: "style", query: "Shotgun", label: "Shotgun & Folk Vernacular", subGroup: "Victorian & 19th-Century Styles", subtitle: "1875-1925 · Single-Room-Wide Linear Homes Across Historic Wards", workCount: 6, lostCount: 1 },
+  { kind: "style", query: "Second Empire", label: "Second Empire", subGroup: "Victorian & 19th-Century Styles", subtitle: "1870-1895 · Mansard Roofs with Dormers & Cast-Iron Cresting", workCount: 5, lostCount: 2 },
+  // Period Revival & Classical Styles
+  { kind: "style", query: "Colonial Revival", label: "Colonial Revival", subGroup: "Period Revival & Classical Styles", subtitle: "1895-1955 · Symmetrical Facades, Pedimented Entries & Multi-Pane Sash", workCount: 209, lostCount: 5 },
+  { kind: "style", query: "English", label: "English Cottage & Picturesque", subGroup: "Period Revival & Classical Styles", subtitle: "1920-1940 · Asymmetrical Brick Gables, Arched Doors & Storybook Massing", workCount: 85, lostCount: 0 },
+  { kind: "style", query: "Tudor Revival", label: "Tudor Revival Style", subGroup: "Period Revival & Classical Styles", subtitle: "1915-1940 · Steep Cross Gables, Half-Timbering & Leaded Casements", workCount: 51, lostCount: 1 },
+  { kind: "style", query: "Georgian Revival", label: "Georgian Revival", subGroup: "Period Revival & Classical Styles", subtitle: "1910-1945 · Formal Red-Brick Symmetry, Dentil Cornices & Palladian Motifs", workCount: 29, lostCount: 1 },
+  { kind: "style", query: "French", label: "French Eclectic & Normandy", subGroup: "Period Revival & Classical Styles", subtitle: "1920-1945 · Steep Hipped Roofs, Round Stair Towers & Casement Windows", workCount: 28, lostCount: 2 },
+  { kind: "style", query: "Beaux-Arts", label: "Beaux-Arts Classicism", subGroup: "Period Revival & Classical Styles", subtitle: "1895-1930 · Paired Columns, Sculptural Cartouches & Civic Grandeur", workCount: 26, lostCount: 10 },
+  { kind: "style", query: "Neoclassical", label: "Neoclassical & Classical Revival", subGroup: "Period Revival & Classical Styles", subtitle: "1895-1940 · Monumental Colonnades, Porticos & Limestone Facades", workCount: 25, lostCount: 1 },
+  { kind: "style", query: "Spanish", label: "Spanish Eclectic & Mediterranean", subGroup: "Period Revival & Classical Styles", subtitle: "1915-1940 · Red Barrel Tile Roofs, Stucco Walls & Arched Loggias", workCount: 22, lostCount: 4 },
+  { kind: "style", query: "Renaissance Revival", label: "Renaissance Revival", subGroup: "Period Revival & Classical Styles", subtitle: "1900-1935 · Rusticated Ground Stories, Quoins & Bracketed Cornices", workCount: 18, lostCount: 6 },
+  { kind: "style", query: "Mission", label: "Mission Revival", subGroup: "Period Revival & Classical Styles", subtitle: "1905-1935 · Shaped Espadana Parapets, Clay Tile & Stucco Arcades", workCount: 11, lostCount: 1 },
+  // Art Deco, Moderne & Modernism
+  { kind: "style", query: "Ranch", label: "Traditional & Mid-Century Ranch", subGroup: "Art Deco, Moderne & Modernism", subtitle: "1945-1975 · Single-Story Postwar Suburban & Tudor/Modern Ranch Homes", workCount: 927, lostCount: 0 },
+  { kind: "style", query: "Contemporary", label: "Postmodern & Contemporary", subGroup: "Art Deco, Moderne & Modernism", subtitle: "1975-Present · Sculptural Towers, Contextual Forms & Modern Campus Works", workCount: 142, lostCount: 0 },
+  { kind: "style", query: "Mid-Century Modern", label: "Mid-Century Modern", subGroup: "Art Deco, Moderne & Modernism", subtitle: "1946-1972 · Low Horizontal Lines, Roman Brick & Floor-to-Ceiling Glass", workCount: 139, lostCount: 4 },
+  { kind: "style", query: "Art Deco", label: "Art Deco Style", subGroup: "Art Deco, Moderne & Modernism", subtitle: "1925-1942 · Stepped Setbacks, Zigzag Terra-Cotta & Vertical Piers", workCount: 32, lostCount: 4 },
+  { kind: "style", query: "Moderne", label: "Streamline & PWA Moderne", subGroup: "Art Deco, Moderne & Modernism", subtitle: "1933-1948 · Curved Corners, Glass Block, Speed Lines & Civic Limestone", workCount: 32, lostCount: 8 },
+  { kind: "style", query: "Brutal", label: "Brutalist & Late Modern", subGroup: "Art Deco, Moderne & Modernism", subtitle: "1965-1985 · Board-Formed Concrete, Sculptural Massing & Bold Geometry", workCount: 17, lostCount: 0 },
+  { kind: "style", query: "International", label: "International Style", subGroup: "Art Deco, Moderne & Modernism", subtitle: "1950-1975 · Steel-and-Glass Curtain Walls, Pilotis & Rectilinear Grids", workCount: 10, lostCount: 1 },
 ];
-
 export const ARCHITECT_AND_STYLE_BIOGRAPHIES = {
   "alfred c. finn": {
     title: "Alfred Charles Finn, FAIA (1883-1964)",
@@ -795,13 +865,373 @@ export const ARCHITECT_AND_STYLE_BIOGRAPHIES = {
       },
     ],
   },
+  "maurice j. sullivan": {
+    title: "Maurice Joseph Sullivan, FAIA (1884-1961)",
+    role: "Houston City Architect & Ecclesiastical Designer",
+    summary:
+      "Served as Houston City Architect (1912-1919), partnered with Birdsall P. Briscoe, and designed numerous Roman Catholic churches, schools, hospitals, and residences across Houston.",
+    citations: [
+      {
+        label: "TSHA Handbook of Texas: Sullivan, Maurice Joseph",
+        url: "https://www.tshaonline.org/handbook/entries/sullivan-maurice-joseph",
+      },
+    ],
+  },
+  "stayton nunn": {
+    title: "Stayton Nunn, FAIA (1899-1960)",
+    role: "Civic, Educational & Residential Architect",
+    summary:
+      "Coordinating architect for Houston ISD's postwar school building program, partner of Milton McGinty, and designer of refined residences across River Oaks, Montrose, and Broadacres.",
+    citations: [
+      {
+        label: "TSHA Handbook of Texas: Nunn, Stayton",
+        url: "https://www.tshaonline.org/handbook/entries/nunn-stayton",
+      },
+    ],
+  },
+  "kenneth franzheim": {
+    title: "Kenneth Franzheim, FAIA (1890-1959)",
+    role: "Corporate Skyscraper & Retail Modernist Architect",
+    summary:
+      "New York and Houston architect who reshaped postwar Downtown Houston with Foley's Department Store (1947, demolished), Bank of the Southwest (1956), Texas National Bank (1955), and Humble Oil Building additions.",
+    citations: [
+      {
+        label: "TSHA Handbook of Texas: Franzheim, Kenneth",
+        url: "https://www.tshaonline.org/handbook/entries/franzheim-kenneth",
+      },
+    ],
+  },
+  "caudill rowlett scott": {
+    title: "Caudill Rowlett Scott (CRS)",
+    role: "Pioneering Texas Modernist & Programming Architecture Firm",
+    summary:
+      "Founded in 1946 by William Wayne Caudill and John Miles Rowlett, CRS revolutionized postwar school, university, and civic architecture and designed Jesse H. Jones Hall for the Performing Arts (1966) in Downtown Houston.",
+    citations: [
+      {
+        label: "TSHA Handbook of Texas: Caudill, William Wayne",
+        url: "https://www.tshaonline.org/handbook/entries/caudill-william-wayne",
+      },
+    ],
+  },
+  "nicholas j. clayton": {
+    title: "Nicholas Joseph Clayton (1840-1916)",
+    role: "High Victorian Sacred & Civic Architect",
+    summary:
+      "Texas's premier 19th-century Victorian architect, whose Houston works included Sacred Heart Co-Cathedral (1897, demolished), Annunciation Catholic Church additions, and Gilded Age institutional buildings.",
+    citations: [
+      {
+        label: "TSHA Handbook of Texas: Clayton, Nicholas Joseph",
+        url: "https://www.tshaonline.org/handbook/entries/clayton-nicholas-joseph",
+      },
+    ],
+  },
+  "cram, goodhue & ferguson": {
+    title: "Cram, Goodhue & Ferguson",
+    role: "Collegiate & Ecclesiastical Master Architects",
+    summary:
+      "Boston and New York firm led by Ralph Adams Cram that authored the 1910 General Plan for Rice Institute, Lovett Hall (1912), Mechanical Laboratory, and Trinity Episcopal Church in Midtown.",
+    citations: [
+      {
+        label: "TSHA Handbook of Texas: Watkin, William Ward",
+        url: "https://www.tshaonline.org/handbook/entries/watkin-william-ward",
+      },
+    ],
+  },
+  "harvin c. moore": {
+    title: "Harvin C. Moore & Hermon Lloyd",
+    role: "Period Revival & Civic Modernist Architects",
+    summary:
+      "Houston architectural partnership responsible for distinguished Period Revival homes in River Oaks and Montrose as well as major mid-century civic commissions including the 1965 Astrodome (as Lloyd & Morgan).",
+    citations: [
+      {
+        label: "TSHA Handbook of Texas: Astrodome",
+        url: "https://www.tshaonline.org/handbook/entries/astrodome",
+      },
+    ],
+  },
+  "bungalow": {
+    title: "Bungalow Architecture in Houston (1900-1938)",
+    role: "Architectural Style Portfolio",
+    summary:
+      "Encompassing gable-front, hipped, pedimented, English, and duplex bungalows across Norhill, Houston Heights, Woodland Heights, Eastwood, and Montrose, the early-20th-century bungalow forms the backbone of Houston's streetcar-suburb housing stock.",
+    citations: [
+      {
+        label: "COH HPO: Norhill Historic District",
+        url: "https://www.houstontx.gov/planning/HistoricPres/norhill/index.html",
+      },
+    ],
+  },
+  "folk victorian": {
+    title: "Folk Victorian Architecture in Houston (1875-1910)",
+    role: "Architectural Style Portfolio",
+    summary:
+      "Defined by jigsaw-cut brackets, turned porch spindles, and decorative friezes applied to symmetrical L-plan, gable-front, or pyramidal cottages across Old Sixth Ward, Freedmen's Town, High First Ward, and Houston Heights.",
+    citations: [
+      {
+        label: "COH HPO: Old Sixth Ward Historic District",
+        url: "https://www.houstontx.gov/planning/HistoricPres/oldsixthward/index.html",
+      },
+    ],
+  },
+  "prairie": {
+    title: "Prairie School Architecture in Houston (1905-1925)",
+    role: "Architectural Style Portfolio",
+    summary:
+      "Characterized by low-pitched hipped roofs with wide boxed eaves, horizontal stucco or brick banding, massive square porch piers, and ribbon windows across Courtlandt Place, Montrose, Avondale, and Woodland Heights.",
+    citations: [
+      {
+        label: "COH Historic Preservation Manual",
+        url: "https://www.houstontx.gov/planning/HistoricPres/historicmanual.html",
+      },
+    ],
+  },
+  "foursquare": {
+    title: "American Foursquare Architecture in Houston (1900-1925)",
+    role: "Architectural Style Portfolio",
+    summary:
+      "Two-story boxy residences with hipped roofs, central dormers, four-room-per-floor plans, and full-width front porches across Houston Heights, Woodland Heights, Montrose, and Westmoreland.",
+    citations: [
+      {
+        label: "COH Historic Preservation Manual",
+        url: "https://www.houstontx.gov/planning/HistoricPres/historicmanual.html",
+      },
+    ],
+  },
+  "ranch": {
+    title: "Traditional & Mid-Century Ranch Architecture in Houston (1945-1975)",
+    role: "Architectural Style Portfolio",
+    summary:
+      "Single-story, ground-hugging postwar residences with low hipped or cross-gabled roofs, broad picture windows, brick wainscot or Roman brick walls, and integrated carports or garages across Glenbrook Valley, Idylwood, Oak Forest, and Meyerland.",
+    citations: [
+      {
+        label: "COH Landmark Report 12L271 (Glenbrook Valley)",
+        url: "https://www.houstontx.gov/planning/HistoricPres/landmarks/12L271_Muscanere_House_7843_Santa_Elena.pdf",
+      },
+    ],
+  },
+  "moderne": {
+    title: "Streamline & PWA Moderne Architecture in Houston (1933-1948)",
+    role: "Architectural Style Portfolio",
+    summary:
+      "Marked by aerodynamic curved corners, glass-block bands, horizontal speed lines, and stripped classical limestone facades across 1930s-1940s civic buildings, theaters, clinics, and commercial storefronts.",
+    citations: [
+      {
+        label: "COH Historic Preservation Manual",
+        url: "https://www.houstontx.gov/planning/HistoricPres/historicmanual.html",
+      },
+    ],
+  },
 };
 
 function normText(s) {
   return String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
+}
+
+const EXCLUDED_NOISE_PORTFOLIO_IDS = new Set([
+  "port_address_unknown_c9ad96",
+  "port_17171_park_row_ste_100_9ba005", // Self-directed IRA custodian (Quest IRA)
+  "port_2001_spring_rd_ste_700_1b9ad3", // Self-directed IRA custodian (Inspira Financial)
+]);
+
+export function cleanOwnerPortfolioDisplayLabel(rawLabel, primaryEntity = "", pid = "") {
+  let clean = String(rawLabel || primaryEntity || pid || "").trim();
+  // Strip embedded "(X Entities / Y Parcels)" or "(X Entities)" suffixes to prevent double counts
+  clean = clean
+    .replace(/\s*\(\d[\d,]*\s+Entities(?:\s*\/\s*\d[\d,]*\s+Parcels)?\)\s*$/i, "")
+    .replace(/\s+(?:ATTN\b|%|C\/O\b).*?(?=\s*(?:\(|&|$))/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return clean || String(pid || "Portfolio");
+}
+
+export function categorizeOwnerPortfolioSubGroup(pid, pObj = {}) {
+  const blob = `${pid} ${pObj.label || ""} ${pObj.primary_entity || ""} ${(pObj.entity_samples || []).join(" ")}`.toLowerCase();
+  if (
+    pid === "port_2410_polk_200" ||
+    pid === "port_7155_old_katy_n260" ||
+    pid === "port_401_franklin_st_ste_2555_0dff7f" ||
+    /lovett|intown|sandcastle|riverway|oracle|hearthstone|mayberry|specialty homes|greenpawn|allison|braun|radom|midtown|garrott|heights hollow|lema|festival|cathexis/.test(
+      blob
+    )
+  ) {
+    return "Houston Developers, Builders & Infill Portfolios";
+  }
+  if (
+    pid === "port_amh_sfr" ||
+    pid === "port_progress_sfr" ||
+    pid === "port_camillo_sfr" ||
+    pid === "port_hpa_sfr" ||
+    pid === "port_open_house_tx" ||
+    /american homes 4 rent|progress residential|camillo|home partners|open house|rental|pclo/.test(
+      blob
+    )
+  ) {
+    return "Single-Family Rental (SFR) & Institutional Platforms";
+  }
+  if (/menil|fifth ward|redev|deal co|winter street|sawyer|church|foundation|university/.test(blob)) {
+    return "Civic, Cultural & Adaptive-Reuse Stewards";
+  }
+  return "Commercial, Industrial & Multi-Entity Holdings";
+}
+
+export function buildCategorizedPortfolioCatalog(ownershipPortfolios = null) {
+  const architects = FEATURED_PORTFOLIO_PRESETS.filter((p) => p.kind === "architect").map((p) => {
+    const wc = Number(p.workCount || 0);
+    const lc = Number(p.lostCount || 0);
+    const countBadge =
+      wc > 0 ? `${wc} work${wc === 1 ? "" : "s"}${lc > 0 ? ` · ${lc} lost` : ""}` : "Portfolio";
+    return {
+      ...p,
+      value: `architect:${p.query}`,
+      category: "architect",
+      title: p.label,
+      countBadge,
+      count: wc,
+      subGroup: p.subGroup || "Master Architects & Builders",
+      subtitle: p.subtitle || "",
+      searchBlob: normText(
+        `${p.label} ${p.query} ${p.subtitle || ""} ${p.subGroup || ""} ${(p.aliases || []).join(" ")}`
+      ),
+    };
+  });
+
+  const styles = FEATURED_PORTFOLIO_PRESETS.filter((p) => p.kind === "style").map((p) => {
+    const wc = Number(p.workCount || 0);
+    const lc = Number(p.lostCount || 0);
+    const countBadge =
+      wc > 0 ? `${wc.toLocaleString()} work${wc === 1 ? "" : "s"}${lc > 0 ? ` · ${lc} lost` : ""}` : "Style";
+    return {
+      ...p,
+      value: `style:${p.query}`,
+      category: "style",
+      title: p.label,
+      countBadge,
+      count: wc,
+      subGroup: p.subGroup || "Architectural Styles",
+      subtitle: p.subtitle || "",
+      searchBlob: normText(
+        `${p.label} ${p.query} ${p.subtitle || ""} ${p.subGroup || ""} ${(p.aliases || []).join(" ")}`
+      ),
+    };
+  });
+
+  const rawPortMap =
+    ownershipPortfolios && typeof ownershipPortfolios === "object"
+      ? ownershipPortfolios.portfolios || ownershipPortfolios
+      : {};
+
+  const CURATED_OWNER_PORTFOLIO_ALIASES = new Map([
+    [
+      "port_2410_polk_200",
+      "frank liu frank lu lovett homes intown homes fenway development",
+    ],
+    [
+      "port_401_franklin_st_ste_2555_0dff7f",
+      "frank liu frank lu lovett homes intown homes fenway development",
+    ],
+  ]);
+
+  const PINNED_OWNER_PORTFOLIO_PRIORITY = new Map([
+    ["port_2410_polk_200", 1000], // Lovett Homes / InTown Homes / Fenway Dev. (Frank Liu) - 2,639 parcels
+    ["port_7155_old_katy_n260", 990], // 7155 Old Katy Rd Ste N260 Historic Corridor Portfolio - 54 parcels / 42 LLCs
+    ["port_amh_sfr", 980], // American Homes 4 Rent (AMH) - 1,011 parcels
+    ["port_110_ave_b_ste_100_6e8cac", 970], // Allison Partners / Home Site Residential - 903 parcels
+    ["port_progress_sfr", 960], // Progress Residential / Pretium - 466 parcels
+    ["port_6502_alder_61a07e", 950], // Oracle City Homes / Oracle Partners - 369 parcels
+    ["port_1925_sw_f785c6", 940], // BMI Investments / Markman Martinez - 208 parcels
+    ["port_4808_gibson_c0b6f9", 930], // Greenpawn Properties / Bay Residential - 186 parcels
+    ["port_3800_garrott_7507ab", 920], // 3800 Garrott St Montrose Rental Portfolio - 163 parcels
+    ["port_1027_yale_bd540e", 910], // Riverway Builders - 122 parcels
+    ["port_prologis_ind", 900], // Prologis Industrial - 117 parcels
+    ["port_4112_la_branch_b9b104", 890], // Hearthstone Homes - 98 parcels
+    ["port_4300_lyons_ave_ste_300_c6c07c", 885], // Fifth Ward Community Redevelopment Corp. - 67 parcels
+    ["port_1405_durham_bfe6c5", 880], // Sandcastle Homes - 63 parcels
+    ["port_4412_almeda_650d7e", 875], // Mayberry Homes (Sharone Mayberry) - 50 parcels
+    ["port_po_box_1524_35e7ca", 870], // Deal Co. / Sawyer Yards - 47 parcels
+    ["port_5353_w_alabama_st_ste_20_a33acc", 865], // Braun Enterprises / Sambrooks Realty - 43 parcels
+    ["port_1519_branard_9efe55", 860], // The Menil Foundation / Menil Properties - 30 parcels
+    ["port_401_franklin_st_ste_2555_0dff7f", 855], // Lovett Industrial (Frank Liu) - 28 parcels
+    ["port_611_w_22nd_st_ste_203_f09202", 850], // Radom Capital (Steve Radom) - 11 parcels
+  ]);
+
+  const seenPrimaryCorporateRoot = new Set();
+  const ownerCandidates = [];
+
+  for (const [pid, p] of Object.entries(rawPortMap)) {
+    if (!p || typeof p !== "object") continue;
+    if (EXCLUDED_NOISE_PORTFOLIO_IDS.has(pid)) continue;
+    const rawAddr = String(p.billing_address || "").toUpperCase();
+    if (rawAddr.startsWith("ADDRESS UNKNOWN")) continue;
+
+    const pCount = Number(p.parcel_count ?? p.c ?? 0);
+    const eCount = Number(p.distinct_entity_count ?? p.distinct_llcs ?? p.ec ?? 0);
+    const cleanTitle = cleanOwnerPortfolioDisplayLabel(
+      p.label || p.primary_entity || p.b || p.n || pid,
+      p.primary_entity || "",
+      pid
+    );
+    const countBadge = `${pCount.toLocaleString()} parcels${eCount > 1 ? ` · ${eCount} LLCs` : ""}`;
+    const ents = Array.isArray(p.entity_samples)
+      ? p.entity_samples
+      : Array.isArray(p.entities)
+      ? p.entities
+      : [];
+    const officers = Array.isArray(p.tx_sos_officers)
+      ? p.tx_sos_officers
+      : Array.isArray(p.officers)
+      ? p.officers
+      : [];
+    const subParts = [];
+    if (officers.length > 0) subParts.push(officers[0]);
+    if (p.billing_address) subParts.push(p.billing_address);
+    if (ents.length > 0) subParts.push(`Entities: ${ents.slice(0, 3).join(", ")}`);
+
+    ownerCandidates.push({
+      kind: "owner_portfolio",
+      query: pid,
+      value: `owner_portfolio:${pid}`,
+      category: "owner_portfolio",
+      title: cleanTitle,
+      label: `${cleanTitle} (${countBadge})`,
+      countBadge,
+      subGroup: categorizeOwnerPortfolioSubGroup(pid, p),
+      subtitle: subParts.join(" · "),
+      searchBlob: normText(
+        `${pid} ${cleanTitle} ${p.primary_entity || ""} ${p.billing_address || ""} ${ents.join(" ")} ${officers.join(" ")} ${
+          CURATED_OWNER_PORTFOLIO_ALIASES.get(pid) || ""
+        }`
+      ),
+      count: pCount,
+      entityCount: eCount,
+      priority: PINNED_OWNER_PORTFOLIO_PRIORITY.get(pid) || 0,
+      primaryRoot: normText(p.primary_entity || cleanTitle).split(" ").slice(0, 2).join(" "),
+    });
+  }
+
+  ownerCandidates.sort(
+    (a, b) =>
+      b.priority - a.priority ||
+      (b.entityCount >= 10 ? 1 : 0) - (a.entityCount >= 10 ? 1 : 0) ||
+      b.count - a.count
+  );
+
+  const owners = [];
+  for (const cand of ownerCandidates) {
+    // Avoid listing duplicate PO Boxes for the exact same corporate parent (e.g., Exxon Mobil)
+    if (cand.priority === 0 && cand.primaryRoot && seenPrimaryCorporateRoot.has(cand.primaryRoot)) {
+      continue;
+    }
+    if (cand.primaryRoot) seenPrimaryCorporateRoot.add(cand.primaryRoot);
+    owners.push(cand);
+    if (owners.length >= 40) break;
+  }
+
+  return { architects, styles, owners };
 }
 
 export function resolvePortfolioBiography(kind, query, ownershipPortfolios = null) {
@@ -828,12 +1258,18 @@ export function resolvePortfolioBiography(kind, query, ownershipPortfolios = nul
             : Array.isArray(pObj.entities)
             ? pObj.entities
             : [];
+          const offs = Array.isArray(pObj.tx_sos_officers)
+            ? pObj.tx_sos_officers
+            : Array.isArray(pObj.officers)
+            ? pObj.officers
+            : [];
           if (
             normText(pid) === qNorm ||
             normText(pObj.label) === qNorm ||
             normText(pObj.label).includes(qNorm) ||
             normText(pObj.primary_entity) === qNorm ||
-            ents.some((e) => normText(e).includes(qNorm))
+            ents.some((e) => normText(e).includes(qNorm)) ||
+            offs.some((o) => normText(o).includes(qNorm))
           ) {
             matchedPort = pObj;
             matchedPid = pid;
@@ -870,8 +1306,13 @@ export function resolvePortfolioBiography(kind, query, ownershipPortfolios = nul
       const eCount =
         Number(matchedPort.distinct_entity_count ?? matchedPort.distinct_llcs ?? matchedPort.ec) ||
         Math.max(1, ents.length);
+      const cleanBioLabel = cleanOwnerPortfolioDisplayLabel(
+        matchedPort.label || matchedPid,
+        matchedPort.primary_entity || "",
+        matchedPid
+      );
       return {
-        title: `${matchedPort.label || matchedPid} (${pCount} Parcels · ${eCount} Entities)`,
+        title: `${cleanBioLabel} (${pCount.toLocaleString()} Parcels · ${eCount} Entities)`,
         role: `${tierItem.label} · Beneficial Ownership Cluster`,
         summary: `Tax-billing and Texas Comptroller entity resolution links ${pCount} Harris County parcels across ${eCount} legal names sharing billing address "${
           matchedPort.billing_address || "On File"
@@ -902,6 +1343,29 @@ export function resolvePortfolioBiography(kind, query, ownershipPortfolios = nul
     if (qNorm.includes(k) || k.includes(qNorm)) {
       return bio;
     }
+  }
+  const matchedPreset = FEATURED_PORTFOLIO_PRESETS.find(
+    (p) =>
+      p.kind === normKind &&
+      (normText(p.query) === qNorm ||
+        normText(p.label) === qNorm ||
+        normText(p.query).includes(qNorm) ||
+        qNorm.includes(normText(p.query)))
+  );
+  if (matchedPreset) {
+    return {
+      title: matchedPreset.label || qRaw,
+      role:
+        matchedPreset.subGroup ||
+        (normKind === "style" ? "Architectural Style Portfolio" : "Architect / Builder Portfolio"),
+      summary: matchedPreset.subtitle
+        ? `${matchedPreset.subtitle}. Chronological portfolio of extant and demolished structures attributed to ${
+            matchedPreset.label || qRaw
+          } across Harris County archival, landmark, and curated survey records.`
+        : `Chronological portfolio of extant and demolished structures attributed to ${
+            matchedPreset.label || qRaw
+          } across Harris County archival, landmark, and curated survey records.`,
+    };
   }
   return {
     title: qRaw,
@@ -1069,12 +1533,18 @@ export function buildPortfolioDataset({
             : Array.isArray(pObj.entities)
             ? pObj.entities
             : [];
+          const offs = Array.isArray(pObj.tx_sos_officers)
+            ? pObj.tx_sos_officers
+            : Array.isArray(pObj.officers)
+            ? pObj.officers
+            : [];
           if (
             normText(pid) === qNorm ||
             normText(pObj.label) === qNorm ||
             normText(pObj.label).includes(qNorm) ||
             normText(pObj.primary_entity) === qNorm ||
-            ents.some((e) => normText(e).includes(qNorm))
+            ents.some((e) => normText(e).includes(qNorm)) ||
+            offs.some((o) => normText(o).includes(qNorm))
           ) {
             matchedPort = pObj;
             matchedPid = pid;
