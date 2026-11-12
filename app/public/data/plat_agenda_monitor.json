@@ -1,7 +1,7 @@
 {
   "app": "Plat Agenda Monitor",
   "version": 3,
-  "generatedAt": "2026-11-11T19:04:54Z",
+  "generatedAt": "2026-11-12T19:24:43Z",
   "autoSweepSchedule": "Daily at 7:00 AM CT",
   "scrapeFailed": false,
   "error": "",
@@ -15480,7 +15480,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94132/OriginalFiles/11022026_MartinezProperty.pdf?sv=2021-08-06&se=2051-11-02T16%3A50%3A22Z&sr=b&sp=r&sig=6qPWdSTSR91zMOyWqakb9yEkKM3KJWDz0ym0bNI7K2o%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958587+00:00"
+      "updated": "2026-11-12T19:24:43.161119+00:00"
     },
     "2026-1811": {
       "address": "506 E 31ST ST",
@@ -15493,7 +15493,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94139/OriginalFiles/11022026_RESIDENCE_AT_NEW_HEIGHTS.pdf?sv=2021-08-06&se=2051-11-02T16%3A17%3A19Z&sr=b&sp=r&sig=QeCZaTZnuZZjL5ucruQHIMZnOWkRJBC9iznnSRlRqOQ%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958621+00:00"
+      "updated": "2026-11-12T19:24:43.161157+00:00"
     },
     "2026-1805": {
       "address": "8017 HOMESTEAD RD",
@@ -15506,7 +15506,15 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958662+00:00"
+      "updated": "2026-11-12T19:24:43.161207+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "yearBuilt",
+        "tier",
+        "why",
+        "sources",
+        "followup"
+      ]
     },
     "2026-1787": {
       "address": "3535 AND 3537 MANSFIELD ST",
@@ -15519,7 +15527,16 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94121/OriginalFiles/22085_-_Plat.pdf?sv=2021-08-06&se=2051-11-02T13%3A58%3A50Z&sr=b&sp=r&sig=o1hAdsEiI81oE7mmCJccz8ANr7qhG4v%2F4EhkAJjH2zg%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958722+00:00"
+      "updated": "2026-11-12T19:24:43.161296+00:00",
+      "hcad": "0600730220025, 0600730220026, \t0600730220027",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "hcad",
+        "address",
+        "tier",
+        "threatCategory",
+        "why"
+      ]
     },
     "2026-1785": {
       "address": "14444 NORTHWEST FWY",
@@ -15532,7 +15549,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93980/OriginalFiles/067548041-Windfern_Crossing_Plat_V1.pdf?sv=2021-08-06&se=2051-10-16T16%3A03%3A57Z&sr=b&sp=r&sig=ZgjXYW4wcSn2L5K8DudZeS6UJLubDXpZEVVMp4vEAzM%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958733+00:00"
+      "updated": "2026-11-12T19:24:43.161313+00:00"
     },
     "2026-1781": {
       "address": "2101 W 34TH ST",
@@ -15545,7 +15562,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94120/OriginalFiles/MARKET_AT_OAK_FOREST.pdf?sv=2021-08-06&se=2051-11-02T13%3A30%3A17Z&sr=b&sp=r&sig=AYiHNC8Ex%2BOr2Xfa1LzUmgUwmwvMh%2FXJuXuDwGyCI%2Fc%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958745+00:00"
+      "updated": "2026-11-12T19:24:43.161331+00:00"
     },
     "2026-1777": {
       "address": "5010 BRICKER ST",
@@ -15558,7 +15575,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94115/OriginalFiles/BRICKER_GREEN_10-29-2026_PDF.pdf?sv=2021-08-06&se=2051-11-02T12%3A59%3A03Z&sr=b&sp=r&sig=1eGB8vGqTni9GXf8m8Tq%2FoWbogb3CFXara3dqhjQ%2BXc%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958770+00:00"
+      "updated": "2026-11-12T19:24:43.161371+00:00"
     },
     "2026-1775": {
       "address": "1615 W CLAY ST",
@@ -15571,7 +15588,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1775/OriginalFiles/WEST_CLAY_VISTA_11-1-2026_PDF.pdf?sv=2021-08-06&se=2051-11-06T17%3A09%3A46Z&sr=b&sp=r&sig=hXvOCS3Fe8MzRxWxtJ%2BbPB0cKjJRyPHGJpsEqIV7rCA%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958783+00:00"
+      "updated": "2026-11-12T19:24:43.161390+00:00"
     },
     "2026-1774": {
       "address": "12129 5TH ST",
@@ -15584,7 +15601,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94091/OriginalFiles/ALPHA_PRIME_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-11-02T00%3A01%3A58Z&sr=b&sp=r&sig=barpNFF02irGkqhOMbxWJqi0MKWPvMa%2FU4jNEDsjoGA%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958795+00:00"
+      "updated": "2026-11-12T19:24:43.161408+00:00"
     },
     "2026-1773": {
       "address": "5007 WILMINGTON ST",
@@ -15597,7 +15614,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94092/OriginalFiles/WILMINGTON_PARK_PLAZA-Layout1.pdf?sv=2021-08-06&se=2051-11-01T23%3A19%3A48Z&sr=b&sp=r&sig=JWlGxFJVQCMxYEbgDPxo35wUa09%2FpzN0XIzFwQ60%2B8I%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958807+00:00"
+      "updated": "2026-11-12T19:24:43.161426+00:00"
     },
     "2026-1770": {
       "address": "8410 OBSERVATORY ST",
@@ -15610,7 +15627,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94093/OriginalFiles/PLAZA_ESTATES_AT_OBSERVATORY-Layout1.pdf?sv=2021-08-06&se=2051-11-01T16%3A21%3A54Z&sr=b&sp=r&sig=itsPu%2FpAClTnNYhUaG2Rg5UAk6LbJ4c3lMgS9gMUu%2Bc%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958820+00:00"
+      "updated": "2026-11-12T19:24:43.161445+00:00"
     },
     "2026-1764": {
       "address": "1901 W ALABAMA ST; 1911 W ALABAMA ST",
@@ -15623,7 +15640,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94109/OriginalFiles/11-1234-PLAT.pdf?sv=2021-08-06&se=2051-10-30T20%3A33%3A38Z&sr=b&sp=r&sig=9JtUivrc74sMAvYZdbpouqUILSgbnmLlENQoz9xVi3Q%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958844+00:00"
+      "updated": "2026-11-12T19:24:43.161480+00:00"
     },
     "2026-1757": {
       "address": "8213 KENTON ST",
@@ -15636,7 +15653,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94098/OriginalFiles/05-QTH_Estate_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-30T17%3A28%3A07Z&sr=b&sp=r&sig=GdVSOzup%2BdccSqyk4saIcx3xvS3RTs2pZnr9rQWuQxQ%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958873+00:00"
+      "updated": "2026-11-12T19:24:43.161523+00:00"
     },
     "2026-1744": {
       "address": "706 LEHMAN ST",
@@ -15649,7 +15666,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1744/OriginalFiles/PLAT.pdf?sv=2021-08-06&se=2051-11-03T14%3A24%3A05Z&sr=b&sp=r&sig=zkn%2Bv3MOHfuvxJx%2BkXIDWXmXHffMGlHctCSIUpvZ4d8%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958911+00:00"
+      "updated": "2026-11-12T19:24:43.161578+00:00"
     },
     "2026-1733": {
       "address": "7111 BAUMAN RD",
@@ -15662,7 +15679,14 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93598/OriginalFiles/20261019-PLAT-OASIS_RESIDENCES-57821-P138408_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-19T15%3A37%3A43Z&sr=b&sp=r&sig=9MRYpPQ8n4eM0KTNNjejqjVfAOy5F%2F6NTuJazaZVyww%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958936+00:00"
+      "updated": "2026-11-12T19:24:43.161617+00:00",
+      "hcad": "0382120120005,0382120120003",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "hcad",
+        "tier",
+        "why"
+      ]
     },
     "2026-1723": {
       "address": "0 CANADA DRY ST",
@@ -15675,7 +15699,14 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1723_ScottWetWeatherFacility.pdf",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958954+00:00"
+      "updated": "2026-11-12T19:24:43.161664+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "yearBuilt",
+        "tier",
+        "threatCategory",
+        "sources"
+      ]
     },
     "2026-1701": {
       "address": "5926 and 5930 Grace Lane",
@@ -15688,7 +15719,17 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.958997+00:00"
+      "updated": "2026-11-12T19:24:43.161737+00:00",
+      "hcad": "0460360010017, 0460360010016",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "hcad",
+        "address",
+        "tier",
+        "threatCategory",
+        "why",
+        "sources"
+      ]
     },
     "2026-1686": {
       "address": "2700 TIDWELL RD",
@@ -15701,7 +15742,13 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94009/OriginalFiles/26-0002-001.pdf?sv=2021-08-06&se=2051-10-16T19%3A11%3A15Z&sr=b&sp=r&sig=iw6soIsaC4SBxkwqUFeVKDA3b5COueqzKBS4ofFbPKE%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959021+00:00"
+      "updated": "2026-11-12T19:24:43.161774+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "tier",
+        "threatCategory",
+        "why"
+      ]
     },
     "2026-1654": {
       "address": "626 E WELLINGTON ST",
@@ -15714,7 +15761,12 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93942/OriginalFiles/26-0029-001-PLAT.pdf?sv=2021-08-06&se=2051-10-05T15%3A27%3A13Z&sr=b&sp=r&sig=MXD67v0%2Fd1K9qUgR8a%2Fw8f%2FcwZH420ayJ%2F4SPNv4qBw%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959048+00:00"
+      "updated": "2026-11-12T19:24:43.161816+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "tier",
+        "why"
+      ]
     },
     "2026-1641": {
       "address": "2802 WHEELER ST",
@@ -15727,7 +15779,14 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959061+00:00"
+      "updated": "2026-11-12T19:24:43.161835+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "tier",
+        "threatCategory",
+        "why",
+        "sources"
+      ]
     },
     "2026-1634": {
       "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -15740,7 +15799,13 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959080+00:00"
+      "updated": "2026-11-12T19:24:43.161865+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "tier",
+        "threatCategory",
+        "sources"
+      ]
     },
     "2026-1605": {
       "address": "4615 SHERMAN ST",
@@ -15753,7 +15818,13 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959103+00:00"
+      "updated": "2026-11-12T19:24:43.161903+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "tier",
+        "threatCategory",
+        "why"
+      ]
     },
     "2026-1585": {
       "address": "1226 W PIERCE ST",
@@ -15766,7 +15837,16 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959134+00:00"
+      "updated": "2026-11-12T19:24:43.161950+00:00",
+      "hcad": "1490700010001, 1490700010002, 1490700010003, 1490700010004, 1490700010005, 1490700020001, 1490700020002, 1490700020003, 1490700020004",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "hcad",
+        "address",
+        "threatCategory",
+        "why",
+        "sources"
+      ]
     },
     "2026-1562": {
       "address": "0 TUSKEGEE HEIGHTS LN",
@@ -15779,7 +15859,14 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93849/OriginalFiles/HIGHLAND_HEIGHTS_GREEN_PARTIAL_REPLAT_NO_1_9-16-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T11%3A48%3A16Z&sr=b&sp=r&sig=kjkLsQCr5vXgPXJ24uV0xQqtO4PXnmeutEdPjO3K4yU%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959144+00:00"
+      "updated": "2026-11-12T19:24:43.161965+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "address",
+        "tier",
+        "threatCategory",
+        "why"
+      ]
     },
     "DPV-26091362": {
       "address": "13515 PERTHSHIRE RD",
@@ -15792,7 +15879,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959184+00:00"
+      "updated": "2026-11-12T19:24:43.162025+00:00"
     },
     "DPV-99": {
       "address": "3747 DREYFUS ST",
@@ -15805,7 +15892,7 @@
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959193+00:00"
+      "updated": "2026-11-12T19:24:43.162040+00:00"
     },
     "DPV-26087637": {
       "address": "403 YORKCHESTER DR",
@@ -15818,7 +15905,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959205+00:00"
+      "updated": "2026-11-12T19:24:43.162055+00:00"
     },
     "DPV-26084127": {
       "address": "6102 WALTWAY DR",
@@ -15831,7 +15918,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959214+00:00"
+      "updated": "2026-11-12T19:24:43.162070+00:00"
     },
     "2026-1524": {
       "address": "4705 LIBERTY RD",
@@ -15844,7 +15931,7 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959226+00:00"
+      "updated": "2026-11-12T19:24:43.162087+00:00"
     },
     "2026-1551": {
       "address": "8841 CULLEN BLVD",
@@ -15857,7 +15944,14 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959236+00:00"
+      "updated": "2026-11-12T19:24:43.162102+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "tier",
+        "threatCategory",
+        "why",
+        "sources"
+      ]
     },
     "2026-1716": {
       "address": "1816 THOMPSON ST",
@@ -15870,7 +15964,15 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94027/OriginalFiles/261063125-Model.pdf?sv=2021-08-06&se=2051-10-19T13%3A38%3A41Z&sr=b&sp=r&sig=TF43byiCA%2FceMXRmsxdGXbD61HZh93lPxOT1%2BSbQT7I%3D",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959267+00:00"
+      "updated": "2026-11-12T19:24:43.162149+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "yearBuilt",
+        "tier",
+        "threatCategory",
+        "why",
+        "sources"
+      ]
     },
     "2026-1739": {
       "address": "50 BRIAR HOLLOW LN",
@@ -15883,7 +15985,14 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93995/OriginalFiles/26059_-_Plat.pdf?sv=2021-08-06&se=2051-10-19T15%3A09%3A17Z&sr=b&sp=r&sig=tkM6f8a34plILEsJIbBDPorjtsUtiA1ZzqsYsfuHEvk%3D",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959284+00:00"
+      "updated": "2026-11-12T19:24:43.162175+00:00",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "tier",
+        "threatCategory",
+        "why",
+        "sources"
+      ]
     },
     "2026-1752": {
       "address": "1907 AFTON ST",
@@ -15896,7 +16005,7 @@
       "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1752-Afton-Park-GP.pdf",
       "followup": "",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959293+00:00"
+      "updated": "2026-11-12T19:24:43.162190+00:00"
     },
     "2026-1786": {
       "address": "600 GREENSPOINT MALL; 400 GREENSPOINT MALL; 208 GREENS RD",
@@ -15909,7 +16018,34 @@
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93807/OriginalFiles/063319128-City_North_GP_V1.pdf?sv=2021-08-06&se=2051-09-21T15%3A17%3A43Z&sr=b&sp=r&sig=hkR919IwckfITdarlBVnOzcCQbOtnQhkjEbr0nCk22M%3D",
       "followup": "Monitor for demolition or building permit filings.",
       "autoEnriched": true,
-      "updated": "2026-11-11T19:04:54.959304+00:00"
+      "updated": "2026-11-12T19:24:43.162208+00:00",
+      "carriedFromCycle": "2026-10-01",
+      "carriedFields": [
+        "tier",
+        "sources"
+      ]
+    },
+    "2026-1442": {
+      "tier": "2",
+      "tierConfirmed": true,
+      "updated": "2026-10-30T02:21:53.230Z",
+      "reviewer": "emily@preservationhouston.org",
+      "humanEditedFields": [
+        "tier"
+      ],
+      "address": "8803 FOREST HOLLOW ST",
+      "yearBuilt": "1968",
+      "designation": "None found",
+      "threatCategory": "Neighborhood / District Context Impact",
+      "why": "EA: City-owned housing project",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "address",
+        "yearBuilt",
+        "designation",
+        "threatCategory",
+        "why"
+      ]
     },
     "2026-1780": {
       "hcad": "0791290030051",
@@ -27825,7 +27961,11 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93807/OriginalFiles/063319128-City_North_GP_V1.pdf?sv=2021-08-06&se=2051-09-21T15%3A17%3A43Z&sr=b&sp=r&sig=hkR919IwckfITdarlBVnOzcCQbOtnQhkjEbr0nCk22M%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717701+00:00"
+          "updated": "2026-10-30T01:37:38.789Z",
+          "humanEditedFields": [
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1577": {
           "address": "919 LAWRENCE ST",
@@ -27838,7 +27978,13 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93861/OriginalFiles/09.21.26_-_Plat.pdf?sv=2021-08-06&se=2051-09-21T14%3A30%3A13Z&sr=b&sp=r&sig=Z5v9AjHKbQXTG2A44qps%2FDc0sxs0l9y251XMFvIB73k%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717758+00:00"
+          "updated": "2026-10-30T01:37:23.900Z",
+          "humanEditedFields": [
+            "why",
+            "threatCategory",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1573": {
           "address": "14630 WHITE HEATHER DR",
@@ -27851,7 +27997,14 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93785/OriginalFiles/WHITE_HEATHER_PROPERTIES_PLAT_19.09.26-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A09%3A24Z&sr=b&sp=r&sig=6z5%2BZXFX8DkQXqJZUbpQX6nr6pyeenZuRV2hcmKK3CI%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717792+00:00"
+          "updated": "2026-10-30T01:37:43.812Z",
+          "humanEditedFields": [
+            "yearBuilt",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1571": {
           "address": "14217 MAIN ST; 12008 LOMCREST ST",
@@ -27864,7 +28017,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93789/OriginalFiles/09.17.26_-_Final_Plat.pdf?sv=2021-08-06&se=2051-09-18T16%3A12%3A56Z&sr=b&sp=r&sig=DhqLuwDX%2FC%2Ftx4CESwzxwClToSC3k%2F32eJ2dXku%2BUF0%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717812+00:00"
+          "updated": "2026-10-30T01:37:26.296Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1567": {
           "address": "1947 KNOLL STREET",
@@ -27877,7 +28035,16 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93850/OriginalFiles/Estates_at_Knoll_Street_Replat_no_1.pdf?sv=2021-08-06&se=2051-09-21T12%3A13%3A56Z&sr=b&sp=r&sig=NOOaqEvUxfkQPSfBH8EqxBt0HDEFMowEkhC8RWiczEI%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717824+00:00"
+          "updated": "2026-10-30T01:37:41.030Z",
+          "hcad": "1487070020013, 1487070020011, 1487070010008",
+          "humanEditedFields": [
+            "hcad",
+            "address",
+            "yearBuilt",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1564": {
           "address": "627 E 14TH ST",
@@ -27890,7 +28057,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93848/OriginalFiles/MIRIAM_GROVE_9-16-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T12%3A00%3A30Z&sr=b&sp=r&sig=QAfTt6cX%2B7yLysJOFAwC5PpY%2FgE0VUFqVgeKS3pCXlA%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717849+00:00"
+          "updated": "2026-10-30T00:54:29.586Z",
+          "humanEditedFields": [
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1562": {
           "address": "0 TUSKEGEE HEIGHTS LN",
@@ -27903,7 +28075,29 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93849/OriginalFiles/HIGHLAND_HEIGHTS_GREEN_PARTIAL_REPLAT_NO_1_9-16-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T11%3A48%3A16Z&sr=b&sp=r&sig=kjkLsQCr5vXgPXJ24uV0xQqtO4PXnmeutEdPjO3K4yU%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717868+00:00"
+          "updated": "2026-10-30T02:10:11.182Z",
+          "hcad": "1452860010033",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "1452860010033",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "humanEditedFields": [
+            "hcad",
+            "address",
+            "yearBuilt",
+            "threatCategory",
+            "why"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1561": {
           "address": "2038 SUL ROSS ST",
@@ -27916,7 +28110,11 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93846/OriginalFiles/SUL_ROSS_VIEWS_9-18-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T11%3A13%3A49Z&sr=b&sp=r&sig=pFbYiGte2Y76NMmSXeKNmSFSgnlgcJTCRB7p5vpv0EM%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717879+00:00"
+          "updated": "2026-10-30T01:23:39.384Z",
+          "humanEditedFields": [
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1557": {
           "address": "5912 HAIGHT ST",
@@ -27929,7 +28127,11 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93839/OriginalFiles/HAIGHT_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-09-21T02%3A15%3A32Z&sr=b&sp=r&sig=IS83YIfcJ%2F91rHw7Uy%2F1gnmzITNEhPVoLGPBIN1nZIo%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717903+00:00"
+          "updated": "2026-10-30T01:37:35.947Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1551": {
           "address": "8841 CULLEN BLVD",
@@ -27942,7 +28144,13 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717934+00:00"
+          "updated": "2026-10-30T02:27:31.606Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1544": {
           "address": "10134 GROVER LN",
@@ -27955,7 +28163,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93826/OriginalFiles/0414499-26-02_RESERVES_ON_GROVER.pdf?sv=2021-08-06&se=2051-09-18T20%3A37%3A55Z&sr=b&sp=r&sig=IKkywiewq9mFQ%2FFpStUgVBN4DMvkaAWgt30jl0r5uTo%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717949+00:00"
+          "updated": "2026-10-30T01:37:28.646Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1533": {
           "address": "3014 WAYNE ST",
@@ -27968,7 +28181,14 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93812/OriginalFiles/26-0021-001.pdf?sv=2021-08-06&se=2051-09-18T17%3A36%3A36Z&sr=b&sp=r&sig=SydgDrrIpvw8GGXIGkHp4LrIzz8mIarf5lc%2FBNjDL58%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.717983+00:00"
+          "updated": "2026-10-30T01:37:14.001Z",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier",
+            "threatCategory",
+            "why",
+            "yearBuilt"
+          ]
         },
         "2026-1524": {
           "address": "4705 LIBERTY RD",
@@ -27981,7 +28201,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718022+00:00"
+          "updated": "2026-11-12T19:24:42.725004+00:00"
         },
         "2026-1523": {
           "address": "12409 DUMAS ST",
@@ -27994,7 +28214,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93544/OriginalFiles/ACRE_HOME_ADDITION_PARTIAL_REPLAT_NO_2_FOR_SUBMITTAL_9.18.26.pdf?sv=2021-08-06&se=2051-09-18T15%3A30%3A23Z&sr=b&sp=r&sig=YQ532txTGkgEHEDzi3Omu6JqcmnBg4H93dnCTedQaG0%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718032+00:00"
+          "updated": "2026-10-30T02:11:01.346Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1454": {
           "address": "1334 BRITTMOORE RD",
@@ -28007,7 +28232,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718108+00:00"
+          "updated": "2026-11-12T19:24:42.725139+00:00"
         },
         "2026-1441": {
           "address": "407 ELEANOR ST",
@@ -28020,7 +28245,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93736/OriginalFiles/260202_-_Eleanor_Enclave_-_Plat.pdf?sv=2021-08-06&se=2051-09-04T15%3A39%3A32Z&sr=b&sp=r&sig=j0wIh%2FTdoykQZm4%2FdXKTRr2vvPNLSqG7zzhhL1DEzPA%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718139+00:00"
+          "updated": "2026-10-30T01:26:25.654Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1177": {
           "address": "7838 PECAN VILLAS DR",
@@ -28033,7 +28263,14 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93409/OriginalFiles/26-0019-001.pdf?sv=2021-08-06&se=2051-07-24T15%3A08%3A06Z&sr=b&sp=r&sig=go0CbyS05ZTtlyW5Yahqbbgi8OaydC53am5bdlN0d6k%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718215+00:00"
+          "updated": "2026-10-30T01:37:07.654Z",
+          "humanEditedFields": [
+            "yearBuilt",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1120": {
           "address": "2531 KUESTER ST",
@@ -28046,7 +28283,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1120/OriginalFiles/Plat-24x36_rev.pdf?sv=2021-08-06&se=2051-08-11T16%3A40%3A05Z&sr=b&sp=r&sig=WimGekwiRuEgyo%2BaRuuTIJtrUD8Bk1zvsL%2FiXIhGVO8%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718231+00:00"
+          "updated": "2026-10-30T02:03:14.411Z",
+          "humanEditedFields": [
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "DPV-104": {
           "address": "12806 BOHEME DR",
@@ -28059,7 +28301,12 @@
           "sources": "",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718242+00:00"
+          "updated": "2026-10-30T01:37:04.118Z",
+          "humanEditedFields": [
+            "yearBuilt",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "DPV-105": {
           "address": "2360 RICE BLVD",
@@ -28072,7 +28319,13 @@
           "sources": "",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718251+00:00"
+          "updated": "2026-10-30T01:37:09.908Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "DPV-323-WYCLIFFE": {
           "address": "323 WYCLIFFE DR",
@@ -28085,7 +28338,572 @@
           "sources": "",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.718261+00:00"
+          "updated": "2026-10-30T01:42:53.236Z",
+          "hcad": "0915710000011",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier",
+            "yearBuilt",
+            "threatCategory",
+            "why",
+            "hcad"
+          ],
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0915710000011",
+              "address": "323 WYCLIFFE DR",
+              "buildingName": "",
+              "oldestYearBuilt": 1960,
+              "allYearsBuilt": [
+                1960
+              ],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": []
+        },
+        "2026-1164": {
+          "address": "0 PECAN PARK CRK",
+          "humanEditedFields": [
+            "address",
+            "threatCategory",
+            "designation",
+            "why",
+            "tier"
+          ],
+          "updated": "2026-10-30T01:37:17.319Z",
+          "threatCategory": "Neighborhood / District Context Impact",
+          "designation": "None found",
+          "why": "EA: Undeveloped, wooded area is restricted to drainage/open space. New reserve appears to align with already-developed multifamily residential.",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1585": {
+          "hcad": "1490700010001, 1490700010002, 1490700010003, 1490700010004, 1490700010005, 1490700020001, 1490700020002, 1490700020003, 1490700020004",
+          "humanEditedFields": [
+            "hcad",
+            "yearBuilt",
+            "address",
+            "designation",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "updated": "2026-10-30T01:37:20.599Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "1490700010001",
+              "address": "1226 W PIERCE ST # A",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            },
+            {
+              "hcad": "1490700010002",
+              "address": "1226 W PIERCE ST # B",
+              "buildingName": "",
+              "oldestYearBuilt": 2025,
+              "allYearsBuilt": [
+                2025
+              ],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            },
+            {
+              "hcad": "1490700010003",
+              "address": "1226 W PIERCE ST # C",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            },
+            {
+              "hcad": "1490700010004",
+              "address": "1226 W PIERCE ST # D",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            },
+            {
+              "hcad": "1490700010005",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            },
+            {
+              "hcad": "1490700020001",
+              "address": "1230 W PIERCE ST # A",
+              "buildingName": "",
+              "oldestYearBuilt": 2025,
+              "allYearsBuilt": [
+                2025
+              ],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            },
+            {
+              "hcad": "1490700020002",
+              "address": "1230 W PIERCE ST # B",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            },
+            {
+              "hcad": "1490700020003",
+              "address": "1230 W PIERCE ST # C",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            },
+            {
+              "hcad": "1490700020004",
+              "address": "1230 W PIERCE ST # D",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "yearBuilt": "",
+          "address": "1226 W PIERCE ST",
+          "designation": "None found",
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "EA: At least 1 resident has spoken in opposition based on impact on neighborhood context. No buildings on site as of March 2026 (Google StreetView). Older buildings were demolished between 2024 and 2026.",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1408": {
+          "hcad": "0770370130030, 0770370130056",
+          "humanEditedFields": [
+            "hcad",
+            "address",
+            "designation",
+            "why",
+            "threatCategory",
+            "tier"
+          ],
+          "updated": "2026-10-30T01:37:30.779Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0770370130030",
+              "address": "9402 WHITE CHAPEL LN",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            },
+            {
+              "hcad": "0770370130056",
+              "address": "9402 WHITE CHAPEL LN",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "address": "9402 WHITE CHAPEL LN",
+          "designation": "None found",
+          "why": "EA: Vacant property/industrial/commercial context",
+          "threatCategory": "No Historic Impact",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1315": {
+          "hcad": "0731310000070",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0731310000070",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "tier": "3",
+          "humanEditedFields": [
+            "hcad",
+            "tier"
+          ],
+          "updated": "2026-10-30T01:37:33.923Z",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1569": {
+          "address": "4710 W ALABAMA ST",
+          "yearBuilt": "1956",
+          "designation": "None found",
+          "tier": "2",
+          "tierConfirmed": true,
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "Atlas matched HCAD parcel at 4710 W ALABAMA ST with a standing structure built in 1956 in Greenwood Addition. Proposed land use is Unrestricted.",
+          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf",
+          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
+          "autoEnriched": true,
+          "updated": "2026-10-30T00:50:04.667Z",
+          "humanEditedFields": [
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1502": {
+          "address": "8017 HOMESTEAD RD",
+          "yearBuilt": "c. 2026",
+          "designation": "None found",
+          "tier": "3",
+          "tierConfirmed": true,
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "EA: Building on property has been replaced with new corrugated metal building between 2022 and 2026. Atlas matched HCAD parcel at 8017 HOMESTEAD RD with a standing structure built in 1950 in Pelham Place Sec 2. Proposed land use is Commercial.",
+          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf",
+          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
+          "autoEnriched": true,
+          "updated": "2026-10-30T01:37:01.482Z",
+          "humanEditedFields": [
+            "why",
+            "yearBuilt",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1554": {
+          "hcad": "0760410040102",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier",
+            "designation",
+            "threatCategory",
+            "why"
+          ],
+          "updated": "2026-10-30T02:07:17.448Z",
+          "address": "8202 RICHLAND DR",
+          "tier": "3",
+          "tierConfirmed": false,
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: ",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1553": {
+          "hcad": "0760410040102",
+          "humanEditedFields": [
+            "hcad",
+            "address",
+            "designation",
+            "threatCategory",
+            "why"
+          ],
+          "updated": "2026-10-30T02:07:19.598Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0760410040102",
+              "address": "8202 RICHLAND DR",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "address": "8202 RICHLAND DR",
+          "tier": "3",
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: Vacant property",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1512": {
+          "hcad": "0332300590016",
+          "humanEditedFields": [
+            "hcad",
+            "yearBuilt",
+            "address",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "updated": "2026-10-30T02:06:20.663Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0332300590016",
+              "address": "6833 BEACHWOOD ST",
+              "buildingName": "",
+              "oldestYearBuilt": 1940,
+              "allYearsBuilt": [
+                1940
+              ],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "yearBuilt": "1940",
+          "address": "6833 BEACHWOOD ST",
+          "tier": "3",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: Existing house is modest but proposal subdivides 1 lot into 4.",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1363": {
+          "hcad": "1478900010002, 1478900010001",
+          "humanEditedFields": [
+            "hcad",
+            "address",
+            "designation",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "updated": "2026-10-30T02:07:43.242Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "1478900010002",
+              "address": "10105 HADDICK ST",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            },
+            {
+              "hcad": "1478900010001",
+              "address": "10109 HADDICK ST",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "address": "10105 HADDICK ST",
+          "tier": "3",
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: Vacant lot",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1302": {
+          "address": "3827 BROADWAY ST",
+          "humanEditedFields": [
+            "address",
+            "hcad",
+            "yearBuilt",
+            "designation",
+            "tier"
+          ],
+          "updated": "2026-10-30T01:59:30.712Z",
+          "hcad": "0283120000009",
+          "tierConfirmed": true,
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0283120000009",
+              "address": "3827 BROADWAY ST",
+              "buildingName": "",
+              "oldestYearBuilt": 1950,
+              "allYearsBuilt": [
+                1950
+              ],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "yearBuilt": "1961",
+          "tier": "1",
+          "designation": "None found",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1555": {
+          "hcad": "0810960000228",
+          "humanEditedFields": [
+            "hcad",
+            "address",
+            "designation",
+            "why",
+            "tier"
+          ],
+          "updated": "2026-10-30T02:10:45.721Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0810960000228",
+              "address": "8005 CHARLESMONT ST",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "address": "8005 CHARLESMONT ST",
+          "tier": "3",
+          "designation": "None found",
+          "why": "EA: Vacant property",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1481": {
+          "hcad": "0770330040011",
+          "humanEditedFields": [
+            "hcad",
+            "address"
+          ],
+          "updated": "2026-10-30T02:15:16.717Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0770330040011",
+              "address": "4941 ANGLETON ST",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": true,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "address": "4941 ANGLETON ST",
+          "tier": "3",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1442": {
+          "hcad": "1023520000101",
+          "humanEditedFields": [
+            "hcad",
+            "yearBuilt",
+            "address",
+            "designation",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "updated": "2026-10-30T02:21:53.230Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "1023520000101",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "yearBuilt": "1968",
+          "address": "8803 FOREST HOLLOW ST",
+          "designation": "None found",
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "EA: City-owned housing project",
+          "tier": "2",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1435": {
+          "hcad": "0021600000009, 0021600000014, 0021600000003, 0021600000021",
+          "humanEditedFields": [
+            "hcad",
+            "yearBuilt",
+            "address"
+          ],
+          "updated": "2026-10-30T02:26:50.136Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0021600000009",
+              "address": "2101 TRAVIS ST",
+              "buildingName": "",
+              "oldestYearBuilt": 1935,
+              "allYearsBuilt": [
+                1935
+              ],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            },
+            {
+              "hcad": "0021600000014",
+              "address": "910 GRAY ST",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            },
+            {
+              "hcad": "0021600000003",
+              "address": "914 GRAY ST",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            },
+            {
+              "hcad": "0021600000021",
+              "address": "918 GRAY ST",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false,
+              "isVacant": false,
+              "found": true
+            }
+          ],
+          "hcadLookupWarnings": [],
+          "yearBuilt": "1935",
+          "address": "2101 TRAVIS ST",
+          "tier": "1",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         }
       }
     },
@@ -40433,7 +41251,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93911/OriginalFiles/091602026_Magnolia_Residential-2-MAGNOLIA_RESIDENTIAL.pdf?sv=2021-08-06&se=2051-10-05T15%3A58%3A18Z&sr=b&sp=r&sig=rZX2ju5qnl7Qzi%2FW7kJbCQ7nLivuJ2zUkeB45xeVqfQ%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794518+00:00"
+          "updated": "2026-11-12T19:24:42.863264+00:00"
         },
         "2026-1637": {
           "address": "134 W LITTLE YORK RD",
@@ -40446,7 +41264,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93935/OriginalFiles/VISTA_EYE_CARE.pdf?sv=2021-08-06&se=2051-10-05T12%3A58%3A23Z&sr=b&sp=r&sig=OMe9DH3iy2pikuYcvxMGQ2mxxV6%2B73yjBwuhBkTSWX8%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794610+00:00"
+          "updated": "2026-11-12T19:24:42.863383+00:00"
         },
         "2026-1634": {
           "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -40459,7 +41277,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794625+00:00"
+          "updated": "2026-11-12T19:24:42.863406+00:00"
         },
         "2026-1630": {
           "address": "5930 GRACE LN",
@@ -40472,7 +41290,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93929/OriginalFiles/Quinto_Studio_-_Subdivision_-_Grace_Ln-GRACE_LANE_ESTATES.pdf?sv=2021-08-06&se=2051-10-05T01%3A20%3A40Z&sr=b&sp=r&sig=5C7EZeRjm7n9E8b8rFgsyF673Pg37lSri%2FoYxbhE%2BBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794660+00:00"
+          "updated": "2026-11-12T19:24:42.863438+00:00"
         },
         "2026-1625": {
           "address": "1508 LAWRENCE ST",
@@ -40485,7 +41303,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93921/OriginalFiles/LAWRENCE_STREET_GROVE_10-3-2026_PDF.pdf?sv=2021-08-06&se=2051-10-04T06%3A29%3A02Z&sr=b&sp=r&sig=5%2BrfeZech3AAlxQ7n7V1eFMKPQGmRYkVAIas5Mh7A4o%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794694+00:00"
+          "updated": "2026-10-30T00:09:06.410Z",
+          "hcad": "0391140000404",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1615": {
           "address": "9112 SPRING BRANCH DR; 9110 SPRING BRANCH DR",
@@ -40498,7 +41321,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93908/OriginalFiles/SPRING_BRANCH_COMPLEX-Layout1.pdf?sv=2021-08-06&se=2051-10-02T19%3A57%3A05Z&sr=b&sp=r&sig=O76LkRvquITqH6FNikfZK7dSDBP4u6QHCI9WfVFzuwQ%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794731+00:00"
+          "updated": "2026-11-12T19:24:42.863546+00:00"
         },
         "2026-1605": {
           "address": "4615 SHERMAN ST",
@@ -40511,7 +41334,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794752+00:00"
+          "updated": "2026-11-12T19:24:42.863579+00:00"
         },
         "2026-1603": {
           "address": "7528 GAINESVILLE ST",
@@ -40524,7 +41347,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93883/OriginalFiles/26148150_Tahil_Oaks_Plat.pdf?sv=2021-08-06&se=2051-10-02T16%3A04%3A11Z&sr=b&sp=r&sig=LUF2feRvQXz%2BymknEW22PjRUIqF%2FErowqOS0N2IV1fU%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794767+00:00"
+          "updated": "2026-11-12T19:24:42.863607+00:00"
         },
         "2026-1587": {
           "address": "2501 CANAL ST",
@@ -40537,7 +41360,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93886/OriginalFiles/05-Refoka_Estates_at_Canal_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-02T11%3A52%3A10Z&sr=b&sp=r&sig=3X6mU%2FTN4SLbAbeflBdaFZ%2FkBde5plfmUAuJ%2FmIAfJc%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794803+00:00"
+          "updated": "2026-10-30T00:18:45.316Z",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ],
+          "hcad": "0231000000006, 0231000000007"
         },
         "2026-1570": {
           "address": "5603 BACHER ST",
@@ -40550,7 +41378,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93854/OriginalFiles/261061125-Model.pdf?sv=2021-08-06&se=2051-09-21T13%3A29%3A14Z&sr=b&sp=r&sig=HAQ59y4hq8lIuOQj%2BwtFqW%2B9pD5ohqNiVquvlJvGy2U%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794834+00:00"
+          "updated": "2026-11-12T19:24:42.863765+00:00"
         },
         "2026-1557": {
           "address": "5912 HAIGHT ST",
@@ -40563,7 +41391,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93839/OriginalFiles/HAIGHT_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-09-21T02%3A15%3A32Z&sr=b&sp=r&sig=IS83YIfcJ%2F91rHw7Uy%2F1gnmzITNEhPVoLGPBIN1nZIo%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794842+00:00"
+          "updated": "2026-10-30T01:37:35.947Z",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1551": {
           "address": "8841 CULLEN BLVD",
@@ -40576,7 +41409,14 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794852+00:00"
+          "updated": "2026-10-30T02:27:31.606Z",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1533": {
           "address": "3014 WAYNE ST",
@@ -40589,7 +41429,18 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93812/OriginalFiles/26-0021-001.pdf?sv=2021-08-06&se=2051-09-18T17%3A36%3A36Z&sr=b&sp=r&sig=SydgDrrIpvw8GGXIGkHp4LrIzz8mIarf5lc%2FBNjDL58%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794873+00:00"
+          "updated": "2026-10-30T01:37:14.001Z",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ],
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "yearBuilt",
+            "threatCategory",
+            "why",
+            "tier"
+          ]
         },
         "2026-1524": {
           "address": "4705 LIBERTY RD",
@@ -40602,20 +41453,25 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794883+00:00"
+          "updated": "2026-11-12T19:24:42.863858+00:00"
         },
         "2026-1495": {
           "address": "1131 VERA LOU ST",
           "yearBuilt": "1942",
           "designation": "None found",
-          "tier": "3",
+          "tier": "2",
           "tierConfirmed": true,
           "threatCategory": "",
           "why": "Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794908+00:00"
+          "updated": "2026-10-27T20:06:51.741Z",
+          "hcad": "0650100070010",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1484": {
           "address": "1704 RONSON RD",
@@ -40628,7 +41484,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93620/OriginalFiles/26046_-_Plat.pdf?sv=2021-08-06&se=2051-09-03T18%3A45%3A52Z&sr=b&sp=r&sig=FSjt6DbInALc1fahVsGWsiepUnx6jP1skJMZjoBETe8%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794922+00:00"
+          "updated": "2026-10-30T00:09:09.611Z",
+          "hcad": "0791290030051",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1454": {
           "address": "1334 BRITTMOORE RD",
@@ -40641,7 +41502,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1454/OriginalFiles/Plat_combined.pdf?sv=2021-08-06&se=2051-09-16T15%3A33%3A56Z&sr=b&sp=r&sig=lmJaB6BKXd6vclOayuDb4pQh9sI812diU6TFD86j3gM%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794945+00:00"
+          "updated": "2026-11-12T19:24:42.863985+00:00"
         },
         "2026-1449": {
           "address": "6000 VASSER RD",
@@ -40654,7 +41515,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1449/OriginalFiles/2284-2504_Benders_Creek_General_Plan_09-18-2026.pdf?sv=2021-08-06&se=2051-09-22T20%3A29%3A56Z&sr=b&sp=r&sig=%2BFqP9ATYyzZwmqz51cJDcuBt4oQ7hpyv3BNxUi1ztqw%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794953+00:00"
+          "updated": "2026-11-12T19:24:42.864000+00:00"
         },
         "2026-1440": {
           "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
@@ -40667,7 +41528,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1440/OriginalFiles/Woodway_Drive_PRELIMINARY_PLAT_OF_BAYOU_GLEN_PARTIAL_REPLAT_NO_1__92126.pdf?sv=2021-08-06&se=2051-09-22T19%3A50%3A20Z&sr=b&sp=r&sig=s6a0uknskB%2BMe0kDG%2FTTtncjnNfi8j8Qy0LCrvAUqI8%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794971+00:00"
+          "updated": "2026-11-12T19:24:42.864037+00:00"
         },
         "2026-1427": {
           "address": "604 NEYLAND ST",
@@ -40680,7 +41541,18 @@
           "sources": "https://houstontx.new.swagit.com/videos/405533 (item begins at 42:10)\nhttps://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D",
           "followup": "Item approved at 10/29 meeting (shall approve). Tonia Wells spoke in opposition. Important discussion about development in Independence Heights.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.794985+00:00"
+          "updated": "2026-10-30T01:17:01.728Z",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ],
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "yearBuilt",
+            "why",
+            "sources",
+            "followup"
+          ]
         },
         "DPV-26073533": {
           "address": "801 MCGOWEN ST",
@@ -40693,7 +41565,7 @@
           "sources": "",
           "followup": "No existing building threatened on the parcel; monitor only if adjacent historic district context applies.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.795010+00:00"
+          "updated": "2026-11-12T19:24:42.864111+00:00"
         },
         "DPV-4801-NMAIN": {
           "address": "4801 N MAIN ST",
@@ -40706,7 +41578,12 @@
           "sources": "",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.795019+00:00"
+          "updated": "2026-10-30T00:09:22.862Z",
+          "hcad": "0391500000001",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "DPV-323-WYCLIFFE": {
           "address": "323 WYCLIFFE DR",
@@ -40719,21 +41596,12 @@
           "sources": "",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.795028+00:00"
-        },
-        "2026-1562": {
-          "address": "within the boundaries of this plat and always available for the general use of said owners and to the public for firefighters, fire fighting equipment, police and emergency vehicles of whatever nature at all times and do hereby bind ourselves, our heirs, successors and established as private streets or permanent access easements",
-          "yearBuilt": "ca. 1902 (subdiv.)",
-          "designation": "None found",
-          "tier": "",
-          "tierConfirmed": false,
-          "threatCategory": "",
-          "why": "",
-          "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
-          "followup": "",
-          "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.795051+00:00",
-          "hcad": "1452860010033",
+          "updated": "2026-10-30T01:42:53.236Z",
+          "hcad": "0915710000011",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ],
           "carriedFromCycle": "2026-10-01",
           "carriedFields": [
             "yearBuilt",
@@ -40775,7 +41643,18 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.795060+00:00"
+          "updated": "2026-10-30T01:37:20.599Z",
+          "hcad": "1490700010001, 1490700010002, 1490700010003, 1490700010004, 1490700010005, 1490700020001, 1490700020002, 1490700020003, 1490700020004",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "yearBuilt",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1641": {
           "address": "2802 WHEELER ST",
@@ -40788,7 +41667,52 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.795078+00:00"
+          "updated": "2026-11-12T19:24:42.864234+00:00"
+        },
+        "2026-1620": {
+          "hcad": "0451910000150, 0451910000414, 0451910000297, 0451910000296",
+          "updated": "2026-10-28T23:26:08.588Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0451910000150",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            },
+            {
+              "hcad": "0451910000414",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            },
+            {
+              "hcad": "0451910000297",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            },
+            {
+              "hcad": "0451910000296",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            }
+          ],
+          "address": "10305 S MAIN",
+          "yearBuilt": "1981",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "why": "Non-historic buildings on property",
+          "tier": "3",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1642": {
           "hcad": "0731310000070",
@@ -40819,7 +41743,7 @@
           "tierConfirmed": false,
           "designation": "None found",
           "threatCategory": "Lot Split / Subdividing Historic Lot",
-          "why": "EA: ",
+          "why": "EA: Vacant property",
           "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1512": {
@@ -40910,7 +41834,7 @@
             "why",
             "tier"
           ],
-          "updated": "2026-10-30T02:21:53.050Z",
+          "updated": "2026-10-30T02:21:53.230Z",
           "yearBuilt": "1968",
           "address": "8803 FOREST HOLLOW ST",
           "designation": "None found",
@@ -40918,7 +41842,10 @@
           "why": "EA: City-owned housing project",
           "tier": "2",
           "tierConfirmed": true,
-          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1527": {
           "address": "15815 WAVERLY DR",
@@ -54991,7 +55918,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93995/OriginalFiles/26059_-_Plat.pdf?sv=2021-08-06&se=2051-10-19T15%3A09%3A17Z&sr=b&sp=r&sig=tkM6f8a34plILEsJIbBDPorjtsUtiA1ZzqsYsfuHEvk%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875005+00:00"
+          "updated": "2026-10-29T00:19:17.978Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1734": {
           "address": "14310 BAIAMONTE ST",
@@ -55004,7 +55932,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94038/OriginalFiles/10192026_IglesiaApostolesyProfetasLibres.pdf?sv=2021-08-06&se=2051-10-19T15%3A44%3A37Z&sr=b&sp=r&sig=kHuyorLFncblxT3WEMdqlEc%2B21JzMc2%2FA75V5WzmSdg%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875045+00:00"
+          "updated": "2026-10-28T00:47:54.222Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1733": {
           "address": "7111 BAUMAN RD",
@@ -55017,7 +55946,9 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93598/OriginalFiles/20261019-PLAT-OASIS_RESIDENCES-57821-P138408_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-19T15%3A37%3A43Z&sr=b&sp=r&sig=9MRYpPQ8n4eM0KTNNjejqjVfAOy5F%2F6NTuJazaZVyww%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875059+00:00"
+          "updated": "2026-10-28T00:48:19.862Z",
+          "hcad": "0382120120005,0382120120003",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1727": {
           "address": "8450 ALMEDA GENOA RD",
@@ -55030,7 +55961,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94024/OriginalFiles/ALMEDA_GENOA_PLAT_18.10.26-Model.pdf?sv=2021-08-06&se=2051-10-19T13%3A55%3A28Z&sr=b&sp=r&sig=VaYC5kuMf4g6Cj%2F5raXS43NnINNF1%2FGnoUZBzuMHqSo%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875082+00:00"
+          "updated": "2026-10-28T00:48:22.530Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1716": {
           "address": "1816 THOMPSON ST",
@@ -55043,7 +55975,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94027/OriginalFiles/261063125-Model.pdf?sv=2021-08-06&se=2051-10-19T13%3A38%3A41Z&sr=b&sp=r&sig=TF43byiCA%2FceMXRmsxdGXbD61HZh93lPxOT1%2BSbQT7I%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875121+00:00"
+          "updated": "2026-10-27T21:05:37.146Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1715": {
           "address": "1702 SAKOWITZ ST",
@@ -55056,7 +55989,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93975/OriginalFiles/20261015-PLAT-FIFTH_WARD_SENIOR_HOUSING_ADDITION-60977-P140293_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T21%3A23%3A26Z&sr=b&sp=r&sig=BiphpEAVGyYDoe0fX%2B1rGNobScTk6lq%2B35vqNfZ62EI%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875134+00:00"
+          "updated": "2026-10-27T21:05:26.402Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1704": {
           "address": "2107 HARDY ST",
@@ -55069,7 +56003,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94003/OriginalFiles/HARDY_PARK_PLAZA-Layout1.pdf?sv=2021-08-06&se=2051-10-19T02%3A09%3A19Z&sr=b&sp=r&sig=rturBQbC4pwqv5CuJwjjtOinRL0qnTiaAFLRX5QkSxQ%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875189+00:00"
+          "updated": "2026-10-27T21:15:03.254Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1697": {
           "address": "719 MCDANIEL ST",
@@ -55082,7 +56017,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94016/OriginalFiles/261067125-Model.pdf?sv=2021-08-06&se=2051-10-16T22%3A18%3A40Z&sr=b&sp=r&sig=umfcdWECm%2BH7N5vdOHWcg5ABVuGWsoTGIOE7ytRn8yM%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875216+00:00"
+          "updated": "2026-10-27T22:22:12.855Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1687": {
           "address": "6100 SOUTHWEST FWY; 3410 E GREENRIDGE DR",
@@ -55095,7 +56031,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93994/OriginalFiles/20261016-PLAT-FERRARI_OF_HOUSTON-60690-P136126_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-16T18%3A04%3A38Z&sr=b&sp=r&sig=mNaezvO9Dh7YpVeR0xfUyPN440%2FDxhXOo0ARjwW24XM%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875255+00:00"
+          "updated": "2026-11-12T19:24:43.008906+00:00"
         },
         "2026-1685": {
           "address": "1615 LITTLE YORK RD",
@@ -55108,7 +56044,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94008/OriginalFiles/PL42890-001.pdf?sv=2021-08-06&se=2051-10-16T18%3A52%3A45Z&sr=b&sp=r&sig=Mu3EFQo9maYUaZysBPjqxcvyHMrIEwhn0v7%2BqEmuY34%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875271+00:00"
+          "updated": "2026-10-29T00:47:24.714Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1674": {
           "address": "1256 BRITTMOORE RD",
@@ -55121,7 +56058,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93963/OriginalFiles/BRITTMOORE_FOUNDERS_DISTRICT_PARTIAL_REPLAT_NO_1.pdf?sv=2021-08-06&se=2051-10-15T17%3A30%3A57Z&sr=b&sp=r&sig=6aWlinb72X2%2BbjW4y5UvpxpyBThc4klcRUJjtQomTM0%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875293+00:00"
+          "updated": "2026-10-28T00:48:09.329Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1671": {
           "address": "239 W  20TH ST; 235 W  20TH ST",
@@ -55134,7 +56072,8 @@
           "sources": "https://houstonhistoricretail.com/2026/02/20/reflecting-on-the-heights-krogartens/\nhttps://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93960/OriginalFiles/PL43271-000.pdf?sv=2021-08-06&se=2051-10-16T15%3A22%3A04Z&sr=b&sp=r&sig=nsmfyW84pK1yDBZ9essmqegWceuASQvK1yy1KK9J%2BrM%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875306+00:00"
+          "updated": "2026-10-27T22:40:40.347Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1654": {
           "address": "626 E WELLINGTON ST",
@@ -55147,7 +56086,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93942/OriginalFiles/26-0029-001-PLAT.pdf?sv=2021-08-06&se=2051-10-05T15%3A27%3A13Z&sr=b&sp=r&sig=MXD67v0%2Fd1K9qUgR8a%2Fw8f%2FcwZH420ayJ%2F4SPNv4qBw%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875330+00:00"
+          "updated": "2026-10-28T00:48:11.855Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1634": {
           "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -55160,7 +56100,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875345+00:00"
+          "updated": "2026-10-29T13:51:45.790Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1605": {
           "address": "4615 SHERMAN ST",
@@ -55173,7 +56114,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875368+00:00"
+          "updated": "2026-10-28T00:10:12.466Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1587": {
           "address": "2501 CANAL ST",
@@ -55186,7 +56128,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93886/OriginalFiles/05-Refoka_Estates_at_Canal_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-02T11%3A52%3A10Z&sr=b&sp=r&sig=3X6mU%2FTN4SLbAbeflBdaFZ%2FkBde5plfmUAuJ%2FmIAfJc%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875400+00:00"
+          "updated": "2026-10-30T00:18:45.316Z",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ],
+          "hcad": "0231000000006, 0231000000007"
         },
         "2026-1570": {
           "address": "5603 BACHER ST",
@@ -55199,7 +56146,8 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1570/OriginalFiles/261061125-Model_REV.pdf?sv=2021-08-06&se=2051-10-20T19%3A43%3A19Z&sr=b&sp=r&sig=G9ocyMmNgHm%2FyMvaHn%2FO9NIAzALvNpym0GqoWQYJRjY%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1570-Bacher-Manor.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875420+00:00"
+          "updated": "2026-10-27T21:05:11.960Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1569": {
           "address": "4710 W ALABAMA ST",
@@ -55212,7 +56160,15 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93638/OriginalFiles/20260918-PLAT-KAFI_COMMONS-61469-P140399.pdf?sv=2021-08-06&se=2051-09-21T13%3A08%3A05Z&sr=b&sp=r&sig=bInyVS0HNQk1BaDpQAwu3U%2FKUTI1WR1M8MTvXruHSO8%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1569-Kafi-Commons-PH.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875428+00:00"
+          "updated": "2026-10-30T00:50:04.907Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "tier"
+          ],
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1524": {
           "address": "4705 LIBERTY RD",
@@ -55225,7 +56181,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875446+00:00"
+          "updated": "2026-11-12T19:24:43.009291+00:00"
         },
         "2026-1520": {
           "address": "58 PATTI LYNN LN",
@@ -55238,7 +56194,9 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93798/OriginalFiles/54_and_58_Patti_Lynn_Lane__-_PARTIAL_REPLAT_OF_SANDALWOOD_SECTIONS_2_and_3_PR_NO_1_-_8-19-26.pdf?sv=2021-08-06&se=2051-09-18T14%3A58%3A56Z&sr=b&sp=r&sig=i5EOm8%2FUi%2FqPHAw4UmSG5wGYhBZuuEx8PIW8dicrzzw%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1520-Partial-Replat-of-Sandalwood-Sec-2-and-3-prno1-PH.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875454+00:00"
+          "updated": "2026-10-27T21:05:41.863Z",
+          "carriedFromCycle": "2026-10-01",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1502": {
           "address": "8017 HOMESTEAD RD",
@@ -55251,24 +56209,18 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875468+00:00"
+          "updated": "2026-10-30T01:37:01.482Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "yearBuilt",
+            "why",
+            "tier"
+          ]
         },
         "2026-1427": {
           "address": "604 NEYLAND ST",
-          "yearBuilt": "1948",
-          "designation": "None found",
-          "tier": "2",
-          "tierConfirmed": false,
-          "threatCategory": "Lot Split / Subdividing Historic Lot",
-          "why": "Atlas matched HCAD parcel at 604 NEYLAND ST with a standing structure built in 1948 in Oxford Place. Proposed replat divides 0.1694000000 ac into 2 lots (Single Family Residential (Public Street)).",
-          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D",
-          "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
-          "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875496+00:00"
-        },
-        "DPV-26073533": {
-          "address": "801 MCGOWEN ST",
-          "yearBuilt": "Vacant parcel",
+          "yearBuilt": "",
           "designation": "None found",
           "tier": "3",
           "tierConfirmed": true,
@@ -55277,7 +56229,27 @@
           "sources": "https://houstontx.new.swagit.com/videos/405533 (item begins at 42:10)\nhttps://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93155/OriginalFiles/NEYLAND_MANORS_PLAT_8-18-26-Model.pdf?sv=2021-08-06&se=2051-08-24T15%3A24%3A02Z&sr=b&sp=r&sig=ejzbSQ8cmokLuPI32%2BkUvvRiozGFYFenFwcusHX8NFM%3D",
           "followup": "Item approved at 10/29 meeting (shall approve). Tonia Wells spoke in opposition. Important discussion about development in Independence Heights.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875511+00:00"
+          "updated": "2026-10-30T01:17:10.216Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "yearBuilt",
+            "why",
+            "sources",
+            "followup"
+          ]
+        },
+        "DPV-26073533": {
+          "address": "801 MCGOWEN ST",
+          "yearBuilt": "Vacant parcel",
+          "designation": "None found",
+          "tier": "3",
+          "tierConfirmed": false,
+          "threatCategory": "No Historic Impact",
+          "why": "Section K Development Plat Variance (DPV-26073533) in MIDTOWN. Notice application verifies no existing structures on the parcel (vacant site). Requesting a Development Plat Variance (DPV) to allow auto-related uses in the pedestrian realm along McGowen Street for a new convenience store, fuel canopy, and retail shell building at the intersection of McGowen, Milam, and Travis Streets.",
+          "sources": "",
+          "followup": "No existing building threatened on the parcel; monitor only if adjacent historic district context applies.",
+          "autoEnriched": true,
+          "updated": "2026-11-12T19:24:43.009420+00:00"
         },
         "DPV-26075937": {
           "address": "1501 WICHMAN ST",
@@ -55290,42 +56262,12 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV-26075937-1501-Wichman-Street.pdf",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875521+00:00"
+          "updated": "2026-10-27T22:23:04.637Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1551": {
           "address": "8841 CULLEN BLVD",
           "yearBuilt": "1984",
-          "designation": "None found",
-          "tier": "",
-          "tierConfirmed": false,
-          "threatCategory": "",
-          "why": "",
-          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1551_Churchs-Cullen_PH.pdf",
-          "followup": "",
-          "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875535+00:00"
-        },
-        "2026-1562": {
-          "address": "within the boundaries of this plat and always available for the general use of said owners and to the public for firefighters, fire fighting equipment, police and emergency vehicles of whatever nature at all times and do hereby bind ourselves, our heirs, successors and established as private streets or permanent access easements",
-          "yearBuilt": "ca. 1902 (subdiv.)",
-          "designation": "None found",
-          "tier": "",
-          "tierConfirmed": false,
-          "threatCategory": "",
-          "why": "",
-          "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
-          "followup": "",
-          "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875548+00:00",
-          "hcad": "1452860010033",
-          "carriedFromCycle": "2026-10-15",
-          "carriedFields": [
-            "hcad"
-          ]
-        },
-        "2026-1585": {
-          "address": "1226-1230 W PIERCE ST",
-          "yearBuilt": "2025",
           "designation": "None found",
           "tier": "3",
           "tierConfirmed": false,
@@ -55334,7 +56276,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:44:03.551073+00:00",
+          "updated": "2026-11-12T19:24:43.009465+00:00",
           "carriedFromCycle": "2026-10-15",
           "carriedFields": [
             "tier",
@@ -55377,7 +56319,18 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875557+00:00"
+          "updated": "2026-10-30T01:37:20.599Z",
+          "hcad": "1490700010001, 1490700010002, 1490700010003, 1490700010004, 1490700010005, 1490700020001, 1490700020002, 1490700020003, 1490700020004",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "yearBuilt",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1641": {
           "address": "2802 WHEELER ST",
@@ -55390,7 +56343,8 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875580+00:00"
+          "updated": "2026-10-27T22:23:50.707Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1669": {
           "address": "the intersection of Fondren Road and Court Road, bounded by Fort Bend Parkway to the west and Blueridge Road to the east",
@@ -55403,7 +56357,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1669-Fondren-at-Court-Reserves-GP.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875595+00:00"
+          "updated": "2026-11-12T19:24:43.009585+00:00"
         },
         "2026-1701": {
           "address": "5926 and 5930 Grace Lane",
@@ -55416,7 +56370,9 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875603+00:00"
+          "updated": "2026-10-29T01:19:02.919Z",
+          "hcad": "0460360010017, 0460360010016",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1723": {
           "address": "0 CANADA DRY ST",
@@ -55429,7 +56385,579 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1723_ScottWetWeatherFacility.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.875615+00:00"
+          "updated": "2026-10-30T00:08:26.464Z",
+          "reviewer": "emily@preservationhouston.org",
+          "hcad": "0410070140112",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0410070140112",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            }
+          ],
+          "humanEditedFields": [
+            "tier"
+          ]
+        },
+        "2026-1728": {
+          "hcad": "0650100070010",
+          "address": "1131 VERA LOU ST",
+          "yearBuilt": "1942",
+          "tier": "2",
+          "carriedFromCycle": "2026-10-15",
+          "why": "(Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
+          "updated": "2026-10-27T20:06:51.741Z",
+          "tierConfirmed": true,
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0650100070010",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            }
+          ],
+          "threatCategory": "Neighborhood / District Context Impact",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "designation": "None found",
+          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D",
+          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
+          "carriedFields": [
+            "designation",
+            "sources",
+            "followup"
+          ]
+        },
+        "2026-1668": {
+          "hcad": "0770090010001, 0770090010002",
+          "address": "5218 WOODWAY DR; 5214 WOODWAY DR",
+          "yearBuilt": "1956",
+          "tier": "3",
+          "carriedFromCycle": "2026-10-15",
+          "why": "Atlas matched HCAD parcel at 5218 WOODWAY DR; 5214 WOODWAY DR with a standing structure built in 1956 in Bayou Glen.",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0770090010001",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            },
+            {
+              "hcad": "0770090010002",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            }
+          ],
+          "updated": "2026-10-29T13:52:04.936Z",
+          "tierConfirmed": true,
+          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Agenda/2026-21_ActionAgenda.pdf",
+          "threatCategory": "Significant Building Threatened",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "designation": "None found",
+          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
+          "carriedFields": [
+            "designation",
+            "followup"
+          ]
+        },
+        "2026-1592": {
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "updated": "2026-10-27T22:22:29.779Z",
+          "hcad": "0610550090011",
+          "address": "736 Neyland St",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0610550090011",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            }
+          ],
+          "why": "EA NOTE: House potentially demolished. Of note as instance of Independence Heights townhome development.",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1554": {
+          "address": "8202 RICHLAND DR",
+          "updated": "2026-10-30T02:07:17.448Z",
+          "hcad": "0760410040102",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0760410040102",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            }
+          ],
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: Vacant property",
+          "tier": "3",
+          "tierConfirmed": false,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "carriedFromCycle": "2026-10-15",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier",
+            "designation",
+            "why"
+          ],
+          "designation": "None found"
+        },
+        "2026-1473": {
+          "hcad": "0801660000012",
+          "updated": "2026-10-28T00:48:16.402Z",
+          "address": "705 Crosstimbers",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "why": "EA note: Existing gas station and retail, completed in 2023?",
+          "sources": "https://www.tdlr.texas.gov/TABS/Search/Print/TABS2022024804\nhttps://amigosmeat.com/amigos-meat-wholesale/",
+          "yearBuilt": "2023",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1707": {
+          "hcad": "1343680010001",
+          "updated": "2026-10-28T00:48:25.523Z",
+          "address": "1405 W 34th",
+          "yearBuilt": "2016",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "why": "EA note: No historic buildings on property",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1738": {
+          "hcad": "0031790000001",
+          "updated": "2026-10-28T00:48:28.368Z",
+          "address": "1712 Fulton St",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA note: House demolished between June 2015 and December 2018 (Google StreetView). Was heavily altered before.",
+          "designation": "None found",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1660": {
+          "hcad": "0032500000003",
+          "updated": "2026-10-28T23:15:25.418Z",
+          "address": "908 Morris St",
+          "threatCategory": "Significant Building Threatened",
+          "why": "EA note: Lot containing historic building proposed for subdivision into 3 lots. ",
+          "designation": "None found",
+          "yearBuilt": "c. 1930",
+          "tier": "2",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1481": {
+          "hcad": "0770330040011",
+          "updated": "2026-10-30T02:15:16.717Z",
+          "address": "4941 ANGLETON ST",
+          "designation": "None found",
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "EA Note: Lot vacant since at least 2007 (Google StreetView). Proposed subdivision into 2 lots, but lot is currently larger than surrounding lots.",
+          "tier": "3",
+          "tierConfirmed": false,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier"
+          ]
+        },
+        "2026-1485": {
+          "hcad": "0450920000160",
+          "updated": "2026-10-28T00:03:00.460Z",
+          "address": "11145 Saathoff Dr",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "why": "New multi-home subdivision on vacant property in Cypress",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1512": {
+          "hcad": "0332300590016",
+          "updated": "2026-10-30T02:06:20.663Z",
+          "address": "6833 BEACHWOOD ST",
+          "yearBuilt": "1940",
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: Existing house is modest but proposal subdivides 1 lot into 4.",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier",
+            "threatCategory",
+            "why"
+          ]
+        },
+        "2026-1638": {
+          "hcad": "0660550150040",
+          "updated": "2026-10-28T00:47:50.698Z",
+          "address": "2302 Reid St",
+          "yearBuilt": "1940",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "House looks well maintained as of January 2026 (Google StreetView). Somewhat altered, simple.",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1446": {
+          "hcad": "0211770500005",
+          "updated": "2026-10-28T00:21:20.590Z",
+          "address": "4110 Beggs",
+          "yearBuilt": "1939",
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "House is simple but nice. Dividing lot in 2. Surrounding lots are not divided. StreetView dates to 2017; current appearance of the neighborhood is unknown. Craig Garcia/Gage is the architect.",
+          "tier": "2",
+          "tierConfirmed": false,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1722": {
+          "hcad": "0300610000001",
+          "updated": "2026-10-28T00:48:35.061Z",
+          "address": "5803 Blossom",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "why": "Property has been vacant since at least 2011 (Google StreetView). Surrounding area is mostly redeveloped.",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1720": {
+          "hcad": "1187350010001,0410170010103,0410170010056",
+          "updated": "2026-10-28T00:37:01.736Z",
+          "address": "River Oaks Baptist Church (2320 Willowick)",
+          "yearBuilt": "1950",
+          "designation": "None found",
+          "threatCategory": "Significant Building Threatened",
+          "tier": "1",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1680": {
+          "hcad": "1043000000003",
+          "updated": "2026-10-28T00:48:31.432Z",
+          "address": "14400 Memorial Dr",
+          "yearBuilt": "1979",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "why": "Prominent location but building isn't 50 years old; no special significance found. Village National Bank; forst story possibly built 1973 with second story added later",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1711": {
+          "address": "3312 Market St",
+          "updated": "2026-10-28T18:55:43.597Z",
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1714": {
+          "designation": "None found",
+          "updated": "2026-10-29T00:07:18.416Z",
+          "threatCategory": "No Historic Impact",
+          "why": "No buildings",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1628": {
+          "hcad": "0351820000010",
+          "updated": "2026-10-29T00:27:46.969Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0351820000010",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            }
+          ],
+          "address": "1416 Sydnor",
+          "yearBuilt": "1920",
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: historic house on property is altered",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1702": {
+          "hcad": "0642070010008, 0642070010002",
+          "updated": "2026-10-29T00:28:06.291Z",
+          "multiParcelBreakdown": [
+            {
+              "hcad": "0642070010008",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            },
+            {
+              "hcad": "0642070010002",
+              "address": "",
+              "buildingName": "",
+              "oldestYearBuilt": 0,
+              "allYearsBuilt": [],
+              "usedCuratedOverride": false
+            }
+          ],
+          "address": "4939 MCCARTY ST",
+          "yearBuilt": "1962",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "why": "EA: 1930s buildings on the property already demolished; 1962 industrial building with no apparent significance; commercial area with no historic context",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1620": {
+          "hcad": "0451910000150, 0451910000414, 0451910000297, 0451910000296",
+          "address": "10305 S MAIN",
+          "yearBuilt": "1981",
+          "why": "Non-historic buildings on property",
+          "tier": "3",
+          "carriedFromCycle": "2026-10-15",
+          "tierConfirmed": true,
+          "updated": "2026-10-29T00:27:59.404Z",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "yearBuilt",
+            "designation",
+            "threatCategory",
+            "why"
+          ]
+        },
+        "2026-1557": {
+          "hcad": "0122670000006, 1458050010004",
+          "address": "5912 HAIGHT ST",
+          "yearBuilt": "2023",
+          "designation": "None found",
+          "updated": "2026-10-29T00:31:49.569Z",
+          "threatCategory": "No Historic Impact",
+          "tier": "3",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93839/OriginalFiles/HAIGHT_PARK_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-09-21T02%3A15%3A32Z&sr=b&sp=r&sig=IS83YIfcJ%2F91rHw7Uy%2F1gnmzITNEhPVoLGPBIN1nZIo%3D",
+          "carriedFromCycle": "2026-10-15",
+          "carriedFields": [
+            "sources"
+          ]
+        },
+        "2026-1689": {
+          "hcad": "1330170010001, 1330170010002",
+          "updated": "2026-10-29T00:40:30.707Z",
+          "address": "3346 SCOTT ST",
+          "why": "Vacant property",
+          "threatCategory": "No Historic Impact",
+          "designation": "None found",
+          "tier": "3",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1686": {
+          "hcad": "0720680020011",
+          "updated": "2026-10-29T00:44:37.984Z",
+          "address": "2700 TIDWELL RD",
+          "yearBuilt": "1989",
+          "threatCategory": "No Historic Impact",
+          "why": "EA: Building on property looks older than 1989 but is very small, no apparent significance. Older houses across Shoreham St, but this is a corner fronting on Tidwell - larger street with commercial context.",
+          "designation": "None found",
+          "tier": "3",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1666": {
+          "hcad": "0590230120007, 0590230120006, 1265270010001",
+          "updated": "2026-10-29T00:52:55.806Z",
+          "address": "11414 FAIRMONT ST",
+          "yearBuilt": "1980",
+          "threatCategory": "No Historic Impact",
+          "why": "EA: Non-historic building, non-historic context",
+          "designation": "None found",
+          "tier": "3",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "PH-137": {
+          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/92629/OriginalFiles/HIGH_MEADOWS_SEC_2_PARTIAL_REPLAT_NO_1_5-14-26.pdf?sv=2021-08-06&se=2051-05-15T17%3A38%3A48Z&sr=b&sp=r&sig=vR%2FafqytwT6GM6X5h3MnW2teuRiPOd8pAGNKWBZRVCY%3D",
+          "updated": "2026-10-29T01:00:22.180Z",
+          "address": "3802 PINE MEADOW",
+          "designation": "None found",
+          "hcad": "0965830000007",
+          "yearBuilt": "1966",
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "EA: Large front addition built between 2022 and 2026 (Google StreetView).",
+          "tier": "3",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "PH-135": {
+          "address": "7108 EASTWOOD",
+          "updated": "2026-10-29T01:08:02.703Z",
+          "hcad": "0332280550022",
+          "yearBuilt": "1949",
+          "designation": "None found",
+          "threatCategory": "Neighborhood / District Context Impact",
+          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93804/OriginalFiles/Eastwood_Street_Villas-Replat.pdf?sv=2021-08-06&se=2051-09-18T15%3A24%3A56Z&sr=b&sp=r&sig=V3UCRAQIvot98Bn%2BAV%2F%2F8Bdqdxmz06xb2hnTkAIbwLo%3D",
+          "why": "EA: Building was altered in mid-20th century (maybe 1960s). Block of small-scale residences, fairly intact.",
+          "tier": "2",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1726": {
+          "hcad": "0162670040019",
+          "updated": "2026-10-29T01:23:34.513Z",
+          "address": "1009 WALL ST",
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "yearBuilt": "1956",
+          "why": "EA: Building is altered but lot will be subdivided into 3.",
+          "tier": "3",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1709": {
+          "hcad": "0600730220025, 0600730220026, \t0600730220027",
+          "updated": "2026-10-29T01:28:26.583Z",
+          "address": "3535 AND 3537 MANSFIELD ST",
+          "designation": "None found",
+          "threatCategory": "No Historic Impact",
+          "why": "EA: Older buildings demolished; most of this area has been cleared.",
+          "tier": "3",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1553": {
+          "hcad": "0760410040102",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier",
+            "designation",
+            "threatCategory",
+            "why"
+          ],
+          "updated": "2026-10-30T02:07:19.598Z",
+          "address": "8202 RICHLAND DR",
+          "tier": "3",
+          "tierConfirmed": false,
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: Vacant property",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1621": {
+          "hcad": "1478900010002, 1478900010001",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier",
+            "designation",
+            "threatCategory",
+            "why"
+          ],
+          "updated": "2026-10-30T02:07:43.242Z",
+          "address": "10105 HADDICK ST",
+          "tier": "3",
+          "tierConfirmed": true,
+          "designation": "None found",
+          "threatCategory": "Lot Split / Subdividing Historic Lot",
+          "why": "EA: Vacant lot",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1639": {
+          "hcad": "0810960000228",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier",
+            "designation",
+            "why"
+          ],
+          "address": "8005 CHARLESMONT ST",
+          "tier": "3",
+          "tierConfirmed": false,
+          "updated": "2026-10-30T02:10:43.292Z",
+          "designation": "None found",
+          "why": "EA: Vacant property",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "PH-133": {
+          "address": "8841 CULLEN BLVD",
+          "yearBuilt": "1984",
+          "designation": "None found",
+          "tier": "3",
+          "tierConfirmed": true,
+          "threatCategory": "No Historic Impact",
+          "why": "Former Church's Chicken in commercial context",
+          "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
+          "followup": "",
+          "autoEnriched": true,
+          "updated": "2026-10-30T02:27:31.606Z",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+        },
+        "2026-1442": {
+          "hcad": "1023520000101",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "hcad",
+            "yearBuilt",
+            "address",
+            "designation",
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "updated": "2026-10-30T02:21:53.230Z",
+          "yearBuilt": "1968",
+          "address": "8803 FOREST HOLLOW ST",
+          "designation": "None found",
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "EA: City-owned housing project",
+          "tier": "2",
+          "tierConfirmed": true,
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1737": {
           "address": "19018 HAMISH RD",
@@ -70960,7 +72488,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94132/OriginalFiles/11022026_MartinezProperty.pdf?sv=2021-08-06&se=2051-11-02T16%3A50%3A22Z&sr=b&sp=r&sig=6qPWdSTSR91zMOyWqakb9yEkKM3KJWDz0ym0bNI7K2o%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958587+00:00"
+          "updated": "2026-11-12T19:24:43.161119+00:00"
         },
         "2026-1811": {
           "address": "506 E 31ST ST",
@@ -70973,7 +72501,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94139/OriginalFiles/11022026_RESIDENCE_AT_NEW_HEIGHTS.pdf?sv=2021-08-06&se=2051-11-02T16%3A17%3A19Z&sr=b&sp=r&sig=QeCZaTZnuZZjL5ucruQHIMZnOWkRJBC9iznnSRlRqOQ%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958621+00:00"
+          "updated": "2026-11-12T19:24:43.161157+00:00"
         },
         "2026-1805": {
           "address": "8017 HOMESTEAD RD",
@@ -70986,7 +72514,15 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93743/OriginalFiles/26-0052-Plat-Sevilla_Commercial.pdf?sv=2021-08-06&se=2051-09-08T14%3A17%3A40Z&sr=b&sp=r&sig=0%2B5DJHS22upvEOnGWHJuEqZnkHTWx4ew%2BEsdx2gYuh0%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1502-Sevilla-Commercial-PH.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958662+00:00"
+          "updated": "2026-11-12T19:24:43.161207+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "yearBuilt",
+            "tier",
+            "why",
+            "sources",
+            "followup"
+          ]
         },
         "2026-1787": {
           "address": "3535 AND 3537 MANSFIELD ST",
@@ -70999,7 +72535,16 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94121/OriginalFiles/22085_-_Plat.pdf?sv=2021-08-06&se=2051-11-02T13%3A58%3A50Z&sr=b&sp=r&sig=o1hAdsEiI81oE7mmCJccz8ANr7qhG4v%2F4EhkAJjH2zg%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958722+00:00"
+          "updated": "2026-11-12T19:24:43.161296+00:00",
+          "hcad": "0600730220025, 0600730220026, \t0600730220027",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier",
+            "threatCategory",
+            "why"
+          ]
         },
         "2026-1785": {
           "address": "14444 NORTHWEST FWY",
@@ -71012,7 +72557,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93980/OriginalFiles/067548041-Windfern_Crossing_Plat_V1.pdf?sv=2021-08-06&se=2051-10-16T16%3A03%3A57Z&sr=b&sp=r&sig=ZgjXYW4wcSn2L5K8DudZeS6UJLubDXpZEVVMp4vEAzM%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958733+00:00"
+          "updated": "2026-11-12T19:24:43.161313+00:00"
         },
         "2026-1781": {
           "address": "2101 W 34TH ST",
@@ -71025,7 +72570,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94120/OriginalFiles/MARKET_AT_OAK_FOREST.pdf?sv=2021-08-06&se=2051-11-02T13%3A30%3A17Z&sr=b&sp=r&sig=AYiHNC8Ex%2BOr2Xfa1LzUmgUwmwvMh%2FXJuXuDwGyCI%2Fc%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958745+00:00"
+          "updated": "2026-11-12T19:24:43.161331+00:00"
         },
         "2026-1777": {
           "address": "5010 BRICKER ST",
@@ -71038,7 +72583,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94115/OriginalFiles/BRICKER_GREEN_10-29-2026_PDF.pdf?sv=2021-08-06&se=2051-11-02T12%3A59%3A03Z&sr=b&sp=r&sig=1eGB8vGqTni9GXf8m8Tq%2FoWbogb3CFXara3dqhjQ%2BXc%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958770+00:00"
+          "updated": "2026-11-12T19:24:43.161371+00:00"
         },
         "2026-1775": {
           "address": "1615 W CLAY ST",
@@ -71051,7 +72596,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1775/OriginalFiles/WEST_CLAY_VISTA_11-1-2026_PDF.pdf?sv=2021-08-06&se=2051-11-06T17%3A09%3A46Z&sr=b&sp=r&sig=hXvOCS3Fe8MzRxWxtJ%2BbPB0cKjJRyPHGJpsEqIV7rCA%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958783+00:00"
+          "updated": "2026-11-12T19:24:43.161390+00:00"
         },
         "2026-1774": {
           "address": "12129 5TH ST",
@@ -71064,7 +72609,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94091/OriginalFiles/ALPHA_PRIME_RESIDENCES-Layout1.pdf?sv=2021-08-06&se=2051-11-02T00%3A01%3A58Z&sr=b&sp=r&sig=barpNFF02irGkqhOMbxWJqi0MKWPvMa%2FU4jNEDsjoGA%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958795+00:00"
+          "updated": "2026-11-12T19:24:43.161408+00:00"
         },
         "2026-1773": {
           "address": "5007 WILMINGTON ST",
@@ -71077,7 +72622,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94092/OriginalFiles/WILMINGTON_PARK_PLAZA-Layout1.pdf?sv=2021-08-06&se=2051-11-01T23%3A19%3A48Z&sr=b&sp=r&sig=JWlGxFJVQCMxYEbgDPxo35wUa09%2FpzN0XIzFwQ60%2B8I%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958807+00:00"
+          "updated": "2026-11-12T19:24:43.161426+00:00"
         },
         "2026-1770": {
           "address": "8410 OBSERVATORY ST",
@@ -71090,7 +72635,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94093/OriginalFiles/PLAZA_ESTATES_AT_OBSERVATORY-Layout1.pdf?sv=2021-08-06&se=2051-11-01T16%3A21%3A54Z&sr=b&sp=r&sig=itsPu%2FpAClTnNYhUaG2Rg5UAk6LbJ4c3lMgS9gMUu%2Bc%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958820+00:00"
+          "updated": "2026-11-12T19:24:43.161445+00:00"
         },
         "2026-1764": {
           "address": "1901 W ALABAMA ST; 1911 W ALABAMA ST",
@@ -71103,7 +72648,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94109/OriginalFiles/11-1234-PLAT.pdf?sv=2021-08-06&se=2051-10-30T20%3A33%3A38Z&sr=b&sp=r&sig=9JtUivrc74sMAvYZdbpouqUILSgbnmLlENQoz9xVi3Q%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958844+00:00"
+          "updated": "2026-11-12T19:24:43.161480+00:00"
         },
         "2026-1757": {
           "address": "8213 KENTON ST",
@@ -71116,7 +72661,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94098/OriginalFiles/05-QTH_Estate_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-30T17%3A28%3A07Z&sr=b&sp=r&sig=GdVSOzup%2BdccSqyk4saIcx3xvS3RTs2pZnr9rQWuQxQ%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958873+00:00"
+          "updated": "2026-11-12T19:24:43.161523+00:00"
         },
         "2026-1744": {
           "address": "706 LEHMAN ST",
@@ -71129,7 +72674,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Submitted/2026-1744/OriginalFiles/PLAT.pdf?sv=2021-08-06&se=2051-11-03T14%3A24%3A05Z&sr=b&sp=r&sig=zkn%2Bv3MOHfuvxJx%2BkXIDWXmXHffMGlHctCSIUpvZ4d8%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958911+00:00"
+          "updated": "2026-11-12T19:24:43.161578+00:00"
         },
         "2026-1733": {
           "address": "7111 BAUMAN RD",
@@ -71142,7 +72687,14 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93598/OriginalFiles/20261019-PLAT-OASIS_RESIDENCES-57821-P138408_Sheet1_1.pdf?sv=2021-08-06&se=2051-10-19T15%3A37%3A43Z&sr=b&sp=r&sig=9MRYpPQ8n4eM0KTNNjejqjVfAOy5F%2F6NTuJazaZVyww%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958936+00:00"
+          "updated": "2026-11-12T19:24:43.161617+00:00",
+          "hcad": "0382120120005,0382120120003",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "hcad",
+            "tier",
+            "why"
+          ]
         },
         "2026-1723": {
           "address": "0 CANADA DRY ST",
@@ -71155,7 +72707,14 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1723_ScottWetWeatherFacility.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958954+00:00"
+          "updated": "2026-11-12T19:24:43.161664+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "yearBuilt",
+            "tier",
+            "threatCategory",
+            "sources"
+          ]
         },
         "2026-1701": {
           "address": "5926 and 5930 Grace Lane",
@@ -71168,7 +72727,17 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1701-Grace-Lane-Estates.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.958997+00:00"
+          "updated": "2026-11-12T19:24:43.161737+00:00",
+          "hcad": "0460360010017, 0460360010016",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "tier",
+            "threatCategory",
+            "why",
+            "sources"
+          ]
         },
         "2026-1686": {
           "address": "2700 TIDWELL RD",
@@ -71181,7 +72750,13 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94009/OriginalFiles/26-0002-001.pdf?sv=2021-08-06&se=2051-10-16T19%3A11%3A15Z&sr=b&sp=r&sig=iw6soIsaC4SBxkwqUFeVKDA3b5COueqzKBS4ofFbPKE%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959021+00:00"
+          "updated": "2026-11-12T19:24:43.161774+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "tier",
+            "threatCategory",
+            "why"
+          ]
         },
         "2026-1654": {
           "address": "626 E WELLINGTON ST",
@@ -71194,7 +72769,12 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93942/OriginalFiles/26-0029-001-PLAT.pdf?sv=2021-08-06&se=2051-10-05T15%3A27%3A13Z&sr=b&sp=r&sig=MXD67v0%2Fd1K9qUgR8a%2Fw8f%2FcwZH420ayJ%2F4SPNv4qBw%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959048+00:00"
+          "updated": "2026-11-12T19:24:43.161816+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "tier",
+            "why"
+          ]
         },
         "2026-1641": {
           "address": "2802 WHEELER ST",
@@ -71207,7 +72787,14 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1641_Wheeler-Residences_PH.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959061+00:00"
+          "updated": "2026-11-12T19:24:43.161835+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "tier",
+            "threatCategory",
+            "why",
+            "sources"
+          ]
         },
         "2026-1634": {
           "address": "1804 MANSFIELD ST; 1814 MANSFIELD ST",
@@ -71220,7 +72807,13 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93933/OriginalFiles/Mansfield_-_October_2026.pdf?sv=2021-08-06&se=2051-10-05T12%3A21%3A16Z&sr=b&sp=r&sig=%2FcECw9F2lnfm41FDxZqsNq24aCl%2B1ccJBSLtWKr8944%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959080+00:00"
+          "updated": "2026-11-12T19:24:43.161865+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "tier",
+            "threatCategory",
+            "sources"
+          ]
         },
         "2026-1605": {
           "address": "4615 SHERMAN ST",
@@ -71233,7 +72826,13 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93895/OriginalFiles/26149150_Zakinho_Gardens_Plat-Model.pdf?sv=2021-08-06&se=2051-10-02T16%3A01%3A38Z&sr=b&sp=r&sig=QaaUPFsoRJ5yTuEzupzFESWghCL6wv%2Fmw%2FivOtxqx4Y%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959103+00:00"
+          "updated": "2026-11-12T19:24:43.161903+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "tier",
+            "threatCategory",
+            "why"
+          ]
         },
         "2026-1585": {
           "address": "1226 W PIERCE ST",
@@ -71246,7 +72845,16 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1585_Montrose-Residences_PH.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959134+00:00"
+          "updated": "2026-11-12T19:24:43.161950+00:00",
+          "hcad": "1490700010001, 1490700010002, 1490700010003, 1490700010004, 1490700010005, 1490700020001, 1490700020002, 1490700020003, 1490700020004",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "hcad",
+            "address",
+            "threatCategory",
+            "why",
+            "sources"
+          ]
         },
         "2026-1562": {
           "address": "0 TUSKEGEE HEIGHTS LN",
@@ -71259,7 +72867,14 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93849/OriginalFiles/HIGHLAND_HEIGHTS_GREEN_PARTIAL_REPLAT_NO_1_9-16-2026_PDF.pdf?sv=2021-08-06&se=2051-09-21T11%3A48%3A16Z&sr=b&sp=r&sig=kjkLsQCr5vXgPXJ24uV0xQqtO4PXnmeutEdPjO3K4yU%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1562_Highland-Heights-Green-partial-replat-no-1_PHS.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959144+00:00"
+          "updated": "2026-11-12T19:24:43.161965+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "address",
+            "tier",
+            "threatCategory",
+            "why"
+          ]
         },
         "DPV-26091362": {
           "address": "13515 PERTHSHIRE RD",
@@ -71272,7 +72887,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959184+00:00"
+          "updated": "2026-11-12T19:24:43.162025+00:00"
         },
         "DPV-99": {
           "address": "3747 DREYFUS ST",
@@ -71285,7 +72900,7 @@
           "sources": "",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959193+00:00"
+          "updated": "2026-11-12T19:24:43.162040+00:00"
         },
         "DPV-26087637": {
           "address": "403 YORKCHESTER DR",
@@ -71298,7 +72913,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959205+00:00"
+          "updated": "2026-11-12T19:24:43.162055+00:00"
         },
         "DPV-26084127": {
           "address": "6102 WALTWAY DR",
@@ -71311,7 +72926,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959214+00:00"
+          "updated": "2026-11-12T19:24:43.162070+00:00"
         },
         "2026-1524": {
           "address": "4705 LIBERTY RD",
@@ -71324,7 +72939,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959226+00:00"
+          "updated": "2026-11-12T19:24:43.162087+00:00"
         },
         "2026-1551": {
           "address": "8841 CULLEN BLVD",
@@ -71337,7 +72952,14 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93815/OriginalFiles/065030713-Churchs_Cullen_V1.pdf?sv=2021-08-06&se=2051-09-20T01%3A30%3A42Z&sr=b&sp=r&sig=XWJyZMmJBDvHy6suIQIV7KXQpQLfEbXJ2NR3%2BFXzQ%2FY%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959236+00:00"
+          "updated": "2026-11-12T19:24:43.162102+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "tier",
+            "threatCategory",
+            "why",
+            "sources"
+          ]
         },
         "2026-1716": {
           "address": "1816 THOMPSON ST",
@@ -71350,7 +72972,15 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94027/OriginalFiles/261063125-Model.pdf?sv=2021-08-06&se=2051-10-19T13%3A38%3A41Z&sr=b&sp=r&sig=TF43byiCA%2FceMXRmsxdGXbD61HZh93lPxOT1%2BSbQT7I%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959267+00:00"
+          "updated": "2026-11-12T19:24:43.162149+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "yearBuilt",
+            "tier",
+            "threatCategory",
+            "why",
+            "sources"
+          ]
         },
         "2026-1739": {
           "address": "50 BRIAR HOLLOW LN",
@@ -71363,7 +72993,14 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93995/OriginalFiles/26059_-_Plat.pdf?sv=2021-08-06&se=2051-10-19T15%3A09%3A17Z&sr=b&sp=r&sig=tkM6f8a34plILEsJIbBDPorjtsUtiA1ZzqsYsfuHEvk%3D",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959284+00:00"
+          "updated": "2026-11-12T19:24:43.162175+00:00",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "tier",
+            "threatCategory",
+            "why",
+            "sources"
+          ]
         },
         "2026-1752": {
           "address": "1907 AFTON ST",
@@ -71376,7 +73013,7 @@
           "sources": "https://www.houstontx.gov/planning/notices/2026/2026-1752-Afton-Park-GP.pdf",
           "followup": "",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959293+00:00"
+          "updated": "2026-11-12T19:24:43.162190+00:00"
         },
         "2026-1786": {
           "address": "600 GREENSPOINT MALL; 400 GREENSPOINT MALL; 208 GREENS RD",
@@ -71389,7 +73026,34 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93807/OriginalFiles/063319128-City_North_GP_V1.pdf?sv=2021-08-06&se=2051-09-21T15%3A17%3A43Z&sr=b&sp=r&sig=hkR919IwckfITdarlBVnOzcCQbOtnQhkjEbr0nCk22M%3D",
           "followup": "Monitor for demolition or building permit filings.",
           "autoEnriched": true,
-          "updated": "2026-11-11T19:04:54.959304+00:00"
+          "updated": "2026-11-12T19:24:43.162208+00:00",
+          "carriedFromCycle": "2026-10-01",
+          "carriedFields": [
+            "tier",
+            "sources"
+          ]
+        },
+        "2026-1442": {
+          "tier": "2",
+          "tierConfirmed": true,
+          "updated": "2026-10-30T02:21:53.230Z",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ],
+          "address": "8803 FOREST HOLLOW ST",
+          "yearBuilt": "1968",
+          "designation": "None found",
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "EA: City-owned housing project",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "address",
+            "yearBuilt",
+            "designation",
+            "threatCategory",
+            "why"
+          ]
         },
         "2026-1780": {
           "hcad": "0791290030051",
