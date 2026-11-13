@@ -3064,6 +3064,110 @@ console.log(JSON.stringify(out));
         assert merged_sync["platReviews"][("2026-10-29", "2026-1659")]["tier"] == "2"
 
 
+def test_pass3_feedback_f3_01_through_f3_12_pipeline_invariants() -> None:
+    """Verify Pass #3 feedback fixes in fetch_plat_and_watchlist.py (F3-01..F3-12)."""
+    # F3-08: LLC comma stripping
+    assert fpw.strip_corporate_suffix_commas("Cas Consultants, LLC") == "Cas Consultants LLC"
+    assert fpw.strip_corporate_suffix_commas("Heights Engineering, L.L.C.") == "Heights Engineering L.L.C."
+    assert (
+        fpw.clean_entity_list_string("Refokas Holdings, LLC, Cas Consultants, LLC, LLC, Juan Castillo")
+        == "Refokas Holdings LLC, Cas Consultants LLC, Juan Castillo"
+    )
+
+    # F3-09 & F3-11: Default checklist puts Comptroller Taxpayer Search first on chk-04 and moves chk-14 to Plans & Use above chk-08
+    chk = fpw.build_default_checklist_for_property("2501 Canal St", "0231000000006")
+    chk04 = next(r for r in chk if r["id"] == "chk-04")
+    assert chk04["resourceUrl"] == "https://comptroller.texas.gov/taxes/sales/taxpayer-search.php"
+    assert chk04["resourceLabel"] == "Comptroller Taxpayer Search"
+    assert chk04["additionalResourceUrl"] == "https://comptroller.texas.gov/taxes/franchise/account-status/search"
+    assert chk04["additionalResourceLabel"] == "Comptroller Franchise Tax Search"
+
+    idx14 = next(i for i, r in enumerate(chk) if r["id"] == "chk-14")
+    idx08 = next(i for i, r in enumerate(chk) if r["id"] == "chk-08")
+    assert chk[idx14]["stage"] == "Plans & Use"
+    assert idx14 + 1 == idx08
+
+    # F3-06: normalize_hcad_arcgis_records uses HCAD owner acquisition date as chk-05 date while keeping discoveredAt as sweep_date_iso
+    hcad_hits = fpw.normalize_hcad_arcgis_records(
+        arcgis_features=[
+            {
+                "attributes": {
+                    "HCAD_NUM": "0231000000007",
+                    "owner": "REFOKAS HOLDINGS LLC",
+                    "address": "2507 CANAL ST",
+                    "state_class": "F1",
+                    "impr_val": 64751,
+                    "land_val": 192500,
+                    "legal_lines": "LT 7 BLK 4|LUBBOCK GROVE",
+                    "acquiredDate": "2026-07-21",
+                }
+            }
+        ],
+        sweep_date_iso="2026-10-29",
+    )
+    assert len(hcad_hits) == 1
+    assert hcad_hits[0]["date"] == "2026-07-21"
+    assert hcad_hits[0]["discoveredAt"] == "2026-10-29"
+    assert "acquired 2026-07-21" in hcad_hits[0]["result"].lower()
+
+    # F3-04: parse_pc_minutes_text and describe_cycle_meeting_action
+    parsed_min = fpw.parse_pc_minutes_text(
+        "102 Tejano Broadway Reserve  C2R\n"
+        "Staff recommendation: Defer the application for two weeks. Commission action: Deferred the application.\n"
+    )
+    assert "Defer" in parsed_min["byItem"].get("102", "")
+    assert "Not on Commission meeting agenda" in fpw.describe_cycle_meeting_action(
+        {"app": "2026-1524", "name": "Liberty Green", "onMeetingAgenda": False, "section": "C. Public Hearing"},
+        minutes_actions={},
+    )
+
+    # F3-02, F3-05, F3-07, F3-10, F3-12: dedupe_watchlist_properties, deletedCheckKeys, HCAD owner priority, photo & history fields
+    del_key = fpw.build_check_entry_key("chk-14", {"date": "2026-11-13", "result": "9/15/2026: water/wastewater"})
+    prop_manual = fpw.normalize_watch_property_record(
+        {
+            "id": "prop-1792765948557",
+            "propertyName": "Park Place Methodist Church",
+            "address": "3827 Broadway St",
+            "hcadAccount": "0283120000009",
+            "ownerOfRecord": "Park Place Methodist Church",
+            "tier": "1",
+            "tierConfirmed": True,
+            "buildingHistory": "1949 sanctuary designed for Park Place congregation.",
+            "historyFolderUrl": "https://drive.google.com/drive/folders/example123",
+            "historyLinks": [{"label": "1950 Sanborn Map", "url": "https://example.org/sanborn.pdf"}],
+            "photoUrl": "https://example.org/church.jpg",
+            "deletedCheckKeys": [del_key],
+            "updatedAt": "2026-10-30T01:59:30.712Z",
+        }
+    )
+    prop_dup_plat = fpw.normalize_watch_property_record(
+        {
+            "id": "plat-2026-1302",
+            "appNo": "2026-1302",
+            "propertyName": "Tejano Broadway Reserve",
+            "address": "3827 BROADWAY ST",
+            "hcadAccount": "0283120000009",
+            "hcadOwner": "Park Place Methodist Church",
+            "ownerOfRecord": "Heights Engineering, LLC",
+            "developer": "Heights Engineering, LLC",
+            "tier": "1",
+            "tierConfirmed": True,
+            "updatedAt": "2026-10-30T01:00:00.000Z",
+        }
+    )
+    assert prop_dup_plat["ownerOfRecord"] == "Park Place Methodist Church"
+    assert prop_dup_plat["developer"] == "Heights Engineering LLC"
+    deduped = fpw.dedupe_watchlist_properties([prop_manual, prop_dup_plat])
+    assert len(deduped) == 1
+    assert deduped[0]["id"] == "prop-1792765948557"
+    assert "plat-2026-1302" in deduped[0]["mergedDuplicateIds"]
+    assert deduped[0]["buildingHistory"] == "1949 sanctuary designed for Park Place congregation."
+    assert deduped[0]["historyFolderUrl"] == "https://drive.google.com/drive/folders/example123"
+    assert deduped[0]["photoUrl"] == "https://example.org/church.jpg"
+    assert del_key in deduped[0]["deletedCheckKeys"]
+
+
+
 
 
 

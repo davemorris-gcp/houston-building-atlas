@@ -12,7 +12,7 @@ import {
   parseClerkLegalTokens,
   formatClerkPartyTokens,
   cleanClerkSubdivisionDesc,
-} from "./clerkSearchHelpers.js?v=20261110a";
+} from "./clerkSearchHelpers.js?v=20261113b";
 import {
   THREAT_CATEGORIES,
   parseHcadAccountList,
@@ -21,7 +21,16 @@ import {
   areContinuitySnapshotsCompatible,
   normalizeContinuityPlatName,
   classifyPlatItem,
-} from "./platMonitorHelpers.js?v=20261110a";
+  stripCorporateSuffixCommas,
+  cleanEntityListString,
+  canonicalPropertyAddressKey,
+} from "./platMonitorHelpers.js?v=20261113b";
+
+export {
+  stripCorporateSuffixCommas,
+  cleanEntityListString,
+  canonicalPropertyAddressKey,
+};
 
 export const TRACKER_STATUSES = [
   "Active / High Priority",
@@ -489,6 +498,25 @@ export function sanitizeExternalLinksList(list) {
   return out;
 }
 
+export function sanitizePhotoUrl(rawUrl = "") {
+  const trimmed = String(rawUrl ?? "").trim();
+  if (!trimmed) return "";
+  if (/^(?:public\/|data\/|\.\/|\/)/i.test(trimmed) && !/^\/\//.test(trimmed)) {
+    return trimmed.replace(/[\u0000-\u001F\u007F"<>]/g, "");
+  }
+  return sanitizeExternalUrl(trimmed);
+}
+
+export function sanitizePhotoDataUrl(rawDataUrl = "") {
+  const trimmed = String(rawDataUrl ?? "").trim();
+  if (!trimmed) return "";
+  if (trimmed.length > 480000) return "";
+  if (!/^data:image\/(?:jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(trimmed)) {
+    return "";
+  }
+  return trimmed.replace(/\s+/g, "");
+}
+
 export function buildDefaultChecklist(addr = "") {
   const qAddr = encodeURIComponent((String(addr || "").trim() || "Houston") + ", Houston, TX");
   return [
@@ -545,12 +573,12 @@ export function buildDefaultChecklist(addr = "") {
       stage: "Sale & Ownership",
       activity: "Corporate Entity Verification",
       whatToLookFor:
-        "Look up each LLC or trade entity across TX Comptroller, Bizapedia, Google Search (if no franchise tax), and SOSDirect to find officers and related entities.",
+        "Look up each LLC or trade entity across TX Comptroller (Taxpayer & Franchise Tax searches), Bizapedia, Google Search, and SOSDirect to find officers and related entities.",
       typicalTiming: "As soon as a new entity name surfaces.",
-      resourceLabel: "Comptroller Entity Search",
-      resourceUrl: "https://comptroller.texas.gov/taxes/franchise/account-status/search",
-      additionalResourceLabel: "Bizapedia Entity Lookup",
-      additionalResourceUrl: "https://www.bizapedia.com/",
+      resourceLabel: "Comptroller Taxpayer Search",
+      resourceUrl: "https://comptroller.texas.gov/taxes/sales/taxpayer-search.php",
+      additionalResourceLabel: "Comptroller Franchise Tax Search",
+      additionalResourceUrl: "https://comptroller.texas.gov/taxes/franchise/account-status/search",
       status: "To Do",
       lastChecked: "",
       automated: true,
@@ -561,7 +589,7 @@ export function buildDefaultChecklist(addr = "") {
       stage: "Sale & Ownership",
       activity: "HCAD Ownership & Classification",
       whatToLookFor:
-        "Search the 13-digit HCAD account number to confirm the owner of record, legal description, and changes to land use, value, or improvements.",
+        "Search the 13-digit HCAD account number to confirm the owner of record, acquisition date, legal description, and changes to land use, value, or improvements.",
       typicalTiming: "Owner updates lag the deed by weeks to months.",
       resourceLabel: "HCAD Property Search",
       resourceUrl: "https://search.hcad.org/",
@@ -605,11 +633,27 @@ export function buildDefaultChecklist(addr = "") {
       checks: [],
     },
     {
+      id: "chk-14",
+      stage: "Plans & Use",
+      activity: "Demolition & Building Permits",
+      whatToLookFor:
+        "Search Houston Sold Permits by simplified address for building, remodeling, sewer disconnect, and demolition permits (and note 8-digit project numbers for ILMS below).",
+      typicalTiming: "Design & permitting phase through final weeks before work starts.",
+      resourceLabel: "Houston Sold Permits",
+      resourceUrl: "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
+      additionalResourceLabel: "",
+      additionalResourceUrl: "",
+      status: "To Do",
+      lastChecked: "",
+      automated: true,
+      checks: [],
+    },
+    {
       id: "chk-08",
       stage: "Plans & Use",
       activity: "Pending Plans (Open Records & ILMS)",
       whatToLookFor:
-        "Look up 8-digit permit project numbers (from Houston Sold Permits) in ILMS, or submit a GovQA open records request for unissued architectural plans.",
+        "Look up 8-digit permit project numbers (from Houston Sold Permits above) in ILMS, or submit a GovQA open records request for unissued architectural plans.",
       typicalTiming: "Most useful after closing, once an architect or engineer is engaged.",
       resourceLabel: "Public Records (GovQA)",
       resourceUrl: "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
@@ -701,22 +745,6 @@ export function buildDefaultChecklist(addr = "") {
       checks: [],
     },
     {
-      id: "chk-14",
-      stage: "Demolition Signals",
-      activity: "Demolition & Building Permits",
-      whatToLookFor:
-        "Search Houston Sold Permits by simplified address for demolition, sewer disconnect, and commercial building permits (and note 8-digit project numbers).",
-      typicalTiming: "Final weeks before work starts.",
-      resourceLabel: "Houston Sold Permits",
-      resourceUrl: "https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm",
-      additionalResourceLabel: "",
-      additionalResourceUrl: "",
-      status: "To Do",
-      lastChecked: "",
-      automated: true,
-      checks: [],
-    },
-    {
       id: "chk-15",
       stage: "Demolition Signals",
       activity: "Asbestos & Demolition Notification (DSHS)",
@@ -733,6 +761,24 @@ export function buildDefaultChecklist(addr = "") {
       checks: [],
     },
   ];
+}
+
+export function extractHcadOwnerFromChecklist(checklist = []) {
+  const chk05 = findChecklistRow(checklist, "chk-05");
+  if (!chk05 || !Array.isArray(chk05.checks)) return "";
+  for (const ch of chk05.checks) {
+    const res = String(ch?.result || "");
+    const m = res.match(
+      /\bOwner\s+([^,.]+?)(?:,\s*Class\b|,\s*Legal\b|,\s*Acquired\b|\s*\(Acquired\b|\.\s*$|$)/i
+    );
+    if (m && m[1]) {
+      const cand = stripCorporateSuffixCommas(
+        m[1].replace(/\bMETHODISTCHURCH\b/gi, "METHODIST CHURCH").trim()
+      );
+      if (cand && !/^unknown$/i.test(cand)) return cand;
+    }
+  }
+  return "";
 }
 
 /**
@@ -760,6 +806,9 @@ function uniqueNonEmptyStrings(items = []) {
   return out;
 }
 
+const BARE_CORP_SUFFIX_ONLY_RE =
+  /^(?:p\.?\s*l\.?\s*l\.?\s*c\.?|l\.?\s*l\.?\s*c\.?|l\.?\s*l\.?\s*p\.?|l\.?\s*p\.?|inc(?:orporated)?\.?|corp(?:oration)?\.?|ltd\.?|limited|p\.?\s*c\.?|co(?:mpany)?\.?)$/i;
+
 export function normalizeSearchTerms(rawTerms, propId = "", hasExplicitTimestamp = false) {
   const base = {
     entities: [],
@@ -784,7 +833,13 @@ export function normalizeSearchTerms(rawTerms, propId = "", hasExplicitTimestamp
   if (rawTerms && typeof rawTerms === "object") {
     for (const cat of SEARCH_TERM_CATEGORIES) {
       if (Array.isArray(rawTerms[cat.key])) {
-        base[cat.key] = uniqueNonEmptyStrings(rawTerms[cat.key]);
+        const cleanedList =
+          cat.key === "entities"
+            ? rawTerms[cat.key]
+                .map((e) => stripCorporateSuffixCommas(e))
+                .filter((e) => e && !BARE_CORP_SUFFIX_ONLY_RE.test(e))
+            : rawTerms[cat.key];
+        base[cat.key] = uniqueNonEmptyStrings(cleanedList);
       }
     }
   }
@@ -816,10 +871,17 @@ export function extractWatchPropertySearchContext(prop = {}) {
   );
 
   const splitEntities = (raw) =>
-    String(raw || "")
+    stripCorporateSuffixCommas(String(raw || ""))
       .split(/[,;/]+/)
-      .map((s) => s.replace(/\([^)]*\)/g, "").trim())
-      .filter((s) => s && !/^(?:not recorded|none|none found|unknown|n\/a)$/i.test(s));
+      .map((s) => stripCorporateSuffixCommas(s.replace(/\([^)]*\)/g, "")).trim())
+      .filter(
+        (s) =>
+          s &&
+          !/^(?:not recorded|none|none found|unknown|n\/a|pending hcad lookup|see hcad property search)$/i.test(
+            s
+          ) &&
+          !BARE_CORP_SUFFIX_ONLY_RE.test(s)
+      );
 
   const ownerEntities = splitEntities(prop.ownerOfRecord);
   const buyerEntities = splitEntities(prop.buyerRelatedEntities);
@@ -936,6 +998,7 @@ export function buildAssistedPortalPillsModel(prop = {}, row = {}) {
     }
   } else if (rowId === "chk-04") {
     const sosUrl = "https://direct.sos.state.tx.us/acct/acct-login.asp";
+    pushLink("Bizapedia Entity Lookup", "https://www.bizapedia.com/");
     const entityTargets = uniqueNonEmptyStrings([...ctx.entities, ...ctx.officers, ...ctx.dbas]);
     for (const ent of entityTargets.slice(0, 3)) {
       pushLink(
@@ -1046,6 +1109,27 @@ export function rebuildFindingsLog(prop) {
   return log;
 }
 
+export function buildCheckDeletionKey(rowId = "", chk = {}) {
+  const rid = String(rowId || "").trim().toLowerCase();
+  const dt = String(chk?.date || "").trim();
+  const txt = String(chk?.result || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  return `${rid}::${dt}::${txt}`;
+}
+
+export function isCheckEntryDeleted(rowId = "", chk = {}, deletedCheckKeys = []) {
+  if (!Array.isArray(deletedCheckKeys) || deletedCheckKeys.length === 0) return false;
+  const delSet = new Set(deletedCheckKeys.map((k) => String(k || "").trim().toUpperCase()));
+  const k1 = buildCheckDeletionKey(rowId, chk).toUpperCase();
+  if (delSet.has(k1)) return true;
+  if (isAutoSweepFinding(chk)) {
+    const k2 = getAutoSweepDedupeKey(rowId, chk).toUpperCase();
+    if (delSet.has(k2)) return true;
+  }
+  return false;
+}
+
 /**
  * Normalize a watched property object from static JSON, localStorage, or Google Sheet sync,
  * reconciling legacy aliases (architectEngineer <-> designFirm, documents <-> driveLinks,
@@ -1059,7 +1143,9 @@ export function normalizeWatchProperty(rawProp = {}) {
   const propertyName = String(
     rawProp.propertyName || rawProp.name || rawProp.title || address || id
   ).trim();
-  const designFirm = String(rawProp.designFirm ?? rawProp.architectEngineer ?? "").trim();
+  const designFirm = stripCorporateSuffixCommas(
+    String(rawProp.designFirm ?? rawProp.architectEngineer ?? "").trim()
+  );
   const tierRaw = String(rawProp.tier || "1").trim();
   const tier = ["1", "2", "3"].includes(tierRaw) ? tierRaw : "1";
 
@@ -1095,6 +1181,24 @@ export function normalizeWatchProperty(rawProp = {}) {
     ? rawProp.documents
     : [];
   const driveLinks = sanitizeExternalLinksList(rawDriveLinks);
+  const historyLinks = sanitizeExternalLinksList(
+    Array.isArray(rawProp.historyLinks) ? rawProp.historyLinks : []
+  );
+  const historyFolderUrl = sanitizeExternalUrl(rawProp.historyFolderUrl || "");
+  const buildingHistory = String(rawProp.buildingHistory || "");
+  const historyUpdatedAt = String(rawProp.historyUpdatedAt || "");
+
+  const photoUrl = sanitizePhotoUrl(rawProp.photoUrl || "");
+  const photoDataUrl = sanitizePhotoDataUrl(rawProp.photoDataUrl || "");
+  const photoCaption = String(rawProp.photoCaption || "").trim();
+  const photoUpdatedAt = String(rawProp.photoUpdatedAt || "");
+
+  const deletedCheckKeys = uniqueNonEmptyStrings(
+    Array.isArray(rawProp.deletedCheckKeys) ? rawProp.deletedCheckKeys : []
+  );
+  const mergedDuplicateIds = uniqueNonEmptyStrings(
+    Array.isArray(rawProp.mergedDuplicateIds) ? rawProp.mergedDuplicateIds : []
+  );
 
   const searchTerms = normalizeSearchTerms(
     rawProp.searchTerms,
@@ -1112,20 +1216,22 @@ export function normalizeWatchProperty(rawProp = {}) {
       (!incomingList[idx]?.id && incomingList[idx] ? incomingList[idx] : null);
     if (!matched) return tpl;
 
-    const checks = (Array.isArray(matched.checks) ? matched.checks : []).map((c) => {
-      const entry = {
-        date: String(c?.date || ""),
-        result: String(c?.result || ""),
-      };
-      if (c?.source) entry.source = String(c.source);
-      if (c?.discoveredAt) entry.discoveredAt = String(c.discoveredAt);
-      if (c?.loggedAt) entry.loggedAt = String(c.loggedAt);
-      if (c?.agencyRecordId) entry.agencyRecordId = String(c.agencyRecordId);
-      if (typeof c?.adverse === "boolean") entry.adverse = c.adverse;
-      const cleanLinks = sanitizeExternalLinksList(c?.links);
-      if (cleanLinks.length > 0) entry.links = cleanLinks;
-      return entry;
-    });
+    const checks = (Array.isArray(matched.checks) ? matched.checks : [])
+      .map((c) => {
+        const entry = {
+          date: String(c?.date || ""),
+          result: String(c?.result || ""),
+        };
+        if (c?.source) entry.source = String(c.source);
+        if (c?.discoveredAt) entry.discoveredAt = String(c.discoveredAt);
+        if (c?.loggedAt) entry.loggedAt = String(c.loggedAt);
+        if (c?.agencyRecordId) entry.agencyRecordId = String(c.agencyRecordId);
+        if (typeof c?.adverse === "boolean") entry.adverse = c.adverse;
+        const cleanLinks = sanitizeExternalLinksList(c?.links);
+        if (cleanLinks.length > 0) entry.links = cleanLinks;
+        return entry;
+      })
+      .filter((entry) => !isCheckEntryDeleted(tpl.id, entry, deletedCheckKeys));
 
     const outRow = {
       ...tpl,
@@ -1159,11 +1265,34 @@ export function normalizeWatchProperty(rawProp = {}) {
     publicHearingDate: String(rawKd.publicHearingDate || ""),
     asbestosAbatementWindow: String(rawKd.asbestosAbatementWindow || ""),
   };
+  if (rawKd.expectedDemolition) {
+    keyDates.expectedDemolition = String(rawKd.expectedDemolition);
+  }
 
   const resolvedAppNo = String(
     rawProp.appNo || rawProp.sourcePlatApp || (id.startsWith("plat-") ? id.slice(5) : "")
   ).trim();
   const isPlatOriginated = id.startsWith("plat-") || Boolean(resolvedAppNo);
+
+  const rawOwnerClean = stripCorporateSuffixCommas(
+    String(rawProp.ownerOfRecord ?? rawProp.owner ?? "").trim()
+  );
+  const cleanDev = stripCorporateSuffixCommas(String(rawProp.developer || "").trim());
+  const explicitHcadOwner = stripCorporateSuffixCommas(
+    String(rawProp.hcadOwner || rawProp.atlas?.hcadOwner || "")
+      .replace(/\bMETHODISTCHURCH\b/gi, "METHODIST CHURCH")
+      .trim()
+  );
+  const ownerCopiedFromApplicant =
+    !rawOwnerClean ||
+    /^(?:see hcad|pending hcad|n\/a$)/i.test(rawOwnerClean) ||
+    (Boolean(cleanDev) && rawOwnerClean.toUpperCase() === cleanDev.toUpperCase()) ||
+    (Boolean(designFirm) &&
+      designFirm.toUpperCase().includes(rawOwnerClean.toUpperCase()));
+  const hcadOwnerResolved = ownerCopiedFromApplicant
+    ? explicitHcadOwner || extractHcadOwnerFromChecklist(checklist)
+    : "";
+  const resolvedOwnerOfRecord = hcadOwnerResolved || rawOwnerClean;
 
   const normalized = {
     id,
@@ -1182,11 +1311,11 @@ export function normalizeWatchProperty(rawProp = {}) {
     yearRemodeled: rawProp.yearRemodeled ?? "",
     architect: String(rawProp.architect || "").trim(),
     designation: String(rawProp.designation || "").trim(),
-    ownerOfRecord: String(rawProp.ownerOfRecord ?? rawProp.owner ?? "").trim(),
-    developer: String(rawProp.developer || "").trim(),
-    buyerRelatedEntities: String(rawProp.buyerRelatedEntities || "").trim(),
-    broker: String(rawProp.broker || "").trim(),
-    lender: String(rawProp.lender || "").trim(),
+    ownerOfRecord: resolvedOwnerOfRecord,
+    developer: cleanDev,
+    buyerRelatedEntities: cleanEntityListString(String(rawProp.buyerRelatedEntities || "").trim()),
+    broker: stripCorporateSuffixCommas(String(rawProp.broker || "").trim()),
+    lender: stripCorporateSuffixCommas(String(rawProp.lender || "").trim()),
     designFirm,
     architectEngineer: designFirm,
     tier,
@@ -1207,6 +1336,16 @@ export function normalizeWatchProperty(rawProp = {}) {
     ilmsProjectNo: String(rawProp.ilmsProjectNo || "").trim(),
     keyDates,
     notes: String(rawProp.notes || ""),
+    buildingHistory,
+    historyFolderUrl,
+    historyLinks,
+    historyUpdatedAt,
+    photoUrl,
+    photoDataUrl,
+    photoCaption,
+    photoUpdatedAt,
+    deletedCheckKeys,
+    mergedDuplicateIds,
     lng: rawProp.lng ?? null,
     lat: rawProp.lat ?? null,
     coordSource: String(rawProp.coordSource || ""),
@@ -1284,8 +1423,8 @@ function parseIsoMs(ts = "") {
  * Guarantees:
  *   - Fresh [AUTO-SWEEP] findings union-merge idempotently by row.id ("chk-01".."chk-15") even
  *     when cloud CSV or localStorage holds an older checklist snapshot.
- *   - Human-edited metadata, deleted snowball terms, and deleted Drive links follow monotonic
- *     updatedAt timestamps so deleted items never resurrect.
+ *   - Human-edited metadata, deleted snowball terms, deleted Drive links, and deleted check entries
+ *     follow monotonic timestamps and tombstones so deleted items never resurrect.
  *   - Manual "Complete" / "In Progress" / "N/A" row statuses survive non-adverse sweeps, escalating
  *     to "Flagged" only when an unseen adverse [AUTO-SWEEP] hit arrives after human lastChecked.
  */
@@ -1320,6 +1459,15 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     Boolean((raw && raw.searchTerms && typeof raw.searchTerms === "object") || raw?.searchTermsUpdatedAt);
   const hasExplicitDriveLinks = (raw) =>
     Boolean(Array.isArray(raw?.driveLinks) || Array.isArray(raw?.documents) || raw?.driveLinksUpdatedAt);
+  const hasExplicitHistory = (raw) =>
+    Boolean(
+      raw?.buildingHistory ||
+        raw?.historyFolderUrl ||
+        (Array.isArray(raw?.historyLinks) && raw.historyLinks.length > 0) ||
+        raw?.historyUpdatedAt
+    );
+  const hasExplicitPhoto = (raw) =>
+    Boolean(raw?.photoUrl || raw?.photoDataUrl || raw?.photoCaption || raw?.photoUpdatedAt);
 
   const explicitTermsCandidates = [
     hasExplicitSearchTerms(staticProp) ? { p: sNorm, r: rankFor(sNorm, "searchTermsUpdatedAt", 1) } : null,
@@ -1359,13 +1507,46 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
           .filter((x) => x.p)
           .sort((a, b) => b.r - a.r)[0].p;
 
+  const explicitHistoryCandidates = [
+    hasExplicitHistory(staticProp) ? { p: sNorm, r: rankFor(sNorm, "historyUpdatedAt", 1) } : null,
+    hasExplicitHistory(localProp) ? { p: lNorm, r: rankFor(lNorm, "historyUpdatedAt", 2) } : null,
+    hasExplicitHistory(cloudProp) ? { p: cNorm, r: rankFor(cNorm, "historyUpdatedAt", 3) } : null,
+  ]
+    .filter((x) => x && x.p)
+    .sort((a, b) => b.r - a.r);
+  const historyWinner =
+    explicitHistoryCandidates.length > 0 ? explicitHistoryCandidates[0].p : humanWinner;
+
+  const explicitPhotoCandidates = [
+    hasExplicitPhoto(staticProp) ? { p: sNorm, r: rankFor(sNorm, "photoUpdatedAt", 1) } : null,
+    hasExplicitPhoto(localProp) ? { p: lNorm, r: rankFor(lNorm, "photoUpdatedAt", 2) } : null,
+    hasExplicitPhoto(cloudProp) ? { p: cNorm, r: rankFor(cNorm, "photoUpdatedAt", 3) } : null,
+  ]
+    .filter((x) => x && x.p)
+    .sort((a, b) => b.r - a.r);
+  const photoWinner =
+    explicitPhotoCandidates.length > 0 ? explicitPhotoCandidates[0].p : humanWinner;
+
   const sweepWinner = [sNorm, cNorm, lNorm]
     .filter(Boolean)
     .sort((a, b) => parseIsoMs(b.lastAutoSweepAt) - parseIsoMs(a.lastAutoSweepAt))[0];
 
   const base = normalizeWatchProperty(humanWinner);
 
-  // Enrich spatial/coordinate fields from static pipeline output when missing on human snapshot
+  const unionDeletedCheckKeys = uniqueNonEmptyStrings([
+    ...(sNorm?.deletedCheckKeys || []),
+    ...(cNorm?.deletedCheckKeys || []),
+    ...(lNorm?.deletedCheckKeys || []),
+  ]);
+  base.deletedCheckKeys = unionDeletedCheckKeys;
+
+  base.mergedDuplicateIds = uniqueNonEmptyStrings([
+    ...(sNorm?.mergedDuplicateIds || []),
+    ...(cNorm?.mergedDuplicateIds || []),
+    ...(lNorm?.mergedDuplicateIds || []),
+  ]);
+
+  // Enrich spatial/coordinate and HCAD owner fields from static pipeline output when missing or plat-applicant-copied
   if (sNorm) {
     if (!base.lat && sNorm.lat) base.lat = sNorm.lat;
     if (!base.lng && sNorm.lng) base.lng = sNorm.lng;
@@ -1386,6 +1567,24 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     if (!base.hearingDateIso && sNorm.hearingDateIso) base.hearingDateIso = sNorm.hearingDateIso;
     if (!base.demolishedDate && sNorm.demolishedDate) base.demolishedDate = sNorm.demolishedDate;
     if (!base.lostHoustonId && sNorm.lostHoustonId) base.lostHoustonId = sNorm.lostHoustonId;
+
+    const sOwner = stripCorporateSuffixCommas(sNorm.ownerOfRecord || "");
+    const baseOwner = stripCorporateSuffixCommas(base.ownerOfRecord || "");
+    const baseDev = stripCorporateSuffixCommas(base.developer || "");
+    const baseDesign = stripCorporateSuffixCommas(base.designFirm || "");
+    if (
+      sOwner &&
+      !/^(?:see hcad|pending hcad|unknown)/i.test(sOwner) &&
+      (!baseOwner ||
+        /^(?:see hcad|pending hcad|unknown)/i.test(baseOwner) ||
+        (baseOwner.toUpperCase() === baseDev.toUpperCase() &&
+          sOwner.toUpperCase() !== baseDev.toUpperCase()) ||
+        (baseOwner.toUpperCase() === baseDesign.toUpperCase() &&
+          sOwner.toUpperCase() !== baseDesign.toUpperCase()))
+    ) {
+      base.ownerOfRecord = sOwner;
+    }
+
     if (
       base.trackerStatus !== "Lost" &&
       base.trackerStatus !== "Saved" &&
@@ -1448,6 +1647,23 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
   base.documents = base.driveLinks;
   base.driveLinksUpdatedAt = linksWinner.driveLinksUpdatedAt || linksWinner.updatedAt || "";
 
+  if (historyWinner) {
+    base.buildingHistory = historyWinner.buildingHistory || base.buildingHistory || "";
+    base.historyFolderUrl =
+      sanitizeExternalUrl(historyWinner.historyFolderUrl) || base.historyFolderUrl || "";
+    base.historyLinks = sanitizeExternalLinksList(
+      historyWinner.historyLinks?.length ? historyWinner.historyLinks : base.historyLinks
+    );
+    base.historyUpdatedAt = historyWinner.historyUpdatedAt || historyWinner.updatedAt || "";
+  }
+
+  if (photoWinner) {
+    base.photoUrl = sanitizePhotoUrl(photoWinner.photoUrl) || base.photoUrl || "";
+    base.photoDataUrl = sanitizePhotoDataUrl(photoWinner.photoDataUrl) || base.photoDataUrl || "";
+    base.photoCaption = photoWinner.photoCaption || base.photoCaption || "";
+    base.photoUpdatedAt = photoWinner.photoUpdatedAt || photoWinner.updatedAt || "";
+  }
+
   if (sweepWinner?.lastAutoSweepAt) {
     base.lastAutoSweepAt = sweepWinner.lastAutoSweepAt;
     base.autoSweepSchedule = sweepWinner.autoSweepSchedule || base.autoSweepSchedule;
@@ -1488,6 +1704,7 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     for (const srcRow of orderedManualSources) {
       for (const chk of srcRow.checks || []) {
         if (isAutoSweepFinding(chk)) continue;
+        if (isCheckEntryDeleted(tpl.id, chk, unionDeletedCheckKeys)) continue;
         const mKey = `${chk.date || ""}::${String(chk.result || "").trim()}`;
         if (!manualByKey.has(mKey)) {
           if (lockedManualList) continue;
@@ -1517,6 +1734,7 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     for (const srcRow of [sRow, cRow, lRow].filter(Boolean)) {
       for (const chk of srcRow.checks || []) {
         if (!isAutoSweepFinding(chk)) continue;
+        if (isCheckEntryDeleted(tpl.id, chk, unionDeletedCheckKeys)) continue;
         const aKey = getAutoSweepDedupeKey(tpl.id, chk);
         if (!autoByKey.has(aKey)) {
           autoByKey.set(aKey, {
@@ -1605,16 +1823,260 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
   return base;
 }
 
+/**
+ * Merge two Watchlist entries that refer to the same physical property (e.g. a manually added
+ * prop-* record and a PC-review-promoted plat-* record, or two plat-* records across PC cycles).
+ */
+export function mergeDuplicateWatchlistPair(propA, propB) {
+  const a = normalizeWatchProperty(propA);
+  const b = normalizeWatchProperty(propB);
+  if (!a) return b;
+  if (!b) return a;
+
+  // Prefer human-created prop-* IDs over plat-* IDs; if both are plat-*, prefer the earlier/established ID
+  const aIsManual = a.id.startsWith("prop-");
+  const bIsManual = b.id.startsWith("prop-");
+  let primary = a;
+  let secondary = b;
+  if (!aIsManual && bIsManual) {
+    primary = b;
+    secondary = a;
+  } else if (aIsManual === bIsManual) {
+    const aMs = parseIsoMs(a.updatedAt);
+    const bMs = parseIsoMs(b.updatedAt);
+    if (bMs > aMs && !hasHumanDossierContributions(a) && hasHumanDossierContributions(b)) {
+      primary = b;
+      secondary = a;
+    }
+  }
+
+  const merged = reconcileWatchlistProperty(secondary, primary, primary) || normalizeWatchProperty(primary);
+  merged.id = primary.id;
+
+  // Preserve Descriptive Property Name (prefer non-address human name like "Park Place Methodist Church")
+  const pName = String(primary.propertyName || "").trim();
+  const sName = String(secondary.propertyName || "").trim();
+  const pAddrKey = canonicalPropertyAddressKey(pName);
+  const sAddrKey = canonicalPropertyAddressKey(sName);
+  if (pAddrKey && !sAddrKey && sName) {
+    merged.propertyName = sName;
+  } else if (pName) {
+    merged.propertyName = pName;
+  }
+
+  // Merge plat application numbers & PDF links
+  const allApps = uniqueNonEmptyStrings([
+    primary.appNo,
+    primary.sourcePlatApp,
+    primary.linkedAppNo,
+    secondary.appNo,
+    secondary.sourcePlatApp,
+    secondary.linkedAppNo,
+  ]);
+  if (allApps.length > 0) {
+    merged.appNo = primary.appNo || secondary.appNo || allApps[0];
+    merged.sourcePlatApp = primary.sourcePlatApp || secondary.sourcePlatApp || merged.appNo;
+    const otherApp = allApps.find((ap) => ap !== merged.appNo) || "";
+    if (otherApp) merged.linkedAppNo = otherApp;
+  }
+  merged.platProjectName = primary.platProjectName || secondary.platProjectName || "";
+  merged.platPdf = primary.platPdf || secondary.platPdf || "";
+  merged.noticePdf = primary.noticePdf || secondary.noticePdf || "";
+  merged.section = primary.section || secondary.section || "";
+  merged.sourceCycleKey =
+    [primary.sourceCycleKey, secondary.sourceCycleKey].filter(Boolean).sort().pop() || "";
+  merged.pcMeetingDate =
+    [primary.pcMeetingDate, secondary.pcMeetingDate].filter(Boolean).sort().pop() || "";
+  merged.hearingDateIso =
+    [primary.hearingDateIso, secondary.hearingDateIso].filter(Boolean).sort().pop() || "";
+
+  // Merge HCAD accounts
+  const mergedHcads = uniqueNonEmptyStrings([
+    ...parseHcadAccountList(primary.hcadAccount || "").hcadIds,
+    ...parseHcadAccountList(secondary.hcadAccount || "").hcadIds,
+  ]);
+  if (mergedHcads.length > 0) {
+    merged.hcadAccount = mergedHcads.join(", ");
+  } else {
+    merged.hcadAccount = primary.hcadAccount || secondary.hcadAccount || "";
+  }
+
+  // Prefer real HCAD owner over plat developer/engineer name
+  const isEngineerOrPlaceholderOwner = (p) => {
+    const own = stripCorporateSuffixCommas(p.ownerOfRecord || "").toUpperCase();
+    if (!own || /^(?:SEE HCAD|PENDING HCAD|UNKNOWN|NONE)/.test(own)) return true;
+    const dev = stripCorporateSuffixCommas(p.developer || "").toUpperCase();
+    const des = stripCorporateSuffixCommas(p.designFirm || "").toUpperCase();
+    if (dev && own === dev && /\b(?:CONSULTANTS?|ENGINEERING|ENGINEERS?|SURVEYING|PLATTING)\b/i.test(own)) {
+      return true;
+    }
+    if (des && own === des) return true;
+    return false;
+  };
+  if (isEngineerOrPlaceholderOwner(primary) && !isEngineerOrPlaceholderOwner(secondary)) {
+    merged.ownerOfRecord = secondary.ownerOfRecord;
+  } else if (!isEngineerOrPlaceholderOwner(primary)) {
+    merged.ownerOfRecord = primary.ownerOfRecord;
+  } else {
+    merged.ownerOfRecord = primary.ownerOfRecord || secondary.ownerOfRecord || "";
+  }
+
+  merged.developer = primary.developer || secondary.developer || "";
+  merged.buyerRelatedEntities = cleanEntityListString(
+    [primary.buyerRelatedEntities, secondary.buyerRelatedEntities].filter(Boolean).join(", ")
+  );
+  merged.designFirm = primary.designFirm || secondary.designFirm || "";
+  merged.architectEngineer = merged.designFirm;
+  merged.legalDescription = primary.legalDescription || secondary.legalDescription || "";
+  merged.yearBuilt = primary.yearBuilt || secondary.yearBuilt || "";
+  merged.designation = primary.designation || secondary.designation || "";
+  merged.neighborhood = primary.neighborhood || secondary.neighborhood || "";
+  merged.lat = primary.lat ?? secondary.lat ?? null;
+  merged.lng = primary.lng ?? secondary.lng ?? null;
+  merged.coordSource = primary.coordSource || secondary.coordSource || "";
+  merged.buildingHistory = primary.buildingHistory || secondary.buildingHistory || "";
+  merged.historyFolderUrl = primary.historyFolderUrl || secondary.historyFolderUrl || "";
+  merged.historyLinks = sanitizeExternalLinksList([
+    ...(primary.historyLinks || []),
+    ...(secondary.historyLinks || []),
+  ]);
+  merged.photoUrl = primary.photoUrl || secondary.photoUrl || "";
+  merged.photoDataUrl = primary.photoDataUrl || secondary.photoDataUrl || "";
+  merged.photoCaption = primary.photoCaption || secondary.photoCaption || "";
+  merged.driveLinks = sanitizeExternalLinksList([
+    ...(primary.driveLinks || []),
+    ...(secondary.driveLinks || []),
+  ]);
+  merged.documents = merged.driveLinks;
+
+  for (const cat of SEARCH_TERM_CATEGORIES) {
+    merged.searchTerms[cat.key] = uniqueNonEmptyStrings([
+      ...(primary.searchTerms?.[cat.key] || []),
+      ...(secondary.searchTerms?.[cat.key] || []),
+    ]);
+  }
+
+  // Union-merge all 15 checklist rows' checks
+  const unionDeleted = uniqueNonEmptyStrings([
+    ...(primary.deletedCheckKeys || []),
+    ...(secondary.deletedCheckKeys || []),
+  ]);
+  merged.deletedCheckKeys = unionDeleted;
+  const statusRank = { Flagged: 4, "In Progress": 3, Complete: 2, "N/A": 1, "To Do": 0 };
+  merged.checklist = (merged.checklist || []).map((row) => {
+    const pRow = findChecklistRow(primary.checklist, row.id);
+    const sRow = findChecklistRow(secondary.checklist, row.id);
+    const seenCheckKeys = new Set();
+    const combined = [];
+    for (const src of [pRow, sRow].filter(Boolean)) {
+      for (const c of src.checks || []) {
+        if (isCheckEntryDeleted(row.id, c, unionDeleted)) continue;
+        const k = isAutoSweepFinding(c)
+          ? getAutoSweepDedupeKey(row.id, c)
+          : buildCheckDeletionKey(row.id, c).toUpperCase();
+        if (!seenCheckKeys.has(k)) {
+          seenCheckKeys.add(k);
+          combined.push(c);
+        }
+      }
+    }
+    combined.sort((x, y) => String(x.date || "").localeCompare(String(y.date || "")));
+    const bestStatus =
+      (statusRank[sRow?.status] || 0) > (statusRank[row.status] || 0) && !row.humanStatusEdited
+        ? sRow.status
+        : row.status;
+    const bestLastChecked =
+      String(sRow?.lastChecked || "") > String(row.lastChecked || "")
+        ? sRow.lastChecked
+        : row.lastChecked;
+    return {
+      ...row,
+      status: bestStatus,
+      lastChecked: bestLastChecked,
+      checks: combined,
+    };
+  });
+
+  const absorbedIds = uniqueNonEmptyStrings([
+    ...(primary.mergedDuplicateIds || []),
+    ...(secondary.mergedDuplicateIds || []),
+    ...(secondary.id && secondary.id !== merged.id ? [secondary.id] : []),
+  ]);
+  merged.mergedDuplicateIds = absorbedIds;
+
+  rebuildFindingsLog(merged);
+  return merged;
+}
+
+/**
+ * Deduplicate and merge Watchlist properties that share the same ID, 13-digit HCAD parcel,
+ * canonical plat application number, or normalized street address (preventing duplicate entries
+ * when a property is added manually and also promoted from PC review, or promoted across cycles).
+ */
+export function dedupeWatchlistProperties(list = []) {
+  const items = (Array.isArray(list) ? list : [])
+    .map((p) => normalizeWatchProperty(p))
+    .filter((p) => p && !isRemovedWatchlistTombstone(p));
+
+  const mergedList = [];
+  for (const prop of items) {
+    const propHcads = parseHcadAccountList(prop.hcadAccount || "").hcadIds;
+    const propApps = getCanonicalPlatAppIds(prop);
+    const propAddrKeys = [
+      canonicalPropertyAddressKey(prop.address || ""),
+      ...(prop.secondaryAddresses || []).map((a) => canonicalPropertyAddressKey(a)),
+    ].filter(Boolean);
+
+    const matchIdx = mergedList.findIndex((existing) => {
+      if (existing.id === prop.id) return true;
+      if (
+        (existing.mergedDuplicateIds || []).includes(prop.id) ||
+        (prop.mergedDuplicateIds || []).includes(existing.id)
+      ) {
+        return true;
+      }
+      const exHcads = parseHcadAccountList(existing.hcadAccount || "").hcadIds;
+      if (propHcads.length > 0 && exHcads.length > 0 && propHcads.some((h) => exHcads.includes(h))) {
+        return true;
+      }
+      const hcadsConflict =
+        propHcads.length > 0 && exHcads.length > 0 && !propHcads.some((h) => exHcads.includes(h));
+      const exApps = getCanonicalPlatAppIds(existing);
+      if (
+        !hcadsConflict &&
+        propApps.length > 0 &&
+        exApps.length > 0 &&
+        propApps.some((a) => exApps.includes(a))
+      ) {
+        return true;
+      }
+      const exAddrKeys = [
+        canonicalPropertyAddressKey(existing.address || ""),
+        ...(existing.secondaryAddresses || []).map((a) => canonicalPropertyAddressKey(a)),
+      ].filter(Boolean);
+      if (
+        !hcadsConflict &&
+        propAddrKeys.length > 0 &&
+        exAddrKeys.length > 0 &&
+        propAddrKeys.some((ak) => exAddrKeys.includes(ak))
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (matchIdx < 0) {
+      mergedList.push(prop);
+    } else {
+      mergedList[matchIdx] = mergeDuplicateWatchlistPair(mergedList[matchIdx], prop);
+    }
+  }
+
+  return mergedList;
+}
+
 function canonicalSitusMatchKey(rawAddr = "") {
-  const simp = simplifySearchAddress(String(rawAddr || "")).toUpperCase().trim();
-  if (!simp) return "";
-  const m = simp.match(/^(\d+)[A-Z]?\s+(?:1\/2\s+)?(.+)$/);
-  if (!m) return "";
-  const numInt = Number(m[1]);
-  if (!Number.isFinite(numInt) || numInt <= 0) return "";
-  const street = m[2].replace(/[^A-Z0-9]+/g, " ").trim();
-  if (street.length < 2) return "";
-  return `${numInt}|${street}`;
+  return canonicalPropertyAddressKey(rawAddr);
 }
 
 /**
@@ -1732,15 +2194,28 @@ export function syncWatchlistTierToPlatReviews({
  */
 export function syncPlatTierToWatchlist(
   watchedProperties = [],
-  { appNo = "", linkedAppNo = "", hcadAccount = "", newTier = "", nowIso = "" } = {}
+  {
+    appNo = "",
+    linkedAppNo = "",
+    hcadAccount = "",
+    address = "",
+    newTier = "",
+    platItem = null,
+    nowIso = "",
+  } = {}
 ) {
   const list = (Array.isArray(watchedProperties) ? watchedProperties : []).map((p) =>
     normalizeWatchProperty(p)
   );
   const ts = nowIso || new Date().toISOString();
-  const cleanApp = String(appNo || "").trim();
+  const cleanApp = String(appNo || platItem?.app || "").trim();
   const queryAppIds = new Set(getCanonicalPlatAppIds({ appNo: cleanApp, linkedAppNo }));
-  const { hcadIds } = parseHcadAccountList(hcadAccount || "");
+  const { hcadIds } = parseHcadAccountList(
+    hcadAccount || platItem?.hcad || platItem?.atlas?.hcad_num || ""
+  );
+  const queryAddrKey = canonicalPropertyAddressKey(
+    address || platItem?.atlas?.primaryAddress || platItem?.noticeLocation || ""
+  );
 
   const idx = list.findIndex((p) => {
     if (!p || isRemovedWatchlistTombstone(p)) return false;
@@ -1751,9 +2226,13 @@ export function syncPlatTierToWatchlist(
     }
     if (hcadIds.length > 0) {
       const pHcads = parseHcadAccountList(p.hcadAccount || "").hcadIds;
-      if (pHcads.some((id) => hcadIds.includes(id)) && (p.appNo || p.id.startsWith("plat-"))) {
+      if (pHcads.some((id) => hcadIds.includes(id))) {
         return true;
       }
+    }
+    if (queryAddrKey) {
+      const pAddrKey = canonicalPropertyAddressKey(p.address || p.propertyName || "");
+      if (pAddrKey && pAddrKey === queryAddrKey) return true;
     }
     return false;
   });
@@ -1764,7 +2243,11 @@ export function syncPlatTierToWatchlist(
 
   const target = list[idx];
   if (newTier === "3" || newTier === "") {
-    if (hasHumanDossierContributions(target)) {
+    if (
+      hasHumanDossierContributions(target) ||
+      String(target.id || "").startsWith("prop-") ||
+      target.source === "manual"
+    ) {
       target.tier = "3";
       target.tierConfirmed = true;
       target.trackerStatus = "Archived (Tier 3)";
@@ -1782,6 +2265,15 @@ export function syncPlatTierToWatchlist(
     if (target.trackerStatus === "Archived (Tier 3)") {
       target.trackerStatus = newTier === "1" ? "Active / High Priority" : "Monitoring";
       target.archivedAt = "";
+    }
+    if (platItem && typeof platItem === "object") {
+      const platDev = stripCorporateSuffixCommas(String(platItem.developer || "").trim());
+      if (!target.developer && platDev) target.developer = platDev;
+      if (!target.appNo && cleanApp) target.appNo = cleanApp;
+      if (!target.sourcePlatApp && cleanApp) target.sourcePlatApp = cleanApp;
+      if (!target.platProjectName && platItem.name) {
+        target.platProjectName = String(platItem.name).trim();
+      }
     }
     target.updatedAt = ts;
     return { watchedProperties: list, action: "updated", targetProp: target };

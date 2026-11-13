@@ -468,6 +468,173 @@ def simplify_search_address(raw_addr: str) -> str:
     return " ".join(tokens)
 
 
+CORPORATE_SUFFIX_COMMA_RE = re.compile(
+    r",\s*\b(P\.?\s*L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*P\.?|L\.?\s*P\.?|"
+    r"INC(?:ORPORATED)?\.?|CORP(?:ORATION)?\.?|LTD\.?|LIMITED|P\.?\s*C\.?|CO(?:MPANY)?\.?)(?=$|[\s,;)/]|&\b)",
+    re.I,
+)
+
+BARE_CORPORATE_SUFFIX_ONLY_RE = re.compile(
+    r"^(?:P\.?\s*L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*P\.?|L\.?\s*P\.?|"
+    r"INC(?:ORPORATED)?\.?|CORP(?:ORATION)?\.?|LTD\.?|LIMITED|P\.?\s*C\.?|CO(?:MPANY)?\.?)$",
+    re.I,
+)
+
+
+def strip_corporate_suffix_commas(text: object) -> str:
+    """Remove commas preceding corporate suffixes (', LLC' -> ' LLC', ', Inc.' -> ' Inc.')."""
+    s = str(text or "")
+    if not s:
+        return ""
+    cleaned = CORPORATE_SUFFIX_COMMA_RE.sub(r" \1", s)
+    cleaned = re.sub(
+        r"\b(P\.?\s*L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*P\.?|L\.?\s*P\.?|"
+        r"INC(?:ORPORATED)?\.?|CORP(?:ORATION)?\.?|LTD\.?|LIMITED|P\.?\s*C\.?)(?:\s+\1)+(?=$|[\s,;)/]|&\b)",
+        r"\1",
+        cleaned,
+        flags=re.I,
+    )
+    return " ".join(cleaned.split()).strip()
+
+
+def clean_entity_list_string(text: object) -> str:
+    """Clean a comma/semicolon-separated list of corporate/individual entities."""
+    cleaned = strip_corporate_suffix_commas(text)
+    if not cleaned:
+        return ""
+    parts = [
+        p.strip()
+        for p in re.split(r"[,;]+", cleaned)
+        if p.strip() and not BARE_CORPORATE_SUFFIX_ONLY_RE.match(p.strip())
+    ]
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for p in parts:
+        pu = p.upper()
+        if pu not in seen:
+            seen.add(pu)
+            deduped.append(p)
+    return ", ".join(deduped)
+
+
+def canonical_property_address_key(raw_addr: object) -> str:
+    """Build a canonical address key for deduplicating Watchlist & Biweekly Plat items."""
+    first_part = re.split(r"[;|\n]+", str(raw_addr or ""))[0] or ""
+    lead_range = re.sub(r"^(\d+)\s*(?:-|/|&|\bto\b)\s*\d+\b", r"\1", first_part.strip(), flags=re.I)
+    simp = simplify_search_address(lead_range).upper().strip()
+    if not simp:
+        return ""
+    m = re.match(r"^(\d+)[A-Z]?\s+(?:1/2\s+)?(.+)$", simp)
+    if not m:
+        return ""
+    num = int(m.group(1))
+    if num <= 0:
+        return ""
+    dir_map = {"NORTH": "N", "SOUTH": "S", "EAST": "E", "WEST": "W"}
+    street_tokens = [
+        dir_map.get(t, t)
+        for t in re.sub(r"[^A-Z0-9]+", " ", m.group(2)).strip().split()
+        if t
+    ]
+    street = " ".join(street_tokens)
+    if len(street) < 2:
+        return ""
+    return f"{num}|{street}"
+
+
+_HCAD_OWNER_SHARD_CACHE: dict[str, dict] = {}
+_HCAD_PERMIT_SHARD_CACHE: dict[str, dict] = {}
+
+
+def lookup_hcad_owner_and_acquisition_dates(
+    hcad_ids: list[str] | tuple[str, ...] | set[str],
+) -> dict[str, dict[str, str]]:
+    """Resolve current HCAD Owner of Record and owner acquisition date from local shards."""
+    out: dict[str, dict[str, str]] = {}
+    owners_dir = DATA_DIR / "owner_history"
+    permits_dir = DATA_DIR / "permits"
+    for raw_hid in hcad_ids or ():
+        for hid in parse_hcad_account_list(str(raw_hid or ""))["hcadIds"]:
+            if hid in out:
+                continue
+            prefix = hid[:3]
+            if prefix not in _HCAD_OWNER_SHARD_CACHE:
+                try:
+                    _HCAD_OWNER_SHARD_CACHE[prefix] = read_json_or_gzip_shard(
+                        owners_dir, f"owners_{prefix}"
+                    )
+                except Exception:
+                    _HCAD_OWNER_SHARD_CACHE[prefix] = {}
+            if prefix not in _HCAD_PERMIT_SHARD_CACHE:
+                try:
+                    _HCAD_PERMIT_SHARD_CACHE[prefix] = read_json_or_gzip_shard(
+                        permits_dir, f"permits_{prefix}"
+                    )
+                except Exception:
+                    _HCAD_PERMIT_SHARD_CACHE[prefix] = {}
+
+            owner_chain = str(_HCAD_OWNER_SHARD_CACHE[prefix].get(hid) or "").strip()
+            p_rec = _HCAD_PERMIT_SHARD_CACHE[prefix].get(hid)
+            deed_chain = str((p_rec or {}).get("d") or "").strip() if isinstance(p_rec, dict) else ""
+
+            owner_name = ""
+            acq_iso = ""
+            acq_display = ""
+
+            if owner_chain:
+                seg0 = owner_chain.split("|")[0]
+                parts = (seg0.split("~") + ["", "", "", ""])[:4]
+                years_str, acq_raw, _deed_ref, raw_owner = (
+                    parts[0].strip(),
+                    parts[1].strip(),
+                    parts[2].strip(),
+                    parts[3].strip(),
+                )
+                clean_owner = re.sub(r"\s*\(DBA\s+[^)]*\)\s*$", "", raw_owner, flags=re.I).strip()
+                clean_owner = re.sub(r"\bMETHODISTCHURCH\b", "METHODIST CHURCH", clean_owner, flags=re.I)
+                owner_name = strip_corporate_suffix_commas(clean_owner)
+                if re.match(r"^\d{8}$", acq_raw):
+                    acq_iso = f"{acq_raw[:4]}-{acq_raw[4:6]}-{acq_raw[6:8]}"
+                    acq_display = acq_iso
+                elif acq_raw == "<=1988":
+                    acq_iso = "1988-01-01"
+                    acq_display = "<=1988"
+                elif re.match(r"^\d{4}", years_str):
+                    yr4 = years_str[:4]
+                    acq_iso = f"{yr4}-01-01"
+                    acq_display = yr4
+
+            if deed_chain:
+                for d_seg in deed_chain.split("|"):
+                    d_parts = d_seg.split(":")
+                    if not d_parts:
+                        continue
+                    d_dt = d_parts[0].strip()
+                    if not re.match(r"^\d{8}$", d_dt):
+                        continue
+                    d_iso = f"{d_dt[:4]}-{d_dt[4:6]}-{d_dt[6:8]}"
+                    # Check if this is an explicit deed transfer (::D:grantor:grantee) newer than acq_iso
+                    if len(d_parts) >= 6 and d_parts[3].strip().upper() == "D":
+                        grantee = strip_corporate_suffix_commas(d_parts[5].strip())
+                        if not acq_iso or d_iso >= acq_iso:
+                            acq_iso = d_iso
+                            acq_display = d_iso
+                            if grantee:
+                                owner_name = grantee
+                    elif not acq_iso:
+                        acq_iso = d_iso
+                        acq_display = d_iso
+                    break
+
+            if owner_name or acq_iso:
+                out[hid] = {
+                    "owner": owner_name,
+                    "acquiredDate": acq_iso,
+                    "acquiredDisplay": acq_display or acq_iso,
+                }
+    return out
+
+
 def parse_hcad_account_list(raw: str) -> dict[str, list[str]]:
     """Parse comma/semicolon/whitespace-separated 10-13 digit HCAD IDs into 13-digit accounts."""
     text = str(raw or "").strip()
@@ -894,6 +1061,16 @@ def build_continuity_keys(it: dict, rev: dict | None = None) -> list[str]:
     hcad_ids = parse_hcad_account_list(raw_hcads)["hcadIds"]
     if hcad_ids:
         keys.append(f"hcad:{','.join(sorted(hcad_ids))}")
+        for single_hcad in sorted(hcad_ids):
+            single_key = f"hcad1:{single_hcad}"
+            if single_key not in keys:
+                keys.append(single_key)
+
+    addr_key = canonical_property_address_key(
+        rev.get("address") or atlas.get("primaryAddress") or it.get("noticeLocation") or ""
+    )
+    if addr_key:
+        keys.append(f"addr:{addr_key}")
 
     norm_name = normalize_continuity_plat_name(it.get("name", ""))
     geo_or_party = re.sub(
@@ -909,6 +1086,8 @@ def build_continuity_keys(it: dict, rev: dict | None = None) -> list[str]:
     ).strip()
     if norm_name and geo_or_party:
         keys.append(f"name:{norm_name}|ctx:{geo_or_party}")
+    elif norm_name and len(norm_name) >= 8:
+        keys.append(f"name:{norm_name}")
     return keys
 
 
@@ -1052,6 +1231,100 @@ def _are_continuity_snapshots_compatible(
     return _are_continuity_names_compatible(cur_norm_name, prev_norm_name)
 
 
+def parse_pc_minutes_text(minutes_text: str) -> dict[str, dict[str, str]]:
+    """Parse a COH Planning Commission Minutes PDF text to extract Commission actions by agenda item or plat name."""
+    by_item: dict[str, str] = {}
+    by_name: dict[str, str] = {}
+    s = str(minutes_text or "")
+    if not s.strip():
+        return {"byItem": by_item, "byName": by_name}
+
+    lines = [ln.strip() for ln in s.splitlines()]
+    action_re = re.compile(
+        r"\b(Staff\s+recommendation\s*:\s*[^.\n]+|Commission\s+action\s*:\s*[^.\n]+|"
+        r"(?:Approved|Granted|Deferred|Disapproved|Denied|Withdrawn|Established\s+a\s+public\s+hearing\s+date)[^.\n]*)",
+        re.I,
+    )
+    for i, ln in enumerate(lines):
+        if not ln:
+            continue
+        m_item = re.match(
+            r"^(\d{1,3})\s+([A-Za-z0-9][^\n]{2,90}?)(?:\s{2,}(C2R|C2|C3P|C3F|C3R|C3N|GP|SP|DPV))?$",
+            ln,
+        )
+        if m_item:
+            item_no = m_item.group(1)
+            plat_name = m_item.group(2).strip()
+            window_text = " ".join(lines[i : i + 10])
+            act_m = re.search(
+                r"Commission\s+action\s*:\s*([^.\n]+(?:\.[^.\n]+)?)", window_text, re.I
+            ) or action_re.search(window_text)
+            if act_m:
+                act_str = " ".join(act_m.group(0).split()).strip()
+                by_item[item_no] = act_str
+                norm_n = normalize_continuity_plat_name(plat_name)
+                if norm_n:
+                    by_name[norm_n] = act_str
+    return {"byItem": by_item, "byName": by_name}
+
+
+def describe_cycle_meeting_action(
+    it: dict | None,
+    minutes_actions: dict[str, dict[str, str]] | None = None,
+) -> str:
+    """Summarize the Planning Commission meeting status / action for a cycle snapshot."""
+    if not isinstance(it, dict):
+        return ""
+    explicit = str(it.get("meetingAction") or it.get("minutesAction") or "").strip()
+    if explicit:
+        return explicit
+
+    item_no = str(it.get("agendaItemNo") or "").strip()
+    norm_n = normalize_continuity_plat_name(str(it.get("name") or ""))
+    if isinstance(minutes_actions, dict):
+        by_item = minutes_actions.get("byItem") or {}
+        by_name = minutes_actions.get("byName") or {}
+        if item_no and item_no in by_item:
+            return f"Agenda Item #{item_no} - {by_item[item_no]}"
+        if norm_n and norm_n in by_name:
+            return (
+                f"Agenda Item #{item_no} - {by_name[norm_n]}"
+                if item_no
+                else by_name[norm_n]
+            )
+
+    sec = str(it.get("section") or "").strip()
+    deferral = str(it.get("deferral") or "").strip()
+    hearing_iso = str(it.get("hearingDateIso") or "").strip()
+    on_agenda = it.get("onMeetingAgenda") is True or bool(item_no)
+
+    if not on_agenda:
+        if sec:
+            return f"Not on Commission meeting agenda (Plat Tracker filing under {sec})"
+        return "Not on Commission meeting agenda (Plat Tracker filing only; no Agenda Outline item number)"
+
+    parts: list[str] = []
+    if item_no:
+        parts.append(f"Agenda Item #{item_no}")
+    if re.match(r"^[ivx]+\.\s*establish\b", sec, re.I):
+        parts.append(
+            f"Established public hearing date ({hearing_iso})"
+            if hearing_iso
+            else "Established public hearing date"
+        )
+    elif sec:
+        parts.append(sec)
+
+    if deferral:
+        def_num_m = re.search(r"(\d+)", deferral)
+        n_str = def_num_m.group(1) if def_num_m else ""
+        parts.append(f"Deferred ({deferral}{f' - deferral #{n_str}' if n_str else ''})")
+    elif re.match(r"^c\.", sec, re.I) and hearing_iso:
+        parts.append(f"Public hearing scheduled ({hearing_iso})")
+
+    return " · ".join(parts) or "Listed on Planning Commission agenda"
+
+
 def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str] | None = None) -> dict[str, dict]:
     """Link deferred or resubmitted items chronologically across agenda cycles."""
     ordered = sorted(cycle_order) if cycle_order else sorted(cycles_map.keys())
@@ -1062,11 +1335,13 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
         if not cyc or not isinstance(cyc.get("items"), list):
             continue
         reviews = cyc.setdefault("reviews", {})
+        minutes_actions = cyc.get("minutesActions") if isinstance(cyc.get("minutesActions"), dict) else None
 
         for it in cyc["items"]:
             r = reviews.get(it["app"], {})
             ckeys = build_continuity_keys(it, r)
             it["continuityKey"] = ckeys[0] if ckeys else ""
+            it["meetingAction"] = describe_cycle_meeting_action(it, minutes_actions)
             atlas = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
             cur_hcads = parse_hcad_account_list(
                 f"{r.get('hcad', '')} {it.get('hcad', '')} {atlas.get('hcad_num', '')}"
@@ -1157,8 +1432,12 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
                 "app": it["app"],
                 "linkedAppNo": it.get("linkedAppNo", ""),
                 "name": it.get("name", ""),
+                "agendaItemNo": it.get("agendaItemNo", ""),
+                "onMeetingAgenda": bool(it.get("onMeetingAgenda") or str(it.get("agendaItemNo") or "").strip()),
                 "deferral": it.get("deferral", ""),
                 "section": it.get("section", ""),
+                "hearingDateIso": it.get("hearingDateIso", ""),
+                "meetingAction": it.get("meetingAction") or describe_cycle_meeting_action(it, minutes_actions),
                 "tier": r.get("tier", ""),
                 "tierConfirmed": bool(r.get("tierConfirmed")),
                 "isHumanReviewed": _is_human_reviewed_plat_entry(r),
@@ -1175,10 +1454,106 @@ def link_cross_cycle_history(cycles_map: dict[str, dict], cycle_order: list[str]
             # Refresh continuity keys if hcad was carried forward onto r
             final_ckeys = build_continuity_keys(it, r)
             it["continuityKey"] = final_ckeys[0] if final_ckeys else ""
+            it["firstCycleKey"] = prior_cycles[0]["cycleKey"] if prior_cycles else cycle_iso
+            it["allCycles"] = [p["cycleKey"] for p in prior_cycles] + [cycle_iso]
             for ck in final_ckeys:
                 seen_by_key.setdefault(ck, []).append(snapshot)
 
     return cycles_map
+
+
+def merge_plat_items_across_cycles(
+    cycles_map: dict[str, dict],
+    cycle_order: list[str] | None = None,
+) -> dict[str, object]:
+    """Build a unified, deduplicated cross-cycle view where each property appears once and updates across cycles."""
+    if not isinstance(cycles_map, dict):
+        return {"items": [], "reviews": {}}
+    ordered = sorted(cycle_order) if cycle_order else sorted(cycles_map.keys())
+    link_cross_cycle_history(cycles_map, ordered)
+
+    entries: list[dict] = []
+    key_to_entry_idx: dict[str, int] = {}
+
+    for cycle_iso in ordered:
+        cyc = cycles_map.get(cycle_iso)
+        if not cyc or not isinstance(cyc.get("items"), list):
+            continue
+        cyc_reviews = cyc.get("reviews") or {}
+        for it in cyc["items"]:
+            rev = cyc_reviews.get(it["app"]) or {}
+            ckeys = build_continuity_keys(it, rev)
+            atlas = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
+            cur_hcads = parse_hcad_account_list(
+                f"{rev.get('hcad', '')} {it.get('hcad', '')} {atlas.get('hcad_num', '')}"
+            )["hcadIds"]
+            cur_norm_name = normalize_continuity_plat_name(it.get("name", ""))
+
+            matched_idx = -1
+            for ck in ckeys:
+                if ck not in key_to_entry_idx:
+                    continue
+                cand_idx = key_to_entry_idx[ck]
+                cand_entry = entries[cand_idx]
+                if ck.startswith("app:"):
+                    if not _are_continuity_snapshots_compatible(
+                        cur_hcads, cur_norm_name, cand_entry["hcads"], cand_entry["normName"]
+                    ):
+                        continue
+                matched_idx = cand_idx
+                break
+
+            if matched_idx == -1:
+                matched_idx = len(entries)
+                entries.append(
+                    {
+                        "firstCycleKey": cycle_iso,
+                        "latestCycleKey": cycle_iso,
+                        "allCycles": [cycle_iso],
+                        "latestItem": dict(it),
+                        "latestReview": dict(rev),
+                        "hcads": cur_hcads,
+                        "normName": cur_norm_name,
+                        "occurrences": [{"cycleKey": cycle_iso, "item": it, "review": rev}],
+                    }
+                )
+            else:
+                ent = entries[matched_idx]
+                ent["latestCycleKey"] = cycle_iso
+                if cycle_iso not in ent["allCycles"]:
+                    ent["allCycles"].append(cycle_iso)
+                ent["occurrences"].append({"cycleKey": cycle_iso, "item": it, "review": rev})
+
+                prev_it = ent["latestItem"]
+                merged_it = dict(prev_it)
+                merged_it.update(it)
+                for preserve_k in ("pdf", "noticePdf", "noticeLocation", "varianceSummary", "hcad", "developer", "prevSub"):
+                    if not merged_it.get(preserve_k) and prev_it.get(preserve_k):
+                        merged_it[preserve_k] = prev_it[preserve_k]
+                ent["latestItem"] = merged_it
+                ent["latestReview"] = merge_plat_review_overlay(ent["latestReview"], rev, merged_it)
+                if cur_hcads:
+                    ent["hcads"] = list(dict.fromkeys(ent["hcads"] + cur_hcads))
+                if cur_norm_name:
+                    ent["normName"] = cur_norm_name
+
+            for ck in ckeys:
+                key_to_entry_idx[ck] = matched_idx
+
+    merged_items: list[dict] = []
+    merged_reviews: dict[str, dict] = {}
+    for ent in entries:
+        it_copy = dict(ent["latestItem"])
+        it_copy["_cycleKey"] = ent["latestCycleKey"]
+        it_copy["firstCycleKey"] = ent["firstCycleKey"]
+        it_copy["latestCycleKey"] = ent["latestCycleKey"]
+        it_copy["allCycles"] = list(ent["allCycles"])
+        it_copy["cycleCount"] = len(ent["allCycles"])
+        it_copy["_c"] = classify_item(it_copy, ent["latestReview"])
+        merged_items.append(it_copy)
+        merged_reviews[it_copy["app"]] = ent["latestReview"]
+
+    return {"items": merged_items, "reviews": merged_reviews}
 
 
 def parse_agenda_outline_text(outline_text: str) -> dict:
@@ -2041,6 +2416,17 @@ def _extract_outline_cycle_iso_from_url(url: str) -> str:
     return ""
 
 
+def _extract_minutes_cycle_iso_from_url(url: str) -> str:
+    m = re.search(r"(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})-PCMinutes[^/]*\.pdf$", url, re.I)
+    if m:
+        mm, dd, yy = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        try:
+            return dt.date(yy, mm, dd).isoformat()
+        except ValueError:
+            return ""
+    return ""
+
+
 def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
     """Fetch up to the 4 most recent Planning Commission .xlsx spreadsheets, matching Outline PDFs, and Notice PDFs."""
     print("[2/6] Fetching recent COH Plat Agenda .xlsx cycles, Agenda Outline PDFs, and Notice PDFs...")
@@ -2078,6 +2464,7 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
 
     comm_html_b = fetch_bytes(COMMISS_PLAN_URL)
     outline_url_by_iso: dict[str, str] = {}
+    minutes_url_by_iso: dict[str, str] = {}
     if comm_html_b:
         comm_html = comm_html_b.decode("utf-8", errors="ignore")
         olinks = re.findall(
@@ -2094,6 +2481,20 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
             o_iso = _extract_outline_cycle_iso_from_url(full)
             if o_iso and o_iso not in outline_url_by_iso:
                 outline_url_by_iso[o_iso] = full
+        mlinks = re.findall(
+            r'href=["\']([^"\']*PCMinutes[^"\']*\.pdf)["\']',
+            comm_html,
+            re.I,
+        )
+        for rel in mlinks:
+            full = (
+                rel
+                if rel.lower().startswith("http")
+                else "https://www.houstontx.gov/planning/Commissions/" + rel.lstrip("/")
+            )
+            m_iso = _extract_minutes_cycle_iso_from_url(full)
+            if m_iso and m_iso not in minutes_url_by_iso:
+                minutes_url_by_iso[m_iso] = full
     else:
         scrape_errors.append("COH Planning Commission outline index unreachable")
 
@@ -2182,11 +2583,20 @@ def fetch_multi_cycle_agendas_and_notices(max_cycles: int = 4) -> dict:
         else:
             parsed_outline = parse_agenda_outline_text(pdf_to_text(o_bytes))
 
+        m_url = minutes_url_by_iso.get(c_iso, "")
+        parsed_minutes: dict[str, dict[str, str]] = {"byItem": {}, "byName": {}}
+        if m_url:
+            m_bytes = fetch_bytes(m_url, timeout=15)
+            if m_bytes:
+                parsed_minutes = parse_pc_minutes_text(pdf_to_text(m_bytes))
+
         cycles_scraped[c_iso] = {
             "cycle_iso": c_iso,
             "xlsx_url": x_url,
             "file_name": x_url.split("/")[-1],
             "outline_url": o_url,
+            "minutes_url": m_url,
+            "minutes_actions": parsed_minutes,
             "raw_rows": raw_rows,
             **parsed_outline,
         }
@@ -2944,13 +3354,48 @@ def build_single_cycle_dataset(
             if p.get("hcad") in idx["active_alerts_by_hcad"]
         ]
 
+        for corp_fld in ("developer", "org", "applicant"):
+            if it.get(corp_fld):
+                it[corp_fld] = strip_corporate_suffix_commas(it[corp_fld])
+
+        parcel_hcads = [p.get("hcad", "") for p in matched_parcels if p.get("hcad")] or hcad_ids
+        hcad_owner_map = lookup_hcad_owner_and_acquisition_dates(parcel_hcads)
+        hcad_owners = list(
+            dict.fromkeys(
+                info["owner"]
+                for info in hcad_owner_map.values()
+                if info.get("owner")
+            )
+        )
+        hcad_acq_dates = [
+            info["acquiredDate"]
+            for info in hcad_owner_map.values()
+            if info.get("acquiredDate")
+        ]
+        resolved_hcad_owner = " / ".join(hcad_owners)
+        if not resolved_hcad_owner:
+            resolved_hcad_owner = next(
+                (
+                    strip_corporate_suffix_commas(p.get("owner"))
+                    for p in matched_parcels
+                    if p.get("owner")
+                ),
+                "",
+            )
+        resolved_hcad_acq = max(hcad_acq_dates) if hcad_acq_dates else ""
+
         it["occurrenceKey"] = build_occurrence_key(default_pc_iso, it["app"])
+        it["meetingAction"] = describe_cycle_meeting_action(
+            it, minutes_actions=cycle_scraped.get("minutes_actions")
+        )
         it["atlas"] = {
             "addresses": addresses,
             "primaryAddress": primary_addr,
             "earliestYearBuilt": earliest_yr,
             "allYearsBuilt": years,
             "parcelBreakdown": tier_res["parcels"],
+            "owner": resolved_hcad_owner,
+            "ownerAcquiredDate": resolved_hcad_acq,
             "lng": round(float(lng), 6) if lng else None,
             "lat": round(float(lat), 6) if lat else None,
             "coordSource": coord_source,
@@ -3100,6 +3545,8 @@ def build_single_cycle_dataset(
         "fileName": cycle_scraped["file_name"],
         "sourceSpreadsheetUrl": cycle_scraped["xlsx_url"],
         "agendaOutlineUrl": cycle_scraped["outline_url"],
+        "minutesUrl": cycle_scraped.get("minutes_url", ""),
+        "minutesActions": cycle_scraped.get("minutes_actions") or {"byItem": {}, "byName": {}},
         "summary": {
             "totalAgendaItems": len(items),
             "spreadsheetPlatCount": max(0, len(raw_rows) - 1),
@@ -3571,6 +4018,7 @@ def _make_auto_sweep_finding(
     summary_body: str,
     adverse: bool = False,
     links: list[dict[str, str]] | None = None,
+    discovered_at_iso: str = "",
 ) -> dict:
     clean_date = excel_serial_to_iso(date_iso) or dt.date.today().isoformat()
     clean_summary = " ".join(str(summary_body or "").split()).strip()
@@ -3585,6 +4033,8 @@ def _make_auto_sweep_finding(
         "agencyRecordId": str(agency_record_id or "").strip(),
         "adverse": bool(adverse),
     }
+    if str(discovered_at_iso or "").strip():
+        out["discoveredAt"] = excel_serial_to_iso(discovered_at_iso) or str(discovered_at_iso).strip()
     if links:
         valid_links = [
             {"label": str(lk.get("label") or "Source").strip(), "url": str(lk["url"]).strip()}
@@ -3740,6 +4190,18 @@ def normalize_hcad_arcgis_records(
     """Normalize Check #5 HCAD ArcGIS public_query/MapServer/0 features."""
     findings: list[dict] = []
     seen_ids: set[str] = set()
+    all_hcads: list[str] = []
+    for feat in arcgis_features or []:
+        if not isinstance(feat, dict):
+            continue
+        attrs = feat.get("attributes") if isinstance(feat.get("attributes"), dict) else feat
+        raw_hcad = str(attrs.get("HCAD_NUM") or attrs.get("hcad_num") or "").strip()
+        parsed_ids = parse_hcad_account_list(raw_hcad)["hcadIds"]
+        hcad = parsed_ids[0] if parsed_ids else raw_hcad
+        if hcad:
+            all_hcads.append(hcad)
+    acq_lookup = lookup_hcad_owner_and_acquisition_dates(all_hcads) if all_hcads else {}
+
     for feat in arcgis_features or []:
         if not isinstance(feat, dict):
             continue
@@ -3749,7 +4211,7 @@ def normalize_hcad_arcgis_records(
         hcad = parsed_ids[0] if parsed_ids else raw_hcad
         if not hcad:
             continue
-        owner = " ".join(str(attrs.get("owner") or attrs.get("CurrOwner") or "").split())
+        owner = strip_corporate_suffix_commas(" ".join(str(attrs.get("owner") or attrs.get("CurrOwner") or "").split()))
         state_cls = str(attrs.get("state_class") or "").strip()
         mkt_val = attrs.get("mkt_val")
         impr_val = attrs.get("impr_val")
@@ -3760,6 +4222,18 @@ def normalize_hcad_arcgis_records(
         if rec_id in seen_ids:
             continue
         seen_ids.add(rec_id)
+        acq_info = acq_lookup.get(hcad) or {}
+        acquired_date = (
+            excel_serial_to_iso(
+                attrs.get("deed_date")
+                or attrs.get("acquiredDate")
+                or attrs.get("purchase_date")
+                or acq_info.get("acquiredDate")
+                or ""
+            )
+            or ""
+        )
+        finding_date = acquired_date or sweep_date_iso
         val_bits: list[str] = []
         if mkt_val is not None and str(mkt_val) != "":
             val_bits.append(f"Market ${mkt_val}")
@@ -3770,6 +4244,7 @@ def normalize_hcad_arcgis_records(
         summary = (
             f"HCAD Account {hcad}{f' ({addr})' if addr else ''}: "
             f"Owner {owner or 'Unknown'}"
+            f"{f' (acquired {acquired_date})' if acquired_date else ''}"
             f"{f', Class {state_cls}' if state_cls else ''}"
             f"{f' ({', '.join(val_bits)})' if val_bits else ''}"
             f"{f', Legal: {legal}' if legal else ''}."
@@ -3784,10 +4259,11 @@ def normalize_hcad_arcgis_records(
             _make_auto_sweep_finding(
                 "chk-05",
                 rec_id,
-                sweep_date_iso,
+                finding_date,
                 summary,
                 adverse=False,
                 links=links,
+                discovered_at_iso=sweep_date_iso,
             )
         )
     return findings
@@ -4892,6 +5368,16 @@ def _rebuild_property_findings_log(checklist: list[dict]) -> list[dict]:
     return entries
 
 
+def build_check_entry_key(check_id: str, chk: dict | None) -> str:
+    """Build a deterministic canonical identity key for a check entry (matching buildCheckEntryKey in JS)."""
+    if not isinstance(chk, dict):
+        return ""
+    cid = str(check_id or chk.get("checkId") or "").strip().lower()
+    dt_str = str(chk.get("date") or "").strip()
+    res_str = " ".join(str(chk.get("result") or "").split()).strip().lower()
+    return f"{cid}::{dt_str}::{res_str}"
+
+
 def collect_new_auto_sweep_findings(
     prop: dict,
     sweep_bundle: dict,
@@ -4900,6 +5386,7 @@ def collect_new_auto_sweep_findings(
     """Purely compute net-new deduplicated [AUTO-SWEEP] findings by row['id'] without mutating inputs."""
     checklist = prop.get("checklist") if isinstance(prop.get("checklist"), list) else []
     findings_by_check = (sweep_bundle or {}).get("findingsByCheck") or {}
+    deleted_keys = {str(k).strip() for k in (prop.get("deletedCheckKeys") or []) if str(k).strip()}
     net_new: dict[str, list[dict]] = {}
 
     for check_id, new_findings in findings_by_check.items():
@@ -4925,6 +5412,9 @@ def collect_new_auto_sweep_findings(
             if not isinstance(nf, dict):
                 continue
             rec_key = f"{check_id}::{nf.get('agencyRecordId')}" if nf.get("agencyRecordId") else ""
+            chk_key = build_check_entry_key(check_id, nf)
+            if (chk_key and chk_key in deleted_keys) or (rec_key and rec_key in deleted_keys):
+                continue
             res_norm = " ".join(str(nf.get("result") or "").upper().split())
             ref_tokens = [f"REF::{t}" for t in re.findall(r"\b(?:TABS\d{8,12}|\d{8,11})\b", res_norm)]
             if (rec_key and rec_key in existing_keys) or (res_norm in existing_texts) or any(
@@ -5048,6 +5538,10 @@ def has_human_dossier_contributions(prop: dict | None) -> bool:
         str(prop.get("phPastActions") or "").strip()
         or str(prop.get("reportedBy") or "").strip()
         or str(prop.get("broker") or "").strip()
+        or str(prop.get("buildingHistory") or "").strip()
+        or str(prop.get("historyFolderUrl") or "").strip()
+        or str(prop.get("photoUrl") or "").strip()
+        or str(prop.get("photoDataUrl") or "").strip()
     ):
         return True
     if str(prop.get("trackerStatus") or "").strip() in ("Saved", "Lost", "For Sale"):
@@ -5057,6 +5551,10 @@ def has_human_dossier_contributions(prop: dict | None) -> bool:
     if isinstance(prop.get("driveLinks"), list) and len(prop["driveLinks"]) > 0:
         return True
     if isinstance(prop.get("documents"), list) and len(prop["documents"]) > 0:
+        return True
+    if isinstance(prop.get("historyLinks"), list) and len(prop["historyLinks"]) > 0:
+        return True
+    if isinstance(prop.get("deletedCheckKeys"), list) and len(prop["deletedCheckKeys"]) > 0:
         return True
     st = prop.get("searchTerms")
     if isinstance(st, dict):
@@ -5197,12 +5695,12 @@ def build_default_checklist_for_property(
             "id": "chk-04",
             "stage": "Sale & Ownership",
             "activity": "Corporate Entity Verification",
-            "whatToLookFor": "Look up each LLC across TX Comptroller, Bizapedia, Google Search, and TX SOSDirect to find officers, registered agents, and related entities.",
+            "whatToLookFor": "Look up each LLC across TX Comptroller Active Sales Taxpayer Search, Franchise Tax Account Status, Bizapedia, and TX SOSDirect to find officers, registered agents, and related entities.",
             "typicalTiming": "As soon as a new entity name surfaces.",
-            "resourceLabel": "Comptroller Entity Search",
-            "resourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
-            "additionalResourceLabel": "Bizapedia Entity Lookup",
-            "additionalResourceUrl": "https://www.bizapedia.com/",
+            "resourceLabel": "Comptroller Taxpayer Search",
+            "resourceUrl": "https://comptroller.texas.gov/taxes/sales/taxpayer-search.php",
+            "additionalResourceLabel": "Comptroller Franchise Tax Search",
+            "additionalResourceUrl": "https://comptroller.texas.gov/taxes/franchise/account-status/search",
             "status": "To Do",
             "lastChecked": last_checked_auto,
             "automated": True,
@@ -5254,10 +5752,25 @@ def build_default_checklist_for_property(
             "checks": [],
         },
         {
+            "id": "chk-14",
+            "stage": "Plans & Use",
+            "activity": "Demolition & Building Permits",
+            "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for building, plumbing/water-wastewater, sewer disconnect, and demolition permits (reveals 8-digit project numbers needed for ILMS below).",
+            "typicalTiming": "Any stage from early plumbing/remodel permits through final demolition permits (also provides 8-digit project numbers for ILMS).",
+            "resourceLabel": "Houston Sold Permits",
+            "resourceUrl": COH_SOLD_PERMITS_PORTAL_URL,
+            "additionalResourceLabel": "",
+            "additionalResourceUrl": "",
+            "status": "To Do",
+            "lastChecked": last_checked_auto,
+            "automated": True,
+            "checks": [],
+        },
+        {
             "id": "chk-08",
             "stage": "Plans & Use",
             "activity": "Pending Plans (Open Records & ILMS)",
-            "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
+            "whatToLookFor": "Look up 8-digit project numbers (found via Sold Permits above) in COH ILMS, or submit a GovQA open records request covering all perimeter block addresses.",
             "typicalTiming": "Design and plan-review phase after closing.",
             "resourceLabel": "Public Records (GovQA)",
             "resourceUrl": "https://houstontx.govqa.us/WEBAPP/_rs/supporthome.aspx",
@@ -5344,21 +5857,6 @@ def build_default_checklist_for_property(
             "checks": [],
         },
         {
-            "id": "chk-14",
-            "stage": "Demolition Signals",
-            "activity": "Demolition & Building Permits",
-            "whatToLookFor": "Search Houston Sold Permits by simplified primary and perimeter addresses for demolition, sewer disconnect, and commercial building permits.",
-            "typicalTiming": "Final weeks before site work starts (also reveals 8-digit project numbers for Check #8 ILMS).",
-            "resourceLabel": "Houston Sold Permits",
-            "resourceUrl": COH_SOLD_PERMITS_PORTAL_URL,
-            "additionalResourceLabel": "",
-            "additionalResourceUrl": "",
-            "status": "To Do",
-            "lastChecked": last_checked_auto,
-            "automated": True,
-            "checks": [],
-        },
-        {
             "id": "chk-15",
             "stage": "Demolition Signals",
             "activity": "Asbestos & Demolition Notification (DSHS)",
@@ -5376,6 +5874,31 @@ def build_default_checklist_for_property(
     ]
 
 
+_BARE_CORP_SUFFIX_RE = re.compile(
+    r"^(?:L\.?L\.?C\.?|INC\.?|CORP(?:ORATION)?\.?|L\.?P\.?|LTD\.?|L\.?L\.?P\.?|P\.?L\.?L\.?C\.?|P\.?C\.?|CO(?:MPANY)?\.?)$",
+    re.IGNORECASE,
+)
+
+
+def extract_hcad_owner_from_checklist(checklist: list[dict] | None) -> str:
+    """Extract the HCAD Owner of Record from Check #5 (chk-05) findings when available."""
+    for row in checklist or []:
+        if not isinstance(row, dict) or row.get("id") != "chk-05":
+            continue
+        for ch in row.get("checks") or []:
+            res = str((ch or {}).get("result") or "")
+            m = re.search(
+                r"\bOwner\s+([^,.;(]+?)(?:\s*\(acquired[^)]*\))?(?:,\s*Class\b|,\s*Legal\b|\.\s*$|$)",
+                res,
+                re.IGNORECASE,
+            )
+            if m:
+                cand = strip_corporate_suffix_commas(m.group(1).strip())
+                if cand and cand.upper() != "UNKNOWN":
+                    return cand
+    return ""
+
+
 def normalize_watch_property_record(raw: dict) -> dict:
     """Normalize Watchlist schema aliases (architectEngineer <-> designFirm), tracker fields, and 15-point checklist URLs."""
     p = dict(raw or {})
@@ -5388,11 +5911,16 @@ def normalize_watch_property_record(raw: dict) -> dict:
     p["appNo"] = resolved_app
     p["sourcePlatApp"] = resolved_app
     p["linkedAppNo"] = str(p.get("linkedAppNo") or "").strip()
-    design_firm = str(p.get("designFirm") or p.get("architectEngineer") or "").strip()
+    design_firm = strip_corporate_suffix_commas(
+        str(p.get("designFirm") or p.get("architectEngineer") or "").strip()
+    )
     p["designFirm"] = design_firm
     p["architectEngineer"] = design_firm
-    p["broker"] = str(p.get("broker") or "").strip()
-    p["developer"] = str(p.get("developer") or "").strip()
+    p["broker"] = strip_corporate_suffix_commas(str(p.get("broker") or "").strip())
+    p["developer"] = strip_corporate_suffix_commas(str(p.get("developer") or "").strip())
+    p["ownerOfRecord"] = strip_corporate_suffix_commas(str(p.get("ownerOfRecord") or "").strip())
+    p["buyerRelatedEntities"] = clean_entity_list_string(str(p.get("buyerRelatedEntities") or "").strip())
+    p["lender"] = strip_corporate_suffix_commas(str(p.get("lender") or "").strip())
     p.setdefault("legalDescription", "")
     is_tombstone = is_removed_watchlist_tombstone(p)
     tier_val = str(p.get("tier") or "1").strip()
@@ -5442,6 +5970,25 @@ def normalize_watch_property_record(raw: dict) -> dict:
     p.setdefault("pcMeetingDate", "")
     p.setdefault("sourceCycleKey", "")
     p.setdefault("hearingDateIso", "")
+    p["buildingHistory"] = str(p.get("buildingHistory") or "").strip()
+    p["historyFolderUrl"] = str(p.get("historyFolderUrl") or "").strip()
+    raw_hist_links = p.get("historyLinks") if isinstance(p.get("historyLinks"), list) else []
+    p["historyLinks"] = [
+        {"label": str(d.get("label") or d.get("url") or "Archival Source").strip(), "url": str(d["url"]).strip()}
+        for d in raw_hist_links
+        if isinstance(d, dict)
+        and str(d.get("url") or "").strip().lower().startswith(("http://", "https://"))
+    ]
+    p["photoUrl"] = str(p.get("photoUrl") or "").strip()
+    raw_photo_data = str(p.get("photoDataUrl") or "").strip()
+    p["photoDataUrl"] = raw_photo_data if raw_photo_data.startswith("data:image/") else ""
+    p["photoUpdatedAt"] = str(p.get("photoUpdatedAt") or "").strip()
+    p["deletedCheckKeys"] = list(
+        dict.fromkeys(str(k).strip() for k in (p.get("deletedCheckKeys") or []) if str(k).strip())
+    )
+    p["mergedDuplicateIds"] = list(
+        dict.fromkeys(str(k).strip() for k in (p.get("mergedDuplicateIds") or []) if str(k).strip())
+    )
     p["demolishedDate"] = str(p.get("demolishedDate") or p.get("demolished_date") or "").strip()
     p["lostHoustonId"] = str(p.get("lostHoustonId") or p.get("lost_houston_id") or "").strip()
     p["likelyDemolishedReviewNeeded"] = bool(
@@ -5451,8 +5998,17 @@ def normalize_watch_property_record(raw: dict) -> dict:
         p.get("likelyDemolishedReason") or p.get("likely_demolished_reason") or ""
     ).strip()
     st = p.get("searchTerms") if isinstance(p.get("searchTerms"), dict) else {}
+    clean_entities: list[str] = []
+    seen_ent_upper: set[str] = set()
+    for ent in st.get("entities") or []:
+        ce = strip_corporate_suffix_commas(str(ent or "").strip())
+        if not ce or _BARE_CORP_SUFFIX_RE.match(ce):
+            continue
+        if ce.upper() not in seen_ent_upper:
+            seen_ent_upper.add(ce.upper())
+            clean_entities.append(ce)
     p["searchTerms"] = {
-        "entities": list(st.get("entities") or []),
+        "entities": clean_entities,
         "dbas": list(st.get("dbas") or []),
         "officers": list(st.get("officers") or []),
         "legalKeywords": list(st.get("legalKeywords") or []),
@@ -5471,9 +6027,12 @@ def normalize_watch_property_record(raw: dict) -> dict:
 
     # Upgrade all 15 checklist rows by canonical row['id'] ('chk-01'..'chk-15') onto canonical template
     address = str(p.get("address") or p.get("propertyName") or "").strip()
-    hcad = str(p.get("hcadAccount") or "").split(",")[0].strip()
+    hcad_ids = parse_hcad_account_list(p.get("hcadAccount") or "")["hcadIds"]
+    hcad = hcad_ids[0] if hcad_ids else str(p.get("hcadAccount") or "").split(",")[0].strip()
+    acq_lookup = lookup_hcad_owner_and_acquisition_dates(hcad_ids) if hcad_ids else {}
     template_rows = build_default_checklist_for_property(address, hcad if re.fullmatch(r"\d{13}", hcad) else "", "")
     incoming_rows = p.get("checklist") if isinstance(p.get("checklist"), list) else []
+    deleted_set = set(p["deletedCheckKeys"])
     upgraded_checklist: list[dict] = []
     for idx_t, tpl in enumerate(template_rows):
         matched = _find_checklist_row_by_id(incoming_rows, tpl["id"])
@@ -5486,7 +6045,33 @@ def normalize_watch_property_record(raw: dict) -> dict:
         if matched.get("status") in ("To Do", "In Progress", "Flagged", "Complete", "N/A"):
             out_row["status"] = matched["status"]
         out_row["lastChecked"] = str(matched.get("lastChecked") or "")
-        out_row["checks"] = list(matched.get("checks") or [])
+        filtered_checks: list[dict] = []
+        for ch in matched.get("checks") or []:
+            if not isinstance(ch, dict):
+                continue
+            ch_copy = dict(ch)
+            ck_key = build_check_entry_key(tpl["id"], ch_copy)
+            rec_key = f"{tpl['id']}::{ch_copy.get('agencyRecordId')}" if ch_copy.get("agencyRecordId") else ""
+            if (ck_key and ck_key in deleted_set) or (rec_key and rec_key in deleted_set):
+                continue
+            if tpl["id"] == "chk-05" and (
+                ch_copy.get("source") == "auto-sweep"
+                or bool(ch_copy.get("automated"))
+                or str(ch_copy.get("result") or "").strip().startswith("[AUTO-SWEEP]")
+            ):
+                ch_copy["result"] = strip_corporate_suffix_commas(str(ch_copy.get("result") or ""))
+                m_hc = re.search(r"\b(\d{13})\b", str(ch_copy.get("result") or ""))
+                chk_hcad = m_hc.group(1) if m_hc else hcad
+                acq_dt = str((acq_lookup.get(chk_hcad) or {}).get("acquiredDate") or "").strip()
+                if acq_dt:
+                    cur_dt = str(ch_copy.get("date") or "").strip()
+                    disc_dt = str(ch_copy.get("discoveredAt") or cur_dt).strip()
+                    if not ch_copy.get("discoveredAt") and cur_dt:
+                        ch_copy["discoveredAt"] = cur_dt
+                    if not cur_dt or cur_dt == disc_dt or cur_dt >= "2026-10-25":
+                        ch_copy["date"] = acq_dt
+            filtered_checks.append(ch_copy)
+        out_row["checks"] = filtered_checks
         if matched.get("updatedAt"):
             out_row["updatedAt"] = str(matched["updatedAt"])
         if matched.get("lastAutoSweepAt"):
@@ -5503,6 +6088,35 @@ def normalize_watch_property_record(raw: dict) -> dict:
             out_row["additionalResourceLabel"] = str(matched.get("additionalResourceLabel") or "DSHS Notification")
             out_row["additionalResourceUrl"] = str(matched["additionalResourceUrl"])
         upgraded_checklist.append(out_row)
+
+    # Resolve HCAD Owner of Record if ownerOfRecord is missing, placeholder, or copied from plat applicant/engineer
+    hcad_owner = extract_hcad_owner_from_checklist(upgraded_checklist)
+    if not hcad_owner:
+        explicit_hcad_owner = strip_corporate_suffix_commas(
+            str(raw.get("hcadOwner") or (raw.get("atlas") or {}).get("hcadOwner") or "").strip()
+        )
+        if explicit_hcad_owner and explicit_hcad_owner.upper() not in ("SEE HCAD PROPERTY SEARCH", "UNKNOWN"):
+            hcad_owner = explicit_hcad_owner
+    if not hcad_owner and hcad_ids:
+        for hid in hcad_ids:
+            cand_o = str((acq_lookup.get(hid) or {}).get("owner") or "").strip()
+            if cand_o:
+                hcad_owner = strip_corporate_suffix_commas(cand_o)
+                break
+    cur_owner = str(p.get("ownerOfRecord") or "").strip()
+    dev_norm = str(p.get("developer") or "").strip().upper()
+    df_norm = str(p.get("designFirm") or "").strip().upper()
+    cur_owner_norm = cur_owner.upper()
+    if hcad_owner and (
+        not cur_owner
+        or cur_owner_norm in ("SEE HCAD PROPERTY SEARCH", "UNKNOWN")
+        or (df_norm and cur_owner_norm == df_norm)
+        or (dev_norm and cur_owner_norm == dev_norm and cur_owner_norm != hcad_owner.upper())
+    ):
+        p["ownerOfRecord"] = hcad_owner
+        if hcad_owner.upper() not in {e.upper() for e in p["searchTerms"]["entities"]}:
+            p["searchTerms"]["entities"].insert(0, hcad_owner)
+
     p["checklist"] = upgraded_checklist
     p["findingsLog"] = _rebuild_property_findings_log(upgraded_checklist)
     return p
@@ -5949,6 +6563,18 @@ def _build_confirmed_plat_watch_property(it: dict, rev: dict, cycle_iso: str, sw
     at = it.get("atlas") if isinstance(it.get("atlas"), dict) else {}
     addr = str(rev.get("address") or at.get("primaryAddress") or it.get("noticeLocation") or it.get("name") or "").strip()
     hcad = str(rev.get("hcad") or it.get("hcad") or "").strip()
+    hcad_ids = parse_hcad_account_list(hcad)["hcadIds"]
+    acq_lookup = lookup_hcad_owner_and_acquisition_dates(hcad_ids) if hcad_ids else {}
+    hcad_owner = str(at.get("owner") or "").strip()
+    if not hcad_owner and hcad_ids:
+        for hid in hcad_ids:
+            cand_o = str((acq_lookup.get(hid) or {}).get("owner") or "").strip()
+            if cand_o:
+                hcad_owner = cand_o
+                break
+    hcad_owner = strip_corporate_suffix_commas(hcad_owner)
+    dev_clean = strip_corporate_suffix_commas(str(it.get("developer") or "").strip())
+    df_clean = strip_corporate_suffix_commas(str(it.get("org") or it.get("applicant") or "").strip())
     yr = _collect_valid_year(rev.get("yearBuilt")) or _collect_valid_year(at.get("earliestYearBuilt"))
     checklist = build_default_checklist_for_property(addr, hcad, "")
     chk9 = _find_checklist_row_by_id(checklist, "chk-09")
@@ -6007,12 +6633,12 @@ def _build_confirmed_plat_watch_property(it: dict, rev: dict, cycle_iso: str, sw
             "neighborhood": it.get("superN") or at.get("superNeighborhoodMatch") or "",
             "trackerStatus": "Active / High Priority" if str(rev.get("tier") or "1") == "1" else "Monitoring",
             "threatCategory": str(rev.get("threatCategory") or ""),
-            "ownerOfRecord": it.get("developer") or "See HCAD Property Search",
-            "developer": it.get("developer") or "",
-            "buyerRelatedEntities": it.get("developer") or "",
+            "ownerOfRecord": hcad_owner or "See HCAD Property Search",
+            "developer": dev_clean,
+            "buyerRelatedEntities": dev_clean,
             "broker": "",
             "lender": "",
-            "designFirm": it.get("org") or it.get("applicant") or "",
+            "designFirm": df_clean,
             "pcMeetingDate": cycle_iso,
             "hearingDateIso": str(it.get("hearingDateIso") or ""),
             "keyDates": {
@@ -6033,6 +6659,259 @@ def _build_confirmed_plat_watch_property(it: dict, rev: dict, cycle_iso: str, sw
             "findingsLog": _rebuild_property_findings_log(checklist),
         }
     )
+
+
+def watchlist_properties_match(a: dict | None, b: dict | None) -> bool:
+    """Return True when two Watchlist records represent the same underlying physical property."""
+    if not isinstance(a, dict) or not isinstance(b, dict):
+        return False
+    if is_removed_watchlist_tombstone(a) or is_removed_watchlist_tombstone(b):
+        return False
+    id_a = str(a.get("id") or "").strip()
+    id_b = str(b.get("id") or "").strip()
+    if id_a and id_b and id_a == id_b:
+        return True
+    hcads_a = set(parse_hcad_account_list(a.get("hcadAccount") or "")["hcadIds"])
+    hcads_b = set(parse_hcad_account_list(b.get("hcadAccount") or "")["hcadIds"])
+    if hcads_a and hcads_b and (hcads_a & hcads_b):
+        return True
+    hcads_conflict = bool(hcads_a and hcads_b and not (hcads_a & hcads_b))
+    addrs_a = {
+        canonical_property_address_key(x)
+        for x in [a.get("address", ""), *(a.get("secondaryAddresses") or [])]
+        if canonical_property_address_key(x)
+    }
+    addrs_b = {
+        canonical_property_address_key(x)
+        for x in [b.get("address", ""), *(b.get("secondaryAddresses") or [])]
+        if canonical_property_address_key(x)
+    }
+    if not hcads_conflict and addrs_a and addrs_b and (addrs_a & addrs_b):
+        return True
+    apps_a = set(get_canonical_plat_app_ids(a))
+    apps_b = set(get_canonical_plat_app_ids(b))
+    if not hcads_conflict and apps_a and apps_b and (apps_a & apps_b):
+        return True
+    return False
+
+
+def _choose_canonical_watchlist_pair(a: dict, b: dict) -> tuple[dict, dict]:
+    id_a = str(a.get("id") or "").strip()
+    id_b = str(b.get("id") or "").strip()
+    a_is_manual = id_a.startswith("prop-")
+    b_is_manual = id_b.startswith("prop-")
+    if a_is_manual and not b_is_manual:
+        return a, b
+    if b_is_manual and not a_is_manual:
+        return b, a
+    cyc_a = str(a.get("sourceCycleKey") or a.get("pcMeetingDate") or "")
+    cyc_b = str(b.get("sourceCycleKey") or b.get("pcMeetingDate") or "")
+    if cyc_a and cyc_b and cyc_a != cyc_b:
+        return (a, b) if cyc_a <= cyc_b else (b, a)
+    return a, b
+
+
+def merge_watchlist_property_pair(first: dict, second: dict) -> dict:
+    """Merge two duplicate Watchlist records for the same property into a single canonical dossier."""
+    primary, secondary = _choose_canonical_watchlist_pair(dict(first), dict(second))
+    merged = dict(primary)
+    sec_id = str(secondary.get("id") or "").strip()
+    dup_ids = list(
+        dict.fromkeys(
+            [*(primary.get("mergedDuplicateIds") or []), *(secondary.get("mergedDuplicateIds") or []), *( [sec_id] if sec_id and sec_id != merged.get("id") else [] )]
+        )
+    )
+    merged["mergedDuplicateIds"] = dup_ids
+
+    hcads = list(
+        dict.fromkeys(
+            parse_hcad_account_list(primary.get("hcadAccount") or "")["hcadIds"]
+            + parse_hcad_account_list(secondary.get("hcadAccount") or "")["hcadIds"]
+        )
+    )
+    if hcads:
+        merged["hcadAccount"] = ", ".join(hcads)
+
+    pri_app = str(primary.get("appNo") or primary.get("sourcePlatApp") or "").strip()
+    sec_app = str(secondary.get("appNo") or secondary.get("sourcePlatApp") or "").strip()
+    if not pri_app and sec_app:
+        merged["appNo"] = sec_app
+        merged["sourcePlatApp"] = sec_app
+    elif pri_app and sec_app and pri_app != sec_app and not merged.get("linkedAppNo"):
+        merged["linkedAppNo"] = sec_app
+
+    for k_fill in (
+        "propertyName",
+        "platProjectName",
+        "address",
+        "legalDescription",
+        "buildingId",
+        "yearBuilt",
+        "yearRemodeled",
+        "architect",
+        "neighborhood",
+        "threatCategory",
+        "reportedBy",
+        "phPastActions",
+        "buildingHistory",
+        "historyFolderUrl",
+        "photoUrl",
+        "photoDataUrl",
+        "photoUpdatedAt",
+        "developer",
+        "buyerRelatedEntities",
+        "broker",
+        "lender",
+        "designFirm",
+        "architectEngineer",
+        "pcMeetingDate",
+        "sourceCycleKey",
+        "hearingDateIso",
+        "lng",
+        "lat",
+    ):
+        if merged.get(k_fill) in (None, "", [], {}) and secondary.get(k_fill) not in (None, "", [], {}):
+            merged[k_fill] = secondary[k_fill]
+
+    if (
+        merged.get("designation") in (None, "", "Undesignated")
+        and secondary.get("designation") not in (None, "", "Undesignated")
+    ):
+        merged["designation"] = secondary["designation"]
+
+    p_name = str(primary.get("propertyName") or "").strip()
+    s_name = str(secondary.get("propertyName") or "").strip()
+    if p_name and s_name and canonical_property_address_key(p_name) and not canonical_property_address_key(s_name):
+        merged["propertyName"] = s_name
+
+    cur_owner_norm = str(merged.get("ownerOfRecord") or "").strip().upper()
+    sec_owner = str(secondary.get("ownerOfRecord") or "").strip()
+    sec_owner_norm = sec_owner.upper()
+    dev_norm = str(merged.get("developer") or secondary.get("developer") or "").strip().upper()
+    df_norm = str(merged.get("designFirm") or secondary.get("designFirm") or "").strip().upper()
+    is_cur_placeholder_or_eng = (
+        not cur_owner_norm
+        or cur_owner_norm in ("SEE HCAD PROPERTY SEARCH", "UNKNOWN")
+        or (df_norm and cur_owner_norm == df_norm)
+        or (dev_norm and cur_owner_norm == dev_norm and sec_owner_norm and sec_owner_norm != dev_norm)
+    )
+    if is_cur_placeholder_or_eng and sec_owner_norm and sec_owner_norm not in ("SEE HCAD PROPERTY SEARCH", "UNKNOWN"):
+        merged["ownerOfRecord"] = sec_owner
+
+    merged["buyerRelatedEntities"] = clean_entity_list_string(
+        ", ".join(
+            [
+                x
+                for x in [str(primary.get("buyerRelatedEntities") or "").strip(), str(secondary.get("buyerRelatedEntities") or "").strip()]
+                if x
+            ]
+        )
+    )
+
+    p_notes = str(primary.get("notes") or "").strip()
+    s_notes = str(secondary.get("notes") or "").strip()
+    if not p_notes and s_notes:
+        merged["notes"] = s_notes
+    elif p_notes and s_notes and s_notes.lower() not in p_notes.lower():
+        if p_notes.lower() in s_notes.lower():
+            merged["notes"] = s_notes
+        else:
+            merged["notes"] = f"{p_notes}\n\n{s_notes}"
+
+    sec_addrs = list(
+        dict.fromkeys(
+            a
+            for a in [*(primary.get("secondaryAddresses") or []), *(secondary.get("secondaryAddresses") or [])]
+            if a and a != merged.get("address")
+        )
+    )
+    merged["secondaryAddresses"] = sec_addrs
+
+    merged_kd = dict(secondary.get("keyDates") or {})
+    for kk, kv in (primary.get("keyDates") or {}).items():
+        if kv:
+            merged_kd[kk] = kv
+    merged["keyDates"] = merged_kd
+
+    st_p = primary.get("searchTerms") if isinstance(primary.get("searchTerms"), dict) else {}
+    st_s = secondary.get("searchTerms") if isinstance(secondary.get("searchTerms"), dict) else {}
+    merged["searchTerms"] = {
+        cat: list(dict.fromkeys([*(st_p.get(cat) or []), *(st_s.get(cat) or [])]))
+        for cat in ("entities", "dbas", "officers", "legalKeywords", "altAddresses", "projectNumbers")
+    }
+
+    seen_doc_urls: set[str] = set()
+    merged_docs: list[dict] = []
+    for d in [*(primary.get("documents") or []), *(secondary.get("documents") or [])]:
+        if isinstance(d, dict) and d.get("url") and d["url"] not in seen_doc_urls:
+            seen_doc_urls.add(d["url"])
+            merged_docs.append(dict(d))
+    merged["documents"] = merged_docs
+    merged["driveLinks"] = list(merged_docs)
+
+    seen_hist_urls: set[str] = set()
+    merged_hist: list[dict] = []
+    for d in [*(primary.get("historyLinks") or []), *(secondary.get("historyLinks") or [])]:
+        if isinstance(d, dict) and d.get("url") and d["url"] not in seen_hist_urls:
+            seen_hist_urls.add(d["url"])
+            merged_hist.append(dict(d))
+    merged["historyLinks"] = merged_hist
+
+    merged["deletedCheckKeys"] = list(
+        dict.fromkeys([*(primary.get("deletedCheckKeys") or []), *(secondary.get("deletedCheckKeys") or [])])
+    )
+    del_set = set(merged["deletedCheckKeys"])
+
+    # Merge checklist checks across both entries
+    p_rows = [dict(r) for r in (primary.get("checklist") or []) if isinstance(r, dict)]
+    s_rows = [dict(r) for r in (secondary.get("checklist") or []) if isinstance(r, dict)]
+    status_rank = {"Flagged": 4, "In Progress": 3, "Complete": 2, "N/A": 1, "To Do": 0}
+    for s_row in s_rows:
+        b_row = _find_checklist_row_by_id(p_rows, s_row.get("id", ""))
+        if not b_row:
+            p_rows.append(dict(s_row))
+            continue
+        if status_rank.get(str(s_row.get("status") or "To Do"), 0) > status_rank.get(str(b_row.get("status") or "To Do"), 0):
+            b_row["status"] = s_row["status"]
+        if str(s_row.get("lastChecked") or "") > str(b_row.get("lastChecked") or ""):
+            b_row["lastChecked"] = s_row["lastChecked"]
+        if str(s_row.get("updatedAt") or "") > str(b_row.get("updatedAt") or ""):
+            b_row["updatedAt"] = s_row["updatedAt"]
+        if s_row.get("humanStatusEdited") is True:
+            b_row["humanStatusEdited"] = True
+        seen_ck = {build_check_entry_key(b_row.get("id", ""), ch) for ch in (b_row.get("checks") or [])}
+        for ch in s_row.get("checks") or []:
+            ck = build_check_entry_key(b_row.get("id", ""), ch)
+            if ck and ck not in seen_ck and ck not in del_set:
+                seen_ck.add(ck)
+                b_row.setdefault("checks", []).append(dict(ch))
+    merged["checklist"] = p_rows
+    merged["humanEdited"] = bool(primary.get("humanEdited") or secondary.get("humanEdited"))
+    merged["tierConfirmed"] = True
+    if str(secondary.get("updatedAt") or "") > str(primary.get("updatedAt") or ""):
+        merged["updatedAt"] = secondary["updatedAt"]
+    return normalize_watch_property_record(merged)
+
+
+def dedupe_watchlist_properties(props: list[dict]) -> list[dict]:
+    """Deduplicate and merge Watchlist properties that represent the same physical site."""
+    out: list[dict] = []
+    for raw in props or []:
+        if not isinstance(raw, dict):
+            continue
+        norm = normalize_watch_property_record(raw)
+        if is_removed_watchlist_tombstone(norm):
+            out.append(norm)
+            continue
+        match_idx = next(
+            (i for i, ex in enumerate(out) if not is_removed_watchlist_tombstone(ex) and watchlist_properties_match(ex, norm)),
+            -1,
+        )
+        if match_idx >= 0:
+            out[match_idx] = merge_watchlist_property_pair(out[match_idx], norm)
+        else:
+            out.append(norm)
+    return out
 
 
 def _strip_internal_cloud_flags(prop: dict) -> dict:
@@ -6185,6 +7064,14 @@ def build_property_watchlist(
                 "lender",
                 "designFirm",
                 "architectEngineer",
+                "buildingHistory",
+                "historyFolderUrl",
+                "historyLinks",
+                "photoUrl",
+                "photoDataUrl",
+                "photoUpdatedAt",
+                "deletedCheckKeys",
+                "mergedDuplicateIds",
                 "keyDates",
                 "notes",
                 "tier",
@@ -6199,6 +7086,12 @@ def build_property_watchlist(
             ):
                 if norm_cp.get(k_meta) not in (None, "", [], {}, False):
                     merged_p[k_meta] = norm_cp[k_meta]
+            merged_p["deletedCheckKeys"] = list(
+                dict.fromkeys([*(base_p.get("deletedCheckKeys") or []), *(norm_cp.get("deletedCheckKeys") or [])])
+            )
+            merged_p["mergedDuplicateIds"] = list(
+                dict.fromkeys([*(base_p.get("mergedDuplicateIds") or []), *(norm_cp.get("mergedDuplicateIds") or [])])
+            )
             if (
                 base_p.get("trackerStatus") == "Lost"
                 or (base_p.get("demolishedDate") and base_p.get("lostHoustonId"))
@@ -6292,6 +7185,10 @@ def build_property_watchlist(
             norm_cp["tierConfirmed"] = True
             watched_by_id[pid] = _strip_internal_cloud_flags(norm_cp)
 
+    # Deduplicate and merge Watchlist properties that represent the same physical site (e.g. manual prop-* + plat-*)
+    deduped_props = dedupe_watchlist_properties(list(watched_by_id.values()))
+    watched_by_id = {p["id"]: p for p in deduped_props if p.get("id")}
+
     # Execute 8-agency sweeps for every active watched property and roll up worst-case sweep health
     per_property_healths: list[dict] = []
     for pid, prop in watched_by_id.items():
@@ -6319,7 +7216,7 @@ def build_property_watchlist(
 
     tier_rank = {"1": 1, "2": 2, "3": 3}
     ordered_props = sorted(
-        watched_by_id.values(),
+        dedupe_watchlist_properties(list(watched_by_id.values())),
         key=lambda p: (
             2
             if p.get("trackerStatus") == "Archived (Tier 3)"

@@ -486,6 +486,9 @@ import {
   extractHearingDateIso,
   formatShortUsDate,
   formatLongUsDate,
+  stripCorporateSuffixCommas,
+  cleanEntityListString,
+  canonicalPropertyAddressKey,
   parseHcadAccountList,
   resolveMultiParcelBuildingTier,
   computeGeoJsonCentroid,
@@ -497,7 +500,9 @@ import {
   areContinuitySnapshotsCompatible,
   normalizeContinuityPlatName,
   mergePlatReviewOverlay,
+  describeCycleMeetingAction,
   linkCrossCycleHistory,
+  mergePlatItemsAcrossCycles,
   normalizeDeveloperEntityKey,
   buildWatchedDeveloperMap,
   hasHumanDossierContributions,
@@ -507,7 +512,7 @@ import {
   formatDemolitionPolicyBriefText,
   formatDemolitionPolicyBriefRichHtml,
   buildDemolitionBenchmarksTablesHtml,
-} from "./js/platMonitorHelpers.js?v=20261110a";
+} from "./js/platMonitorHelpers.js?v=20261113b";
 
 import {
   TRACKER_STATUSES,
@@ -522,6 +527,9 @@ import {
   escapeXmlText,
   sanitizeExternalLink,
   sanitizeExternalLinksList,
+  sanitizePhotoUrl,
+  sanitizePhotoDataUrl,
+  buildCheckDeletionKey,
   buildDefaultChecklist,
   findChecklistRow,
   extractWatchPropertySearchContext,
@@ -530,6 +538,7 @@ import {
   normalizeWatchProperty,
   serializeWatchPropertyForSync,
   reconcileWatchlistProperty,
+  dedupeWatchlistProperties,
   syncWatchlistTierToPlatReviews,
   syncPlatTierToWatchlist,
   buildDefaultLostHoustonId,
@@ -540,7 +549,7 @@ import {
   parseCloudSheetSyncRows,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
-} from "./js/watchlistSyncHelpers.js?v=20261110a";
+} from "./js/watchlistSyncHelpers.js?v=20261113b";
 
 import {
   ACTIVITY_STREAM_META,
@@ -558,18 +567,18 @@ import {
   buildWatchPropertyFromPermitAlert,
   sanitizeActivityEventForRender,
   formatActivityBriefingText,
-} from "./js/activityLogHelpers.js?v=20261110a";
+} from "./js/activityLogHelpers.js?v=20261113b";
 
 import {
   buildAddressShardUrl,
   decodeGzipJsonResponse,
   decompressAddressShardBytes,
   normalizeAddressShardPrefix,
-} from "./js/clerkSearchHelpers.js?v=20261110a";
+} from "./js/clerkSearchHelpers.js?v=20261113b";
 
 import {
   explainWatchlistCheckText,
-} from "./js/permitPlainEnglish.js?v=20261110a";
+} from "./js/permitPlainEnglish.js?v=20261113b";
 
 /* ---------- Storage ---------- */
 const store = {
@@ -837,7 +846,7 @@ const liveHcadGradeCache = new Map();
 
 function ensureMonitorManifest(){
   if (!monitorManifestPromise) {
-    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261110a")
+    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261113b")
       .then(r => r.ok ? r.json() : null)
       .catch(() => null);
   }
@@ -849,10 +858,10 @@ async function ensureLocalAtlasLookupContext(){
   if (!atlasLookupCachePromise) {
     atlasLookupCachePromise = (async () => {
       const [ovRes, bldRes, pclRes, ovlRes] = await Promise.all([
-        fetch("public/data/curated_overrides.json?v=20261110a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/buildings.geojson?v=20261110a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/parcels.geojson?v=20261110a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/overlays.json?v=20261110a").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/curated_overrides.json?v=20261113b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/buildings.geojson?v=20261113b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/parcels.geojson?v=20261113b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/overlays.json?v=20261113b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
       const localHcadMap = new Map();
       const ingestFc = (fc) => {
@@ -1205,7 +1214,7 @@ function startCycle(items, fileName, presetReviews = {}, extraMeta = {}){
 function getActiveItems(){
   if (!S) return [];
   if (S.activeCycleChoice === "all") {
-    return S.cycleOrder.flatMap(ck => S.cycles[ck]?.items || []);
+    return mergePlatItemsAcrossCycles(S.cycles, S.cycleOrder);
   }
   return S.cycles[S.activeCycleChoice]?.items || [];
 }
@@ -1527,7 +1536,30 @@ function rebuildReconciledWatchlist(){
       if (tb) tombstones[id] = tb;
     }
   }
-  WL.watchedProperties = sortWatchedProperties(merged);
+  const deduped = dedupeWatchlistProperties(merged);
+  for (const p of deduped) {
+    localWatchlistById.set(p.id, p);
+    for (const dupId of (p.mergedDuplicateIds || [])) {
+      if (!dupId || dupId === p.id) continue;
+      staticWatchlistById.delete(dupId);
+      const existingTb = tombstones[dupId];
+      if (!existingTb) {
+        const tb = createWatchlistTombstone(
+          { id: dupId, propertyName: p.propertyName, address: p.address, hcadAccount: p.hcadAccount },
+          {
+            status: REMOVED_WATCHLIST_TOMBSTONE,
+            reason: `Merged duplicate Watchlist entry into ${p.id}`,
+            updatedBy: "Auto-Dedupe",
+            nowIso: p.updatedAt || new Date().toISOString(),
+            tier: "3",
+          }
+        );
+        tombstones[dupId] = tb;
+        localWatchlistById.set(dupId, tb);
+      }
+    }
+  }
+  WL.watchedProperties = sortWatchedProperties(deduped);
   WL.removedTombstones = tombstones;
   store.set(WL_KEY, WL);
   markActivityDirty();
@@ -1884,7 +1916,7 @@ async function copyCurrentActivityBriefing(){
 function ensureLazyHahcTrackerLoaded(){
   if (hahcFetchStarted) return;
   hahcFetchStarted = true;
-  fetch("public/data/hahc_coa_tracker.json?v=20261110a")
+  fetch("public/data/hahc_coa_tracker.json?v=20261113b")
     .then(r => (r.ok ? r.json() : null))
     .then(data => {
       if (data && typeof data === "object") {
@@ -2486,7 +2518,13 @@ function renderList(precomputedActCtx = null){
     const hearingShort = it.hearingDateIso ? formatShortUsDate(it.hearingDateIso) : "";
     const yrVal = r.yearBuilt || at.earliestYearBuilt;
     const yrBadge = yrVal ? `<span class="chip ${Number(yrVal) > 0 && Number(yrVal) <= 1976 ? "critical" : ""}">Built ${esc(yrVal)}</span>` : "";
-    const pcChip = pcShort ? `<span class="chip" title="Planning Commission Meeting Date">PC ${esc(pcShort)}</span>` : "";
+    const mergedCycles = Array.isArray(it._mergedCycles) ? it._mergedCycles : [];
+    const firstCycShort = mergedCycles.length > 1
+      ? formatShortUsDate(it.firstCycleKey || mergedCycles[mergedCycles.length - 1])
+      : "";
+    const pcChip = mergedCycles.length > 1
+      ? `<span class="chip watch" title="Merged across ${mergedCycles.length} Planning Commission cycles (${mergedCycles.map(formatShortUsDate).join(", ")})">PC ${esc(firstCycShort)} -> ${esc(pcShort)} (${mergedCycles.length} cycles)</span>`
+      : (pcShort ? `<span class="chip" title="Planning Commission Meeting Date">PC ${esc(pcShort)}</span>` : "");
     const agendaStatusChip = it.onMeetingAgenda === false
       ? `<span class="chip" title="Listed in the City biweekly cycle spreadsheet, not on the posted Planning Commission meeting agenda PDF">Cycle filing only</span>`
       : "";
@@ -2611,6 +2649,9 @@ function buildMissingHcadHelperBox(it, r){
 function findLinkedWatchProp(it, r){
   const hcadIds = parseHcadAccountList([r?.hcad || "", it.hcad || ""].join(" ")).hcadIds;
   const itAppIds = new Set(getCanonicalPlatAppIds(it));
+  const addrKey = canonicalPropertyAddressKey(
+    r?.address || it.atlas?.primaryAddress || it.noticeLocation || ""
+  );
   return (WL.watchedProperties || []).find(w => {
     if (!w || isRemovedWatchlistTombstone(w)) return false;
     if (w.appNo && w.appNo === it.app) return true;
@@ -2619,6 +2660,13 @@ function findLinkedWatchProp(it, r){
     if (hcadIds.length > 0) {
       const wIds = parseHcadAccountList(w.hcadAccount || "").hcadIds;
       if (wIds.some(id => hcadIds.includes(id))) return true;
+    }
+    if (addrKey) {
+      const wAddrKey = canonicalPropertyAddressKey(w.address || w.propertyName || "");
+      if (wAddrKey && wAddrKey === addrKey) return true;
+      if (Array.isArray(w.secondaryAddresses) && w.secondaryAddresses.some(sa => canonicalPropertyAddressKey(sa) === addrKey)) {
+        return true;
+      }
     }
     return false;
   }) || null;
@@ -2689,17 +2737,30 @@ function renderDetail(){
     </div>
   ` : (it._c.group !== "check" && it._c.reason ? `<div class="history-note" style="background:var(--t3-soft);border-color:var(--line)">${esc(it._c.reason)}</div>` : "");
 
+  const curWhyNorm = String(r.why || "").trim();
   const priorHistoryHtml = priorCycles.length ? `
     <div class="history-note">
-      <b>🔁 Prior Planning Commission Agenda History (${priorCycles.length} earlier appearance${priorCycles.length > 1 ? "s" : ""}):</b>
+      <b>🔁 Prior Planning Commission Agenda &amp; Minutes History (${priorCycles.length} earlier cycle${priorCycles.length > 1 ? "s" : ""}):</b>
       <ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px">
-        ${priorCycles.map(pc => `<li>
-          <b>PC ${esc(formatShortUsDate(pc.cycleKey) || pc.cycleKey)}</b> · App <b>${esc(pc.app)}</b> (${esc(pc.section || "Agenda")}${pc.deferral ? ", " + esc(pc.deferral) : ""})
+        ${priorCycles.map(pc => {
+          const actionText = pc.meetingAction || describeCycleMeetingAction(pc);
+          const pcWhy = String(pc.why || "").trim();
+          const showDistinctNote = Boolean(
+            pcWhy &&
+            pcWhy !== curWhyNorm &&
+            !/^Pre-1976 structure on parcel|^Variance request;|\bPre-1976 structure\b/i.test(pcWhy)
+          );
+          const minHref = sanitizeExternalLink({ label: "Minutes PDF", url: pc.minutesUrl || "" })?.url || "";
+          return `<li style="margin-bottom:4px">
+          <b>PC ${esc(formatShortUsDate(pc.cycleKey) || pc.cycleKey)}</b> · App <b>${esc(pc.app)}</b>:
+          <span style="color:${pc.onMeetingAgenda === false ? "#784C07" : "var(--ink)"};font-weight:600">${esc(actionText)}</span>
           ${pc.tier ? ` · <b>Tier ${esc(pc.tier)}</b>` : ""}
           ${pc.hcad ? ` · HCAD ${esc(pc.hcad)}` : ""}
-          ${pc.why ? ` - ${esc(pc.why)}` : ""}
+          ${showDistinctNote ? ` · <i>Note:</i> ${esc(pcWhy)}` : ""}
+          ${minHref ? ` <a href="${esc(minHref)}" target="_blank" rel="noopener" style="font-size:11.5px;margin-left:4px">[Minutes PDF ↗]</a>` : ""}
           ${S.cycles[pc.cycleKey] ? ` <button type="button" class="assist-pill" data-jump-cycle="${esc(pc.cycleKey)}" data-jump-app="${esc(pc.app)}" style="margin-left:4px;padding:1px 6px">View Cycle</button>` : ""}
-        </li>`).join("")}
+        </li>`;
+        }).join("")}
       </ul>
     </div>
   ` : "";
@@ -2907,9 +2968,19 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     render();
   };
 
+  const isOwnerMissingOrCopiedFromApplicant = prop => {
+    const own = stripCorporateSuffixCommas(String(prop?.ownerOfRecord || "").trim());
+    if (!own || /^see hcad|^pending hcad/i.test(own)) return true;
+    const dev = stripCorporateSuffixCommas(String(prop?.developer || "").trim());
+    const des = stripCorporateSuffixCommas(String(prop?.designFirm || "").trim());
+    if (dev && own.toUpperCase() === dev.toUpperCase()) return true;
+    if (des && des.toUpperCase().includes(own.toUpperCase())) return true;
+    return false;
+  };
+
   const backfillWatchlistHcadFieldsAsync = targetId => {
     const target = (WL.watchedProperties || []).find(p => p.id === targetId);
-    if (!target || (target.ownerOfRecord && target.legalDescription)) return;
+    if (!target || (!isOwnerMissingOrCopiedFromApplicant(target) && target.legalDescription)) return;
     const hIds = parseHcadAccountList(target.hcadAccount || "").hcadIds;
     if (!hIds.length) return;
     fetchHcadArcgisBatch(hIds).then(({ arcgisParcelsByHcad }) => {
@@ -2919,8 +2990,8 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
       for (const hid of hIds) {
         const hit = arcgisParcelsByHcad[hid];
         if (!hit) continue;
-        if (!liveTarget.ownerOfRecord && hit.owner) {
-          liveTarget.ownerOfRecord = hit.owner;
+        if (isOwnerMissingOrCopiedFromApplicant(liveTarget) && hit.owner) {
+          liveTarget.ownerOfRecord = stripCorporateSuffixCommas(hit.owner);
           mutated = true;
         }
         if (!liveTarget.legalDescription && hit.legalDescription) {
@@ -2933,7 +3004,7 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
           liveTarget.coordSource = liveTarget.coordSource || "hcad_arcgis_live";
           mutated = true;
         }
-        if (liveTarget.ownerOfRecord && liveTarget.legalDescription) break;
+        if (!isOwnerMissingOrCopiedFromApplicant(liveTarget) && liveTarget.legalDescription) break;
       }
       if (mutated) {
         liveTarget.updatedAt = new Date().toISOString();
@@ -2981,6 +3052,9 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     const resolvedNb = it.superN || at.superNeighborhoodMatch || existing?.neighborhood || "";
     const pcIso = it.pcDateIso || it._cycleKey || existing?.pcMeetingDate || "";
     const hearingIso = it.hearingDateIso || existing?.hearingDateIso || "";
+    const cleanDeveloper = stripCorporateSuffixCommas(it.developer || "");
+    const cleanDesignFirm = cleanEntityListString([it.applicant, it.org].filter(Boolean).join(", "));
+    const cleanHcadOwner = stripCorporateSuffixCommas(at.owner || "");
 
     if (existing) {
       existing.tier = tier;
@@ -2992,17 +3066,31 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
         existing.trackerStatus = tier === "1" ? "Active / High Priority" : "Monitoring";
         existing.archivedAt = "";
       }
-      if (resolvedAddress) existing.address = resolvedAddress;
+      if (resolvedAddress && (!existing.address || existing.address === existing.propertyName)) {
+        existing.address = resolvedAddress;
+      }
       if (!existing.propertyName) existing.propertyName = it.name || resolvedAddress;
       existing.platProjectName = it.name || existing.platProjectName || "";
-      if (resolvedHcad) existing.hcadAccount = resolvedHcad;
+      if (resolvedHcad) {
+        const mergedHcads = parseHcadAccountList([existing.hcadAccount || "", resolvedHcad].join(", ")).hcadIds;
+        existing.hcadAccount = mergedHcads.length ? mergedHcads.join(", ") : resolvedHcad;
+      }
       if (resolvedYear) existing.yearBuilt = resolvedYear;
-      if (resolvedDesig) existing.designation = resolvedDesig;
-      if (resolvedThreat) existing.threatCategory = resolvedThreat;
-      if (resolvedNb) existing.neighborhood = resolvedNb;
-      existing.ownerOfRecord = existing.ownerOfRecord || at.owner || "";
+      if (resolvedDesig && (!existing.designation || existing.designation === "None" || existing.designation === "None found")) {
+        existing.designation = resolvedDesig;
+      }
+      if (resolvedThreat && !existing.threatCategory) existing.threatCategory = resolvedThreat;
+      if (resolvedNb && !existing.neighborhood) existing.neighborhood = resolvedNb;
+      if (cleanHcadOwner && isOwnerMissingOrCopiedFromApplicant(existing)) {
+        existing.ownerOfRecord = cleanHcadOwner;
+      } else {
+        existing.ownerOfRecord = stripCorporateSuffixCommas(existing.ownerOfRecord || "");
+      }
       existing.legalDescription = existing.legalDescription || at.legalDescription || "";
-      existing.developer = it.developer || existing.developer || "";
+      existing.developer = cleanDeveloper || stripCorporateSuffixCommas(existing.developer || "");
+      if (cleanDesignFirm && !existing.designFirm) {
+        existing.designFirm = cleanDesignFirm;
+      }
       existing.appNo = existing.appNo || it.app;
       existing.linkedAppNo = it.linkedAppNo || existing.linkedAppNo || "";
       existing.section = it.section || existing.section || "";
@@ -3066,11 +3154,11 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
       buildingId: at.buildingId || "",
       yearBuilt: resolvedYear,
       designation: resolvedDesig,
-      ownerOfRecord: at.owner || "",
-      developer: it.developer || "",
+      ownerOfRecord: cleanHcadOwner,
+      developer: cleanDeveloper,
       broker: "",
       buyerRelatedEntities: "",
-      designFirm: [it.applicant, it.org].filter(Boolean).join(", "),
+      designFirm: cleanDesignFirm,
       tier,
       tierConfirmed: true,
       trackerStatus: tier === "1" ? "Active / High Priority" : "Monitoring",
@@ -3134,6 +3222,7 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     appNo: it.app,
     linkedAppNo: it.linkedAppNo || "",
     hcadAccount: r.hcad || it.hcad || "",
+    address: r.address || at.primaryAddress || it.noticeLocation || "",
     newTier: tier,
     nowIso,
   });
@@ -3793,7 +3882,121 @@ function buildWatchPropEditFormHtml(p){
   `;
 }
 
+const watchlistDraftInputsByPropId = new Map();
+
+function captureWatchlistDraftInputs(){
+  if (view.mode !== "watchlist" || !view.selectedWatchId) return;
+  const detailEl = $("#detail");
+  if (!detailEl) return;
+  const inputs = detailEl.querySelectorAll("input, textarea");
+  if (!inputs.length) return;
+  const prev = watchlistDraftInputsByPropId.get(view.selectedWatchId) || {};
+  const todayIso = new Date().toISOString().slice(0, 10);
+  inputs.forEach(el => {
+    if (!el.id || el.type === "file") return;
+    if (el.id === "wlNotesInput" || el.id === "wlHistoryInput" || el.id.startsWith("we-")) return;
+    if (el.id.startsWith("chkDate-")) {
+      if (el.value && el.value !== todayIso) {
+        prev[el.id] = el.value;
+      } else if (prev[el.id] && el.value === todayIso) {
+        // Keep previously selected custom date unless explicitly cleared
+      }
+      return;
+    }
+    if (el.value && el.value.trim()) {
+      prev[el.id] = el.value;
+    }
+  });
+  watchlistDraftInputsByPropId.set(view.selectedWatchId, prev);
+}
+
+function clearWatchlistDraftInputsForRow(propId, rowId){
+  const map = watchlistDraftInputsByPropId.get(propId);
+  if (!map) return;
+  delete map[`chkDate-${rowId}`];
+  delete map[`chkText-${rowId}`];
+  delete map[`chkLinkLbl-${rowId}`];
+  delete map[`chkLinkUrl-${rowId}`];
+}
+
+function restoreWatchlistDraftInputs(propId, focusedId = "", selStart = null, selEnd = null){
+  const map = watchlistDraftInputsByPropId.get(propId);
+  if (map) {
+    Object.entries(map).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el && val !== undefined && val !== null && el.type !== "file") {
+        el.value = val;
+      }
+    });
+  }
+  if (focusedId) {
+    const focusEl = document.getElementById(focusedId);
+    if (focusEl && typeof focusEl.focus === "function") {
+      try {
+        focusEl.focus({ preventScroll: true });
+        if (selStart != null && typeof focusEl.setSelectionRange === "function" && focusEl.type !== "date") {
+          focusEl.setSelectionRange(selStart, selEnd ?? selStart);
+        }
+      } catch (_e) {}
+    }
+  }
+}
+
+function resizeImageFileToDataUrl(file, maxDim = 800, quality = 0.78){
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      reject(new Error("No image file selected."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read image file."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Selected file is not a valid image."));
+      img.onload = () => {
+        let w = img.naturalWidth || img.width || 640;
+        let h = img.naturalHeight || img.height || 480;
+        if (w > maxDim || h > maxDim) {
+          if (w >= h) {
+            h = Math.max(1, Math.round((h * maxDim) / w));
+            w = maxDim;
+          } else {
+            w = Math.max(1, Math.round((w * maxDim) / h));
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx2d = canvas.getContext("2d");
+        ctx2d.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function buildEsriWorldImageryPreviewUrl(lat, lng, spanDeg = 0.00085){
+  const la = Number(lat);
+  const ln = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(ln)) return "";
+  const cosLat = Math.max(0.2, Math.cos((la * Math.PI) / 180));
+  const dLat = spanDeg;
+  const dLng = spanDeg / cosLat;
+  const bbox = `${(ln - dLng).toFixed(6)},${(la - dLat).toFixed(6)},${(ln + dLng).toFixed(6)},${(la + dLat).toFixed(6)}`;
+  return `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=3857&size=640,360&format=jpg&f=image`;
+}
+
 function renderWatchlistDetail(precomputedActCtx = null){
+  captureWatchlistDraftInputs();
+  const activeEl = document.activeElement;
+  const focusedId = (activeEl && $("#detail")?.contains(activeEl) && activeEl.id) ? activeEl.id : "";
+  const selStart = (focusedId && typeof activeEl.selectionStart === "number") ? activeEl.selectionStart : null;
+  const selEnd = (focusedId && typeof activeEl.selectionEnd === "number") ? activeEl.selectionEnd : null;
+
   const p = getSelectedWatchProp();
   if (!p) {
     $("#detail").innerHTML = '<p class="list-empty">Select a watched property on the left.</p>';
@@ -3812,9 +4015,12 @@ function renderWatchlistDetail(precomputedActCtx = null){
   const primaryHeading = p.address || p.propertyName;
   const showSubName = p.propertyName && p.propertyName !== primaryHeading;
   const driveLinks = sanitizeExternalLinksList(p.driveLinks);
+  const historyLinks = sanitizeExternalLinksList(p.historyLinks);
+  const historyFolderClean = sanitizeExternalLink({ label: "Archival Research Folder", url: p.historyFolderUrl || "" });
   const st = p.searchTerms || {};
   const curTier = String(p.tier || "1");
   const isLost = p.trackerStatus === "Lost";
+  const hasLostHoustonEntry = Boolean(p.lostHoustonId);
   const isInactiveStatus = isLost || p.trackerStatus === "Saved" || p.trackerStatus === "Archived (Tier 3)";
   const likelyDemoEval = !isInactiveStatus ? evaluateWatchlistLikelyDemolished(p) : { likelyDemolished: false, reason: "" };
   const showLikelyDemoBanner = !isInactiveStatus && (p.likelyDemolishedReviewNeeded || likelyDemoEval.likelyDemolished);
@@ -3822,6 +4028,17 @@ function renderWatchlistDetail(precomputedActCtx = null){
   const lostAtlasHref = p.lostHoustonId
     ? `index.html?id=${encodeURIComponent(p.lostHoustonId)}&layers=lost_houston${p.lat && p.lng ? `&lat=${p.lat}&lng=${p.lng}&z=18` : ""}`
     : "";
+  const streetViewHref = p.lat && p.lng
+    ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${encodeURIComponent(`${p.lat},${p.lng}`)}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((p.address || p.propertyName) + ", Houston, TX")}`;
+  const customPhotoSrc = sanitizePhotoDataUrl(p.photoDataUrl || "") || sanitizePhotoUrl(p.photoUrl || "");
+  const aerialPreviewSrc = (!customPhotoSrc && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
+    ? buildEsriWorldImageryPreviewUrl(p.lat, p.lng)
+    : "";
+  const displayPhotoSrc = customPhotoSrc || aerialPreviewSrc;
+  const displayPhotoLabel = customPhotoSrc
+    ? (p.photoCaption || "Uploaded / Linked Property Photo")
+    : (aerialPreviewSrc ? "Parcel Aerial Imagery Preview (Esri World Imagery)" : "");
 
   $("#detail").innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -3852,15 +4069,24 @@ function renderWatchlistDetail(precomputedActCtx = null){
       </div>
     </div>
 
-    ${isLost ? `
+    ${isLost && hasLostHoustonEntry ? `
     <div style="margin:8px 0 12px;padding:12px 14px;border-radius:6px;background:#18181B;color:#F4F4F5;border:1px solid #52525B;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:260px">
         <div style="font-weight:700;font-size:13.5px;color:#FAFAFA;margin-bottom:3px">⚫ Confirmed Demolished (${esc(p.yearBuilt ? `${p.yearBuilt}-${(p.demolishedDate || "2026").slice(0, 4)}` : p.demolishedDate || "2026")}) · Graduated to Lost Houston Catalog</div>
         <div style="font-size:12.5px;color:#D4D4D8;line-height:1.45">
-          ${p.demolishedDate ? `Demolished on <b>${esc(p.demolishedDate)}</b>` : "Confirmed demolished"}${p.lostHoustonId ? ` · Catalog ID: <code>${esc(p.lostHoustonId)}</code>` : ""}. Daily 8-agency live portal sweeps are paused for this property while its full 15-point investigative dossier and chronological findings log remain preserved below in the Watchlist Case Archive.
+          ${p.demolishedDate ? `Demolished on <b>${esc(p.demolishedDate)}</b>` : "Confirmed demolished"} · Catalog ID: <code>${esc(p.lostHoustonId)}</code>. Daily 8-agency live portal sweeps are paused for this property while its full 15-point investigative dossier and chronological findings log remain preserved below in the Watchlist Case Archive.
         </div>
       </div>
       ${lostAtlasHref ? `<a href="${esc(lostAtlasHref)}" target="_blank" rel="noopener" class="btn sm primary" style="background:#7C3AED;border-color:#A78BFA;color:#fff;text-decoration:none;white-space:nowrap">🏛️ Open in Lost Houston Catalog &amp; Map ↗</a>` : ""}
+    </div>` : isLost ? `
+    <div style="margin:8px 0 12px;padding:12px 14px;border-radius:6px;background:#27272A;color:#F4F4F5;border:1px solid #52525B;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <div style="font-weight:700;font-size:13.5px;color:#FAFAFA;margin-bottom:3px">⚫ Marked Lost on Watchlist (Demolition Permit / Loss Logged · Not Yet in Lost Houston Catalog)</div>
+        <div style="font-size:12.5px;color:#D4D4D8;line-height:1.45">
+          ${p.demolishedDate ? `Demolition / loss date: <b>${esc(p.demolishedDate)}</b>. ` : ""}This property's Watchlist status is set to <b>Lost</b> based on demolition permit or plat records, and daily 8-agency sweeps are paused. Click <b>Graduate to Lost Houston Catalog</b> if you want to publish a curated Lost Houston map entry.
+        </div>
+      </div>
+      <button type="button" class="btn sm primary" data-trigger-confirm-demolished="1" style="background:#7C3AED;border-color:#A78BFA;color:#fff;white-space:nowrap">🏛️ Graduate to Lost Houston Catalog</button>
     </div>` : showLikelyDemoBanner ? `
     <div style="margin:8px 0 12px;padding:12px 14px;border-radius:6px;background:#FEF2F2;color:#7F1D1D;border:1px solid #FCA5A5;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:260px">
@@ -3875,7 +4101,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
     <div class="links">
       ${watchlistAtlasMapLink(p)}
       ${watchlistHcadLinks(p)}
-      <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((p.address || p.propertyName) + ", Houston, TX")}" target="_blank" rel="noopener">Google Street View ↗</a>
+      <a href="${esc(streetViewHref)}" target="_blank" rel="noopener">Google Street View ↗</a>
       <a href="https://cohtora.houstontx.gov/approot/soldpermits/online_permit.htm" target="_blank" rel="noopener">COH Sold Permits ↗</a>
       <a href="https://www.tdlr.texas.gov/tabs/search" target="_blank" rel="noopener">TDLR TABS Search ↗</a>
       <button type="button" class="assist-pill govqa" data-open-govqa-modal="1" style="padding:6px 10px;font-size:13px">📄 Draft GovQA Open Records Request (TPIA)</button>
@@ -3885,7 +4111,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
     </div>
 
     <div style="margin:0 0 12px;padding:8px 12px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:space-between;background:${staffSess ? "#e8f3ee" : "#fdf7eb"};border:1px solid ${staffSess ? "#9ccbb5" : "#e3c58e"};color:${staffSess ? "#175e3c" : "#805300"};">
-      <span>${staffSess ? `☁️ <b>Authenticated Staff Session (${esc(staffSess.email)})</b>: Property edits, snowball terms, Google Drive links, and checklist updates sync automatically to the shared Preservation Houston Google Sheet.` : `🔒 <b>Read-Only Mode</b>: Sign in with your Google Sheet Editor email to edit property details, attach links, or log checklist findings.`}</span>
+      <span>${staffSess ? `☁️ <b>Authenticated Staff Session (${esc(staffSess.email)})</b>: Property edits, snowball terms, Google Drive links, photos, building history, and checklist updates sync automatically to the shared Preservation Houston Google Sheet.` : `🔒 <b>Read-Only Mode</b>: Sign in with your Google Sheet Editor email to edit property details, attach links, upload photos, or log checklist findings.`}</span>
       ${!staffSess ? `<button type="button" class="btn primary" data-open-staff-auth="1" style="padding:4px 10px;font-size:12px;">&#128274; Sign In to Edit</button>` : `<a href="https://docs.google.com/spreadsheets/d/1dpd9A5z4SmFkHut-fmBi8deIDGVZ8bDzYVdP88-_ZDs/edit#gid=672756041" target="_blank" rel="noopener" style="color:#175e3c;font-weight:600;text-decoration:underline;white-space:nowrap;margin-left:8px;">Open Raw Sheet Tab ↗</a>`}
     </div>
 
@@ -3908,9 +4134,9 @@ function renderWatchlistDetail(precomputedActCtx = null){
         <div class="fact"><dt>Threat Category</dt><dd>${esc(p.threatCategory || "Uncategorized")}</dd></div>
         <div class="fact"><dt>Neighborhood</dt><dd>${esc(p.neighborhood || p.superNeighborhoodMatch || "Not recorded")}</dd></div>
         <div class="fact"><dt>Designation</dt><dd>${esc(p.designation || "None")}</dd></div>
-        <div class="fact"><dt>Owner of Record</dt><dd>${esc(p.ownerOfRecord || "Not recorded")}</dd></div>
+        <div class="fact"><dt>Owner of Record (HCAD)</dt><dd>${esc(p.ownerOfRecord || "Not recorded")}</dd></div>
         <div class="fact"><dt>Buyer / Related Entities</dt><dd>${esc(p.buyerRelatedEntities || "Not recorded")}</dd></div>
-        ${p.developer ? `<div class="fact"><dt>Plat Developer</dt><dd>${esc(p.developer)}</dd></div>` : ""}
+        ${p.developer ? `<div class="fact"><dt>Plat Developer / Applicant</dt><dd>${esc(p.developer)}</dd></div>` : ""}
         <div class="fact"><dt>Broker / Listing Agent</dt><dd>${esc(p.broker || "Not identified (check LoopNet / flyer)")}</dd></div>
         <div class="fact"><dt>Lender / Deed of Trust</dt><dd>${esc(p.lender || "Not recorded")}</dd></div>
         <div class="fact"><dt>Design / Engineering Firm</dt><dd>${esc(p.designFirm || "Not recorded")}</dd></div>
@@ -3924,10 +4150,48 @@ function renderWatchlistDetail(precomputedActCtx = null){
         <div class="fact"><dt>Daily 8-Agency Auto-Sweep</dt><dd>${esc(p.lastAutoSweepAt ? new Date(p.lastAutoSweepAt).toLocaleString() : (WL.lastAutoSweepAt ? new Date(WL.lastAutoSweepAt).toLocaleString() : "Daily 7:00 AM CT"))}</dd></div>
       </dl>
 
-      <div class="doc-links-bar">
+      <div id="watchlistPhotoCard" style="margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <b style="font-size:13px">📸 Property Photo, Aerial &amp; Street View Reference</b>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <a class="assist-pill" href="${esc(streetViewHref)}" target="_blank" rel="noopener">🚶 Open Google Street View ↗</a>
+            <button type="button" class="btn sm" id="wlPhotoUploadTriggerBtn">📷 Upload Photo File</button>
+            <input type="file" id="wlPhotoFileInput" accept="image/*" class="hidden">
+            ${customPhotoSrc ? `<button type="button" class="btn sm" id="wlPhotoClearBtn" style="color:var(--t1)">Remove Custom Photo</button>` : ""}
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:${displayPhotoSrc ? "minmax(220px, 310px) 1fr" : "1fr"};gap:12px;align-items:start">
+          ${displayPhotoSrc ? `
+            <div style="border:1px solid var(--line);border-radius:5px;overflow:hidden;background:#fff">
+              <a href="${esc(customPhotoSrc || streetViewHref)}" target="_blank" rel="noopener" title="Click to open full view">
+                <img src="${esc(displayPhotoSrc)}" alt="${esc(primaryHeading)}" style="display:block;width:100%;max-height:195px;object-fit:cover">
+              </a>
+              <div style="padding:5px 8px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line)">
+                ${esc(displayPhotoLabel)}
+              </div>
+            </div>
+          ` : `
+            <div style="padding:10px 12px;border:1px dashed var(--line);border-radius:5px;background:#fff;font-size:12.5px;color:var(--muted)">
+              No custom photo uploaded yet. Click <b>📷 Upload Photo File</b> to attach a field/Street View screenshot from your computer, paste a direct image URL below, or click <b>Open Google Street View ↗</b>.
+            </div>
+          `}
+          <div style="display:grid;gap:6px">
+            <div style="font-size:12px;color:var(--muted)">
+              Upload a photo directly from your device (auto-compressed &amp; synced to the Google Sheet) or paste a direct image URL:
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <input id="wlPhotoUrlInput" type="url" value="${esc(p.photoUrl || "")}" placeholder="Paste direct image URL (http/https)" style="flex:1;min-width:200px;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff">
+              <input id="wlPhotoCaptionInput" type="text" value="${esc(p.photoCaption || "")}" placeholder="Caption / credit (e.g. Street View Oct 2026)" style="width:220px;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff">
+              <button type="button" class="btn sm" id="wlPhotoSaveBtn">Save Photo Info</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-links-bar" style="margin-top:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
           <b style="font-size:13px">📎 Property Documents, Plat PDFs &amp; Google Drive Links (${driveLinks.length})</b>
-          <span style="font-size:11.5px;color:var(--muted)">Attach Google Drive folders, deed PDFs, TABC filings, or photos (included in Word .docx &amp; PDF exports)</span>
+          <span style="font-size:11.5px;color:var(--muted)">Attach Google Drive folders, deed PDFs, TABC filings, or permit records (included in Word .docx &amp; PDF exports)</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
           ${driveLinks.length
@@ -3945,6 +4209,34 @@ function renderWatchlistDetail(precomputedActCtx = null){
         <label for="wlNotesInput" style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Executive Summary &amp; Advocacy Notes</label>
         <textarea id="wlNotesInput" style="width:100%;min-height:68px;border:1px solid var(--line);border-radius:4px;padding:8px;font-size:13.5px">${esc(p.notes || "")}</textarea>
       </div>
+
+      <div id="watchlistHistoryCard" style="margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <b style="font-size:13px">🏛️ Building History &amp; Archival Research (Old News Clippings, Sanborn Maps &amp; Shared Folder)</b>
+          ${historyFolderClean ? `<a class="assist-pill" href="${esc(historyFolderClean.url)}" target="_blank" rel="noopener">📂 Open Archival Research Folder (Drive / Dropbox) ↗</a>` : ""}
+        </div>
+        <div style="margin-bottom:8px">
+          <label for="wlHistoryInput" style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Architectural &amp; Historical Background (Original Architect, Early Occupants, Significance, Historic Events)</label>
+          <textarea id="wlHistoryInput" placeholder="Record building history, architect/builder notes, city directory occupants, Sanborn map footprints, and historical significance..." style="width:100%;min-height:74px;border:1px solid var(--line);border-radius:4px;padding:8px;font-size:13.5px;background:#fff">${esc(p.buildingHistory || "")}</textarea>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          <label for="wlHistoryFolderInput" style="font-size:12px;font-weight:600;white-space:nowrap">📂 Shared Research Folder (Dropbox or Google Drive):</label>
+          <input id="wlHistoryFolderInput" type="url" value="${esc(p.historyFolderUrl || "")}" placeholder="Paste Dropbox or Google Drive folder link with news clippings / Sanborn maps (http/https)" style="flex:1;min-width:230px;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff">
+          <button type="button" class="btn sm" id="wlHistoryFolderSaveBtn">Save Folder Link</button>
+        </div>
+        <div style="margin-bottom:6px;font-size:12px;font-weight:600">📰 Individual Historical Clippings, Sanborn Maps &amp; Archival Files (${historyLinks.length})</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          ${historyLinks.length
+            ? historyLinks.map((hl, idx) => `<span class="doc-pill"><a href="${esc(hl.url)}" target="_blank" rel="noopener" title="${esc(hl.url)}">📜 ${esc(hl.label)} ↗</a><button type="button" data-rm-hist-idx="${idx}" title="Remove historical link" aria-label="Remove ${esc(hl.label)}">×</button></span>`).join("")
+            : `<span style="font-size:12px;color:var(--muted)">No individual news clippings or Sanborn map links attached yet.</span>`}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input id="newHistLabel" type="text" placeholder="Clipping / Map Label (e.g. 1924 Sanborn Sheet 312, Chronicle 1952)" style="padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;width:270px;background:#fff">
+          <input id="newHistUrl" type="url" placeholder="Paste Drive, Dropbox, Portal to Texas History, or archive URL (http/https)" style="flex:1;min-width:220px;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff">
+          <button type="button" class="btn sm" id="addHistLinkBtn">+ Attach History Link</button>
+        </div>
+      </div>
+
       <div class="wl-progress">
         <div class="wl-stat"><b style="color:var(--t1)">${cnt("Flagged")}</b> Flagged</div>
         <div class="wl-stat"><b style="color:var(--t2)">${cnt("In Progress")}</b> In Progress</div>
@@ -4030,9 +4322,9 @@ function renderWatchlistDetail(precomputedActCtx = null){
                 </td>
                 <td>
                   ${(row.checks && row.checks.length)
-                    ? `<ul class="chk-list">${row.checks.map(c => {
+                    ? `<ul class="chk-list">${row.checks.map((c, cIdx) => {
                         const plainNote = explainWatchlistCheckText(c.result, rowId);
-                        return `<li><b>${esc(c.date)}:</b> ${esc(c.result)}${renderCheckLinksHtml(c.links)}${plainNote ? `<div class="wl-check-plain-note">${esc(plainNote)}</div>` : ""}</li>`;
+                        return `<li><b>${esc(c.date)}:</b> ${esc(c.result)}${renderCheckLinksHtml(c.links)} <button type="button" class="assist-pill" data-del-chk-row="${esc(rowId)}" data-del-chk-idx="${cIdx}" style="padding:0 5px;font-size:11px;color:var(--t1);border-color:#E5B4B0;background:#FDF2F1;margin-left:4px" title="Remove this logged check entry">× Remove</button>${plainNote ? `<div class="wl-check-plain-note">${esc(plainNote)}</div>` : ""}</li>`;
                       }).join("")}</ul>`
                     : '<div style="color:var(--muted);font-size:12px">No checks recorded yet.</div>'}
                   <div class="chk-add">
@@ -4070,12 +4362,19 @@ function renderWatchlistDetail(precomputedActCtx = null){
             ${log.length
               ? log.map(entry => {
                   const plainNote = explainWatchlistCheckText(entry.result, entry.rowId || "");
+                  const rowObj = entry.rowId ? findChecklistRow(ck, entry.rowId) : null;
+                  const cIdx = rowObj && Array.isArray(rowObj.checks)
+                    ? rowObj.checks.findIndex(c => c.date === entry.date && c.result === entry.result)
+                    : -1;
+                  const rmBtnHtml = (entry.rowId && cIdx >= 0)
+                    ? ` <button type="button" class="assist-pill" data-del-chk-row="${esc(entry.rowId)}" data-del-chk-idx="${cIdx}" style="padding:0 5px;font-size:11px;color:var(--t1);border-color:#E5B4B0;background:#FDF2F1;margin-left:4px" title="Remove this logged check entry">× Remove</button>`
+                    : "";
                   return `<tr>
                   <td>${entry.entryNo}</td>
                   <td style="white-space:nowrap;font-weight:600">${esc(entry.date)}</td>
                   <td>${esc(entry.stage)}</td>
                   <td>${esc(entry.activity)}</td>
-                  <td>${esc(entry.result)}${renderCheckLinksHtml(entry.links)}${plainNote ? `<div class="wl-check-plain-note">${esc(plainNote)}</div>` : ""}</td>
+                  <td>${esc(entry.result)}${renderCheckLinksHtml(entry.links)}${rmBtnHtml}${plainNote ? `<div class="wl-check-plain-note">${esc(plainNote)}</div>` : ""}</td>
                 </tr>`;
                 }).join("")
               : `<tr><td colspan="5" style="color:var(--muted)">No dated checks logged yet.</td></tr>`}
@@ -4084,6 +4383,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
       </div>
     </div>
   `;
+  restoreWatchlistDraftInputs(p.id, focusedId, selStart, selEnd);
   if (view.highlightCheckId) {
     const targetTr = document.querySelector(`#detail tr[data-row-id="${CSS.escape ? CSS.escape(view.highlightCheckId) : view.highlightCheckId}"]`);
     if (targetTr) {
@@ -4187,6 +4487,7 @@ function showAddWatchPropertyModal(){
     const name = $("#nw-name").value.trim();
     if (!addr && !name) { toast("Enter a street address or property name."); return; }
     const nowIso = new Date().toISOString();
+    const reviewerId = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
     const hcadIds = parseHcadAccountList($("#nw-hcad").value).hcadIds;
     let lng = null, lat = null;
     if (hcadIds.length) {
@@ -4196,7 +4497,70 @@ function showAddWatchPropertyModal(){
       if (!$("#nw-legal").value.trim() && parcels[0]?.legalDescription) {
         $("#nw-legal").value = parcels[0].legalDescription;
       }
+      if (!$("#nw-owner").value.trim() && parcels[0]?.owner) {
+        $("#nw-owner").value = parcels[0].owner;
+      }
     }
+    const addrKey = canonicalPropertyAddressKey(addr || name);
+    const existingDup = (WL.watchedProperties || []).find(w => {
+      if (!w || isRemovedWatchlistTombstone(w)) return false;
+      if (hcadIds.length) {
+        const wIds = parseHcadAccountList(w.hcadAccount || "").hcadIds;
+        if (wIds.some(id => hcadIds.includes(id))) return true;
+      }
+      if (addrKey) {
+        const wAddrKey = canonicalPropertyAddressKey(w.address || w.propertyName || "");
+        if (wAddrKey && wAddrKey === addrKey) return true;
+      }
+      return false;
+    });
+
+    if (existingDup) {
+      if (addr) existingDup.address = addr;
+      if (name) existingDup.propertyName = name;
+      const secList = $("#nw-sec").value.split(",").map(s => s.trim()).filter(Boolean);
+      if (secList.length) {
+        existingDup.secondaryAddresses = Array.from(new Set([...(existingDup.secondaryAddresses || []), ...secList]));
+      }
+      if (hcadIds.length) {
+        const mergedHcads = parseHcadAccountList([existingDup.hcadAccount || "", ...hcadIds].join(", ")).hcadIds;
+        existingDup.hcadAccount = mergedHcads.join(", ");
+      }
+      if ($("#nw-legal").value.trim()) existingDup.legalDescription = $("#nw-legal").value.trim();
+      if ($("#nw-yr").value.trim()) existingDup.yearBuilt = $("#nw-yr").value.trim();
+      existingDup.tier = $("#nw-tier").value || existingDup.tier || "1";
+      existingDup.tierConfirmed = true;
+      existingDup.trackerStatus = $("#nw-status").value || existingDup.trackerStatus || "Active / High Priority";
+      if ($("#nw-threat").value) existingDup.threatCategory = $("#nw-threat").value;
+      if ($("#nw-nb").value.trim()) existingDup.neighborhood = $("#nw-nb").value.trim();
+      if ($("#nw-rep").value.trim()) existingDup.reportedBy = $("#nw-rep").value.trim();
+      if ($("#nw-owner").value.trim()) existingDup.ownerOfRecord = stripCorporateSuffixCommas($("#nw-owner").value.trim());
+      if ($("#nw-buyer").value.trim()) existingDup.buyerRelatedEntities = cleanEntityListString($("#nw-buyer").value.trim());
+      if ($("#nw-broker").value.trim()) existingDup.broker = $("#nw-broker").value.trim();
+      if ($("#nw-notes").value.trim()) {
+        existingDup.notes = existingDup.notes
+          ? `${existingDup.notes}\n\n${$("#nw-notes").value.trim()}`
+          : $("#nw-notes").value.trim();
+      }
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        existingDup.lng = lng;
+        existingDup.lat = lat;
+      }
+      existingDup.humanEdited = true;
+      existingDup.updatedAt = nowIso;
+      existingDup.updatedBy = reviewerId;
+      const savedExisting = persistWatchlistPropertyEdit(existingDup);
+      queueCloudSyncWatchProperty(savedExisting);
+      view.mode = "watchlist";
+      view.userSwitchedMode = true;
+      persistModeChoice("watchlist");
+      view.selectedWatchId = savedExisting.id;
+      back.remove();
+      render();
+      toast(`Merged into existing Watchlist dossier for ${savedExisting.address || savedExisting.propertyName} (prevented duplicate entry).`);
+      return;
+    }
+
     const newProp = normalizeWatchProperty({
       id: "prop-" + Date.now(),
       propertyName: name || addr,
@@ -4212,8 +4576,8 @@ function showAddWatchPropertyModal(){
       threatCategory: $("#nw-threat").value,
       neighborhood: $("#nw-nb").value.trim(),
       reportedBy: $("#nw-rep").value.trim(),
-      ownerOfRecord: $("#nw-owner").value.trim(),
-      buyerRelatedEntities: $("#nw-buyer").value.trim(),
+      ownerOfRecord: stripCorporateSuffixCommas($("#nw-owner").value.trim()),
+      buyerRelatedEntities: cleanEntityListString($("#nw-buyer").value.trim()),
       broker: $("#nw-broker").value.trim(),
       keyDates: { monitoringStarted: nowIso.slice(0, 10) },
       notes: $("#nw-notes").value.trim(),
@@ -4222,7 +4586,7 @@ function showAddWatchPropertyModal(){
       source: "manual",
       humanEdited: true,
       updatedAt: nowIso,
-      updatedBy: ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim(),
+      updatedBy: reviewerId,
       checklist: buildDefaultChecklist(addr || name),
     });
     const saved = persistWatchlistPropertyEdit(newProp);
@@ -4759,12 +5123,14 @@ function buildWatchlistCsv(p){
   };
   const log = rebuildFindingsLog(p);
   const driveStr = sanitizeExternalLinksList(p.driveLinks).map(l => `${l.label}: ${l.url}`).join("; ");
+  const histLinksStr = sanitizeExternalLinksList(p.historyLinks).map(l => `${l.label}: ${l.url}`).join("; ");
   const rows = [
     ["Primary Address", p.address, "Historic / Property Name", p.propertyName, "HCAD Account(s)", p.hcadAccount],
     ["Legal Description", p.legalDescription || "", "Tracker Status", p.trackerStatus || "", "Threat Category", p.threatCategory || ""],
     ["Perimeter Addresses", (p.secondaryAddresses || []).join("; "), "Owner of Record", p.ownerOfRecord, "Buyer / Entities", p.buyerRelatedEntities],
     ["Broker / Listing Agent", p.broker || "", "Design / Engineering Firm", p.designFirm || "", "Neighborhood", p.neighborhood || ""],
-    ["Property Documents / Drive Links", driveStr, "", "", "", ""],
+    ["Property Documents / Drive Links", driveStr, "Archival Research Folder", p.historyFolderUrl || "", "Historical Clippings / Maps", histLinksStr],
+    ["Building History & Archival Notes", p.buildingHistory || "", "", "", "", ""],
     [],
     ["Entry #", "Date", "Stage", "Monitoring Activity", "Result / Finding", "Linked Files / URLs", "Source"],
   ];
@@ -5010,6 +5376,22 @@ function buildWatchlistDocx(p){
     d.p(docRuns);
   }
   if (p.notes) d.p([{ t: "Executive Summary & Notes: ", b: true }, p.notes]);
+  if (p.buildingHistory) d.p([{ t: "Building History & Archival Research: ", b: true }, p.buildingHistory]);
+  if (p.historyFolderUrl) {
+    const cleanHistFolder = sanitizeExternalLink({ label: "Archival Research Folder", url: p.historyFolderUrl });
+    if (cleanHistFolder) {
+      d.p([{ t: "Shared Archival Folder (Drive / Dropbox): ", b: true }, { t: cleanHistFolder.url, url: cleanHistFolder.url }]);
+    }
+  }
+  const histLinks = sanitizeExternalLinksList(p.historyLinks);
+  if (histLinks.length) {
+    const hRuns = [{ t: "Historical Clippings & Sanborn Maps: ", b: true }];
+    histLinks.forEach((hl, idx) => {
+      if (idx > 0) hRuns.push("  |  ");
+      hRuns.push({ t: hl.label, url: hl.url });
+    });
+    d.p(hRuns);
+  }
   d.h(1, "15-Point Multi-Agency Monitoring Checklist");
   d.table(
     [["Stage", "Monitoring Activity", "Current Status", "Last Checked", "Latest Logged Result"]].concat(
@@ -5089,6 +5471,9 @@ function buildWatchlistReportHtml(p){
     </table>
     ${driveLinks.length ? `<p><b>Documents &amp; Google Drive Links:</b> ${driveLinks.map(l => `<a href="${esc(l.url)}">${esc(l.label)}</a>`).join(" | ")}</p>` : ""}
     ${p.notes ? `<p><b>Executive Summary &amp; Notes:</b> ${esc(p.notes)}</p>` : ""}
+    ${p.buildingHistory ? `<p><b>Building History &amp; Archival Research:</b> ${esc(p.buildingHistory)}</p>` : ""}
+    ${p.historyFolderUrl ? `<p><b>Shared Archival Research Folder:</b> <a href="${esc(p.historyFolderUrl)}">${esc(p.historyFolderUrl)}</a></p>` : ""}
+    ${sanitizeExternalLinksList(p.historyLinks).length ? `<p><b>Historical Clippings &amp; Sanborn Maps:</b> ${sanitizeExternalLinksList(p.historyLinks).map(l => `<a href="${esc(l.url)}">${esc(l.label)}</a>`).join(" | ")}</p>` : ""}
     <h2>15-Point Multi-Agency Monitoring Checklist</h2>
     <table>
       <tr><th>Stage</th><th>Monitoring Activity</th><th>Status</th><th>Last Checked</th><th>Latest Logged Result</th></tr>
@@ -5479,7 +5864,23 @@ async function pullCloudSheetSync(){
       persistAllCycles();
     }
     if (appliedPlat > 0 || appliedWatch > 0) {
-      render();
+      const activeEl = document.activeElement;
+      const isEditingInDetail = Boolean(
+        view.mode === "watchlist" &&
+        activeEl &&
+        $("#detail")?.contains(activeEl) &&
+        (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")
+      );
+      if (isEditingInDetail) {
+        captureWatchlistDraftInputs();
+        const actCtx = getActivityViewContext();
+        populateHeaderAndFilterControls();
+        updateModeButtons(actCtx);
+        renderWatchlistFunnel();
+        renderWatchlistSidebar(actCtx);
+      } else {
+        render();
+      }
     }
   } catch (err) {
     console.warn("Could not pull live Google Sheet sync:", err);
@@ -5514,7 +5915,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
     try {
       let alData = window.__permitAlertsPayload || null;
       if (!alData) {
-        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261110a");
+        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261113b");
         if (alResp.ok) alData = await alResp.json();
       }
       const alerts = Array.isArray(alData?.alerts) ? alData.alerts : [];
@@ -5570,7 +5971,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
 async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
   try {
-    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261110a";
+    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261113b";
     const [platResp, wlResp, alResp, actResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json" + cacheQ),
       fetch("public/data/property_watchlist.json" + cacheQ),
@@ -6151,11 +6552,11 @@ document.addEventListener("click", async e => {
     p.designation = $("#we-desig").value.trim();
     p.neighborhood = $("#we-nb").value.trim();
     p.reportedBy = $("#we-rep").value.trim();
-    p.ownerOfRecord = $("#we-owner").value.trim();
-    p.buyerRelatedEntities = $("#we-buyer").value.trim();
+    p.ownerOfRecord = stripCorporateSuffixCommas($("#we-owner").value.trim());
+    p.buyerRelatedEntities = cleanEntityListString($("#we-buyer").value.trim());
     p.broker = $("#we-broker").value.trim();
     p.lender = $("#we-lender").value.trim();
-    p.designFirm = $("#we-design").value.trim();
+    p.designFirm = cleanEntityListString($("#we-design").value.trim());
     p.architectEngineer = p.designFirm;
     p.phPastActions = $("#we-past").value.trim();
     p.keyDates = {
@@ -6231,6 +6632,13 @@ document.addEventListener("click", async e => {
     p.driveLinksUpdatedAt = nowIso;
     p.updatedAt = nowIso;
     p.humanEdited = true;
+    if ($("#newDocLabel")) $("#newDocLabel").value = "";
+    if ($("#newDocUrl")) $("#newDocUrl").value = "";
+    const draftMap = watchlistDraftInputsByPropId.get(p.id);
+    if (draftMap) {
+      delete draftMap.newDocLabel;
+      delete draftMap.newDocUrl;
+    }
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
     const actCtx = getActivityViewContext();
@@ -6238,6 +6646,163 @@ document.addEventListener("click", async e => {
     renderWatchlistSidebar(actCtx);
     renderWatchlistDetail(actCtx);
     toast(`Attached "${clean.label}" to ${saved.address || saved.propertyName}.`);
+    return;
+  }
+
+  // Watchlist Property Photo Upload / URL / Clear
+  if (e.target.closest("#wlPhotoUploadTriggerBtn")) {
+    if (!requireStaffAuth("uploading a property photo")) return;
+    $("#wlPhotoFileInput")?.click();
+    return;
+  }
+  if (e.target.closest("#wlPhotoSaveBtn")) {
+    if (!requireStaffAuth("saving property photo info")) return;
+    const p = getSelectedWatchProp();
+    if (!p) return;
+    const rawUrl = ($("#wlPhotoUrlInput")?.value || "").trim();
+    const rawCap = ($("#wlPhotoCaptionInput")?.value || "").trim();
+    if (rawUrl && !sanitizePhotoUrl(rawUrl)) {
+      toast("Invalid photo URL: please use a full http:// or https:// image address.");
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    p.photoUrl = rawUrl ? sanitizePhotoUrl(rawUrl) : "";
+    p.photoCaption = rawCap;
+    p.photoUpdatedAt = nowIso;
+    p.updatedAt = nowIso;
+    p.humanEdited = true;
+    const draftMap = watchlistDraftInputsByPropId.get(p.id);
+    if (draftMap) {
+      delete draftMap.wlPhotoUrlInput;
+      delete draftMap.wlPhotoCaptionInput;
+    }
+    const saved = persistWatchlistPropertyEdit(p);
+    queueCloudSyncWatchProperty(saved);
+    const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
+    $("#detail").scrollTop = sc;
+    toast("Saved property photo details.");
+    return;
+  }
+  if (e.target.closest("#wlPhotoClearBtn")) {
+    if (!requireStaffAuth("removing a property photo")) return;
+    const p = getSelectedWatchProp();
+    if (!p) return;
+    const nowIso = new Date().toISOString();
+    p.photoUrl = "";
+    p.photoDataUrl = "";
+    p.photoCaption = "";
+    p.photoUpdatedAt = nowIso;
+    p.updatedAt = nowIso;
+    p.humanEdited = true;
+    const draftMap = watchlistDraftInputsByPropId.get(p.id);
+    if (draftMap) {
+      delete draftMap.wlPhotoUrlInput;
+      delete draftMap.wlPhotoCaptionInput;
+    }
+    const saved = persistWatchlistPropertyEdit(p);
+    queueCloudSyncWatchProperty(saved);
+    const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
+    $("#detail").scrollTop = sc;
+    toast("Removed custom property photo.");
+    return;
+  }
+
+  // Watchlist Building History Folder & Archival Clippings Links
+  if (e.target.closest("#wlHistoryFolderSaveBtn")) {
+    if (!requireStaffAuth("saving an archival research folder link")) return;
+    const p = getSelectedWatchProp();
+    if (!p) return;
+    const rawUrl = ($("#wlHistoryFolderInput")?.value || "").trim();
+    let cleanUrl = "";
+    if (rawUrl) {
+      const clean = sanitizeExternalLink({ label: "Archival Research Folder", url: rawUrl });
+      if (!clean) {
+        toast("Invalid folder URL: please use a full http:// or https:// Google Drive or Dropbox address.");
+        return;
+      }
+      cleanUrl = clean.url;
+    }
+    const nowIso = new Date().toISOString();
+    p.historyFolderUrl = cleanUrl;
+    p.historyUpdatedAt = nowIso;
+    p.updatedAt = nowIso;
+    p.humanEdited = true;
+    const draftMap = watchlistDraftInputsByPropId.get(p.id);
+    if (draftMap) delete draftMap.wlHistoryFolderInput;
+    const saved = persistWatchlistPropertyEdit(p);
+    queueCloudSyncWatchProperty(saved);
+    const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
+    $("#detail").scrollTop = sc;
+    toast(cleanUrl ? "Saved shared archival research folder link." : "Cleared shared archival research folder link.");
+    return;
+  }
+  if (e.target.closest("#addHistLinkBtn")) {
+    if (!requireStaffAuth("attaching a historical clipping or Sanborn map link")) return;
+    const p = getSelectedWatchProp();
+    if (!p) return;
+    const rawLbl = ($("#newHistLabel")?.value || "").trim();
+    const rawUrl = ($("#newHistUrl")?.value || "").trim();
+    if (!rawUrl) { toast("Paste an http:// or https:// clipping, Sanborn map, or folder link first."); return; }
+    const nowIso = new Date().toISOString();
+    const clean = sanitizeExternalLink({ label: rawLbl || "Historical Clipping / Map", url: rawUrl, addedAt: nowIso });
+    if (!clean) {
+      toast("Invalid URL: only valid http:// or https:// links are allowed.");
+      return;
+    }
+    p.historyLinks = sanitizeExternalLinksList([...(p.historyLinks || []), clean]);
+    p.historyUpdatedAt = nowIso;
+    p.updatedAt = nowIso;
+    p.humanEdited = true;
+    if ($("#newHistLabel")) $("#newHistLabel").value = "";
+    if ($("#newHistUrl")) $("#newHistUrl").value = "";
+    const draftMap = watchlistDraftInputsByPropId.get(p.id);
+    if (draftMap) {
+      delete draftMap.newHistLabel;
+      delete draftMap.newHistUrl;
+    }
+    const saved = persistWatchlistPropertyEdit(p);
+    queueCloudSyncWatchProperty(saved);
+    const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
+    $("#detail").scrollTop = sc;
+    toast(`Attached historical reference "${clean.label}".`);
+    return;
+  }
+  const rmHistBtn = e.target.closest("[data-rm-hist-idx]");
+  if (rmHistBtn) {
+    if (!requireStaffAuth("removing a historical clipping link")) return;
+    const p = getSelectedWatchProp();
+    if (!p) return;
+    const idx = Number(rmHistBtn.dataset.rmHistIdx);
+    const nowIso = new Date().toISOString();
+    p.historyLinks = sanitizeExternalLinksList(p.historyLinks).filter((_, i) => i !== idx);
+    p.historyUpdatedAt = nowIso;
+    p.updatedAt = nowIso;
+    p.humanEdited = true;
+    const saved = persistWatchlistPropertyEdit(p);
+    queueCloudSyncWatchProperty(saved);
+    const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
+    $("#detail").scrollTop = sc;
+    toast("Removed historical clipping link.");
     return;
   }
 
@@ -6271,7 +6836,8 @@ document.addEventListener("click", async e => {
     const cat = addTermBtn.dataset.addTermCat;
     const p = getSelectedWatchProp();
     const inp = $(`#snowIn-${cat}`);
-    const val = (inp?.value || "").trim();
+    const rawVal = (inp?.value || "").trim();
+    const val = cat === "entities" ? stripCorporateSuffixCommas(rawVal) : rawVal;
     if (!p || !val) return;
     const nowIso = new Date().toISOString();
     p.searchTerms = p.searchTerms || {};
@@ -6287,6 +6853,9 @@ document.addEventListener("click", async e => {
     p.searchTermsUpdatedAt = nowIso;
     p.updatedAt = nowIso;
     p.humanEdited = true;
+    if (inp) inp.value = "";
+    const draftMap = watchlistDraftInputsByPropId.get(p.id);
+    if (draftMap) delete draftMap[`snowIn-${cat}`];
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
     const sc = $("#detail").scrollTop;
@@ -6366,6 +6935,10 @@ document.addEventListener("click", async e => {
     row.humanStatusEdited = true;
     p.updatedAt = nowIso;
     p.humanEdited = true;
+    if ($(`#chkText-${rowId}`)) $(`#chkText-${rowId}`).value = "";
+    if ($(`#chkLinkLbl-${rowId}`)) $(`#chkLinkLbl-${rowId}`).value = "";
+    if ($(`#chkLinkUrl-${rowId}`)) $(`#chkLinkUrl-${rowId}`).value = "";
+    clearWatchlistDraftInputsForRow(p.id, rowId);
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
     const sc = $("#detail").scrollTop;
@@ -6426,6 +6999,10 @@ document.addEventListener("click", async e => {
     row.humanStatusEdited = true;
     p.updatedAt = nowIso;
     p.humanEdited = true;
+    if ($(`#chkText-${rowId}`)) $(`#chkText-${rowId}`).value = "";
+    if ($(`#chkLinkLbl-${rowId}`)) $(`#chkLinkLbl-${rowId}`).value = "";
+    if ($(`#chkLinkUrl-${rowId}`)) $(`#chkLinkUrl-${rowId}`).value = "";
+    clearWatchlistDraftInputsForRow(p.id, rowId);
     const saved = persistWatchlistPropertyEdit(p);
     queueCloudSyncWatchProperty(saved);
     const sc = $("#detail").scrollTop;
@@ -6436,6 +7013,41 @@ document.addEventListener("click", async e => {
     renderWatchlistDetail(actCtx);
     $("#detail").scrollTop = sc;
     toast(`Logged check for ${row.activity}.`);
+    return;
+  }
+
+  // 15-Point Checklist & Findings Log: Remove Logged Check Entry ("× Remove")
+  const delChkBtn = e.target.closest("[data-del-chk-row]");
+  if (delChkBtn) {
+    if (!requireStaffAuth("removing a logged check entry")) return;
+    const rowId = delChkBtn.dataset.delChkRow;
+    const cIdx = Number(delChkBtn.dataset.delChkIdx);
+    const p = getSelectedWatchProp();
+    const row = p ? findChecklistRow(p.checklist, rowId) : null;
+    if (!p || !row || !Array.isArray(row.checks) || cIdx < 0 || cIdx >= row.checks.length) return;
+    const nowIso = new Date().toISOString();
+    const [removedChk] = row.checks.splice(cIdx, 1);
+    const delKey = buildCheckDeletionKey(rowId, removedChk);
+    if (delKey) {
+      p.deletedCheckKeys = Array.from(new Set([...(p.deletedCheckKeys || []), delKey]));
+    }
+    row.lastChecked = row.checks.length
+      ? row.checks.map(c => c.date || "").filter(Boolean).sort().slice(-1)[0] || ""
+      : "";
+    row.updatedAt = nowIso;
+    row.humanStatusEdited = true;
+    p.updatedAt = nowIso;
+    p.humanEdited = true;
+    const saved = persistWatchlistPropertyEdit(p);
+    queueCloudSyncWatchProperty(saved);
+    const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistFunnel();
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
+    $("#detail").scrollTop = sc;
+    toast(`Removed logged check (${removedChk?.date || ""}) from ${row.activity}.`);
     return;
   }
 
@@ -6599,9 +7211,19 @@ $("#detail").addEventListener("input", e => {
   const el = e.target;
   if (!el || view.mode === "activity") return;
   if (
-    (el.id && (el.id.startsWith("chk") || el.id.startsWith("we-") || el.id.startsWith("newDoc") || el.id.startsWith("snowIn-"))) ||
+    (el.id && (
+      el.id.startsWith("chk") ||
+      el.id.startsWith("we-") ||
+      el.id.startsWith("newDoc") ||
+      el.id.startsWith("newHist") ||
+      el.id === "wlHistoryFolderInput" ||
+      el.id === "wlPhotoUrlInput" ||
+      el.id === "wlPhotoCaptionInput" ||
+      el.id.startsWith("snowIn-")
+    )) ||
     el.dataset?.wlRowId
   ) {
+    captureWatchlistDraftInputs();
     return;
   }
   if (view.mode === "watchlist") {
@@ -6614,6 +7236,21 @@ $("#detail").addEventListener("input", e => {
       if (!p) return;
       p.notes = el.value;
       p.updatedAt = new Date().toISOString();
+      p.humanEdited = true;
+      const saved = persistWatchlistPropertyEdit(p);
+      queueCloudSyncWatchProperty(saved);
+      updateModeButtons();
+    } else if (el.id === "wlHistoryInput") {
+      if (!requireStaffAuth("editing building history")) {
+        renderWatchlistDetail();
+        return;
+      }
+      const p = getSelectedWatchProp();
+      if (!p) return;
+      const nowIso = new Date().toISOString();
+      p.buildingHistory = el.value;
+      p.historyUpdatedAt = nowIso;
+      p.updatedAt = nowIso;
       p.humanEdited = true;
       const saved = persistWatchlistPropertyEdit(p);
       queueCloudSyncWatchProperty(saved);
@@ -6673,7 +7310,52 @@ $("#detail").addEventListener("change", e => {
     }
     return;
   }
-  if (el.id && (el.id.startsWith("chk") || el.id.startsWith("we-") || el.id.startsWith("newDoc") || el.id.startsWith("snowIn-"))) {
+  if (el.id === "wlPhotoFileInput" && el.files && el.files[0]) {
+    if (!requireStaffAuth("uploading a property photo")) {
+      el.value = "";
+      return;
+    }
+    const p = getSelectedWatchProp();
+    const file = el.files[0];
+    el.value = "";
+    if (!p || !file) return;
+    toast("Processing and compressing property photo...");
+    resizeImageFileToDataUrl(file, 800, 0.78).then(dataUrl => {
+      const nowIso = new Date().toISOString();
+      p.photoDataUrl = sanitizePhotoDataUrl(dataUrl);
+      if (!p.photoCaption) {
+        p.photoCaption = file.name.replace(/\.[^.]+$/, "");
+      }
+      p.photoUpdatedAt = nowIso;
+      p.updatedAt = nowIso;
+      p.humanEdited = true;
+      const saved = persistWatchlistPropertyEdit(p);
+      queueCloudSyncWatchProperty(saved);
+      const sc = $("#detail").scrollTop;
+      const actCtx = getActivityViewContext();
+      updateModeButtons(actCtx);
+      renderWatchlistSidebar(actCtx);
+      renderWatchlistDetail(actCtx);
+      $("#detail").scrollTop = sc;
+      toast("Uploaded and saved property photo.");
+    }).catch(err => {
+      toast(err.message || "Could not process uploaded photo.");
+    });
+    return;
+  }
+  if (
+    el.id && (
+      el.id.startsWith("chk") ||
+      el.id.startsWith("we-") ||
+      el.id.startsWith("newDoc") ||
+      el.id.startsWith("newHist") ||
+      el.id === "wlHistoryFolderInput" ||
+      el.id === "wlPhotoUrlInput" ||
+      el.id === "wlPhotoCaptionInput" ||
+      el.id.startsWith("snowIn-")
+    )
+  ) {
+    captureWatchlistDraftInputs();
     return;
   }
   if (view.mode === "watchlist" && el.dataset.wlRowId) {

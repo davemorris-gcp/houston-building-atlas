@@ -13,9 +13,9 @@
 import {
   decodeCompactOwnerHistory,
   isConfidentialOwnerName,
-} from "./clerkSearchHelpers.js?v=20261110a";
-import { DEFAULT_ATLAS_BASE_URL, resolveAtlasBaseOriginPath } from "./filterStore.js?v=20261110a";
-import { decodeAppraiserNote } from "./permitPlainEnglish.js?v=20261110a";
+} from "./clerkSearchHelpers.js?v=20261113b";
+import { DEFAULT_ATLAS_BASE_URL, resolveAtlasBaseOriginPath } from "./filterStore.js?v=20261113b";
+import { decodeAppraiserNote } from "./permitPlainEnglish.js?v=20261113b";
 
 const SAMPLE_AI_RESEARCH_PROMPTS_SEED_QUESTION =
   "Using The Houston Building Atlas, explain what happened to the 1894 John Henry Kirby Mansion at 2000 Smith St (HCAD 0152300000001), including the October 28, 2026 Smith Street Plaza replat (#RP-2026-435651), the 2-stage City of Houston demolition permits, and the Texas DSHS asbestos filings that preceded its November 2, 2026 loss. Which buildings by its 1928 Tudor Revival remodel architect James Ruskin Bailey are still standing in Houston? Include clickable Atlas links for each.";

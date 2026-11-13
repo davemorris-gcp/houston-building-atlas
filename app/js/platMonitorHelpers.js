@@ -986,6 +986,118 @@ export function normalizeContinuityPlatName(rawName = "") {
 }
 
 /**
+ * Strip commas immediately preceding corporate entity suffixes (e.g. "Cas Consultants, LLC" ->
+ * "Cas Consultants LLC", "Heights Engineering, L.L.C." -> "Heights Engineering L.L.C.") so
+ * comma-delimited entity lists never split an LLC name into a separate "LLC" token.
+ */
+export function stripCorporateSuffixCommas(text = "") {
+  const raw = String(text ?? "");
+  if (!raw) return "";
+  return raw
+    .replace(
+      /,\s*(?=(?:P\.?\s*L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*P\.?|L\.?\s*P\.?|INC(?:ORPORATED)?\.?|CORP(?:ORATION)?\.?|LTD\.?|LIMITED|P\.?\s*C\.?|COMPANY|CO\.)(?=$|[\s,;/)[\]]))/gi,
+      " "
+    )
+    .replace(
+      /\b(P\.?\s*L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*C\.?|L\.?\s*L\.?\s*P\.?|L\.?\s*P\.?|INC(?:ORPORATED)?\.?|CORP(?:ORATION)?\.?|LTD\.?|LIMITED|P\.?\s*C\.?)(?:\s+\1)+(?=$|[\s,;/)[\]])/gi,
+      "$1"
+    )
+    .replace(/[^\S\r\n]{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * Clean a comma- or semicolon-delimited string of corporate/related entities by stripping commas
+ * before corporate suffixes and deduplicating repeated entity names case-insensitively.
+ */
+export function cleanEntityListString(text = "") {
+  const stripped = stripCorporateSuffixCommas(text);
+  if (!stripped) return "";
+  const parts = stripped
+    .split(/[;,]+/)
+    .map((p) => p.trim())
+    .filter((p) => p && !/^(?:p\.?l\.?l\.?c\.?|l\.?l\.?c\.?|inc\.?|corp\.?|l\.?p\.?|ltd\.?|l\.?l\.?p\.?)$/i.test(p));
+  const seen = new Set();
+  const out = [];
+  for (const part of parts) {
+    const key = part.toUpperCase().replace(/\s+/g, " ");
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(part);
+    }
+  }
+  return out.join(", ");
+}
+
+const CONTINUITY_STREET_SUFFIXES = new Set([
+  "ST",
+  "STREET",
+  "AVE",
+  "AVENUE",
+  "RD",
+  "ROAD",
+  "DR",
+  "DRIVE",
+  "BLVD",
+  "BOULEVARD",
+  "LN",
+  "LANE",
+  "CT",
+  "COURT",
+  "PL",
+  "PLACE",
+  "WAY",
+  "PKWY",
+  "PARKWAY",
+  "CIR",
+  "CIRCLE",
+  "TRL",
+  "TRAIL",
+  "TER",
+  "TERRACE",
+  "FWY",
+  "FREEWAY",
+  "HWY",
+  "HIGHWAY",
+]);
+
+/**
+ * Build a canonical street address key (<positiveHouseNumber>|<streetCore>) for cross-cycle
+ * and Watchlist property deduplication (e.g. "3827 Broadway St" -> "3827|BROADWAY").
+ */
+export function canonicalPropertyAddressKey(rawAddr = "") {
+  let s = String(rawAddr || "").split(/[;|\n]+/)[0].trim();
+  if (!s) return "";
+  s = s.replace(/,\s*Houston\b.*$/i, "").replace(/,\s*TX\b.*$/i, "");
+  s = s.replace(/\s+#\s*[A-Za-z0-9-]+.*$/, "");
+  s = s.replace(
+    /\s*,?\s*\b(?:STE|SUITE|APT|APARTMENT|UNIT|BLDG|BUILDING|FL|FLOOR|RM|ROOM)\b\.?(?:\s+[A-Za-z0-9#-]+.*)?$/i,
+    ""
+  );
+  s = s.replace(/^(\d+)\s*(?:-|\/|&|\bTO\b)\s*\d+\b/i, "$1");
+  const m = s
+    .toUpperCase()
+    .replace(/[.,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .match(/^(\d+)[A-Z]?\s+(?:1\/2\s+)?(.+)$/);
+  if (!m) return "";
+  const numInt = Number(m[1]);
+  if (!Number.isFinite(numInt) || numInt <= 0) return "";
+  const dirMap = { NORTH: "N", SOUTH: "S", EAST: "E", WEST: "W" };
+  const tokens = m[2]
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((t) => dirMap[t] || t);
+  if (tokens.length >= 2 && CONTINUITY_STREET_SUFFIXES.has(tokens[tokens.length - 1])) {
+    tokens.pop();
+  }
+  const streetCore = tokens.join(" ").replace(/[^A-Z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  if (streetCore.length < 2) return "";
+  return `${numInt}|${streetCore}`;
+}
+
+/**
  * Return ordered real application numbers (e.g. "2026-1718", "DPV-26073533") while skipping
  * cycle-local agenda placeholder IDs like "PH-131" or "DPV-1" (F2-07, DF-5).
  */
@@ -1007,7 +1119,8 @@ export function getCanonicalPlatAppIds(entity = {}) {
  * Generate ordered cross-cycle continuity keys for matching deferred or withdrawn/resubmitted plats:
  *   1. Exact non-synthetic application number (e.g. "app:2026-1659", "app:DPV-26073533")
  *   2. Exact sorted 13-digit HCAD parcel set (e.g. "hcad:0231440000010")
- *   3. Section-preserving non-generic plat name corroborated by Super Neighborhood or Applicant/Developer
+ *   3. Canonical parcel street address with positive house number (e.g. "addr:1131|VERA LOU")
+ *   4. Section-preserving non-generic plat name corroborated by Super Neighborhood or Applicant/Developer
  */
 export function buildContinuityKeys(it = {}, rev = {}) {
   const keys = [];
@@ -1022,6 +1135,13 @@ export function buildContinuityKeys(it = {}, rev = {}) {
     keys.push(`hcad:${sortedHcads}`);
   }
 
+  const addrCandidate =
+    rev?.address || it.atlas?.primaryAddress || it.noticeLocation || it._fallbackAddr || "";
+  const addrKey = canonicalPropertyAddressKey(addrCandidate);
+  if (addrKey) {
+    keys.push(`addr:${addrKey}`);
+  }
+
   const normName = normalizeContinuityPlatName(it.name || "");
   const geoOrParty = String(
     it.superN || it.atlas?.superNeighborhoodMatch || it.developer || it.applicant || ""
@@ -1034,6 +1154,159 @@ export function buildContinuityKeys(it = {}, rev = {}) {
   }
 
   return keys;
+}
+
+/**
+ * Parse a City of Houston Planning Commission Minutes PDF text into item-level Commission actions.
+ */
+export function parsePcMinutesText(minutesText = "") {
+  const text = String(minutesText || "");
+  const byItemNo = {};
+  const byName = {};
+  const establishNames = [];
+  let establishHearingDateIso = "";
+  let establishAction = "";
+  let consentRangeMax = 0;
+
+  if (!text.trim()) {
+    return {
+      byItemNo,
+      byName,
+      establishNames,
+      establishHearingDateIso,
+      establishAction,
+      consentRangeMax,
+    };
+  }
+
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    const mConsent = line.match(
+      /\b(?:a\.\s*CONSENT\s+SUBDIVISION\s+PLATS|b\.\s*REPLATS)\s*\(\s*(\d+)\s*[-\u2013\u2014]\s*(\d+)\s*\)/i
+    );
+    if (mConsent) {
+      const hi = Number(mConsent[2]);
+      if (Number.isFinite(hi) && hi > consentRangeMax) consentRangeMax = hi;
+    }
+    const mExt = line.match(/^\s*(\d{1,3})\s+([A-Za-z0-9][^\n]{2,}?)\s{2,}(Approve|Defer|Disapprove|Withdrawn)\s*$/i);
+    if (mExt) {
+      const no = mExt[1].trim();
+      const nm = mExt[2].trim();
+      const actRaw = mExt[3].trim();
+      const actLabel =
+        /^approve$/i.test(actRaw)
+          ? "Approved (Extension of Approval)"
+          : `${actRaw} (Extension of Approval)`;
+      byItemNo[no] = { itemNo: no, name: nm, action: actLabel, speakers: "" };
+      byName[nm.toLowerCase()] = byItemNo[no];
+    }
+  }
+
+  const estBlockMatch = text.match(
+    /([IVX]+)\.\s+ESTABLISH\s+A\s+PUBLIC\s+HEARING\s+DATE\s+OF\s+([A-Za-z]+\s+\d{1,2},?\s+\d{4})([\s\S]*?)(?=\n\s*[IVX]+\.\s+|\n\s*ADJOURNMENT|$)/i
+  );
+  if (estBlockMatch) {
+    establishHearingDateIso = excelSerialToIso(estBlockMatch[2]);
+    const blockBody = estBlockMatch[3] || "";
+    const actM = blockBody.match(/Commission\s+action\s*:\s*([^\n]+)/i);
+    establishAction = actM
+      ? actM[1].trim().replace(/\.$/, "")
+      : `Accepted public hearing date (${formatShortUsDate(establishHearingDateIso) || estBlockMatch[2].trim()})`;
+    for (const bLine of blockBody.split(/\r?\n/)) {
+      const mLet = bLine.trim().match(/^[a-z]\.\s+(.+)$/i);
+      if (mLet) {
+        const nm = mLet[1].trim();
+        establishNames.push(nm);
+        byName[nm.toLowerCase()] = {
+          itemNo: `Sec. ${estBlockMatch[1].toUpperCase()}`,
+          name: nm,
+          action: establishAction,
+          speakers: "",
+        };
+      }
+    }
+  }
+
+  const itemBlockRe =
+    /^\s*(\d{1,3})\s+([A-Z0-9][^\n]+?)\r?\n\s*Staff\s+recommendation\s*:\s*([^\n]+)\r?\n\s*Commission\s+action\s*:\s*([\s\S]*?)(?=\r?\n\s*(?:Speaker\(s\)|Motion\s*:|\d{1,3}\s+[A-Z0-9]|[a-k]\.\s+[A-Z]|[IVX]+\.\s+[A-Z]))/gim;
+  let match;
+  while ((match = itemBlockRe.exec(text)) !== null) {
+    const no = match[1].trim();
+    const nm = match[2].trim();
+    const act = match[4].replace(/\s+/g, " ").trim().replace(/\.$/, "");
+    const tailSlice = text.slice(match.index, match.index + 650);
+    const spkM = tailSlice.match(/Speaker\(s\)\s*:\s*([^\n]+(?:\r?\n\s+(?!Motion\s*:)[^\n]+)*)/i);
+    const spk = spkM ? spkM[1].replace(/\s+/g, " ").trim() : "";
+    const finalSpk = /^none$/i.test(spk) ? "" : spk;
+    byItemNo[no] = { itemNo: no, name: nm, action: act, speakers: finalSpk };
+    byName[nm.toLowerCase()] = byItemNo[no];
+  }
+
+  return {
+    byItemNo,
+    byName,
+    establishNames,
+    establishHearingDateIso,
+    establishAction,
+    consentRangeMax,
+  };
+}
+
+/**
+ * Format a clear, human-readable summary of whether a plat item was on a Planning Commission
+ * meeting agenda and what action was taken at that meeting (or whether it was a cycle filing only).
+ */
+export function describeCycleMeetingAction(it = {}) {
+  if (!it || typeof it !== "object") return "Not on meeting agenda";
+  const agendaItemNo = String(it.agendaItemNo || "").trim();
+  const sec = String(it.section || "").trim();
+  const deferral = String(it.deferral || "").trim();
+  const hearingIso = String(it.hearingDateIso || "").trim();
+  const hearingShort = hearingIso ? formatShortUsDate(hearingIso) || hearingIso : "";
+  const minutesAction = String(it.minutesAction || "").trim();
+  const isEstablishSec = /^[IVX]+\.\s*Establish/i.test(sec) || /^Sec\.\s*[IVX]+$/i.test(agendaItemNo);
+  const onAgenda =
+    it.onMeetingAgenda === true ||
+    (it.onMeetingAgenda !== false && Boolean(agendaItemNo)) ||
+    isEstablishSec ||
+    Boolean(minutesAction);
+
+  if (!onAgenda) {
+    if (/Public Hearing Notice Posted/i.test(sec) && hearingShort) {
+      return `Not on meeting agenda (pre-hearing notice posted for ${hearingShort} public hearing)`;
+    }
+    if (hearingShort && hearingIso !== String(it.cycleKey || it.pcDateIso || "")) {
+      return `Not on meeting agenda (cycle spreadsheet filing only · target hearing ${hearingShort})`;
+    }
+    return `Not on meeting agenda (cycle spreadsheet filing only${sec ? " · " + sec : ""})`;
+  }
+
+  const itemPrefix = agendaItemNo
+    ? /^Sec\./i.test(agendaItemNo)
+      ? `On agenda (${agendaItemNo})`
+      : `On agenda (Item #${agendaItemNo})`
+    : `On agenda${sec ? " (" + sec + ")" : ""}`;
+
+  if (minutesAction) {
+    return `${itemPrefix} · Minutes action: ${minutesAction}`;
+  }
+  if (deferral) {
+    const defNum = (deferral.match(/\d+/) || [])[0] || "1";
+    return `${itemPrefix} · Action: Deferred (#${defNum})`;
+  }
+  if (isEstablishSec) {
+    return `${itemPrefix} · Action: Established public hearing date${hearingShort ? " (" + hearingShort + ")" : ""}`;
+  }
+  if (/^(?:A\.\s*Consent|B\.\s*Replats)/i.test(sec)) {
+    return `${itemPrefix} · Consent / Replat agenda (${sec})`;
+  }
+  if (/^C\./i.test(sec)) {
+    return `${itemPrefix} · Public Hearing agenda item`;
+  }
+  if (/^K\./i.test(sec)) {
+    return `${itemPrefix} · Development Plat Variance (Section K) agenda item`;
+  }
+  return `${itemPrefix}${sec ? " · " + sec : ""}`;
 }
 
 function areContinuityNamesCompatible(normA = "", normB = "") {
@@ -1276,6 +1549,24 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
         }
       }
 
+      const onAgendaBool = Boolean(
+        it.onMeetingAgenda === true ||
+          (it.onMeetingAgenda !== false && String(it.agendaItemNo || "").trim())
+      );
+      const minutesUrl = String(it.minutesUrl || cyc.minutesPdfUrl || "").trim();
+      const meetingAction =
+        String(it.meetingAction || "").trim() ||
+        describeCycleMeetingAction({
+          ...it,
+          cycleKey: cycleIso,
+          onMeetingAgenda: onAgendaBool,
+          minutesUrl,
+        });
+      it.meetingAction = meetingAction;
+      if (minutesUrl && !it.minutesUrl) it.minutesUrl = minutesUrl;
+      it.firstCycleKey = priorCycles.length > 0 ? priorCycles[0].cycleKey : cycleIso;
+      it.allCycles = [...priorCycles.map((p) => p.cycleKey), cycleIso];
+
       const snapshot = {
         cycleKey: cycleIso,
         app: it.app,
@@ -1283,9 +1574,21 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
         name: it.name || "",
         deferral: it.deferral || "",
         section: it.section || "",
-        onMeetingAgenda: it.onMeetingAgenda !== false,
+        type: it.type || "",
+        agendaItemNo: String(it.agendaItemNo || ""),
+        hearingDateIso: String(it.hearingDateIso || ""),
+        onMeetingAgenda: onAgendaBool,
+        minutesAction: String(it.minutesAction || ""),
+        minutesUrl,
+        meetingAction,
         tier: r.tier || "",
         tierConfirmed: Boolean(r.tierConfirmed),
+        isHumanReviewed: Boolean(
+          r.tierConfirmed ||
+            r.humanEdited ||
+            (Array.isArray(r.humanEditedFields) && r.humanEditedFields.length > 0) ||
+            (r.why && !isBoilerplatePlatWhy(r.why))
+        ),
         hcad: r.hcad || it.hcad || "",
         address: r.address || it.atlas?.primaryAddress || "",
         yearBuilt: r.yearBuilt || (it.atlas?.earliestYearBuilt ? String(it.atlas.earliestYearBuilt) : ""),
@@ -1296,7 +1599,11 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
         followup: r.followup || "",
       };
 
-      for (const ck of cKeys) {
+      const indexKeys = new Set(cKeys);
+      for (const hid of curHcads) {
+        indexKeys.add(`hcad_single:${hid}`);
+      }
+      for (const ck of indexKeys) {
         if (!seenByKey.has(ck)) seenByKey.set(ck, []);
         seenByKey.get(ck).push(snapshot);
       }
@@ -1304,6 +1611,118 @@ export function linkCrossCycleHistory(cyclesMap = {}, cycleOrder = []) {
   }
 
   return cyclesMap;
+}
+
+/**
+ * Auto-merge recurring biweekly review entries across Planning Commission cycles so that when
+ * viewing "All Recent Cycles", each property appears only once (created on its first cycle and
+ * updated in place by subsequent cycles instead of repeating across 10/01, 10/15, 10/29, 11/12).
+ */
+export function mergePlatItemsAcrossCycles(cyclesMap = {}, cycleOrder = []) {
+  const ordered =
+    Array.isArray(cycleOrder) && cycleOrder.length > 0
+      ? cycleOrder.filter((k) => cyclesMap && Object.prototype.hasOwnProperty.call(cyclesMap, k)).slice().sort()
+      : Object.keys(cyclesMap || {}).sort();
+
+  const mergedEntries = [];
+  const keyToEntryIdx = new Map();
+
+  for (const cycleIso of ordered) {
+    const cyc = cyclesMap[cycleIso];
+    if (!cyc || !Array.isArray(cyc.items)) continue;
+    const reviews = cyc.reviews || {};
+
+    for (const it of cyc.items) {
+      const r = reviews[it.app] || {};
+      const cKeys = buildContinuityKeys(it, r);
+      const { hcadIds } = parseHcadAccountList(
+        [r.hcad || "", it.hcad || "", it.atlas?.hcad_num || ""].join(" ")
+      );
+      const lookupKeys = [...cKeys, ...hcadIds.map((id) => `hcad_single:${id}`)];
+      const curNormName = normalizeContinuityPlatName(it.name || "");
+
+      let matchedIdx = -1;
+      for (const lk of lookupKeys) {
+        if (!keyToEntryIdx.has(lk)) continue;
+        const candIdx = keyToEntryIdx.get(lk);
+        const cand = mergedEntries[candIdx];
+        if (!cand) continue;
+        if (lk.startsWith("app:")) {
+          if (!areContinuitySnapshotsCompatible(hcadIds, curNormName, cand.hcadIds, cand.normName)) {
+            continue;
+          }
+        }
+        matchedIdx = candIdx;
+        break;
+      }
+
+      const occSummary = {
+        cycleKey: cycleIso,
+        app: it.app,
+        name: it.name || "",
+        section: it.section || "",
+        deferral: it.deferral || "",
+        agendaItemNo: String(it.agendaItemNo || ""),
+        onMeetingAgenda: Boolean(
+          it.onMeetingAgenda === true ||
+            (it.onMeetingAgenda !== false && String(it.agendaItemNo || "").trim())
+        ),
+        meetingAction:
+          it.meetingAction ||
+          describeCycleMeetingAction({
+            ...it,
+            cycleKey: cycleIso,
+          }),
+      };
+
+      if (matchedIdx < 0) {
+        const newIdx = mergedEntries.length;
+        const priorCycles = Array.isArray(it.priorCycles) ? it.priorCycles : [];
+        const firstCycleKey = priorCycles.length > 0 ? priorCycles[0].cycleKey : cycleIso;
+        const allCycles = Array.from(
+          new Set([...priorCycles.map((p) => p.cycleKey), cycleIso])
+        ).sort();
+        it._firstCycleKey = firstCycleKey;
+        it._latestCycleKey = cycleIso;
+        it._mergedCycles = allCycles;
+        it._mergedOccurrences = [occSummary];
+        mergedEntries.push({
+          item: it,
+          firstCycleKey,
+          latestCycleKey: cycleIso,
+          cycles: allCycles,
+          occurrences: [occSummary],
+          hcadIds,
+          normName: curNormName,
+        });
+        for (const lk of lookupKeys) {
+          keyToEntryIdx.set(lk, newIdx);
+        }
+      } else {
+        const entry = mergedEntries[matchedIdx];
+        if (!entry.cycles.includes(cycleIso)) {
+          entry.cycles.push(cycleIso);
+          entry.cycles.sort();
+        }
+        entry.occurrences.push(occSummary);
+        entry.latestCycleKey = cycleIso;
+        if (hcadIds.length > 0) {
+          entry.hcadIds = Array.from(new Set([...entry.hcadIds, ...hcadIds]));
+        }
+        if (curNormName) entry.normName = curNormName;
+        it._firstCycleKey = entry.firstCycleKey;
+        it._latestCycleKey = cycleIso;
+        it._mergedCycles = entry.cycles.slice();
+        it._mergedOccurrences = entry.occurrences.slice();
+        entry.item = it;
+        for (const lk of lookupKeys) {
+          keyToEntryIdx.set(lk, matchedIdx);
+        }
+      }
+    }
+  }
+
+  return mergedEntries.map((e) => e.item);
 }
 
 const DEVELOPER_PLACEHOLDER_RE =

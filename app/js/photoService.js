@@ -13,7 +13,7 @@
  * Also builds direct Google Street View Time Machine deep-links (`2007-Present`).
  */
 
-import { getAtlasMaxYear } from './filterStore.js?v=20261110a';
+import { getAtlasMaxYear } from './filterStore.js?v=20261113b';
 
 const COMMONS_API_ENDPOINT = 'https://commons.wikimedia.org/w/api.php';
 
@@ -195,7 +195,7 @@ export async function loadCuratedPhotosIndex() {
       allPhotos: [],
     };
     try {
-      const resp = await fetch('./public/data/building_photos.json?v=20261110a');
+      const resp = await fetch('./public/data/building_photos.json?v=20261113b');
       if (resp.ok) {
         const data = await resp.json();
         const photos = Array.isArray(data?.photos) ? data.photos : [];

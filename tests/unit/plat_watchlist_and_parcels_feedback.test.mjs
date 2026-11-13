@@ -28,6 +28,11 @@ import {
   buildWatchedDeveloperMap,
   extractHearingDateIso,
   hasHumanDossierContributions,
+  stripCorporateSuffixCommas,
+  cleanEntityListString,
+  describeCycleMeetingAction,
+  parsePcMinutesText,
+  mergePlatItemsAcrossCycles,
 } from "../../app/js/platMonitorHelpers.js";
 
 import {
@@ -60,6 +65,10 @@ import {
   buildDangerousBuildingsNotificationText,
   evaluateWatchlistLikelyDemolished,
   graduateWatchlistPropertyToLost,
+  buildCheckDeletionKey,
+  isCheckEntryDeleted,
+  mergeDuplicateWatchlistPair,
+  dedupeWatchlistProperties,
 } from "../../app/js/watchlistSyncHelpers.js";
 
 import {
@@ -1853,5 +1862,275 @@ test("Watchlist Likely-Demolished Detector, graduateWatchlistPropertyToLost, and
     "_syncInspectorLayoutControls must not strip wide-mode when boundary-mode is active"
   );
 });
+
+test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord priority, duplicate Watchlist prevention & merge, All-Cycles cross-cycle agenda merge, PC minutes actions, check entry deletion tombstones, chk-04/chk-14 ordering, and photo/history fields", () => {
+  // F3-08: Auto-delete commas preceding corporate suffixes so 'Cas Consultants, LLC' never splits into 'Cas Consultants' and 'LLC'
+  assert.equal(stripCorporateSuffixCommas("Cas Consultants, LLC"), "Cas Consultants LLC");
+  assert.equal(stripCorporateSuffixCommas("Heights Engineering, L.L.C."), "Heights Engineering L.L.C.");
+  assert.equal(stripCorporateSuffixCommas("Pittsford Samuels, PLLC"), "Pittsford Samuels PLLC");
+  assert.equal(
+    cleanEntityListString("Refokas Holdings, LLC, Cas Consultants, LLC, LLC, Juan Castillo"),
+    "Refokas Holdings LLC, Cas Consultants LLC, Juan Castillo"
+  );
+
+  // F3-07: Owner of record resolves from HCAD rather than copying civil engineer / developer from Plat Tracker
+  assert.equal(
+    normalizeWatchProperty({
+      id: "plat-2026-1587",
+      ownerOfRecord: "CAS Consultants, LLC",
+      hcadOwner: "REFOKAS HOLDINGS LLC",
+      developer: "CAS Consultants, LLC",
+    }).ownerOfRecord,
+    "REFOKAS HOLDINGS LLC"
+  );
+  assert.equal(
+    normalizeWatchProperty({
+      id: "prop-1792765948557",
+      ownerOfRecord: "See HCAD Property Search",
+      hcadOwner: "PARK PLACE METHODIST CHURCH",
+      developer: "Heights Engineering LLC",
+    }).ownerOfRecord,
+    "PARK PLACE METHODIST CHURCH"
+  );
+
+  // F3-09 & F3-11: chk-04 top link is Comptroller Taxpayer Search with Franchise Tax second; chk-14 is in 'Plans & Use' right above chk-08
+  const defaultChk = buildDefaultChecklist("2501 Canal St", "0231000000006");
+  const chk04 = findChecklistRow(defaultChk, "chk-04");
+  assert.equal(chk04.resourceUrl, "https://comptroller.texas.gov/taxes/sales/taxpayer-search.php");
+  assert.equal(chk04.resourceLabel, "Comptroller Taxpayer Search");
+  assert.equal(chk04.additionalResourceUrl, "https://comptroller.texas.gov/taxes/franchise/account-status/search");
+  assert.equal(chk04.additionalResourceLabel, "Comptroller Franchise Tax Search");
+
+  const idx14 = defaultChk.findIndex((r) => r.id === "chk-14");
+  const idx08 = defaultChk.findIndex((r) => r.id === "chk-08");
+  assert.ok(idx14 >= 0 && idx08 >= 0, "Both chk-14 and chk-08 must exist in default checklist");
+  assert.equal(defaultChk[idx14].stage, "Plans & Use", "chk-14 must be in 'Plans & Use' stage");
+  assert.equal(idx14 + 1, idx08, "chk-14 must appear immediately above chk-08 (ILMS)");
+
+  // F3-05: Deleting a logged check entry removes it and records a deletedCheckKeys tombstone that blocks resurrection
+  const propWithMistake = normalizeWatchProperty({
+    id: "plat-2026-1587",
+    address: "2501 CANAL ST",
+    hcadAccount: "0231000000006, 0231000000007",
+    hcadOwner: "REFOKAS HOLDINGS LLC",
+    ownerOfRecord: "CAS Consultants, LLC",
+    developer: "CAS Consultants, LLC",
+    buyerRelatedEntities: "Refokas Holdings, LLC, CAS Consultants, LLC",
+    tier: "1",
+    tierConfirmed: true,
+    checklist: defaultChk.map((r) =>
+      r.id === "chk-14"
+        ? {
+            ...r,
+            status: "In Progress",
+            checks: [
+              { date: "2026-11-13", result: "9/15/2026: Water/wastewater", loggedAt: "2026-11-13T01:50:18.562Z" },
+              { date: "2026-09-15", result: "Water/wastewater permit issued", loggedAt: "2026-11-13T02:00:00.000Z" },
+            ],
+          }
+        : r
+    ),
+  });
+  assert.equal(propWithMistake.ownerOfRecord, "REFOKAS HOLDINGS LLC");
+  assert.equal(propWithMistake.developer, "CAS Consultants LLC");
+  assert.equal(propWithMistake.buyerRelatedEntities, "Refokas Holdings LLC, CAS Consultants LLC");
+
+  const mistakeKey = buildCheckDeletionKey("chk-14", {
+    date: "2026-11-13",
+    result: "9/15/2026: Water/wastewater",
+  });
+  assert.equal(isCheckEntryDeleted("chk-14", { date: "2026-11-13", result: "9/15/2026: Water/wastewater" }, [mistakeKey]), true);
+  const afterDelete = normalizeWatchProperty({
+    ...propWithMistake,
+    updatedAt: "2026-11-13T04:00:00.000Z",
+    humanEdited: true,
+    deletedCheckKeys: [mistakeKey],
+    checklist: propWithMistake.checklist.map((r) =>
+      r.id === "chk-14"
+        ? { ...r, checks: r.checks.filter((c) => c.date !== "2026-11-13") }
+        : r
+    ),
+  });
+  const afterChk14 = findChecklistRow(afterDelete.checklist, "chk-14");
+  assert.equal(afterChk14.checks.length, 1);
+  assert.equal(afterChk14.checks[0].date, "2026-09-15");
+  assert.ok(afterDelete.deletedCheckKeys.includes(mistakeKey));
+
+  // Reconciling with a stale cloud snapshot that still has the deleted check must NOT resurrect it
+  const reconciledNoResurrect = reconcileWatchlistProperty(propWithMistake, propWithMistake, afterDelete);
+  const recChk14 = findChecklistRow(reconciledNoResurrect.checklist, "chk-14");
+  assert.equal(recChk14.checks.length, 1);
+  assert.equal(recChk14.checks[0].date, "2026-09-15");
+
+  // F3-02: Prevent & merge duplicate Watchlist entries (manual prop-* + PC plat-* for 3827 Broadway, or multi-plat 1131 Vera Lou)
+  const manualBroadway = normalizeWatchProperty({
+    id: "prop-1792765948557",
+    propertyName: "Park Place Methodist Church",
+    address: "3827 Broadway St",
+    hcadAccount: "0283120000009",
+    ownerOfRecord: "Park Place Methodist Church",
+    tier: "1",
+    tierConfirmed: true,
+    notes: "Manual research notes on 1949 church.",
+    updatedAt: "2026-10-30T01:59:30.712Z",
+  });
+  const syncBroadwayRes = syncPlatTierToWatchlist([manualBroadway], {
+    appNo: "2026-1302",
+    newTier: "1",
+    tierConfirmed: true,
+    cycleKey: "2026-10-01",
+    platItem: {
+      app: "2026-1302",
+      name: "Tejano Broadway Reserve",
+      developer: "Heights Engineering, LLC",
+      hcad: "0283120000009",
+      atlas: {
+        primaryAddress: "3827 BROADWAY ST",
+        owner: "PARK PLACE METHODIST CHURCH",
+        earliestYearBuilt: 1949,
+      },
+    },
+    review: { tier: "1", tierConfirmed: true, notes: "PC cycle note" },
+    nowIso: "2026-11-13T05:00:00.000Z",
+  });
+  assert.equal(syncBroadwayRes.watchedProperties.length, 1, "Promoting 3827 Broadway from PC review must update existing prop-* entry instead of creating a duplicate");
+  assert.equal(syncBroadwayRes.watchedProperties[0].id, "prop-1792765948557");
+  assert.equal(syncBroadwayRes.watchedProperties[0].developer, "Heights Engineering LLC");
+  assert.equal(syncBroadwayRes.watchedProperties[0].ownerOfRecord, "Park Place Methodist Church");
+
+  const dupPlatBroadway = normalizeWatchProperty({
+    id: "plat-2026-1302",
+    appNo: "2026-1302",
+    propertyName: "Tejano Broadway Reserve",
+    address: "3827 BROADWAY ST",
+    hcadAccount: "0283120000009",
+    ownerOfRecord: "Heights Engineering, LLC",
+    developer: "Heights Engineering, LLC",
+    tier: "1",
+    tierConfirmed: true,
+    updatedAt: "2026-10-30T01:00:00.000Z",
+  });
+  const dedupedList = dedupeWatchlistProperties([manualBroadway, dupPlatBroadway]);
+  assert.equal(dedupedList.length, 1);
+  assert.equal(dedupedList[0].id, "prop-1792765948557");
+  assert.ok(dedupedList[0].mergedDuplicateIds.includes("plat-2026-1302"));
+
+  // F3-03 & F3-04: Cross-cycle agenda auto-merge ('All Recent Cycles') and PC meeting minutes / agenda presence action
+  const minutesParsed = parsePcMinutesText(`
+    102 TEJANO BROADWAY RESERVE
+    Staff recommendation: Defer the application for two weeks.
+    Commission action: Deferred the application for two weeks.
+    Speaker(s): None
+    115 LIBERTY GREEN
+    Staff recommendation: Approve the plat subject to conditions listed.
+    Commission action: Approved the plat subject to conditions listed.
+    Speaker(s): None
+  `);
+  assert.match(minutesParsed.byItemNo["102"]?.action || "", /Defer/i);
+  assert.match(minutesParsed.byItemNo["115"]?.action || "", /Approv/i);
+
+  const notOnAgendaAction = describeCycleMeetingAction({
+    app: "2026-1524",
+    name: "Liberty Green",
+    onMeetingAgenda: false,
+    section: "C. Public Hearing",
+  });
+  assert.match(notOnAgendaAction, /Not on meeting agenda/i);
+
+  const cyclesForMerge = linkCrossCycleHistory({
+    "2026-10-01": {
+      items: [
+        {
+          app: "2026-1524",
+          name: "Liberty Green",
+          type: "C3N",
+          section: "C. Public Hearing",
+          onMeetingAgenda: false,
+          hcad: "0040570000008",
+          why: "Boilerplate auto why",
+          atlas: { primaryAddress: "4705 LIBERTY RD", earliestYearBuilt: 1925 },
+        },
+      ],
+      reviews: { "2026-1524": { status: "to_check", tier: "2" } },
+    },
+    "2026-11-12": {
+      items: [
+        {
+          app: "2026-1524",
+          name: "Liberty Green",
+          type: "C3N",
+          section: "C. Public Hearing Notice Posted",
+          onMeetingAgenda: true,
+          hcad: "0040570000008",
+          why: "Boilerplate auto why",
+          atlas: { primaryAddress: "4705 LIBERTY RD", earliestYearBuilt: 1925 },
+        },
+      ],
+      reviews: {
+        "2026-1524": {
+          status: "reviewed",
+          tier: "2",
+          tierConfirmed: true,
+          notes: "Dangerous building demo permit issued in Feb 2026.",
+          updated: "2026-11-13T01:07:46.595Z",
+        },
+      },
+    },
+  });
+  const mergedAllCycles = mergePlatItemsAcrossCycles(cyclesForMerge, ["2026-10-01", "2026-11-12"]);
+  assert.equal(mergedAllCycles.length, 1, "All-Cycles mode must merge recurring instances of 4705 Liberty into 1 row");
+  assert.equal(mergedAllCycles[0]._firstCycleKey, "2026-10-01");
+  assert.equal(mergedAllCycles[0]._latestCycleKey, "2026-11-12");
+  assert.equal(mergedAllCycles[0]._mergedCycles.length, 2);
+
+  // F3-10 & F3-12: Photo preview/upload fields and Building History & Archival Folder fields survive normalization and 3-way reconciliation
+  const propWithPhotoAndHistory = normalizeWatchProperty({
+    id: "prop-1792765948557",
+    address: "3827 Broadway St",
+    photoUrl: "https://example.org/3827-broadway.jpg",
+    photoCaption: "1949 Sanctuary facade",
+    photoUpdatedAt: "2026-11-13T06:00:00.000Z",
+    buildingHistory: "Constructed in 1949 for Park Place Methodist congregation.",
+    historyFolderUrl: "https://drive.google.com/drive/folders/example-folder",
+    historyLinks: [{ label: "1950 Sanborn Map Sheet", url: "https://example.org/sanborn-1950.pdf" }],
+    historyUpdatedAt: "2026-11-13T06:00:00.000Z",
+    updatedAt: "2026-11-13T06:00:00.000Z",
+  });
+  const recPhotoHistory = reconcileWatchlistProperty(manualBroadway, manualBroadway, propWithPhotoAndHistory);
+  assert.equal(recPhotoHistory.photoUrl, "https://example.org/3827-broadway.jpg");
+  assert.equal(recPhotoHistory.photoCaption, "1949 Sanctuary facade");
+  assert.equal(recPhotoHistory.buildingHistory, "Constructed in 1949 for Park Place Methodist congregation.");
+  assert.equal(recPhotoHistory.historyFolderUrl, "https://drive.google.com/drive/folders/example-folder");
+  assert.equal(recPhotoHistory.historyLinks.length, 1);
+
+  // F3-01 & F3-06: Verify on-disk property_watchlist.json and plat-monitor.html invariants
+  const wlDisk = JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "property_watchlist.json"), "utf8")
+  );
+  const dreyfus = wlDisk.watchedProperties.find((p) => p.id === "plat-DPV-26080390");
+  assert.ok(dreyfus, "3747 Dreyfus (plat-DPV-26080390) must exist in property_watchlist.json");
+  assert.equal(dreyfus.trackerStatus, "Lost");
+  assert.equal(dreyfus.lostHoustonId, "", "3747 Dreyfus was replaced in Nov 2023 per manual Street View review and is NOT in the Lost Houston catalog");
+
+  const canal = wlDisk.watchedProperties.find((p) => p.id === "plat-2026-1587");
+  assert.ok(canal, "2501 Canal (plat-2026-1587) must exist in property_watchlist.json");
+  assert.equal(canal.ownerOfRecord, "REFOKAS HOLDINGS LLC");
+  assert.equal(canal.developer, "CAS Consultants LLC");
+  const canalChk05 = findChecklistRow(canal.checklist, "chk-05");
+  assert.ok(
+    canalChk05.checks.some((c) => c.date === "2026-07-21"),
+    "2501 Canal chk-05 check date must use the HCAD owner acquisition date (2026-07-21)"
+  );
+
+  const platMonitorHtml = fs.readFileSync(path.join(REPO_ROOT, "app", "plat-monitor.html"), "utf8");
+  assert.match(platMonitorHtml, /function captureWatchlistDraftInputs\(/);
+  assert.match(platMonitorHtml, /function restoreWatchlistDraftInputs\(/);
+  assert.match(platMonitorHtml, /data-del-chk-row=/);
+  assert.match(platMonitorHtml, /id="wlHistoryInput"/);
+  assert.match(platMonitorHtml, /id="wlHistoryFolderInput"/);
+  assert.match(platMonitorHtml, /id="wlPhotoUrlInput"/);
+  assert.match(platMonitorHtml, /Marked Lost on Watchlist \(Demolition Permit \/ Loss Logged · Not Yet in Lost Houston Catalog\)/);
+});
+
 
 

@@ -6,8 +6,8 @@
  * and `.coh-landmark-report-card`.
  */
 
-import { isClaimSuppressed } from "./curatedEdits.js?v=20261110a";
-import { escapeHtml, sanitizeHttpUrl } from "./urlValidators.js?v=20261110a";
+import { isClaimSuppressed } from "./curatedEdits.js?v=20261113b";
+import { escapeHtml, sanitizeHttpUrl } from "./urlValidators.js?v=20261113b";
 
 const STATUS_CODE_LABELS = Object.freeze({
   C: "Contributing",
