@@ -1984,7 +1984,9 @@ def _lookup_single_address_candidate(raw_addr: str, idx: dict) -> dict | None:
     hnum = m.group(1).strip()
     st_full = norm_street(f"{m.group(2)} {m.group(3)}")
     st_nodir = re.sub(r"^[NSEW]\s+", "", st_full)
-    hit = idx["addr_exact"].get((hnum, st_full)) or idx["addr_nodir"].get((hnum, st_nodir))
+    addr_exact = idx.get("addr_exact") or {}
+    addr_nodir = idx.get("addr_nodir") or {}
+    hit = addr_exact.get((hnum, st_full)) or addr_nodir.get((hnum, st_nodir))
     if hit:
         return dict(hit)
     for delta in (2, -2, 4, -4, 1, -1, 6, -6, 8, -8, 10, -10):
@@ -1992,7 +1994,7 @@ def _lookup_single_address_candidate(raw_addr: str, idx: dict) -> dict | None:
             cand_num = str(int(hnum) + delta)
         except ValueError:
             break
-        near = idx["addr_exact"].get((cand_num, st_full)) or idx["addr_nodir"].get((cand_num, st_nodir))
+        near = addr_exact.get((cand_num, st_full)) or addr_nodir.get((cand_num, st_nodir))
         if near:
             return {
                 "hcad": "",
@@ -2002,8 +2004,9 @@ def _lookup_single_address_candidate(raw_addr: str, idx: dict) -> dict | None:
                 "year_built": 0,
                 "approximate": True,
             }
-    if st_full in idx["street_centroids"]:
-        lng, lat = idx["street_centroids"][st_full]
+    street_centroids = idx.get("street_centroids") or {}
+    if st_full in street_centroids:
+        lng, lat = street_centroids[st_full]
         return {
             "hcad": "",
             "address": f"{hnum} {st_full}",
@@ -7190,12 +7193,14 @@ def build_property_watchlist(
     watched_by_id = {p["id"]: p for p in deduped_props if p.get("id")}
 
     # Backfill missing parcel coordinates and construction year from local HCAD/address shard indices
+    hcad_map = idx.get("hcad_map") or {}
+    buildings_by_hcad = idx.get("buildings_by_hcad") or {}
     for prop in watched_by_id.values():
         if prop.get("lat") is not None and prop.get("lng") is not None:
             continue
         hcads = parse_hcad_account_list(prop.get("hcadAccount") or "")
         for hid in hcads:
-            rec = idx["hcad_map"].get(hid) or idx["buildings_by_hcad"].get(hid)
+            rec = hcad_map.get(hid) or buildings_by_hcad.get(hid)
             if rec and rec.get("lat") and rec.get("lng"):
                 prop["lat"] = round(float(rec["lat"]), 6)
                 prop["lng"] = round(float(rec["lng"]), 6)
