@@ -294,7 +294,8 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     )
     assert f_threat_selected == "All threat categories"
 
-    # Select All Recent Cycles and verify Montrose Residences (2026-1585, fixed to Tier 3 / 1226-1230 W Pierce St)
+    # Select All Recent Cycles and verify Montrose Residences auto-merges across cycles (F3-03),
+    # then select 2026-10-29 to verify the Notice-only occurrence (2026-10-29::2026-1585) has no Plat PDF
     page.select_option("#cycleSelect", "all")
     page.locator("#tabs [data-g='all']").click()
     page.fill("#q", "Montrose Residences")
@@ -302,12 +303,10 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
         "#list .row:has-text('1226 W Pierce'), #list .row:has-text('1226-1230 W Pierce')",
         timeout=5000,
     )
-    assert page.locator("#list .row").count() >= 1
-    oct29_montrose_row = page.locator("#list .row[data-occ='2026-10-29::2026-1585']")
-    if oct29_montrose_row.count() >= 1:
-        oct29_montrose_row.first.click()
-    else:
-        page.locator("#list .row").first.click()
+    assert page.locator("#list .row").count() == 1
+    page.select_option("#cycleSelect", "2026-10-29")
+    page.wait_for_selector("#list .row[data-occ='2026-10-29::2026-1585']", timeout=5000)
+    page.locator("#list .row[data-occ='2026-10-29::2026-1585']").first.click()
     montrose_detail = page.locator("#detail").inner_text()
     assert "Nov 12, 2026" in montrose_detail or "11/12/2026" in montrose_detail
     assert page.locator("#detail a", has_text="Public Hearing Notice PDF").count() >= 1
@@ -318,6 +317,7 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
         "() => document.querySelector('#r-threat')?.selectedOptions?.[0]?.textContent?.trim() || ''"
     )
     assert r_threat_selected != ""
+    page.select_option("#cycleSelect", "all")
 
     # Verify Amerimex Motors (2026-1659) multi-HCAD & cross-cycle history
     page.fill("#q", "Amerimex Motors")

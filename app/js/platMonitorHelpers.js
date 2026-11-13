@@ -1675,22 +1675,27 @@ export function mergePlatItemsAcrossCycles(cyclesMap = {}, cycleOrder = []) {
           }),
       };
 
+      const priorCycles = Array.isArray(it.priorCycles) ? it.priorCycles : [];
       if (matchedIdx < 0) {
         const newIdx = mergedEntries.length;
-        const priorCycles = Array.isArray(it.priorCycles) ? it.priorCycles : [];
         const firstCycleKey = priorCycles.length > 0 ? priorCycles[0].cycleKey : cycleIso;
         const allCycles = Array.from(
           new Set([...priorCycles.map((p) => p.cycleKey), cycleIso])
         ).sort();
+        const allApps = Array.from(
+          new Set([it.app, it.linkedAppNo, ...priorCycles.map((p) => p.app)].filter(Boolean))
+        );
         it._firstCycleKey = firstCycleKey;
         it._latestCycleKey = cycleIso;
         it._mergedCycles = allCycles;
+        it._mergedApps = allApps;
         it._mergedOccurrences = [occSummary];
         mergedEntries.push({
           item: it,
           firstCycleKey,
           latestCycleKey: cycleIso,
           cycles: allCycles,
+          apps: allApps,
           occurrences: [occSummary],
           hcadIds,
           normName: curNormName,
@@ -1704,6 +1709,14 @@ export function mergePlatItemsAcrossCycles(cyclesMap = {}, cycleOrder = []) {
           entry.cycles.push(cycleIso);
           entry.cycles.sort();
         }
+        entry.apps = Array.from(
+          new Set([
+            it.app,
+            it.linkedAppNo,
+            ...(entry.apps || []),
+            ...priorCycles.map((p) => p.app),
+          ].filter(Boolean))
+        );
         entry.occurrences.push(occSummary);
         entry.latestCycleKey = cycleIso;
         if (hcadIds.length > 0) {
@@ -1713,6 +1726,7 @@ export function mergePlatItemsAcrossCycles(cyclesMap = {}, cycleOrder = []) {
         it._firstCycleKey = entry.firstCycleKey;
         it._latestCycleKey = cycleIso;
         it._mergedCycles = entry.cycles.slice();
+        it._mergedApps = entry.apps.slice();
         it._mergedOccurrences = entry.occurrences.slice();
         entry.item = it;
         for (const lk of lookupKeys) {

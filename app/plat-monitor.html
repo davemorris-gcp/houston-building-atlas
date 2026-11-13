@@ -2479,7 +2479,7 @@ function filtered(){
       if (!q) return true;
       const r = revFor(it);
       return [
-        it.name, it.prevSub, it.developer, it.org, it.app, it.linkedAppNo, it.superN,
+        it.name, it.prevSub, it.developer, it.org, it.app, it.linkedAppNo, ...(it._mergedApps || []), it.superN,
         r.address, r.hcad, it.hcad, (it.atlas || {}).primaryAddress, it._c.reason
       ].join(" ").toLowerCase().includes(q);
     })
@@ -2543,9 +2543,10 @@ function renderList(precomputedActCtx = null){
     const subParts = primaryAddr
       ? [it.name, it.prevSub && it.prevSub !== it.name ? `Orig: ${it.prevSub}` : "", it.superN].filter(Boolean)
       : [it.prevSub, it.superN].filter(Boolean);
-    const appLabel = it.linkedAppNo && it.linkedAppNo !== it.app
-      ? `${it.app} · ${it.linkedAppNo}`
-      : it.app;
+    const mergedApps = Array.from(
+      new Set([it.app, it.linkedAppNo, ...(it._mergedApps || [])].filter(Boolean))
+    );
+    const appLabel = mergedApps.join(" · ");
 
     return `<button class="row" data-occ="${esc(it._occKey)}" data-app="${esc(it.app)}" aria-current="${it._occKey === view.selected}">
       <div class="top">
