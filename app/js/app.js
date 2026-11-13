@@ -89,8 +89,10 @@ import {
   resolveBuildingPhotos,
 } from "./photoService.js?v=20261110a";
 import {
+  buildAncestryCityDirImageUrl,
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
+  isPre1927CityDirHit,
   resolveArchivalRecords,
 } from "./archivalHelpers.js?v=20261110a";
 import {
@@ -12786,8 +12788,11 @@ export class HoustonAtlasApp {
     const cleanHcad = String(hcadNum || "").trim();
     const auditHit =
       cleanHcad && this.citydirIndex?.by_hcad ? this.citydirIndex.by_hcad[cleanHcad] || null : null;
+    const hasPre1927Hit = isPre1927CityDirHit(auditHit);
     const isAuditedAbsent =
-      !auditHit && cleanHcad && this.citydirAbsentSet ? this.citydirAbsentSet.has(cleanHcad) : false;
+      !hasPre1927Hit && cleanHcad && this.citydirAbsentSet
+        ? this.citydirAbsentSet.has(cleanHcad)
+        : false;
 
     const allVolumes = Array.isArray(this.citydirIndex?.volumes)
       ? this.citydirIndex.volumes.filter((v) => v.primary !== false)
@@ -12944,7 +12949,7 @@ export class HoustonAtlasApp {
         </a>`
       : "";
 
-    // Step 2: City Directories (1866-1926)
+    // Step 2: City Directories (1866-1968)
     const hit = cityDirInfo.auditHit;
     const addrInfo = cityDirInfo.addrInfo;
     let cityDirAuditBannerHtml = "";
@@ -12954,26 +12959,63 @@ export class HoustonAtlasApp {
         yrsList.length > 1
           ? `${yrsList[0]}-${yrsList[yrsList.length - 1]} (${yrsList.length} volumes)`
           : `${hit.e}`;
+      const isPost1926OnlyHit = Number(hit.e) >= 1927 && !hit.p;
+      const ancestryImgUrl = buildAncestryCityDirImageUrl(hit.ai);
       const pageUrl = hit.p
         ? `https://cdm17006.contentdm.oclc.org/digital/collection/citydir/id/${hit.p}/rec/1`
-        : addrInfo.exactCityDirUrl;
+        : (isPost1926OnlyHit && ancestryImgUrl) || addrInfo.exactCityDirUrl;
       const flagNote =
         hit.f === "earlier" && yr > hit.e
           ? `Appears in directory earlier than HCAD roll`
           : hit.f === "undated_hcad"
           ? `Dates structure unrecorded on HCAD roll`
+          : isPost1926OnlyHit
+          ? `Confirmed in digitized 1927-1968 Houston City Directories (Ancestry dbId=2469)`
           : `Confirmed in digitized HPL directories`;
+      const occRows = Array.isArray(hit.r) ? hit.r : [];
+      const citeText = hit.c
+        ? String(hit.c)
+        : occRows.length > 0 && occRows[0] && occRows[0][1]
+        ? `${occRows[0][0]} Houston City Directory: ${occRows[0][1]}${
+            occRows[0][2] ? ` (${occRows[0][2]})` : ""
+          } (${flagNote})`
+        : `${flagNote} (Earliest volume: ${hit.e}).`;
+      const occTimelineHtml =
+        occRows.length > 1
+          ? `<div class="rk-subtle-note" style="margin-top:4px;"><strong>Indexed Occupants:</strong> ${occRows
+              .slice(0, 5)
+              .map(
+                (r) =>
+                  `${this._escapeResearchHtml(String(r[0]))}: ${this._escapeResearchHtml(
+                    String(r[1] || "")
+                  )}${r[2] ? ` (${this._escapeResearchHtml(String(r[2]))})` : ""}`
+              )
+              .join(" &middot; ")}</div>`
+          : "";
+      const post1926ScanBtnHtml =
+        !isPost1926OnlyHit && ancestryImgUrl
+          ? `<a
+              href="${ancestryImgUrl}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rk-action-btn secondary small"
+              title="Open earliest post-1926 digitized directory page in Ancestry Library Edition (dbId=2469)"
+            >
+              Open Post-1926 Scan (Ancestry) &#8599;
+            </a>`
+          : "";
       cityDirAuditBannerHtml = `
         <div class="rk-verified-hit-box">
           <div class="rk-verified-hit-top">
-            <span class="rk-verified-hit-badge">&#10003; Verified 1866-1926 Directory Sighting</span>
+            <span class="rk-verified-hit-badge">${
+              isPost1926OnlyHit
+                ? "&#10003; Verified 1927-1968 Directory Sighting"
+                : "&#10003; Verified 1866-1926 Directory Sighting"
+            }</span>
             <span class="rk-verified-hit-span mono">${this._escapeResearchHtml(spanLabel)}</span>
           </div>
-          ${
-            hit.c
-              ? `<div class="rk-verified-hit-cite">${this._escapeResearchHtml(hit.c)}</div>`
-              : `<div class="rk-verified-hit-cite">${this._escapeResearchHtml(flagNote)} (Earliest volume: ${hit.e}).</div>`
-          }
+          <div class="rk-verified-hit-cite">${this._escapeResearchHtml(citeText)}</div>
+          ${occTimelineHtml}
           <div class="rk-verified-hit-actions">
             <a
               href="${pageUrl}"
@@ -12981,10 +13023,24 @@ export class HoustonAtlasApp {
               rel="noopener noreferrer"
               class="rk-action-btn primary small"
             >
-              Open Earliest Scanned Page (${hit.e}) &#8599;
+              Open Earliest Scanned Page (${hit.e}${isPost1926OnlyHit && ancestryImgUrl ? ", Ancestry" : ""}) &#8599;
             </a>
+            ${post1926ScanBtnHtml}
           </div>
         </div>
+        ${
+          isPost1926OnlyHit && cityDirInfo.isAuditedAbsent
+            ? `<div class="rk-subtle-note" style="margin-top:6px;">
+                <strong>Pre-Screened (1866-1926):</strong> No exact match under <code>${this._escapeResearchHtml(
+                  addrInfo.cleanQuery || title
+                )}</code> in pre-1927 digitized directories${
+                yr > 1926
+                  ? ` (consistent with ${yr} construction).`
+                  : ` (check pre-1912 house numbering or historic street aliases below).`
+              }
+              </div>`
+            : ""
+        }
       `;
     } else if (cityDirInfo.isAuditedAbsent) {
       cityDirAuditBannerHtml = `
@@ -13272,7 +13328,7 @@ export class HoustonAtlasApp {
         <div class="rk-step">
           <div class="rk-step-head">
             <span class="rk-step-num">2</span>
-            <span class="rk-step-title">Houston City Directories (1866-1926 Occupants &amp; Dating)</span>
+            <span class="rk-step-title">Houston City Directories (1866-1968 Occupants &amp; Dating)</span>
           </div>
           ${cityDirAuditBannerHtml}
           ${aliasBtnsHtml}
@@ -13695,9 +13751,9 @@ export class HoustonAtlasApp {
     const currentYear = getAtlasMaxYear();
     const bldgAge = Math.max(0, currentYear - yr);
     const hcadNumPre = String(props.hcad_num || "").trim();
-    const hasCityDirHitPre = Boolean(
-      hcadNumPre && this.citydirIndex?.by_hcad && this.citydirIndex.by_hcad[hcadNumPre]
-    );
+    const citydirRecPre =
+      hcadNumPre && this.citydirIndex?.by_hcad ? this.citydirIndex.by_hcad[hcadNumPre] : null;
+    const hasCityDirHitPre = isPre1927CityDirHit(citydirRecPre);
     const isAuditedAbsent1926 = Boolean(
       !hasCityDirHitPre &&
         hcadNumPre &&
@@ -17178,9 +17234,15 @@ export class HoustonAtlasApp {
       .filter(Boolean)
       .join(" · ") || (props.subdivision ? String(props.subdivision) : "See HCAD & County Clerk RP");
     const dossierCityDirSummary = dossierCityDir.auditHit
-      ? `Verified in HPL Directories (Earliest: ${dossierCityDir.auditHit.e}; ${
+      ? `Verified in ${
+          Number(dossierCityDir.auditHit.e) >= 1927 && !dossierCityDir.auditHit.p
+            ? "1927-1968 Directories"
+            : "HPL Directories"
+        } (Earliest: ${dossierCityDir.auditHit.e}; ${
           Array.isArray(dossierCityDir.auditHit.y) ? dossierCityDir.auditHit.y.length : 1
-        } digitized vol.)`
+        } digitized vol.${
+          dossierCityDir.isAuditedAbsent ? "; Absent 1866-1926" : ""
+        })`
       : dossierCityDir.isAuditedAbsent
       ? `Absent in 1866-1926 directories (Search "${dossierAddrInfo.cleanQuery || title}")`
       : `Search "${dossierAddrInfo.cleanQuery || title}" in HPL 1866-1926 Directories${

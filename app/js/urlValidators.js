@@ -127,6 +127,8 @@ export const BROWSER_CHALLENGE_PROTECTED_HOSTS = new Set([
   "houston.novusagenda.com",
   "web.archive.org",
   "texashistory.unt.edu",
+  "www.ancestry.com",
+  "ancestry.com",
 ]);
 
 /**

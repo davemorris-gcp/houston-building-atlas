@@ -18,6 +18,7 @@ import sqlite3
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CACHE_DB = REPO_ROOT / "pipeline" / "cache" / "citydir_cache.sqlite"
+ANCESTRY_MATCHES_JSON = REPO_ROOT / "pipeline" / "cache" / "ancestry_houston_citydir_1927_1968_matches.json"
 OUTPUT_JSON = REPO_ROOT / "app" / "public" / "data" / "citydir_index.json"
 
 # Documented Houston historic street renamings relevant to 1866-1951 Sanborn & City Directory research.
@@ -263,12 +264,18 @@ def build_index(
     cache_db: Path = CACHE_DB,
     overlays_json: Path | None = None,
     overrides_json: Path | None = None,
+    ancestry_matches_json: Path | None = None,
 ) -> dict:
     if not cache_db.exists():
         raise FileNotFoundError(f"Missing city directory SQLite cache: {cache_db}")
 
     ovl_path = overlays_json if overlays_json is not None else (REPO_ROOT / "app" / "public" / "data" / "overlays.json")
     ovr_path = overrides_json if overrides_json is not None else (REPO_ROOT / "app" / "public" / "data" / "curated_overrides.json")
+    anc_path = (
+        ancestry_matches_json
+        if ancestry_matches_json is not None
+        else (ANCESTRY_MATCHES_JSON if cache_db == CACHE_DB else None)
+    )
 
     red_book_by_hcad: dict[str, list[list]] = {}
     if ovl_path.exists():
@@ -301,6 +308,7 @@ def build_index(
             pass
 
     contract_by_hcad: dict[str, list[list]] = {}
+    ovr_by_hcad: dict[str, dict] = {}
     if ovr_path.exists():
         try:
             ovr_doc = json.loads(ovr_path.read_text(encoding="utf-8"))
@@ -309,6 +317,10 @@ def build_index(
                 for k, ov in ovr_map.items():
                     if not isinstance(ov, dict):
                         continue
+                    if "#" not in str(k):
+                        hc_ov = re.sub(r"\D", "", str(ov.get("hcad_num") or k))
+                        if len(hc_ov) == 13:
+                            ovr_by_hcad[hc_ov] = ov
                     hc = ov.get("hist_contract")
                     if not isinstance(hc, dict):
                         continue
@@ -324,8 +336,8 @@ def build_index(
                         bucket = contract_by_hcad.setdefault(h, [])
                         if tup not in bucket and len(bucket) < 2:
                             bucket.append(tup)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"[build_house_history_index] Warning parsing {ovr_path}: {exc}")
 
     conn = sqlite3.connect(str(cache_db))
     cur = conn.cursor()
@@ -427,11 +439,131 @@ def build_index(
 
     conn.close()
 
+    post_1926_extended_count = 0
+    post_1926_new_parcel_count = 0
+    if anc_path is not None and anc_path.exists():
+        try:
+            from atlas_pipeline.harvest_taro_and_hpl_archives import load_confidential_hcad_set
+
+            data_dir_for_conf = (
+                ovr_path.parent
+                if (ovr_path.parent / "permits").exists()
+                else REPO_ROOT / "app" / "public" / "data"
+            )
+            confidential_hcads = load_confidential_hcad_set(data_dir_for_conf)
+        except Exception as exc:
+            print(f"[build_house_history_index] Warning loading confidential_hcads: {exc}")
+            confidential_hcads = set()
+
+        anc_doc = json.loads(anc_path.read_text(encoding="utf-8"))
+        anc_by_hcad = anc_doc.get("by_hcad") if isinstance(anc_doc, dict) else {}
+        if isinstance(anc_by_hcad, dict):
+            for raw_hc, anc_rec in sorted(anc_by_hcad.items()):
+                hc_clean = re.sub(r"\D", "", str(raw_hc or ""))
+                if len(hc_clean) != 13 or hc_clean in confidential_hcads:
+                    continue
+                if not isinstance(anc_rec, dict):
+                    continue
+                sightings = anc_rec.get("sightings") or []
+                if not isinstance(sightings, list) or not sightings:
+                    continue
+
+                ov_entry = ovr_by_hcad.get(hc_clean)
+                if isinstance(ov_entry, dict) and (
+                    ov_entry.get("suppress_only")
+                    or ov_entry.get("is_demolished_vacant")
+                    or int(ov_entry.get("year_built") or 0) >= 1975
+                ):
+                    continue
+
+                cat = str(anc_rec.get("cat") or "")
+                eff_yr = int(
+                    (ov_entry or {}).get("year_built")
+                    or anc_rec.get("atlas_yr")
+                    or 0
+                )
+                if cat == "inner_core" and eff_yr > 1970 and hc_clean not in by_hcad:
+                    continue
+                if eff_yr > 1990 and hc_clean not in by_hcad and cat != "triage_1927":
+                    continue
+
+                sorted_sightings = sorted(
+                    (s for s in sightings if isinstance(s, dict) and int(s.get("y") or 0) >= 1927),
+                    key=lambda s: (int(s.get("y") or 0), str(s.get("n") or "")),
+                )
+                if not sorted_sightings:
+                    continue
+
+                post_years = sorted({int(s["y"]) for s in sorted_sightings})
+                first_s = sorted_sightings[0]
+                first_img = sanitize_text(str(first_s.get("img") or "")).strip()
+
+                occ_tuples: list[list] = []
+                for s in sorted_sightings:
+                    y_val = int(s["y"])
+                    n_val = sanitize_text(str(s.get("n") or "")).strip()[:44]
+                    if not n_val:
+                        continue
+                    r_raw = sanitize_text(str(s.get("r") or "")).strip()[:44]
+                    if r_raw in ("City Directory Resident", "Street Guide Occupant", ""):
+                        r_val = (
+                            "City Directory Resident"
+                            if s.get("sec") == "alpha"
+                            else "Street Guide Occupant"
+                        )
+                    else:
+                        r_val = r_raw
+                    tup = [y_val, n_val, r_val]
+                    if tup not in occ_tuples and len(occ_tuples) < 4:
+                        occ_tuples.append(tup)
+
+                if hc_clean in by_hcad:
+                    cur = by_hcad[hc_clean]
+                    cur["y"] = sorted(set(cur.get("y") or []) | set(post_years))
+                    if first_img:
+                        cur["ai"] = first_img
+                    cur_r = list(cur.get("r") or [])
+                    for tup in occ_tuples:
+                        if tup not in cur_r and len(cur_r) < 6:
+                            cur_r.append(tup)
+                    if cur_r:
+                        cur_r.sort(key=lambda r: (int(r[0]), str(r[1])))
+                        cur["r"] = cur_r[:6]
+                    post_1926_extended_count += 1
+                else:
+                    e_yr = post_years[0]
+                    if eff_yr == 0:
+                        f_val = "undated_hcad"
+                    elif eff_yr > e_yr and cat != "override":
+                        f_val = "earlier"
+                    else:
+                        f_val = "confirmed"
+                    new_entry: dict = {
+                        "e": e_yr,
+                        "y": post_years,
+                        "f": f_val,
+                    }
+                    if first_img:
+                        new_entry["ai"] = first_img
+                    if occ_tuples:
+                        new_entry["r"] = occ_tuples
+                    if cat in ("override", "landmarks", "nrhp_properties", "good_brick_awards", "audit"):
+                        addr_clean = sanitize_text(str(anc_rec.get("addr") or "")).strip()
+                        n_first = sanitize_text(str(first_s.get("n") or "")).strip()
+                        r_first = sanitize_text(str(first_s.get("r") or "Resident")).strip()
+                        new_entry["c"] = (
+                            f"{e_yr} Houston City Directory: {n_first} ({r_first}) at {addr_clean}"
+                        )[:160]
+                    by_hcad[hc_clean] = new_entry
+                    post_1926_new_parcel_count += 1
+
     payload = {
-        "generated_from": "HPL ContentDM Houston City Directories (1866-1926)",
+        "generated_from": "HPL ContentDM Houston City Directories (1866-1926) + Ancestry.com U.S. City Directories (1927-1968, dbId=2469)",
         "collection_url": "https://cdm17006.contentdm.oclc.org/digital/collection/citydir",
         "volume_count": len(volumes),
         "verified_hit_count": len(by_hcad),
+        "post_1926_extended_parcel_count": post_1926_extended_count,
+        "post_1926_new_parcel_count": post_1926_new_parcel_count,
         "audited_absent_count": len(absent_pre1926),
         "volumes": volumes,
         "historic_streets": HISTORIC_STREET_ALIASES,
@@ -442,7 +574,17 @@ def build_index(
 
 
 def main() -> None:
+    existing_clearance = None
+    if OUTPUT_JSON.exists():
+        try:
+            existing_clearance = json.loads(OUTPUT_JSON.read_text(encoding="utf-8")).get(
+                "post_1926_clearance"
+            )
+        except Exception:
+            existing_clearance = None
     payload = build_index()
+    if existing_clearance and "post_1926_clearance" not in payload:
+        payload["post_1926_clearance"] = existing_clearance
     OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     raw = json.dumps(payload, ensure_ascii=True, separators=(",", ":"))
     if "\u2014" in raw or "\\u2014" in raw:
@@ -452,7 +594,9 @@ def main() -> None:
     print(
         f"Wrote {OUTPUT_JSON} ({size_kb:.1f} KB): "
         f"{payload['volume_count']} volumes, "
-        f"{payload['verified_hit_count']} verified parcel hits, "
+        f"{payload['verified_hit_count']} verified parcel hits "
+        f"(+{payload.get('post_1926_new_parcel_count', 0)} new 1927-1968 parcels, "
+        f"+{payload.get('post_1926_extended_parcel_count', 0)} extended pre-1927 parcels), "
         f"{payload['audited_absent_count']} audited pre-1927 absences."
     )
 

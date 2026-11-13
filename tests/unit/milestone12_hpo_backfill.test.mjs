@@ -1723,7 +1723,7 @@ test("UT-M12-6: Live hpo_district_surveys.json, overlays.json, curated_overrides
       const cdE = Number(citydirByHcad[hc]?.e) || 0;
       const ovYr = Number(rec.year_built) || 0;
       assert.equal(
-        cdE >= 1866 && cdE < ovYr,
+        cdE >= 1866 && cdE <= 1926 && cdE < ovYr,
         false,
         `HPO survey override ${hc} (year_built=${ovYr}) must not post-date 1866-1926 City Directory occupant (${cdE})`
       );

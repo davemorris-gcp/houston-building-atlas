@@ -7,8 +7,10 @@ import { fileURLToPath } from "node:url";
 import { HoustonAtlasApp } from "../../app/js/app.js";
 import {
   HPL_SURVEY_CEILINGS,
+  buildAncestryCityDirImageUrl,
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
+  isPre1927CityDirHit,
   normalizeArchivalLookupAddress,
   resolveArchivalRecords,
 } from "../../app/js/archivalHelpers.js";
@@ -60,6 +62,7 @@ function createFakeAtlasApp(overrides = {}) {
   const app = Object.create(HoustonAtlasApp.prototype);
   app.archivalIndex = null;
   app.citydirIndex = null;
+  app.citydirAbsentSet = null;
   app._globalRejections = null;
   app.filterStore = {
     getState: () => ({
@@ -68,6 +71,9 @@ function createFakeAtlasApp(overrides = {}) {
     }),
   };
   Object.assign(app, overrides);
+  if (app.citydirIndex && !app.citydirAbsentSet && Array.isArray(app.citydirIndex.absent_through_1926)) {
+    app.citydirAbsentSet = new Set(app.citydirIndex.absent_through_1926);
+  }
   return app;
 }
 
@@ -478,12 +484,53 @@ test("UT-M10-4: post1926NoteHtml, citydir_index.json post_1926_clearance, and 19
   assert.equal(clearance.usco_class_r_re_renewals_found, 0);
   assert.equal(clearance.all_1927_1963_public_domain, true);
   assert.equal(clearance.csv_path, "docs/data/houston_city_directories_1927_1963_usco_clearance.csv");
+  assert.equal(clearance.ancestry_collection_id, "2469");
+  assert.equal(clearance.ancestry_post_1926_volume_count, 31);
+  assert.equal(clearance.ancestry_post_1926_distinct_years, 28);
+  assert.deepEqual(clearance.ancestry_post_1926_span, [1927, 1968]);
+  assert.equal(
+    clearance.ancestry_catalog_path,
+    "docs/data/houston_city_directories_ancestry_catalog.json"
+  );
+
+  // Verify Ancestry 1927-1968 volume & section catalog JSON + CSV
+  const ancCatalogRaw = fs.readFileSync(
+    path.join(DOCS_DATA_DIR, "houston_city_directories_ancestry_catalog.json"),
+    "utf8"
+  );
+  assert.equal(/[\u2013\u2014]/.test(ancCatalogRaw), false, "Ancestry catalog JSON must contain zero U+2013/U+2014 dashes");
+  const ancCatalog = JSON.parse(ancCatalogRaw);
+  assert.equal(ancCatalog.ancestry_db_id, "2469");
+  assert.equal(ancCatalog.post_1926_volume_entries, 31);
+  assert.equal(ancCatalog.post_1926_distinct_years, 28);
+  assert.equal(Array.isArray(ancCatalog.volumes) && ancCatalog.volumes.length, 31);
+  const ancCsvRaw = fs.readFileSync(
+    path.join(DOCS_DATA_DIR, "houston_city_directories_ancestry_catalog.csv"),
+    "utf8"
+  );
+  assert.equal(/[\u2013\u2014]/.test(ancCsvRaw), false, "Ancestry catalog CSV must contain zero U+2013/U+2014 dashes");
+  const ancCsvRows = parseSimpleCsv(ancCsvRaw);
+  assert.equal(ancCsvRows.length, 31);
+
+  // Verify post-1926 by_hcad enrichment (including 1127 Key St 0621100000014)
+  assert.ok(
+    citydir.verified_hit_count >= 19000,
+    `Expected >= 19,000 verified City Directory parcel hits across 1866-1968, got ${citydir.verified_hit_count}`
+  );
+  assert.ok(citydir.post_1926_new_parcel_count >= 16000);
+  assert.ok(citydir.post_1926_extended_parcel_count >= 2000);
+  const key1127 = citydir.by_hcad["0621100000014"];
+  assert.ok(key1127, "1127 Key St (0621100000014) must be enriched in citydir_index.json by_hcad");
+  assert.equal(key1127.e, 1932);
+  assert.equal(key1127.ai, "4981231");
+  assert.ok(Array.isArray(key1127.r) && key1127.r.length >= 3);
 
   const csvRaw = fs.readFileSync(
     path.join(DOCS_DATA_DIR, "houston_city_directories_1927_1963_usco_clearance.csv"),
     "utf8"
   );
   assert.equal(/[\u2013\u2014]/.test(csvRaw), false, "USCO clearance CSV must contain zero U+2013/U+2014 dashes");
+  assert.equal(csvRaw.includes("None:"), false, "USCO clearance CSV must not contain literal 'None:' volume labels");
   const csvRows = parseSimpleCsv(csvRaw);
   assert.equal(csvRows.length, 37, "Expected exactly 37 directory years (1927..1963)");
   for (let idx = 0; idx < 37; idx += 1) {
@@ -493,6 +540,11 @@ test("UT-M10-4: post1926NoteHtml, citydir_index.json post_1926_clearance, and 19
     assert.equal(Number(row.usco_class_r_re_renewals_found), 0);
     assert.ok(row.copyright_status.startsWith("Public Domain"), `Row ${expectedYr} must be Public Domain`);
   }
+  const row1927 = csvRows.find((r) => Number(r.directory_year) === 1927);
+  assert.ok(
+    row1927.online_open_scan_status.includes("Street Guide 4978080..4978265"),
+    "1927 edition must include Street Guide image range in online_open_scan_status"
+  );
   const row1941 = csvRows.find((r) => Number(r.directory_year) === 1941);
   assert.ok(row1941.usco_class_a_registrations.includes("A 155265"), "1941 edition must map USCO registration A 155265");
 
@@ -550,8 +602,61 @@ test("UT-M10-4: post1926NoteHtml, citydir_index.json post_1926_clearance, and 19
   assert.ok(post1926Html.includes("trace 1941-present residents"));
   assert.ok(post1926Html.includes("Julia Ideson Building, 550 McKinney St"));
   assert.ok(post1926Html.includes("Woodson Research Center (Fondren Library)"));
+  assert.ok(post1926Html.includes('href="https://www.ancestry.com/search/collections/2469/"'));
   assert.ok(post1926Html.includes('href="https://txarchives.org/home"'));
   assert.equal(/[\u2013\u2014]/.test(post1926Html), false);
+
+  // Verify post-1926 directory sighting banner for 1127 Key St (0621100000014)
+  const key1127Info = fakeApp._buildCityDirectoryResearchData(
+    { hcad_num: "0621100000014", address: "1127 KEY ST" },
+    "0621100000014",
+    1928,
+    {
+      ...baseAddrInfo,
+      houseNum: "1127",
+      streetStem: "Key",
+      cleanQuery: "1127 Key",
+    }
+  );
+  assert.ok(key1127Info.auditHit);
+  assert.equal(key1127Info.auditHit.e, 1932);
+  const key1127Html = fakeApp._buildHouseHistoryResearchKitHtml(
+    makeBaseCtx(1928, key1127Info)
+  );
+  assert.ok(key1127Html.includes("Verified 1927-1968 Directory Sighting"));
+  assert.ok(key1127Html.includes("Indexed Occupants:"));
+  assert.ok(key1127Html.includes("Pre-Screened (1866-1926):"));
+  assert.ok(
+    key1127Html.includes(
+      'href="https://www.ancestry.com/imageviewer/collections/2469/images/4981231"'
+    )
+  );
+  assert.equal(/[\u2013\u2014]/.test(key1127Html), false);
+
+  // Verify pre-1927 non-ContentDM entry (!hit.p, hit.e <= 1926) extended with Ancestry (hit.ai)
+  const pre1927NoPtrHtml = fakeApp._buildHouseHistoryResearchKitHtml(
+    makeBaseCtx(1915, {
+      auditHit: { e: 1915, y: [1915, 1959, 1968], ai: "4993557", f: "confirmed" },
+      isAuditedAbsent: false,
+      milestoneVolumes: [],
+      isPost1926Build: false,
+      addrInfo: baseAddrInfo,
+    })
+  );
+  assert.ok(pre1927NoPtrHtml.includes("Verified 1866-1926 Directory Sighting"));
+  assert.ok(pre1927NoPtrHtml.includes(`href="${baseAddrInfo.exactCityDirUrl}"`));
+  assert.ok(pre1927NoPtrHtml.includes("Open Post-1926 Scan (Ancestry)"));
+  assert.ok(
+    pre1927NoPtrHtml.includes(
+      'href="https://www.ancestry.com/imageviewer/collections/2469/images/4993557"'
+    )
+  );
+  assert.equal(isPre1927CityDirHit({ e: 1915 }), true);
+  assert.equal(isPre1927CityDirHit({ e: 1932 }), false);
+  assert.equal(
+    buildAncestryCityDirImageUrl("4981231"),
+    "https://www.ancestry.com/imageviewer/collections/2469/images/4981231"
+  );
 
   const pre1927Info = fakeApp._buildCityDirectoryResearchData(
     { hcad_num: "0620820000016", address: "1119 WALLING ST" },

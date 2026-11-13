@@ -1207,7 +1207,7 @@ def run_audit(
         dir_rec = by_hcad_dir.get(hcad)
         if isinstance(dir_rec, dict) and dir_rec.get("e"):
             earliest_dir = int(dir_rec["e"])
-            if earliest_dir <= yr - 5:
+            if 1866 <= earliest_dir <= 1926 and earliest_dir <= yr - 5:
                 gap = min(25, yr - earliest_dir)
                 ptr_int, cdm_item_url = resolve_citydir_cdm_url(dir_rec, dir_url)
                 ocr_excerpt = sanitize_atlas_text(str(dir_rec.get("c") or dir_rec.get("x") or "")).strip()

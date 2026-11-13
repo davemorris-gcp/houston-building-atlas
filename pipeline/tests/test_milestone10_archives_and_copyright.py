@@ -792,11 +792,15 @@ def test_usco_citydir_1927_1963_copyright_clearance_unit_and_live_bundle(tmp_pat
 
     # Validate live repository CSV + citydir_index.json
     live_csv = REPO_ROOT / "docs" / "data" / "houston_city_directories_1927_1963_usco_clearance.csv"
+    live_csv_raw = live_csv.read_text(encoding="utf-8")
+    assert "None:" not in live_csv_raw
     with open(live_csv, encoding="utf-8", newline="") as f:
         live_rows = list(csv.DictReader(f))
     assert len(live_rows) == 37
     assert [int(r["directory_year"]) for r in live_rows] == list(range(1927, 1964))
     assert all(int(r["usco_class_r_re_renewals_found"]) == 0 for r in live_rows)
+    row_1927 = next(r for r in live_rows if int(r["directory_year"]) == 1927)
+    assert "Street Guide 4978080..4978265" in row_1927["online_open_scan_status"]
     row_1941 = next(r for r in live_rows if int(r["directory_year"]) == 1941)
     assert "A 155265" in row_1941["usco_class_a_registrations"]
 
@@ -806,6 +810,22 @@ def test_usco_citydir_1927_1963_copyright_clearance_unit_and_live_bundle(tmp_pat
     assert clearance["audited_year_count"] == 37
     assert clearance["usco_class_r_re_renewals_found"] == 0
     assert clearance["all_1927_1963_public_domain"] is True
+    assert clearance["ancestry_collection_id"] == "2469"
+    assert clearance["ancestry_post_1926_volume_count"] == 31
+    assert clearance["ancestry_post_1926_distinct_years"] == 28
+    assert clearance["ancestry_post_1926_span"] == [1927, 1968]
+    assert live_citydir["verified_hit_count"] >= 19000
+    assert "0621100000014" in live_citydir["by_hcad"]
+    assert live_citydir["by_hcad"]["0621100000014"]["e"] == 1932
+    assert live_citydir["by_hcad"]["0621100000014"]["ai"] == "4981231"
+
+    anc_catalog_path = REPO_ROOT / "docs" / "data" / "houston_city_directories_ancestry_catalog.json"
+    assert anc_catalog_path.exists()
+    anc_catalog = json.loads(anc_catalog_path.read_text(encoding="utf-8"))
+    assert anc_catalog["ancestry_db_id"] == "2469"
+    assert anc_catalog["post_1926_volume_entries"] == 31
+    assert anc_catalog["post_1926_distinct_years"] == 28
+    assert len(anc_catalog["volumes"]) == 31
 
 
 def test_review_regressions_repo_labels_zero_addr_overlay_years_and_photo_captions(tmp_path: Path) -> None:

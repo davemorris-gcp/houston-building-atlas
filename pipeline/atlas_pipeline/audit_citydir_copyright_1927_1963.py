@@ -253,15 +253,40 @@ def fetch_usco_query_pages(
     return out
 
 
+def _load_ancestry_catalog_by_year(catalog_path: Path | None = None) -> dict[int, list[dict[str, Any]]]:
+    """Load the verified 1927-1968 Ancestry dbId=2469 Houston City Directory catalog indexed by year."""
+    if catalog_path is None:
+        catalog_path = (
+            Path(__file__).resolve().parents[2]
+            / "docs"
+            / "data"
+            / "houston_city_directories_ancestry_catalog.json"
+        )
+    if not catalog_path.exists():
+        return {}
+    try:
+        payload = json.loads(catalog_path.read_text(encoding="utf-8"))
+        by_yr: dict[int, list[dict[str, Any]]] = {}
+        for v in payload.get("volumes") or []:
+            yr = int(v.get("year") or 0)
+            if yr > 0:
+                by_yr.setdefault(yr, []).append(v)
+        return by_yr
+    except Exception:
+        return {}
+
+
 def build_clearance_rows_1927_1963(
     hits: list[UscoDirectoryHit],
     *,
     reference_year: int = 2026,
+    ancestry_catalog_path: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Construct the 37-row year-by-year (1927-1963) statutory copyright clearance table."""
     rolling_pd_cutoff = int(reference_year) - 96  # In 2026, <= 1930 is unconditionally PD (95-yr term)
     by_year_orig: dict[int, list[UscoDirectoryHit]] = {}
     by_year_ren: dict[int, list[UscoDirectoryHit]] = {}
+    ancestry_by_year = _load_ancestry_catalog_by_year(ancestry_catalog_path)
 
     for h in hits:
         if h.inferred_year is None:
@@ -305,6 +330,46 @@ def build_clearance_rows_1927_1963(
             basis = f"Class R/RE renewal located ({ren_list[0].reg_number})"
             pd_entry_year = yr + 96
 
+        anc_vols = ancestry_by_year.get(yr, [])
+        if anc_vols:
+            vol_summaries: list[str] = []
+            for v in anc_vols:
+                sg = v.get("street_guide_image_range")
+                if isinstance(sg, list) and len(sg) == 2:
+                    sg_note = f", Street Guide {sg[0]}..{sg[1]}"
+                elif isinstance(sg, str) and sg.strip():
+                    sg_note = f", Street Guide {sg.strip()}"
+                else:
+                    sg_note = ""
+                vol_label = v.get("volume_label") or v.get("title") or f"{yr} City Directory"
+                vol_summaries.append(
+                    f"{vol_label}: images {v.get('first_image_id')}..{v.get('last_image_id')} ({v.get('sections_included')}{sg_note})"
+                )
+            online_status = (
+                f"Digitized on Ancestry Library Edition (dbId=2469; {'; '.join(vol_summaries)}); "
+                "HPL open ContentDM citydir stops at 1926"
+            )
+        else:
+            online_status = (
+                "Offline print/microfiche only (not in Ancestry dbId=2469; HPL open ContentDM citydir stops at 1926)"
+            )
+
+        if yr <= 1935:
+            phys_holdings = (
+                "HPL Houston History Research Center (550 McKinney St, call no. 977.64112 M878); "
+                "Rice Woodson Research Center (Fondren Library, call no. F394 .H8 M6)"
+            )
+        elif yr <= 1959:
+            phys_holdings = (
+                "HPL Houston History Research Center (550 McKinney St, call no. 977.64112 M878); "
+                "Rice Fondren Library Basement Kelley Center (open-stacks microfiche F394 .H8 P62, no appointment required)"
+            )
+        else:
+            phys_holdings = (
+                "HPL Houston History Research Center (550 McKinney St, call no. 977.64112 M878); "
+                "Rice Fondren Library (LSC storage / microform)"
+            )
+
         rows.append({
             "directory_year": yr,
             "publisher_claimant": sanitize_atlas_text(publishers),
@@ -315,8 +380,8 @@ def build_clearance_rows_1927_1963(
             "renewal_window_years": renewal_window,
             "usco_class_r_re_renewals_found": ren_count,
             "public_domain_entry_year": pd_entry_year,
-            "online_open_scan_status": "Offline print/microfilm only (HPL ContentDM citydir stops at 1926)",
-            "physical_holdings": "Houston History Research Center (Julia Ideson Bldg, 550 McKinney St); Rice Fondren Library",
+            "online_open_scan_status": sanitize_atlas_text(online_status),
+            "physical_holdings": sanitize_atlas_text(phys_holdings),
             "priority_digitization_section": "Pink/Green Street & Avenue Criss-Cross Address Guide (~120-180 pages/vol)",
             "matched_usco_titles": sanitize_atlas_text(titles),
         })
@@ -434,6 +499,16 @@ def run_citydir_copyright_audit(
         if h.reg_number
     ][:24]
 
+    anc_by_year = _load_ancestry_catalog_by_year()
+    anc_all_vols = [v for vols in anc_by_year.values() for v in vols]
+    anc_sg_years = sorted(
+        {
+            int(v["year"])
+            for v in anc_all_vols
+            if v.get("has_street_and_avenue_guide")
+        }
+    )
+
     citydir_doc["post_1926_clearance"] = {
         "verified_date": verified_date,
         "span": [1927, 1963],
@@ -448,11 +523,24 @@ def run_citydir_copyright_audit(
             and not any(h.inferred_year is None for h in ren_1927_1963)
         ),
         "online_open_scans_post_1926": 0,
+        "ancestry_collection_id": "2469",
+        "ancestry_collection_url": "https://www.ancestry.com/search/collections/2469/",
+        "ancestry_post_1926_volume_count": len(anc_all_vols) or 31,
+        "ancestry_post_1926_distinct_years": len(anc_by_year) or 28,
+        "ancestry_post_1926_span": [1927, 1968],
+        "ancestry_street_guide_years": anc_sg_years
+        or [1927, 1928, 1929, 1930, 1932, 1934, 1935, 1936, 1940, 1942, 1945, 1952, 1954, 1956, 1965],
+        "ancestry_catalog_path": "docs/data/houston_city_directories_ancestry_catalog.json",
         "holdings_note": (
             "All 1927-1963 Morrison & Fourmy and R. L. Polk Houston City Directories are verified "
             "US public domain (1927-1930 via 17 U.S.C. Sec. 304 95-year term; 1931-1963 via 0 Class R/RE "
-            "renewals in US Copyright Office records). Print/microfilm Street & Avenue Criss-Cross Guides "
-            "are held at HPL Houston History Research Center (550 McKinney St) and Rice Fondren Library."
+            f"renewals in US Copyright Office records). Online digitized scans for {len(anc_by_year) or 28} post-1926 Houston "
+            f"directory years (1927-1968 across {len(anc_all_vols) or 31} volume entries, including {len(anc_sg_years) or 15} with Street & Avenue Guides) "
+            "are available in Ancestry Library Edition (U.S., City Directories, 1822-1999, dbId=2469, free "
+            "via HPL MY Link or Rice campus Wi-Fi). Print/microfiche Street & Avenue Criss-Cross Guides "
+            "are held at HPL Houston History Research Center (550 McKinney St, call no. 977.64112 M878), "
+            "Rice Fondren Library Basement Kelley Center (open-stacks microfiche F394 .H8 P62 for 1936-1959, "
+            "no appointment required), and Rice Woodson Research Center (Fondren Library, F394 .H8 M6 for 1927-1935)."
         ),
         "csv_path": "docs/data/houston_city_directories_1927_1963_usco_clearance.csv",
         "sample_class_a_registrations": sample_regs,

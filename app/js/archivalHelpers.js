@@ -346,6 +346,24 @@ function formatVerifiedMonthYear(isoDate) {
 }
 
 /**
+ * Return true when a citydir_index.json record represents a pre-1927 (1866-1926) directory sighting.
+ */
+export function isPre1927CityDirHit(hit) {
+  const earliest = Number(hit?.e) || 0;
+  return earliest > 0 && earliest <= 1926;
+}
+
+/**
+ * Construct an Ancestry Library Edition (dbId=2469) image viewer URL from an imageId.
+ */
+export function buildAncestryCityDirImageUrl(imageId) {
+  const cleanId = String(imageId || "").trim();
+  return cleanId
+    ? `https://www.ancestry.com/imageviewer/collections/2469/images/${encodeURIComponent(cleanId)}`
+    : "";
+}
+
+/**
  * Build the Research Kit Step 2 post-1926 USCO copyright clearance guidance note HTML.
  */
 export function buildPost1926CityDirNoteHtml(yr, post1926Clearance = null) {
@@ -372,10 +390,28 @@ export function buildPost1926CityDirNoteHtml(yr, post1926Clearance = null) {
     : `audited ${spanLabel} <em>Morrison &amp; Fourmy</em> and <em>Polk</em> Houston City Directories (${renewalsCount} copyright ${
         renewalsCount === 1 ? "renewal" : "renewals"
       } recorded)`;
+  const ancYears = Number(post1926Clearance?.ancestry_post_1926_distinct_years) || 28;
+  const ancSpanArr =
+    Array.isArray(post1926Clearance?.ancestry_post_1926_span) &&
+    post1926Clearance.ancestry_post_1926_span.length === 2
+      ? post1926Clearance.ancestry_post_1926_span
+      : [1927, 1968];
+  const ancSpanLabel = `${Number(ancSpanArr[0]) || 1927}-${Number(ancSpanArr[1]) || 1968}`;
+  const ancSgCount =
+    Array.isArray(post1926Clearance?.ancestry_street_guide_years) &&
+    post1926Clearance.ancestry_street_guide_years.length > 0
+      ? post1926Clearance.ancestry_street_guide_years.length
+      : 15;
+  const ancUrl =
+    post1926Clearance?.ancestry_collection_url || "https://www.ancestry.com/search/collections/2469/";
 
   return `<div class="rk-subtle-note">
-    <strong>Post-1926 Occupant Lookup (${escapeHtml(headerBadge)}):</strong> HPL's online <code>citydir</code> collection stops at 1926, though a ${escapeHtml(
+    <strong>Post-1926 Occupant Lookup (${escapeHtml(headerBadge)}):</strong> HPL's open ContentDM <code>citydir</code> collection stops at 1926, though a ${escapeHtml(
       auditMonthYear
-    )} U.S. Copyright Office audit ${clearanceClause}. Until post-1926 scans come online, trace ${safeYr}-present residents by street address in the print and microfilm <em>Criss-Cross Street &amp; Avenue Guides</em> at HPL's <strong>Houston History Research Center (Julia Ideson Building, 550 McKinney St)</strong> or <strong>Rice University's Woodson Research Center (Fondren Library)</strong>.
+    )} U.S. Copyright Office audit ${clearanceClause}. To trace ${safeYr}-present residents by street address, browse ${ancYears} digitized post-1926 Houston editions (${escapeHtml(
+    ancSpanLabel
+  )}, including ${ancSgCount} with complete <em>Street &amp; Avenue Guides</em>) online in <a href="${escapeHtml(
+    ancUrl
+  )}" target="_blank" rel="noopener">Ancestry Library Edition (U.S., City Directories, 1822-1999)</a> (free via HPL MY Link or Rice campus Wi-Fi), or consult the print and microfiche <em>Criss-Cross Street &amp; Avenue Guides</em> at HPL's <strong>Houston History Research Center (Julia Ideson Building, 550 McKinney St)</strong>, <strong>Rice University's Fondren Basement Kelley Center</strong> (open-stacks microfiche <code>F394 .H8 P62</code> for 1936-1959, no appointment required), or <strong>Rice University's Woodson Research Center (Fondren Library)</strong> (<code>F394 .H8 M6</code> for 1927-1935).
   </div>`;
 }
