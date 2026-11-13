@@ -569,7 +569,7 @@ def test_reg2_and_reg4_existing_university_park_overrides_and_pre1945_historic_c
     )
 
     key_st_ov = curated_overrides["0621100000014"]
-    assert key_st_ov["year_built"] == 1928
+    assert key_st_ov["year_built"] == 1927
 
     sweeney_feats = tracked_by_hcad["0010330000018"]
     assert sweeney_feats and all(f["year_built"] == 1900 for f in sweeney_feats)

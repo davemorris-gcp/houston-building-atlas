@@ -540,6 +540,17 @@ test("UT-M10-4: post1926NoteHtml, citydir_index.json post_1926_clearance, and 19
   assert.ok(lovett511, "511 Lovett Blvd (0261360000003) must be enriched in citydir_index.json");
   const delMonte3311 = citydir.by_hcad["0601360000010"];
   assert.ok(delMonte3311, "3311 Del Monte Dr (0601360000010) must be enriched in citydir_index.json");
+  const bayland1001 = citydir.by_hcad["0620620000018"];
+  assert.ok(
+    bayland1001,
+    "1001 Bayland Ave (0620620000018, non-district Norhill pre-1945 parcel) must be enriched in citydir_index.json"
+  );
+  assert.equal(bayland1001.e, 1934);
+  assert.ok(
+    Array.isArray(bayland1001.r) &&
+      bayland1001.r.some((row) => row[0] === 1934 && row[1] === "Bertha Mirring"),
+    "1001 Bayland Ave must include 1934 Bertha Mirring from recovered un-headered Street Guide run"
+  );
 
   const csvRaw = fs.readFileSync(
     path.join(DOCS_DATA_DIR, "houston_city_directories_1927_1963_usco_clearance.csv"),

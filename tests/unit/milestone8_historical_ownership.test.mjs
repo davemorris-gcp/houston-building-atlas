@@ -531,6 +531,94 @@ test("UT-7, REG-1, REG-3 & REG-4: 3-surface view models, Clerk token deduplicati
   assert.ok(timeline.events.some((e) => e.kind === "demo_permit"));
   assert.ok(timeline.events.some((e) => e.kind === "rapid_flip"));
 
+  // 3b. Past & future City Directory / HPO Survey overrides calibrate Original Structure Built when cdRec.e < year_built,
+  //     and generate per-year citations on each Directory Occupant card instead of repeating cdRec.c (1927) across 1928/1929/1932
+  const calibratedOverrideTl = buildStewardshipTimelineModel({
+    featureProps: {
+      hcad_num: "0621100000014",
+      address: "1127 KEY ST",
+      year_built: 1928,
+      is_curated_override: true,
+      source_type: "Houston City Directory (Morrison & Fourmy)",
+      source_citation: "1928 Houston City Directory (Morrison & Fourmy); lot unimproved through 1926 directory (HCAD defaults to 1920)",
+    },
+    cityDirInfo: {
+      e: 1927,
+      f: "confirmed",
+      c: "1927 Houston City Directory: J F Lake (Street Guide Occupant) at 1127 KEY ST",
+      r: [
+        [1927, "J F Lake", "Street Guide Occupant"],
+        [1928, "John F Lake (Johnie M)", "Clerk (SP Lines)"],
+        [1929, "Fannie Lake", "Widow of Wm T Lake"],
+      ],
+    },
+  });
+  const constrNode = calibratedOverrideTl.events.find((e) => e.kind === "construction");
+  assert.ok(constrNode, "Expected construction milestone event");
+  assert.equal(constrNode.year, 1927, "Directory override with year_built=1928 must calibrate construction year to cdRec.e=1927");
+  assert.equal(constrNode.title, "Original Structure Built (1927)");
+  assert.match(constrNode.citation, /1927 Houston City Directory/);
+  assert.equal(constrNode.citation.includes("1928 Houston City Directory"), false);
+
+  const dirNodes = calibratedOverrideTl.events.filter((e) => e.kind === "city_directory");
+  assert.equal(dirNodes.length, 3);
+  assert.equal(
+    dirNodes[0].citation,
+    "1927 Houston City Directory: J F Lake (Street Guide Occupant) at 1127 KEY ST"
+  );
+  assert.equal(
+    dirNodes[1].citation,
+    "1928 Houston City Directory: John F Lake (Johnie M) (Clerk (SP Lines)) at 1127 KEY ST",
+    "1928 Directory Occupant card must cite 1928 rather than repeating 1927"
+  );
+  assert.equal(
+    dirNodes[2].citation,
+    "1929 Houston City Directory: Fannie Lake (Widow of Wm T Lake) at 1127 KEY ST",
+    "1929 Directory Occupant card must cite 1929 rather than repeating 1927"
+  );
+
+  // Landmark / architect overrides (e.g. 1939 City Hall on a parcel with 1927 predecessor directory entries) keep their landmark year_built
+  const landmarkOverrideTl = buildStewardshipTimelineModel({
+    featureProps: {
+      hcad_num: "0010010000001",
+      address: "901 BAGBY ST",
+      year_built: 1939,
+      is_curated_override: true,
+      is_landmark: true,
+      source_type: "COH Protected Landmark Designation Report",
+      source_citation: "Houston City Hall (Joseph Finger, 1939)",
+    },
+    cityDirInfo: {
+      e: 1927,
+      f: "confirmed",
+      r: [[1927, "Prior Site Tenant", "Street Guide Occupant"]],
+    },
+  });
+  const lmConstrNode = landmarkOverrideTl.events.find((e) => e.kind === "construction");
+  assert.equal(lmConstrNode.year, 1939, "Landmark override must preserve its documented 1939 construction date");
+
+  // Non-override redeveloped parcels (e.g. 2001 townhome on a lot with 1910 predecessor directory entry) keep their standing 2001 year_built
+  const redevelopedNonOverrideTl = buildStewardshipTimelineModel({
+    featureProps: {
+      hcad_num: "1215360010001",
+      address: "437 COLUMBIA ST",
+      year_built: 2001,
+      is_curated_override: false,
+      source_citation: "",
+    },
+    citydirRec: {
+      e: 1910,
+      f: "earlier",
+      r: [[1910, "Predecessor Resident", "Street Guide Occupant"]],
+    },
+  });
+  const redevConstrNode = redevelopedNonOverrideTl.events.find((e) => e.kind === "construction");
+  assert.equal(
+    redevConstrNode.year,
+    2001,
+    "Non-override redeveloped parcel must keep its standing 2001 construction year rather than calibrating to a 1910 predecessor"
+  );
+
   // 4. REG-1 & REG-4: 8-box County Clerk legal extraction & legacy empty-state contracts
   const legal = parseClerkLegalTokens({
     legalLines: ["LT 12 BLK 8", "NORTH NORHILL SEC 2"],

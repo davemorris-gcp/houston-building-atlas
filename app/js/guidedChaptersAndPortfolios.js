@@ -222,7 +222,7 @@ export const CITY_HISTORY_CHAPTERS = [
         zoom: 17.3,
       },
       {
-        label: "1127 Key St, Norhill (1928)",
+        label: "1127 Key St, Norhill (1927)",
         hcadNum: "0621100000014",
         lng: -95.3872,
         lat: 29.79173,
@@ -2300,6 +2300,34 @@ export function decodeParcelOwnershipXray(
   };
 }
 
+export function calibrateDirectoryConstructionYear(props = {}, cdRec = null, fallbackYear = 0) {
+  const yrBuilt = Number(fallbackYear || props?.year_built) || 0;
+  const rawCitation = String(props?.source_citation || props?.year_source || "");
+  const cdEarliest = Number(cdRec?.e) || 0;
+  const isExplicitReplacement =
+    /\b(?:rebuilt|replacement|replaced|new\s+building|wing|addition|annex|tower|demolished|modern)\b/i.test(
+      rawCitation
+    );
+  const sourceType = String(props?.source_type || "");
+  const isDirectoryOrSurveyOverride =
+    /\bcity\s+director(?:y|ies)\b/i.test(rawCitation) ||
+    /\bcity\s+director(?:y|ies)\b/i.test(sourceType) ||
+    (/\bhpo\b|\bhistoric\s+district\s+survey\b/i.test(sourceType) && yrBuilt - cdEarliest <= 2);
+  const shouldCalibrate =
+    cdEarliest >= 1836 &&
+    yrBuilt > cdEarliest &&
+    !props?.is_demolished &&
+    !props?.suppress_only &&
+    !isExplicitReplacement &&
+    isDirectoryOrSurveyOverride;
+  const year = shouldCalibrate ? cdEarliest : yrBuilt;
+  const citation =
+    shouldCalibrate && rawCitation
+      ? rawCitation.replace(new RegExp(`^${yrBuilt}\\b`), String(year))
+      : rawCitation;
+  return { shouldCalibrate, year, citation };
+}
+
 /**
  * Pure, DOM-free wire decoder that merges `1836-2026` deed chains (`d`), pre-demolition flip velocity (`flip`),
  * historical City Directory occupants (`r`), 1915 Red Book entries, original builder/architect citations,
@@ -2318,6 +2346,7 @@ export function buildStewardshipTimelineModel({
   featureProps = null,
   permitShardRec = null,
   citydirRec = null,
+  cityDirInfo = null,
   redBookHits = null,
   ownershipPortfolios = null,
 } = {}) {
@@ -2327,25 +2356,28 @@ export function buildStewardshipTimelineModel({
 
   const props = featureProps && typeof featureProps === "object" ? featureProps : {};
   const shard = permitShardRec && typeof permitShardRec === "object" ? permitShardRec : {};
-  const cdRec = citydirRec && typeof citydirRec === "object" ? citydirRec : null;
+  const rawCdRec = citydirRec || cityDirInfo?.auditHit || cityDirInfo;
+  const cdRec = rawCdRec && typeof rawCdRec === "object" ? rawCdRec : null;
 
   const yrBuilt = Number(yearBuilt || props.year_built || shard.yr) || 0;
   const effContractor = String(
     historicContractor || props.architect || props.builder || props.contractor || shard.c || ""
   ).trim();
 
+  const { year: effConstructYr, citation: effConstructCitation } =
+    calibrateDirectoryConstructionYear(props, cdRec, yrBuilt);
   if (yrBuilt >= 1836 && yrBuilt <= 2035) {
     events.push({
       kind: "construction",
       category: "construction",
-      year: yrBuilt,
-      dateLabel: String(yrBuilt),
-      sortKey: `${yrBuilt}-01-01`,
-      title: `Original Structure Built (${yrBuilt})`,
+      year: effConstructYr,
+      dateLabel: String(effConstructYr),
+      sortKey: `${effConstructYr}-01-01`,
+      title: `Original Structure Built (${effConstructYr})`,
       subtitle: effContractor
         ? `Original Architect / Builder: ${effContractor}`
         : "Recorded on Harris County CAMA / Archival Survey Roll",
-      citation: String(props.source_citation || props.year_source || ""),
+      citation: effConstructCitation,
       badge: "Construction",
       url: null,
     });
@@ -2391,50 +2423,37 @@ export function buildStewardshipTimelineModel({
       : [];
 
   if (Array.isArray(effOccs) && effOccs.length > 0) {
-    for (const row of effOccs) {
-      if (Array.isArray(row) && row.length >= 2) {
-        const yr = Number(row[0]) || 0;
-        const name = String(row[1] || "").trim();
-        const role = String(row[2] || "").trim();
-        if (!name) continue;
-        const occ = { year: yr, name, role };
-        decodedOccupants.push(occ);
-        events.push({
-          kind: "city_directory",
-          category: "city_directory",
-          year: yr || 1930,
-          dateLabel: yr >= 1836 ? String(yr) : "Historic",
-          sortKey: yr >= 1836 ? `${yr}-06-01` : "1930-06-01",
-          title: `City Directory Occupant: ${name}`,
-          subtitle: role
-            ? `${role} (Morrison & Fourmy / Polk Houston City Directory)`
-            : "Morrison & Fourmy / Polk Houston City Directory",
-          citation: String(cdRec?.c || ""),
-          badge: "Directory Occupant",
-          url: null,
-        });
-      } else if (row && typeof row === "object") {
-        const yr = Number(row.year) || 0;
-        const name = String(row.name || "").trim();
-        const role = String(row.role || "").trim();
-        if (!name) continue;
-        const occ = { year: yr, name, role };
-        decodedOccupants.push(occ);
-        events.push({
-          kind: "city_directory",
-          category: "city_directory",
-          year: yr || 1930,
-          dateLabel: yr >= 1836 ? String(yr) : "Historic",
-          sortKey: yr >= 1836 ? `${yr}-06-01` : "1930-06-01",
-          title: `City Directory Occupant: ${name}`,
-          subtitle: role
-            ? `${role} (Morrison & Fourmy / Polk Houston City Directory)`
-            : "Morrison & Fourmy / Polk Houston City Directory",
-          citation: String(cdRec?.c || ""),
-          badge: "Directory Occupant",
-          url: null,
-        });
+    const occAddrSuffix = props.address ? ` at ${String(props.address).trim()}` : "";
+    const cdEarliestYr = Number(cdRec?.e) || 0;
+    const buildOccCitation = (yr, name, role) => {
+      if (yr >= 1836 && (yr !== cdEarliestYr || !cdRec?.c)) {
+        return `${yr} Houston City Directory: ${name}${role ? ` (${role})` : ""}${occAddrSuffix}`;
       }
+      return String(cdRec?.c || "");
+    };
+    for (const row of effOccs) {
+      const isTuple = Array.isArray(row) && row.length >= 2;
+      const isObj = !isTuple && row && typeof row === "object";
+      if (!isTuple && !isObj) continue;
+      const yr = Number(isTuple ? row[0] : row.year) || 0;
+      const name = String((isTuple ? row[1] : row.name) || "").trim();
+      const role = String((isTuple ? row[2] : row.role) || "").trim();
+      if (!name) continue;
+      decodedOccupants.push({ year: yr, name, role });
+      events.push({
+        kind: "city_directory",
+        category: "city_directory",
+        year: yr || 1930,
+        dateLabel: yr >= 1836 ? String(yr) : "Historic",
+        sortKey: yr >= 1836 ? `${yr}-06-01` : "1930-06-01",
+        title: `City Directory Occupant: ${name}`,
+        subtitle: role
+          ? `${role} (Morrison & Fourmy / Polk Houston City Directory)`
+          : "Morrison & Fourmy / Polk Houston City Directory",
+        citation: buildOccCitation(yr, name, role),
+        badge: "Directory Occupant",
+        url: null,
+      });
     }
   } else if (cdRec && Number(cdRec.e) >= 1836) {
     const cdYr = Number(cdRec.e);
@@ -2454,7 +2473,7 @@ export function buildStewardshipTimelineModel({
 
   const yrRemodel =
     Number(remodelYear || props.remodel_year || props.yr_remodel || shard.remod) || 0;
-  if (yrRemodel >= 1850 && yrRemodel !== yrBuilt) {
+  if (yrRemodel >= 1850 && yrRemodel !== effConstructYr) {
     events.push({
       kind: "remodel",
       category: "remodel",

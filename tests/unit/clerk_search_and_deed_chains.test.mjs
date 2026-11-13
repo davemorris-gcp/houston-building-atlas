@@ -538,7 +538,7 @@ test("curated_overrides.json purges cross-parcel 0621100000014#aux_1, re-keys Di
   assert.equal("0621100000014#aux_1" in overrides, false);
   assert.ok(overrides["0621100000014"], "Primary 0621100000014 override must remain intact");
   assert.equal(overrides["0621100000014"].address, "1127 KEY ST");
-  assert.equal(overrides["0621100000014"].year_built, 1928);
+  assert.equal(overrides["0621100000014"].year_built, 1927);
   assert.equal("1319030010003#aux_1" in overrides, false);
   assert.ok(overrides["1319030010001#aux_4"], "Discovery Green re-keyed #aux_4 override must exist");
   assert.equal(overrides["1319030010001#aux_4"].contributing, "Outside Historic District");

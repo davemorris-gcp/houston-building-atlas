@@ -35,6 +35,7 @@ import {
   buildCategorizedPortfolioCatalog,
   buildPortfolioDataset,
   buildStewardshipTimelineModel,
+  calibrateDirectoryConstructionYear,
   CITY_HISTORY_CHAPTERS,
   cleanOwnerPortfolioDisplayLabel,
   decodeParcelOwnershipXray,
@@ -13774,12 +13775,20 @@ export class HoustonAtlasApp {
       }
     }
 
-    const yr = Number(props.year_built) || 0;
-    const currentYear = getAtlasMaxYear();
-    const bldgAge = Math.max(0, currentYear - yr);
     const hcadNumPre = String(props.hcad_num || "").trim();
     const citydirRecPre =
       hcadNumPre && this.citydirIndex?.by_hcad ? this.citydirIndex.by_hcad[hcadNumPre] : null;
+    const calPre = calibrateDirectoryConstructionYear(props, citydirRecPre);
+    if (calPre.shouldCalibrate) {
+      props.year_built = calPre.year;
+      props.decade = Math.floor(calPre.year / 10) * 10;
+      if (calPre.citation) {
+        props.source_citation = calPre.citation;
+      }
+    }
+    const yr = Number(props.year_built) || 0;
+    const currentYear = getAtlasMaxYear();
+    const bldgAge = Math.max(0, currentYear - yr);
     const hasCityDirHitPre = isPre1927CityDirHit(citydirRecPre);
     const isAuditedAbsent1926 = Boolean(
       !hasCityDirHitPre &&

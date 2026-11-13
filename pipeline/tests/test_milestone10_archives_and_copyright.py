@@ -828,6 +828,34 @@ def test_usco_citydir_1927_1963_copyright_clearance_unit_and_live_bundle(tmp_pat
     )
     assert "0261360000003" in live_citydir["by_hcad"]
     assert "0601360000010" in live_citydir["by_hcad"]
+    assert "0620620000018" in live_citydir["by_hcad"]
+    assert live_citydir["by_hcad"]["0620620000018"]["e"] == 1934
+    assert any(
+        row[0] == 1934 and row[1] == "Bertha Mirring"
+        for row in live_citydir["by_hcad"]["0620620000018"]["r"]
+    )
+    assert any(
+        row[0] == 1935 and row[1] == "Tf Banfield"
+        for row in live_citydir["by_hcad"]["0620620000018"]["r"]
+    )
+
+    from atlas_pipeline.build_house_history_index import extract_post1926_occupants
+
+    _, yrs_filtered, _, tuples_filtered = extract_post1926_occupants(
+        [
+            {"y": 1929, "n": "Taft", "r": "Intersects", "sec": "sg"},
+            {"y": 1929, "n": "Lw Rowe", "r": "Street Guide Occupant", "sec": "sg"},
+            {"y": 1940, "n": "Street", "r": "Inued", "sec": "sg"},
+            {"y": 1940, "n": "Arth G Fowler", "r": "Street Guide Occupant", "sec": "sg"},
+            {"y": 1954, "n": "Under", "r": "Construction", "sec": "sg"},
+        ],
+        max_tuples=4,
+    )
+    assert yrs_filtered == [1929, 1940]
+    assert tuples_filtered == [
+        [1929, "Lw Rowe", "Street Guide Occupant"],
+        [1940, "Arth G Fowler", "Street Guide Occupant"],
+    ]
 
     anc_catalog_path = REPO_ROOT / "docs" / "data" / "houston_city_directories_ancestry_catalog.json"
     assert anc_catalog_path.exists()
