@@ -123,7 +123,8 @@ def test_it3_three_surface_hydration_across_archetypes_and_confidential_shield(
     # Surface 3: 1836-2026 Historical Provenance Timeline Card (deduplicated Clerk instrument node)
     page.click('#inspector-body [data-inspector-tab="history"]')
     tl_text = page.inner_text("#inspector-stewardship-timeline-card")
-    assert "Original Structure Built (1928)" in tl_text
+    assert "Original Structure Built (1927)" in tl_text
+    assert "1928 Houston City Directory: John F Lake (Johnie M) (Clerk (SP Lines)) at 1127 KEY ST" in tl_text
     deed_nodes_2019 = page.locator(
         "#inspector-stewardship-timeline-card .stewardship-timeline-node",
         has_text="RP-2019-149789",
