@@ -61,7 +61,7 @@ def _install_mock_apps_script_webhook(page: Any) -> list[dict[str, Any]]:
 
 
 def _select_1127_key_st_and_open_correction_modal(page: Any) -> None:
-    """Searches and selects curated 1127 KEY ST (0621100000014, Built 1928) and opens #correction-modal."""
+    """Searches and selects curated 1127 KEY ST (0621100000014, Built 1927) and opens #correction-modal."""
     page.evaluate(
         """(wh) => {
             if (window.atlasApp?.mapController?.sheetSyncStatus) {
@@ -99,7 +99,7 @@ def _select_1127_key_st_and_open_correction_modal(page: Any) -> None:
             return Boolean(
                 b &&
                 (b.innerText || '').toUpperCase().includes('1127 KEY ST') &&
-                (b.innerText || '').includes('1928')
+                (b.innerText || '').includes('1927')
             );
         }""",
         timeout=12000,
@@ -146,8 +146,8 @@ def test_correction_modal_demolished_vacant_bidirectional_sync_default_notes_and
 
     _select_1127_key_st_and_open_correction_modal(page)
 
-    # 1. Pre-filled curated year is "1928" and split dropdown options exist
-    assert page.input_value("#corr-suggested-year") == "1928"
+    # 1. Pre-filled curated year is "1927" and split dropdown options exist
+    assert page.input_value("#corr-suggested-year") == "1927"
     dropdown_values = page.evaluate(
         """() => Array.from(document.querySelectorAll('#corr-footprint-issue option')).map((o) => o.value)"""
     )

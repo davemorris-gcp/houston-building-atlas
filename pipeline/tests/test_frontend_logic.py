@@ -137,7 +137,7 @@ def test_frontend_es_modules_via_node() -> None:
       rawOverridesDoc.overrides
     );
     if (
-      keyStProps.year_built !== 1928 ||
+      keyStProps.year_built !== 1927 ||
       keyStProps.decade !== 1920 ||
       keyStProps.original_hcad_year !== 1920 ||
       keyStProps.is_curated_override !== true
