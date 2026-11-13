@@ -913,8 +913,12 @@ export class HoustonAtlasApp {
     let fallbackYearBuilt = 0;
     let fallbackBuildingName = "";
     const extraCandidateHcads = [];
-    let targetLng = Number.isFinite(Number(viewport?.lng)) ? Number(viewport.lng) : null;
-    let targetLat = Number.isFinite(Number(viewport?.lat)) ? Number(viewport.lat) : null;
+    const toFiniteCoord = (v) =>
+      v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v)) && Number(v) !== 0
+        ? Number(v)
+        : null;
+    let targetLng = toFiniteCoord(viewport?.lng);
+    let targetLat = toFiniteCoord(viewport?.lat);
 
     if (rawQuery) {
       const searchInput = document.getElementById("search-input");
@@ -977,11 +981,11 @@ export class HoustonAtlasApp {
             idxHit.building_name || (hitId.startsWith("school_") ? idxHit.label : "") || ""
           ).trim();
         }
-        if (!Number.isFinite(targetLng) && Number.isFinite(Number(idxHit.lon ?? idxHit.lng))) {
-          targetLng = Number(idxHit.lon ?? idxHit.lng);
+        if (!Number.isFinite(targetLng) && toFiniteCoord(idxHit.lon ?? idxHit.lng) !== null) {
+          targetLng = toFiniteCoord(idxHit.lon ?? idxHit.lng);
         }
-        if (!Number.isFinite(targetLat) && Number.isFinite(Number(idxHit.lat))) {
-          targetLat = Number(idxHit.lat);
+        if (!Number.isFinite(targetLat) && toFiniteCoord(idxHit.lat) !== null) {
+          targetLat = toFiniteCoord(idxHit.lat);
         }
       }
     }
@@ -1011,12 +1015,35 @@ export class HoustonAtlasApp {
       if (!fallbackBuildingName && (directOv.building_name || directOv.landmark_name)) {
         fallbackBuildingName = String(directOv.building_name || directOv.landmark_name).trim();
       }
-      if (!Number.isFinite(targetLng) && Number.isFinite(Number(directOv.lon ?? directOv.lng))) {
-        targetLng = Number(directOv.lon ?? directOv.lng);
+      if (!Number.isFinite(targetLng) && toFiniteCoord(directOv.lon ?? directOv.lng) !== null) {
+        targetLng = toFiniteCoord(directOv.lon ?? directOv.lng);
       }
-      if (!Number.isFinite(targetLat) && Number.isFinite(Number(directOv.lat))) {
-        targetLat = Number(directOv.lat);
+      if (!Number.isFinite(targetLat) && toFiniteCoord(directOv.lat) !== null) {
+        targetLat = toFiniteCoord(directOv.lat);
       }
+    }
+
+    // 1c. If deep-linked by HCAD account not in searchIndex/curatedOverrides, resolve situs address & centroid via live HCAD ArcGIS
+    if (hcadNum && !addressQuery && (!Number.isFinite(targetLng) || !Number.isFinite(targetLat))) {
+      try {
+        const liveRec = await fetchHcadLiveRecord(hcadNum);
+        if (liveRec) {
+          if (!addressQuery && liveRec.address && !/^0\s+/.test(String(liveRec.address).trim())) {
+            addressQuery = String(liveRec.address).trim();
+          }
+          if (!fallbackYearBuilt && Number(liveRec.yearImpr) >= 1836) {
+            fallbackYearBuilt = Number(liveRec.yearImpr);
+          }
+          if (Array.isArray(liveRec.centroid) && liveRec.centroid.length >= 2) {
+            if (!Number.isFinite(targetLng) && toFiniteCoord(liveRec.centroid[0]) !== null) {
+              targetLng = toFiniteCoord(liveRec.centroid[0]);
+            }
+            if (!Number.isFinite(targetLat) && toFiniteCoord(liveRec.centroid[1]) !== null) {
+              targetLat = toFiniteCoord(liveRec.centroid[1]);
+            }
+          }
+        }
+      } catch (_e) {}
     }
 
     // 2. Also check countywide address_shards whenever rawQuery (or addressQuery) begins with a house number
@@ -12983,7 +13010,7 @@ export class HoustonAtlasApp {
       const occTimelineHtml =
         occRows.length > 1
           ? `<div class="rk-subtle-note" style="margin-top:4px;"><strong>Indexed Occupants:</strong> ${occRows
-              .slice(0, 5)
+              .slice(0, 6)
               .map(
                 (r) =>
                   `${this._escapeResearchHtml(String(r[0]))}: ${this._escapeResearchHtml(

@@ -487,24 +487,90 @@ def build_index(
                 if eff_yr > 1990 and hc_clean not in by_hcad and cat != "triage_1927":
                     continue
 
+                def _has_specific_occ(s_obj: dict) -> bool:
+                    r_str = sanitize_text(str(s_obj.get("r") or "")).strip()
+                    return bool(
+                        r_str
+                        and r_str not in ("City Directory Resident", "Street Guide Occupant")
+                    )
+
                 sorted_sightings = sorted(
                     (s for s in sightings if isinstance(s, dict) and int(s.get("y") or 0) >= 1927),
-                    key=lambda s: (int(s.get("y") or 0), str(s.get("n") or "")),
+                    key=lambda s: (
+                        int(s.get("y") or 0),
+                        0 if _has_specific_occ(s) else (1 if s.get("sec") == "sg" else 2),
+                        str(s.get("n") or ""),
+                    ),
                 )
                 if not sorted_sightings:
                     continue
+
+                # Pair same-year, same-page alphabetical spouses ("City Directory Resident")
+                # with the primary occupation-bearing head of household (e.g. "Thos B White (Nellie)"),
+                # excluding household members identified in any year as a "Widow".
+                widow_full_names: set[str] = {
+                    sanitize_text(str(s.get("n") or "")).strip().upper()
+                    for s in sorted_sightings
+                    if "widow" in sanitize_text(str(s.get("r") or "")).lower()
+                }
+                alpha_head_by_page_surname: dict[tuple[int, str, str], str] = {}
+                alpha_spouse_by_page_surname: dict[tuple[int, str, str], str] = {}
+                for s in sorted_sightings:
+                    if s.get("sec") != "alpha":
+                        continue
+                    y_v = int(s["y"])
+                    img_v = sanitize_text(str(s.get("img") or "")).strip()
+                    n_v = sanitize_text(str(s.get("n") or "")).strip()
+                    if not img_v or not n_v or len(n_v.split()) < 2:
+                        continue
+                    if n_v.upper() in widow_full_names:
+                        continue
+                    surname = n_v.split()[-1].upper()
+                    key_t = (y_v, img_v, surname)
+                    if _has_specific_occ(s):
+                        if key_t not in alpha_head_by_page_surname:
+                            alpha_head_by_page_surname[key_t] = n_v
+                    else:
+                        r_str = sanitize_text(str(s.get("r") or "")).strip()
+                        if r_str in ("City Directory Resident", "") and key_t not in alpha_spouse_by_page_surname:
+                            alpha_spouse_by_page_surname[key_t] = n_v
 
                 post_years = sorted({int(s["y"]) for s in sorted_sightings})
                 first_s = sorted_sightings[0]
                 first_img = sanitize_text(str(first_s.get("img") or "")).strip()
 
+                max_tuples = (
+                    6
+                    if cat in ("override", "landmarks", "nrhp_properties", "good_brick_awards", "audit")
+                    else 4
+                )
                 occ_tuples: list[list] = []
+                seen_norm_names: set[str] = set()
                 for s in sorted_sightings:
                     y_val = int(s["y"])
-                    n_val = sanitize_text(str(s.get("n") or "")).strip()[:44]
-                    if not n_val:
+                    n_raw = sanitize_text(str(s.get("n") or "")).strip()
+                    if not n_raw:
                         continue
                     r_raw = sanitize_text(str(s.get("r") or "")).strip()[:44]
+                    # Skip blank-occupation row for a person identified as a widow in another year
+                    if n_raw.upper() in widow_full_names and r_raw in ("City Directory Resident", ""):
+                        continue
+                    n_val = n_raw[:44]
+                    if s.get("sec") == "alpha" and len(n_raw.split()) >= 2:
+                        img_v = sanitize_text(str(s.get("img") or "")).strip()
+                        surname = n_raw.split()[-1].upper()
+                        key_t = (y_val, img_v, surname)
+                        head_n = alpha_head_by_page_surname.get(key_t)
+                        sp_n = alpha_spouse_by_page_surname.get(key_t)
+                        if head_n and sp_n and head_n.upper() != sp_n.upper():
+                            if n_raw.upper() == head_n.upper():
+                                sp_given = " ".join(sp_n.split()[:-1]).strip()
+                                if sp_given and f"({sp_given.upper()})" not in n_raw.upper():
+                                    n_val = f"{head_n} ({sp_given})"[:44]
+                            elif n_raw.upper() == sp_n.upper() and r_raw in ("City Directory Resident", ""):
+                                # Already merged into head-of-household entry on the same page
+                                continue
+
                     if r_raw in ("City Directory Resident", "Street Guide Occupant", ""):
                         r_val = (
                             "City Directory Resident"
@@ -513,9 +579,16 @@ def build_index(
                         )
                     else:
                         r_val = r_raw
+
+                    # When a parcel has >= 5 directory years, avoid repeating the exact same
+                    # occupant name across multiple years so later families remain visible
+                    norm_n_key = n_val.split("(")[0].strip().upper()
+                    if len(post_years) >= 5 and norm_n_key in seen_norm_names:
+                        continue
                     tup = [y_val, n_val, r_val]
-                    if tup not in occ_tuples and len(occ_tuples) < 4:
+                    if tup not in occ_tuples and len(occ_tuples) < max_tuples:
                         occ_tuples.append(tup)
+                        seen_norm_names.add(norm_n_key)
 
                 if hc_clean in by_hcad:
                     cur = by_hcad[hc_clean]
@@ -527,7 +600,7 @@ def build_index(
                         if tup not in cur_r and len(cur_r) < 6:
                             cur_r.append(tup)
                     if cur_r:
-                        cur_r.sort(key=lambda r: (int(r[0]), str(r[1])))
+                        cur_r.sort(key=lambda r: int(r[0]))
                         cur["r"] = cur_r[:6]
                     post_1926_extended_count += 1
                 else:
@@ -549,8 +622,16 @@ def build_index(
                         new_entry["r"] = occ_tuples
                     if cat in ("override", "landmarks", "nrhp_properties", "good_brick_awards", "audit"):
                         addr_clean = sanitize_text(str(anc_rec.get("addr") or "")).strip()
-                        n_first = sanitize_text(str(first_s.get("n") or "")).strip()
-                        r_first = sanitize_text(str(first_s.get("r") or "Resident")).strip()
+                        n_first = (
+                            occ_tuples[0][1]
+                            if occ_tuples
+                            else sanitize_text(str(first_s.get("n") or "")).strip()
+                        )
+                        r_first = (
+                            occ_tuples[0][2]
+                            if occ_tuples
+                            else sanitize_text(str(first_s.get("r") or "Resident")).strip()
+                        )
                         new_entry["c"] = (
                             f"{e_yr} Houston City Directory: {n_first} ({r_first}) at {addr_clean}"
                         )[:160]

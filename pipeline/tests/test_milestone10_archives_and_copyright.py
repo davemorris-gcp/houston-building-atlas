@@ -816,8 +816,18 @@ def test_usco_citydir_1927_1963_copyright_clearance_unit_and_live_bundle(tmp_pat
     assert clearance["ancestry_post_1926_span"] == [1927, 1968]
     assert live_citydir["verified_hit_count"] >= 19000
     assert "0621100000014" in live_citydir["by_hcad"]
-    assert live_citydir["by_hcad"]["0621100000014"]["e"] == 1932
-    assert live_citydir["by_hcad"]["0621100000014"]["ai"] == "4981231"
+    assert live_citydir["by_hcad"]["0621100000014"]["e"] == 1927
+    assert live_citydir["by_hcad"]["0621100000014"]["ai"] == "4978175"
+    assert any(
+        row[0] == 1928 and row[1] == "John F Lake (Johnie M)"
+        for row in live_citydir["by_hcad"]["0621100000014"]["r"]
+    )
+    assert any(
+        row[0] == 1932 and row[1] == "Thos B White (Nellie)"
+        for row in live_citydir["by_hcad"]["0621100000014"]["r"]
+    )
+    assert "0261360000003" in live_citydir["by_hcad"]
+    assert "0601360000010" in live_citydir["by_hcad"]
 
     anc_catalog_path = REPO_ROOT / "docs" / "data" / "houston_city_directories_ancestry_catalog.json"
     assert anc_catalog_path.exists()

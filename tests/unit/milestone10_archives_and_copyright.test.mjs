@@ -521,9 +521,25 @@ test("UT-M10-4: post1926NoteHtml, citydir_index.json post_1926_clearance, and 19
   assert.ok(citydir.post_1926_extended_parcel_count >= 2000);
   const key1127 = citydir.by_hcad["0621100000014"];
   assert.ok(key1127, "1127 Key St (0621100000014) must be enriched in citydir_index.json by_hcad");
-  assert.equal(key1127.e, 1932);
-  assert.equal(key1127.ai, "4981231");
-  assert.ok(Array.isArray(key1127.r) && key1127.r.length >= 3);
+  assert.equal(key1127.e, 1927);
+  assert.equal(key1127.ai, "4978175");
+  assert.ok(Array.isArray(key1127.r) && key1127.r.length >= 5);
+  assert.ok(
+    key1127.r.some((row) => row[0] === 1928 && row[1] === "John F Lake (Johnie M)"),
+    "1127 Key St must merge 1928 married alphabetical couple as 'John F Lake (Johnie M)'"
+  );
+  assert.ok(
+    key1127.r.some((row) => row[0] === 1932 && row[1] === "Thos B White (Nellie)"),
+    "1127 Key St must merge 1932 married alphabetical couple as 'Thos B White (Nellie)'"
+  );
+  assert.ok(
+    key1127.r.some((row) => row[0] === 1936 && row[1] === "Jos Norwood"),
+    "1127 Key St must include 1936 Jos Norwood in top 6 occupants"
+  );
+  const lovett511 = citydir.by_hcad["0261360000003"];
+  assert.ok(lovett511, "511 Lovett Blvd (0261360000003) must be enriched in citydir_index.json");
+  const delMonte3311 = citydir.by_hcad["0601360000010"];
+  assert.ok(delMonte3311, "3311 Del Monte Dr (0601360000010) must be enriched in citydir_index.json");
 
   const csvRaw = fs.readFileSync(
     path.join(DOCS_DATA_DIR, "houston_city_directories_1927_1963_usco_clearance.csv"),
@@ -619,16 +635,19 @@ test("UT-M10-4: post1926NoteHtml, citydir_index.json post_1926_clearance, and 19
     }
   );
   assert.ok(key1127Info.auditHit);
-  assert.equal(key1127Info.auditHit.e, 1932);
+  assert.equal(key1127Info.auditHit.e, 1927);
   const key1127Html = fakeApp._buildHouseHistoryResearchKitHtml(
     makeBaseCtx(1928, key1127Info)
   );
   assert.ok(key1127Html.includes("Verified 1927-1968 Directory Sighting"));
   assert.ok(key1127Html.includes("Indexed Occupants:"));
   assert.ok(key1127Html.includes("Pre-Screened (1866-1926):"));
+  assert.ok(key1127Html.includes("Thos B White (Nellie)"));
+  assert.ok(key1127Html.includes("John F Lake (Johnie M)"));
+  assert.ok(key1127Html.includes("Jos Norwood"));
   assert.ok(
     key1127Html.includes(
-      'href="https://www.ancestry.com/imageviewer/collections/2469/images/4981231"'
+      'href="https://www.ancestry.com/imageviewer/collections/2469/images/4978175"'
     )
   );
   assert.equal(/[\u2013\u2014]/.test(key1127Html), false);

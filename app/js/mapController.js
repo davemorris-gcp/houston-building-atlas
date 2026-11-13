@@ -7602,7 +7602,11 @@ export class AtlasMapController {
     extraCandidateHcads = [],
     flyTo = false,
   }) {
-    const hasCoords = Number.isFinite(Number(targetLng)) && Number.isFinite(Number(targetLat));
+    const toFiniteCoord = (v) =>
+      v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v)) && Number(v) !== 0
+        ? Number(v)
+        : null;
+    const hasCoords = toFiniteCoord(targetLng) !== null && toFiniteCoord(targetLat) !== null;
     if (!featureId && !hcadNum && !addressQuery && !hasCoords) return false;
     const navSeq = (this._selectNavSeq = (this._selectNavSeq || 0) + 1);
 
@@ -7850,32 +7854,22 @@ export class AtlasMapController {
         ? matchedRb._coords
         : null;
 
-    const effLng = Number.isFinite(Number(targetLng))
-      ? Number(targetLng)
-      : Number.isFinite(Number(matchedAlert?.lng))
-      ? Number(matchedAlert.lng)
-      : Number.isFinite(Number(matchedPlat?.lng))
-      ? Number(matchedPlat.lng)
-      : Number.isFinite(Number(matchedHahc?.lng))
-      ? Number(matchedHahc.lng)
-      : lmCoord && Number.isFinite(Number(lmCoord[0]))
-      ? Number(lmCoord[0])
-      : rbCoord && Number.isFinite(Number(rbCoord[0]))
-      ? Number(rbCoord[0])
-      : null;
-    const effLat = Number.isFinite(Number(targetLat))
-      ? Number(targetLat)
-      : Number.isFinite(Number(matchedAlert?.lat))
-      ? Number(matchedAlert.lat)
-      : Number.isFinite(Number(matchedPlat?.lat))
-      ? Number(matchedPlat.lat)
-      : Number.isFinite(Number(matchedHahc?.lat))
-      ? Number(matchedHahc.lat)
-      : lmCoord && Number.isFinite(Number(lmCoord[1]))
-      ? Number(lmCoord[1])
-      : rbCoord && Number.isFinite(Number(rbCoord[1]))
-      ? Number(rbCoord[1])
-      : null;
+    const effLng =
+      toFiniteCoord(targetLng) ??
+      toFiniteCoord(matchedAlert?.lng) ??
+      toFiniteCoord(matchedPlat?.lng) ??
+      toFiniteCoord(matchedHahc?.lng) ??
+      (lmCoord ? toFiniteCoord(lmCoord[0]) : null) ??
+      (rbCoord ? toFiniteCoord(rbCoord[0]) : null) ??
+      null;
+    const effLat =
+      toFiniteCoord(targetLat) ??
+      toFiniteCoord(matchedAlert?.lat) ??
+      toFiniteCoord(matchedPlat?.lat) ??
+      toFiniteCoord(matchedHahc?.lat) ??
+      (lmCoord ? toFiniteCoord(lmCoord[1]) : null) ??
+      (rbCoord ? toFiniteCoord(rbCoord[1]) : null) ??
+      null;
 
     let tilePolygonUpgraded = false;
     const tryUpgradeFromTiles = () => {
