@@ -7935,9 +7935,19 @@ export class AtlasMapController {
           nearHits.find(matchesParcelOrAddressFallback) ||
           nearHits.find((f) => {
             if (hasConflictingSubId(f)) return false;
+            const p = f?.properties || {};
+            const fbid = String(p.building_id || p.id || "").trim();
+            const fhcad = String(p.hcad_num || "").trim();
+            if (
+              fbid.includes("#") &&
+              !candidateBldIds.has(fbid) &&
+              (!fhcad || !candidateHcads.has(fhcad))
+            ) {
+              return false;
+            }
             if (candidateHcads.size > 0) {
-              const fhcad = String(f?.properties?.hcad_num || "").trim();
               if (fhcad && !candidateHcads.has(fhcad)) return false;
+              if (!fhcad && postFlyShardHits.length > 0) return false;
             }
             return true;
           }) ||

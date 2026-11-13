@@ -217,10 +217,11 @@ def test_historical_provenance_citations_and_flagging(
         }"""
     )
     page.wait_for_function(
-        """() => (document.getElementById('inspector-body')?.text_content || document.getElementById('inspector-body')?.innerText || '').includes('310 MAIN')""",
+        """() => (document.getElementById('inspector-body')?.textContent || document.getElementById('inspector-body')?.innerText || '').toUpperCase().includes('310 MAIN')""",
         timeout=10000,
     )
     page.wait_for_selector("#inspector-body .photo-provenance-pill", timeout=15000)
+    page.wait_for_selector('#inspector-body [data-action="flag-wrong-photo"]', timeout=10000)
     assert page.locator('#inspector-body [data-action="flag-wrong-photo"]').count() >= 1
 
 
