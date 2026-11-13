@@ -342,12 +342,19 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
   <div class="cycle" id="cycleBar">
     <a class="btn dark" href="index.html" title="Return to interactive Houston Building Atlas map">← Back to Atlas Map</a>
     <a class="btn dark" href="index.html#layers=permit_watch,hahc_coa" title="Open Monthly HAHC Certificate of Appropriateness (COA) &amp; Designation Precedent Tracker on the Atlas Map">🏛 HAHC COA Tracker</a>
+    <a class="btn dark" href="data-ecosystem.html" title="Open the interactive &amp; printable Houston Building Atlas Data Ecosystem &amp; Provenance Atlas (29 institutions, 46 data feeds)">🗺️ Data Sources &amp; Ecosystem</a>
     <button class="btn dark" id="toggleDemoBenchmarksBtn" type="button" aria-expanded="false" title="View 2020-2025 calendar-year and 2026 YTD demolition permit totals across City of Houston, HCAD Countywide, and HAHC Historic Districts">📊 Demolition Stats (<span id="hdrDemoYtdCount">1,755</span> YTD)</button>
     <a class="btn dark hidden" id="staffGuideDocBtn" href="https://docs.google.com/document/d/1Zu9xfCFgpegvBSiMedImvVRaONztjX8Q3-wqsmFbirw/edit?resourcekey=0-NXfEeitCarjEuB7ZOVdTEg" target="_blank" rel="noopener" title="Open Preservation Houston Plat &amp; Property Monitoring Guide in Google Docs (Staff Admins only)">📘 Monitoring Guide (Google Doc ↗)</a>
 
     <span id="agendaHeaderControls" style="display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap">
       <label for="cycleSelect">PC Agenda:</label>
       <select id="cycleSelect" class="dark-sel" aria-label="Planning Commission Meeting Cycle"></select>
+      <label for="cycleViewModeSelect">View Mode:</label>
+      <select id="cycleViewModeSelect" class="dark-sel" aria-label="Cross-Cycle Consolidation Mode" title="Switch between a single Planning Commission cycle, auto-merged recurring properties across all recent cycles, or unmerged individual cycle filings">
+        <option value="single">Selected Meeting Only</option>
+        <option value="merged">Consolidated Across Cycles (1 Row per Property)</option>
+        <option value="unmerged">All Cycles Unmerged (Every Per-Cycle Row)</option>
+      </select>
       <span id="cycleLabel" class="hdr-meta-badge" title="Biweekly Planning Commission agenda cycle and automated daily check schedule"></span>
     </span>
 
@@ -527,9 +534,11 @@ import {
   escapeXmlText,
   sanitizeExternalLink,
   sanitizeExternalLinksList,
+  normalizeEmbeddablePhotoUrl,
   sanitizePhotoUrl,
   sanitizePhotoDataUrl,
   buildCheckDeletionKey,
+  updateChecklistEntryInProperty,
   buildDefaultChecklist,
   findChecklistRow,
   extractWatchPropertySearchContext,
@@ -811,6 +820,9 @@ let staticActivityLog = null;
 let hahcTrackerPayload = null;
 let hahcFetchStarted = false;
 let flashRowClearTimer = null;
+let curatedBuildingPhotosByBldId = new Map();
+let curatedBuildingPhotosByHcad = new Map();
+let curatedBuildingPhotosByAddr = new Map();
 let history = store.get("phpam:history") || [];
 let view = {
   mode: "agenda",
@@ -818,6 +830,8 @@ let view = {
   selected: null, // composite <cycleKey>::<appNo>
   selectedWatchId: null,
   editingWatchId: null,
+  editingCheckTarget: null, // { propId, rowId, checkIdx }
+  allCyclesMode: "merged",
   q: "",
   nb: "",
   flag: "",
@@ -1214,6 +1228,9 @@ function startCycle(items, fileName, presetReviews = {}, extraMeta = {}){
 function getActiveItems(){
   if (!S) return [];
   if (S.activeCycleChoice === "all") {
+    if (view.allCyclesMode === "unmerged") {
+      return S.cycleOrder.flatMap(ck => S.cycles[ck]?.items || []);
+    }
     return mergePlatItemsAcrossCycles(S.cycles, S.cycleOrder);
   }
   return S.cycles[S.activeCycleChoice]?.items || [];
@@ -1626,13 +1643,24 @@ function populateHeaderAndFilterControls(){
       return `<option value="${esc(ck)}" ${S.activeCycleChoice === ck ? "selected" : ""}>PC ${esc(shortD)}${idx === 0 ? " (Current)" : ""} · ${cnt} items</option>`;
     });
     if (S.cycleOrder.length > 1) {
-      const total = S.cycleOrder.reduce((sum, ck) => sum + (S.cycles[ck]?.items?.length || 0), 0);
-      opts.push(`<option value="all" ${S.activeCycleChoice === "all" ? "selected" : ""}>All Recent Cycles (${S.cycleOrder.length} meetings · ${total} items)</option>`);
+      const rawTotal = S.cycleOrder.reduce((sum, ck) => sum + (S.cycles[ck]?.items?.length || 0), 0);
+      const mergedTotal = mergePlatItemsAcrossCycles(S.cycles, S.cycleOrder).length;
+      opts.push(`<option value="all" ${S.activeCycleChoice === "all" ? "selected" : ""}>All Recent Cycles (${mergedTotal} consolidated properties across ${S.cycleOrder.length} meetings · ${rawTotal} filings)</option>`);
     }
     sel.innerHTML = opts.join("");
 
+    const vmSel = $("#cycleViewModeSelect");
+    if (vmSel) {
+      if (S.activeCycleChoice === "all") {
+        vmSel.value = view.allCyclesMode === "unmerged" ? "unmerged" : "merged";
+      } else {
+        vmSel.value = "single";
+      }
+    }
+
     if (S.activeCycleChoice === "all") {
-      $("#cycleLabel").textContent = `Showing ${S.cycleOrder.length} PC Agendas · Auto-Sweep: Daily 7:00 AM CT`;
+      const modeDesc = view.allCyclesMode === "unmerged" ? "Unmerged Per-Cycle Filings" : "Consolidated Across Cycles";
+      $("#cycleLabel").textContent = `Showing ${S.cycleOrder.length} PC Agendas (${modeDesc}) · Auto-Sweep: Daily 7:00 AM CT`;
     } else {
       const longD = formatLongUsDate(S.activeCycleChoice) || S.activeCycleChoice;
       $("#cycleLabel").textContent = `Meeting: ${longD} · Auto-Sweep: Daily 7:00 AM CT`;
@@ -3991,6 +4019,56 @@ function buildEsriWorldImageryPreviewUrl(lat, lng, spanDeg = 0.00085){
   return `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${encodeURIComponent(bbox)}&bboxSR=4326&imageSR=3857&size=640,360&format=jpg&f=image`;
 }
 
+function ingestCuratedBuildingPhotos(payload){
+  curatedBuildingPhotosByBldId.clear();
+  curatedBuildingPhotosByHcad.clear();
+  curatedBuildingPhotosByAddr.clear();
+  const list = Array.isArray(payload?.photos) ? payload.photos : [];
+  const isStreetPhoto = item => {
+    const u = String(item?.thumb_url || item?.image_url || "");
+    const era = String(item?.era_label || "");
+    return Boolean(u && !/tile\.loc\.gov/i.test(u) && !/sanborn/i.test(era));
+  };
+  for (const item of list) {
+    const url = sanitizePhotoUrl(item?.thumb_url || item?.image_url || "");
+    if (!url) continue;
+    const prefer = isStreetPhoto(item);
+    const rec = {
+      url,
+      fullUrl: sanitizePhotoUrl(item?.image_url || url),
+      caption: String(item?.era_label || item?.caption || item?.attribution || item?.credit || "Curated Archival Photograph").trim(),
+      isStreetPhoto: prefer,
+    };
+    const bldId = String(item?.building_id || "").trim();
+    if (bldId && (!curatedBuildingPhotosByBldId.has(bldId) || (!curatedBuildingPhotosByBldId.get(bldId).isStreetPhoto && prefer))) {
+      curatedBuildingPhotosByBldId.set(bldId, rec);
+    }
+    const hid = String(item?.hcad_num || "").trim().padStart(13, "0");
+    if (/^\d{13}$/.test(hid) && (!curatedBuildingPhotosByHcad.has(hid) || (!curatedBuildingPhotosByHcad.get(hid).isStreetPhoto && prefer))) {
+      curatedBuildingPhotosByHcad.set(hid, rec);
+    }
+    const addrK = canonicalPropertyAddressKey(item?.address || "");
+    if (addrK && (!curatedBuildingPhotosByAddr.has(addrK) || (!curatedBuildingPhotosByAddr.get(addrK).isStreetPhoto && prefer))) {
+      curatedBuildingPhotosByAddr.set(addrK, rec);
+    }
+  }
+}
+
+function findCuratedPhotoForWatchProp(p){
+  if (!p) return null;
+  for (const bid of [p.lostHoustonId, p.buildingId]) {
+    const k = String(bid || "").trim();
+    if (k && curatedBuildingPhotosByBldId.has(k)) return curatedBuildingPhotosByBldId.get(k);
+  }
+  const { hcadIds } = parseHcadAccountList(p.hcadAccount || "");
+  for (const hid of hcadIds) {
+    if (curatedBuildingPhotosByHcad.has(hid)) return curatedBuildingPhotosByHcad.get(hid);
+  }
+  const addrK = canonicalPropertyAddressKey(p.address || "");
+  if (addrK && curatedBuildingPhotosByAddr.has(addrK)) return curatedBuildingPhotosByAddr.get(addrK);
+  return null;
+}
+
 function renderWatchlistDetail(precomputedActCtx = null){
   captureWatchlistDraftInputs();
   const activeEl = document.activeElement;
@@ -4033,13 +4111,22 @@ function renderWatchlistDetail(precomputedActCtx = null){
     ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${encodeURIComponent(`${p.lat},${p.lng}`)}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((p.address || p.propertyName) + ", Houston, TX")}`;
   const customPhotoSrc = sanitizePhotoDataUrl(p.photoDataUrl || "") || sanitizePhotoUrl(p.photoUrl || "");
-  const aerialPreviewSrc = (!customPhotoSrc && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
+  const curatedPhoto = !customPhotoSrc ? findCuratedPhotoForWatchProp(p) : null;
+  const curatedPhotoSrc = curatedPhoto?.url || "";
+  const aerialPreviewSrc = (!customPhotoSrc && !curatedPhotoSrc && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng)))
     ? buildEsriWorldImageryPreviewUrl(p.lat, p.lng)
     : "";
-  const displayPhotoSrc = customPhotoSrc || aerialPreviewSrc;
+  const displayPhotoSrc = customPhotoSrc || curatedPhotoSrc || aerialPreviewSrc;
+  const displayPhotoBadge = customPhotoSrc
+    ? "📷 Custom Property Photo"
+    : curatedPhotoSrc
+    ? (curatedPhoto.isStreetPhoto ? "🏛️ Curated Street-Level Photo" : "🗺️ Curated Archival Plate")
+    : (aerialPreviewSrc ? "🛰️ Parcel Aerial Preview (Esri GIS)" : "");
   const displayPhotoLabel = customPhotoSrc
     ? (p.photoCaption || "Uploaded / Linked Property Photo")
-    : (aerialPreviewSrc ? "Parcel Aerial Imagery Preview (Esri World Imagery)" : "");
+    : curatedPhotoSrc
+    ? (curatedPhoto.caption || "Curated Archival Photograph")
+    : (aerialPreviewSrc ? "Parcel Aerial Imagery Preview (Esri World Imagery · Click 🚶 Open Google Street View ↗ for 360° street-level pano)" : "");
 
   $("#detail").innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
@@ -4058,6 +4145,8 @@ function renderWatchlistDetail(precomputedActCtx = null){
         </div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn sm primary" id="wlHeaderPhotoBtn" title="Upload a photo file or link a Street View / Google Drive image for this property">📷 Set / Upload Photo</button>
+        <a href="${esc(streetViewHref)}" target="_blank" rel="noopener" class="btn sm" style="text-decoration:none" title="Open 360-degree Google Street View for this property">🚶 Street View ↗</a>
         <div style="display:inline-flex;gap:3px;align-items:center;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:#fff" role="group" aria-label="Change Tier and sync with Biweekly Monitor">
           <span style="font-size:11.5px;color:var(--muted);margin-right:2px">Tier:</span>
           ${[["1", "T1"], ["2", "T2"], ["3", "T3 (Archive)"]].map(([tv, lbl]) =>
@@ -4125,6 +4214,48 @@ function renderWatchlistDetail(precomputedActCtx = null){
         </span>
       </h3>
       ${isEditing ? buildWatchPropEditFormHtml(p) : ""}
+
+      <div id="watchlistPhotoCard" style="margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <b style="font-size:13px">📸 Property Photo, Street View &amp; Aerial Reference</b>
+            ${displayPhotoBadge ? `<span class="chip" style="font-size:11px">${esc(displayPhotoBadge)}</span>` : ""}
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <a class="assist-pill" href="${esc(streetViewHref)}" target="_blank" rel="noopener">🚶 Open 360° Google Street View ↗</a>
+            <button type="button" class="btn sm primary" id="wlPhotoUploadTriggerBtn">📷 Set / Upload Photo File</button>
+            <input type="file" id="wlPhotoFileInput" accept="image/*" class="hidden">
+            ${customPhotoSrc ? `<button type="button" class="btn sm" id="wlPhotoClearBtn" style="color:var(--t1)">Remove Custom Photo</button>` : ""}
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:${displayPhotoSrc ? "minmax(230px, 310px) 1fr" : "1fr"};gap:12px;align-items:start">
+          ${displayPhotoSrc ? `
+            <div style="border:1px solid var(--line);border-radius:5px;overflow:hidden;background:#fff">
+              <a href="${esc(customPhotoSrc || curatedPhoto?.fullUrl || streetViewHref)}" target="_blank" rel="noopener" title="Click to open full view or 360° Google Street View">
+                <img src="${esc(displayPhotoSrc)}" alt="${esc(primaryHeading)}" style="display:block;width:100%;max-height:195px;object-fit:cover">
+              </a>
+              <div style="padding:5px 8px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);line-height:1.35">
+                ${esc(displayPhotoLabel)}
+              </div>
+            </div>
+          ` : `
+            <div style="padding:10px 12px;border:1px dashed var(--line);border-radius:5px;background:#fff;font-size:12.5px;color:var(--muted)">
+              No custom photo uploaded yet. Click <b>📷 Set / Upload Photo File</b> to attach a field or Street View screenshot from your computer, paste a direct image or Google Drive photo URL below, or click <b>Open 360° Google Street View ↗</b>.
+            </div>
+          `}
+          <div style="display:grid;gap:6px">
+            <div style="font-size:12px;color:var(--muted);line-height:1.45">
+              Upload a field photo or Street View screenshot from your computer (click <b>📷 Set / Upload Photo File</b>; auto-compressed &amp; synced to the Google Sheet) or paste an image / Google Drive photo share link below:
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <input id="wlPhotoUrlInput" type="url" value="${esc(p.photoUrl || "")}" placeholder="Paste image URL or Google Drive photo share link (http/https)" style="flex:1;min-width:210px;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff">
+              <input id="wlPhotoCaptionInput" type="text" value="${esc(p.photoCaption || "")}" placeholder="Caption / credit (e.g. Street View Nov 2026)" style="width:220px;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff">
+              <button type="button" class="btn sm" id="wlPhotoSaveBtn">Save Photo Info</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <dl class="facts">
         <div class="fact"><dt>Primary Street Address</dt><dd><b>${esc(p.address || "Not recorded")}</b></dd></div>
         <div class="fact"><dt>Historic / Property Name</dt><dd>${esc(p.propertyName || "Not recorded")}</dd></div>
@@ -4150,44 +4281,6 @@ function renderWatchlistDetail(precomputedActCtx = null){
         ${kd.asbestosAbatementWindow ? `<div class="fact"><dt>DSHS Abatement Window</dt><dd style="color:var(--t1);font-weight:600">${esc(kd.asbestosAbatementWindow)}</dd></div>` : ""}
         <div class="fact"><dt>Daily 8-Agency Auto-Sweep</dt><dd>${esc(p.lastAutoSweepAt ? new Date(p.lastAutoSweepAt).toLocaleString() : (WL.lastAutoSweepAt ? new Date(WL.lastAutoSweepAt).toLocaleString() : "Daily 7:00 AM CT"))}</dd></div>
       </dl>
-
-      <div id="watchlistPhotoCard" style="margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-          <b style="font-size:13px">📸 Property Photo, Aerial &amp; Street View Reference</b>
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-            <a class="assist-pill" href="${esc(streetViewHref)}" target="_blank" rel="noopener">🚶 Open Google Street View ↗</a>
-            <button type="button" class="btn sm" id="wlPhotoUploadTriggerBtn">📷 Upload Photo File</button>
-            <input type="file" id="wlPhotoFileInput" accept="image/*" class="hidden">
-            ${customPhotoSrc ? `<button type="button" class="btn sm" id="wlPhotoClearBtn" style="color:var(--t1)">Remove Custom Photo</button>` : ""}
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:${displayPhotoSrc ? "minmax(220px, 310px) 1fr" : "1fr"};gap:12px;align-items:start">
-          ${displayPhotoSrc ? `
-            <div style="border:1px solid var(--line);border-radius:5px;overflow:hidden;background:#fff">
-              <a href="${esc(customPhotoSrc || streetViewHref)}" target="_blank" rel="noopener" title="Click to open full view">
-                <img src="${esc(displayPhotoSrc)}" alt="${esc(primaryHeading)}" style="display:block;width:100%;max-height:195px;object-fit:cover">
-              </a>
-              <div style="padding:5px 8px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line)">
-                ${esc(displayPhotoLabel)}
-              </div>
-            </div>
-          ` : `
-            <div style="padding:10px 12px;border:1px dashed var(--line);border-radius:5px;background:#fff;font-size:12.5px;color:var(--muted)">
-              No custom photo uploaded yet. Click <b>📷 Upload Photo File</b> to attach a field/Street View screenshot from your computer, paste a direct image URL below, or click <b>Open Google Street View ↗</b>.
-            </div>
-          `}
-          <div style="display:grid;gap:6px">
-            <div style="font-size:12px;color:var(--muted)">
-              Upload a photo directly from your device (auto-compressed &amp; synced to the Google Sheet) or paste a direct image URL:
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-              <input id="wlPhotoUrlInput" type="url" value="${esc(p.photoUrl || "")}" placeholder="Paste direct image URL (http/https)" style="flex:1;min-width:200px;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff">
-              <input id="wlPhotoCaptionInput" type="text" value="${esc(p.photoCaption || "")}" placeholder="Caption / credit (e.g. Street View Oct 2026)" style="width:220px;padding:5px 8px;font-size:12.5px;border:1px solid var(--line);border-radius:4px;background:#fff">
-              <button type="button" class="btn sm" id="wlPhotoSaveBtn">Save Photo Info</button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <div class="doc-links-bar" style="margin-top:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
@@ -4325,16 +4418,31 @@ function renderWatchlistDetail(precomputedActCtx = null){
                   ${(row.checks && row.checks.length)
                     ? `<ul class="chk-list">${row.checks.map((c, cIdx) => {
                         const plainNote = explainWatchlistCheckText(c.result, rowId);
-                        return `<li><b>${esc(c.date)}:</b> ${esc(c.result)}${renderCheckLinksHtml(c.links)} <button type="button" class="assist-pill" data-del-chk-row="${esc(rowId)}" data-del-chk-idx="${cIdx}" style="padding:0 5px;font-size:11px;color:var(--t1);border-color:#E5B4B0;background:#FDF2F1;margin-left:4px" title="Remove this logged check entry">× Remove</button>${plainNote ? `<div class="wl-check-plain-note">${esc(plainNote)}</div>` : ""}</li>`;
+                        const isEditingThisEntry = Boolean(
+                          view.editingCheckTarget &&
+                          view.editingCheckTarget.propId === p.id &&
+                          view.editingCheckTarget.rowId === rowId &&
+                          view.editingCheckTarget.checkIdx === cIdx
+                        );
+                        return `<li style="${isEditingThisEntry ? "background:#EEF6FF;border-radius:4px;padding:3px 6px;" : ""}"><b>${esc(c.date)}:</b> ${esc(c.result)}${renderCheckLinksHtml(c.links)} <button type="button" class="assist-pill" data-edit-chk-row="${esc(rowId)}" data-edit-chk-idx="${cIdx}" style="padding:0 6px;font-size:11px;color:var(--survey);border-color:#B8D0E8;background:#F2F7FC;margin-left:4px" title="Edit this logged check entry's date, note, or link">✎ Edit</button> <button type="button" class="assist-pill" data-del-chk-row="${esc(rowId)}" data-del-chk-idx="${cIdx}" style="padding:0 5px;font-size:11px;color:var(--t1);border-color:#E5B4B0;background:#FDF2F1;margin-left:3px" title="Remove this logged check entry">× Remove</button>${plainNote ? `<div class="wl-check-plain-note">${esc(plainNote)}</div>` : ""}</li>`;
                       }).join("")}</ul>`
                     : '<div style="color:var(--muted);font-size:12px">No checks recorded yet.</div>'}
-                  <div class="chk-add">
-                    <input type="date" id="chkDate-${esc(rowId)}" value="${new Date().toISOString().slice(0, 10)}" aria-label="Check date">
-                    <input type="text" class="chk-res-in" id="chkText-${esc(rowId)}" placeholder="Record finding (or click ✓ Mark Checked)" aria-label="Check result">
-                    <input type="text" class="chk-lbl-in" id="chkLinkLbl-${esc(rowId)}" placeholder="Link label (opt.)" aria-label="Optional link label">
-                    <input type="url" class="chk-url-in" id="chkLinkUrl-${esc(rowId)}" placeholder="Drive / result URL (opt.)" aria-label="Optional result or Google Drive URL">
-                    <button type="button" class="btn" data-add-chk-id="${esc(rowId)}">+ Log</button>
-                  </div>
+                  ${(() => {
+                    const editTarget = (view.editingCheckTarget && view.editingCheckTarget.propId === p.id && view.editingCheckTarget.rowId === rowId)
+                      ? view.editingCheckTarget
+                      : null;
+                    const editEntry = (editTarget && Array.isArray(row.checks)) ? row.checks[editTarget.checkIdx] : null;
+                    return `<div class="chk-add" style="${editEntry ? "background:#EEF6FF;border:1px solid #93C5FD;padding:6px;border-radius:5px;margin-top:6px" : ""}">
+                      ${editEntry ? `<div style="width:100%;font-size:11.5px;font-weight:600;color:var(--survey);margin-bottom:4px">✏️ Editing Check Entry #${editTarget.checkIdx + 1} (originally ${esc(editEntry.date || "")}): update date, note, or link below</div>` : ""}
+                      <input type="date" id="chkDate-${esc(rowId)}" value="${esc(editEntry ? (editEntry.date || "") : new Date().toISOString().slice(0, 10))}" aria-label="Check date">
+                      <input type="text" class="chk-res-in" id="chkText-${esc(rowId)}" value="${esc(editEntry ? (editEntry.result || "") : "")}" placeholder="Record finding (or click ✓ Mark Checked)" aria-label="Check result">
+                      <input type="text" class="chk-lbl-in" id="chkLinkLbl-${esc(rowId)}" value="${esc(editEntry && editEntry.links && editEntry.links[0] ? (editEntry.links[0].label || "") : "")}" placeholder="Link label (opt.)" aria-label="Optional link label">
+                      <input type="url" class="chk-url-in" id="chkLinkUrl-${esc(rowId)}" value="${esc(editEntry && editEntry.links && editEntry.links[0] ? (editEntry.links[0].url || "") : "")}" placeholder="Drive / result URL (opt.)" aria-label="Optional result or Google Drive URL">
+                      ${editEntry
+                        ? `<button type="button" class="btn primary" data-save-edit-chk-id="${esc(rowId)}" data-save-edit-chk-idx="${editTarget.checkIdx}">✓ Save Entry</button><button type="button" class="btn" data-cancel-edit-chk-id="${esc(rowId)}">Cancel</button>`
+                        : `<button type="button" class="btn" data-add-chk-id="${esc(rowId)}">+ Log</button>`}
+                    </div>`;
+                  })()}
                 </td>
               </tr>`;
             }).join("")}
@@ -4362,20 +4470,23 @@ function renderWatchlistDetail(precomputedActCtx = null){
           <tbody>
             ${log.length
               ? log.map(entry => {
-                  const plainNote = explainWatchlistCheckText(entry.result, entry.rowId || "");
-                  const rowObj = entry.rowId ? findChecklistRow(ck, entry.rowId) : null;
-                  const cIdx = rowObj && Array.isArray(rowObj.checks)
-                    ? rowObj.checks.findIndex(c => c.date === entry.date && c.result === entry.result)
-                    : -1;
-                  const rmBtnHtml = (entry.rowId && cIdx >= 0)
-                    ? ` <button type="button" class="assist-pill" data-del-chk-row="${esc(entry.rowId)}" data-del-chk-idx="${cIdx}" style="padding:0 5px;font-size:11px;color:var(--t1);border-color:#E5B4B0;background:#FDF2F1;margin-left:4px" title="Remove this logged check entry">× Remove</button>`
+                  const resolvedRowId = entry.rowId || entry.checkId || "";
+                  const plainNote = explainWatchlistCheckText(entry.result, resolvedRowId);
+                  const rowObj = resolvedRowId ? findChecklistRow(ck, resolvedRowId) : null;
+                  const cIdx = Number.isInteger(entry.checkIndex)
+                    ? entry.checkIndex
+                    : (rowObj && Array.isArray(rowObj.checks)
+                      ? rowObj.checks.findIndex(c => c.date === entry.date && c.result === entry.result)
+                      : -1);
+                  const actBtnsHtml = (resolvedRowId && cIdx >= 0)
+                    ? ` <button type="button" class="assist-pill" data-edit-chk-row="${esc(resolvedRowId)}" data-edit-chk-idx="${cIdx}" style="padding:0 6px;font-size:11px;color:var(--survey);border-color:#B8D0E8;background:#F2F7FC;margin-left:4px" title="Edit this logged check entry's date, note, or link">✎ Edit</button> <button type="button" class="assist-pill" data-del-chk-row="${esc(resolvedRowId)}" data-del-chk-idx="${cIdx}" style="padding:0 5px;font-size:11px;color:var(--t1);border-color:#E5B4B0;background:#FDF2F1;margin-left:3px" title="Remove this logged check entry">× Remove</button>`
                     : "";
                   return `<tr>
                   <td>${entry.entryNo}</td>
                   <td style="white-space:nowrap;font-weight:600">${esc(entry.date)}</td>
                   <td>${esc(entry.stage)}</td>
                   <td>${esc(entry.activity)}</td>
-                  <td>${esc(entry.result)}${renderCheckLinksHtml(entry.links)}${rmBtnHtml}${plainNote ? `<div class="wl-check-plain-note">${esc(plainNote)}</div>` : ""}</td>
+                  <td>${esc(entry.result)}${renderCheckLinksHtml(entry.links)}${actBtnsHtml}${plainNote ? `<div class="wl-check-plain-note">${esc(plainNote)}</div>` : ""}</td>
                 </tr>`;
                 }).join("")
               : `<tr><td colspan="5" style="color:var(--muted)">No dated checks logged yet.</td></tr>`}
@@ -5973,12 +6084,20 @@ async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
   try {
     const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261113b";
-    const [platResp, wlResp, alResp, actResp] = await Promise.all([
+    const [platResp, wlResp, alResp, actResp, bpResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json" + cacheQ),
       fetch("public/data/property_watchlist.json" + cacheQ),
       fetch("public/data/active_permit_alerts.json" + cacheQ).catch(() => null),
       fetch("public/data/monitor_activity_log.json" + cacheQ).catch(() => null),
+      fetch("public/data/building_photos.json" + cacheQ).catch(() => null),
     ]);
+
+    if (bpResp && bpResp.ok) {
+      try {
+        const bpData = await bpResp.json();
+        ingestCuratedBuildingPhotos(bpData);
+      } catch (_e) {}
+    }
 
     if (actResp && actResp.ok) {
       try {
@@ -6651,6 +6770,17 @@ document.addEventListener("click", async e => {
   }
 
   // Watchlist Property Photo Upload / URL / Clear
+  if (e.target.closest("#wlHeaderPhotoBtn")) {
+    const card = $("#watchlistPhotoCard");
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.style.boxShadow = "0 0 0 3px rgba(245, 158, 11, 0.55)";
+      setTimeout(() => { if (card) card.style.boxShadow = ""; }, 1800);
+    }
+    if (!requireStaffAuth("uploading or setting a property photo")) return;
+    $("#wlPhotoFileInput")?.click();
+    return;
+  }
   if (e.target.closest("#wlPhotoUploadTriggerBtn")) {
     if (!requireStaffAuth("uploading a property photo")) return;
     $("#wlPhotoFileInput")?.click();
@@ -7017,6 +7147,89 @@ document.addEventListener("click", async e => {
     return;
   }
 
+  // 15-Point Checklist & Findings Log: Edit Logged Check Entry ("✎ Edit")
+  const editChkBtn = e.target.closest("[data-edit-chk-row]");
+  if (editChkBtn) {
+    if (!requireStaffAuth("editing a logged check entry")) return;
+    const rowId = editChkBtn.dataset.editChkRow;
+    const cIdx = Number(editChkBtn.dataset.editChkIdx);
+    const p = getSelectedWatchProp();
+    const row = p ? findChecklistRow(p.checklist, rowId) : null;
+    if (!p || !row || !Array.isArray(row.checks) || cIdx < 0 || cIdx >= row.checks.length) return;
+    view.editingCheckTarget = { propId: p.id, rowId, checkIdx: cIdx };
+    clearWatchlistDraftInputsForRow(p.id, rowId);
+    const actCtx = getActivityViewContext();
+    renderWatchlistDetail(actCtx);
+    const rowEl = document.getElementById(`chk-row-${rowId}`);
+    if (rowEl) rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => { $(`#chkText-${rowId}`)?.focus(); }, 60);
+    return;
+  }
+
+  // Save Edited Logged Check Entry ("✓ Save Edited Entry")
+  const saveEditChkBtn = e.target.closest("[data-save-edit-chk-id]");
+  if (saveEditChkBtn) {
+    if (!requireStaffAuth("saving an edited check entry")) return;
+    const rowId = saveEditChkBtn.dataset.saveEditChkId;
+    const cIdx = Number(saveEditChkBtn.dataset.saveEditChkIdx);
+    const p = getSelectedWatchProp();
+    const row = p ? findChecklistRow(p.checklist, rowId) : null;
+    if (!p || !row) return;
+    const dVal = ($(`#chkDate-${rowId}`)?.value || todayIso()).trim();
+    const tVal = ($(`#chkText-${rowId}`)?.value || "").trim();
+    const lLbl = ($(`#chkLinkLbl-${rowId}`)?.value || "").trim();
+    const lUrl = ($(`#chkLinkUrl-${rowId}`)?.value || "").trim();
+    if (lUrl) {
+      const clean = sanitizeExternalLink({ label: lLbl || "Result Link", url: lUrl });
+      if (!clean) {
+        toast("Invalid result URL: only http:// or https:// links are allowed.");
+        return;
+      }
+    }
+    if (!tVal && !lUrl) {
+      toast("Enter a check result or attach a valid https:// result/Google Drive link.");
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    const okEdit = updateChecklistEntryInProperty(p, rowId, cIdx, {
+      date: dVal,
+      result: tVal,
+      linkLabel: lLbl,
+      linkUrl: lUrl,
+      nowIso,
+    });
+    if (!okEdit) {
+      toast("Could not update check entry.");
+      return;
+    }
+    view.editingCheckTarget = null;
+    clearWatchlistDraftInputsForRow(p.id, rowId);
+    const saved = persistWatchlistPropertyEdit(p);
+    queueCloudSyncWatchProperty(saved);
+    const sc = $("#detail").scrollTop;
+    const actCtx = getActivityViewContext();
+    updateModeButtons(actCtx);
+    renderWatchlistFunnel();
+    renderWatchlistSidebar(actCtx);
+    renderWatchlistDetail(actCtx);
+    $("#detail").scrollTop = sc;
+    toast(`Updated logged check (${dVal}) for ${row.activity}.`);
+    return;
+  }
+
+  // Cancel Editing Logged Check Entry
+  const cancelEditChkBtn = e.target.closest("[data-cancel-edit-chk-id]");
+  if (cancelEditChkBtn) {
+    const rowId = cancelEditChkBtn.dataset.cancelEditChkId;
+    const p = getSelectedWatchProp();
+    view.editingCheckTarget = null;
+    if (p && rowId) clearWatchlistDraftInputsForRow(p.id, rowId);
+    const sc = $("#detail").scrollTop;
+    renderWatchlistDetail(getActivityViewContext());
+    $("#detail").scrollTop = sc;
+    return;
+  }
+
   // 15-Point Checklist & Findings Log: Remove Logged Check Entry ("× Remove")
   const delChkBtn = e.target.closest("[data-del-chk-row]");
   if (delChkBtn) {
@@ -7032,6 +7245,7 @@ document.addEventListener("click", async e => {
     if (delKey) {
       p.deletedCheckKeys = Array.from(new Set([...(p.deletedCheckKeys || []), delKey]));
     }
+    view.editingCheckTarget = null;
     row.lastChecked = row.checks.length
       ? row.checks.map(c => c.date || "").filter(Boolean).sort().slice(-1)[0] || ""
       : "";
@@ -7075,6 +7289,7 @@ document.addEventListener("click", async e => {
     flushPendingAgendaTextEdit();
     view.selectedWatchId = wlRow.dataset.watchId;
     view.editingWatchId = null;
+    view.editingCheckTarget = null;
     view.highlightCheckId = "";
     clearBootDeepLinkUrlParams();
     const actCtx = getActivityViewContext();
@@ -7479,6 +7694,28 @@ $("#cycleSelect")?.addEventListener("change", e => {
   S.activeCycleChoice = val;
   if (val !== "all" && S.cycles[val]) {
     S.cycleKey = val;
+  } else if (val === "all" && !view.allCyclesMode) {
+    view.allCyclesMode = "merged";
+  }
+  view.selected = null;
+  clearBootDeepLinkUrlParams();
+  render();
+});
+
+$("#cycleViewModeSelect")?.addEventListener("change", e => {
+  if (!S) return;
+  flushPendingAgendaTextEdit();
+  const modeVal = e.target.value;
+  if (modeVal === "single") {
+    const targetCk = (S.cycleKey && S.cycles[S.cycleKey]) ? S.cycleKey : S.cycleOrder[0];
+    S.activeCycleChoice = targetCk;
+    S.cycleKey = targetCk;
+  } else if (modeVal === "unmerged") {
+    S.activeCycleChoice = "all";
+    view.allCyclesMode = "unmerged";
+  } else {
+    S.activeCycleChoice = "all";
+    view.allCyclesMode = "merged";
   }
   view.selected = null;
   clearBootDeepLinkUrlParams();

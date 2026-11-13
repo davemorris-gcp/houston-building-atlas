@@ -65,7 +65,11 @@ import {
   buildDangerousBuildingsNotificationText,
   evaluateWatchlistLikelyDemolished,
   graduateWatchlistPropertyToLost,
+  normalizeEmbeddablePhotoUrl,
+  sanitizePhotoUrl,
   buildCheckDeletionKey,
+  updateChecklistEntryInProperty,
+  rebuildFindingsLog,
   isCheckEntryDeleted,
   mergeDuplicateWatchlistPair,
   dedupeWatchlistProperties,
@@ -2126,10 +2130,112 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
   assert.match(platMonitorHtml, /function captureWatchlistDraftInputs\(/);
   assert.match(platMonitorHtml, /function restoreWatchlistDraftInputs\(/);
   assert.match(platMonitorHtml, /data-del-chk-row=/);
+  assert.match(platMonitorHtml, /data-edit-chk-row=/);
+  assert.match(platMonitorHtml, /id="wlHeaderPhotoBtn"/);
+  assert.match(platMonitorHtml, /id="watchlistPhotoCard"/);
+  assert.match(platMonitorHtml, /id="cycleViewModeSelect"/);
   assert.match(platMonitorHtml, /id="wlHistoryInput"/);
   assert.match(platMonitorHtml, /id="wlHistoryFolderInput"/);
   assert.match(platMonitorHtml, /id="wlPhotoUrlInput"/);
   assert.match(platMonitorHtml, /Marked Lost on Watchlist \(Demolition Permit \/ Loss Logged · Not Yet in Lost Houston Catalog\)/);
+
+  // F3-13: Google Drive share URL auto-conversion to embeddable thumbnail, 100% coordinate coverage on Watchlist, inline check entry edit, and Data Ecosystem catalog
+  assert.equal(
+    normalizeEmbeddablePhotoUrl("https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz123456/view?usp=sharing"),
+    "https://drive.google.com/thumbnail?id=1AbCdEfGhIjKlMnOpQrStUvWxYz123456&sz=w1200"
+  );
+  assert.equal(
+    sanitizePhotoUrl("https://drive.google.com/open?id=1AbCdEfGhIjKlMnOpQrStUvWxYz123456"),
+    "https://drive.google.com/thumbnail?id=1AbCdEfGhIjKlMnOpQrStUvWxYz123456&sz=w1200"
+  );
+
+  for (const wp of wlDisk.watchedProperties) {
+    assert.ok(
+      typeof wp.lat === "number" && Number.isFinite(wp.lat) && typeof wp.lng === "number" && Number.isFinite(wp.lng),
+      `Watchlist property ${wp.id} (${wp.address}) must have finite lat/lng coordinates for Street View & Esri aerial preview`
+    );
+  }
+
+  // Test inline check editing & findingsLog rowId/checkIndex
+  const canalEditClone = normalizeWatchProperty(JSON.parse(JSON.stringify(canal)));
+  const initialFindings = rebuildFindingsLog(canalEditClone);
+  assert.ok(initialFindings.length > 0);
+  for (const fl of initialFindings) {
+    assert.ok(fl.rowId, "rebuildFindingsLog entry must populate rowId");
+    assert.equal(typeof fl.checkIndex, "number", "rebuildFindingsLog entry must populate numeric checkIndex");
+  }
+
+  const row15 = findChecklistRow(canalEditClone.checklist, "chk-15");
+  row15.checks.push({
+    date: "2026-11-13",
+    result: "Water/wastewater permit issued 9/15 (wrong calendar date selected)",
+    source: "manual",
+  });
+  const oldKey = buildCheckDeletionKey("chk-15", row15.checks[row15.checks.length - 1]);
+  const editRes = updateChecklistEntryInProperty(
+    canalEditClone,
+    "chk-15",
+    row15.checks.length - 1,
+    {
+      date: "2026-09-15",
+      result: "Water/wastewater disconnect permit issued",
+      linkLabel: "Permit PDF",
+      linkUrl: "https://example.org/permit-915.pdf",
+      nowIso: "2026-11-13T17:00:00.000Z",
+    }
+  );
+  assert.equal(editRes.ok, true);
+  const editedEntry = row15.checks[row15.checks.length - 1];
+  assert.equal(editedEntry.date, "2026-09-15");
+  assert.equal(editedEntry.result, "Water/wastewater disconnect permit issued");
+  assert.equal(editedEntry.links[0].label, "Permit PDF");
+  assert.ok(
+    canalEditClone.deletedCheckKeys.includes(oldKey),
+    "Editing a check entry's date/text must record the old entry key in deletedCheckKeys so 3-way sync does not resurrect the unedited version"
+  );
+
+  // Verify Data Sources Catalog & Data Ecosystem page
+  const catalogRaw = fs.readFileSync(path.join(REPO_ROOT, "app", "public", "data", "data_sources_catalog.json"), "utf8");
+  assert.equal(/[\u2013\u2014]/.test(catalogRaw), false, "data_sources_catalog.json must not contain en-dashes or em-dashes");
+  const catalogJson = JSON.parse(catalogRaw);
+  assert.equal(catalogJson.organizations.length, 29, "data_sources_catalog.json must document all 29 institutions");
+  assert.equal(catalogJson.sectors.length, 6, "data_sources_catalog.json must have 6 sectors");
+  assert.equal(catalogJson.synthesisEngines.length, 6, "data_sources_catalog.json must have 6 cross-check synthesis engines");
+  const validSectors = new Set(catalogJson.sectors.map((s) => s.id));
+  const validStatuses = new Set(catalogJson.statusDefinitions.map((s) => s.id));
+  const validFreqs = new Set(catalogJson.frequencyBuckets.map((f) => f.id));
+  const validEngines = new Set(catalogJson.synthesisEngines.map((e) => e.id));
+  const seenOrgIds = new Set();
+  const seenFeedIds = new Set();
+  let totalFeeds = 0;
+  for (const org of catalogJson.organizations) {
+    assert.equal(seenOrgIds.has(org.id), false, `Duplicate organization id ${org.id}`);
+    seenOrgIds.add(org.id);
+    assert.ok(validSectors.has(org.sectorId), `Unknown sectorId ${org.sectorId} on ${org.id}`);
+    assert.ok(Array.isArray(org.feeds) && org.feeds.length > 0, `Org ${org.id} must have at least 1 feed`);
+    for (const f of org.feeds) {
+      assert.equal(seenFeedIds.has(f.id), false, `Duplicate feed id ${f.id}`);
+      seenFeedIds.add(f.id);
+      totalFeeds += 1;
+      assert.ok(validStatuses.has(f.status), `Invalid status ${f.status} on feed ${f.id}`);
+      assert.ok(validFreqs.has(f.frequencyId), `Invalid frequencyId ${f.frequencyId} on feed ${f.id}`);
+      assert.ok(Array.isArray(f.engineIds) && f.engineIds.length > 0, `Feed ${f.id} must link to at least 1 synthesis engine`);
+      for (const eid of f.engineIds) {
+        assert.ok(validEngines.has(eid), `Invalid engineId ${eid} on feed ${f.id}`);
+      }
+      if (f.status === "planned_roadmap" || f.status === "in_flight_request") {
+        assert.ok(
+          f.howAndWhenPlanned && f.howAndWhenPlanned.length >= 20,
+          `Planned/In-flight feed ${f.id} must explain how and when we plan to start using it`
+        );
+      }
+    }
+  }
+  assert.ok(totalFeeds >= 30, `Expected at least 30 data feeds in catalog, got ${totalFeeds}`);
+  const ecosystemHtml = fs.readFileSync(path.join(REPO_ROOT, "app", "data-ecosystem.html"), "utf8");
+  assert.equal(/[\u2013\u2014]/.test(ecosystemHtml), false, "data-ecosystem.html must not contain en-dashes or em-dashes");
+  assert.match(ecosystemHtml, /data_sources_catalog\.json/);
+  assert.match(ecosystemHtml, /downloadSvgPosterBtn/);
 });
 
 

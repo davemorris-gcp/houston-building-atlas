@@ -40,6 +40,7 @@ import {
   cleanOwnerPortfolioDisplayLabel,
   decodeParcelOwnershipXray,
   FEATURED_PORTFOLIO_PRESETS,
+  formatPortfolioCompactUsd,
   normalizePortfolioQuery,
 } from "./guidedChaptersAndPortfolios.js?v=20261113b";
 import { fetchHcadDeepLink, fetchHcadLiveRecord } from "./hcadLink.js?v=20261113b";
@@ -21396,12 +21397,8 @@ export class HoustonAtlasApp {
       if (statHonors) {
         const mkt = Number(st.totalMarketVal) || 0;
         const mktStr =
-          mkt >= 1e9
-            ? `$${(mkt / 1e9).toFixed(2)}B`
-            : mkt >= 1e6
-            ? `$${(mkt / 1e6).toFixed(1)}M`
-            : mkt >= 1e3
-            ? `$${Math.round(mkt / 1e3).toLocaleString()}K`
+          mkt >= 1e3
+            ? formatPortfolioCompactUsd(mkt)
             : `${st.distinctLlcs || 1} LLCs`;
         statHonors.textContent = mktStr;
       }

@@ -1234,6 +1234,47 @@ export function buildCategorizedPortfolioCatalog(ownershipPortfolios = null) {
   return { architects, styles, owners };
 }
 
+function findOwnerPortfolioEntry(ownershipPortfolios, queryRaw, queryNorm) {
+  const portMap =
+    ownershipPortfolios && typeof ownershipPortfolios === "object"
+      ? ownershipPortfolios.portfolios || ownershipPortfolios
+      : null;
+  let matchedPort = null;
+  let matchedPid = queryRaw;
+  if (portMap && typeof portMap === "object") {
+    if (portMap[queryRaw]) {
+      matchedPort = portMap[queryRaw];
+    } else {
+      for (const [pid, pObj] of Object.entries(portMap)) {
+        if (!pObj || typeof pObj !== "object") continue;
+        const ents = Array.isArray(pObj.entity_samples)
+          ? pObj.entity_samples
+          : Array.isArray(pObj.entities)
+          ? pObj.entities
+          : [];
+        const offs = Array.isArray(pObj.tx_sos_officers)
+          ? pObj.tx_sos_officers
+          : Array.isArray(pObj.officers)
+          ? pObj.officers
+          : [];
+        if (
+          normText(pid) === queryNorm ||
+          normText(pObj.label) === queryNorm ||
+          normText(pObj.label).includes(queryNorm) ||
+          normText(pObj.primary_entity) === queryNorm ||
+          ents.some((e) => normText(e).includes(queryNorm)) ||
+          offs.some((o) => normText(o).includes(queryNorm))
+        ) {
+          matchedPort = pObj;
+          matchedPid = pid;
+          break;
+        }
+      }
+    }
+  }
+  return { matchedPort, matchedPid };
+}
+
 export function resolvePortfolioBiography(kind, query, ownershipPortfolios = null) {
   const normKind = normalizePortfolioKind(kind);
   const qRaw = normalizePortfolioQuery(normKind, query);
@@ -1241,43 +1282,7 @@ export function resolvePortfolioBiography(kind, query, ownershipPortfolios = nul
   if (!qNorm) return null;
 
   if (normKind === "owner_portfolio") {
-    const portMap =
-      ownershipPortfolios && typeof ownershipPortfolios === "object"
-        ? ownershipPortfolios.portfolios || ownershipPortfolios
-        : null;
-    let matchedPort = null;
-    let matchedPid = qRaw;
-    if (portMap && typeof portMap === "object") {
-      if (portMap[qRaw]) {
-        matchedPort = portMap[qRaw];
-      } else {
-        for (const [pid, pObj] of Object.entries(portMap)) {
-          if (!pObj || typeof pObj !== "object") continue;
-          const ents = Array.isArray(pObj.entity_samples)
-            ? pObj.entity_samples
-            : Array.isArray(pObj.entities)
-            ? pObj.entities
-            : [];
-          const offs = Array.isArray(pObj.tx_sos_officers)
-            ? pObj.tx_sos_officers
-            : Array.isArray(pObj.officers)
-            ? pObj.officers
-            : [];
-          if (
-            normText(pid) === qNorm ||
-            normText(pObj.label) === qNorm ||
-            normText(pObj.label).includes(qNorm) ||
-            normText(pObj.primary_entity) === qNorm ||
-            ents.some((e) => normText(e).includes(qNorm)) ||
-            offs.some((o) => normText(o).includes(qNorm))
-          ) {
-            matchedPort = pObj;
-            matchedPid = pid;
-            break;
-          }
-        }
-      }
-    }
+    const { matchedPort, matchedPid } = findOwnerPortfolioEntry(ownershipPortfolios, qRaw, qNorm);
     if (matchedPort) {
       const pTier = matchedPort.own_tier || matchedPort.tier || "regional_portfolio";
       const tierItem =
@@ -1401,7 +1406,7 @@ export function resolvePortfolioBiography(kind, query, ownershipPortfolios = nul
   };
 }
 
-function formatPortfolioCompactUsd(val) {
+export function formatPortfolioCompactUsd(val) {
   const num = Number(val) || 0;
   if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
   if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
@@ -1548,43 +1553,7 @@ export function buildPortfolioDataset({
   };
 
   if (normKind === "owner_portfolio") {
-    const portMap =
-      ownershipPortfolios && typeof ownershipPortfolios === "object"
-        ? ownershipPortfolios.portfolios || ownershipPortfolios
-        : null;
-    let matchedPort = null;
-    let matchedPid = cleanQuery;
-    if (portMap && typeof portMap === "object") {
-      if (portMap[cleanQuery]) {
-        matchedPort = portMap[cleanQuery];
-      } else {
-        for (const [pid, pObj] of Object.entries(portMap)) {
-          if (!pObj || typeof pObj !== "object") continue;
-          const ents = Array.isArray(pObj.entity_samples)
-            ? pObj.entity_samples
-            : Array.isArray(pObj.entities)
-            ? pObj.entities
-            : [];
-          const offs = Array.isArray(pObj.tx_sos_officers)
-            ? pObj.tx_sos_officers
-            : Array.isArray(pObj.officers)
-            ? pObj.officers
-            : [];
-          if (
-            normText(pid) === qNorm ||
-            normText(pObj.label) === qNorm ||
-            normText(pObj.label).includes(qNorm) ||
-            normText(pObj.primary_entity) === qNorm ||
-            ents.some((e) => normText(e).includes(qNorm)) ||
-            offs.some((o) => normText(o).includes(qNorm))
-          ) {
-            matchedPort = pObj;
-            matchedPid = pid;
-            break;
-          }
-        }
-      }
-    }
+    const { matchedPort, matchedPid } = findOwnerPortfolioEntry(ownershipPortfolios, cleanQuery, qNorm);
 
     const lostByHcad = new Map();
     for (const lf of overlaysData?.lost_houston?.features || []) {

@@ -1,0 +1,1535 @@
+{
+  "schemaVersion": "1.0.0",
+  "title": "Houston Building Atlas Data Ecosystem & Provenance Catalog",
+  "subtitle": "Declarative registry of all municipal, county, state, federal, academic, and archival institutions integrated or planned for cross-checking Houston building history and demolition risk",
+  "lastUpdated": "2026-11-13",
+  "maintenanceNote": "Add or update any institution or data feed in this JSON file (app/public/data/data_sources_catalog.json). Both the interactive screen explorer and the printable 24x36 architectural blueprint poster in app/data-ecosystem.html render automatically from this catalog.",
+  "statusDefinitions": [
+    {
+      "id": "active_auto",
+      "label": "Active Automated Feed",
+      "shortLabel": "Active (Automated)",
+      "color": "#10b981",
+      "badgeBg": "rgba(16, 185, 129, 0.14)",
+      "badgeBorder": "rgba(16, 185, 129, 0.45)",
+      "description": "Fetched and cross-checked automatically by scheduled GitHub Actions pipelines (daily 7:00 AM CT sweeps, biweekly agenda builds, or annual roll refreshers) or live browser REST queries."
+    },
+    {
+      "id": "active_curated",
+      "label": "Active Curated / Archival Corpus",
+      "shortLabel": "Active (Archival Corpus)",
+      "color": "#3b82f6",
+      "badgeBg": "rgba(59, 130, 246, 0.14)",
+      "badgeBorder": "rgba(59, 130, 246, 0.45)",
+      "description": "Digitized, geocoded, and indexed into the production Atlas shards from archival books, directories, historic maps, and preservation surveys."
+    },
+    {
+      "id": "assisted_hitl",
+      "label": "Assisted Staff Cross-Check (1-Click Portal)",
+      "shortLabel": "Assisted 1-Click Check",
+      "color": "#f59e0b",
+      "badgeBg": "rgba(245, 158, 11, 0.14)",
+      "badgeBorder": "rgba(245, 158, 11, 0.45)",
+      "description": "Integrated into the 15-Point Watchlist and Property Drawer with pre-filled search terms and one-click clipboard copy for portals gated by session tokens or CAPTCHAs."
+    },
+    {
+      "id": "in_flight_request",
+      "label": "In-Flight Public Records / Archive Order",
+      "shortLabel": "In-Flight Order / TPIA",
+      "color": "#a855f7",
+      "badgeBg": "rgba(168, 85, 247, 0.15)",
+      "badgeBorder": "rgba(168, 85, 247, 0.5)",
+      "description": "Formal archival reproduction order or Texas Public Information Act (TPIA) bulk request submitted; parser and schema ready for ingestion upon delivery."
+    },
+    {
+      "id": "planned_roadmap",
+      "label": "Not Used Yet (Planned Roadmap)",
+      "shortLabel": "Planned Roadmap",
+      "color": "#94a3b8",
+      "badgeBg": "rgba(148, 163, 184, 0.14)",
+      "badgeBorder": "rgba(148, 163, 184, 0.45)",
+      "description": "Identified high-value institutional dataset not yet ingested into the app, with a concrete technical plan and target milestone for integration."
+    }
+  ],
+  "frequencyBuckets": [
+    {
+      "id": "daily_7am",
+      "label": "Daily 7:00 AM CT Automated Sweep",
+      "shortLabel": "Daily 7:00 AM CT",
+      "order": 1,
+      "description": "Queried every morning at 7:00 AM Central Time via GitHub Actions to detect new demolition permits, sewer disconnects, asbestos notices, HCAD ownership transfers, and HAHC filings."
+    },
+    {
+      "id": "biweekly_pc",
+      "label": "Biweekly Planning Commission Cycle",
+      "shortLabel": "Biweekly PC Cycle",
+      "order": 2,
+      "description": "Ingested every two weeks ahead of and following City of Houston Planning Commission meetings (Plat Tracker spreadsheets, Section K variances, agenda outlines, and post-meeting minutes)."
+    },
+    {
+      "id": "monthly",
+      "label": "Monthly / Live Browser GIS Query",
+      "shortLabel": "Monthly + Live GIS",
+      "order": 3,
+      "description": "Refreshed monthly via bulk exports or queried live in the browser when inspecting a parcel on the map or Watchlist."
+    },
+    {
+      "id": "quarterly_annual",
+      "label": "Quarterly & Annual Certified Roll",
+      "shortLabel": "Quarterly / Annual Roll",
+      "order": 4,
+      "description": "Synchronized with HCAD's annual certified appraisal roll (July/August) with October/November correction supplements, plus quarterly state/federal historic registry updates."
+    },
+    {
+      "id": "static_archival",
+      "label": "Indexed Archival & Historic Corpus",
+      "shortLabel": "Archival Corpus",
+      "order": 5,
+      "description": "Multi-decade historical datasets (1866-1959 City Directories, 1905-1951 HMRC Building Permits, Sanborn Maps, and architectural surveys) indexed into static lookup shards."
+    },
+    {
+      "id": "on_demand_hitl",
+      "label": "On-Demand Staff Cross-Check (HITL)",
+      "shortLabel": "On-Demand Staff Check",
+      "order": 6,
+      "description": "Pre-formatted one-click search pills in the 15-Point Watchlist that copy target addresses, HCAD IDs, or LLC names for immediate lookup in session-gated portals."
+    },
+    {
+      "id": "in_flight_planned",
+      "label": "In-Flight Orders & Planned Ingestion",
+      "shortLabel": "In-Flight / Planned",
+      "order": 7,
+      "description": "Datasets currently being acquired via Harris County Archives reproduction orders, TPIA bulk requests, or scheduled Phase 2-4 pipeline expansions."
+    }
+  ],
+  "sectors": [
+    {
+      "id": "county_appraisal_tax",
+      "name": "1. County Appraisal, Tax & Real Property Records",
+      "shortName": "County Appraisal & Tax",
+      "icon": "\ud83c\udfdb\ufe0f",
+      "color": "#38bdf8",
+      "description": "Harris Central Appraisal District (HCAD), Harris County Archives, Harris County Clerk, and Tax Assessor-Collector records governing parcel boundaries, building dates, deeds, and historic tax rolls."
+    },
+    {
+      "id": "city_permits_planning",
+      "name": "2. City of Houston Planning, Permitting & Code Enforcement",
+      "shortName": "City Planning & Permits",
+      "icon": "\ud83d\udea7",
+      "color": "#f97316",
+      "description": "Planning & Development (Plat Tracker, Planning Commission, Historic Preservation / HAHC), Houston Permitting Center (iPermits / ILMS), Public Works GIS, and Department of Neighborhoods."
+    },
+    {
+      "id": "state_federal_regulatory",
+      "name": "3. State & Federal Environmental, Corporate & Historic Agencies",
+      "shortName": "State & Federal Agencies",
+      "icon": "\u2696\ufe0f",
+      "color": "#a78bfa",
+      "description": "Texas Department of State Health Services (DSHS asbestos notifications), Texas Comptroller, Secretary of State, Texas Historical Commission (THC), National Park Service (NRHP), FEMA, and USGS."
+    },
+    {
+      "id": "archives_directories_maps",
+      "name": "4. Special Collections, City Directories & Historic Cartography",
+      "shortName": "Archives, Directories & Maps",
+      "icon": "\ud83d\udcdc",
+      "color": "#facc15",
+      "description": "Houston Public Library HMRC, Morrison & Fourmy / Polk City Directories (1866-1959), Library of Congress & UT Dolph Briscoe Center Sanborn Fire Insurance Maps, Rice University Fondren Library, and Wikimedia Commons."
+    },
+    {
+      "id": "preservation_civic_research",
+      "name": "5. Preservation Houston & Civic Architectural Research",
+      "shortName": "Preservation & Civic Research",
+      "icon": "\ud83e\uddf1",
+      "color": "#34d399",
+      "description": "Preservation Houston curated landmarks, Good Brick Awards, Lost Houston demolition registry, AIA Houston architectural guides, Houston Mod, and Houston Architecture Info Forum (HAIF)."
+    },
+    {
+      "id": "spatial_imagery_cloud",
+      "name": "6. Spatial Basemaps, Aerial Imagery & Cloud Sync Infrastructure",
+      "shortName": "Spatial Imagery & Cloud Sync",
+      "icon": "\ud83d\udef0\ufe0f",
+      "color": "#f472b6",
+      "description": "Esri World Imagery parcel aerials, Google Maps Street View, OpenFreeMap / CARTO vector basemaps, and the 13-tab Google Sheets + Apps Script 3-way cloud synchronization hub."
+    }
+  ],
+  "synthesisEngines": [
+    {
+      "id": "date_integrity",
+      "name": "Construction Date Integrity & Rounding Override Engine",
+      "shortName": "Date Integrity Engine",
+      "icon": "\ud83d\udd70\ufe0f",
+      "color": "#38bdf8",
+      "summary": "Detects HCAD placeholder decade defaults (1900, 1920, 1930, 1940, 1950) and cross-checks City Directories, HMRC building permits, Sanborn maps, and Harris County Archives tax rolls to establish verified construction years.",
+      "outputArtifacts": [
+        "app/public/data/date_overrides.json",
+        "app/public/data/buildings.pmtiles",
+        "Property Drawer History Tab"
+      ]
+    },
+    {
+      "id": "ownership_unmasking",
+      "name": "6-Tier Ownership Unmasking & Chain-of-Title Engine",
+      "shortName": "Ownership & LLC Unmasking",
+      "icon": "\ud83d\udd11",
+      "color": "#a78bfa",
+      "summary": "Builds multi-decade ownership chains (2005-2026 HCAD certified rolls + Clerk deeds), unmasks Texas Tax Code Sec. 25.025 Current Owner shields, and links shell LLCs across portfolios using mailing addresses and Texas Comptroller / SOS officer records.",
+      "outputArtifacts": [
+        "app/public/data/ownership_chains/",
+        "Portfolio / Entity Explorer",
+        "Watchlist Row 5 & Row 6"
+      ]
+    },
+    {
+      "id": "demolition_watch",
+      "name": "8-Agency Daily Demolition & Early-Warning Sweep Engine",
+      "shortName": "Daily Demolition Watch",
+      "icon": "\ud83d\udea8",
+      "color": "#ef4444",
+      "summary": "Runs daily at 7:00 AM CT across COH structural demo permits, water/wastewater disconnects, DSHS asbestos abatement notices, HAHC COA filings, HCAD deeds, and Dangerous Building hearing orders, enforcing Two-Key confirmation before graduating buildings to Lost Houston.",
+      "outputArtifacts": [
+        "app/public/data/active_permit_alerts.json",
+        "app/public/data/property_watchlist.json",
+        "app/public/data/monitor_activity_log.json"
+      ]
+    },
+    {
+      "id": "plat_triage",
+      "name": "Biweekly Subdivision Plat Triage & Cross-Cycle Continuity Engine",
+      "shortName": "Plat Agenda Triage",
+      "icon": "\ud83d\udcd0",
+      "color": "#f97316",
+      "summary": "Cross-checks biweekly Planning Commission Plat Tracker spreadsheets, Agenda Outline PDFs (including Section K Development Plat Variances), and Post-Meeting Minutes against pre-1976 buildings, historic districts, and watched developers, consolidating repeat filings across cycles.",
+      "outputArtifacts": [
+        "app/public/data/plat_agenda_monitor.json",
+        "app/plat-monitor.html"
+      ]
+    },
+    {
+      "id": "directory_genealogy",
+      "name": "Resident Genealogy, Contractor & Sanborn Evolution Engine",
+      "shortName": "Resident & Contractor History",
+      "icon": "\ud83d\udcd6",
+      "color": "#facc15",
+      "summary": "Links 39 Houston City Directory volumes (1866-1959) via dual pass (Street Guide + Alphabetical Resident Directory) with 1905-1951 HMRC building permits, historic street renumbering (1911), and Sanborn Fire Insurance Map footprints.",
+      "outputArtifacts": [
+        "app/public/data/directory_occupants/",
+        "app/public/data/permits/",
+        "app/public/data/contractors_index.json"
+      ]
+    },
+    {
+      "id": "landmark_protection",
+      "name": "Landmark, Historic District & Preservation Status Engine",
+      "shortName": "Landmark & Protection Status",
+      "icon": "\ud83c\udfdb\ufe0f",
+      "color": "#10b981",
+      "summary": "Reconciles City of Houston Protected Landmarks, City Landmarks, 22 local Historic Districts, National Register (NRHP) properties, Recorded Texas Historic Landmarks (RTHL), and Good Brick Award winners to determine legal demolition protection vs. unprotected risk.",
+      "outputArtifacts": [
+        "app/public/data/landmarks.geojson",
+        "app/public/data/historic_districts.geojson",
+        "app/public/data/curated_buildings.json"
+      ]
+    }
+  ],
+  "organizations": [
+    {
+      "id": "hcad",
+      "name": "Harris Central Appraisal District (HCAD)",
+      "shortName": "HCAD",
+      "sectorId": "county_appraisal_tax",
+      "jurisdiction": "Countywide (Harris County, TX)",
+      "websiteUrl": "https://hcad.org",
+      "overview": "Primary appraisal authority for 1.18M+ Harris County real property accounts, providing parcel geometry, CAMA structural characteristics, building permits, and annual certified ownership rolls from 2005 through 2026.",
+      "feeds": [
+        {
+          "id": "hcad_cama_annual",
+          "name": "HCAD CAMA Real & Building Bulk Extracts (real_acct, building_res, building_other)",
+          "status": "active_auto",
+          "frequencyId": "quarterly_annual",
+          "frequencyLabel": "Annual Certified Roll (July/Aug) + Oct/Nov Supplement",
+          "method": "Bulk Tab-Delimited ZIP Download & DuckDB PostGIS Pipeline",
+          "recordScale": "1.18M parcels / 1.44M buildings",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Plat Agenda Monitor",
+            "Property Watchlist"
+          ],
+          "engineIds": [
+            "date_integrity",
+            "ownership_unmasking",
+            "plat_triage"
+          ],
+          "whatItProvides": "Account numbers, site addresses, erection dates (date_erected / yr_impr), square footage, structural type, exterior wall materials, CDU/grade ratings, and legal descriptions.",
+          "howCrossChecked": "Cross-checked against City Directories and HMRC permits to flag rounded decade placeholder dates (1900, 1920, 1930, 1940, 1950) and overridden via date_overrides.json.",
+          "pipelineScript": "pipeline/atlas_pipeline/ingest_hcad.py",
+          "howAndWhenPlanned": "Active in production; automated annual roll refresher checks pdata.hcad.org each July/August and applies October/November correction supplements."
+        },
+        {
+          "id": "hcad_historical_rolls",
+          "name": "HCAD Historical Certified Ownership Rolls (2005-2026 Archive)",
+          "status": "active_auto",
+          "frequencyId": "quarterly_annual",
+          "frequencyLabel": "Annual Roll Append (22-Year Longitudinal Series)",
+          "method": "Multi-Year CAMA Archive Ingestion & Entity Normalization",
+          "recordScale": "22 annual snapshots (~24M historical account-year rows)",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Portfolio / Entity Explorer",
+            "Property Watchlist"
+          ],
+          "engineIds": [
+            "ownership_unmasking"
+          ],
+          "whatItProvides": "Year-by-year recorded property owners, mailing addresses, acquisition dates (new_own_dt), and assessed values from 2005 to 2026.",
+          "howCrossChecked": "Used to construct continuous chain-of-title timelines and to unmask post-2021 Texas Tax Code Sec. 25.025 'Current Owner' privacy shields using pre-shield historical rolls.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_ownership_chains.py",
+          "howAndWhenPlanned": "Active in production across all 699,664 parcel shards; refreshed annually."
+        },
+        {
+          "id": "hcad_arcgis_live",
+          "name": "HCAD Public Parcels & Residential Grade ArcGIS FeatureServer",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Daily 7:00 AM CT Sweep + Real-Time Browser Query",
+          "method": "ArcGIS REST FeatureServer JSON/GeoJSON Query",
+          "recordScale": "Live query across 1.18M parcels (28 watched properties swept daily)",
+          "appTargets": [
+            "Property Watchlist",
+            "Plat Agenda Monitor"
+          ],
+          "engineIds": [
+            "demolition_watch",
+            "ownership_unmasking",
+            "plat_triage"
+          ],
+          "whatItProvides": "Live owner_name_1, owner_name_2, deeds_date (exact acquisition date), mail_addr_1, state_class, land_value, total_appraised_val, and parcel polygon centroids.",
+          "howCrossChecked": "Overrides Plat Tracker applicant/engineer names on the Watchlist so Row 5 always records the true HCAD property owner and actual deed acquisition date rather than sweep date.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production both in daily Python sweeps and live client-side browser enrichment."
+        },
+        {
+          "id": "hcad_permits_bulk",
+          "name": "HCAD CAMA Historical & Recent Permit File (permits.txt)",
+          "status": "active_auto",
+          "frequencyId": "quarterly_annual",
+          "frequencyLabel": "Annual Certified Roll + Supplement Refresh",
+          "method": "Bulk Tab-Delimited Permit Extract Sharded by HCAD Prefix",
+          "recordScale": "1.9M+ permit records across 256 prefix shards",
+          "appTargets": [
+            "Property Drawer Permits Tab",
+            "Main Atlas Map"
+          ],
+          "engineIds": [
+            "demolition_watch",
+            "directory_genealogy"
+          ],
+          "whatItProvides": "Permit issue dates, permit types, docket numbers, and remodel/addition/demolition indicators tracked by HCAD appraisers.",
+          "howCrossChecked": "Cross-checked with City of Houston iPermits and HMRC 1905-1951 building permits to separate demolition permits from remodels.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_permits_shards.py",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "harris_county_archives",
+      "name": "Harris County Archives",
+      "shortName": "Harris County Archives",
+      "sectorId": "county_appraisal_tax",
+      "jurisdiction": "Countywide (Pre-1988 Historical County Records)",
+      "websiteUrl": "https://www.harriscountyarchives.com",
+      "overview": "Custodian of pre-HCAD Harris County historical records, including CR051 Appraisal Field Cards (1930s-1970s), CR037 Tax Assessor-Collector Block Books (1914-1981), and CR067 Tax Assessment Rolls.",
+      "feeds": [
+        {
+          "id": "hca_cr051_field_cards",
+          "name": "CR051 Real Property Appraisal Field Cards (1930s-1970s, Series B0223)",
+          "status": "in_flight_request",
+          "frequencyId": "in_flight_planned",
+          "frequencyLabel": "In-Flight Archive Order (B0223 Pilot Submitted Nov 2026)",
+          "method": "Archival PDF Reproduction Order + Structured OCR Card Parser",
+          "recordScale": "Pilot: 5 Sunset Heights & Key St parcels; Microfilm: 1966-1974 reels",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Date Integrity Overrides"
+          ],
+          "engineIds": [
+            "date_integrity",
+            "directory_genealogy"
+          ],
+          "whatItProvides": "Original pre-1984 tax appraiser field inspection cards containing physical building sketches, footprints, exact construction dates, porch additions, and historic photographs before HCAD's 1984 computerization rounded dates to 1920/1930/1940.",
+          "howAndWhenPlanned": "Custom Reproduction Order Form B0223 submitted in November 2026 for 1127 Key St and 4 neighbor comparison lots (Sunset Heights Blk 28/29). Upon PDF delivery from Harris County Archives, extract dates/sketches into date_overrides.json and Property Drawer History cards, then expand to microfilm reels for priority historic neighborhoods in Q1 2027.",
+          "howCrossChecked": "Directly resolves discrepancies where HCAD CAMA defaults to 1920 or 1930 while City Directories show earlier or later construction.",
+          "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py"
+        },
+        {
+          "id": "hca_cr037_block_books",
+          "name": "CR037 Tax Assessor-Collector Block Books (1914-1981, 562 Volumes)",
+          "status": "planned_roadmap",
+          "frequencyId": "in_flight_planned",
+          "frequencyLabel": "Planned Phase 2 Archival Ingestion (Q1 2027)",
+          "method": "Reading Room Digital Camera Capture + Subdivision/Block/Lot Table Extractor",
+          "recordScale": "562 bound volumes & microfilm reels organized by Subdivision, Block, and Lot",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Ownership Chain Pre-2005 Backfill"
+          ],
+          "engineIds": [
+            "date_integrity",
+            "ownership_unmasking"
+          ],
+          "whatItProvides": "Annual lot-by-lot assessed land value vs. improvement value from 1914 to 1981, pinpointing the exact tax year an unimproved vacant lot jumped in value because a house or commercial building was erected, plus owner names for every year.",
+          "howCrossChecked": "Cross-checks 1926-1931 gap years between City Directory editions (such as 1926 vs 1927 vs 1928) by verifying the exact year improvement value first appeared on the county tax roll.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_ownership_chains.py",
+          "howAndWhenPlanned": "Not used yet. Harris County Archives confirmed on November 11, 2026 that CR037 Block Books (1914-1981) are open for self-service photography at 1310 Prairie St. Planned for Phase 2 (Q1 2027): photograph targeted subdivision block pages for Houston Heights, Sunset Heights, Montrose, Freedmen's Town, and Eastwood, then parse year-over-year improvement value jumps."
+        }
+      ]
+    },
+    {
+      "id": "harris_county_clerk",
+      "name": "Harris County Clerk (Real Property, Probate & Assumed Names)",
+      "shortName": "Harris County Clerk",
+      "sectorId": "county_appraisal_tax",
+      "jurisdiction": "Countywide (1836-Present)",
+      "websiteUrl": "https://www.cclerk.hctx.net",
+      "overview": "Official recorder of deeds, deeds of trust, mechanic's liens (builders contracts), plats, probate estates, and DBA assumed name certificates in Harris County from 1836 to the present.",
+      "feeds": [
+        {
+          "id": "hc_clerk_address_shards",
+          "name": "Address-Indexed Deed & Grantor/Grantee Chain Lookup Shards",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Indexed Shards + Assisted Portal Deep Links",
+          "method": "Gzipped Address-Prefix Shards + Pre-Filled Clerk Search Helper",
+          "recordScale": "699,664 parcel chains + 1-click Clerk RP/Probate/DBA links",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Property Watchlist Row 5 & Row 6"
+          ],
+          "engineIds": [
+            "ownership_unmasking"
+          ],
+          "whatItProvides": "Historical grantor/grantee transfers, instrument numbers, file dates, and pre-formatted search helpers for Real Property, Probate, and Assumed Name (DBA) records.",
+          "howCrossChecked": "Combined with HCAD new_own_dt and Texas SOS filings to trace property transfers through trusts, estates, and shell entities.",
+          "pipelineScript": "app/js/clerkSearchHelpers.js",
+          "howAndWhenPlanned": "Active in production; expanding bulk pre-2005 index coverage via pending TPIA bulk index request."
+        },
+        {
+          "id": "hc_clerk_tpia_bulk_index",
+          "name": "TPIA Bulk Real Property Grantor/Grantee Index (1960-2004 & Builders Liens)",
+          "status": "in_flight_request",
+          "frequencyId": "in_flight_planned",
+          "frequencyLabel": "In-Flight TPIA Bulk Request (Drafted Nov 2026)",
+          "method": "Texas Public Information Act (Ch. 552) ASCII/CSV Index Export",
+          "recordScale": "Multi-million row historical instrument index (no PDF image fees)",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Contractor & Architect Attribution"
+          ],
+          "engineIds": [
+            "ownership_unmasking",
+            "directory_genealogy"
+          ],
+          "whatItProvides": "Complete machine-readable index of pre-2005 deeds and historic Mechanic's Lien / Builders Contract filings that name the original builder/architect and exact contract price.",
+          "howCrossChecked": "Bridges the gap between 1959 (last indexed City Directory) and 2005 (earliest online HCAD CAMA roll) so every building has an unbroken 20th-century ownership chain.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_ownership_chains.py",
+          "howAndWhenPlanned": "TPIA request staged in November 2026 requesting the tabular Grantor/Grantee + Legal Description index database export under Texas Gov't Code Sec. 552.275. Will be ingested into app/public/data/ownership_chains/ as soon as the Clerk's IT bureau provides the CSV/SQL dump."
+        }
+      ]
+    },
+    {
+      "id": "harris_county_tax_office",
+      "name": "Harris County Tax Assessor-Collector",
+      "shortName": "HC Tax Office",
+      "sectorId": "county_appraisal_tax",
+      "jurisdiction": "Countywide (Harris County, TX)",
+      "websiteUrl": "https://www.hctax.net",
+      "overview": "Collects property taxes for Harris County and City of Houston taxing jurisdictions; records unredacted taxpayer billing names, payment dates, and tax delinquency/foreclosure suits.",
+      "feeds": [
+        {
+          "id": "hctax_billing_unmask",
+          "name": "Tax Statement Billing Name & Delinquency Verification",
+          "status": "assisted_hitl",
+          "frequencyId": "on_demand_hitl",
+          "frequencyLabel": "On-Demand 1-Click Watchlist & Drawer Check",
+          "method": "1-Click Account Copy + Direct Statement Portal Link",
+          "recordScale": "All 1.18M Harris County tax accounts",
+          "appTargets": [
+            "Property Watchlist Row 5",
+            "Property Drawer HCAD Tab"
+          ],
+          "engineIds": [
+            "ownership_unmasking"
+          ],
+          "whatItProvides": "Unmasked billing taxpayer names on current tax statements (often visible even when HCAD web display shows 'Current Owner') and multi-year tax delinquency status.",
+          "howCrossChecked": "Used as Tier 3 of the 6-Tier Ownership Unmasking protocol when HCAD's public CAMA display suppresses an individual owner's name.",
+          "pipelineScript": "app/js/watchlistSyncHelpers.js",
+          "howAndWhenPlanned": "Active in production via 1-click Watchlist & Property Drawer verification links."
+        }
+      ]
+    },
+    {
+      "id": "harris_county_district_clerk",
+      "name": "Harris County District Clerk (Tax Suits, Receiverships & Eminent Domain)",
+      "shortName": "HC District Clerk",
+      "sectorId": "county_appraisal_tax",
+      "jurisdiction": "Countywide (Civil & Tax District Courts)",
+      "websiteUrl": "https://www.hcdistrictclerk.com",
+      "overview": "Records civil litigation, delinquent property tax foreclosure lawsuits, municipal receivership actions, and highway/transit eminent domain condemnation dockets.",
+      "feeds": [
+        {
+          "id": "hcdc_tax_foreclosure_suits",
+          "name": "Delinquent Tax Foreclosure, Nuisance Abatement & Condemnation Suit Lookup",
+          "status": "planned_roadmap",
+          "frequencyId": "in_flight_planned",
+          "frequencyLabel": "Planned Phase 3 Court Docket Cross-Check (Q2 2027)",
+          "method": "Monthly Delinquent Tax Sale List Ingestion + Party/Address Matcher",
+          "recordScale": "Monthly Constable & District Court tax sale dockets",
+          "appTargets": [
+            "Property Watchlist",
+            "Activity Log"
+          ],
+          "engineIds": [
+            "demolition_watch",
+            "ownership_unmasking"
+          ],
+          "whatItProvides": "Early notice when a historic building enters tax foreclosure, court-ordered receivership, or public right-of-way condemnation before a speculative buyer acquires it at auction.",
+          "howCrossChecked": "Will cross-check monthly Harris County Constable tax sale parcels against pre-1976 buildings and Watchlist items.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) by ingesting the monthly Harris County Precinct tax sale parcel lists and matching HCAD account numbers against the Atlas."
+        }
+      ]
+    },
+    {
+      "id": "coh_planning_plat_tracker",
+      "name": "City of Houston Planning & Development (Plat Tracker & Planning Commission)",
+      "shortName": "COH Planning Commission",
+      "sectorId": "city_permits_planning",
+      "jurisdiction": "City of Houston + Extraterritorial Jurisdiction (ETJ)",
+      "websiteUrl": "https://www.houstontx.gov/planning/DevelopRegs/plat_tracker.html",
+      "overview": "Administers Chapter 42 subdivision replats, lot splits, variances, special exceptions, and development plats across Houston and its ETJ on a biweekly Planning Commission schedule.",
+      "feeds": [
+        {
+          "id": "coh_plat_tracker_xlsx",
+          "name": "Biweekly Plat Tracker Spreadsheets (.xlsx / .csv)",
+          "status": "active_auto",
+          "frequencyId": "biweekly_pc",
+          "frequencyLabel": "Biweekly Planning Commission Cycle + Manual Drop-Zone",
+          "method": "Automated Python Pipeline + Browser XLSX/CSV Parser",
+          "recordScale": "727 filings across 3 active cycles (716 consolidated properties)",
+          "appTargets": [
+            "Plat Agenda Monitor",
+            "Property Watchlist",
+            "Activity Log"
+          ],
+          "engineIds": [
+            "plat_triage",
+            "demolition_watch"
+          ],
+          "whatItProvides": "Application numbers, subdivision names, application types, special requests (variances/reconsiderations), HCAD account numbers, acreage, lot counts, developer/applicant names, and Super Neighborhoods.",
+          "howCrossChecked": "Every parcel is spatially and account-matched against the Atlas's 1.44M buildings to flag pre-1976 structures, lot splits (1 lot into 2-4 townhome lots), reserve consolidations, Historic Districts, and repeat developers.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production; supports both automated pipeline ingestion and instant drag-and-drop .xlsx/.csv upload in plat-monitor.html."
+        },
+        {
+          "id": "coh_pc_agenda_outline_pdf",
+          "name": "Planning Commission Agenda Outline PDFs (incl. Section K Development Plat Variances)",
+          "status": "active_auto",
+          "frequencyId": "biweekly_pc",
+          "frequencyLabel": "Biweekly PC Agenda Publication (Fridays before PC Meeting)",
+          "method": "PDF Text Extraction & Section Parser (Sections I-K)",
+          "recordScale": "100-250 agenda items per biweekly meeting",
+          "appTargets": [
+            "Plat Agenda Monitor",
+            "Property Watchlist"
+          ],
+          "engineIds": [
+            "plat_triage"
+          ],
+          "whatItProvides": "Official agenda item numbers, public hearing flags, staff recommendations (Approve/Defer), and Section K Development Plat Variances (DPVs) which are omitted from Plat Tracker spreadsheets.",
+          "howCrossChecked": "Diffs the published Agenda Outline PDF against the Plat Tracker cycle spreadsheet to mark which filings are actually on the meeting agenda vs. 'Cycle Filing Only - Not on Agenda'.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "coh_pc_minutes_pdf",
+          "name": "Planning Commission Post-Meeting Draft & Approved Minutes PDFs",
+          "status": "active_auto",
+          "frequencyId": "biweekly_pc",
+          "frequencyLabel": "Biweekly Post-Meeting Minutes Sweep",
+          "method": "PDF Commission Action Parser & Cross-Cycle Linker",
+          "recordScale": "All historical & current PC cycle appearances",
+          "appTargets": [
+            "Plat Agenda Monitor",
+            "Property Watchlist Row 1"
+          ],
+          "engineIds": [
+            "plat_triage"
+          ],
+          "whatItProvides": "Official Commission actions taken at each prior meeting (Approved, Deferred 2 Weeks, Withdrawn, Disapproved, or Cycle Filing Only - Not on Agenda).",
+          "howCrossChecked": "Linked across cycles by HCAD account, canonical plat name, and street address so repeat deferrals show the actual Commission action taken at each prior meeting date rather than repeating manual notes.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "coh_historic_preservation_hahc",
+      "name": "City of Houston Office of Historic Preservation & HAHC",
+      "shortName": "COH Historic Preservation (HAHC)",
+      "sectorId": "city_permits_planning",
+      "jurisdiction": "City of Houston (22 Historic Districts & Landmarks)",
+      "websiteUrl": "https://www.houstontx.gov/planning/HistoricPres/historic_pres.html",
+      "overview": "Houston Archaeological and Historical Commission (HAHC) and Office of Historic Preservation regulating Certificates of Appropriateness (COAs), Protected Landmarks, City Landmarks, and 22 Historic Districts.",
+      "feeds": [
+        {
+          "id": "coh_hahc_coa_tracker",
+          "name": "HAHC Certificate of Appropriateness (COA) Monthly Agenda & Action Tracker",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Daily 7:00 AM CT Sweep + Monthly HAHC Cycle",
+          "method": "ArcGIS FeatureServer & HAHC Agenda Scraper",
+          "recordScale": "1,400+ COA filings (2020-2026 YTD) + District Action Summaries",
+          "appTargets": [
+            "Plat Agenda Monitor",
+            "Property Watchlist Row 4",
+            "Activity Log",
+            "Demolition Benchmarks Drawer"
+          ],
+          "engineIds": [
+            "landmark_protection",
+            "demolition_watch"
+          ],
+          "whatItProvides": "Alteration, addition, new construction, relocation, and demolition COA filings across Houston's 22 historic districts, including staff recommendations and HAHC decisions.",
+          "howCrossChecked": "Matched by HCAD account and normalized street address against watched properties and compared against citywide structural demolitions to measure historic district protection efficacy.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "coh_landmarks_districts_gis",
+          "name": "COH Historic Districts, Protected Landmarks & Archaeological Sites GIS Layers",
+          "status": "active_auto",
+          "frequencyId": "monthly",
+          "frequencyLabel": "Monthly GIS Sync + Static GeoJSON Overlay",
+          "method": "COH ArcGIS FeatureServer Export to GeoJSON",
+          "recordScale": "22 Historic Districts + 450+ City & Protected Landmarks",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Plat Agenda Monitor"
+          ],
+          "engineIds": [
+            "landmark_protection",
+            "plat_triage"
+          ],
+          "whatItProvides": "Official polygon boundaries of Houston's 22 Historic Districts, SMLS/SMBL conservation lots, and point/polygon locations of City Landmarks and Protected Landmarks.",
+          "howCrossChecked": "Spatial point-in-polygon intersection during Pass 1 Plat Screening and Map Tile generation to distinguish legally protected landmarks from unprotected landmarks.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "coh_permitting_center",
+      "name": "Houston Permitting Center (HPC iPermits, Weekly XLS & ILMS)",
+      "shortName": "Houston Permitting Center",
+      "sectorId": "city_permits_planning",
+      "jurisdiction": "City of Houston",
+      "websiteUrl": "https://www.houstonpermittingcenter.org",
+      "overview": "Issues building, structural demolition, remodel, trade, and water/wastewater utility permits and hosts the Integrated Land Management System (ILMS) plan review portal.",
+      "feeds": [
+        {
+          "id": "hpc_structural_demo_permits",
+          "name": "COH Structural Demolition & Building Permits Feed (Weekly XLS + Open Data API)",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Daily 7:00 AM CT Automated Sweep",
+          "method": "COH ArcGIS REST API + Weekly Sold Permits XLS Ingestion",
+          "recordScale": "3,900+ structural demo permits (2020-2026 YTD) + active building permits",
+          "appTargets": [
+            "Main Atlas Map (Permit Watch)",
+            "Plat Agenda Monitor",
+            "Property Watchlist Row 2 & Row 7",
+            "Activity Log"
+          ],
+          "engineIds": [
+            "demolition_watch"
+          ],
+          "whatItProvides": "Project numbers, permit numbers, issue dates, permit descriptions ('DEMO RES/BLDG', 'REMODEL', etc.), and contractor names.",
+          "howCrossChecked": "Translated into plain-English risk badges via permitPlainEnglish.js; requires Two-Key corroboration (permit + post-permit imagery/field check or HCAD improvement drop) before marking a building Demolished.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_live_permits.py",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "hpc_water_wastewater_disconnect",
+          "name": "Water / Wastewater Utility Disconnect & Tap Permits",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Daily 7:00 AM CT Automated Sweep + Assisted iPermits Check",
+          "method": "Permit Keyword Classifier ('SEWER DISCONNECT', 'PLUG', 'CAP') + 1-Click Portal",
+          "recordScale": "Swept daily across all watched properties & pre-1976 alert parcels",
+          "appTargets": [
+            "Property Watchlist Row 8",
+            "Main Atlas Map (Permit Watch)"
+          ],
+          "engineIds": [
+            "demolition_watch"
+          ],
+          "whatItProvides": "Early-warning utility disconnect permits that frequently precede a formal structural demolition permit by 2 to 6 weeks.",
+          "howCrossChecked": "Correlated with DSHS asbestos abatement notifications and Plat Tracker filings to trigger Tier 1 escalation.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "hpc_ilms_plan_review",
+          "name": "ILMS Plan Review & Project Number Portal",
+          "status": "assisted_hitl",
+          "frequencyId": "on_demand_hitl",
+          "frequencyLabel": "On-Demand 1-Click Watchlist Check (Row 3)",
+          "method": "1-Click Project Number / Address Copy + Direct ILMS Portal Launch",
+          "recordScale": "All active Houston commercial & residential plan reviews",
+          "appTargets": [
+            "Property Watchlist Row 3"
+          ],
+          "engineIds": [
+            "demolition_watch",
+            "plat_triage"
+          ],
+          "whatItProvides": "Architectural plan review status, trade review holds, and scope of proposed site work once a project number is obtained from Row 2 Building Permits.",
+          "howCrossChecked": "Placed directly below Row 2 (Building Permits Search) in the Plans & Use category so staff can copy a project number from Row 2 straight into Row 3 (ILMS).",
+          "pipelineScript": "app/js/watchlistSyncHelpers.js",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "coh_public_works_gis",
+      "name": "City of Houston Public Works & GIMS / COHGIS",
+      "shortName": "COH Public Works & COHGIS",
+      "sectorId": "city_permits_planning",
+      "jurisdiction": "City of Houston",
+      "websiteUrl": "https://cohgis-mycity.opendata.arcgis.com",
+      "overview": "Maintains Houston's municipal GIS layers including Super Neighborhoods, City Council Districts, TIRZ boundaries, Special Minimum Lot Size (SMLS), and Special Minimum Building Line (SMBL) protections.",
+      "feeds": [
+        {
+          "id": "cohgis_boundaries_smls",
+          "name": "Super Neighborhoods, Council Districts, TIRZ & SMLS/SMBL Protection Layers",
+          "status": "active_auto",
+          "frequencyId": "monthly",
+          "frequencyLabel": "Monthly GIS Boundary Sync + Daily SMLS Sweep",
+          "method": "ArcGIS FeatureServer Spatial Intersection",
+          "recordScale": "88 Super Neighborhoods, 11 Council Districts, 600+ SMLS/SMBL blocks",
+          "appTargets": [
+            "Main Atlas Map",
+            "Plat Agenda Monitor",
+            "Property Watchlist Row 4"
+          ],
+          "engineIds": [
+            "plat_triage",
+            "landmark_protection"
+          ],
+          "whatItProvides": "Neighborhood context, Council District representation, and Chapter 42 SMLS/SMBL lot-split protection status.",
+          "howCrossChecked": "Flags plat applications located near or within SMLS/SMBL blocks where minimum lot size rules can block townhome replats.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "coh_public_works_abandonment",
+          "name": "Joint Referral Committee (JRC) Street & Easement Abandonment Requests",
+          "status": "assisted_hitl",
+          "frequencyId": "on_demand_hitl",
+          "frequencyLabel": "On-Demand Watchlist Check (Row 12) + Council Agenda Scan",
+          "method": "1-Click Portal Check + Council Motion Keyword Match",
+          "recordScale": "Watchlist Row 12 (Public Works / Utilities / Easements)",
+          "appTargets": [
+            "Property Watchlist Row 12"
+          ],
+          "engineIds": [
+            "plat_triage",
+            "demolition_watch"
+          ],
+          "whatItProvides": "Requests to abandon public alleys, streets, or utility easements required before assembling multi-block redevelopment reserves.",
+          "howCrossChecked": "Cross-checked with multi-lot reserve replats on the Planning Commission agenda.",
+          "pipelineScript": "app/js/watchlistSyncHelpers.js",
+          "howAndWhenPlanned": "Active as an assisted check; automated JRC agenda PDF scraping planned for Q2 2027."
+        }
+      ]
+    },
+    {
+      "id": "coh_neighborhoods_don",
+      "name": "City of Houston Department of Neighborhoods (DON & 311 Dangerous Buildings)",
+      "shortName": "COH Dept. of Neighborhoods",
+      "sectorId": "city_permits_planning",
+      "jurisdiction": "City of Houston",
+      "websiteUrl": "https://www.houstontx.gov/ips/",
+      "overview": "Investigates dangerous/substandard buildings, Structural Standards code violations, heavy trash/nuisance citations, and administrative hearing demolition orders.",
+      "feeds": [
+        {
+          "id": "coh_311_dangerous_buildings",
+          "name": "COH 311 Structural Standards & Dangerous Buildings Feed + CSV Matcher",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Daily 7:00 AM CT Sweep + Instant CSV Drop-Zone Matcher",
+          "method": "COH 311 Open Data API + In-Browser Dangerous Buildings CSV Parser",
+          "recordScale": "Daily sweep of watched parcels + bulk CSV cross-check against 1.44M buildings",
+          "appTargets": [
+            "Property Watchlist Row 11",
+            "Plat Agenda Monitor (Dangerous Buildings Modal)",
+            "Activity Log"
+          ],
+          "engineIds": [
+            "demolition_watch"
+          ],
+          "whatItProvides": "Open dangerous building investigations, hearing notices, and emergency city-ordered demolition filings.",
+          "howCrossChecked": "Matches 311 / DON case addresses and HCAD IDs against pre-1976 structures and generates a one-click staff alert summary.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "tx_dshs_asbestos",
+      "name": "Texas Department of State Health Services (DSHS Asbestos Program)",
+      "shortName": "Texas DSHS (Asbestos)",
+      "sectorId": "state_federal_regulatory",
+      "jurisdiction": "Statewide (Filtered to Houston / Harris County)",
+      "websiteUrl": "https://www.dshs.texas.gov/asbestos",
+      "overview": "Requires mandatory 10-working-day advance notification before any commercial or public building demolition or asbestos renovation/abatement in Texas.",
+      "feeds": [
+        {
+          "id": "dshs_asbestos_notifications",
+          "name": "DSHS Asbestos Demolition & Abatement Notification Feed",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Daily 7:00 AM CT Automated Sweep",
+          "method": "Texas Open Data Portal Socrata API + Assisted DSHS Search",
+          "recordScale": "All Houston / Harris County commercial abatement & demo notices",
+          "appTargets": [
+            "Main Atlas Map (Permit Watch)",
+            "Property Watchlist Row 9",
+            "Activity Log"
+          ],
+          "engineIds": [
+            "demolition_watch"
+          ],
+          "whatItProvides": "Facility names, street addresses, abatement start/end dates, demolition start dates, and operator/contractor names at least 10 working days before wrecking begins.",
+          "howCrossChecked": "Frequently provides the earliest public confirmation of an impending commercial or institutional demolition prior to City of Houston permit issuance.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "tx_comptroller_sos",
+      "name": "Texas Comptroller of Public Accounts & Secretary of State (SOSDirect)",
+      "shortName": "TX Comptroller & SOS",
+      "sectorId": "state_federal_regulatory",
+      "jurisdiction": "Statewide (Texas Corporate & Franchise Tax Registry)",
+      "websiteUrl": "https://comptroller.texas.gov/taxes/sales/taxpayer-search.php",
+      "overview": "Maintains Texas taxpayer records, Public Information Reports (PIRs), officers, directors, registered agents, and governing person filings for LLCs, LPs, and corporations.",
+      "feeds": [
+        {
+          "id": "tx_comptroller_taxpayer_pir",
+          "name": "Texas Comptroller Sales Taxpayer Search, Franchise Tax & SOS Entity Unmasking",
+          "status": "active_auto",
+          "frequencyId": "quarterly_annual",
+          "frequencyLabel": "Automated Portfolio Clustering + 1-Click Taxpayer & Franchise Portals",
+          "method": "Entity Name/Address Normalization + Pre-Filled Taxpayer Search Pills",
+          "recordScale": "85,000+ corporate/LLC parcels clustered across Harris County",
+          "appTargets": [
+            "Property Watchlist Row 6",
+            "Portfolio / Entity Explorer",
+            "Property Drawer HCAD Tab"
+          ],
+          "engineIds": [
+            "ownership_unmasking"
+          ],
+          "whatItProvides": "Governing principals, registered agents, managing members, and shared tax mailing addresses behind single-purpose acquisition LLCs, with corporate suffix commas stripped automatically so LLCs are never split in two.",
+          "howCrossChecked": "Links seemingly unrelated shell LLCs (e.g. '123 Main LLC' and '456 Oak Holdings LLC') that share a registered agent or suite address into a single developer portfolio.",
+          "pipelineScript": "app/js/watchlistSyncHelpers.js",
+          "howAndWhenPlanned": "Active in production; Sales Taxpayer Search placed at top of Row 6 above Franchise Tax Account Status per staff workflow."
+        }
+      ]
+    },
+    {
+      "id": "thc_atlas",
+      "name": "Texas Historical Commission (THC Historic Sites Atlas)",
+      "shortName": "Texas Historical Commission",
+      "sectorId": "state_federal_regulatory",
+      "jurisdiction": "Statewide (Texas)",
+      "websiteUrl": "https://atlas.thc.state.tx.us",
+      "overview": "State Historic Preservation Office (SHPO) administering Recorded Texas Historic Landmarks (RTHLs), State Antiquities Landmarks (SALs), Historical Markers, and Historic Texas Cemeteries.",
+      "feeds": [
+        {
+          "id": "thc_rthl_markers_sal",
+          "name": "Recorded Texas Historic Landmarks (RTHL), SALs & Historical Markers GIS",
+          "status": "active_curated",
+          "frequencyId": "quarterly_annual",
+          "frequencyLabel": "Quarterly GIS & Marker Registry Sync",
+          "method": "THC Atlas Shapefile / ArcGIS Ingestion + Parcel Matching",
+          "recordScale": "350+ Harris County RTHLs, SALs, markers, and historic cemeteries",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Plat Agenda Monitor",
+            "Property Watchlist Row 4"
+          ],
+          "engineIds": [
+            "landmark_protection",
+            "plat_triage"
+          ],
+          "whatItProvides": "State-level historic designations, marker narratives, and 60-day RTHL/SAL notice protections.",
+          "howCrossChecked": "Cross-checked with City of Houston landmark status and ETJ rural tract plat filings to warn of historic cemeteries and farmsteads.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "nps_nrhp",
+      "name": "National Park Service (National Register of Historic Places / NRHP)",
+      "shortName": "National Park Service (NRHP)",
+      "sectorId": "state_federal_regulatory",
+      "jurisdiction": "Federal (United States)",
+      "websiteUrl": "https://www.nps.gov/subjects/nationalregister/index.htm",
+      "overview": "Official federal list of districts, sites, buildings, structures, and objects significant in American history and architecture, qualifying income-producing properties for Historic Tax Credits.",
+      "feeds": [
+        {
+          "id": "nps_nrhp_spatial_nominations",
+          "name": "NRHP Listed Buildings, Districts & Nomination Metadata",
+          "status": "active_curated",
+          "frequencyId": "quarterly_annual",
+          "frequencyLabel": "Quarterly NRHP Spatial & Reference Number Sync",
+          "method": "NPS Cultural Resources GIS + Curated Nomination Narratives",
+          "recordScale": "220+ individual NRHP listings & historic districts in Harris County",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Plat Agenda Monitor",
+            "Property Watchlist Row 4"
+          ],
+          "engineIds": [
+            "landmark_protection",
+            "date_integrity"
+          ],
+          "whatItProvides": "NRHP reference numbers, listing dates, architect/builder attributions, periods of significance, and district contributing/non-contributing boundaries.",
+          "howCrossChecked": "Combined with City of Houston Protected Landmark records to flag NRHP buildings that are eligible for federal/state rehabilitation tax credits but lack municipal demolition protection.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "fema_usgs",
+      "name": "FEMA National Flood Hazard Layer & USGS 3DEP / Historical Topographic Maps",
+      "shortName": "FEMA NFHL & USGS",
+      "sectorId": "state_federal_regulatory",
+      "jurisdiction": "Federal (Bayou & Floodplain Hydrology / Elevation)",
+      "websiteUrl": "https://msc.fema.gov",
+      "overview": "Federal Emergency Management Agency 100-year and 500-year floodplains / floodways and US Geological Survey lidar elevation and historical 1915-1982 topographic quadrangles.",
+      "feeds": [
+        {
+          "id": "fema_nfhl_floodplain",
+          "name": "FEMA 100-Year / 500-Year Floodplain & Bayou Floodway Risk Overlay",
+          "status": "planned_roadmap",
+          "frequencyId": "in_flight_planned",
+          "frequencyLabel": "Planned Phase 3 Spatial Overlay (Q2 2027)",
+          "method": "FEMA NFHL ArcGIS REST Service + Parcel Flood Zone Tagging",
+          "recordScale": "Countywide floodplain zones (AE, X, Floodway) across 22 watersheds",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Property Watchlist"
+          ],
+          "engineIds": [
+            "demolition_watch",
+            "plat_triage"
+          ],
+          "whatItProvides": "Identifies whether a historic building sits inside a FEMA Special Flood Hazard Area or floodway where Substantial Damage (>50% market value) rules trigger elevation or demolition pressure.",
+          "howCrossChecked": "Will cross-check post-storm remodel/repair permits and elevation variances against pre-1976 historic housing stock.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) using Harris County Flood Control District (HCFCD) / FEMA MAAPnext effective polygons."
+        }
+      ]
+    },
+    {
+      "id": "tceq_environmental",
+      "name": "Texas Commission on Environmental Quality (TCEQ Central Registry & Dry Cleaner / PST Remediation)",
+      "shortName": "TCEQ Environmental Registry",
+      "sectorId": "state_federal_regulatory",
+      "jurisdiction": "Statewide (Filtered to Harris County)",
+      "websiteUrl": "https://www.tceq.texas.gov",
+      "overview": "Tracks Voluntary Cleanup Program (VCP) sites, Innocent Owner/Operator certificates, Underground Storage Tank (PST) removals, and Brownfield redevelopment filings.",
+      "feeds": [
+        {
+          "id": "tceq_vcp_pst_brownfields",
+          "name": "TCEQ Voluntary Cleanup Program (VCP) & Underground Tank Removal Filings",
+          "status": "planned_roadmap",
+          "frequencyId": "in_flight_planned",
+          "frequencyLabel": "Planned Phase 4 Commercial Early-Warning Feed (Q3 2027)",
+          "method": "TCEQ GIS / Open Data REST Query + Address Matcher",
+          "recordScale": "Historic gas stations, auto showrooms, dry cleaners, and industrial warehouses",
+          "appTargets": [
+            "Property Watchlist",
+            "Activity Log"
+          ],
+          "engineIds": [
+            "demolition_watch"
+          ],
+          "whatItProvides": "Detects Phase I/II environmental cleanup and tank pull registrations that frequently precede commercial tract assembly and historic industrial/retail demolition by 3 to 9 months.",
+          "howCrossChecked": "Will cross-check TCEQ VCP and PST site registrations against pre-1976 commercial and industrial buildings.",
+          "pipelineScript": "pipeline/atlas_pipeline/fetch_plat_and_watchlist.py",
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 4 (Q3 2027) via TCEQ Open Data GIS endpoints to give earlier warning on historic industrial, warehouse, and mid-century commercial properties."
+        }
+      ]
+    },
+    {
+      "id": "hpl_hmrc",
+      "name": "Houston Public Library - Houston Metropolitan Research Center (HMRC)",
+      "shortName": "HPL / HMRC Archives",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "City of Houston (Julia Ideson Building Special Collections)",
+      "websiteUrl": "https://digital.houstonlibrary.org",
+      "overview": "Premier municipal archive holding City of Houston Building Permit Ledgers (1905-1951), historic Morrison & Fourmy / Polk City Directories, architectural drawings, and photographic collections.",
+      "feeds": [
+        {
+          "id": "hmrc_historic_permits_1905_1951",
+          "name": "HMRC Historic City of Houston Building Permits (1905-1951)",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Indexed Archival Corpus (1905-1951 Ledgers)",
+          "method": "OCR Ledger Extraction + 1911 Street Renumbering & Address Normalization",
+          "recordScale": "42,000+ historic building permits & 3,800+ indexed contractors/architects",
+          "appTargets": [
+            "Property Drawer Permits & History Tabs",
+            "Architects & Contractors Index"
+          ],
+          "engineIds": [
+            "date_integrity",
+            "directory_genealogy"
+          ],
+          "whatItProvides": "Original building permit numbers, exact filing dates, owner at construction, builder/contractor name, architect name, number of rooms/stories, and construction cost in historic dollars.",
+          "howCrossChecked": "Cross-checked with HCAD erection dates and City Directories to prove exact construction dates and attribute previously uncredited builders and architects.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_contractors_index.py",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "hmrc_photographs_architectural",
+          "name": "HMRC Digital Archive Photographs & Texas Room Vertical Files",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Curated Archival Corpus + Watchlist Research Links",
+          "method": "Manifest Harvesting & Curated Building Photo Linking",
+          "recordScale": "Curated historic photographs & architectural biographical files",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Property Watchlist"
+          ],
+          "engineIds": [
+            "directory_genealogy",
+            "landmark_protection"
+          ],
+          "whatItProvides": "Archival street-level photographs, newspaper clippings, and architect biographies for notable Houston structures.",
+          "howCrossChecked": "Linked to building_photos.json and Property Watchlist History & Archival Research Notes.",
+          "pipelineScript": "app/public/data/building_photos.json",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "city_directories_corpus",
+      "name": "Morrison & Fourmy / R.L. Polk Houston City Directories (1866-1959)",
+      "shortName": "Houston City Directories (1866-1959)",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "City of Houston (39 Digitized Volumes)",
+      "websiteUrl": "https://digital.houstonlibrary.org",
+      "overview": "Door-by-door canvases of Houston residents, businesses, occupations, spouses, and homeownership symbols across 39 directory editions from 1866 through 1959 (hosted via HMRC, Internet Archive, Fold3, and Ancestry).",
+      "feeds": [
+        {
+          "id": "directories_street_guide_alpha",
+          "name": "Dual-Pass Street Guide & Alphabetical Resident Directory Index (39 Volumes)",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Indexed Archival Corpus (Expanding Full-Volume Coverage)",
+          "method": "Dual-Pass OCR (Householders Street Guide + Alphabetical Resident Directory) & 1911 Renumbering Crosswalk",
+          "recordScale": "39 directory volumes (1866-1959) sharded across 256 HCAD prefixes",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Date Integrity Overrides"
+          ],
+          "engineIds": [
+            "date_integrity",
+            "directory_genealogy"
+          ],
+          "whatItProvides": "Year-by-year household heads, spouses, occupations, employers, homeowner vs. renter symbols, and exact scan deep links to the printed Street Guide or Alphabetical page.",
+          "howCrossChecked": "Combines the post-1907 Street Guide ('Directory of Householders' by street and house number) with the Alphabetical Resident section (which captures residents and occupations even when a street page was torn or omitted, and resolves pre-1911 street numbers).",
+          "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py",
+          "howAndWhenPlanned": "Active in production; corpus-wide full-volume alphabetical + street-guide reconciliation sweep in progress to eliminate OCR gaps on streets like Bayland Ave and Key St."
+        }
+      ]
+    },
+    {
+      "id": "sanborn_maps_loc_ut",
+      "name": "Library of Congress & UT Dolph Briscoe Center (Sanborn Fire Insurance Maps)",
+      "shortName": "Sanborn Maps (LOC & UT Austin)",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "City of Houston (1877, 1885, 1890, 1896, 1907, 1924-1925, 1950-1951)",
+      "websiteUrl": "https://www.loc.gov/collections/sanborn-maps/",
+      "overview": "Detailed block-by-block fire insurance atlases showing building footprints, construction materials (brick, frame, stone, iron), story heights, porch outlines, and historic house numbers.",
+      "feeds": [
+        {
+          "id": "sanborn_iiif_sheet_index",
+          "name": "Sanborn Fire Insurance Map Sheet Index & Footprint Evolution Cross-Check",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Indexed Sheet Boundaries + Assisted Archival Verification",
+          "method": "LOC IIIF Manifests + Historic Volume/Sheet Georeferencing",
+          "recordScale": "7 multi-volume Houston editions (1877 through 1951)",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Property Watchlist Archival Box"
+          ],
+          "engineIds": [
+            "date_integrity",
+            "directory_genealogy"
+          ],
+          "whatItProvides": "Visual confirmation of whether the footprint on a lot in 1907, 1924, or 1951 matches the extant structure today or represents an earlier demolished dwelling.",
+          "howCrossChecked": "Prevents false early-date overrides when a lot had an 1890s cottage that was later replaced by a 1920s bungalow or 1940s commercial building.",
+          "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py",
+          "howAndWhenPlanned": "Sheet index active in production; full vector footprint segmentation across the 1924-1925 and 1950-1951 volumes planned for Phase 3 (Q2 2027)."
+        }
+      ]
+    },
+    {
+      "id": "rice_fondren_woodson",
+      "name": "Rice University Fondren Library (Woodson Research Center & Kelley Center)",
+      "shortName": "Rice University Archives",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "Houston Regional Architectural & Map Collections",
+      "websiteUrl": "https://library.rice.edu/woodson",
+      "overview": "Houses architectural papers (Staub, Watkin, Barnstone, Jenkins), Stephen Fox architectural research notes, and historic Houston aerial and subdivision map collections.",
+      "feeds": [
+        {
+          "id": "rice_architectural_collections",
+          "name": "Architectural Drawings, Subdivision Maps & Historian Papers",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Curated Archival Citations & Architect Profiles",
+          "method": "Curated Biographical & Building Attribution Index",
+          "recordScale": "800+ architect & mid-century modern attributions",
+          "appTargets": [
+            "Main Atlas Map (Architects & Styles)",
+            "Property Drawer"
+          ],
+          "engineIds": [
+            "directory_genealogy",
+            "landmark_protection"
+          ],
+          "whatItProvides": "Verified architect attributions, original client names, and design dates for residential, civic, and commercial landmarks.",
+          "howCrossChecked": "Cross-checked with AIA Houston Architecture Guide entries and HMRC building permits.",
+          "pipelineScript": "app/public/data/curated_buildings.json",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "uh_special_collections",
+      "name": "University of Houston Libraries Special Collections & Houston History Project",
+      "shortName": "UH Special Collections",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "Houston Regional History & Urban Planning",
+      "websiteUrl": "https://libraries.uh.edu/locations/special-collections/",
+      "overview": "Maintains historic Houston subdivision brochures, civic club archives, Third Ward / East End / Fifth Ward neighborhood histories, and architectural photography.",
+      "feeds": [
+        {
+          "id": "uh_neighborhood_archival_collections",
+          "name": "Historic Subdivision Brochures & Neighborhood Oral/Archival Context",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Curated Archival Citations",
+          "method": "Curated Building & Neighborhood Narrative Linking",
+          "recordScale": "Curated civic, university, and East End / Third Ward landmarks",
+          "appTargets": [
+            "Main Atlas Map (How Houston Was Built)",
+            "Property Drawer"
+          ],
+          "engineIds": [
+            "landmark_protection",
+            "directory_genealogy"
+          ],
+          "whatItProvides": "Historical narratives, original developer brochures, and cultural context for underrepresented neighborhood landmarks.",
+          "howCrossChecked": "Integrated into curated_buildings.json and guided story tours.",
+          "pipelineScript": "app/public/data/curated_buildings.json",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "internet_archive_ancestry_fold3",
+      "name": "Internet Archive, Ancestry.com & Fold3 Digitized Microfilm Repositories",
+      "shortName": "Internet Archive / Ancestry / Fold3",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "National Archival Microfilm & Directory Scans",
+      "websiteUrl": "https://archive.org",
+      "overview": "Host high-resolution page scans and OCR layers for U.S. City Directories (Collection 2469), U.S. Federal Decennial Census rolls (1900-1950), and historic Texas newspapers.",
+      "feeds": [
+        {
+          "id": "ancestry_ia_directory_page_links",
+          "name": "Verified City Directory Page Image Deep Links (Street Guide vs. Alphabetical)",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Indexed Page-Level Deep Links",
+          "method": "Volume Manifest & Exact Image-ID Verification",
+          "recordScale": "39 Houston directory editions (1866-1959)",
+          "appTargets": [
+            "Property Drawer History Tab"
+          ],
+          "engineIds": [
+            "directory_genealogy",
+            "date_integrity"
+          ],
+          "whatItProvides": "Direct clickable deep links to the exact digitized page image (distinguishing Alphabetical Resident entries from Back-of-Book Street Guide entries so links always open the page where the resident appears).",
+          "howCrossChecked": "Verified via pipeline/atlas_pipeline/enrich_from_city_directories.py so alphabetical-only entries never point to a neighboring street's Street Guide page.",
+          "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "us_census_1900_1950_ed",
+          "name": "U.S. Decennial Census Enumeration District (1900-1950) Household Cross-Check",
+          "status": "planned_roadmap",
+          "frequencyId": "in_flight_planned",
+          "frequencyLabel": "Planned Phase 4 Genealogical Enrichment (Q3 2027)",
+          "method": "1910-1950 Houston Enumeration District Street Index + Resident Matcher",
+          "recordScale": "6 decennial census cycles (1900, 1910, 1920, 1930, 1940, 1950)",
+          "appTargets": [
+            "Property Drawer History Tab"
+          ],
+          "engineIds": [
+            "directory_genealogy"
+          ],
+          "whatItProvides": "Household family composition, ages, birthplaces, home value or monthly rent, and occupations recorded every 10 years by federal census enumerators.",
+          "howCrossChecked": "Will cross-check City Directory household heads against 1930, 1940, and 1950 U.S. Census sheets.",
+          "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py",
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 4 (Q3 2027) using NARA / Steve Morse Unified 1930-1950 Houston Enumeration District street tables."
+        }
+      ]
+    },
+    {
+      "id": "portal_texas_history_newspapers",
+      "name": "UNT Portal to Texas History & Historic Houston Newspaper Archives (Post / Chronicle / Press)",
+      "shortName": "Portal to Texas History & Newspapers",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "Statewide / Greater Houston Historical Press (1880-1985)",
+      "websiteUrl": "https://texashistory.unt.edu",
+      "overview": "University of North Texas digital repository of Texas newspapers, builder trade journals, real estate sections, and municipal reports, alongside Houston Chronicle / Houston Post real estate archives.",
+      "feeds": [
+        {
+          "id": "historic_newspaper_realestate_notices",
+          "name": "Historic Newspaper Real Estate, Building Contract & Demolition Clippings",
+          "status": "active_curated",
+          "frequencyId": "on_demand_hitl",
+          "frequencyLabel": "Curated Landmark Citations + Watchlist Archival Box & Row 14",
+          "method": "Curated Citations + 1-Click Watchlist News Search (Row 14)",
+          "recordScale": "Curated landmarks + all 28 active Watchlist properties",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Property Watchlist Archival Box & Row 14"
+          ],
+          "engineIds": [
+            "date_integrity",
+            "directory_genealogy",
+            "demolition_watch"
+          ],
+          "whatItProvides": "Contemporary newspaper announcements of contract awards, grand openings, architect credits, and modern redevelopment news articles.",
+          "howCrossChecked": "Attached via the Watchlist Building History & Archival Research box and Row 14 News & Media Coverage checks.",
+          "pipelineScript": "app/js/watchlistSyncHelpers.js",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "wikimedia_commons_wikidata",
+      "name": "Wikimedia Commons & Wikidata Architectural Media Repository",
+      "shortName": "Wikimedia Commons",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "Open-Licensed Historic & Contemporary Building Photography",
+      "websiteUrl": "https://commons.wikimedia.org",
+      "overview": "Open-licensed repository of historic postcards, HABS (Historic American Buildings Survey) photographs, and contemporary street-level photography of Houston landmarks.",
+      "feeds": [
+        {
+          "id": "wikimedia_building_photos",
+          "name": "Curated Street-Level & HABS Architectural Photographs (building_photos.json)",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Indexed Curated Photo Manifest",
+          "method": "Commons API Attribution & Thumbnail Resolver",
+          "recordScale": "Curated landmarks & Lost Houston entries (e.g. 2000 Smith St Kirby Mansion)",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Property Watchlist Photo Box"
+          ],
+          "engineIds": [
+            "landmark_protection"
+          ],
+          "whatItProvides": "Verified street-level photographs, photographer credits, and license links displayed in the Main Atlas and automatically surfaced in the Watchlist Property Photo box.",
+          "howCrossChecked": "Matched by building_id, HCAD account number, and normalized street address so Watchlist entries automatically display curated street photography when available.",
+          "pipelineScript": "app/public/data/building_photos.json",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "historic_aerials_netr_txdot",
+      "name": "TxDOT, USDA & HistoricAerials.com (1938-1995 Historical Orthophotos)",
+      "shortName": "Historic Aerial Photography (1938-1995)",
+      "sectorId": "archives_directories_maps",
+      "jurisdiction": "Harris County (1938, 1944, 1953, 1957, 1964, 1973, 1978, 1989)",
+      "websiteUrl": "https://www.historicaerials.com",
+      "overview": "Historical vertical aerial photography flown by USDA, USGS, and TxDOT between 1938 and 1995 covering post-WWII neighborhoods outside the 1924/1951 Sanborn map boundaries.",
+      "feeds": [
+        {
+          "id": "historic_aerials_postwar_verify",
+          "name": "Historical Aerial Roofline & Mid-Century Construction Verification",
+          "status": "planned_roadmap",
+          "frequencyId": "in_flight_planned",
+          "frequencyLabel": "Planned Phase 3 Tile Integration (Q2 2027)",
+          "method": "TNRIS / TxDOT Public Domain Aerial Tile Pyramids + Coordinate Deep Links",
+          "recordScale": "8 historical countywide flight epochs (1938-1995)",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Property Watchlist"
+          ],
+          "engineIds": [
+            "date_integrity",
+            "demolition_watch"
+          ],
+          "whatItProvides": "Visual proof of roof geometry and construction epoch for 1938-1975 buildings in areas never mapped by Sanborn Fire Insurance atlases.",
+          "howCrossChecked": "Verifies whether HCAD's '1950' default date represents a 1940s wartime house or a late-1950s ranch house, and confirms when Lost Houston demolitions occurred.",
+          "pipelineScript": "pipeline/atlas_pipeline/build_tiles.py",
+          "howAndWhenPlanned": "Not used yet. Planned for Phase 3 (Q2 2027) by integrating public-domain TNRIS (Texas Natural Resources Information System) / USGS historical orthophoto XYZ tiles and coordinate deep links."
+        }
+      ]
+    },
+    {
+      "id": "preservation_houston",
+      "name": "Preservation Houston (Landmarks, Good Brick Awards & Lost Houston)",
+      "shortName": "Preservation Houston",
+      "sectorId": "preservation_civic_research",
+      "jurisdiction": "Greater Houston",
+      "websiteUrl": "https://preservationhouston.org",
+      "overview": "Houston's citywide historic preservation advocacy and education organization, maintaining the Good Brick Awards registry (1979-2026), Lost Houston demolition archive, and the 15-Point Property Watchlist.",
+      "feeds": [
+        {
+          "id": "ph_curated_good_brick",
+          "name": "Good Brick Awards (1979-2026), Curated Architectural Landmarks & Walking Tours",
+          "status": "active_curated",
+          "frequencyId": "quarterly_annual",
+          "frequencyLabel": "Annual Awards Update + Continuous Staff Curation",
+          "method": "Curated JSON Registry + 13-Tab Google Sheet Admin Hub Sync",
+          "recordScale": "1,250+ curated buildings & 47 years of Good Brick Award recipients",
+          "appTargets": [
+            "Main Atlas Map",
+            "Property Drawer",
+            "Plat Agenda Monitor"
+          ],
+          "engineIds": [
+            "landmark_protection",
+            "plat_triage"
+          ],
+          "whatItProvides": "Architectural style classifications, original construction stories, restoration awards, and curated street-level photography.",
+          "howCrossChecked": "Linked by HCAD account and building ID so any plat or permit affecting a Good Brick winner or curated landmark immediately triggers a Tier 1 alert.",
+          "pipelineScript": "app/public/data/curated_buildings.json",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "ph_lost_houston_registry",
+          "name": "Lost Houston Demolished Landmarks Registry & Two-Key Graduation Ledger",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Continuous Staff Curation + Two-Key Watchlist Graduation",
+          "method": "Two-Key Corroboration Engine + Lost Houston Archive JSON",
+          "recordScale": "220+ documented demolished landmarks (incl. 2026 losses such as 2000 Smith St)",
+          "appTargets": [
+            "Main Atlas Map (Lost Houston Layer)",
+            "Plat Agenda Monitor",
+            "Property Watchlist"
+          ],
+          "engineIds": [
+            "demolition_watch",
+            "landmark_protection"
+          ],
+          "whatItProvides": "Historical narratives, demolition dates, replacement land uses, and archival photos of demolished Houston landmarks.",
+          "howCrossChecked": "Watchlist properties require Two-Key confirmation (e.g. COH Demo Permit + post-permit visual/news confirmation or HCAD improvement value drop to $0) before graduating to 'Confirmed Demolished -> Lost Houston'.",
+          "pipelineScript": "app/public/data/lost_houston.json",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "aia_houston_mod_haif",
+      "name": "AIA Houston, Houston Mod & Houston Architecture Info Forum (HAIF)",
+      "shortName": "AIA / Houston Mod / HAIF",
+      "sectorId": "preservation_civic_research",
+      "jurisdiction": "Greater Houston Architectural Community",
+      "websiteUrl": "https://www.houstonarchitecture.com",
+      "overview": "Published architectural guides (Stephen Fox's Houston Architectural Guide), Houston Mod mid-century modern documentation, and community redevelopment tracking on HAIF.",
+      "feeds": [
+        {
+          "id": "aia_mod_architect_index",
+          "name": "AIA Architectural Guide & Houston Mod Mid-Century Modern Attributions",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Curated Architectural Corpus",
+          "method": "Structured Architect, Style & Era Cross-Reference",
+          "recordScale": "1,200+ attributed buildings across 16 architectural styles",
+          "appTargets": [
+            "Main Atlas Map (Architects & Styles)",
+            "Property Drawer"
+          ],
+          "engineIds": [
+            "landmark_protection",
+            "date_integrity"
+          ],
+          "whatItProvides": "Authoritative architect names, firm histories, and architectural style classifications (Art Deco, Moderne, Mid-Century Modern, Craftsman, Victorian, etc.).",
+          "howCrossChecked": "Used alongside HMRC building permits to verify original construction dates and design authorship.",
+          "pipelineScript": "app/public/data/curated_buildings.json",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "haif_community_search",
+          "name": "Houston Architecture Info Forum (HAIF) & Real Estate Listing Cross-Checks",
+          "status": "assisted_hitl",
+          "frequencyId": "on_demand_hitl",
+          "frequencyLabel": "On-Demand 1-Click Watchlist & Drawer Search (Row 10 & Row 13)",
+          "method": "Pre-Formatted Address/Subdivision Search Links",
+          "recordScale": "All Atlas properties & Watchlist items",
+          "appTargets": [
+            "Property Drawer History Tab",
+            "Property Watchlist Row 10, Row 13, Row 14, Row 15"
+          ],
+          "engineIds": [
+            "demolition_watch",
+            "plat_triage"
+          ],
+          "whatItProvides": "Renderings, broker marketing flyers ('tear-down / lot value only'), developer site plans, and neighborhood civic association discussions.",
+          "howCrossChecked": "Surfaced in Watchlist Rows 10, 13, 14, and 15 to capture pre-permit marketing and media coverage before formal demolition permits are filed.",
+          "pipelineScript": "app/js/watchlistSyncHelpers.js",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "esri_google_basemaps",
+      "name": "Esri World Imagery, Google Street View & OpenFreeMap Vector Tiles",
+      "shortName": "Esri / Google Street View / OpenFreeMap",
+      "sectorId": "spatial_imagery_cloud",
+      "jurisdiction": "Global / Greater Houston High-Resolution Imagery",
+      "websiteUrl": "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+      "overview": "High-resolution orthoimagery, 360-degree street-level panoramas, and MapLibre GL vector basemap tiles powering visual verification across the Atlas and Watchlist.",
+      "feeds": [
+        {
+          "id": "esri_parcel_aerial_export",
+          "name": "Esri World Imagery Dynamic Parcel Aerial Preview",
+          "status": "active_auto",
+          "frequencyId": "monthly",
+          "frequencyLabel": "Real-Time Parcel Bounding-Box Image Export",
+          "method": "ArcGIS MapServer export?bbox=... Dynamic PNG Endpoint",
+          "recordScale": "100% of geocoded Watchlist & Atlas parcels (28/28 watched properties)",
+          "appTargets": [
+            "Property Watchlist Photo Box",
+            "Main Atlas Satellite Toggle"
+          ],
+          "engineIds": [
+            "demolition_watch"
+          ],
+          "whatItProvides": "Instant zero-key parcel-centered aerial photography in the Watchlist Property Photo box whenever a custom or curated street photo is not yet uploaded.",
+          "howCrossChecked": "Combined with automatic HCAD coordinate backfill so every watched property displays an immediate roof/lot preview alongside 1-click 360-degree Google Street View.",
+          "pipelineScript": "app/plat-monitor.html",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "google_street_view_360",
+          "name": "Google Maps 360\u00b0 Street View & Historical Street View Panoramas",
+          "status": "assisted_hitl",
+          "frequencyId": "on_demand_hitl",
+          "frequencyLabel": "1-Click Coordinate & Address Panorama Launch",
+          "method": "Direct cbll=lat,lng Panorama Deep Links + Header Quick-Launch",
+          "recordScale": "All 1.44M buildings & 28 Watchlist properties",
+          "appTargets": [
+            "Property Watchlist Header & Photo Card",
+            "Property Drawer",
+            "Plat Agenda Monitor"
+          ],
+          "engineIds": [
+            "demolition_watch",
+            "date_integrity"
+          ],
+          "whatItProvides": "Street-level facade verification and multi-year Street View time-machine imagery (2007-2026) to inspect architectural integrity or confirm recent demolitions.",
+          "howCrossChecked": "Placed both in the Watchlist top header bar and inside the top-of-card Property Photo box for instant visual verification.",
+          "pipelineScript": "app/plat-monitor.html",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    },
+    {
+      "id": "google_workspace_cloud_hub",
+      "name": "Google Sheets 13-Tab Admin Hub, Apps Script & Google Drive Evidence Vault",
+      "shortName": "Google Sheets & Drive Sync Hub",
+      "sectorId": "spatial_imagery_cloud",
+      "jurisdiction": "Preservation Staff Cloud Infrastructure",
+      "websiteUrl": "https://davemorris-gcp.github.io/houston-building-atlas/admin.html",
+      "overview": "Serverless 3-way cloud synchronization backend connecting the browser workbench, the 13-tab Google Sheet Admin Hub, Google Drive archival folders/photos, and GitHub Actions.",
+      "feeds": [
+        {
+          "id": "gsheets_3way_sync",
+          "name": "13-Tab Google Sheet Admin Hub & 3-Way Field-Timestamp Reconciliation",
+          "status": "active_auto",
+          "frequencyId": "daily_7am",
+          "frequencyLabel": "Real-Time Staff Save + 45s Live Poll + Daily GitHub Actions Sync",
+          "method": "Apps Script Web App REST Bridge + CSV Tab Polling + Field-Level LWW Merge",
+          "recordScale": "13 structured tabs (Plat Reviews, Watchlist, Overrides, Landmarks, Lost Houston, Audit Log)",
+          "appTargets": [
+            "Plat Agenda Monitor",
+            "Property Watchlist",
+            "Admin Workbench",
+            "Main Atlas Map"
+          ],
+          "engineIds": [
+            "plat_triage",
+            "demolition_watch",
+            "date_integrity",
+            "landmark_protection"
+          ],
+          "whatItProvides": "Multi-user real-time persistence for tier confirmations, 15-point checklist entries, inline entry edits/removals, custom property photos, and archival Drive links without ever overwriting staff edits during automated sweeps.",
+          "howCrossChecked": "Uses per-field ISO timestamps (tierUpdatedAt, notesUpdatedAt, historySummaryUpdatedAt, deletedCheckKeys) to merge static JSON, Cloud Sheet rows, and localStorage deterministically.",
+          "pipelineScript": "app/js/watchlistSyncHelpers.js",
+          "howAndWhenPlanned": "Active in production."
+        },
+        {
+          "id": "gdrive_archival_evidence",
+          "name": "Google Drive Archival Clippings, Sanborn Scans & Embeddable Photo Links",
+          "status": "active_auto",
+          "frequencyId": "on_demand_hitl",
+          "frequencyLabel": "Real-Time Staff Upload / Link Attachment",
+          "method": "Automatic Google Drive Share-Link to Thumbnail Converter + Document Vault",
+          "recordScale": "Unlimited per-property photos, PDFs, Sanborn snippets, and deed scans",
+          "appTargets": [
+            "Property Watchlist Photo Box",
+            "Archival Research Box",
+            "15-Point Checklist Rows"
+          ],
+          "engineIds": [
+            "directory_genealogy",
+            "demolition_watch"
+          ],
+          "whatItProvides": "Converts pasted Google Drive image share links automatically into embeddable preview thumbnails and stores property-level archival folders and per-check evidence links.",
+          "howCrossChecked": "Displayed directly inside the Watchlist Property Photo card, Building History & Archival Research box, and Chronological Findings Log.",
+          "pipelineScript": "app/js/watchlistSyncHelpers.js",
+          "howAndWhenPlanned": "Active in production."
+        }
+      ]
+    }
+  ]
+}

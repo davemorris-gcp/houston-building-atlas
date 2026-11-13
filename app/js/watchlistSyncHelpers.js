@@ -498,13 +498,31 @@ export function sanitizeExternalLinksList(list) {
   return out;
 }
 
+export function normalizeEmbeddablePhotoUrl(rawUrl = "") {
+  const safe = sanitizeExternalUrl(rawUrl);
+  if (!safe) return "";
+  try {
+    const u = new URL(safe);
+    const host = u.hostname.toLowerCase();
+    if ((host === "drive.google.com" || host === "docs.google.com") && !/\/folders\//i.test(u.pathname)) {
+      const mFile = u.pathname.match(/\/file\/d\/([A-Za-z0-9_-]{10,})/);
+      const qId = u.searchParams.get("id");
+      const fileId = (mFile && mFile[1]) || (qId && /^[A-Za-z0-9_-]{10,}$/.test(qId) ? qId : "");
+      if (fileId && !/\/thumbnail$/i.test(u.pathname)) {
+        return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1200`;
+      }
+    }
+  } catch (_e) {}
+  return safe;
+}
+
 export function sanitizePhotoUrl(rawUrl = "") {
   const trimmed = String(rawUrl ?? "").trim();
   if (!trimmed) return "";
   if (/^(?:public\/|data\/|\.\/|\/)/i.test(trimmed) && !/^\/\//.test(trimmed)) {
     return trimmed.replace(/[\u0000-\u001F\u007F"<>]/g, "");
   }
-  return sanitizeExternalUrl(trimmed);
+  return normalizeEmbeddablePhotoUrl(trimmed);
 }
 
 export function sanitizePhotoDataUrl(rawDataUrl = "") {
@@ -1085,6 +1103,8 @@ export function rebuildFindingsLog(prop) {
         stage: row.stage,
         activity: row.activity,
         checkId: row.id || "",
+        rowId: row.id || "",
+        checkIndex: idxChk,
         result: chk.result || "",
         source: isAutoSweepFinding(chk) ? "auto-sweep" : "manual",
         automated: isAutoSweepFinding(chk) || Boolean(row.automated),
@@ -1128,6 +1148,84 @@ export function isCheckEntryDeleted(rowId = "", chk = {}, deletedCheckKeys = [])
     if (delSet.has(k2)) return true;
   }
   return false;
+}
+
+/**
+ * Edit an existing logged checklist entry in place on `prop`, recording the old entry's
+ * deletion key in `prop.deletedCheckKeys` if its date or result changed so 3-way reconciliation
+ * never resurrects the old unedited entry from static/cloud snapshots.
+ */
+export function updateChecklistEntryInProperty(
+  prop,
+  rowId,
+  checkIdx,
+  { date = "", result = "", linkLabel = "", linkUrl = "", nowIso = "" } = {}
+) {
+  if (!prop || typeof prop !== "object") return { ok: false, error: "No property selected." };
+  const row = findChecklistRow(prop.checklist, rowId);
+  const idx = Number(checkIdx);
+  if (!row || !Array.isArray(row.checks) || !Number.isInteger(idx) || idx < 0 || idx >= row.checks.length) {
+    return { ok: false, error: "Check entry not found." };
+  }
+  const ts = String(nowIso || new Date().toISOString());
+  const oldChk = row.checks[idx];
+  const nextDate = String(date || oldChk?.date || ts.slice(0, 10)).trim();
+  const nextResult = String(result ?? "").trim();
+  const rawUrl = String(linkUrl ?? "").trim();
+  const rawLbl = String(linkLabel ?? "").trim();
+
+  let nextLinks = [];
+  if (rawUrl) {
+    const clean = sanitizeExternalLink({ label: rawLbl || "Reference Link", url: rawUrl });
+    if (!clean) {
+      return { ok: false, error: "Invalid link URL: only valid http:// or https:// links are allowed." };
+    }
+    nextLinks = [clean];
+  }
+  const finalResult = nextResult || (nextLinks.length ? `Attached link: ${nextLinks[0].label}` : "");
+  if (!finalResult) {
+    return { ok: false, error: "Enter a check result or attach a valid https:// link." };
+  }
+
+  const oldDelKey = buildCheckDeletionKey(row.id, oldChk);
+  const updatedChk = {
+    ...oldChk,
+    date: nextDate,
+    result: finalResult,
+    source: "manual",
+    automated: false,
+    loggedAt: ts,
+  };
+  if (nextLinks.length) {
+    updatedChk.links = nextLinks;
+  } else {
+    delete updatedChk.links;
+  }
+  const newDelKey = buildCheckDeletionKey(row.id, updatedChk);
+  if (oldDelKey && oldDelKey.toUpperCase() !== newDelKey.toUpperCase()) {
+    const extraDelKeys = [oldDelKey];
+    if (isAutoSweepFinding(oldChk)) {
+      extraDelKeys.push(getAutoSweepDedupeKey(row.id, oldChk));
+    }
+    prop.deletedCheckKeys = uniqueNonEmptyStrings([
+      ...(prop.deletedCheckKeys || []),
+      ...extraDelKeys,
+    ]);
+  }
+
+  row.checks[idx] = updatedChk;
+  row.lastChecked =
+    row.checks
+      .map((c) => c.date || "")
+      .filter(Boolean)
+      .sort()
+      .slice(-1)[0] || nextDate;
+  row.updatedAt = ts;
+  row.humanStatusEdited = true;
+  prop.updatedAt = ts;
+  prop.humanEdited = true;
+  rebuildFindingsLog(prop);
+  return { ok: true, entry: updatedChk, row };
 }
 
 /**

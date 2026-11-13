@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Ecosystem &amp; Provenance Atlas | The Houston Building Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root,
+    [data-theme="dark"] {
+      --bg: #0b111e;
+      --bg-elev: #111a2e;
+      --card: #152036;
+      --card-hover: #1a2742;
+      --border: rgba(148, 163, 184, 0.2);
+      --border-strong: rgba(148, 163, 184, 0.36);
+      --ink: #f1f5f9;
+      --ink-2: #cbd5e1;
+      --muted: #94a3b8;
+      --accent: #8cc63f;
+      --accent-soft: rgba(140, 198, 63, 0.15);
+      --blue: #38bdf8;
+      --amber: #f59e0b;
+      --purple: #a855f7;
+      --emerald: #10b981;
+      --danger: #ef4444;
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+      --grid-line: rgba(56, 189, 248, 0.05);
+    }
+
+    [data-theme="light"] {
+      --bg: #fafbfd;
+      --bg-elev: #f1f5f9;
+      --card: #ffffff;
+      --card-hover: #f8fafc;
+      --border: #cbd5e1;
+      --border-strong: #94a3b8;
+      --ink: #0f172a;
+      --ink-2: #334155;
+      --muted: #475569;
+      --accent: #3d6b12;
+      --accent-soft: rgba(61, 107, 18, 0.1);
+      --blue: #0284c7;
+      --amber: #b45309;
+      --purple: #7e22ce;
+      --emerald: #047857;
+      --danger: #b91c1c;
+      --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      --grid-line: rgba(2, 132, 199, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+      background-size: 32px 32px;
+      color: var(--ink);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Top Navigation & Hero Header */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: color-mix(in srgb, var(--bg-elev) 92%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .ph-badge {
+      background: #8cc63f;
+      color: #0b111e;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+
+    .top-title {
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 13px;
+      border-radius: 7px;
+      border: 1px solid var(--border-strong);
+      background: var(--card);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+    .btn:hover {
+      background: var(--card-hover);
+      text-decoration: none;
+    }
+    .btn.primary {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--ink);
+    }
+
+    .page-wrap {
+      max-width: 1560px;
+      margin: 0 auto;
+      padding: 24px 24px 64px;
+    }
+
+    /* Hero Banner & KPI Summary */
+    .hero-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .hero-heading {
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 26px;
+      font-weight: 600;
+      margin: 0 0 6px;
+      text-wrap: balance;
+    }
+
+    .hero-sub {
+      margin: 0;
+      color: var(--ink-2);
+      max-width: 920px;
+      font-size: 15px;
+    }
+
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .kpi-box {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+
+    .kpi-lbl {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 4px;
+    }
+
+    /* Control Toolbar: View Switcher + Status Filters + Search */
+    .controls-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .view-tabs {
+      display: inline-flex;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .view-tab {
+      border: none;
+      background: transparent;
+      color: var(--ink-2);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .view-tab[aria-selected="true"] {
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-strong);
+    }
+
+    .search-box {
+      flex: 1 1 280px;
+      max-width: 420px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 6px 12px;
+    }
+
+    .search-box input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .status-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+
+    .status-pill-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-elev);
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .status-pill-btn[aria-pressed="true"] {
+      border-color: var(--ink);
+      background: var(--card-hover);
+      color: var(--ink);
+      box-shadow: 0 0 0 1px var(--ink);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    /* Cross-Check Synthesis Engines Bar */
+    .engines-section {
+      margin-bottom: 24px;
+    }
+
+    .section-eyebrow {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .engines-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .engine-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      transition: border-color 0.15s ease, transform 0.12s ease, background 0.15s ease;
+    }
+
+    .engine-card:hover {
+      background: var(--card-hover);
+      border-color: var(--border-strong);
+    }
+
+    .engine-card[aria-pressed="true"] {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--blue) 45%, transparent);
+      background: var(--card-hover);
+    }
+
+    .engine-eyebrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .engine-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 0;
+      text-wrap: balance;
+    }
+
+    .engine-desc {
+      font-size: 13px;
+      color: var(--ink-2);
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    /* Sector / Group Blocks */
+    .sector-block {
+      margin-bottom: 28px;
+    }
+
+    .sector-header {
+      border-bottom: 2px solid var(--border-strong);
+      padding-bottom: 10px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .sector-title {
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+
+    .sector-desc {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 4px 0 0;
+      max-width: 980px;
+    }
+
+    /* Institution & Feed Cards Grid (4-Axis Aligned) */
+    .org-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 520px) {
+      .org-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .org-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .org-top {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .org-eyebrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .org-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 0;
+      line-height: 1.3;
+      text-wrap: balance;
+    }
+
+    .org-overview {
+      font-size: 14px;
+      color: var(--ink-2);
+      margin: 0;
+    }
+
+    .feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .feed-item {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 14px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .feed-item:hover {
+      border-color: var(--border-strong);
+      background: var(--card-hover);
+    }
+
+    .feed-item.roadmap-item {
+      border-style: dashed;
+    }
+
+    /* Eyebrow row above title so status + frequency pills never orphan-wrap */
+    .feed-eyebrow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .freq-badge {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-2);
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .feed-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 0;
+      line-height: 1.35;
+      text-wrap: balance;
+    }
+
+    .feed-body {
+      font-size: 15px;
+      color: var(--ink-2);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .feed-crosscheck {
+      font-size: 13px;
+      color: var(--ink-2);
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    .feed-roadmap-note {
+      font-size: 13px;
+      color: var(--ink);
+      padding: 8px 10px;
+      border-left: 3px solid var(--purple);
+      background: color-mix(in srgb, var(--purple) 10%, transparent);
+      border-radius: 0 6px 6px 0;
+      margin: 2px 0 0;
+    }
+
+    .feed-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .mono-tag {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Detail Modal / Drawer */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 10, 20, 0.72);
+      backdrop-filter: blur(4px);
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      background: var(--card);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      max-width: 760px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 24px 26px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-family: "Newsreader", Georgia, serif;
+      font-size: 24px;
+      font-weight: 600;
+      margin: 6px 0 4px;
+      text-wrap: balance;
+    }
+
+    .detail-dl {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 10px 16px;
+      margin: 16px 0;
+      padding: 14px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .detail-dl dt {
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .detail-dl dd {
+      margin: 0;
+      color: var(--ink);
+    }
+
+    /* Poster Mode (24"x36" Wall Blueprint Layout) */
+    body.poster-mode .page-wrap {
+      max-width: 100%;
+      padding: 18px 28px 40px;
+    }
+
+    body.poster-mode .org-grid {
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 12px;
+    }
+
+    @media print {
+      @page {
+        size: 36in 24in landscape;
+        margin: 0.4in;
+      }
+      html, body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 13px !important;
+      }
+      .top-bar, .controls-panel {
+        display: none !important;
+      }
+      .page-wrap {
+        max-width: 100% !important;
+        padding: 0 !important;
+      }
+      .org-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 10px !important;
+      }
+      .org-card, .hero-card, .feed-item {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border-color: #94a3b8 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <div class="brand-group">
+      <a href="index.html" class="ph-badge" title="Return to the main Houston Building Atlas map">Preservation Houston</a>
+      <h1 class="top-title">Data Ecosystem &amp; Institutional Provenance Atlas</h1>
+    </div>
+    <nav class="nav-links" aria-label="Application navigation">
+      <a href="index.html" class="btn">🗺️ Interactive Map</a>
+      <a href="plat-monitor.html" class="btn">📋 Plat &amp; Watchlist Monitor</a>
+      <a href="admin.html" class="btn">⚙️ Admin Workbench</a>
+      <button type="button" class="btn primary" id="posterModeBtn" aria-pressed="false" title="Toggle 24x36 large-format architectural blueprint layout">🖼️ Poster / Blueprint Mode</button>
+      <button type="button" class="btn" id="downloadSvgPosterBtn" title="Download a standalone 24x36 vector architectural blueprint poster (.svg) generated directly from data_sources_catalog.json">⬇️ Download 24"×36" Poster (.svg)</button>
+      <button type="button" class="btn" id="themeToggleBtn" title="Switch between Archival Dark and Sunlit Paper themes">☀️ Light / Dark</button>
+    </nav>
+  </header>
+
+  <main class="page-wrap">
+    <section class="hero-card" aria-labelledby="heroHeading">
+      <div class="hero-top">
+        <div>
+          <h2 class="hero-heading" id="heroHeading">Every Institution, Public Feed &amp; Cross-Check Powering the Atlas</h2>
+          <p class="hero-sub">
+            The Houston Building Atlas cross-references appraisal rolls, historic city directories, building permits, subdivision plats, environmental notices, deed indexes, and fire insurance maps across municipal, county, state, federal, and archival institutions. This diagram is driven by a single declarative catalog (<code>app/public/data/data_sources_catalog.json</code>) so new feeds automatically appear on screen and in the printable poster.
+          </p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button type="button" class="btn" id="printPosterBtn" title="Print or Save as PDF at 24x36 poster scale">🖨️ Print / Save PDF</button>
+        </div>
+      </div>
+      <div class="kpi-strip" id="kpiStrip" aria-label="Ecosystem summary metrics"></div>
+    </section>
+
+    <section class="controls-panel" aria-label="Diagram view and filter controls">
+      <div class="controls-row">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="filter-label">Group Diagram By:</span>
+          <div class="view-tabs" role="tablist" aria-label="Diagram grouping mode">
+            <button type="button" class="view-tab" role="tab" data-view-mode="sector" aria-selected="true">🏛️ By Institution &amp; Sector</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="frequency" aria-selected="false">⚡ By Retrieval Frequency</button>
+            <button type="button" class="view-tab" role="tab" data-view-mode="engine" aria-selected="false">🔍 By Cross-Check Engine</button>
+          </div>
+        </div>
+        <div class="search-box">
+          <span aria-hidden="true">🔎</span>
+          <input type="search" id="searchInput" placeholder="Search institution, dataset, Block Books, HCAD, Sanborn, script..." aria-label="Filter institutions and data feeds" />
+        </div>
+      </div>
+
+      <div class="status-filter-row" id="statusFilterBar" aria-label="Filter by integration status"></div>
+    </section>
+
+    <section class="engines-section" aria-labelledby="enginesEyebrow">
+      <div class="section-eyebrow" id="enginesEyebrow">
+        <span>Cross-Check Synthesis Engines (Click any engine to isolate its participating institutions &amp; feeds)</span>
+        <button type="button" class="btn" id="clearEngineFilterBtn" style="display:none;padding:3px 10px;font-size:12px">× Clear Engine Filter</button>
+      </div>
+      <div class="engines-grid" id="enginesGrid"></div>
+    </section>
+
+    <div id="diagramContainer" aria-live="polite"></div>
+  </main>
+
+  <div class="modal-backdrop hidden" id="feedModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card" id="feedModalCard"></div>
+  </div>
+
+  <script type="module">
+    let catalog = null;
+    const state = {
+      viewMode: "sector", // "sector" | "frequency" | "engine"
+      statusFilter: "ALL",
+      engineFilter: "",
+      q: "",
+      posterMode: false,
+      theme: localStorage.getItem("hba:ecosystem:theme") || "dark",
+    };
+
+    function esc(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function applyTheme() {
+      document.documentElement.setAttribute("data-theme", state.theme);
+      const btn = document.getElementById("themeToggleBtn");
+      if (btn) {
+        btn.textContent = state.theme === "dark" ? "☀️ Sunlit Paper Theme" : "🌙 Archival Dark Theme";
+      }
+    }
+
+    function getStatusMeta(statusId) {
+      return (catalog?.statusDefinitions || []).find(s => s.id === statusId) || {
+        id: statusId,
+        label: statusId,
+        shortLabel: statusId,
+        color: "#94a3b8",
+        badgeBg: "rgba(148,163,184,0.15)",
+        badgeBorder: "rgba(148,163,184,0.45)",
+      };
+    }
+
+    function getAllFlattenedFeeds() {
+      if (!catalog) return [];
+      const out = [];
+      for (const org of catalog.organizations || []) {
+        const sector = (catalog.sectors || []).find(s => s.id === org.sectorId);
+        for (const feed of org.feeds || []) {
+          out.push({
+            ...feed,
+            org,
+            sector,
+          });
+        }
+      }
+      return out;
+    }
+
+    function matchesFilters(feed, org) {
+      if (state.statusFilter !== "ALL" && feed.status !== state.statusFilter) {
+        return false;
+      }
+      if (state.engineFilter && !(feed.engineIds || []).includes(state.engineFilter)) {
+        return false;
+      }
+      if (state.q) {
+        const needle = state.q.toLowerCase();
+        const hay = [
+          org.name,
+          org.shortName,
+          org.overview,
+          org.jurisdiction,
+          feed.name,
+          feed.whatItProvides,
+          feed.howCrossChecked,
+          feed.howAndWhenPlanned,
+          feed.frequencyLabel,
+          feed.method,
+          feed.pipelineScript,
+          ...(feed.appTargets || []),
+        ].join(" ").toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    }
+
+    function renderKpis() {
+      const allFeeds = getAllFlattenedFeeds();
+      const totalOrgs = (catalog.organizations || []).length;
+      const activeAuto = allFeeds.filter(f => f.status === "active_auto").length;
+      const activeCurated = allFeeds.filter(f => f.status === "active_curated").length;
+      const assistedHitl = allFeeds.filter(f => f.status === "assisted_hitl").length;
+      const inFlight = allFeeds.filter(f => f.status === "in_flight_request").length;
+      const planned = allFeeds.filter(f => f.status === "planned_roadmap").length;
+
+      document.getElementById("kpiStrip").innerHTML = `
+        <div class="kpi-box">
+          <div class="kpi-num">${totalOrgs}</div>
+          <div class="kpi-lbl">Source Institutions</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num">${allFeeds.length}</div>
+          <div class="kpi-lbl">Total Data Feeds</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num" style="color:var(--emerald)">${activeAuto + activeCurated}</div>
+          <div class="kpi-lbl">Active Automated &amp; Indexed (${activeAuto} Auto · ${activeCurated} Corpus)</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num" style="color:var(--amber)">${assistedHitl}</div>
+          <div class="kpi-lbl">Assisted 1-Click Portals</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num" style="color:var(--purple)">${inFlight + planned}</div>
+          <div class="kpi-lbl">In-Flight &amp; Planned (${inFlight} In-Flight · ${planned} Roadmap)</div>
+        </div>
+        <div class="kpi-box">
+          <div class="kpi-num" style="color:var(--blue)">${(catalog.synthesisEngines || []).length}</div>
+          <div class="kpi-lbl">Cross-Check Engines</div>
+        </div>
+      `;
+    }
+
+    function renderStatusFilters() {
+      const allFeeds = getAllFlattenedFeeds();
+      const counts = { ALL: allFeeds.length };
+      for (const f of allFeeds) {
+        counts[f.status] = (counts[f.status] || 0) + 1;
+      }
+      const pills = [
+        `<span class="filter-label">Status Legend &amp; Filter:</span>`,
+        `<button type="button" class="status-pill-btn" data-status-id="ALL" aria-pressed="${state.statusFilter === "ALL"}">All Feeds (${counts.ALL})</button>`,
+      ];
+      for (const st of catalog.statusDefinitions || []) {
+        const cnt = counts[st.id] || 0;
+        pills.push(`
+          <button type="button" class="status-pill-btn" data-status-id="${esc(st.id)}" aria-pressed="${state.statusFilter === st.id}" title="${esc(st.description)}">
+            <span class="status-dot" style="background:${esc(st.color)}"></span>
+            ${esc(st.shortLabel)} (${cnt})
+          </button>
+        `);
+      }
+      document.getElementById("statusFilterBar").innerHTML = pills.join("");
+    }
+
+    function renderEnginesBar() {
+      const allFeeds = getAllFlattenedFeeds();
+      const clearBtn = document.getElementById("clearEngineFilterBtn");
+      if (clearBtn) {
+        clearBtn.style.display = state.engineFilter ? "inline-flex" : "none";
+      }
+      document.getElementById("enginesGrid").innerHTML = (catalog.synthesisEngines || []).map(eng => {
+        const matchingCount = allFeeds.filter(f => (f.engineIds || []).includes(eng.id)).length;
+        const pressed = state.engineFilter === eng.id;
+        return `
+          <button type="button" class="engine-card" data-engine-id="${esc(eng.id)}" aria-pressed="${pressed}">
+            <div>
+              <div class="engine-eyebrow">
+                <span>${esc(eng.icon)} Synthesis Engine</span>
+                <span class="mono-tag">${matchingCount} feeds</span>
+              </div>
+              <h3 class="engine-title">${esc(eng.name)}</h3>
+            </div>
+            <p class="engine-desc">${esc(eng.summary)}</p>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function renderFeedCardHtml(feed, org, includeOrgBadge = false) {
+      const st = getStatusMeta(feed.status);
+      const isRoadmapOrInFlight = feed.status === "planned_roadmap" || feed.status === "in_flight_request";
+      const engineBadges = (feed.engineIds || []).map(eid => {
+        const eng = (catalog.synthesisEngines || []).find(e => e.id === eid);
+        return eng ? `<span class="mono-tag">${esc(eng.icon)} ${esc(eng.shortName)}</span>` : "";
+      }).filter(Boolean).join(" · ");
+
+      return `
+        <article class="feed-item ${isRoadmapOrInFlight ? "roadmap-item" : ""}" data-open-feed="${esc(feed.id)}" role="button" tabindex="0" aria-label="Inspect ${esc(feed.name)}">
+          <div class="feed-eyebrow">
+            <span class="badge" style="background:${esc(st.badgeBg)};border-color:${esc(st.badgeBorder)};color:${esc(st.color)}">
+              <span class="status-dot" style="background:${esc(st.color)}"></span>
+              ${esc(st.shortLabel)}
+            </span>
+            <span class="freq-badge">⏱️ ${esc(feed.frequencyLabel)}</span>
+          </div>
+          ${includeOrgBadge ? `<div style="font-size:12px;font-weight:700;color:var(--blue)">🏛️ ${esc(org.name)}</div>` : ""}
+          <h4 class="feed-title">${esc(feed.name)}</h4>
+          <p class="feed-body">${esc(feed.whatItProvides)}</p>
+          <p class="feed-crosscheck"><strong>Cross-Check Logic:</strong> ${esc(feed.howCrossChecked)}</p>
+          ${isRoadmapOrInFlight ? `<div class="feed-roadmap-note"><strong>How &amp; When Planned:</strong> ${esc(feed.howAndWhenPlanned)}</div>` : ""}
+          <div class="feed-footer">
+            <span>📦 ${esc(feed.recordScale)}</span>
+            <span>${engineBadges}</span>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderBySector() {
+      const blocks = [];
+      for (const sector of catalog.sectors || []) {
+        const sectorOrgs = (catalog.organizations || []).filter(o => o.sectorId === sector.id);
+        const orgCards = [];
+        for (const org of sectorOrgs) {
+          const visibleFeeds = (org.feeds || []).filter(f => matchesFilters(f, org));
+          if (!visibleFeeds.length) continue;
+          orgCards.push(`
+            <div class="org-card">
+              <div class="org-top">
+                <div class="org-eyebrow">
+                  <span>${esc(sector.icon)} ${esc(org.jurisdiction)}</span>
+                  <a href="${esc(org.websiteUrl)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Official Portal ↗</a>
+                </div>
+                <h3 class="org-name">${esc(org.name)}</h3>
+                <p class="org-overview">${esc(org.overview)}</p>
+              </div>
+              <div class="feed-list">
+                ${visibleFeeds.map(f => renderFeedCardHtml(f, org, false)).join("")}
+              </div>
+            </div>
+          `);
+        }
+        if (orgCards.length) {
+          blocks.push(`
+            <section class="sector-block">
+              <div class="sector-header">
+                <div>
+                  <h2 class="sector-title">${esc(sector.icon)} ${esc(sector.name)}</h2>
+                  <p class="sector-desc">${esc(sector.description)}</p>
+                </div>
+                <span class="mono-tag">${orgCards.length} institution${orgCards.length === 1 ? "" : "s"}</span>
+              </div>
+              <div class="org-grid">${orgCards.join("")}</div>
+            </section>
+          `);
+        }
+      }
+      return blocks.join("") || `<div class="hero-card"><p style="margin:0">No institutions or data feeds match the current filter criteria.</p></div>`;
+    }
+
+    function renderByFrequency() {
+      const allFeeds = getAllFlattenedFeeds().filter(f => matchesFilters(f, f.org));
+      const blocks = [];
+      const sortedBuckets = [...(catalog.frequencyBuckets || [])].sort((a, b) => a.order - b.order);
+      for (const bucket of sortedBuckets) {
+        const bucketFeeds = allFeeds.filter(f => f.frequencyId === bucket.id);
+        if (!bucketFeeds.length) continue;
+        blocks.push(`
+          <section class="sector-block">
+            <div class="sector-header">
+              <div>
+                <h2 class="sector-title">⏱️ ${esc(bucket.label)}</h2>
+                <p class="sector-desc">${esc(bucket.description)}</p>
+              </div>
+              <span class="mono-tag">${bucketFeeds.length} data feed${bucketFeeds.length === 1 ? "" : "s"}</span>
+            </div>
+            <div class="org-grid">
+              ${bucketFeeds.map(f => `<div class="org-card">${renderFeedCardHtml(f, f.org, true)}</div>`).join("")}
+            </div>
+          </section>
+        `);
+      }
+      return blocks.join("") || `<div class="hero-card"><p style="margin:0">No data feeds match the current filter criteria.</p></div>`;
+    }
+
+    function renderByEngine() {
+      const allFeeds = getAllFlattenedFeeds().filter(f => matchesFilters(f, f.org));
+      const blocks = [];
+      for (const eng of catalog.synthesisEngines || []) {
+        if (state.engineFilter && state.engineFilter !== eng.id) continue;
+        const engFeeds = allFeeds.filter(f => (f.engineIds || []).includes(eng.id));
+        if (!engFeeds.length) continue;
+        blocks.push(`
+          <section class="sector-block">
+            <div class="sector-header">
+              <div>
+                <h2 class="sector-title">${esc(eng.icon)} ${esc(eng.name)}</h2>
+                <p class="sector-desc">${esc(eng.summary)} <strong>Outputs:</strong> ${esc((eng.outputArtifacts || []).join(", "))}</p>
+              </div>
+              <span class="mono-tag">${engFeeds.length} contributing feed${engFeeds.length === 1 ? "" : "s"}</span>
+            </div>
+            <div class="org-grid">
+              ${engFeeds.map(f => `<div class="org-card">${renderFeedCardHtml(f, f.org, true)}</div>`).join("")}
+            </div>
+          </section>
+        `);
+      }
+      return blocks.join("") || `<div class="hero-card"><p style="margin:0">No data feeds match the current filter criteria.</p></div>`;
+    }
+
+    function renderDiagram() {
+      if (!catalog) return;
+      renderKpis();
+      renderStatusFilters();
+      renderEnginesBar();
+      const container = document.getElementById("diagramContainer");
+      if (state.viewMode === "frequency") {
+        container.innerHTML = renderByFrequency();
+      } else if (state.viewMode === "engine") {
+        container.innerHTML = renderByEngine();
+      } else {
+        container.innerHTML = renderBySector();
+      }
+    }
+
+    function openFeedModal(feedId) {
+      const hit = getAllFlattenedFeeds().find(f => f.id === feedId);
+      if (!hit) return;
+      const st = getStatusMeta(hit.status);
+      const engines = (hit.engineIds || [])
+        .map(id => (catalog.synthesisEngines || []).find(e => e.id === id))
+        .filter(Boolean)
+        .map(e => `${e.icon} ${e.name}`)
+        .join("<br/>");
+      const modalCard = document.getElementById("feedModalCard");
+      modalCard.innerHTML = `
+        <div class="modal-head">
+          <div>
+            <span class="badge" style="background:${esc(st.badgeBg)};border-color:${esc(st.badgeBorder)};color:${esc(st.color)}">
+              <span class="status-dot" style="background:${esc(st.color)}"></span>
+              ${esc(st.label)}
+            </span>
+            <h3 class="modal-title" id="modalTitle">${esc(hit.name)}</h3>
+            <div style="font-size:14px;color:var(--ink-2)">
+              <strong>Institution:</strong> ${esc(hit.org.name)} · <a href="${esc(hit.org.websiteUrl)}" target="_blank" rel="noopener noreferrer">Official Portal ↗</a>
+            </div>
+          </div>
+          <button type="button" class="btn" id="closeFeedModalBtn">Close</button>
+        </div>
+        <p style="font-size:15px;margin:0 0 12px">${esc(hit.whatItProvides)}</p>
+        <dl class="detail-dl">
+          <dt>Retrieval Cadence</dt>
+          <dd>${esc(hit.frequencyLabel)}</dd>
+          <dt>Ingestion Method</dt>
+          <dd>${esc(hit.method)}</dd>
+          <dt>Dataset Scale</dt>
+          <dd>${esc(hit.recordScale)}</dd>
+          <dt>Cross-Check Logic</dt>
+          <dd>${esc(hit.howCrossChecked)}</dd>
+          <dt>Operational / Roadmap Plan</dt>
+          <dd>${esc(hit.howAndWhenPlanned)}</dd>
+          <dt>Synthesis Engines</dt>
+          <dd>${engines || "None"}</dd>
+          <dt>Application Surfaces</dt>
+          <dd>${esc((hit.appTargets || []).join(" · "))}</dd>
+          <dt>Pipeline / Code Path</dt>
+          <dd><code>${esc(hit.pipelineScript)}</code></dd>
+        </dl>
+      `;
+      document.getElementById("feedModalBackdrop").classList.remove("hidden");
+    }
+
+    function generatePosterSvg() {
+      const width = 3600;
+      const height = 2400;
+      const allFeeds = getAllFlattenedFeeds();
+      const xmlEsc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      const lines = [];
+      lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
+      lines.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">`);
+      lines.push(`<rect width="${width}" height="${height}" fill="#0b111e"/>`);
+      for (let x = 0; x <= width; x += 60) {
+        lines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="#16243d" stroke-width="1"/>`);
+      }
+      for (let y = 0; y <= height; y += 60) {
+        lines.push(`<line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="#16243d" stroke-width="1"/>`);
+      }
+      lines.push(`<rect x="40" y="40" width="${width - 80}" height="${height - 80}" fill="none" stroke="#38bdf8" stroke-width="3"/>`);
+      lines.push(`<text x="80" y="110" fill="#8cc63f" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">PRESERVATION HOUSTON · ARCHITECTURAL DATA PROVENANCE BLUEPRINT (24"x36" POSTER)</text>`);
+      lines.push(`<text x="80" y="160" fill="#f1f5f9" font-family="Georgia, serif" font-size="44" font-weight="700">${xmlEsc(catalog.title)}</text>`);
+      lines.push(`<text x="80" y="200" fill="#94a3b8" font-family="Inter, Arial, sans-serif" font-size="22">${xmlEsc(catalog.subtitle)} · Updated ${xmlEsc(catalog.lastUpdated)} · ${catalog.organizations.length} Institutions · ${allFeeds.length} Data Feeds</text>`);
+
+      const sectors = catalog.sectors || [];
+      const colW = Math.floor((width - 160 - (sectors.length - 1) * 24) / sectors.length);
+      sectors.forEach((sec, sIdx) => {
+        const x0 = 80 + sIdx * (colW + 24);
+        let yCursor = 250;
+        lines.push(`<rect x="${x0}" y="${yCursor}" width="${colW}" height="54" rx="8" fill="#152036" stroke="${xmlEsc(sec.color)}" stroke-width="2"/>`);
+        lines.push(`<text x="${x0 + 16}" y="${yCursor + 35}" fill="#f1f5f9" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="700">${xmlEsc(sec.shortName)}</text>`);
+        yCursor += 72;
+
+        const orgs = (catalog.organizations || []).filter(o => o.sectorId === sec.id);
+        for (const org of orgs) {
+          const feeds = org.feeds || [];
+          const boxH = 54 + feeds.length * 92;
+          lines.push(`<rect x="${x0}" y="${yCursor}" width="${colW}" height="${boxH}" rx="8" fill="#111a2e" stroke="#334155" stroke-width="1.5"/>`);
+          lines.push(`<text x="${x0 + 14}" y="${yCursor + 30}" fill="#38bdf8" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">${xmlEsc(org.shortName || org.name)}</text>`);
+          let fy = yCursor + 46;
+          for (const f of feeds) {
+            const st = getStatusMeta(f.status);
+            lines.push(`<rect x="${x0 + 10}" y="${fy}" width="${colW - 20}" height="82" rx="6" fill="#152036" stroke="${xmlEsc(st.color)}" stroke-width="1.5"/>`);
+            lines.push(`<text x="${x0 + 20}" y="${fy + 22}" fill="${xmlEsc(st.color)}" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700">[${xmlEsc(st.shortLabel)}] · ${xmlEsc(f.frequencyLabel.slice(0, 38))}</text>`);
+            lines.push(`<text x="${x0 + 20}" y="${fy + 44}" fill="#f1f5f9" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">${xmlEsc(f.name.slice(0, 56))}</text>`);
+            lines.push(`<text x="${x0 + 20}" y="${fy + 66}" fill="#cbd5e1" font-family="Inter, Arial, sans-serif" font-size="13">${xmlEsc(f.recordScale.slice(0, 62))}</text>`);
+            fy += 90;
+          }
+          yCursor += boxH + 14;
+        }
+      });
+
+      lines.push(`</svg>`);
+      const blob = new Blob([lines.join("\n")], { type: "image/svg+xml;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "houston-building-atlas-data-ecosystem-24x36.svg";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }
+
+    document.addEventListener("click", e => {
+      const viewTab = e.target.closest("[data-view-mode]");
+      if (viewTab) {
+        state.viewMode = viewTab.dataset.viewMode;
+        document.querySelectorAll("[data-view-mode]").forEach(b => {
+          b.setAttribute("aria-selected", String(b.dataset.viewMode === state.viewMode));
+        });
+        renderDiagram();
+        return;
+      }
+
+      const statusBtn = e.target.closest("[data-status-id]");
+      if (statusBtn) {
+        const clicked = statusBtn.dataset.statusId;
+        state.statusFilter = (state.statusFilter === clicked && clicked !== "ALL") ? "ALL" : clicked;
+        renderDiagram();
+        return;
+      }
+
+      const engineBtn = e.target.closest("[data-engine-id]");
+      if (engineBtn) {
+        const clicked = engineBtn.dataset.engineId;
+        state.engineFilter = state.engineFilter === clicked ? "" : clicked;
+        renderDiagram();
+        return;
+      }
+
+      if (e.target.closest("#clearEngineFilterBtn")) {
+        state.engineFilter = "";
+        renderDiagram();
+        return;
+      }
+
+      const feedCard = e.target.closest("[data-open-feed]");
+      if (feedCard) {
+        openFeedModal(feedCard.dataset.openFeed);
+        return;
+      }
+
+      if (e.target.closest("#closeFeedModalBtn") || e.target.id === "feedModalBackdrop") {
+        document.getElementById("feedModalBackdrop").classList.add("hidden");
+        return;
+      }
+
+      if (e.target.closest("#themeToggleBtn")) {
+        state.theme = state.theme === "dark" ? "light" : "dark";
+        localStorage.setItem("hba:ecosystem:theme", state.theme);
+        applyTheme();
+        return;
+      }
+
+      if (e.target.closest("#posterModeBtn")) {
+        state.posterMode = !state.posterMode;
+        document.body.classList.toggle("poster-mode", state.posterMode);
+        document.getElementById("posterModeBtn").setAttribute("aria-pressed", String(state.posterMode));
+        return;
+      }
+
+      if (e.target.closest("#downloadSvgPosterBtn")) {
+        if (catalog) generatePosterSvg();
+        return;
+      }
+
+      if (e.target.closest("#printPosterBtn")) {
+        window.print();
+        return;
+      }
+    });
+
+    document.getElementById("searchInput").addEventListener("input", e => {
+      state.q = e.target.value.trim();
+      renderDiagram();
+    });
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        document.getElementById("feedModalBackdrop").classList.add("hidden");
+      }
+    });
+
+    async function init() {
+      applyTheme();
+      const resp = await fetch("public/data/data_sources_catalog.json?v=20261113b");
+      catalog = await resp.json();
+      renderDiagram();
+    }
+
+    init();
+  </script>
+</body>
+</html>

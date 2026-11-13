@@ -1017,12 +1017,18 @@ def build_and_write_ownership_portfolios_catalog(
     comptroller_map: dict[str, dict[str, str]] = ownership_graph.get("comptroller_entities") or {}
 
     # Collect standing building coordinates & styles from aligned_ndjson shards (or buildings.geojson fallback)
+    def _norm_situs_key(addr_str: str | None) -> str:
+        return re.sub(r"\s+", " ", (addr_str or "").upper()).strip()
+
+    def _is_non_vacant(rec_obj: AccountOwnershipRecord) -> bool:
+        return not str(rec_obj.state_class or "").upper().startswith("C")
+
     bldg_info_by_acct: dict[str, tuple[str, float, float, int, str, str]] = {}
     bldg_info_by_addr: dict[str, tuple[str, float, float, int, str, str]] = {}
     target_port_addrs: set[str] = {
-        re.sub(r"\s+", " ", rec.situs_addr.upper()).strip()
+        _norm_situs_key(rec.situs_addr)
         for rec in records.values()
-        if rec.port_id and rec.situs_addr and not str(rec.state_class or "").upper().startswith("C")
+        if rec.port_id and rec.situs_addr and _is_non_vacant(rec)
     }
     search_aligned = aligned_dir if aligned_dir is not None else (CACHE_DIR / "aligned_ndjson")
     if search_aligned.exists():
@@ -1041,7 +1047,7 @@ def build_and_write_ownership_portfolios_catalog(
                     props = feat.get("properties") or {}
                     h = re.sub(r"\D", "", str(props.get("hcad_num") or ""))
                     raw_addr = sanitize_atlas_text(str(props.get("address") or ""))
-                    norm_addr = re.sub(r"\s+", " ", raw_addr.upper()).strip()
+                    norm_addr = _norm_situs_key(raw_addr)
                     rec = records.get(h) if len(h) == 13 else None
                     has_acct_match = bool(rec is not None and rec.port_id and h not in bldg_info_by_acct)
                     has_addr_match = bool(norm_addr and norm_addr in target_port_addrs and norm_addr not in bldg_info_by_addr)
@@ -1121,8 +1127,8 @@ def build_and_write_ownership_portfolios_catalog(
                 ent_counter[rec.owner_name] += 1
             total_mkt += float(rec.market_val or 0.0)
             binfo = bldg_info_by_acct.get(a)
-            if binfo is None and rec.year_built >= MIN_VALID_YEAR and not str(rec.state_class or "").upper().startswith("C"):
-                norm_situs = re.sub(r"\s+", " ", (rec.situs_addr or "").upper()).strip()
+            if binfo is None and rec.year_built >= MIN_VALID_YEAR and _is_non_vacant(rec):
+                norm_situs = _norm_situs_key(rec.situs_addr)
                 if norm_situs:
                     binfo = bldg_info_by_addr.get(norm_situs)
             if binfo is not None:

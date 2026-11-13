@@ -7189,6 +7189,29 @@ def build_property_watchlist(
     deduped_props = dedupe_watchlist_properties(list(watched_by_id.values()))
     watched_by_id = {p["id"]: p for p in deduped_props if p.get("id")}
 
+    # Backfill missing parcel coordinates and construction year from local HCAD/address shard indices
+    for prop in watched_by_id.values():
+        if prop.get("lat") is not None and prop.get("lng") is not None:
+            continue
+        hcads = parse_hcad_account_list(prop.get("hcadAccount") or "")
+        for hid in hcads:
+            rec = idx["hcad_map"].get(hid) or idx["buildings_by_hcad"].get(hid)
+            if rec and rec.get("lat") and rec.get("lng"):
+                prop["lat"] = round(float(rec["lat"]), 6)
+                prop["lng"] = round(float(rec["lng"]), 6)
+                prop["coordSource"] = prop.get("coordSource") or "hcad_parcel"
+                if not prop.get("yearBuilt") and rec.get("year_built"):
+                    prop["yearBuilt"] = str(rec["year_built"])
+                break
+        if (prop.get("lat") is None or prop.get("lng") is None) and prop.get("address"):
+            addr_hit = _lookup_single_address_candidate(str(prop.get("address") or ""), idx)
+            if addr_hit and addr_hit.get("lat") and addr_hit.get("lng"):
+                prop["lat"] = round(float(addr_hit["lat"]), 6)
+                prop["lng"] = round(float(addr_hit["lng"]), 6)
+                prop["coordSource"] = prop.get("coordSource") or "address_shard"
+                if not prop.get("yearBuilt") and addr_hit.get("year_built"):
+                    prop["yearBuilt"] = str(addr_hit["year_built"])
+
     # Execute 8-agency sweeps for every active watched property and roll up worst-case sweep health
     per_property_healths: list[dict] = []
     for pid, prop in watched_by_id.items():
