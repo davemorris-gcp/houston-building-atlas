@@ -217,15 +217,20 @@ def test_it3_three_surface_hydration_across_archetypes_and_confidential_shield(
         timeout=10000,
     )
     conf_xray = page.inner_text("#inspector-ownership-xray-card")
-    assert "Prior HCAD Owners" not in conf_xray
+    assert "Prior HCAD Owners (2005-2026):" in conf_xray
+    assert "MOSEMAN ESTHER TRUST (2005-2011)" in conf_xray
     assert "Recorded Tenure Since" not in conf_xray
     assert "Tax Billing Hub:" not in conf_xray
     conf_rk_html = page.inner_html("#research-kit-deed-chain")
-    assert "owner-party" not in conf_rk_html
+    assert "MOSEMAN ESTHER TRUST" in conf_rk_html
+    assert "Copy Prior Owner" in conf_rk_html
+    assert "Copy Owner:" not in conf_rk_html
 
     # 5. Post-snapshot live HCAD ArcGIS Sec. 25.025 confidential election resolving BEFORE owner_history shard
-    #    with non-empty static props.owner ("MORRISON CLARA"): must overwrite #inspector-cell-owner AND suppress
-    #    all personal names / 22-year chains across X-Ray, Research Kit Step 3, and Stewardship Timeline!
+    #    with non-empty static props.owner ("MORRISON CLARA"): must overwrite #inspector-cell-owner AND redact
+    #    the active tenure ("MORRISON CLARA" / "MORRIS LAURA", 2019-2026) and its acquisition deed ("RP-2019-149789")
+    #    while preserving verified prior unrelated owners ("MENGES LAURA", "BURNETT MICHAEL") across X-Ray,
+    #    Research Kit Step 3, and Stewardship Timeline!
     live_race_res = page.evaluate(
         """async () => {
             window.atlasApp._ownerHistoryShardCache.clear();
@@ -298,17 +303,21 @@ def test_it3_three_surface_hydration_across_archetypes_and_confidential_shield(
         }"""
     )
     assert live_race_res["ownerCell"] == "Protected Individual Homestead (TX Tax Code Sec. 25.025)"
-    for leaked_name in ("MORRISON CLARA", "MORRIS LAURA", "MENGES LAURA", "BURNETT MICHAEL"):
+    for leaked_name in ("MORRISON CLARA", "MORRIS LAURA", "MORRIS DAVID"):
         assert leaked_name not in live_race_res["ownerCell"]
         assert leaked_name not in live_race_res["xrayText"]
         assert leaked_name not in live_race_res["rkText"]
         assert leaked_name not in live_race_res["tlText"]
-    assert "owner-party" not in live_race_res["rkHtml"]
-    for leaked_deed_marker in ("RP-", "Clerk File #"):
+    for leaked_deed_marker in ("RP-2019-149789", "149789"):
         assert leaked_deed_marker not in live_race_res["rkText"]
         assert leaked_deed_marker not in live_race_res["rkHtml"]
         assert leaked_deed_marker not in live_race_res["xrayText"]
         assert leaked_deed_marker not in live_race_res["tlText"]
+    assert "MENGES LAURA J" in live_race_res["xrayText"]
+    assert "MENGES LAURA J" in live_race_res["rkText"]
+    assert "BURNETT MICHAEL G & SHANNON L" in live_race_res["rkText"]
+    assert "Copy Prior Owner" in live_race_res["rkHtml"]
+    assert "Copy Owner:" not in live_race_res["rkHtml"]
 
     assert page_errors == []
     assert console_errors == []
