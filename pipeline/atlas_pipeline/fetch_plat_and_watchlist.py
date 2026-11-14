@@ -3650,12 +3650,18 @@ def _reconcile_watchlist_tiers_onto_cycles(
                 if not (exact_source or app_match or hcad_match or addr_match):
                     continue
 
-                rev_updated = str(cur_rev.get("updated") or "").strip()
+                rev_is_human = bool(
+                    cur_rev.get("reviewer")
+                    or cur_rev.get("humanEditedFields")
+                    or cur_rev.get("tierConfirmed")
+                )
+                rev_updated = str(cur_rev.get("updated") or "").strip() if rev_is_human else ""
                 if rev_updated and (not wp_updated or wp_updated <= rev_updated):
                     if (
                         str(cur_rev.get("tier") or "") in ("1", "2")
                         and wp.get("tierConfirmed") is True
-                        and not is_archived_watchlist_status(wp)
+                        and not is_archived_watchlist_status(wp.get("trackerStatus"))
+                        and wp.get("trackerStatus") not in ("Lost", "Saved")
                         and not cur_rev.get("tierConfirmed")
                     ):
                         cur_rev["tierConfirmed"] = True
@@ -3664,7 +3670,7 @@ def _reconcile_watchlist_tiers_onto_cycles(
 
                 cur_rev["tier"] = wp_tier
                 cur_rev["tierConfirmed"] = wp_tier in ("1", "2") or (
-                    wp_tier == "3" and not is_archived_watchlist_status(wp)
+                    wp_tier == "3" and not is_archived_watchlist_status(wp.get("trackerStatus"))
                 )
                 if wp_updated:
                     cur_rev["updated"] = wp_updated
@@ -6722,8 +6728,26 @@ def _choose_canonical_watchlist_pair(a: dict, b: dict) -> tuple[dict, dict]:
         return a, b
     if b_is_manual and not a_is_manual:
         return b, a
-    cyc_a = str(a.get("sourceCycleKey") or a.get("pcMeetingDate") or "")
-    cyc_b = str(b.get("sourceCycleKey") or b.get("pcMeetingDate") or "")
+    a_has_human = has_human_dossier_contributions(a)
+    b_has_human = has_human_dossier_contributions(b)
+    if a_has_human != b_has_human:
+        return (a, b) if a_has_human else (b, a)
+    a_is_8digit_dpv = bool(re.match(r"^plat-DPV-\d{6,}$", id_a, re.I))
+    b_is_8digit_dpv = bool(re.match(r"^plat-DPV-\d{6,}$", id_b, re.I))
+    if a_is_8digit_dpv != b_is_8digit_dpv:
+        return (a, b) if a_is_8digit_dpv else (b, a)
+    cyc_a = str(
+        a.get("sourceCycleKey")
+        or a.get("pcMeetingDate")
+        or (a.get("keyDates") or {}).get("monitoringStarted")
+        or ""
+    )
+    cyc_b = str(
+        b.get("sourceCycleKey")
+        or b.get("pcMeetingDate")
+        or (b.get("keyDates") or {}).get("monitoringStarted")
+        or ""
+    )
     if cyc_a and cyc_b and cyc_a != cyc_b:
         return (a, b) if cyc_a <= cyc_b else (b, a)
     return a, b

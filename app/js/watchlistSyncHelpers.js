@@ -1990,11 +1990,23 @@ export function mergeDuplicateWatchlistPair(propA, propB) {
     primary = b;
     secondary = a;
   } else if (aIsManual === bIsManual) {
-    const aMs = parseIsoMs(a.updatedAt);
-    const bMs = parseIsoMs(b.updatedAt);
-    if (bMs > aMs && !hasHumanDossierContributions(a) && hasHumanDossierContributions(b)) {
+    const aHasHuman = hasHumanDossierContributions(a);
+    const bHasHuman = hasHumanDossierContributions(b);
+    const aIs8DigitDpv = /^plat-DPV-\d{6,}$/i.test(a.id);
+    const bIs8DigitDpv = /^plat-DPV-\d{6,}$/i.test(b.id);
+    if (!aHasHuman && bHasHuman) {
       primary = b;
       secondary = a;
+    } else if (aHasHuman === bHasHuman && !aIs8DigitDpv && bIs8DigitDpv) {
+      primary = b;
+      secondary = a;
+    } else if (aHasHuman === bHasHuman && aIs8DigitDpv === bIs8DigitDpv) {
+      const cycA = String(a.sourceCycleKey || a.pcMeetingDate || a.keyDates?.monitoringStarted || "");
+      const cycB = String(b.sourceCycleKey || b.pcMeetingDate || b.keyDates?.monitoringStarted || "");
+      if (cycA && cycB && cycB < cycA) {
+        primary = b;
+        secondary = a;
+      }
     }
   }
 
