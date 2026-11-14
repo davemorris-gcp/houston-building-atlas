@@ -37,7 +37,10 @@ import {
 
 import {
   REMOVED_TIER3_TOMBSTONE,
+  REMOVED_TIER4_TOMBSTONE,
   REMOVED_WATCHLIST_TOMBSTONE,
+  ARCHIVED_TRACKER_STATUSES,
+  isArchivedWatchlistStatus,
   isRemovedWatchlistTombstone,
   createWatchlistTombstone,
   isLegacyUnconfirmedPlatSeed,
@@ -53,6 +56,7 @@ import {
   buildAssistedPortalPillsModel,
   normalizeWatchProperty,
   serializeWatchPropertyForSync,
+  stringifyWatchPropertyForSheetCell,
   reconcileWatchlistProperty,
   syncWatchlistTierToPlatReviews,
   syncPlatTierToWatchlist,
@@ -1985,7 +1989,7 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
     cycleKey: "2026-10-01",
     platItem: {
       app: "2026-1302",
-      name: "Tejano Broadway Reserve",
+      name: "Reserves at Park Place",
       developer: "Heights Engineering, LLC",
       hcad: "0283120000009",
       atlas: {
@@ -2005,7 +2009,7 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
   const dupPlatBroadway = normalizeWatchProperty({
     id: "plat-2026-1302",
     appNo: "2026-1302",
-    propertyName: "Tejano Broadway Reserve",
+    propertyName: "Reserves at Park Place",
     address: "3827 BROADWAY ST",
     hcadAccount: "0283120000009",
     ownerOfRecord: "Heights Engineering, LLC",
@@ -2021,7 +2025,7 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
 
   // F3-03 & F3-04: Cross-cycle agenda auto-merge ('All Recent Cycles') and PC meeting minutes / agenda presence action
   const minutesParsed = parsePcMinutesText(`
-    102 TEJANO BROADWAY RESERVE
+    102 RESERVES AT PARK PLACE
     Staff recommendation: Defer the application for two weeks.
     Commission action: Deferred the application for two weeks.
     Speaker(s): None
@@ -2237,6 +2241,215 @@ test("Pass #3 Feedback (F3-01..F3-12): LLC comma stripping, HCAD ownerOfRecord p
   assert.match(ecosystemHtml, /data_sources_catalog\.json/);
   assert.match(ecosystemHtml, /downloadSvgPosterBtn/);
 });
+
+test("UT-22: 4-tier model supports active Tier 3 Low Priority monitoring and Tier 4 Irrelevant/Demolished archiving", () => {
+  assert.deepEqual(ARCHIVED_TRACKER_STATUSES, ["Archived (Tier 3)", "Archived (Tier 4)"]);
+  assert.equal(isArchivedWatchlistStatus("Archived (Tier 3)"), true);
+  assert.equal(isArchivedWatchlistStatus("Archived (Tier 4)"), true);
+  assert.equal(isArchivedWatchlistStatus("Monitoring"), false);
+  assert.equal(isRemovedWatchlistTombstone(REMOVED_TIER4_TOMBSTONE), true);
+
+  const tomb4 = createWatchlistTombstone(
+    {
+      id: "plat-2026-9999",
+      appNo: "2026-9999",
+      address: "9999 Empty Lot Rd",
+    },
+    {
+      status: REMOVED_TIER4_TOMBSTONE,
+      nowIso: "2026-11-13T18:00:00.000Z",
+    }
+  );
+  assert.equal(tomb4.tier, "4");
+  assert.equal(tomb4.trackerStatus, REMOVED_TIER4_TOMBSTONE);
+  assert.equal(isRemovedWatchlistTombstone(tomb4), true);
+
+  // Active Tier 3 property stays on Monitoring with tierConfirmed = true
+  const activeTier3 = normalizeWatchProperty({
+    id: "prop-active-t3",
+    propertyName: "Low Priority Bungalow",
+    address: "1234 Quiet St",
+    hcadAccount: "0111222333444",
+    tier: "3",
+    tierConfirmed: true,
+    trackerStatus: "Monitoring",
+  });
+  assert.equal(activeTier3.tier, "3");
+  assert.equal(activeTier3.trackerStatus, "Monitoring");
+  assert.equal(isArchivedWatchlistStatus(activeTier3), false);
+
+  // Legacy archived Tier 3 property stays Archived (Tier 3)
+  const archivedTier3 = normalizeWatchProperty({
+    id: "prop-archived-t3",
+    propertyName: "Legacy Archived Property",
+    address: "5678 Old Archive St",
+    tier: "3",
+    trackerStatus: "Archived (Tier 3)",
+    archivedAt: "2026-10-15T12:00:00.000Z",
+  });
+  assert.equal(archivedTier3.tier, "3");
+  assert.equal(archivedTier3.trackerStatus, "Archived (Tier 3)");
+  assert.equal(isArchivedWatchlistStatus(archivedTier3), true);
+
+  // Tier 4 property defaults/transitions to Archived (Tier 4), including from Archived (Tier 3)
+  const tier4Prop = normalizeWatchProperty({
+    id: "prop-archived-t4",
+    propertyName: "Already Demolished Warehouse",
+    address: "9000 Gone Rd",
+    tier: "4",
+    trackerStatus: "Monitoring",
+  });
+  assert.equal(tier4Prop.tier, "4");
+  assert.equal(tier4Prop.trackerStatus, "Archived (Tier 4)");
+  assert.equal(isArchivedWatchlistStatus(tier4Prop), true);
+
+  const tier4FromArchived3 = normalizeWatchProperty({
+    id: "prop-t4-from-t3",
+    tier: "4",
+    trackerStatus: "Archived (Tier 3)",
+  });
+  assert.equal(tier4FromArchived3.trackerStatus, "Archived (Tier 4)");
+
+  // Tier 3 with Active / High Priority coerces to Monitoring (or Archived (Tier 3) when archivedAt is set)
+  const tier3FromActive = normalizeWatchProperty({
+    id: "prop-t3-from-active",
+    tier: "3",
+    tierConfirmed: true,
+    trackerStatus: "Active / High Priority",
+  });
+  assert.equal(tier3FromActive.trackerStatus, "Monitoring");
+
+  // stringifyWatchPropertyForSheetCell strips photoDataUrl when JSON exceeds 48,000 chars
+  const bigPhotoProp = serializeWatchPropertyForSync(
+    {
+      id: "prop-big-photo",
+      propertyName: "1658-1660 Westheimer",
+      address: "1658 Westheimer Rd",
+      tier: "2",
+      tierConfirmed: true,
+      trackerStatus: "Monitoring",
+      photoDataUrl: "data:image/jpeg;base64," + "A".repeat(49000),
+    },
+    "reviewer@example.org",
+    "2026-11-13T19:00:00.000Z"
+  );
+  const compactCellJson = stringifyWatchPropertyForSheetCell(bigPhotoProp);
+  assert.ok(compactCellJson.length < 48000);
+  const parsedCompact = JSON.parse(compactCellJson);
+  assert.equal(parsedCompact.photoDataUrl, "");
+  assert.equal(parsedCompact.propertyName, "1658-1660 Westheimer");
+
+  // syncPlatTierToWatchlist with newTier = "3" and keepOnWatchlist = true keeps property active on Watchlist
+  const initialWatchList = [
+    normalizeWatchProperty({
+      id: "plat-2026-3333",
+      appNo: "2026-3333",
+      propertyName: "Modest Commercial Replat",
+      address: "3333 Telephone Rd",
+      hcadAccount: "0333333333333",
+      developer: "Bayou Builders LLC",
+      tier: "2",
+      tierConfirmed: true,
+      trackerStatus: "Monitoring",
+      buildingHistory: "1948 neighborhood storefront.",
+    }),
+  ];
+  const syncT3Active = syncPlatTierToWatchlist(initialWatchList, {
+    appNo: "2026-3333",
+    hcadAccount: "0333333333333",
+    address: "3333 Telephone Rd",
+    platItem: {
+      app: "2026-3333",
+      name: "Modest Commercial Replat",
+      developer: "Bayou Builders LLC",
+    },
+    newTier: "3",
+    keepOnWatchlist: true,
+    nowIso: "2026-11-13T18:30:00.000Z",
+  });
+  assert.equal(syncT3Active.action, "updated");
+  assert.equal(syncT3Active.targetProp.tier, "3");
+  assert.equal(syncT3Active.targetProp.tierConfirmed, true);
+  assert.equal(syncT3Active.targetProp.trackerStatus, "Monitoring");
+
+  // Developer repeat-applicant map includes confirmed active Tier 3 properties, excludes Tier 4
+  const devMapWithT3 = buildWatchedDeveloperMap({
+    cycles: {},
+    cycleOrder: [],
+    watchedProperties: [
+      syncT3Active.targetProp,
+      {
+        id: "prop-t4-dev",
+        propertyName: "Irrelevant Tract",
+        address: "4444 Nowhere Ln",
+        developer: "Irrelevant Land Co",
+        tier: "4",
+        tierConfirmed: true,
+        trackerStatus: "Archived (Tier 4)",
+      },
+    ],
+    isTombstoneFn: isRemovedWatchlistTombstone,
+  });
+  assert.equal(devMapWithT3.has(normalizeDeveloperEntityKey("Bayou Builders LLC")), true);
+  assert.equal(devMapWithT3.has(normalizeDeveloperEntityKey("Irrelevant Land Co")), false);
+
+  // Reclassifying a researched dossier to Tier 4 soft-archives as Archived (Tier 4)
+  const syncToT4 = syncPlatTierToWatchlist(syncT3Active.watchedProperties, {
+    appNo: "2026-3333",
+    hcadAccount: "0333333333333",
+    address: "3333 Telephone Rd",
+    newTier: "4",
+    nowIso: "2026-11-13T19:00:00.000Z",
+  });
+  assert.equal(syncToT4.action, "archived");
+  assert.equal(syncToT4.targetProp.tier, "4");
+  assert.equal(syncToT4.targetProp.trackerStatus, "Archived (Tier 4)");
+
+  // Sorting places active Tier 1 -> Tier 2 -> Tier 3 -> Saved/Lost -> Archived (Tier 3) -> Archived (Tier 4)
+  const sorted = sortWatchedProperties([
+    tier4Prop,
+    archivedTier3,
+    activeTier3,
+    normalizeWatchProperty({ id: "prop-t2", propertyName: "B Property", tier: "2", tierConfirmed: true, trackerStatus: "Monitoring" }),
+    normalizeWatchProperty({ id: "prop-t1", propertyName: "A Property", tier: "1", tierConfirmed: true, trackerStatus: "Active / High Priority" }),
+  ]);
+  assert.deepEqual(
+    sorted.map((p) => p.id),
+    ["prop-t1", "prop-t2", "prop-active-t3", "prop-archived-t3", "prop-archived-t4"]
+  );
+
+  // syncWatchlistTierToPlatReviews stamps tierConfirmed = true when a newer Plat Review matches a confirmed Watchlist property
+  const cyclesByIso = {
+    "2026-11-12": {
+      items: [{ app: "DPV-26091362", name: "1303-1305 Sawyer St", hcad: "0012345000001" }],
+      reviews: {
+        "DPV-26091362": {
+          tier: "2",
+          tierConfirmed: false,
+          updated: "2026-11-13T16:12:41.298Z",
+        },
+      },
+    },
+  };
+  syncWatchlistTierToPlatReviews({
+    prop: {
+      id: "plat-DPV-26091362",
+      appNo: "DPV-26091362",
+      hcadAccount: "0012345000001",
+      tier: "1",
+      tierConfirmed: true,
+      trackerStatus: "Monitoring",
+      updatedAt: "2026-11-13T16:12:35.091Z",
+    },
+    newTier: "1",
+    cycles: cyclesByIso,
+    respectNewerReviews: true,
+    nowIso: "2026-11-13T16:13:00.000Z",
+  });
+  assert.equal(cyclesByIso["2026-11-12"].reviews["DPV-26091362"].tier, "2");
+  assert.equal(cyclesByIso["2026-11-12"].reviews["DPV-26091362"].tierConfirmed, true);
+});
+
 
 
 

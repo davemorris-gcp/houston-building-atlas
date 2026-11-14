@@ -25,22 +25,24 @@
  *      any daily run where `failedAgencies.length > 0` or `allOk === false`.
  */
 
-import { parseHcadAccountList } from "./platMonitorHelpers.js?v=20261113b";
+import { parseHcadAccountList } from "./platMonitorHelpers.js?v=20261113c";
 import {
   explainCohWatchPermit,
   explainDshsNotification,
   explainWatchlistCheckText,
-} from "./permitPlainEnglish.js?v=20261113b";
+} from "./permitPlainEnglish.js?v=20261113c";
 import {
   REMOVED_TIER3_TOMBSTONE,
+  REMOVED_TIER4_TOMBSTONE,
   REMOVED_WATCHLIST_TOMBSTONE,
   escapeHtmlText,
   findChecklistRow,
+  isArchivedWatchlistStatus,
   isRemovedWatchlistTombstone,
   normalizeWatchProperty,
   sanitizeExternalLinksList,
   simplifySearchAddress,
-} from "./watchlistSyncHelpers.js?v=20261113b";
+} from "./watchlistSyncHelpers.js?v=20261113c";
 
 export const ACTIVITY_RETENTION_DAYS = 90;
 export const MAX_STORED_READ_EVENT_IDS = 500;
@@ -670,12 +672,18 @@ export function synthesizeLiveMonitorEvents({
       isRemovedWatchlistTombstone(prop) &&
       (Boolean(prop.removedFromWatchlist) || prop.trackerStatus === REMOVED_WATCHLIST_TOMBSTONE);
     const isArchived =
-      prop.trackerStatus === "Archived (Tier 3)" || isRemovedWatchlistTombstone(prop);
+      isArchivedWatchlistStatus(prop.trackerStatus) || isRemovedWatchlistTombstone(prop);
 
     if (isArchived) {
       const archTs = String(prop.archivedAt || prop.updatedAt || "");
       const archDay = toChicagoDateIso(archTs, parseIsoDatePrefix(archTs)) || todayLocal;
       if (passesTemporalGate(archTs, archDay)) {
+        const archivedTierNum =
+          String(prop.tier || "") === "4" ||
+          prop.trackerStatus === "Archived (Tier 4)" ||
+          prop.trackerStatus === REMOVED_TIER4_TOMBSTONE
+            ? "4"
+            : "3";
         tryAddSynthetic(
           makeActivityEvent({
             id: buildStaffPropEventId(pid, isExplicitlyRemoved ? "removed" : "archived"),
@@ -694,10 +702,10 @@ export function synthesizeLiveMonitorEvents({
               : `Archived from Active Watchlist: ${propTitle}`,
             summary: isExplicitlyRemoved
               ? `Permanently removed from active tracking (${propAddr || "Houston"}).`
-              : `Reclassified to Tier 3 / Archived (${propAddr || "Houston"}).`,
+              : `Reclassified to Tier ${archivedTierNum} / Archived (${propAddr || "Houston"}).`,
             address: propAddr,
             hcad: propHcad,
-            watchPropertyId: prop.trackerStatus === "Archived (Tier 3)" ? pid : "",
+            watchPropertyId: isArchivedWatchlistStatus(prop.trackerStatus) ? pid : "",
             buildingId: prop.buildingId || "",
             lat: prop.lat,
             lng: prop.lng,
@@ -1835,7 +1843,7 @@ export function findMatchingWatchPropertyForAlert(alertOrEvent = {}, watchedProp
   const activeProps = (Array.isArray(watchedProperties) ? watchedProperties : []).filter(
     (p) =>
       p &&
-      p.trackerStatus !== "Archived (Tier 3)" &&
+      !isArchivedWatchlistStatus(p.trackerStatus) &&
       !isRemovedWatchlistTombstone(p)
   );
   if (activeProps.length === 0) return null;

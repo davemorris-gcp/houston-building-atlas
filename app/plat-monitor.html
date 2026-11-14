@@ -10,7 +10,7 @@
 :root{
   --vellum:#EDF1F3; --panel:#FFFFFF; --ink:#1E2B38; --muted:#5C6B78; --line:#C9D3DA; --line-soft:#E1E7EB;
   --survey:#2F5D8A; --survey-soft:#E3ECF5;
-  --t1:#B3261E; --t1-soft:#F8E4E2; --t2:#8A5E00; --t2-soft:#F6EDD6; --t3:#5F6B75; --t3-soft:#E8ECEF;
+  --t1:#B3261E; --t1-soft:#F8E4E2; --t2:#8A5E00; --t2-soft:#F6EDD6; --t3:#2B547E; --t3-soft:#E6EEF6; --t4:#5F6B75; --t4-soft:#E8ECEF;
   --ok:#1B6E3D; --ok-soft:#E1F3E8;
   --focus:#F2B705;
   --font:"Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -94,7 +94,7 @@ main{display:grid;grid-template-columns:minmax(350px,2fr) 3fr;min-height:calc(10
 .chip.watch{background:#EDE3F6;color:#5B2F86}
 .chip.ok{background:var(--ok-soft);color:var(--ok)}
 .tierbadge{font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:3px;white-space:nowrap}
-.tierbadge.t1{background:var(--t1);color:#fff}.tierbadge.t2{background:var(--t2);color:#fff}.tierbadge.t3{background:var(--t3);color:#fff}
+.tierbadge.t1{background:var(--t1);color:#fff}.tierbadge.t2{background:var(--t2);color:#fff}.tierbadge.t3{background:var(--t3);color:#fff}.tierbadge.t4{background:var(--t4);color:#fff}
 
 /* Detail */
 .detail{overflow:auto;max-height:calc(100vh - 190px);padding:22px 28px 60px}
@@ -135,6 +135,7 @@ section.review h3{margin:0 0 12px;font-size:16px;display:flex;justify-content:sp
 .tierpick label.on.t1{border-color:var(--t1);background:var(--t1-soft)}
 .tierpick label.on.t2{border-color:var(--t2);background:var(--t2-soft)}
 .tierpick label.on.t3{border-color:var(--t3);background:var(--t3-soft)}
+.tierpick label.on.t4{border-color:var(--t4);background:var(--t4-soft)}
 .tierpick label.on.t0{border-color:var(--survey);background:var(--survey-soft)}
 .tier-confirm-bar{margin-top:8px;padding:10px 12px;background:#F5F8FA;border:1px solid var(--line);border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px}
 .saved{font-size:12px;color:var(--muted);margin-top:4px}
@@ -519,12 +520,14 @@ import {
   formatDemolitionPolicyBriefText,
   formatDemolitionPolicyBriefRichHtml,
   buildDemolitionBenchmarksTablesHtml,
-} from "./js/platMonitorHelpers.js?v=20261113b";
+} from "./js/platMonitorHelpers.js?v=20261113c";
 
 import {
   TRACKER_STATUSES,
   REMOVED_TIER3_TOMBSTONE,
+  REMOVED_TIER4_TOMBSTONE,
   REMOVED_WATCHLIST_TOMBSTONE,
+  isArchivedWatchlistStatus,
   isRemovedWatchlistTombstone,
   createWatchlistTombstone,
   isLegacyUnconfirmedPlatSeed,
@@ -546,6 +549,7 @@ import {
   rebuildFindingsLog,
   normalizeWatchProperty,
   serializeWatchPropertyForSync,
+  stringifyWatchPropertyForSheetCell,
   reconcileWatchlistProperty,
   dedupeWatchlistProperties,
   syncWatchlistTierToPlatReviews,
@@ -558,7 +562,7 @@ import {
   parseCloudSheetSyncRows,
   parseAndMatchDangerousBuildingsCsv,
   buildDangerousBuildingsNotificationText,
-} from "./js/watchlistSyncHelpers.js?v=20261113b";
+} from "./js/watchlistSyncHelpers.js?v=20261113c";
 
 import {
   ACTIVITY_STREAM_META,
@@ -576,18 +580,18 @@ import {
   buildWatchPropertyFromPermitAlert,
   sanitizeActivityEventForRender,
   formatActivityBriefingText,
-} from "./js/activityLogHelpers.js?v=20261113b";
+} from "./js/activityLogHelpers.js?v=20261113c";
 
 import {
   buildAddressShardUrl,
   decodeGzipJsonResponse,
   decompressAddressShardBytes,
   normalizeAddressShardPrefix,
-} from "./js/clerkSearchHelpers.js?v=20261113b";
+} from "./js/clerkSearchHelpers.js?v=20261113c";
 
 import {
   explainWatchlistCheckText,
-} from "./js/permitPlainEnglish.js?v=20261113b";
+} from "./js/permitPlainEnglish.js?v=20261113c";
 
 /* ---------- Storage ---------- */
 const store = {
@@ -760,7 +764,8 @@ const GROUPS = [
   ["check", "To check", "Items requiring preservation review after Pass 1 screening"],
   ["t1", "Tier 1", "High-priority escalation items (confirm tier to sync onto the Property Watchlist)"],
   ["t2", "Tier 2", "Watch-priority items (confirm tier to sync onto the Property Watchlist)"],
-  ["t3", "Tier 3", "Manually reviewed items confirmed as low preservation priority (not added to active Watchlist; distinct from automated Pass 1 Screened out)"],
+  ["t3", "Tier 3", "Lower-priority monitoring items (modest/altered historic structures or neighborhood context; can be logged in Plat Review or tracked at low priority on the Watchlist)"],
+  ["t4", "Tier 4", "Irrelevant, vacant, non-historic, or already demolished items (dismissed from active monitoring; distinct from automated Pass 1 Screened out)"],
   ["designated", "Designated", "Items inside a City of Houston Historic District (regulated by HAHC Certificate of Appropriateness)"],
   ["etj", "ETJ", "Extraterritorial Jurisdiction outside Houston city limits"],
   ["out", "Screened out", "Automatically filtered in Pass 1 (street dedications, general plans, utilities, or first-time plats with zero preservation risk signals). Click any item to view reasoning or override."],
@@ -772,7 +777,13 @@ const DESIGNATIONS = [
   "City historic district", "National Register (individual)", "National Register (district)",
   "Recorded Texas Historic Landmark", "State Antiquities Landmark", "Good Brick Award", "Other (see notes)"
 ];
-const TIERS = [["","Not set","t0"],["1","1 - Escalate","t1"],["2","2 - Watch","t2"],["3","3 - Note (Low Priority)","t3"]];
+const TIERS = [
+  ["","Not set","t0"],
+  ["1","1 - Escalate","t1"],
+  ["2","2 - Watch","t2"],
+  ["3","3 - Low Priority","t3"],
+  ["4","4 - Irrelevant / Demolished","t4"]
+];
 
 /* ---------- State ---------- */
 let S = null;
@@ -860,7 +871,7 @@ const liveHcadGradeCache = new Map();
 
 function ensureMonitorManifest(){
   if (!monitorManifestPromise) {
-    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261113b")
+    monitorManifestPromise = fetch("public/data/pmtiles_manifest.json?v=20261113c")
       .then(r => r.ok ? r.json() : null)
       .catch(() => null);
   }
@@ -872,10 +883,10 @@ async function ensureLocalAtlasLookupContext(){
   if (!atlasLookupCachePromise) {
     atlasLookupCachePromise = (async () => {
       const [ovRes, bldRes, pclRes, ovlRes] = await Promise.all([
-        fetch("public/data/curated_overrides.json?v=20261113b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/buildings.geojson?v=20261113b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/parcels.geojson?v=20261113b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
-        fetch("public/data/overlays.json?v=20261113b").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/curated_overrides.json?v=20261113c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/buildings.geojson?v=20261113c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/parcels.geojson?v=20261113c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
+        fetch("public/data/overlays.json?v=20261113c").then(r => r.ok ? r.json() : {}).catch(() => ({})),
       ]);
       const localHcadMap = new Map();
       const ingestFc = (fc) => {
@@ -1281,11 +1292,19 @@ function reconcileWatchlistTiersOntoCycles({ persist = false, syncCloud = false 
 
   for (const wp of allRecords) {
     const isTb = isRemovedWatchlistTombstone(wp);
-    const isArchived = wp.trackerStatus === "Archived (Tier 3)";
+    const isArchived = isArchivedWatchlistStatus(wp.trackerStatus);
     const isConfirmedActive = !isTb && !isArchived && (wp.tierConfirmed === true || wp.humanEdited === true);
     if (!isTb && !isArchived && !isConfirmedActive) continue;
-    const desiredTier = isTb || isArchived ? "3" : String(wp.tier || "1");
-    if (!["1", "2", "3"].includes(desiredTier)) continue;
+    let desiredTier = String(wp.tier || "1");
+    if (isTb || isArchived) {
+      desiredTier =
+        wp.trackerStatus === "Archived (Tier 4)" ||
+        wp.trackerStatus === REMOVED_TIER4_TOMBSTONE ||
+        String(wp.tier || "") === "4"
+          ? "4"
+          : "3";
+    }
+    if (!["1", "2", "3", "4"].includes(desiredTier)) continue;
 
     const res = syncWatchlistTierToPlatReviews({
       prop: wp,
@@ -1627,8 +1646,8 @@ function isResearched(it){
 function inGroup(it, g){
   const t = tierOf(it);
   if (g === "all") return true;
-  if (g === "t1" || g === "t2" || g === "t3") return t === g[1];
-  if (g === "check") return it._c.group === "check" && t !== "3";
+  if (g === "t1" || g === "t2" || g === "t3" || g === "t4") return t === g[1];
+  if (g === "check") return it._c.group === "check" && t !== "3" && t !== "4";
   return it._c.group === g;
 }
 
@@ -1713,9 +1732,12 @@ function populateHeaderAndFilterControls(){
   }
 
   $("#wlStatusFilter").innerHTML = [
-    `<option value="ALL_ACTIVE" ${view.wlStatus === "ALL_ACTIVE" ? "selected" : ""}>Watchlist &amp; Case Archive (Excl. Tier 3 Archive)</option>`,
+    `<option value="ALL_ACTIVE" ${view.wlStatus === "ALL_ACTIVE" ? "selected" : ""}>Watchlist &amp; Case Archive (Excl. Archived Tier 3/4)</option>`,
     `<option value="ONLY_ACTIVE" ${view.wlStatus === "ONLY_ACTIVE" ? "selected" : ""}>Active Threats Only (Excl. Lost, Saved &amp; Archived)</option>`,
-    `<option value="ALL" ${view.wlStatus === "ALL" ? "selected" : ""}>All Properties (Incl. Archived Tier 3)</option>`,
+    `<option value="TIER_1" ${view.wlStatus === "TIER_1" ? "selected" : ""}>Tier 1 Only (Escalate)</option>`,
+    `<option value="TIER_2" ${view.wlStatus === "TIER_2" ? "selected" : ""}>Tier 2 Only (Watch)</option>`,
+    `<option value="TIER_3" ${view.wlStatus === "TIER_3" ? "selected" : ""}>Tier 3 Only (Low Priority Monitoring)</option>`,
+    `<option value="ALL" ${view.wlStatus === "ALL" ? "selected" : ""}>All Properties (Incl. Archived Tier 3 &amp; Tier 4)</option>`,
     ...TRACKER_STATUSES.map(st => `<option value="${esc(st)}" ${view.wlStatus === st ? "selected" : ""}>Status: ${esc(st)}</option>`),
   ].join("");
 
@@ -1944,7 +1966,7 @@ async function copyCurrentActivityBriefing(){
 function ensureLazyHahcTrackerLoaded(){
   if (hahcFetchStarted) return;
   hahcFetchStarted = true;
-  fetch("public/data/hahc_coa_tracker.json?v=20261113b")
+  fetch("public/data/hahc_coa_tracker.json?v=20261113c")
     .then(r => (r.ok ? r.json() : null))
     .then(data => {
       if (data && typeof data === "object") {
@@ -1977,7 +1999,8 @@ function counts(){
 function activeWatchlistCount(){
   return (WL.watchedProperties || []).filter(
     p =>
-      !["Archived (Tier 3)", "Lost", "Saved"].includes(p.trackerStatus) &&
+      !isArchivedWatchlistStatus(p.trackerStatus) &&
+      !["Lost", "Saved"].includes(p.trackerStatus) &&
       !isRemovedWatchlistTombstone(p)
   ).length;
 }
@@ -2484,7 +2507,7 @@ function renderAgendaFunnel(items, c){
     ${buildDemoStageHtml()}`;
 }
 
-const tierRank = it => ({"1":0, "2":1, "3":3}[tierOf(it)] ?? 2);
+const tierRank = it => ({"1":0, "2":1, "3":3, "4":4}[tierOf(it)] ?? 2);
 
 function filtered(){
   const items = getActiveItems();
@@ -2528,7 +2551,7 @@ function renderList(precomputedActCtx = null){
   const items = filtered();
   if (!items.length) {
     $("#list").innerHTML = `<div class="list-empty">${
-      view.group === "t1" || view.group === "t2" || view.group === "t3"
+      view.group === "t1" || view.group === "t2" || view.group === "t3" || view.group === "t4"
         ? "No items in this tier yet. Select a tier on an item in To check."
         : "No items match these filters."
     }</div>`;
@@ -2559,7 +2582,8 @@ function renderList(precomputedActCtx = null){
     const hearingChip = (hearingShort && (hearingShort !== pcShort || it._c.flags.includes("hearing")))
       ? `<span class="chip hearing" title="Scheduled Public Hearing Date">Hearing ${esc(hearingShort)}</span>`
       : "";
-    const confirmedChip = r.tierConfirmed && (t === "1" || t === "2")
+    const linkedWp = (t === "1" || t === "2" || t === "3") ? findLinkedWatchProp(it, r) : null;
+    const confirmedChip = r.tierConfirmed && (t === "1" || t === "2" || (t === "3" && linkedWp && !isArchivedWatchlistStatus(linkedWp.trackerStatus)))
       ? `<span class="chip ok" title="Confirmed and synced to Property Watchlist">✓ On Watchlist</span>`
       : "";
     const unreadInfo = unreadIdx.agendaOccUnread.get(it._occKey) || unreadIdx.agendaAppUnread.get(`${it._cycleKey}::${it.app}`) || null;
@@ -2938,28 +2962,40 @@ function renderDetail(){
       <div class="tier-confirm-bar">
         <div>
           ${currentTier === "1" || currentTier === "2"
-            ? (r.tierConfirmed && linkedWatch && linkedWatch.trackerStatus !== "Archived (Tier 3)"
+            ? (r.tierConfirmed && linkedWatch && !isArchivedWatchlistStatus(linkedWatch.trackerStatus)
                 ? `<b style="color:var(--ok)">✓ Tier ${esc(currentTier)} Confirmed &amp; Synced to Property Watchlist</b> (${esc(linkedWatch.address || linkedWatch.propertyName)})`
                 : `<b>Pre-selected / Draft Tier ${esc(currentTier)}:</b> Confirm to create or update the 15-Point Property Watchlist dossier.`)
             : currentTier === "3"
-            ? `<b>Tier 3 (Low Priority):</b> Lives in the <b>Tier 3</b> tab for record-keeping. ${linkedWatch ? "Linked Watchlist dossier is synced (human research is preserved under Archived Tier 3)." : "Not added to active Property Watchlist."}`
-            : `Select <b>Tier 1</b> or <b>Tier 2</b> and click Confirm to add this property to the 15-Point Watchlist, or choose <b>Tier 3</b> to log as low priority.`}
+            ? (linkedWatch && !isArchivedWatchlistStatus(linkedWatch.trackerStatus)
+                ? `<b style="color:var(--ok)">✓ Tier 3 (Low Priority) Active on Property Watchlist</b> (${esc(linkedWatch.address || linkedWatch.propertyName)})`
+                : `<b>Tier 3 (Low Priority):</b> Log in the <b>Tier 3</b> Plat tab for record-keeping, or optionally add to the Property Watchlist at lower priority.`)
+            : currentTier === "4"
+            ? `<b>Tier 4 (Irrelevant / Already Demolished):</b> Dismisses this item into the <b>Tier 4</b> tab.${linkedWatch ? " Linked Watchlist dossier is archived under Archived (Tier 4)." : " Not added to the Property Watchlist."}`
+            : `Select <b>Tier 1</b>, <b>Tier 2</b>, or <b>Tier 3</b> to monitor this property, or choose <b>Tier 4</b> if irrelevant or already demolished.`}
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${(currentTier === "1" || currentTier === "2")
-            ? `<button type="button" class="btn sm ${r.tierConfirmed && linkedWatch ? "ok" : "primary"}" id="confirmTierWatchBtn" data-occ="${esc(it._occKey)}">
-                ${r.tierConfirmed && linkedWatch ? `✓ Sync Updates to Watchlist (Tier ${esc(currentTier)})` : `✓ Confirm Tier ${esc(currentTier)} & Add to Watchlist`}
+            ? `<button type="button" class="btn sm ${r.tierConfirmed && linkedWatch && !isArchivedWatchlistStatus(linkedWatch.trackerStatus) ? "ok" : "primary"}" id="confirmTierWatchBtn" data-occ="${esc(it._occKey)}">
+                ${r.tierConfirmed && linkedWatch && !isArchivedWatchlistStatus(linkedWatch.trackerStatus) ? `✓ Sync Updates to Watchlist (Tier ${esc(currentTier)})` : `✓ Confirm Tier ${esc(currentTier)} & Add to Watchlist`}
               </button>`
             : ""}
-          ${currentTier === "3" && !r.tierConfirmed
-            ? `<button type="button" class="btn sm" id="confirmTier3Btn" data-occ="${esc(it._occKey)}">✓ Confirm Tier 3</button>`
+          ${currentTier === "3"
+            ? `${!r.tierConfirmed || (linkedWatch && !isArchivedWatchlistStatus(linkedWatch.trackerStatus))
+                ? `<button type="button" class="btn sm" id="confirmTier3Btn" data-occ="${esc(it._occKey)}" title="Confirm Tier 3 in Plat Review only (archives any linked Watchlist entry)">✓ Confirm Tier 3 (Plat Log Only)</button>`
+                : ""}
+               <button type="button" class="btn sm ${linkedWatch && !isArchivedWatchlistStatus(linkedWatch.trackerStatus) ? "ok" : "primary"}" id="confirmTier3WatchBtn" data-occ="${esc(it._occKey)}" title="Confirm Tier 3 and track on the 15-Point Property Watchlist as Low Priority">
+                 ${linkedWatch && !isArchivedWatchlistStatus(linkedWatch.trackerStatus) ? "✓ Sync Tier 3 to Watchlist" : "+ Confirm Tier 3 & Add to Watchlist"}
+               </button>`
+            : ""}
+          ${currentTier === "4" && !r.tierConfirmed
+            ? `<button type="button" class="btn sm" id="confirmTier4Btn" data-occ="${esc(it._occKey)}">✓ Confirm Tier 4 (Dismiss / Already Demolished)</button>`
             : ""}
           ${linkedWatch
             ? `<button type="button" class="btn sm" data-watch-id="${esc(linkedWatch.id)}" id="jumpWatchDossierBtn">Open Watchlist Dossier -></button>`
             : ""}
         </div>
       </div>
-      <div class="field" style="margin-top:12px"><label for="r-why">Why <span class="hint">2-3 sentences: what it is and why it matters, or why you marked it Tier 3</span></label><textarea id="r-why" data-k="why">${esc(r.why || "")}</textarea></div>
+      <div class="field" style="margin-top:12px"><label for="r-why">Why <span class="hint">2-3 sentences: what it is and why it matters, or why you marked it Tier 3 / Tier 4</span></label><textarea id="r-why" data-k="why">${esc(r.why || "")}</textarea></div>
       <div class="field"><label for="r-src">Sources <span class="hint">links or citations, one per line</span></label><textarea id="r-src" data-k="sources">${esc(r.sources || "")}</textarea></div>
       <div class="field"><label for="r-fu">Follow-up <span class="hint">next check or decision needed</span></label><input id="r-fu" data-k="followup" value="${esc(r.followup || "")}"></div>
       <div class="saved" id="savedNote">${r.updated ? "Saved " + new Date(r.updated).toLocaleString() + (getStaffSession() ? " · Synced to Google Sheet" : "") : (getStaffSession() ? "Cloud Sync Active · Changes auto-save to Google Sheet." : "Sign in via '🔒 Staff Sign-In' to save edits to the shared Google Sheet.")}</div>
@@ -2968,7 +3004,7 @@ function renderDetail(){
 
 
 /* ---------- Two-Way Biweekly Plat <-> Property Watchlist Sync & Multi-HCAD Lookup ---------- */
-function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jumpToWatchlist = false, skipRenderDetail = false){
+function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jumpToWatchlist = false, skipRenderDetail = false, keepOnWatchlist = false){
   if (!S) return;
   const it = findItemBySelection(occKey || view.selected);
   if (!it) return;
@@ -3055,18 +3091,18 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
   const tier = String(r.tier || "").trim();
   const existing = findLinkedWatchProp(it, r);
 
-  if (tier === "1" || tier === "2") {
+  if (tier === "1" || tier === "2" || (tier === "3" && keepOnWatchlist)) {
     const hasConfirmedWatchDossier = Boolean(
-      existing && existing.tierConfirmed && existing.trackerStatus !== "Archived (Tier 3)"
+      existing && existing.tierConfirmed && !isArchivedWatchlistStatus(existing.trackerStatus)
     );
     // Strict confirmation guard (F2-01): never auto-create or flip tierConfirmed without explicit staff click
     if (!explicitConfirm && !hasConfirmedWatchDossier) {
       return;
     }
-    if (explicitConfirm) {
+    if (explicitConfirm || hasConfirmedWatchDossier) {
       r.tierConfirmed = true;
       const hf = new Set(Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []);
-      hf.add("tier");
+      if (explicitConfirm) hf.add("tier");
       r.humanEditedFields = Array.from(hf);
     }
     r.updated = nowIso;
@@ -3091,9 +3127,13 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
         existing.tierConfirmed = true;
         existing.humanEdited = true;
       }
-      if (existing.trackerStatus === "Archived (Tier 3)" && explicitConfirm) {
+      if (isArchivedWatchlistStatus(existing.trackerStatus) && explicitConfirm) {
         existing.trackerStatus = tier === "1" ? "Active / High Priority" : "Monitoring";
         existing.archivedAt = "";
+      } else if (tier === "1" && existing.trackerStatus === "Monitoring") {
+        existing.trackerStatus = "Active / High Priority";
+      } else if ((tier === "2" || tier === "3") && existing.trackerStatus === "Active / High Priority") {
+        existing.trackerStatus = "Monitoring";
       }
       if (resolvedAddress && (!existing.address || existing.address === existing.propertyName)) {
         existing.address = resolvedAddress;
@@ -3239,8 +3279,8 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     return;
   }
 
-  // Tier 3 or cleared ("")
-  r.tierConfirmed = Boolean(explicitConfirm && tier === "3");
+  // Tier 3 (plat log only), Tier 4 (irrelevant / demolished), or cleared ("")
+  r.tierConfirmed = Boolean(explicitConfirm && (tier === "3" || tier === "4"));
   if (explicitConfirm) {
     const hf = new Set(Array.isArray(r.humanEditedFields) ? r.humanEditedFields.map(String) : []);
     hf.add("tier");
@@ -3253,14 +3293,16 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     hcadAccount: r.hcad || it.hcad || "",
     address: r.address || at.primaryAddress || it.noticeLocation || "",
     newTier: tier,
+    keepOnWatchlist: false,
     nowIso,
   });
 
   if (syncRes.action === "removed" && syncRes.targetProp) {
     const rmId = syncRes.targetProp.id;
+    const tbStatus = tier === "4" ? REMOVED_TIER4_TOMBSTONE : REMOVED_TIER3_TOMBSTONE;
     const tombstone = createWatchlistTombstone(syncRes.targetProp, {
-      status: REMOVED_TIER3_TOMBSTONE,
-      tier: "3",
+      status: tbStatus,
+      tier: tier === "4" ? "4" : "3",
       updatedBy: reviewerId,
       nowIso,
     });
@@ -3274,7 +3316,7 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
     syncRes.targetProp.updatedBy = reviewerId;
     const archivedProp = persistWatchlistPropertyEdit(syncRes.targetProp);
     queueCloudSyncWatchProperty(archivedProp);
-    toast(`Moved ${archivedProp.address || archivedProp.propertyName} to Archived (Tier 3) so staff dossier research is preserved.`);
+    toast(`Moved ${archivedProp.address || archivedProp.propertyName} to ${archivedProp.trackerStatus} so staff dossier research is preserved.`);
   }
 
   propagateEditedReviewFieldsAcrossCycles(it, ["tier"]);
@@ -3282,8 +3324,12 @@ function confirmAndSyncPlatItemToWatchlist(occKey, explicitConfirm = false, jump
   persistCycle(it._cycleKey);
   queueCloudSyncPlatReview(it._cycleKey, it.app);
   render();
-  if (explicitConfirm && tier === "3" && syncRes.action === "none") {
-    toast(`Confirmed Tier 3 for ${it.name} (logged in Tier 3 tab).`);
+  if (explicitConfirm && (tier === "3" || tier === "4") && syncRes.action === "none") {
+    toast(
+      tier === "4"
+        ? `Confirmed Tier 4 (Irrelevant / Already Demolished) for ${it.name}.`
+        : `Confirmed Tier 3 (Low Priority) for ${it.name} (logged in Tier 3 tab).`
+    );
   }
 }
 
@@ -3397,9 +3443,12 @@ function getFilteredWatchedProperties(){
   return all.filter(p => {
     if (isRemovedWatchlistTombstone(p)) return false;
     if (view.wlStatus === "ALL_ACTIVE") {
-      if (p.trackerStatus === "Archived (Tier 3)") return false;
+      if (isArchivedWatchlistStatus(p.trackerStatus)) return false;
     } else if (view.wlStatus === "ONLY_ACTIVE") {
-      if (["Archived (Tier 3)", "Lost", "Saved"].includes(p.trackerStatus)) return false;
+      if (isArchivedWatchlistStatus(p.trackerStatus) || ["Lost", "Saved"].includes(p.trackerStatus)) return false;
+    } else if (view.wlStatus === "TIER_1" || view.wlStatus === "TIER_2" || view.wlStatus === "TIER_3") {
+      const targetTier = view.wlStatus.split("_")[1];
+      if (isArchivedWatchlistStatus(p.trackerStatus) || String(p.tier || "1") !== targetTier) return false;
     } else if (view.wlStatus && view.wlStatus !== "ALL") {
       if (p.trackerStatus !== view.wlStatus) return false;
     }
@@ -3447,7 +3496,8 @@ function renderWatchlistFunnel(){
   const t1Count = (WL.watchedProperties || []).filter(
     p =>
       !isRemovedWatchlistTombstone(p) &&
-      !["Archived (Tier 3)", "Lost", "Saved"].includes(p.trackerStatus) &&
+      !isArchivedWatchlistStatus(p.trackerStatus) &&
+      !["Lost", "Saved"].includes(p.trackerStatus) &&
       String(p.tier || "1") === "1"
   ).length;
   const lostCount = (WL.watchedProperties || []).filter(
@@ -3477,7 +3527,7 @@ function renderWatchlistSidebar(precomputedActCtx = null){
   const unreadIdx = (precomputedActCtx || getActivityViewContext()).unreadIndex;
   $("#list").innerHTML = list.map(p => {
     const t = String(p.tier || "1");
-    const isArchived = p.trackerStatus === "Archived (Tier 3)";
+    const isArchived = isArchivedWatchlistStatus(p.trackerStatus);
     const isLost = p.trackerStatus === "Lost";
     const checksCount = (p.findingsLog && p.findingsLog.length) || 0;
     const primaryTitle = p.address || p.propertyName || "(Unnamed Property)";
@@ -3506,7 +3556,7 @@ function renderWatchlistSidebar(precomputedActCtx = null){
     const statusLabel = isLost
       ? `⚫ Lost (${p.demolishedDate || "Demolished"}${p.lostHoustonId ? " · Lost Houston" : ""})`
       : p.trackerStatus;
-    const isInactiveStatus = isLost || p.trackerStatus === "Saved" || p.trackerStatus === "Archived (Tier 3)";
+    const isInactiveStatus = isLost || p.trackerStatus === "Saved" || isArchived;
     const likelyDemoEval = !isInactiveStatus ? evaluateWatchlistLikelyDemolished(p) : { likelyDemolished: false };
     const showLikelyDemoBadge = !isInactiveStatus && (p.likelyDemolishedReviewNeeded || likelyDemoEval.likelyDemolished);
     const unreadInfo = unreadIdx.watchPropUnread.get(p.id) || null;
@@ -3692,22 +3742,24 @@ function openGovQaRequestModal(p){
 }
 
 function applyWatchlistTierChangeAndSync(p, nextTier){
-  if (!p || !["1", "2", "3"].includes(String(nextTier))) return;
+  if (!p || !["1", "2", "3", "4"].includes(String(nextTier))) return;
   const cleanTier = String(nextTier);
   const nowIso = new Date().toISOString();
   const reviewerId = ($("#reviewer")?.value || getStaffSession()?.email || "PH Staff").trim();
-  const wasArchived = p.trackerStatus === "Archived (Tier 3)";
+  const wasArchived = isArchivedWatchlistStatus(p.trackerStatus);
 
   p.tier = cleanTier;
-  if (cleanTier === "3") {
+  if (cleanTier === "4") {
     p.tierConfirmed = false;
-    p.trackerStatus = "Archived (Tier 3)";
+    p.trackerStatus = "Archived (Tier 4)";
     if (!wasArchived || !p.archivedAt) p.archivedAt = nowIso;
   } else {
     p.tierConfirmed = true;
     p.removedFromWatchlist = false;
-    if (p.trackerStatus === "Archived (Tier 3)" || !p.trackerStatus) {
+    if (isArchivedWatchlistStatus(p.trackerStatus) || !p.trackerStatus) {
       p.trackerStatus = cleanTier === "1" ? "Active / High Priority" : "Monitoring";
+    } else if (cleanTier === "3" && p.trackerStatus === "Active / High Priority") {
+      p.trackerStatus = "Monitoring";
     }
     p.archivedAt = "";
   }
@@ -3738,7 +3790,7 @@ function applyWatchlistTierChangeAndSync(p, nextTier){
     prepareAllCycles();
   }
 
-  if (cleanTier === "3" && view.wlStatus === "ALL_ACTIVE") {
+  if (cleanTier === "4" && (view.wlStatus === "ALL_ACTIVE" || view.wlStatus === "ONLY_ACTIVE" || view.wlStatus.startsWith("TIER_"))) {
     const remaining = getFilteredWatchedProperties();
     if (!remaining.some(x => x.id === saved.id)) {
       view.selectedWatchId = remaining[0]?.id || null;
@@ -3746,8 +3798,8 @@ function applyWatchlistTierChangeAndSync(p, nextTier){
   }
   render();
   toast(
-    cleanTier === "3"
-      ? `Archived ${saved.address || saved.propertyName} as Tier 3${syncedCount ? ` & synced ${syncedCount} Biweekly Monitor item(s)` : ""}.`
+    cleanTier === "4"
+      ? `Archived ${saved.address || saved.propertyName} as Tier 4 (Irrelevant / Already Demolished)${syncedCount ? ` & synced ${syncedCount} Biweekly Monitor item(s)` : ""}.`
       : `Set ${saved.address || saved.propertyName} to Tier ${cleanTier} (${saved.trackerStatus})${syncedCount ? ` & synced ${syncedCount} Biweekly Monitor item(s)` : ""}.`
   );
 }
@@ -3767,7 +3819,7 @@ function openRemoveFromWatchlistModal(p){
     </p>
     <div style="display:grid;gap:8px;margin-bottom:12px;font-size:12.5px">
       <div style="padding:9px 11px;border:1px solid var(--line);border-radius:5px;background:var(--bg)">
-        <b>Option A - Archive as Tier 3 (Recommended when keeping research notes):</b> Hides the property from the active Watchlist and marks any linked Biweekly Monitor filing as Tier 3, while preserving its dossier under <i>Archived (Tier 3)</i>.
+        <b>Option A - Archive as Tier 4 (Recommended when keeping research notes):</b> Hides the property from the active Watchlist and marks any linked Biweekly Monitor filing as Tier 4 (Irrelevant / Already Demolished), while preserving its dossier under <i>Archived (Tier 4)</i>.
       </div>
       <div style="padding:9px 11px;border:1px solid #E5B4B0;border-radius:5px;background:#FDF2F1">
         <b>Option B - Remove Permanently from Watchlist:</b> Writes a permanent removal record synced to the shared Google Sheet so this property does not reappear across daily sweeps, browser reloads, or other staff sessions unless explicitly re-added later.${hasResearch ? " <b>Note:</b> This dossier contains logged staff notes/checks that will be hidden once removed." : ""}
@@ -3780,7 +3832,7 @@ function openRemoveFromWatchlistModal(p){
     <div class="actions" style="justify-content:space-between;flex-wrap:wrap">
       <button type="button" class="btn" id="rmWlCancelBtn">Cancel</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button type="button" class="btn" id="rmWlArchiveBtn">Archive as Tier 3</button>
+        <button type="button" class="btn" id="rmWlArchiveBtn">Archive as Tier 4</button>
         <button type="button" class="btn" id="rmWlConfirmDeleteBtn" style="background:var(--t1);border-color:var(--t1);color:#fff">🗑 Remove from Watchlist</button>
       </div>
     </div>
@@ -3789,7 +3841,7 @@ function openRemoveFromWatchlistModal(p){
   back.addEventListener("click", e => { if (e.target === back || e.target.id === "rmWlCancelBtn") back.remove(); });
   $("#rmWlArchiveBtn")?.addEventListener("click", () => {
     back.remove();
-    applyWatchlistTierChangeAndSync(p, "3");
+    applyWatchlistTierChangeAndSync(p, "4");
   });
   $("#rmWlConfirmDeleteBtn")?.addEventListener("click", () => {
     const reason = ($("#rmWlReasonInput")?.value || "").trim();
@@ -3800,7 +3852,7 @@ function openRemoveFromWatchlistModal(p){
       reason: reason || "Removed by staff from Property Watchlist",
       updatedBy: reviewerId,
       nowIso,
-      tier: "3",
+      tier: "4",
     });
     staticWatchlistById.delete(p.id);
     cloudWatchlistById.set(p.id, tombstone);
@@ -3810,7 +3862,7 @@ function openRemoveFromWatchlistModal(p){
     if (S && S.cycles) {
       const syncRes = syncWatchlistTierToPlatReviews({
         prop: p,
-        newTier: "3",
+        newTier: "4",
         cycles: S.cycles,
         cycleOrder: S.cycleOrder,
         reviewer: reviewerId,
@@ -3859,7 +3911,8 @@ function buildWatchPropEditFormHtml(p){
           <select id="we-tier">
             <option value="1" ${String(p.tier) === "1" ? "selected" : ""}>Tier 1 - Escalate (High Priority)</option>
             <option value="2" ${String(p.tier) === "2" ? "selected" : ""}>Tier 2 - Watch</option>
-            <option value="3" ${String(p.tier) === "3" ? "selected" : ""}>Tier 3 - Low Priority / Archived</option>
+            <option value="3" ${String(p.tier) === "3" ? "selected" : ""}>Tier 3 - Low Priority Monitoring</option>
+            <option value="4" ${String(p.tier) === "4" ? "selected" : ""}>Tier 4 - Irrelevant / Demolished (Archive)</option>
           </select>
         </div>
         <div class="field"><label for="we-status">Tracker Status</label>
@@ -3971,7 +4024,7 @@ function restoreWatchlistDraftInputs(propId, focusedId = "", selStart = null, se
   }
 }
 
-function resizeImageFileToDataUrl(file, maxDim = 800, quality = 0.78){
+function resizeImageFileToDataUrl(file, maxDim = 680, quality = 0.72, maxDataUrlLen = 25000){
   return new Promise((resolve, reject) => {
     if (!file) {
       reject(new Error("No image file selected."));
@@ -3983,23 +4036,36 @@ function resizeImageFileToDataUrl(file, maxDim = 800, quality = 0.78){
       const img = new Image();
       img.onerror = () => reject(new Error("Selected file is not a valid image."));
       img.onload = () => {
-        let w = img.naturalWidth || img.width || 640;
-        let h = img.naturalHeight || img.height || 480;
-        if (w > maxDim || h > maxDim) {
-          if (w >= h) {
-            h = Math.max(1, Math.round((h * maxDim) / w));
-            w = maxDim;
-          } else {
-            w = Math.max(1, Math.round((w * maxDim) / h));
-            h = maxDim;
-          }
-        }
+        const origW = img.naturalWidth || img.width || 640;
+        const origH = img.naturalHeight || img.height || 480;
+        const attempts = [
+          [maxDim, quality],
+          [560, 0.65],
+          [480, 0.58],
+          [400, 0.52],
+          [320, 0.46],
+        ];
         const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
         const ctx2d = canvas.getContext("2d");
-        ctx2d.drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        let dataUrl = "";
+        for (const [dimCap, qVal] of attempts) {
+          let w = origW;
+          let h = origH;
+          if (w > dimCap || h > dimCap) {
+            if (w >= h) {
+              h = Math.max(1, Math.round((h * dimCap) / w));
+              w = dimCap;
+            } else {
+              w = Math.max(1, Math.round((w * dimCap) / h));
+              h = dimCap;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          ctx2d.drawImage(img, 0, 0, w, h);
+          dataUrl = canvas.toDataURL("image/jpeg", qVal);
+          if (dataUrl.length <= maxDataUrlLen) break;
+        }
         resolve(dataUrl);
       };
       img.src = String(reader.result || "");
@@ -4100,7 +4166,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
   const curTier = String(p.tier || "1");
   const isLost = p.trackerStatus === "Lost";
   const hasLostHoustonEntry = Boolean(p.lostHoustonId);
-  const isInactiveStatus = isLost || p.trackerStatus === "Saved" || p.trackerStatus === "Archived (Tier 3)";
+  const isInactiveStatus = isLost || p.trackerStatus === "Saved" || isArchivedWatchlistStatus(p.trackerStatus);
   const likelyDemoEval = !isInactiveStatus ? evaluateWatchlistLikelyDemolished(p) : { likelyDemolished: false, reason: "" };
   const showLikelyDemoBanner = !isInactiveStatus && (p.likelyDemolishedReviewNeeded || likelyDemoEval.likelyDemolished);
   const likelyDemoReasonText = p.likelyDemolishedReason || likelyDemoEval.reason || "";
@@ -4149,7 +4215,7 @@ function renderWatchlistDetail(precomputedActCtx = null){
         <a href="${esc(streetViewHref)}" target="_blank" rel="noopener" class="btn sm" style="text-decoration:none" title="Open 360-degree Google Street View for this property">🚶 Street View ↗</a>
         <div style="display:inline-flex;gap:3px;align-items:center;padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:#fff" role="group" aria-label="Change Tier and sync with Biweekly Monitor">
           <span style="font-size:11.5px;color:var(--muted);margin-right:2px">Tier:</span>
-          ${[["1", "T1"], ["2", "T2"], ["3", "T3 (Archive)"]].map(([tv, lbl]) =>
+          ${[["1", "T1"], ["2", "T2"], ["3", "T3"], ["4", "T4 (Archive)"]].map(([tv, lbl]) =>
             `<button type="button" class="btn sm ${curTier === tv ? "primary" : ""}" data-wl-inline-tier="${tv}" style="padding:3px 8px;font-size:11.5px" title="Set to Tier ${tv} and auto-sync matching Biweekly Plat Monitor items">${lbl}</button>`
           ).join("")}
         </div>
@@ -4538,11 +4604,12 @@ function showAddWatchPropertyModal(){
         <select id="nw-tier">
           <option value="1">Tier 1 - Escalate</option>
           <option value="2">Tier 2 - Watch</option>
+          <option value="3">Tier 3 - Low Priority</option>
         </select>
       </div>
       <div class="field"><label for="nw-status">Tracker Status</label>
         <select id="nw-status">
-          ${TRACKER_STATUSES.filter(s => s !== "Archived (Tier 3)").map(st => `<option value="${esc(st)}">${esc(st)}</option>`).join("")}
+          ${TRACKER_STATUSES.filter(s => !isArchivedWatchlistStatus(s)).map(st => `<option value="${esc(st)}">${esc(st)}</option>`).join("")}
         </select>
       </div>
       <div class="field"><label for="nw-threat">Threat Category</label>
@@ -5257,7 +5324,7 @@ function buildReport(){
   const items = getActiveItems();
   const f = findings();
   const by = t => f.filter(i => revFor(i).tier === t);
-  const t1 = by("1"), t2 = by("2"), t3 = by("3"), untiered = f.filter(i => !revFor(i).tier);
+  const t1 = by("1"), t2 = by("2"), t3 = by("3"), t4 = by("4"), untiered = f.filter(i => !revFor(i).tier);
   const g = k => items.filter(i => i._c.group === k).length;
   const lines = s => esc(s || "").replace(/\n/g, "<br>");
   const block = i => {
@@ -5300,12 +5367,13 @@ function buildReport(){
     <tr><td>Items in cycle</td><td><b>${items.length}</b> (${items.filter(i => i.onMeetingAgenda !== false).length} on agenda, ${items.filter(i => i.onMeetingAgenda === false).length} filing only)</td><td>Researched</td><td><b>${f.length}</b></td></tr>
     <tr><td>To check after screening</td><td><b>${g("check")}</b></td><td>Tier 1 (escalate)</td><td><b>${t1.length}</b></td></tr>
     <tr><td>In a city historic district</td><td><b>${g("designated")}</b></td><td>Tier 2 (watch)</td><td><b>${t2.length}</b></td></tr>
-    <tr><td>Outside city limits (ETJ)</td><td><b>${g("etj")}</b></td><td>Tier 3 (noted)</td><td><b>${t3.length}</b></td></tr>
-    <tr><td>Screened out</td><td><b>${g("out")}</b></td><td></td><td></td></tr>
+    <tr><td>Outside city limits (ETJ)</td><td><b>${g("etj")}</b></td><td>Tier 3 (low priority)</td><td><b>${t3.length}</b></td></tr>
+    <tr><td>Screened out</td><td><b>${g("out")}</b></td><td>Tier 4 (irrelevant / demolished)</td><td><b>${t4.length}</b></td></tr>
   </table>
   <h2>Tier 1: Escalate</h2>${t1.length ? t1.map(block).join("") : "<p>None this cycle.</p>"}
   <h2>Tier 2: Watch</h2>${table(t2)}
-  <h2>Tier 3: Noted</h2>${table(t3)}
+  <h2>Tier 3: Low Priority</h2>${table(t3)}
+  ${t4.length ? `<h2>Tier 4: Irrelevant / Already Demolished</h2>${table(t4)}` : ""}
   ${untiered.length ? `<h2>Researched, tier not set</h2>${table(untiered)}` : ""}
   ${g("designated") ? `<h2>Items in city historic districts</h2><table class="grid"><tr><th>App No.</th><th>Subdivision</th><th>Historic district</th><th>Application</th></tr>${items.filter(i => i._c.group === "designated").map(i => `<tr><td>${esc(i.app)}</td><td>${esc(i.name)}</td><td>${esc(i.hd)}</td><td>${esc(i.type)}</td></tr>`).join("")}</table>` : ""}
   </body></html>`;
@@ -5402,7 +5470,7 @@ function buildDocx(){
   const items = getActiveItems();
   const f = findings();
   const by = t => f.filter(i => revFor(i).tier === t);
-  const t1 = by("1"), t2 = by("2"), t3 = by("3"), untiered = f.filter(i => !revFor(i).tier);
+  const t1 = by("1"), t2 = by("2"), t3 = by("3"), t4 = by("4"), untiered = f.filter(i => !revFor(i).tier);
   const g = k => items.filter(i => i._c.group === k).length;
   const ac = i => num(i.acreage) != null ? num(i.acreage).toFixed(3) + " ac" : "";
   d.p(`Plat agenda review: Planning Commission, ${cycleTitle()}`, "Title");
@@ -5412,8 +5480,8 @@ function buildDocx(){
     ["Items in cycle", `${items.length} (${items.filter(i => i.onMeetingAgenda !== false).length} on agenda, ${items.filter(i => i.onMeetingAgenda === false).length} filing only)`, "Researched", String(f.length)],
     ["To check after screening", String(g("check")), "Tier 1 (escalate)", String(t1.length)],
     ["In a city historic district", String(g("designated")), "Tier 2 (watch)", String(t2.length)],
-    ["Outside city limits (ETJ)", String(g("etj")), "Tier 3 (noted)", String(t3.length)],
-    ["Screened out", String(g("out")), "", ""],
+    ["Outside city limits (ETJ)", String(g("etj")), "Tier 3 (low priority)", String(t3.length)],
+    ["Screened out", String(g("out")), "Tier 4 (irrelevant / demolished)", String(t4.length)],
   ], [3200, 1480, 3200, 1480], false);
   d.h(1, "Tier 1: Escalate");
   if (!t1.length) d.p("None this cycle.");
@@ -5457,7 +5525,8 @@ function buildDocx(){
     );
   };
   tierTable("Tier 2: Watch", t2);
-  tierTable("Tier 3: Noted", t3);
+  tierTable("Tier 3: Low Priority", t3);
+  if (t4.length) tierTable("Tier 4: Irrelevant / Already Demolished", t4);
   if (untiered.length) tierTable("Researched, tier not set", untiered);
   return d.blob();
 }
@@ -5884,6 +5953,7 @@ function queueCloudSyncWatchProperty(prop){
     const reviewerId = ($("#reviewer")?.value || sess.email || "").trim();
     const serialized = serializeWatchPropertyForSync(prop, reviewerId, prop.updatedAt || new Date().toISOString());
     if (!serialized) return;
+    const citationJson = stringifyWatchPropertyForSheetCell(serialized);
     const payload = {
       action: "admin_approve",
       admin_email: sess.email,
@@ -5896,7 +5966,7 @@ function queueCloudSyncWatchProperty(prop){
       historic_district: serialized.designation || "",
       contributing: `Tier ${serialized.tier || "1"}`,
       source_type: "PROPERTY_WATCHLIST_UPDATE",
-      source_citation: JSON.stringify(serialized),
+      source_citation: citationJson,
       source_url: (serialized.driveLinks && serialized.driveLinks[0]?.url) || "",
       submitter_name: reviewerId,
     };
@@ -6027,7 +6097,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
     try {
       let alData = window.__permitAlertsPayload || null;
       if (!alData) {
-        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261113b");
+        const alResp = await fetch("public/data/active_permit_alerts.json?v=20261113c");
         if (alResp.ok) alData = await alResp.json();
       }
       const alerts = Array.isArray(alData?.alerts) ? alData.alerts : [];
@@ -6070,7 +6140,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
     if (allowModeSwitch && !view.userSwitchedMode && !view.initialWatchDeepLinkResolved && !explicitModeParam) {
       view.mode = "watchlist";
     }
-    if (foundWp.trackerStatus === "Archived (Tier 3)") {
+    if (isArchivedWatchlistStatus(foundWp.trackerStatus)) {
       view.wlStatus = "ALL";
     }
     view.selectedWatchId = foundWp.id;
@@ -6083,7 +6153,7 @@ async function resolveWatchlistDeepLink({ allowModeSwitch = true } = {}){
 async function loadLiveAtlasCycle(forceReload){
   updateStaffAuthButtonUI();
   try {
-    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261113b";
+    const cacheQ = forceReload ? ("?t=" + Date.now()) : "?v=20261113c";
     const [platResp, wlResp, alResp, actResp, bpResp] = await Promise.all([
       fetch("public/data/plat_agenda_monitor.json" + cacheQ),
       fetch("public/data/property_watchlist.json" + cacheQ),
@@ -6308,7 +6378,7 @@ document.addEventListener("click", async e => {
       toast("That property is no longer in the active Property Watchlist.");
       return;
     }
-    if (wp.trackerStatus === "Archived (Tier 3)") {
+    if (isArchivedWatchlistStatus(wp.trackerStatus)) {
       view.wlStatus = "ALL";
     } else if (
       view.wlStatus !== "ALL_ACTIVE" &&
@@ -6323,7 +6393,7 @@ document.addEventListener("click", async e => {
     if (!getFilteredWatchedProperties().some(p => p.id === wid)) {
       view.wlQ = "";
       view.wlThreat = "";
-      view.wlStatus = wp.trackerStatus === "Archived (Tier 3)" ? "ALL" : "ALL_ACTIVE";
+      view.wlStatus = isArchivedWatchlistStatus(wp.trackerStatus) ? "ALL" : "ALL_ACTIVE";
       const wlSearchEl = $("#wlSearchInput");
       if (wlSearchEl) wlSearchEl.value = "";
     }
@@ -6528,21 +6598,35 @@ document.addEventListener("click", async e => {
   const confirmWatchBtn = e.target.closest("#confirmTierWatchBtn");
   if (confirmWatchBtn) {
     if (!requireStaffAuth("confirming tier and syncing to Watchlist")) return;
-    confirmAndSyncPlatItemToWatchlist(confirmWatchBtn.dataset.occ, true, false);
+    confirmAndSyncPlatItemToWatchlist(confirmWatchBtn.dataset.occ, true, false, false, true);
     return;
   }
 
   const confirmT3Btn = e.target.closest("#confirmTier3Btn");
   if (confirmT3Btn) {
     if (!requireStaffAuth("confirming Tier 3")) return;
-    confirmAndSyncPlatItemToWatchlist(confirmT3Btn.dataset.occ, true, false);
+    confirmAndSyncPlatItemToWatchlist(confirmT3Btn.dataset.occ, true, false, false, false);
+    return;
+  }
+
+  const confirmT3WatchBtn = e.target.closest("#confirmTier3WatchBtn");
+  if (confirmT3WatchBtn) {
+    if (!requireStaffAuth("confirming Tier 3 and adding to Watchlist")) return;
+    confirmAndSyncPlatItemToWatchlist(confirmT3WatchBtn.dataset.occ, true, false, false, true);
+    return;
+  }
+
+  const confirmT4Btn = e.target.closest("#confirmTier4Btn");
+  if (confirmT4Btn) {
+    if (!requireStaffAuth("confirming Tier 4")) return;
+    confirmAndSyncPlatItemToWatchlist(confirmT4Btn.dataset.occ, true, false, false, false);
     return;
   }
 
   const promoteBtn = e.target.closest("#promoteWatchBtn");
   if (promoteBtn) {
     if (!requireStaffAuth("promoting an item to the Property Watchlist")) return;
-    confirmAndSyncPlatItemToWatchlist(promoteBtn.dataset.occ, true, true);
+    confirmAndSyncPlatItemToWatchlist(promoteBtn.dataset.occ, true, true, false, true);
     return;
   }
 
@@ -6551,7 +6635,7 @@ document.addEventListener("click", async e => {
     const wid = openLinkedBtn.dataset.watchId;
     const wp = (WL.watchedProperties || []).find(p => p.id === wid && !isRemovedWatchlistTombstone(p));
     if (!wp) return;
-    if (wp.trackerStatus === "Archived (Tier 3)") view.wlStatus = "ALL";
+    if (isArchivedWatchlistStatus(wp.trackerStatus)) view.wlStatus = "ALL";
     view.mode = "watchlist";
     view.userSwitchedMode = true;
     persistModeChoice("watchlist");
@@ -6649,18 +6733,29 @@ document.addEventListener("click", async e => {
     p.secondaryAddresses = $("#we-sec").value.split(",").map(s => s.trim()).filter(Boolean);
     p.hcadAccount = hcadParsed.hcadIds.length ? hcadParsed.hcadIds.join(", ") : $("#we-hcad").value.trim();
     p.legalDescription = $("#we-legal").value.trim();
-    const wasArchived = p.trackerStatus === "Archived (Tier 3)";
+    const wasArchived = isArchivedWatchlistStatus(p.trackerStatus);
     const chosenTier = $("#we-tier").value;
     let chosenStatus = $("#we-status").value;
-    if (chosenTier === "3") {
-      chosenStatus = "Archived (Tier 3)";
-    } else if (chosenStatus === "Archived (Tier 3)") {
-      chosenStatus = chosenTier === "1" ? "Active / High Priority" : "Monitoring";
+    if (chosenTier === "4") {
+      chosenStatus = "Archived (Tier 4)";
+    } else if (chosenTier === "1" || chosenTier === "2") {
+      if (isArchivedWatchlistStatus(chosenStatus)) {
+        chosenStatus = chosenTier === "1" ? "Active / High Priority" : "Monitoring";
+      }
+    } else if (chosenTier === "3") {
+      if (chosenStatus === "Archived (Tier 4)") {
+        chosenStatus = "Monitoring";
+      } else if (chosenStatus === "Active / High Priority") {
+        chosenStatus = "Monitoring";
+      }
     }
     p.tier = chosenTier;
-    p.tierConfirmed = chosenTier === "1" || chosenTier === "2";
+    p.tierConfirmed =
+      chosenTier === "1" ||
+      chosenTier === "2" ||
+      (chosenTier === "3" && !isArchivedWatchlistStatus(chosenStatus));
     p.trackerStatus = chosenStatus;
-    if (p.trackerStatus === "Archived (Tier 3)") {
+    if (isArchivedWatchlistStatus(p.trackerStatus)) {
       if (!wasArchived || !p.archivedAt) p.archivedAt = nowIso;
     } else {
       p.archivedAt = "";
@@ -6725,7 +6820,7 @@ document.addEventListener("click", async e => {
     }
 
     view.editingWatchId = null;
-    if (saved.trackerStatus === "Archived (Tier 3)" && view.wlStatus === "ALL_ACTIVE") {
+    if (isArchivedWatchlistStatus(saved.trackerStatus) && (view.wlStatus === "ALL_ACTIVE" || view.wlStatus === "ONLY_ACTIVE" || view.wlStatus.startsWith("TIER_"))) {
       view.wlStatus = "ALL";
     }
     render();
@@ -7512,16 +7607,22 @@ $("#detail").addEventListener("change", e => {
     const tierSel = $("#we-tier");
     const stSel = $("#we-status");
     if (el.id === "we-tier" && stSel) {
-      if (el.value === "3" && stSel.value !== "Archived (Tier 3)") {
-        stSel.value = "Archived (Tier 3)";
-      } else if ((el.value === "1" || el.value === "2") && stSel.value === "Archived (Tier 3)") {
+      if (el.value === "4" && stSel.value !== "Archived (Tier 4)") {
+        stSel.value = "Archived (Tier 4)";
+      } else if (el.value === "3") {
+        if (stSel.value === "Archived (Tier 4)" || stSel.value === "Active / High Priority") {
+          stSel.value = "Monitoring";
+        }
+      } else if ((el.value === "1" || el.value === "2") && isArchivedWatchlistStatus(stSel.value)) {
         stSel.value = el.value === "1" ? "Active / High Priority" : "Monitoring";
       }
     } else if (el.id === "we-status" && tierSel) {
-      if (el.value === "Archived (Tier 3)" && tierSel.value !== "3") {
+      if (el.value === "Archived (Tier 4)" && tierSel.value !== "4") {
+        tierSel.value = "4";
+      } else if (el.value === "Archived (Tier 3)" && tierSel.value !== "3") {
         tierSel.value = "3";
-      } else if (el.value !== "Archived (Tier 3)" && tierSel.value === "3") {
-        tierSel.value = el.value === "Monitoring" ? "2" : "1";
+      } else if (!isArchivedWatchlistStatus(el.value) && tierSel.value === "4") {
+        tierSel.value = el.value === "Active / High Priority" ? "1" : "2";
       }
     }
     return;
@@ -7618,14 +7719,20 @@ $("#detail").addEventListener("change", e => {
   const changedField = el.name === "tier" ? "tier" : el.dataset.k;
   if (!changedField) return;
 
+  const linkedWpOnEdit = findLinkedWatchProp(it, r);
   if (el.name === "tier") {
     const prevTier = r.tier || "";
     r.tier = el.value;
-    if (r.tier !== prevTier && (r.tier === "1" || r.tier === "2") && !findLinkedWatchProp(it, r)) {
+    if (r.tier !== prevTier && (r.tier === "1" || r.tier === "2") && !linkedWpOnEdit) {
       r.tierConfirmed = false;
+    } else if (linkedWpOnEdit && linkedWpOnEdit.tierConfirmed && !isArchivedWatchlistStatus(linkedWpOnEdit.trackerStatus) && (r.tier === "1" || r.tier === "2")) {
+      r.tierConfirmed = true;
     }
   } else {
     r[changedField] = el.value;
+    if (linkedWpOnEdit && linkedWpOnEdit.tierConfirmed && !isArchivedWatchlistStatus(linkedWpOnEdit.trackerStatus) && (r.tier === "1" || r.tier === "2")) {
+      r.tierConfirmed = true;
+    }
   }
   markHumanEditedField(r, changedField);
   r.updated = new Date().toISOString();
@@ -7636,9 +7743,11 @@ $("#detail").addEventListener("change", e => {
   queueCloudSyncPlatReview(it._cycleKey, it.app);
 
   // Sync edits or tier downgrades if this plat item is already linked on the Watchlist
-  if (findLinkedWatchProp(it, r)) {
+  const linkedWpAfterEdit = findLinkedWatchProp(it, r);
+  if (linkedWpAfterEdit) {
     const isDiscrete = el.name === "tier" || el.tagName === "SELECT";
-    confirmAndSyncPlatItemToWatchlist(it._occKey, false, false, !isDiscrete);
+    const keepOnWl = r.tier === "3" && String(linkedWpAfterEdit.tier || "") === "3" && !isArchivedWatchlistStatus(linkedWpAfterEdit.trackerStatus);
+    confirmAndSyncPlatItemToWatchlist(it._occKey, false, false, !isDiscrete, keepOnWl);
     if (el.name === "tier") {
       const radio = document.querySelector(`input[name=tier][value="${el.value}"]`);
       if (radio) radio.focus();

@@ -28,7 +28,7 @@ ACTIVE_TAX_YEAR = 2026
 MAX_VALID_CAMA_DATE_YEAR = ACTIVE_TAX_YEAR
 MAX_VALID_YEAR = ACTIVE_TAX_YEAR + 1
 MAX_STANDING_OVERRIDE_YEAR = 2035
-ACTIVE_CACHE_BUST = "20261113b"
+ACTIVE_CACHE_BUST = "20261113c"
 PERMIT_ENRICHMENT_SOFT_MAX_BYTES = 948 * 1024 * 1024
 SOFT_MAX_APP_BYTES = 968 * 1024 * 1024
 HARD_MAX_APP_BYTES = 980 * 1024 * 1024
@@ -153,10 +153,16 @@ PLAT_CARRY_FORWARD_REVIEW_FIELDS: tuple[str, ...] = (
     "followup",
 )
 REMOVED_TIER3_TOMBSTONE = "Removed (Tier 3)"
+REMOVED_TIER4_TOMBSTONE = "Removed (Tier 4)"
 REMOVED_WATCHLIST_TOMBSTONE = "Removed from Watchlist"
 WATCHLIST_TOMBSTONE_STATUSES: frozenset[str] = frozenset({
     REMOVED_TIER3_TOMBSTONE,
+    REMOVED_TIER4_TOMBSTONE,
     REMOVED_WATCHLIST_TOMBSTONE,
+})
+ARCHIVED_WATCHLIST_STATUSES: frozenset[str] = frozenset({
+    "Archived (Tier 3)",
+    "Archived (Tier 4)",
 })
 WATCHLIST_TRACKER_STATUSES: tuple[str, ...] = (
     "Active / High Priority",
@@ -166,7 +172,26 @@ WATCHLIST_TRACKER_STATUSES: tuple[str, ...] = (
     "Saved",
     "Lost",
     "Archived (Tier 3)",
+    "Archived (Tier 4)",
 )
+
+
+def is_archived_watchlist_status(prop_or_status: object) -> bool:
+    """Return True when a Watchlist record or status string is soft-archived (Tier 3 or Tier 4)."""
+    if isinstance(prop_or_status, dict):
+        st = str(prop_or_status.get("trackerStatus") or "").strip()
+    else:
+        st = str(prop_or_status or "").strip()
+    return st in ARCHIVED_WATCHLIST_STATUSES
+
+
+def is_removed_watchlist_tombstone(prop: object) -> bool:
+    """Return True when a Watchlist record represents a soft-delete / removal tombstone."""
+    if not isinstance(prop, dict):
+        return False
+    if prop.get("removedFromWatchlist") is True:
+        return True
+    return str(prop.get("trackerStatus") or "").strip() in WATCHLIST_TOMBSTONE_STATUSES
 
 DEMOLISHED_VACANT_ISSUE = "Building demolished - lot currently vacant"
 DEMOLISHED_REPLACED_ISSUE = "Building demolished & replaced by newer structure"

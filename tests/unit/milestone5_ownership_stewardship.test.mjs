@@ -392,7 +392,7 @@ test("RP-3: active pmtiles_manifest.json cache-bust parity and zero U+2014/U+201
     fs.readFileSync(path.join(DATA_DIR, "pmtiles_manifest.json"), "utf8")
   );
   assert.equal(manifest.version, 3);
-  assert.equal(manifest.cache_bust, "20261113b");
+  assert.equal(manifest.cache_bust, "20261113c");
 
   for (const relPath of [
     "app/index.html",

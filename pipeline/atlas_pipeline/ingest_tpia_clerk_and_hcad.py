@@ -34,6 +34,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 import csv
 from dataclasses import dataclass, field
+import functools
 import gzip
 import io
 import json
@@ -122,6 +123,11 @@ _RE_LOT_MULTI = re.compile(
     re.IGNORECASE,
 )
 _RE_TRACT_SINGLE = re.compile(r"\b(?:TR(?:ACT)?)\s*0*([0-9A-Z]{1,5})\b", re.IGNORECASE)
+_RE_COMMENT_LOT_BLK = re.compile(
+    r"\bL(?:OTS?|TS?)?\s*0*([0-9A-Z]{1,4}(?:\s*(?:&|AND|-|THRU)\s*0*[0-9A-Z]{1,4})?)"
+    r"\s+B(?:LOCKS?|LK)?\s*0*([0-9A-Z]{1,5})\b",
+    re.IGNORECASE,
+)
 _RE_ABST_LINE = re.compile(r"^\s*ABST(?:RACT)?\b", re.IGNORECASE)
 _RE_NON_ALNUM = re.compile(r"[^A-Z0-9\s]+")
 _RE_MULTI_SPACE = re.compile(r"\s+")
@@ -152,12 +158,14 @@ _CONVEYANCE_CODES: frozenset[str] = frozenset({
     "TRUSTEES DEED",
     "SUBSTITUTE TRUSTEE DEED",
     "STD",
+    "TRSALE",
     "EXEC DEED",
     "EXECUTORS DEED",
     "ADM DEED",
     "ADMINISTRATORS DEED",
     "PROB",
     "PROBATE",
+    "WILL",
     "MUNIMENT OF TITLE",
     "AFFIDAVIT OF HEIRSHIP",
     "AOH",
@@ -166,9 +174,12 @@ _CONVEYANCE_CODES: frozenset[str] = frozenset({
     "CORRECTION DEED",
     "CORR DEED",
     "CORREC",
+    "CINSTR",
     "PARTITION DEED",
     "DECREE",
     "CONVEY",
+    "PTCNVY",
+    "RCNVY",
     "CONDMN",
     "RWD",
     "R/W/D",
@@ -198,6 +209,9 @@ _DEED_OF_TRUST_CODES: frozenset[str] = frozenset({
     "DT",
     "SUPD/T",
     "SUP D/T",
+    "SUBD/T",
+    "MST DT",
+    "MST-DT",
     "DEED OF TRUST",
     "MORTGAGE",
     "MTG",
@@ -208,11 +222,15 @@ _PLAT_OR_RESTRICTION_CODES: frozenset[str] = frozenset({
     "PLAT",
     "REPLAT",
     "MAP",
+    "REMAP",
     "SUBD",
     "CONDO",
     "CONDO DECL",
     "CONDOMINIUM DECLARATION",
     "RESTR",
+    "DREST",
+    "DECLAR",
+    "AMEND",
     "RESTRICTIONS",
     "DEED RESTRICTIONS",
     "DED",
@@ -295,12 +313,55 @@ def _decode_bytes_with_fallback(raw_bytes: bytes) -> str:
     return raw_bytes.decode("latin-1", errors="replace")
 
 
-def iter_tpia_tabular_files(input_dir: Path | None) -> Iterator[tuple[str, list[str], Iterator[dict[str, str]]]]:
+def _detect_stream_encoding(sample_bytes: bytes) -> str:
+    for enc in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            # Ignore a truncated trailing multi-byte sequence at the sample boundary
+            import codecs
+
+            dec = codecs.getincrementaldecoder(enc)()
+            dec.decode(sample_bytes, final=False)
+            return enc
+        except UnicodeDecodeError:
+            continue
+    return "latin-1"
+
+
+def iter_tpia_tabular_files(
+    input_dir: Path | None,
+    *,
+    allowed_first_col: set[str] | None = None,
+    skip_filenames: set[str] | None = None,
+) -> Iterator[tuple[str, list[str], Iterator[dict[str, str]]]]:
     """Yield `(source_label, normalized_headers, row_dict_iterator)` across plain, `.gz`, and `.zip` files."""
     if input_dir is None or not Path(input_dir).exists():
         return
     root = Path(input_dir)
     files = [root] if root.is_file() else sorted(p for p in root.rglob("*") if p.is_file() and not p.name.startswith("."))
+
+    def _build_row_map(norm_hdr: list[str], parts: list[str], is_rpi_5col: bool) -> dict[str, str]:
+        if is_rpi_5col and len(parts) >= 7 and parts[3].strip().upper() in ("DEED", "MTG", "DT", "REST", "MISC"):
+            row_7: dict[str, str] = {}
+            for k, v in (
+                ("file_no", parts[0].strip()),
+                ("document_type", parts[1].strip()),
+                ("filedate", parts[2].strip()),
+                ("vol", parts[4].strip()),
+                ("page", parts[5].strip()),
+                ("no_of_pages", parts[6].strip()),
+            ):
+                if v:
+                    row_7[k] = v
+            return row_7
+        row_map: dict[str, str] = {}
+        n_parts = len(parts)
+        for i, col_name in enumerate(norm_hdr):
+            if not col_name or i >= n_parts:
+                continue
+            val = parts[i].strip()
+            if val and col_name not in row_map:
+                row_map[col_name] = val
+        return row_map
 
     def _parse_text_stream(label: str, raw_bytes: bytes) -> tuple[str, list[str], Iterator[dict[str, str]]] | None:
         text = _decode_bytes_with_fallback(raw_bytes)
@@ -316,22 +377,91 @@ def iter_tpia_tabular_files(input_dir: Path | None) -> Iterator[tuple[str, list[
         norm_hdr = [_norm_col_name(c) for c in raw_hdr]
         if not any(norm_hdr):
             return None
+        is_rpi_5col = norm_hdr == ["file_no", "document_type", "filedate", "film_code_no", "no_of_pages"]
 
         def _row_iter() -> Iterator[dict[str, str]]:
             for parts in reader:
                 if not parts or not any(p.strip() for p in parts):
                     continue
-                row_map: dict[str, str] = {}
-                for i, col_name in enumerate(norm_hdr):
-                    if not col_name:
-                        continue
-                    val = parts[i].strip() if i < len(parts) else ""
-                    if val and col_name not in row_map:
-                        row_map[col_name] = val
+                row_map = _build_row_map(norm_hdr, parts, is_rpi_5col)
                 if row_map:
                     yield row_map
 
         return label, norm_hdr, _row_iter()
+
+    def _parse_disk_file_stream(
+        label: str, fpath: Path, *, is_gz: bool = False
+    ) -> tuple[str, list[str], Iterator[dict[str, str]]] | None:
+        try:
+            if is_gz:
+                with gzip.open(fpath, "rb") as gzf:
+                    sample = gzf.read(65536)
+            else:
+                with open(fpath, "rb") as bf:
+                    sample = bf.read(65536)
+        except OSError:
+            return None
+        if not sample or not sample.strip():
+            return None
+        enc = _detect_stream_encoding(sample)
+        sample_text = sample.decode(enc, errors="replace")
+        first_line = ""
+        for ln in sample_text.splitlines():
+            if ln.strip():
+                first_line = ln
+                break
+        if not first_line:
+            return None
+        delim = _detect_delimiter(first_line)
+        try:
+            raw_hdr = next(csv.reader([first_line], delimiter=delim))
+        except Exception:
+            return None
+        norm_hdr = [_norm_col_name(c) for c in raw_hdr]
+        if not any(norm_hdr):
+            return None
+        is_rpi_5col = norm_hdr == ["file_no", "document_type", "filedate", "film_code_no", "no_of_pages"]
+        fast_split = delim in ("|", "\t")
+        use_first_col_filter = (
+            allowed_first_col is not None
+            and fast_split
+            and bool(norm_hdr)
+            and norm_hdr[0] in ("file_no", "fileno", "file_number", "clerk_file_no", "instrument_no")
+            and not fpath.name.lower().startswith("maps")
+        )
+
+        def _disk_row_iter() -> Iterator[dict[str, str]]:
+            open_ctx = (
+                gzip.open(fpath, "rt", encoding=enc, errors="replace", newline="")
+                if is_gz
+                else open(fpath, "r", encoding=enc, errors="replace", newline="")
+            )
+            with open_ctx as tf:
+                saw_header = False
+                for line in tf:
+                    if not saw_header:
+                        if line.strip():
+                            saw_header = True
+                        continue
+                    if use_first_col_filter:
+                        first_tok = line.partition(delim)[0].strip().upper()
+                        if first_tok not in allowed_first_col:  # type: ignore[operator]
+                            continue
+                    stripped = line.rstrip("\r\n")
+                    if not stripped.strip():
+                        continue
+                    if fast_split and '"' not in stripped:
+                        parts = stripped.split(delim)
+                    else:
+                        try:
+                            parts = next(csv.reader([stripped], delimiter=delim))
+                        except Exception:
+                            continue
+                    row_map = _build_row_map(norm_hdr, parts, is_rpi_5col)
+                    if row_map:
+                        yield row_map
+
+        return label, norm_hdr, _disk_row_iter()
 
     def _iter_zip_archive(
         outer_label: str, zf_source: Path | bytes, depth: int = 0
@@ -365,18 +495,19 @@ def iter_tpia_tabular_files(input_dir: Path | None) -> Iterator[tuple[str, list[
             return
 
     for fpath in files:
+        if skip_filenames and fpath.name.lower() in skip_filenames:
+            continue
         low_name = fpath.name.lower()
         if low_name.endswith(".zip"):
             yield from _iter_zip_archive(fpath.name, fpath, depth=0)
         elif low_name.endswith(".gz") and not low_name.endswith(".json.gz"):
             base_suf = Path(low_name[:-3]).suffix.lower()
             if base_suf in _TABULAR_SUFFIXES or not base_suf:
-                raw_b = gzip.decompress(fpath.read_bytes())
-                parsed = _parse_text_stream(fpath.name, raw_b)
+                parsed = _parse_disk_file_stream(fpath.name, fpath, is_gz=True)
                 if parsed is not None:
                     yield parsed
         elif fpath.suffix.lower() in _TABULAR_SUFFIXES:
-            parsed = _parse_text_stream(fpath.name, fpath.read_bytes())
+            parsed = _parse_disk_file_stream(fpath.name, fpath, is_gz=False)
             if parsed is not None:
                 yield parsed
 
@@ -452,6 +583,12 @@ def normalize_clerk_tpia_instrument(
         if v_clean != "0" or p_clean != "0":
             return f"VP:{v_clean}/{p_clean}"
 
+    # Pre-1961 numeric Clerk File Numbers (1..7 digits, e.g. Maps&CondosInstruments.txt 1897-1960)
+    if raw_fn:
+        m_num = re.fullmatch(r"0*([1-9]\d{0,6})", raw_fn)
+        if m_num:
+            return m_num.group(1)
+
     return ""
 
 
@@ -464,7 +601,11 @@ def classify_clerk_instrument_type(raw_inst_type: str) -> tuple[str, str]:
     if not clean:
         return "", "D"
     if clean in _CONVEYANCE_CODES:
-        wire_code = "O" if clean in ("PROB", "PROBATE", "MUNIMENT OF TITLE", "AFFIDAVIT OF HEIRSHIP", "AOH") else "D"
+        wire_code = (
+            "O"
+            if clean in ("PROB", "PROBATE", "WILL", "MUNIMENT OF TITLE", "AFFIDAVIT OF HEIRSHIP", "AOH")
+            else "D"
+        )
         return "CONVEYANCE", wire_code
     if clean in _MECHANICS_LIEN_CODES:
         return "MECHANICS_LIEN", "M"
@@ -487,6 +628,7 @@ def classify_clerk_instrument_type(raw_inst_type: str) -> tuple[str, str]:
     return "", "D"
 
 
+@functools.lru_cache(maxsize=131072)
 def normalize_legal_subdivision_name(raw_subd: str) -> tuple[str, str]:
     """Normalize a subdivision/addition description into `(canonical_subdivision, extracted_section)`."""
     txt = sanitize_atlas_text(raw_subd).upper()
@@ -502,18 +644,18 @@ def normalize_legal_subdivision_name(raw_subd: str) -> tuple[str, str]:
     return txt, sec_found
 
 
-def _expand_lot_tokens(raw_lot_expr: str, max_lots: int = 4) -> list[str]:
-    """Extract discrete normalized lot designators from expressions like `'14'`, `'14 & 15'`, or `'014A'`."""
+@functools.lru_cache(maxsize=131072)
+def _expand_lot_tokens_cached(raw_lot_expr: str, max_lots: int = 4) -> tuple[str, ...]:
     clean = sanitize_atlas_text(raw_lot_expr).upper().strip()
     if not clean:
-        return []
+        return ()
     # Range expression "6 THRU 10" or "6-10"
     m_range = re.fullmatch(r"0*(\d{1,4})\s*(?:THRU|-)\s*0*(\d{1,4})", clean)
     if m_range:
         lo, hi = int(m_range.group(1)), int(m_range.group(2))
         if 0 < lo <= hi and (hi - lo + 1) <= max_lots:
-            return [str(x) for x in range(lo, hi + 1)]
-        return []
+            return tuple(str(x) for x in range(lo, hi + 1))
+        return ()
     parts = re.split(r"\s*(?:&|AND|,)\s*|\s+", clean)
     out: list[str] = []
     for p in parts:
@@ -529,8 +671,13 @@ def _expand_lot_tokens(raw_lot_expr: str, max_lots: int = 4) -> list[str]:
         if tok not in out:
             out.append(tok)
         if len(out) > max_lots:
-            return []
-    return out
+            return ()
+    return tuple(out)
+
+
+def _expand_lot_tokens(raw_lot_expr: str, max_lots: int = 4) -> list[str]:
+    """Extract discrete normalized lot designators from expressions like `'14'`, `'14 & 15'`, or `'014A'`."""
+    return list(_expand_lot_tokens_cached(raw_lot_expr, max_lots))
 
 
 def extract_hcad_legal_crosswalk_keys(
@@ -642,6 +789,16 @@ def extract_clerk_row_legal_keys(row: dict[str, str]) -> list[LegalCrosswalkKey]
         t_clean = re.sub(r"[^0-9A-Z]", "", raw_tr.upper()).lstrip("0")
         if t_clean:
             return [LegalCrosswalkKey(subd_norm, sec_norm, blk_norm, "TR", t_clean)]
+
+    raw_comment = _first_present(row, ("comment", "misc"))
+    if raw_comment:
+        m_cb = _RE_COMMENT_LOT_BLK.search(raw_comment)
+        if m_cb:
+            lots = _expand_lot_tokens(m_cb.group(1))
+            blk_c = re.sub(r"[^0-9A-Z]", "", m_cb.group(2).upper()).lstrip("0") or "0"
+            eff_blk = blk_norm or blk_c
+            if lots:
+                return [LegalCrosswalkKey(subd_norm, sec_norm, eff_blk, "LOT", lt) for lt in lots]
 
     return []
 
@@ -901,6 +1058,15 @@ def merge_compact_dt_lenders(
     return "|".join(f"{d_dt}~{d_tok}~{d_len}" for d_dt, d_tok, d_len in ordered)
 
 
+_CATEGORY_PRIORITY: dict[str, int] = {
+    "CONVEYANCE": 4,
+    "RESTRICTION_PLAT": 3,
+    "MECHANICS_LIEN": 2,
+    "DEED_OF_TRUST": 1,
+    "": 0,
+}
+
+
 def _merge_clerk_instrument_records(
     dst: ClerkInstrumentRecord, src: ClerkInstrumentRecord
 ) -> ClerkInstrumentRecord:
@@ -910,7 +1076,9 @@ def _merge_clerk_instrument_records(
         dst.match_key = src.match_key
     if src.dt8 != "00000000" and (dst.dt8 == "00000000" or dst.dt8.endswith("0000")):
         dst.dt8 = src.dt8
-    if not dst.raw_inst_type and src.raw_inst_type:
+    src_prio = _CATEGORY_PRIORITY.get(src.category, 0)
+    dst_prio = _CATEGORY_PRIORITY.get(dst.category, 0)
+    if (not dst.raw_inst_type and src.raw_inst_type) or (src_prio > dst_prio):
         dst.raw_inst_type = src.raw_inst_type
         dst.category = src.category
         dst.wire_type_code = src.wire_type_code

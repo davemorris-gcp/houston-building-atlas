@@ -239,7 +239,12 @@ test("hahc_coa_tracker.json, active_permit_alerts.json, plat_agenda_monitor.json
   for (const wp of watchlist.watchedProperties) {
     assert.notEqual(wp.trackerStatus, "Removed from Watchlist", `Removed tombstone leaked into active property_watchlist.json: ${wp.id}`);
     assert.notEqual(wp.trackerStatus, "Removed (Tier 3)", `Removed Tier 3 tombstone leaked into active property_watchlist.json: ${wp.id}`);
-    if (String(wp.id || "").startsWith("plat-") && wp.trackerStatus !== "Archived (Tier 3)") {
+    assert.notEqual(wp.trackerStatus, "Removed (Tier 4)", `Removed Tier 4 tombstone leaked into active property_watchlist.json: ${wp.id}`);
+    if (
+      String(wp.id || "").startsWith("plat-") &&
+      wp.trackerStatus !== "Archived (Tier 3)" &&
+      wp.trackerStatus !== "Archived (Tier 4)"
+    ) {
       assert.equal(wp.tierConfirmed, true, `Unconfirmed plat seed leaked into property_watchlist.json: ${wp.id}`);
     }
   }
@@ -647,8 +652,8 @@ test("UT-4, MOD-3 & MOD-4: compact curated_overrides.json schema, shard-primary 
   const expectedVer = String(manifest.cache_bust || "").trim();
   assert.equal(
     expectedVer,
-    "20261113b",
-    `Expected active pmtiles_manifest.json cache_bust '20261113b', got '${expectedVer}'`
+    "20261113c",
+    `Expected active pmtiles_manifest.json cache_bust '20261113c', got '${expectedVer}'`
   );
   assert.equal(
     ORGANIZER_CACHE_BUST,

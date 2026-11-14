@@ -1852,9 +1852,12 @@ export function buildWatchedDeveloperMap({
     if (
       wp.removedFromWatchlist === true ||
       status === "Archived (Tier 3)" ||
+      status === "Archived (Tier 4)" ||
       status === "Removed (Tier 3)" ||
+      status === "Removed (Tier 4)" ||
       status === "Removed from Watchlist" ||
-      String(wp.tier || "") === "3"
+      String(wp.tier || "") === "4" ||
+      (String(wp.tier || "") === "3" && wp.tierConfirmed !== true)
     ) {
       continue;
     }
@@ -1911,7 +1914,14 @@ export function buildWatchedDeveloperMap({
       const latestContTier = it.continuityKey ? latestTierByKey.get(it.continuityKey) : "";
       const appIds = getCanonicalPlatAppIds(it);
       const latestAppTier = appIds.map((id) => latestTierByKey.get(`app:${id}`)).find(Boolean) || "";
-      if (latestContTier === "3" || latestAppTier === "3") continue;
+      if (
+        latestContTier === "3" ||
+        latestContTier === "4" ||
+        latestAppTier === "3" ||
+        latestAppTier === "4"
+      ) {
+        continue;
+      }
       for (const ent of splitDeveloperEntities(it.developer || "")) {
         addEntry(ent, {
           sourceType: "cycle",
@@ -1955,9 +1965,9 @@ export function extractHearingDateIso(text = "") {
  * Determine whether a Watchlist property dossier contains any human-authored research,
  * checklist logs, snowball search terms, Google Drive links, or manual metadata edits.
  *
- * Used to protect staff research when a plat is downgraded from Tier 1/2 to Tier 3:
+ * Used to protect staff research when a plat is downgraded from Tier 1/2 to Tier 3 or Tier 4:
  * untouched auto-promoted entries hard-delete cleanly, while human-annotated dossiers
- * transition to trackerStatus "Archived (Tier 3)" so zero staff research is ever lost.
+ * transition to trackerStatus "Archived (Tier 3)" or "Archived (Tier 4)" so zero staff research is ever lost.
  */
 export function hasHumanDossierContributions(prop) {
   if (!prop || typeof prop !== "object") return false;
@@ -1973,12 +1983,18 @@ export function hasHumanDossierContributions(prop) {
   if (String(prop.phPastActions || "").trim()) return true;
   if (String(prop.reportedBy || "").trim()) return true;
   if (String(prop.broker || "").trim()) return true;
+  if (String(prop.buildingHistory || "").trim()) return true;
+  if (String(prop.historyFolderUrl || "").trim()) return true;
+  if (String(prop.photoUrl || "").trim()) return true;
+  if (String(prop.photoDataUrl || "").trim()) return true;
   const statusVal = String(prop.trackerStatus || "").trim();
   if (statusVal === "Saved" || statusVal === "Lost" || statusVal === "For Sale") return true;
   if (String(prop.archivedAt || "").trim()) return true;
 
   if (Array.isArray(prop.driveLinks) && prop.driveLinks.length > 0) return true;
   if (Array.isArray(prop.documents) && prop.documents.length > 0) return true;
+  if (Array.isArray(prop.historyLinks) && prop.historyLinks.length > 0) return true;
+  if (Array.isArray(prop.deletedCheckKeys) && prop.deletedCheckKeys.length > 0) return true;
 
   if (prop.searchTerms && typeof prop.searchTerms === "object") {
     const hasExplicitTermsTs = Boolean(prop.searchTermsUpdatedAt);

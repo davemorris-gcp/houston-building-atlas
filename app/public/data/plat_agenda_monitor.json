@@ -21,9 +21,10 @@
     "cycleFilingOnlyCount": 47,
     "toCheckCount": 82,
     "preEnrichedCount": 59,
-    "tier1Count": 7,
-    "tier2Count": 14,
-    "tier3Count": 25
+    "tier1Count": 2,
+    "tier2Count": 18,
+    "tier3Count": 26,
+    "tier4Count": 0
   },
   "items": [
     {
@@ -14777,17 +14778,17 @@
           "section": "F. Reconsideration Of Req",
           "hearingDateIso": "2026-12-03",
           "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-          "tier": "1",
-          "tierConfirmed": false,
-          "isHumanReviewed": false,
+          "tier": "2",
+          "tierConfirmed": true,
+          "isHumanReviewed": true,
           "hcad": "0040570000008",
           "address": "4705 LIBERTY RD",
           "yearBuilt": "1925",
           "designation": "None found",
           "threatCategory": "Significant Building Threatened",
-          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+          "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
         },
         {
           "cycleKey": "2026-10-15",
@@ -14800,17 +14801,17 @@
           "section": "F. Reconsideration Of Req",
           "hearingDateIso": "2026-12-03",
           "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-          "tier": "1",
-          "tierConfirmed": false,
-          "isHumanReviewed": false,
+          "tier": "2",
+          "tierConfirmed": true,
+          "isHumanReviewed": true,
           "hcad": "0040570000008",
           "address": "4705 LIBERTY RD",
           "yearBuilt": "1925",
           "designation": "None found",
           "threatCategory": "Significant Building Threatened",
-          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+          "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
         },
         {
           "cycleKey": "2026-10-29",
@@ -14823,17 +14824,17 @@
           "section": "F. Reconsideration Of Req",
           "hearingDateIso": "2026-12-03",
           "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-          "tier": "1",
-          "tierConfirmed": false,
-          "isHumanReviewed": false,
+          "tier": "2",
+          "tierConfirmed": true,
+          "isHumanReviewed": true,
           "hcad": "0040570000008",
           "address": "4705 LIBERTY RD",
           "yearBuilt": "1925",
           "designation": "None found",
           "threatCategory": "Significant Building Threatened",
-          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+          "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
         }
       ],
       "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under C. Public Hearing Notice Posted (Hearing: Dec 3, 2026))",
@@ -17394,16 +17395,22 @@
     },
     "2026-1773": {
       "address": "5007 WILMINGTON ST",
-      "yearBuilt": "1948",
+      "yearBuilt": "",
       "designation": "None found",
       "tier": "2",
       "tierConfirmed": false,
       "threatCategory": "Lot Split / Subdividing Historic Lot",
-      "why": "Atlas matched HCAD parcel at 5007 WILMINGTON ST with a standing structure built in 1948 in SUNNYSIDE GARDENS. Proposed replat divides 0.3432000000 ac into 4 lots (Single Family Residential (Shared Driveways)).",
+      "why": "Atlas matched HCAD parcel at 5007 WILMINGTON ST with a standing structure built in 1948 in SUNNYSIDE GARDENS. Proposed replat divides 0.3432000000 ac into 4 lots (Single Family Residential (Shared Driveways)).\nEA Note: Building already demolished.",
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94092/OriginalFiles/WILMINGTON_PARK_PLAZA-Layout1.pdf?sv=2021-08-06&se=2051-11-01T23%3A19%3A48Z&sr=b&sp=r&sig=JWlGxFJVQCMxYEbgDPxo35wUa09%2FpzN0XIzFwQ60%2B8I%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-12T19:24:43.161426+00:00"
+      "updated": "2026-11-13T04:01:07.524Z",
+      "humanEditedFields": [
+        "yearBuilt",
+        "threatCategory",
+        "why"
+      ],
+      "reviewer": "Preservation Houston (emily@preservationhouston.org)"
     },
     "2026-1770": {
       "address": "8410 OBSERVATORY ST",
@@ -17424,12 +17431,16 @@
       "designation": "None found",
       "tier": "2",
       "tierConfirmed": false,
-      "threatCategory": "Institutional / Cultural Site",
+      "threatCategory": "Neighborhood / District Context Impact",
       "why": "Atlas matched HCAD parcel at 1901 W ALABAMA ST; 1911 W ALABAMA ST with a standing structure built in 1940 in Montlew Place. Proposed land use is Unrestricted.",
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94109/OriginalFiles/11-1234-PLAT.pdf?sv=2021-08-06&se=2051-10-30T20%3A33%3A38Z&sr=b&sp=r&sig=9JtUivrc74sMAvYZdbpouqUILSgbnmLlENQoz9xVi3Q%3D",
       "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
       "autoEnriched": true,
-      "updated": "2026-11-12T19:24:43.161480+00:00"
+      "updated": "2026-11-13T03:58:10.107Z",
+      "humanEditedFields": [
+        "threatCategory"
+      ],
+      "reviewer": "Preservation Houston (emily@preservationhouston.org)"
     },
     "2026-1757": {
       "address": "8213 KENTON ST",
@@ -17661,66 +17672,94 @@
       "address": "13515 PERTHSHIRE RD",
       "yearBuilt": "1966",
       "designation": "None found",
-      "tier": "1",
-      "tierConfirmed": false,
-      "threatCategory": "Setback / Walkable Realm Variance",
+      "tier": "2",
+      "tierConfirmed": true,
+      "threatCategory": "Neighborhood / District Context Impact",
       "why": "Section K Development Plat Variance (DPV-26091362) in Houston. The applicant is requesting an 11-foot building line in lieu of the city ordinance 20-foot garage building line along Glenchester Drive, a local street, for a new single-family residence.",
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-11-12T19:24:43.162025+00:00"
+      "updated": "2026-11-13T16:03:09.758Z",
+      "humanEditedFields": [
+        "threatCategory",
+        "tier"
+      ],
+      "reviewer": "Preservation Houston (emily@preservationhouston.org)"
     },
     "DPV-99": {
       "address": "3747 DREYFUS ST",
       "yearBuilt": "1950",
       "designation": "None found",
-      "tier": "1",
-      "tierConfirmed": false,
+      "tier": "3",
+      "tierConfirmed": true,
       "threatCategory": "Setback / Walkable Realm Variance",
       "why": "Section K Development Plat Variance (DPV-99) in Houston.",
       "sources": "",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-11-12T19:24:43.162040+00:00"
+      "updated": "2026-11-13T08:48:43.000Z",
+      "reviewer": "emily@preservationhouston.org",
+      "humanEditedFields": [
+        "tier"
+      ]
     },
     "DPV-26087637": {
       "address": "403 YORKCHESTER DR",
       "yearBuilt": "1967",
       "designation": "None found",
-      "tier": "1",
+      "tier": "2",
       "tierConfirmed": false,
-      "threatCategory": "Setback / Walkable Realm Variance",
+      "threatCategory": "Neighborhood / District Context Impact",
       "why": "Section K Development Plat Variance (DPV-26087637) in Houston. The applicant is requesting a 14-foot building line in lieu of the city ordinance 20-foot garage building line along Apple Tree Road, a local street, for a new single-family residence.",
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-11-12T19:24:43.162055+00:00"
+      "updated": "2026-11-13T16:03:56.551Z",
+      "humanEditedFields": [
+        "threatCategory",
+        "tier"
+      ],
+      "reviewer": "Preservation Houston (emily@preservationhouston.org)"
     },
     "DPV-26084127": {
       "address": "6102 WALTWAY DR",
       "yearBuilt": "1954",
       "designation": "None found",
-      "tier": "1",
-      "tierConfirmed": false,
-      "threatCategory": "Setback / Walkable Realm Variance",
-      "why": "Section K Development Plat Variance (DPV-26084127) in Houston. The applicant is requesting a 10-foot building line along W.",
+      "tier": "2",
+      "tierConfirmed": true,
+      "threatCategory": "Neighborhood / District Context Impact",
+      "why": "Section K Development Plat Variance (DPV-26084127) in Houston. The applicant is requesting a 10-foot building line along W.\nEA Note 11/13/2026: Nice mid-century house on prominent corner.",
       "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf",
       "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
       "autoEnriched": true,
-      "updated": "2026-11-12T19:24:43.162070+00:00"
+      "updated": "2026-11-13T16:11:17.611Z",
+      "humanEditedFields": [
+        "threatCategory",
+        "why",
+        "tier"
+      ],
+      "reviewer": "Preservation Houston (emily@preservationhouston.org)"
     },
     "2026-1524": {
       "address": "4705 LIBERTY RD",
       "yearBuilt": "1925",
       "designation": "None found",
-      "tier": "1",
-      "tierConfirmed": false,
+      "tier": "2",
+      "tierConfirmed": true,
       "threatCategory": "Significant Building Threatened",
-      "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+      "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
       "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
       "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
       "autoEnriched": true,
-      "updated": "2026-11-12T19:24:43.162087+00:00"
+      "updated": "2026-11-13T08:48:43.000Z",
+      "carriedFromCycle": "2026-10-29",
+      "carriedFields": [
+        "why"
+      ],
+      "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+      "humanEditedFields": [
+        "tier"
+      ]
     },
     "2026-1551": {
       "address": "8841 CULLEN BLVD",
@@ -17949,6 +17988,12 @@
         "why",
         "sources",
         "followup"
+      ],
+      "tierConfirmed": true,
+      "updated": "2026-11-13T08:48:43.000Z",
+      "reviewer": "emily@preservationhouston.org",
+      "humanEditedFields": [
+        "tier"
       ]
     },
     "2026-1722": {
@@ -18210,9 +18255,10 @@
         "cycleFilingOnlyCount": 39,
         "toCheckCount": 75,
         "preEnrichedCount": 36,
-        "tier1Count": 3,
-        "tier2Count": 7,
-        "tier3Count": 25
+        "tier1Count": 1,
+        "tier2Count": 9,
+        "tier3Count": 25,
+        "tier4Count": 0
       },
       "items": [
         {
@@ -30907,14 +30953,20 @@
           "address": "4705 LIBERTY RD",
           "yearBuilt": "1925",
           "designation": "None found",
-          "tier": "1",
-          "tierConfirmed": false,
+          "tier": "2",
+          "tierConfirmed": true,
           "threatCategory": "Significant Building Threatened",
-          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
+          "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:42.725004+00:00"
+          "updated": "2026-11-13T08:48:43.000Z",
+          "humanEditedFields": [
+            "why",
+            "followup",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1523": {
           "address": "12409 DUMAS ST",
@@ -31449,7 +31501,7 @@
             "designation",
             "tier"
           ],
-          "updated": "2026-10-30T01:59:30.712Z",
+          "updated": "2026-11-13T23:09:35.027Z",
           "hcad": "0283120000009",
           "tierConfirmed": true,
           "multiParcelBreakdown": [
@@ -31565,9 +31617,12 @@
           "humanEditedFields": [
             "hcad",
             "yearBuilt",
-            "address"
+            "address",
+            "why",
+            "designation",
+            "tier"
           ],
-          "updated": "2026-10-30T02:26:50.136Z",
+          "updated": "2026-11-13T00:59:36.185Z",
           "multiParcelBreakdown": [
             {
               "hcad": "0021600000009",
@@ -31615,8 +31670,11 @@
           "hcadLookupWarnings": [],
           "yearBuilt": "1935",
           "address": "2101 TRAVIS ST",
-          "tier": "1",
-          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+          "tier": "2",
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "why": "Existing Enterprise Rent-A-Car building shows up on 1950 Sanborn map (1-story, steel frame, stucco). Looks altered but some details are still present: overall form, concrete steps, rounded corners at entry. Building is shown on site plan, so it might remain. ",
+          "designation": "None found",
+          "tierConfirmed": false
         }
       },
       "minutesUrl": "https://www.houstontx.gov/planning/Commissions/minutes-plan-2026/10.01.2026-PCMinutes-DRAFT.pdf",
@@ -31675,9 +31733,10 @@
         "cycleFilingOnlyCount": 36,
         "toCheckCount": 72,
         "preEnrichedCount": 38,
-        "tier1Count": 6,
-        "tier2Count": 9,
-        "tier3Count": 17
+        "tier1Count": 5,
+        "tier2Count": 10,
+        "tier3Count": 17,
+        "tier4Count": 0
       },
       "items": [
         {
@@ -40319,17 +40378,17 @@
               "section": "F. Reconsideration Of Req",
               "hearingDateIso": "2026-12-03",
               "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-              "tier": "1",
-              "tierConfirmed": false,
-              "isHumanReviewed": false,
+              "tier": "2",
+              "tierConfirmed": true,
+              "isHumanReviewed": true,
               "hcad": "0040570000008",
               "address": "4705 LIBERTY RD",
               "yearBuilt": "1925",
               "designation": "None found",
               "threatCategory": "Significant Building Threatened",
-              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
               "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-              "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+              "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
             }
           ],
           "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
@@ -45231,7 +45290,7 @@
         },
         "2026-1587": {
           "address": "2501 CANAL ST",
-          "yearBuilt": "1925",
+          "yearBuilt": "1930",
           "designation": "None found",
           "tier": "1",
           "tierConfirmed": true,
@@ -45240,7 +45299,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93886/OriginalFiles/05-Refoka_Estates_at_Canal_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-02T11%3A52%3A10Z&sr=b&sp=r&sig=3X6mU%2FTN4SLbAbeflBdaFZ%2FkBde5plfmUAuJ%2FmIAfJc%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-10-30T00:18:45.316Z",
+          "updated": "2026-11-13T16:01:34.585Z",
           "reviewer": "emily@preservationhouston.org",
           "humanEditedFields": [
             "tier"
@@ -45326,14 +45385,24 @@
           "address": "4705 LIBERTY RD",
           "yearBuilt": "1925",
           "designation": "None found",
-          "tier": "1",
-          "tierConfirmed": false,
+          "tier": "2",
+          "tierConfirmed": true,
           "threatCategory": "Significant Building Threatened",
-          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
+          "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:42.863858+00:00"
+          "updated": "2026-11-13T08:48:43.000Z",
+          "carriedFromCycle": "2026-11-12",
+          "carriedFields": [
+            "why",
+            "followup",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1495": {
           "address": "1131 VERA LOU ST",
@@ -45346,7 +45415,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93739/OriginalFiles/26-0065_-_1131_Vera_Lou_St_Subdivision_R02.pdf?sv=2021-08-06&se=2051-09-04T19%3A50%3A54Z&sr=b&sp=r&sig=SMDxQ%2BsoGa%2FxG8izdy%2Bo5xKS30gMqto5CdIqCeZVRPk%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-10-27T20:06:51.741Z",
+          "updated": "2026-11-13T08:48:43.000Z",
           "hcad": "0650100070010",
           "reviewer": "Preservation Houston (emily@preservationhouston.org)",
           "humanEditedFields": [
@@ -45676,13 +45745,16 @@
             "tier",
             "designation"
           ],
-          "updated": "2026-10-30T01:59:30.712Z",
+          "updated": "2026-11-13T23:09:35.027Z",
           "hcad": "0283120000009",
           "yearBuilt": "1961",
           "tier": "1",
           "tierConfirmed": true,
           "designation": "None found",
-          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1639": {
           "hcad": "0810960000228",
@@ -45787,9 +45859,10 @@
         "cycleFilingOnlyCount": 44,
         "toCheckCount": 82,
         "preEnrichedCount": 71,
-        "tier1Count": 3,
-        "tier2Count": 13,
-        "tier3Count": 48
+        "tier1Count": 2,
+        "tier2Count": 14,
+        "tier3Count": 48,
+        "tier4Count": 0
       },
       "items": [
         {
@@ -56059,7 +56132,7 @@
               "isHumanReviewed": true,
               "hcad": "0231000000006, 0231000000007",
               "address": "2501 CANAL ST",
-              "yearBuilt": "1925",
+              "yearBuilt": "1930",
               "designation": "None found",
               "threatCategory": "Significant Building Threatened",
               "why": "Atlas matched HCAD parcel at 2501 CANAL ST; 2507 CANAL ST with a standing structure built in 1925 in Lubbock Grove. Proposed land use is Commercial.",
@@ -57125,17 +57198,17 @@
               "section": "F. Reconsideration Of Req",
               "hearingDateIso": "2026-12-03",
               "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-              "tier": "1",
-              "tierConfirmed": false,
-              "isHumanReviewed": false,
+              "tier": "2",
+              "tierConfirmed": true,
+              "isHumanReviewed": true,
               "hcad": "0040570000008",
               "address": "4705 LIBERTY RD",
               "yearBuilt": "1925",
               "designation": "None found",
               "threatCategory": "Significant Building Threatened",
-              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
               "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-              "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+              "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
             },
             {
               "cycleKey": "2026-10-15",
@@ -57148,17 +57221,17 @@
               "section": "F. Reconsideration Of Req",
               "hearingDateIso": "2026-12-03",
               "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-              "tier": "1",
-              "tierConfirmed": false,
-              "isHumanReviewed": false,
+              "tier": "2",
+              "tierConfirmed": true,
+              "isHumanReviewed": true,
               "hcad": "0040570000008",
               "address": "4705 LIBERTY RD",
               "yearBuilt": "1925",
               "designation": "None found",
               "threatCategory": "Significant Building Threatened",
-              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
               "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-              "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+              "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
             }
           ],
           "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
@@ -61492,7 +61565,7 @@
         },
         "2026-1587": {
           "address": "2501 CANAL ST",
-          "yearBuilt": "1925",
+          "yearBuilt": "1930",
           "designation": "None found",
           "tier": "1",
           "tierConfirmed": true,
@@ -61501,7 +61574,7 @@
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93886/OriginalFiles/05-Refoka_Estates_at_Canal_Subdivision_Plat.pdf?sv=2021-08-06&se=2051-10-02T11%3A52%3A10Z&sr=b&sp=r&sig=3X6mU%2FTN4SLbAbeflBdaFZ%2FkBde5plfmUAuJ%2FmIAfJc%3D",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-10-30T00:18:45.316Z",
+          "updated": "2026-11-13T16:01:34.585Z",
           "reviewer": "emily@preservationhouston.org",
           "humanEditedFields": [
             "tier"
@@ -61547,14 +61620,24 @@
           "address": "4705 LIBERTY RD",
           "yearBuilt": "1925",
           "designation": "None found",
-          "tier": "1",
-          "tierConfirmed": false,
+          "tier": "2",
+          "tierConfirmed": true,
           "threatCategory": "Significant Building Threatened",
-          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-          "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
+          "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:43.009291+00:00"
+          "updated": "2026-11-13T08:48:43.000Z",
+          "carriedFromCycle": "2026-11-12",
+          "carriedFields": [
+            "why",
+            "followup",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1520": {
           "address": "58 PATTI LYNN LN",
@@ -61787,7 +61870,7 @@
           "tier": "2",
           "carriedFromCycle": "2026-10-15",
           "why": "(Atlas matched HCAD parcel at 1131 VERA LOU ST with a standing structure built in 1942 in Replat of Brookhaven Addition.",
-          "updated": "2026-10-27T20:06:51.741Z",
+          "updated": "2026-11-13T08:48:43.000Z",
           "tierConfirmed": true,
           "multiParcelBreakdown": [
             {
@@ -61808,6 +61891,9 @@
             "designation",
             "sources",
             "followup"
+          ],
+          "humanEditedFields": [
+            "tier"
           ]
         },
         "2026-1668": {
@@ -62411,9 +62497,10 @@
         "cycleFilingOnlyCount": 47,
         "toCheckCount": 82,
         "preEnrichedCount": 59,
-        "tier1Count": 7,
-        "tier2Count": 14,
-        "tier3Count": 25
+        "tier1Count": 2,
+        "tier2Count": 18,
+        "tier3Count": 26,
+        "tier4Count": 0
       },
       "items": [
         {
@@ -77167,17 +77254,17 @@
               "section": "F. Reconsideration Of Req",
               "hearingDateIso": "2026-12-03",
               "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-              "tier": "1",
-              "tierConfirmed": false,
-              "isHumanReviewed": false,
+              "tier": "2",
+              "tierConfirmed": true,
+              "isHumanReviewed": true,
               "hcad": "0040570000008",
               "address": "4705 LIBERTY RD",
               "yearBuilt": "1925",
               "designation": "None found",
               "threatCategory": "Significant Building Threatened",
-              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
               "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-              "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+              "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
             },
             {
               "cycleKey": "2026-10-15",
@@ -77190,17 +77277,17 @@
               "section": "F. Reconsideration Of Req",
               "hearingDateIso": "2026-12-03",
               "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-              "tier": "1",
-              "tierConfirmed": false,
-              "isHumanReviewed": false,
+              "tier": "2",
+              "tierConfirmed": true,
+              "isHumanReviewed": true,
               "hcad": "0040570000008",
               "address": "4705 LIBERTY RD",
               "yearBuilt": "1925",
               "designation": "None found",
               "threatCategory": "Significant Building Threatened",
-              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
               "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-              "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+              "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
             },
             {
               "cycleKey": "2026-10-29",
@@ -77213,17 +77300,17 @@
               "section": "F. Reconsideration Of Req",
               "hearingDateIso": "2026-12-03",
               "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under F. Reconsideration Of Req)",
-              "tier": "1",
-              "tierConfirmed": false,
-              "isHumanReviewed": false,
+              "tier": "2",
+              "tierConfirmed": true,
+              "isHumanReviewed": true,
               "hcad": "0040570000008",
               "address": "4705 LIBERTY RD",
               "yearBuilt": "1925",
               "designation": "None found",
               "threatCategory": "Significant Building Threatened",
-              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+              "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
               "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
-              "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
+              "followup": "Check whether building is already demolished. Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov."
             }
           ],
           "meetingAction": "Not on Commission meeting agenda (Plat Tracker filing under C. Public Hearing Notice Posted (Hearing: Dec 3, 2026))",
@@ -79784,16 +79871,22 @@
         },
         "2026-1773": {
           "address": "5007 WILMINGTON ST",
-          "yearBuilt": "1948",
+          "yearBuilt": "",
           "designation": "None found",
           "tier": "2",
           "tierConfirmed": false,
           "threatCategory": "Lot Split / Subdividing Historic Lot",
-          "why": "Atlas matched HCAD parcel at 5007 WILMINGTON ST with a standing structure built in 1948 in SUNNYSIDE GARDENS. Proposed replat divides 0.3432000000 ac into 4 lots (Single Family Residential (Shared Driveways)).",
+          "why": "Atlas matched HCAD parcel at 5007 WILMINGTON ST with a standing structure built in 1948 in SUNNYSIDE GARDENS. Proposed replat divides 0.3432000000 ac into 4 lots (Single Family Residential (Shared Driveways)).\nEA Note: Building already demolished.",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94092/OriginalFiles/WILMINGTON_PARK_PLAZA-Layout1.pdf?sv=2021-08-06&se=2051-11-01T23%3A19%3A48Z&sr=b&sp=r&sig=JWlGxFJVQCMxYEbgDPxo35wUa09%2FpzN0XIzFwQ60%2B8I%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:43.161426+00:00"
+          "updated": "2026-11-13T04:01:07.524Z",
+          "humanEditedFields": [
+            "yearBuilt",
+            "threatCategory",
+            "why"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1770": {
           "address": "8410 OBSERVATORY ST",
@@ -79814,12 +79907,16 @@
           "designation": "None found",
           "tier": "2",
           "tierConfirmed": false,
-          "threatCategory": "Institutional / Cultural Site",
+          "threatCategory": "Neighborhood / District Context Impact",
           "why": "Atlas matched HCAD parcel at 1901 W ALABAMA ST; 1911 W ALABAMA ST with a standing structure built in 1940 in Montlew Place. Proposed land use is Unrestricted.",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/94109/OriginalFiles/11-1234-PLAT.pdf?sv=2021-08-06&se=2051-10-30T20%3A33%3A38Z&sr=b&sp=r&sig=9JtUivrc74sMAvYZdbpouqUILSgbnmLlENQoz9xVi3Q%3D",
           "followup": "Confirm structure condition on Street View and check COH Sold Permits.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:43.161480+00:00"
+          "updated": "2026-11-13T03:58:10.107Z",
+          "humanEditedFields": [
+            "threatCategory"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1757": {
           "address": "8213 KENTON ST",
@@ -80051,66 +80148,94 @@
           "address": "13515 PERTHSHIRE RD",
           "yearBuilt": "1966",
           "designation": "None found",
-          "tier": "1",
-          "tierConfirmed": false,
-          "threatCategory": "Setback / Walkable Realm Variance",
+          "tier": "2",
+          "tierConfirmed": true,
+          "threatCategory": "Neighborhood / District Context Impact",
           "why": "Section K Development Plat Variance (DPV-26091362) in Houston. The applicant is requesting an 11-foot building line in lieu of the city ordinance 20-foot garage building line along Glenchester Drive, a local street, for a new single-family residence.",
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26091362_13515-Perthshire-Road-notice.pdf",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:43.162025+00:00"
+          "updated": "2026-11-13T16:03:09.758Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "DPV-99": {
           "address": "3747 DREYFUS ST",
           "yearBuilt": "1950",
           "designation": "None found",
-          "tier": "1",
-          "tierConfirmed": false,
+          "tier": "3",
+          "tierConfirmed": true,
           "threatCategory": "Setback / Walkable Realm Variance",
           "why": "Section K Development Plat Variance (DPV-99) in Houston.",
           "sources": "",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:43.162040+00:00"
+          "updated": "2026-11-13T08:48:43.000Z",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "DPV-26087637": {
           "address": "403 YORKCHESTER DR",
           "yearBuilt": "1967",
           "designation": "None found",
-          "tier": "1",
+          "tier": "2",
           "tierConfirmed": false,
-          "threatCategory": "Setback / Walkable Realm Variance",
+          "threatCategory": "Neighborhood / District Context Impact",
           "why": "Section K Development Plat Variance (DPV-26087637) in Houston. The applicant is requesting a 14-foot building line in lieu of the city ordinance 20-foot garage building line along Apple Tree Road, a local street, for a new single-family residence.",
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26087637_403-Yorkchester-Drive-notice.pdf",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:43.162055+00:00"
+          "updated": "2026-11-13T16:03:56.551Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "DPV-26084127": {
           "address": "6102 WALTWAY DR",
           "yearBuilt": "1954",
           "designation": "None found",
-          "tier": "1",
-          "tierConfirmed": false,
-          "threatCategory": "Setback / Walkable Realm Variance",
-          "why": "Section K Development Plat Variance (DPV-26084127) in Houston. The applicant is requesting a 10-foot building line along W.",
+          "tier": "2",
+          "tierConfirmed": true,
+          "threatCategory": "Neighborhood / District Context Impact",
+          "why": "Section K Development Plat Variance (DPV-26084127) in Houston. The applicant is requesting a 10-foot building line along W.\nEA Note 11/13/2026: Nice mid-century house on prominent corner.",
           "sources": "https://www.houstontx.gov/planning/notices/2026/DPV_26084127_6102-Waltway-Drive_notice.pdf",
           "followup": "Review site plan in DPV packet before Wednesday 2:30 p.m. speaker comment deadline.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:43.162070+00:00"
+          "updated": "2026-11-13T16:11:17.611Z",
+          "humanEditedFields": [
+            "threatCategory",
+            "why",
+            "tier"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)"
         },
         "2026-1524": {
           "address": "4705 LIBERTY RD",
           "yearBuilt": "1925",
           "designation": "None found",
-          "tier": "1",
-          "tierConfirmed": false,
+          "tier": "2",
+          "tierConfirmed": true,
           "threatCategory": "Significant Building Threatened",
-          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.",
+          "why": "Atlas matched HCAD parcel at 4705 LIBERTY RD with a standing structure built in 1925 in Augusta Additions. The applicant is requesting a reconsideration of requirements to allow a reduced 15' setback along a major thoroughfare Liberty Road.\nEA note 11/12/26: Dangerous building demo permit issued in February 2026. Already demolished?",
           "sources": "https://sablobgtxpptprod.blob.core.usgovcloudapi.net/plattracker-documents/Drafts/93773/OriginalFiles/LIBERTY_GREEN_REPLAT_PDF_WITH_SHARED_DRIVE.pdf?sv=2021-08-06&se=2051-09-18T16%3A01%3A25Z&sr=b&sp=r&sig=iPIY0jXECk3dIdCVDxcsTGquPMVk375njZu3DEgpQBg%3D\nhttps://www.houstontx.gov/planning/notices/2026/2026-1524-Liberty-Green.pdf",
           "followup": "Public hearing / variance opportunity - evaluate for comment to speakercomments.pc@houstontx.gov.",
           "autoEnriched": true,
-          "updated": "2026-11-12T19:24:43.162087+00:00"
+          "updated": "2026-11-13T08:48:43.000Z",
+          "carriedFromCycle": "2026-10-29",
+          "carriedFields": [
+            "why"
+          ],
+          "reviewer": "Preservation Houston (emily@preservationhouston.org)",
+          "humanEditedFields": [
+            "tier"
+          ]
         },
         "2026-1551": {
           "address": "8841 CULLEN BLVD",
@@ -80339,6 +80464,12 @@
             "why",
             "sources",
             "followup"
+          ],
+          "tierConfirmed": true,
+          "updated": "2026-11-13T08:48:43.000Z",
+          "reviewer": "emily@preservationhouston.org",
+          "humanEditedFields": [
+            "tier"
           ]
         },
         "2026-1722": {

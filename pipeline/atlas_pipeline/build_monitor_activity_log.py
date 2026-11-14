@@ -50,29 +50,29 @@ import datetime as dt
 import json
 import re
 import shutil
+import sys
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT / "pipeline") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "pipeline"))
+
+from atlas_pipeline.schema import (
+    ARCHIVED_WATCHLIST_STATUSES,
+    REMOVED_TIER3_TOMBSTONE,
+    REMOVED_TIER4_TOMBSTONE,
+    REMOVED_WATCHLIST_TOMBSTONE,
+    WATCHLIST_TOMBSTONE_STATUSES,
+    is_archived_watchlist_status,
+    is_removed_watchlist_tombstone,
+)
+
 DEFAULT_DATA_DIR = REPO_ROOT / "app" / "public" / "data"
 DEFAULT_LOG_FILENAME = "monitor_activity_log.json"
 
 CHICAGO_TZ = ZoneInfo("America/Chicago")
 
-REMOVED_TIER3_TOMBSTONE = "Removed (Tier 3)"
-REMOVED_WATCHLIST_TOMBSTONE = "Removed from Watchlist"
-WATCHLIST_TOMBSTONE_STATUSES = frozenset({
-    REMOVED_TIER3_TOMBSTONE,
-    REMOVED_WATCHLIST_TOMBSTONE,
-})
-
-
-def is_removed_watchlist_tombstone(prop: dict | None) -> bool:
-    if not isinstance(prop, dict):
-        return False
-    if prop.get("removedFromWatchlist") is True:
-        return True
-    return str(prop.get("trackerStatus") or "").strip() in WATCHLIST_TOMBSTONE_STATUSES
 RETENTION_DAYS = 90
 SCHEMA_VERSION = 1
 
@@ -462,16 +462,24 @@ def _diff_property_watchlist(
         if is_removed_watchlist_tombstone(b_prop):
             continue
         a_prop = after_by_id.get(pid)
-        was_archived = str(b_prop.get("trackerStatus") or "").strip() == "Archived (Tier 3)"
+        was_archived = is_archived_watchlist_status(b_prop)
         is_now_removed = a_prop is None or is_removed_watchlist_tombstone(a_prop)
         is_now_archived = (
             a_prop is not None
             and not is_now_removed
-            and str(a_prop.get("trackerStatus") or "").strip() == "Archived (Tier 3)"
+            and is_archived_watchlist_status(a_prop)
         )
         if is_now_removed or (not was_archived and is_now_archived):
             ref_p = a_prop if (a_prop is not None and not is_now_removed) else b_prop
             prop_title = ref_p.get("propertyName") or ref_p.get("address") or pid
+            archived_tier_num = (
+                "4"
+                if (
+                    str(ref_p.get("tier") or "").strip() == "4"
+                    or str(ref_p.get("trackerStatus") or "").strip() == "Archived (Tier 4)"
+                )
+                else "3"
+            )
             ev_ts = str(
                 (a_prop or {}).get("updatedAt")
                 or ref_p.get("archivedAt")
@@ -501,7 +509,7 @@ def _diff_property_watchlist(
                         else f"Removed from Property Watchlist: {prop_title}"
                     ),
                     summary=(
-                        f"Reclassified to Tier 3 / Archived ({ref_p.get('address') or 'Houston'})."
+                        f"Reclassified to Tier {archived_tier_num} / Archived ({ref_p.get('address') or 'Houston'})."
                         if is_now_archived
                         else f"Removed from Property Watchlist ({ref_p.get('address') or 'Houston'})."
                     ),
@@ -526,7 +534,7 @@ def _diff_property_watchlist(
         prop_title = str(a_prop.get("propertyName") or a_prop.get("address") or pid).strip()
         prop_addr = str(a_prop.get("address") or "").strip()
         prop_hcad = str(a_prop.get("hcadAccount") or "").strip()
-        is_archived = str(a_prop.get("trackerStatus") or "").strip() == "Archived (Tier 3)"
+        is_archived = is_archived_watchlist_status(a_prop)
 
         if b_prop is None and not is_archived:
             kd = a_prop.get("keyDates") if isinstance(a_prop.get("keyDates"), dict) else {}
@@ -1793,7 +1801,7 @@ def merge_and_prune_ledger(
     props_swept = int(
         sweep_health.get("propertiesSwept")
         if sweep_health.get("propertiesSwept") is not None
-        else len([p for p in (wl_doc.get("watchedProperties") or []) if isinstance(p, dict) and p.get("trackerStatus") != "Archived (Tier 3)"])
+        else len([p for p in (wl_doc.get("watchedProperties") or []) if isinstance(p, dict) and not is_archived_watchlist_status(p)])
     )
 
     prev_today = runs_by_date.get(today_str)

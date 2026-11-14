@@ -12,7 +12,7 @@ import {
   parseClerkLegalTokens,
   formatClerkPartyTokens,
   cleanClerkSubdivisionDesc,
-} from "./clerkSearchHelpers.js?v=20261113b";
+} from "./clerkSearchHelpers.js?v=20261113c";
 import {
   THREAT_CATEGORIES,
   parseHcadAccountList,
@@ -24,7 +24,7 @@ import {
   stripCorporateSuffixCommas,
   cleanEntityListString,
   canonicalPropertyAddressKey,
-} from "./platMonitorHelpers.js?v=20261113b";
+} from "./platMonitorHelpers.js?v=20261113c";
 
 export {
   stripCorporateSuffixCommas,
@@ -40,23 +40,63 @@ export const TRACKER_STATUSES = [
   "Saved",
   "Lost",
   "Archived (Tier 3)",
+  "Archived (Tier 4)",
+];
+
+export const ARCHIVED_TRACKER_STATUSES = [
+  "Archived (Tier 3)",
+  "Archived (Tier 4)",
 ];
 
 export const REMOVED_TIER3_TOMBSTONE = "Removed (Tier 3)";
+export const REMOVED_TIER4_TOMBSTONE = "Removed (Tier 4)";
 export const REMOVED_WATCHLIST_TOMBSTONE = "Removed from Watchlist";
 export const WATCHLIST_TOMBSTONE_STATUSES = [
   REMOVED_TIER3_TOMBSTONE,
+  REMOVED_TIER4_TOMBSTONE,
   REMOVED_WATCHLIST_TOMBSTONE,
 ];
+
+export const GOOGLE_SHEETS_SAFE_CELL_CHAR_LIMIT = 48000;
+
+/**
+ * Serialize a Watchlist sync object to a JSON string for the Google Sheets `source_citation`
+ * cell, stripping `photoDataUrl` if the serialized payload exceeds the 48,000-character
+ * cell safety limit.
+ */
+export function stringifyWatchPropertyForSheetCell(
+  serialized,
+  maxChars = GOOGLE_SHEETS_SAFE_CELL_CHAR_LIMIT
+) {
+  if (!serialized || typeof serialized !== "object") return "";
+  const json = JSON.stringify(serialized);
+  if (json.length <= maxChars || !serialized.photoDataUrl) return json;
+  return JSON.stringify({ ...serialized, photoDataUrl: "" });
+}
+
+/**
+ * Return true when a Watchlist property or trackerStatus string represents an archived dossier
+ * (`"Archived (Tier 3)"` or `"Archived (Tier 4)"`).
+ */
+export function isArchivedWatchlistStatus(propOrStatus) {
+  if (!propOrStatus) return false;
+  const st =
+    typeof propOrStatus === "string"
+      ? propOrStatus.trim()
+      : String(propOrStatus.trackerStatus || "").trim();
+  return ARCHIVED_TRACKER_STATUSES.includes(st);
+}
 
 /**
  * Return true when a Watchlist property object represents a soft-delete removal tombstone (F2-02, DF-2).
  */
 export function isRemovedWatchlistTombstone(prop) {
-  if (!prop || typeof prop !== "object") return false;
+  if (!prop) return false;
+  if (typeof prop === "string") return WATCHLIST_TOMBSTONE_STATUSES.includes(prop.trim());
+  if (typeof prop !== "object") return false;
   if (prop.removedFromWatchlist === true) return true;
   const st = String(prop.trackerStatus || "").trim();
-  return st === REMOVED_TIER3_TOMBSTONE || st === REMOVED_WATCHLIST_TOMBSTONE;
+  return WATCHLIST_TOMBSTONE_STATUSES.includes(st);
 }
 
 /**
@@ -75,9 +115,10 @@ export function createWatchlistTombstone(
   } = {}
 ) {
   const ts = nowIso || new Date().toISOString();
-  const resolvedTier = ["1", "2", "3"].includes(String(tier || prop?.tier || ""))
+  const fallbackTier = status === REMOVED_TIER4_TOMBSTONE ? "4" : "3";
+  const resolvedTier = ["1", "2", "3", "4"].includes(String(tier || prop?.tier || ""))
     ? String(tier || prop?.tier)
-    : "3";
+    : fallbackTier;
   return normalizeWatchProperty({
     ...(prop && typeof prop === "object" ? prop : {}),
     tier: resolvedTier,
@@ -1245,15 +1286,17 @@ export function normalizeWatchProperty(rawProp = {}) {
     String(rawProp.designFirm ?? rawProp.architectEngineer ?? "").trim()
   );
   const tierRaw = String(rawProp.tier || "1").trim();
-  const tier = ["1", "2", "3"].includes(tierRaw) ? tierRaw : "1";
+  const tier = ["1", "2", "3", "4"].includes(tierRaw) ? tierRaw : "1";
 
+  const rawTrackerStatus = String(rawProp.trackerStatus || "").trim();
   const defaultStatus =
-    tier === "3"
+    tier === "4"
+      ? "Archived (Tier 4)"
+      : tier === "3" && Boolean(rawProp.archivedAt)
       ? "Archived (Tier 3)"
-      : tier === "2"
+      : tier === "2" || tier === "3"
       ? "Monitoring"
       : "Active / High Priority";
-  const rawTrackerStatus = String(rawProp.trackerStatus || "").trim();
   const isTombstone = isRemovedWatchlistTombstone(rawProp);
   let trackerStatus = defaultStatus;
   if (isTombstone) {
@@ -1261,13 +1304,19 @@ export function normalizeWatchProperty(rawProp = {}) {
       ? rawTrackerStatus
       : REMOVED_WATCHLIST_TOMBSTONE;
   } else if (TRACKER_STATUSES.includes(rawTrackerStatus)) {
-    trackerStatus =
-      tier === "3" &&
+    if (
+      tier === "4" &&
       (rawTrackerStatus === "Active / High Priority" ||
         rawTrackerStatus === "Monitoring" ||
-        rawTrackerStatus === "Dormant / Medium Priority")
-        ? "Archived (Tier 3)"
-        : rawTrackerStatus;
+        rawTrackerStatus === "Dormant / Medium Priority" ||
+        rawTrackerStatus === "Archived (Tier 3)")
+    ) {
+      trackerStatus = "Archived (Tier 4)";
+    } else if (tier === "3" && rawTrackerStatus === "Active / High Priority") {
+      trackerStatus = rawProp.archivedAt ? "Archived (Tier 3)" : "Monitoring";
+    } else {
+      trackerStatus = rawTrackerStatus;
+    }
   }
 
   const rawThreat = String(rawProp.threatCategory || "").trim();
@@ -1686,7 +1735,7 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
     if (
       base.trackerStatus !== "Lost" &&
       base.trackerStatus !== "Saved" &&
-      base.trackerStatus !== "Archived (Tier 3)" &&
+      !isArchivedWatchlistStatus(base.trackerStatus) &&
       sNorm.likelyDemolishedReviewNeeded
     ) {
       base.likelyDemolishedReviewNeeded = true;
@@ -1702,7 +1751,7 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
   if (
     lostCandidate &&
     base.trackerStatus !== "Saved" &&
-    base.trackerStatus !== "Archived (Tier 3)" &&
+    !isArchivedWatchlistStatus(base.trackerStatus) &&
     !base.archivedAt
   ) {
     base.trackerStatus = "Lost";
@@ -1720,7 +1769,7 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
       };
     }
   }
-  if (["Lost", "Saved", "Archived (Tier 3)"].includes(base.trackerStatus)) {
+  if (["Lost", "Saved"].includes(base.trackerStatus) || isArchivedWatchlistStatus(base.trackerStatus)) {
     base.likelyDemolishedReviewNeeded = false;
     base.likelyDemolishedReason = "";
   }
@@ -1869,7 +1918,8 @@ export function reconcileWatchlistProperty(staticProp, cloudProp, localProp) {
       : humanLastChecked;
 
     let nextStatus = humanStatus;
-    const isTerminalStatus = ["Lost", "Saved", "Archived (Tier 3)"].includes(base.trackerStatus);
+    const isTerminalStatus =
+      ["Lost", "Saved"].includes(base.trackerStatus) || isArchivedWatchlistStatus(base.trackerStatus);
     const hasUnseenAdverseAutoHit =
       !isTerminalStatus &&
       autoChecks.some((chk) => {
@@ -2197,7 +2247,7 @@ export function syncWatchlistTierToPlatReviews({
   nowIso = "",
   respectNewerReviews = false,
 } = {}) {
-  const cleanTier = ["1", "2", "3"].includes(String(newTier || "").trim())
+  const cleanTier = ["1", "2", "3", "4"].includes(String(newTier || "").trim())
     ? String(newTier).trim()
     : "";
   if (!prop || typeof prop !== "object" || !cleanTier || !cycles || typeof cycles !== "object") {
@@ -2265,11 +2315,25 @@ export function syncWatchlistTierToPlatReviews({
       if (!exactSource && !appMatch && !hcadMatch && !addrMatch) continue;
       if (respectNewerReviews && wpMs > 0) {
         const revMs = Date.parse(curRev.updated || "") || 0;
-        if (revMs > wpMs) continue;
+        if (revMs > wpMs) {
+          if (
+            (curRev.tier === "1" || curRev.tier === "2") &&
+            Boolean(prop.tierConfirmed) &&
+            !isArchivedWatchlistStatus(prop) &&
+            !curRev.tierConfirmed
+          ) {
+            curRev.tierConfirmed = true;
+            cyc.reviews[it.app] = curRev;
+          }
+          continue;
+        }
       }
 
       curRev.tier = cleanTier;
-      curRev.tierConfirmed = cleanTier === "1" || cleanTier === "2";
+      curRev.tierConfirmed =
+        cleanTier === "1" ||
+        cleanTier === "2" ||
+        (cleanTier === "3" && !isArchivedWatchlistStatus(prop) && Boolean(prop.tierConfirmed));
       curRev.updated = ts;
       if (reviewer) curRev.reviewer = reviewer;
       const hf = new Set(
@@ -2287,7 +2351,7 @@ export function syncWatchlistTierToPlatReviews({
 }
 
 /**
- * Synchronize a tier change (including Tier 1/2 -> Tier 3 downgrade) from Biweekly Plat Review
+ * Synchronize a tier change (including Tier 1/2/3/4 transitions) from Biweekly Plat Review
  * onto the Property Watchlist while protecting human-authored dossier research via soft-archiving.
  */
 export function syncPlatTierToWatchlist(
@@ -2298,6 +2362,7 @@ export function syncPlatTierToWatchlist(
     hcadAccount = "",
     address = "",
     newTier = "",
+    keepOnWatchlist = false,
     platItem = null,
     nowIso = "",
   } = {}
@@ -2340,7 +2405,24 @@ export function syncPlatTierToWatchlist(
   }
 
   const target = list[idx];
-  if (newTier === "3" || newTier === "") {
+  if (newTier === "4") {
+    if (
+      hasHumanDossierContributions(target) ||
+      String(target.id || "").startsWith("prop-") ||
+      target.source === "manual"
+    ) {
+      target.tier = "4";
+      target.tierConfirmed = true;
+      target.trackerStatus = "Archived (Tier 4)";
+      target.archivedAt = ts;
+      target.updatedAt = ts;
+      return { watchedProperties: list, action: "archived", targetProp: target };
+    }
+    list.splice(idx, 1);
+    return { watchedProperties: list, action: "removed", targetProp: target };
+  }
+
+  if ((newTier === "3" && !keepOnWatchlist) || newTier === "") {
     if (
       hasHumanDossierContributions(target) ||
       String(target.id || "").startsWith("prop-") ||
@@ -2357,12 +2439,19 @@ export function syncPlatTierToWatchlist(
     return { watchedProperties: list, action: "removed", targetProp: target };
   }
 
-  if (newTier === "1" || newTier === "2") {
+  if (newTier === "1" || newTier === "2" || (newTier === "3" && keepOnWatchlist)) {
     target.tier = newTier;
     target.tierConfirmed = true;
-    if (target.trackerStatus === "Archived (Tier 3)") {
+    if (isArchivedWatchlistStatus(target.trackerStatus)) {
       target.trackerStatus = newTier === "1" ? "Active / High Priority" : "Monitoring";
       target.archivedAt = "";
+    } else if (newTier === "1" && target.trackerStatus === "Monitoring") {
+      target.trackerStatus = "Active / High Priority";
+    } else if (
+      (newTier === "2" || newTier === "3") &&
+      target.trackerStatus === "Active / High Priority"
+    ) {
+      target.trackerStatus = "Monitoring";
     }
     if (platItem && typeof platItem === "object") {
       const platDev = stripCorporateSuffixCommas(String(platItem.developer || "").trim());
@@ -2406,7 +2495,7 @@ export function evaluateWatchlistLikelyDemolished(prop, todayIso = "") {
   if (
     status === "Lost" ||
     status === "Saved" ||
-    status === "Archived (Tier 3)" ||
+    isArchivedWatchlistStatus(status) ||
     Boolean(prop.demolishedDate) ||
     Boolean(prop.lostHoustonId)
   ) {
@@ -2535,14 +2624,14 @@ export function graduateWatchlistPropertyToLost(
 }
 
 /**
- * Sort Watchlist properties strictly Tier 1 -> Tier 2 -> Tier 3, keeping completed
- * (Lost / Saved) and Archived (Tier 3) entries below active watched properties.
+ * Sort Watchlist properties strictly Tier 1 -> Tier 2 -> Tier 3 -> Tier 4, keeping completed
+ * (Lost / Saved) and Archived (Tier 3 / Tier 4) entries below active watched properties.
  */
 export function sortWatchedProperties(list = []) {
-  const tierOrder = { "1": 0, "2": 1, "3": 2 };
+  const tierOrder = { "1": 0, "2": 1, "3": 2, "4": 3 };
   const inactiveRank = (p) => {
     const st = String(p?.trackerStatus || "");
-    if (st === "Archived (Tier 3)") return 2;
+    if (isArchivedWatchlistStatus(st)) return 2;
     if (st === "Lost" || st === "Saved") return 1;
     return 0;
   };
@@ -2661,7 +2750,7 @@ export function parseCloudSheetSyncRows(csvText = "") {
     const sheetYr = idxYr >= 0 ? String(row[idxYr] || "").trim() : "";
     const sheetDesig = idxDesig >= 0 ? String(row[idxDesig] || "").trim() : "";
     const sheetTierRaw = idxTier >= 0 ? String(row[idxTier] || "").trim() : "";
-    const sheetTierMatch = sheetTierRaw.match(/([123])/);
+    const sheetTierMatch = sheetTierRaw.match(/([1234])/);
     const sheetTier = sheetTierMatch ? sheetTierMatch[1] : "";
     const sheetReviewer = idxVer >= 0 ? String(row[idxVer] || "").trim() : "";
 

@@ -286,9 +286,10 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     for expected_cyc in ("2026-10-29", "2026-10-15", "2026-10-01", "all"):
         assert expected_cyc in cycle_values
 
-    # Verify Tier 3 tab exists in #tabs and threat filter default selected option is non-blank
+    # Verify Tier 3 and Tier 4 tabs exist in #tabs and threat filter default selected option is non-blank
     tabs_text = page.locator("#tabs").inner_text()
     assert "Tier 3" in tabs_text
+    assert "Tier 4" in tabs_text
     f_threat_selected = page.evaluate(
         "() => document.querySelector('#fThreat')?.selectedOptions?.[0]?.textContent?.trim() || ''"
     )
@@ -444,6 +445,14 @@ def test_it3_and_it4_multicycle_plat_monitor_screenout_override_and_tier_sync(
     assert page.locator("#list .row").count() >= 1
     page.locator(f'#list .row[data-watch-id="plat-{target_app}"]').click()
     assert "Preservation Test Holdings LLC" in page.locator("#detail").inner_text()
+
+    # Reclassify to Tier 4 via quick tier button -> transitions to Archived (Tier 4) and syncs to Tier 4 tab
+    page.click('[data-wl-inline-tier="4"]')
+    page.select_option("#wlStatusFilter", "Archived (Tier 4)")
+    assert page.locator(f'#list .row[data-watch-id="plat-{target_app}"]').count() == 1
+    page.click("#jumpBackToPlatItemBtn")
+    page.locator('#tabs [data-g="t4"]').click()
+    assert page.locator(f'#list .row[data-occ="{target_occ}"]').count() == 1
 
 
 def test_it5_it6_and_it7_watchlist_header_editor_snowball_checklist_and_exports(

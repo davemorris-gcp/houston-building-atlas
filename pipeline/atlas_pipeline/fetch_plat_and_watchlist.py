@@ -49,6 +49,13 @@ if str(REPO_ROOT / "pipeline") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "pipeline"))
 
 from atlas_pipeline.schema import (
+    ARCHIVED_WATCHLIST_STATUSES,
+    REMOVED_TIER3_TOMBSTONE,
+    REMOVED_TIER4_TOMBSTONE,
+    REMOVED_WATCHLIST_TOMBSTONE,
+    WATCHLIST_TOMBSTONE_STATUSES,
+    is_archived_watchlist_status,
+    is_removed_watchlist_tombstone,
     iter_json_or_gzip_shard_keys,
     read_json_or_gzip_path,
     read_json_or_gzip_shard,
@@ -68,12 +75,6 @@ SHEET_PUBLISHED_CSV_URL = (
 AUTO_SWEEP_SCHEDULE = "Daily at 7:00 AM CT"
 PLAT_CACHE_DIR = REPO_ROOT / "pipeline" / "cache" / "plat_spreadsheets_2026"
 
-REMOVED_TIER3_TOMBSTONE = "Removed (Tier 3)"
-REMOVED_WATCHLIST_TOMBSTONE = "Removed from Watchlist"
-WATCHLIST_TOMBSTONE_STATUSES = {
-    REMOVED_TIER3_TOMBSTONE,
-    REMOVED_WATCHLIST_TOMBSTONE,
-}
 WATCHLIST_TRACKER_STATUSES = {
     "Active / High Priority",
     "Monitoring",
@@ -82,8 +83,9 @@ WATCHLIST_TRACKER_STATUSES = {
     "Saved",
     "Lost",
     "Archived (Tier 3)",
+    "Archived (Tier 4)",
 }
-WATCHLIST_ALL_VALID_STATUSES = WATCHLIST_TRACKER_STATUSES | WATCHLIST_TOMBSTONE_STATUSES
+WATCHLIST_ALL_VALID_STATUSES = WATCHLIST_TRACKER_STATUSES | set(WATCHLIST_TOMBSTONE_STATUSES)
 CARRY_FORWARD_REVIEW_FIELDS = (
     "hcad",
     "address",
@@ -797,7 +799,7 @@ def resolve_multi_parcel_building_tier(
     is_confirmed_vacant = bool(all_parcels_confirmed_vacant and oldest_yr == 0 and not unique_desigs)
 
     suggested_tier = ""
-    if norm_override_tier in ("1", "2", "3"):
+    if norm_override_tier in ("1", "2", "3", "4"):
         suggested_tier = norm_override_tier
     elif is_confirmed_vacant:
         suggested_tier = "3"
@@ -1151,10 +1153,10 @@ def merge_plat_review_overlay(
 
     if inc.get("autoEnriched") is True and not has_human_edits and not inc.get("tierConfirmed") and boilerplate_why:
         merged = dict(base)
-        # Preserve an explicit human Tier 3 dismissal made against the correct parcel while
+        # Preserve an explicit human Tier 3/4 dismissal made against the correct parcel while
         # refreshing machine-enriched parcel metadata from base.
-        if str(inc.get("tier") or "") == "3" and str(inc.get("reviewer") or "").strip():
-            merged["tier"] = "3"
+        if str(inc.get("tier") or "") in ("3", "4") and str(inc.get("reviewer") or "").strip():
+            merged["tier"] = str(inc.get("tier"))
             merged["tierConfirmed"] = False
             if inc.get("threatCategory"):
                 merged["threatCategory"] = inc["threatCategory"]
@@ -1181,7 +1183,7 @@ def _is_human_reviewed_plat_entry(rev: dict | None) -> bool:
         return True
     if not rev.get("autoEnriched"):
         return any(str(rev.get(k) or "").strip() for k in CARRY_FORWARD_REVIEW_FIELDS)
-    if str(rev.get("tier") or "") == "3" and str(rev.get("reviewer") or "").strip():
+    if str(rev.get("tier") or "") in ("3", "4") and str(rev.get("reviewer") or "").strip():
         return True
     return False
 
@@ -2646,7 +2648,7 @@ def _notice_name_compatible(item_name: str, notice_name: str) -> bool:
 
 
 def _suggest_threat_category(flags: list[str], earliest_yr: int, tier: str) -> str:
-    if tier == "3":
+    if tier in ("3", "4"):
         return "No Historic Impact"
     fset = set(flags)
     if "dpv" in fset:
@@ -2674,6 +2676,7 @@ def _recompute_cycle_summary_counts(cyc_data: dict) -> None:
     summary["tier1Count"] = sum(1 for r in reviews.values() if str(r.get("tier") or "") == "1")
     summary["tier2Count"] = sum(1 for r in reviews.values() if str(r.get("tier") or "") == "2")
     summary["tier3Count"] = sum(1 for r in reviews.values() if str(r.get("tier") or "") == "3")
+    summary["tier4Count"] = sum(1 for r in reviews.values() if str(r.get("tier") or "") == "4")
 
 
 def build_single_cycle_dataset(
@@ -3596,7 +3599,7 @@ def _reconcile_watchlist_tiers_onto_cycles(
         if wp.get("humanEdited") is not True:
             continue
         wp_tier = str(wp.get("tier") or "").strip()
-        if wp_tier not in ("1", "2", "3"):
+        if wp_tier not in ("1", "2", "3", "4"):
             continue
         wp_updated = str(wp.get("updatedAt") or "").strip()
         wp_src_cycle = str(wp.get("sourceCycleKey") or "").strip()
@@ -3649,10 +3652,20 @@ def _reconcile_watchlist_tiers_onto_cycles(
 
                 rev_updated = str(cur_rev.get("updated") or "").strip()
                 if rev_updated and (not wp_updated or wp_updated <= rev_updated):
+                    if (
+                        str(cur_rev.get("tier") or "") in ("1", "2")
+                        and wp.get("tierConfirmed") is True
+                        and not is_archived_watchlist_status(wp)
+                        and not cur_rev.get("tierConfirmed")
+                    ):
+                        cur_rev["tierConfirmed"] = True
+                        reviews[it["app"]] = cur_rev
                     continue
 
                 cur_rev["tier"] = wp_tier
-                cur_rev["tierConfirmed"] = wp_tier in ("1", "2")
+                cur_rev["tierConfirmed"] = wp_tier in ("1", "2") or (
+                    wp_tier == "3" and not is_archived_watchlist_status(wp)
+                )
                 if wp_updated:
                     cur_rev["updated"] = wp_updated
                 if wp.get("updatedBy") and not cur_rev.get("reviewer"):
@@ -5510,15 +5523,6 @@ def merge_auto_sweep_findings_into_property(
     return prop
 
 
-def is_removed_watchlist_tombstone(prop: object) -> bool:
-    """Return True when a Watchlist record represents a soft-delete / removal tombstone (F2-02, DF-2)."""
-    if not isinstance(prop, dict):
-        return False
-    if prop.get("removedFromWatchlist") is True:
-        return True
-    return str(prop.get("trackerStatus") or "").strip() in WATCHLIST_TOMBSTONE_STATUSES
-
-
 def has_human_dossier_contributions(prop: dict | None) -> bool:
     """Return True if a Watchlist dossier contains human research that must never be hard-deleted.
 
@@ -5927,7 +5931,7 @@ def normalize_watch_property_record(raw: dict) -> dict:
     p.setdefault("legalDescription", "")
     is_tombstone = is_removed_watchlist_tombstone(p)
     tier_val = str(p.get("tier") or "1").strip()
-    if tier_val not in ("1", "2", "3"):
+    if tier_val not in ("1", "2", "3", "4"):
         tier_val = "1"
     p["tier"] = tier_val
     is_plat_orig = pid.startswith("plat-") or bool(resolved_app)
@@ -5946,19 +5950,30 @@ def normalize_watch_property_record(raw: dict) -> dict:
     else:
         p["removedFromWatchlist"] = False
         raw_status = str(p.get("trackerStatus") or "").strip()
+        is_explicit_tier3_archive = (
+            raw_status == "Archived (Tier 3)"
+            or (not raw_status and bool(p.get("archivedAt")))
+        )
         default_status = (
-            "Archived (Tier 3)"
-            if tier_val == "3"
-            else ("Monitoring" if tier_val == "2" else "Active / High Priority")
+            "Archived (Tier 4)"
+            if tier_val == "4"
+            else (
+                "Archived (Tier 3)"
+                if tier_val == "3" and is_explicit_tier3_archive
+                else ("Monitoring" if tier_val in ("2", "3") else "Active / High Priority")
+            )
         )
         if not raw_status or raw_status not in WATCHLIST_TRACKER_STATUSES:
             raw_status = default_status
-        elif tier_val == "3" and raw_status in (
+        elif tier_val == "4" and raw_status in (
             "Active / High Priority",
             "Monitoring",
             "Dormant / Medium Priority",
+            "Archived (Tier 3)",
         ):
-            raw_status = "Archived (Tier 3)"
+            raw_status = "Archived (Tier 4)"
+        elif tier_val == "3" and raw_status == "Active / High Priority":
+            raw_status = "Archived (Tier 3)" if bool(p.get("archivedAt")) else "Monitoring"
         p["trackerStatus"] = raw_status
         p["tierConfirmed"] = (
             bool(p.get("tierConfirmed"))
@@ -6130,7 +6145,7 @@ def evaluate_likely_demolished_signal(prop: dict, today_iso: str = "") -> tuple[
     if not isinstance(prop, dict):
         return False, ""
     status = str(prop.get("trackerStatus") or "").strip()
-    if status in ("Lost", "Saved", "Archived (Tier 3)") or prop.get("demolishedDate"):
+    if is_archived_watchlist_status(status) or status in ("Lost", "Saved") or prop.get("demolishedDate"):
         return False, ""
     if not today_iso:
         today_iso = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
@@ -6964,17 +6979,37 @@ def build_property_watchlist(
             ):
                 watched_by_id.pop(pid, None)
                 continue
-            if is_confirmed and tier_val in ("1", "2"):
+            cloud_t3_active = bool(
+                cloud_for_pid
+                and str(cloud_for_pid.get("tier") or "") == "3"
+                and cloud_for_pid.get("tierConfirmed") is True
+                and not is_archived_watchlist_status(cloud_for_pid.get("trackerStatus"))
+            )
+            if is_confirmed and (tier_val in ("1", "2") or (tier_val == "3" and cloud_t3_active)):
                 seed_p = _build_confirmed_plat_watch_property(it, rev, c_iso, sweep_date)
                 if rev.get("updated"):
                     seed_p["updatedAt"] = str(rev["updated"])
                 watched_by_id[pid] = seed_p
-            elif tier_val == "3" and pid in watched_by_id:
+            elif tier_val in ("3", "4") and pid in watched_by_id:
                 existing_p = watched_by_id[pid]
+                if (
+                    tier_val == "3"
+                    and (
+                        cloud_t3_active
+                        or (
+                            str(existing_p.get("tier") or "") == "3"
+                            and existing_p.get("tierConfirmed") is True
+                            and not is_archived_watchlist_status(existing_p.get("trackerStatus"))
+                        )
+                    )
+                ):
+                    continue
                 if has_human_dossier_contributions(existing_p):
-                    existing_p["tier"] = "3"
+                    existing_p["tier"] = tier_val
                     existing_p["tierConfirmed"] = True
-                    existing_p["trackerStatus"] = "Archived (Tier 3)"
+                    existing_p["trackerStatus"] = (
+                        "Archived (Tier 4)" if tier_val == "4" else "Archived (Tier 3)"
+                    )
                 else:
                     watched_by_id.pop(pid, None)
 
@@ -7027,18 +7062,46 @@ def build_property_watchlist(
                     latest_app_tier = t_val
                     latest_app_ts = t_ts
         cp_ts = str(norm_cp.get("updatedAt") or "")
-        plat_downgraded_newer = bool(
-            latest_app_tier == "3" and (not cp_ts or not latest_app_ts or latest_app_ts >= cp_ts)
+        is_active_confirmed_t3 = (
+            norm_cp.get("tier") == "3"
+            and norm_cp.get("tierConfirmed") is True
+            and not is_archived_watchlist_status(norm_cp.get("trackerStatus"))
         )
-        if (norm_cp.get("tier") == "3" or plat_downgraded_newer) and pid.startswith("plat-"):
+        plat_downgraded_newer = bool(
+            (
+                latest_app_tier == "4"
+                or (latest_app_tier == "3" and not is_active_confirmed_t3)
+            )
+            and (not cp_ts or not latest_app_ts or latest_app_ts > cp_ts)
+        )
+        is_archived_plat = bool(
+            norm_cp.get("tier") == "4"
+            or is_archived_watchlist_status(norm_cp.get("trackerStatus"))
+            or plat_downgraded_newer
+        )
+        if is_archived_plat and pid.startswith("plat-"):
+            target_tier = (
+                latest_app_tier
+                if (plat_downgraded_newer and latest_app_tier in ("3", "4"))
+                else ("4" if norm_cp.get("tier") == "4" else "3")
+            )
             if has_human_dossier_contributions(norm_cp):
-                norm_cp["tier"] = "3"
+                norm_cp["tier"] = target_tier
                 norm_cp["tierConfirmed"] = True
                 if norm_cp.get("trackerStatus") not in ("Saved", "Lost", "For Sale"):
-                    norm_cp["trackerStatus"] = "Archived (Tier 3)"
+                    norm_cp["trackerStatus"] = (
+                        "Archived (Tier 4)" if target_tier == "4" else "Archived (Tier 3)"
+                    )
             else:
                 watched_by_id.pop(pid, None)
                 continue
+        elif (
+            latest_app_tier in ("1", "2")
+            and cp_ts
+            and latest_app_ts
+            and latest_app_ts > cp_ts
+        ):
+            norm_cp["tier"] = latest_app_tier
         if pid in watched_by_id:
             base_p = watched_by_id[pid]
             # Preserve human edits from cloud while protecting seeded searchTerms/driveLinks from legacy rows
@@ -7098,7 +7161,7 @@ def build_property_watchlist(
             if (
                 base_p.get("trackerStatus") == "Lost"
                 or (base_p.get("demolishedDate") and base_p.get("lostHoustonId"))
-            ) and norm_cp.get("trackerStatus") not in ("Archived (Tier 3)", "Saved") and not norm_cp.get("archivedAt"):
+            ) and not is_archived_watchlist_status(norm_cp.get("trackerStatus")) and norm_cp.get("trackerStatus") != "Saved" and not norm_cp.get("archivedAt"):
                 merged_p["trackerStatus"] = "Lost"
                 merged_p["demolishedDate"] = norm_cp.get("demolishedDate") or base_p.get("demolishedDate")
                 merged_p["lostHoustonId"] = norm_cp.get("lostHoustonId") or base_p.get("lostHoustonId")
@@ -7113,13 +7176,18 @@ def build_property_watchlist(
                     merged_p["keyDates"] = merged_kd
                 if str(base_p.get("updatedAt") or "") > str(norm_cp.get("updatedAt") or ""):
                     merged_p["updatedAt"] = base_p["updatedAt"]
-            if merged_p.get("tier") == "3" and merged_p.get("trackerStatus") in (
+            if merged_p.get("tier") == "4" and merged_p.get("trackerStatus") in (
                 "Active / High Priority",
                 "Monitoring",
                 "Dormant / Medium Priority",
+                "Archived (Tier 3)",
             ):
-                merged_p["trackerStatus"] = "Archived (Tier 3)"
-            if merged_p.get("trackerStatus") != "Archived (Tier 3)":
+                merged_p["trackerStatus"] = "Archived (Tier 4)"
+            elif merged_p.get("tier") == "3" and merged_p.get("trackerStatus") == "Active / High Priority":
+                merged_p["trackerStatus"] = (
+                    "Archived (Tier 3)" if bool(merged_p.get("archivedAt")) else "Monitoring"
+                )
+            if not is_archived_watchlist_status(merged_p.get("trackerStatus")):
                 merged_p["archivedAt"] = ""
             if has_explicit_terms:
                 merged_p["searchTerms"] = norm_cp["searchTerms"]
@@ -7192,35 +7260,66 @@ def build_property_watchlist(
     deduped_props = dedupe_watchlist_properties(list(watched_by_id.values()))
     watched_by_id = {p["id"]: p for p in deduped_props if p.get("id")}
 
-    # Backfill missing parcel coordinates and construction year from local HCAD/address shard indices
+    # Backfill missing parcel coordinates, HCAD account, and construction year from local HCAD/address shard indices
     hcad_map = idx.get("hcad_map") or {}
     buildings_by_hcad = idx.get("buildings_by_hcad") or {}
+    addr_exact = idx.get("addr_exact") or {}
+    addr_nodir = idx.get("addr_nodir") or {}
     for prop in watched_by_id.values():
-        if prop.get("lat") is not None and prop.get("lng") is not None:
-            continue
-        hcads = parse_hcad_account_list(prop.get("hcadAccount") or "")
+        hcads = parse_hcad_account_list(prop.get("hcadAccount") or "").get("hcadIds") or []
         for hid in hcads:
             rec = hcad_map.get(hid) or buildings_by_hcad.get(hid)
             if rec and rec.get("lat") and rec.get("lng"):
-                prop["lat"] = round(float(rec["lat"]), 6)
-                prop["lng"] = round(float(rec["lng"]), 6)
-                prop["coordSource"] = prop.get("coordSource") or "hcad_parcel"
+                if prop.get("lat") is None or prop.get("lng") is None:
+                    prop["lat"] = round(float(rec["lat"]), 6)
+                    prop["lng"] = round(float(rec["lng"]), 6)
+                    prop["coordSource"] = prop.get("coordSource") or "hcad_parcel"
                 if not prop.get("yearBuilt") and rec.get("year_built"):
                     prop["yearBuilt"] = str(rec["year_built"])
+                if not prop.get("buildingId") and rec.get("building_id"):
+                    prop["buildingId"] = str(rec["building_id"])
                 break
-        if (prop.get("lat") is None or prop.get("lng") is None) and prop.get("address"):
-            addr_hit = _lookup_single_address_candidate(str(prop.get("address") or ""), idx)
+        if (prop.get("lat") is None or prop.get("lng") is None or not prop.get("hcadAccount")) and prop.get("address"):
+            raw_addr_str = str(prop.get("address") or "").strip()
+            addr_hit = _lookup_single_address_candidate(raw_addr_str, idx)
+            if not addr_hit:
+                # Support hyphenated house ranges (e.g. "1658-1660 Westheimer") and suffixless street names (e.g. "800 Bell", "1905 Crawford")
+                m_range = re.match(r"^\s*(\d{1,5})(?:\s*[-–/&]\s*(\d{1,5}))?\s+([A-Za-z0-9\s.]+?)\s*$", raw_addr_str)
+                if m_range:
+                    cand_nums = [m_range.group(1)]
+                    if m_range.group(2):
+                        cand_nums.append(m_range.group(2))
+                    st_stem = norm_street(m_range.group(3))
+                    st_stem_nodir = re.sub(r"^[NSEW]\s+", "", st_stem)
+                    matched_hcads: list[str] = []
+                    for cnum in cand_nums:
+                        for sfx in ("", " ST", " RD", " AVE", " BLVD", " DR", " LN", " PKWY", " FWY", " WAY"):
+                            h_cand = (
+                                addr_exact.get((cnum, f"{st_stem}{sfx}".strip()))
+                                or addr_nodir.get((cnum, f"{st_stem_nodir}{sfx}".strip()))
+                            )
+                            if h_cand:
+                                if addr_hit is None:
+                                    addr_hit = dict(h_cand)
+                                if h_cand.get("hcad") and h_cand["hcad"] not in matched_hcads:
+                                    matched_hcads.append(h_cand["hcad"])
+                                break
+                    if matched_hcads and not prop.get("hcadAccount"):
+                        prop["hcadAccount"] = ", ".join(matched_hcads)
             if addr_hit and addr_hit.get("lat") and addr_hit.get("lng"):
-                prop["lat"] = round(float(addr_hit["lat"]), 6)
-                prop["lng"] = round(float(addr_hit["lng"]), 6)
-                prop["coordSource"] = prop.get("coordSource") or "address_shard"
+                if prop.get("lat") is None or prop.get("lng") is None:
+                    prop["lat"] = round(float(addr_hit["lat"]), 6)
+                    prop["lng"] = round(float(addr_hit["lng"]), 6)
+                    prop["coordSource"] = prop.get("coordSource") or "address_shard"
+                if not prop.get("hcadAccount") and addr_hit.get("hcad"):
+                    prop["hcadAccount"] = str(addr_hit["hcad"])
                 if not prop.get("yearBuilt") and addr_hit.get("year_built"):
                     prop["yearBuilt"] = str(addr_hit["year_built"])
 
     # Execute 8-agency sweeps for every active watched property and roll up worst-case sweep health
     per_property_healths: list[dict] = []
     for pid, prop in watched_by_id.items():
-        if prop.get("trackerStatus") in ("Archived (Tier 3)", "Lost", "Saved"):
+        if is_archived_watchlist_status(prop.get("trackerStatus")) or prop.get("trackerStatus") in ("Lost", "Saved"):
             prop["lastAutoSweepAt"] = now_iso
             prop["autoSweepSchedule"] = AUTO_SWEEP_SCHEDULE
             prop["likelyDemolishedReviewNeeded"] = False
@@ -7242,12 +7341,12 @@ def build_property_watchlist(
         per_property_healths, now_iso, run_live_sweeps=run_live_sweeps
     )
 
-    tier_rank = {"1": 1, "2": 2, "3": 3}
+    tier_rank = {"1": 1, "2": 2, "3": 3, "4": 4}
     ordered_props = sorted(
         dedupe_watchlist_properties(list(watched_by_id.values())),
         key=lambda p: (
             2
-            if p.get("trackerStatus") == "Archived (Tier 3)"
+            if is_archived_watchlist_status(p.get("trackerStatus"))
             else (1 if p.get("trackerStatus") in ("Lost", "Saved") else 0),
             tier_rank.get(str(p.get("tier") or "2"), 9),
             0 if p.get("id") == "prop-kirby-mansion" else 1,
@@ -7258,7 +7357,8 @@ def build_property_watchlist(
         (
             p
             for p in ordered_props
-            if p.get("trackerStatus") not in ("Archived (Tier 3)", "Lost", "Saved")
+            if not is_archived_watchlist_status(p.get("trackerStatus"))
+            and p.get("trackerStatus") not in ("Lost", "Saved")
             and p.get("hcadAccount")
         ),
         watched_by_id.get("prop-kirby-mansion") or (ordered_props[0] if ordered_props else {}),

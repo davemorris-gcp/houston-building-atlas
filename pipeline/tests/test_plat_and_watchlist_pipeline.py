@@ -2792,7 +2792,7 @@ def test_post_review_cross_language_parity_and_activity_sanitization(tmp_path: P
     assert "sources" in schema.PLAT_CARRY_FORWARD_REVIEW_FIELDS
     assert "followup" in schema.PLAT_CARRY_FORWARD_REVIEW_FIELDS
     assert set(schema.WATCHLIST_TRACKER_STATUSES) == fpw.WATCHLIST_TRACKER_STATUSES
-    assert len(fpw.WATCHLIST_TRACKER_STATUSES) == 7
+    assert len(fpw.WATCHLIST_TRACKER_STATUSES) == 8
     assert fpw.WATCHLIST_ALL_VALID_STATUSES == (
         fpw.WATCHLIST_TRACKER_STATUSES | fpw.WATCHLIST_TOMBSTONE_STATUSES
     )
@@ -3112,7 +3112,7 @@ def test_pass3_feedback_f3_01_through_f3_12_pipeline_invariants() -> None:
 
     # F3-04: parse_pc_minutes_text and describe_cycle_meeting_action
     parsed_min = fpw.parse_pc_minutes_text(
-        "102 Tejano Broadway Reserve  C2R\n"
+        "102 Reserves at Park Place  C2R\n"
         "Staff recommendation: Defer the application for two weeks. Commission action: Deferred the application.\n"
     )
     assert "Defer" in parsed_min["byItem"].get("102", "")
@@ -3144,7 +3144,7 @@ def test_pass3_feedback_f3_01_through_f3_12_pipeline_invariants() -> None:
         {
             "id": "plat-2026-1302",
             "appNo": "2026-1302",
-            "propertyName": "Tejano Broadway Reserve",
+            "propertyName": "Reserves at Park Place",
             "address": "3827 BROADWAY ST",
             "hcadAccount": "0283120000009",
             "hcadOwner": "Park Place Methodist Church",
@@ -3165,6 +3165,105 @@ def test_pass3_feedback_f3_01_through_f3_12_pipeline_invariants() -> None:
     assert deduped[0]["historyFolderUrl"] == "https://drive.google.com/drive/folders/example123"
     assert deduped[0]["photoUrl"] == "https://example.org/church.jpg"
     assert del_key in deduped[0]["deletedCheckKeys"]
+
+    # F4: 4-tier classification & archiving (Tier 3 active low-priority monitoring vs Tier 4 irrelevant/demolished)
+    assert fpw.REMOVED_TIER4_TOMBSTONE == "Removed (Tier 4)"
+    assert fpw.is_removed_watchlist_tombstone({"trackerStatus": "Removed (Tier 4)"}) is True
+    assert fpw.is_archived_watchlist_status("Archived (Tier 3)") is True
+    assert fpw.is_archived_watchlist_status("Archived (Tier 4)") is True
+    assert fpw.is_archived_watchlist_status("Monitoring") is False
+
+    active_t3_py = fpw.normalize_watch_property_record(
+        {
+            "id": "prop-t3-active",
+            "propertyName": "Low Priority Storefront",
+            "address": "4100 Telephone Rd",
+            "tier": "3",
+            "tierConfirmed": True,
+            "trackerStatus": "Monitoring",
+        }
+    )
+    assert active_t3_py["tier"] == "3"
+    assert active_t3_py["trackerStatus"] == "Monitoring"
+    assert fpw.is_archived_watchlist_status(active_t3_py) is False
+
+    archived_t4_py = fpw.normalize_watch_property_record(
+        {
+            "id": "prop-t4-archived",
+            "propertyName": "Demolished Strip Center",
+            "address": "9200 Hempstead Rd",
+            "tier": "4",
+            "tierConfirmed": True,
+            "trackerStatus": "Monitoring",
+        }
+    )
+    assert archived_t4_py["tier"] == "4"
+    assert archived_t4_py["trackerStatus"] == "Archived (Tier 4)"
+    assert fpw.is_archived_watchlist_status(archived_t4_py) is True
+
+    # Active confirmed Tier 3 plat-* Watchlist property remains active on Monitoring across build_property_watchlist
+    wl_res = fpw.build_property_watchlist(
+        plat_data={
+            "cycleKey": "2026-11-12",
+            "cycles": {
+                "2026-11-12": {
+                    "items": [
+                        {
+                            "app": "2026-3333",
+                            "name": "Modest Storefront Replat",
+                            "type": "C2R",
+                            "section": "C. Public Hearings",
+                            "hcad": "0333333333333",
+                            "developer": "Bayou Builders LLC",
+                            "atlas": {
+                                "primaryAddress": "3333 TELEPHONE RD",
+                                "earliestYearBuilt": 1948,
+                                "lat": 29.71,
+                                "lng": -95.32,
+                            },
+                        }
+                    ],
+                    "reviews": {
+                        "2026-3333": {
+                            "tier": "3",
+                            "tierConfirmed": True,
+                            "updated": "2026-11-13T19:00:00Z",
+                            "why": "Keep on low-priority watchlist monitoring.",
+                        }
+                    },
+                }
+            },
+        },
+        idx={},
+        cloud_sync={
+            "watchProperties": {
+                "plat-2026-3333": {
+                    "id": "plat-2026-3333",
+                    "appNo": "2026-3333",
+                    "propertyName": "Modest Storefront Replat",
+                    "address": "3333 Telephone Rd",
+                    "hcadAccount": "0333333333333",
+                    "tier": "3",
+                    "tierConfirmed": True,
+                    "trackerStatus": "Monitoring",
+                    "buildingHistory": "1948 neighborhood commercial storefront.",
+                    "updatedAt": "2026-11-13T18:30:00Z",
+                }
+            }
+        },
+        run_live_sweeps=False,
+        sweep_timestamp_iso="2026-11-13T20:00:00Z",
+    )
+    matched_t3 = next(
+        (p for p in wl_res["watchedProperties"] if p["id"] == "plat-2026-3333"),
+        None,
+    )
+    assert matched_t3 is not None
+    assert matched_t3["tier"] == "3"
+    assert matched_t3["tierConfirmed"] is True
+    assert matched_t3["trackerStatus"] == "Monitoring"
+    assert fpw.is_archived_watchlist_status(matched_t3) is False
+
 
 
 
