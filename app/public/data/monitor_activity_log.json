@@ -65,11 +65,11 @@
         "error": ""
       },
       "chk-15": {
-        "status": "ok",
-        "ok": true,
+        "status": "failed",
+        "ok": false,
         "label": "TX DSHS Asbestos & Demolition",
-        "failedPropertyCount": 0,
-        "error": ""
+        "failedPropertyCount": 26,
+        "error": "DSHS asbestos portal unreachable after 3 attempts (<urlopen error [Errno -2] Name or service not known>)"
       }
     }
   },
@@ -84,7 +84,7 @@
       "staff": 206,
       "permits": 123
     },
-    "operationalNoticeCount": 13,
+    "operationalNoticeCount": 14,
     "daysTracked": 90
   },
   "dailyRuns": [
