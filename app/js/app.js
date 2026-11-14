@@ -94,8 +94,11 @@ import {
   buildAncestryCityDirImageUrl,
   buildArchivalDrawingsCardHtml,
   buildPost1926CityDirNoteHtml,
+  extractAltAddressStrings,
   isPre1927CityDirHit,
+  normalizeArchivalLookupAddress,
   resolveArchivalRecords,
+  resolveHcaCr001Holdings,
 } from "./archivalHelpers.js?v=20261113c";
 import {
   buildCohLandmarkDossierCardHtml,
@@ -12448,7 +12451,13 @@ export class HoustonAtlasApp {
     };
   }
 
-  _parseAddressForArchivalSearch(rawAddress, neighborhood = "", historicDistrict = "", subdivision = "") {
+  _parseAddressForArchivalSearch(
+    rawAddress,
+    neighborhood = "",
+    historicDistrict = "",
+    subdivision = "",
+    altAddresses = []
+  ) {
     const raw = String(rawAddress || "").trim();
     if (!raw) {
       return {
@@ -12564,6 +12573,22 @@ export class HoustonAtlasApp {
         aliasQuery,
         cityDirUrl: `https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search/searchterm/${encodeURIComponent(
           aliasQuery
+        )}/field/all/mode/exact/conn/and/order/date`,
+      });
+    }
+
+    for (const rawAlt of extractAltAddressStrings(altAddresses)) {
+      const cleanAlt = normalizeArchivalLookupAddress(rawAlt);
+      if (!cleanAlt || cleanAlt.toUpperCase() === cleanQuery.toUpperCase()) continue;
+      if (seenFor.has(cleanAlt.toUpperCase())) continue;
+      seenFor.add(cleanAlt.toUpperCase());
+      historicAliases.push({
+        former: cleanAlt,
+        era: "Corner / Historic Permit Address",
+        note: "Recorded on original City of Houston building permit or Harris County Archives BLA card",
+        aliasQuery: cleanAlt,
+        cityDirUrl: `https://cdm17006.contentdm.oclc.org/digital/collection/citydir/search/searchterm/${encodeURIComponent(
+          cleanAlt
         )}/field/all/mode/exact/conn/and/order/date`,
       });
     }
@@ -14143,7 +14168,8 @@ export class HoustonAtlasApp {
 
     const haifThreads = this._resolveHaifThreads(props);
     const archivalRecords = this._resolveArchivalRecords(props);
-    const archivalDrawingsCardHtml = buildArchivalDrawingsCardHtml(archivalRecords);
+    const hcaHoldings = resolveHcaCr001Holdings(hcadNum, this.archivalIndex, props);
+    const archivalDrawingsCardHtml = buildArchivalDrawingsCardHtml(archivalRecords, hcaHoldings);
     const haifSearchTerm =
       (props.address && String(props.address).trim()) ||
       (title && title !== "Houston Structure" ? title : "");
@@ -15013,7 +15039,8 @@ export class HoustonAtlasApp {
       props.address || title,
       nbhdVal,
       distVal,
-      subVal
+      subVal,
+      props.alt_addresses || props.secondary_addresses || []
     );
     const cityDirResearchInfo = this._buildCityDirectoryResearchData(
       props,
@@ -17231,7 +17258,9 @@ export class HoustonAtlasApp {
     const dossierAddrInfo = this._parseAddressForArchivalSearch(
       address,
       props.neighborhood || "",
-      props.historic_district || ""
+      props.historic_district || "",
+      props.subdivision || "",
+      props.alt_addresses || props.secondary_addresses || []
     );
     const dossierCityDir = this._buildCityDirectoryResearchData(
       props,

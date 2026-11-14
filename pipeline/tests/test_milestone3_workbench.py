@@ -1426,4 +1426,29 @@ def test_post_review_apps_script_formula_hardening_and_survey_merge_guards(tmp_p
     assert merged_rec["bld_style"] == "1920s Craftsman Bungalow"
     assert merged_rec["replace_parcel_shards"] is False
 
+    # Primary-source Building Permit / BLA card authority guard:
+    # A primary building permit or CR001 BLA card construction year (e.g. 1925)
+    # must not be overwritten by a later occupancy-only City Directory year (e.g. 1928).
+    bla_base = {
+        "hcad_num": "0621100000014",
+        "year_built": 1925,
+        "architect": "C. L. Null",
+        "source_type": "Other Primary Archival Record",
+        "source_citation": (
+            "Harris County Archives CR001 Building and Land Assessment (BLA) Card "
+            "(Vol. 062, Page 110, Item 14, Box 291A) and City of Houston Building Permit #8111 "
+            "(issued Nov 30, 1925 to builder C. L. Null, rendered by R. E. Lovejoy)"
+        ),
+    }
+    dir_row = dict(parsed_rows[0])
+    dir_row["year_built"] = 1928
+    dir_row["architect"] = ""
+    dir_row["source_type"] = "Houston City Directory"
+    dir_row["source_citation"] = "1928 Houston City Directory p. 1510"
+    guarded_rec = merge_override_record(bla_base, dir_row, "0621100000014")
+    assert guarded_rec["year_built"] == 1925
+    assert guarded_rec["architect"] == "C. L. Null"
+    assert "Building Permit #8111" in guarded_rec["source_citation"]
+
+
 

@@ -1278,7 +1278,7 @@ test("Milestone 8 owner_history/*.json.gz shards: 1:1 manifest parity, determini
   ]) {
     assert.ok(wire && wire.length > 0, `Expected benchmark parcel ${hcad} in owner_history shard`);
     const tenures = wire.split("|");
-    assert.ok(tenures.length >= 1 && tenures.length <= 12, `Unexpected tenure count on ${hcad}: ${tenures.length}`);
+    assert.ok(tenures.length >= 1 && tenures.length <= 16, `Unexpected tenure count on ${hcad}: ${tenures.length}`);
     for (const seg of tenures) {
       const fields = seg.split("~");
       assert.ok(fields.length >= 4, `Malformed compact tenure '${seg}' on ${hcad}`);

@@ -75,7 +75,7 @@ test("1127 Key St (0621100000014): resolves NORTH NORHILL plat over HCAD NORHILL
   assert.ok(keyStRec && keyStRec.d, "0621100000014 must include compact deed chain field 'd'");
 
   const deeds = decodeCompactDeedChain(keyStRec.d);
-  assert.equal(deeds.length, 6);
+  assert.equal(deeds.length, 11);
   assert.deepEqual(
     deeds.map((d) => ({ date: d.date, fileNo: d.copyValue, box: d.clerkBoxLabel })),
     [
@@ -85,6 +85,11 @@ test("1127 Key St (0621100000014): resolves NORTH NORHILL plat over HCAD NORHILL
       { date: "2009-01-26", fileNo: "20090077820", box: "File Number" },
       { date: "2008-09-11", fileNo: "20090077819", box: "File Number" },
       { date: "2004-11-05", fileNo: "Y051716", box: "File Number" },
+      { date: "1992-12-28", fileNo: "P017337", box: "File Number" },
+      { date: "1988-10-05", fileNo: "L876016", box: "File Number" },
+      { date: "1982-02-02", fileNo: "H315141", box: "File Number" },
+      { date: "1979-01-19", fileNo: "F935541", box: "File Number" },
+      { date: "1972-08-31", fileNo: "D675590", box: "File Number" },
     ]
   );
 });
@@ -416,7 +421,7 @@ test("Python enrich_deed_chains normalizes all Harris County Clerk eras and repa
 });
 
 test("describeDeedChainCoverage summarizes empty pre-2004 HCAD coverage, singular 1-filing, and plural multi-filing chains across Key St accounts", () => {
-  // Given real permits_062.json.gz records for 1115-1133 Key St plus non-array boundary inputs.
+  // Given real permits_062.json.gz records for 1115-1133 Key St (now enriched with pre-2004 Clerk TPIA deeds) plus 0-row / non-array boundary inputs.
   const shard062Path = path.join(
     REPO_ROOT,
     "app",
@@ -427,37 +432,39 @@ test("describeDeedChainCoverage summarizes empty pre-2004 HCAD coverage, singula
   );
   const shard062 = JSON.parse(zlib.gunzipSync(fs.readFileSync(shard062Path)).toString("utf8"));
 
-  // When evaluating 0-filing pre-2004 accounts (1133 Key St / 0621100000013 and 1119 Key St / 0621100000016).
-  const empty1133 = describeDeedChainCoverage(
-    decodeCompactDeedChain(shard062["0621100000013"]?.d || "")
-  );
-  const empty1119 = describeDeedChainCoverage(
-    decodeCompactDeedChain(shard062["0621100000016"]?.d || "")
-  );
+  // When evaluating 0-filing boundary inputs.
+  const emptyChain = describeDeedChainCoverage([]);
   const nonArrayFallback = describeDeedChainCoverage(null);
 
   // Then empty accounts return transparent mid-2004 database cutover guidance.
-  assert.equal(empty1133.hasRecordedFilings, false);
-  assert.equal(empty1133.count, 0);
-  assert.equal(empty1133.title, "Recorded Deed Transfers (HCAD Bulk Index)");
-  assert.equal(empty1133.countLabel, "No Post-2004 HCAD Sales");
-  assert.equal(empty1133.scopeNote, "");
-  assert.match(empty1133.emptyExplanation, /mid-2004 database cutover/);
-  assert.match(empty1133.emptyExplanation, /1-Click Copy Tokens/);
-  assert.match(empty1133.emptyExplanation, /1961-present/);
-  assert.equal(empty1119.hasRecordedFilings, false);
-  assert.equal(empty1119.countLabel, "No Post-2004 HCAD Sales");
+  assert.equal(emptyChain.hasRecordedFilings, false);
+  assert.equal(emptyChain.count, 0);
+  assert.equal(emptyChain.title, "Recorded Deed Transfers (HCAD Bulk Index)");
+  assert.equal(emptyChain.countLabel, "No Post-2004 HCAD Sales");
+  assert.equal(emptyChain.scopeNote, "");
+  assert.match(emptyChain.emptyExplanation, /mid-2004 database cutover/);
+  assert.match(emptyChain.emptyExplanation, /1-Click Copy Tokens/);
+  assert.match(emptyChain.emptyExplanation, /1961-present/);
   assert.equal(nonArrayFallback.hasRecordedFilings, false);
   assert.equal(nonArrayFallback.count, 0);
 
-  // When evaluating singular 1-filing account 1115 Key St (0621100000017), plural accounts 1121 Key St (0621100000015) & 1127 Key St (0621100000014), and a pre-2004 HCAD backfill chain.
-  const single1115 = describeDeedChainCoverage(
+  // When evaluating singular 1-filing chain, TPIA-enriched Key St accounts (1133, 1127, 1121, 1119, 1115 Key St), and a pre-2004 backfill chain.
+  const singlePost2004 = describeDeedChainCoverage(
+    decodeCompactDeedChain("20171121:R2017-512003")
+  );
+  const seven1133 = describeDeedChainCoverage(
+    decodeCompactDeedChain(shard062["0621100000013"]?.d || "")
+  );
+  const two1119 = describeDeedChainCoverage(
+    decodeCompactDeedChain(shard062["0621100000016"]?.d || "")
+  );
+  const nine1115 = describeDeedChainCoverage(
     decodeCompactDeedChain(shard062["0621100000017"]?.d || "")
   );
-  const triple1121 = describeDeedChainCoverage(
+  const five1121 = describeDeedChainCoverage(
     decodeCompactDeedChain(shard062["0621100000015"]?.d || "")
   );
-  const six1127 = describeDeedChainCoverage(
+  const eleven1127 = describeDeedChainCoverage(
     decodeCompactDeedChain(shard062["0621100000014"]?.d || "")
   );
   const pre2004Backfill = describeDeedChainCoverage(
@@ -465,16 +472,22 @@ test("describeDeedChainCoverage summarizes empty pre-2004 HCAD coverage, singula
   );
 
   // Then singular vs plural count labels and post-2004 vs partial-backfill scope notes are returned accurately.
-  assert.equal(single1115.hasRecordedFilings, true);
-  assert.equal(single1115.count, 1);
-  assert.equal(single1115.countLabel, "1 Recorded Filing");
-  assert.equal(single1115.title, "Recorded Deed Transfers (1-Click Clerk File Number)");
-  assert.match(single1115.scopeNote, /post-mid-2004 ownership sales only/);
-  assert.equal(single1115.emptyExplanation, "");
-  assert.equal(triple1121.count, 3);
-  assert.equal(triple1121.countLabel, "3 Recorded Filings");
-  assert.equal(six1127.count, 6);
-  assert.equal(six1127.countLabel, "6 Recorded Filings");
+  assert.equal(singlePost2004.hasRecordedFilings, true);
+  assert.equal(singlePost2004.count, 1);
+  assert.equal(singlePost2004.countLabel, "1 Recorded Filing");
+  assert.equal(singlePost2004.title, "Recorded Deed Transfers (1-Click Clerk File Number)");
+  assert.match(singlePost2004.scopeNote, /post-mid-2004 ownership sales only/);
+  assert.equal(singlePost2004.emptyExplanation, "");
+  assert.equal(seven1133.count, 7);
+  assert.equal(seven1133.countLabel, "7 Recorded Filings");
+  assert.equal(two1119.count, 2);
+  assert.equal(two1119.countLabel, "2 Recorded Filings");
+  assert.equal(nine1115.count, 9);
+  assert.equal(five1121.count, 5);
+  assert.equal(five1121.countLabel, "5 Recorded Filings");
+  assert.equal(eleven1127.count, 11);
+  assert.equal(eleven1127.countLabel, "11 Recorded Filings");
+  assert.match(eleven1127.scopeNote, /partial pre-2004 backfill/);
   assert.match(pre2004Backfill.scopeNote, /partial pre-2004 backfill/);
 });
 
@@ -538,7 +551,12 @@ test("curated_overrides.json purges cross-parcel 0621100000014#aux_1, re-keys Di
   assert.equal("0621100000014#aux_1" in overrides, false);
   assert.ok(overrides["0621100000014"], "Primary 0621100000014 override must remain intact");
   assert.equal(overrides["0621100000014"].address, "1127 KEY ST");
-  assert.equal(overrides["0621100000014"].year_built, 1927);
+  assert.equal(overrides["0621100000014"].year_built, 1925);
+  assert.equal(overrides["0621100000014"].architect, "C. L. Null");
+  assert.equal(overrides["0620620000018"].year_built, 1932);
+  assert.deepEqual(overrides["0620620000018"].alt_addresses, ["1001 NORHILL ST", "1001 NORHILL"]);
+  assert.equal(overrides["0202540000006"].year_built, 1922);
+  assert.equal(overrides["0202540000006"].original_hcad_year, 1995);
   assert.equal("1319030010003#aux_1" in overrides, false);
   assert.ok(overrides["1319030010001#aux_4"], "Discovery Green re-keyed #aux_4 override must exist");
   assert.equal(overrides["1319030010001#aux_4"].contributing, "Outside Historic District");

@@ -222,7 +222,7 @@ export const CITY_HISTORY_CHAPTERS = [
         zoom: 17.3,
       },
       {
-        label: "1127 Key St, Norhill (1927)",
+        label: "1127 Key St, Norhill (1925)",
         hcadNum: "0621100000014",
         lng: -95.3872,
         lat: 29.79173,
@@ -2278,10 +2278,15 @@ export function calibrateDirectoryConstructionYear(props = {}, cdRec = null, fal
       rawCitation
     );
   const sourceType = String(props?.source_type || "");
+  const combinedSrc = `${sourceType} ${rawCitation}`;
+  const hasPrimaryPermitOrBla =
+    /\b(?:bla\s+card|building\s+permit|block\s+book|cr001|cr067|tax\s+roll)\b/i.test(combinedSrc) ||
+    Boolean(props?.original_permit);
   const isDirectoryOrSurveyOverride =
-    /\bcity\s+director(?:y|ies)\b/i.test(rawCitation) ||
-    /\bcity\s+director(?:y|ies)\b/i.test(sourceType) ||
-    (/\bhpo\b|\bhistoric\s+district\s+survey\b/i.test(sourceType) && yrBuilt - cdEarliest <= 2);
+    !hasPrimaryPermitOrBla &&
+    (/\bcity\s+director(?:y|ies)\b/i.test(rawCitation) ||
+      /\bcity\s+director(?:y|ies)\b/i.test(sourceType) ||
+      (/\bhpo\b|\bhistoric\s+district\s+survey\b/i.test(sourceType) && yrBuilt - cdEarliest <= 2));
   const shouldCalibrate =
     cdEarliest >= 1836 &&
     yrBuilt > cdEarliest &&
@@ -2332,10 +2337,20 @@ export function buildStewardshipTimelineModel({
   const effContractor = String(
     historicContractor || props.architect || props.builder || props.contractor || shard.c || ""
   ).trim();
+  const origPermit = String(props.original_permit || shard.op || "").trim();
+  const origCost = String(props.original_cost || shard.oc || "").trim();
 
   const { year: effConstructYr, citation: effConstructCitation } =
     calibrateDirectoryConstructionYear(props, cdRec, yrBuilt);
   if (yrBuilt >= 1836 && yrBuilt <= 2035) {
+    const subtitleParts = [];
+    if (origPermit) subtitleParts.push(origPermit);
+    if (origCost) subtitleParts.push(`Permit Value: ${origCost}`);
+    if (effContractor) subtitleParts.push(`Original Architect / Builder: ${effContractor}`);
+    const constructionSubtitle =
+      subtitleParts.length > 0
+        ? subtitleParts.join(" · ")
+        : "Recorded on Harris County CAMA / Archival Survey Roll";
     events.push({
       kind: "construction",
       category: "construction",
@@ -2343,9 +2358,7 @@ export function buildStewardshipTimelineModel({
       dateLabel: String(effConstructYr),
       sortKey: `${effConstructYr}-01-01`,
       title: `Original Structure Built (${effConstructYr})`,
-      subtitle: effContractor
-        ? `Original Architect / Builder: ${effContractor}`
-        : "Recorded on Harris County CAMA / Archival Survey Roll",
+      subtitle: constructionSubtitle,
       citation: effConstructCitation,
       badge: "Construction",
       url: null,

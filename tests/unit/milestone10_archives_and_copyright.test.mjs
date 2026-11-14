@@ -12,9 +12,16 @@ import {
   buildPost1926CityDirNoteHtml,
   isPre1927CityDirHit,
   normalizeArchivalLookupAddress,
+  parseHcadVolumePageItem,
   resolveArchivalRecords,
+  resolveHcaCr001Holdings,
 } from "../../app/js/archivalHelpers.js";
-import { isClaimSuppressed } from "../../app/js/curatedEdits.js";
+import {
+  applyOverrideToProperties,
+  classifyFieldEvidentiaryTier,
+  isClaimSuppressed,
+  mergeOverrideRecord,
+} from "../../app/js/curatedEdits.js";
 import { validateExternalAtlasUrl } from "../../app/js/urlValidators.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -830,4 +837,157 @@ test("UT-M10-5: Pure archivalHelpers.js enforces HPL survey ceilings, indirect p
   assert.ok(dynamicNote.includes("1927-1963 USCO Audit"));
   assert.ok(dynamicNote.includes("March 2027 U.S. Copyright Office audit"));
   assert.ok(dynamicNote.includes("1 copyright renewal recorded"));
+});
+
+test("UT-M10-6: Harris County Archives CR001 BLA / Block Book resolver, digitized BLA/Block Book/Tax Roll packets, and corner-lot alt_addresses lookup", () => {
+  const liveIdx = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "archival_index.json"), "utf8"));
+  assert.ok(liveIdx.hca_cr001, "archival_index.json must include hca_cr001 inventory");
+  assert.equal(liveIdx.hca_cr001.bla_boxes.length, 915);
+  assert.equal(Object.keys(liveIdx.hca_cr001.block_books).length, 119);
+  assert.equal(liveIdx.hca_cr001.mc003_abstracts.length, 7);
+
+  // 1. Parse Vol / Page / Item from 13-digit legacy HCAD account numbers
+  assert.deepEqual(parseHcadVolumePageItem("0621100000014"), {
+    hcad: "0621100000014",
+    volCode: "062",
+    volNum: 62,
+    pageCode: "110",
+    pageNum: 110,
+    subBlockCode: "000",
+    itemCode: "0014",
+    itemNum: 14,
+    key6: 62110,
+  });
+  assert.equal(parseHcadVolumePageItem("1619030010001"), null, "Post-1984 Vol > 150 accounts have no CR001 BLA/Block Book");
+
+  // 2. Resolve CR001 Box & Block Book volumes for 1127 Key St (0621100000014, Vol. 062) and 2000 Smith St (0152300000001, Vol. 015)
+  const keyHoldings = resolveHcaCr001Holdings("0621100000014", liveIdx, {
+    hcad_num: "0621100000014",
+    subdivision: "NORTH NORHILL",
+    historic_district: "Norhill",
+  });
+  assert.ok(keyHoldings);
+  assert.ok(keyHoldings.blaBoxes.some((b) => b.box === "291A" && b.loc === "1222-D-01"));
+  assert.ok(keyHoldings.blockBookInfo.eras.includes("1928-1935"));
+
+  const kirbyHoldings = resolveHcaCr001Holdings("0152300000001", liveIdx, {
+    hcad_num: "0152300000001",
+    subdivision: "HADLEY & FRANKLIN",
+  });
+  assert.ok(kirbyHoldings);
+  assert.ok(kirbyHoldings.blockBookInfo.eras.includes("1915-1927"));
+
+  // 3. Digitized CR001 items hydrated for 1127 Key St, 1001 Bayland Ave (including via corner-lot alt_addresses "1001 NORHILL ST"), 2000 Smith St, and 727 Arlington St
+  const keyRecs = resolveArchivalRecords(liveIdx, {
+    id: "0621100000014",
+    hcad_num: "0621100000014",
+    address: "1127 KEY ST",
+    year_built: 1925,
+  });
+  assert.ok(keyRecs.some((r) => r.title.includes("Permit #8111") && r.architect === "C. L. Null"));
+
+  const baylandViaCornerAlias = resolveArchivalRecords(liveIdx, {
+    id: "bld_corner_test",
+    hcad_num: "9999990000018",
+    address: "1001 BAYLAND AVE",
+    alt_addresses: ["1001 NORHILL ST"],
+    year_built: 1932,
+  });
+  assert.ok(
+    baylandViaCornerAlias.some((r) => r.title.includes("Permit #744") && r.architect.includes("Bertha Mirring")),
+    "Corner-lot alt_addresses must resolve 1001 Norhill archival records"
+  );
+
+  const kirbyLostRecs = resolveArchivalRecords(liveIdx, {
+    id: "lost_kirby_mansion_1894",
+    is_lost_houston: true,
+    hcad_num: "0152300000001",
+    address: "2000 SMITH ST",
+    year_built: 1894,
+  });
+  assert.ok(
+    kirbyLostRecs.some(
+      (r) => r.title.includes("John Henry Kirby Mansion") && r.excerpt.includes("$56,250")
+    )
+  );
+
+  // 4. Primary-source BLA Card / Building Permit authority guard in mergeOverrideRecord
+  const mergedPrimary = mergeOverrideRecord(
+    {
+      hcad_num: "0621100000014",
+      year_built: 1925,
+      decade: 1920,
+      source_type: "Harris County Archives BLA Card (CR001)",
+      source_citation: "COH Building Permit #8111 issued Nov 30, 1925 to C. L. Null",
+      source_url: "https://drive.google.com/file/d/1M2OXS9NGDU3BEr0ViWmNQKIhULz8-qCm/view",
+      architect: "C. L. Null",
+    },
+    {
+      hcad_num: "0621100000014",
+      year_built: 1927,
+      decade: 1920,
+      source_type: "Houston City Directory",
+      source_citation: "1927 Houston City Directory: J F Lake at 1127 KEY ST",
+      source_url: "https://www.ancestry.com/imageviewer/collections/2469/images/4978175",
+    }
+  );
+  assert.equal(mergedPrimary.year_built, 1925, "Primary-source BLA/Permit year (1925) must not be overwritten by secondary City Directory year (1927)");
+  assert.equal(mergedPrimary.source_type, "Harris County Archives BLA Card (CR001)");
+  assert.equal(mergedPrimary.architect, "C. L. Null");
+
+  // Also verify primary-source authority guard when CR001/Building Permit keywords reside in source_citation
+  const mergedCitPrimary = mergeOverrideRecord(
+    {
+      hcad_num: "0621100000014",
+      year_built: 1925,
+      decade: 1920,
+      source_type: "Other Primary Archival Record",
+      source_citation:
+        "Harris County Archives CR001 Building and Land Assessment (BLA) Card (Vol. 062, Page 110, Item 14, Box 291A) and City of Houston Building Permit #8111 (issued Nov 30, 1925 to builder C. L. Null)",
+      architect: "C. L. Null",
+    },
+    {
+      hcad_num: "0621100000014",
+      year_built: 1928,
+      decade: 1920,
+      source_type: "Houston City Directory",
+      source_citation: "1928 Houston City Directory p. 1510",
+    }
+  );
+  assert.equal(mergedCitPrimary.year_built, 1925);
+  assert.equal(mergedCitPrimary.architect, "C. L. Null");
+  assert.match(mergedCitPrimary.source_citation, /Building Permit #8111/);
+
+  // 5. Evidentiary Tier 1 classification & applyOverrideToProperties on CR001 overrides
+  const blaTier = classifyFieldEvidentiaryTier({
+    field: "year_built",
+    value: 1925,
+    sourceLabel: "Harris County Archives BLA Card (CR001)",
+    isCuratedOverride: true,
+  });
+  assert.equal(blaTier.tier, 1);
+
+  const ovDoc = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "curated_overrides.json"), "utf8"));
+  const baylandApplied = applyOverrideToProperties(
+    { id: "0620620000018", hcad_num: "0620620000018", address: "1001 BAYLAND AVE", year_built: 1920 },
+    ovDoc.overrides
+  );
+  assert.equal(baylandApplied.year_built, 1932);
+  assert.equal(baylandApplied.building_name, "Mirring-Kihnel Residence");
+  assert.equal(baylandApplied.bld_style, "Brick Veneer Period Revival");
+  assert.deepEqual(baylandApplied.alt_addresses, ["1001 NORHILL ST", "1001 NORHILL"]);
+
+  const arlingtonApplied = applyOverrideToProperties(
+    { id: "0202540000006", hcad_num: "0202540000006", address: "727 ARLINGTON ST", year_built: 1995 },
+    ovDoc.overrides
+  );
+  assert.equal(arlingtonApplied.year_built, 1922);
+  assert.equal(arlingtonApplied.building_name, "Armstrong-Hicks Residence");
+  assert.equal(arlingtonApplied.bld_style, "Craftsman Bungalow");
+
+  const cardHtml = buildArchivalDrawingsCardHtml(keyRecs, keyHoldings);
+  assert.ok(cardHtml.includes("CR001 BLA Card Filing (mid-1920s to 1980):"));
+  assert.ok(cardHtml.includes("Box <code>291A</code>"));
+  assert.ok(cardHtml.includes("CR001 Assessor's Block Books"));
+  assert.equal(/[\u2013\u2014]/.test(cardHtml), false);
 });

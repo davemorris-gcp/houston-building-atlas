@@ -136,6 +136,8 @@ const RE_DEMOLISHED_VACANT_TEXT =
   /\[demolished\s*\/\s*vacant\s+lot|demolished\s*[-:/]?\s*lot\s+currently\s+vacant|vacant\s+lot\s*\(hide\s+footprint\)|\bsuppress_only\b/i;
 const RE_LEGACY_DEMOLISHED_ISSUE = /building\s+demolished\s+or\s+replaced/i;
 const RE_VACANT_LOT_CUE = /\bvacant\b|\bcleared\b|\bempty\s+lot\b|\bno\s+replacement\b/i;
+export const RE_PRIMARY_PERMIT_OR_ARCHIVE_SOURCE =
+  /\b(?:bla\s+card|building\s+permit|block\s+book|cr001|cr067|tax\s+roll)\b/i;
 
 function sanitizeAtlasTextJs(raw) {
   return String(raw ?? "")
@@ -1043,6 +1045,17 @@ export function parseOverridesFromSheetRows(rows) {
         ? false
         : null;
 
+    const rawAltAddrs = row.alt_addresses ?? row.secondary_addresses ?? "";
+    const parsedAltAddrs = (
+      Array.isArray(rawAltAddrs)
+        ? rawAltAddrs
+        : typeof rawAltAddrs === "string" && rawAltAddrs.trim()
+        ? rawAltAddrs.split(/[|;]/)
+        : []
+    )
+      .map((s) => String(s || "").trim().toUpperCase())
+      .filter(Boolean);
+
     const incomingRec = {
       id: overrideKey,
       building_id: overrideKey,
@@ -1050,6 +1063,7 @@ export function parseOverridesFromSheetRows(rows) {
       is_building_override: hasBuildingSuffix,
       suppress_only: Boolean(isSuppressOnly),
       address: rawAddress.toUpperCase(),
+      ...(parsedAltAddrs.length ? { alt_addresses: parsedAltAddrs } : {}),
       historic_district: String(row.historic_district || row.district || "").trim(),
       contributing: String(row.contributing || row.contributing_status || "").trim(),
       year_built: yearBuilt,
@@ -1232,6 +1246,7 @@ export function classifyFieldEvidentiaryTier({
     srcLower.includes("thc") ||
     srcLower.includes("habs") ||
     srcLower.includes("building permit") ||
+    RE_PRIMARY_PERMIT_OR_ARCHIVE_SOURCE.test(srcLower) ||
     srcLower.includes("deed") ||
     srcLower.includes("plat") ||
     srcLower.includes("archival review");
@@ -1550,6 +1565,26 @@ export function mergeOverrideRecord(
       ? incomingOv.geometry
       : null;
   const isGeomOnly = Boolean(incomingGeom && incomingYr === 0 && !incomingOv.suppress_only);
+  const priorSrcStr = `${existingOv.source_type || ""} ${existingOv.source_citation || ""}`.trim();
+  const incSrcStr = `${incomingOv.source_type || ""} ${incomingOv.source_citation || ""}`.trim();
+  const isPriorPrimaryPermit =
+    RE_PRIMARY_PERMIT_OR_ARCHIVE_SOURCE.test(priorSrcStr) ||
+    Boolean(existingOv.original_permit);
+  const isIncomingPrimaryPermit =
+    RE_PRIMARY_PERMIT_OR_ARCHIVE_SOURCE.test(incSrcStr) ||
+    Boolean(incomingOv.original_permit);
+  const isIncomingSecondaryDirOrSurvey =
+    /\b(?:city\s+director(?:y|ies)|hpo|historic\s+district\s+survey)\b/i.test(incSrcStr);
+  const preservePrimaryPermitYear = Boolean(
+    !wasSuppressed &&
+      !incomingOv.suppress_only &&
+      priorYr >= MIN_VALID_YEAR &&
+      incomingYr > priorYr &&
+      incomingYr - priorYr <= 10 &&
+      isPriorPrimaryPermit &&
+      isIncomingSecondaryDirOrSurvey &&
+      !isIncomingPrimaryPermit
+  );
 
   const merged = { ...existingOv };
   for (const [k, v] of Object.entries(incomingOv)) {
@@ -1561,6 +1596,9 @@ export function mergeOverrideRecord(
       k === "replace_parcel_shards" ||
       k === "suppress_only"
     ) {
+      continue;
+    }
+    if (preservePrimaryPermitYear && (k === "source_type" || k === "source_url")) {
       continue;
     }
     if (k === "source_type" && isGeomOnly && priorYr >= MIN_VALID_YEAR && !wasSuppressed) {
@@ -1579,6 +1617,10 @@ export function mergeOverrideRecord(
       const cleanPriorCit = stripEmbeddedFieldSurveyTag(
         stripEmbeddedGeometryTag(String(existingOv.source_citation || ""))
       );
+      if (preservePrimaryPermitYear && cleanPriorCit) {
+        merged.source_citation = cleanPriorCit;
+        continue;
+      }
       if (isGeomOnly && priorYr >= MIN_VALID_YEAR && !wasSuppressed && cleanPriorCit) {
         if (cleanIncCit && !cleanPriorCit.includes(cleanIncCit)) {
           merged.source_citation = `${cleanPriorCit} | Footprint note: ${cleanIncCit}`;
@@ -1637,7 +1679,10 @@ export function mergeOverrideRecord(
 
   merged.suppress_only = false;
   const isRevived = incomingYr >= MIN_VALID_YEAR;
-  if (isRevived) {
+  if (preservePrimaryPermitYear) {
+    merged.year_built = priorYr;
+    merged.decade = computeNormalizedDecade(priorYr);
+  } else if (isRevived) {
     merged.year_built = incomingYr;
     merged.decade = computeNormalizedDecade(incomingYr);
   } else if (wasSuppressed) {
@@ -1840,7 +1885,7 @@ export function applyOverrideToProperties(props, overridesMap) {
     historic_ward: ov.historic_ward || props.historic_ward || "",
     subdivision: ov.subdivision || props.subdivision || "",
     contributing: ov.contributing || props.contributing || "",
-    bld_style: ov.bld_style || props.bld_style || "",
+    bld_style: ov.bld_style || ov.style || props.bld_style || "",
     architect: ov.architect || props.architect || "",
     builder: ov.builder || props.builder || "",
     builder_source: ov.builder_source || props.builder_source || "",
@@ -1855,11 +1900,21 @@ export function applyOverrideToProperties(props, overridesMap) {
     landmark_name:
       (isGbPoint && props.landmark_name) || ov.landmark_name || props.landmark_name || "",
     building_name:
-      ov.building_name || props.building_name || ov.landmark_name || props.landmark_name || "",
+      ov.building_name ||
+      ov.name ||
+      props.building_name ||
+      ov.landmark_name ||
+      props.landmark_name ||
+      "",
     alt_names: Array.isArray(ov.alt_names) && ov.alt_names.length
       ? ov.alt_names
       : Array.isArray(props.alt_names)
       ? props.alt_names
+      : [],
+    alt_addresses: Array.isArray(ov.alt_addresses) && ov.alt_addresses.length
+      ? ov.alt_addresses
+      : Array.isArray(props.alt_addresses)
+      ? props.alt_addresses
       : [],
     name_source:
       ov.name_source || props.name_source || "",

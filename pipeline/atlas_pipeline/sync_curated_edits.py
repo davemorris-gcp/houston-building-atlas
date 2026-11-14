@@ -150,12 +150,36 @@ def merge_override_record(
     prior_year = normalize_standing_override_year(prior.get("year_built"))
     was_suppressed = bool(prior.get("suppress_only"))
     is_geom_only = inc_year == 0 and isinstance(incoming.get("geometry"), dict)
+    prior_src_str = f"{prior.get('source_type') or ''} {prior.get('source_citation') or ''}".strip()
+    inc_src_str = f"{incoming.get('source_type') or ''} {incoming.get('source_citation') or ''}".strip()
+    is_prior_primary_permit = bool(
+        re.search(r"\b(?:bla\s+card|building\s+permit|block\s+book|cr001|tax\s+roll)\b", prior_src_str, re.I)
+        or prior.get("original_permit")
+    )
+    is_inc_primary_permit = bool(
+        re.search(r"\b(?:bla\s+card|building\s+permit|block\s+book|cr001|tax\s+roll)\b", inc_src_str, re.I)
+        or incoming.get("original_permit")
+    )
+    is_inc_secondary_dir_or_survey = bool(
+        re.search(r"\b(?:city\s+director(?:y|ies)|hpo|historic\s+district\s+survey)\b", inc_src_str, re.I)
+    )
+    preserve_primary_permit_year = bool(
+        not was_suppressed
+        and prior_year >= MIN_VALID_YEAR
+        and inc_year > prior_year
+        and inc_year - prior_year <= 10
+        and is_prior_primary_permit
+        and is_inc_secondary_dir_or_survey
+        and not is_inc_primary_permit
+    )
 
     merged = dict(prior)
     for k, v in incoming.items():
         if k in ("override_key", "year_built", "decade", "keep_shard_footprints", "replace_parcel_shards"):
             continue
         if v in ("", None):
+            continue
+        if preserve_primary_permit_year and k in ("source_type", "source_url"):
             continue
         if k == "source_type" and is_geom_only and prior_year >= MIN_VALID_YEAR and not was_suppressed:
             prior_src = str(prior.get("source_type") or "").strip()
@@ -164,6 +188,13 @@ def merge_override_record(
                 inc_src_upper in _GEOMETRY_ONLY_FALLBACK_SOURCES
                 or inc_src_upper.startswith("FOOTPRINT ISSUE:")
             ):
+                continue
+        if k == "source_citation" and preserve_primary_permit_year:
+            prior_cit = strip_embedded_field_survey_tag(
+                strip_embedded_geometry_tag(prior.get("source_citation", ""))
+            )
+            if prior_cit:
+                merged["source_citation"] = prior_cit
                 continue
         if k == "source_citation" and is_geom_only and prior_year >= MIN_VALID_YEAR and not was_suppressed:
             prior_cit = strip_embedded_geometry_tag(prior.get("source_citation", ""))
@@ -177,7 +208,10 @@ def merge_override_record(
         merged[k] = v
 
     merged["suppress_only"] = False
-    if inc_year >= MIN_VALID_YEAR:
+    if preserve_primary_permit_year:
+        merged["year_built"] = prior_year
+        merged["decade"] = compute_decade(prior_year)
+    elif inc_year >= MIN_VALID_YEAR:
         merged["year_built"] = inc_year
         merged["decade"] = compute_decade(inc_year)
     elif was_suppressed:
@@ -345,6 +379,18 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
             parsed_rec["bld_style"] = norm_row["bld_style"]
         if norm_row.get("architect"):
             parsed_rec["architect"] = norm_row["architect"]
+        for opt_fld in ("builder", "builder_source", "original_permit", "original_cost"):
+            if norm_row.get(opt_fld):
+                parsed_rec[opt_fld] = norm_row[opt_fld]
+        raw_alt_addrs = norm_row.get("alt_addresses") or norm_row.get("secondary_addresses") or ""
+        if raw_alt_addrs:
+            alt_addr_list = [
+                part.strip().upper()
+                for part in raw_alt_addrs.replace("|", ";").split(";")
+                if part.strip()
+            ]
+            if alt_addr_list:
+                parsed_rec["alt_addresses"] = alt_addr_list
         if is_sub:
             parsed_rec["building_id"] = override_key
             parsed_rec["is_building_override"] = True
@@ -471,6 +517,19 @@ def sync_curated_overrides(
                 props["source_citation"] = ov_norm.get("source_citation", "")
                 props["source_url"] = ov_norm.get("source_url", "")
                 props["verified_by"] = ov_norm.get("verified_by", "Preservation Houston Archival Review")
+                for opt_prop in (
+                    "building_name",
+                    "alt_names",
+                    "alt_addresses",
+                    "bld_style",
+                    "architect",
+                    "builder",
+                    "builder_source",
+                    "original_permit",
+                    "original_cost",
+                ):
+                    if ov_norm.get(opt_prop):
+                        props[opt_prop] = ov_norm[opt_prop]
                 updated_buildings_count += 1
 
             kept_features.append(feat)

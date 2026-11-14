@@ -559,8 +559,8 @@ def normalize_clerk_tpia_instrument(
         tok = normalize_hcad_clerk_instrument(rec_year, raw_fn, max_year=max_year)
         if tok:
             return tok
-        # Direct Clerk RP-YYYY-NNNNNN or MC-YYYY-NNNNNN formats
-        m_rp = re.fullmatch(r"RP[\s\-_]*(20\d{2})[\s\-_]*0*([1-9]\d{0,6})", raw_fn)
+        # Direct Clerk RP-YYYY-NNNNNN, R20YY-NNNNNN, or MC-YYYY-NNNNNN formats
+        m_rp = re.fullmatch(r"RP?[\s\-_]*(20\d{2})[\s\-_]*0*([1-9]\d{0,6})", raw_fn)
         if m_rp:
             return f"R{m_rp.group(1)}-{m_rp.group(2)}"
         m_mc = re.fullmatch(r"(?:MC|SC)[\s\-_]*(20\d{2})[\s\-_]*0*([1-9]\d{0,6})", raw_fn)
@@ -1242,10 +1242,16 @@ def ingest_clerk_tpia_tables(
     clerk_tpia_dir: Path | None,
     *,
     max_year: int = ACTIVE_TAX_YEAR + 1,
+    tier1_match_keys: set[str] | None = None,
+    legal_index: dict[LegalCrosswalkKey, tuple[str, ...]] | None = None,
 ) -> dict[str, Any]:
     """Assemble County Clerk `PIA.aspx` relational (Header + Party + Legal) or flat export tables.
 
-    Uses a Two-Pass Streaming Pre-Filter:
+    Uses a Two-Pass Streaming Pre-Filter (plus candidate File Number pruning on multi-GB dumps):
+      - Pass 0 (when `RPLegalDesc.txt` > 50 MB and crosswalk indices are supplied): streams
+        `RPLegalDesc.txt` and `RPRelDoc.txt` with fast `line.find('|')` subdivision/block slicing
+        to collect all Tier 1 + Tier 2 candidate File Numbers before scanning `RPIInstruments.txt`
+        and `RPNames.txt`.
       - Pass 1 scans typed Instrument/Header/Flat tables (`inst_type` / `document_type` / `mapcode`)
         and immediately rejects non-target codes (`REL`, `A/J`, `CONSNT`, etc.) before allocating
         `ClerkInstrumentRecord` objects.
@@ -1259,6 +1265,118 @@ def ingest_clerk_tpia_tables(
     saw_inst_type_column = False
     files_scanned = 0
     rows_scanned = 0
+
+    candidate_raw_fns: set[str] | None = None
+    skip_filenames: set[str] = {
+        "rpcodes.txt",
+        "rpnamestypes.txt",
+        "custom order 1 description.txt",
+    }
+    pre_legal_by_fn: dict[str, list[LegalCrosswalkKey]] = {}
+    pre_surv_abst_by_fn: dict[str, tuple[str, str]] = {}
+    pre_reldoc_by_fn: dict[str, list[str]] = {}
+
+    if clerk_tpia_dir is not None and Path(clerk_tpia_dir).is_dir():
+        cdir_path = Path(clerk_tpia_dir)
+        rp_legal_path = cdir_path / "RPLegalDesc.txt"
+        rp_reldoc_path = cdir_path / "RPRelDoc.txt"
+        if (
+            rp_legal_path.is_file()
+            and rp_legal_path.stat().st_size > 50_000_000
+            and (tier1_match_keys is not None or legal_index is not None)
+        ):
+            candidate_raw_fns = set()
+            for mkey in tier1_match_keys or ():
+                if mkey.startswith("FN:"):
+                    body = mkey[3:].strip().upper()
+                    if body:
+                        candidate_raw_fns.add(body)
+                        if body.startswith("RP-20") and "-" in body[3:]:
+                            yr_s, seq_s = body[3:].split("-", 1)
+                            candidate_raw_fns.add(f"RP-{yr_s}-{seq_s.zfill(6)}")
+                            candidate_raw_fns.add(f"{yr_s}{seq_s.zfill(7)}")
+                        elif len(body) == 11 and body.isdigit() and body[:4] == "2016":
+                            seq_i = int(body[4:])
+                            candidate_raw_fns.add(f"RP-2016-{seq_i}")
+                            candidate_raw_fns.add(f"RP-2016-{seq_i:06d}")
+
+            if legal_index:
+                known_subds = {k.subdivision for k in legal_index if k.subdivision}
+                known_subd_blks = {(k.subdivision, k.block) for k in legal_index if k.subdivision}
+                files_scanned += 1
+                skip_filenames.add("rplegaldesc.txt")
+                with open(rp_legal_path, "r", encoding="latin-1", errors="replace", newline="") as lf:
+                    saw_l_hdr = False
+                    for line in lf:
+                        if not saw_l_hdr:
+                            if line.strip():
+                                saw_l_hdr = True
+                            continue
+                        rows_scanned += 1
+                        p0 = line.find("|")
+                        if p0 <= 0:
+                            continue
+                        p1 = line.find("|", p0 + 1)
+                        if p1 <= p0:
+                            continue
+                        raw_subd = line[p0 + 1 : p1].strip()
+                        if not raw_subd:
+                            continue
+                        subd_norm, _sec_s = normalize_legal_subdivision_name(raw_subd)
+                        if subd_norm not in known_subds:
+                            continue
+                        parts = line.rstrip("\r\n").split("|")
+                        if len(parts) < 5:
+                            continue
+                        raw_blk = parts[4].strip()
+                        blk_norm = re.sub(r"[^0-9A-Z]", "", raw_blk.upper()).lstrip("0") if raw_blk else ""
+                        raw_comment = parts[9].strip() if len(parts) > 9 else ""
+                        if (subd_norm, blk_norm) not in known_subd_blks and not (not blk_norm and raw_comment):
+                            continue
+                        row_d = {
+                            "subdivision": raw_subd,
+                            "section": parts[2].strip() if len(parts) > 2 else "",
+                            "lot": parts[3].strip() if len(parts) > 3 else "",
+                            "block": raw_blk,
+                            "tract": parts[7].strip() if len(parts) > 7 else "",
+                            "reserve": parts[8].strip() if len(parts) > 8 else "",
+                            "comment": raw_comment,
+                            "unit": parts[10].strip() if len(parts) > 10 else "",
+                        }
+                        matched_lks = [lk for lk in extract_clerk_row_legal_keys(row_d) if lk in legal_index]
+                        if matched_lks:
+                            fn_u = parts[0].strip().upper()
+                            if fn_u:
+                                candidate_raw_fns.add(fn_u)
+                                pre_legal_by_fn.setdefault(fn_u, []).extend(matched_lks)
+                                raw_sv = parts[5].strip() if len(parts) > 5 else ""
+                                raw_ab = parts[6].strip() if len(parts) > 6 else ""
+                                if (raw_sv or raw_ab) and fn_u not in pre_surv_abst_by_fn:
+                                    pre_surv_abst_by_fn[fn_u] = (raw_sv, raw_ab)
+
+            if rp_reldoc_path.is_file() and candidate_raw_fns:
+                files_scanned += 1
+                skip_filenames.add("rpreldoc.txt")
+                with open(rp_reldoc_path, "r", encoding="latin-1", errors="replace", newline="") as rf:
+                    saw_r_hdr = False
+                    for line in rf:
+                        if not saw_r_hdr:
+                            if line.strip():
+                                saw_r_hdr = True
+                            continue
+                        rows_scanned += 1
+                        p0 = line.find("|")
+                        if p0 <= 0:
+                            continue
+                        p1 = line.find("|", p0 + 1)
+                        fn_u = line[:p0].strip().upper()
+                        rel_u = (line[p0 + 1 : p1] if p1 > p0 else line[p0 + 1 :]).strip().upper()
+                        if not fn_u or not rel_u:
+                            continue
+                        if fn_u in candidate_raw_fns or rel_u in candidate_raw_fns:
+                            candidate_raw_fns.add(fn_u)
+                            candidate_raw_fns.add(rel_u)
+                            pre_reldoc_by_fn.setdefault(fn_u, []).append(rel_u)
 
     id_cols = {
         "file_no",
@@ -1345,7 +1463,7 @@ def ingest_clerk_tpia_tables(
                         .strip()
                         .upper()
                     )
-                    if skip_key:
+                    if skip_key and skip_key not in instruments:
                         skipped_join_ids.add(skip_key)
                     continue
 
@@ -1426,6 +1544,7 @@ def ingest_clerk_tpia_tables(
                     continue
                 rec = ClerkInstrumentRecord(join_id=join_id)
                 instruments[join_id] = rec
+                skipped_join_ids.discard(join_id)
 
             if cand_dt8 != "00000000" and (rec.dt8 == "00000000" or rec.dt8.endswith("0000")):
                 rec.dt8 = cand_dt8
@@ -1434,10 +1553,39 @@ def ingest_clerk_tpia_tables(
                 rec.clerk_token = norm_tok
                 rec.match_key = canon_key
 
-            if raw_type and not rec.raw_inst_type:
+            if raw_type and (
+                not rec.raw_inst_type
+                or _CATEGORY_PRIORITY.get(cat, 0) > _CATEGORY_PRIORITY.get(rec.category, 0)
+            ):
                 rec.raw_inst_type = raw_type
                 rec.category = cat
                 rec.wire_type_code = wcode
+
+            if raw_fn and (pre_legal_by_fn or pre_reldoc_by_fn or pre_surv_abst_by_fn):
+                fn_up = raw_fn.strip().upper()
+                for lk_pre in pre_legal_by_fn.get(fn_up, ()):
+                    rec.legal_keys.add(lk_pre)
+                sv_ab = pre_surv_abst_by_fn.get(fn_up)
+                if sv_ab:
+                    raw_sv_p, raw_ab_p = sv_ab
+                    if raw_sv_p and raw_sv_p.upper() not in ("N/A", "NA", "NONE", "NULL", "UNKNOWN", "-"):
+                        clean_sv_p = sanitize_tpia_party_name(raw_sv_p).upper()
+                        if (
+                            len(clean_sv_p) > 1
+                            and clean_sv_p not in _TPIA_PLACEHOLDER_PARTY_TOKENS
+                            and clean_sv_p not in ("N/A", "NA", "NONE", "NULL", "UNKNOWN")
+                            and clean_sv_p not in rec.surveys
+                        ):
+                            rec.surveys.append(clean_sv_p)
+                    if raw_ab_p and raw_ab_p.upper() not in ("N/A", "NA", "NONE", "NULL", "UNKNOWN", "-"):
+                        clean_ab_p = re.sub(r"^A", "", re.sub(r"[^0-9A-Z]", "", raw_ab_p.upper())).lstrip("0")
+                        if clean_ab_p and any(ch.isdigit() for ch in clean_ab_p) and clean_ab_p not in rec.abstracts:
+                            rec.abstracts.append(clean_ab_p)
+                for rel_u in pre_reldoc_by_fn.get(fn_up, ()):
+                    rel_tok_p = normalize_clerk_tpia_instrument(file_no=rel_u, rec_year=yr_hint, max_year=max_year)
+                    rel_mkey_p = format_clerk_match_key(rel_tok_p) if rel_tok_p else ""
+                    if rel_mkey_p and rel_mkey_p != rec.match_key:
+                        rec.related_match_keys.add(rel_mkey_p)
 
             if raw_map_code and not rec.map_code:
                 rec.map_code = raw_map_code
@@ -1551,7 +1699,11 @@ def ingest_clerk_tpia_tables(
                 rec.legal_keys.add(lkey)
 
     # Pass 1: Process typed Header / Instrument / Flat tables first
-    for _label, headers, rows in iter_tpia_tabular_files(clerk_tpia_dir):
+    for _label, headers, rows in iter_tpia_tabular_files(
+        clerk_tpia_dir,
+        allowed_first_col=candidate_raw_fns,
+        skip_filenames=skip_filenames,
+    ):
         hdr_set = set(headers)
         if not (hdr_set & id_cols):
             continue
@@ -1561,7 +1713,11 @@ def ingest_clerk_tpia_tables(
             _process_table_rows(rows, is_typed_pass=True)
 
     # Pass 2: Process untyped child tables (Names, LegalDesc, RelatedDocs) or standalone untyped tables
-    for _label, headers, rows in iter_tpia_tabular_files(clerk_tpia_dir):
+    for _label, headers, rows in iter_tpia_tabular_files(
+        clerk_tpia_dir,
+        allowed_first_col=candidate_raw_fns,
+        skip_filenames=skip_filenames,
+    ):
         hdr_set = set(headers)
         if not (hdr_set & id_cols) or (hdr_set & inst_type_cols):
             continue
@@ -1842,7 +1998,16 @@ def run_tpia_ingestion(
     oh_shards: dict[str, dict[str, str]] = defaultdict(dict)
     confidential_hcads: set[str] = set()
     tier1_inst_to_hcads: dict[str, set[str]] = defaultdict(set)
-    target_hcads: set[str] = collect_standing_and_referenced_atlas_hcads(ddir, cdir)
+    is_large_clerk_dump = bool(
+        clerk_tpia_dir is not None
+        and Path(clerk_tpia_dir).is_dir()
+        and (Path(clerk_tpia_dir) / "RPLegalDesc.txt").is_file()
+        and (Path(clerk_tpia_dir) / "RPLegalDesc.txt").stat().st_size > 50_000_000
+    )
+    core_hcads: set[str] = collect_standing_and_referenced_atlas_hcads(
+        ddir, None if is_large_clerk_dump else cdir
+    )
+    target_hcads: set[str] = set(core_hcads)
 
     for pfx, ppath in iter_json_or_gzip_shard_keys(permits_dir, "permits_", r"\d{3}"):
         pdoc = read_json_or_gzip_path(ppath)
@@ -1855,8 +2020,11 @@ def run_tpia_ingestion(
             if rec.get("conf"):
                 confidential_hcads.add(norm_a)
                 continue
-            for mkey in parse_existing_compact_deeds(str(rec.get("d") or "")).keys():
-                tier1_inst_to_hcads[mkey].add(norm_a)
+            is_core_acct = (not is_large_clerk_dump) or (not core_hcads) or (norm_a in core_hcads)
+            for mkey, tup in parse_existing_compact_deeds(str(rec.get("d") or "")).items():
+                dt8_s = tup[0]
+                if is_core_acct or (len(dt8_s) >= 4 and dt8_s[:4].isdigit() and int(dt8_s[:4]) < 2005):
+                    tier1_inst_to_hcads[mkey].add(norm_a)
 
     for pfx, ohpath in iter_json_or_gzip_shard_keys(oh_dir, "owners_", r"\d{3}"):
         ohdoc = read_json_or_gzip_path(ohpath)
@@ -1866,19 +2034,24 @@ def run_tpia_ingestion(
             if not norm_a:
                 continue
             target_hcads.add(norm_a)
+            is_core_acct = (not is_large_clerk_dump) or (not core_hcads) or (norm_a in core_hcads)
             for seg in wire.split("|"):
                 parts = seg.split("~", 3)
                 if len(parts) >= 3:
                     dtok = parts[2].strip()
                     if dtok:
-                        mkey = format_clerk_match_key(dtok)
-                        if mkey:
-                            tier1_inst_to_hcads[mkey].add(norm_a)
+                        span_s = parts[0].strip()
+                        is_pre2005 = len(span_s) >= 4 and span_s[:4].isdigit() and int(span_s[:4]) < 2005
+                        if is_core_acct or is_pre2005:
+                            mkey = format_clerk_match_key(dtok)
+                            if mkey:
+                                tier1_inst_to_hcads[mkey].add(norm_a)
 
     # 2. Build HCAD legal crosswalk index + confidential set from Real_acct_owner.zip (when available)
+    legal_target_hcads = core_hcads if (is_large_clerk_dump and core_hcads) else (target_hcads if target_hcads else None)
     legal_index, zip_conf_hcads, ambiguous_legal_keys_count = build_hcad_legal_crosswalk_index(
         eff_acct_zip if eff_acct_zip.exists() else None,
-        target_hcads=target_hcads if target_hcads else None,
+        target_hcads=legal_target_hcads,
         max_parcels_per_legal_key=max_parcels_per_legal_key,
     )
     confidential_hcads |= zip_conf_hcads
@@ -1888,7 +2061,12 @@ def run_tpia_ingestion(
         hcad_tpia_dir, max_year=active_tax_year + 1, active_tax_year=active_tax_year
     )
     confidential_hcads |= hcad_res["confidential_hcads"]
-    clerk_res = ingest_clerk_tpia_tables(clerk_tpia_dir, max_year=active_tax_year + 1)
+    clerk_res = ingest_clerk_tpia_tables(
+        clerk_tpia_dir,
+        max_year=active_tax_year + 1,
+        tier1_match_keys=set(tier1_inst_to_hcads.keys()),
+        legal_index=legal_index,
+    )
 
     # 4. Crosswalk County Clerk instruments to 13-digit HCAD parcels (Tier 1 exact instrument -> Tier 2 legal key)
     tier1_matched_instruments = 0

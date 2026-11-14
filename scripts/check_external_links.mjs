@@ -313,9 +313,9 @@ async function probeUrl(entry) {
     };
   }
 
-  // Restricted Staff Admin Google Docs / Sheets (intentionally restricted to Editors; HTTP 401/403 expected without auth)
+  // Restricted Staff Admin Google Docs / Sheets / Drive files (intentionally restricted to Editors; HTTP 401/403 expected without auth)
   if (
-    host === "docs.google.com" &&
+    (host === "docs.google.com" || host === "drive.google.com") &&
     (res.status === 401 || res.status === 403) &&
     !url.includes("/pub?")
   ) {

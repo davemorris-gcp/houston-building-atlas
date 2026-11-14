@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "title": "Houston Building Atlas Data Ecosystem & Provenance Catalog",
   "subtitle": "Declarative registry of all municipal, county, state, federal, academic, and archival institutions integrated or planned for cross-checking Houston building history and demolition risk",
-  "lastUpdated": "2026-11-13",
+  "lastUpdated": "2026-11-14",
   "maintenanceNote": "Add or update any institution or data feed in this JSON file (app/public/data/data_sources_catalog.json). Both the interactive screen explorer and the printable 24x36 architectural blueprint poster in app/data-ecosystem.html render automatically from this catalog.",
   "statusDefinitions": [
     {
@@ -338,16 +338,16 @@
       "sectorId": "county_appraisal_tax",
       "jurisdiction": "Countywide (Pre-1988 Historical County Records)",
       "websiteUrl": "https://www.harriscountyarchives.com",
-      "overview": "Custodian of pre-HCAD Harris County historical records, including CR051 Appraisal Field Cards (1930s-1970s), CR037 Tax Assessor-Collector Block Books (1914-1981), and CR067 Tax Assessment Rolls.",
+      "overview": "Custodian of pre-HCAD Harris County historical records at 11525 Todd St, Suite 300, including CR001 Building and Land Assessment (BLA) Cards (mid-1920s to 1980, 915 boxes), CR001 Tax Assessor-Collector Block Books (1915-1997, 119 volumes), CR067 Real Property Tax Assessment Rolls (1838-1984), and MC003 Abstracts of Title.",
       "feeds": [
         {
           "id": "hca_cr051_field_cards",
-          "name": "CR051 Real Property Appraisal Field Cards (1930s-1970s, Series B0223)",
-          "status": "in_flight_request",
-          "frequencyId": "in_flight_planned",
-          "frequencyLabel": "In-Flight Archive Order (B0223 Pilot Submitted Nov 2026)",
-          "method": "Archival PDF Reproduction Order + Structured OCR Card Parser",
-          "recordScale": "Pilot: 5 Sunset Heights & Key St parcels; Microfilm: 1966-1974 reels",
+          "name": "CR001 Building & Land Assessment (BLA) Cards (Mid-1920s to 1980, 915 Boxes)",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Indexed 915-Box Catalog + Digitized Parcel Pulls",
+          "method": "Volume-Page-Item Box Resolver + Digitized PDF Card Hydration",
+          "recordScale": "915 archival boxes (Vol. 001-114) indexed + priority historic parcel scans",
           "appTargets": [
             "Property Drawer History Tab",
             "Date Integrity Overrides"
@@ -356,19 +356,19 @@
             "date_integrity",
             "directory_genealogy"
           ],
-          "whatItProvides": "Original pre-1984 tax appraiser field inspection cards containing physical building sketches, footprints, exact construction dates, porch additions, and historic photographs before HCAD's 1984 computerization rounded dates to 1920/1930/1940.",
-          "howAndWhenPlanned": "Custom Reproduction Order Form B0223 submitted in November 2026 for 1127 Key St and 4 neighbor comparison lots (Sunset Heights Blk 28/29). Upon PDF delivery from Harris County Archives, extract dates/sketches into date_overrides.json and Property Drawer History cards, then expand to microfilm reels for priority historic neighborhoods in Q1 2027.",
-          "howCrossChecked": "Directly resolves discrepancies where HCAD CAMA defaults to 1920 or 1930 while City Directories show earlier or later construction.",
-          "pipelineScript": "pipeline/atlas_pipeline/enrich_from_city_directories.py"
+          "whatItProvides": "Original pre-1984 tax assessor Building and Land Assessment (BLA) cards containing original City of Houston building permit numbers and issue dates, builder/architect attributions, measured floorplan sketches, room counts, historic valuations, and pre-HCAD ownership chains before 1984 computerization rounded dates to 1920/1930/1940.",
+          "howAndWhenPlanned": "Active in production: all 915 CR001 BLA box ranges (Vol. 001-114) are indexed in archival_index.json so any 13-digit HCAD account automatically resolves its exact Harris County Archives box and shelf location, with digitized BLA packets hydrated for priority historic properties (including 1127 Key St, 1001 Bayland Ave, 2000 Smith St, and 727 Arlington St) and a reading-room pull sheet generated for ongoing batch photography.",
+          "howCrossChecked": "Directly resolves discrepancies where HCAD CAMA defaults to 1920, 1930, or modern remodel years (such as 1995) by supplying the original City of Houston building permit number, date, and builder recorded on the pre-1980 field card.",
+          "pipelineScript": "app/js/archivalHelpers.js"
         },
         {
           "id": "hca_cr037_block_books",
-          "name": "CR037 Tax Assessor-Collector Block Books (1914-1981, 562 Volumes)",
-          "status": "planned_roadmap",
-          "frequencyId": "in_flight_planned",
-          "frequencyLabel": "Planned Phase 2 Archival Ingestion (Q1 2027)",
-          "method": "Reading Room Digital Camera Capture + Subdivision/Block/Lot Table Extractor",
-          "recordScale": "562 bound volumes & microfilm reels organized by Subdivision, Block, and Lot",
+          "name": "CR001 Tax Assessor-Collector Block Books (1915-1997, 119 Bound Volumes) & MC003 Abstracts",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Indexed 119-Volume Catalog + Digitized Block Pages",
+          "method": "Volume-Page-Item Resolver + Multi-Year Tax Rendition Ledger Parser",
+          "recordScale": "119 bound volumes (1915-1997) + 7 MC003 Abstracts of Title indexed",
           "appTargets": [
             "Property Drawer History Tab",
             "Ownership Chain Pre-2005 Backfill"
@@ -377,10 +377,10 @@
             "date_integrity",
             "ownership_unmasking"
           ],
-          "whatItProvides": "Annual lot-by-lot assessed land value vs. improvement value from 1914 to 1981, pinpointing the exact tax year an unimproved vacant lot jumped in value because a house or commercial building was erected, plus owner names for every year.",
-          "howCrossChecked": "Cross-checks 1926-1931 gap years between City Directory editions (such as 1926 vs 1927 vs 1928) by verifying the exact year improvement value first appeared on the county tax roll.",
-          "pipelineScript": "pipeline/atlas_pipeline/build_ownership_chains.py",
-          "howAndWhenPlanned": "Not used yet. Harris County Archives confirmed on November 11, 2026 that CR037 Block Books (1914-1981) are open for self-service photography at 1310 Prairie St. Planned for Phase 2 (Q1 2027): photograph targeted subdivision block pages for Houston Heights, Sunset Heights, Montrose, Freedmen's Town, and Eastwood, then parse year-over-year improvement value jumps."
+          "whatItProvides": "Annual lot-by-lot rendered land and improvement valuations from 1915 to 1997 (pinpointing the exact tax year a building was constructed or expanded, such as John H. Kirby's 1927 improvement jump from $29,175 to $56,250 at 2000 Smith St) plus 19th-century MC003 Abstracts of Title.",
+          "howCrossChecked": "Cross-checks gap years between City Directory editions and pre-permit additions by verifying the exact tax year improvement values jumped on the county tax roll.",
+          "pipelineScript": "app/js/archivalHelpers.js",
+          "howAndWhenPlanned": "Active in production: all 119 CR001 Block Book volumes (1915-1997) and MC003 Abstracts of Title are indexed in archival_index.json with digitized 1915-1927 Block Book and 1970 CR067 Tax Roll sheets hydrated in the Property Drawer History tab."
         }
       ]
     },
@@ -411,16 +411,16 @@
           "whatItProvides": "Historical grantor/grantee transfers, instrument numbers, file dates, and pre-formatted search helpers for Real Property, Probate, and Assumed Name (DBA) records.",
           "howCrossChecked": "Combined with HCAD new_own_dt and Texas SOS filings to trace property transfers through trusts, estates, and shell entities.",
           "pipelineScript": "app/js/clerkSearchHelpers.js",
-          "howAndWhenPlanned": "Active in production; expanding bulk pre-2005 index coverage via pending TPIA bulk index request."
+          "howAndWhenPlanned": "Active in production across all 152 prefix shards."
         },
         {
           "id": "hc_clerk_tpia_bulk_index",
-          "name": "TPIA Bulk Real Property Grantor/Grantee Index (1960-2004 & Builders Liens)",
-          "status": "in_flight_request",
-          "frequencyId": "in_flight_planned",
-          "frequencyLabel": "In-Flight TPIA Bulk Request (Drafted Nov 2026)",
-          "method": "Texas Public Information Act (Ch. 552) ASCII/CSV Index Export",
-          "recordScale": "Multi-million row historical instrument index (no PDF image fees)",
+          "name": "TPIA Bulk Real Property Grantor/Grantee Index (1961-2026 Deeds, Plats & Builders Liens)",
+          "status": "active_curated",
+          "frequencyId": "static_archival",
+          "frequencyLabel": "Ingested 7.68 GiB HCCO Data Sales Custom Order (1961-2026)",
+          "method": "Streaming Subdivision/Block/Lot Resolver (ingest-tpia)",
+          "recordScale": "7.68 GiB (12 files): 130,474 permit shards, 25,705 owner chains, 2,606 plats",
           "appTargets": [
             "Property Drawer History Tab",
             "Contractor & Architect Attribution"
@@ -429,10 +429,10 @@
             "ownership_unmasking",
             "directory_genealogy"
           ],
-          "whatItProvides": "Complete machine-readable index of pre-2005 deeds and historic Mechanic's Lien / Builders Contract filings that name the original builder/architect and exact contract price.",
-          "howCrossChecked": "Bridges the gap between 1959 (last indexed City Directory) and 2005 (earliest online HCAD CAMA roll) so every building has an unbroken 20th-century ownership chain.",
-          "pipelineScript": "pipeline/atlas_pipeline/build_ownership_chains.py",
-          "howAndWhenPlanned": "TPIA request staged in November 2026 requesting the tabular Grantor/Grantee + Legal Description index database export under Texas Gov't Code Sec. 552.275. Will be ingested into app/public/data/ownership_chains/ as soon as the Clerk's IT bureau provides the CSV/SQL dump."
+          "whatItProvides": "Complete machine-readable Harris County Clerk Real Property index (1961-2026) and Maps & Condos Plat index (1913-2026), linking pre-2004 Grantor -> Grantee warranty deeds, historic Mechanic's Lien / Builders Contract filings (contractor name + contract amount), Deeds of Trust, calibrated original subdivision plat years, and Texas GLO land grants.",
+          "howCrossChecked": "Bridges the gap between 1959 (last indexed City Directory) and 2005 (earliest online HCAD CAMA roll) so historic properties carry continuous 20th-century Grantor -> Grantee ownership chains and verified original subdivision plat dates.",
+          "pipelineScript": "pipeline/atlas_pipeline/ingest_tpia_clerk_and_hcad.py",
+          "howAndWhenPlanned": "Active in production: 7.68 GiB Harris County Clerk Data Sales custom order (11 annual Real Property archives 1961-2026 + Maps & Condos Index 1913-2026) streamed via cli.py --mode ingest-tpia into permits_<prefix3>.json.gz, owners_<prefix3>.json.gz, and overlays.json."
         }
       ]
     },

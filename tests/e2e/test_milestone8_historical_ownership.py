@@ -91,14 +91,14 @@ def test_it3_three_surface_hydration_across_archetypes_and_confidential_shield(
     page.wait_for_function(
         """() => {
             const rk = document.getElementById('research-kit-deed-chain');
-            return Boolean(rk && (rk.innerText || '').includes('HCAD Owners (2005-2026)'));
+            return Boolean(rk && (rk.innerText || '').includes('HCAD Owners (1925-2026)'));
         }""",
         timeout=10000,
     )
 
     # Surface 1: Research Kit Step 3 (HCAD Roll Ownership & Deed Chain + 1-click Clerk copy pill)
     rk_text = page.inner_text("#research-kit-deed-chain")
-    assert "HCAD Roll Ownership & Deed Chain (2005-2026)" in rk_text
+    assert "HCAD Roll Ownership & Deed Chain (1925-2026)" in rk_text
     assert "MENGES LAURA J" in rk_text
     assert "BURNETT MICHAEL G & SHANNON L" in rk_text
     first_copy_btn = page.locator("#research-kit-deed-chain button[data-rk-copy]").first
@@ -123,7 +123,9 @@ def test_it3_three_surface_hydration_across_archetypes_and_confidential_shield(
     # Surface 3: 1836-2026 Historical Provenance Timeline Card (deduplicated Clerk instrument node)
     page.click('#inspector-body [data-inspector-tab="history"]')
     tl_text = page.inner_text("#inspector-stewardship-timeline-card")
-    assert "Original Structure Built (1927)" in tl_text
+    assert "Original Structure Built (1925)" in tl_text
+    assert "COH Building Permit #8111 (Nov 30, 1925)" in tl_text
+    assert "C. L. Null" in tl_text
     assert "1928 Houston City Directory: John F Lake (Johnie M) (Clerk (SP Lines)) at 1127 KEY ST" in tl_text
     deed_nodes_2019 = page.locator(
         "#inspector-stewardship-timeline-card .stewardship-timeline-node",
