@@ -61,6 +61,12 @@ _GEOMETRY_ONLY_FALLBACK_SOURCES = frozenset({
     "HCAD PARCEL GIS",
     "[FOOTPRINT FIX NEEDED]",
 })
+_RE_PRIMARY_PERMIT_OR_ARCHIVE_SOURCE = re.compile(
+    r"\b(?:bla\s+card|building\s+permit|block\s+book|cr001|cr067|tax\s+roll)\b", re.I
+)
+_APPROVED_CSV_STATUSES = frozenset(
+    {"approved", "verified", "live", "published", "active", "yes", "true", "1"}
+)
 
 
 def normalize_hcad(raw: Any) -> str:
@@ -153,11 +159,11 @@ def merge_override_record(
     prior_src_str = f"{prior.get('source_type') or ''} {prior.get('source_citation') or ''}".strip()
     inc_src_str = f"{incoming.get('source_type') or ''} {incoming.get('source_citation') or ''}".strip()
     is_prior_primary_permit = bool(
-        re.search(r"\b(?:bla\s+card|building\s+permit|block\s+book|cr001|tax\s+roll)\b", prior_src_str, re.I)
+        _RE_PRIMARY_PERMIT_OR_ARCHIVE_SOURCE.search(prior_src_str)
         or prior.get("original_permit")
     )
     is_inc_primary_permit = bool(
-        re.search(r"\b(?:bla\s+card|building\s+permit|block\s+book|cr001|tax\s+roll)\b", inc_src_str, re.I)
+        _RE_PRIMARY_PERMIT_OR_ARCHIVE_SOURCE.search(inc_src_str)
         or incoming.get("original_permit")
     )
     is_inc_secondary_dir_or_survey = bool(
@@ -197,8 +203,10 @@ def merge_override_record(
                 merged["source_citation"] = prior_cit
                 continue
         if k == "source_citation" and is_geom_only and prior_year >= MIN_VALID_YEAR and not was_suppressed:
-            prior_cit = strip_embedded_geometry_tag(prior.get("source_citation", ""))
-            inc_cit = strip_embedded_geometry_tag(str(v))
+            prior_cit = strip_embedded_field_survey_tag(
+                strip_embedded_geometry_tag(prior.get("source_citation", ""))
+            )
+            inc_cit = strip_embedded_field_survey_tag(strip_embedded_geometry_tag(str(v)))
             if prior_cit and inc_cit and inc_cit not in prior_cit:
                 merged["source_citation"] = f"{prior_cit} | Footprint note: {inc_cit}"
                 continue
@@ -271,7 +279,7 @@ def parse_approved_csv_rows(csv_text: str) -> list[dict[str, Any]]:
     for row in reader:
         norm_row = {str(k or "").strip().lower().replace(" ", "_"): str(v or "").strip() for k, v in row.items()}
         status = norm_row.get("status", "approved").lower()
-        if status and status not in {"approved", "verified", "live", "published", "true", "1"}:
+        if status and status not in _APPROVED_CSV_STATUSES:
             continue
         raw_src_type = norm_row.get("source_type", "").strip().upper()
         if raw_src_type in _SKIP_SOURCE_TYPES or raw_src_type.endswith("_FLAG"):

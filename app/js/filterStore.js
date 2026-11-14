@@ -1915,7 +1915,13 @@ export function parseHashToState(hashString = "", searchString = "") {
       /^(1|true|on|yes)$/i.test(rawAiCompanion)
   );
   const selHcad = (mergedParams.get("hcad") || thcSurveyHcad || aiCompanionHcad || "").trim();
-  const selId = (mergedParams.get("id") || mergedParams.get("selected") || "").trim();
+  const selId = (
+    mergedParams.get("id") ||
+    mergedParams.get("selected") ||
+    mergedParams.get("b") ||
+    mergedParams.get("building") ||
+    ""
+  ).trim();
   const selQuery = (
     mergedParams.get("q") ||
     mergedParams.get("query") ||
@@ -1923,12 +1929,16 @@ export function parseHashToState(hashString = "", searchString = "") {
     ""
   ).trim();
   const selBnd = (mergedParams.get("bnd") || "").trim();
+  const idHcadCandidate =
+    !selId.includes("#") && /^\d{10,13}$/.test(selId) ? selId.padStart(13, "0") : "";
   const effectiveHcad =
-    selHcad || (/^\d{10,13}$/.test(selQuery) ? selQuery.padStart(13, "0") : "");
+    selHcad ||
+    idHcadCandidate ||
+    (/^\d{10,13}$/.test(selQuery) ? selQuery.padStart(13, "0") : "");
   if (effectiveHcad || selId || selQuery) {
     selection = {
       hcadNum: effectiveHcad,
-      featureId: selId,
+      featureId: idHcadCandidate || selId,
       query: selQuery,
     };
   } else if (selBnd) {

@@ -22,6 +22,7 @@ import {
   isClaimSuppressed,
   mergeOverrideRecord,
 } from "../../app/js/curatedEdits.js";
+import { parseHashToState } from "../../app/js/filterStore.js";
 import { validateExternalAtlasUrl } from "../../app/js/urlValidators.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -990,4 +991,25 @@ test("UT-M10-6: Harris County Archives CR001 BLA / Block Book resolver, digitize
   assert.ok(cardHtml.includes("Box <code>291A</code>"));
   assert.ok(cardHtml.includes("CR001 Assessor's Block Books"));
   assert.equal(/[\u2013\u2014]/.test(cardHtml), false);
+
+  // 6. Verify ?b=<feature_id|hcad> query-string deep links and 1001 Bayland Ave coordinates
+  const parsedBldLink = parseHashToState("", "?b=bld_002168&tab=overview");
+  assert.ok(parsedBldLink.selection);
+  assert.equal(parsedBldLink.selection.featureId, "bld_002168");
+  assert.equal(parsedBldLink.inspectorTab, "overview");
+
+  const parsedHcadInB = parseHashToState("", "?b=0620620000018&tab=overview");
+  assert.ok(parsedHcadInB.selection);
+  assert.equal(parsedHcadInB.selection.featureId, "0620620000018");
+  assert.equal(parsedHcadInB.selection.hcadNum, "0620620000018");
+  assert.equal(parsedHcadInB.inspectorTab, "overview");
+
+  const parsedBuildingAlias = parseHashToState("", "?building=620620000018&tab=history");
+  assert.ok(parsedBuildingAlias.selection);
+  assert.equal(parsedBuildingAlias.selection.featureId, "0620620000018");
+  assert.equal(parsedBuildingAlias.selection.hcadNum, "0620620000018");
+  assert.equal(parsedBuildingAlias.inspectorTab, "history");
+
+  assert.equal(ovDoc.overrides["0620620000018"].lon, -95.3845);
+  assert.equal(ovDoc.overrides["0620620000018"].lat, 29.7869);
 });

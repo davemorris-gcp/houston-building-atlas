@@ -912,7 +912,10 @@ export function parseOverridesFromSheetRows(rows) {
     const status = String(row.status || row.review_status || "approved")
       .trim()
       .toLowerCase();
-    if (status && !["approved", "verified", "live", "active", "yes"].includes(status)) {
+    if (
+      status &&
+      !["approved", "verified", "live", "published", "active", "yes", "true", "1"].includes(status)
+    ) {
       continue;
     }
 
@@ -1138,7 +1141,10 @@ export function parseGlobalRejectionsFromSheetRows(rows) {
     const status = String(row.status || row.review_status || "approved")
       .trim()
       .toLowerCase();
-    if (status && !["approved", "verified", "live", "active", "yes"].includes(status)) {
+    if (
+      status &&
+      !["approved", "verified", "live", "published", "active", "yes", "true", "1"].includes(status)
+    ) {
       continue;
     }
     const sourceType = String(row.source_type || row.evidence_source || "")

@@ -974,9 +974,9 @@ export class HoustonAtlasApp {
         }
         const hitBldId = String(idxHit.building_id || "").trim();
         const hitId = String(idxHit.id || "").trim();
-        if (hitBldId && (!featureId || featureId.startsWith("school_"))) {
+        if (hitBldId && (!featureId || featureId === hcadNum || featureId.startsWith("school_"))) {
           featureId = hitBldId;
-        } else if (!featureId && hitId && !hitId.startsWith("school_")) {
+        } else if ((!featureId || featureId === hcadNum) && hitId && !hitId.startsWith("school_")) {
           featureId = hitId;
         }
         if (!addressQuery && idxHit.address) addressQuery = String(idxHit.address).trim();
@@ -986,19 +986,35 @@ export class HoustonAtlasApp {
             idxHit.building_name || (hitId.startsWith("school_") ? idxHit.label : "") || ""
           ).trim();
         }
-        if (!Number.isFinite(targetLng) && toFiniteCoord(idxHit.lon ?? idxHit.lng) !== null) {
+        if (
+          !idxHit._coordsFallback &&
+          !Number.isFinite(targetLng) &&
+          toFiniteCoord(idxHit.lon ?? idxHit.lng) !== null
+        ) {
           targetLng = toFiniteCoord(idxHit.lon ?? idxHit.lng);
         }
-        if (!Number.isFinite(targetLat) && toFiniteCoord(idxHit.lat) !== null) {
+        if (
+          !idxHit._coordsFallback &&
+          !Number.isFinite(targetLat) &&
+          toFiniteCoord(idxHit.lat) !== null
+        ) {
           targetLat = toFiniteCoord(idxHit.lat);
         }
       }
     }
 
+    const extractFirstGeoJsonCoords = (geom) => {
+      if (!geom) return null;
+      if (geom.type === "Point") return geom.coordinates;
+      if (geom.type === "Polygon") return geom.coordinates?.[0]?.[0] || null;
+      if (geom.type === "MultiPolygon") return geom.coordinates?.[0]?.[0]?.[0] || null;
+      return null;
+    };
+
     // 1b. Also check curatedOverrides directly for #<slug> deep links (including auxiliary skip_search_index buildings)
     const rawDirectOv =
       (featureId && this.mapController?.curatedOverrides?.[featureId]) ||
-      (!featureId && hcadNum && this.mapController?.curatedOverrides?.[hcadNum]) ||
+      (!featureId.includes("#") && hcadNum && this.mapController?.curatedOverrides?.[hcadNum]) ||
       null;
     const directOv =
       rawDirectOv &&
@@ -1025,6 +1041,63 @@ export class HoustonAtlasApp {
       }
       if (!Number.isFinite(targetLat) && toFiniteCoord(directOv.lat) !== null) {
         targetLat = toFiniteCoord(directOv.lat);
+      }
+      const ovGeomPt = extractFirstGeoJsonCoords(directOv.geometry);
+      if (Array.isArray(ovGeomPt) && ovGeomPt.length >= 2) {
+        if (!Number.isFinite(targetLng) && toFiniteCoord(ovGeomPt[0]) !== null) {
+          targetLng = toFiniteCoord(ovGeomPt[0]);
+        }
+        if (!Number.isFinite(targetLat) && toFiniteCoord(ovGeomPt[1]) !== null) {
+          targetLat = toFiniteCoord(ovGeomPt[1]);
+        }
+      }
+    }
+
+    // 1b-ii. Also check loaded buildings.geojson (this.mapController.buildingsData) before external HCAD lookup
+    if (
+      (featureId || hcadNum) &&
+      (!Number.isFinite(targetLng) || !Number.isFinite(targetLat) || !addressQuery) &&
+      Array.isArray(this.mapController?.buildingsData)
+    ) {
+      const bldDataHit = this.mapController.buildingsData.find((f) => {
+        const p = f?.properties || {};
+        const pid = String(p.id || "").trim();
+        const pbid = String(p.building_id || "").trim();
+        const phcad = String(p.hcad_num || "").trim();
+        if (
+          isEntitySuppressedByOverrides(this.mapController?.curatedOverrides, {
+            buildingId: pbid || pid,
+            hcadNum: phcad,
+          })
+        ) {
+          return false;
+        }
+        if (featureId && (pid === featureId || pbid === featureId)) return true;
+        if (hcadNum && !featureId.includes("#") && phcad === hcadNum) return true;
+        return false;
+      });
+      if (bldDataHit) {
+        const bp = bldDataHit.properties || {};
+        if (!hcadNum && bp.hcad_num) hcadNum = String(bp.hcad_num).trim();
+        if ((!featureId || featureId === hcadNum) && (bp.building_id || bp.id)) {
+          featureId = String(bp.building_id || bp.id).trim();
+        }
+        if (!addressQuery && bp.address) addressQuery = String(bp.address).trim();
+        if (!fallbackYearBuilt && Number(bp.year_built) >= 1836) {
+          fallbackYearBuilt = Number(bp.year_built);
+        }
+        if (!fallbackBuildingName && (bp.building_name || bp.landmark_name)) {
+          fallbackBuildingName = String(bp.building_name || bp.landmark_name).trim();
+        }
+        const pt = extractFirstGeoJsonCoords(bldDataHit.geometry);
+        if (Array.isArray(pt) && pt.length >= 2) {
+          if (!Number.isFinite(targetLng) && toFiniteCoord(pt[0]) !== null) {
+            targetLng = toFiniteCoord(pt[0]);
+          }
+          if (!Number.isFinite(targetLat) && toFiniteCoord(pt[1]) !== null) {
+            targetLat = toFiniteCoord(pt[1]);
+          }
+        }
       }
     }
 
@@ -2385,6 +2458,7 @@ export class HoustonAtlasApp {
       const itemHcad = String(item.hcad_num || "").trim();
       if (
         itemHcad &&
+        !item._coordsFallback &&
         !coordsByHcad.has(itemHcad) &&
         Number.isFinite(Number(item.lon)) &&
         Number.isFinite(Number(item.lat))
@@ -2434,8 +2508,16 @@ export class HoustonAtlasApp {
           (cleanHcad ? existingByHcad.get(cleanHcad) : undefined);
       const existingItem = existingIdx !== undefined ? this.searchIndex[existingIdx] : null;
       const hcadFallbackCoords = cleanHcad ? coordsByHcad.get(cleanHcad) : null;
-      let lon = ov.lon ?? ov.lng ?? existingItem?.lon ?? hcadFallbackCoords?.lon ?? -95.38718;
-      let lat = ov.lat ?? existingItem?.lat ?? hcadFallbackCoords?.lat ?? 29.79175;
+      const validExistingLon = !existingItem?._coordsFallback ? existingItem?.lon : undefined;
+      const validExistingLat = !existingItem?._coordsFallback ? existingItem?.lat : undefined;
+      const hasExplicitCoords =
+        ov.lon !== undefined ||
+        ov.lng !== undefined ||
+        Boolean(ov.geometry) ||
+        validExistingLon !== undefined ||
+        hcadFallbackCoords?.lon !== undefined;
+      let lon = ov.lon ?? ov.lng ?? validExistingLon ?? hcadFallbackCoords?.lon ?? -95.38718;
+      let lat = ov.lat ?? validExistingLat ?? hcadFallbackCoords?.lat ?? 29.79175;
       if (ov.geometry && ov.geometry.coordinates && ov.geometry.coordinates[0]?.[0]) {
         const ring =
           ov.geometry.type === "Polygon"
@@ -2574,6 +2656,7 @@ export class HoustonAtlasApp {
         subdivision: ov.subdivision || existingItem?.subdivision || "",
         lon,
         lat,
+        _coordsFallback: !hasExplicitCoords,
         zoom: 17.6,
       };
       if (existingIdx !== undefined) {
@@ -13773,6 +13856,7 @@ export class HoustonAtlasApp {
       ].includes(String(rawProps.overlay_layer || ""))
     ) {
       this._currentInspectedRawProps = null;
+      this._activeInspectorProps = null;
       drawer.classList.add("boundary-mode");
       this._syncInspectorLayoutControls();
       this._renderBoundaryInspectorDrawer(rawProps, drawer, content);
